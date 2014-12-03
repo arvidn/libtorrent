@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	template<int v1, int v2>
-	struct min { enum { value = v1<v2?v1:v2 }; };
 
 	template<int v1, int v2>
 	struct max { enum { value = v1>v2?v1:v2 }; };

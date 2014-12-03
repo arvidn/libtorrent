@@ -41,67 +41,60 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 
-char const* pe_policy(boost::uint8_t policy)
+char const* pe_policy(libtorrent::pe_settings::enc_policy policy)
 {
 	using namespace libtorrent;
 	
-	if (policy == settings_pack::pe_disabled) return "disabled";
-	else if (policy == settings_pack::pe_enabled) return "enabled";
-	else if (policy == settings_pack::pe_forced) return "forced";
+	if (policy == pe_settings::disabled) return "disabled";
+	else if (policy == pe_settings::enabled) return "enabled";
+	else if (policy == pe_settings::forced) return "forced";
 	return "unknown";
 }
 
-void display_settings(libtorrent::settings_pack const& s)
+void display_pe_settings(libtorrent::pe_settings s)
 {
 	using namespace libtorrent;
 	
 	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
-		, pe_policy(s.get_int(settings_pack::out_enc_policy))
-		, pe_policy(s.get_int(settings_pack::in_enc_policy)));
+		, pe_policy(s.out_enc_policy), pe_policy(s.in_enc_policy));
 	
 	fprintf(stderr, "enc_level - %s\t\tprefer_rc4 - %s\n"
-		, s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_plaintext ? "plaintext"
-		: s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_rc4 ? "rc4"
-		: s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_both ? "both" : "unknown"
-		, s.get_bool(settings_pack::prefer_rc4) ? "true": "false");
+		, s.allowed_enc_level == pe_settings::plaintext ? "plaintext"
+		: s.allowed_enc_level == pe_settings::rc4 ? "rc4"
+		: s.allowed_enc_level == pe_settings::both ? "both" : "unknown"
+		, s.prefer_rc4 ? "true": "false");
 }
 
-void test_transfer(libtorrent::settings_pack::enc_policy policy
-	, int timeout
-	, libtorrent::settings_pack::enc_level level = libtorrent::settings_pack::pe_both
-	, bool pref_rc4 = false)
+void test_transfer(libtorrent::pe_settings::enc_policy policy,
+		   libtorrent::pe_settings::enc_level level = libtorrent::pe_settings::both,
+		   bool pref_rc4 = false)
 {
 	using namespace libtorrent;
-	namespace lt = libtorrent;
 
-	// these are declared before the session objects
-	// so that they are destructed last. This enables
-	// the sessions to destruct in parallel
-	session_proxy p1;
-	session_proxy p2;
-
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
-	settings_pack s;
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
+	pe_settings s;
 	
-	s.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);
-	s.set_int(settings_pack::in_enc_policy, settings_pack::pe_enabled);
-	s.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
-	ses2.apply_settings(s);
+	s.out_enc_policy = libtorrent::pe_settings::enabled;
+	s.in_enc_policy = libtorrent::pe_settings::enabled;
+	
+	s.allowed_enc_level = pe_settings::both;
+	ses2.set_pe_settings(s);
 
-	fprintf(stderr, " Session2 \n");
-	display_settings(s);
+	s.out_enc_policy = policy;
+	s.in_enc_policy = policy;
+	s.allowed_enc_level = level;
+	s.prefer_rc4 = pref_rc4;
+	ses1.set_pe_settings(s);
 
-	s.set_int(settings_pack::out_enc_policy, policy);
-	s.set_int(settings_pack::in_enc_policy, policy);
-	s.set_int(settings_pack::allowed_enc_level, level);
-	s.set_bool(settings_pack::prefer_rc4, pref_rc4);
-	ses1.apply_settings(s);
-
+	s = ses1.get_pe_settings();
 	fprintf(stderr, " Session1 \n");
-	display_settings(s);
+	display_pe_settings(s);
+	s = ses2.get_pe_settings();
+	fprintf(stderr, " Session2 \n");
+	display_pe_settings(s);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -112,14 +105,14 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 
 	fprintf(stderr, "waiting for transfer to complete\n");
 
-	for (int i = 0; i < timeout * 10; ++i)
+	for (int i = 0; i < 50; ++i)
 	{
 		torrent_status s = tor2.status();
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 
 		if (s.is_seeding) break;
-		test_sleep(100);
+		test_sleep(1000);
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
@@ -127,23 +120,15 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
-	// this allows shutting down the sessions in parallel
-	p1 = ses1.abort();
-	p2 = ses2.abort();
-
 	error_code ec;
 	remove_all("tmp1_pe", ec);
 	remove_all("tmp2_pe", ec);
 	remove_all("tmp3_pe", ec);
 }
 
-void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b)
+void test_enc_handler(libtorrent::encryption_handler* a, libtorrent::encryption_handler* b)
 {
-#ifdef TORRENT_USE_VALGRIND
-	const int repcount = 10;
-#else
-	const int repcount = 128;
-#endif
+	int repcount = 128;
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		std::size_t buf_len = rand() % (512 * 1024);
@@ -153,56 +138,27 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 		std::generate(buf, buf + buf_len, &std::rand);
 		std::memcpy(cmp_buf, buf, buf_len);
 		
-		using namespace boost::asio;
-		std::vector<mutable_buffer> iovec;
-		iovec.push_back(mutable_buffer(buf, buf_len));
-		a->encrypt(iovec);
+		a->encrypt(buf, buf_len);
 		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		TEST_CHECK(iovec.empty());
-		int consume = 0;
-		int produce = buf_len;
-		int packet_size = 0;
-		iovec.push_back(mutable_buffer(buf, buf_len));
-		b->decrypt(iovec, consume, produce, packet_size);
+		b->decrypt(buf, buf_len);
 		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
-		TEST_CHECK(iovec.empty());
-		TEST_EQUAL(consume, 0);
-		TEST_EQUAL(produce, buf_len);
-		TEST_EQUAL(packet_size, 0);
 		
-		iovec.push_back(mutable_buffer(buf, buf_len));
-		b->encrypt(iovec);
+		b->encrypt(buf, buf_len);
 		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
-		TEST_CHECK(iovec.empty());
-		consume = 0;
-		produce = buf_len;
-		packet_size = 0;
-		iovec.push_back(mutable_buffer(buf, buf_len));
-		a->decrypt(iovec, consume, produce, packet_size);
+		a->decrypt(buf, buf_len);
 		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
-		TEST_CHECK(iovec.empty());
-		TEST_EQUAL(consume, 0);
-		TEST_EQUAL(produce, buf_len);
-		TEST_EQUAL(packet_size, 0);
 		
 		delete[] buf;
 		delete[] cmp_buf;
 	}
 }
 
-#endif
-
 int test_main()
 {
 	using namespace libtorrent;
+	int repcount = 128;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-
-#ifdef TORRENT_USE_VALGRIND
-	const int repcount = 10;
-#else
-	const int repcount = 128;
-#endif
+	random_seed(total_microseconds(time_now_hires() - min_time()));
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{
@@ -232,27 +188,28 @@ int test_main()
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
 	
-#ifdef TORRENT_USE_VALGRIND
-	const int timeout = 10;
-#else
-	const int timeout = 5;
-#endif
+	test_transfer(pe_settings::disabled);
 
-	test_transfer(settings_pack::pe_disabled, timeout);
+	test_transfer(pe_settings::forced, pe_settings::plaintext);
+	test_transfer(pe_settings::forced, pe_settings::rc4);
+	test_transfer(pe_settings::forced, pe_settings::both, false);
+	test_transfer(pe_settings::forced, pe_settings::both, true);
 
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_plaintext);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_rc4);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, false);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, true);
-
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_plaintext);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_rc4);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, false);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, true);
-#else
-	fprintf(stderr, "PE test not run because it's disabled\n");
-#endif
+	test_transfer(pe_settings::enabled, pe_settings::plaintext);
+	test_transfer(pe_settings::enabled, pe_settings::rc4);
+	test_transfer(pe_settings::enabled, pe_settings::both, false);
+	test_transfer(pe_settings::enabled, pe_settings::both, true);
 
 	return 0;
 }
+
+#else
+
+int test_main()
+{
+	fprintf(stderr, "PE test not run because it's disabled\n");
+	return 0;
+}
+
+#endif
 

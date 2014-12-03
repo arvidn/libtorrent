@@ -1,35 +1,3 @@
-/*
-
-Copyright (c) 2012, Arvid Norberg
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in
-      the documentation and/or other materials provided with the distribution.
-    * Neither the name of the author nor the names of its
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-
-*/
-
 
 #include "libtorrent/rss.hpp"
 #include "libtorrent/session.hpp"
@@ -38,68 +6,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
-
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
-{
-	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		fclose(f);
-		return 0;
-	}
-
-	r = fread(&v[0], 1, v.size(), f);
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
-}
 
 void print_feed(feed_status const& f)
 {
@@ -136,19 +42,16 @@ std::string const& progress_bar(int progress, int width)
 
 int save_file(std::string const& filename, std::vector<char>& v)
 {
-	FILE* f = fopen(filename.c_str(), "wb");
-	if (f == NULL)
-		return -1;
+	using namespace libtorrent;
 
-	int w = fwrite(&v[0], 1, v.size(), f);
-	if (w < 0)
-	{
-		fclose(f);
-		return -1;
-	}
-
-	if (w != int(v.size())) return -3;
-	fclose(f);
+	file f;
+	error_code ec;
+	if (!f.open(filename, file::write_only, ec)) return -1;
+	if (ec) return -1;
+	file::iovec_t b = {&v[0], v.size()};
+	size_type written = f.writev(0, &b, 1, ec);
+	if (written != int(v.size())) return -3;
+	if (ec) return -3;
 	return 0;
 }
 
@@ -167,13 +70,13 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	lt::session ses;
+	session ses;
 
-	settings_pack pack;
-	pack.set_int(settings_pack::active_downloads, 2);
-	pack.set_int(settings_pack::active_seeds, 1);
-	pack.set_int(settings_pack::active_limit, 3);
-	ses.apply_settings(pack);
+	session_settings sett;
+	sett.active_downloads = 2;
+	sett.active_seeds = 1;
+	sett.active_limit = 3;
+	ses.set_settings(sett);
 
 	std::vector<char> in;
 	error_code ec;
@@ -230,7 +133,7 @@ int main(int argc, char* argv[])
 		{
 			torrent_status st = i->status();
 			std::string const& progress = progress_bar(st.progress_ppm / 1000, 40);
-			std::string name = st.name;
+			std::string name = i->name();
 			if (name.size() > 70) name.resize(70);
 			std::string error = st.error;
 			if (error.size() > 40) error.resize(40);

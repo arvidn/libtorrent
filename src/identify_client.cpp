@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#include "libtorrent/pch.hpp"
 
 #include <cctype>
 #include <algorithm>
@@ -155,15 +157,12 @@ namespace
 		, {"A~", "Ares"}
 		, {"BB", "BitBuddy"}
 		, {"BC", "BitComet"}
-		, {"BE", "baretorrent"}
 		, {"BF", "Bitflu"}
 		, {"BG", "BTG"}
 		, {"BL", "BitBlinder"}
 		, {"BP", "BitTorrent Pro"}
 		, {"BR", "BitRocket"}
 		, {"BS", "BTSlave"}
-		, {"BT", "BitTorrent"}
-		, {"BU", "BigUp"}
 		, {"BW", "BitWombat"}
 		, {"BX", "BittorrentX"}
 		, {"CD", "Enhanced CTorrent"}
@@ -174,12 +173,10 @@ namespace
 		, {"ES", "electric sheep"}
 		, {"FC", "FileCroc"}
 		, {"FT", "FoxTorrent"}
-		, {"FX", "Freebox BitTorrent"}
 		, {"GS", "GSTorrent"}
 		, {"HK", "Hekate"}
 		, {"HL", "Halite"}
 		, {"HN", "Hydranode"}
-		, {"IL", "iLivid"}
 		, {"KG", "KGet"}
 		, {"KT", "KTorrent"}
 		, {"LC", "LeechCraft"}
@@ -208,14 +205,12 @@ namespace
 		, {"S",  "Shadow"}
 		, {"SB", "Swiftbit"}
 		, {"SD", "Xunlei"}
-		, {"SK", "spark"}
 		, {"SN", "ShareNet"}
 		, {"SS", "SwarmScope"}
 		, {"ST", "SymTorrent"}
 		, {"SZ", "Shareaza"}
 		, {"S~", "Shareaza (beta)"}
 		, {"T",  "BitTornado"}
-		, {"TB", "Torch"}
 		, {"TL", "Tribler"}
 		, {"TN", "Torrent.NET"}
 		, {"TR", "Transmission"}
@@ -228,7 +223,6 @@ namespace
 		, {"VG", "Vagaa"}
 		, {"WT", "BitLet"}
 		, {"WY", "FireTorrent"}
-		, {"XF", "Xfplay"}
 		, {"XL", "Xunlei"}
 		, {"XS", "XSwifter"}
 		, {"XT", "XanTorrent"}
@@ -282,7 +276,6 @@ namespace
 		, {0, "OP", "Opera"}
 		, {2, "RS", "Rufus"}
 		, {0, "AZ2500BT", "BitTyrant"}
-		, {0, "btpd/", "BitTorrent Protocol Daemon"}
 		, {0, "TIX", "Tixati"}
 		, {0, "QVOD", "Qvod"}
 	};

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <vector>
 #include <cctype>
 
 #include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
@@ -57,10 +58,10 @@ namespace
 namespace libtorrent
 {
 	timeout_handler::timeout_handler(io_service& ios)
-		: m_completion_timeout(0)
-		, m_start_time(time_now_hires())
+		: m_start_time(time_now_hires())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
+		, m_completion_timeout(0)
 		, m_read_timeout(0)
 		, m_abort(false)
 	{}
@@ -90,7 +91,7 @@ namespace libtorrent
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(boost::bind(
-			&timeout_handler::timeout_callback, shared_from_this(), _1));
+			&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	void timeout_handler::restart_read_timeout()
@@ -132,8 +133,8 @@ namespace libtorrent
 		if (m_completion_timeout > 0)
 		{
 			timeout = timeout == 0
-				? int(m_completion_timeout - total_seconds(m_read_time - m_start_time))
-				: (std::min)(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
+				? m_completion_timeout - total_seconds(m_read_time - m_start_time)
+				: (std::min)(m_completion_timeout  - total_seconds(m_read_time - m_start_time), timeout);
 		}
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("timeout_handler::timeout_callback");
@@ -141,7 +142,7 @@ namespace libtorrent
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
-			boost::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
+			boost::bind(&timeout_handler::timeout_callback, self(), _1));
 	}
 
 	tracker_connection::tracker_connection(
@@ -150,9 +151,9 @@ namespace libtorrent
 		, io_service& ios
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_req(req)
 		, m_requester(r)
 		, m_man(man)
+		, m_req(req)
 	{}
 
 	boost::shared_ptr<request_callback> tracker_connection::requester() const
@@ -165,7 +166,7 @@ namespace libtorrent
 	{
 		// we need to post the error to avoid deadlock
 			get_io_service().post(boost::bind(&tracker_connection::fail_impl
-					, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
+					, self(), ec, code, std::string(msg), interval, min_interval));
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
@@ -193,16 +194,6 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 
-	tracker_manager::tracker_manager(aux::session_impl& ses)
-		: m_ses(ses)
-		, m_ip_filter(ses.m_ip_filter)
-		, m_udp_socket(ses.m_udp_socket)
-		, m_host_resolver(ses.m_host_resolver)
-		, m_settings(ses.settings())
-		, m_stats_counters(ses.m_stats_counters)
-		, m_abort(false)
-	{}
-
 	tracker_manager::~tracker_manager()
 	{
 		TORRENT_ASSERT(m_abort);
@@ -211,50 +202,30 @@ namespace libtorrent
 
 	void tracker_manager::sent_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
-		m_stats_counters.inc_stats_counter(counters::sent_tracker_bytes, bytes);
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		m_ses.m_stat.sent_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::received_bytes(int bytes)
 	{
-		TORRENT_ASSERT(m_ses.is_single_thread());
-		m_stats_counters.inc_stats_counter(counters::recv_tracker_bytes, bytes);
+		TORRENT_ASSERT(m_ses.is_network_thread());
+		m_ses.m_stat.received_tracker_bytes(bytes);
 	}
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
 
-		http_conns_t::iterator i = std::find_if(m_http_conns.begin()
-			, m_http_conns.end()
-			, boost::bind(&boost::shared_ptr<http_tracker_connection>::get, _1) == c);
-		if (i != m_http_conns.end())
-		{
-			m_http_conns.erase(i);
-			return;
-		}
+		tracker_connections_t::iterator i = std::find(m_connections.begin()
+			, m_connections.end(), boost::intrusive_ptr<const tracker_connection>(c));
+		if (i == m_connections.end()) return;
 
-		udp_conns_t::iterator j = std::find_if(m_udp_conns.begin()
-			, m_udp_conns.end()
-			, boost::bind(&boost::shared_ptr<udp_tracker_connection>::get
-				, boost::bind(&udp_conns_t::value_type::second, _1)) == c);
-		if (j != m_udp_conns.end())
-		{
-			m_udp_conns.erase(j);
-			return;
-		}
-	}
-
-	void tracker_manager::update_transaction_id(
-		boost::shared_ptr<udp_tracker_connection> c
-		, boost::uint64_t tid)
-	{
-		m_udp_conns.erase(c->transaction_id());
-		m_udp_conns[tid] = c;
+		m_connections.erase(i);
 	}
 
 	void tracker_manager::queue_request(
 		io_service& ios
+		, connection_queue& cc
 		, tracker_request req
 		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
@@ -272,107 +243,91 @@ namespace libtorrent
 
 		std::string protocol = req.url.substr(0, req.url.find(':'));
 
+		boost::intrusive_ptr<tracker_connection> con;
+
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol == "http" || protocol == "https")
 #else
 		if (protocol == "http")
 #endif
 		{
-			boost::shared_ptr<http_tracker_connection> con
-				= boost::make_shared<http_tracker_connection>(
-				boost::ref(ios), boost::ref(*this), boost::cref(req), c, auth
+			con = new http_tracker_connection(
+				ios, cc, *this, req, c
+				, m_ses, m_proxy, auth
 #if TORRENT_USE_I2P
 				, &m_ses.m_i2p_conn
 #endif
 				);
-			m_http_conns.push_back(con);
-			con->start();
-			return;
 		}
 		else if (protocol == "udp")
 		{
-			boost::shared_ptr<udp_tracker_connection> con
-				= boost::make_shared<udp_tracker_connection>(
-					boost::ref(ios), boost::ref(*this), boost::cref(req) , c);
-			m_udp_conns[con->transaction_id()] = con;
-			con->start();
+			con = new udp_tracker_connection(
+				ios, cc, *this, req , c, m_ses
+				, m_proxy);
+		}
+		else
+		{
+			// we need to post the error to avoid deadlock
+			if (boost::shared_ptr<request_callback> r = c.lock())
+				ios.post(boost::bind(&request_callback::tracker_request_error, r, req
+					, -1, error_code(errors::unsupported_url_protocol)
+					, "", 0));
 			return;
 		}
 
-		// we need to post the error to avoid deadlock
-		if (boost::shared_ptr<request_callback> r = c.lock())
-			ios.post(boost::bind(&request_callback::tracker_request_error, r, req
-				, -1, error_code(errors::unsupported_url_protocol)
-				, "", 0));
+		m_connections.push_back(con);
+
+		boost::shared_ptr<request_callback> cb = con->requester();
+		if (cb) cb->m_manager = this;
+		con->start();
 	}
 
-	bool tracker_manager::incoming_packet(error_code const& e
+	bool tracker_manager::incoming_udp(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		// ignore packets smaller than 8 bytes
-		if (size < 8) return false;
-
-		const char* ptr = buf + 4;
-		boost::uint32_t transaction = detail::read_uint32(ptr);
-		udp_conns_t::iterator i = m_udp_conns.find(transaction);
-
-		if (i == m_udp_conns.end()) return false;
-
-		boost::shared_ptr<tracker_connection> p = i->second;
-		// on_receive() may remove the tracker connection from the list
-		return p->on_receive(e, ep, buf, size);
+		for (tracker_connections_t::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			boost::intrusive_ptr<tracker_connection> p = *i;
+			++i;
+			// on_receive() may remove the tracker connection from the list
+			if (p->on_receive(e, ep, buf, size)) return true;
+		}
+		return false;
 	}
 
-	bool tracker_manager::incoming_packet(error_code const& e
+	bool tracker_manager::incoming_udp(error_code const& e
 		, char const* hostname, char const* buf, int size)
 	{
-		// ignore packets smaller than 8 bytes
-		if (size < 8) return false;
-
-		const char* ptr = buf + 4;
-		boost::uint32_t transaction = detail::read_uint32(ptr);
-		udp_conns_t::iterator i = m_udp_conns.find(transaction);
-
-		if (i == m_udp_conns.end()) return false;
-
-		boost::shared_ptr<tracker_connection> p = i->second;
-		// on_receive() may remove the tracker connection from the list
-		return p->on_receive_hostname(e, hostname, buf, size);
+		for (tracker_connections_t::iterator i = m_connections.begin();
+			i != m_connections.end();)
+		{
+			boost::intrusive_ptr<tracker_connection> p = *i;
+			++i;
+			// on_receive() may remove the tracker connection from the list
+			if (p->on_receive_hostname(e, hostname, buf, size)) return true;
+		}
+		return false;
 	}
 
 	void tracker_manager::abort_all_requests(bool all)
 	{
-		// removes all connections except 'event=stopped'-requests
+		// removes all connections from m_connections
+		// except 'event=stopped'-requests
 		mutex_t::scoped_lock l(m_mutex);
 
 		m_abort = true;
-		http_conns_t close_http_connections;
-		std::vector<boost::shared_ptr<udp_tracker_connection> > close_udp_connections;
+		tracker_connections_t close_connections;
 
-		for (http_conns_t::iterator i = m_http_conns.begin()
-			, end(m_http_conns.end()); i != end; ++i)
+		for (tracker_connections_t::iterator i = m_connections.begin()
+			, end(m_connections.end()); i != end; ++i)
 		{
-			http_tracker_connection* c = i->get();
+			intrusive_ptr<tracker_connection> c = *i;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
 
-			close_http_connections.push_back(*i);
-
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			boost::shared_ptr<request_callback> rc = c->requester();
-			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
-#endif
-		}
-		for (udp_conns_t::iterator i = m_udp_conns.begin()
-			, end(m_udp_conns.end()); i != end; ++i)
-		{
-			boost::shared_ptr<udp_tracker_connection> c = i->second;
-			tracker_request const& req = c->tracker_req();
-			if (req.event == tracker_request::stopped && !all)
-				continue;
-
-			close_udp_connections.push_back(c);
+			close_connections.push_back(c);
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
@@ -381,15 +336,8 @@ namespace libtorrent
 		}
 		l.unlock();
 
-		for (http_conns_t::iterator i = close_http_connections.begin()
-			, end(close_http_connections.end()); i != end; ++i)
-		{
-			(*i)->close();
-		}
-
-		for (std::vector<boost::shared_ptr<udp_tracker_connection> >::iterator i
-			= close_udp_connections.begin()
-			, end(close_udp_connections.end()); i != end; ++i)
+		for (tracker_connections_t::iterator i = close_connections.begin()
+			, end(close_connections.end()); i != end; ++i)
 		{
 			(*i)->close();
 		}
@@ -398,12 +346,12 @@ namespace libtorrent
 	bool tracker_manager::empty() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_http_conns.empty() && m_udp_conns.empty();
+		return m_connections.empty();
 	}
 
 	int tracker_manager::num_requests() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_http_conns.size() + m_udp_conns.size();
+		return m_connections.size();
 	}
 }

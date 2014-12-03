@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <algorithm>
 #include <ctime>
 #include <boost/crc.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
-#include "libtorrent/random.hpp" // for random
-#include "libtorrent/hasher.hpp" // for hasher
+#include "libtorrent/random.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -97,6 +97,8 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	return 0;
 }
 
+struct static_ { static_() { std::srand((unsigned int)std::time(0)); } } static__;
+
 node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
 	boost::uint8_t* ip = 0;
@@ -131,9 +133,6 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
-	// TODO: 2 this could be optimized if SSE 4.2 is
-	// available. It could also be optimized given
-	// that we have a fixed length
 	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(ip, ip + num_octets);
 	boost::uint32_t c = crc.checksum();
@@ -143,51 +142,17 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	id[1] = (c >> 16) & 0xff;
 	id[2] = ((c >> 8) & 0xf8) | (random() & 0x7);
 
-	for (int i = 3; i < 19; ++i) id[i] = random() & 0xff;
-	id[19] = r & 0xff;
+	for (int i = 3; i < 19; ++i) id[i] = random();
+	id[19] = r;
 
 	return id;
-}
-
-static boost::uint32_t secret = 0;
-
-void make_id_secret(node_id& in)
-{
-	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
-
-	boost::uint32_t rand = random();
-
-	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
-	// lets us verify whether a hash came from this function or not in the future.
-	hasher h((char*)&secret, 4);
-	h.update((char*)&rand, 4);
-	sha1_hash secret_hash = h.final();
-	memcpy(&in[20-4], &secret_hash[0], 4);
-	memcpy(&in[20-8], &rand, 4);
 }
 
 node_id generate_random_id()
 {
 	char r[20];
-	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
+	for (int i = 0; i < 20; ++i) r[i] = random();
 	return hasher(r, 20).final();
-}
-
-node_id generate_secret_id()
-{
-	node_id ret = generate_random_id();
-	make_id_secret(ret);
-	return ret;
-}
-
-bool verify_secret_id(node_id const& nid)
-{
-	if (secret == 0) return false;
-
-	hasher h((char*)&secret, 4);
-	h.update((char const*)&nid[20-8], 4);
-	sha1_hash secret_hash = h.final();
-	return memcmp(&nid[20-4], &secret_hash[0], 4) == 0;
 }
 
 // verifies whether a node-id matches the IP it's used from
@@ -204,25 +169,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, random());
-}
-
-bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index)
-{
-	node_id id = n.id;
-	id <<= bucket_index + 1;
-	return (id[0] & mask) == prefix;
-}
-
-node_id generate_prefix_mask(int bits)
-{
-	TORRENT_ASSERT(bits >= 0);
-	TORRENT_ASSERT(bits <= 160);
-	node_id mask(0);
-	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
-	if (bits < 160) mask[b/8] |= (0xff << (8 - (bits&7))) & 0xff;
-	return mask;
+	return generate_id_impl(ip, rand());
 }
 
 } }  // namespace libtorrent::dht

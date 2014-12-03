@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
+#include "libtorrent/pch.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
@@ -39,100 +40,76 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	
 	file_pool::file_pool(int size)
 		: m_size(size)
 		, m_low_prio_io(true)
-	{
-	}
+#if TORRENT_CLOSE_MAY_BLOCK
+		, m_stop_thread(false)
+		, m_closer_thread(boost::bind(&file_pool::closer_thread_fun, this))
+#endif
+	{}
 
 	file_pool::~file_pool()
 	{
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l(m_closer_mutex);
+		m_stop_thread = true;
+		l.unlock();
+		// wait for hte closer thread to finish closing all files
+		m_closer_thread.join();
+#endif
 	}
 
-#ifdef TORRENT_WINDOWS
-	void set_low_priority(file_handle const& f)
+#if TORRENT_CLOSE_MAY_BLOCK
+	void file_pool::closer_thread_fun()
 	{
-		// file prio is only supported on vista and up
-		// so load the functions dynamically
-		typedef enum _FILE_INFO_BY_HANDLE_CLASS {
-			FileBasicInfo,
-			FileStandardInfo,
-			FileNameInfo,
-			FileRenameInfo,
-			FileDispositionInfo,
-			FileAllocationInfo,
-			FileEndOfFileInfo,
-			FileStreamInfo,
-			FileCompressionInfo,
-			FileAttributeTagInfo,
-			FileIdBothDirectoryInfo,
-			FileIdBothDirectoryRestartInfo,
-			FileIoPriorityHintInfo,
-			FileRemoteProtocolInfo, 
-			MaximumFileInfoByHandleClass
-		} FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
-
-		typedef enum _PRIORITY_HINT {
-			IoPriorityHintVeryLow = 0,
-			IoPriorityHintLow,
-			IoPriorityHintNormal,
-			MaximumIoPriorityHintType
-		} PRIORITY_HINT;
-
-		typedef struct _FILE_IO_PRIORITY_HINT_INFO {
-			PRIORITY_HINT PriorityHint;
-		} FILE_IO_PRIORITY_HINT_INFO, *PFILE_IO_PRIORITY_HINT_INFO;
-
-		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
-		static SetFileInformationByHandle_t SetFileInformationByHandle = NULL;
-
-		static bool failed_kernel_load = false;
-
-		if (failed_kernel_load) return;
-
-		if (SetFileInformationByHandle == NULL)
+		for (;;)
 		{
-			HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-			if (kernel32 == NULL)
+			mutex::scoped_lock l(m_closer_mutex);
+			if (m_stop_thread)
 			{
-				failed_kernel_load = true;
+				l.unlock();
+				m_queued_for_close.clear();
 				return;
 			}
 
-			SetFileInformationByHandle = (SetFileInformationByHandle_t)GetProcAddress(kernel32, "SetFileInformationByHandle");
-			if (SetFileInformationByHandle == NULL)
-			{ 
-				failed_kernel_load = true;
-				return;
+			// find a file that doesn't have any other threads referencing
+			// it. Since only those files can be closed in this thead
+			std::vector<boost::intrusive_ptr<file> >::iterator i = std::find_if(
+				m_queued_for_close.begin(), m_queued_for_close.end()
+				, boost::bind(&file::refcount, boost::bind(&boost::intrusive_ptr<file>::get, _1)) == 1);
+
+			if (i == m_queued_for_close.end())
+			{
+				l.unlock();
+				// none of the files are ready to be closet yet
+				// because they're still in use by other threads
+				// hold off for a while
+				sleep(1000);
+			}
+			else
+			{
+				// ok, first pull the file out of the queue, release the mutex
+				// (since closing the file may block) and then close it.
+				boost::intrusive_ptr<file> f = *i;
+				m_queued_for_close.erase(i);
+				l.unlock();
+				f->close();
 			}
 		}
-
-		TORRENT_ASSERT(SetFileInformationByHandle);
-
-		FILE_IO_PRIORITY_HINT_INFO io_hint;
-		io_hint.PriorityHint = IoPriorityHintLow;
-		SetFileInformationByHandle(f->native_handle(),
-			FileIoPriorityHintInfo, &io_hint, sizeof(io_hint));
 	}
-#endif // TORRENT_WINDOWS
-
-	file_handle file_pool::open_file(void* st, std::string const& p
-		, int file_index, file_storage const& fs, int m, error_code& ec)
-	{
-		mutex::scoped_lock l(m_mutex);
-
-#if TORRENT_USE_ASSERTS
-		// we're not allowed to open a file
-		// from a deleted storage!
-		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), std::make_pair(fs.name(), (void const*)&fs))
-			== m_deleted_storages.end());
 #endif
 
+	boost::intrusive_ptr<file> file_pool::open_file(void* st, std::string const& p
+		, file_storage::iterator fe, file_storage const& fs, int m, error_code& ec)
+	{
 		TORRENT_ASSERT(st != 0);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		mutex::scoped_lock l(m_mutex);
+		file_set::iterator i = m_files.find(std::make_pair(st, fs.file_index(*fe)));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -146,7 +123,7 @@ namespace libtorrent
 #if BOOST_VERSION >= 103500
 				ec = errors::file_collision;
 #endif
-				return file_handle();
+				return boost::intrusive_ptr<file>();
 			}
 
 			e.key = st;
@@ -155,33 +132,53 @@ namespace libtorrent
 			// write mode, re-open it
 			if ((((e.mode & file::rw_mask) != file::read_write)
 				&& ((m & file::rw_mask) == file::read_write))
+				|| (e.mode & file::no_buffer) != (m & file::no_buffer)
 				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
 				// close the file before we open it with
-				// the new read/write privilages, since windows may
-				// file opening a file twice. However, since there may
-				// be outstanding operations on it, we can't close the
-				// file, we can only delete our reference to it.
-				// if this is the only reference to the file, it will be closed
-				e.file_ptr.reset(new (std::nothrow)file);
+				// the new read/write privilages
+				TORRENT_ASSERT(e.file_ptr->refcount() == 1);
 
-				std::string full_path = fs.file_path(file_index, p);
+#if TORRENT_CLOSE_MAY_BLOCK
+				mutex::scoped_lock l(m_closer_mutex);
+				m_queued_for_close.push_back(e.file_ptr);
+				l.unlock();
+				e.file_ptr = new file;
+#else
+				e.file_ptr->close();
+#endif
+				std::string full_path = combine_path(p, fs.file_path(*fe));
 				if (!e.file_ptr->open(full_path, m, ec))
 				{
 					m_files.erase(i);
-					return file_handle();
+					return boost::intrusive_ptr<file>();
 				}
 #ifdef TORRENT_WINDOWS
+// file prio is supported on vista and up
+#if _WIN32_WINNT >= 0x0600
 				if (m_low_prio_io)
-					set_low_priority(e.file_ptr);
+				{
+					// TODO: load this function dynamically from Kernel32.dll
+					FILE_IO_PRIORITY_HINT_INFO priorityHint;
+					priorityHint.PriorityHint = IoPriorityHintLow;
+					SetFileInformationByHandle(e.file_ptr->native_handle(),
+						FileIoPriorityHintInfo, &priorityHint, sizeof(priorityHint));
+				}
 #endif
-
+#endif
 				TORRENT_ASSERT(e.file_ptr->is_open());
 				e.mode = m;
 			}
+			TORRENT_ASSERT((e.mode & file::no_buffer) == (m & file::no_buffer));
 			return e.file_ptr;
 		}
-
+		// the file is not in our cache
+		if ((int)m_files.size() >= m_size)
+		{
+			// the file cache is at its maximum size, close
+			// the least recently used (lru) file from it
+			remove_oldest();
+		}
 		lru_file_entry e;
 		e.file_ptr.reset(new (std::nothrow)file);
 		if (!e.file_ptr)
@@ -189,76 +186,43 @@ namespace libtorrent
 			ec = error_code(ENOMEM, get_posix_category());
 			return e.file_ptr;
 		}
-		std::string full_path = fs.file_path(file_index, p);
+		std::string full_path = combine_path(p, fs.file_path(*fe));
 		if (!e.file_ptr->open(full_path, m, ec))
-			return file_handle();
-#ifdef TORRENT_WINDOWS
-		if (m_low_prio_io)
-			set_low_priority(e.file_ptr);
-#endif
+			return boost::intrusive_ptr<file>();
 		e.mode = m;
 		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
+		m_files.insert(std::make_pair(std::make_pair(st, fs.file_index(*fe)), e));
 		TORRENT_ASSERT(e.file_ptr->is_open());
-
-		file_handle file_ptr = e.file_ptr;
-
-		// the file is not in our cache
-		if ((int)m_files.size() >= m_size)
-		{
-			// the file cache is at its maximum size, close
-			// the least recently used (lru) file from it
-			remove_oldest(l);
-		}
-		return file_ptr;
+		return e.file_ptr;
 	}
 
-	void file_pool::get_status(std::vector<pool_file_status>* files, void* st) const
-	{
-		mutex::scoped_lock l(m_mutex);
-
-		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
-	
-		for (file_set::const_iterator i = start; i != end; ++i)
-		{
-			pool_file_status s;
-			s.file_index = i->first.second;
-			s.open_mode = i->second.mode;
-			s.last_use = i->second.last_use;
-			files->push_back(s);
-		}
-	}
-
-	void file_pool::remove_oldest(mutex::scoped_lock& l)
+	void file_pool::remove_oldest()
 	{
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
 				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
 		if (i == m_files.end()) return;
 
-		file_handle file_ptr = i->second.file_ptr;
-		m_files.erase(i);
-
-		// closing a file may be long running operation (mac os x)
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l(m_closer_mutex);
+		m_queued_for_close.push_back(i->second.file_ptr);
 		l.unlock();
-		file_ptr.reset();
-		l.lock();
+#endif
+		m_files.erase(i);
 	}
 
 	void file_pool::release(void* st, int file_index)
 	{
 		mutex::scoped_lock l(m_mutex);
-
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 		
-		file_handle file_ptr = i->second.file_ptr;
+#if TORRENT_CLOSE_MAY_BLOCK
+		mutex::scoped_lock l2(m_closer_mutex);
+		m_queued_for_close.push_back(i->second.file_ptr);
+		l2.unlock();
+#endif
 		m_files.erase(i);
-
-		// closing a file may be long running operation (mac os x)
-		l.unlock();
-		file_ptr.reset();
 	}
 
 	// closes files belonging to the specified
@@ -266,67 +230,33 @@ namespace libtorrent
 	void file_pool::release(void* st)
 	{
 		mutex::scoped_lock l(m_mutex);
-
 		if (st == 0)
 		{
-			file_set tmp;
-			tmp.swap(m_files);
-			l.unlock();
+			m_files.clear();
 			return;
 		}
 
-		std::vector<file_handle> to_close;
 		for (file_set::iterator i = m_files.begin();
 			i != m_files.end();)
 		{
 			if (i->second.key == st)
-			{
-				to_close.push_back(i->second.file_ptr);
 				m_files.erase(i++);
-			}
 			else
 				++i;
 		}
-		l.unlock();
-		// the files are closed here
 	}
-
-#if TORRENT_USE_ASSERTS
-	void file_pool::mark_deleted(file_storage const& fs)
-	{
-		mutex::scoped_lock l(m_mutex);
-		m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
-		if(m_deleted_storages.size() > 100)
-			m_deleted_storages.erase(m_deleted_storages.begin());
-	}
-
-	bool file_pool::assert_idle_files(void* st) const
-	{
-		mutex::scoped_lock l(m_mutex);
-
-		for (file_set::const_iterator i = m_files.begin();
-			i != m_files.end(); ++i)
-		{
-			if (i->second.key == st && i->second.file_ptr->refcount() > 1)
-				return false;
-		}
-		return true;
-	}
-#endif
 
 	void file_pool::resize(int size)
 	{
-		mutex::scoped_lock l(m_mutex);
-
 		TORRENT_ASSERT(size > 0);
-
 		if (size == m_size) return;
+		mutex::scoped_lock l(m_mutex);
 		m_size = size;
 		if (int(m_files.size()) <= m_size) return;
 
 		// close the least recently used files
 		while (int(m_files.size()) > m_size)
-			remove_oldest(l);
+			remove_oldest();
 	}
 
 }

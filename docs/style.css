@@ -1,8 +1,9 @@
+html>body { font-size: 13px; }
+
 .entry { min-height: 135px; }
 
 #main {
     font-family: Verdana;
-    line-height: 1.25em;
     text-align: left;
     margin-top: 10px;
 }
@@ -10,13 +11,12 @@
 /* Base elements */
 
 * {margin: 0; padding: 0;}
-body, table { font: 0.8em Verdana, sans-serif;}
+body { font: 0.8125em Verdana, sans-serif;}
 
 h1, h2, h3 {
     font: 1.5em Georgia "Times New Roman", serif;
-/*    letter-spacing: 1px; */
+    letter-spacing: 1px;
     padding-bottom: 0.5em;
-	 font-weight: bold;
 }
 
 h1 { font-size: 180%; }
@@ -25,7 +25,7 @@ h3 { font-size: 100%; }
 
 p {
     font-size: 92%;
-    line-height: 1.7em;
+    line-height: 1.4em;
 }
 
 a {
@@ -39,18 +39,16 @@ a:hover {
     background: #eee;
 }
 
-ul, ol { line-height: 1.8em; }
+ul, ol { /*line-height: 1.8em;*/ }
 ul { list-style: square; }
 li { margin-left: 2.8em; font-size: 92%; }
 
 p, ul, ol, img {margin-bottom: 1em;}
 
-.align-right {
-	float: right;
-}
 
 .document {
-    margin: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
 }
 
 .document a {
@@ -80,92 +78,9 @@ div.section div.section div.section {
     margin-bottom: 2em;
 }
 
+h3 { text-transform: uppercase; }
+
 div.section p, div.section ul, div.section dl {
-}
-
-#container {
-    text-align: left;
-    width: 65em;
-    margin: 0 auto;
-    position: relative;
-}
-
-#header {
-    height: 116px;
-    width: 100%;
-    border: none;
-    margin-top: 1em;
-    margin-bottom: 1em;
-}
-
-#header tr td {
-    border: none;
-}
-
-#orange {
-    margin: 0;
-    padding: 0;
-    width: 159px;
-    height: 116px;
-    border-top-left-radius: 6px;
-    border-bottom-left-radius: 6px;
-    background: url('img/orange.png') no-repeat top left;
-}
-
-#logo {
-    margin: 0;
-    padding: 0;
-    text-align: center;
-    color: white;
-    font-size: 50pt;
-    height: 116px;
-    font-family: Georgia;
-    border-top-right-radius: 6px;
-    border-bottom-right-radius: 6px;
-    background: url('img/bg.png');
-}
-
-#gradient {
-    width: 100%;
-    clear: both;
-    height: 30px;
-    background: linear-gradient(#bbb, #ddd);
-}
-
-#footer {
-    margin: 0px;
-    padding: 0px;
-    text-align: center;
-    background: #ddd;
-    width: 100%;
-    color: #777;
-    overflow: hidden;
-}
-
-#footer table {
-    margin-left: auto;
-    margin-right: auto;
-    font-size: 1em;
-}
-
-#footer tr td {
-    border: none;
-    background: none;
-    color: #777;
-    text-align: left;
-}
-
-#footer a {
-    color: #777;
-}
-
-#footer a:hover {
-    color: #000;
-}
-
-#filler {
-    height: 200px;
-    background: linear-gradient(#ddd, #fff);
 }
 
 table.docinfo {
@@ -193,16 +108,20 @@ table.docinfo tr.field td, table.docinfo tr.field th {display: none;}
 h1.title { text-align: center; }
 
 dt {
-    line-height: 1.2em;
-    margin-bottom: 0.5em;
+    font-size: 100%;
+    letter-spacing: 2px;
+    line-height: 1em;
     color: #315586;
     color: #000;
-    font-style: italic;
+    font-family: Tahoma;
+    font-weight: bold;
 }
 
 dd {
+/*    line-height: 1.5em;*/
     margin-left: 1em;
     margin-bottom: 1em;
+    font-size: 92%;
 }
 
 tt {
@@ -256,6 +175,10 @@ div.sidebar p.sidebar-title {
     padding-bottom: 0.5em;
     margin: 0 0 0.5em 0;
 }
+
+h1 { font-size: 230%; }
+h2 { font-size: 180%; }
+h3 { font-size: 130%; }
 
 table { margin-bottom: 1em; border-collapse: collapse; }
 table, th, td { border: none; }
@@ -372,8 +295,3 @@ li p, li li { font-size: 100%; }
 * html #table-of-contents ul ul { height: 1%; }
 /* End hide from IE-mac */
 
-.keyword { font-weight: bold }
-.string { color: #771; }
-.comment { font-style: italic; color: #559; }
-.preproc { font-style: italic; color: #959; }
-.number { color: #595; }

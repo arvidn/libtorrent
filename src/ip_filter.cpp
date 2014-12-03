@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2005-2014, Arvid Norberg
+Copyright (c) 2005, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,13 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include "libtorrent/ip_filter.hpp"
 #include <boost/utility.hpp>
 
 
 namespace libtorrent
 {
-	void ip_filter::add_rule(address first, address last, boost::uint32_t flags)
+	void ip_filter::add_rule(address first, address last, int flags)
 	{
 		if (first.is_v4())
 		{
@@ -76,7 +78,7 @@ namespace libtorrent
 #endif
 	}
 	
-	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags)
+	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, int flags)
 	{
 		m_filter.add_rule(first, last, flags);
 	}

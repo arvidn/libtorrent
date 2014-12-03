@@ -1,8 +1,0 @@
-{
-	openssl_asn_uninitialized_length
-	Memcheck:Cond
-	fun:ASN1_STRING_set
-	fun:ASN1_mbstring_ncopy
-	fun:ASN1_mbstring_copy
-	fun:ASN1_STRING_to_UTF8
-}

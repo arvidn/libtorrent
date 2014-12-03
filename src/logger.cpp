@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg
+Copyright (c) 2006, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#include "libtorrent/pch.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -87,7 +89,7 @@ namespace
 		virtual bool on_extension_handshake(lazy_entry const& h)
 		{
 			log_timestamp();
-			m_file << "<== EXTENSION_HANDSHAKE\n" << print_entry(h);
+			m_file << "<== EXTENSION_HANDSHAKE\n" << h;
 			return true;
 		}
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/get_peers.hpp>
+#include <libtorrent/kademlia/find_data.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -43,23 +43,31 @@ namespace libtorrent { namespace dht
 class routing_table;
 class rpc_manager;
 
-class bootstrap : public get_peers
+class refresh : public find_data
 {
 public:
-	typedef get_peers::nodes_callback done_callback;
+	typedef find_data::nodes_callback done_callback;
 
-	bootstrap(node_impl& node, node_id target
+	refresh(node_impl& node, node_id target
 		, done_callback const& callback);
+
 	virtual char const* name() const;
-
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
-		, node_id const& id);
-
-	void trim_seed_nodes();
 
 protected:
 
+	observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
 	virtual bool invoke(observer_ptr o);
+};
+
+class bootstrap : public refresh
+{
+public:
+	bootstrap(node_impl& node, node_id target
+		, done_callback const& callback);
+
+	virtual char const* name() const;
+
+protected:
 
 	virtual void done();
 

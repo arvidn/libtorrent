@@ -47,13 +47,13 @@ struct unicode_from_python
 #endif
             if (len > -1)
             {
-               assert(len < int(str.size()));
+               assert(len < str.size());
                str[len] = 0;
             }
             else str[str.size()-1] = 0;
 
             std::string utf8;
-            wchar_utf8(str, utf8);
+            int ret = wchar_utf8(str, utf8);
             new (storage) std::string(utf8);
         }
         else

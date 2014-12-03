@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	bw_request::bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request::bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
 		, int blk, int prio)
 		: peer(pe)
 		, priority(prio)

@@ -7,8 +7,8 @@ EXTRA_DIST = \
   simple_client.py          \
   make_torrent.py           \
   src/alert.cpp             \
-  src/bytes.hpp             \
   src/big_number.cpp        \
+  src/bytes.hpp             \
   src/converters.cpp        \
   src/create_torrent.cpp    \
   src/datetime.cpp          \
@@ -24,6 +24,7 @@ EXTRA_DIST = \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/string.cpp            \
+  src/torrent.cpp           \
   src/torrent_handle.cpp    \
   src/torrent_info.cpp      \
   src/torrent_status.cpp    \

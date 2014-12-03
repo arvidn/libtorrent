@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 */
+
+#include "libtorrent/pch.hpp"
 
 #include <string>
 #include <cctype>
@@ -66,13 +68,13 @@ namespace libtorrent
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> to_string(boost::int64_t n)
+	boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
 	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		boost::array<char, 4 + std::numeric_limits<size_type>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		boost::uint64_t un = n;
-		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
+		unsigned_size_type un = n;
+		if (n < 0)  un = -un;
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;
@@ -208,15 +210,6 @@ namespace libtorrent
 			if (*i == '\\') *i = '/';
 	}
 
-#ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path)
-	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '/') *i = '\\';
-	}
-#endif
-
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
@@ -245,38 +238,10 @@ namespace libtorrent
 			return url;
 
 		char msg[TORRENT_MAX_PATH*4];
-		snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
-			, auth.empty()?"":"@", host.c_str()
-			, port == -1 ? "" : ":"
-			, port == -1 ? "" : to_string(port).elems
+		snprintf(msg, sizeof(msg), "%s://%s%s%s:%d%s", protocol.c_str(), auth.c_str()
+			, auth.empty()?"":"@", host.c_str(), port
 			, escape_path(path.c_str(), path.size()).c_str());
 		return msg;
-	}
-
-	std::string resolve_file_url(std::string const& url)
-	{
-		TORRENT_ASSERT(url.substr(0, 7) == "file://");
-		// first, strip the file:// part.
-		// On windows, we have
-		// to strip the first / as well
-		int num_to_strip = 7;
-#ifdef TORRENT_WINDOWS
-		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
-#endif
-		std::string ret = url.substr(num_to_strip);
-
-		// we also need to URL-decode it
-		error_code ec;
-		std::string unescaped = unescape_string(ret, ec);
-		if (ec) unescaped = ret;
-
-		// on windows, we need to convert forward slashes
-		// to backslashes
-#ifdef TORRENT_WINDOWS
-		convert_path_to_windows(unescaped);
-#endif
-
-		return unescaped;
 	}
 
 	std::string base64encode(const std::string& s)
@@ -485,7 +450,7 @@ namespace libtorrent
 		*out = '\0';
 	}
 
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
+	int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
 		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;

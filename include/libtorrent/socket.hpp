@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -127,22 +127,6 @@ namespace libtorrent
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
 		int name(Protocol const&) const { return IPV6_PROTECTION_LEVEL; }
-		template<class Protocol>
-		int const* data(Protocol const&) const { return &m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return sizeof(m_value); }
-		int m_value;
-	};
-#endif
-
-#ifdef IPV6_TCLASS
-	struct traffic_class
-	{
-		traffic_class(char val): m_value(val) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return IPPROTO_IPV6; }
-		template<class Protocol>
-		int name(Protocol const&) const { return IPV6_TCLASS; }
 		template<class Protocol>
 		int const* data(Protocol const&) const { return &m_value; }
 		template<class Protocol>

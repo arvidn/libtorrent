@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2014, Arvid Norberg
+Copyright (c) 2010, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,13 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/OS.h>
 #endif
 
-#ifdef BOOST_HAS_PTHREADS
-#include <sys/time.h> // for gettimeofday()
-#include <boost/cstdint.hpp>
-#endif
-
-#include <algorithm>
-
 namespace libtorrent
 {
 	void sleep(int milliseconds)
@@ -59,60 +52,41 @@ namespace libtorrent
 
 #ifdef BOOST_HAS_PTHREADS
 
-	condition_variable::condition_variable()
+	condition::condition()
 	{
 		pthread_cond_init(&m_cond, 0);
 	}
 
-	condition_variable::~condition_variable()
+	condition::~condition()
 	{
 		pthread_cond_destroy(&m_cond);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void condition::wait(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		// wow, this is quite a hack
 		pthread_cond_wait(&m_cond, (::pthread_mutex_t*)&l.mutex());
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	void condition::signal_all(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
-
-		struct timeval tv;
-		struct timespec ts;
-		gettimeofday(&tv, NULL);
-		boost::uint64_t microseconds = tv.tv_usec + total_microseconds(rel_time) % 1000000;
-		ts.tv_nsec = (microseconds % 1000000) * 1000;
-		ts.tv_sec = tv.tv_sec + total_seconds(rel_time) + microseconds / 1000000;
-		
-		// wow, this is quite a hack
-		pthread_cond_timedwait(&m_cond, (::pthread_mutex_t*)&l.mutex(), &ts);
-	}
-
-	void condition_variable::notify_all()
-	{
 		pthread_cond_broadcast(&m_cond);
 	}
-
-	void condition_variable::notify()
-	{
-		pthread_cond_signal(&m_cond);
-	}
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-	condition_variable::condition_variable()
+	condition::condition()
 		: m_num_waiters(0)
 	{
 		m_sem = CreateSemaphore(0, 0, INT_MAX, 0);
 	}
 
-	condition_variable::~condition_variable()
+	condition::~condition()
 	{
 		CloseHandle(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void condition::wait(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -122,38 +96,24 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	void condition::signal_all(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
-		++m_num_waiters;
-		l.unlock();
-		WaitForSingleObject(m_sem, total_milliseconds(rel_time));
-		l.lock();
-		--m_num_waiters;
-	}
-
-	void condition_variable::notify_all()
-	{
 		ReleaseSemaphore(m_sem, m_num_waiters, 0);
 	}
-
-	void condition_variable::notify()
-	{
-		ReleaseSemaphore(m_sem, (std::min)(m_num_waiters, 1), 0);
-	}
 #elif defined TORRENT_BEOS
-	condition_variable::condition_variable()
+	condition::condition()
 		: m_num_waiters(0)
 	{
 		m_sem = create_sem(0, 0);
 	}
 
-	condition_variable::~condition_variable()
+	condition::~condition()
 	{
 		delete_sem(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void condition::wait(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
@@ -162,25 +122,11 @@ namespace libtorrent
 		l.lock();
 		--m_num_waiters;
 	}
-	
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+
+	void condition::signal_all(mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
-		++m_num_waiters;
-		l.unlock();
-		acquire_sem_etc(m_sem, 1, B_RELATIVE_TIMEOUT, total_microseconds(rel_time));
-		l.lock();
-		--m_num_waiters;
-	}
-
-	void condition_variable::notify_all()
-	{
 		release_sem_etc(m_sem, m_num_waiters, 0);
-	}
-
-	void condition_variable::notify()
-	{
-		release_sem_etc(m_sem, (std::min)(m_num_waiters, 1), 0);
 	}
 #else
 #error not implemented

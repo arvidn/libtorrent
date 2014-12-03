@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2009, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 
+#include "libtorrent/intrusive_ptr_base.hpp"
+
 namespace libtorrent
 {
 	struct bandwidth_socket
+		: public intrusive_ptr_base<bandwidth_socket>
 	{
 		virtual void assign_bandwidth(int channel, int amount) = 0;
 		virtual bool is_disconnecting() const = 0;

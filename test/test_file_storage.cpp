@@ -64,10 +64,10 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.file_size(2), 30000);
 	TEST_EQUAL(st.file_size(3), 40000);
 
-	TEST_EQUAL(st.file_offset(0), 0);
-	TEST_EQUAL(st.file_offset(1), 10000);
-	TEST_EQUAL(st.file_offset(2), 30000);
-	TEST_EQUAL(st.file_offset(3), 60000);
+	TEST_EQUAL(st.at(0).offset, 0);
+	TEST_EQUAL(st.at(1).offset, 10000);
+	TEST_EQUAL(st.at(2).offset, 30000);
+	TEST_EQUAL(st.at(3).offset, 60000);
 
 	TEST_EQUAL(st.total_size(), 100000);
 	TEST_EQUAL(st.piece_length(), 0x4000);
@@ -83,15 +83,15 @@ int test_main()
 		setup_test_storage(st);
 		
 		st.rename_file(0, combine_path("test", combine_path("c", "d")));
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test"
-			, combine_path("c", "d"))));
+		TEST_EQUAL(st.file_path(0), combine_path("test"
+			, combine_path("c", "d")));
 
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
-		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+		TEST_EQUAL(st.file_path(0), "c:\\tmp\\a");
 #else
 		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+		TEST_EQUAL(st.file_path(0), "/tmp/a");
 #endif
 	}
 
@@ -101,7 +101,7 @@ int test_main()
 		setup_test_storage(st);
 		
 		st.set_name("test_2");
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test_2"
+		TEST_EQUAL(st.file_path(0), combine_path(".", combine_path("test_2"
 			, "a")));
 	}
 
@@ -110,14 +110,14 @@ int test_main()
 		st.add_file("a", 10000);
 
 		st.rename_file(0, combine_path("test", combine_path("c", "d")));
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
+		TEST_EQUAL(st.file_path(0), combine_path(".", combine_path("test", combine_path("c", "d"))));
 
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
-		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+		TEST_EQUAL(st.file_path(0), "c:\\tmp\\a");
 #else
 		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+		TEST_EQUAL(st.file_path(0), "/tmp/a");
 #endif
 	}
 

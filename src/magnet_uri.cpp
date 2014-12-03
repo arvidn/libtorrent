@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,31 +44,24 @@ namespace libtorrent
 	{
 		if (!handle.is_valid()) return "";
 
-		std::string ret;
+		char ret[2048];
 		sha1_hash const& ih = handle.info_hash();
-		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, base32encode(std::string((char const*)&ih[0], 20)).c_str());
 
-		torrent_status st = handle.status(torrent_handle::query_name);
-		if (!st.name.empty())
-		{
-			ret += "&dn=";
-			ret += escape_string(st.name.c_str(), st.name.length());
-		}
+		std::string name = handle.name();
+
+		if (!name.empty() && sizeof(ret) - 5 > num_chars)
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
 
 		std::vector<announce_entry> const& tr = handle.trackers();
+
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
-		}
-
-		std::set<std::string> seeds = handle.url_seeds();
-		for (std::set<std::string>::iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
-		{
-			ret += "&ws=";
-			ret += escape_string(i->c_str(), i->length());
+			if (num_chars >= sizeof(ret)) break;
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
 		}
 
 		return ret;
@@ -76,56 +69,29 @@ namespace libtorrent
 
 	std::string make_magnet_uri(torrent_info const& info)
 	{
-		std::string ret;
+		char ret[2048];
 		sha1_hash const& ih = info.info_hash();
-		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		int num_chars = snprintf(ret, sizeof(ret), "magnet:?xt=urn:btih:%s"
+			, base32encode(std::string((char*)&ih[0], 20)).c_str());
 
 		std::string const& name = info.name();
 
-		if (!name.empty())
-		{
-			ret += "&dn=";
-			ret += escape_string(name.c_str(), name.length());
-		}
+		if (!name.empty() && sizeof(ret) - 5 > num_chars)
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&dn=%s"
+				, escape_string(name.c_str(), name.length()).c_str());
 
 		std::vector<announce_entry> const& tr = info.trackers();
-
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
-			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
-		}
-
-		std::vector<web_seed_entry> const& seeds = info.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
-		{
-			if (i->type != web_seed_entry::url_seed) continue;
-
-			ret += "&ws=";
-			ret += escape_string(i->url.c_str(), i->url.length());
+			if (num_chars >= sizeof(ret)) break;
+			num_chars += snprintf(ret + num_chars, sizeof(ret) - num_chars, "&tr=%s"
+				, escape_string(i->url.c_str(), i->url.length()).c_str());
 		}
 
 		return ret;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-
-	torrent_handle add_magnet_uri_deprecated(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec)
-	{
-		parse_magnet_uri(uri, p, ec);
-		if (ec) return torrent_handle();
-		return ses.add_torrent(p, ec);
-	}
-
-	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec)
-	{
-		return add_magnet_uri_deprecated(ses, uri, p, ec);
-	}
-
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
@@ -134,46 +100,54 @@ namespace libtorrent
 		, storage_constructor_type sc
 		, void* userdata)
 	{
-		add_torrent_params params(sc);
-		params.storage_mode = storage_mode;
-		params.userdata = userdata;
-		params.save_path = save_path;
-
-		if (paused) params.flags |= add_torrent_params::flag_paused;
-		else params.flags &= ~add_torrent_params::flag_paused;
+		std::string name;
+		std::string tracker;
 
 		error_code ec;
 		std::string display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) params.name = unescape_string(display_name.c_str(), ec);
+		if (!display_name.empty()) name = unescape_string(display_name.c_str(), ec);
 		std::string tracker_string = url_has_argument(uri, "tr");
-		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string.c_str(), ec));
+		if (!tracker_string.empty()) tracker = unescape_string(tracker_string.c_str(), ec);
 	
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty()) return torrent_handle();
 
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&params.info_hash[0]);
-		else params.info_hash.assign(base32decode(btih.substr(9)));
+		sha1_hash info_hash;
+		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
+		else info_hash.assign(base32decode(btih.substr(9)));
 
-		return ses.add_torrent(params);
+		return ses.add_torrent(tracker.empty() ? 0 : tracker.c_str(), info_hash
+			, name.empty() ? 0 : name.c_str(), save_path, entry()
+			, storage_mode, paused, sc, userdata);
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p)
 	{
 		error_code ec;
-		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, p, ec);
+		torrent_handle ret = add_magnet_uri(ses, uri, p, ec);
 		if (ec) throw libtorrent_exception(ec);
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS
+
+	torrent_handle add_magnet_uri(session& ses, std::string const& uri
+		, add_torrent_params p, error_code& ec)
+	{
+		parse_magnet_uri(uri, p, ec);
+		if (ec) return torrent_handle();
+		return ses.add_torrent(p, ec);
+	}
+
 #endif // TORRENT_NO_DEPRECATE
 
 	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
 		ec.clear();
 		std::string name;
+		std::string tracker;
 
 		error_code e;
 		std::string display_name = url_has_argument(uri, "dn");
@@ -193,22 +167,7 @@ namespace libtorrent
 			pos += 4;
 			url = uri.substr(pos, uri.find('&', pos) - pos);
 		}
-
-		// parse web seeds out of the magnet link
-		pos = std::string::npos;
-		url = url_has_argument(uri, "ws", &pos);
-		while (pos != std::string::npos)
-		{
-			error_code e;
-			url = unescape_string(url, e);
-			if (e) continue;
-			p.url_seeds.push_back(url);
-			pos = uri.find("&ws=", pos);
-			if (pos == std::string::npos) break;
-			pos += 4;
-			url = uri.substr(pos, uri.find('&', pos) - pos);
-		}
-
+	
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{

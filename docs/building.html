@@ -3,10 +3,11 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
-<link rel="stylesheet" type="text/css" href="rst.css" />
+<link rel="stylesheet" type="text/css" href="../../css/base.css" />
+<link rel="stylesheet" type="text/css" href="../../css/rst.css" />
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -28,10 +29,10 @@
 <body>
 <div class="document" id="libtorrent-manual">
     <div id="container">
-    <table id="header">
-    <tr><td id="orange"></td>
-    <td id="logo">libtorrent</td></tr>
-    </table>
+    <div id="header">
+    <h1><span>Rasterbar Software</span></h1>
+    <h2><span>Software developement and consulting</span></h2>
+    </div>
     <div id="main">
 <h1 class="title">libtorrent manual</h1>
 <table class="docinfo" frame="void" rules="none">
@@ -41,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.1.0</td></tr>
+<td>0.16.19</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -102,16 +103,16 @@ to step 3 (assuming you also have boost build installed).</p>
 <h3>Step 1: Download boost</h3>
 <p>You'll find boost <a class="reference external" href="http://sourceforge.net/project/showfiles.php?group_id=7586&amp;package_id=8041&amp;release_id=619445">here</a>.</p>
 <p>Extract the archive to some directory where you want it. For the sake of this
-guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0</span></tt> (I'm using
+guide, let's assume you extract the package to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt> (I'm using
 a windows path in this example since if you're on linux/unix you're more likely
-to use the autotools). You'll need at least version 1.49 of the boost library
+to use the autotools). You'll need at least version 1.34 of the boost library
 in order to build libtorrent.</p>
 </div>
 <div class="section" id="step-2-setup-bbv2">
 <h3>Step 2: Setup BBv2</h3>
 <p>First you need to build <tt class="docutils literal">bjam</tt>. You do this by opening a terminal (In
 windows, run <tt class="docutils literal">cmd</tt>). Change directory to
-<tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\jam\src</span></tt>. Then run the script called
+<tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\jam\src</span></tt>. Then run the script called
 <tt class="docutils literal">build.bat</tt> or <tt class="docutils literal">build.sh</tt> on a unix system. This will build <tt class="docutils literal">bjam</tt> and
 place it in a directory starting with <tt class="docutils literal">bin.</tt> and then have the name of your
 platform. Copy the <tt class="docutils literal">bjam.exe</tt> (or <tt class="docutils literal">bjam</tt> on a unix system) to a place
@@ -125,20 +126,20 @@ set the environment variable <tt class="docutils literal">BOOST_BUILD_PATH</tt>.
 <tt class="docutils literal">bjam</tt> where it can find boost-build, your configuration file and all the
 toolsets (descriptions used by boost-build to know how to use different
 compilers on different platforms). Assuming the boost install path above, set
-it to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\build\v2</span></tt>.</p>
+it to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.</p>
 <p>To set an environment variable in windows, type for example:</p>
 <pre class="literal-block">
-set BOOST_BUILD_PATH=c:\boost_1_55_0\tools\build\v2
+set BOOST_BUILD_PATH=c:\boost_1_34_0\tools\build\v2
 </pre>
 <p>In a terminal window.</p>
 <p>The last thing to do to complete the setup of BBv2 is to modify your
-<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_55_0\tools\build\v2</span></tt>.
+<tt class="docutils literal"><span class="pre">user-config.jam</span></tt> file. It is located in <tt class="docutils literal"><span class="pre">c:\boost_1_34_0\tools\build\v2</span></tt>.
 Depending on your platform and which compiler you're using, you should add a
 line for each compiler and compiler version you have installed on your system
 that you want to be able to use with BBv2. For example, if you're using
-Microsoft Visual Studio 12 (2013), just add a line:</p>
+Microsoft Visual Studio 7.1 (2003), just add a line:</p>
 <pre class="literal-block">
-using msvc : 12.0 ;
+using msvc : 7.1 ;
 </pre>
 <p>If you use GCC, add the line:</p>
 <pre class="literal-block">
@@ -165,7 +166,7 @@ using darwin : 4.0 : g++-4.0 ;
 <p>When building libtorrent, the <tt class="docutils literal">Jamfile</tt> expects the environment variable
 <tt class="docutils literal">BOOST_ROOT</tt> to be set to the boost installation directory. It uses this to
 find the boost libraries it depends on, so they can be built and their headers
-files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_55_0</span></tt>. You only need this if you're
+files found. So, set this to <tt class="docutils literal"><span class="pre">c:\boost_1_34_0</span></tt>. You only need this if you're
 building against a source distribution of boost.</p>
 <p>Then the only thing left is simply to invoke <tt class="docutils literal">bjam</tt>. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
@@ -231,8 +232,8 @@ from a cygwin terminal, you'll have to run it from a <tt class="docutils literal
 cygwin, if you're building with gcc in cygwin you'll have to run it from a cygwin terminal.
 Also, make sure the paths are correct in the different environments. In cygwin, the paths
 (<tt class="docutils literal">BOOST_BUILD_PATH</tt> and <tt class="docutils literal">BOOST_ROOT</tt>) should be in the typical unix-format (e.g.
-<tt class="docutils literal">/cygdrive/c/boost_1_55_0</tt>). In the windows environment, they should have the typical
-windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_55_0</span></tt>).</p>
+<tt class="docutils literal">/cygdrive/c/boost_1_34_0</tt>). In the windows environment, they should have the typical
+windows format (<tt class="docutils literal"><span class="pre">c:/boost_1_34_0</span></tt>).</p>
 <div class="note">
 <p class="first admonition-title">Note</p>
 <p class="last">In Jamfiles, spaces are separators. It's typically easiest to avoid spaces
@@ -283,7 +284,7 @@ libraries.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">dht</tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">dht-support</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">on</tt> - build with support for tracker less
 torrents and DHT support.</li>
@@ -314,6 +315,18 @@ directory, but won't abort the process.</li>
 </ul>
 </td>
 </tr>
+<tr><td><tt class="docutils literal">geoip</tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">off</tt> - geo ip lookups disabled</li>
+<li><tt class="docutils literal">static</tt> - <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup code linked
+in statically. Note that this code is under
+LGPL license.</li>
+<li><tt class="docutils literal">shared</tt> - The <a class="reference external" href="http://www.maxmind.com/app/api">MaxMind</a> geo ip lookup library
+is expected to be installed on the system and
+it will be used.</li>
+</ul>
+</td>
+</tr>
 <tr><td><tt class="docutils literal"><span class="pre">upnp-logging</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">off</tt> - default. Does not log UPnP traffic.</li>
@@ -339,15 +352,13 @@ implementation is used.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal">allocator</tt></td>
+<tr><td><tt class="docutils literal"><span class="pre">pool-allocators</span></tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">pool</tt> - default, uses pool allocators for
-send buffers.</li>
-<li><tt class="docutils literal">system</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
+<li><tt class="docutils literal">on</tt> - default, uses pool allocators for send
+buffers.</li>
+<li><tt class="docutils literal">off</tt> - uses <tt class="docutils literal">malloc()</tt> and <tt class="docutils literal">free()</tt>
 instead. Might be useful to debug buffer issues
 with tools like electric fence or libgmalloc.</li>
-<li><tt class="docutils literal">debug</tt> - instruments buffer usage to catch
-bugs in libtorrent.</li>
 </ul>
 </td>
 </tr>
@@ -448,7 +459,7 @@ awareness except on windows).</li>
 <tr><td><tt class="docutils literal">asserts</tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">off</tt> - disable all asserts</li>
-<li><tt class="docutils literal">production</tt> - enable asserts in release
+<li><tt class="docutils literal">peoduction</tt> - enable asserts in release
 builds, but don't abort, just log them to
 <tt class="docutils literal">extern char const* libtorrent_assert_log</tt>.</li>
 <li><tt class="docutils literal">on</tt> - enable asserts in debug builds (this is
@@ -484,17 +495,6 @@ stats.</li>
 working directory session_stats&lt;pid&gt;. The log
 is rotated every hour. It can be parsed by the
 parse_session_stats.py script (requires gnuplot)</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">profile-calls</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - default. No additional call profiling.</li>
-<li><tt class="docutils literal">on</tt> - Enable logging of stack traces of
-calls into libtorrent that are blocking. On
-session shutdown, a file <tt class="docutils literal">blocking_calls.txt</tt>
-is written with stack traces of blocking calls
-ordered by the number of them.</li>
 </ul>
 </td>
 </tr>
@@ -655,6 +655,11 @@ structs and class layouts and sizes.</td>
 events, such as tracker announces and incoming
 connections (as well as blocked connections).</td>
 </tr>
+<tr><td><tt class="docutils literal">TORRENT_DISABLE_GEO_IP</tt></td>
+<td>This is defined by default by the Jamfile. It
+disables the GeoIP features, and avoids linking
+against LGPL:ed code.</td>
+</tr>
 <tr><td><tt class="docutils literal">TORRENT_VERBOSE_LOGGING</tt></td>
 <td>If you define this macro, every peer connection
 will log its traffic to a log file as well as
@@ -675,6 +680,13 @@ support for various UPnP routers.</td>
 <td>This will create a log of all disk activity
 which later can parsed and graphed using
 <tt class="docutils literal">parse_disk_log.py</tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal">TORRENT_STATS</tt></td>
+<td>This will generate a log with transfer rates,
+downloading torrents, seeding torrents, peers,
+connecting peers and disk buffers in use. The
+log can be parsed and graphed with
+<tt class="docutils literal">parse_session_stats.py</tt>.</td>
 </tr>
 <tr><td><tt class="docutils literal">UNICODE</tt></td>
 <td>If building on windows this will make sure the
@@ -722,11 +734,6 @@ If this is not defined, either
 <tt class="docutils literal">TORRENT_USE_OPENSSL</tt> or
 <tt class="docutils literal">TORRENT_USE_GCRYPT</tt> must be defined.</td>
 </tr>
-<tr><td><tt class="docutils literal">TORRENT_DISABLE_EXTENSIONS</tt></td>
-<td>When defined, libtorrent plugin support is
-disabled along with support for the extension
-handskake (BEP 10).</td>
-</tr>
 <tr><td><tt class="docutils literal">_UNICODE</tt></td>
 <td>On windows, this will cause the file IO
 use wide character API, to properly support
@@ -757,8 +764,8 @@ the header files and cpp files.</td>
 <td>Define to either 0 or 1. Enables assert logging
 in release builds.</td>
 </tr>
-<tr><td><tt class="docutils literal">TORRENT_USE_ASSERTS</tt></td>
-<td>Define as 0 to disable asserts unconditionally.</td>
+<tr><td><tt class="docutils literal">TORRENT_NO_ASSERTS</tt></td>
+<td>Disables all asserts.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_USE_SYSTEM_ASSERTS</tt></td>
 <td>Uses the libc assert macro rather then the
@@ -787,41 +794,17 @@ copy out32\ssleay32.lib &quot;C:\Program Files\Microsoft Visual Studio .NET 2003
 be picked up by libtorrent.</p>
 </div>
 </div>
-
     </div>
-    </div>
-    <div id="gradient"></div>
     <div id="footer">
-    <table>
-    <tr>
-      <td><a href="index.html">home</a></td>
-      <td><a href="http://blog.libtorrent.org">blog</a></td>
-      <td><a href="utp.html">uTP</a></td>
-    </tr>
-    <tr>
-      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
-      <td><a href="reference.html">documentation</a></td>
-      <td><a href="dht_store.html">DHT put extension</a></td>
-    </tr>
-    <tr>
-      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
-      <td><a href="features.html">features</a></td>
-      <td><a href="dht_sec.html">DHT security extension</a></td>
-    </tr>
-    <tr>
-      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
-      <td><a href="contributing.html">contributing</a></td>
-      <td><a href="streaming.html">streaming</a></td>
-    </tr>
-    <tr>
-      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
-      <td><a href="building.html">building</a></td>
-      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
-    </tr>
-    </table>
+    <span>Copyright &copy; 2014 Arvid Norberg</span>
     </div>
-    <div id="filler"></div></div>
-
+    </div>
+    <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+    _uacct = "UA-1599045-1";
+    urchinTracker();
+    </script>
 </div>
 </body>
 </html>

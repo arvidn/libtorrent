@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 
-#include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
 
@@ -41,10 +41,10 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
-	bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request(boost::intrusive_ptr<bandwidth_socket> const& pe
 		, int blk, int prio);
 
-	boost::shared_ptr<bandwidth_socket> peer;
+	boost::intrusive_ptr<bandwidth_socket> peer;
 	// 1 is normal prio
 	int priority;
 	// the number of bytes assigned to this request so far
@@ -62,8 +62,7 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	enum { max_bandwidth_channels = 10 };
-	// we don't actually support more than 10 channels per peer
+	enum { max_bandwidth_channels = 5 };
 	bandwidth_channel* channel[max_bandwidth_channels];
 };
 

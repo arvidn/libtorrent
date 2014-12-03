@@ -33,25 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TEST_HPP
 #define TEST_HPP
 
-#include "libtorrent/address.hpp"
-#include "libtorrent/socket.hpp"
+void report_failure(char const* str, char const* file, int line);
 
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
-
-#include "libtorrent/config.hpp"
-
-#if defined TORRENT_BUILDING_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_EXPORT
-#elif defined TORRENT_LINK_TEST_SHARED
-#define EXPORT BOOST_SYMBOL_IMPORT
-#else
-#define EXPORT
-#endif
-
-void EXPORT report_failure(char const* err, char const* file, int line);
-int EXPORT print_failures();
 
 #if defined(_MSC_VER)
 #define COUNTER_GUARD(x)
@@ -76,7 +62,7 @@ int EXPORT print_failures();
 #define TEST_EQUAL(x, y) \
 	if ((x) != (y)) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << (x) << "\nexpected: " << (y); \
+		s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y) << std::endl; \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -99,7 +85,7 @@ int EXPORT print_failures();
 	try { \
 		if ((x) != (y)) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y); \
+			s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y) << std::endl; \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \

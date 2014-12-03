@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
-#include <stdio.h>
+#include <fstream>
 #endif
 
 namespace libtorrent
@@ -55,7 +55,8 @@ typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 class lsd : public intrusive_ptr_base<lsd>
 {
 public:
-	lsd(io_service& ios, peer_callback_t const& cb);
+	lsd(io_service& ios, address const& listen_interface
+		, peer_callback_t const& cb);
 	~lsd();
 
 //	void rebind(address const& listen_interface);
@@ -65,25 +66,23 @@ public:
 
 private:
 
-	void announce_impl(sha1_hash const& ih, int listen_port
-		, bool broadcast, int retry_count);
-	void resend_announce(error_code const& e, sha1_hash const& ih
-		, int listen_port, int retry_count);
+	void resend_announce(error_code const& e, std::string msg);
 	void on_announce(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
+//	void setup_receive();
 
 	peer_callback_t m_callback;
 
 	// the udp socket used to send and receive
 	// multicast messages on
 	broadcast_socket m_socket;
-#if TORRENT_USE_IPV6
-	broadcast_socket m_socket6;
-#endif
 
 	// used to resend udp packets in case
 	// they time out
 	deadline_timer m_broadcast_timer;
+
+	// current retry count
+	boost::uint32_t m_retry_count;
 
 	// this is a random (presumably unique)
 	// ID for this LSD node. It is used to
@@ -93,9 +92,6 @@ private:
 	int m_cookie;
 
 	bool m_disabled;
-#if TORRENT_USE_IPV6
-	bool m_disabled6;
-#endif
 #if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
 	FILE* m_log;
 #endif

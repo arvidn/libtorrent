@@ -40,13 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 using boost::tuples::ignore;
 
 template <class T>
-boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
+boost::intrusive_ptr<T> clone_ptr(boost::intrusive_ptr<T> const& ptr)
 {
-	return boost::shared_ptr<T>(new T(*ptr));
+	return boost::intrusive_ptr<T>(new T(*ptr));
 }
 
 int peer_disconnects = 0;
@@ -68,10 +67,8 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -108,8 +105,8 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	}
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
-	boost::shared_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
+	boost::intrusive_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
+	boost::intrusive_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
 
 	// remap the files to a single one
 	file_storage st;
@@ -143,7 +140,17 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, &st1, &st2);
+			std::cerr
+				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st1.progress * 100) << "% "
+				<< st1.num_peers
+				<< ": "
+				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< st2.num_peers
+				<< std::endl;
 		}
 
 		if (st2.is_finished) break;
@@ -184,7 +191,9 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, NULL, &st2);
+			std::cerr
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< std::endl;
 		}
 
 		if (st2.state != torrent_status::checking_files)
@@ -215,17 +224,15 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
 	create_directory("tmp1_remap2", ec);
 	std::ofstream file("tmp1_remap2/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 32 * 1024, 7);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 32 * 1024, 7);
 	file.close();
 
 	file_storage fs;
@@ -241,7 +248,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
 
-	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
+	boost::intrusive_ptr<torrent_info> t2 = clone_ptr(t);
 
 	t2->remap_files(fs);
 
@@ -272,7 +279,17 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, &st1, &st2);
+			std::cerr
+				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st1.progress * 100) << "% "
+				<< st1.num_peers
+				<< ": "
+				<< "\033[32m" << int(st2.download_payload_rate / 1000.f) << "kB/s "
+				<< "\033[31m" << int(st2.upload_payload_rate / 1000.f) << "kB/s "
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< st2.num_peers
+				<< std::endl;
 		}
 
 		if (st2.is_finished) break;
@@ -313,7 +330,9 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, NULL, &st2);
+			std::cerr
+				<< "\033[0m" << int(st2.progress * 100) << "% "
+				<< std::endl;
 		}
 
 		if (st2.state != torrent_status::checking_files)
@@ -342,10 +361,8 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -375,7 +392,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
+	boost::intrusive_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
 
 	int num_new_files = 3;
 
@@ -392,13 +409,13 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
 
-	boost::shared_ptr<torrent_info> t2 = clone_ptr(t);
+	boost::intrusive_ptr<torrent_info> t2 = clone_ptr(t);
 
 	t2->remap_files(fs);
 
 	add_torrent_params params;
 	params.storage_mode = storage_mode;
-	params.flags |= add_torrent_params::flag_paused;
+	params.flags &= ~add_torrent_params::flag_paused;
 	params.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
@@ -406,20 +423,14 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	peer_disconnects = 0;
 
+	std::vector<boost::uint8_t> file_prio(2, 1);
+	file_prio[0] = 0;
+	params.file_priorities = &file_prio;
+
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_remap3", 8 * 1024, &t, false, &params
 		, true, false, &t2);
-
-	std::vector<int> file_prio(3, 1);
-	file_prio[0] = 0;
-	tor2.prioritize_files(file_prio);
-
-	// torrent1 will attempt to connect to torrent2
-	// make sure torrent2 is up and running by then
-	tor2.resume();
-	test_sleep(500);
-	tor1.resume();
 
 	fprintf(stderr, "\ntesting remap scatter prio\n\n");
 
@@ -456,7 +467,8 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
 		}
 
-		TEST_CHECK(st1.state == torrent_status::seeding);
+		TEST_CHECK(st1.state == torrent_status::seeding
+			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
@@ -474,7 +486,6 @@ int test_main()
 	using namespace libtorrent;
 
 	error_code ec;
-
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 
@@ -486,7 +497,7 @@ int test_main()
 	remove_all("tmp2_remap2", ec);
 
 	test_remap_files_scatter();
-
+	
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 	remove_all("tmp1_remap2", ec);

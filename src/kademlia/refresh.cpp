@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg & Daniel Wallin
+Copyright (c) 2006, Arvid Norberg & Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/pch.hpp"
+
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/performance_counters.hpp>
 
 #include <libtorrent/io.hpp>
 
@@ -44,28 +45,36 @@ namespace libtorrent { namespace dht
 	TORRENT_DECLARE_LOG(traversal);
 #endif
 
-observer_ptr bootstrap::new_observer(void* ptr
+refresh::refresh(
+	node_impl& node
+	, node_id target
+	, done_callback const& callback)
+	: find_data(node, target, find_data::data_callback(), callback, false)
+{
+}
+
+char const* refresh::name() const
+{
+	return "refresh";
+}
+
+observer_ptr refresh::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+	observer_ptr o(new (ptr) find_data_observer(this, ep, id));
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	return o;
 }
 
-bool bootstrap::invoke(observer_ptr o)
+bool refresh::invoke(observer_ptr o)
 {
 	entry e;
 	e["y"] = "q";
+	e["q"] = "find_node";
 	entry& a = e["a"];
-
-	e["q"] = "get_peers";
-	a["info_hash"] = target().to_string();
-
-//	e["q"] = "find_node";
-//	a["target"] = target().to_string();
-	m_node.stats_counters().inc_stats_counter(counters::dht_find_node_out);
+	a["target"] = target().to_string();
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
@@ -73,20 +82,14 @@ bootstrap::bootstrap(
 	node_impl& node
 	, node_id target
 	, done_callback const& callback)
-	: get_peers(node, target, get_peers::data_callback(), callback, false)
+	: refresh(node, target, callback)
 {
+	// make it more resilient to nodes not responding.
+	// we don't want to terminate early when we're bootstrapping
+	m_num_target_nodes *= 2;
 }
 
 char const* bootstrap::name() const { return "bootstrap"; }
-
-void bootstrap::trim_seed_nodes()
-{
-	// when we're bootstrapping, we want to start as far away from our ID as
-	// possible, to cover as much as possible of the ID space. So, remove all
-	// nodes except for the 32 that are farthest away from us
-	if (m_results.size() > 32)
-		m_results.erase(m_results.begin(), m_results.end() - 32);
-}
 
 void bootstrap::done()
 {
@@ -102,7 +105,7 @@ void bootstrap::done()
 		// this will send a ping
 		m_node.add_node((*i)->target_ep());
 	}
-	get_peers::done();
+	refresh::done();
 }
 
 } } // namespace libtorrent::dht

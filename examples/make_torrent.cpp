@@ -44,67 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
-{
-	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		fclose(f);
-		return 0;
-	}
-
-	r = fread(&v[0], 1, v.size(), f);
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
-}
-
 // do not include files and folders whose
 // name starts with a .
 bool file_filter(std::string const& f)
@@ -248,6 +187,7 @@ int main(int argc, char* argv[])
 		}
 
 		file_storage fs;
+		file_pool fp;
 		std::string full_path = libtorrent::complete(argv[1]);
 
 		add_files(fs, full_path, file_filter, flags);
@@ -322,7 +262,7 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 			int ret = fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output);
-			if (ret != int(t.merkle_tree().size()))
+			if (ret != t.merkle_tree().size())
 			{
 				fprintf(stderr, "failed to write %s: (%d) %s\n"
 					, merklefile.c_str(), errno, strerror(errno));

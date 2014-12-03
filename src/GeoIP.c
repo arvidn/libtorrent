@@ -334,7 +334,7 @@ int _check_mtime(GeoIP *gi) {
 				char const* src_start;
 				/* GeoIP Database file updated */
 				if (gi->flags & (GEOIP_MEMORY_CACHE | GEOIP_MMAP_CACHE)) {
-#if !defined WIN32 && !defined __OS2__
+#ifndef WIN32
 				    if ( gi->flags & GEOIP_MMAP_CACHE) {
 					munmap(gi->cache, gi->size);
 					gi->cache = NULL;
@@ -371,7 +371,7 @@ int _check_mtime(GeoIP *gi) {
 				gi->mtime = buf.st_mtime;
 				gi->size = buf.st_size;
 
-#if !defined WIN32 && !defined __OS2__
+#ifndef WIN32
 				if ( gi->flags & GEOIP_MMAP_CACHE) {
 				    gi->cache = (unsigned char*)mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
 				    if ( gi->cache == MAP_FAILED ) {
@@ -594,7 +594,7 @@ GeoIP* GeoIP_open (const char * filename, int flags) {
 			}
 			gi->mtime = buf.st_mtime;
 			gi->size = buf.st_size;
-#if !defined WIN32 && !defined __OS2__
+#ifndef WIN32
 			/* MMAP added my Peter Shipley */
 			if ( flags & GEOIP_MMAP_CACHE) {
 			    gi->cache = (unsigned char*)mmap(NULL, buf.st_size, PROT_READ, MAP_PRIVATE, fileno(gi->GeoIPDatabase), 0);
@@ -660,7 +660,7 @@ void GeoIP_delete (GeoIP *gi) {
 	if (gi->GeoIPDatabase != NULL)
 		fclose(gi->GeoIPDatabase);
 	if (gi->cache != NULL) {
-#if !defined WIN32 && !defined __OS2__
+#ifndef WIN32
 	    if ( gi->flags & GEOIP_MMAP_CACHE) {
 		munmap(gi->cache, gi->size);
 	    } else

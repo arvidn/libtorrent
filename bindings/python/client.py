@@ -229,7 +229,8 @@ def main():
         if f.startswith('magnet:') or f.startswith('http://') or f.startswith('https://'):
             atp["url"] = f
         else:
-            info = lt.torrent_info(f)
+            e = lt.bdecode(open(f, 'rb').read())
+            info = lt.torrent_info(e)
             print('Adding \'%s\'...' % info.name())
 
             try:

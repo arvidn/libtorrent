@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2007, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 #include <fstream>
@@ -47,7 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
+
+using boost::intrusive_ptr;
+
 
 namespace libtorrent {
 
@@ -61,34 +64,37 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 
 	void close();
 
-#if TORRENT_USE_ASSERTS
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 	bool is_queued(bandwidth_socket const* peer) const;
 #endif
 
 	int queue_size() const;
-	boost::int64_t queued_bytes() const;
+	int queued_bytes() const;
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
-	int request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
-		, int blk, int priority, bandwidth_channel** chan, int num_channels);
+	int request_bandwidth(intrusive_ptr<bandwidth_socket> const& peer
+		, int blk, int priority
+		, bandwidth_channel* chan1 = 0
+		, bandwidth_channel* chan2 = 0
+		, bandwidth_channel* chan3 = 0
+		, bandwidth_channel* chan4 = 0
+		, bandwidth_channel* chan5 = 0);
 
-#if TORRENT_USE_INVARIANT_CHECKS
+#ifdef TORRENT_DEBUG
 	void check_invariant() const;
 #endif
 
 	void update_quotas(time_duration const& dt);
 
-private:
-
 	// these are the consumers that want bandwidth
 	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;
 	// the number of bytes all the requests in queue are for
-	boost::int64_t m_queued_bytes;
+	int m_queued_bytes;
 
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)
