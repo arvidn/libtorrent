@@ -729,17 +729,17 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
 	const int num_pieces = size;
-	const size_type total_size = size_type(piece_size) * num_pieces;
+	const boost::int64_t total_size = boost::int64_t(piece_size) * num_pieces;
 
-	size_type s = total_size;
+	boost::int64_t s = total_size;
 	int i = 0;
-	size_type file_size = total_size / num_files;
+	boost::int64_t file_size = total_size / num_files;
 	while (s > 0)
 	{
 		char b[100];
 		snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
-		fs.add_file(b, (std::min)(s, size_type(file_size)));
+		fs.add_file(b, (std::min)(s, boost::int64_t(file_size)));
 		s -= file_size;
 		file_size += 200;
 	}
@@ -915,7 +915,7 @@ int main(int argc, char* argv[])
 			{
 				char file_name[100];
 				snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
-				fs.add_file(file_name, size_type(j + i + 1) * 251);
+				fs.add_file(file_name, boost::int64_t(j + i + 1) * 251);
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;

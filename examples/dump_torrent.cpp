@@ -131,7 +131,7 @@ int line_longer_than(libtorrent::lazy_entry const& e, int limit)
 		break;
 	case lazy_entry::int_t:
 	{
-		size_type val = e.int_value();
+		boost::int64_t val = e.int_value();
 		while (val > 0)
 		{
 			++line_len;
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < st.num_files(); ++i)
 	{
 		int first = st.map_file(i, 0, 0).piece;
-		int last = st.map_file(i, (std::max)(size_type(st.file_size(i))-1, size_type(0)), 0).piece;
+		int last = st.map_file(i, (std::max)(boost::int64_t(st.file_size(i))-1, boost::int64_t(0)), 0).piece;
 		int flags = st.file_flags(i);
 		printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
 			, st.file_offset(i)
