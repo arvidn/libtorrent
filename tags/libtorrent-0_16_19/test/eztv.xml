@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE torrent PUBLIC "-//bitTorrent//DTD torrent 0.1//EN" "http://xmlns.ezrss.it/0.1/dtd/">
+<rss version="2.0">
+	<channel>
+		<title>ezRSS - Search Results</title>
+		<ttl>15</ttl>
+		<link>http://ezrss.it/search/index.php?show_name=daily+show&amp;date=&amp;quality=&amp;release_group=&amp;mode=rss</link>
+		<image>
+			<title>ezRSS - Search Results</title>
+			<url>http://ezrss.it/images/ezrssit.png</url>
+			<link>http://ezrss.it/search/index.php?show_name=daily+show&amp;date=&amp;quality=&amp;release_group=&amp;mode=rss</link>
+		</image>
+		<description>Custom RSS feed based off search filters.</description>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-16 [HDTV - LMAO]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 16 Feb 2012 22:54:01 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-16]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent" length="183442338" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/33253/</comments>
+			<guid>http://eztv.it/ep/33253/the-daily-show-2012-02-16-hdtv-lmao/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.16.(HDTV-LMAO)[VTV].torrent]]></fileName>
+				<contentLength>183442338</contentLength>
+				<infoHash>1F270E0BCC87575748362788CD5775EFB59C8E1F</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:1F270E0BCC87575748362788CD5775EFB59C8E1F&dn=The.Daily.Show.2012.02.16.(HDTV-LMAO)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-15 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 15 Feb 2012 23:13:45 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-15]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent" length="183790660" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/33226/</comments>
+			<guid>http://eztv.it/ep/33226/the-daily-show-2012-02-15-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.15.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183790660</contentLength>
+				<infoHash>94200845B30F888DD0DFF518F7AA52363A299EF9</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:94200845B30F888DD0DFF518F7AA52363A299EF9&dn=The.Daily.Show.2012.02.15.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-14 [HDTV - LMAO]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.14.(HDTV-LMAO)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 15 Feb 2012 05:47:41 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-14]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.14.(HDTV-LMAO)[VTV].torrent" length="183465776" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/33199/</comments>
+			<guid>http://eztv.it/ep/33199/the-daily-show-2012-02-14-hdtv-lmao/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.14.(HDTV-LMAO)[VTV].torrent]]></fileName>
+				<contentLength>183465776</contentLength>
+				<infoHash>3E0F5BA0FBDFEDFEB638454DEC247D319C14CB13</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:3E0F5BA0FBDFEDFEB638454DEC247D319C14CB13&dn=The.Daily.Show.2012.02.14.(HDTV-LMAO)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-13 [HDTV - LMAO]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.13.(HDTV-LMAO)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 13 Feb 2012 23:00:34 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-13]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.13.(HDTV-LMAO)[VTV].torrent" length="183368772" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/33167/</comments>
+			<guid>http://eztv.it/ep/33167/the-daily-show-2012-02-13-hdtv-lmao/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.13.(HDTV-LMAO)[VTV].torrent]]></fileName>
+				<contentLength>183368772</contentLength>
+				<infoHash>359CA9925C9F909960515624A3683BA3BE67433E</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:359CA9925C9F909960515624A3683BA3BE67433E&dn=The.Daily.Show.2012.02.13.(HDTV-LMAO)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-02 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.02.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 02 Feb 2012 23:00:19 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-02]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.02.(HDTV-FQM)[VTV].torrent" length="183596934" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32893/</comments>
+			<guid>http://eztv.it/ep/32893/the-daily-show-2012-02-02-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.02.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183596934</contentLength>
+				<infoHash>DD3C4944680D8482C55D4ED6B81F5FDF54C99495</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:DD3C4944680D8482C55D4ED6B81F5FDF54C99495&dn=The.Daily.Show.2012.02.02.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-02-01 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.02.01.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 01 Feb 2012 23:33:05 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-02-01]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.02.01.(HDTV-FQM)[VTV].torrent" length="183822572" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32865/</comments>
+			<guid>http://eztv.it/ep/32865/the-daily-show-2012-02-01-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.02.01.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183822572</contentLength>
+				<infoHash>11B044DCE5D57E789EF52DEB072CE44F8393C33F</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:11B044DCE5D57E789EF52DEB072CE44F8393C33F&dn=The.Daily.Show.2012.02.01.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-31 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.31.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 01 Feb 2012 03:26:52 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-31]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.31.(HDTV-FQM)[VTV].torrent" length="183766842" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32848/</comments>
+			<guid>http://eztv.it/ep/32848/the-daily-show-2012-01-31-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.31.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183766842</contentLength>
+				<infoHash>2EE6F1DE03D1867E3CD787014407495B27966FC2</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:2EE6F1DE03D1867E3CD787014407495B27966FC2&dn=The.Daily.Show.2012.01.31.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-30 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.30.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 30 Jan 2012 22:57:47 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-30]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.30.(HDTV-FQM)[VTV].torrent" length="183454500" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32816/</comments>
+			<guid>http://eztv.it/ep/32816/the-daily-show-2012-01-30-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.30.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183454500</contentLength>
+				<infoHash>CCA7A03A46466A6482E1AA1D64B8E3DCE143B416</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:CCA7A03A46466A6482E1AA1D64B8E3DCE143B416&dn=The.Daily.Show.2012.01.30.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-26 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.26.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Fri, 27 Jan 2012 00:27:55 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-26]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.26.(HDTV-FQM)[VTV].torrent" length="183768000" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32730/</comments>
+			<guid>http://eztv.it/ep/32730/the-daily-show-2012-01-26-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.26.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183768000</contentLength>
+				<infoHash>1EB38A1120D6071656F9BF919CEB5194E2EBED0B</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:1EB38A1120D6071656F9BF919CEB5194E2EBED0B&dn=The.Daily.Show.2012.01.26.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-24 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.24.(HDTV-F.QM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 25 Jan 2012 05:32:35 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-24]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.24.(HDTV-F.QM)[VTV].torrent" length="183380054" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32686/</comments>
+			<guid>http://eztv.it/ep/32686/the-daily-show-2012-01-24-hdtv-f-qm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.24.(HDTV-F.QM)[VTV].torrent]]></fileName>
+				<contentLength>183380054</contentLength>
+				<infoHash>C09C23F16673B4141FA23815B92C05331336FE46</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:C09C23F16673B4141FA23815B92C05331336FE46&dn=The.Daily.Show.2012.01.24.(HDTV-F.QM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-23 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.23.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 23 Jan 2012 23:16:14 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-23]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.23.(HDTV-FQM)[VTV].torrent" length="183745332" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32665/</comments>
+			<guid>http://eztv.it/ep/32665/the-daily-show-2012-01-23-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.23.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183745332</contentLength>
+				<infoHash>7EA19BB02266EFCD74FA3B35DE6EC938DF977A06</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:7EA19BB02266EFCD74FA3B35DE6EC938DF977A06&dn=The.Daily.Show.2012.01.23.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-19 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.19.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 19 Jan 2012 23:24:16 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-19]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.19.(HDTV-FQM)[VTV].torrent" length="183761888" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32583/</comments>
+			<guid>http://eztv.it/ep/32583/the-daily-show-2012-01-19-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.19.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183761888</contentLength>
+				<infoHash>4EAAC160B43E6017D06016A97AC90776056EEA7E</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:4EAAC160B43E6017D06016A97AC90776056EEA7E&dn=The.Daily.Show.2012.01.19.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-18 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.18.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 18 Jan 2012 23:17:33 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-18]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.18.(HDTV-FQM)[VTV].torrent" length="183774632" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32548/</comments>
+			<guid>http://eztv.it/ep/32548/the-daily-show-2012-01-18-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.18.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183774632</contentLength>
+				<infoHash>DE1273E23CDE05AD720E85844C4CA22C94547A3B</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:DE1273E23CDE05AD720E85844C4CA22C94547A3B&dn=The.Daily.Show.2012.01.18.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-17 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.17.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Tue, 17 Jan 2012 22:58:07 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-17]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.17.(HDTV-FQM)[VTV].torrent" length="183371312" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32512/</comments>
+			<guid>http://eztv.it/ep/32512/the-daily-show-2012-01-17-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.17.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183371312</contentLength>
+				<infoHash>33AD4A54A1B3CD2E755812A6919AC049122008D7</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:33AD4A54A1B3CD2E755812A6919AC049122008D7&dn=The.Daily.Show.2012.01.17.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-16 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.16.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 16 Jan 2012 22:56:30 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-16]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.16.(HDTV-FQM)[VTV].torrent" length="183722888" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32484/</comments>
+			<guid>http://eztv.it/ep/32484/the-daily-show-2012-01-16-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.16.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183722888</contentLength>
+				<infoHash>BF0683C2A18FED9D8C1A24664161DD3725359EA0</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:BF0683C2A18FED9D8C1A24664161DD3725359EA0&dn=The.Daily.Show.2012.01.16.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-12 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.12.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 12 Jan 2012 23:01:26 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-12]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.12.(HDTV-FQM)[VTV].torrent" length="183403284" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32381/</comments>
+			<guid>http://eztv.it/ep/32381/the-daily-show-2012-01-12-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.12.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183403284</contentLength>
+				<infoHash>E436508896DF5F7AAB5B3E2B30162150FF382F63</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:E436508896DF5F7AAB5B3E2B30162150FF382F63&dn=The.Daily.Show.2012.01.12.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-11 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.11.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 11 Jan 2012 23:12:32 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-11]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.11.(HDTV-FQM)[VTV].torrent" length="183775414" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32346/</comments>
+			<guid>http://eztv.it/ep/32346/the-daily-show-2012-01-11-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.11.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183775414</contentLength>
+				<infoHash>02EF9FBF0E588C1A6C1FE9D6F7EC0DA192BDDEFC</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:02EF9FBF0E588C1A6C1FE9D6F7EC0DA192BDDEFC&dn=The.Daily.Show.2012.01.11.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-10 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.10.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Tue, 10 Jan 2012 23:47:38 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-10]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.10.(HDTV-FQM)[VTV].torrent" length="183452822" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32318/</comments>
+			<guid>http://eztv.it/ep/32318/the-daily-show-2012-01-10-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.10.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183452822</contentLength>
+				<infoHash>8CB029029BC06A73030F45F129C48D0CF6EBC0A3</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:8CB029029BC06A73030F45F129C48D0CF6EBC0A3&dn=The.Daily.Show.2012.01.10.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-09 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.09.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 09 Jan 2012 22:47:39 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-09]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.09.(HDTV-FQM)[VTV].torrent" length="183756882" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32290/</comments>
+			<guid>http://eztv.it/ep/32290/the-daily-show-2012-01-09-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.09.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183756882</contentLength>
+				<infoHash>85E758C44EB0AD542A7B2434DC4D7C3ED2551965</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:85E758C44EB0AD542A7B2434DC4D7C3ED2551965&dn=The.Daily.Show.2012.01.09.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-05 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.05.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 05 Jan 2012 22:54:27 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-05]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.05.(HDTV-FQM)[VTV].torrent" length="183773276" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32210/</comments>
+			<guid>http://eztv.it/ep/32210/the-daily-show-2012-01-05-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.05.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183773276</contentLength>
+				<infoHash>B6331AE93524EF5ECA45FFB0CD9E344CD7186D8F</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:B6331AE93524EF5ECA45FFB0CD9E344CD7186D8F&dn=The.Daily.Show.2012.01.05.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-04 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.04.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 05 Jan 2012 01:34:53 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-04]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.04.(HDTV-FQM)[VTV].torrent" length="183765188" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32183/</comments>
+			<guid>http://eztv.it/ep/32183/the-daily-show-2012-01-04-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.04.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183765188</contentLength>
+				<infoHash>C6F7ECF1C6A065A4BFDC641092BDFEEDCCEA0CDA</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:C6F7ECF1C6A065A4BFDC641092BDFEEDCCEA0CDA&dn=The.Daily.Show.2012.01.04.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2012-01-03 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2012.01.03.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Tue, 03 Jan 2012 23:20:39 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2012-01-03]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2012.01.03.(HDTV-FQM)[VTV].torrent" length="183731134" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/32156/</comments>
+			<guid>http://eztv.it/ep/32156/the-daily-show-2012-01-03-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2012.01.03.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183731134</contentLength>
+				<infoHash>72F40FB20F3D26B9FCDE93CD13B55CE190D3096B</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:72F40FB20F3D26B9FCDE93CD13B55CE190D3096B&dn=The.Daily.Show.2012.01.03.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-15 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.15.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 15 Dec 2011 22:54:14 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-15]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.15.(HDTV-FQM)[VTV].torrent" length="183449704" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31906/</comments>
+			<guid>http://eztv.it/ep/31906/the-daily-show-2011-12-15-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.15.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183449704</contentLength>
+				<infoHash>F081D05F350C05209EA245E7D416DEE9695B04A0</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:F081D05F350C05209EA245E7D416DEE9695B04A0&dn=The.Daily.Show.2011.12.15.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-14 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.14.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 15 Dec 2011 02:52:44 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-14]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.14.(HDTV-FQM)[VTV].torrent" length="183754264" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31878/</comments>
+			<guid>http://eztv.it/ep/31878/the-daily-show-2011-12-14-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.14.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183754264</contentLength>
+				<infoHash>C02EE1E4DA2BC3C629E69B1970C931BEEF9F16C2</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:C02EE1E4DA2BC3C629E69B1970C931BEEF9F16C2&dn=The.Daily.Show.2011.12.14.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-13 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.13.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Wed, 14 Dec 2011 03:37:05 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-13]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.13.(HDTV-FQM)[VTV].torrent" length="183748078" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31855/</comments>
+			<guid>http://eztv.it/ep/31855/the-daily-show-2011-12-13-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.13.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183748078</contentLength>
+				<infoHash>4A20B0DD2A4056BB0DE0025BBE8260283689928E</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:4A20B0DD2A4056BB0DE0025BBE8260283689928E&dn=The.Daily.Show.2011.12.13.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-12 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.12.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Mon, 12 Dec 2011 22:59:23 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-12]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.12.(HDTV-FQM)[VTV].torrent" length="183460076" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31829/</comments>
+			<guid>http://eztv.it/ep/31829/the-daily-show-2011-12-12-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.12.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183460076</contentLength>
+				<infoHash>6A4B3DCB48A6A4EA45772FBCB9E60936E06EE351</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:6A4B3DCB48A6A4EA45772FBCB9E60936E06EE351&dn=The.Daily.Show.2011.12.12.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-08 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.08.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 08 Dec 2011 23:11:55 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-08]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.08.(HDTV-FQM)[VTV].torrent" length="183811968" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31751/</comments>
+			<guid>http://eztv.it/ep/31751/the-daily-show-2011-12-08-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.08.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183811968</contentLength>
+				<infoHash>1340B406A6CA5F715F4FB7590AEB9BA85C3D7775</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:1340B406A6CA5F715F4FB7590AEB9BA85C3D7775&dn=The.Daily.Show.2011.12.08.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-07 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.07.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Thu, 08 Dec 2011 01:35:41 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-07]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.07.(HDTV-FQM)[VTV].torrent" length="183740072" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31722/</comments>
+			<guid>http://eztv.it/ep/31722/the-daily-show-2011-12-07-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.07.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183740072</contentLength>
+				<infoHash>68684A70ED89321E8B7AAA467DCD1C2F22AA9CD9</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:68684A70ED89321E8B7AAA467DCD1C2F22AA9CD9&dn=The.Daily.Show.2011.12.07.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-06 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.06.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Tue, 06 Dec 2011 23:25:39 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-06]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.06.(HDTV-FQM)[VTV].torrent" length="183747386" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31688/</comments>
+			<guid>http://eztv.it/ep/31688/the-daily-show-2011-12-06-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.06.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183747386</contentLength>
+				<infoHash>C1F76A80399ECD1572A7E282EBE45A17160839CC</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:C1F76A80399ECD1572A7E282EBE45A17160839CC&dn=The.Daily.Show.2011.12.06.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+		<item>
+			<title><![CDATA[The Daily Show 2011-12-05 [HDTV - FQM]]]></title>
+			<link>http://torrent.zoink.it/The.Daily.Show.2011.12.05.(HDTV-FQM)[VTV].torrent</link>
+			<category domain="http://eztv.it/shows/67/the-daily-show/"><![CDATA[TV Show / The Daily Show]]></category>
+			<pubDate>Tue, 06 Dec 2011 01:26:12 -0500</pubDate>
+			<description><![CDATA[Show Name: The Daily Show; Episode Title: N/A; Episode Date: 2011-12-05]]></description>
+			<enclosure url="http://torrent.zoink.it/The.Daily.Show.2011.12.05.(HDTV-FQM)[VTV].torrent" length="183783900" type="application/x-bittorrent" />
+			<comments>http://eztv.it/forum/discuss/31662/</comments>
+			<guid>http://eztv.it/ep/31662/the-daily-show-2011-12-05-hdtv-fqm/</guid>
+			<torrent xmlns="http://xmlns.ezrss.it/0.1/">
+				<fileName><![CDATA[The.Daily.Show.2011.12.05.(HDTV-FQM)[VTV].torrent]]></fileName>
+				<contentLength>183783900</contentLength>
+				<infoHash>78627148D317FC01A9BA4504E11273FF4BE72DB7</infoHash>
+				<magnetURI><![CDATA[magnet:?xt=urn:btih:78627148D317FC01A9BA4504E11273FF4BE72DB7&dn=The.Daily.Show.2011.12.05.(HDTV-FQM)]]></magnetURI>
+			</torrent>
+		</item>
+	</channel>
+</rss>

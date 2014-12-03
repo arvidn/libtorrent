@@ -1,0 +1,31 @@
+import modules ;
+
+BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
+
+use-project /torrent : .. ;
+
+if $(BOOST_ROOT)
+{
+	use-project /boost : $(BOOST_ROOT) ;
+}
+
+project client_test
+   : requirements
+	<threading>multi <library>/torrent//torrent
+	: default-build
+	<link>static
+   ;  
+
+exe client_test : client_test.cpp ;
+
+exe simple_client : simple_client.cpp ;
+exe dump_torrent : dump_torrent.cpp ;
+exe make_torrent : make_torrent.cpp ;
+exe enum_if : enum_if.cpp ;
+exe connection_tester : connection_tester.cpp ;
+exe fragmentation_test : fragmentation_test.cpp ;
+exe rss_reader : rss_reader.cpp ;
+exe upnp_test : upnp_test.cpp ;
+
+exe parse_request_log : parse_request_log.cpp ;
+
