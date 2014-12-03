@@ -272,6 +272,11 @@ Build features:
 |                          | * ``production`` - assertion failures are logged   |
 |                          |   to ``asserts.log`` in the current working        |
 |                          |   directory, but won't abort the process.          |
+|                          |   The file they are logged to can be customized    |
+|                          |   by setting the global pointer ``extern char      |
+|                          |   const* libtorrent_assert_log`` to a different    |
+|                          |   filename.                                        |
+|                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
 | ``geoip``                | * ``off`` - geo ip lookups disabled                |
 |                          | * ``static`` - MaxMind_ geo ip lookup code linked  |
@@ -365,15 +370,6 @@ Build features:
 |                          | * ``on`` - force use of iconv                      |
 |                          | * ``off`` - force not using iconv (disables locale |
 |                          |   awareness except on windows).                    |
-+--------------------------+----------------------------------------------------+
-| ``asserts``              | * ``off`` - disable all asserts                    |
-|                          | * ``peoduction`` - enable asserts in release       |
-|                          |   builds, but don't abort, just log them to        |
-|                          |   ``extern char const* libtorrent_assert_log``.    |
-|                          | * ``on`` - enable asserts in debug builds (this is |
-|                          |   the default). On GNU systems, print a stack      |
-|                          |   trace of the assert and some more information.   |
-|                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
 | ``i2p``                  | * ``on`` - build with I2P support                  |
 |                          | * ``off`` - build without I2P support              |
