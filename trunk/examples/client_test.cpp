@@ -2012,7 +2012,7 @@ int main(int argc, char* argv[])
 
 			if (print_file_progress && s.has_metadata)
 			{
-				std::vector<size_type> file_progress;
+				std::vector<boost::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<pool_file_status> file_status;
 			 	h.file_status(file_status);
