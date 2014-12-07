@@ -311,10 +311,17 @@ to the <a class="reference external" href="reference-Session.html#session">sessi
 </dl>
 <a name="save_path"></a><dl class="docutils">
 <dt>save_path</dt>
-<dd>the path where the torrent is or will be stored. Note that this may
-alos be stored in resume data. If you which the save path saved in
+<dd><p class="first">the path where the torrent is or will be stored. Note that this may
+alos be stored in resume data. If you want the save path saved in
 the resume data to be used, you need to set the
-flag_use_resume_save_path flag.</dd>
+flag_use_resume_save_path flag.</p>
+<div class="note last">
+<p class="first admonition-title">Note</p>
+<p class="last">One windows this path (and other paths) are interpreted as UNC
+paths. This means they must use backslashes and may not contain the
+special directories &quot;.&quot; or &quot;..&quot;.</p>
+</div>
+</dd>
 </dl>
 <a name="resume_data"></a><dl class="docutils">
 <dt>resume_data</dt>
