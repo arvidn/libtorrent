@@ -494,7 +494,7 @@ void bind_alert()
 
     class_<stats_alert, bases<torrent_alert>, noncopyable>(
         "stats_alert", no_init)
-        	.add_property("transferred", &stats_alert_transferred)
+        .add_property("transferred", &stats_alert_transferred)
         .def_readonly("interval", &stats_alert::interval)
     ;
 

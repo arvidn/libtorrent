@@ -327,10 +327,17 @@ to the <a class="reference external" href="reference-Session.html#session">sessi
 </dl>
 <a name="save_path"></a><dl class="docutils">
 <dt>save_path</dt>
-<dd>the path where the torrent is or will be stored. Note that this may
-alos be stored in resume data. If you which the save path saved in
+<dd><p class="first">the path where the torrent is or will be stored. Note that this may
+alos be stored in resume data. If you want the save path saved in
 the resume data to be used, you need to set the
-flag_use_resume_save_path flag.</dd>
+flag_use_resume_save_path flag.</p>
+<div class="note last">
+<p class="first admonition-title">Note</p>
+<p class="last">On windows this path (and other paths) are interpreted as UNC
+paths. This means they must use backslashes as directory separators
+and may not contain the special directories &quot;.&quot; or &quot;..&quot;.</p>
+</div>
+</dd>
 </dl>
 <a name="resume_data"></a><dl class="docutils">
 <dt>resume_data</dt>
@@ -1563,26 +1570,26 @@ struct session_status
    bool has_incoming_connections;
    int upload_rate;
    int download_rate;
-   size_type total_download;
-   size_type total_upload;
+   boost::int64_t total_download;
+   boost::int64_t total_upload;
    int payload_upload_rate;
    int payload_download_rate;
-   size_type total_payload_download;
-   size_type total_payload_upload;
+   boost::int64_t total_payload_download;
+   boost::int64_t total_payload_upload;
    int ip_overhead_upload_rate;
    int ip_overhead_download_rate;
-   size_type total_ip_overhead_download;
-   size_type total_ip_overhead_upload;
+   boost::int64_t total_ip_overhead_download;
+   boost::int64_t total_ip_overhead_upload;
    int dht_upload_rate;
    int dht_download_rate;
-   size_type total_dht_download;
-   size_type total_dht_upload;
+   boost::int64_t total_dht_download;
+   boost::int64_t total_dht_upload;
    int tracker_upload_rate;
    int tracker_download_rate;
-   size_type total_tracker_download;
-   size_type total_tracker_upload;
-   size_type total_redundant_bytes;
-   size_type total_failed_bytes;
+   boost::int64_t total_tracker_download;
+   boost::int64_t total_tracker_upload;
+   boost::int64_t total_redundant_bytes;
+   boost::int64_t total_failed_bytes;
    int num_peers;
    int num_dead_peers;
    int num_unchoked;
@@ -1598,7 +1605,7 @@ struct session_status
    int dht_nodes;
    int dht_node_cache;
    int dht_torrents;
-   size_type dht_global_nodes;
+   boost::int64_t dht_global_nodes;
    std::vector&lt;dht_lookup&gt; active_requests;
    std::vector&lt;dht_routing_bucket&gt; dht_routing_table;
    int dht_total_allocations;

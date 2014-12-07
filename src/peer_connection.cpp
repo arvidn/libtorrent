@@ -2088,6 +2088,8 @@ namespace libtorrent
 			if (t && t->has_picker())
 				t->picker().check_peer_invariant(m_have_piece, this);
 #endif
+			
+			// this will cause us to send the INTERESTED message
 			if (!t->is_upload_only())
 				t->peer_is_interesting(*this);
 
