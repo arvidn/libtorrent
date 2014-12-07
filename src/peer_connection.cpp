@@ -1879,6 +1879,8 @@ namespace libtorrent
 			m_have_piece.set_all();
 			m_num_pieces = num_pieces;
 			t->peer_has_all(this);
+			
+			// this will cause us to send the INTERESTED message
 			if (!t->is_upload_only())
 				t->get_policy().peer_is_interesting(*this);
 
