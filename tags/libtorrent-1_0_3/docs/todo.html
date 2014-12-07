@@ -751,8 +751,8 @@ the chunk headers should be subtracted from the receive_buffer_size</h2><h4>../s
 		std::string request;
 		request.reserve(400);
 
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(14)">../src/peer_connection.cpp:2605</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="14" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
-all completed disk operations</h2><h4>../src/peer_connection.cpp:2605</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(14)">../src/peer_connection.cpp:2607</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="14" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
+all completed disk operations</h2><h4>../src/peer_connection.cpp:2607</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
 
 		if (is_disconnecting()) return;
 
@@ -1713,9 +1713,9 @@ remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.c
 	{
 		return m_have_piece;
 	}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(33)">../src/peer_connection.cpp:2768</a></td><td>this might need something more so that once we have the metadata we can construct a full bitfield</td></tr><tr id="33" style="display: none;" colspan="3"><td colspan="3"><h2>this might need something more
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(33)">../src/peer_connection.cpp:2770</a></td><td>this might need something more so that once we have the metadata we can construct a full bitfield</td></tr><tr id="33" style="display: none;" colspan="3"><td colspan="3"><h2>this might need something more
 so that once we have the metadata
-we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2768</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2770</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("*** THIS IS A SEED [ p: %p ]", m_peer_info);
 #endif
@@ -1766,7 +1766,7 @@ we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2768</h4><pr
 		boost::shared_ptr&lt;torrent&gt; t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(34)">../src/peer_connection.cpp:2899</a></td><td>sort the allowed fast set in priority order</td></tr><tr id="34" style="display: none;" colspan="3"><td colspan="3"><h2>sort the allowed fast set in priority order</h2><h4>../src/peer_connection.cpp:2899</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// this piece index later
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(34)">../src/peer_connection.cpp:2901</a></td><td>sort the allowed fast set in priority order</td></tr><tr id="34" style="display: none;" colspan="3"><td colspan="3"><h2>sort the allowed fast set in priority order</h2><h4>../src/peer_connection.cpp:2901</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// this piece index later
 		m_allowed_fast.push_back(index);
 
 		// if the peer has the piece and we want
@@ -1817,8 +1817,8 @@ we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2768</h4><pr
 		TORRENT_ASSERT(t-&gt;has_picker());
 		TORRENT_ASSERT(t-&gt;picker().is_requested(block));
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(35)">../src/peer_connection.cpp:4574</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="35" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
-all completed disk operations</h2><h4>../src/peer_connection.cpp:4574</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(35)">../src/peer_connection.cpp:4576</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="35" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
+all completed disk operations</h2><h4>../src/peer_connection.cpp:4576</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t-&gt;filesystem().async_read_and_hash(r, boost::bind(&amp;peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.second);
