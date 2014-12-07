@@ -178,7 +178,7 @@ def main():
         port=6881
       , max_download_rate=0
       , max_upload_rate=0
-      , save_path='./'
+      , save_path='.'
       , allocation_mode='compact'
       , proxy_host=''
     )

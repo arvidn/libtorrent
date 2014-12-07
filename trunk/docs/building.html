@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
@@ -310,7 +310,12 @@ typically the case on x86 64 bit systems.</li>
 <li><tt class="docutils literal">off</tt> - asserts are disabled</li>
 <li><tt class="docutils literal">production</tt> - assertion failures are logged
 to <tt class="docutils literal">asserts.log</tt> in the current working
-directory, but won't abort the process.</li>
+directory, but won't abort the process.
+The file they are logged to can be customized
+by setting the global pointer <tt class="docutils literal">extern char
+const* libtorrent_assert_log</tt> to a different
+filename.</li>
+<li><tt class="docutils literal">system</tt> use the libc assert macro</li>
 </ul>
 </td>
 </tr>
@@ -442,19 +447,6 @@ linux and mingw and other posix platforms.</li>
 <li><tt class="docutils literal">on</tt> - force use of iconv</li>
 <li><tt class="docutils literal">off</tt> - force not using iconv (disables locale
 awareness except on windows).</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal">asserts</tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - disable all asserts</li>
-<li><tt class="docutils literal">production</tt> - enable asserts in release
-builds, but don't abort, just log them to
-<tt class="docutils literal">extern char const* libtorrent_assert_log</tt>.</li>
-<li><tt class="docutils literal">on</tt> - enable asserts in debug builds (this is
-the default). On GNU systems, print a stack
-trace of the assert and some more information.</li>
-<li><tt class="docutils literal">system</tt> use the libc assert macro</li>
 </ul>
 </td>
 </tr>

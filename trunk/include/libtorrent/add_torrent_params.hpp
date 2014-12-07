@@ -287,9 +287,14 @@ namespace libtorrent
 		std::string name;
 
 		// the path where the torrent is or will be stored. Note that this may
-		// alos be stored in resume data. If you which the save path saved in
+		// alos be stored in resume data. If you want the save path saved in
 		// the resume data to be used, you need to set the
 		// flag_use_resume_save_path flag.
+		//
+		// .. note::
+		// 	On windows this path (and other paths) are interpreted as UNC
+		// 	paths. This means they must use backslashes as directory separators
+		// 	and may not contain the special directories "." or "..".
 		std::string save_path;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
