@@ -948,10 +948,13 @@ namespace libtorrent
 		ptime m_last_receive;
 		ptime m_last_sent;
 
-		// the time when the first entry in the
-		// request queue was requested, increased
-		// for each entry that is popped from the
-		// download queue. Used for request timeout
+		// the time when the first entry in the request queue was requested. Used
+		// for request timeout. it doesn't necessarily represent the time when a
+		// specific request was made. Since requests can be handled out-of-order,
+		// it represents whichever request the other end decided to respond to.
+		// Once we get that response, we set it to the current time.
+		// for more information, see the blog post at:
+		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
 		ptime m_requested;
 
 		// a timestamp when the remote download rate
@@ -1063,11 +1066,6 @@ namespace libtorrent
 		// TODO: factor this out into its own class with a virtual interface
 		// torrent and session should implement this interface
 		stat m_statistics;
-
-		// if the timeout is extended for the outstanding
-		// requests, this is the number of seconds it was
-		// extended.
-		int m_timeout_extend;
 
 		// the number of outstanding bytes expected
 		// to be received by extensions
