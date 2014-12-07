@@ -286,9 +286,9 @@ namespace libtorrent
 		// flag_use_resume_save_path flag.
 		//
 		// .. note::
-		// 	One windows this path (and other paths) are interpreted as UNC
-		// 	paths. This means they must use backslashes and may not contain the
-		// 	special directories "." or "..".
+		// 	On windows this path (and other paths) are interpreted as UNC
+		// 	paths. This means they must use backslashes as directory separators
+		// 	and may not contain the special directories "." or "..".
 		std::string save_path;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
