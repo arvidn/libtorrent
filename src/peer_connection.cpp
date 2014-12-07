@@ -163,7 +163,6 @@ namespace libtorrent
 		, m_outstanding_bytes(0)
 		, m_last_seen_complete(0)
 		, m_receiving_block(piece_block::invalid)
-		, m_timeout_extend(0)
 		, m_extension_outstanding_bytes(0)
 		, m_queued_time_critical(0)
 		, m_reading_bytes(0)
@@ -2716,10 +2715,11 @@ namespace libtorrent
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
 
-			m_timeout_extend = 0;
-
 			if (m_disconnecting) return;
 
+			// we completed an incoming block, and there are still outstanding
+			// requests. The next block we expect to receive now has another
+			// timeout period until we time out. So, reset the timer.
 			if (!m_download_queue.empty())
 				m_requested = now;
 
@@ -2728,7 +2728,9 @@ namespace libtorrent
 			send_block_requests();
 			return;
 		}
-		
+
+		// we received a request within the timeout, make sure this peer is
+		// not snubbed anymore
 		if (total_seconds(now - m_requested)
 			< m_settings.get_int(settings_pack::request_timeout)
 			&& m_snubbed)
@@ -2781,17 +2783,11 @@ namespace libtorrent
 				, performance_alert::too_high_disk_queue_limit));
 		}
 
+		// we completed an incoming block, and there are still outstanding
+		// requests. The next block we expect to receive now has another
+		// timeout period until we time out. So, reset the timer.
 		if (!m_download_queue.empty())
-		{
-			m_timeout_extend = (std::max)(m_timeout_extend
-				- m_settings.get_int(settings_pack::request_timeout), 0);
-			m_requested += seconds(m_settings.get_int(settings_pack::request_timeout));
-			if (m_requested > now) m_requested = now;
-		}
-		else
-		{
-			m_timeout_extend = 0;
-		}
+			m_requested = now;
 
 		bool was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
@@ -3872,7 +3868,9 @@ namespace libtorrent
 		if (!m_download_queue.empty()
 			&& empty_download_queue)
 		{
-			// This means we just added a request to this connection
+			// This means we just added a request to this connection that
+			// previously did not have a request. That's when we start the
+			// request timeout.
 			m_requested = time_now();
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			t->debug_log("REQUEST [%p] (%d ms)", this
@@ -4230,8 +4228,7 @@ namespace libtorrent
 		p.num_pieces = m_num_pieces;
 		if (m_download_queue.empty()) p.request_timeout = -1;
 		else p.request_timeout = int(total_seconds(m_requested - now)
-			+ m_settings.get_int(settings_pack::request_timeout)
-			+ m_timeout_extend);
+			+ m_settings.get_int(settings_pack::request_timeout));
 
 		p.download_queue_time = download_queue_time();
 		p.queue_bytes = m_outstanding_bytes;
@@ -4677,8 +4674,7 @@ namespace libtorrent
 		if (may_timeout
 			&& !m_download_queue.empty()
 			&& m_quota[download_channel] > 0
-			&& now > m_requested + seconds(m_settings.get_int(settings_pack::request_timeout)
-			+ m_timeout_extend))
+			&& now > m_requested + seconds(m_settings.get_int(settings_pack::request_timeout)))
 		{
 			snub_peer();
 		}
@@ -4713,16 +4709,16 @@ namespace libtorrent
 
 		if (!m_download_queue.empty()
 			&& m_quota[download_channel] > 0
-			&& now - m_last_piece > seconds(piece_timeout + m_timeout_extend))
+			&& now - m_last_piece > seconds(piece_timeout))
 		{
 			// this peer isn't sending the pieces we've
 			// requested (this has been observed by BitComet)
 			// in this case we'll clear our download queue and
 			// re-request the blocks.
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-			peer_log("*** PIECE_REQUEST TIMED OUT [ %d time: %d to: %d extend: %d ]"
+			peer_log("*** PIECE_REQUEST TIMED OUT [ %d time: %d to: %d ]"
 				, (int)m_download_queue.size(), total_seconds(now - m_last_piece)
-				, piece_timeout, m_timeout_extend);
+				, piece_timeout);
 #endif
 
 			snub_peer();
@@ -4766,11 +4762,8 @@ namespace libtorrent
 		}
 		m_desired_queue_size = 1;
 
-		if (on_parole())
-		{
-			m_timeout_extend += m_settings.get_int(settings_pack::request_timeout);
-			return;
-		}
+		if (on_parole()) return;
+
 		if (!t->has_picker()) return;
 		piece_picker& picker = t->picker();
 
@@ -4784,21 +4777,6 @@ namespace libtorrent
 		m_queued_time_critical = 0;
 
 		TORRENT_ASSERT(!m_download_queue.empty());
-
-		// request a new block before removing the previous
-		// one, in order to prevent it from
-		// picking the same block again, stalling the
-		// same piece indefinitely.
-		m_desired_queue_size = 2;
-		if (request_a_block(*t, *this))
-			m_counters.inc_stats_counter(counters::snubbed_piece_picks);
-
-		// the block we just picked (potentially)
-		// hasn't been put in m_download_queue yet.
-		// it's in m_request_queue and will be sent
-		// once send_block_requests() is called.
-
-		m_desired_queue_size = 1;
 
 		// time out the last request eligible
 		// block in the queue
@@ -4815,16 +4793,19 @@ namespace libtorrent
 			pending_block& qe = m_download_queue[i];
 			piece_block r = qe.block;
 
-			// only time out a request if it blocks the piece
-			// from being completed (i.e. no free blocks to
-			// request from it)
+			// only cancel a request if it blocks the piece from being completed
+			// (i.e. no free blocks to request from it)
 			piece_picker::downloading_piece p;
 			picker.piece_info(qe.block.piece_index, p);
 			int free_blocks = picker.blocks_in_piece(qe.block.piece_index)
 				- p.finished - p.writing - p.requested;
+
+			// if there are still blocks available for other peers to pick, we're
+			// still not holding up the completion of the piece and there's no
+			// need to cancel the requests. For more information, see:
+			// http://blog.libtorrent.org/2011/11/block-request-time-outs/
 			if (free_blocks > 0)
 			{
-				m_timeout_extend += m_settings.get_int(settings_pack::request_timeout);
 				send_block_requests();
 				return;
 			}
@@ -4834,6 +4815,22 @@ namespace libtorrent
 				t->alerts().post_alert(block_timeout_alert(t->get_handle()
 					, remote(), pid(), qe.block.block_index, qe.block.piece_index));
 			}
+
+			// request a new block before removing the previous
+			// one, in order to prevent it from
+			// picking the same block again, stalling the
+			// same piece indefinitely.
+			m_desired_queue_size = 2;
+			if (request_a_block(*t, *this))
+				m_counters.inc_stats_counter(counters::snubbed_piece_picks);
+
+			// the block we just picked (potentially)
+			// hasn't been put in m_download_queue yet.
+			// it's in m_request_queue and will be sent
+			// once send_block_requests() is called.
+
+			m_desired_queue_size = 1;
+
 			qe.timed_out = true;
 			picker.abort_download(r, peer_info_struct());
 		}

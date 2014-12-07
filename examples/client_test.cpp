@@ -1049,6 +1049,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		char chr = '+';
 		if (index >= 0)
 			chr = (index < 10)?'0' + index:'A' + index - 10;
+		bool snubbed = index >= 0 ? peers[index].flags & peer_info::snubbed : false;
 
 		char const* color = "";
 
@@ -1065,12 +1066,12 @@ void print_piece(libtorrent::partial_piece_info* pp
 					&& pp->blocks[j].state == block_info::requested)
 			{
 				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
-				else color = esc("33;7");
+				else color = snubbed ? esc("35;7") : esc("33;7");
 				chr = '0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size);
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
-			else if (pp->blocks[j].state == block_info::requested) color = esc("0");
+			else if (pp->blocks[j].state == block_info::requested) color = snubbed ? esc("35;7") : esc("0");
 			else { color = esc("0"); chr = ' '; }
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
@@ -2001,11 +2002,13 @@ int main(int argc, char* argv[])
 				}
 				if (out[out.size()] != '\n') out += "\n";
 
-				snprintf(str, sizeof(str), "%s %s: read cache %s %s: downloading %s %s: cached %s %s: flushed\n"
+				snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
-					, esc("32;7"), esc("0")); // flushed
+					, esc("32;7"), esc("0") // flushed
+					, esc("35;7"), esc("0") // snubbed
+					);
 				out += str;
 				out += "___________________________________\n";
 			}
