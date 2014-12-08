@@ -474,10 +474,16 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 		}
 		if (print_timers)
 		{
-			snprintf(str, sizeof(str), "%8d %4d %7d %6d "
+			char req_timeout[20] = "-";
+			// timeout is only meaningful if there is at least one outstanding
+			// request to the peer
+			if (i->download_queue_length > 0)
+				snprintf(req_timeout, sizeof(req_timeout), "%d", i->request_timeout);
+
+			snprintf(str, sizeof(str), "%8d %4d %7s %6d "
 				, int(total_seconds(i->last_active))
 				, int(total_seconds(i->last_request))
-				, i->request_timeout
+				, req_timeout
 				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
