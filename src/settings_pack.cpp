@@ -210,7 +210,7 @@ namespace libtorrent
 		SET(stop_tracker_timeout, 5, 0),
 		SET(tracker_maximum_response_length, 1024*1024, 0),
 		SET(piece_timeout, 20, 0),
-		SET(request_timeout, 50, 0),
+		SET(request_timeout, 60, 0),
 		SET(request_queue_time, 3, 0),
 		SET(max_allowed_in_request_queue, 500, 0),
 		SET(max_out_request_queue, 500, 0),

@@ -71,6 +71,7 @@ struct sliding_average
 
 	int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
 	int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
+	int num_samples() const { return m_num_samples; }
 
 private:
 	// both of these are fixed point values (* 64)

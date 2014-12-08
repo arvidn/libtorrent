@@ -2445,21 +2445,6 @@ namespace libtorrent
 		{
 			if (i->block != b) continue;
 			in_req_queue = true;
-			if (i->receiving == false)
-			{
-				i->receiving = true;
-				// if send_buffer_offset is greater then or equal to 0, it means
-				// the callback of the send operation when we sent this
-				// request hasn't come back yet, and we're already
-				// receiving the response from it. Count the rtt as 0.
-				int rtt = (i->send_buffer_offset >= 0) ? 0
-					: int(total_milliseconds(time_now_hires() - i->request_time));
-				m_rtt.add_sample(rtt);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
-				peer_log("*** RTT: %d ms [%d +/- %d ms]", rtt, m_rtt.mean()
-					, m_rtt.avg_deviation());
-#endif
-			}
 			break;
 		}
 
@@ -2653,7 +2638,7 @@ namespace libtorrent
 			return;
 		}
 
-		ptime now = time_now();
+		ptime now = time_now_hires();
 
 		t->need_picker();
 
@@ -2717,6 +2702,14 @@ namespace libtorrent
 
 			if (m_disconnecting) return;
 
+			m_request_time.add_sample(total_milliseconds(now - m_requested));
+#if defined TORRENT_LOGGING \
+	|| defined TORRENT_ERROR_LOGGING \
+	|| defined TORRENT_VERBOSE_LOGGING
+			peer_log("*** REQUEST-TIME (%d +- %d ms)"
+				, m_request_time.mean(), m_request_time.avg_deviation());
+#endif
+
 			// we completed an incoming block, and there are still outstanding
 			// requests. The next block we expect to receive now has another
 			// timeout period until we time out. So, reset the timer.
@@ -2732,7 +2725,7 @@ namespace libtorrent
 		// we received a request within the timeout, make sure this peer is
 		// not snubbed anymore
 		if (total_seconds(now - m_requested)
-			< m_settings.get_int(settings_pack::request_timeout)
+			< request_timeout()
 			&& m_snubbed)
 		{
 			m_snubbed = false;
@@ -2782,6 +2775,14 @@ namespace libtorrent
 			t->alerts().post_alert(performance_alert(t->get_handle()
 				, performance_alert::too_high_disk_queue_limit));
 		}
+
+		m_request_time.add_sample(total_milliseconds(now - m_requested));
+#if defined TORRENT_LOGGING \
+	|| defined TORRENT_ERROR_LOGGING \
+	|| defined TORRENT_VERBOSE_LOGGING
+		peer_log("*** REQUEST-TIME (%d +- %d ms)"
+			, m_request_time.mean(), m_request_time.avg_deviation());
+#endif
 
 		// we completed an incoming block, and there are still outstanding
 		// requests. The next block we expect to receive now has another
@@ -4205,6 +4206,35 @@ namespace libtorrent
 		return false;
 	}
 
+	int peer_connection::request_timeout() const
+	{
+		const int deviation = m_request_time.avg_deviation();
+		const int avg = m_request_time.mean();
+
+		int ret;
+		if (m_request_time.num_samples() < 2)
+		{
+			if (m_request_time.num_samples() == 0)
+				return m_settings.get_int(settings_pack::request_timeout);
+
+			ret = avg + avg / 5;
+		}
+		else
+		{
+			ret = avg + deviation * 3;
+		}
+
+		// ret is milliseconds, the return value is seconds. Convert to
+		// seconds and round up
+		ret = (std::min)((ret + 999) / 1000
+			, m_settings.get_int(settings_pack::request_timeout));
+
+		// timeouts should never be less than 2 seconds. The granularity is whole
+		// seconds, and only checked once per second. 2 is the minimum to avoid
+		// being considered timed out instantly
+		return (std::max)(2, ret);
+	}
+
 	void peer_connection::get_peer_info(peer_info& p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -4214,7 +4244,7 @@ namespace libtorrent
 
 		p.download_rate_peak = m_download_rate_peak;
 		p.upload_rate_peak = m_upload_rate_peak;
-		p.rtt = m_rtt.mean();
+		p.rtt = m_request_time.mean();
 		p.down_speed = statistics().download_rate();
 		p.up_speed = statistics().upload_rate();
 		p.payload_down_speed = statistics().download_payload_rate();
@@ -4228,7 +4258,7 @@ namespace libtorrent
 		p.num_pieces = m_num_pieces;
 		if (m_download_queue.empty()) p.request_timeout = -1;
 		else p.request_timeout = int(total_seconds(m_requested - now)
-			+ m_settings.get_int(settings_pack::request_timeout));
+			+ request_timeout());
 
 		p.download_queue_time = download_queue_time();
 		p.queue_bytes = m_outstanding_bytes;
@@ -4668,13 +4698,10 @@ namespace libtorrent
 			return;
 		}
 
-		// TODO: 3 instead of using settings_pack::request_timeout, use
-		// m_rtt.mean() + m_rtt.avg_deviation() * 2 or something like that.
-		// the configuration option could hopefully be removed
 		if (may_timeout
 			&& !m_download_queue.empty()
 			&& m_quota[download_channel] > 0
-			&& now > m_requested + seconds(m_settings.get_int(settings_pack::request_timeout)))
+			&& now > m_requested + seconds(request_timeout()))
 		{
 			snub_peer();
 		}
@@ -6020,12 +6047,10 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		m_rtt.add_sample(int(total_milliseconds(completed - m_connect)));
-
 #if defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			t->debug_log("END connect [%p] (RTT: %d ms)", this, m_rtt.mean());
+			t->debug_log("END connect [%p]", this);
 			m_connect_time = completed;
 		}
 #endif
@@ -6102,8 +6127,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_socket);
 #if defined TORRENT_VERBOSE_LOGGING
-		peer_log(">>> COMPLETED [ ep: %s rtt: %d ]"
-			, print_endpoint(m_remote).c_str(), m_rtt.mean());
+		peer_log(">>> COMPLETED [ ep: %s ]", print_endpoint(m_remote).c_str());
 #endif
 
 		// set the socket to non-blocking, so that we can
@@ -6202,7 +6226,6 @@ namespace libtorrent
 			if (i->send_buffer_offset < 0) continue;
 			i->send_buffer_offset -= bytes_transferred;
 			if (i->send_buffer_offset >= 0) continue;
-			i->request_time = now;
 			i->send_buffer_offset = -1;
 		}
 
