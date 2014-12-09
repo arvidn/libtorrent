@@ -41,7 +41,6 @@ int test_main()
 {
 
 	file_storage fs;
-	int total_size = 100 * 0x4000;
 
 	fs.add_file("test/temporary.txt", 0x4000);
 	fs.add_file("test/A/tmp", 0x4000);
