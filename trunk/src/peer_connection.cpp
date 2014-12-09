@@ -384,9 +384,9 @@ namespace libtorrent
 			return;
 		}
 
+#if defined TORRENT_LOGGING
 		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
 			, m_remote.address(), ec);
-#if defined TORRENT_LOGGING
 		peer_log(">>> BIND [ dst: %s ec: %s ]", print_endpoint(bound_ip).c_str()
 			, ec.message().c_str());
 #endif
@@ -6010,7 +6010,10 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("peer_connection::on_connection_complete");
 #endif
+
+#if defined TORRENT_LOGGING || defined TORRENT_USE_OPENSSL
 		ptime completed = time_now_hires();
+#endif
 
 		INVARIANT_CHECK;
 

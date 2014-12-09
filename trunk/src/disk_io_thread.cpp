@@ -103,7 +103,7 @@ namespace libtorrent
 				, int(pe->read_jobs.size()), int(pe->jobs.size()));
 			for (int i = 0; i < pe->piece_log.size(); ++i)
 			{
-				assert_print(", %s (%d)" + (i==0), job_name(pe->piece_log[i].job), pe->piece_log[i].block);
+				assert_print(&", %s (%d)"[i==0], job_name(pe->piece_log[i].job), pe->piece_log[i].block);
 			}
 		}
 		assert_print("\n");
@@ -141,13 +141,6 @@ namespace libtorrent
 		mutex::scoped_lock l(log_mutex);
 		fputs(buf, stderr);
 #endif
-	}
-
-	// this is posted to the network thread and run from there
-	static void alert_callback(alert_dispatcher* disp, alert* a)
-	{
-		if (disp && disp->post_alert(a)) return;
-		delete a;
 	}
 
 	static int file_flags_for_job(disk_io_job* j)

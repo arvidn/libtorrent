@@ -118,7 +118,10 @@ void nop() {}
 	wj.storage = pm; \
 	cached_piece_entry* pe = NULL; \
 	int ret = 0; \
-	file::iovec_t iov[1]
+	file::iovec_t iov[1]; \
+	(void)iov[0]; \
+	(void)ret; \
+	(void)pe
 
 #define WRITE_BLOCK(p, b) \
 	wj.flags = disk_io_job::in_progress; \
