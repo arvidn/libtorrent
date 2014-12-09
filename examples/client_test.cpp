@@ -1886,11 +1886,12 @@ int main(int argc, char* argv[])
 					"################################"
 					"################################"
 					"################################";
+				char const* short_progress_bar = "--------";
 				snprintf(str, sizeof(str)
 					, "%3d [%3d, %d] %s%s\n"
 					, bucket, i->num_nodes, i->num_replacements
 					, progress_bar + (128 - i->num_nodes)
-					, "--------" + (8 - (std::min)(8, i->num_replacements)));
+					, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
 				out += str;
 			}
 
