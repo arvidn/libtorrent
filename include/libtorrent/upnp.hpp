@@ -49,11 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <set>
 
-
-#if defined(TORRENT_UPNP_LOGGING)
-#include <fstream>
-#endif
-
 namespace libtorrent
 {
 

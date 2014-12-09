@@ -715,5 +715,20 @@ namespace libtorrent {
 		return msg;
 	}
 
+	std::string log_alert::message() const
+	{
+		return msg;
+	}
+
+	std::string torrent_log_alert::message() const
+	{
+		return torrent_alert::message() + ": " + msg;
+	}
+
+	std::string peer_log_alert::message() const
+	{
+		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg;
+	}
+
 } // namespace libtorrent
 

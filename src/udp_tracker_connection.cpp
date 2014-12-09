@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 #include "libtorrent/socket_io.hpp"
 #endif
 
@@ -124,7 +124,7 @@ namespace libtorrent
 				, boost::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
 			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
 				, hostname.c_str());
@@ -153,7 +153,7 @@ namespace libtorrent
 			return;
 		}
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
@@ -162,7 +162,7 @@ namespace libtorrent
 		// pick another target endpoint and try again
 		m_target = pick_target_endpoint();
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str());
 #endif
@@ -185,7 +185,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
 #endif
 		if (cancelled())
@@ -212,7 +212,7 @@ namespace libtorrent
 			{
 				if (m_man.ip_filter().access(k->address()) == ip_filter::blocked) 
 				{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
 						, print_address(k->address()).c_str());
 #endif
@@ -306,7 +306,7 @@ namespace libtorrent
 			return;
 		}
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
@@ -346,7 +346,7 @@ namespace libtorrent
 		
 		if (e) fail(e);
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
@@ -361,7 +361,7 @@ namespace libtorrent
 		int action = detail::read_int32(ptr);
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		if (cb)
 		{
 			cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
@@ -382,7 +382,7 @@ namespace libtorrent
 
 		restart_read_timeout();
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		if (cb)
 		{
 			cb->debug_log("*** UDP_TRACKER_RESPONSE [ tid: %x ]"
@@ -443,7 +443,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::send_udp_connect()
 	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
@@ -547,7 +547,7 @@ namespace libtorrent
 		}
 
 		boost::shared_ptr<request_callback> cb = requester();
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		if (cb)
 		{
 			boost::shared_ptr<request_callback> cb = requester();
@@ -695,7 +695,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(out - buf <= int(sizeof(buf)));
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{

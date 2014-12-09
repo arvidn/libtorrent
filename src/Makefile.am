@@ -77,7 +77,6 @@ libtorrent_rasterbar_la_SOURCES = \
   ip_filter.cpp                   \
   ip_voter.cpp                    \
   lazy_bdecode.cpp                \
-  logger.cpp                      \
   lsd.cpp                         \
   lt_trackers.cpp                 \
   magnet_uri.cpp                  \

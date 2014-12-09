@@ -63,7 +63,7 @@ struct mock_peer_connection : peer_connection_interface
 		for (int i = 0; i < 20; ++i) m_id[i] = rand();
 	}
 	virtual ~mock_peer_connection() {}
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 	virtual void peer_log(char const* fmt, ...) const
 	{
 		va_list v;	
@@ -114,7 +114,7 @@ struct mock_torrent
 		return true;
 	}
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 	void debug_log(const char* fmt, ...) const
 	{
 		va_list v;

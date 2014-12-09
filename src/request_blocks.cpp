@@ -90,7 +90,7 @@ namespace libtorrent
 			- (int)c.download_queue().size()
 			- (int)c.request_queue().size();
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 		c.peer_log("*** PIECE_PICKER [ dlq: %d rqq: %d target: %d req: %d engame: %d ]"
 			, int(c.download_queue().size()), int(c.request_queue().size())
 			, c.desired_queue_size(), num_requests, c.endgame());
@@ -167,7 +167,7 @@ namespace libtorrent
 			, state, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
 			, prefer_whole_pieces, int(interesting_pieces.size()));
 #endif
@@ -232,7 +232,7 @@ namespace libtorrent
 					= std::find_if(dq.begin(), dq.end(), has_block(*i));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				c.peer_log("*** PIECE_PICKER [ not_picking: %d,%d already in queue ]"
 					, i->piece_index, i->block_index);
 #endif

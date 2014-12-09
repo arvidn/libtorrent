@@ -240,7 +240,7 @@ namespace libtorrent
 		// the url + 100 estimated header size
 		sent_bytes(url.size() + 100);
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_LOGGING
 
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
@@ -274,7 +274,7 @@ namespace libtorrent
 				++i;
 		}
 
-#if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
+#if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{

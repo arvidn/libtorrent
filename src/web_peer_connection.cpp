@@ -97,7 +97,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	// into single larger ones
 	request_large_blocks(true);
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 	peer_log("*** web_peer_connection %s", m_url.c_str());
 #endif
 }
@@ -369,7 +369,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		}
 	}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 	peer_log("==> %s", request.c_str());
 #endif
 
@@ -488,7 +488,7 @@ void web_peer_connection::on_receive(error_code const& error
 	if (error)
 	{
 		received_bytes(0, bytes_transferred);
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 		peer_log("*** web_peer_connection error: %s", error.message().c_str());
 #endif
 #ifdef TORRENT_DEBUG
@@ -526,7 +526,7 @@ void web_peer_connection::on_receive(error_code const& error
 			if (failed)
 			{
 				received_bytes(0, bytes_transferred);
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				peer_log("*** %s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
@@ -583,7 +583,7 @@ void web_peer_connection::on_receive(error_code const& error
 					m_web->supports_keepalive = false;
 			}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
 			std::multimap<std::string, std::string> const& headers = m_parser.headers();
 			for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
@@ -681,7 +681,7 @@ void web_peer_connection::on_receive(error_code const& error
 						location = resolve_redirect_location(m_url, location);
 					}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 					peer_log("*** LOCATION: %s", location.c_str());
 #endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
@@ -790,7 +790,7 @@ void web_peer_connection::on_receive(error_code const& error
 				}
 				else
 				{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(int(bytes_transferred) >= header_size - m_partial_chunk_header);
@@ -840,7 +840,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 			TORRENT_ASSERT(m_block_pos >= 0);
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			peer_log("*** payload_transferred: %d [ %d:%d = %d ]"
 				, payload_transferred, front_request.piece
 				, front_request.start, front_request.length);

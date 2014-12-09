@@ -84,7 +84,6 @@ set(sources
 	upnp
 	utp_socket_manager
 	utp_stream
-	logger
 	file_pool
 	lsd
 	disk_io_job
@@ -151,7 +150,6 @@ option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
 option(logging "build with logging" OFF)
-option(verbose-logging "build with verbose logging" OFF)
 option(build_tests "build tests" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
@@ -189,9 +187,6 @@ endif (encryption)
 
 if (logging)
 	add_definitions(-DTORRENT_LOGGING)
-endif()
-if (verbose-logging)
-	add_definitions(-DTORRENT_VERBOSE_LOGGING)
 endif()
 
 foreach(s ${sources})

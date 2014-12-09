@@ -2178,9 +2178,78 @@ namespace libtorrent
 		udp::endpoint ip;
 	};
 
+	// This alert is posted by some session wide event. Its main purpose is
+	// trouble shooting and debugging. It's not enabled by the default alert
+	// mask and is enabled by the ``alert::session_log_notification`` bit.
+	// Furhtermore, it's by default disabled as a build configuration. To
+	// enable, build libtorrent with logging support enabled (``logging=on``
+	// with bjam or define ``TORRENT_LOGGING``).
+	struct TORRENT_EXPORT log_alert : alert
+	{
+		// internal
+		log_alert(char const* log)
+			: msg(log)
+		{}
+	
+		TORRENT_DEFINE_ALERT(log_alert, 79);
+
+		const static int static_category = alert::session_log_notification;
+		virtual std::string message() const;
+
+		// the log message
+		std::string msg;
+	};
+
+	// This alert is posted by torrent wide events. It's meant to be used for
+	// trouble shooting and debugging. It's not enabled by the default alert
+	// mask and is enabled by the ``alert::torrent_log_notification`` bit. By
+	// default it is disabled as a build configuration. To enable, build
+	// libtorrent with logging support enabled (``logging=on`` with bjam or
+	// define ``TORRENT_LOGGING``).
+	struct TORRENT_EXPORT torrent_log_alert : torrent_alert
+	{
+		// internal
+		torrent_log_alert(torrent_handle h, char const* log)
+			: torrent_alert(h)
+			, msg(log)
+		{}
+	
+		TORRENT_DEFINE_ALERT(torrent_log_alert, 80);
+
+		const static int static_category = alert::torrent_log_notification;
+		virtual std::string message() const;
+
+		// the log message
+		std::string msg;
+	};
+
+	// This alert is posted by events specific to a peer. It's meant to be used
+	// for trouble shooting and debugging. It's not enabled by the default alert
+	// mask and is enabled by the ``alert::peer_log_notification`` bit. By
+	// default it is disabled as a build configuration. To enable, build
+	// libtorrent with logging support enabled (``logging=on`` with bjam or
+	// define ``TORRENT_LOGGING``).
+	struct TORRENT_EXPORT peer_log_alert : peer_alert
+	{
+		// internal
+		peer_log_alert(torrent_handle const& h, tcp::endpoint const& i
+			, peer_id const& pi, char const* log)
+			: peer_alert(h, i, pi)
+			, msg(log)
+		{}
+	
+		TORRENT_DEFINE_ALERT(peer_log_alert, 81);
+
+		const static int static_category = alert::peer_log_notification;
+		virtual std::string message() const;
+
+		// the log message
+		std::string msg;
+	};
+
 #undef TORRENT_DEFINE_ALERT
 
-	enum { num_alert_types = 79 };
+	enum { num_alert_types = 82 };
 }
 
 

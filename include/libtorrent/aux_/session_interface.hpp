@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #endif
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 #include <boost/shared_ptr.hpp>
 #endif
 
@@ -70,9 +70,6 @@ namespace libtorrent
 	struct bandwidth_manager;
 	struct peer_class_pool;
 	struct disk_observer;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	struct logger;
-#endif
 	struct torrent_peer;
 	class alert_manager;
 	struct disk_interface;
@@ -305,15 +302,10 @@ namespace libtorrent { namespace aux
 		virtual FILE* get_request_log() = 0;
 #endif
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		virtual boost::shared_ptr<logger> create_log(std::string const& name
-			, int instance, bool append = true) = 0;
+#if defined TORRENT_LOGGING
 		virtual void session_log(char const* fmt, ...) const = 0;
 		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
-		virtual std::string get_log_path() const = 0;
-#if defined TORRENT_VERBOSE_LOGGING
 		virtual void log_all_torrents(peer_connection* p) = 0;
-#endif
 #endif
 
 #ifdef TORRENT_BUFFER_STATS

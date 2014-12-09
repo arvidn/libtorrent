@@ -153,7 +153,6 @@ nobase_include_HEADERS = \
   aux_/session_impl.hpp        \
   aux_/session_settings.hpp\
   \
-  extensions/logger.hpp             \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \
   extensions/smart_ban.hpp          \

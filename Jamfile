@@ -399,10 +399,8 @@ feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 
-feature logging : none default errors verbose : composite propagated link-incompatible ;
-feature.compose <logging>default : <define>TORRENT_LOGGING ;
-feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
-feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
+feature logging : off on : composite propagated link-incompatible ;
+feature.compose <logging>on : <define>TORRENT_LOGGING ;
 
 feature dht : on off logging : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
@@ -455,13 +453,13 @@ variant test_release
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_debug : debug
-	: <encryption>openssl <logging>verbose <disk-stats>on
+	: <encryption>openssl <logging>on <disk-stats>on
 	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_barebones : debug
-	: <ipv6>off <dht>off <extensions>off <logging>none <boost-link>shared
+	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
@@ -604,7 +602,6 @@ SOURCES =
 	utf8
 	utp_socket_manager
 	utp_stream
-	logger
 	file_pool
 	lsd
 	disk_buffer_pool

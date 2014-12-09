@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct logger;
 	struct external_ip;
 	struct ip_filter;
 	class port_filter;

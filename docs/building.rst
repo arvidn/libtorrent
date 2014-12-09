@@ -249,10 +249,11 @@ Build features:
 |                          | * ``shared`` - links dynamically against the boost |
 |                          |   libraries.                                       |
 +--------------------------+----------------------------------------------------+
-| ``logging``              | * ``none`` - no logging.                           |
-|                          | * ``default`` - basic session logging.             |
-|                          | * ``verbose`` - verbose peer wire logging.         |
-|                          | * ``errors`` - like verbose, but limited to errors.|
+| ``logging``              | * ``off`` - default. logging disabled.             |
+|                          | * ``on`` - logging alerts available, still need to |
+|                          |   be enabled by the alert mask. The reason logging |
+|                          |   is disabled by default is to keep the binary     |
+|                          |   size down.                                       |
 +--------------------------+----------------------------------------------------+
 | ``dht``                  | * ``on`` - build with support for tracker less     |
 |                          |   torrents and DHT support.                        |
@@ -552,13 +553,10 @@ defines you can use to control the build.
 |                                        | compilation units having different views of     |
 |                                        | structs and class layouts and sizes.            |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_LOGGING``                    | This macro will enable logging of the session   |
-|                                        | events, such as tracker announces and incoming  |
-|                                        | connections (as well as blocked connections).   |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_VERBOSE_LOGGING``            | If you define this macro, every peer connection |
-|                                        | will log its traffic to a log file as well as   |
-|                                        | the session log.                                |
+| ``TORRENT_LOGGING``                    | This macro will enable support for logging      |
+|                                        | alerts, like log_alert, torrent_log_alert and   |
+|                                        | peer_log_alert. Without this build flag, you    |
+|                                        | cannot enable those alerts.                     |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_STORAGE_DEBUG``              | This will enable extra expensive invariant      |
 |                                        | checks in the storage, including logging of     |
