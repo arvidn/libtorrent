@@ -388,11 +388,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #include <limits.h>
 #endif
 
-#if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
-	&& !defined (TORRENT_UPNP_LOGGING) && TORRENT_USE_IOSTREAM
-#define TORRENT_UPNP_LOGGING
-#endif
-
 #ifndef TORRENT_ICONV_ARG
 #define TORRENT_ICONV_ARG (char**)
 #endif

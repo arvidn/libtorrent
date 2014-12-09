@@ -164,12 +164,6 @@ namespace libtorrent
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-#define TORRENT_LOGPATH_ARG_DEFAULT , std::string logpath = "."
-#else
-#define TORRENT_LOGPATH_ARG_DEFAULT
-#endif
-
 	// This free function returns the list of available metrics exposed by
 	// libtorrent's statistics API. Each metric has a name and a *value index*.
 	// The value index is the index into the array in session_stats_alert where
@@ -221,8 +215,7 @@ namespace libtorrent
 		session(fingerprint const& print = fingerprint("LT"
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins
-			, boost::uint32_t alert_mask = alert::error_notification
-			TORRENT_LOGPATH_ARG_DEFAULT)
+			, boost::uint32_t alert_mask = alert::error_notification)
 		{
 			TORRENT_CFG();
 			settings_pack pack;
@@ -236,17 +229,13 @@ namespace libtorrent
 			}
 
 			init(print);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
 			start(flags, pack);
 		}
 		session(fingerprint const& print
 			, std::pair<int, int> listen_port_range
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
-			, int alert_mask = alert::error_notification
-			TORRENT_LOGPATH_ARG_DEFAULT)
+			, int alert_mask = alert::error_notification)
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
@@ -267,9 +256,6 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 			init(print);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			set_log_path(logpath);
-#endif
 			start(flags, pack);
 		}
 			
@@ -1233,7 +1219,6 @@ namespace libtorrent
 	private:
 
 		void init(fingerprint const& id);
-		void set_log_path(std::string const& p);
 		void start(int flags, settings_pack const& pack);
 
 		// data shared between the main thread

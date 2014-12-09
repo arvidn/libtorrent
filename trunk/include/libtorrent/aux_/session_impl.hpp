@@ -154,7 +154,7 @@ namespace libtorrent
 		struct session_impl;
 		struct session_settings;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		struct tracker_logger;
 #endif
 
@@ -179,13 +179,6 @@ namespace libtorrent
 			, uncork_interface
 			, single_threaded
 		{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			// this needs to be destructed last, since other components may log
-			// things as they are being destructed. That's why it's declared at
-			// the top of session_impl
-			boost::shared_ptr<logger> m_logger;
-#endif
-
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size_impl = 128 };
 
@@ -206,9 +199,6 @@ namespace libtorrent
 
 			void init();
 			void start_session(settings_pack const& pack);
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			void set_log_path(std::string const& p) { m_logpath = p; }
-#endif
 
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
@@ -699,7 +689,7 @@ namespace libtorrent
 #endif
 
 			// handles delayed alerts
-			alert_manager m_alerts;
+			mutable alert_manager m_alerts;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
@@ -1117,34 +1107,20 @@ namespace libtorrent
 			// accumulated error
 			boost::uint16_t m_tick_residual;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-			virtual boost::shared_ptr<logger> create_log(std::string const& name
-				, int instance, bool append = true);
-			
+#if defined TORRENT_LOGGING
 			virtual void session_log(char const* fmt, ...) const;
 			virtual void session_vlog(char const* fmt, va_list& va) const;
-
-#if defined TORRENT_VERBOSE_LOGGING
 			void log_all_torrents(peer_connection* p);
-#endif
 
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 
-			std::string get_log_path() const
-			{ return m_logpath; }
-
-			std::string m_logpath;
 			FILE* m_request_logger;
 #endif
 
 		private:
-
-#ifdef TORRENT_UPNP_LOGGING
-			std::ofstream m_upnp_log;
-#endif
 
 			// state for keeping track of external IPs
 			external_ip m_external_ip;
@@ -1202,7 +1178,7 @@ namespace libtorrent
 #endif
 		};
 		
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		struct tracker_logger : request_callback
 		{
 			tracker_logger(session_interface& ses);

@@ -80,7 +80,8 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 	, m_disabled6(false)
 #endif
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
+	// TODO: instead if writing to a file, post alerts. Or call a log callback
 	m_log = fopen("lsd.log", "w+");
 	if (m_log == NULL)
 	{
@@ -92,7 +93,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 	error_code ec;
 	m_socket.open(ios, ec);
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 	if (ec)
 	{
 		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET: (%d) %s\n"
@@ -102,7 +103,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 
 #if TORRENT_USE_IPV6
 	m_socket6.open(ios, ec);
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 	if (ec)
 	{
 		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET6: (%d) %s\n"
@@ -114,7 +115,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 
 lsd::~lsd()
 {
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 	if (m_log) fclose(m_log);
 #endif
 }
@@ -149,7 +150,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	to_hex((char const*)&ih[0], 20, ih_hex);
 	char msg[200];
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 	if (m_log) fprintf(m_log, "%s ==> announce: ih: %s port: %u\n"
 		, time_now_string(), ih_hex, listen_port);
 #endif
@@ -163,7 +164,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled = true;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 			if (m_log) fprintf(m_log, "%s failed to send message: (%d) %s"
 				, time_now_string(), ec.value(), ec.message().c_str());
 #endif
@@ -179,7 +180,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled6 = true;
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 			if (m_log) fprintf(m_log, "%s failed to send message6: (%d) %s"
 				, time_now_string(), ec.value(), ec.message().c_str());
 #endif
@@ -228,7 +229,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	if (!p.header_finished() || error)
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 		if (m_log) fprintf(m_log, "%s <== announce: incomplete HTTP message\n", time_now_string());
 #endif
 		return;
@@ -236,7 +237,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	if (p.method() != "bt-search")
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 		if (m_log) fprintf(m_log, "%s <== announce: invalid HTTP method: %s\n"
 			, time_now_string(), p.method().c_str());
 #endif
@@ -246,7 +247,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	std::string const& port_str = p.header("port");
 	if (port_str.empty())
 	{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 		if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, missing port\n"
 			, time_now_string());
 #endif
@@ -266,7 +267,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		boost::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
 		if (cookie == m_cookie)
 		{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 			if (m_log) fprintf(m_log, "%s <== announce: ignoring packet (cookie matched our own): %x == %x\n"
 				, time_now_string(), cookie, m_cookie);
 #endif
@@ -282,7 +283,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		std::string const& ih_str = i->second;
 		if (ih_str.size() != 40)
 		{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 			if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, invalid infohash: %s\n"
 				, time_now_string(), ih_str.c_str());
 #endif
@@ -294,7 +295,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 		if (!ih.is_all_zeros() && port != 0)
 		{
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 			if (m_log) fprintf(m_log, "%s *** incoming local announce %s:%d ih: %s\n"
 				, time_now_string(), print_address(from.address()).c_str()
 				, port, ih_str.c_str());

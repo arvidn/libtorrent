@@ -304,7 +304,7 @@ namespace libtorrent { namespace
 			// abort if the peer doesn't support the metadata extension
 			if (m_message_index == 0) return;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			m_pc.peer_log("==> METADATA_REQUEST  [ start: %d | size: %d ]\n"
 				, start, size);
 #endif
@@ -342,7 +342,7 @@ namespace libtorrent { namespace
 				char msg[15];
 				char* ptr = msg;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("==> METADATA [ start: %d | total_size: %d | offset: %d | data_size: %d ]"
 					, req.first, req.second, offset.first, offset.second);
 #endif
@@ -363,7 +363,7 @@ namespace libtorrent { namespace
 			}
 			else
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("==> DONT HAVE METADATA\n");
 #endif
 				char msg[4+3];
@@ -404,7 +404,7 @@ namespace libtorrent { namespace
 					int start = detail::read_uint8(body.begin);
 					int size = detail::read_uint8(body.begin) + 1;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 					m_pc.peer_log("<== METADATA_REQUEST  [ start: %d | size: %d ]\n"
 						, start, size);
 #endif
@@ -427,7 +427,7 @@ namespace libtorrent { namespace
 					int offset = detail::read_int32(body.begin);
 					int data_size = length - 9;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 					m_pc.peer_log("<== METADATA [ total_size: %d | offset: %d | data_size: %d ]"
 						,total_size, offset, data_size);
 #endif
@@ -470,7 +470,7 @@ namespace libtorrent { namespace
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("<== DONT HAVE METADATA\n");
 #endif
 				break;

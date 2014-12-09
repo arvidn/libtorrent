@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_LOG_HASH_FAILURES
 
-#ifdef TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 #include "libtorrent/socket_io.hpp"
 #endif
 
@@ -138,7 +138,7 @@ namespace
 
 		void on_piece_pass(int p)
 		{
-#ifdef TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
 				, p, int(m_block_hashes.size()));
 #endif
@@ -274,7 +274,7 @@ namespace
 					// this time the digest of the block is different
 					// from the first time it sent it
 					// at least one of them must be bad
-#if defined TORRENT_LOGGING || defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 					char const* client = "-";
 					peer_info info;
 					if (p->connection)
@@ -349,7 +349,7 @@ namespace
 			}
 			if (p == NULL) return;
 
-#ifdef TORRENT_LOGGING
+#if defined TORRENT_LOGGING
 			char const* client = "-";
 			peer_info info;
 			if (p->connection)

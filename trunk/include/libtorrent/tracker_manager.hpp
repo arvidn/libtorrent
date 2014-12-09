@@ -221,7 +221,7 @@ namespace libtorrent
 			, const std::string& msg
 			, int retry_interval) = 0;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		virtual void debug_log(const char* fmt, ...) const = 0;
 #endif
 	};

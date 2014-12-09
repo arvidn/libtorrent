@@ -404,14 +404,6 @@ namespace libtorrent
 		m_impl.reset(new session_impl(id));
 	}
 
-	void session::set_log_path(std::string const& p)
-	{
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING \
-	|| defined TORRENT_ERROR_LOGGING
-		m_impl->set_log_path(p);
-#endif
-	}
-
 	void session::start(int flags, settings_pack const& pack)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -419,6 +411,7 @@ namespace libtorrent
 		{
 			add_extension(create_ut_pex_plugin);
 			add_extension(create_ut_metadata_plugin);
+			// TODO: 3 lt_trackers should not be on by default
 			add_extension(create_lt_trackers_plugin);
 			add_extension(create_smart_ban_plugin);
 		}

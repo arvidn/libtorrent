@@ -93,10 +93,6 @@ namespace libtorrent
 {
 	class http_parser;
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-	struct logger;
-#endif
-
 	class piece_manager;
 	struct torrent_plugin;
 	struct bitfield;
@@ -977,11 +973,9 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		// LOGGING
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		virtual void debug_log(const char* fmt, ...) const;
 		void log_to_all_peers(char const* message);
-		boost::shared_ptr<logger> m_logger;
-		ptime m_logger_time;
 		ptime m_dht_start_time;
 #endif
 

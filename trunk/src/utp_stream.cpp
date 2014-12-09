@@ -654,7 +654,7 @@ struct utp_socket_impl
 	bool m_stalled:1;
 };
 
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 int socket_impl_size() { return sizeof(utp_socket_impl); }
 #endif
 

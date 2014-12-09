@@ -70,7 +70,6 @@ namespace libtorrent
 	class torrent;
 	class peer_connection;
 	struct bitfield;
-	struct logger;
 	struct counters;
 
 	struct TORRENT_EXTRA_EXPORT piece_block

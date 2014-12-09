@@ -85,7 +85,7 @@ namespace libtorrent
 		virtual bool failed() const = 0;
 		virtual stat const& statistics() const = 0;
 		virtual void get_peer_info(peer_info& p) const = 0;
-#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING
+#if defined TORRENT_LOGGING
 		virtual void peer_log(char const* fmt, ...) const = 0;
 #endif
 

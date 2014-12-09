@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 #include <stdio.h>
 #endif
 
@@ -96,7 +96,7 @@ private:
 #if TORRENT_USE_IPV6
 	bool m_disabled6;
 #endif
-#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+#if defined TORRENT_LOGGING
 	FILE* m_log;
 #endif
 };

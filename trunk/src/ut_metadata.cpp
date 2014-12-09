@@ -258,7 +258,7 @@ namespace libtorrent { namespace
 			TORRENT_ASSERT(type >= 0 && type <= 2);
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			char const* names[] = {"request", "data", "dont-have"};
 			char const* n = "";
 			if (type >= 0 && type < 3) n = names[type];
@@ -280,7 +280,7 @@ namespace libtorrent { namespace
 
 				if (piece < 0 || piece >= int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024))
 				{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 					m_pc.peer_log("*** UT_METADATA [ invalid piece %d metadata size: %d ]"
 						, piece, int(m_tp.get_metadata_size()));
 #endif
@@ -330,7 +330,7 @@ namespace libtorrent { namespace
 
 			if (length > 17 * 1024)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ packet too big %d ]", length);
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
@@ -343,7 +343,7 @@ namespace libtorrent { namespace
 			entry msg = bdecode(body.begin, body.end, len);
 			if (msg.type() != entry::dictionary_t)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ not a dictionary ]");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
@@ -355,7 +355,7 @@ namespace libtorrent { namespace
 			if (type_ent == 0 || type_ent->type() != entry::int_t
 				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				m_pc.peer_log("<== UT_METADATA [ missing or invalid keys ]");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
@@ -364,7 +364,7 @@ namespace libtorrent { namespace
 			int type = type_ent->integer();
 			int piece = piece_ent->integer();
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			m_pc.peer_log("<== UT_METADATA [ type: %d | piece: %d ]", type, piece);
 #endif
 
@@ -393,7 +393,7 @@ namespace libtorrent { namespace
 					// unwanted piece?
 					if (i == m_sent_requests.end())
 					{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 						m_pc.peer_log("*** UT_METADATA [ UNWANTED / TIMED OUT ]");				
 #endif
 						return true;
@@ -541,7 +541,7 @@ namespace libtorrent { namespace
 	{
 		if (m_torrent.valid_metadata())
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			source.m_pc.peer_log("*** UT_METADATA [ ALREADY HAVE METADATA ]");				
 #endif
 			m_torrent.add_redundant_bytes(size, torrent::piece_unknown);
@@ -553,7 +553,7 @@ namespace libtorrent { namespace
 			// verify the total_size
 			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 			{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 				source.m_pc.peer_log("*** UT_METADATA [ metadata size too big: %d ]", total_size);				
 #endif
 // #error post alert
@@ -567,7 +567,7 @@ namespace libtorrent { namespace
 
 		if (piece < 0 || piece >= int(m_requested_metadata.size()))
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			source.m_pc.peer_log("*** UT_METADATA [ piece: %d INVALID ]", piece);				
 #endif
 			return false;
@@ -575,7 +575,7 @@ namespace libtorrent { namespace
 
 		if (total_size != m_metadata_size)
 		{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifdef TORRENT_LOGGING
 			source.m_pc.peer_log("*** UT_METADATA [ total_size: %d INCONSISTENT WITH: %d ]"
 				, total_size, m_metadata_size);				
 #endif
