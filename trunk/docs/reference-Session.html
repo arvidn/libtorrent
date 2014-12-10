@@ -513,18 +513,16 @@ class session: public boost::noncopyable
    <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
       , int flags = start_default_features | add_default_plugins
-      , boost::uint32_t alert_mask = alert::error_notification
-      TORRENT_LOGPATH_ARG_DEFAULT);
-   <strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
-      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins);
+      , boost::uint32_t alert_mask = alert::error_notification);
    <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
       , int flags = start_default_features | add_default_plugins
-      , int alert_mask = alert::error_notification
-      TORRENT_LOGPATH_ARG_DEFAULT);
+      , int alert_mask = alert::error_notification);
+   <strong>session</strong> (settings_pack const&amp; pack
+      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+      , int flags = start_default_features | add_default_plugins);
    <strong>~session</strong> ();
    void <strong>load_state</strong> (lazy_entry const&amp; e);
    void <strong>save_state</strong> (entry&amp; e, boost::uint32_t flags = 0xffffffff) const;
@@ -623,18 +621,16 @@ class session: public boost::noncopyable
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
       , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
       , int flags = start_default_features | add_default_plugins
-      , boost::uint32_t alert_mask = alert::error_notification
-      TORRENT_LOGPATH_ARG_DEFAULT);
-<strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
-      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins);
+      , boost::uint32_t alert_mask = alert::error_notification);
 <strong>session</strong> (fingerprint const&amp; print
       , std::pair&lt;int, int&gt; listen_port_range
       , char const* listen_interface = &quot;0.0.0.0&quot;
       , int flags = start_default_features | add_default_plugins
-      , int alert_mask = alert::error_notification
-      TORRENT_LOGPATH_ARG_DEFAULT);
+      , int alert_mask = alert::error_notification);
+<strong>session</strong> (settings_pack const&amp; pack
+      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
+      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+      , int flags = start_default_features | add_default_plugins);
 </pre>
 <p>TODO: 3 could the fingerprint be a setting as well? And should the
 <a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>

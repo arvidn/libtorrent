@@ -276,10 +276,11 @@ libraries.</li>
 </tr>
 <tr><td><tt class="docutils literal">logging</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">none</tt> - no logging.</li>
-<li><tt class="docutils literal">default</tt> - basic session logging.</li>
-<li><tt class="docutils literal">verbose</tt> - verbose peer wire logging.</li>
-<li><tt class="docutils literal">errors</tt> - like verbose, but limited to errors.</li>
+<li><tt class="docutils literal">off</tt> - default. logging disabled.</li>
+<li><tt class="docutils literal">on</tt> - logging alerts available, still need to
+be enabled by the alert mask. The reason logging
+is disabled by default is to keep the binary
+size down.</li>
 </ul>
 </td>
 </tr>
@@ -643,14 +644,10 @@ compilation units having different views of
 structs and class layouts and sizes.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_LOGGING</tt></td>
-<td>This macro will enable logging of the session
-events, such as tracker announces and incoming
-connections (as well as blocked connections).</td>
-</tr>
-<tr><td><tt class="docutils literal">TORRENT_VERBOSE_LOGGING</tt></td>
-<td>If you define this macro, every peer connection
-will log its traffic to a log file as well as
-the session log.</td>
+<td>This macro will enable support for logging
+alerts, like log_alert, torrent_log_alert and
+peer_log_alert. Without this build flag, you
+cannot enable those alerts.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_STORAGE_DEBUG</tt></td>
 <td>This will enable extra expensive invariant
