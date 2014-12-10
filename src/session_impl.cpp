@@ -2730,11 +2730,21 @@ retry:
 
 	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
 	{
+		m_stats_counters.inc_stats_counter(counters::sent_bytes
+			, bytes_payload + bytes_protocol);
+		m_stats_counters.inc_stats_counter(counters::sent_payload_bytes
+			, bytes_payload);
+
 		m_stat.sent_bytes(bytes_payload, bytes_protocol);
 	}
 
 	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
 	{
+		m_stats_counters.inc_stats_counter(counters::recv_bytes
+			, bytes_payload + bytes_protocol);
+		m_stats_counters.inc_stats_counter(counters::recv_payload_bytes
+			, bytes_payload);
+
 		m_stat.received_bytes(bytes_payload, bytes_protocol);
 	}
 
@@ -4327,20 +4337,9 @@ retry:
 
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
-		// TODO: 3 it would be really nice to update these counters
-		// as they are incremented. This depends on the session
-		// being ticked, which has a fairly coarse grained resolution
-		m_stats_counters.set_value(counters::sent_bytes
-			, m_stat.total_upload());
-		m_stats_counters.set_value(counters::sent_payload_bytes
-			, m_stat.total_transfer(stat::upload_payload));
 		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
 			, m_stat.total_transfer(stat::upload_ip_protocol));
 
-		m_stats_counters.set_value(counters::recv_bytes
-			, m_stat.total_download());
-		m_stats_counters.set_value(counters::recv_payload_bytes
-			, m_stat.total_transfer(stat::download_payload));
 		m_stats_counters.set_value(counters::recv_ip_overhead_bytes
 			, m_stat.total_transfer(stat::download_ip_protocol));
 

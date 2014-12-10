@@ -459,7 +459,9 @@ namespace libtorrent
 			anonymous_mode,
 	
 			// specifies whether downloads from web seeds is reported to the
-			// tracker or not. Defaults to on
+			// tracker or not. Defaults to on. Turning it off also excludes web
+			// seed traffic from other stats and download rate reporting via the
+			// libtorrent API.
 			report_web_seed_downloads,
 
 			// controls if the uTP socket manager is allowed to increase
