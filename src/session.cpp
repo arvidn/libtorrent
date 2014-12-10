@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-#include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -411,8 +410,6 @@ namespace libtorrent
 		{
 			add_extension(create_ut_pex_plugin);
 			add_extension(create_ut_metadata_plugin);
-			// TODO: 3 lt_trackers should not be on by default
-			add_extension(create_lt_trackers_plugin);
 			add_extension(create_smart_ban_plugin);
 		}
 #endif
