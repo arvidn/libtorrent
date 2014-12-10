@@ -4193,7 +4193,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret = avg + deviation * 3;
+			ret = avg + deviation * 4;
 		}
 
 		// ret is milliseconds, the return value is seconds. Convert to

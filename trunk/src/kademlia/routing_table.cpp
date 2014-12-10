@@ -490,7 +490,9 @@ bool routing_table::add_node(node_entry e)
 
 routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())
@@ -940,7 +942,9 @@ void routing_table::for_each_node(
 
 void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	// if messages to ourself fails, ignore it
 	if (nid == m_id) return;
