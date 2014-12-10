@@ -91,6 +91,11 @@ namespace libtorrent
 		min_request_queue = 2,
 	};
 
+	bool pending_block_in_buffer(pending_block const& pb)
+	{
+		return pb.send_buffer_offset != pending_block::not_in_buffer;
+	}
+
 #if defined TORRENT_REQUEST_LOGGING
 	void write_request_log(FILE* f, sha1_hash const& ih
 		, peer_connection* p, peer_request const& r)
@@ -4248,7 +4253,7 @@ namespace libtorrent
 		p.download_queue_length = int(download_queue().size() + m_request_queue.size());
 		p.requests_in_buffer = int(std::count_if(m_download_queue.begin()
 			, m_download_queue.end()
-			, boost::bind(&pending_block::send_buffer_offset, _1) >= 0));
+			, &pending_block_in_buffer));
 
 		p.target_dl_queue_length = int(desired_queue_size());
 		p.upload_queue_length = int(upload_queue().size());
@@ -6193,10 +6198,13 @@ namespace libtorrent
 		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
 			, end(m_download_queue.end()); i != end; ++i)
 		{
-			if (i->send_buffer_offset < 0) continue;
-			i->send_buffer_offset -= bytes_transferred;
-			if (i->send_buffer_offset >= 0) continue;
-			i->send_buffer_offset = -1;
+			if (i->send_buffer_offset == pending_block::not_in_buffer) continue;
+			boost::int32_t offset = i->send_buffer_offset;
+			offset -= bytes_transferred;
+			if (offset < 0)
+				i->send_buffer_offset = pending_block::not_in_buffer;
+			else
+				i->send_buffer_offset = offset;
 		}
 
 		m_channel_state[upload_channel] &= ~peer_info::bw_network;

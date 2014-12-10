@@ -107,20 +107,21 @@ namespace libtorrent
 	struct pending_block
 	{
 		pending_block(piece_block const& b)
-			: block(b), send_buffer_offset(-1), not_wanted(false)
+			: block(b), send_buffer_offset(not_in_buffer), not_wanted(false)
 			, timed_out(false), busy(false)
 		{}
 
 		piece_block block;
+
+		enum { not_in_buffer = 0x1fffffff };
 
 		// the number of bytes into the send buffer this request is. Every time
 		// some portion of the send buffer is transmitted, this offset is
 		// decremented by the number of bytes sent. once this drops below 0, the
 		// request_time field is set to the current time.
 		// if the request has not been written to the send buffer, this field
-		// remains -1.
-		// TODO: 3 make this 29 bits, to fit the bools in its tail
-		int send_buffer_offset;
+		// remains not_in_buffer.
+		boost::uint32_t send_buffer_offset:29;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -128,14 +129,14 @@ namespace libtorrent
 		// other peers to pick. This may be caused by
 		// it either timing out or being received
 		// unexpectedly from the peer
-		bool not_wanted:1;
-		bool timed_out:1;
+		boost::uint32_t not_wanted:1;
+		boost::uint32_t timed_out:1;
 		
 		// the busy flag is set if the block was
 		// requested from another peer when this
 		// request was queued. We only allow a single
 		// busy request at a time in each peer's queue
-		bool busy:1;
+		boost::uint32_t busy:1;
 
 		bool operator==(pending_block const& b)
 		{
