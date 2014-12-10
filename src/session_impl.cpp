@@ -460,6 +460,8 @@ namespace aux {
 
 	void session_impl::start_session(settings_pack const& pack)
 	{
+		m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
+
 #if defined TORRENT_LOGGING
 		session_log("start session");
 #endif
