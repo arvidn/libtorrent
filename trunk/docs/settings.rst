@@ -235,7 +235,7 @@ Default is false.
 +----------------+------+---------+
 | name           | type | default |
 +================+======+=========+
-| lazy_bitfields | bool | true    |
+| lazy_bitfields | bool | false   |
 +----------------+------+---------+
 
 if this is true, outgoing bitfields will never be fuil. If the
@@ -837,7 +837,9 @@ If you're using I2P, it might make sense to enable anonymous mode as well.
 +---------------------------+------+---------+
 
 specifies whether downloads from web seeds is reported to the
-tracker or not. Defaults to on
+tracker or not. Defaults to on. Turning it off also excludes web
+seed traffic from other stats and download rate reporting via the
+libtorrent API.
 
 .. _utp_dynamic_sock_buf:
 
@@ -1389,7 +1391,7 @@ it times out if no piece response is returned.
 +-----------------+------+---------+
 | name            | type | default |
 +=================+======+=========+
-| request_timeout | int  | 50      |
+| request_timeout | int  | 60      |
 +-----------------+------+---------+
 
 the number of seconds one block (16kB) is expected
