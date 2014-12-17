@@ -156,7 +156,10 @@ namespace libtorrent
 		, name(0)
 		, path_index(fe.path_index)
 	{
-		set_name(fe.filename().c_str());
+		if (fe.name_len == name_is_owned)
+			name = allocate_string_copy(fe.name);
+		else
+			name = fe.name;
 	}
 
 	internal_file_entry& internal_file_entry::operator=(internal_file_entry const& fe)
@@ -209,6 +212,21 @@ namespace libtorrent
 	{
 		if (name_len != name_is_owned) return std::string(name, name_len);
 		return name ? name : "";
+	}
+
+	void file_storage::apply_pointer_offset(ptrdiff_t off)
+	{
+		for (int i = 0; i < m_files.size(); ++i)
+		{
+			if (m_files[i].name_len == internal_file_entry::name_is_owned) continue;
+			m_files[i].name += off;
+		}
+
+		for (int i = 0; i < m_file_hashes.size(); ++i)
+		{
+			if (m_file_hashes[i] == NULL) continue;
+			m_file_hashes[i] += off;
+		}
 	}
 
 #if TORRENT_USE_WSTRING

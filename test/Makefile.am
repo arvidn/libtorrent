@@ -113,6 +113,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/invalid_file_size.torrent \
   test_torrents/empty_path_multi.torrent \
   test_torrents/duplicate_web_seeds.torrent \
+  test_torrents/sample.torrent \
   eztv.xml \
   kat.xml \
   cb.xml \

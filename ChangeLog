@@ -1,3 +1,4 @@
+	* optimize copying torrent_info and file_storage objects
 	* cancel non-critical DNS lookups when shutting down, to cut down on
 	  shutdown delay.
 	* greatly simplify the debug logging infrastructure. logs are now delivered
