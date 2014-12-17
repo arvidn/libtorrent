@@ -153,6 +153,8 @@ int test_main()
 
 	// test path functions
 	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");
+	TEST_EQUAL(combine_path("test1", "."), "test1");
+	TEST_EQUAL(combine_path(".", "test1"), "test1");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(combine_path("test1\\", "test2"), "test1\\test2");
 	TEST_EQUAL(combine_path("test1", "test2"), "test1\\test2");
@@ -238,6 +240,8 @@ int test_main()
 	TEST_EQUAL(is_complete("/"), true);
 	TEST_EQUAL(is_complete(""), false);
 #endif
+
+	TEST_EQUAL(complete("."), current_working_directory());
 
 	// test split_string
 
