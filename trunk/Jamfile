@@ -320,9 +320,9 @@ feature tcmalloc : no yes : composite propagated link-incompatible ;
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
-feature sanitize : off address undefined thread rtc : composite propagated link-incompatible ;
+feature sanitize : off bounds undefined thread rtc : composite propagated link-incompatible ;
 # sanitize is a clang and GCC feature
-feature.compose <sanitize>address : <cflags>-fsanitize=address <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=address ;
+feature.compose <sanitize>bounds : <cflags>-fsanitize=bounds <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=bounds <linkflags>-fsanitize-undefined-trap-on-error ;
 feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;
 feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
 # RTC (runtime check) is an msvc feature
