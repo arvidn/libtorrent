@@ -269,20 +269,26 @@ namespace libtorrent
 		// of files to be added is known up-front.
 		void reserve(int num_files);
 
-		// Adds a file to the file storage. The ``flags`` argument sets attributes on the file.
-		// The file attributes is an extension and may not work in all bittorrent clients.
+		// Adds a file to the file storage. The ``flags`` argument sets
+		// attributes on the file. The file attributes is an extension and may
+		// not work in all bittorrent clients.
 		//
 		// For possible file attributes, see file_storage::flags_t.
 		//
-		// If more files than one are added, certain restrictions to their paths apply.
-		// In a multi-file file storage (torrent), all files must share the same root directory.
+		// If more files than one are added, certain restrictions to their paths
+		// apply. In a multi-file file storage (torrent), all files must share
+		// the same root directory.
 		// 
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
-		//
-		// The built in functions to traverse a directory to add files will
-		// make sure this requirement is fulfilled.
+		// 
+		// The ``filehash`` argument is an optional pointer to a sha-1 hash (20
+		// bytes) of the file. The hash is not copied into the file_storage
+		// object, but the pointer is expected to point to memory that stays
+		// valid throughout the life time of the file_storage.
+		// 
+		// Currently, the ``filehash`` from ``file_entry`` is not used.
 		void add_file(file_entry const& e, char const* filehash = 0);
 		void add_file(std::string const& p, boost::int64_t size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "");
@@ -423,7 +429,7 @@ namespace libtorrent
 		// These functions are used to query attributes of files at
 		// a given index.
 		// 
-		// The ``file_hash()`` is a sha-1 hash of the file, or 0 if none was
+		// The ``hash()`` is a sha-1 hash of the file, or 0 if none was
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
 		// 
