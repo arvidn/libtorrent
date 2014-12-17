@@ -941,6 +941,7 @@ namespace libtorrent
 	std::string complete(std::string const& f)
 	{
 		if (is_complete(f)) return f;
+		if (f == ".") return current_working_directory();
 		return combine_path(current_working_directory(), f);
 	}
 
