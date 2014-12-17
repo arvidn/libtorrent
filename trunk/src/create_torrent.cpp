@@ -251,7 +251,6 @@ namespace libtorrent
 		, m_merkle_torrent((flags & merkle) != 0)
 		, m_include_mtime((flags & modification_time) != 0)
 		, m_include_symlinks((flags & symlinks) != 0)
-		, m_calculate_file_hashes((flags & calculate_file_hashes) != 0)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
 
@@ -306,7 +305,6 @@ namespace libtorrent
 		, m_merkle_torrent(ti.is_merkle_torrent())
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
-		, m_calculate_file_hashes(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();

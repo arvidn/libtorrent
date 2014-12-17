@@ -140,12 +140,6 @@ namespace libtorrent
 			// is useful if you need to reconstruct a file hierarchy which contains
 			// symlinks.
 			, symlinks = 8
-
-			// If this is set, the set_piece_hashes() function will, as it calculates
-			// the piece hashes, also calculate the file hashes and add those associated
-			// with each file. Note that unless you use the set_piece_hashes() function,
-			// this flag will have no effect.
-			, calculate_file_hashes = 16
 		};
 
 		// The ``piece_size`` is the size of each piece in bytes. It must
@@ -277,9 +271,6 @@ namespace libtorrent
 		int piece_length() const { return m_files.piece_length(); }
 		int piece_size(int i) const { return m_files.piece_size(i); }
 
-		// internal
-		bool should_add_file_hashes() const { return m_calculate_file_hashes; }
-
 		// This function returns the merkle hash tree, if the torrent was created as a merkle
 		// torrent. The tree is created by ``generate()`` and won't be valid until that function
 		// has been called. When creating a merkle tree torrent, the actual tree itself has to
@@ -359,11 +350,6 @@ namespace libtorrent
 		// the torrent file. The full data of the pointed-to
 		// file is still included
 		bool m_include_symlinks:1;
-
-		// this is only used by set_piece_hashes(). It will
-		// calculate sha1 hashes for each file and add it
-		// to the file list
-		bool m_calculate_file_hashes:1;
 	};
 
 	namespace detail
