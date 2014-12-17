@@ -697,28 +697,31 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 		t.check_invariant();
 #endif
-		if (m_info_section_size > 0)
-		{
-			error_code ec;
-			m_info_section.reset(new char[m_info_section_size]);
-			memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+		if (m_info_section_size == 0) return;
+
+		error_code ec;
+		m_info_section.reset(new char[m_info_section_size]);
+		memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+
+		ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
+
+		m_files.apply_pointer_offset(offset);
+		if (m_orig_files)
+			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
+
 #if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
-			int ret =
+		int ret =
 #endif
-				lazy_bdecode(m_info_section.get(), m_info_section.get()
-				+ m_info_section_size, m_info_dict, ec);
+			lazy_bdecode(m_info_section.get(), m_info_section.get()
+			+ m_info_section_size, m_info_dict, ec);
 #ifndef BOOST_NO_EXCEPTIONS
-			if (ret != 0) throw libtorrent_exception(ec);
+		if (ret != 0) throw libtorrent_exception(ec);
 #endif
-			TORRENT_ASSERT(ret == 0);
+		TORRENT_ASSERT(ret == 0);
 
-			ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
-
-			m_piece_hashes += offset;
-			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
-			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-		}
-		INVARIANT_CHECK;
+		m_piece_hashes += offset;
+		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
+		TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 	}
 
 	void torrent_info::resolve_duplicate_filenames()

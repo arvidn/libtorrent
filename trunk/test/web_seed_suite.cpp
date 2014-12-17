@@ -317,8 +317,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
-	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize
-		| libtorrent::create_torrent::calculate_file_hashes);
+	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize);
 
 	char tmp[512];
 	if (test_url_seed)

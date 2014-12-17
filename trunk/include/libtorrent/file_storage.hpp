@@ -534,6 +534,10 @@ namespace libtorrent
 		boost::int64_t file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
 #endif
 
+		// if the backing buffer changed for this storage, this is the pointer
+		// offset to add to any pointers to make them point into the new buffer
+		void apply_pointer_offset(ptrdiff_t off);
+
 	private:
 
 		// the number of bytes in a regular piece
@@ -590,7 +594,6 @@ namespace libtorrent
 		// the number of files. This is used when
 		// the torrent is unloaded
 		int m_num_files;
-
 	};
 }
 

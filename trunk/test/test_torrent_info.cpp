@@ -34,12 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include <boost/make_shared.hpp>
 
 using namespace libtorrent;
 
-int test_main()
+void test_storage()
 {
-
 	file_storage fs;
 
 	fs.add_file("test/temporary.txt", 0x4000);
@@ -90,6 +90,53 @@ int test_main()
 		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
 		TEST_CHECK(p == filenames[i]);
 	}
+}
+
+void test_copy()
+{
+	boost::shared_ptr<torrent_info> a(boost::make_shared<torrent_info>(
+		libtorrent::combine_path("..", libtorrent::combine_path("test_torrents", "sample.torrent"))));
+
+	boost::shared_ptr<torrent_info> b(boost::make_shared<torrent_info>(*a));
+
+	// clear out the  buffer for a, just to make sure b doesn't have any
+	// references into it by mistake
+	int s = a->metadata_size();
+	memset(a->metadata().get(), 0, s);
+
+	a.reset();
+
+	TEST_EQUAL(b->num_files(), 3);
+
+	char const* expected_files[] =
+	{
+		"sample/text_file2.txt",
+		"sample/.____padding_file/0",
+		"sample/text_file.txt",
+	};
+
+	sha1_hash file_hashes[] =
+	{
+		sha1_hash(0),
+		sha1_hash(0),
+		sha1_hash("abababababababababab")
+	};
+
+	for (int i = 0; i < b->num_files(); ++i)
+	{
+		std::string p = b->file_at(i).path;
+		convert_path_to_posix(p);
+		TEST_EQUAL(p, expected_files[i]);
+		fprintf(stderr, "%s\n", p.c_str());
+
+		TEST_EQUAL(b->files().hash(i), file_hashes[i]);
+	}
 	
+}
+
+int test_main()
+{
+	test_storage();
+	test_copy();
 	return 0;
 }
