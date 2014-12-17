@@ -130,9 +130,6 @@ void print_usage()
 		"            merkle torrents require client support\n"
 		"            the resulting full merkle tree is written to\n"
 		"            the specified file\n"
-		"-f          include sha-1 file hashes in the torrent\n"
-		"            this helps supporting mixing sources from\n"
-		"            other networks\n"
 		"-w url      adds a web seed to the torrent with\n"
 		"            the specified url\n"
 		"-t url      adds the specified tracker to the\n"
@@ -222,9 +219,6 @@ int main(int argc, char* argv[])
 				case 'o':
 					++i;
 					outfile = argv[i];
-					break;
-				case 'f':
-					flags |= create_torrent::calculate_file_hashes;
 					break;
 				case 'l':
 					flags |= create_torrent::symlinks;
