@@ -105,12 +105,12 @@ namespace libtorrent
 		// this error code specifies what error occurred
 		error_code last_error;
 
-		// returns the number of seconds to the next announce on
-		// this tracker. ``min_announce_in()`` returns the number of seconds until we are
+		// returns the number of seconds to the next announce on this tracker.
+		// ``min_announce_in()`` returns the number of seconds until we are
 		// allowed to force another tracker update with this tracker.
 		// 
-		// If the last time this tracker was contacted failed, ``last_error`` is the error
-		// code describing what error occurred.
+		// If the last time this tracker was contacted failed, ``last_error`` is
+		// the error code describing what error occurred.
 		int next_announce_in() const;
 		int min_announce_in() const;
 
@@ -120,17 +120,19 @@ namespace libtorrent
 		// no announces before this time
 		ptime min_announce;
 
-		// TODO: include the number of peers received from this tracker, at last announce
+		// TODO: include the number of peers received from this tracker, at last
+		// announce
 
-		// these are either -1 or the scrape information this tracker last responded with. *incomplete* is
-		// the current number of downloaders in the swarm, *complete* is the current number
-		// of seeds in the swarm and *downloaded* is the cumulative number of completed
-		// downloads of this torrent, since the beginning of time (from this tracker's point
-		// of view).
+		// these are either -1 or the scrape information this tracker last
+		// responded with. *incomplete* is the current number of downloaders in
+		// the swarm, *complete* is the current number of seeds in the swarm and
+		// *downloaded* is the cumulative number of completed downloads of this
+		// torrent, since the beginning of time (from this tracker's point of
+		// view).
 
-		// if this tracker has returned scrape data, these fields are filled
-		// in with valid numbers. Otherwise they are set to -1.
-		// the number of current downloaders
+		// if this tracker has returned scrape data, these fields are filled in
+		// with valid numbers. Otherwise they are set to -1. the number of
+		// current downloaders
 		int scrape_incomplete;
 		int scrape_complete;
 		int scrape_downloaded;
@@ -345,9 +347,8 @@ namespace libtorrent
 		torrent_info(std::string const& filename, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
+		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
+		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED_PREFIX
 		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
@@ -360,9 +361,8 @@ namespace libtorrent
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
+		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
+		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED_PREFIX
 		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
@@ -371,18 +371,20 @@ namespace libtorrent
 		// frees all storage associated with this torrent_info object
 		~torrent_info();
 
-		// The file_storage object contains the information on how to map the pieces to
-		// files. It is separated from the torrent_info object because when creating torrents
-		// a storage object needs to be created without having a torrent file. When renaming files
-		// in a storage, the storage needs to make its own copy of the file_storage in order
-		// to make its mapping differ from the one in the torrent file.
+		// The file_storage object contains the information on how to map the
+		// pieces to files. It is separated from the torrent_info object because
+		// when creating torrents a storage object needs to be created without
+		// having a torrent file. When renaming files in a storage, the storage
+		// needs to make its own copy of the file_storage in order to make its
+		// mapping differ from the one in the torrent file.
 		// 
-		// ``orig_files()`` returns the original (unmodified) file storage for this torrent. This
-		// is used by the web server connection, which needs to request files with the original
-		// names. Filename may be chaged using ``torrent_info::rename_file()``.
+		// ``orig_files()`` returns the original (unmodified) file storage for
+		// this torrent. This is used by the web server connection, which needs
+		// to request files with the original names. Filename may be chaged using
+		// ``torrent_info::rename_file()``.
 		// 
-		// For more information on the file_storage object, see the separate document on how
-		// to create torrents.
+		// For more information on the file_storage object, see the separate
+		// document on how to create torrents.
 		file_storage const& files() const { return m_files; }
 		file_storage const& orig_files() const
 		{
@@ -390,19 +392,20 @@ namespace libtorrent
 			return m_orig_files ? *m_orig_files : m_files;
 		}
 
-		// Renames a the file with the specified index to the new name. The new filename is
-		// reflected by the ``file_storage`` returned by ``files()`` but not by the one
-		// returned by ``orig_files()``.
+		// Renames a the file with the specified index to the new name. The new
+		// filename is reflected by the ``file_storage`` returned by ``files()``
+		// but not by the one returned by ``orig_files()``.
 		// 
-		// If you want to rename the base name of the torrent (for a multifile torrent), you
-		// can copy the ``file_storage`` (see files() and orig_files() ), change the name, and
-		// then use `remap_files()`_.
+		// If you want to rename the base name of the torrent (for a multifile
+		// torrent), you can copy the ``file_storage`` (see files() and
+		// orig_files() ), change the name, and then use `remap_files()`_.
 		// 
-		// The ``new_filename`` can both be a relative path, in which case the file name
-		// is relative to the ``save_path`` of the torrent. If the ``new_filename`` is
-		// an absolute path (i.e. ``is_complete(new_filename) == true``), then the file
-		// is detached from the ``save_path`` of the torrent. In this case the file is
-		// not moved when move_storage() is invoked.
+		// The ``new_filename`` can both be a relative path, in which case the
+		// file name is relative to the ``save_path`` of the torrent. If the
+		// ``new_filename`` is an absolute path (i.e. ``is_complete(new_filename)
+		// == true``), then the file is detached from the ``save_path`` of the
+		// torrent. In this case the file is not moved when move_storage() is
+		// invoked.
 		void rename_file(int index, std::string const& new_filename)
 		{
 			TORRENT_ASSERT(is_loaded());
@@ -419,21 +422,24 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
-		// Remaps the file storage to a new file layout. This can be used to, for instance,
-		// download all data in a torrent to a single file, or to a number of fixed size
-		// sector aligned files, regardless of the number and sizes of the files in the torrent.
+		// Remaps the file storage to a new file layout. This can be used to, for
+		// instance, download all data in a torrent to a single file, or to a
+		// number of fixed size sector aligned files, regardless of the number
+		// and sizes of the files in the torrent.
 		// 
-		// The new specified ``file_storage`` must have the exact same size as the current one.
+		// The new specified ``file_storage`` must have the exact same size as
+		// the current one.
 		void remap_files(file_storage const& f);
 
-		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier`` determines the order in
-		// which the trackers are to be tried.
+		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
+		// determines the order in which the trackers are to be tried.
 		//
-		// The ``trackers()`` function will return a sorted vector of ``announce_entry``.
-		// Each announce entry contains a string, which is the tracker url, and a tier index. The
-		// tier index is the high-level priority. No matter which trackers that works or not, the
-		// ones with lower tier will always be tried before the one with higher tier number.
-		// For more information, see announce_entry_.
+		// The ``trackers()`` function will return a sorted vector of
+		// ``announce_entry``. Each announce entry contains a string, which is
+		// the tracker url, and a tier index. The tier index is the high-level
+		// priority. No matter which trackers that works or not, the ones with
+		// lower tier will always be tried before the one with higher tier
+		// number. For more information, see announce_entry_.
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
@@ -445,20 +451,22 @@ namespace libtorrent
 		std::vector<std::string> http_seeds() const TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 
-		// ``web_seeds()`` returns all url seeds and http seeds in the torrent. Each entry
-		// is a ``web_seed_entry`` and may refer to either a url seed or http seed.
+		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
+		// Each entry is a ``web_seed_entry`` and may refer to either a url seed
+		// or http seed.
 		// 		
 		// ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
-		// url/http seeds. Currently, the only transport protocol supported for the url
-		// is http.
+		// url/http seeds. Currently, the only transport protocol supported for
+		// the url is http.
 		// 
-		// The ``extern_auth`` argument can be used for other athorization schemese than
-		// basic HTTP authorization. If set, it will override any username and password
-		// found in the URL itself. The string will be sent as the HTTP authorization header's
-		// value (without specifying "Basic").
+		// The ``extern_auth`` argument can be used for other athorization
+		// schemese than basic HTTP authorization. If set, it will override any
+		// username and password found in the URL itself. The string will be sent
+		// as the HTTP authorization header's value (without specifying "Basic").
 		// 
-		// The ``extra_headers`` argument defaults to an empty list, but can be used to
-		// insert custom HTTP headers in the requests to a specific web seed.
+		// The ``extra_headers`` argument defaults to an empty list, but can be
+		// used to insert custom HTTP headers in the requests to a specific web
+		// seed.
 		// 
 		// See http-seeding_ for more information.
  		void add_url_seed(std::string const& url
@@ -470,13 +478,14 @@ namespace libtorrent
 		std::vector<web_seed_entry> const& web_seeds() const
 		{ return m_web_seeds; }
 
-		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the total
-		// number of bytes the torrent-file represents (all the files in it), the number of byte for
-		// each piece and the total number of pieces, respectively. The difference between
-		// ``piece_size()`` and ``piece_length()`` is that ``piece_size()`` takes
-		// the piece index as argument and gives you the exact size of that piece. It will always
-		// be the same as ``piece_length()`` except in the case of the last piece, which may
-		// be smaller.
+		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
+		// total number of bytes the torrent-file represents (all the files in
+		// it), the number of byte for each piece and the total number of pieces,
+		// respectively. The difference between ``piece_size()`` and
+		// ``piece_length()`` is that ``piece_size()`` takes the piece index as
+		// argument and gives you the exact size of that piece. It will always be
+		// the same as ``piece_length()`` except in the case of the last piece,
+		// which may be smaller.
 		boost::int64_t total_size() const { return m_files.total_size(); }
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
@@ -490,13 +499,15 @@ namespace libtorrent
 		typedef file_storage::iterator file_iterator;
 		typedef file_storage::reverse_iterator reverse_file_iterator;
 
-		// This class will need some explanation. First of all, to get a list of all files
-		// in the torrent, you can use ``begin_files()``, ``end_files()``,
-		// ``rbegin_files()`` and ``rend_files()``. These will give you standard vector
-		// iterators with the type ``internal_file_entry``, which is an internal type.
+		// This class will need some explanation. First of all, to get a list of
+		// all files in the torrent, you can use ``begin_files()``,
+		// ``end_files()``, ``rbegin_files()`` and ``rend_files()``. These will
+		// give you standard vector iterators with the type
+		// ``internal_file_entry``, which is an internal type.
 		// 
-		// You can resolve it into the public representation of a file (``file_entry``)
-		// using the ``file_storage::at`` function, which takes an index and an iterator.
+		// You can resolve it into the public representation of a file
+		// (``file_entry``) using the ``file_storage::at`` function, which takes
+		// an index and an iterator.
 		TORRENT_DEPRECATED_PREFIX
 		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin_deprecated(); }
 		TORRENT_DEPRECATED_PREFIX
@@ -511,27 +522,28 @@ namespace libtorrent
 
 #endif // TORRENT_NO_DEPRECATE
 
-		// If you need index-access to files you can use the ``num_files()`` and ``file_at()``
-		// to access files using indices.
+		// If you need index-access to files you can use the ``num_files()`` and
+		// ``file_at()`` to access files using indices.
 		int num_files() const { return m_files.num_files(); }
 		file_entry file_at(int index) const { return m_files.at(index); }
 
-		// This function will map a piece index, a byte offset within that piece and
-		// a size (in bytes) into the corresponding files with offsets where that data
-		// for that piece is supposed to be stored. See file_slice.
+		// This function will map a piece index, a byte offset within that piece
+		// and a size (in bytes) into the corresponding files with offsets where
+		// that data for that piece is supposed to be stored. See file_slice.
 		std::vector<file_slice> map_block(int piece, boost::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_block(piece, offset, size);
 		}
 
-		// This function will map a range in a specific file into a range in the torrent.
-		// The ``file_offset`` parameter is the offset in the file, given in bytes, where
-		// 0 is the start of the file. See peer_request.
+		// This function will map a range in a specific file into a range in the
+		// torrent. The ``file_offset`` parameter is the offset in the file,
+		// given in bytes, where 0 is the start of the file. See peer_request.
 		// 
-		// The input range is assumed to be valid within the torrent. ``file_offset``
-		// + ``size`` is not allowed to be greater than the file size. ``file_index``
-		// must refer to a valid file, i.e. it cannot be >= ``num_files()``.
+		// The input range is assumed to be valid within the torrent.
+		// ``file_offset`` + ``size`` is not allowed to be greater than the file
+		// size. ``file_index`` must refer to a valid file, i.e. it cannot be >=
+		// ``num_files()``.
 		peer_request map_file(int file, boost::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
@@ -572,11 +584,11 @@ namespace libtorrent
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return m_i2p; }
 
-		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes sha1-hash for that
-		// piece and ``info_hash()`` returns the 20-bytes sha1-hash for the info-section of the
-		// torrent file.
-		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest for the piece. 
-		// Note that the string is not null-terminated.
+		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
+		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
+		// sha1-hash for the info-section of the torrent file.
+		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
+		// for the piece. Note that the string is not null-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }
 		sha1_hash hash_for_piece(int index) const
 		{ return sha1_hash(hash_for_piece_ptr(index)); }
@@ -602,31 +614,35 @@ namespace libtorrent
 
 		bool is_loaded() const { return m_piece_hashes || !m_merkle_tree.empty(); }
 
-		// ``merkle_tree()`` returns a reference to the merkle tree for this torrent, if any.
+		// ``merkle_tree()`` returns a reference to the merkle tree for this
+		// torrent, if any.
 		// 
-		// ``set_merkle_tree()`` moves the passed in merkle tree into the torrent_info object.
-		// i.e. ``h`` will not be identical after the call. You need to set the merkle tree for
-		// a torrent that you've just created (as a merkle torrent). The merkle tree is retrieved
-		// from the ``create_torrent::merkle_tree()`` function, and need to be saved separately
-		// from the torrent file itself. Once it's added to libtorrent, the merkle tree will be
-		// persisted in the resume data.
+		// ``set_merkle_tree()`` moves the passed in merkle tree into the
+		// torrent_info object. i.e. ``h`` will not be identical after the call.
+		// You need to set the merkle tree for a torrent that you've just created
+		// (as a merkle torrent). The merkle tree is retrieved from the
+		// ``create_torrent::merkle_tree()`` function, and need to be saved
+		// separately from the torrent file itself. Once it's added to
+		// libtorrent, the merkle tree will be persisted in the resume data.
 		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
 		void set_merkle_tree(std::vector<sha1_hash>& h)
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 
 		// ``name()`` returns the name of the torrent.
 		// 
-		// ``comment()`` returns the comment associated with the torrent. If there's no comment,
-		// it will return an empty string. ``creation_date()`` returns the creation date of
-		// the torrent as time_t (`posix time`_). If there's no time stamp in the torrent file,
-		// the optional object will be uninitialized.
+		// ``comment()`` returns the comment associated with the torrent. If
+		// there's no comment, it will return an empty string.
+		// ``creation_date()`` returns the creation date of the torrent as time_t
+		// (`posix time`_). If there's no time stamp in the torrent file, the
+		// optional object will be uninitialized.
 		// 
 		// Both the name and the comment is UTF-8 encoded strings.
 		// 
-		// ``creator()`` returns the creator string in the torrent. If there is no creator string
-		// it will return an empty string.
+		// ``creator()`` returns the creator string in the torrent. If there is
+		// no creator string it will return an empty string.
 		// 
-		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
+		// .. _`posix time`:
+		// http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 		const std::string& name() const { return m_files.name(); }
 		boost::optional<time_t> creation_date() const;
 		const std::string& creator() const
@@ -637,26 +653,27 @@ namespace libtorrent
 		// dht nodes to add to the routing table/bootstrap from
 		typedef std::vector<std::pair<std::string, int> > nodes_t;
 		
-		// If this torrent contains any DHT nodes, they are put in this vector in their original
-		// form (host name and port number).
+		// If this torrent contains any DHT nodes, they are put in this vector in
+		// their original form (host name and port number).
 		nodes_t const& nodes() const
 		{ return m_nodes; }
 
-		// This is used when creating torrent. Use this to add a known DHT node. It may 
-		// be used, by the client, to bootstrap into the DHT network.
+		// This is used when creating torrent. Use this to add a known DHT node.
+		// It may be used, by the client, to bootstrap into the DHT network.
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
 		
-		// populates the torrent_info by providing just the info-dict buffer. This is used when
-		// loading a torrent from a magnet link for instance, where we only have the info-dict.
-		// The lazy_entry ``e`` points to a parsed info-dictionary. ``ec`` returns an error code
-		// if something fails (typically if the info dictionary is malformed). ``flags`` are currently
-		// unused.
+		// populates the torrent_info by providing just the info-dict buffer.
+		// This is used when loading a torrent from a magnet link for instance,
+		// where we only have the info-dict. The lazy_entry ``e`` points to a
+		// parsed info-dictionary. ``ec`` returns an error code if something
+		// fails (typically if the info dictionary is malformed). ``flags`` are
+		// currently unused.
 		bool parse_info_section(lazy_entry const& e, error_code& ec, int flags);
 
-		// This function looks up keys from the info-dictionary of the loaded torrent file.
-		// It can be used to access extension values put in the .torrent file. If the specified
-		// key cannot be found, it returns NULL.
+		// This function looks up keys from the info-dictionary of the loaded
+		// torrent file. It can be used to access extension values put in the
+		// .torrent file. If the specified key cannot be found, it returns NULL.
 		lazy_entry const* info(char const* key) const
 		{
 			if (m_info_dict.type() == lazy_entry::none_t)
