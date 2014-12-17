@@ -415,7 +415,7 @@ namespace libtorrent
 		// These functions are used to query attributes of files at
 		// a given index.
 		// 
-		// The ``file_hash()`` is a sha-1 hash of the file, or 0 if none was
+		// The ``hash()`` is a sha-1 hash of the file, or 0 if none was
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
 		// 
