@@ -773,6 +773,8 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	{
 		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
+
+		// TODO: use the system resolver_interface here
 		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
 		++m_outstanding_ops;
 #if TORRENT_USE_ASSERTS

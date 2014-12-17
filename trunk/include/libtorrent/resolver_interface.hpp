@@ -48,14 +48,22 @@ struct resolver_interface
 	typedef boost::function<void(error_code const&, std::vector<address> const&)>
 		callback_t;
 
-	// prefer_cache will always use the cache if we have
-	// an entry, regardless of how old it is. This is usefull
-	// when completing the lookup quickly is more important
-	// than accuracy
-	enum flags_t { prefer_cache = 1 };
+	enum flags_t
+	{
+		// this flag will make async_resolve() always use the cache if we have an
+		// entry, regardless of how old it is. This is usefull when completing the
+		// lookup quickly is more important than accuracy
+		prefer_cache = 1,
+
+		// set this flag for lookups that are not critical during shutdown. i.e.
+		// for looking up tracker names _except_ when stopping a tracker.
+		abort_on_shutdown = 2
+	};
 
 	virtual void async_resolve(std::string const& host, int flags
 		, callback_t const& h) = 0;
+
+	virtual void abort() = 0;
 };
 
 }

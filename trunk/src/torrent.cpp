@@ -3236,7 +3236,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 				add_outstanding_async("torrent::on_peer_name_lookup");
 #endif
-				m_ses.async_resolve(i->hostname, 0
+				m_ses.async_resolve(i->hostname, resolver_interface::abort_on_shutdown
 					, boost::bind(&torrent::on_peer_name_lookup
 						, shared_from_this(), _1, _2, i->port));
 			}
@@ -5990,7 +5990,7 @@ namespace libtorrent
 
 			// use proxy
 			web->resolving = true;
-			m_ses.async_resolve(ps.hostname, 0
+			m_ses.async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
 				, boost::bind(&torrent::on_proxy_name_lookup, shared_from_this()
 					, _1, _2, web, ps.port));
 		}
@@ -6007,8 +6007,8 @@ namespace libtorrent
 #endif
 
 			web->resolving = true;
-			m_ses.async_resolve(hostname, 0, boost::bind(
-				&torrent::on_name_lookup, shared_from_this(), _1, _2
+			m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
+				, boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2
 				, port, web, tcp::endpoint()));
 		}
 	}
@@ -6091,8 +6091,8 @@ namespace libtorrent
 		}
 
 		web->resolving = true;
-		m_ses.async_resolve(hostname, 0, boost::bind(
-			&torrent::on_name_lookup, shared_from_this(), _1, _2
+		m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
+			, boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2
 			, port, web, a));
 	}
 
@@ -6368,7 +6368,7 @@ namespace libtorrent
 			return;
 		}
 		m_resolving_country = true;
-		m_ses.async_resolve(hostname, 0
+		m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
 			, boost::bind(&torrent::on_country_lookup, shared_from_this(), _1, _2, p));
 	}
 

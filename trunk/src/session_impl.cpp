@@ -979,6 +979,12 @@ namespace aux {
 #if defined TORRENT_LOGGING
 		session_log(" *** ABORT CALLED ***");
 #endif
+
+		// this will cancel requests that are not critical for shutting down
+		// cleanly. i.e. essentially tracker hostname lookups that we're not
+		// about to send event=stopped to
+		m_host_resolver.abort();
+
 		// abort the main thread
 		m_abort = true;
 		error_code ec;
@@ -5340,7 +5346,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_router_name_lookup");
 #endif
-		m_host_resolver.async_resolve(node.first, 0
+		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
 			, boost::bind(&session_impl::on_dht_router_name_lookup
 				, this, _1, _2, node.second));
 	}

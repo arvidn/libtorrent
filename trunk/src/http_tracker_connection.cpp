@@ -231,7 +231,7 @@ namespace libtorrent
 			, bind_interface()
 			, tracker_req().event == tracker_request::stopped
 				? resolver_interface::prefer_cache
-				: 0
+				: resolver_interface::abort_on_shutdown
 #if TORRENT_USE_I2P
 			, m_i2p_conn
 #endif

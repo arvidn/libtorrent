@@ -53,6 +53,8 @@ struct TORRENT_EXTRA_EXPORT resolver : resolver_interface
 	void async_resolve(std::string const& host, int flags
 		, callback_t const& h);
 
+	void abort();
+
 private:
 
 	void on_lookup(error_code const& ec, tcp::resolver::iterator i
@@ -67,7 +69,12 @@ private:
 	typedef boost::unordered_map<std::string, dns_cache_entry> cache_t;
 	cache_t m_cache;
 	io_service& m_ios;
+
+	// all lookups in this resolver are aborted on shutdown.
 	tcp::resolver m_resolver;
+
+	// lookups in this resolver are not aborted on shutdown
+	tcp::resolver m_critical_resolver;
 
 	// max number of cached entries
 	int m_max_size;

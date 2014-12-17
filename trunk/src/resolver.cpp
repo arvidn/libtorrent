@@ -39,6 +39,7 @@ namespace libtorrent
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
+		, m_critical_resolver(ios)
 		, m_max_size(700)
 		, m_timeout(seconds(1200))
 	{}
@@ -108,8 +109,21 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("resolver::on_lookup");
 #endif
-		m_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
-			, h, host));
+		if (flags & resolver_interface::abort_on_shutdown)
+		{
+			m_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+				, h, host));
+		}
+		else
+		{
+			m_critical_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+				, h, host));
+		}
+	}
+
+	void resolver::abort()
+	{
+		m_resolver.cancel();
 	}
 }
 
