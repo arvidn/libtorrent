@@ -1,3 +1,5 @@
+	* cancel non-critical DNS lookups when shutting down, to cut down on
+	  shutdown delay.
 	* greatly simplify the debug logging infrastructure. logs are now delivered
 	  as alerts, and log level is controlled by the alert mask.
 	* removed auto_expand_choker. use rate_based_choker instead
