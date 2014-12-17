@@ -459,6 +459,9 @@ namespace libtorrent
 		m_total_size += size;
 	}
 
+	// TODO: 2 it would be nice if file_entry::filehash could be taken into
+	// account as well, and if the file_storage object could actually hold
+	// copies of filehash
 	void file_storage::add_file(file_entry const& ent, char const* filehash)
 	{
 		TORRENT_ASSERT_PRECOND(ent.size >= 0);
