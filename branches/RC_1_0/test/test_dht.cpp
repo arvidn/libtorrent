@@ -597,7 +597,7 @@ int test_main()
 		{"y", lazy_entry::string_t, 1, 0},
 		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
 			{"BFpe", lazy_entry::string_t, 256, 0},
-			{"BFse", lazy_entry::string_t, 256, 0},
+			{"BFsd", lazy_entry::string_t, 256, 0},
 			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
