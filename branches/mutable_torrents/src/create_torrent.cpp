@@ -426,9 +426,16 @@ namespace libtorrent
 			}
 		}
 
+		entry& info = dict["info"];
+		if (m_info_dict.type() == entry::dictionary_t)
+		{
+			info = m_info_dict;
+			return dict;
+		}
+
 		if (!m_collections.empty())
 		{
-			entry& list = dict["collections"];
+			entry& list = info["collections"];
 			for (std::vector<std::string>::const_iterator i
 				= m_collections.begin(); i != m_collections.end(); ++i)
 			{
@@ -438,19 +445,12 @@ namespace libtorrent
 
 		if (!m_similar.empty())
 		{
-			entry& list = dict["similar"];
+			entry& list = info["similar"];
 			for (std::vector<sha1_hash>::const_iterator i
 				= m_similar.begin(); i != m_similar.end(); ++i)
 			{
 				list.list().push_back(entry(i->to_string()));
 			}
-		}
-
-		entry& info = dict["info"];
-		if (m_info_dict.type() == entry::dictionary_t)
-		{
-			info = m_info_dict;
-			return dict;
 		}
 
 		info["name"] = m_files.name();
