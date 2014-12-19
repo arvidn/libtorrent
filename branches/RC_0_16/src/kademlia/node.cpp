@@ -450,7 +450,7 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, int prefix, entry& repl
 		}
 
 		reply["BFpe"] = downloaders.to_string();
-		reply["BFse"] = seeds.to_string();
+		reply["BFsd"] = seeds.to_string();
 	}
 	else
 	{
