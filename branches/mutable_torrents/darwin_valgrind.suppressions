@@ -1,0 +1,186 @@
+{
+	localtime
+   Memcheck:Leak
+   fun:malloc
+   fun:tzsetwall_basic
+   fun:localtime
+}
+{
+	localtime2
+   Memcheck:Leak
+   fun:malloc
+   fun:tzload
+   fun:tzsetwall_basic
+   fun:localtime
+}
+{
+	localtime3
+   Memcheck:Leak
+   fun:malloc
+   fun:localtime
+}
+{
+	localtime4
+   Memcheck:Leak
+   fun:calloc
+   fun:token_table_add
+   fun:notify_register_check
+   fun:notify_register_tz
+   fun:tzsetwall_basic
+   fun:localtime
+}
+{
+	getc
+   Memcheck:Leak
+   fun:malloc
+   fun:__smakebuf
+   fun:__srefill0
+   fun:__srefill
+   fun:__srget
+   fun:getc
+}
+{
+	putc
+   Memcheck:Leak
+   fun:malloc
+   fun:__smakebuf
+   fun:__swsetup
+   fun:__sfvwrite
+   fun:puts
+}
+{
+	printf
+   Memcheck:Leak
+   fun:malloc
+   fun:__smakebuf
+   fun:__swsetup
+   fun:__vfprintf
+}
+{
+	printf2
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__d2b_D2A
+   fun:__dtoa
+   fun:__vfprintf
+}
+{
+	atexit_register
+   Memcheck:Leak
+   fun:malloc
+   fun:atexit_register
+}
+{
+	getipnodebyname
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:si_module_static_file
+}
+{
+	getipnodebyname2
+   Memcheck:Leak
+   fun:calloc
+   fun:si_module_static_cache
+}
+{
+	getipnodebyname3
+   Memcheck:Leak
+   fun:calloc
+   fun:_nc_table_new
+}
+{
+	getipnodebyname4
+   Memcheck:Leak
+   fun:malloc
+   fun:dns_configuration_copy
+}
+{
+	getipnodebyname5
+   Memcheck:Leak
+   fun:calloc
+   fun:si_module_static_ds
+}
+{
+	getipnodebyname6
+   Memcheck:Leak
+   fun:calloc
+   fun:si_module_static_mdns
+}
+{
+	getipnodebyname7
+   Memcheck:Leak
+   fun:calloc
+   fun:search_alloc
+   fun:si_module_static_search
+   fun:si_module_with_name
+}
+{
+	getipnodebyname8
+   Memcheck:Leak
+   fun:calloc
+   fun:token_table_add
+}
+{
+	mdns
+   Memcheck:Leak
+   fun:malloc
+   fun:ConnectToServer
+   fun:DNSServiceCreateConnection
+   fun:_mdns_query_mDNSResponder
+}
+{
+	mdns2
+   Memcheck:Leak
+   fun:calloc
+   fun:_mdns_search
+}
+{
+	getipnodebyname9
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:si_module_static_ds
+}
+{
+	getipnodebyname10
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:si_module_static_mdns
+}
+{
+	getipnodebyname11
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:si_module_static_cache
+}
+{
+	getipnodebyname12
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:search_alloc
+   fun:si_module_static_search
+}
+{
+	getipnodebyname13
+   Memcheck:Leak
+   fun:malloc
+   fun:_nc_table_new
+}
+{
+	getipnodebyname14
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:_mdns_search
+}
+{
+	getipbyname15
+   Memcheck:Leak
+   fun:malloc
+   fun:_nc_table_insert_n
+}
