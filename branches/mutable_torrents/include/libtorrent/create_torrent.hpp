@@ -279,6 +279,17 @@ namespace libtorrent
 		// tree will be saved in the resume data.
 		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
 
+		// Add similar torrents (by info-hash) or collections of similar torrents.
+		// Similar torrents are expected to share some files with this torrent.
+		// Torrents sharing a collection name with this torrent are also expected
+		// to share files with this torrent. A torrent may have more than one
+		// collection and more than one similar torrents. For more information,
+		// see `BEP 38`_.
+		// 
+		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
+		void add_similar_torrent(sha1_hash ih);
+		void add_collection(std::string c);
+
 	private:
 
 		file_storage& m_files;
@@ -297,6 +308,9 @@ namespace libtorrent
 		std::vector<sha1_hash> m_piece_hash;
 
 		std::vector<sha1_hash> m_filehashes;
+
+		std::vector<sha1_hash> m_similar;
+		std::vector<std::string> m_collections;
 
 		// if we're generating a merkle torrent, this is the
 		// merkle tree we got. This should be saved in fast-resume

@@ -709,6 +709,12 @@ namespace libtorrent
 		if (m_orig_files)
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
+		for (int i = 0; i < m_collections.size(); ++i)
+			m_collections[i].first += offset;
+
+		for (int i = 0; i < m_similar_torrents.size(); ++i)
+			m_similar_torrents[i] += offset;
+
 #if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
 #endif
@@ -1149,7 +1155,6 @@ namespace libtorrent
 
 		std::string name;
 		sanitize_append_path_element(name, name_ent->string_ptr(), name_ent->string_length());
-	
 		if (name.empty()) name = to_hex(m_info_hash.to_string());
 
 		// extract file list
@@ -1261,6 +1266,36 @@ namespace libtorrent
 		}
 
 		m_private = info.dict_find_int_value("private", 0);
+
+		lazy_entry const* similar = info.dict_find_list("similar");
+		if (similar)
+		{
+			for (int i = 0; i < similar->list_size(); ++i)
+			{
+				if (similar->list_at(i)->type() != lazy_entry::string_t)
+					continue;
+
+				if (similar->list_at(i)->string_length() != 20)
+					continue;
+
+				m_similar_torrents.push_back(similar->list_at(i)->string_ptr()
+					+ info_ptr_diff);
+			}
+		}
+
+		lazy_entry const* collections = info.dict_find_list("collections");
+		if (collections)
+		{
+			for (int i = 0; i < collections->list_size(); ++i)
+			{
+				lazy_entry const* str = collections->list_at(i);
+
+				if (str->type() != lazy_entry::string_t) continue;
+
+				m_collections.push_back(std::make_pair(str->string_ptr()
+					+ info_ptr_diff, str->string_length()));
+			}
+		}
 
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
@@ -1400,6 +1435,36 @@ namespace libtorrent
 		}
 		if (!parse_info_section(*info, ec, flags)) return false;
 		resolve_duplicate_filenames();
+
+		lazy_entry const* similar = torrent_file.dict_find_list("similar");
+		if (similar)
+		{
+			for (int i = 0; i < similar->list_size(); ++i)
+			{
+				if (similar->list_at(i)->type() != lazy_entry::string_t)
+					continue;
+
+				if (similar->list_at(i)->string_length() != 20)
+					continue;
+
+				m_owned_similar_torrents.push_back(
+					sha1_hash(similar->list_at(i)->string_ptr()));
+			}
+		}
+
+		lazy_entry const* collections = torrent_file.dict_find_list("collections");
+		if (collections)
+		{
+			for (int i = 0; i < collections->list_size(); ++i)
+			{
+				lazy_entry const* str = collections->list_at(i);
+
+				if (str->type() != lazy_entry::string_t) continue;
+
+				m_owned_collections.push_back(std::string(str->string_ptr()
+					, str->string_length()));
+			}
+		}
 
 		// extract the url of the tracker
 		lazy_entry const* i = torrent_file.dict_find_list("announce-list");
@@ -1590,21 +1655,48 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 	void torrent_info::add_url_seed(std::string const& url
-			, std::string const& ext_auth
-			, web_seed_entry::headers_t const& ext_headers)
+		, std::string const& ext_auth
+		, web_seed_entry::headers_t const& ext_headers)
 	{
 		m_web_seeds.push_back(web_seed_entry(url, web_seed_entry::url_seed
 			, ext_auth, ext_headers));
 	}
 
 	void torrent_info::add_http_seed(std::string const& url
-			, std::string const& auth
-			, web_seed_entry::headers_t const& extra_headers)
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
 	{
 		m_web_seeds.push_back(web_seed_entry(url, web_seed_entry::http_seed
 			, auth, extra_headers));
 	}
 
+	std::vector<sha1_hash> torrent_info::similar_torrents() const
+	{
+		std::vector<sha1_hash> ret;
+		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
+
+		for (int i = 0; i < m_similar_torrents.size(); ++i)
+			ret.push_back(sha1_hash(m_similar_torrents[i]));
+
+		for (int i = 0; i < m_owned_similar_torrents.size(); ++i)
+			ret.push_back(m_owned_similar_torrents[i]);
+
+		return ret;
+	}
+
+	std::vector<std::string> torrent_info::collections() const
+	{
+		std::vector<std::string> ret;
+		ret.reserve(m_collections.size() + m_owned_collections.size());
+
+		for (int i = 0; i < m_collections.size(); ++i)
+			ret.push_back(std::string(m_collections[i].first, m_collections[i].second));
+
+		for (int i = 0; i < m_owned_collections.size(); ++i)
+			ret.push_back(m_owned_collections[i]);
+
+		return ret;
+	}
 
 #if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
 // ------- start deprecation -------

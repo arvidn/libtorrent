@@ -38,6 +38,46 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+void test_mutable_torrents()
+{
+	file_storage fs;
+
+	fs.add_file("test/temporary.txt", 0x4000);
+
+	libtorrent::create_torrent t(fs, 0x4000);
+
+	// calculate the hash for all pieces
+	int num = t.num_pieces();
+	sha1_hash ph;
+	for (int i = 0; i < num; ++i)
+		t.set_hash(i, ph);
+
+	t.add_collection("collection1");
+	t.add_collection("collection2");
+
+	t.add_similar_torrent(sha1_hash("abababababababababab"));
+	t.add_similar_torrent(sha1_hash("babababababababababa"));
+
+	std::vector<char> tmp;
+	std::back_insert_iterator<std::vector<char> > out(tmp);
+
+	entry tor = t.generate();
+	bencode(out, tor);
+
+	torrent_info ti(&tmp[0], tmp.size());
+
+	std::vector<sha1_hash> similar;
+	similar.push_back(sha1_hash("abababababababababab"));
+	similar.push_back(sha1_hash("babababababababababa"));
+
+	std::vector<std::string> collections;
+	collections.push_back("collection1");
+	collections.push_back("collection2");
+
+	TEST_CHECK(similar == ti.similar_torrents());
+	TEST_CHECK(collections == ti.collections());
+}
+
 void test_storage()
 {
 	file_storage fs;
@@ -138,5 +178,6 @@ int test_main()
 {
 	test_storage();
 	test_copy();
+	test_mutable_torrents();
 	return 0;
 }

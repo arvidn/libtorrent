@@ -426,6 +426,26 @@ namespace libtorrent
 			}
 		}
 
+		if (!m_collections.empty())
+		{
+			entry& list = dict["collections"];
+			for (std::vector<std::string>::const_iterator i
+				= m_collections.begin(); i != m_collections.end(); ++i)
+			{
+				list.list().push_back(entry(*i));
+			}
+		}
+
+		if (!m_similar.empty())
+		{
+			entry& list = dict["similar"];
+			for (std::vector<sha1_hash>::const_iterator i
+				= m_similar.begin(); i != m_similar.end(); ++i)
+			{
+				list.list().push_back(entry(i->to_string()));
+			}
+		}
+
 		entry& info = dict["info"];
 		if (m_info_dict.type() == entry::dictionary_t)
 		{
@@ -585,6 +605,16 @@ namespace libtorrent
 	void create_torrent::set_root_cert(std::string const& cert)
 	{
 		m_root_cert = cert;
+	}
+
+	void create_torrent::add_similar_torrent(sha1_hash ih)
+	{
+		m_similar.push_back(ih);
+	}
+
+	void create_torrent::add_collection(std::string c)
+	{
+		m_collections.push_back(c);
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)
