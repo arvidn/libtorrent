@@ -61,6 +61,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
+#endif
+
 //#define TORRENT_CORRUPT_DATA
 
 using boost::shared_ptr;
