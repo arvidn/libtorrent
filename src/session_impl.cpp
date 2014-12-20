@@ -149,6 +149,7 @@ namespace
 #ifdef TORRENT_USE_OPENSSL
 
 #include <openssl/crypto.h>
+#include <openssl/rand.h>
 
 namespace
 {
