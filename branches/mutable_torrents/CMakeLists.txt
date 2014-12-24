@@ -55,6 +55,7 @@ set(sources
 	random
 	receive_buffer
 	request_blocks
+	resolve_links
 	resolver
 	rss
 	session

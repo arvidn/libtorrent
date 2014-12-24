@@ -575,6 +575,7 @@ SOURCES =
 	puff
 	random
 	receive_buffer
+	resolve_links
 	rss
 	session
 	session_impl

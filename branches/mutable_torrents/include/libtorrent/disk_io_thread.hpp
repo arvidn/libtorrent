@@ -420,6 +420,7 @@ namespace libtorrent
 		int do_load_torrent(disk_io_job* j, tailqueue& completed_jobs);
 		int do_clear_piece(disk_io_job* j, tailqueue& completed_jobs);
 		int do_tick(disk_io_job* j, tailqueue& completed_jobs);
+		int do_resolve_links(disk_io_job* j, tailqueue& completed_jobs);
 
 		void call_job_handlers(void* userdata);
 
