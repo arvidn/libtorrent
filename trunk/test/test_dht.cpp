@@ -589,7 +589,7 @@ int test_main()
 		{"y", lazy_entry::string_t, 1, 0},
 		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
 			{"BFpe", lazy_entry::string_t, 256, 0},
-			{"BFse", lazy_entry::string_t, 256, 0},
+			{"BFsd", lazy_entry::string_t, 256, 0},
 			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
@@ -810,7 +810,7 @@ int test_main()
 
 		send_dht_request(node, "get", source, &response, "10", 0
 			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string(), 64);
+			, 0, false, false, std::string(), std::string());
 
 		key_desc_t desc[] =
 		{
@@ -866,7 +866,7 @@ int test_main()
 
 		send_dht_request(node, "get", source, &response, "10", 0
 			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string(), 64);
+			, 0, false, false, std::string(), std::string());
 
 		fprintf(stderr, "target_id: %s\n"
 			, to_hex(target_id.to_string()).c_str());
@@ -937,7 +937,31 @@ int test_main()
 				, error_string, print_entry(response).c_str());
 			TEST_ERROR(error_string);
 		}
-	
+
+		// === test conditional get ===
+
+		send_dht_request(node, "get", source, &response, "10", 0
+			, 0, no, 0, (char*)&target_id[0]
+			, 0, false, false, std::string(), std::string(), seq-1);
+
+		{
+			lazy_entry const* r = response.dict_find_dict("r");
+			TEST_CHECK(r->dict_find("v"));
+			TEST_CHECK(r->dict_find("k"));
+			TEST_CHECK(r->dict_find("sig"));
+		}
+
+		send_dht_request(node, "get", source, &response, "10", 0
+			, 0, no, 0, (char*)&target_id[0]
+			, 0, false, false, std::string(), std::string(), seq);
+
+		{
+			lazy_entry const* r = response.dict_find_dict("r");
+			TEST_CHECK(!r->dict_find("v"));
+			TEST_CHECK(!r->dict_find("k"));
+			TEST_CHECK(!r->dict_find("sig"));
+		}
+
 		// === test CAS put ===
 
 		// this is the sequence number we expect to be there
