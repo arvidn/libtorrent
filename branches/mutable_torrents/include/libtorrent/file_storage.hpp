@@ -424,7 +424,11 @@ namespace libtorrent
 		// (-1) but it may also make sense to set it to 16 kiB, or something
 		// divisible by 16 kiB.
 		// If pad_file_limit is 0, every file will be padded (except empty ones).
-		void optimize(int pad_file_limit = -1, int alignment = -1);
+		// ``tail_padding`` indicates whether aligned files also are padded at
+		// the end to make them end aligned. This is required for mutable
+		// torrents, since piece hashes are compared
+		void optimize(int pad_file_limit = -1, int alignment = -1
+			, bool tail_padding = false);
 
 		// These functions are used to query attributes of files at
 		// a given index.
@@ -540,15 +544,19 @@ namespace libtorrent
 
 	private:
 
+		void add_pad_file(int size
+			, std::vector<internal_file_entry>::iterator& i
+			, boost::int64_t& offset
+			, int& pad_file_counter);
+		void update_path_index(internal_file_entry& e);
+		void reorder_file(int index, int dst);
+
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
 		int m_piece_length;
 
 		// the number of pieces in the torrent
 		int m_num_pieces;
-
-		void update_path_index(internal_file_entry& e);
-		void reorder_file(int index, int dst);
 
 		// the list of files that this torrent consists of
 		std::vector<internal_file_entry> m_files;

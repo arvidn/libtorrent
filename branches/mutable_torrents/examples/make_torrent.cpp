@@ -155,6 +155,10 @@ void print_usage()
 		"-L collection add a collection name to this torrent. Other torrents\n"
 		"              in the same collection is expected to share files\n"
 		"              with this one.\n"
+		"-M            make the torrent compatible with mutable torrents\n"
+		"              this means aligning large files and pad them in order\n"
+		"              for piece hashes to uniquely indentify a file without\n"
+		"              overlap\n"
 		, stderr);
 }
 
@@ -209,6 +213,10 @@ int main(int argc, char* argv[])
 				case 't':
 					++i;
 					trackers.push_back(argv[i]);
+					break;
+				case 'M':
+					flags |= create_torrent::mutable_torrent_support;
+					pad_file_limit = 0x4000;
 					break;
 				case 'p':
 					++i;

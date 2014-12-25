@@ -114,8 +114,14 @@ namespace libtorrent
 		enum flags_t
 		{
 			// This will insert pad files to align the files to piece boundaries, for
-			// optimized disk-I/O.
-			optimize = 1
+			// optimized disk-I/O. This will minimize the number of bytes of pad-
+			// files, to keep the impact down for clients that don't support
+			// them.
+			optimize_alignment = 1,
+#ifndef TORRENT_NO_DEPRECATED
+			// same as optimize_alignment, for backwards compatibility
+			optimize = 1,
+#endif
 
 			// This will create a merkle hash tree torrent. A merkle torrent cannot
 			// be opened in clients that don't specifically support merkle torrents.
@@ -125,7 +131,7 @@ namespace libtorrent
 			// When creating merkle torrents, the full hash tree is also generated
 			// and should be saved off separately. It is accessed through the 
 			// create_torrent::merkle_tree() function.
-			, merkle = 2
+			merkle = 2,
 
 			// This will include the file modification time as part of the torrent.
 			// This is not enabled by default, as it might cause problems when you
@@ -133,13 +139,20 @@ namespace libtorrent
 			// yield the same info-hash. If the files have different modification times,
 			// with this option enabled, you would get different info-hashes for the
 			// files.
-			, modification_time = 4
+			modification_time = 4,
 
 			// If this flag is set, files that are symlinks get a symlink attribute
 			// set on them and their data will not be included in the torrent. This
 			// is useful if you need to reconstruct a file hierarchy which contains
 			// symlinks.
-			, symlinks = 8
+			symlinks = 8,
+
+			// to create a torrent that can be updated via a *mutable torrent*
+			// (see BEP38_). This also needs to be enabled for torrents that update
+			// another torrent.
+			// 
+			// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
+			mutable_torrent_support = 16,
 		};
 
 		// The ``piece_size`` is the size of each piece in bytes. It must

@@ -147,6 +147,8 @@ int test_main()
 		TEST_EQUAL(rq.length, 841);
 	}
 
+	// TODO: it would be nice to test file_storage::optimize too
+
 	return 0;
 }
 

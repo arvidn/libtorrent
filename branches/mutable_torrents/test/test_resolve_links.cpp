@@ -52,8 +52,9 @@ test_torrent_t test_torrents[] = {
 	{ "test3", "test1_pad_files", 0},
 
 	// in this case, test1 happens to have the shared file as the first one,
-	// which makes it padded
-	{ "test1", "test1_pad_files", 1},
+	// which makes it padded, however, the tail of it isn't padded, so it
+	// still overlaps with the next file
+	{ "test1", "test1_pad_files", 0},
 
 	// test2 and test3 don't have the shared file aligned
 	{ "test2", "test1_pad_files", 0},
@@ -67,7 +68,13 @@ test_torrent_t test_torrents[] = {
 	{ "test1_pad_files", "test2_pad_files", 1},
 	{ "test1_pad_files", "test3_pad_files", 1},
 	{ "test2_pad_files", "test3_pad_files", 1},
-	{ "test1_pad_files", "test1_single", 1},
+
+	// one might expect this to work, but since the tail of the single file
+	// torrent is not padded, the last piece hash won't match
+	{ "test1_pad_files", "test1_single", 0},
+
+	// if it's padded on the other hand, it will work
+	{ "test1_pad_files", "test1_single_padded", 1},
 };
 
 // TODO: it would be nice to test resolving of more than just 2 files as well.
@@ -84,21 +91,37 @@ int test_main()
 		test_torrent_t const& e = test_torrents[i];
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
-		printf("loading %s\n", path.c_str());
+		fprintf(stderr, "loading %s\n", p.c_str());
 		boost::shared_ptr<torrent_info> ti1 = boost::make_shared<torrent_info>(p);
 
 		p = combine_path(path, e.filename2) + ".torrent";
-		printf("loading %s\n", path.c_str());
+		fprintf(stderr, "loading %s\n", p.c_str());
 		boost::shared_ptr<torrent_info> ti2 = boost::make_shared<torrent_info>(p);
 
-		printf("resolving\n");
+		fprintf(stderr, "resolving\n");
 		resolve_links l(ti1);
 		l.match(ti2);
 
 		std::vector<resolve_links::link_t> const& links = l.get_links();
 
-		TEST_EQUAL(std::count_if(links.begin(), links.end(), boost::bind(&resolve_links::link_t::first, _1))
-			, e.expected_matches);
+		int num_matches = std::count_if(links.begin(), links.end()
+			, boost::bind(&resolve_links::link_t::first, _1));
+
+		// some debug output in case the test fails
+		if (num_matches > e.expected_matches)
+		{
+			file_storage const& fs = ti1->files();
+			for (int i = 0; i < links.size(); ++i)
+			{
+				TORRENT_ASSERT(i < fs.num_files());
+				fprintf(stderr, "%s --> %s : %d\n", fs.file_name(i).c_str()
+					, links[i].first ? to_hex(links[i].first->info_hash()
+						.to_string()).c_str() : "", links[i].second);
+			}
+		}
+
+		TEST_EQUAL(num_matches, e.expected_matches);
+
 	}
 	return 0;
 }

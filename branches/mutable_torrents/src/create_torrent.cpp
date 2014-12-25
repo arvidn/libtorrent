@@ -278,6 +278,12 @@ namespace libtorrent
 			piece_size = 64*1024;
 		}
 
+		// to support mutable torrents, alignment always has to be the piece size,
+		// because piece hashes are compared to determine whether files are
+		// identical
+		if (flags & mutable_torrent_support)
+			alignment = piece_size;
+
 		// make sure the size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
@@ -290,8 +296,9 @@ namespace libtorrent
 		}
 #endif
 		m_files.set_piece_length(piece_size);
-		if (flags & optimize)
-			m_files.optimize(pad_file_limit, alignment);
+		if (flags & (optimize_alignment | mutable_torrent_support))
+			m_files.optimize(pad_file_limit, alignment, flags & mutable_torrent_support);
+
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
