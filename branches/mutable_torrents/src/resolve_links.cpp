@@ -53,7 +53,7 @@ resolve_links::resolve_links(boost::shared_ptr<torrent_info> ti)
 		// ieces. Files are matched by comparing piece hashes, so pieces must
 		// be aligned and the same size
 		if (fs.pad_file_at(i)) continue;
-		if ((fs.file_base(i) % piece_size) != 0) continue;
+		if ((fs.file_offset(i) % piece_size) != 0) continue;
 
 		m_file_sizes.insert(std::make_pair(fs.file_size(i), i));
 	}
@@ -77,7 +77,7 @@ void resolve_links::match(boost::shared_ptr<torrent_info> const& ti)
 
 		// if the file base is not aligned to pieces, we're not going to match
 		// it anyway (we only compare piece hashes)
-		if ((fs.file_base(i) % piece_size) != 0) continue;
+		if ((fs.file_offset(i) % piece_size) != 0) continue;
 		if (fs.pad_file_at(i)) continue;
 
 		boost::int64_t file_size = fs.file_size(i);

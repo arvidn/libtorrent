@@ -61,13 +61,14 @@ test_torrent_t test_torrents[] = {
 	{ "test3", "test1_pad_files", 0},
 	{ "test2", "test1_single", 0},
 
-	// these are all padded
-	{ "test2_pad_files", "test1_pad_files", 1},
-	{ "test3_pad_files", "test1_pad_files", 1},
-	{ "test3_pad_files", "test2_pad_files", 1},
-	{ "test1_pad_files", "test2_pad_files", 1},
-	{ "test1_pad_files", "test3_pad_files", 1},
-	{ "test2_pad_files", "test3_pad_files", 1},
+	// these are all padded. The first small file will accidentally also
+	// match, even though it's not tail padded, the following file is identical
+	{ "test2_pad_files", "test1_pad_files", 2},
+	{ "test3_pad_files", "test1_pad_files", 2},
+	{ "test3_pad_files", "test2_pad_files", 2},
+	{ "test1_pad_files", "test2_pad_files", 2},
+	{ "test1_pad_files", "test3_pad_files", 2},
+	{ "test2_pad_files", "test3_pad_files", 2},
 
 	// one might expect this to work, but since the tail of the single file
 	// torrent is not padded, the last piece hash won't match
@@ -75,6 +76,8 @@ test_torrent_t test_torrents[] = {
 
 	// if it's padded on the other hand, it will work
 	{ "test1_pad_files", "test1_single_padded", 1},
+
+	// TODO: test files with different piece size (negative test)
 };
 
 // TODO: it would be nice to test resolving of more than just 2 files as well.
