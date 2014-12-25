@@ -1,3 +1,4 @@
+	* support conditional DHT get
 	* OpenSSL build fixes
 	* fix DHT scrape bug
 
