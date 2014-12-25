@@ -38,6 +38,10 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* support conditional DHT get
+	* OpenSSL build fixes
+	* fix DHT scrape bug
+
 1.0.3 release
 
 	* python binding build fix for boost-1.57.0

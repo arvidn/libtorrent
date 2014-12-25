@@ -35,9 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
 
-#if defined TORRENT_LOGGING
+#ifdef TORRENT_LOGGING
 #include <stdarg.h> // for va_start, va_end
 #include <stdio.h> // for vsnprintf
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/socket_io.hpp"
 #endif
 
 #include "libtorrent/peer_connection.hpp"
@@ -73,9 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
-#if defined TORRENT_LOGGING
-#include "libtorrent/escape_string.hpp"
-#include "libtorrent/socket_io.hpp"
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
 #endif
 
 //#define TORRENT_CORRUPT_DATA

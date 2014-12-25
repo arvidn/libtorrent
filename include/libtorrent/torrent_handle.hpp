@@ -1000,7 +1000,7 @@ namespace libtorrent
 		// The priority values are the same as for piece_priority().
 		// 
 		// Whenever a file priority is changed, all other piece priorities are
-		// reset to match the file priorities. In order to maintain sepcial
+		// reset to match the file priorities. In order to maintain special
 		// priorities for particular pieces, piece_priority() has to be called
 		// again for those pieces.
 		// 

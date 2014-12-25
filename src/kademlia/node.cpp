@@ -614,7 +614,7 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 		}
 
 		reply["BFpe"] = downloaders.to_string();
-		reply["BFse"] = seeds.to_string();
+		reply["BFsd"] = seeds.to_string();
 	}
 	else
 	{
@@ -1230,34 +1230,41 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	else if (strcmp(query, "get") == 0)
 	{
 		key_desc_t msg_desc[] = {
+			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
 			{"target", lazy_entry::string_t, 20, 0},
 		};
 
 		// k is not used for now
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[1];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
+		lazy_entry const* msg_keys[2];
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
 		}
 
 		m_counters.inc_stats_counter(counters::dht_get_in);
-		sha1_hash target(msg_keys[0]->string_ptr());
+		sha1_hash target(msg_keys[1]->string_ptr());
 
 //		fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, to_hex(target.to_string()).c_str());
 
-		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
+		reply["token"] = generate_token(m.addr, msg_keys[1]->string_ptr());
 		
 		nodes_t n;
 		// always return nodes as well as peers
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 
-		dht_immutable_table_t::iterator i = m_immutable_table.find(target);
+		dht_immutable_table_t::iterator i = m_immutable_table.end();
+
+		// if the get has a sequence number it must be for a mutable item
+		// so don't bother searching the immutable table
+		if (!msg_keys[0])
+			i = m_immutable_table.find(target);
+
 		if (i != m_immutable_table.end())
 		{
 			dht_immutable_item const& f = i->second;
@@ -1269,10 +1276,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			if (i != m_mutable_table.end())
 			{
 				dht_mutable_item const& f = i->second;
-				reply["v"] = bdecode(f.value, f.value + f.size);
 				reply["seq"] = f.seq;
-				reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
-				reply["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
+				if (!msg_keys[0] || uint64_t(msg_keys[0]->int_value()) < f.seq)
+				{
+					reply["v"] = bdecode(f.value, f.value + f.size);
+					reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
+					reply["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
+				}
 			}
 		}
 	}
