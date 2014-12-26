@@ -865,13 +865,18 @@ namespace libtorrent
 		return s.file_size;
 	}
 
-	bool exists(std::string const& f)
+	bool exists(std::string const& f, error_code& ec)
 	{
-		error_code ec;
 		file_status s;
 		stat_file(f, &s, ec);
 		if (ec) return false;
 		return true;
+	}
+
+	bool exists(std::string const& f)
+	{
+		error_code ec;
+		return exists(f, ec);
 	}
 
 	void remove(std::string const& inf, error_code& ec)
