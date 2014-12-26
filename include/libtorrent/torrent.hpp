@@ -993,7 +993,7 @@ namespace libtorrent
 		// renames the file with the given index to the new name
 		// the name may include a directory path
 		// returns false on failure
-		bool rename_file(int index, std::string const& name);
+		void rename_file(int index, std::string const& name);
 
 		// unless this returns true, new connections must wait
 		// with their initialization.

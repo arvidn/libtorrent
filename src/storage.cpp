@@ -479,11 +479,32 @@ namespace libtorrent
 		return false;
 	}
 
-	void default_storage::rename_file(int index, std::string const& new_filename, storage_error& ec)
+	void default_storage::rename_file(int index, std::string const& new_filename
+		, storage_error& ec)
 	{
 		if (index < 0 || index >= files().num_files()) return;
 		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
+
+		// if the old file doesn't exist, just succeed and change the filename
+		// that will be created. This shortcut is important because the
+		// destination directory may not exist yet, which would cause a failure
+		// even though we're not moving a file (yet). It's better for it to
+		// fail later when we try to write to the file the first time, because
+		// the user then will have had a chance to make the destination directory
+		// valid.
+		if (!exists(old_name, ec.ec))
+		{
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+			{
+				ec.ec.clear();
+				return;
+			}
+
+			ec.file = index;
+			ec.operation = storage_error::rename;
+			return;
+		}
 
 #if TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());

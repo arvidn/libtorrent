@@ -8203,7 +8203,7 @@ namespace libtorrent
 		return m_save_path;
 	}
 
-	bool torrent::rename_file(int index, std::string const& name)
+	void torrent::rename_file(int index, std::string const& name)
 	{
 		INVARIANT_CHECK;
 
@@ -8211,12 +8211,19 @@ namespace libtorrent
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 
 		// stoage may be NULL during shutdown
-		if (!m_storage.get()) return false;
+		if (!m_storage.get())
+		{
+			if (alerts().should_post<file_rename_failed_alert>())
+				alerts().post_alert(file_rename_failed_alert(get_handle()
+					, index, error_code(errors::session_is_closing
+						, get_libtorrent_category())));
+			return;
+		}
 
 		inc_refcount("rename_file");
 		m_ses.disk_thread().async_rename_file(m_storage.get(), index, name
 			, boost::bind(&torrent::on_file_renamed, shared_from_this(), _1));
-		return true;
+		return;
 	}
 
 	void torrent::move_storage(std::string const& save_path, int flags)
