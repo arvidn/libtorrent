@@ -283,18 +283,18 @@ Build features:
 |                          | * ``on`` - creates "upnp.log" with the messages    |
 |                          |   sent to and received from UPnP devices.          |
 +--------------------------+----------------------------------------------------+
-| ``encryption``           | * ``openssl`` - links against openssl and          |
-|                          |   libcrypto to enable https and encrypted          |
-|                          |   bittorrent connections.                          |
-|                          | * ``gcrypt`` - links against libgcrypt to enable   |
-|                          |   encrypted bittorrent connections.                |
-|                          | * ``tommath`` - uses a shipped version of          |
-|                          |   libtommath and a custom rc4 implementation       |
-|                          |   (based on libtomcrypt). This is the default      |
-|                          |   option.                                          |
+| ``encryption``           | * ``on`` - encrypted bittorrent connections        |
+|                          |   enabled. (Message Stream encryption).            |
 |                          | * ``off`` - turns off support for encrypted        |
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
++--------------------------+----------------------------------------------------+
+| ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
+|                          |   implementation.                                  |
+|                          | * ``openssl`` - links against openssl and          |
+|                          |   libcrypto to use for SHA-1 hashing.              |
+|                          | * ``gcrypt`` - links against libgcrypt to use for  |
+|                          |   SHA-1 hashing.                                   |
 +--------------------------+----------------------------------------------------+
 | ``allocator``            | * ``pool`` - default, uses pool allocators for     |
 |                          |   send buffers.                                    |

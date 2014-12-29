@@ -1,3 +1,7 @@
+	* separate crypto library configuration <crypto> and whether to support
+	  bittorrent protocol encryption <encryption>
+	* simplify bittorrent protocol encryption by just using internal RC4
+	  implementation.
 	* optimize copying torrent_info and file_storage objects
 	* cancel non-critical DNS lookups when shutting down, to cut down on
 	  shutdown delay.
