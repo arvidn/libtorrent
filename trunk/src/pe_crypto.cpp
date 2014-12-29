@@ -35,18 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <algorithm>
 
-#if defined TORRENT_USE_GCRYPT
-#include <gcrypt.h>
-#elif defined TORRENT_USE_OPENSSL
-#include <openssl/bn.h>
-#include "libtorrent/random.hpp"
-#elif defined TORRENT_USE_TOMMATH
 extern "C" {
 #include "libtorrent/tommath.h"
 }
-#include "libtorrent/random.hpp"
-#endif
 
+#include "libtorrent/random.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
@@ -67,238 +60,81 @@ namespace libtorrent
 		};
 	}
 
+	struct mp_bigint
+	{
+		mp_bigint()
+		{ mp_init(&v); }
+		mp_int* operator&() { return &v; }
+		~mp_bigint() { mp_clear(&v); }
+	private:
+		// non-copyable
+		mp_bigint(mp_bigint const&);
+		mp_bigint const& operator=(mp_bigint const&);
+		mp_int v;
+	};
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-#ifdef TORRENT_USE_GCRYPT
-		// create local key
-		gcry_randomize(m_dh_local_secret, sizeof(m_dh_local_secret), GCRY_STRONG_RANDOM);
-
-		// build gcrypt big ints from the prime and the secret
-		gcry_mpi_t prime = 0;
-		gcry_mpi_t secret = 0;
-		gcry_mpi_t key = 0;
-		gcry_error_t e;
-
-		e = gcry_mpi_scan(&prime, GCRYMPI_FMT_USG, dh_prime, sizeof(dh_prime), 0);
-		if (e) goto get_out;
-		e = gcry_mpi_scan(&secret, GCRYMPI_FMT_USG, m_dh_local_secret, sizeof(m_dh_local_secret), 0);
-		if (e) goto get_out;
-
-		key = gcry_mpi_new(8);
-
-		// generator is 2
-		gcry_mpi_set_ui(key, 2);
-		// key = (2 ^ secret) % prime
-		gcry_mpi_powm(key, key, secret, prime);
-
-		// key is now our local key
-		size_t written;
-		gcry_mpi_print(GCRYMPI_FMT_USG, (unsigned char*)m_dh_local_key
-			, sizeof(m_dh_local_key), &written, key);
-		if (written < 96)
-		{
-			memmove(m_dh_local_key + (sizeof(m_dh_local_key) - written), m_dh_local_key, written);
-			memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - written);
-		}
-
-get_out:
-		if (key) gcry_mpi_release(key);
-		if (prime) gcry_mpi_release(prime);
-		if (secret) gcry_mpi_release(secret);
-
-#elif defined TORRENT_USE_OPENSSL
-		// create local key
-		for (int i = 0; i < sizeof(m_dh_local_secret); ++i)
-			m_dh_local_secret[i] = random() & 0xff;
-
-		BIGNUM* prime = 0;
-		BIGNUM* secret = 0;
-		BIGNUM* key = 0;
-		BN_CTX* ctx = 0;
-		int size;
-
-		prime = BN_bin2bn(dh_prime, sizeof(dh_prime), 0);
-		if (prime == 0) goto get_out;
-		secret = BN_bin2bn((unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret), 0);
-		if (secret == 0) goto get_out;
-
-		key = BN_new();
-		if (key == 0) goto get_out;
-		// generator is 2
-		BN_set_word(key, 2);
-
-		ctx = BN_CTX_new();
-		if (ctx == 0) goto get_out;
-		BN_mod_exp(key, key, secret, prime, ctx);
-		BN_CTX_free(ctx);
-
-		// print key to m_dh_local_key
-		size = BN_num_bytes(key);
-		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
-		BN_bn2bin(key, (unsigned char*)m_dh_local_key + sizeof(m_dh_local_key) - size);
-
-get_out:
-		if (key) BN_free(key);
-		if (secret) BN_free(secret);
-		if (prime) BN_free(prime);
-#elif defined TORRENT_USE_TOMMATH
 		// create local key
 		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
 			m_dh_local_secret[i] = random() & 0xff;
 
-		mp_int prime;
-		mp_int secret;
-		mp_int key;
-		int e;
-		int size;
+		mp_bigint prime;
+		mp_bigint secret;
+		mp_bigint key;
 
-		mp_init(&prime);
-		mp_init(&secret);
-		mp_init(&key);
-
-		e = mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime));
-		if (e) goto get_out;
-		e = mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret));
-		if (e) goto get_out;
+		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
+			return;
+		if (mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret)))
+			return;
 
 		// generator is 2
 		mp_set_int(&key, 2);
 		// key = (2 ^ secret) % prime
-		e = mp_exptmod(&key, &secret, &prime, &key);
-		if (e) goto get_out;
+		if (mp_exptmod(&key, &secret, &prime, &key))
+			return;
 
 		// key is now our local key
-		size = mp_unsigned_bin_size(&key);
+		int size = mp_unsigned_bin_size(&key);
 		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
 		mp_to_unsigned_bin(&key, (unsigned char*)m_dh_local_key + sizeof(m_dh_local_key) - size);
-
-get_out:
-		mp_clear(&key);
-		mp_clear(&prime);
-		mp_clear(&secret);
-#else
-#error you must define which bigint library to use
-#endif
 	}
 
 	char const* dh_key_exchange::get_local_key() const
 	{
 		return m_dh_local_key;
-	}	
-
+	}
 
 	// compute shared secret given remote public key
 	int dh_key_exchange::compute_secret(char const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
-		int ret = 0;
-#ifdef TORRENT_USE_GCRYPT
+		mp_bigint prime;
+		mp_bigint secret;
+		mp_bigint remote_key;
 
-		gcry_mpi_t prime = 0;
-		gcry_mpi_t remote_key = 0;
-		gcry_mpi_t secret = 0;
-		size_t written;
-		gcry_error_t e;
+		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
+			return -1;
+		if (mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret)))
+			return -1;
+		if (mp_read_unsigned_bin(&remote_key, (unsigned char*)remote_pubkey, 96))
+			return -1;
 
-		e = gcry_mpi_scan(&prime, GCRYMPI_FMT_USG, dh_prime, sizeof(dh_prime), 0);
-		if (e != 0) { ret = 1; goto get_out; }
-		e = gcry_mpi_scan(&remote_key, GCRYMPI_FMT_USG, remote_pubkey, 96, 0);
-		if (e != 0) { ret = 1; goto get_out; }
-		e = gcry_mpi_scan(&secret, GCRYMPI_FMT_USG, (unsigned char const*)m_dh_local_secret
-			, sizeof(m_dh_local_secret), 0);
-		if (e != 0) { ret = 1; goto get_out; }
-
-		gcry_mpi_powm(remote_key, remote_key, secret, prime);
+		if (mp_exptmod(&remote_key, &secret, &prime, &remote_key))
+			return -1;
 
 		// remote_key is now the shared secret
-		e = gcry_mpi_print(GCRYMPI_FMT_USG, (unsigned char*)m_dh_shared_secret
-			, sizeof(m_dh_shared_secret), &written, remote_key);
-		if (e != 0) { ret = 1; goto get_out; }
-
-		if (written < 96)
-		{
-			memmove(m_dh_shared_secret, m_dh_shared_secret
-				+ (sizeof(m_dh_shared_secret) - written), written);
-			memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - written);
-		}
-
-get_out:
-		// TODO: 3 clean this up using destructors instead
-		if (prime) gcry_mpi_release(prime);
-		if (remote_key) gcry_mpi_release(remote_key);
-		if (secret) gcry_mpi_release(secret);
-
-#elif defined TORRENT_USE_OPENSSL
-
-		BIGNUM* prime = 0;
-		BIGNUM* secret = 0;
-		BIGNUM* remote_key = 0;
-		BN_CTX* ctx = 0;
-		int size;
-
-		prime = BN_bin2bn(dh_prime, sizeof(dh_prime), 0);
-		if (prime == 0) { ret = 1; goto get_out; }
-		secret = BN_bin2bn((unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret), 0);
-		if (secret == 0) { ret = 1; goto get_out; }
-		remote_key = BN_bin2bn((unsigned char*)remote_pubkey, 96, 0);
-		if (remote_key == 0) { ret = 1; goto get_out; }
-
-		ctx = BN_CTX_new();
-		if (ctx == 0) { ret = 1; goto get_out; }
-		BN_mod_exp(remote_key, remote_key, secret, prime, ctx);
-		BN_CTX_free(ctx);
-
-		// remote_key is now the shared secret
-		size = BN_num_bytes(remote_key);
-		memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
-		BN_bn2bin(remote_key, (unsigned char*)m_dh_shared_secret + sizeof(m_dh_shared_secret) - size);
-
-get_out:
-		BN_free(remote_key);
-		BN_free(secret);
-		BN_free(prime);
-#elif defined TORRENT_USE_TOMMATH
-		mp_int prime;
-		mp_int secret;
-		mp_int remote_key;
-		int size;
-		int e;
-
-		mp_init(&prime);
-		mp_init(&secret);
-		mp_init(&remote_key);
-
-		e = mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime));
-		if (e) { ret = 1; goto get_out; }
-		e = mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret));
-		if (e) { ret = 1; goto get_out; }
-		e = mp_read_unsigned_bin(&remote_key, (unsigned char*)remote_pubkey, 96);
-		if (e) { ret = 1; goto get_out; }
-
-		e = mp_exptmod(&remote_key, &secret, &prime, &remote_key);
-		if (e) goto get_out;
-
-		// remote_key is now the shared secret
-		size = mp_unsigned_bin_size(&remote_key);
+		int size = mp_unsigned_bin_size(&remote_key);
 		memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
 		mp_to_unsigned_bin(&remote_key, (unsigned char*)m_dh_shared_secret + sizeof(m_dh_shared_secret) - size);
-
-get_out:
-		mp_clear(&remote_key);
-		mp_clear(&secret);
-		mp_clear(&prime);
-#else
-#error you must define which bigint library to use
-#endif
 
 		// calculate the xor mask for the obfuscated hash
 		hasher h;
 		h.update("req3", 4);
 		h.update(m_dh_shared_secret, sizeof(m_dh_shared_secret));
 		m_xor_mask = h.final();
-		return ret;
+		return 0;
 	}
 
 	int encryption_handler::encrypt(std::vector<asio::mutable_buffer>& iovec)
@@ -431,15 +267,7 @@ get_out:
 	void rc4_handler::set_incoming_key(unsigned char const* key, int len)
 	{
 		m_decrypt = true;
-#ifdef TORRENT_USE_GCRYPT
-		gcry_cipher_close(m_rc4_incoming);
-		gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
-		gcry_cipher_setkey(m_rc4_incoming, key, len);
-#elif defined TORRENT_USE_OPENSSL
-		RC4_set_key(&m_remote_key, len, key);
-#else
 		rc4_init(key, len, &m_rc4_incoming);
-#endif
 		// Discard first 1024 bytes
 		char buf[1024];
 		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
@@ -452,15 +280,7 @@ get_out:
 	void rc4_handler::set_outgoing_key(unsigned char const* key, int len)
 	{
 		m_encrypt = true;
-#ifdef TORRENT_USE_GCRYPT
-		gcry_cipher_close(m_rc4_outgoing);
-		gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
-		gcry_cipher_setkey(m_rc4_outgoing, key, len);
-#elif defined TORRENT_USE_OPENSSL
-		RC4_set_key(&m_local_key, len, key);
-#else
 		rc4_init(key, len, &m_rc4_outgoing);
-#endif
 		// Discard first 1024 bytes
 		char buf[1024];
 		std::vector<boost::asio::mutable_buffer> vec(1, boost::asio::mutable_buffer(buf, 1024));
@@ -483,13 +303,7 @@ get_out:
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-#ifdef TORRENT_USE_GCRYPT
-			gcry_cipher_encrypt(m_rc4_outgoing, pos, len, 0, 0);
-#elif defined TORRENT_USE_OPENSSL
-			RC4(&m_local_key, len, (const unsigned char*)pos, (unsigned char*)pos);
-#else
 			rc4_encrypt((unsigned char*)pos, len, &m_rc4_outgoing);
-#endif
 		}
 		buf.clear();
 		return bytes_processed;
@@ -513,21 +327,13 @@ get_out:
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-#ifdef TORRENT_USE_GCRYPT
-			gcry_cipher_decrypt(m_rc4_incoming, pos, len, 0, 0);
-#elif defined TORRENT_USE_OPENSSL
-			RC4(&m_remote_key, len, (const unsigned char*)pos, (unsigned char*)pos);
-#else
 			rc4_encrypt((unsigned char*)pos, len, &m_rc4_incoming);
-#endif
 		}
 		buf.clear();
 		produce = bytes_processed;
 	}
 
 } // namespace libtorrent
-
-#if !defined TORRENT_USE_OPENSSL && !defined TORRENT_USE_GCRYPT
 
 // All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
 // this library is public domain and has been specially
@@ -590,8 +396,6 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	state->y = y;
 	return n;
 }
-
-#endif
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 

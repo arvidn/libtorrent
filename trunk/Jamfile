@@ -54,7 +54,7 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <encryption>openssl in $(properties)
+	if <crypto>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -94,7 +94,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <encryption>gcrypt in $(properties)
+	if <crypto>gcrypt in $(properties)
 	{
 		# on mac os x, adding the /opt/local/include path
 		# would include openssl headers incompatible with
@@ -254,25 +254,20 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
-	if <encryption>openssl in $(properties)
+	if <crypto>openssl in $(properties)
 	{
 		result += <source>src/asio_ssl.cpp ;
 	}
 
-	if <encryption>tommath in $(properties)
+	if <encryption>on in $(properties)
 	{
 		result += <source>src/mpi.c ;
+		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <encryption>off in $(properties)
-		|| <encryption>tommath in $(properties)
+	if <crypo>built-in in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
-	}
-
-	if ! <encryption>off in $(properties)
-	{
-		result += <source>src/pe_crypto.cpp ;
 	}
 
 	if ( <toolset>darwin in $(properties)
@@ -406,11 +401,12 @@ feature dht : on off logging : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
-feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
-feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
-feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
+feature encryption : on off : composite propagated link-incompatible ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+
+feature crypto : built-in openssl gcrypt : composite ;
+feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
@@ -453,7 +449,7 @@ variant test_release
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_debug : debug
-	: <encryption>openssl <logging>on <disk-stats>on
+	: <crypto>openssl <logging>on <disk-stats>on
 	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
