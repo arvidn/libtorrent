@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
@@ -330,18 +330,22 @@ sent to and received from UPnP devices.</li>
 </tr>
 <tr><td><tt class="docutils literal">encryption</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">openssl</tt> - links against openssl and
-libcrypto to enable https and encrypted
-bittorrent connections.</li>
-<li><tt class="docutils literal">gcrypt</tt> - links against libgcrypt to enable
-encrypted bittorrent connections.</li>
-<li><tt class="docutils literal">tommath</tt> - uses a shipped version of
-libtommath and a custom rc4 implementation
-(based on libtomcrypt). This is the default
-option.</li>
+<li><tt class="docutils literal">on</tt> - encrypted bittorrent connections
+enabled. (Message Stream encryption).</li>
 <li><tt class="docutils literal">off</tt> - turns off support for encrypted
 connections. The shipped public domain SHA-1
 implementation is used.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">crypto</tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal"><span class="pre">built-in</span></tt> - (default) uses built-in SHA-1
+implementation.</li>
+<li><tt class="docutils literal">openssl</tt> - links against openssl and
+libcrypto to use for SHA-1 hashing.</li>
+<li><tt class="docutils literal">gcrypt</tt> - links against libgcrypt to use for
+SHA-1 hashing.</li>
 </ul>
 </td>
 </tr>
