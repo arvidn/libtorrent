@@ -50,30 +50,24 @@ std::string to_string(int v, int width)
 
 std::string add_suffix(float val, char const* suffix)
 {
-	std::string ret;
 	if (val == 0)
 	{
+		std::string ret;
 		ret.resize(4 + 2, ' ');
 		if (suffix) ret.resize(4 + 2 + strlen(suffix), ' ');
 		return ret;
 	}
 
-	const char* prefix[] = {"kB", "MB", "GB", "TB"};
+	const char* prefix[] = {"kB", "MB", "GB", "TB", "PB"};
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
-	for (int i = 0; i < num_prefix; ++i)
+	int i = 0;
+	for (; i < num_prefix - 1; ++i)
 	{
 		val /= 1000.f;
-		if (std::fabs(val) < 1000.f)
-		{
-			ret = to_string(val, 4);
-			ret += prefix[i];
-			if (suffix) ret += suffix;
-			return ret;
-		}
+		if (std::fabs(val) < 1000.f) break;
 	}
-	ret = to_string(val, 4);
-	ret += "PB";
-	if (suffix) ret += suffix;
+	char ret[100];
+	snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
 	return ret;
 }
 
