@@ -42,6 +42,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix bug in tracker timeout logic
+	* switch UPnP post back to HTTP 1.1
 	* support conditional DHT get
 	* OpenSSL build fixes
 	* fix DHT scrape bug

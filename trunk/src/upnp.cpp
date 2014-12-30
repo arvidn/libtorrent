@@ -656,7 +656,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(d.upnp_connection);
 
 	char header[2048];
-	snprintf(header, sizeof(header), "POST %s HTTP/1.0\r\n"
+	snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
 		"Host: %s:%u\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
