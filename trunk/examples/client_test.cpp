@@ -1678,14 +1678,14 @@ int main(int argc, char* argv[])
 					for (std::set<std::string>::iterator i = seeds.begin()
 						, end(seeds.end()); i != end; ++i)
 					{
-						st.handle.remove_url_seed(*i);
+						h.remove_url_seed(*i);
 					}
 
 					seeds = h.http_seeds();
 					for (std::set<std::string>::iterator i = seeds.begin()
 						, end(seeds.end()); i != end; ++i)
 					{
-						st.handle.remove_http_seed(*i);
+						h.remove_http_seed(*i);
 					}
 				}
 
