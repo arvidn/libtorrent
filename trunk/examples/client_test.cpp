@@ -1672,6 +1672,23 @@ int main(int argc, char* argv[])
 
 				if (c == 'q') break;
 
+				if (c == 'W' && h.is_valid())
+				{
+					std::set<std::string> seeds = h.url_seeds();
+					for (std::set<std::string>::iterator i = seeds.begin()
+						, end(seeds.end()); i != end; ++i)
+					{
+						st.handle.remove_url_seed(*i);
+					}
+
+					seeds = h.http_seeds();
+					for (std::set<std::string>::iterator i = seeds.begin()
+						, end(seeds.end()); i != end; ++i)
+					{
+						st.handle.remove_http_seed(*i);
+					}
+				}
+
 				if (c == 'D' && h.is_valid())
 				{
 					torrent_status const& st = view.get_active_torrent();
@@ -1809,7 +1826,7 @@ int main(int argc, char* argv[])
 						"[v] scrape                                      [D] delete torrent and data\n"
 						"[r] force reannounce                            [R] save resume data for all torrents\n"
 						"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
-						"[k] toggle force-started\n"
+						"[k] toggle force-started                        [W] remove all web seeds\n"
 						"\n"
 						"DISPLAY OPTIONS\n"
 						"left/right arrow keys: select torrent filter\n"
