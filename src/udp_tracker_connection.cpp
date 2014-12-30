@@ -169,11 +169,11 @@ namespace libtorrent
 		get_io_service().post(boost::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
-		session_settings const& settings = m_ses.settings();
+		aux::session_settings const& settings = m_man.settings();
 		set_timeout(tracker_req().event == tracker_request::stopped
-			? settings.stop_tracker_timeout
-			: settings.tracker_completion_timeout
-			, settings.tracker_receive_timeout);
+			? settings.get_int(settings_pack::stop_tracker_timeout)
+			: settings.get_int(settings_pack::tracker_completion_timeout)
+			, settings.get_int(settings_pack::tracker_receive_timeout));
 	}
 
 	void udp_tracker_connection::name_lookup(error_code const& error
