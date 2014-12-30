@@ -205,8 +205,8 @@ namespace libtorrent
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
 	{
-		SET(tracker_completion_timeout, 60, 0),
-		SET(tracker_receive_timeout, 40, 0),
+		SET(tracker_completion_timeout, 30, 0),
+		SET(tracker_receive_timeout, 10, 0),
 		SET(stop_tracker_timeout, 5, 0),
 		SET(tracker_maximum_response_length, 1024*1024, 0),
 		SET(piece_timeout, 20, 0),
