@@ -4591,8 +4591,13 @@ namespace libtorrent
 			return;
 		}
 		peer_connection * peer = web->peer_info.connection;
-		if (peer) {
+		if (peer)
+		{
+			// if we have a connection for this web seed, we also need to
+			// disconnect it and clear its reference to the peer_info object
+			// that's part of the web_seed_entry we're about to remove
 			TORRENT_ASSERT(peer->m_in_use == 1337);
+			peer->disconnect(boost::asio::error::operation_aborted);
 			peer->set_peer_info(0);
 		}
 		if (has_picker()) picker().clear_peer(&web->peer_info);

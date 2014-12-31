@@ -1,3 +1,4 @@
+	* fix assert when removing a connected web seed
 	* fix bug in tracker timeout logic
 	* switch UPnP post back to HTTP 1.1
 	* support conditional DHT get
