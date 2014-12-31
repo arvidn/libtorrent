@@ -86,7 +86,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_connection_base(peer_connection_args const& pack
-			, web_seed_entry& web);
+			, web_seed_t& web);
 
 		virtual int timeout() const;
 		void start();

@@ -61,7 +61,7 @@ enum
 struct disk_interface;
 
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
-	, web_seed_entry& web)
+	, web_seed_t& web)
 	: web_connection_base(pack, web)
 	, m_url(web.url)
 	, m_web(&web)

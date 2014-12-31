@@ -665,15 +665,8 @@ namespace libtorrent
 		: url(url_)
 		, auth(auth_)
 		, extra_headers(extra_headers_)
-		, retry(time_now())
-		, peer_info(tcp::endpoint(), true, 0)
 		, type(type_)
-		, supports_keepalive(true)
-		, resolving(false)
-		, removed(false)
 	{
-		peer_info.web_seed = true;
-		restart_request.piece = -1;
 	}
 
 	torrent_info::torrent_info(torrent_info const& t)

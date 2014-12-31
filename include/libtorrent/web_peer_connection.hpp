@@ -75,7 +75,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		web_peer_connection(peer_connection_args const& pack
-			, web_seed_entry& web);
+			, web_seed_t& web);
 
 		virtual void on_connected();
 
@@ -114,7 +114,7 @@ namespace libtorrent
 
 		std::string m_url;
 	
-		web_seed_entry* m_web;
+		web_seed_t* m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response

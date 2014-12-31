@@ -219,9 +219,6 @@ namespace libtorrent
 		void trim();
 	};
 
-	// TODO: 3 this type should be different from the one used by torrent. It
-	// should not include internal state.
-
 	// the web_seed_entry holds information about a web seed (also known
 	// as URL seed or HTTP seed). It is essentially a URL with some state
 	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
@@ -261,42 +258,8 @@ namespace libtorrent
 		// Any extra HTTP headers that need to be passed to the web seed
 		headers_t extra_headers;
 
-		// if this is > now, we can't reconnect yet
-		ptime retry;
-
-		// if the hostname of the web seed has been resolved,
-		// these are its IP addresses
-		std::vector<tcp::endpoint> endpoints;
-
-		// this is the peer_info field used for the
-		// connection, just to count hash failures
-		// it's also used to hold the peer_connection
-		// pointer, when the web seed is connected
-		ipv4_peer peer_info;
-
 		// The type of web seed (see type_t)
 		boost::uint8_t type;
-		
-		// this is initialized to true, but if we discover the
-		// server not to support it, it's set to false, and we
-		// make larger requests.
-		bool supports_keepalive;
-
-		// this indicates whether or not we're resolving the
-		// hostname of this URL
-		bool resolving;
-
-		// if the user wanted to remove this while
-		// we were resolving it. In this case, we set
-		// the removed flag to true, to make the resolver
-		// callback remove it
-		bool removed;
-
-		// if the web server doesn't support keepalive or a block request was
-		// interrupted, the block received so far is kept here for the next
-		// connection to pick up
-		peer_request restart_request;
-		std::vector<char> restart_piece;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -304,7 +267,7 @@ namespace libtorrent
 	typedef libtorrent_exception invalid_torrent_file;
 #endif
 
-	// TODO: 2 there may be some opportunities to optimize the size if torrent_info.
+	// TODO: there may be some opportunities to optimize the size if torrent_info.
 	// specifically to turn some std::string and std::vector into pointers
 	class TORRENT_EXPORT torrent_info
 	{
