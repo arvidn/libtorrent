@@ -600,6 +600,8 @@ namespace libtorrent
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
 
+		// cancel requests to this block from any peer we're
+		// connected to on this torrent
 		void cancel_block(piece_block block);
 
 		bool want_tick() const;

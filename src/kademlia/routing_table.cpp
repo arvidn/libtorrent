@@ -881,7 +881,7 @@ void routing_table::split_bucket()
 
 	if (b.size() > bucket_size_limit)
 	{
-		// TODO: 3 move the lowest priority nodes to the replacement bucket
+		// TODO: 2 move the lowest priority nodes to the replacement bucket
 		for (bucket_t::iterator i = b.begin() + bucket_size_limit
 			, end(b.end()); i != end; ++i)
 		{

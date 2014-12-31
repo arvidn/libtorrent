@@ -230,7 +230,7 @@ namespace libtorrent
 #endif
 	}
 
-	// TODO: 3 it would be nice to have the number of threads be set dynamically
+	// TODO: 1 it would be nice to have the number of threads be set dynamically
 	void disk_io_thread::set_num_threads(int i, bool wait)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
