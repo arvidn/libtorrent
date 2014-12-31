@@ -70,6 +70,7 @@ namespace libtorrent { namespace aux
 	private:
 		std::string m_strings[settings_pack::num_string_settings];
 		int m_ints[settings_pack::num_int_settings];
+		// TODO: 2 make this a bitfield
 		bool m_bools[settings_pack::num_bool_settings];
 	};
 
