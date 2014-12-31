@@ -68,7 +68,6 @@ namespace libtorrent
 #endif
 
 	// TODO: 2 add an API to query a settings_pack as well
-	// TODO: 2 maybe convert all bool types into int-types as well
 
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,
@@ -193,6 +192,11 @@ namespace libtorrent
 			// 
 			// .. _i2p: http://www.i2p2.de
 			i2p_hostname,
+
+			// this is the fingerprint for the client. It will be used as the
+			// prefix to the peer_id. If this is 20 bytes (or longer) it will
+			// be used as the peer-id
+			peer_fingerprint,
 
 			max_string_setting_internal,
 			num_string_settings = max_string_setting_internal - string_type_base

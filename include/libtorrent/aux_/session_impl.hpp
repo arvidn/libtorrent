@@ -112,7 +112,6 @@ namespace libtorrent
 	class upnp;
 	class natpmp;
 	class lsd;
-	struct fingerprint;
 	class torrent;
 	class alert;
 	struct cache_info;
@@ -194,7 +193,7 @@ namespace libtorrent
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #endif
 
-			session_impl(fingerprint const& cl_fprint);
+			session_impl();
 			virtual ~session_impl();
 
 			void init();
@@ -636,6 +635,7 @@ namespace libtorrent
 			void update_lsd();
 			void update_dht();
 			void update_count_slow();
+			void update_peer_fingerprint();
 
 			void on_trigger_auto_manage();
 			

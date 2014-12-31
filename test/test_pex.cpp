@@ -78,16 +78,16 @@ void test_pex()
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49200");
 
-	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses3(pack);
 
 	// make the peer connecting the two worthless to transfer
 	// data, to force peer 3 to connect directly to peer 1 through pex
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50200");
-	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack);
 
 	ses1.add_extension(create_ut_pex_plugin);
 	ses2.add_extension(create_ut_pex_plugin);

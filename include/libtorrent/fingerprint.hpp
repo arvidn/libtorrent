@@ -97,7 +97,7 @@ namespace libtorrent
 		{
 			char s[100];
 			snprintf(s, 100, "-%c%c%c%c%c%c-"
-				,  name[0], name[1]
+				, name[0], name[1]
 				, version_to_char(major_version)
 				, version_to_char(minor_version)
 				, version_to_char(revision_version)
