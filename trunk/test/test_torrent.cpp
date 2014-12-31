@@ -54,7 +54,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
-	lt::session ses(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses(pack);
 
 	std::vector<boost::uint8_t> zeroes;
 	zeroes.resize(1000, 0);

@@ -175,7 +175,7 @@ void test_checking(int flags = read_only_files)
 	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
-	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack);
 
 	add_torrent_params p;
 	p.save_path = "tmp1_checking";

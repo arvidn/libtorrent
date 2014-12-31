@@ -59,10 +59,10 @@ void test_lsd()
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:48100");
 
-	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack);
 
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:49100");
-	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack);
 
 	torrent_handle tor1;
 	torrent_handle tor2;

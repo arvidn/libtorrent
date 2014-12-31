@@ -551,7 +551,7 @@ void test_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack);
 
 		error_code ec;
 
@@ -602,7 +602,7 @@ void test_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack);
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -660,7 +660,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack);
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -700,7 +700,7 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 	{
 		settings_pack pack;
 		pack.set_int(settings_pack::alert_mask, alert::all_categories);
-		lt::session ses(pack, fingerprint("  ", 0,0,0,0));
+		lt::session ses(pack);
 
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));

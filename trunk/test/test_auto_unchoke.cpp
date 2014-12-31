@@ -74,7 +74,7 @@ void test_swarm()
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack);
 
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit / 10);
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 5);
@@ -82,11 +82,11 @@ void test_swarm()
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
-	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49010");
 
-	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses3(pack);
 
 	torrent_handle tor1;
 	torrent_handle tor2;

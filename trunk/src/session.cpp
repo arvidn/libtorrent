@@ -391,7 +391,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::init(fingerprint const& id)
+	void session::init()
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -400,7 +400,7 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		m_impl.reset(new session_impl(id));
+		m_impl.reset(new session_impl());
 	}
 
 	void session::start(int flags, settings_pack const& pack)
@@ -534,10 +534,14 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_port_filter, f);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session::set_peer_id(peer_id const& id)
 	{
-		TORRENT_ASYNC_CALL1(set_peer_id, id);
+		settings_pack p;
+		p.set_str(settings_pack::peer_fingerprint, id.to_string());
+		apply_settings(p);
 	}
+#endif
 	
 	peer_id session::id() const
 	{

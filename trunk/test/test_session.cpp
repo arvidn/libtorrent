@@ -43,7 +43,7 @@ int test_main()
 {
 	settings_pack p;
 	p.set_int(settings_pack::alert_mask, ~0);
-	lt::session ses(p, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses(p);
 
 	settings_pack sett;
 	sett.set_int(settings_pack::cache_size, 100);

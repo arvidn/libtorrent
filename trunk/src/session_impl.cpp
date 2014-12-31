@@ -337,7 +337,7 @@ namespace aux {
 	}
 #endif
 
-	session_impl::session_impl(fingerprint const& cl_fprint)
+	session_impl::session_impl()
 		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
@@ -445,18 +445,6 @@ namespace aux {
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address_v4::any(), 0);
 		TORRENT_ASSERT_VAL(!ec, ec);
-
-		// ---- generate a peer id ----
-		std::string print = cl_fprint.to_string();
-		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
-
-		// the client's fingerprint
-		std::copy(
-			print.begin()
-			, print.begin() + print.length()
-			, m_peer_id.begin());
-
-		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 	}
 
 	void session_impl::start_session(settings_pack const& pack)
@@ -588,6 +576,7 @@ namespace aux {
 		update_natpmp();
 		update_lsd();
 		update_dht();
+		update_peer_fingerprint();
 
 		if (m_listen_sockets.empty())
 		{
@@ -5038,6 +5027,20 @@ retry:
 		else
 			stop_dht();
 #endif
+	}
+
+	void session_impl::update_peer_fingerprint()
+	{
+		// ---- generate a peer id ----
+		std::string print = m_settings.get_str(settings_pack::peer_fingerprint);
+		if (print.size() > 20) print.resize(20);
+
+		// the client's fingerprint
+		std::copy(print.begin(), print.begin() + print.length(), m_peer_id.begin());
+		if (print.length() < 20)
+		{
+			url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
+		}
 	}
 
 	void session_impl::update_count_slow()

@@ -673,8 +673,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
 	, boost::shared_ptr<torrent_info>* torrent2)
 {
-	assert(ses1);
-	assert(ses2);
+	TORRENT_ASSERT(ses1);
+	TORRENT_ASSERT(ses2);
 
 	if (stop_lsd)
 	{
@@ -700,22 +700,23 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 	pack.set_int(settings_pack::max_failcount, 1);
-	ses1->apply_settings(pack);
-	ses2->apply_settings(pack);
-	if (ses3) ses3->apply_settings(pack);
-
 	peer_id pid;
 	std::generate(&pid[0], &pid[0] + 20, random_byte);
-	ses1->set_peer_id(pid);
+	pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
+	ses1->apply_settings(pack);
+
 	std::generate(&pid[0], &pid[0] + 20, random_byte);
-	ses2->set_peer_id(pid);
-	assert(ses1->id() != ses2->id());
+	pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
+	ses2->apply_settings(pack);
 	if (ses3)
 	{
 		std::generate(&pid[0], &pid[0] + 20, random_byte);
-		ses3->set_peer_id(pid);
-		assert(ses3->id() != ses2->id());
+		pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
+		ses3->apply_settings(pack);
 	}
+
+	TORRENT_ASSERT(ses1->id() != ses2->id());
+	if (ses3) TORRENT_ASSERT(ses3->id() != ses2->id());
 
 	boost::shared_ptr<torrent_info> t;
 	if (torrent == 0)
@@ -792,8 +793,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	tor2 = ses2->add_torrent(param, ec);
 	TEST_CHECK(!ses2->get_torrents().empty());
 
-	assert(ses1->get_torrents().size() == 1);
-	assert(ses2->get_torrents().size() == 1);
+	TORRENT_ASSERT(ses1->get_torrents().size() == 1);
+	TORRENT_ASSERT(ses2->get_torrents().size() == 1);
 
 //	test_sleep(100);
 

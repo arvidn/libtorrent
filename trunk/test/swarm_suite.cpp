@@ -105,14 +105,14 @@ void test_swarm(int flags)
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 
-	lt::session ses1(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses1(pack);
 
 	ses1.apply_settings(pack);
 
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
-	lt::session ses2(pack, fingerprint("LT", 0, 1, 0, 0));
-	lt::session ses3(pack, fingerprint("LT", 0, 1, 0, 0));
+	lt::session ses2(pack);
+	lt::session ses3(pack);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
