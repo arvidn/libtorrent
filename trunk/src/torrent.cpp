@@ -1066,7 +1066,9 @@ namespace libtorrent
 				}
 				else
 				{
-					// TODO: 3 if any other peer has a busy request to this block, we need to cancel it too
+					// if any other peer has a busy request to this block, we need
+					// to cancel it too
+					cancel_block(block_finished);
 					if (has_picker())
 						picker().write_failed(block_finished);
 
