@@ -122,6 +122,32 @@ namespace libtorrent
 		return ret;
 	}
 
+	web_seed_t::web_seed_t(web_seed_entry const& wse)
+		: web_seed_entry(wse)
+		, retry(time_now())
+		, peer_info(tcp::endpoint(), true, 0)
+		, supports_keepalive(true)
+		, resolving(false)
+		, removed(false)
+	{
+		peer_info.web_seed = true;
+		restart_request.piece = -1;
+	}
+
+	web_seed_t::web_seed_t(std::string const& url_, web_seed_entry::type_t type_
+		, std::string const& auth_
+		, web_seed_entry::headers_t const& extra_headers_)
+		: web_seed_entry(url_, type_, auth_, extra_headers_)
+		, retry(time_now())
+		, peer_info(tcp::endpoint(), true, 0)
+		, supports_keepalive(true)
+		, resolving(false)
+		, removed(false)
+	{
+		peer_info.web_seed = true;
+		restart_request.piece = -1;
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	// defined in ut_pex.cpp
 	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
@@ -277,7 +303,7 @@ namespace libtorrent
 		for (std::vector<std::string>::const_iterator i = p.url_seeds.begin()
 			, end(p.url_seeds.end()); i != end; ++i)
 		{
-			m_web_seeds.push_back(web_seed_entry(*i, web_seed_entry::url_seed));
+			m_web_seeds.push_back(web_seed_t(*i, web_seed_entry::url_seed));
 		}
 
 		m_trackers = m_torrent_file->trackers();
@@ -5847,7 +5873,7 @@ namespace libtorrent
 		update_want_tick();
 	}
 
-	void torrent::remove_web_seed(std::list<web_seed_entry>::iterator web)
+	void torrent::remove_web_seed(std::list<web_seed_t>::iterator web)
 	{
 		if (web->resolving)
 		{
@@ -5859,7 +5885,7 @@ namespace libtorrent
 		{
 			// if we have a connection for this web seed, we also need to
 			// disconnect it and clear its reference to the peer_info object
-			// that's part of the web_seed_entry we're about to remove
+			// that's part of the web_seed_t we're about to remove
 			TORRENT_ASSERT(peer->m_in_use == 1337);
 			peer->disconnect(boost::asio::error::operation_aborted
 				, peer_connection_interface::op_bittorrent);
@@ -5871,7 +5897,7 @@ namespace libtorrent
 		update_want_tick();
 	}
 
-	void torrent::connect_to_url_seed(std::list<web_seed_entry>::iterator web)
+	void torrent::connect_to_url_seed(std::list<web_seed_t>::iterator web)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -6024,7 +6050,7 @@ namespace libtorrent
 
 	void torrent::on_proxy_name_lookup(error_code const& e
 		, std::vector<address> const& addrs
-		, std::list<web_seed_entry>::iterator web, int port)
+		, std::list<web_seed_t>::iterator web, int port)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -6108,7 +6134,7 @@ namespace libtorrent
 	void torrent::on_name_lookup(error_code const& e
 		, std::vector<address> const& addrs
 		, int port
-		, std::list<web_seed_entry>::iterator web
+		, std::list<web_seed_t>::iterator web
 		, tcp::endpoint proxy)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -6163,7 +6189,7 @@ namespace libtorrent
 		connect_web_seed(web, web->endpoints.front());
 	}
 
-	void torrent::connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a)
+	void torrent::connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a)
 	{
 		INVARIANT_CHECK;
 
@@ -6856,7 +6882,7 @@ namespace libtorrent
 		{
 			entry::list_type& url_list = ret["url-list"].list();
 			entry::list_type& httpseed_list = ret["httpseeds"].list();
-			for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
+			for (std::list<web_seed_t>::const_iterator i = m_web_seeds.begin()
 				, end(m_web_seeds.end()); i != end; ++i)
 			{
 				if (i->type == web_seed_entry::url_seed)
@@ -9188,7 +9214,7 @@ namespace libtorrent
 	// finding the file(s) in this torrent.
 	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type)
 	{
-		web_seed_entry ent(url, type);
+		web_seed_t ent(url, type);
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
@@ -9198,7 +9224,7 @@ namespace libtorrent
 	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type
 		, std::string const& auth, web_seed_entry::headers_t const& extra_headers)
 	{
-		web_seed_entry ent(url, type, auth, extra_headers);
+		web_seed_t ent(url, type, auth, extra_headers);
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
@@ -9712,10 +9738,10 @@ namespace libtorrent
 		{
 			// keep trying web-seeds if there are any
 			// first find out which web seeds we are connected to
-			for (std::list<web_seed_entry>::iterator i = m_web_seeds.begin();
+			for (std::list<web_seed_t>::iterator i = m_web_seeds.begin();
 				i != m_web_seeds.end();)
 			{
-				std::list<web_seed_entry>::iterator w = i++;
+				std::list<web_seed_t>::iterator w = i++;
 				if (w->peer_info.connection) continue;
 				if (w->retry > time_now()) continue;
 				if (w->resolving) continue;
@@ -10528,7 +10554,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::set<std::string> ret;
-		for (std::list<web_seed_entry>::const_iterator i = m_web_seeds.begin()
+		for (std::list<web_seed_t>::const_iterator i = m_web_seeds.begin()
 			, end(m_web_seeds.end()); i != end; ++i)
 		{
 			if (i->peer_info.banned) continue;
@@ -10540,18 +10566,19 @@ namespace libtorrent
 
 	void torrent::remove_web_seed(std::string const& url, web_seed_entry::type_t type)
 	{
-		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&web_seed_entry::url, _1)
-				== url && boost::bind(&web_seed_entry::type, _1) == type));
+		std::list<web_seed_t>::iterator i = std::find_if(m_web_seeds.begin()
+			, m_web_seeds.end()
+			, (boost::bind(&web_seed_t::url, _1)
+				== url && boost::bind(&web_seed_t::type, _1) == type));
 		if (i != m_web_seeds.end()) remove_web_seed(i);
 	}
 
 	void torrent::disconnect_web_seed(peer_connection* p)
 	{
-		std::list<web_seed_entry>::iterator i
+		std::list<web_seed_t>::iterator i
 			= std::find_if(m_web_seeds.begin(), m_web_seeds.end()
 			, (boost::bind(&torrent_peer::connection
-				, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+				, boost::bind(&web_seed_t::peer_info, _1)) == p));
 
 		// this happens if the web server responded with a redirect
 		// or with something incorrect, so that we removed the web seed
@@ -10570,8 +10597,10 @@ namespace libtorrent
 	void torrent::remove_web_seed(peer_connection* p, error_code const& ec
 		, peer_connection_interface::operation_t op, int error)
 	{
-		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&torrent_peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+		std::list<web_seed_t>::iterator i = std::find_if(m_web_seeds.begin()
+			, m_web_seeds.end()
+			, boost::bind(&torrent_peer::connection
+				, boost::bind(&web_seed_t::peer_info, _1)) == p);
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
 		if (i->peer_info.connection) i->peer_info.connection->disconnect(ec, op, error);
@@ -10584,8 +10613,10 @@ namespace libtorrent
 	void torrent::retry_web_seed(peer_connection* p, int retry)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		std::list<web_seed_entry>::iterator i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, (boost::bind(&torrent_peer::connection, boost::bind(&web_seed_entry::peer_info, _1)) == p));
+		std::list<web_seed_t>::iterator i = std::find_if(m_web_seeds.begin()
+			, m_web_seeds.end()
+			, boost::bind(&torrent_peer::connection
+				, boost::bind(&web_seed_t::peer_info, _1)) == p);
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;

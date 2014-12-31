@@ -82,7 +82,7 @@ namespace libtorrent
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
 		http_seed_connection(peer_connection_args const& pack
-			, web_seed_entry& web);
+			, web_seed_t& web);
 
 		virtual int type() const { return peer_connection::http_seed_connection; }
 
@@ -111,7 +111,7 @@ namespace libtorrent
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;
 
-		web_seed_entry* m_web;
+		web_seed_t* m_web;
 
 		// the number of bytes left to receive of the response we're
 		// currently parsing
