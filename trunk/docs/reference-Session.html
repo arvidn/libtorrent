@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>Session</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <link rel="stylesheet" type="text/css" href="rst.css" />
@@ -47,15 +47,15 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id175">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id176">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id177">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id179">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id175">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id176">session_proxy</a></li>
+<li><a class="reference internal" href="#id38" id="id177">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id178">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id179">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id180">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id181">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -520,8 +520,6 @@ class session: public boost::noncopyable
       , int flags = start_default_features | add_default_plugins
       , int alert_mask = alert::error_notification);
    <strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
-      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
       , int flags = start_default_features | add_default_plugins);
    <strong>~session</strong> ();
    void <strong>load_state</strong> (lazy_entry const&amp; e);
@@ -567,7 +565,6 @@ class session: public boost::noncopyable
    void <strong>set_ip_filter</strong> (ip_filter const&amp; f);
    void <strong>set_port_filter</strong> (port_filter const&amp; f);
    peer_id <strong>id</strong> () const;
-   void <strong>set_peer_id</strong> (peer_id const&amp; pid);
    void <strong>set_key</strong> (int key);
    bool <strong>is_listening</strong> () const;
    unsigned short <strong>listen_port</strong> () const;
@@ -615,27 +612,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id45">
-<h2>session()</h2>
-<pre class="literal-block">
-<strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
-      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins
-      , boost::uint32_t alert_mask = alert::error_notification);
-<strong>session</strong> (fingerprint const&amp; print
-      , std::pair&lt;int, int&gt; listen_port_range
-      , char const* listen_interface = &quot;0.0.0.0&quot;
-      , int flags = start_default_features | add_default_plugins
-      , int alert_mask = alert::error_notification);
-<strong>session</strong> (settings_pack const&amp; pack
-      , fingerprint const&amp; print = fingerprint(&quot;LT&quot;
-      , LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-      , int flags = start_default_features | add_default_plugins);
-</pre>
-<p>TODO: 3 could the fingerprint be a setting as well? And should the
-<a class="reference external" href="reference-Settings.html#settings_pack">settings_pack</a> be optional?</p>
-<a name="~session()"></a></div>
-<div class="section" id="id47">
+<a name="~session()"></a><div class="section" id="id45">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -916,7 +893,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id104">
+<div class="section" id="id102">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -938,7 +915,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id106">
+<div class="section" id="id104">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1057,16 +1034,14 @@ void <strong>set_port_filter</strong> (port_filter const&amp; f);
 will reject making outgoing peer connections to certain remote ports.
 The main intention is to be able to avoid triggering certain
 anti-virus software by connecting to SMTP, FTP ports.</p>
-<a name="set_peer_id()"></a>
 <a name="id()"></a></div>
-<div class="section" id="set-peer-id-id">
-<h2>set_peer_id() id()</h2>
+<div class="section" id="id">
+<h2>id()</h2>
 <pre class="literal-block">
 peer_id <strong>id</strong> () const;
-void <strong>set_peer_id</strong> (peer_id const&amp; pid);
 </pre>
-<p>sets and gets the raw peer ID used by libtorrent. When anonymous
-mode is set the peer ID is randomized per peer anyway.</p>
+<p>returns the raw peer ID used by libtorrent. When anonymous mode is set
+the peer ID is randomized per peer.</p>
 <a name="set_key()"></a></div>
 <div class="section" id="set-key">
 <h2>set_key()</h2>

@@ -189,7 +189,8 @@ namespace libtorrent
 			
 			// when using a proxy, these are the credentials (if any) to use whne
 			// connecting to it. see proxy_type
-			proxy_username, proxy_password,
+			proxy_username,
+			proxy_password,
 
 			// sets the i2p_ SAM bridge to connect to. set the port with the
 			// ``i2p_port`` setting.
