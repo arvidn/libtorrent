@@ -421,7 +421,7 @@ feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
 feature boost : system source : link-incompatible propagated ;
-feature boost-link : static shared : composite ;
+feature boost-link : static shared : propagated composite ;
 
 feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;

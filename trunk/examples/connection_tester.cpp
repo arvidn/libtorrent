@@ -384,8 +384,19 @@ struct peer_conn
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
 		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
 		error_code e;
+
+		char ep_str[200];
+		address const& addr = s.local_endpoint(e).address();
+#if TORRENT_USE_IPV6
+		if (addr.is_v6())
+			snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+				, s.local_endpoint(e).port());
+		else
+#endif
+			snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+				, s.local_endpoint(e).port());
 		printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
-			, tmp, libtorrent::print_endpoint(s.local_endpoint(e)).c_str(), blocks_sent, blocks_received, time, up, down);
+			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
 		if (seed) --num_seeds;
 	}
 

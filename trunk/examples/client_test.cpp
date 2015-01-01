@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -594,6 +593,35 @@ std::string peer;
 
 using boost::bind;
 
+std::string path_to_url(std::string f)
+{
+	std::string ret = "file://"
+#ifdef TORRENT_WINDOWS
+		"/"
+#endif
+		;
+	static char const hex_chars[] = "0123456789abcdef";
+	static const char unreserved[] =
+		"/-_!.~*()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		"0123456789";
+
+	for (int i = 0; i < f.size(); ++i)
+	{
+#ifdef TORRENT_WINDOWS
+		if (f[i] == '\\') ret.push_back('/');
+		else
+#endif
+		if (std::strchr(unreserved, f[i]) != NULL) ret.push_back(f[i]);
+		else
+		{
+			ret.push_back('%');
+			ret.push_back(hex_chars[f[i] >> 4]);
+			ret.push_back(hex_chars[f[i] & 0xf]);
+		}
+	}
+	return f;
+}
+
 // monitored_dir is true if this torrent is added because
 // it was found in the directory that is monitored. If it
 // is, it should be remembered so that it can be removed
@@ -625,12 +653,7 @@ void add_torrent(libtorrent::session& ses
 	error_code ec;
 	load_file(filename.c_str(), p.resume_data, ec);
 
-#ifdef TORRENT_WINDOWS
-	convert_path_to_posix(torrent);
-	p.url = "file:///" + escape_path(torrent.c_str(), torrent.size());
-#else
-	p.url = "file://" + escape_path(torrent.c_str(), torrent.size());
-#endif
+	p.url = path_to_url(torrent);
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags |= add_torrent_params::flag_paused;
@@ -926,7 +949,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 		if (p->error)
 		{
-			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str(), p->error.message().c_str());
+			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str()
+				, p->error.message().c_str());
 		}
 		else
 		{
@@ -1466,7 +1490,10 @@ int main(int argc, char* argv[])
 			, errno, strerror(errno));
 
 	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
-	settings.set_str(settings_pack::listen_interfaces, bind_to_interface + ":" + to_string(listen_port).elems);
+	char iface_str[100];
+	snprintf(iface_str, sizeof(iface_str), "%s:%d", bind_to_interface.c_str()
+		, listen_port);
+	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
