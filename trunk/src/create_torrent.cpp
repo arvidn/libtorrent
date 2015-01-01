@@ -55,6 +55,11 @@ namespace libtorrent
 
 	namespace detail
 	{
+		inline bool default_pred(std::string const&) { return true; }
+
+		inline bool ignore_subdir(std::string const& leaf)
+		{ return leaf == ".." || leaf == "."; }
+
 		int get_file_attributes(std::string const& p)
 		{
 #ifdef TORRENT_WINDOWS
@@ -152,6 +157,49 @@ namespace libtorrent
 			}
 		}
 	} // detail namespace
+
+#if TORRENT_USE_WSTRING
+#ifndef TORRENT_NO_DEPRECATE
+
+	void add_files(file_storage& fs, std::wstring const& wfile
+		, boost::function<bool(std::string)> p, boost::uint32_t flags)
+	{
+		std::string utf8;
+		wchar_utf8(wfile, utf8);
+		detail::add_files_impl(fs, parent_path(complete(utf8))
+			, filename(utf8), p, flags);
+	}
+
+	void add_files(file_storage& fs
+		, std::wstring const& wfile, boost::uint32_t flags)
+	{
+		std::string utf8;
+		wchar_utf8(wfile, utf8);
+		detail::add_files_impl(fs, parent_path(complete(utf8))
+			, filename(utf8), detail::default_pred, flags);
+	}
+	
+	void set_piece_hashes(create_torrent& t, std::wstring const& p
+		, boost::function<void(int)> f, error_code& ec)
+	{
+		std::string utf8;
+		wchar_utf8(p, utf8);
+		set_piece_hashes(t, utf8, f, ec);
+	}
+#endif
+#endif
+
+	void add_files(file_storage& fs, std::string const& file
+		, boost::function<bool(std::string)> p, boost::uint32_t flags)
+	{
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
+	}
+
+	void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags)
+	{
+		detail::add_files_impl(fs, parent_path(complete(file)), filename(file)
+			, detail::default_pred, flags);
+	}
 
 	void on_hash(disk_io_job const* j, create_torrent* t
 		, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread

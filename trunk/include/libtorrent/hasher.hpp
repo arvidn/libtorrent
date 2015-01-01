@@ -54,22 +54,7 @@ extern "C"
 }
 
 #else
-// from sha1.cpp
-namespace libtorrent
-{
-
-	struct TORRENT_EXTRA_EXPORT sha_ctx
-	{
-		boost::uint32_t state[5];
-		boost::uint32_t count[2];
-		boost::uint8_t buffer[64];
-	};
-
-	TORRENT_EXTRA_EXPORT void SHA1_init(sha_ctx* context);
-	TORRENT_EXTRA_EXPORT void SHA1_update(sha_ctx* context, boost::uint8_t const* data, boost::uint32_t len);
-	TORRENT_EXTRA_EXPORT void SHA1_final(boost::uint8_t* digest, sha_ctx* context);
-} // namespace libtorrent
-
+#include "libtorrent/sha1.hpp"
 #endif
 
 namespace libtorrent

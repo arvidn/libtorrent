@@ -559,7 +559,7 @@ namespace libtorrent
 
 		void file_progress(std::vector<boost::int64_t>& fp, int flags = 0);
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
 #endif
 		

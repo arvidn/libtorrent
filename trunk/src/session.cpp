@@ -83,9 +83,6 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-
-	TORRENT_EXPORT void TORRENT_LINK_TEST_NAME() {}
-
 	TORRENT_EXPORT void min_memory_usage(settings_pack& set)
 	{
 		// receive data directly into disk buffers

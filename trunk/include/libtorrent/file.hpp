@@ -150,16 +150,16 @@ namespace libtorrent
 
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string parent_path(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT char const* filename_cstr(char const* f);
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string filename(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string complete(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS

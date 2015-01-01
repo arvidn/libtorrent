@@ -106,6 +106,7 @@ nobase_include_HEADERS = \
   session_settings.hpp         \
   session_status.hpp           \
   settings_pack.hpp            \
+  sha1.hpp                     \
   sha1_hash.hpp                \
   size_type.hpp                \
   sliding_average.hpp          \

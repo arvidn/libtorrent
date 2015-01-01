@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/sha1.hpp"
 
 namespace libtorrent
 {
