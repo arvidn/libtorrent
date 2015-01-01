@@ -34,13 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CRC32C_HPP_INCLUDE
 
 #include <boost/cstdint.hpp>
+#include "libtorrent/export.hpp"
 
 namespace libtorrent
 {
 
 	// this is the crc32c (Castagnoli) polynomial
-	boost::uint32_t crc32c_32(boost::uint32_t v);
-	boost::uint32_t crc32c(boost::uint64_t const* v, int num_words);
+	TORRENT_EXTRA_EXPORT boost::uint32_t crc32c_32(boost::uint32_t v);
+	TORRENT_EXTRA_EXPORT boost::uint32_t crc32c(boost::uint64_t const* v
+		, int num_words);
 }
 
 #endif

@@ -2679,7 +2679,7 @@ namespace libtorrent
 		m_num_checked_pieces = 0;
 	}
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent::use_interface(std::string net_interfaces)
 	{
 		settings_pack* p = new settings_pack;

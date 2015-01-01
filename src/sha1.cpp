@@ -13,32 +13,13 @@ changelog at the end of the file.
 #include <cstdio>
 #include <cstring>
 
-// if you don't want boost
-// replace with
-// #include <stdint.h>
-// typedef uint32_t u32;
-// typedef uint8_t u8;
+#include "libtorrent/sha1.hpp"
 
-#include <boost/cstdint.hpp>
 typedef boost::uint32_t u32;
 typedef boost::uint8_t u8;
 
-#include "libtorrent/config.hpp"
-
 namespace libtorrent
 {
-
-struct TORRENT_EXPORT sha_ctx
-{
-	u32 state[5];
-	u32 count[2];
-	u8 buffer[64];
-};
-
-// we don't want these to clash with openssl's libcrypto
-TORRENT_EXPORT void SHA1_init(sha_ctx* context);
-TORRENT_EXPORT void SHA1_update(sha_ctx* context, u8 const* data, u32 len);
-TORRENT_EXPORT void SHA1_final(u8* digest, sha_ctx* context);
 
 namespace
 {

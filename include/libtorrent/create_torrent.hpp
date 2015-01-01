@@ -354,20 +354,7 @@ namespace libtorrent
 
 	namespace detail
 	{
-		inline bool default_pred(std::string const&) { return true; }
-
-		inline bool ignore_subdir(std::string const& leaf)
-		{ return leaf == ".." || leaf == "."; }
-
 		inline void nop(int) {}
-
-		int get_file_attributes(std::string const& p);
-		std::string get_symlink_path(std::string const& p);
-
-		// internal
-		TORRENT_EXPORT void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, boost::function<bool(std::string)> pred
-			, boost::uint32_t flags);
 	}
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
@@ -387,15 +374,10 @@ namespace libtorrent
 	// 
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
-	template <class Pred> void add_files(file_storage& fs, std::string const& file, Pred p, boost::uint32_t flags = 0)
-	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
-	}
-	inline void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags = 0)
-	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file)
-			, detail::default_pred, flags);
-	}
+	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
+		, boost::function<bool(std::string)> p, boost::uint32_t flags = 0);
+	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
+		, boost::uint32_t flags = 0);
 	
 	// This function will assume that the files added to the torrent file exists at path
 	// ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
@@ -436,32 +418,17 @@ namespace libtorrent
 	// and pass in utf8 strings
 #ifndef TORRENT_NO_DEPRECATE
 
-	template <class Pred>
 	TORRENT_DEPRECATED_PREFIX
-	void TORRENT_DEPRECATED add_files(file_storage& fs, std::wstring const& wfile, Pred p, boost::uint32_t flags = 0)
-	{
-		std::string utf8;
-		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8))
-			, filename(utf8), p, flags);
-	}
+	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
+		, boost::function<bool(std::string)> p, boost::uint32_t flags = 0) TORRENT_DEPRECATED;
 
 	TORRENT_DEPRECATED_PREFIX
-	inline void TORRENT_DEPRECATED add_files(file_storage& fs, std::wstring const& wfile, boost::uint32_t flags = 0)
-	{
-		std::string utf8;
-		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8))
-			, filename(utf8), detail::default_pred, flags);
-	}
+	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
+		, boost::uint32_t flags = 0) TORRENT_DEPRECATED;
 	
-	inline void set_piece_hashes(create_torrent& t, std::wstring const& p, boost::function<void(int)> f
-		, error_code& ec)
-	{
-		std::string utf8;
-		wchar_utf8(p, utf8);
-		set_piece_hashes(t, utf8, f, ec);
-	}
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
+		, boost::function<void(int)> f, error_code& ec) TORRENT_DEPRECATED;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
