@@ -796,15 +796,18 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l)
+	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags
+		, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		if (flags & flush_delete_cache)
 		{
 			// delete dirty blocks and post handlers with
 			// operation_aborted error code
-			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->jobs, completed_jobs);
-			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted), pe->read_jobs, completed_jobs);
+			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
+				, pe->jobs, completed_jobs);
+			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
+				, pe->read_jobs, completed_jobs);
 			m_disk_cache.abort_dirty(pe);
 		}
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
@@ -838,6 +841,7 @@ namespace libtorrent
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
 				, end(pieces.end()); i != end; ++i)
 			{
+				if ((*i)->get_storage() != storage) continue;
 				piece_index.push_back((*i)->piece);
 			}
 
@@ -873,11 +877,18 @@ namespace libtorrent
 			std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
 			while (range.first != range.second)
 			{
-				// TODO: 2 we're not flushing the read cache at all?
-				while (range.first->num_dirty == 0)
+				// TODO: it would be nice to optimize this by having the cache
+				// pieces also ordered by
+				if ((flags & (flush_read_cache | flush_delete_cache)) == 0)
 				{
-					++range.first;
-					if (range.first == range.second) return;
+					// if we're not flushing the read cache, and not deleting the
+					// cache, skip pieces with no dirty blocks, i.e. read cache
+					// pieces
+					while (range.first->num_dirty == 0)
+					{
+						++range.first;
+						if (range.first == range.second) return;
+					}
 				}
 				cached_piece_entry* pe = const_cast<cached_piece_entry*>(&*range.first);
 				flush_piece(pe, flags, completed_jobs, l);
