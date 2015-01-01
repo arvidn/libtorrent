@@ -44,6 +44,8 @@ namespace libtorrent { namespace dht
 #endif
 
 	dos_blocker::dos_blocker()
+		: m_message_rate_limit(5)
+		, m_block_timeout(5 * 60)
 	{
 		for (int i = 0; i < num_ban_nodes; ++i)
 		{
@@ -72,28 +74,27 @@ namespace libtorrent { namespace dht
 		{
 			++match->count;
 
-			// TODO: 2 make these limits configurable
-			if (match->count >= 50)
+			if (match->count >= m_message_rate_limit * 10)
 			{
 				if (now < match->limit)
 				{
-					if (match->count == 50)
+					if (match->count == m_message_rate_limit * 10)
 					{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
 							<< addr << " time: " << total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
 							<< " count: " << match->count << " ]";
 #endif
-						// we've received 50 messages in less than 10 seconds from
-						// this node. Ignore it until it's silent for 5 minutes
-						match->limit = now + minutes(5);
+						// we've received too many messages in less than 10 seconds
+						// from this node. Ignore it until it's silent for 5 minutes
+						match->limit = now + seconds(m_block_timeout);
 					}
 		
 					return false;
 				}
 
-				// we got 50 messages from this peer, but it was in
-				// more than 10 seconds. Reset the counter and the timer
+				// the messages we received from this peer took more than 10
+				// seconds. Reset the counter and the timer
 				match->count = 0;
 				match->limit = now + seconds(10);
 			}
@@ -106,6 +107,5 @@ namespace libtorrent { namespace dht
 		}
 		return true;
 	}
-}
-}
+}}
 

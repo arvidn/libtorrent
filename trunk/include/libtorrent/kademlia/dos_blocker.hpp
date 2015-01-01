@@ -36,12 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace dht
 {
 
-// this is a class that maintains a list of abusive DHT nodes,
-// blocking their access to our DHT node.
+	// this is a class that maintains a list of abusive DHT nodes,
+	// blocking their access to our DHT node.
 	struct TORRENT_EXTRA_EXPORT dos_blocker
 	{
 		dos_blocker();
@@ -50,6 +51,18 @@ namespace libtorrent { namespace dht
 		// true if we should let the packet through, and false if
 		// it's blocked
 		bool incoming(address addr, ptime now);
+
+		void set_rate_limit(int l)
+		{
+			TORRENT_ASSERT(l > 0);
+			m_message_rate_limit = l;
+		}
+
+		void set_block_timer(int t)
+		{
+			TORRENT_ASSERT(t > 0);
+			m_block_timeout = t;
+		}
 
 	private:
 	
@@ -64,12 +77,17 @@ namespace libtorrent { namespace dht
 
 		enum { num_ban_nodes = 20 };
 
+		// the max number of packets we can receive per second from a node before
+		// we block it.
+		int m_message_rate_limit;
+
+		// the number of seconds a node gets blocked for when it exceeds the rate
+		// limit
+		int m_block_timeout;
+
 		node_ban_entry m_ban_nodes[num_ban_nodes];
-
 	};
-
-}
-}
+}}
 
 #endif
 
