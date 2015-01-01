@@ -604,8 +604,7 @@ namespace libtorrent
 		// ``creator()`` returns the creator string in the torrent. If there is
 		// no creator string it will return an empty string.
 		// 
-		// .. _`posix time`:
-		// http://www.opengroup.org/onlinepubs/009695399/functions/time.html
+		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 		const std::string& name() const { return m_files.name(); }
 		boost::optional<time_t> creation_date() const;
 		const std::string& creator() const
