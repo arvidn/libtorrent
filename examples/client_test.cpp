@@ -605,6 +605,18 @@ std::string path_to_url(std::string f)
 		"/-_!.~*()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
 
+	// make sure the path is an absolute path
+#ifdef TORRENT_WINDOWS
+	if (f[1] != ':')
+#else
+	if (f[0] != '/')
+#endif
+	{
+		char cwd[TORRENT_MAX_PATH];
+		getcwd(cwd, sizeof(cwd));
+		f = path_append(cwd, f);
+	}
+
 	for (int i = 0; i < f.size(); ++i)
 	{
 #ifdef TORRENT_WINDOWS
@@ -619,7 +631,7 @@ std::string path_to_url(std::string f)
 			ret.push_back(hex_chars[f[i] & 0xf]);
 		}
 	}
-	return f;
+	return ret;
 }
 
 // monitored_dir is true if this torrent is added because
