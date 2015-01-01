@@ -1148,7 +1148,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 		if (p->error)
 		{
-			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str(), p->error.message().c_str());
+			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str()
+				, p->error.message().c_str());
 		}
 		else
 		{
