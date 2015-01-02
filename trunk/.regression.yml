@@ -16,7 +16,7 @@ build_features:
  - ipv6=off
  - deprecated-functions=off 
  - exception-handling=off
- - logging=verbose
+ - logging=on
  - asserts=off
  - asserts=production debug
  - asserts=on release
