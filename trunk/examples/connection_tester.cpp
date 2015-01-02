@@ -102,6 +102,38 @@ boost::detail::atomic_count num_suggest(0);
 // the number of requests made from suggested pieces
 boost::detail::atomic_count num_suggested_requests(0);
 
+std::string leaf_path(std::string f)
+{
+	if (f.empty()) return "";
+	char const* first = f.c_str();
+	char const* sep = strrchr(first, '/');
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	char const* altsep = strrchr(first, '\\');
+	if (sep == 0 || altsep > sep) sep = altsep;
+#endif
+	if (sep == 0) return f;
+
+	if (sep - first == int(f.size()) - 1)
+	{
+		// if the last character is a / (or \)
+		// ignore it
+		int len = 0;
+		while (sep > first)
+		{
+			--sep;
+			if (*sep == '/'
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+				|| *sep == '\\'
+#endif
+				)
+				return std::string(sep + 1, len);
+			++len;
+		}
+		return std::string(first, len);
+	}
+	return std::string(sep + 1);
+}
+
 struct peer_conn
 {
 	peer_conn(io_service& ios, int num_pieces, int blocks_pp, tcp::endpoint const& ep
@@ -879,7 +911,7 @@ int main(int argc, char* argv[])
 	if (strcmp(command, "gen-torrent") == 0)
 	{
 		std::vector<char> tmp;
-		std::string name = filename(torrent_file);
+		std::string name = leaf_path(torrent_file);
 		name = name.substr(0, name.find_last_of('.'));
 		printf("generating torrent: %s\n", name.c_str());
 		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1

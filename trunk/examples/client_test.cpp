@@ -267,6 +267,38 @@ bool is_absolute_path(std::string const& f)
 #endif
 }
 
+std::string leaf_path(std::string f)
+{
+	if (f.empty()) return "";
+	char const* first = f.c_str();
+	char const* sep = strrchr(first, '/');
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	char const* altsep = strrchr(first, '\\');
+	if (sep == 0 || altsep > sep) sep = altsep;
+#endif
+	if (sep == 0) return f;
+
+	if (sep - first == int(f.size()) - 1)
+	{
+		// if the last character is a / (or \)
+		// ignore it
+		int len = 0;
+		while (sep > first)
+		{
+			--sep;
+			if (*sep == '/'
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+				|| *sep == '\\'
+#endif
+				)
+				return std::string(sep + 1, len);
+			++len;
+		}
+		return std::string(first, len);
+	}
+	return std::string(sep + 1);
+}
+
 std::string path_append(std::string const& lhs, std::string const& rhs)
 {
 	if (lhs.empty() || lhs == ".") return rhs;
@@ -606,11 +638,7 @@ std::string path_to_url(std::string f)
 		"0123456789";
 
 	// make sure the path is an absolute path
-#ifdef TORRENT_WINDOWS
-	if (f[1] != ':')
-#else
-	if (f[0] != '/')
-#endif
+	if (!is_absolute_path(f))
 	{
 		char cwd[TORRENT_MAX_PATH];
 		getcwd(cwd, sizeof(cwd));
@@ -660,7 +688,7 @@ void add_torrent(libtorrent::session& ses
 	lazy_entry resume_data;
 
 	std::string filename = path_append(save_path, path_append(".resume"
-		, libtorrent::filename(torrent) + ".resume"));
+		, leaf_path(torrent) + ".resume"));
 
 	error_code ec;
 	load_file(filename.c_str(), p.resume_data, ec);
@@ -1033,7 +1061,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
 			torrent_status st = h.status(torrent_handle::query_save_path);
-			save_file(path_append(st.save_path, path_append(".resume", libtorrent::filename(
+			save_file(path_append(st.save_path, path_append(".resume", leaf_path(
 				hash_to_filename[st.info_hash]) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
@@ -2252,7 +2280,7 @@ int main(int argc, char* argv[])
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
 			save_file(path_append(st.save_path, path_append(".resume"
-				, libtorrent::filename(hash_to_filename[st.info_hash]) + ".resume")), out);
+				, leaf_path(hash_to_filename[st.info_hash]) + ".resume")), out);
 		}
 	}
 
