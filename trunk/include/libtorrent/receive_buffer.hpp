@@ -40,11 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-inline int round_up8(int v)
-{
-	return ((v & 7) == 0) ? v : v + (8 - (v & 7));
-}
-
 struct receive_buffer
 {
 	friend struct crypto_receive_buffer;
