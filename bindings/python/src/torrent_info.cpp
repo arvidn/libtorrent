@@ -57,14 +57,6 @@ namespace
             d["type"] = i->type;
             d["auth"] = i->auth;
             d["extra_headers"] = i->extra_headers;
-            d["retry"] = total_seconds(i->retry - min_time());
-            d["resolving"] = i->resolving;
-            d["removed"] = i->removed;
-				list endpoints;
-				for (std::vector<tcp::endpoint>::const_iterator k = i->endpoints.begin()
-					, end(i->endpoints.end()); k != end; ++k)
-					endpoints.append(make_tuple(print_address(k->address()), k->port()));
-            d["endpoints"] = endpoints;
             ret.append(d);
         }
 
@@ -142,7 +134,7 @@ namespace
         return result;
     }
 
-    list map_block(torrent_info& ti, int piece, size_type offset, int size)
+    list map_block(torrent_info& ti, int piece, boost::int64_t offset, int size)
     {
        std::vector<file_slice> p = ti.map_block(piece, offset, size);
        list result;
@@ -166,9 +158,9 @@ namespace
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
 
 
-    size_type get_size(file_entry const& fe) { return fe.size; }
-    size_type get_offset(file_entry const& fe) { return fe.offset; }
-    size_type get_file_base(file_entry const& fe) { return fe.file_base; }
+    boost::int64_t get_size(file_entry const& fe) { return fe.size; }
+    boost::int64_t get_offset(file_entry const& fe) { return fe.offset; }
+    boost::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
     void set_file_base(file_entry& fe, int b) { fe.file_base = b; }
     bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
     bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
