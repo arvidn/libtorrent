@@ -76,9 +76,9 @@ namespace
 
 void bind_create_torrent()
 {
-    void (file_storage::*add_file0)(std::string const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
+    void (file_storage::*add_file0)(std::string const&, boost::int64_t, int, std::time_t, std::string const&) = &file_storage::add_file;
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
-    void (file_storage::*add_file1)(std::wstring const&, size_type, int, std::time_t, std::string const&) = &file_storage::add_file;
+    void (file_storage::*add_file1)(std::wstring const&, boost::int64_t, int, std::time_t, std::string const&) = &file_storage::add_file;
 #endif
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
@@ -155,7 +155,9 @@ void bind_create_torrent()
         .value("merkle", create_torrent::merkle)
         .value("modification_time", create_torrent::modification_time)
         .value("symlinks", create_torrent::symlinks)
+#if !defined TORRENT_NO_DEPRECATE
         .value("calculate_file_hashes", create_torrent::calculate_file_hashes)
+#endif
     ;
 
     def("add_files", add_files0, (arg("fs"), arg("path"), arg("flags") = 0));

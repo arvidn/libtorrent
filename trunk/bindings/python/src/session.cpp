@@ -612,12 +612,10 @@ void bind_session()
         .def_readonly("reads", &cache_status::reads)
         .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
-#endif
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("average_read_time", &cache_status::average_read_time)
         .def_readonly("average_write_time", &cache_status::average_write_time)
         .def_readonly("average_hash_time", &cache_status::average_hash_time)
@@ -627,7 +625,6 @@ void bind_session()
         .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
         .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
         .def_readonly("total_read_back", &cache_status::total_read_back)
-#endif
         .def_readonly("read_queue_size", &cache_status::read_queue_size)
         .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
         .def_readonly("queued_jobs", &cache_status::queued_jobs)
@@ -640,13 +637,13 @@ void bind_session()
         .def_readonly("arc_mru_ghost_size", &cache_status::arc_mru_ghost_size)
         .def_readonly("arc_mfu_size", &cache_status::arc_mfu_size)
         .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
+#endif
     ;
 
     class_<lt::session, boost::noncopyable>("session", no_init)
         .def(
-            init<settings_pack const&, fingerprint, int>((
+            init<settings_pack const&, int>((
                 arg("settings")
-                , arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins))
         )
         .def(
@@ -769,8 +766,8 @@ void bind_session()
         .def("stop_natpmp", allow_threads(&lt::session::stop_natpmp))
         .def("get_cache_status", &get_cache_status)
         .def("get_cache_info", &get_cache_info2)
-#endif
         .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
+#endif // TORRENT_NO_DEPRECATE
         ;
 
     enum_<lt::session::save_state_flags_t>("save_state_flags_t")

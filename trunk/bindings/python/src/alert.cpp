@@ -502,13 +502,17 @@ void bind_alert()
         .value("upload_payload", stats_alert::upload_payload)
         .value("upload_protocol", stats_alert::upload_protocol)
         .value("upload_ip_protocol", stats_alert::upload_ip_protocol)
+#ifndef TORRENT_NO_DEPRECATE
         .value("upload_dht_protocol", stats_alert::upload_dht_protocol)
         .value("upload_tracker_protocol", stats_alert::upload_tracker_protocol)
+#endif
         .value("download_payload", stats_alert::download_payload)
         .value("download_protocol", stats_alert::download_protocol)
         .value("download_ip_protocol", stats_alert::download_ip_protocol)
+#ifndef TORRENT_NO_DEPRECATE
         .value("download_dht_protocol", stats_alert::download_dht_protocol)
         .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
+#endif
     ;
 
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
