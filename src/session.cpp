@@ -180,9 +180,6 @@ namespace libtorrent
 		// plenty of bandwidth
 		set.mixed_mode_algorithm = session_settings::prefer_tcp;
 
-		set.max_allowed_in_request_queue = 2000;
-		set.max_out_request_queue = 1000;
-
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
 		set.alert_queue_size = 50000;
