@@ -133,11 +133,10 @@ void web_peer_connection::disconnect(error_code const& ec
 	if (!m_requests.empty() && !m_file_requests.empty()
 		&& !m_piece.empty() && m_web)
 	{
-#if 0
-		std::cerr << this << " SAVE-RESTART-DATA: data: " << m_piece.size()
-			<< " req: " << m_requests.front().piece
-			<< " off: " << m_requests.front().start
-			<< std::endl;
+#ifdef TORRENT_LOGGING
+		peer_log("*** SAVE-RESTART-DATA: [ data: %d req: %d off: %d ]"
+			, int(m_piece.size()), int(m_requests.front().piece)
+			, int(m_requests.front().start));
 #endif
 		m_web->restart_request = m_requests.front();
 		if (!m_web->restart_piece.empty())
@@ -254,6 +253,11 @@ void web_peer_connection::write_request(peer_request const& r)
 		pr.piece = r.piece + request_offset / piece_size;
 		m_requests.push_back(pr);
 
+#ifdef TORRENT_LOGGING
+		peer_log("==> REQUESTING [ piece: %d start: %d len: %d ]"
+			, pr.piece, pr.start, pr.length);
+#endif
+
 		if (m_web->restart_request == m_requests.front())
 		{
 			m_piece.swap(m_web->restart_piece);
@@ -261,11 +265,10 @@ void web_peer_connection::write_request(peer_request const& r)
 			peer_request& front = m_requests.front();
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
-#if 0
-			std::cerr << this << " RESTART-DATA: data: " << m_piece.size()
-				<< " req: ( " << front.piece << ", " << front.start
-				<< ", " << (front.start + front.length - 1) << ")"
-				<< std::endl;
+#ifdef TORRENT_LOGGING
+			peer_log("*** RESTART-DATA: [ data: %d req: (%d, %d) ]"
+				, int(m_piece.size()), int(front.piece), int(front.start)
+				, int (front.start + front.length - 1));
 #endif
 
 			req.start += m_piece.size();
@@ -313,8 +316,8 @@ void web_peer_connection::write_request(peer_request const& r)
 			return;
 		}
 
-		std::vector<file_slice> files = info.orig_files().map_block(r.piece, r.start
-			, r.length);
+		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
+			, req.length);
 
 		for (std::vector<file_slice>::iterator i = files.begin();
 			i != files.end(); ++i)
@@ -415,6 +418,10 @@ bool web_peer_connection::maybe_harvest_block()
 	buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 	incoming_piece(front_request, &m_piece[0]);
+#ifdef TORRENT_LOGGING
+	peer_log("<== POP REQUEST [ piece: %d start: %d len: %d ]"
+		, front_request.piece, front_request.start, front_request.length);
+#endif
 	m_requests.pop_front();
 	if (associated_torrent().expired()) return false;
 	TORRENT_ASSERT(m_block_pos >= front_request.length);
@@ -878,11 +885,21 @@ void web_peer_connection::on_receive(error_code const& error
 
 			if (!range_overlaps_request)
 			{
+				// this means the end of the incoming request ends _before_ the
+				// first expected byte (fs + m_piece.size())
+
 				incoming_piece_fragment((std::min)(payload_transferred
 					, front_request.length - m_block_pos));
 				received_bytes(0, bytes_transferred);
-				// this means the end of the incoming request ends _before_ the
-				// first expected byte (fs + m_piece.size())
+
+#ifdef TORRENT_LOGGING
+				std::vector<file_slice> sl = info.orig_files().map_block(
+					front_request.piece, front_request.start, front_request.start
+						+ front_request.length);
+				peer_log("INVALID HTTP RESPONSE [ in=(%d, %d-%d) expected=(%d, %d-%d) piece: %d ]"
+					, file_index, range_start, range_end, sl[0].file_index
+					, sl[0].offset, sl[0].offset + sl[0].size, front_request.piece);
+#endif
 				disconnect(errors::invalid_range, op_bittorrent, 2);
 				return;
 			}
@@ -940,6 +957,10 @@ void web_peer_connection::on_receive(error_code const& error
 				incoming_piece_fragment(r.length);
 				incoming_piece(r, recv_buffer.begin);
 
+#ifdef TORRENT_LOGGING
+				peer_log("<== POP REQUEST [ piece: %d start: %d len: %d ]"
+					, r.piece, r.start, r.length);
+#endif
 				m_requests.pop_front();
 				if (associated_torrent().expired()) return;
 				TORRENT_ASSERT(m_block_pos >= r.length);

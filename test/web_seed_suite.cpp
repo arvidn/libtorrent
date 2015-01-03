@@ -390,14 +390,12 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	}
 */
 	{
-		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
-
 		settings_pack pack;
 		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
 		pack.set_int(settings_pack::max_retry_port_bind, 1000);
 		pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		ses.apply_settings(pack);
+		libtorrent::session ses(pack, 0);
 
 		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
 			, chunked_encoding, test_ban, keepalive);
