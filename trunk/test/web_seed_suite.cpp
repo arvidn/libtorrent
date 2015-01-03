@@ -395,6 +395,10 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
 		pack.set_int(settings_pack::max_retry_port_bind, 1000);
 		pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
 		libtorrent::session ses(pack, 0);
 
 		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed

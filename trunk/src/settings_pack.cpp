@@ -42,10 +42,18 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 	template <class T>
+	bool compare_first(std::pair<boost::uint16_t, T> const& lhs
+		, std::pair<boost::uint16_t, T> const& rhs)
+	{
+		return lhs.first < rhs.first;
+	}
+
+	template <class T>
 	void insort_replace(std::vector<std::pair<boost::uint16_t, T> >& c, std::pair<boost::uint16_t, T> const& v)
 	{
 		typedef std::vector<std::pair<boost::uint16_t, T> > container_t;
-		typename container_t::iterator i = std::lower_bound(c.begin(), c.end(), v);
+		typename container_t::iterator i = std::lower_bound(c.begin(), c.end(), v
+			, &compare_first<T>);
 		if (i != c.end() && i->first == v.first) i->second = v.second;
 		else c.insert(i, v);
 	}
@@ -669,21 +677,24 @@ namespace libtorrent
 			{
 				std::pair<boost::uint16_t, std::string> v(name, std::string());
 				std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i =
-					std::lower_bound(m_strings.begin(), m_strings.end(), v);
+					std::lower_bound(m_strings.begin(), m_strings.end(), v
+						, &compare_first<std::string>);
 				return i != m_strings.end() && i->first == name;
 			}
 			case int_type_base:
 			{
 				std::pair<boost::uint16_t, int> v(name, 0);
 				std::vector<std::pair<boost::uint16_t, int> >::const_iterator i =
-					std::lower_bound(m_ints.begin(), m_ints.end(), v);
+					std::lower_bound(m_ints.begin(), m_ints.end(), v
+						, &compare_first<int>);
 				return i != m_ints.end() && i->first == name;
 			}
 			case bool_type_base:
 			{
 				std::pair<boost::uint16_t, bool> v(name, false);
 				std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i =
-					std::lower_bound(m_bools.begin(), m_bools.end(), v);
+					std::lower_bound(m_bools.begin(), m_bools.end(), v
+						, &compare_first<bool>);
 				return i != m_bools.end() && i->first == name;
 			}
 		}
@@ -698,7 +709,8 @@ namespace libtorrent
 
 		std::pair<boost::uint16_t, std::string> v(name, std::string());
 		std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i
-			= std::lower_bound(m_strings.begin(), m_strings.end(), v);
+			= std::lower_bound(m_strings.begin(), m_strings.end(), v
+				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
 		return std::string();
 	}
@@ -710,7 +722,8 @@ namespace libtorrent
 
 		std::pair<boost::uint16_t, int> v(name, 0);
 		std::vector<std::pair<boost::uint16_t, int> >::const_iterator i
-			= std::lower_bound(m_ints.begin(), m_ints.end(), v);
+			= std::lower_bound(m_ints.begin(), m_ints.end(), v
+				, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
 		return 0;
 	}
@@ -722,7 +735,8 @@ namespace libtorrent
 
 		std::pair<boost::uint16_t, bool> v(name, false);
 		std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i
-			= std::lower_bound(m_bools.begin(), m_bools.end(), v);
+			= std::lower_bound(m_bools.begin(), m_bools.end(), v
+					, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
 		return false;
 	}

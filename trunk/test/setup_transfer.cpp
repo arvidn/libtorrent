@@ -704,15 +704,21 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	std::generate(&pid[0], &pid[0] + 20, random_byte);
 	pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
 	ses1->apply_settings(pack);
+	TORRENT_ASSERT(ses1->id() == pid);
 
 	std::generate(&pid[0], &pid[0] + 20, random_byte);
+	TORRENT_ASSERT(ses1->id() != pid);
 	pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
 	ses2->apply_settings(pack);
+	TORRENT_ASSERT(ses2->id() == pid);
 	if (ses3)
 	{
 		std::generate(&pid[0], &pid[0] + 20, random_byte);
+		TORRENT_ASSERT(ses1->id() != pid);
+		TORRENT_ASSERT(ses2->id() != pid);
 		pack.set_str(settings_pack::peer_fingerprint, pid.to_string());
 		ses3->apply_settings(pack);
+		TORRENT_ASSERT(ses3->id() == pid);
 	}
 
 	TORRENT_ASSERT(ses1->id() != ses2->id());
