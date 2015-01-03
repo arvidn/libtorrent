@@ -119,6 +119,31 @@ void web_peer_connection::disconnect(error_code const& ec
 {
 	if (is_disconnecting()) return;
 
+	if (op == peer_connection_interface::op_sock_write
+		&& ec == boost::system::errc::broken_pipe)
+	{
+#ifdef TORRENT_LOGGING
+		// a write operation failed with broken-pipe. This typically happens
+		// with HTTP 1.0 servers that close their incoming channel of the TCP
+		// stream whenever they're done reading one full request. Instead of
+		// us bailing out and failing the entire request just because our
+		// write-end was closed, ignore it and keep reading until the read-end
+		// also is closed.
+		peer_log("*** WRITE-DIRECTION CLOSED");
+#endif
+
+		// prevent the peer from trying to send anything more
+		m_send_buffer.clear();
+		m_recv_buffer.free_disk_buffer();
+
+		// when the web server closed our write-end of the socket (i.e. its
+		// read-end), if it's an HTTP 1.0 server. we will stop sending more
+		// requests. We'll close the connection once we receive the last bytes,
+		// and our read end is closed as well.
+		incoming_choke();
+		return;
+	}
+
 	if (op == peer_connection_interface::op_connect
 		&& m_web
 		&& !m_web->endpoints.empty())
