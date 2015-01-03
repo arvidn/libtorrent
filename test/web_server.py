@@ -28,7 +28,9 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def do_GET(s):
 
-		#print s.requestline
+		print 'INCOMING-REQUEST: ', s.requestline
+		print s.headers
+
 		global chunked_encoding
 		global keepalive
 
@@ -99,7 +101,6 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				end_range = size
 				if 'Range' in s.headers:
 					s.send_response(206)
-					s.send_header('Content-Range', 'bytes ' + str(start_range) + '-' + str(end_range - 1) + '/' + str(size))
 					st, e = s.headers['range'][6:].split('-', 1)
 					sl = len(st)
 					el = len(e)
@@ -111,6 +112,8 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 						ei = int(e)
 						if ei < size:
 							start_range = size - ei
+					s.send_header('Content-Range', 'bytes ' + str(start_range) \
+						+ '-' + str(end_range - 1) + '/' + str(size))
 				else:
 					s.send_response(200)
 				s.send_header('Accept-Ranges', 'bytes')

@@ -912,6 +912,10 @@ namespace libtorrent
 				incoming_piece_fragment(r.length);
 				incoming_piece(r, recv_buffer.begin);
 
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== POP REQUEST [ piece: %d start: %d len: %d ]"
+					, r.piece, r.start, r.length);
+#endif
 				m_requests.pop_front();
 				if (associated_torrent().expired()) return;
 				TORRENT_ASSERT(m_block_pos >= r.length);
