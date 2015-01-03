@@ -75,6 +75,10 @@ void test_swarm(int flags)
 			| alert::stats_notification);
 
 	settings_pack pack;
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 
@@ -188,7 +192,7 @@ void test_swarm(int flags)
 
 	std::auto_ptr<alert> a = ses1.pop_alert();
 	ptime end = time_now() + seconds(20);
-	while (a.get() == 0 || dynamic_cast<torrent_deleted_alert*>(a.get()) == 0)
+	while (a.get() == 0 || alert_cast<torrent_deleted_alert>(a.get()) == 0)
 	{
 		if (ses1.wait_for_alert(end - time_now()) == 0)
 		{
@@ -200,7 +204,7 @@ void test_swarm(int flags)
 		std::cerr << a->message() << std::endl;
 	}
 
-	TEST_CHECK(dynamic_cast<torrent_deleted_alert*>(a.get()) != 0);
+	TEST_CHECK(alert_cast<torrent_deleted_alert>(a.get()) != 0);
 
 	// there shouldn't be any alerts generated from now on
 	// make sure that the timer in wait_for_alert() works

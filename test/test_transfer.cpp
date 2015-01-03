@@ -197,6 +197,10 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
 	pack.set_bool(settings_pack::enable_outgoing_utp, false);
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
