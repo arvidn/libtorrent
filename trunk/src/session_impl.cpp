@@ -3542,14 +3542,16 @@ retry:
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
 
-			if (!t->has_error())
+			if (t->state() == torrent_status::checking_files
+				&& !t->has_error()
+				&& (t->is_auto_managed() || t->allows_peers()))
 			{
-				if (t->state() == torrent_status::checking_files)
-				{
-					checking.push_back(t);
-					continue;
-				}
+				checking.push_back(t);
+				continue;
+			}
 
+			if (t->is_auto_managed() && !t->has_error())
+			{
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)
