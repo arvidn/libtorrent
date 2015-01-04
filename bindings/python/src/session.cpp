@@ -404,7 +404,6 @@ namespace
 		s.get_cache_info(&ret);
 		return ret;
 	 }
-#endif
 
     dict get_utp_stats(session_status const& st)
     {
@@ -417,7 +416,6 @@ namespace
         return ret;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
     list get_cache_info2(lt::session& ses, sha1_hash ih)
     {
        std::vector<cached_piece_info> ret;
@@ -504,7 +502,6 @@ void bind_session()
     void (lt::session::*start_dht0)() = &lt::session::start_dht;
     void (lt::session::*start_dht1)(entry const&) = &lt::session::start_dht;
 #endif
-#endif
 
     class_<session_status>("session_status")
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
@@ -559,6 +556,7 @@ void bind_session()
         .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
 #endif
         .add_property("utp_stats", &get_utp_stats)
+#endif
         ;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -656,7 +654,6 @@ void bind_session()
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
-        .def("status", allow_threads(&lt::session::status))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", add_dht_node)
         .def(
@@ -678,11 +675,12 @@ void bind_session()
                 arg("paused") = false
             )
         )
-#endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // BOOST_NO_EXCEPTIONS
         .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
+        .def("status", allow_threads(&lt::session::status))
         .def("set_settings", &lt::session::set_settings)
         .def("settings", &lt::session::settings)
         .def("get_settings", &session_get_settings)

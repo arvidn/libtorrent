@@ -2,6 +2,7 @@
 #include "print.hpp"
 
 session_view::session_view()
+	: m_print_utp_stats(false)
 {
 	using libtorrent::find_metric_idx;
 
@@ -37,6 +38,12 @@ session_view::session_view()
 	m_mfu_ghost_idx = find_metric_idx("disk.arc_mfu_ghost_size");
 	m_mru_size_idx = find_metric_idx("disk.arc_mru_size");
 	m_mru_ghost_idx = find_metric_idx("disk.arc_mru_ghost_size");
+
+	m_utp_idle = find_metric_idx("utp.num_utp_idle");
+	m_utp_syn_sent = find_metric_idx("utp.num_utp_syn_sent");
+	m_utp_connected = find_metric_idx("utp.num_utp_connected");
+	m_utp_fin_sent = find_metric_idx("utp.num_utp_fin_sent");
+	m_utp_close_wait = find_metric_idx("utp.num_utp_close_wait");
 }
 
 void session_view::set_pos(int pos)
@@ -48,7 +55,7 @@ int session_view::pos() const { return m_position; }
 
 int session_view::height() const
 {
-	return 3;
+	return 3 + m_print_utp_stats;
 }
 
 void session_view::render()
@@ -161,6 +168,18 @@ void session_view::render()
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 	set_cursor_pos(0, y++);
 	print(str);
+
+	if (m_print_utp_stats)
+	{
+		snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\x1b[K"
+			, int(m_cnt[0][m_utp_idle])
+			, int(m_cnt[0][m_utp_syn_sent])
+			, int(m_cnt[0][m_utp_connected])
+			, int(m_cnt[0][m_utp_fin_sent])
+			, int(m_cnt[0][m_utp_close_wait]));
+		set_cursor_pos(0, y++);
+		print(str);
+	}
 }
 
 void session_view::update_counters(std::vector<boost::uint64_t>& stats_counters

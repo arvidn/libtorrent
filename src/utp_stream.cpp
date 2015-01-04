@@ -279,6 +279,7 @@ struct utp_socket_impl
 		, m_subscribe_drained(false)
 		, m_stalled(false)
 	{
+		m_sm->inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
 		for (int i = 0; i != num_delay_hist; ++i)
 			m_delay_sample_hist[i] = (std::numeric_limits<boost::uint32_t>::max)();
@@ -335,6 +336,17 @@ struct utp_socket_impl
 		utp_header const* ph, boost::uint8_t const* ptr, int payload_size, ptime now);
 	void update_mtu_limits();
 	void experienced_loss(int seq_nr);
+
+	void set_state(int s);
+
+private:
+
+	// non-copyable
+	utp_socket_impl(utp_socket_impl const&);
+	utp_socket_impl const& operator=(utp_socket_impl const&);
+
+	// TODO: 2 it would be nice if not everything would have to be public here
+public:
 
 	void check_receive_buffers() const;
 
@@ -569,6 +581,8 @@ struct utp_socket_impl
 	// this affects the packet timeout time
 	boost::uint8_t m_num_timeouts;
 
+	// it's important that these match the enums in performance_counters for
+	// num_utp_idle etc.
 	enum state_t {
 		// not yet connected
 		UTP_STATE_NONE,
@@ -1109,6 +1123,8 @@ utp_socket_impl::~utp_socket_impl()
 	TORRENT_ASSERT(!m_attached);
 	TORRENT_ASSERT(!m_deferred_ack);
 
+	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, -1);
+
 	UTP_LOGV("%8p: destroying utp socket state\n", this);
 
 	// free any buffers we're holding
@@ -1224,7 +1240,7 @@ bool utp_socket_impl::destroy()
 		|| m_state == UTP_STATE_NONE
 		|| m_state == UTP_STATE_SYN_SENT) && cancelled)
 	{
-		m_state = UTP_STATE_DELETE;
+		set_state(UTP_STATE_DELETE);
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
@@ -1304,7 +1320,7 @@ void utp_socket_impl::send_syn()
 	{
 		free(p);
 		m_error = ec;
-		m_state = UTP_STATE_ERROR_WAIT;
+		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
 		return;
 	}
@@ -1320,7 +1336,7 @@ void utp_socket_impl::send_syn()
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
 	TORRENT_ASSERT(!m_error);
-	m_state = UTP_STATE_SYN_SENT;
+	set_state(UTP_STATE_SYN_SENT);
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
@@ -1349,7 +1365,7 @@ void utp_socket_impl::send_fin()
 	// unless there was an error, we're now
 	// in FIN-SENT state
 	if (!m_error)
-		m_state = UTP_STATE_FIN_SENT;
+		set_state(UTP_STATE_FIN_SENT);
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
@@ -1955,7 +1971,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	{
 		TORRENT_ASSERT(stack_alloced != bool(payload_size));
 		m_error = ec;
-		m_state = UTP_STATE_ERROR_WAIT;
+		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
 		return false;
 	}
@@ -2134,7 +2150,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	else if (ec)
 	{
 		m_error = ec;
-		m_state = UTP_STATE_ERROR_WAIT;
+		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
 		return false;
 	}
@@ -2177,6 +2193,15 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// we'll get a timeout in about one second
 	
 	m_sm->inc_stats_counter(counters::utp_packet_loss);
+}
+
+void utp_socket_impl::set_state(int s)
+{
+	if (s == m_state) return;
+
+	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, -1);
+	m_state = s;
+	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, 1);
 }
 
 void utp_socket_impl::maybe_inc_acked_seq_nr()
@@ -2472,7 +2497,7 @@ bool utp_socket_impl::test_socket_state()
 
 	if (cancel_handlers(m_error, true))
 	{
-		m_state = UTP_STATE_DELETE;
+		set_state(UTP_STATE_DELETE);
 #if TORRENT_UTP_LOG
 		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
@@ -2695,7 +2720,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		}
 		UTP_LOGV("%8p: incoming packet type:RESET\n", this);
 		m_error = asio::error::connection_reset;
-		m_state = UTP_STATE_ERROR_WAIT;
+		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
 		return true;
 	}
@@ -2896,7 +2921,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			{
 				// if we're in state_none, the only thing
 				// we accept are SYN packets.
-				m_state = UTP_STATE_CONNECTED;
+				set_state(UTP_STATE_CONNECTED);
 
 				m_remote_address = ep.address();
 				m_port = ep.port();
@@ -2944,7 +2969,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			}
 
 			TORRENT_ASSERT(!m_error);
-			m_state = UTP_STATE_CONNECTED;
+			set_state(UTP_STATE_CONNECTED);
 #if TORRENT_UTP_LOG
 			UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
 #endif
@@ -3187,14 +3212,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 				{
 					UTP_LOGV("%8p: close initiated here, delete socket\n", this);
 					m_error = asio::error::eof;
-					m_state = UTP_STATE_DELETE;
+					set_state(UTP_STATE_DELETE);
 					test_socket_state();
 				}
 				else
 				{
 					UTP_LOGV("%8p: closing socket\n", this);
 					m_error = asio::error::eof;
-					m_state = UTP_STATE_ERROR_WAIT;
+					set_state(UTP_STATE_ERROR_WAIT);
 					test_socket_state();
 				}
 			}
@@ -3386,7 +3411,7 @@ void utp_socket_impl::tick(ptime now)
 		{
 			// the connection is dead
 			m_error = asio::error::timed_out;
-			m_state = UTP_STATE_ERROR_WAIT;
+			set_state(UTP_STATE_ERROR_WAIT);
 			test_socket_state();
 			return;
 		}
@@ -3471,7 +3496,7 @@ void utp_socket_impl::tick(ptime now)
 
 				// the connection is dead
 				m_error = asio::error::timed_out;
-				m_state = UTP_STATE_ERROR_WAIT;
+				set_state(UTP_STATE_ERROR_WAIT);
 				test_socket_state();
 				return;
 			}
@@ -3493,7 +3518,7 @@ void utp_socket_impl::tick(ptime now)
 		{
 			// the connection is dead
 			m_error = asio::error::eof;
-			m_state = UTP_STATE_ERROR_WAIT;
+			set_state(UTP_STATE_ERROR_WAIT);
 			test_socket_state();
 			return;
 		}

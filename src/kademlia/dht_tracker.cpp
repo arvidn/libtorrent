@@ -259,10 +259,12 @@ namespace libtorrent { namespace dht
 		m_host_resolver.cancel();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void dht_tracker::dht_status(session_status& s)
 	{
 		m_dht.status(s);
 	}
+#endif
 
 	void dht_tracker::network_stats(int& sent, int& received)
 	{

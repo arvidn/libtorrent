@@ -70,45 +70,6 @@ namespace libtorrent
 		}
 	}
 
-	void utp_socket_manager::get_status(utp_status& s) const
-	{
-		s.num_idle = 0;
-		s.num_syn_sent = 0;
-		s.num_connected = 0;
-		s.num_fin_sent = 0;
-		s.num_close_wait = 0;
-
-#ifndef TORRENT_NO_DEPRECATE
-		s.packet_loss = m_counters[counters::utp_packet_loss];
-		s.timeout = m_counters[counters::utp_timeout];
-		s.packets_in = m_counters[counters::utp_packets_in];
-		s.packets_out = m_counters[counters::utp_packets_out];
-		s.fast_retransmit = m_counters[counters::utp_fast_retransmit];
-		s.packet_resend = m_counters[counters::utp_packet_resend];
-		s.samples_above_target = m_counters[counters::utp_samples_above_target];
-		s.samples_below_target = m_counters[counters::utp_samples_below_target];
-		s.payload_pkts_in = m_counters[counters::utp_payload_pkts_in];
-		s.payload_pkts_out = m_counters[counters::utp_payload_pkts_out];
-		s.invalid_pkts_in = m_counters[counters::utp_invalid_pkts_in];
-		s.redundant_pkts_in = m_counters[counters::utp_redundant_pkts_in];
-#endif
-
-		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
-			, end(m_utp_sockets.end()); i != end; ++i)
-		{
-			int state = utp_socket_state(i->second);
-			switch (state)
-			{
-				case 0: ++s.num_idle; break;
-				case 1: ++s.num_syn_sent; break;
-				case 2: ++s.num_connected; break;
-				case 3: ++s.num_fin_sent; break;
-				case 4: ++s.num_close_wait; break;
-				case 5: ++s.num_close_wait; break;
-			}
-		}
-	}
-
 	void utp_socket_manager::tick(ptime now)
 	{
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
@@ -465,11 +426,13 @@ namespace libtorrent
 		m_sock_buf_size = size;
 	}
 
-	void utp_socket_manager::inc_stats_counter(int counter)
+	void utp_socket_manager::inc_stats_counter(int counter, int delta)
 	{
-		TORRENT_ASSERT(counter >= counters::utp_packet_loss);
-		TORRENT_ASSERT(counter <= counters::utp_redundant_pkts_in);
-		m_counters.inc_stats_counter(counter);
+		TORRENT_ASSERT((counter >= counters::utp_packet_loss
+				&& counter <= counters::utp_redundant_pkts_in)
+			|| (counter >= counters::num_utp_idle
+				&& counter <= counters::num_utp_deleted));
+		m_counters.inc_stats_counter(counter, delta);
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

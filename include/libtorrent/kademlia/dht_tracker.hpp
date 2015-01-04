@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dos_blocker.hpp"
 
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/thread.hpp"
@@ -60,6 +59,9 @@ namespace libtorrent
 	namespace aux { struct session_impl; }
 	struct lazy_entry;
 	struct counters;
+#ifndef TORRENT_NO_DEPRECATE
+	struct session_status;
+#endif
 }
 
 namespace libtorrent { namespace dht
@@ -112,7 +114,10 @@ namespace libtorrent { namespace dht
 		void put_item(char const* key
 			, boost::function<void(item&)> cb, std::string salt = std::string());
 
+#ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);
+#endif
+
 		void network_stats(int& sent, int& received);
 
 		// translate bittorrent kademlia message into the generic kademlia message

@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session_status.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/disk_io_thread.hpp"
@@ -84,6 +83,10 @@ namespace libtorrent
 	class port_filter;
 	class connection_queue;
 	class alert;
+
+#ifndef TORRENT_NO_DEPRECATE
+	struct session_status;
+#endif
 
 	// describes one statistics metric from the session. For more information,
 	// see the session-statistics_ section.
@@ -484,16 +487,18 @@ namespace libtorrent
 		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
 		void set_load_function(user_load_function_t fun);
 
+#ifndef TORRENT_NO_DEPRECATE
+		//  deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
-		session_status status() const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in aio branch
 		TORRENT_DEPRECATED_PREFIX
+		session_status status() const TORRENT_DEPRECATED;
+
+		// deprecated in libtorrent 1.1
 		// fills out the supplied vector with information for each piece that is
 		// currently in the disk cache for the torrent with the specified
 		// info-hash (``ih``).
+		TORRENT_DEPRECATED_PREFIX
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
 

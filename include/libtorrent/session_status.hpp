@@ -84,6 +84,7 @@ namespace libtorrent
 		int first_timeout;
 	};
 
+	// TODO: 3 add accessors tp query the DHT state (post the result as an alert)
 	// holds dht routing table stats
 	struct TORRENT_EXPORT dht_routing_bucket
 	{
@@ -92,13 +93,14 @@ namespace libtorrent
 		int num_nodes;
 		int num_replacements;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// number of seconds since last activity
 		int last_active;
-#endif
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	// holds counters and gauges for the uTP sockets
+	// deprecated in 1.1 in favor of session_stats counters, which is a more
+	// flexible, extensible and perfromant mechanism for stats.
 	struct TORRENT_EXPORT utp_status
 	{
 		// gauges. These are snapshots of the number of
@@ -109,10 +111,6 @@ namespace libtorrent
 		int num_fin_sent;
 		int num_close_wait;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in libtorrent 1.1
-		// use session_stats/performance_counters instead
-		// counters
 		// These are monotonically increasing
 		// and cumulative counters for their respective event.
 		boost::uint64_t packet_loss;
@@ -127,10 +125,11 @@ namespace libtorrent
 		boost::uint64_t payload_pkts_out;
 		boost::uint64_t invalid_pkts_in;
 		boost::uint64_t redundant_pkts_in;
-#endif
 	};
 
 	// contains session wide state and counters
+	// deprecated in 1.1 in favor of session_stats counters, which is a more
+	// flexible, extensible and perfromant mechanism for stats.
 	struct TORRENT_EXPORT session_status
 	{
 		// false as long as no incoming connections have been
@@ -269,6 +268,7 @@ namespace libtorrent
 		int num_torrents;
 		int num_paused_torrents;
 	};
+#endif // TORRENT_NO_DEPRECATE
 
 }
 
