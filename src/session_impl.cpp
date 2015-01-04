@@ -396,7 +396,7 @@ namespace aux {
 		, m_ssl_udp_socket(m_io_service)
 		, m_ssl_utp_socket_manager(m_settings, m_ssl_udp_socket, m_stats_counters
 			, &m_ssl_ctx
-			, boost::bind(&session_impl::incoming_connection, this, _1))
+			, boost::bind(&session_impl::on_incoming_utp_ssl, this, _1))
 #endif
 		, m_boost_connections(0)
 		, m_timer(m_io_service)
@@ -1552,6 +1552,7 @@ namespace aux {
 		, bool ipv4, int port, int& retries, int flags, error_code& ec)
 	{
 		listen_socket_t ret;
+		ret.ssl = flags & open_ssl_socket;
 		int last_op = 0;
 		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
 			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
@@ -2177,6 +2178,11 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_accept_connection");
 #endif
+
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASSERT(ssl == is_ssl(*c));
+#endif
+
 		listener->async_accept(*str
 			, boost::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1, ssl));
@@ -2263,6 +2269,8 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl)
 		{
+			TORRENT_ASSERT(is_ssl(*s));
+
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 #if defined TORRENT_ASIO_DEBUGGING
@@ -2281,6 +2289,20 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 
+	void session_impl::on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s)
+	{
+		TORRENT_ASSERT(is_ssl(*s));
+
+		// for SSL connections, incoming_connection() is called
+		// after the handshake is done
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::ssl_handshake");
+#endif
+		s->get<ssl_stream<utp_stream> >()->async_accept_handshake(
+			boost::bind(&session_impl::ssl_handshake, this, _1, s));
+		m_incoming_sockets.insert(s);
+	}
+
 	// to test SSL connections, one can use this openssl command template:
 	// 
 	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem
@@ -2292,6 +2314,8 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::ssl_handshake");
 #endif
+		TORRENT_ASSERT(is_ssl(*s));
+
 		m_incoming_sockets.erase(s);
 
 		error_code e;
@@ -3518,7 +3542,7 @@ retry:
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
 
-			if (t->is_auto_managed() && !t->has_error())
+			if (!t->has_error())
 			{
 				if (t->state() == torrent_status::checking_files)
 				{

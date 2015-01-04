@@ -255,20 +255,12 @@ void test_ssl(int test_idx, bool use_utp)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d peer_disconnects: %d expected: %d\n"
-		, peer_errors, peer_disconnects, test.peer_errors);
-	if (test.peer_errors > 0) {
-		TEST_CHECK(peer_errors + peer_disconnects >= test.peer_errors);
-	} else {
-		TEST_EQUAL(peer_errors + peer_disconnects, test.peer_errors);
-	}
+	fprintf(stderr, "peer_errors: %d expected_errors: %d\n"
+		, peer_errors, test.peer_errors);
+	TEST_EQUAL(peer_errors, test.peer_errors);
 
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
-	if (test.ssl_disconnects > 0) {
-		TEST_CHECK(ssl_peer_disconnects >= test.ssl_disconnects);
-	} else {
-		TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
-	}
+	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
 
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
@@ -339,7 +331,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	if (flags & valid_bittorrent_hash) fprintf(stderr, "valid-bittorrent-hash ");
 	else fprintf(stderr, "invalid-bittorrent-hash ");
 
-	fprintf(stderr, "\n");
+	fprintf(stderr, " port: %d\n", port);
 
 	error_code ec;
 	boost::asio::io_service ios;
@@ -482,6 +474,7 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	fprintf(stderr, "bittorrent handshake\n");
 	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
 		fprintf(stderr, "failed to write bittorrent handshake: %s\n"
@@ -492,6 +485,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	char buf[68];
 	fprintf(stderr, "read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
+	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
 		fprintf(stderr, "failed to read bittorrent handshake: %s\n"
@@ -559,12 +553,18 @@ void test_malicious_peer()
 		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
-	wait_for_alert(ses1, torrent_finished_alert::alert_type);
+	std::auto_ptr<alert> a = wait_for_alert(ses1
+		, torrent_finished_alert::alert_type, "ses1");
+	TEST_CHECK(a.get());
+	if (a.get())
+	{
+		TEST_EQUAL(a->type(), torrent_finished_alert::alert_type);
+	}
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
 		bool success = try_connect(ses1, ssl_port, t, attacks[i].flags);
-		TEST_EQUAL(attacks[i].expect, success);
+		TEST_EQUAL(success, attacks[i].expect);
 	}
 }
 #endif // TORRENT_USE_OPENSSL

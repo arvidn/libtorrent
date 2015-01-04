@@ -404,7 +404,7 @@ feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 feature encryption : on off : composite propagated link-incompatible ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 
-feature crypto : built-in openssl gcrypt : composite ;
+feature crypto : built-in openssl gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 

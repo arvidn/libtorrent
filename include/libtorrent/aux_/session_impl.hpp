@@ -847,6 +847,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 			boost::asio::ssl::context* ssl_ctx() { return &m_ssl_ctx; } 
+			void on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s);
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
 
