@@ -1277,7 +1277,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{
 				dht_mutable_item const& f = i->second;
 				reply["seq"] = f.seq;
-				if (!msg_keys[0] || uint64_t(msg_keys[0]->int_value()) < f.seq)
+				if (!msg_keys[0] || boost::uint64_t(msg_keys[0]->int_value()) < f.seq)
 				{
 					reply["v"] = bdecode(f.value, f.value + f.size);
 					reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
