@@ -876,12 +876,6 @@ namespace libtorrent
 			entry m_dht_state;
 #endif
 
-			// the number of unchoked peers as set by the auto-unchoker
-			// this should always be >= m_max_uploads
-			// TODO: 3 this member could probably be removed, now that we have
-			// a performance counter gauge for it
-			int m_allowed_upload_slots;
-
 			// this is initialized to the unchoke_interval
 			// session_setting and decreased every second.
 			// when it reaches zero, it is reset to the

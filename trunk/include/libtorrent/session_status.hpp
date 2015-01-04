@@ -84,7 +84,7 @@ namespace libtorrent
 		int first_timeout;
 	};
 
-	// TODO: 3 add accessors tp query the DHT state (post the result as an alert)
+	// TODO: 3 add accessors to query the DHT state (post the result as an alert)
 	// holds dht routing table stats
 	struct TORRENT_EXPORT dht_routing_bucket
 	{
