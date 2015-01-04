@@ -41,7 +41,6 @@ namespace libtorrent
 {
 	class alert;
 	struct add_torrent_params;
-	struct session_status;
 }
 
 int EXPORT print_failures();

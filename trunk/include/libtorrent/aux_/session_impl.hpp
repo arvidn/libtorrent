@@ -470,7 +470,10 @@ namespace libtorrent
 				m_optimistic_unchoke_time_scaler = 0;
 			}
 
+#ifndef TORRENT_NO_DEPRECATE
 			session_status status() const;
+#endif
+
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			address listen_address() const;
@@ -875,6 +878,8 @@ namespace libtorrent
 
 			// the number of unchoked peers as set by the auto-unchoker
 			// this should always be >= m_max_uploads
+			// TODO: 3 this member could probably be removed, now that we have
+			// a performance counter gauge for it
 			int m_allowed_upload_slots;
 
 			// this is initialized to the unchoke_interval

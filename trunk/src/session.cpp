@@ -721,11 +721,6 @@ namespace libtorrent
 		return TORRENT_SYNC_CALL_RET(unsigned short, ssl_listen_port);
 	}
 
-	session_status session::status() const
-	{
-		return TORRENT_SYNC_CALL_RET(session_status, status);
-	}
-
 	void session::pause()
 	{
 		TORRENT_ASYNC_CALL(pause);
@@ -742,6 +737,11 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	session_status session::status() const
+	{
+		return TORRENT_SYNC_CALL_RET(session_status, status);
+	}
+
 	void session::get_cache_info(sha1_hash const& ih
 		, std::vector<cached_piece_info>& ret) const
 	{

@@ -93,6 +93,7 @@ int routing_table::bucket_limit(int bucket) const
 	return m_bucket_size;
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void routing_table::status(session_status& s) const
 {
 	int ignore;
@@ -111,6 +112,7 @@ void routing_table::status(session_status& s) const
 		s.dht_routing_table.push_back(b);
 	}
 }
+#endif
 
 boost::tuple<int, int, int> routing_table::size() const
 {

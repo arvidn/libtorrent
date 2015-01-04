@@ -94,18 +94,19 @@ void test_swarm()
 
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
-	session_status st = ses1.status();
-	fprintf(stderr, "st.allowed_upload_slots: %d\n", st.allowed_upload_slots);
-	TEST_EQUAL(st.allowed_upload_slots, 1);
+	std::map<std::string, boost::uint64_t> cnt = get_counters(ses1);
+
+	fprintf(stderr, "allowed_upload_slots: %d\n", int(cnt["ses.num_unchoke_slots"]));
+	TEST_EQUAL(cnt["ses.num_unchoke_slots"], 1);
 	for (int i = 0; i < 200; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
 		print_alerts(ses3, "ses3");
 
-		st = ses1.status();
-		fprintf(stderr, "allowed unchoked: %d\n", st.allowed_upload_slots);
-		if (st.allowed_upload_slots >= 2) break;
+		cnt = get_counters(ses1);
+		fprintf(stderr, "allowed unchoked: %d\n", int(cnt["ses.num_unchoke_slots"]));
+		if (cnt["ses.num_unchoke_slots"] >= 2) break;
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -116,7 +117,7 @@ void test_swarm()
 		test_sleep(100);
 	}
 
-	TEST_CHECK(st.allowed_upload_slots >= 2);
+	TEST_CHECK(cnt["ses.num_unchoke_slots"] >= 2);
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, lt::session::delete_files);

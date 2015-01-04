@@ -167,7 +167,6 @@ bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
 bool sequential_download = false;
-bool print_utp_stats = false;
 
 bool print_ip = true;
 bool print_as = false;
@@ -1867,7 +1866,7 @@ int main(int argc, char* argv[])
 				if (c == 'P') show_pad_files = !show_pad_files;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
-				if (c == 'u') print_utp_stats = !print_utp_stats;
+				if (c == 'u') ses_view.print_utp_stats(!ses_view.print_utp_stats());
 				if (c == 'x') print_disk_stats = !print_disk_stats;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
@@ -1940,8 +1939,6 @@ int main(int argc, char* argv[])
 		}
 		alerts.clear();
 
-		session_status sess_stat = ses.status();
-
 		std::string out;
 
 		char str[500];
@@ -1956,6 +1953,8 @@ int main(int argc, char* argv[])
 		cache_status cs;
 		ses.get_cache_info(&cs, h, cache_flags);
 
+		// TODO: 3 introce some reasonable way of getting DHT stats
+/*
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
@@ -2006,15 +2005,7 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
-		if (print_utp_stats)
-		{
-			snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\n"
-				, sess_stat.utp_stats.num_idle, sess_stat.utp_stats.num_syn_sent
-				, sess_stat.utp_stats.num_connected, sess_stat.utp_stats.num_fin_sent
-				, sess_stat.utp_stats.num_close_wait);
-			out += str;
-		}
-
+*/
 		if (h.is_valid())
 		{
 			torrent_status const& s = view.get_active_torrent();

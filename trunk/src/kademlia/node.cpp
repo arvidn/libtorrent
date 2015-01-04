@@ -565,6 +565,7 @@ time_duration node_impl::connection_timeout()
 	return d;
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void node_impl::status(session_status& s)
 {
 	mutex_t::scoped_lock l(m_mutex);
@@ -581,6 +582,7 @@ void node_impl::status(session_status& s)
 		(*i)->status(l);
 	}
 }
+#endif
 
 void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const

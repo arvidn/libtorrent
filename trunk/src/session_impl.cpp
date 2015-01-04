@@ -3918,6 +3918,8 @@ retry:
 
 		m_allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
+		m_stats_counters.set_value(counters::num_unchoke_slots
+			, m_allowed_upload_slots);
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
@@ -5218,8 +5220,7 @@ retry:
 		}
 	}
 
-	// TODO: 3 deprecate this function. All of this functionality should be
-	// exposed as performance counters
+#ifndef TORRENT_NO_DEPRECATE
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
@@ -5229,24 +5230,36 @@ retry:
 
 		s.optimistic_unchoke_counter = m_optimistic_unchoke_time_scaler;
 		s.unchoke_counter = m_unchoke_time_scaler;
-
-		s.num_peers = int(m_connections.size());
 		s.num_dead_peers = int(m_undead_peers.size());
-		s.num_unchoked = m_stats_counters[counters::num_peers_up_unchoked_all];
-		s.allowed_upload_slots = m_allowed_upload_slots;
 
-		s.num_torrents = m_torrents.size();
-		// only non-paused torrents want tick
-		s.num_paused_torrents = m_torrents.size() - m_torrent_lists[torrent_want_tick].size();
+		s.num_peers = m_stats_counters[counters::num_peers_connected];
+		s.num_unchoked = m_stats_counters[counters::num_peers_up_unchoked_all];
+		s.allowed_upload_slots = m_stats_counters[counters::num_unchoke_slots];
+
+		s.num_torrents
+			= m_stats_counters[counters::num_checking_torrents]
+			+ m_stats_counters[counters::num_stopped_torrents]
+			+ m_stats_counters[counters::num_queued_seeding_torrents]
+			+ m_stats_counters[counters::num_queued_download_torrents]
+			+ m_stats_counters[counters::num_upload_only_torrents]
+			+ m_stats_counters[counters::num_downloading_torrents]
+			+ m_stats_counters[counters::num_seeding_torrents]
+			+ m_stats_counters[counters::num_error_torrents];
+
+		s.num_paused_torrents
+			= m_stats_counters[counters::num_stopped_torrents]
+			+ m_stats_counters[counters::num_error_torrents]
+			+ m_stats_counters[counters::num_queued_seeding_torrents]
+			+ m_stats_counters[counters::num_queued_download_torrents];
 
 		s.total_redundant_bytes = m_stats_counters[counters::recv_redundant_bytes];
 		s.total_failed_bytes = m_stats_counters[counters::recv_failed_bytes];
 
-		s.up_bandwidth_queue = m_upload_rate.queue_size();
-		s.down_bandwidth_queue = m_download_rate.queue_size();
+		s.up_bandwidth_queue = m_stats_counters[counters::limiter_up_queue];
+		s.down_bandwidth_queue = m_stats_counters[counters::limiter_down_queue];
 
-		s.up_bandwidth_bytes_queue = int(m_upload_rate.queued_bytes());
-		s.down_bandwidth_bytes_queue = int(m_download_rate.queued_bytes());
+		s.up_bandwidth_bytes_queue = m_stats_counters[counters::limiter_up_bytes];
+		s.down_bandwidth_bytes_queue = m_stats_counters[counters::limiter_down_bytes];
 
 		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
 		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];
@@ -5288,6 +5301,7 @@ retry:
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
+			// TODO: 3 replace this call with session_stats
 			m_dht->dht_status(s);
 		}
 		else
@@ -5300,7 +5314,24 @@ retry:
 			s.dht_total_allocations = 0;
 		}
 
-		m_utp_socket_manager.get_status(s.utp_stats);
+		s.utp_stats.packet_loss = m_stats_counters[counters::utp_packet_loss];
+		s.utp_stats.timeout = m_stats_counters[counters::utp_timeout];
+		s.utp_stats.packets_in = m_stats_counters[counters::utp_packets_in];
+		s.utp_stats.packets_out = m_stats_counters[counters::utp_packets_out];
+		s.utp_stats.fast_retransmit = m_stats_counters[counters::utp_fast_retransmit];
+		s.utp_stats.packet_resend = m_stats_counters[counters::utp_packet_resend];
+		s.utp_stats.samples_above_target = m_stats_counters[counters::utp_samples_above_target];
+		s.utp_stats.samples_below_target = m_stats_counters[counters::utp_samples_below_target];
+		s.utp_stats.payload_pkts_in = m_stats_counters[counters::utp_payload_pkts_in];
+		s.utp_stats.payload_pkts_out = m_stats_counters[counters::utp_payload_pkts_out];
+		s.utp_stats.invalid_pkts_in = m_stats_counters[counters::utp_invalid_pkts_in];
+		s.utp_stats.redundant_pkts_in = m_stats_counters[counters::utp_redundant_pkts_in];
+
+		s.utp_stats.num_idle = m_stats_counters[counters::num_utp_idle];
+		s.utp_stats.num_syn_sent = m_stats_counters[counters::num_utp_syn_sent];
+		s.utp_stats.num_connected = m_stats_counters[counters::num_utp_connected];
+		s.utp_stats.num_fin_sent = m_stats_counters[counters::num_utp_fin_sent];
+		s.utp_stats.num_close_wait = m_stats_counters[counters::num_utp_close_wait];
 
 		// this loop is potentially expensive. It could be optimized by
 		// simply keeping a global counter
@@ -5315,6 +5346,7 @@ retry:
 
 		return s;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
 

@@ -230,7 +230,7 @@ namespace libtorrent
 			sent_dht_bytes,
 			recv_dht_bytes,
 
-			// uTP counters
+			// uTP counters.
 			utp_packet_loss,
 			utp_timeout,
 			utp_packets_in,
@@ -407,6 +407,16 @@ namespace libtorrent
 			limiter_down_queue,
 			limiter_up_bytes,
 			limiter_down_bytes,
+
+			// the number of uTP connections in each respective state
+			// these must be defined in the same order as the state_t enum
+			// in utp_stream
+			num_utp_idle,
+			num_utp_syn_sent,
+			num_utp_connected,
+			num_utp_fin_sent,
+			num_utp_close_wait,
+			num_utp_deleted,
 
 			num_counters,
 			num_gauge_counters = num_counters - num_stats_counters

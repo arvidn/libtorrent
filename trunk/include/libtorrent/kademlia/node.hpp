@@ -275,7 +275,9 @@ public:
 		m_running_requests.erase(a);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void status(libtorrent::session_status& s);
+#endif
 
 	libtorrent::dht_settings const& settings() const { return m_settings; }
 	counters& stats_counters() const { return m_counters; }

@@ -17,6 +17,9 @@ struct session_view
 
 	void render();
 
+	void print_utp_stats(bool p) { m_print_utp_stats = p; }
+	bool print_utp_stats() const { return m_print_utp_stats; }
+
 	void update_counters(std::vector<boost::uint64_t>& stats_counters
 		, boost::uint64_t t);
 
@@ -32,6 +35,8 @@ private:
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
 	// respectively. The timestamps are microseconds since session start
 	boost::uint64_t m_timestamp[2];
+
+	bool m_print_utp_stats;
 
 	int m_queued_bytes_idx;
 	int m_wasted_bytes_idx;
@@ -58,6 +63,12 @@ private:
 	int m_mfu_ghost_idx;
 	int m_mru_size_idx;
 	int m_mru_ghost_idx;
+
+	int m_utp_idle;
+	int m_utp_syn_sent;
+	int m_utp_connected;
+	int m_utp_fin_sent;
+	int m_utp_close_wait;
 };
 
 #endif

@@ -1,3 +1,5 @@
+	* deprecated session_status and session::status() in favor of performance
+	  counters.
 	* improve support for HTTP where one direction of the socket is shut down.
 	* remove internal fields from web_seed_entry
 	* separate crypto library configuration <crypto> and whether to support
