@@ -367,7 +367,6 @@ namespace aux {
 #endif
 		, m_socks_listen_port(0)
 		, m_interface_index(0)
-		, m_allowed_upload_slots(8)
 		, m_unchoke_time_scaler(0)
 		, m_auto_manage_time_scaler(0)
 		, m_optimistic_unchoke_time_scaler(0)
@@ -3613,7 +3612,7 @@ retry:
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_allowed_upload_slots == 0) return;
+		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 	
 		std::vector<torrent_peer*> opt_unchoke;
 
@@ -3669,7 +3668,8 @@ retry:
 #endif
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+		int allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
@@ -3916,16 +3916,16 @@ retry:
 					, performance_alert::bittyrant_with_no_uplimit));
 		}
 
-		m_allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+		int allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
 		m_stats_counters.set_value(counters::num_unchoke_slots
-			, m_allowed_upload_slots);
+			, allowed_upload_slots);
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
 
 		// reserve some upload slots for optimistic unchokes
-		int unchoke_set_size = m_allowed_upload_slots;
+		int unchoke_set_size = allowed_upload_slots;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
@@ -5750,16 +5750,16 @@ retry:
 	{
 		int unchoke_limit = m_settings.get_int(settings_pack::unchoke_slots_limit);
 
-		m_allowed_upload_slots = unchoke_limit;
+		int allowed_upload_slots = unchoke_limit;
 		
-		if (m_allowed_upload_slots < 0)
-			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
+		if (allowed_upload_slots < 0)
+			allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
-			, m_allowed_upload_slots);
+			, allowed_upload_slots);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots)
-			>= m_allowed_upload_slots / 2)
+			>= allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -5793,7 +5793,8 @@ retry:
 
 	bool session_impl::preemptive_unchoke() const
 	{
-		return m_stats_counters[counters::num_peers_up_unchoked] < m_allowed_upload_slots
+		return m_stats_counters[counters::num_peers_up_unchoked]
+			< m_stats_counters[counters::num_unchoke_slots]
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
@@ -6466,7 +6467,7 @@ retry:
 
 		if (m_settings.get_int(settings_pack::unchoke_slots_limit) < 0
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
-			TORRENT_ASSERT(m_allowed_upload_slots == (std::numeric_limits<int>::max)());
+			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == (std::numeric_limits<int>::max)());
 
 		for (int l = 0; l < num_torrent_lists; ++l)
 		{
