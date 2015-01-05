@@ -67,6 +67,9 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
+	session_proxy p1;
+	session_proxy p2;
+
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
@@ -199,6 +202,9 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 	st2 = tor2.status();
 	TEST_CHECK(st2.is_seeding);
+
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
@@ -211,6 +217,9 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
+
+	session_proxy p1;
+	session_proxy p2;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
@@ -326,6 +335,9 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 	st2 = tor2.status();
 	TEST_CHECK(st2.is_seeding);
+
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
@@ -336,6 +348,9 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	int const alert_mask = alert::all_categories
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
+
+	session_proxy p1;
+	session_proxy p2;
 
 	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
@@ -460,6 +475,9 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	torrent_status st2 = tor2.status();
 	TEST_CHECK(st2.is_finished);
+
+	p1 = ses1.abort();
+	p2 = ses2.abort();
 }
 
 int test_main()
