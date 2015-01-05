@@ -866,6 +866,9 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 void udp_socket::on_connect_timeout(error_code const& ec)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("udp_socket::on_connect_timeout");
+#endif
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_timeout > 0);
 	--m_outstanding_timeout;
