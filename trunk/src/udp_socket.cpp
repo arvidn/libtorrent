@@ -780,6 +780,9 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 #if TORRENT_USE_ASSERTS
 		++m_outstanding_resolve;
 #endif
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("udp_socket::on_name_lookup");
+#endif
 		m_resolver.async_resolve(q, boost::bind(
 			&udp_socket::on_name_lookup, this, _1, _2));
 	}
@@ -787,6 +790,9 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("udp_socket::on_name_lookup");
+#endif
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_outstanding_resolve > 0);
 	--m_outstanding_resolve;
