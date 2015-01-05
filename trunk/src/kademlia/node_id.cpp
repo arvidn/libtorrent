@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <ctime>
-#include <boost/crc.hpp>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
@@ -42,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
+#include "libtorrent/crc32c.hpp" // for crc32c
 
 namespace libtorrent { namespace dht
 {
@@ -131,12 +131,16 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
-	// TODO: 2 this could be optimized if SSE 4.2 is
-	// available. It could also be optimized given
-	// that we have a fixed length
-	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-	crc.process_block(ip, ip + num_octets);
-	boost::uint32_t c = crc.checksum();
+	boost::uint32_t c;
+	if (num_octets == 4)
+	{
+		c = crc32c_32(*reinterpret_cast<boost::uint32_t*>(ip));
+	}
+	else
+	{
+		TORRENT_ASSERT(num_octets == 8);
+		c = crc32c(reinterpret_cast<boost::uint64_t*>(ip), 1);
+	}
 	node_id id;
 
 	id[0] = (c >> 24) & 0xff;
