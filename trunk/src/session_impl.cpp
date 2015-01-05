@@ -5301,7 +5301,6 @@ retry:
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
 		{
-			// TODO: 3 replace this call with session_stats
 			m_dht->dht_status(s);
 		}
 		else
