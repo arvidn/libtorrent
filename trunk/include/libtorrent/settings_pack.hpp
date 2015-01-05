@@ -67,8 +67,6 @@ namespace libtorrent
 	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
 #endif
 
-	// TODO: 2 add an API to query a settings_pack as well
-
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to

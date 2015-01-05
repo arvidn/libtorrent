@@ -128,7 +128,6 @@ public:
 	}
 #endif
 
-	// TODO: 2 fix error messages to use custom error_code category
 	// TODO: 2 add async_connect() that takes a hostname and port as well
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
