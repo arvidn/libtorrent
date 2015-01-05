@@ -47,15 +47,13 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id175">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id176">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id177">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id178">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id179">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id180">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id181">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id167">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id168">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id169">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id170">session_proxy</a></li>
+<li><a class="reference internal" href="#id38" id="id171">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id172">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id173">dht_routing_bucket</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -541,7 +539,6 @@ class session: public boost::noncopyable
    void <strong>pause</strong> ();
    bool <strong>is_paused</strong> () const;
    void <strong>set_load_function</strong> (user_load_function_t fun);
-   session_status <strong>status</strong> () const;
    void <strong>get_cache_info</strong> (cache_status* ret, torrent_handle h = torrent_handle(), int flags = 0) const;
    feed_handle <strong>add_feed</strong> (feed_settings const&amp; feed);
    void <strong>remove_feed</strong> (feed_handle h);
@@ -805,14 +802,6 @@ to send nor receive any data until the function call returns.</p>
 <pre class="literal-block">
 void fun(sha1_hash const&amp; info_hash, std::vector&lt;char&gt;&amp; buf, error_code&amp; ec);
 </pre>
-<a name="status()"></a></div>
-<div class="section" id="status">
-<h2>status()</h2>
-<pre class="literal-block">
-session_status <strong>status</strong> () const;
-</pre>
-<p>returns <a class="reference external" href="reference-Session.html#session">session</a> wide-statistics and status. For more information, see
-the <tt class="docutils literal">session_status</tt> struct.</p>
 <a name="get_cache_info()"></a></div>
 <div class="section" id="get-cache-info">
 <h2>get_cache_info()</h2>
@@ -893,7 +882,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id102">
+<div class="section" id="id101">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -915,7 +904,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id104">
+<div class="section" id="id103">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1492,12 +1481,14 @@ factor</dd>
 <div class="section" id="dht-routing-bucket">
 <h1>dht_routing_bucket</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_status.hpp">libtorrent/session_status.hpp</a>&quot;</p>
-<p>holds dht routing table stats</p>
+<p>TODO: 3 add accessors to query the DHT state (post the result as an <a class="reference external" href="reference-Alerts.html#alert">alert</a>)
+holds dht routing table stats</p>
 <pre class="literal-block">
 struct dht_routing_bucket
 {
    int num_nodes;
    int num_replacements;
+   int last_active;
 };
 </pre>
 <a name="num_nodes"></a>
@@ -1506,245 +1497,9 @@ struct dht_routing_bucket
 <dd>the total number of nodes and replacement nodes
 in the routing table</dd>
 </dl>
-<a name="utp_status"></a></div>
-<div class="section" id="utp-status">
-<h1>utp_status</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_status.hpp">libtorrent/session_status.hpp</a>&quot;</p>
-<p>holds counters and gauges for the uTP sockets</p>
-<pre class="literal-block">
-struct utp_status
-{
-   int num_idle;
-   int num_syn_sent;
-   int num_connected;
-   int num_fin_sent;
-   int num_close_wait;
-};
-</pre>
-<a name="num_idle"></a>
-<a name="num_syn_sent"></a>
-<a name="num_connected"></a>
-<a name="num_fin_sent"></a>
-<a name="num_close_wait"></a><dl class="docutils">
-<dt>num_idle  num_syn_sent  num_connected  num_fin_sent  num_close_wait</dt>
-<dd>gauges. These are snapshots of the number of
-uTP sockets in each respective state</dd>
-</dl>
-<a name="session_status"></a></div>
-<div class="section" id="session-status">
-<h1>session_status</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_status.hpp">libtorrent/session_status.hpp</a>&quot;</p>
-<p>contains <a class="reference external" href="reference-Session.html#session">session</a> wide state and counters</p>
-<pre class="literal-block">
-struct session_status
-{
-   bool has_incoming_connections;
-   int upload_rate;
-   int download_rate;
-   boost::int64_t total_download;
-   boost::int64_t total_upload;
-   int payload_upload_rate;
-   int payload_download_rate;
-   boost::int64_t total_payload_download;
-   boost::int64_t total_payload_upload;
-   int ip_overhead_upload_rate;
-   int ip_overhead_download_rate;
-   boost::int64_t total_ip_overhead_download;
-   boost::int64_t total_ip_overhead_upload;
-   int dht_upload_rate;
-   int dht_download_rate;
-   boost::int64_t total_dht_download;
-   boost::int64_t total_dht_upload;
-   int tracker_upload_rate;
-   int tracker_download_rate;
-   boost::int64_t total_tracker_download;
-   boost::int64_t total_tracker_upload;
-   boost::int64_t total_redundant_bytes;
-   boost::int64_t total_failed_bytes;
-   int num_peers;
-   int num_dead_peers;
-   int num_unchoked;
-   int allowed_upload_slots;
-   int up_bandwidth_queue;
-   int down_bandwidth_queue;
-   int up_bandwidth_bytes_queue;
-   int down_bandwidth_bytes_queue;
-   int optimistic_unchoke_counter;
-   int unchoke_counter;
-   int disk_write_queue;
-   int disk_read_queue;
-   int dht_nodes;
-   int dht_node_cache;
-   int dht_torrents;
-   boost::int64_t dht_global_nodes;
-   std::vector&lt;dht_lookup&gt; active_requests;
-   std::vector&lt;dht_routing_bucket&gt; dht_routing_table;
-   int dht_total_allocations;
-   utp_status utp_stats;
-   int peerlist_size;
-   int num_torrents;
-   int num_paused_torrents;
-};
-</pre>
-<a name="has_incoming_connections"></a><dl class="docutils">
-<dt>has_incoming_connections</dt>
-<dd>false as long as no incoming connections have been
-established on the listening socket. Every time you change the listen port, this will
-be reset to false.</dd>
-</dl>
-<a name="upload_rate"></a>
-<a name="download_rate"></a><dl class="docutils">
-<dt>upload_rate  download_rate</dt>
-<dd>the total download and upload rates accumulated
-from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
-protocol overhead.</dd>
-</dl>
-<a name="total_download"></a>
-<a name="total_upload"></a><dl class="docutils">
-<dt>total_download  total_upload</dt>
-<dd>the total number of bytes downloaded and
-uploaded to and from all torrents. This also includes all the protocol overhead.</dd>
-</dl>
-<a name="payload_upload_rate"></a>
-<a name="payload_download_rate"></a><dl class="docutils">
-<dt>payload_upload_rate  payload_download_rate</dt>
-<dd>the rate of the payload
-down- and upload only.</dd>
-</dl>
-<a name="total_payload_download"></a>
-<a name="total_payload_upload"></a><dl class="docutils">
-<dt>total_payload_download  total_payload_upload</dt>
-<dd>the total transfers of payload
-only. The payload does not include the bittorrent protocol overhead, but only parts of the
-actual files to be downloaded.</dd>
-</dl>
-<a name="ip_overhead_upload_rate"></a>
-<a name="ip_overhead_download_rate"></a>
-<a name="total_ip_overhead_download"></a>
-<a name="total_ip_overhead_upload"></a><dl class="docutils">
-<dt>ip_overhead_upload_rate  ip_overhead_download_rate  total_ip_overhead_download  total_ip_overhead_upload</dt>
-<dd>the estimated TCP/IP overhead in each direction.</dd>
-</dl>
-<a name="dht_upload_rate"></a>
-<a name="dht_download_rate"></a>
-<a name="total_dht_download"></a>
-<a name="total_dht_upload"></a><dl class="docutils">
-<dt>dht_upload_rate  dht_download_rate  total_dht_download  total_dht_upload</dt>
-<dd>the upload and download rate used by DHT traffic. Also the total number
-of bytes sent and received to and from the DHT.</dd>
-</dl>
-<a name="tracker_upload_rate"></a>
-<a name="tracker_download_rate"></a>
-<a name="total_tracker_download"></a>
-<a name="total_tracker_upload"></a><dl class="docutils">
-<dt>tracker_upload_rate  tracker_download_rate  total_tracker_download  total_tracker_upload</dt>
-<dd>the upload and download rate used by tracker traffic. Also the total number
-of bytes sent and received to and from trackers.</dd>
-</dl>
-<a name="total_redundant_bytes"></a><dl class="docutils">
-<dt>total_redundant_bytes</dt>
-<dd>the number of bytes that has been received more than once.
-This can happen if a request from a peer times out and is requested from a different
-peer, and then received again from the first one. To make this lower, increase the
-<tt class="docutils literal">request_timeout</tt> and the <tt class="docutils literal">piece_timeout</tt> in the <a class="reference external" href="reference-Session.html#session">session</a> settings.</dd>
-</dl>
-<a name="total_failed_bytes"></a><dl class="docutils">
-<dt>total_failed_bytes</dt>
-<dd>the number of bytes that was downloaded which later failed
-the hash-check.</dd>
-</dl>
-<a name="num_peers"></a><dl class="docutils">
-<dt>num_peers</dt>
-<dd>the total number of peer connections this <a class="reference external" href="reference-Session.html#session">session</a> has. This includes
-incoming connections that still hasn't sent their handshake or outgoing connections
-that still hasn't completed the TCP connection. This number may be slightly higher
-than the sum of all peers of all torrents because the incoming connections may not
-be assigned a torrent yet.</dd>
-</dl>
-<a name="num_unchoked"></a><dl class="docutils">
-<dt>num_unchoked</dt>
-<dd>the current number of unchoked peers.</dd>
-</dl>
-<a name="allowed_upload_slots"></a><dl class="docutils">
-<dt>allowed_upload_slots</dt>
-<dd>the current allowed number of unchoked peers.</dd>
-</dl>
-<a name="up_bandwidth_queue"></a>
-<a name="down_bandwidth_queue"></a><dl class="docutils">
-<dt>up_bandwidth_queue  down_bandwidth_queue</dt>
-<dd>the number of peers that are
-waiting for more bandwidth quota from the torrent rate limiter.</dd>
-</dl>
-<a name="up_bandwidth_bytes_queue"></a>
-<a name="down_bandwidth_bytes_queue"></a><dl class="docutils">
-<dt>up_bandwidth_bytes_queue  down_bandwidth_bytes_queue</dt>
-<dd>count the number of
-bytes the connections are waiting for to be able to send and receive.</dd>
-</dl>
-<a name="optimistic_unchoke_counter"></a>
-<a name="unchoke_counter"></a><dl class="docutils">
-<dt>optimistic_unchoke_counter  unchoke_counter</dt>
-<dd>tells the number of
-seconds until the next optimistic unchoke change and the start of the next
-unchoke interval. These numbers may be reset prematurely if a peer that is
-unchoked disconnects or becomes notinterested.</dd>
-</dl>
-<a name="disk_write_queue"></a>
-<a name="disk_read_queue"></a><dl class="docutils">
-<dt>disk_write_queue  disk_read_queue</dt>
-<dd>the number of peers currently
-waiting on a disk write or disk read to complete before it receives or sends
-any more data on the socket. It'a a metric of how disk bound you are.</dd>
-</dl>
-<a name="dht_nodes"></a>
-<a name="dht_node_cache"></a><dl class="docutils">
-<dt>dht_nodes  dht_node_cache</dt>
-<dd>only available when
-built with DHT support. They are all set to 0 if the DHT isn't running. When
-the DHT is running, <tt class="docutils literal">dht_nodes</tt> is set to the number of nodes in the routing
-table. This number only includes <em>active</em> nodes, not cache nodes. The
-<tt class="docutils literal">dht_node_cache</tt> is set to the number of nodes in the node cache. These nodes
-are used to replace the regular nodes in the routing table in case any of them
-becomes unresponsive.</dd>
-</dl>
-<a name="dht_torrents"></a><dl class="docutils">
-<dt>dht_torrents</dt>
-<dd>the number of torrents tracked by the DHT at the moment.</dd>
-</dl>
-<a name="dht_global_nodes"></a><dl class="docutils">
-<dt>dht_global_nodes</dt>
-<dd>an estimation of the total number of nodes in the DHT
-network.</dd>
-</dl>
-<a name="active_requests"></a><dl class="docutils">
-<dt>active_requests</dt>
-<dd>a vector of the currently running DHT lookups.</dd>
-</dl>
-<a name="dht_routing_table"></a><dl class="docutils">
-<dt>dht_routing_table</dt>
-<dd>contains information about every bucket in the DHT routing
-table.</dd>
-</dl>
-<a name="dht_total_allocations"></a><dl class="docutils">
-<dt>dht_total_allocations</dt>
-<dd>the number of nodes allocated dynamically for a
-particular DHT lookup. This represents roughly the amount of memory used
-by the DHT.</dd>
-</dl>
-<a name="utp_stats"></a><dl class="docutils">
-<dt>utp_stats</dt>
-<dd>statistics on the uTP sockets.</dd>
-</dl>
-<a name="peerlist_size"></a><dl class="docutils">
-<dt>peerlist_size</dt>
-<dd>the number of known peers across all torrents. These are not necessarily
-connected peers, just peers we know of.</dd>
-</dl>
-<a name="num_torrents"></a>
-<a name="num_paused_torrents"></a><dl class="docutils">
-<dt>num_torrents  num_paused_torrents</dt>
-<dd>the number of torrents in the
-<a class="reference external" href="reference-Session.html#session">session</a> and the number of them that are currently paused, respectively.</dd>
+<a name="last_active"></a><dl class="docutils">
+<dt>last_active</dt>
+<dd>number of seconds since last activity</dd>
 </dl>
 <a name="find_metric_idx()"></a><div class="section" id="find-metric-idx">
 <h2>find_metric_idx()</h2>
