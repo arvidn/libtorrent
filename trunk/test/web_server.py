@@ -124,6 +124,10 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					s.send_header('Content-Encoding', 'gzip')
 				if not keepalive:
 					s.send_header("Connection", "close")
+					try:
+						s.request.shutdown(SHUT_RD);
+					except Exception, e:
+						print 'Failed to shutdown read-channel of socket: ', e
 
 				s.end_headers()
    
