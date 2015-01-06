@@ -4019,7 +4019,7 @@ namespace libtorrent
 			else m_counters.inc_stats_counter(counters::error_incoming_peers);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			if (type() == bittorrent_connection)
+			if (type() == bittorrent_connection && op != op_connect)
 			{
 				bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
 				if (bt->supports_encryption()) m_counters.inc_stats_counter(

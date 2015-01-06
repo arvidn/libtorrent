@@ -1899,32 +1899,38 @@ retry:
 		}
 
 #ifdef TORRENT_USE_OPENSSL
-		// TODO: 2 use bind_to_device in udp_socket
 		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
-		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
-		m_ssl_udp_socket.bind(ssl_bind_if, ec);
-		if (ec)
+
+		// if ssl port is 0, we don't want to listen on an SSL port
+		if (ssl_port != 0)
 		{
-#if defined TORRENT_LOGGING
-			session_log("SSL: cannot bind to UDP interface \"%s\": %s"
-				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
-#endif
-			if (m_alerts.should_post<listen_failed_alert>())
+			udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
+
+			// TODO: 2 use bind_to_device in udp_socket
+			m_ssl_udp_socket.bind(ssl_bind_if, ec);
+			if (ec)
 			{
-				error_code err;
-				m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
-					, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
-			}
-			ec.clear();
-		}
-		else
-		{
-			if (m_alerts.should_post<listen_succeeded_alert>())
-				m_alerts.post_alert(listen_succeeded_alert(
-					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
-					, listen_succeeded_alert::utp_ssl));
-		}
+#if defined TORRENT_LOGGING
+				session_log("SSL: cannot bind to UDP interface \"%s\": %s"
+					, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					error_code err;
+					m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
+							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
+				}
+				ec.clear();
+			}
+			else
+			{
+				if (m_alerts.should_post<listen_succeeded_alert>())
+					m_alerts.post_alert(listen_succeeded_alert(
+							tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
+							, listen_succeeded_alert::utp_ssl));
+			}
+		}
+#endif // TORRENT_USE_OPENSSL
 
 		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);

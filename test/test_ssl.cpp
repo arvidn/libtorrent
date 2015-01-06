@@ -60,6 +60,7 @@ struct test_config_t
 	bool use_ssl_ports;
 	bool seed_has_cert;
 	bool downloader_has_cert;
+	bool downloader_has_ssl_listen_port;
 	bool expected_to_complete;
 	int peer_errors;
 	int ssl_disconnects;
@@ -67,14 +68,18 @@ struct test_config_t
 
 test_config_t test_config[] =
 {
-	{"nobody has a cert (connect to regular port)", false, false, false, false, 0, 0},
-	{"nobody has a cert (connect to ssl port)", true, false, false, false, 1, 1},
-	{"seed has a cert, but not downloader (connect to regular port)", false, true, false, false, 0, 0},
-	{"seed has a cert, but not downloader (connect to ssl port)", true, true, false, false, 1, 1},
-	{"downloader has a cert, but not seed (connect to regular port)", false, false, true, false, 0, 0},
-	{"downloader has a cert, but not seed (connect to ssl port)", true, false, true, false, 1, 1},
-	{"both downloader and seed has a cert (connect to regular port)", false, true, true, false, 0, 0},
-	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, true, 0, 0},
+	// name                                                              sslport sd-cert dl-cert dl-port expect peer-error ssl-disconn
+	{"nobody has a cert (connect to regular port)",                      false,  false,  false,  true,   false, 0, 1},
+	{"nobody has a cert (connect to ssl port)",                          true,   false,  false,  true,   false, 1, 1},
+	{"seed has a cert, but not downloader (connect to regular port)",    false,  true,   false,  true,   false, 0, 1},
+	{"seed has a cert, but not downloader (connect to ssl port)",        true,   true,   false,  true,   false, 1, 1},
+	{"downloader has a cert, but not seed (connect to regular port)",    false,  false,  true,   true,   false, 0, 1},
+	{"downloader has a cert, but not seed (connect to ssl port)",        true,   false,  true,   true,   false, 1, 1},
+	{"both downloader and seed has a cert (connect to regular port)",    false,  true,   true,   true,   false, 0, 1},
+	{"both downloader and seed has a cert (connect to ssl port)",        true,   true,   true,   true,   true,  0, 0},
+	// there is a disconnect (or failed connection attempt), that's not a peer
+	// error though, so both counters stay 0
+	{"both downloader and seed has a cert (downloader has no SSL port)", true,   true,   true,   false,  false, 0, 0},
 };
 
 int peer_disconnects = 0;
@@ -131,15 +136,16 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
+	// if a pwer fails once, don't try it again
+	sett.set_int(settings_pack::max_failcount, 1);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
 	libtorrent::session ses1(sett, 0);
 
-	if (!test.downloader_has_cert)
-		// this disables outgoing SSL connections
-		sett.set_int(settings_pack::ssl_listen, 0);
-	else
+	if (test.downloader_has_ssl_listen_port)
 		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
+	else
+		sett.set_int(settings_pack::ssl_listen, 0);
 
 	libtorrent::session ses2(sett, 0);
 
@@ -192,9 +198,11 @@ void test_ssl(int test_idx, bool use_utp)
 	// connect the peers after setting the certificates
 	int port = 0;
 	if (test.use_ssl_ports)
-		port = ses2.ssl_listen_port();
-
-	if (port == 0)
+		if (test.downloader_has_ssl_listen_port)
+			port = ses2.ssl_listen_port();
+		else
+			port = 13512;
+	else
 		port = ses2.listen_port();
 
 	fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
@@ -257,14 +265,14 @@ void test_ssl(int test_idx, bool use_utp)
 
 	fprintf(stderr, "peer_errors: %d expected_errors: %d\n"
 		, peer_errors, test.peer_errors);
-	TEST_EQUAL(peer_errors, test.peer_errors);
+	TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
 
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
-	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
+	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
 
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
-	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
+	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
