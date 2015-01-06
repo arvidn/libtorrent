@@ -36,12 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
 #include <boost/function/function2.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #if defined TORRENT_LOGGING
 #include <stdio.h>
@@ -52,18 +52,20 @@ namespace libtorrent
 
 typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 
-class lsd : public intrusive_ptr_base<lsd>
+class lsd : public boost::enable_shared_from_this<lsd>
 {
 public:
 	lsd(io_service& ios, peer_callback_t const& cb);
 	~lsd();
 
-//	void rebind(address const& listen_interface);
+	void start();
 
 	void announce(sha1_hash const& ih, int listen_port, bool broadcast = false);
 	void close();
 
 private:
+
+	boost::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port
 		, bool broadcast, int retry_count);

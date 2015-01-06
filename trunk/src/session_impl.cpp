@@ -1989,7 +1989,7 @@ retry:
 
 	void session_impl::remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port)
 	{
-		if ((mask & 1) && m_natpmp.get())
+		if ((mask & 1) && m_natpmp)
 		{
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
@@ -1999,7 +1999,7 @@ retry:
 				, ssl_port, ssl_port);
 #endif
 		}
-		if ((mask & 2) && m_upnp.get())
+		if ((mask & 2) && m_upnp)
 		{
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
@@ -2841,7 +2841,8 @@ retry:
 		if (now - m_last_second_tick < seconds(1)) return;
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht_interval_update_torrents < 40
+		if (m_dht
+			&& m_dht_interval_update_torrents < 40
 			&& m_dht_interval_update_torrents != int(m_torrents.size()))
 			update_dht_announce_interval();
 #endif
@@ -5135,7 +5136,7 @@ retry:
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
 		// use internal listen port for local peers
-		if (m_lsd.get())
+		if (m_lsd)
 			m_lsd->announce(ih, port, broadcast);
 	}
 
@@ -5514,7 +5515,7 @@ retry:
 	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
 	{
 		int local, external, protocol;
-		if (nat == 0 && m_natpmp.get())
+		if (nat == 0 && m_natpmp)
 		{
 			if (m_udp_mapping[nat] != -1)
 			{
@@ -5530,7 +5531,7 @@ retry:
 				, local_port, external_port);
 			return;
 		}
-		else if (nat == 1 && m_upnp.get())
+		else if (nat == 1 && m_upnp)
 		{
 			if (m_udp_mapping[nat] != -1)
 			{
@@ -6206,7 +6207,7 @@ retry:
 
 		if (m_lsd) return;
 
-		m_lsd = new lsd(m_io_service
+		m_lsd = boost::make_shared<lsd>(m_io_service
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
@@ -6218,15 +6219,12 @@ retry:
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		natpmp* n = new (std::nothrow) natpmp(m_io_service
-			, m_listen_interface.address()
+		m_natpmp = boost::make_shared<natpmp>(m_io_service
 			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
-		if (n == 0) return 0;
-
-		m_natpmp = n;
+		m_natpmp->start();
 
 		int ssl_port = ssl_listen_port();
 
@@ -6246,7 +6244,7 @@ retry:
 				, ssl_port, ssl_port);
 		}
 #endif
-		return n;
+		return m_natpmp.get();
 	}
 
 	upnp* session_impl::start_upnp()
@@ -6256,7 +6254,7 @@ retry:
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		upnp* u = new (std::nothrow) upnp(m_io_service
+		m_upnp = boost::make_shared<upnp>(m_io_service
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
@@ -6264,10 +6262,7 @@ retry:
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
-
-		if (u == 0) return 0;
-
-		m_upnp = u;
+		m_upnp->start();
 
 		int ssl_port = ssl_listen_port();
 
@@ -6288,7 +6283,7 @@ retry:
 				, ssl_port, ssl_port);
 		}
 #endif
-		return u;
+		return m_upnp.get();
 	}
 
 	int session_impl::add_port_mapping(int t, int external_port
@@ -6310,14 +6305,14 @@ retry:
 
 	void session_impl::stop_lsd()
 	{
-		if (m_lsd.get())
+		if (m_lsd)
 			m_lsd->close();
-		m_lsd = 0;
+		m_lsd.reset();
 	}
 	
 	void session_impl::stop_natpmp()
 	{
-		if (m_natpmp.get())
+		if (m_natpmp)
 		{
 			m_natpmp->close();
 			m_udp_mapping[0] = -1;
@@ -6327,12 +6322,12 @@ retry:
 			m_ssl_udp_mapping[0] = -1;
 #endif
 		}
-		m_natpmp = 0;
+		m_natpmp.reset();
 	}
 	
 	void session_impl::stop_upnp()
 	{
-		if (m_upnp.get())
+		if (m_upnp)
 		{
 			m_upnp->close();
 			m_udp_mapping[1] = -1;
@@ -6342,7 +6337,7 @@ retry:
 			m_ssl_udp_mapping[1] = -1;
 #endif
 		}
-		m_upnp = 0;
+		m_upnp.reset();
 	}
 
 	external_ip const& session_impl::external_address() const

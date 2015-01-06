@@ -1010,9 +1010,9 @@ namespace libtorrent
 			// this is deducted from the connect speed
 			int m_boost_connections;
 
-			boost::intrusive_ptr<natpmp> m_natpmp;
-			boost::intrusive_ptr<upnp> m_upnp;
-			boost::intrusive_ptr<lsd> m_lsd;
+			boost::shared_ptr<natpmp> m_natpmp;
+			boost::shared_ptr<upnp> m_upnp;
+			boost::shared_ptr<lsd> m_lsd;
 
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP
