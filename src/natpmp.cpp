@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-natpmp::natpmp(io_service& ios, address const& listen_interface
+natpmp::natpmp(io_service& ios
 	, portmap_callback_t const& cb, log_callback_t const& lcb)
 	: m_callback(cb)
 	, m_log_callback(lcb)
@@ -80,10 +80,9 @@ natpmp::natpmp(io_service& ios, address const& listen_interface
 	// for this array not to be reallocated, by passing
 	// around pointers to its elements. so reserve size for now
 	m_mappings.reserve(10);
-	rebind(listen_interface);
 }
 
-void natpmp::rebind(address const& listen_interface)
+void natpmp::start()
 {
 	mutex::scoped_lock l(m_mutex);
 

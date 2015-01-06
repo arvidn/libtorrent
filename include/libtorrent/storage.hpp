@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
 #include <boost/unordered_set.hpp>
 #include <boost/atomic.hpp>
 

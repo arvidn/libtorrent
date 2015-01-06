@@ -3163,7 +3163,7 @@ namespace libtorrent
 		i->locked = true;
 	}
 
-	// TODO: 3 it would be nice if this could be folded into lock_piece()
+	// TODO: 2 it would be nice if this could be folded into lock_piece()
 	// the main distinction is that this also maintains the m_num_passed
 	// counter and the passed_hash_check member
 	void piece_picker::write_failed(piece_block block)

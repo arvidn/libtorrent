@@ -72,15 +72,14 @@ static error_code ec;
 upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, log_callback_t const& lcb
-	, bool ignore_nonrouters, void* state)
+	, bool ignore_nonrouters)
 	: m_user_agent(user_agent)
 	, m_callback(cb)
 	, m_log_callback(lcb)
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_resolver(ios)
-	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900)
-		, boost::bind(&upnp::on_reply, self(), _1, _2, _3))
+	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
@@ -90,9 +89,13 @@ upnp::upnp(io_service& ios
 	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
+}
 
+void upnp::start(void* state)
+{
 	error_code ec;
-	m_socket.open(ios, ec);
+	m_socket.open(boost::bind(&upnp::on_reply, self(), _1, _2, _3)
+		, m_refresh_timer.get_io_service(), ec);
 
 	if (state)
 	{
@@ -275,7 +278,7 @@ void upnp::resend_request(error_code const& ec)
 #endif
 	if (ec) return;
 
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 
@@ -330,7 +333,7 @@ void upnp::resend_request(error_code const& ec)
 void upnp::on_reply(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
 {
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 
@@ -742,7 +745,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 	if (d.upnp_connection) return;
 
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mapping_t& m = d.mapping[i];
 
@@ -920,7 +923,7 @@ void upnp::on_upnp_xml(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d
 	, http_connection& c)
 {
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 
@@ -1227,7 +1230,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d
 	, http_connection& c)
 {
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 
@@ -1307,7 +1310,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c)
 {
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 
@@ -1475,7 +1478,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d, int mapping
 	, http_connection& c)
 {
-	boost::intrusive_ptr<upnp> me(self());
+	boost::shared_ptr<upnp> me(self());
 
 	mutex::scoped_lock l(m_mutex);
 

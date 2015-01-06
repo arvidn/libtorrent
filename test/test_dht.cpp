@@ -433,7 +433,7 @@ bool get_item_cb(dht::item& i)
 	return false;
 }
 
-// TODO: 3 test obfuscated_get_peers
+// TODO: 2 test obfuscated_get_peers
 int test_main()
 {
 	dht_settings sett;

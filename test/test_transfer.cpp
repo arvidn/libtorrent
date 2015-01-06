@@ -285,7 +285,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		// us catch all events that failed (and would put the torrent
 		// back into upload mode) before we restart it.
 
-		// TODO: 3 factor out the disk-full test into its own unit test
+		// TODO: 2 factor out the disk-full test into its own unit test
 		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;

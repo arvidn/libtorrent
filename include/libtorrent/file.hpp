@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/noncopyable.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -216,15 +215,15 @@ namespace libtorrent
 
 		char stack[2048];
 	private:
-		boost::intrusive_ptr<file> m_file;
+		boost::shared_ptr<file> m_file;
 	};
 
 	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
 #else
-typedef boost::intrusive_ptr<file> file_handle;
+	typedef boost::shared_ptr<file> file_handle;
 #endif
 
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
+	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
 	{
 		// the open mode for files. Used for the file constructor or
 		// file::open().

@@ -40,6 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
+namespace libtorrent
+{
+	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
+}
+
 namespace libtorrent { namespace aux
 {
 
@@ -65,12 +70,12 @@ namespace libtorrent { namespace aux
 		void set_bool(int name, bool value) { SET(bool); }
 		bool get_bool(int name) const { GET(bool, false); }
 
-		session_settings() { initialize_default_settings(*this); }
+		session_settings();
 
 	private:
 		std::string m_strings[settings_pack::num_string_settings];
 		int m_ints[settings_pack::num_int_settings];
-		// TODO: 2 make this a bitfield
+		// TODO: make this a bitfield
 		bool m_bools[settings_pack::num_bool_settings];
 	};
 

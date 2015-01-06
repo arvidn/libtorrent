@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,57 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_INTRUSIVE_PTR_BASE
-#define TORRENT_INTRUSIVE_PTR_BASE
+#include "libtorrent/aux_/session_settings.hpp"
 
-#include <boost/checked_delete.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
-#include <boost/atomic.hpp>
-
-namespace libtorrent
+namespace libtorrent { namespace aux
 {
-	// TODO: 2 remove this class and transition over to using shared_ptr and
-	// make_shared instead
-	template<class T>
-	struct intrusive_ptr_base
+	session_settings::session_settings()
 	{
-		intrusive_ptr_base(intrusive_ptr_base<T> const&)
-			: m_refs(0) {}
-
-		friend void intrusive_ptr_add_ref(intrusive_ptr_base<T> const* s)
-		{
-			TORRENT_ASSERT(s != 0);
-			TORRENT_ASSERT(s->m_refs >= 0);
-			++s->m_refs;
-		}
-
-		friend void intrusive_ptr_release(intrusive_ptr_base<T> const* s)
-		{
-			TORRENT_ASSERT(s != 0);
-			TORRENT_ASSERT(s->m_refs > 0);
-			if (--s->m_refs == 0)
-				boost::checked_delete(static_cast<T const*>(s));
-		}
-
-		boost::intrusive_ptr<T> self()
-		{ return boost::intrusive_ptr<T>((T*)this); }
-
-		boost::intrusive_ptr<const T> self() const
-		{ return boost::intrusive_ptr<const T>((T const*)this); }
-
-		int refcount() const { return m_refs; }
-
-		intrusive_ptr_base(): m_refs(0) {}
-
-	private:
-
-		// reference counter for intrusive_ptr
-		mutable boost::atomic<int> m_refs;
-	};
-
-}
-
-#endif
+		initialize_default_settings(*this);
+	}
+} }
 

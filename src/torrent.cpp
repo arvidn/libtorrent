@@ -7710,7 +7710,7 @@ namespace libtorrent
 			// if it's lower rank than the incoming connection
 			peer_connection* peer = find_lowest_ranking_peer();
 
-			// TODO: 3 if peer is a really good peer, maybe we shouldn't disconnect it
+			// TODO: 2 if peer is a really good peer, maybe we shouldn't disconnect it
 			if (peer && peer->peer_rank() < p->peer_rank())
 			{
 				peer->disconnect(errors::too_many_connections, peer_connection_interface::op_bittorrent);

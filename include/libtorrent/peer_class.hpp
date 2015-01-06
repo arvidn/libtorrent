@@ -33,13 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_HPP_INCLUDED
 
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <vector>
 #include <string>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr.hpp>
 #include <boost/cstdint.hpp>
 
 namespace libtorrent
@@ -83,7 +82,7 @@ namespace libtorrent
 		int download_priority;
 	};
 
-	struct TORRENT_EXTRA_EXPORT peer_class : intrusive_ptr_base<peer_class>
+	struct TORRENT_EXTRA_EXPORT peer_class : boost::enable_shared_from_this<peer_class>
 	{
 		friend struct peer_class_pool;
 
@@ -136,7 +135,7 @@ namespace libtorrent
 
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
-		std::vector<boost::intrusive_ptr<peer_class> > m_peer_classes;
+		std::vector<boost::shared_ptr<peer_class> > m_peer_classes;
 
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;
