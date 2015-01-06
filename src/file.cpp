@@ -157,7 +157,7 @@ namespace
 	// wrap the windows function in something that looks
 	// like preadv() and pwritev()
 
-	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, libtorrent::boost::int64_t file_offset)
+	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -219,7 +219,7 @@ done:
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, libtorrent::boost::int64_t file_offset)
+	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
