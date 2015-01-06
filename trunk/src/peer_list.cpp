@@ -457,6 +457,7 @@ namespace libtorrent
 			|| p.web_seed
 			|| !p.connectable
 			|| (p.seed && m_finished)
+			// TODO: 3 settings_pack::max_failcount should be used here, not 3
 			|| int(p.failcount) >= 3)
 			return false;
 		
