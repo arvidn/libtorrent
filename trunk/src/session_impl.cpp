@@ -6213,7 +6213,7 @@ retry:
 
 		if (m_lsd) return;
 
-		m_lsd = boost::make_shared<lsd>(m_io_service
+		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
@@ -6225,7 +6225,7 @@ retry:
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = boost::make_shared<natpmp>(m_io_service
+		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, 0)
 			, boost::bind(&session_impl::on_port_map_log
@@ -6260,7 +6260,7 @@ retry:
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = boost::make_shared<upnp>(m_io_service
+		m_upnp = boost::make_shared<upnp>(boost::ref(m_io_service)
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
