@@ -941,11 +941,7 @@ namespace libtorrent
 			//   disabled, enabling this may reduce performance.
 			// 
 			// One reason to disable caching is that it may help the operating
-			// system from growing its file cache indefinitely. Since some OSes
-			// only allow aligned files to be opened in unbuffered mode, It is
-			// recommended to make the largest file in a torrent the first file
-			// (with offset 0) or use pad files to align all files to piece
-			// boundries.
+			// system from growing its file cache indefinitely.
 			disk_io_write_mode,
 			disk_io_read_mode,
 

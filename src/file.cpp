@@ -1309,6 +1309,9 @@ namespace libtorrent
 #ifdef O_DIRECT
 			| ((mode & direct_io) ? O_DIRECT : 0)
 #endif
+#ifdef O_SYNC
+			| ((mode & no_cache) ? O_SYNC: 0)
+#endif
 			, permissions);
 
 #ifdef O_NOATIME
