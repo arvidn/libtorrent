@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #ifdef TORRENT_WINDOWS
-#include <direct.h> // for _mkdir
+#include <direct.h> // for _mkdir and _getcwd
 #include <sys/types.h> // for _stat
 #include <sys/stat.h>
 #endif
@@ -640,7 +640,11 @@ std::string path_to_url(std::string f)
 	if (!is_absolute_path(f))
 	{
 		char cwd[TORRENT_MAX_PATH];
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+		_getcwd(cwd, sizeof(cwd));
+#else
 		getcwd(cwd, sizeof(cwd));
+#endif
 		f = path_append(cwd, f);
 	}
 
