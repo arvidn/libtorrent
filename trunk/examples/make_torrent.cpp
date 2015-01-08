@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
+#ifdef TORRENT_WINDOWS
+#include <direct.h> // for _getcwd
+#endif
+
 using namespace libtorrent;
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
@@ -284,10 +288,11 @@ int main(int argc, char* argv[])
 #endif
 		{
 			char cwd[TORRENT_MAX_PATH];
-			getcwd(cwd, sizeof(cwd));
 #ifdef TORRENT_WINDOWS
+			_getcwd(cwd, sizeof(cwd));
 			full_path = cwd + ("\\" + full_path);
 #else
+			getcwd(cwd, sizeof(cwd));
 			full_path = cwd + ("/" + full_path);
 #endif
 		}
