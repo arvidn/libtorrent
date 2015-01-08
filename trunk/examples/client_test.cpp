@@ -716,11 +716,8 @@ std::vector<std::string> list_dir(std::string path
 	if (!path.empty() && path[path.size()-1] != '\\') path += "\\*";
 	else path += "*";
 
-	std::wstring wpath;
-	libtorrent::utf8_wchar(path, wpath);
-
-	WIN32_FIND_DATAW fd;
-	HANDLE handle = FindFirstFileW(wpath.c_str(), &fd);
+	WIN32_FIND_DATAA fd;
+	HANDLE handle = FindFirstFileA(path.c_str(), &fd);
 	if (handle == INVALID_HANDLE_VALUE)
 	{
 		ec.assign(GetLastError(), boost::system::system_category());
@@ -729,12 +726,11 @@ std::vector<std::string> list_dir(std::string path
 
 	do
 	{
-		std::string p;
-		libtorrent::wchar_utf8(fd.cFileName, p);
+		std::string p = fd.cFileName;
 		if (filter_fun(p))
 			ret.push_back(p);
 	
-	} while (FindNextFileW(handle, &fd));
+	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
 #else
 
