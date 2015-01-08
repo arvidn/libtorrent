@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/connection_queue.hpp"
+#include "libtorrent/random.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
@@ -204,6 +205,10 @@ void callback(int mapping, address const& ip, int port, error_code const& err)
 
 int test_main()
 {
+	using namespace libtorrent;
+
+	random_seed(total_microseconds(time_now_hires() - min_time()));
+
 	libtorrent::io_service ios;
 	
 	g_port = start_web_server();
