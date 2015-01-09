@@ -73,9 +73,10 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			piece = int(args['piece'])
 			ranges = args['ranges'].split('-')
 
+			filename = ''
 			try:
-				filename = s.path[1:s.path.find('seed?') + 4].replace('/', '\\')
-				#print 'filename = %s' % filename
+				filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
+				print 'filename = %s' % filename
 				f = open(filename, 'rb')
 				f.seek(piece * 64 * 1024 + int(ranges[0]))
 				data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
@@ -87,13 +88,14 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 				s.wfile.write(data);
 			except Exception, e:
-				print 'FILE NOT FOUND: ', os.getcwd(), filename
+				print 'FILE ERROR: ', filename, e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
 		else:
+			filename = ''
 			try:
-				filename = file_path[1:].replace('/', '\\')
+				filename = os.path.normpath(file_path[1:])
 				# serve file by invoking default handler
 				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
@@ -145,7 +147,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				if chunked_encoding:
 					s.wfile.write('0\r\n\r\n')
 			except Exception, e:
-				print 'FILE NOT FOUND: ', os.getcwd(), e
+				print 'FILE ERROR: ', filename, e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
