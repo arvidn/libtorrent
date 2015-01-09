@@ -74,7 +74,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			ranges = args['ranges'].split('-')
 
 			try:
-				filename = s.path[1:s.path.find('seed?') + 4]
+				filename = s.path[1:s.path.find('seed?') + 4].replace('/', '\\')
 				#print 'filename = %s' % filename
 				f = open(filename, 'rb')
 				f.seek(piece * 64 * 1024 + int(ranges[0]))
@@ -93,7 +93,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 		else:
 			try:
-				filename = file_path[1:]
+				filename = file_path[1:].replace('/', '\\')
 				# serve file by invoking default handler
 				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
