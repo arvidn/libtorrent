@@ -58,7 +58,7 @@ namespace libtorrent { namespace aux
 	if ((name & settings_pack::type_mask) != settings_pack:: type ## _type_base) return default_val; \
 	return m_ ## type ## s[name - settings_pack:: type ## _type_base]
 
-	struct session_settings
+	struct TORRENT_EXTRA_EXPORT session_settings
 	{
 		friend void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
