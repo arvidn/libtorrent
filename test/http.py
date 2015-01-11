@@ -108,7 +108,7 @@ class ConnectionHandler:
                 self.client.close()
                 return
         try:
-            if self.method=='CONNECT':
+            if self.method == 'CONNECT':
                  self.method_CONNECT()
             elif self.method in ('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT',
                                  'DELETE', 'TRACE'):
@@ -141,7 +141,7 @@ class ConnectionHandler:
             if end!=-1:
                 break
         line_end = self.client_buffer.find('\n')
-        print 'PROXY - %s'%self.client_buffer[:line_end]#debug
+        print 'PROXY - %s' % self.client_buffer[:line_end]#debug
         data = (self.client_buffer[:line_end+1]).split()
         self.client_buffer = self.client_buffer[line_end+1:]
         return data
@@ -159,7 +159,7 @@ class ConnectionHandler:
         host = self.path[:i]
         path = self.path[i:]
         self._connect_target(host)
-        self.target.send('%s %s %s\n'%(self.method, path, self.protocol)+
+        self.target.send('%s %s %s\n' % (self.method, path, self.protocol)+
                          self.client_buffer)
         self.client_buffer = ''
         self._read_write()

@@ -140,10 +140,12 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					if chunked_encoding:
 						s.wfile.write('%x\r\n' % to_send)
 					data = f.read(to_send)
+					print 'read %d bytes' % to_send
 					s.wfile.write(data)
 					if chunked_encoding:
 						s.wfile.write('\r\n')
 					length -= to_send
+					print 'sent %d bytes (%d bytes left)' % (len(data), length)
 				if chunked_encoding:
 					s.wfile.write('0\r\n\r\n')
 			except Exception, e:
