@@ -6352,6 +6352,12 @@ namespace libtorrent
 			}
 			//if (p && p->bytes_downloaded < p->full_block_bytes) TORRENT_ASSERT(in_download_queue);
 
+			if (m_outstanding_bytes != outstanding_bytes)
+			{
+				fprintf(stderr, "m_outstanding_bytes = %d\noutstanding_bytes = %d\n"
+					, m_outstanding_bytes, outstanding_bytes);
+			}
+
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
 		}
 
