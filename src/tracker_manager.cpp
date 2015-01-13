@@ -310,13 +310,28 @@ namespace libtorrent
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
 		// ignore packets smaller than 8 bytes
-		if (size < 8) return false;
+		if (size < 8)
+		{
+#if defined TORRENT_LOGGING
+			m_ses.debug_log("incoming packet from %s, not a UDP tracker message "
+				"(%d Bytes)", print_endpoint(*from).c_str(), size);
+#endif
+			return false;
+		}
 
 		const char* ptr = buf + 4;
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 		udp_conns_t::iterator i = m_udp_conns.find(transaction);
 
-		if (i == m_udp_conns.end()) return false;
+		if (i == m_udp_conns.end())
+		{
+#if defined TORRENT_LOGGING
+			m_ses.debug_log("incoming UDP tracker packet from %s has invalid "
+				"transaction ID (%" PRIu32 ")", print_endpoint(*from).c_str()
+				, transaction);
+#endif
+			return false;
+		}
 
 		boost::shared_ptr<tracker_connection> p = i->second;
 		// on_receive() may remove the tracker connection from the list
@@ -327,13 +342,27 @@ namespace libtorrent
 		, char const* hostname, char const* buf, int size)
 	{
 		// ignore packets smaller than 8 bytes
-		if (size < 8) return false;
+		if (size < 8)
+		{
+#if defined TORRENT_LOGGING
+			m_ses.debug_log("incoming packet from %s, not a UDP tracker message "
+				"(%d Bytes)", hostname, size);
+#endif
+			return false;
+		}
 
 		const char* ptr = buf + 4;
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 		udp_conns_t::iterator i = m_udp_conns.find(transaction);
 
-		if (i == m_udp_conns.end()) return false;
+		if (i == m_udp_conns.end())
+		{
+#if defined TORRENT_LOGGING
+			m_ses.debug_log("incoming UDP tracker packet from %s has invalid "
+				"transaction ID (%x)", hostname, int(transaction));
+#endif
+			return false;
+		}
 
 		boost::shared_ptr<tracker_connection> p = i->second;
 		// on_receive() may remove the tracker connection from the list

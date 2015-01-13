@@ -64,30 +64,30 @@ struct peer_server
 		m_acceptor.open(tcp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error opening peer listen socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "PEER Error opening peer listen socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_acceptor.bind(tcp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error binding peer socket to port 0: %s\n", ec.message().c_str());
+			fprintf(stderr, "PEER Error binding peer socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_acceptor.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "PEER Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 		m_acceptor.listen(10, ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error listening on peer socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "PEER Error listening on peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "%s: peer initialized on port %d\n", time_now_string(), m_port);
+		fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread.reset(new thread(boost::bind(&peer_server::thread_fun, this)));
 	}
@@ -130,11 +130,11 @@ struct peer_server
 
 			if (ec)
 			{
-				fprintf(stderr, "Error accepting connection on peer socket: %s\n", ec.message().c_str());
+				fprintf(stderr, "PEER Error accepting connection on peer socket: %s\n", ec.message().c_str());
 				return;
 			}
 
-			fprintf(stderr, "%s: incoming peer connection\n", time_now_string());
+			fprintf(stderr, "%s: PEER incoming peer connection\n", time_now_string());
 			++m_peer_requests;
 			socket.close(ec);
 		}
@@ -158,8 +158,8 @@ int num_peer_hits()
 
 void stop_peer()
 {
-	fprintf(stderr, "%s: stop_peer()\n", time_now_string());
+	fprintf(stderr, "%s: PEER stop_peer()\n", time_now_string());
 	g_peer.reset();
-	fprintf(stderr, "%s: stop_peer() done\n", time_now_string());
+	fprintf(stderr, "%s: PEER stop_peer() done\n", time_now_string());
 }
 
