@@ -481,48 +481,45 @@ namespace libtorrent
 		// fail later when we try to write to the file the first time, because
 		// the user then will have had a chance to make the destination directory
 		// valid.
-		if (!exists(old_name, ec.ec))
+		if (exists(old_name, ec.ec))
 		{
-			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+#if TORRENT_DEBUG_FILE_LEAKS
+			print_open_files("release files", m_files.name().c_str());
+#endif
+
+			std::string new_path;
+			if (is_complete(new_filename)) new_path = new_filename;
+			else new_path = combine_path(m_save_path, new_filename);
+			std::string new_dir = parent_path(new_path);
+
+			// create any missing directories that the new filename
+			// lands in
+			create_directories(new_dir, ec.ec);
+			if (ec.ec)
 			{
-				ec.ec.clear();
+				ec.file = index;
+				ec.operation = storage_error::rename;
 				return;
 			}
 
-			ec.file = index;
-			ec.operation = storage_error::rename;
-			return;
+			rename(old_name, new_path, ec.ec);
+
+			// if old_name doesn't exist, that's not an error
+			// here. Once we start writing to the file, it will
+			// be written to the new filename
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+				ec.ec.clear();
+
+			if (ec)
+			{
+				ec.file = index;
+				ec.operation = storage_error::rename;
+				return;
+			}
 		}
-
-#if TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("release files", m_files.name().c_str());
-#endif
-
-		std::string new_path;
-		if (is_complete(new_filename)) new_path = new_filename;
-		else new_path = combine_path(m_save_path, new_filename);
-		std::string new_dir = parent_path(new_path);
-
-		// create any missing directories that the new filename
-		// lands in
-		create_directories(new_dir, ec.ec);
-		if (ec.ec)
+		else if (ec.ec)
 		{
-			ec.file = index;
-			ec.operation = storage_error::rename;
-			return;
-		}
-
-		rename(old_name, new_path, ec.ec);
-		
-		// if old_name doesn't exist, that's not an error
-		// here. Once we start writing to the file, it will
-		// be written to the new filename
-		if (ec.ec == boost::system::errc::no_such_file_or_directory)
-			ec.ec.clear();
-
-		if (ec)
-		{
+			// if exists fails, report that error
 			ec.file = index;
 			ec.operation = storage_error::rename;
 			return;
