@@ -363,8 +363,9 @@ namespace libtorrent
 		mutable mutex_t m_mutex;
 
 		// maps transactionid to the udp_tracker_connection
-		// TODO: 2 this should be unique_ptr in the future
-		typedef boost::unordered_map<boost::uint32_t, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
+		// TODO: this should be unique_ptr in the future
+		typedef boost::unordered_map<boost::uint32_t
+			, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
 		udp_conns_t m_udp_conns;
 
 		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;

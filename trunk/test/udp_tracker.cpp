@@ -88,19 +88,24 @@ struct udp_tracker
 		{
 			case 0: // connect
 
-				fprintf(stderr, "%s: UDP connect from %s\n", time_now_string(), print_endpoint(*from).c_str());
+				fprintf(stderr, "%s: UDP connect from %s\n", time_now_string()
+					, print_endpoint(*from).c_str());
 				ptr = buffer;
 				detail::write_uint32(0, ptr); // action = connect
 				detail::write_uint32(transaction_id, ptr); // transaction_id
 				detail::write_uint64(10, ptr); // connection_id
 				m_socket.send_to(asio::buffer(buffer, 16), *from, 0, e);
-				if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
+				if (e) fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
+					, time_now_string(), e.message().c_str());
+				else fprintf(stderr, "%s: UDP sent response to: %s\n"
+					, time_now_string(), print_endpoint(*from).c_str());
 				break;
 
 			case 1: // announce
 
 				++m_udp_announces;
-				fprintf(stderr, "%s: UDP announce [%d]\n", time_now_string(), int(m_udp_announces));
+				fprintf(stderr, "%s: UDP announce [%d]\n", time_now_string()
+					, int(m_udp_announces));
 				ptr = buffer;
 				detail::write_uint32(1, ptr); // action = announce
 				detail::write_uint32(transaction_id, ptr); // transaction_id
@@ -109,14 +114,18 @@ struct udp_tracker
 				detail::write_uint32(1, ptr); // complete
 				// 0 peers
 				m_socket.send_to(asio::buffer(buffer, 20), *from, 0, e);
-				if (e) fprintf(stderr, "%s: send_to failed. ERROR: %s\n", time_now_string(), e.message().c_str());
+				if (e) fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
+					, time_now_string(), e.message().c_str());
+				else fprintf(stderr, "%s: UDP sent response to: %s\n"
+					, time_now_string(), print_endpoint(*from).c_str());
 				break;
 			case 2:
 				// ignore scrapes
-				fprintf(stderr, "%s: UDP scrape\n", time_now_string());
+				fprintf(stderr, "%s: UDP scrape (ignored)\n", time_now_string());
 				break;
 			default:
-				fprintf(stderr, "%s: UDP unknown message: %d\n", time_now_string(), action);
+				fprintf(stderr, "%s: UDP unknown message: %d\n", time_now_string()
+					, action);
 				break;
 		}
 
@@ -134,20 +143,20 @@ struct udp_tracker
 		m_socket.open(udp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error opening listen UDP tracker socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "UDP Error opening listen UDP tracker socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error binding UDP tracker socket to port 0: %s\n", ec.message().c_str());
+			fprintf(stderr, "UDP Error binding UDP tracker socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_socket.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "Error getting local endpoint of UDP tracker socket: %s\n", ec.message().c_str());
+			fprintf(stderr, "UDP Error getting local endpoint of UDP tracker socket: %s\n", ec.message().c_str());
 			return;
 		}
 
@@ -188,11 +197,11 @@ struct udp_tracker
 
 		if (ec)
 		{
-			fprintf(stderr, "Error running UDP tracker service: %s\n", ec.message().c_str());
+			fprintf(stderr, "UDP Error running UDP tracker service: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "exiting UDP tracker thread\n");
+		fprintf(stderr, "UDP exiting UDP tracker thread\n");
 	}
 };
 
@@ -213,8 +222,8 @@ int num_udp_announces()
 
 void stop_udp_tracker()
 {
-	fprintf(stderr, "%s: stop_udp_tracker()\n", time_now_string());
+	fprintf(stderr, "%s: UDP stop_udp_tracker()\n", time_now_string());
 	g_udp_tracker.reset();
-	fprintf(stderr, "%s: stop_udp_tracker() done\n", time_now_string());
+	fprintf(stderr, "%s: UDP stop_udp_tracker() done\n", time_now_string());
 }
 
