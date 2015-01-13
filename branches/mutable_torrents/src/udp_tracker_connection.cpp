@@ -339,25 +339,46 @@ namespace libtorrent
 	bool udp_tracker_connection::on_receive(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		// ignore resposes before we've sent any requests
-		if (m_state == action_error) return false;
+#if defined TORRENT_LOGGING
+		boost::shared_ptr<request_callback> cb = requester();
+#endif
 
-		if (m_abort) return false;
+		// ignore resposes before we've sent any requests
+		if (m_state == action_error)
+		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("<== UDP_TRACKER [ m_action == error ]");
+#endif
+			return false;
+		}
+
+		if (m_abort)
+		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("<== UDP_TRACKER [ aborted]");
+#endif
+			return false;
+		}
 
 		// ignore packet not sent from the tracker
 		// if m_target is inaddr_any, it suggests that we
 		// sent the packet through a proxy only knowing
 		// the hostname, in which case this packet might be for us
-		if (!is_any(m_target.address()) && m_target != ep) return false;
+		if (!is_any(m_target.address()) && m_target != ep)
+		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("<== UDP_TRACKER [ unexpected source IP: %s "
+				"expected: %s ]"
+				, print_endpoint(ep).c_str()
+				, print_endpoint(m_target).c_str());
+#endif
+			return false;
+		}
 		
 		if (e) fail(e);
 
 #if defined TORRENT_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
-		if (cb)
-		{
-			cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]", size);
-		}
+		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]", size);
 #endif
 
 		// ignore packets smaller than 8 bytes
@@ -368,14 +389,18 @@ namespace libtorrent
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 
 #if defined TORRENT_LOGGING
-		if (cb)
-		{
-			cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
-		}
+		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
 #endif
 
 		// ignore packets with incorrect transaction id
-		if (m_transaction_id != transaction) return false;
+		if (m_transaction_id != transaction)
+		{
+#if defined TORRENT_LOGGING
+		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ tid: %x ]"
+				, int(transaction));
+#endif
+			return false;
+		}
 
 		if (action == action_error)
 		{
@@ -384,16 +409,21 @@ namespace libtorrent
 		}
 
 		// ignore packets that's not a response to our message
-		if (action != m_state) return false;
+		if (action != m_state)
+		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ unexpected action: %d "
+				" expected: %d ]", action, m_state);
+#endif
+			return false;
+		}
 
 		restart_read_timeout();
 
 #if defined TORRENT_LOGGING
 		if (cb)
-		{
 			cb->debug_log("*** UDP_TRACKER_RESPONSE [ tid: %x ]"
 				, int(transaction));
-		}
 #endif
 
 		switch (m_state)
