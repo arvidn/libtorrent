@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #ifdef TORRENT_WINDOWS
-#include <direct.h> // for _mkdir
+#include <direct.h> // for _mkdir and _getcwd
 #include <sys/types.h> // for _stat
 #include <sys/stat.h>
 #endif
@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -168,7 +167,6 @@ bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
 bool sequential_download = false;
-bool print_utp_stats = false;
 
 bool print_ip = true;
 bool print_as = false;
@@ -266,6 +264,38 @@ bool is_absolute_path(std::string const& f)
 	if (f[0] == '/') return true;
 	return false;
 #endif
+}
+
+std::string leaf_path(std::string f)
+{
+	if (f.empty()) return "";
+	char const* first = f.c_str();
+	char const* sep = strrchr(first, '/');
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	char const* altsep = strrchr(first, '\\');
+	if (sep == 0 || altsep > sep) sep = altsep;
+#endif
+	if (sep == 0) return f;
+
+	if (sep - first == int(f.size()) - 1)
+	{
+		// if the last character is a / (or \)
+		// ignore it
+		int len = 0;
+		while (sep > first)
+		{
+			--sep;
+			if (*sep == '/'
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+				|| *sep == '\\'
+#endif
+				)
+				return std::string(sep + 1, len);
+			++len;
+		}
+		return std::string(first, len);
+	}
+	return std::string(sep + 1);
 }
 
 std::string path_append(std::string const& lhs, std::string const& rhs)
@@ -594,6 +624,47 @@ std::string peer;
 
 using boost::bind;
 
+std::string path_to_url(std::string f)
+{
+	std::string ret = "file://"
+#ifdef TORRENT_WINDOWS
+		"/"
+#endif
+		;
+	static char const hex_chars[] = "0123456789abcdef";
+	static const char unreserved[] =
+		"/-_!.~*()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		"0123456789";
+
+	// make sure the path is an absolute path
+	if (!is_absolute_path(f))
+	{
+		char cwd[TORRENT_MAX_PATH];
+#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+		_getcwd(cwd, sizeof(cwd));
+#else
+		getcwd(cwd, sizeof(cwd));
+#endif
+		f = path_append(cwd, f);
+	}
+
+	for (int i = 0; i < f.size(); ++i)
+	{
+#ifdef TORRENT_WINDOWS
+		if (f[i] == '\\') ret.push_back('/');
+		else
+#endif
+		if (std::strchr(unreserved, f[i]) != NULL) ret.push_back(f[i]);
+		else
+		{
+			ret.push_back('%');
+			ret.push_back(hex_chars[f[i] >> 4]);
+			ret.push_back(hex_chars[f[i] & 0xf]);
+		}
+	}
+	return ret;
+}
+
 // monitored_dir is true if this torrent is added because
 // it was found in the directory that is monitored. If it
 // is, it should be remembered so that it can be removed
@@ -620,17 +691,12 @@ void add_torrent(libtorrent::session& ses
 	lazy_entry resume_data;
 
 	std::string filename = path_append(save_path, path_append(".resume"
-		, libtorrent::filename(torrent) + ".resume"));
+		, leaf_path(torrent) + ".resume"));
 
 	error_code ec;
 	load_file(filename.c_str(), p.resume_data, ec);
 
-#ifdef TORRENT_WINDOWS
-	convert_path_to_posix(torrent);
-	p.url = "file:///" + escape_path(torrent.c_str(), torrent.size());
-#else
-	p.url = "file://" + escape_path(torrent.c_str(), torrent.size());
-#endif
+	p.url = path_to_url(torrent);
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags |= add_torrent_params::flag_paused;
@@ -650,11 +716,8 @@ std::vector<std::string> list_dir(std::string path
 	if (!path.empty() && path[path.size()-1] != '\\') path += "\\*";
 	else path += "*";
 
-	std::wstring wpath;
-	libtorrent::utf8_wchar(path, wpath);
-
-	WIN32_FIND_DATAW fd;
-	HANDLE handle = FindFirstFileW(wpath.c_str(), &fd);
+	WIN32_FIND_DATAA fd;
+	HANDLE handle = FindFirstFileA(path.c_str(), &fd);
 	if (handle == INVALID_HANDLE_VALUE)
 	{
 		ec.assign(GetLastError(), boost::system::system_category());
@@ -663,12 +726,11 @@ std::vector<std::string> list_dir(std::string path
 
 	do
 	{
-		std::string p;
-		libtorrent::wchar_utf8(fd.cFileName, p);
+		std::string p = fd.cFileName;
 		if (filter_fun(p))
 			ret.push_back(p);
 	
-	} while (FindNextFileW(handle, &fd));
+	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
 #else
 
@@ -926,7 +988,8 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 		if (p->error)
 		{
-			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str(), p->error.message().c_str());
+			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str()
+				, p->error.message().c_str());
 		}
 		else
 		{
@@ -997,7 +1060,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *p->resume_data);
 			torrent_status st = h.status(torrent_handle::query_save_path);
-			save_file(path_append(st.save_path, path_append(".resume", libtorrent::filename(
+			save_file(path_append(st.save_path, path_append(".resume", leaf_path(
 				hash_to_filename[st.info_hash]) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
@@ -1466,7 +1529,10 @@ int main(int argc, char* argv[])
 			, errno, strerror(errno));
 
 	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
-	settings.set_str(settings_pack::listen_interfaces, bind_to_interface + ":" + to_string(listen_port).elems);
+	char iface_str[100];
+	snprintf(iface_str, sizeof(iface_str), "%s:%d", bind_to_interface.c_str()
+		, listen_port);
+	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
@@ -1672,6 +1738,23 @@ int main(int argc, char* argv[])
 
 				if (c == 'q') break;
 
+				if (c == 'W' && h.is_valid())
+				{
+					std::set<std::string> seeds = h.url_seeds();
+					for (std::set<std::string>::iterator i = seeds.begin()
+						, end(seeds.end()); i != end; ++i)
+					{
+						h.remove_url_seed(*i);
+					}
+
+					seeds = h.http_seeds();
+					for (std::set<std::string>::iterator i = seeds.begin()
+						, end(seeds.end()); i != end; ++i)
+					{
+						h.remove_http_seed(*i);
+					}
+				}
+
 				if (c == 'D' && h.is_valid())
 				{
 					torrent_status const& st = view.get_active_torrent();
@@ -1783,7 +1866,7 @@ int main(int argc, char* argv[])
 				if (c == 'P') show_pad_files = !show_pad_files;
 				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
-				if (c == 'u') print_utp_stats = !print_utp_stats;
+				if (c == 'u') ses_view.print_utp_stats(!ses_view.print_utp_stats());
 				if (c == 'x') print_disk_stats = !print_disk_stats;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
@@ -1809,7 +1892,7 @@ int main(int argc, char* argv[])
 						"[v] scrape                                      [D] delete torrent and data\n"
 						"[r] force reannounce                            [R] save resume data for all torrents\n"
 						"[o] set piece deadlines (sequential dl)         [P] toggle auto-managed\n"
-						"[k] toggle force-started\n"
+						"[k] toggle force-started                        [W] remove all web seeds\n"
 						"\n"
 						"DISPLAY OPTIONS\n"
 						"left/right arrow keys: select torrent filter\n"
@@ -1856,8 +1939,6 @@ int main(int argc, char* argv[])
 		}
 		alerts.clear();
 
-		session_status sess_stat = ses.status();
-
 		std::string out;
 
 		char str[500];
@@ -1872,6 +1953,8 @@ int main(int argc, char* argv[])
 		cache_status cs;
 		ses.get_cache_info(&cs, h, cache_flags);
 
+		// TODO: 3 introce some reasonable way of getting DHT stats
+/*
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
@@ -1922,15 +2005,7 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
-		if (print_utp_stats)
-		{
-			snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\n"
-				, sess_stat.utp_stats.num_idle, sess_stat.utp_stats.num_syn_sent
-				, sess_stat.utp_stats.num_connected, sess_stat.utp_stats.num_fin_sent
-				, sess_stat.utp_stats.num_close_wait);
-			out += str;
-		}
-
+*/
 		if (h.is_valid())
 		{
 			torrent_status const& s = view.get_active_torrent();
@@ -2196,7 +2271,7 @@ int main(int argc, char* argv[])
 			std::vector<char> out;
 			bencode(std::back_inserter(out), *rd->resume_data);
 			save_file(path_append(st.save_path, path_append(".resume"
-				, libtorrent::filename(hash_to_filename[st.info_hash]) + ".resume")), out);
+				, leaf_path(hash_to_filename[st.info_hash]) + ".resume")), out);
 		}
 	}
 

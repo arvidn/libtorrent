@@ -102,13 +102,13 @@ class ConnectionHandler:
         if username != None:
             auth = base64.b64encode(username + ':' + password)
             if not 'Proxy-Authorization: Basic ' + auth in self.client_buffer:
-                print 'failed authentication: %s' % self.client_buffer
+                print 'PROXY - failed authentication: %s' % self.client_buffer
                 self.client.send(HTTPVER+' 401 Authentication Failed\n'+
                                 'Proxy-agent: %s\n\n'%VERSION)
                 self.client.close()
                 return
         try:
-            if self.method=='CONNECT':
+            if self.method == 'CONNECT':
                  self.method_CONNECT()
             elif self.method in ('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT',
                                  'DELETE', 'TRACE'):
@@ -118,7 +118,7 @@ class ConnectionHandler:
                 self.client.send(HTTPVER+' 502 Connection failed\n'+
                                 'Proxy-agent: %s\n\n'%VERSION)
             except Exception, e:
-                print e
+                print 'PROXY - ', e
             self.client.close()
             return
 
@@ -141,7 +141,7 @@ class ConnectionHandler:
             if end!=-1:
                 break
         line_end = self.client_buffer.find('\n')
-        print '%s'%self.client_buffer[:line_end]#debug
+        print 'PROXY - %s' % self.client_buffer[:line_end]#debug
         data = (self.client_buffer[:line_end+1]).split()
         self.client_buffer = self.client_buffer[line_end+1:]
         return data
@@ -159,7 +159,7 @@ class ConnectionHandler:
         host = self.path[:i]
         path = self.path[i:]
         self._connect_target(host)
-        self.target.send('%s %s %s\n'%(self.method, path, self.protocol)+
+        self.target.send('%s %s %s\n' % (self.method, path, self.protocol)+
                          self.client_buffer)
         self.client_buffer = ''
         self._read_write()
@@ -205,7 +205,7 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=100,
         soc_type=socket.AF_INET
     soc = socket.socket(soc_type)
     soc.settimeout(120)
-    print "Serving on %s:%d."%(host, port)#debug
+    print "PROXY - Serving on %s:%d."%(host, port)#debug
     soc.bind((host, port))
     soc.listen(0)
     while 1:
@@ -225,7 +225,7 @@ if __name__ == '__main__':
             password = sys.argv[i+1]
             i += 1
         else:
-            if sys.argv[i] != '--help': print('unknown option "%s"' % sys.argv[i])
+            if sys.argv[i] != '--help': print('PROXY - unknown option "%s"' % sys.argv[i])
             print('usage: http.py [--port <listen-port>]')
             sys.exit(1)
         i += 1

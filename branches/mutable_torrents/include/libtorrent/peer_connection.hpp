@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
-#include <boost/intrusive_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>
 #include <boost/optional.hpp>

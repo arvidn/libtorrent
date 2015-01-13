@@ -259,10 +259,12 @@ namespace libtorrent { namespace dht
 		m_host_resolver.cancel();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void dht_tracker::dht_status(session_status& s)
 	{
 		m_dht.status(s);
 	}
+#endif
 
 	void dht_tracker::network_stats(int& sent, int& received)
 	{
@@ -287,6 +289,11 @@ namespace libtorrent { namespace dht
 		if (e || m_abort) return;
 
 		m_dht.tick();
+
+		// periodically update the DOS blocker's settings from the dht_settings
+		m_blocker.set_block_timer(m_settings.block_timeout);
+		m_blocker.set_rate_limit(m_settings.block_ratelimit);
+
 		error_code ec;
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(

@@ -46,6 +46,9 @@ namespace libtorrent
 {
 	struct file;
 
+	// TODO: 3 the file_entry should be deprecated and add_file() should be
+	// thought through a bit better
+
 	// information about a file in a file_storage
 	struct TORRENT_EXPORT file_entry
 	{
@@ -103,13 +106,6 @@ namespace libtorrent
 		// where the data for this file was found.
 		bool symlink_attribute:1;
 	};
-
-	// only export this type if deprecated functions are enabled
-#ifdef TORRENT_NO_DEPRECATED
-#define TORRENT_DEPRECATED_EXPORT
-#else
-#define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
-#endif
 
 	// internal
 	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
@@ -236,7 +232,7 @@ namespace libtorrent
 		// hidden
 		file_storage();
 		// hidden
-		~file_storage() {}
+		~file_storage();
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy

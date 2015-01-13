@@ -142,6 +142,49 @@ namespace libtorrent
 		{ return deadline < rhs.deadline; }
 	};
 
+	// this is the internal representation of web seeds
+	struct web_seed_t : web_seed_entry
+	{
+		web_seed_t(web_seed_entry const& wse);
+		web_seed_t(std::string const& url_, web_seed_entry::type_t type_
+			, std::string const& auth_ = std::string()
+			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
+
+		// if this is > now, we can't reconnect yet
+		ptime retry;
+
+		// if the hostname of the web seed has been resolved,
+		// these are its IP addresses
+		std::vector<tcp::endpoint> endpoints;
+
+		// this is the peer_info field used for the
+		// connection, just to count hash failures
+		// it's also used to hold the peer_connection
+		// pointer, when the web seed is connected
+		ipv4_peer peer_info;
+
+		// this is initialized to true, but if we discover the
+		// server not to support it, it's set to false, and we
+		// make larger requests.
+		bool supports_keepalive;
+
+		// this indicates whether or not we're resolving the
+		// hostname of this URL
+		bool resolving;
+
+		// if the user wanted to remove this while
+		// we were resolving it. In this case, we set
+		// the removed flag to true, to make the resolver
+		// callback remove it
+		bool removed;
+
+		// if the web server doesn't support keepalive or a block request was
+		// interrupted, the block received so far is kept here for the next
+		// connection to pick up
+		peer_request restart_request;
+		std::vector<char> restart_piece;
+	};
+
 	struct torrent_hot_members
 	{
 		torrent_hot_members(aux::session_interface& ses
@@ -516,11 +559,11 @@ namespace libtorrent
 
 		void file_progress(std::vector<boost::int64_t>& fp, int flags = 0);
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
 #endif
 		
-		void connect_to_url_seed(std::list<web_seed_entry>::iterator url);
+		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
 		int priority() const { return m_priority; }
@@ -563,20 +606,17 @@ namespace libtorrent
 		
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
-		void add_web_seed(std::string const& url, web_seed_entry::type_t type);
-		void add_web_seed(std::string const& url, web_seed_entry::type_t type
-			, std::string const& auth, web_seed_entry::headers_t const& extra_headers);
+		void add_web_seed(std::string const& url, web_seed_t::type_t type);
+		void add_web_seed(std::string const& url, web_seed_t::type_t type
+			, std::string const& auth, web_seed_t::headers_t const& extra_headers);
 	
-		void remove_web_seed(std::string const& url, web_seed_entry::type_t type);
+		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
 
 		void remove_web_seed(peer_connection* p, error_code const& ec
 			, peer_connection_interface::operation_t op, int error = 0);
-
-		std::list<web_seed_entry> web_seeds() const
-		{ return m_web_seeds; }
 
 		std::set<std::string> web_seeds(web_seed_entry::type_t type) const;
 
@@ -600,6 +640,8 @@ namespace libtorrent
 		// decreased in the piece_picker
 		void remove_peer(peer_connection* p);
 
+		// cancel requests to this block from any peer we're
+		// connected to on this torrent
 		void cancel_block(piece_block block);
 
 		bool want_tick() const;
@@ -830,15 +872,15 @@ namespace libtorrent
 		void on_name_lookup(error_code const& e
 			, std::vector<address> const& addrs
 			, int port
-			, std::list<web_seed_entry>::iterator web, tcp::endpoint proxy);
+			, std::list<web_seed_t>::iterator web, tcp::endpoint proxy);
 
-		void connect_web_seed(std::list<web_seed_entry>::iterator web, tcp::endpoint a);
+		void connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a);
 
 		// this is the asio callback that is called when a name
 		// lookup for a proxy for a web seed is completed.
 		void on_proxy_name_lookup(error_code const& e
 			, std::vector<address> const& addrs
-			, std::list<web_seed_entry>::iterator web, int port);
+			, std::list<web_seed_t>::iterator web, int port);
 
 		// re-evaluates whether this torrent should be considered inactive or not
 		void on_inactivity_tick(error_code const& ec);
@@ -850,7 +892,7 @@ namespace libtorrent
 
 		// remove a web seed, or schedule it for removal in case there
 		// are outstanding operations on it
-		void remove_web_seed(std::list<web_seed_entry>::iterator web);
+		void remove_web_seed(std::list<web_seed_t>::iterator web);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.
@@ -993,7 +1035,7 @@ namespace libtorrent
 		// renames the file with the given index to the new name
 		// the name may include a directory path
 		// returns false on failure
-		bool rename_file(int index, std::string const& name);
+		void rename_file(int index, std::string const& name);
 
 		// unless this returns true, new connections must wait
 		// with their initialization.
@@ -1186,7 +1228,7 @@ namespace libtorrent
 
 		// The list of web seeds in this torrent. Seeds
 		// with fatal errors are removed from the set
-		std::list<web_seed_entry> m_web_seeds;
+		std::list<web_seed_t> m_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;

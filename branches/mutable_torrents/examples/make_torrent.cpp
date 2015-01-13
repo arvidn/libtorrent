@@ -43,6 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 
+#ifdef TORRENT_WINDOWS
+#include <direct.h> // for _getcwd
+#endif
+
 using namespace libtorrent;
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
@@ -106,11 +110,45 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	return 0;
 }
 
+std::string branch_path(std::string const& f)
+{
+	if (f.empty()) return f;
+
+#ifdef TORRENT_WINDOWS
+	if (f == "\\\\") return "";
+#endif
+	if (f == "/") return "";
+
+	int len = f.size();
+	// if the last character is / or \ ignore it
+	if (f[len-1] == '/' || f[len-1] == '\\') --len;
+	while (len > 0)
+	{
+		--len;
+		if (f[len] == '/' || f[len] == '\\')
+			break;
+	}
+
+	if (f[len] == '/' || f[len] == '\\') ++len;
+	return std::string(f.c_str(), len);
+}
+
 // do not include files and folders whose
 // name starts with a .
 bool file_filter(std::string const& f)
 {
-	if (filename(f)[0] == '.') return false;
+	if (f.empty()) return false;
+
+	char const* first = f.c_str();
+	char const* sep = strrchr(first, '/');
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	char const* altsep = strrchr(first, '\\');
+	if (sep == 0 || altsep > sep) sep = altsep;
+#endif
+	// return false if the first character of the filename is a .
+	if (sep == 0 && f[0] == '.') return false;
+	if (sep[1] == '.') return false;
+
 	fprintf(stderr, "%s\n", f.c_str());
 	return true;
 }
@@ -282,7 +320,22 @@ int main(int argc, char* argv[])
 		}
 
 		file_storage fs;
-		std::string full_path = libtorrent::complete(argv[1]);
+		std::string full_path = argv[1];
+#ifdef TORRENT_WINDOWS
+		if (full_path[1] != ':')
+#else
+		if (full_path[0] != '/')
+#endif
+		{
+			char cwd[TORRENT_MAX_PATH];
+#ifdef TORRENT_WINDOWS
+			_getcwd(cwd, sizeof(cwd));
+			full_path = cwd + ("\\" + full_path);
+#else
+			getcwd(cwd, sizeof(cwd));
+			full_path = cwd + ("/" + full_path);
+#endif
+		}
 
 		add_files(fs, full_path, file_filter, flags);
 		if (fs.num_files() == 0)
@@ -310,7 +363,7 @@ int main(int argc, char* argv[])
 			t.add_similar_torrent(*i);
 
 		error_code ec;
-		set_piece_hashes(t, parent_path(full_path)
+		set_piece_hashes(t, branch_path(full_path)
 			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
 		if (ec)
 		{

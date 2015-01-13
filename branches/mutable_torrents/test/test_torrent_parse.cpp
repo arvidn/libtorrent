@@ -261,7 +261,11 @@ int test_main()
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti2(&buf[0], buf.size(), ec);
 	std::cerr << ti2.name() << std::endl;
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(ti2.name(), "ctest1test2test3");
+#else
 	TEST_EQUAL(ti2.name(), "test1test2test3");
+#endif
 
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;

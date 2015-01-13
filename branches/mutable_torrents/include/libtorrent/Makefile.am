@@ -63,7 +63,6 @@ nobase_include_HEADERS = \
   i2p_stream.hpp               \
   identify_client.hpp          \
   instantiate_connection.hpp   \
-  intrusive_ptr_base.hpp       \
   invariant_check.hpp          \
   io.hpp                       \
   io_service.hpp               \
@@ -106,6 +105,7 @@ nobase_include_HEADERS = \
   session_settings.hpp         \
   session_status.hpp           \
   settings_pack.hpp            \
+  sha1.hpp                     \
   sha1_hash.hpp                \
   size_type.hpp                \
   sliding_average.hpp          \

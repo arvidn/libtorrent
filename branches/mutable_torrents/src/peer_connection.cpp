@@ -35,9 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
 
-#if defined TORRENT_LOGGING
+#ifdef TORRENT_LOGGING
 #include <stdarg.h> // for va_start, va_end
 #include <stdio.h> // for vsnprintf
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/socket_io.hpp"
 #endif
 
 #include "libtorrent/peer_connection.hpp"
@@ -73,9 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
-#if defined TORRENT_LOGGING
-#include "libtorrent/escape_string.hpp"
-#include "libtorrent/socket_io.hpp"
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
 #endif
 
 //#define TORRENT_CORRUPT_DATA
@@ -4018,7 +4019,7 @@ namespace libtorrent
 			else m_counters.inc_stats_counter(counters::error_incoming_peers);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			if (type() == bittorrent_connection)
+			if (type() == bittorrent_connection && op != op_connect)
 			{
 				bt_peer_connection* bt = static_cast<bt_peer_connection*>(this);
 				if (bt->supports_encryption()) m_counters.inc_stats_counter(
@@ -6350,6 +6351,12 @@ namespace libtorrent
 				}
 			}
 			//if (p && p->bytes_downloaded < p->full_block_bytes) TORRENT_ASSERT(in_download_queue);
+
+			if (m_outstanding_bytes != outstanding_bytes)
+			{
+				fprintf(stderr, "m_outstanding_bytes = %d\noutstanding_bytes = %d\n"
+					, m_outstanding_bytes, outstanding_bytes);
+			}
 
 			TORRENT_ASSERT(m_outstanding_bytes == outstanding_bytes);
 		}

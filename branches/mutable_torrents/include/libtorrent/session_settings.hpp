@@ -1495,6 +1495,8 @@ namespace libtorrent
 			, privacy_lookups(false)
 			, enforce_node_id(false)
 			, ignore_dark_internet(true)
+			, block_timeout(5 * 60)
+			, block_ratelimit(5)
 		{}
 		
 		// the maximum number of peers to send in a reply to ``get_peers``
@@ -1571,6 +1573,15 @@ namespace libtorrent
 		// ignore DHT messages from parts of the internet we wouldn't expect to
 		// see any traffic from
 		bool ignore_dark_internet;
+
+		// the number of seconds a DHT node is banned if it exceeds the rate
+		// limit. The rate limit is averaged over 10 seconds to allow for bursts
+		// above the limit.
+		int block_timeout;
+
+		// the max number of packets per second a DHT node is allowed to send
+		// without getting banned.
+		int block_ratelimit;
 	};
 
 

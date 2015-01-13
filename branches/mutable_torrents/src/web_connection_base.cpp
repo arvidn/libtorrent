@@ -53,7 +53,7 @@ namespace libtorrent
 {
 	web_connection_base::web_connection_base(
 		peer_connection_args const& pack
-		, web_seed_entry& web)
+		, web_seed_t& web)
 		: peer_connection(pack)
 		, m_first_request(true)
 		, m_ssl(false)

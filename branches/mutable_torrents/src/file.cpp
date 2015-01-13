@@ -157,7 +157,7 @@ namespace
 	// wrap the windows function in something that looks
 	// like preadv() and pwritev()
 
-	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, libtorrent::boost::int64_t file_offset)
+	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -219,7 +219,7 @@ done:
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, libtorrent::boost::int64_t file_offset)
+	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -931,13 +931,18 @@ namespace libtorrent
 		return s.file_size;
 	}
 
-	bool exists(std::string const& f)
+	bool exists(std::string const& f, error_code& ec)
 	{
-		error_code ec;
 		file_status s;
 		stat_file(f, &s, ec);
 		if (ec) return false;
 		return true;
+	}
+
+	bool exists(std::string const& f)
+	{
+		error_code ec;
+		return exists(f, ec);
 	}
 
 	void remove(std::string const& inf, error_code& ec)
@@ -1370,6 +1375,9 @@ namespace libtorrent
 #ifdef O_DIRECT
 			| ((mode & direct_io) ? O_DIRECT : 0)
 #endif
+#ifdef O_SYNC
+			| ((mode & no_cache) ? O_SYNC: 0)
+#endif
 			, permissions);
 
 #ifdef O_NOATIME
@@ -1559,7 +1567,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// TODO: 2 use vm_copy here, if available, and if buffers are aligned
 			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}
@@ -1570,7 +1577,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			// TODO: 2 use vm_copy here, if available, and if buffers are aligned
 			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}

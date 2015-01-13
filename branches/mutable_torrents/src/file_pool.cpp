@@ -163,7 +163,7 @@ namespace libtorrent
 				// be outstanding operations on it, we can't close the
 				// file, we can only delete our reference to it.
 				// if this is the only reference to the file, it will be closed
-				e.file_ptr.reset(new (std::nothrow)file);
+				e.file_ptr = boost::make_shared<file>();
 
 				std::string full_path = fs.file_path(file_index, p);
 				if (!e.file_ptr->open(full_path, m, ec))
@@ -183,7 +183,7 @@ namespace libtorrent
 		}
 
 		lru_file_entry e;
-		e.file_ptr.reset(new (std::nothrow)file);
+		e.file_ptr = boost::make_shared<file>();
 		if (!e.file_ptr)
 		{
 			ec = error_code(ENOMEM, get_posix_category());
@@ -307,7 +307,7 @@ namespace libtorrent
 		for (file_set::const_iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if (i->second.key == st && i->second.file_ptr->refcount() > 1)
+			if (i->second.key == st && !i->second.file_ptr.unique())
 				return false;
 		}
 		return true;

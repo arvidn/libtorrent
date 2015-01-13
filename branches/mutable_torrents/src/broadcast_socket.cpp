@@ -226,10 +226,8 @@ namespace libtorrent
 	}
 
 	broadcast_socket::broadcast_socket(
-		udp::endpoint const& multicast_endpoint
-		, receive_handler_t const& handler)
+		udp::endpoint const& multicast_endpoint)
 		: m_multicast_endpoint(multicast_endpoint)
-		, m_on_receive(handler)
 		, m_outstanding_operations(0)
 		, m_abort(false)
 	{
@@ -238,8 +236,11 @@ namespace libtorrent
 		using namespace asio::ip::multicast;
 	}
 
-	void broadcast_socket::open(io_service& ios, error_code& ec, bool loopback)
+	void broadcast_socket::open(receive_handler_t const& handler
+		, io_service& ios, error_code& ec, bool loopback)
 	{
+		m_on_receive = handler;
+
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 #if TORRENT_USE_IPV6
@@ -279,11 +280,11 @@ namespace libtorrent
 #endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifdef TORRENT_DEBUG
-//			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
-//				, i->interface_address.to_string().c_str()
-//				, m_multicast_endpoint.address().to_string().c_str()
-//				, i->netmask.to_string().c_str()
-//				, ec.message().c_str());
+			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
+				, i->interface_address.to_string().c_str()
+				, m_multicast_endpoint.address().to_string().c_str()
+				, i->netmask.to_string().c_str()
+				, ec.message().c_str());
 #endif
 			open_unicast_socket(ios, i->interface_address
 				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());

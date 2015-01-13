@@ -53,7 +53,8 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_num_samples = 0;
 	}
 
-	++m_num_samples;
+	// don't let the counter wrap
+	if (m_num_samples < 0xfffe) ++m_num_samples;
 
 	// if sample is less than base, update the base
 	// and update the history entry (because it will

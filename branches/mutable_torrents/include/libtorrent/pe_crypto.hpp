@@ -37,11 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#ifdef TORRENT_USE_GCRYPT
-#include <gcrypt.h>
-#elif defined TORRENT_USE_OPENSSL
-#include <openssl/rc4.h>
-#else
 // RC4 state from libtomcrypt
 struct rc4 {
 	int x, y;
@@ -50,7 +45,6 @@ struct rc4 {
 
 void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
 unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
-#endif
 
 #include <boost/asio/buffer.hpp>
 #include <list>
@@ -131,24 +125,11 @@ namespace libtorrent
 		rc4_handler()
 			: m_encrypt(false)
 			, m_decrypt(false)
-		{
-#ifdef TORRENT_USE_GCRYPT
-			gcry_cipher_open(&m_rc4_incoming, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
-			gcry_cipher_open(&m_rc4_outgoing, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0);
-#endif
-		};
+		{}
 
 		void set_incoming_key(unsigned char const* key, int len);
 		void set_outgoing_key(unsigned char const* key, int len);
 		
-		~rc4_handler()
-		{
-#ifdef TORRENT_USE_GCRYPT
-			gcry_cipher_close(m_rc4_incoming);
-			gcry_cipher_close(m_rc4_outgoing);
-#endif
-		};
-
 		int encrypt(std::vector<boost::asio::mutable_buffer>& buf);
 		void decrypt(std::vector<boost::asio::mutable_buffer>& buf
 			, int& consume
@@ -156,16 +137,9 @@ namespace libtorrent
 			, int& packet_size);
 
 	private:
-#ifdef TORRENT_USE_GCRYPT
-		gcry_cipher_hd_t m_rc4_incoming;
-		gcry_cipher_hd_t m_rc4_outgoing;
-#elif defined TORRENT_USE_OPENSSL
-		RC4_KEY m_local_key; // Key to encrypt outgoing data
-		RC4_KEY m_remote_key; // Key to decrypt incoming data
-#else
 		rc4 m_rc4_incoming;
 		rc4 m_rc4_outgoing;
-#endif
+
 		// determines whether or not encryption and decryption is enabled
 		bool m_encrypt;
 		bool m_decrypt;

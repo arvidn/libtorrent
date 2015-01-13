@@ -112,7 +112,6 @@ namespace libtorrent
 	class upnp;
 	class natpmp;
 	class lsd;
-	struct fingerprint;
 	class torrent;
 	class alert;
 	struct cache_info;
@@ -194,7 +193,7 @@ namespace libtorrent
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #endif
 
-			session_impl(fingerprint const& cl_fprint);
+			session_impl();
 			virtual ~session_impl();
 
 			void init();
@@ -424,7 +423,6 @@ namespace libtorrent
 			std::auto_ptr<alert> pop_alert();
 			void pop_alerts(std::deque<alert*>* alerts);
 			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
-			void post_alert(const alert& alert_);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
@@ -474,7 +472,10 @@ namespace libtorrent
 				m_optimistic_unchoke_time_scaler = 0;
 			}
 
+#ifndef TORRENT_NO_DEPRECATE
 			session_status status() const;
+#endif
+
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			address listen_address() const;
@@ -639,6 +640,7 @@ namespace libtorrent
 			void update_lsd();
 			void update_dht();
 			void update_count_slow();
+			void update_peer_fingerprint();
 
 			void on_trigger_auto_manage();
 			
@@ -850,6 +852,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 			boost::asio::ssl::context* ssl_ctx() { return &m_ssl_ctx; } 
+			void on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s);
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
 
@@ -874,10 +877,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT	
 			entry m_dht_state;
 #endif
-
-			// the number of unchoked peers as set by the auto-unchoker
-			// this should always be >= m_max_uploads
-			int m_allowed_upload_slots;
 
 			// this is initialized to the unchoke_interval
 			// session_setting and decreased every second.
@@ -1013,9 +1012,9 @@ namespace libtorrent
 			// this is deducted from the connect speed
 			int m_boost_connections;
 
-			boost::intrusive_ptr<natpmp> m_natpmp;
-			boost::intrusive_ptr<upnp> m_upnp;
-			boost::intrusive_ptr<lsd> m_lsd;
+			boost::shared_ptr<natpmp> m_natpmp;
+			boost::shared_ptr<upnp> m_upnp;
+			boost::shared_ptr<lsd> m_lsd;
 
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP

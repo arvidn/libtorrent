@@ -28,7 +28,9 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 	def do_GET(s):
 
-		#print s.requestline
+		print 'INCOMING-REQUEST: ', s.requestline
+		print s.headers
+
 		global chunked_encoding
 		global keepalive
 
@@ -71,9 +73,10 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			piece = int(args['piece'])
 			ranges = args['ranges'].split('-')
 
+			filename = ''
 			try:
-				filename = s.path[1:s.path.find('seed?') + 4]
-				#print 'filename = %s' % filename
+				filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
+				print 'filename = %s' % filename
 				f = open(filename, 'rb')
 				f.seek(piece * 64 * 1024 + int(ranges[0]))
 				data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
@@ -85,13 +88,14 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.end_headers()
 				s.wfile.write(data);
 			except Exception, e:
-				print 'FILE NOT FOUND: ', os.getcwd(), filename
+				print 'FILE ERROR: ', filename, e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
 		else:
+			filename = ''
 			try:
-				filename = file_path[1:]
+				filename = os.path.normpath(file_path[1:])
 				# serve file by invoking default handler
 				f = open(filename, 'rb')
 				size = int(os.stat(filename).st_size)
@@ -99,7 +103,6 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				end_range = size
 				if 'Range' in s.headers:
 					s.send_response(206)
-					s.send_header('Content-Range', 'bytes ' + str(start_range) + '-' + str(end_range - 1) + '/' + str(size))
 					st, e = s.headers['range'][6:].split('-', 1)
 					sl = len(st)
 					el = len(e)
@@ -111,6 +114,8 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 						ei = int(e)
 						if ei < size:
 							start_range = size - ei
+					s.send_header('Content-Range', 'bytes ' + str(start_range) \
+						+ '-' + str(end_range - 1) + '/' + str(size))
 				else:
 					s.send_response(200)
 				s.send_header('Accept-Ranges', 'bytes')
@@ -121,6 +126,10 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					s.send_header('Content-Encoding', 'gzip')
 				if not keepalive:
 					s.send_header("Connection", "close")
+					try:
+						s.request.shutdown(SHUT_RD);
+					except Exception, e:
+						print 'Failed to shutdown read-channel of socket: ', e
 
 				s.end_headers()
    
@@ -131,14 +140,16 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 					if chunked_encoding:
 						s.wfile.write('%x\r\n' % to_send)
 					data = f.read(to_send)
+					print 'read %d bytes' % to_send
 					s.wfile.write(data)
 					if chunked_encoding:
 						s.wfile.write('\r\n')
 					length -= to_send
+					print 'sent %d bytes (%d bytes left)' % (len(data), length)
 				if chunked_encoding:
 					s.wfile.write('0\r\n\r\n')
 			except Exception, e:
-				print 'FILE NOT FOUND: ', os.getcwd(), e
+				print 'FILE ERROR: ', filename, e
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()

@@ -79,6 +79,14 @@ int test_main()
 	TEST_NAME(peer_turnover_interval);
 	TEST_NAME(mmap_cache);
 
+	settings_pack p;
+	p.set_str(settings_pack::peer_fingerprint, "abc");
+	p.set_str(settings_pack::peer_fingerprint, "cde");
+	p.set_str(settings_pack::peer_fingerprint, "efg");
+	p.set_str(settings_pack::peer_fingerprint, "hij");
+
+	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
+
 	return 0;
 }
 

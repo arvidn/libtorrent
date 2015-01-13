@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -47,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function4.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include <set>
 
 namespace libtorrent
@@ -106,14 +106,16 @@ typedef boost::function<void(int, address, int, error_code const&)> portmap_call
 typedef boost::function<void(char const*)> log_callback_t;
 
 // TODO: support using the windows API for UPnP operations as well
-class TORRENT_EXTRA_EXPORT upnp : public intrusive_ptr_base<upnp>
+class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
 {
 public:
 	upnp(io_service& ios
 		, address const& listen_interface, std::string const& user_agent
 		, portmap_callback_t const& cb, log_callback_t const& lcb
-		, bool ignore_nonrouters, void* state = 0);
+		, bool ignore_nonrouters);
 	~upnp();
+
+	void start(void* state = 0);
 
 	void* drain_state();
 
@@ -156,6 +158,8 @@ public:
 	}
 
 private:
+
+	boost::shared_ptr<upnp> self() { return shared_from_this(); }
 
 	void map_timer(error_code const& ec);
 	void try_map_upnp(mutex::scoped_lock& l, bool timer = false);

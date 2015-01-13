@@ -34,12 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
+#include "libtorrent/instantiate_connection.hpp"
 #include <boost/shared_ptr.hpp>
 #include <stdexcept>
 
 namespace libtorrent
 {
-	TORRENT_EXPORT bool instantiate_connection(io_service& ios
+	bool instantiate_connection(io_service& ios
 		, proxy_settings const& ps, socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm

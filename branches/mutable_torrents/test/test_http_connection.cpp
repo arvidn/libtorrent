@@ -225,7 +225,14 @@ int test_main()
 #endif
 
 	// test chunked encoding
+	fprintf(stderr, "\ntest chunked encoding\n\n");
 	port = start_web_server(false, true);
+	ps.type = settings_pack::none;
+	run_suite("http", ps, port);
+
+	// test no keep-alive
+	fprintf(stderr, "\ntest no keep-alive\n\n");
+	port = start_web_server(false, false, false);
 	ps.type = settings_pack::none;
 	run_suite("http", ps, port);
 

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/noncopyable.hpp>
-#include <boost/intrusive_ptr.hpp>
+#include <boost/smart_ptr.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -131,6 +130,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void remove_all(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
+	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
 	TORRENT_EXTRA_EXPORT boost::int64_t file_size(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
@@ -154,16 +154,16 @@ namespace libtorrent
 
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string parent_path(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT char const* filename_cstr(char const* f);
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string filename(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
 	// internal used by create_torrent.hpp
-	TORRENT_EXPORT std::string complete(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
@@ -220,15 +220,15 @@ namespace libtorrent
 
 		char stack[2048];
 	private:
-		boost::intrusive_ptr<file> m_file;
+		boost::shared_ptr<file> m_file;
 	};
 
 	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
 #else
-typedef boost::intrusive_ptr<file> file_handle;
+	typedef boost::shared_ptr<file> file_handle;
 #endif
 
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
+	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
 	{
 		// the open mode for files. Used for the file constructor or
 		// file::open().

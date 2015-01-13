@@ -61,6 +61,7 @@ set(sources
 	session
 	session_call
 	session_impl
+	session_settings
 	session_stats
 	settings_pack
 	socket_io

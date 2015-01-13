@@ -1755,6 +1755,41 @@ the number of bytes sent and received by the DHT
 uTP counters. Each counter represents the number of time each event
 has occurred.
 
+.. _utp.num_utp_idle:
+
+.. _utp.num_utp_syn_sent:
+
+.. _utp.num_utp_connected:
+
+.. _utp.num_utp_fin_sent:
+
+.. _utp.num_utp_close_wait:
+
+.. raw:: html
+
+	<a name="utp.num_utp_idle"></a>
+	<a name="utp.num_utp_syn_sent"></a>
+	<a name="utp.num_utp_connected"></a>
+	<a name="utp.num_utp_fin_sent"></a>
+	<a name="utp.num_utp_close_wait"></a>
+
++------------------------+-------+
+| name                   | type  |
++========================+=======+
+| utp.num_utp_idle       | gauge |
++------------------------+-------+
+| utp.num_utp_syn_sent   | gauge |
++------------------------+-------+
+| utp.num_utp_connected  | gauge |
++------------------------+-------+
+| utp.num_utp_fin_sent   | gauge |
++------------------------+-------+
+| utp.num_utp_close_wait | gauge |
++------------------------+-------+
+
+
+the number of uTP sockets in each respective state
+
 .. _sock_bufs.socket_send_size3:
 
 .. _sock_bufs.socket_send_size4:

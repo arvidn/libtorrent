@@ -256,13 +256,8 @@ namespace libtorrent
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				file_handle f = open_file(i, file::read_write | file::random_access, ec.ec);
-				if (ec || !f)
-				{
-					ec.file = i;
-					ec.operation = storage_error::open;
-					return;
-				}
+				file_handle f = open_file(i, file::read_write, ec);
+				if (ec) return;
 
 				need_partfile();
 
@@ -284,15 +279,11 @@ namespace libtorrent
 				if (exists(fp))
 					new_prio = 1;
 /*
-				file_handle f = open_file(i, file::read_only | file::random_access, ec.ec);
+				file_handle f = open_file(i, file::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
-					if (ec || !f)
-					{
-						ec.file = i;
-						ec.operation = storage_error::open;
-						return;
-					}
+					if (ec) return;
+
 					need_partfile();
 
 					m_part_file->import_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
@@ -394,13 +385,10 @@ namespace libtorrent
 					}
 				}
 				ec.ec.clear();
-				file_handle f = open_file(file_index, file::read_write | file::random_access, ec.ec);
-				if (ec || !f)
-				{
-					ec.file = file_index;
-					ec.operation = storage_error::open;
-					return;
-				}
+				file_handle f = open_file(file_index, file::read_write
+					| file::random_access, ec);
+				if (ec) return;
+
 				f->set_size(files().file_size(file_index), ec.ec);
 				if (ec)
 				{
@@ -479,11 +467,32 @@ namespace libtorrent
 		return false;
 	}
 
-	void default_storage::rename_file(int index, std::string const& new_filename, storage_error& ec)
+	void default_storage::rename_file(int index, std::string const& new_filename
+		, storage_error& ec)
 	{
 		if (index < 0 || index >= files().num_files()) return;
 		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
+
+		// if the old file doesn't exist, just succeed and change the filename
+		// that will be created. This shortcut is important because the
+		// destination directory may not exist yet, which would cause a failure
+		// even though we're not moving a file (yet). It's better for it to
+		// fail later when we try to write to the file the first time, because
+		// the user then will have had a chance to make the destination directory
+		// valid.
+		if (!exists(old_name, ec.ec))
+		{
+			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+			{
+				ec.ec.clear();
+				return;
+			}
+
+			ec.file = index;
+			ec.operation = storage_error::rename;
+			return;
+		}
 
 #if TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
@@ -698,8 +707,8 @@ namespace libtorrent
 		}
 	
 		error_code ec;
-		file_handle handle = open_file(file_index, file::read_only, ec);
-		if (!handle || ec) return slot;
+		file_handle handle = open_file_impl(file_index, file::read_only, ec);
+		if (ec) return slot;
 
 		boost::int64_t data_start = handle->sparse_end(file_offset);
 		return int((data_start + files().piece_length() - 1) / files().piece_length());
@@ -1201,36 +1210,8 @@ namespace libtorrent
 			}
 			else
 			{
-				handle = open_file(file_index, op.mode, e);
-				if (((op.mode & file::rw_mask) != file::read_only)
-					&& e == boost::system::errc::no_such_file_or_directory)
-				{
-					// this means the directory the file is in doesn't exist.
-					// so create it
-					e.clear();
-					std::string path = files().file_path(file_index, m_save_path);
-					create_directories(parent_path(path), e);
-
-					if (e)
-					{
-						ec.ec = e;
-						ec.file = file_index;
-						ec.operation = storage_error::mkdir;
-						return -1;
-					}
-
-					// if the directory creation failed, don't try to open the file again
-					// but actually just fail
-					handle = open_file(file_index, op.mode, e);
-				}
-
-				if (!handle || e)
-				{
-					ec.ec = e;
-					ec.file = file_index;
-					ec.operation = storage_error::open;
-					return -1;
-				}
+				handle = open_file(file_index, op.mode, ec);
+				if (ec) return -1;
 
 				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
 				{
@@ -1298,8 +1279,41 @@ namespace libtorrent
 		return size;
 	}
 
-
 	file_handle default_storage::open_file(int file, int mode
+		, storage_error& ec) const
+	{
+		file_handle h = open_file_impl(file, mode, ec.ec);
+		if (((mode & file::rw_mask) != file::read_only)
+			&& ec.ec == boost::system::errc::no_such_file_or_directory)
+		{
+			// this means the directory the file is in doesn't exist.
+			// so create it
+			ec.ec.clear();
+			std::string path = files().file_path(file, m_save_path);
+			create_directories(parent_path(path), ec.ec);
+
+			if (ec.ec)
+			{
+				ec.file = file;
+				ec.operation = storage_error::mkdir;
+				return file_handle();
+			}
+
+			// if the directory creation failed, don't try to open the file again
+			// but actually just fail
+			h = open_file_impl(file, mode, ec.ec);
+		}
+		if (ec.ec)
+		{
+			ec.file = file;
+			ec.operation = storage_error::open;
+			return file_handle();
+		}
+		TORRENT_ASSERT(h);
+		return h;
+	}
+
+	file_handle default_storage::open_file_impl(int file, int mode
 		, error_code& ec) const
 	{
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
@@ -1320,7 +1334,8 @@ namespace libtorrent
 			mode |= file::no_cache;
 		}
 
-		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path, file, files(), mode, ec);
+		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path
+			, file, files(), mode, ec);
 	}
 
 	bool default_storage::tick()

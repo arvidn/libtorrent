@@ -147,6 +147,7 @@ namespace
 #ifdef TORRENT_USE_OPENSSL
 
 #include <openssl/crypto.h>
+#include <openssl/rand.h>
 
 namespace
 {
@@ -336,7 +337,7 @@ namespace aux {
 	}
 #endif
 
-	session_impl::session_impl(fingerprint const& cl_fprint)
+	session_impl::session_impl()
 		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
@@ -366,7 +367,6 @@ namespace aux {
 #endif
 		, m_socks_listen_port(0)
 		, m_interface_index(0)
-		, m_allowed_upload_slots(8)
 		, m_unchoke_time_scaler(0)
 		, m_auto_manage_time_scaler(0)
 		, m_optimistic_unchoke_time_scaler(0)
@@ -395,7 +395,7 @@ namespace aux {
 		, m_ssl_udp_socket(m_io_service)
 		, m_ssl_utp_socket_manager(m_settings, m_ssl_udp_socket, m_stats_counters
 			, &m_ssl_ctx
-			, boost::bind(&session_impl::incoming_connection, this, _1))
+			, boost::bind(&session_impl::on_incoming_utp_ssl, this, _1))
 #endif
 		, m_boost_connections(0)
 		, m_timer(m_io_service)
@@ -444,18 +444,6 @@ namespace aux {
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address_v4::any(), 0);
 		TORRENT_ASSERT_VAL(!ec, ec);
-
-		// ---- generate a peer id ----
-		std::string print = cl_fprint.to_string();
-		TORRENT_ASSERT_VAL(print.length() <= 20, print.length());
-
-		// the client's fingerprint
-		std::copy(
-			print.begin()
-			, print.begin() + print.length()
-			, m_peer_id.begin());
-
-		url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
 	}
 
 	void session_impl::start_session(settings_pack const& pack)
@@ -587,6 +575,7 @@ namespace aux {
 		update_natpmp();
 		update_lsd();
 		update_dht();
+		update_peer_fingerprint();
 
 		if (m_listen_sockets.empty())
 		{
@@ -1562,6 +1551,7 @@ namespace aux {
 		, bool ipv4, int port, int& retries, int flags, error_code& ec)
 	{
 		listen_socket_t ret;
+		ret.ssl = flags & open_ssl_socket;
 		int last_op = 0;
 		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
 			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
@@ -1909,32 +1899,38 @@ retry:
 		}
 
 #ifdef TORRENT_USE_OPENSSL
-		// TODO: 2 use bind_to_device in udp_socket
 		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
-		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
-		m_ssl_udp_socket.bind(ssl_bind_if, ec);
-		if (ec)
+
+		// if ssl port is 0, we don't want to listen on an SSL port
+		if (ssl_port != 0)
 		{
-#if defined TORRENT_LOGGING
-			session_log("SSL: cannot bind to UDP interface \"%s\": %s"
-				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
-#endif
-			if (m_alerts.should_post<listen_failed_alert>())
+			udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
+
+			// TODO: 2 use bind_to_device in udp_socket
+			m_ssl_udp_socket.bind(ssl_bind_if, ec);
+			if (ec)
 			{
-				error_code err;
-				m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
-					, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
-			}
-			ec.clear();
-		}
-		else
-		{
-			if (m_alerts.should_post<listen_succeeded_alert>())
-				m_alerts.post_alert(listen_succeeded_alert(
-					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
-					, listen_succeeded_alert::utp_ssl));
-		}
+#if defined TORRENT_LOGGING
+				session_log("SSL: cannot bind to UDP interface \"%s\": %s"
+					, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					error_code err;
+					m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
+							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
+				}
+				ec.clear();
+			}
+			else
+			{
+				if (m_alerts.should_post<listen_succeeded_alert>())
+					m_alerts.post_alert(listen_succeeded_alert(
+							tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
+							, listen_succeeded_alert::utp_ssl));
+			}
+		}
+#endif // TORRENT_USE_OPENSSL
 
 		// TODO: 2 use bind_to_device in udp_socket
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
@@ -1999,7 +1995,7 @@ retry:
 
 	void session_impl::remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port)
 	{
-		if ((mask & 1) && m_natpmp.get())
+		if ((mask & 1) && m_natpmp)
 		{
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
@@ -2009,7 +2005,7 @@ retry:
 				, ssl_port, ssl_port);
 #endif
 		}
-		if ((mask & 2) && m_upnp.get())
+		if ((mask & 2) && m_upnp)
 		{
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
@@ -2187,6 +2183,11 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_accept_connection");
 #endif
+
+#ifdef TORRENT_USE_OPENSSL
+		TORRENT_ASSERT(ssl == is_ssl(*c));
+#endif
+
 		listener->async_accept(*str
 			, boost::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<socket_acceptor>(listener), _1, ssl));
@@ -2273,6 +2274,8 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl)
 		{
+			TORRENT_ASSERT(is_ssl(*s));
+
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 #if defined TORRENT_ASIO_DEBUGGING
@@ -2291,6 +2294,20 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 
+	void session_impl::on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s)
+	{
+		TORRENT_ASSERT(is_ssl(*s));
+
+		// for SSL connections, incoming_connection() is called
+		// after the handshake is done
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::ssl_handshake");
+#endif
+		s->get<ssl_stream<utp_stream> >()->async_accept_handshake(
+			boost::bind(&session_impl::ssl_handshake, this, _1, s));
+		m_incoming_sockets.insert(s);
+	}
+
 	// to test SSL connections, one can use this openssl command template:
 	// 
 	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem
@@ -2302,6 +2319,8 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::ssl_handshake");
 #endif
+		TORRENT_ASSERT(is_ssl(*s));
+
 		m_incoming_sockets.erase(s);
 
 		error_code e;
@@ -2828,7 +2847,8 @@ retry:
 		if (now - m_last_second_tick < seconds(1)) return;
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht_interval_update_torrents < 40
+		if (m_dht
+			&& m_dht_interval_update_torrents < 40
 			&& m_dht_interval_update_torrents != int(m_torrents.size()))
 			update_dht_announce_interval();
 #endif
@@ -3528,14 +3548,16 @@ retry:
 			torrent* t = i->second.get();
 			TORRENT_ASSERT(t);
 
+			if (t->state() == torrent_status::checking_files
+				&& !t->has_error()
+				&& (t->is_auto_managed() || t->allows_peers()))
+			{
+				checking.push_back(t);
+				continue;
+			}
+
 			if (t->is_auto_managed() && !t->has_error())
 			{
-				if (t->state() == torrent_status::checking_files)
-				{
-					checking.push_back(t);
-					continue;
-				}
-
 				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
 				// this torrent is auto managed, add it to
 				// the list (depending on if it's a seed or not)
@@ -3597,7 +3619,7 @@ retry:
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_allowed_upload_slots == 0) return;
+		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 	
 		std::vector<torrent_peer*> opt_unchoke;
 
@@ -3653,7 +3675,8 @@ retry:
 #endif
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+		int allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
@@ -3900,14 +3923,16 @@ retry:
 					, performance_alert::bittyrant_with_no_uplimit));
 		}
 
-		m_allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+		int allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
+		m_stats_counters.set_value(counters::num_unchoke_slots
+			, allowed_upload_slots);
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, m_allowed_upload_slots / 5);
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
 
 		// reserve some upload slots for optimistic unchokes
-		int unchoke_set_size = m_allowed_upload_slots;
+		int unchoke_set_size = allowed_upload_slots;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
@@ -5055,6 +5080,20 @@ retry:
 #endif
 	}
 
+	void session_impl::update_peer_fingerprint()
+	{
+		// ---- generate a peer id ----
+		std::string print = m_settings.get_str(settings_pack::peer_fingerprint);
+		if (print.size() > 20) print.resize(20);
+
+		// the client's fingerprint
+		std::copy(print.begin(), print.begin() + print.length(), m_peer_id.begin());
+		if (print.length() < 20)
+		{
+			url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
+		}
+	}
+
 	void session_impl::update_count_slow()
 	{
 		error_code ec;
@@ -5119,7 +5158,7 @@ retry:
 	void session_impl::announce_lsd(sha1_hash const& ih, int port, bool broadcast)
 	{
 		// use internal listen port for local peers
-		if (m_lsd.get())
+		if (m_lsd)
 			m_lsd->announce(ih, port, broadcast);
 	}
 
@@ -5204,8 +5243,7 @@ retry:
 		}
 	}
 
-	// TODO: 3 deprecate this function. All of this functionality should be
-	// exposed as performance counters
+#ifndef TORRENT_NO_DEPRECATE
 	session_status session_impl::status() const
 	{
 //		INVARIANT_CHECK;
@@ -5215,24 +5253,36 @@ retry:
 
 		s.optimistic_unchoke_counter = m_optimistic_unchoke_time_scaler;
 		s.unchoke_counter = m_unchoke_time_scaler;
-
-		s.num_peers = int(m_connections.size());
 		s.num_dead_peers = int(m_undead_peers.size());
-		s.num_unchoked = m_stats_counters[counters::num_peers_up_unchoked_all];
-		s.allowed_upload_slots = m_allowed_upload_slots;
 
-		s.num_torrents = m_torrents.size();
-		// only non-paused torrents want tick
-		s.num_paused_torrents = m_torrents.size() - m_torrent_lists[torrent_want_tick].size();
+		s.num_peers = m_stats_counters[counters::num_peers_connected];
+		s.num_unchoked = m_stats_counters[counters::num_peers_up_unchoked_all];
+		s.allowed_upload_slots = m_stats_counters[counters::num_unchoke_slots];
+
+		s.num_torrents
+			= m_stats_counters[counters::num_checking_torrents]
+			+ m_stats_counters[counters::num_stopped_torrents]
+			+ m_stats_counters[counters::num_queued_seeding_torrents]
+			+ m_stats_counters[counters::num_queued_download_torrents]
+			+ m_stats_counters[counters::num_upload_only_torrents]
+			+ m_stats_counters[counters::num_downloading_torrents]
+			+ m_stats_counters[counters::num_seeding_torrents]
+			+ m_stats_counters[counters::num_error_torrents];
+
+		s.num_paused_torrents
+			= m_stats_counters[counters::num_stopped_torrents]
+			+ m_stats_counters[counters::num_error_torrents]
+			+ m_stats_counters[counters::num_queued_seeding_torrents]
+			+ m_stats_counters[counters::num_queued_download_torrents];
 
 		s.total_redundant_bytes = m_stats_counters[counters::recv_redundant_bytes];
 		s.total_failed_bytes = m_stats_counters[counters::recv_failed_bytes];
 
-		s.up_bandwidth_queue = m_upload_rate.queue_size();
-		s.down_bandwidth_queue = m_download_rate.queue_size();
+		s.up_bandwidth_queue = m_stats_counters[counters::limiter_up_queue];
+		s.down_bandwidth_queue = m_stats_counters[counters::limiter_down_queue];
 
-		s.up_bandwidth_bytes_queue = int(m_upload_rate.queued_bytes());
-		s.down_bandwidth_bytes_queue = int(m_download_rate.queued_bytes());
+		s.up_bandwidth_bytes_queue = m_stats_counters[counters::limiter_up_bytes];
+		s.down_bandwidth_bytes_queue = m_stats_counters[counters::limiter_down_bytes];
 
 		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
 		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];
@@ -5286,7 +5336,24 @@ retry:
 			s.dht_total_allocations = 0;
 		}
 
-		m_utp_socket_manager.get_status(s.utp_stats);
+		s.utp_stats.packet_loss = m_stats_counters[counters::utp_packet_loss];
+		s.utp_stats.timeout = m_stats_counters[counters::utp_timeout];
+		s.utp_stats.packets_in = m_stats_counters[counters::utp_packets_in];
+		s.utp_stats.packets_out = m_stats_counters[counters::utp_packets_out];
+		s.utp_stats.fast_retransmit = m_stats_counters[counters::utp_fast_retransmit];
+		s.utp_stats.packet_resend = m_stats_counters[counters::utp_packet_resend];
+		s.utp_stats.samples_above_target = m_stats_counters[counters::utp_samples_above_target];
+		s.utp_stats.samples_below_target = m_stats_counters[counters::utp_samples_below_target];
+		s.utp_stats.payload_pkts_in = m_stats_counters[counters::utp_payload_pkts_in];
+		s.utp_stats.payload_pkts_out = m_stats_counters[counters::utp_payload_pkts_out];
+		s.utp_stats.invalid_pkts_in = m_stats_counters[counters::utp_invalid_pkts_in];
+		s.utp_stats.redundant_pkts_in = m_stats_counters[counters::utp_redundant_pkts_in];
+
+		s.utp_stats.num_idle = m_stats_counters[counters::num_utp_idle];
+		s.utp_stats.num_syn_sent = m_stats_counters[counters::num_utp_syn_sent];
+		s.utp_stats.num_connected = m_stats_counters[counters::num_utp_connected];
+		s.utp_stats.num_fin_sent = m_stats_counters[counters::num_utp_fin_sent];
+		s.utp_stats.num_close_wait = m_stats_counters[counters::num_utp_close_wait];
 
 		// this loop is potentially expensive. It could be optimized by
 		// simply keeping a global counter
@@ -5301,6 +5368,7 @@ retry:
 
 		return s;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_DISABLE_DHT
 
@@ -5469,7 +5537,7 @@ retry:
 	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
 	{
 		int local, external, protocol;
-		if (nat == 0 && m_natpmp.get())
+		if (nat == 0 && m_natpmp)
 		{
 			if (m_udp_mapping[nat] != -1)
 			{
@@ -5485,7 +5553,7 @@ retry:
 				, local_port, external_port);
 			return;
 		}
-		else if (nat == 1 && m_upnp.get())
+		else if (nat == 1 && m_upnp)
 		{
 			if (m_udp_mapping[nat] != -1)
 			{
@@ -5704,16 +5772,16 @@ retry:
 	{
 		int unchoke_limit = m_settings.get_int(settings_pack::unchoke_slots_limit);
 
-		m_allowed_upload_slots = unchoke_limit;
+		int allowed_upload_slots = unchoke_limit;
 		
-		if (m_allowed_upload_slots < 0)
-			m_allowed_upload_slots = (std::numeric_limits<int>::max)();
+		if (allowed_upload_slots < 0)
+			allowed_upload_slots = (std::numeric_limits<int>::max)();
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
-			, m_allowed_upload_slots);
+			, allowed_upload_slots);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots)
-			>= m_allowed_upload_slots / 2)
+			>= allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
 				m_alerts.post_alert(performance_alert(torrent_handle()
@@ -5747,7 +5815,8 @@ retry:
 
 	bool session_impl::preemptive_unchoke() const
 	{
-		return m_stats_counters[counters::num_peers_up_unchoked] < m_allowed_upload_slots
+		return m_stats_counters[counters::num_peers_up_unchoked]
+			< m_stats_counters[counters::num_unchoke_slots]
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
@@ -5794,8 +5863,6 @@ retry:
 		}
 	}
 
-	// TODO: 3 If socket jobs could be higher level, to include RC4 encryption and decryption,
-	// we would offload the main thread even more
 	void session_impl::post_socket_job(socket_job& j)
 	{
 		uintptr_t idx = 0;
@@ -6162,7 +6229,7 @@ retry:
 
 		if (m_lsd) return;
 
-		m_lsd = new lsd(m_io_service
+		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
 	}
 	
@@ -6174,15 +6241,12 @@ retry:
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		natpmp* n = new (std::nothrow) natpmp(m_io_service
-			, m_listen_interface.address()
+		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
-		if (n == 0) return 0;
-
-		m_natpmp = n;
+		m_natpmp->start();
 
 		int ssl_port = ssl_listen_port();
 
@@ -6202,7 +6266,7 @@ retry:
 				, ssl_port, ssl_port);
 		}
 #endif
-		return n;
+		return m_natpmp.get();
 	}
 
 	upnp* session_impl::start_upnp()
@@ -6212,7 +6276,7 @@ retry:
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		upnp* u = new (std::nothrow) upnp(m_io_service
+		m_upnp = boost::make_shared<upnp>(boost::ref(m_io_service)
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
@@ -6220,10 +6284,7 @@ retry:
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
-
-		if (u == 0) return 0;
-
-		m_upnp = u;
+		m_upnp->start();
 
 		int ssl_port = ssl_listen_port();
 
@@ -6244,7 +6305,7 @@ retry:
 				, ssl_port, ssl_port);
 		}
 #endif
-		return u;
+		return m_upnp.get();
 	}
 
 	int session_impl::add_port_mapping(int t, int external_port
@@ -6266,14 +6327,14 @@ retry:
 
 	void session_impl::stop_lsd()
 	{
-		if (m_lsd.get())
+		if (m_lsd)
 			m_lsd->close();
-		m_lsd = 0;
+		m_lsd.reset();
 	}
 	
 	void session_impl::stop_natpmp()
 	{
-		if (m_natpmp.get())
+		if (m_natpmp)
 		{
 			m_natpmp->close();
 			m_udp_mapping[0] = -1;
@@ -6283,12 +6344,12 @@ retry:
 			m_ssl_udp_mapping[0] = -1;
 #endif
 		}
-		m_natpmp = 0;
+		m_natpmp.reset();
 	}
 	
 	void session_impl::stop_upnp()
 	{
-		if (m_upnp.get())
+		if (m_upnp)
 		{
 			m_upnp->close();
 			m_udp_mapping[1] = -1;
@@ -6298,7 +6359,7 @@ retry:
 			m_ssl_udp_mapping[1] = -1;
 #endif
 		}
-		m_upnp = 0;
+		m_upnp.reset();
 	}
 
 	external_ip const& session_impl::external_address() const
@@ -6422,7 +6483,7 @@ retry:
 
 		if (m_settings.get_int(settings_pack::unchoke_slots_limit) < 0
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
-			TORRENT_ASSERT(m_allowed_upload_slots == (std::numeric_limits<int>::max)());
+			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == (std::numeric_limits<int>::max)());
 
 		for (int l = 0; l < num_torrent_lists; ++l)
 		{

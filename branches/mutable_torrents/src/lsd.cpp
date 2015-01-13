@@ -67,11 +67,9 @@ static error_code ec;
 
 lsd::lsd(io_service& ios, peer_callback_t const& cb)
 	: m_callback(cb)
-	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
-		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))
+	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771))
 #if TORRENT_USE_IPV6
-	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771)
-		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))
+	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771))
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie(random())
@@ -79,9 +77,16 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 #if TORRENT_USE_IPV6
 	, m_disabled6(false)
 #endif
+#if defined TORRENT_LOGGING
+	, m_log(NULL)
+#endif
+{
+}
+
+void lsd::start()
 {
 #if defined TORRENT_LOGGING
-	// TODO: instead if writing to a file, post alerts. Or call a log callback
+	// TODO: 3 instead if writing to a file, post alerts. Or call a log callback
 	m_log = fopen("lsd.log", "w+");
 	if (m_log == NULL)
 	{
@@ -91,7 +96,8 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 #endif
 
 	error_code ec;
-	m_socket.open(ios, ec);
+	m_socket.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
+		, m_broadcast_timer.get_io_service(), ec);
 
 #if defined TORRENT_LOGGING
 	if (ec)
@@ -102,7 +108,8 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 #endif
 
 #if TORRENT_USE_IPV6
-	m_socket6.open(ios, ec);
+	m_socket6.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
+		, m_broadcast_timer.get_io_service(), ec);
 #if defined TORRENT_LOGGING
 	if (ec)
 	{

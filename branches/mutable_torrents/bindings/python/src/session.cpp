@@ -404,7 +404,6 @@ namespace
 		s.get_cache_info(&ret);
 		return ret;
 	 }
-#endif
 
     dict get_utp_stats(session_status const& st)
     {
@@ -417,7 +416,6 @@ namespace
         return ret;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
     list get_cache_info2(lt::session& ses, sha1_hash ih)
     {
        std::vector<cached_piece_info> ret;
@@ -504,7 +502,6 @@ void bind_session()
     void (lt::session::*start_dht0)() = &lt::session::start_dht;
     void (lt::session::*start_dht1)(entry const&) = &lt::session::start_dht;
 #endif
-#endif
 
     class_<session_status>("session_status")
         .def_readonly("has_incoming_connections", &session_status::has_incoming_connections)
@@ -559,6 +556,7 @@ void bind_session()
         .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
 #endif
         .add_property("utp_stats", &get_utp_stats)
+#endif
         ;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -612,12 +610,10 @@ void bind_session()
         .def_readonly("reads", &cache_status::reads)
         .def_readonly("queued_bytes", &cache_status::queued_bytes)
         .def_readonly("cache_size", &cache_status::cache_size)
-#endif
         .def_readonly("write_cache_size", &cache_status::write_cache_size)
         .def_readonly("read_cache_size", &cache_status::read_cache_size)
         .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
         .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("average_read_time", &cache_status::average_read_time)
         .def_readonly("average_write_time", &cache_status::average_write_time)
         .def_readonly("average_hash_time", &cache_status::average_hash_time)
@@ -627,7 +623,6 @@ void bind_session()
         .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
         .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
         .def_readonly("total_read_back", &cache_status::total_read_back)
-#endif
         .def_readonly("read_queue_size", &cache_status::read_queue_size)
         .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
         .def_readonly("queued_jobs", &cache_status::queued_jobs)
@@ -640,13 +635,13 @@ void bind_session()
         .def_readonly("arc_mru_ghost_size", &cache_status::arc_mru_ghost_size)
         .def_readonly("arc_mfu_size", &cache_status::arc_mfu_size)
         .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
+#endif
     ;
 
     class_<lt::session, boost::noncopyable>("session", no_init)
         .def(
-            init<settings_pack const&, fingerprint, int>((
+            init<settings_pack const&, int>((
                 arg("settings")
-                , arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins))
         )
         .def(
@@ -659,7 +654,6 @@ void bind_session()
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
-        .def("status", allow_threads(&lt::session::status))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", add_dht_node)
         .def(
@@ -681,11 +675,12 @@ void bind_session()
                 arg("paused") = false
             )
         )
-#endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // BOOST_NO_EXCEPTIONS
         .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
+        .def("status", allow_threads(&lt::session::status))
         .def("set_settings", &lt::session::set_settings)
         .def("settings", &lt::session::settings)
         .def("get_settings", &session_get_settings)
@@ -769,8 +764,8 @@ void bind_session()
         .def("stop_natpmp", allow_threads(&lt::session::stop_natpmp))
         .def("get_cache_status", &get_cache_status)
         .def("get_cache_info", &get_cache_info2)
-#endif
         .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
+#endif // TORRENT_NO_DEPRECATE
         ;
 
     enum_<lt::session::save_state_flags_t>("save_state_flags_t")

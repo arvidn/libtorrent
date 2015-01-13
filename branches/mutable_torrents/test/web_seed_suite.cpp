@@ -151,9 +151,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 
 	const boost::int64_t total_size = torrent_file->total_size();
 
-	float rate_sum = 0.f;
-	float ses_rate_sum = 0.f;
-
 	file_storage const& fs = torrent_file->files();
 	int pad_file_size = 0;
 	for (int i = 0; i < fs.num_files(); ++i)
@@ -163,16 +160,15 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	}
 
 	peer_disconnects = 0;
+	std::map<std::string, boost::uint64_t> cnt = get_counters(ses);
 
 	for (int i = 0; i < 40; ++i)
 	{
 		torrent_status s = th.status();
-		session_status ss = ses.status();
-		rate_sum += s.download_payload_rate;
-		ses_rate_sum += ss.payload_download_rate;
+
+		cnt = get_counters(ses);
 
 		print_ses_rate(i / 10.f, &s, NULL);
-
 		print_alerts(ses, "  >>  ses", test_ban, false, false, &on_alert);
 
 		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())
@@ -186,7 +182,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		{
 			fprintf(stderr, "SEEDING\n");
 			fprintf(stderr, "session.payload: %d session.redundant: %d\n"
-				, int(ses.status().total_payload_download), int(ses.status().total_redundant_bytes));
+				, int(cnt["net.recv_payload_bytes"]), int(cnt["net.recv_redundant_bytes"]));
 			fprintf(stderr, "torrent.payload: %d torrent.redundant: %d\n"
 				, int(s.total_payload_download), int(s.total_redundant_bytes));
 
@@ -209,7 +205,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	// the url seed (i.e. banned it)
 	TEST_CHECK(!test_ban || (th.url_seeds().empty() && th.http_seeds().empty()));
 
-	std::map<std::string, boost::uint64_t> cnt = get_counters(ses);
+	cnt = get_counters(ses);
 
 	// if the web seed senr corrupt data and we banned it, we probably didn't
 	// end up using all the cache anyway
@@ -240,16 +236,10 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	std::cerr << "total_size: " << total_size
 		<< " read cache size: " << cnt["disk.disk_blocks_in_use"]
 		<< " total used buffer: " << cnt["disk.disk_blocks_in_use"]
-		<< " rate_sum: " << rate_sum
-		<< " session_rate_sum: " << ses_rate_sum
-		<< " session total download: " << ses.status().total_payload_download
+		<< " session total download: " << cnt["net.recv_payload_bytes"]
 		<< " torrent total download: " << th.status().total_payload_download
 		<< " redundant: " << th.status().total_redundant_bytes
 		<< std::endl;
-
-	// the rates for each second should sum up to the total, with a 10% error margin
-//	TEST_CHECK(fabs(rate_sum - total_size) < total_size * .1f);
-//	TEST_CHECK(fabs(ses_rate_sum - total_size) < total_size * .1f);
 
 	// if test_ban is true, we're not supposed to have completed the download
 	// otherwise, we are supposed to have
@@ -308,6 +298,8 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 		char* random_data = (char*)malloc(64 * 1024 * num_pieces);
 		std::generate(random_data, random_data + 64 * 1024 * num_pieces, random_byte);
 		std::string seed_filename = combine_path(save_path, "seed");
+		fprintf(stderr, "creating file: %s %s\n"
+			, current_working_directory().c_str(), seed_filename.c_str());
 		save_file(seed_filename.c_str(), random_data, 64 * 1024 * num_pieces);
 		fs.add_file("seed", 64 * 1024 * num_pieces);
 		free(random_data);
@@ -390,14 +382,16 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	}
 */
 	{
-		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
-
 		settings_pack pack;
 		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
 		pack.set_int(settings_pack::max_retry_port_bind, 1000);
 		pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		ses.apply_settings(pack);
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
+		libtorrent::session ses(pack, 0);
 
 		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
 			, chunked_encoding, test_ban, keepalive);

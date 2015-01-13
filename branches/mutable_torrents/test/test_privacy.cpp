@@ -128,7 +128,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy_type);
 	sett.set_int(settings_pack::proxy_port, 4444);
 
-	lt::session* s = new lt::session(sett, fingerprint("LT", 0, 1, 0, 0));
+	lt::session* s = new lt::session(sett);
 
 	error_code ec;
 	remove_all("tmp1_privacy", ec);

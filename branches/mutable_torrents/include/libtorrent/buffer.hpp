@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include <cstdlib> // malloc/free/realloc
 #include <boost/cstdint.hpp>
+#include <algorithm> // for std::swap
 
 namespace libtorrent {
 

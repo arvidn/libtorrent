@@ -197,6 +197,10 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
 	pack.set_bool(settings_pack::enable_outgoing_utp, false);
 	pack.set_bool(settings_pack::enable_incoming_utp, false);
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_int(settings_pack::alert_mask, mask);
 
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
@@ -281,7 +285,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		// us catch all events that failed (and would put the torrent
 		// back into upload mode) before we restart it.
 
-		// TODO: 3 factor out the disk-full test into its own unit test
+		// TODO: 2 factor out the disk-full test into its own unit test
 		if (test_disk_full && st2.upload_mode && ++upload_mode_timer > 10)
 		{
 			test_disk_full = false;

@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session_status.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/disk_io_thread.hpp"
@@ -84,6 +83,10 @@ namespace libtorrent
 	class port_filter;
 	class connection_queue;
 	class alert;
+
+#ifndef TORRENT_NO_DEPRECATE
+	struct session_status;
+#endif
 
 	// describes one statistics metric from the session. For more information,
 	// see the session-statistics_ section.
@@ -201,15 +204,11 @@ namespace libtorrent
 		// The ``alert_mask`` is the same mask that you would send to
 		// set_alert_mask().
 
-		// TODO: 3 could the fingerprint be a setting as well? And should the
-		// settings_pack be optional?
 		session(settings_pack const& pack
-			, fingerprint const& print = fingerprint("LT"
-				, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
 			, int flags = start_default_features | add_default_plugins)
 		{
 			TORRENT_CFG();
-			init(print);
+			init();
 			start(flags, pack);
 		}
 		session(fingerprint const& print = fingerprint("LT"
@@ -220,6 +219,7 @@ namespace libtorrent
 			TORRENT_CFG();
 			settings_pack pack;
 			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			if ((flags & start_default_features) == 0)
 			{
 				pack.set_bool(settings_pack::enable_upnp, false);
@@ -228,7 +228,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 
-			init(print);
+			init();
 			start(flags, pack);
 		}
 		session(fingerprint const& print
@@ -244,6 +244,7 @@ namespace libtorrent
 			settings_pack pack;
 			pack.set_int(settings_pack::alert_mask, alert_mask);
 			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
+			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			char if_string[100];
 			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
@@ -255,7 +256,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			init(print);
+			init();
 			start(flags, pack);
 		}
 			
@@ -486,16 +487,18 @@ namespace libtorrent
 		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
 		void set_load_function(user_load_function_t fun);
 
+#ifndef TORRENT_NO_DEPRECATE
+		//  deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
-		session_status status() const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in aio branch
 		TORRENT_DEPRECATED_PREFIX
+		session_status status() const TORRENT_DEPRECATED;
+
+		// deprecated in libtorrent 1.1
 		// fills out the supplied vector with information for each piece that is
 		// currently in the disk cache for the torrent with the specified
 		// info-hash (``ih``).
+		TORRENT_DEPRECATED_PREFIX
 		void get_cache_info(sha1_hash const& ih
 			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
 
@@ -744,9 +747,13 @@ namespace libtorrent
 		// anti-virus software by connecting to SMTP, FTP ports.
 		void set_port_filter(port_filter const& f);
 
-		// sets and gets the raw peer ID used by libtorrent. When anonymous
-		// mode is set the peer ID is randomized per peer anyway.
-		void set_peer_id(peer_id const& pid);
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.1, use settings_pack::peer_fingerprint instead
+		TORRENT_DEPRECATED_PREFIX
+		void set_peer_id(peer_id const& pid) TORRENT_DEPRECATED;
+#endif
+		// returns the raw peer ID used by libtorrent. When anonymous mode is set
+		// the peer ID is randomized per peer.
 		peer_id id() const;
 
 		// sets the key sent to trackers. If it's not set, it is initialized
@@ -1218,7 +1225,7 @@ namespace libtorrent
 
 	private:
 
-		void init(fingerprint const& id);
+		void init();
 		void start(int flags, settings_pack const& pack);
 
 		// data shared between the main thread

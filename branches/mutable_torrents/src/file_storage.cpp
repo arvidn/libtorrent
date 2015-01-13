@@ -47,6 +47,8 @@ namespace libtorrent
 		, m_num_files(0)
 	{}
 
+	file_storage::~file_storage() {}
+
 	void file_storage::reserve(int num_files)
 	{
 		m_files.reserve(num_files);

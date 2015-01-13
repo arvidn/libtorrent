@@ -458,6 +458,13 @@ namespace libtorrent
 		METRIC(utp, utp_invalid_pkts_in)
 		METRIC(utp, utp_redundant_pkts_in)
 
+		// the number of uTP sockets in each respective state
+		METRIC(utp, num_utp_idle)
+		METRIC(utp, num_utp_syn_sent)
+		METRIC(utp, num_utp_connected)
+		METRIC(utp, num_utp_fin_sent)
+		METRIC(utp, num_utp_close_wait)
+
 		// the buffer sizes accepted by
 		// socket send and receive calls respectively.
 		// The larger the buffers are, the more efficient,

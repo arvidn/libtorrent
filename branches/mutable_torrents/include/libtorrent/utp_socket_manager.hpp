@@ -55,8 +55,6 @@ namespace libtorrent
 			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
 		~utp_socket_manager();
 
-		void get_status(utp_status& s) const;
-
 		// return false if this is not a uTP packet
 		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
 			, char const* p, int size);
@@ -100,7 +98,7 @@ namespace libtorrent
 
 		// used to keep stats of uTP events
 		// the counter is the enum from ``counters``.
-		void inc_stats_counter(int counter);
+		void inc_stats_counter(int counter, int delta = 1);
 
 	private:
 		udp_socket& m_sock;
