@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 
 #include <string>
+#include <memory>
 
 namespace libtorrent
 {
@@ -67,6 +68,7 @@ namespace libtorrent
 			= boost::function<void(disk_io_job const*)>()) = 0;
 		virtual void async_check_fastresume(piece_manager* storage
 			, lazy_entry const* resume_data
+			, std::auto_ptr<std::vector<std::string> >& links
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 #ifndef TORRENT_NO_DEPRECATE
 		virtual void async_finalize_file(piece_manager*, int file

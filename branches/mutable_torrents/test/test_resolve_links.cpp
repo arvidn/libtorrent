@@ -103,12 +103,12 @@ int test_main()
 
 		fprintf(stderr, "resolving\n");
 		resolve_links l(ti1);
-		l.match(ti2);
+		l.match(ti2, ".");
 
 		std::vector<resolve_links::link_t> const& links = l.get_links();
 
 		int num_matches = std::count_if(links.begin(), links.end()
-			, boost::bind(&resolve_links::link_t::first, _1));
+			, boost::bind(&resolve_links::link_t::ti, _1));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
@@ -118,8 +118,8 @@ int test_main()
 			{
 				TORRENT_ASSERT(i < fs.num_files());
 				fprintf(stderr, "%s --> %s : %d\n", fs.file_name(i).c_str()
-					, links[i].first ? to_hex(links[i].first->info_hash()
-						.to_string()).c_str() : "", links[i].second);
+					, links[i].ti ? to_hex(links[i].ti->info_hash()
+						.to_string()).c_str() : "", links[i].file_idx);
 			}
 		}
 

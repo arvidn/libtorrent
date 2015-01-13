@@ -61,8 +61,11 @@ resolve_links::resolve_links(boost::shared_ptr<torrent_info> ti)
 	m_links.resize(m_torrent_file->num_files());
 }
 
-void resolve_links::match(boost::shared_ptr<torrent_info> const& ti)
+void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
+	, std::string const& save_path)
 {
+	if (!ti) return;
+
 	// only torrents with the same 
 	if (ti->piece_length() != m_torrent_file->piece_length()) return;
 
@@ -93,7 +96,7 @@ void resolve_links::match(boost::shared_ptr<torrent_info> const& ti)
 
 		// if we already have found a duplicate for this file, no need
 		// to keep looking
-		if (m_links[iter->second].first) continue;
+		if (m_links[iter->second].ti) continue;
 
 		// files are aligned and have the same size, now start comparing
 		// piece hashes, to see if the files are identical
@@ -118,12 +121,12 @@ void resolve_links::match(boost::shared_ptr<torrent_info> const& ti)
 		}
 		if (!match) continue;
 
-		m_links[iter->second].first = ti;
-		m_links[iter->second].second = i;
+		m_links[iter->second].ti = ti;
+		m_links[iter->second].save_path = save_path;
+		m_links[iter->second].file_idx = i;
 
 		// since we have a duplicate for this file, we may as well remove
 		// it from the file-size map, so we won't find it again.
-
 		m_file_sizes.erase(iter);
 	}
 

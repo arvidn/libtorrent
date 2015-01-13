@@ -1893,6 +1893,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
 		, lazy_entry const* resume_data
+		, std::auto_ptr<std::vector<std::string> >& links
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 #ifdef TORRENT_DEBUG
@@ -1904,9 +1905,11 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
 		j->storage = storage->shared_from_this();
 		j->buffer = (char*)resume_data;
+		j->d.links = links.get();
 		j->callback = handler;
 
 		add_fence_job(storage, j);
+		links.release();
 	}
 
 	void disk_io_thread::async_save_resume_data(piece_manager* storage
@@ -2597,7 +2600,8 @@ namespace libtorrent
 		lazy_entry tmp;
 		if (rd == NULL) rd = &tmp;
 
-		return j->storage->check_fastresume(*rd, j->error);
+		std::auto_ptr<std::vector<std::string> > links(j->d.links);
+		return j->storage->check_fastresume(*rd, links.get(), j->error);
 	}
 
 	int disk_io_thread::do_save_resume_data(disk_io_job* j, tailqueue& completed_jobs)

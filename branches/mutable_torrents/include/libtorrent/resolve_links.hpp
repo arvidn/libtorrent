@@ -42,14 +42,22 @@ namespace libtorrent
 {
 	class torrent_info;
 
+	// this class is used for mutable torrents, to discover identical files
+	// in other torrents.
 	struct resolve_links
 	{
+		struct link_t
+		{
+			boost::shared_ptr<const torrent_info> ti;
+			std::string save_path;
+			int file_idx;
+		};
+
 		resolve_links(boost::shared_ptr<torrent_info> ti);
 
 		// check to see if any files are shared with this torrent
-		void match(boost::shared_ptr<torrent_info> const& ti);
-
-		typedef std::pair<boost::shared_ptr<torrent_info>, int> link_t;
+		void match(boost::shared_ptr<const torrent_info> const& ti
+			, std::string const& save_path);
 
 		std::vector<link_t> const& get_links() const
 		{ return m_links; }

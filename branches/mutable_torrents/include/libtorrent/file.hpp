@@ -140,6 +140,11 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
 		, std::string const& newf, error_code& ec);
 
+	// file is expected to exist, link will be created to point to it. If hard
+	// links are not supported by the filesystem or OS, the file will be copied.
+	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file
+		, std::string const& link, error_code& ec);
+
 	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);

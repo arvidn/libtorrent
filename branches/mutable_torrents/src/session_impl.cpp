@@ -4207,6 +4207,22 @@ retry:
 		return boost::weak_ptr<torrent>();
 	}
 
+	std::vector<boost::shared_ptr<torrent> > session_impl::find_collection(
+		std::string const& collection) const
+	{
+		std::vector<boost::shared_ptr<torrent> > ret;
+		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			boost::shared_ptr<torrent> t = i->second;
+			if (!t) continue;
+			std::vector<std::string> const& c = t->torrent_file().collections();
+			if (std::count(c.begin(), c.end(), collection) == 0) continue;
+			ret.push_back(t);
+		}
+		return ret;
+	}
+
 	// returns true if lhs is a better disconnect candidate than rhs
 	bool compare_disconnect_torrent(session_impl::torrent_map::value_type const& lhs
 		, session_impl::torrent_map::value_type const& rhs)

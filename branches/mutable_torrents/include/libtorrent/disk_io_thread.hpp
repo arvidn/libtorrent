@@ -308,6 +308,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
 			, lazy_entry const* resume_data
+			, std::auto_ptr<std::vector<std::string> >& links
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_save_resume_data(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler);
