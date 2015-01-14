@@ -4234,6 +4234,7 @@ retry:
 		return boost::weak_ptr<torrent>();
 	}
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::vector<boost::shared_ptr<torrent> > session_impl::find_collection(
 		std::string const& collection) const
 	{
@@ -4249,6 +4250,7 @@ retry:
 		}
 		return ret;
 	}
+#endif //TORRENT_DISABLE_MUTABLE_TORRENTS
 
 	// returns true if lhs is a better disconnect candidate than rhs
 	bool compare_disconnect_torrent(session_impl::torrent_map::value_type const& lhs

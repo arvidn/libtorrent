@@ -702,11 +702,13 @@ namespace libtorrent
 		if (m_orig_files)
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		for (int i = 0; i < m_collections.size(); ++i)
 			m_collections[i].first += offset;
 
 		for (int i = 0; i < m_similar_torrents.size(); ++i)
 			m_similar_torrents[i] += offset;
+#endif
 
 #if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
@@ -1260,6 +1262,7 @@ namespace libtorrent
 
 		m_private = info.dict_find_int_value("private", 0);
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		lazy_entry const* similar = info.dict_find_list("similar");
 		if (similar)
 		{
@@ -1289,6 +1292,7 @@ namespace libtorrent
 					+ info_ptr_diff, str->string_length()));
 			}
 		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
@@ -1429,6 +1433,7 @@ namespace libtorrent
 		if (!parse_info_section(*info, ec, flags)) return false;
 		resolve_duplicate_filenames();
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		lazy_entry const* similar = torrent_file.dict_find_list("similar");
 		if (similar)
 		{
@@ -1458,6 +1463,7 @@ namespace libtorrent
 					, str->string_length()));
 			}
 		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		// extract the url of the tracker
 		lazy_entry const* i = torrent_file.dict_find_list("announce-list");
@@ -1666,6 +1672,7 @@ namespace libtorrent
 	std::vector<sha1_hash> torrent_info::similar_torrents() const
 	{
 		std::vector<sha1_hash> ret;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
 		for (int i = 0; i < m_similar_torrents.size(); ++i)
@@ -1673,6 +1680,7 @@ namespace libtorrent
 
 		for (int i = 0; i < m_owned_similar_torrents.size(); ++i)
 			ret.push_back(m_owned_similar_torrents[i]);
+#endif
 
 		return ret;
 	}
@@ -1680,6 +1688,7 @@ namespace libtorrent
 	std::vector<std::string> torrent_info::collections() const
 	{
 		std::vector<std::string> ret;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
 		for (int i = 0; i < m_collections.size(); ++i)
@@ -1687,6 +1696,7 @@ namespace libtorrent
 
 		for (int i = 0; i < m_owned_collections.size(); ++i)
 			ret.push_back(m_owned_collections[i]);
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return ret;
 	}

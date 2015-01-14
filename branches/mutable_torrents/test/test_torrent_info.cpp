@@ -178,6 +178,8 @@ int test_main()
 {
 	test_storage();
 	test_copy();
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	test_mutable_torrents();
+#endif
 	return 0;
 }
