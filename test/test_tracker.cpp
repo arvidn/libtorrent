@@ -198,7 +198,7 @@ int test_main()
 	// TODO: test parse peers6
 	// TODO: test parse tracker-id
 	// TODO: test parse failure-reason
-	// TODO: test all failure paths
+	// TODO: test all failure paths, including
 	//   invalid bencoding
 	//   not a dictionary
 	//   no files entry in scrape response

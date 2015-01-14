@@ -75,6 +75,7 @@ enum flags_t
 	expect_udp_reject = 16,
 	expect_dht_msg = 32,
 	expect_peer_connection = 64,
+	expect_possible_udp_connection = 128,
 };
 
 session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
@@ -111,9 +112,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
-	static int listen_port = 48875;
+	static int listen_port = 10000 + random() % 50000;
 	char iface[200];
-	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port++);
+	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
+	listen_port += (random() % 10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 	sett.set_bool(settings_pack::enable_dht, true);
 
@@ -180,7 +182,17 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	}
 
 	// we should have announced to the tracker by now
-	TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
+	if (flags & expect_possible_udp_connection)
+	{
+		// this flag is true if we may fail open, but also might not have had
+		// enough time to fail yet
+		TEST_CHECK(num_udp_announces() == prev_udp_announces
+			|| num_udp_announces() == prev_udp_announces + 1);
+	}
+	else
+	{
+		TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
+	}
 	if (flags & expect_dht_msg)
 	{
 		TEST_CHECK(num_dht_hits() > 0);
@@ -224,8 +236,8 @@ int test_main()
 	// or if the proxy doesn't support UDP
 	pr[0] = test_proxy(settings_pack::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
 	pr[1] = test_proxy(settings_pack::socks4, expect_udp_connection | expect_dht_msg);
-	pr[2] = test_proxy(settings_pack::socks5, expect_udp_connection | expect_dht_msg);
-	pr[3] = test_proxy(settings_pack::socks5_pw, expect_udp_connection | expect_dht_msg);
+	pr[2] = test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_dht_msg);
+	pr[3] = test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_dht_msg);
 	pr[4] = test_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
 	pr[5] = test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
 	pr[6] = test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);

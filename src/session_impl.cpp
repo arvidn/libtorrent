@@ -1672,6 +1672,7 @@ namespace aux {
 				session_log("failed to get peer name \"%s\": %s"
 					, device.c_str(), ec.message().c_str());
 #endif
+				return ret;
 			}
 		}
 
@@ -1963,7 +1964,8 @@ retry:
 				m_alerts.post_alert(listen_succeeded_alert(m_listen_interface, listen_succeeded_alert::udp));
 		}
 
-		if (m_settings.get_int(settings_pack::peer_tos) != 0) {
+		if (m_settings.get_int(settings_pack::peer_tos) != 0)
+		{
 			update_peer_tos();
 		}
 
