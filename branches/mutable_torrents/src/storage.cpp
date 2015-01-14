@@ -888,6 +888,7 @@ namespace libtorrent
 		if (rd.dict_find_string_value("allocation") != "compact")
 			full_allocation_mode = true;
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (links)
 		{
 			// if this is a mutable torrent, and we need to pick up some files
@@ -920,6 +921,7 @@ namespace libtorrent
 				return false;
 			}
 		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return true;
 	}

@@ -1921,6 +1921,7 @@ namespace libtorrent
 			m_picker->set_num_pad_files(num_pad_files);
 
 		std::auto_ptr<std::vector<std::string> > links;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (!m_torrent_file->similar_torrents().empty()
 			|| !m_torrent_file->collections().empty())
 		{
@@ -1974,6 +1975,7 @@ namespace libtorrent
 				}
 			}
 		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will release links

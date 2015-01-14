@@ -42,6 +42,7 @@ namespace libtorrent
 {
 	class torrent_info;
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	// this class is used for mutable torrents, to discover identical files
 	// in other torrents.
 	struct resolve_links
@@ -74,6 +75,7 @@ namespace libtorrent
 		// maps file size to file index, in m_torrent_file
 		boost::unordered_multimap<boost::int64_t, int> m_file_sizes;
 	};
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 }
 

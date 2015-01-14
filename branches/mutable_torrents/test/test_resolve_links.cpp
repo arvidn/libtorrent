@@ -86,6 +86,7 @@ test_torrent_t test_torrents[] = {
 int test_main()
 {
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::string path
 		= combine_path("..", "mutable_test_torrents");
 
@@ -126,6 +127,7 @@ int test_main()
 		TEST_EQUAL(num_matches, e.expected_matches);
 
 	}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 	return 0;
 }
 
