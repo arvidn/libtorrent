@@ -481,14 +481,15 @@ namespace libtorrent
 	{
 #if defined TORRENT_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb)
-		{
-			char hex_ih[41];
-			to_hex((char const*)&tracker_req().info_hash[0], 20, hex_ih);
-			cb->debug_log("==> UDP_TRACKER_CONNECT [%s]", hex_ih);
-		}
 #endif
-		if (m_abort) return;
+
+		if (m_abort)
+		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("==> UDP_TRACKER_CONNECT [ skipped, m_abort ]");
+#endif
+			return;
+		}
 
 		char buf[16];
 		char* ptr = buf;
@@ -504,20 +505,41 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, 16, ec);
+			m_man.udp_socket().send_hostname(m_hostname.c_str()
+				, m_target.port(), buf, 16, ec);
 		}
 		else
 		{
 			m_man.udp_socket().send(m_target, buf, 16, ec);
+
 		}
-		m_state = action_connect;
-		sent_bytes(16 + 28); // assuming UDP/IP header
+
 		++m_attempts;
 		if (ec)
 		{
+#if defined TORRENT_LOGGING
+			if (cb) cb->debug_log("==> UDP_TRACKER_CONNECT [ failed: %s ]"
+				, ec.message().c_str());
+#endif
 			fail(ec);
 			return;
 		}
+
+#if defined TORRENT_LOGGING
+		if (cb)
+		{
+			char hex_ih[41];
+			to_hex((char const*)&tracker_req().info_hash[0], 20, hex_ih);
+			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s]"
+				, m_hostname.empty()
+					? print_endpoint(m_target).c_str()
+					: (m_hostname + ":" + to_string(m_target.port()).elems).c_str()
+				, hex_ih);
+		}
+#endif
+
+		m_state = action_connect;
+		sent_bytes(16 + 28); // assuming UDP/IP header
 	}
 
 	void udp_tracker_connection::send_udp_scrape()
@@ -743,7 +765,8 @@ namespace libtorrent
 
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, out - buf, ec);
+			m_man.udp_socket().send_hostname(m_hostname.c_str()
+				, m_target.port(), buf, out - buf, ec);
 		}
 		else
 		{
