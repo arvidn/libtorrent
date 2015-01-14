@@ -142,7 +142,7 @@ void udp_socket::send_hostname(char const* hostname, int port
 	{
 		// send udp packets through SOCKS5 server
 		wrap(hostname, port, p, len, ec);
-		return;	
+		return;
 	}
 
 	// this function is only supported when we're using a proxy
