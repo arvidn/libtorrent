@@ -94,8 +94,11 @@ void test_storage()
 
 void test_copy()
 {
+	using namespace libtorrent;
+
 	boost::shared_ptr<torrent_info> a(boost::make_shared<torrent_info>(
-		libtorrent::combine_path("..", libtorrent::combine_path("test_torrents", "sample.torrent"))));
+		combine_path(parent_path(current_working_directory())
+		, combine_path("test_torrents", "sample.torrent"))));
 
 	boost::shared_ptr<torrent_info> b(boost::make_shared<torrent_info>(*a));
 
