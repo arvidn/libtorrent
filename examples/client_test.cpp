@@ -162,7 +162,6 @@ bool print_trackers = false;
 bool print_peers = false;
 bool print_log = false;
 bool print_downloads = false;
-bool print_piece_bar = false;
 bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
@@ -1864,7 +1863,6 @@ int main(int argc, char* argv[])
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'P') show_pad_files = !show_pad_files;
-				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
 				if (c == 'u') ses_view.print_utp_stats(!ses_view.print_utp_stats());
 				if (c == 'x') print_disk_stats = !print_disk_stats;
@@ -1898,10 +1896,10 @@ int main(int argc, char* argv[])
 						"left/right arrow keys: select torrent filter\n"
 						"up/down arrow keys: select torrent\n"
 						"[i] toggle show peers                           [d] toggle show downloading pieces\n"
-						"[a] toggle piece bar                            [f] toggle show files\n"
+						"[u] show uTP stats                              [f] toggle show files\n"
 						"[g] show DHT                                    [x] toggle disk cache stats\n"
 						"[t] show trackers                               [l] show alert log\n"
-						"[P] show pad files (in file list)               [u] show uTP stats\n"
+						"[P] show pad files (in file list)\n"
 						"\n"
 						"COLUMN OPTIONS\n"
 						"[1] toggle IP column                            [2] toggle AS column\n"
