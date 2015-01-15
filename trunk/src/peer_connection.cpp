@@ -2989,7 +2989,7 @@ namespace libtorrent
 		}
 		else
 		{
-			// TODO: 3 since we throw away the queue entry once we issue
+			// TODO: 2 since we throw away the queue entry once we issue
 			// the disk job, this may happen. Instead, we should keep the
 			// queue entry around, mark it as having been requested from
 			// disk and once the disk job comes back, discard it if it has
