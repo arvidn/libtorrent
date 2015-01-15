@@ -350,6 +350,8 @@ namespace libtorrent
 
 		if (m_piece_map.empty())
 		{
+			m_file.close();
+
 			// if we don't have any pieces left in the
 			// part file, remove it
 			std::string p = combine_path(m_path, m_name);
