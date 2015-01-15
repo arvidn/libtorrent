@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "peer_server.hpp"
 #include "udp_tracker.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/alert_types.hpp"
 
 #include <fstream>
