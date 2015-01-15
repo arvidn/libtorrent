@@ -869,7 +869,12 @@ namespace libtorrent
 	{
 		file_status s;
 		stat_file(f, &s, ec);
-		if (ec) return false;
+		if (ec)
+		{
+			if (ec == boost::system::errc::no_such_file_or_directory)
+				ec.clear();
+			return false;
+		}
 		return true;
 	}
 
