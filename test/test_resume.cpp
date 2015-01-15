@@ -328,7 +328,7 @@ int test_main()
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 
-	// TODO: 2 test all other resume flags here too. This would require returning
+	// TODO: test all other resume flags here too. This would require returning
 	// more than just the torrent_status from test_resume_flags. Also http seeds
 	// and trackers for instance
 	return 0;
