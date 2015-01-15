@@ -126,7 +126,9 @@ int test_main()
 
 		// we just removed the last piece. The partfile does not
 		// contain anything anymore, it should have deleted itself
-		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts")));
+		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts"), ec));
+		TEST_CHECK(!ec);
+		if (ec) fprintf(stderr, "exists: %s\n", ec.message().c_str());
 
 		output.close();
 
