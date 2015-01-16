@@ -47,8 +47,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(limit >= 0);
 		// if the throttle is more than this, we might overflow
-		TORRENT_ASSERT(limit < INT_MAX / 31);
-		m_limit = limit;
+		m_limit = (std::min)(limit, INT_MAX / 31);
 	}
 	
 	int bandwidth_channel::quota_left() const
