@@ -260,6 +260,7 @@ namespace libtorrent
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
+		, m_auto_sequential(false)
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
