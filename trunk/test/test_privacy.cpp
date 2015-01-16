@@ -113,10 +113,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
-	static int listen_port = 10000 + random() % 50000;
+	static int listen_port = 10000 + libtorrent::random() % 50000;
 	char iface[200];
 	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
-	listen_port += (random() % 10) + 1;
+	listen_port += (libtorrent::random() % 10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 	sett.set_bool(settings_pack::enable_dht, true);
 
