@@ -44,21 +44,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 
 #if defined TORRENT_LOGGING
-#include <stdio.h>
+#include <boost/function/function1.hpp>
 #endif
 
 namespace libtorrent
 {
 
 typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
+#if defined TORRENT_LOGGING
+typedef boost::function<void(char const*)> log_callback_t;
+#endif
 
 class lsd : public boost::enable_shared_from_this<lsd>
 {
 public:
-	lsd(io_service& ios, peer_callback_t const& cb);
+	lsd(io_service& ios, peer_callback_t const& cb
+#if defined TORRENT_LOGGING
+		, log_callback_t const& log
+#endif
+		);
 	~lsd();
 
-	void start();
+	void start(error_code& ec);
 
 	void announce(sha1_hash const& ih, int listen_port, bool broadcast = false);
 	void close();
@@ -82,6 +89,10 @@ private:
 #if TORRENT_USE_IPV6
 	broadcast_socket m_socket6;
 #endif
+#if defined TORRENT_LOGGING
+	log_callback_t m_log_cb;
+	void debug_log(char const* fmt, ...) const;
+#endif
 
 	// used to resend udp packets in case
 	// they time out
@@ -97,9 +108,6 @@ private:
 	bool m_disabled;
 #if TORRENT_USE_IPV6
 	bool m_disabled6;
-#endif
-#if defined TORRENT_LOGGING
-	FILE* m_log;
 #endif
 };
 

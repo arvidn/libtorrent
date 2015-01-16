@@ -2247,9 +2247,28 @@ namespace libtorrent
 		std::string msg;
 	};
 
+	// posted if the local service discovery socket fails to start properly.
+	// it's categorized as ``error_notification``.
+	struct TORRENT_EXPORT lsd_error_alert : alert
+	{
+		// internal
+		lsd_error_alert(error_code const& ec)
+			: alert()
+			, error(ec)
+		{}
+	
+		TORRENT_DEFINE_ALERT(lsd_error_alert, 82);
+
+		const static int static_category = alert::error_notification;
+		virtual std::string message() const;
+
+		// The error code
+		error_code error;
+	};
+
 #undef TORRENT_DEFINE_ALERT
 
-	enum { num_alert_types = 82 };
+	enum { num_alert_types = 83 };
 }
 
 

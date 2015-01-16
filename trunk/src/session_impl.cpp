@@ -4279,7 +4279,6 @@ retry:
 
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
-		va_end(v);
 
 		m_alerts.post_alert(log_alert(buf));
 	}
@@ -6216,9 +6215,25 @@ retry:
 		if (m_lsd) return;
 
 		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
-			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
+			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2)
+#if defined TORRENT_LOGGING
+			, boost::bind(&session_impl::on_lsd_log, this, _1)
+#endif
+			);
+		error_code ec;
+		m_lsd->start(ec);
+		if (ec && m_alerts.should_post<lsd_error_alert>())
+			m_alerts.post_alert(lsd_error_alert(ec));
 	}
 	
+#if defined TORRENT_LOGGING
+	void session_impl::on_lsd_log(char const* log)
+	{
+		if (!m_alerts.should_post<log_alert>()) return;
+		m_alerts.post_alert(log_alert(log));
+	}
+#endif
+
 	natpmp* session_impl::start_natpmp()
 	{
 		INVARIANT_CHECK;

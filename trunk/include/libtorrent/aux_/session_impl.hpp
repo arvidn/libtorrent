@@ -346,6 +346,9 @@ namespace libtorrent
 			void on_port_map_log(char const* msg, int map_transport);
 
 			void on_lsd_announce(error_code const& e);
+#if defined TORRENT_LOGGING
+			void on_lsd_log(char const* log);
+#endif
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
