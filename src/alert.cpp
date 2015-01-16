@@ -730,5 +730,10 @@ namespace libtorrent {
 		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg;
 	}
 
+	std::string lsd_error_alert::message() const
+	{
+		return "Local Service Discovery error: " + error.message();
+	}
+
 } // namespace libtorrent
 

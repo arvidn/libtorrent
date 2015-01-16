@@ -65,11 +65,18 @@ namespace libtorrent
 
 static error_code ec;
 
-lsd::lsd(io_service& ios, peer_callback_t const& cb)
+lsd::lsd(io_service& ios, peer_callback_t const& cb
+#if defined TORRENT_LOGGING
+	, log_callback_t const& log
+#endif
+	)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771))
 #if TORRENT_USE_IPV6
 	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771))
+#endif
+#if defined TORRENT_LOGGING
+	, m_log_cb(log)
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie(random())
@@ -77,55 +84,35 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb)
 #if TORRENT_USE_IPV6
 	, m_disabled6(false)
 #endif
-#if defined TORRENT_LOGGING
-	, m_log(NULL)
-#endif
 {
 }
 
-void lsd::start()
-{
 #if defined TORRENT_LOGGING
-	// TODO: 3 instead if writing to a file, post alerts. Or call a log callback
-	m_log = fopen("lsd.log", "w+");
-	if (m_log == NULL)
-	{
-		fprintf(stderr, "failed to open 'lsd.log': (%d) %s"
-			, errno, strerror(errno));
-	}
+void lsd::debug_log(char const* fmt, ...) const
+{
+	va_list v;
+	va_start(v, fmt);
+
+	char buf[1024];
+	vsnprintf(buf, sizeof(buf), fmt, v);
+	va_end(v);
+	m_log_cb(buf);
+}
 #endif
 
-	error_code ec;
+void lsd::start(error_code& ec)
+{
 	m_socket.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
 		, m_broadcast_timer.get_io_service(), ec);
-
-#if defined TORRENT_LOGGING
-	if (ec)
-	{
-		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET: (%d) %s\n"
-			, ec.value(), ec.message().c_str());
-	}
-#endif
+	if (ec) return;
 
 #if TORRENT_USE_IPV6
 	m_socket6.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
 		, m_broadcast_timer.get_io_service(), ec);
-#if defined TORRENT_LOGGING
-	if (ec)
-	{
-		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET6: (%d) %s\n"
-			, ec.value(), ec.message().c_str());
-	}
-#endif
 #endif
 }
 
-lsd::~lsd()
-{
-#if defined TORRENT_LOGGING
-	if (m_log) fclose(m_log);
-#endif
-}
+lsd::~lsd() {}
 
 int render_lsd_packet(char* dst, int len, int listen_port
 	, char const* info_hash_hex, int m_cookie, char const* host)
@@ -158,8 +145,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	char msg[200];
 
 #if defined TORRENT_LOGGING
-	if (m_log) fprintf(m_log, "%s ==> announce: ih: %s port: %u\n"
-		, time_now_string(), ih_hex, listen_port);
+	debug_log("==> announce: ih: %s port: %u\n", ih_hex, listen_port);
 #endif
 
 	error_code ec;
@@ -172,8 +158,8 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		{
 			m_disabled = true;
 #if defined TORRENT_LOGGING
-			if (m_log) fprintf(m_log, "%s failed to send message: (%d) %s"
-				, time_now_string(), ec.value(), ec.message().c_str());
+			debug_log("failed to send message: (%d) %s", ec.value()
+				, ec.message().c_str());
 #endif
 		}
 	}
@@ -188,8 +174,8 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		{
 			m_disabled6 = true;
 #if defined TORRENT_LOGGING
-			if (m_log) fprintf(m_log, "%s failed to send message6: (%d) %s"
-				, time_now_string(), ec.value(), ec.message().c_str());
+			debug_log("failed to send message6: (%d) %s", ec.value()
+				, ec.message().c_str());
 #endif
 		}
 	}
@@ -237,7 +223,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (!p.header_finished() || error)
 	{
 #if defined TORRENT_LOGGING
-		if (m_log) fprintf(m_log, "%s <== announce: incomplete HTTP message\n", time_now_string());
+		debug_log("<== announce: incomplete HTTP message\n");
 #endif
 		return;
 	}
@@ -245,8 +231,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (p.method() != "bt-search")
 	{
 #if defined TORRENT_LOGGING
-		if (m_log) fprintf(m_log, "%s <== announce: invalid HTTP method: %s\n"
-			, time_now_string(), p.method().c_str());
+		debug_log("<== announce: invalid HTTP method: %s\n", p.method().c_str());
 #endif
 		return;
 	}
@@ -255,8 +240,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (port_str.empty())
 	{
 #if defined TORRENT_LOGGING
-		if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, missing port\n"
-			, time_now_string());
+		debug_log("<== announce: invalid BT-SEARCH, missing port\n");
 #endif
 		return;
 	}
@@ -275,8 +259,8 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (cookie == m_cookie)
 		{
 #if defined TORRENT_LOGGING
-			if (m_log) fprintf(m_log, "%s <== announce: ignoring packet (cookie matched our own): %x == %x\n"
-				, time_now_string(), cookie, m_cookie);
+			debug_log("<== announce: ignoring packet (cookie matched our own): %x == %x\n"
+				, cookie, m_cookie);
 #endif
 			return;
 		}
@@ -291,8 +275,8 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (ih_str.size() != 40)
 		{
 #if defined TORRENT_LOGGING
-			if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, invalid infohash: %s\n"
-				, time_now_string(), ih_str.c_str());
+			debug_log("<== announce: invalid BT-SEARCH, invalid infohash: %s\n"
+				, ih_str.c_str());
 #endif
 			continue;
 		}
@@ -303,8 +287,8 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (!ih.is_all_zeros() && port != 0)
 		{
 #if defined TORRENT_LOGGING
-			if (m_log) fprintf(m_log, "%s *** incoming local announce %s:%d ih: %s\n"
-				, time_now_string(), print_address(from.address()).c_str()
+			debug_log("*** incoming local announce %s:%d ih: %s\n"
+				, print_address(from.address()).c_str()
 				, port, ih_str.c_str());
 #endif
 			// we got an announce, pass it on through the callback
