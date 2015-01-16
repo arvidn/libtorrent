@@ -188,7 +188,9 @@ public:
 			return;
 		}
 		std::memmove(b, e, m_begin + m_size - e);
-		TORRENT_ASSERT(e - b <= m_size);
+		TORRENT_ASSERT(e >= b);
+		TORRENT_ASSERT(e - b <= std::numeric_limits<boost::uint32_t>::max());
+		TORRENT_ASSERT(boost::uint32_t(e - b) <= m_size);
 		m_size -= e - b;
 	 }
 

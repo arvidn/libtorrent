@@ -453,7 +453,7 @@ namespace libtorrent
 
 			bool preemptive_unchoke() const;
 			int num_uploads() const
-			{ return m_stats_counters[counters::num_peers_up_unchoked]; }
+			{ return int(m_stats_counters[counters::num_peers_up_unchoked]); }
 			int num_connections() const
 			{ return m_connections.size(); }
 
@@ -594,7 +594,7 @@ namespace libtorrent
 			virtual bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec);
 
-			bool has_lsd() const { return m_lsd.get(); }
+			bool has_lsd() const { return m_lsd.get() != NULL; }
 
 			std::vector<block_info>& block_info_storage() { return m_block_info_storage; }
 
