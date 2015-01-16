@@ -328,7 +328,7 @@ namespace libtorrent
 		// 
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		// 
-		virtual void rename_file(int index, std::string const& new_filenamem
+		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) = 0;
 
 		// This function should delete all files and directories belonging to

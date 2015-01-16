@@ -91,6 +91,7 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 			std::cerr << time_now_string() << " aborted" << std::endl;
 			break;
 	}
+	std::cerr << std::endl;
 	*done = true;
 }
 
@@ -117,6 +118,55 @@ void run_until(io_service& ios, bool const& done)
 }
 
 void nop() {}
+
+boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
+	, file_pool& fp
+	, std::vector<char>& buf
+	, std::string const& test_path
+	, aux::session_settings& set)
+{
+	fs.add_file("temp_storage/test1.tmp", 8);
+	fs.add_file("temp_storage/folder1/test2.tmp", 8);
+	fs.add_file("temp_storage/folder2/test3.tmp", 0);
+	fs.add_file("temp_storage/_folder3/test4.tmp", 0);
+	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
+	libtorrent::create_torrent t(fs, 4, -1, 0);
+
+	char buf_[4] = {0, 0, 0, 0};
+	sha1_hash h = hasher(buf_, 4).final();
+	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
+	
+	bencode(std::back_inserter(buf), t.generate());
+	error_code ec;
+
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&buf[0]
+		, buf.size(), boost::ref(ec), 0));
+
+	if (ec)
+	{
+		fprintf(stderr, "torrent_info constructor failed: %s\n"
+			, ec.message().c_str());
+	}
+
+	storage_params p;
+	p.files = &fs;
+	p.pool = &fp;
+	p.path = test_path;
+	p.mode = storage_mode_allocate;
+	boost::shared_ptr<default_storage> s(new default_storage(p));
+	s->m_settings = &set;
+
+	// allocate the files and create the directories
+	storage_error se;
+	s->initialize(se);
+	if (se)
+	{
+		TEST_ERROR(se.ec.message().c_str());
+		fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
+	}
+
+	return s;
+}
 
 void run_storage_tests(boost::shared_ptr<torrent_info> info
 	, file_storage& fs
@@ -235,27 +285,18 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 
 void test_remove(std::string const& test_path, bool unbuffered)
 {
-	file_storage fs;
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
-	fs.add_file("temp_storage/test1.tmp", 8);
-	fs.add_file("temp_storage/folder1/test2.tmp", 8);
-	fs.add_file("temp_storage/folder2/test3.tmp", 0);
-	fs.add_file("temp_storage/_folder3/test4.tmp", 0);
-	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
-	libtorrent::create_torrent t(fs, 4, -1, 0);
 
-	char buf_[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf_, 4).final();
-	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
-	
+	file_storage fs;
 	std::vector<char> buf;
-	bencode(std::back_inserter(buf), t.generate());
-	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0));
+	file_pool fp;
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -265,26 +306,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, unbuffered ? settings_pack::disable_os_cache
 		: settings_pack::enable_os_cache);
 
-	file_pool fp;
-	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
-
-	storage_params p;
-	p.files = &fs;
-	p.pool = &fp;
-	p.path = test_path;
-	p.mode = storage_mode_allocate;
-	boost::scoped_ptr<storage_interface> s(new default_storage(p));
-	s->m_settings = &set;
-
-	// allocate the files and create the directories
-	storage_error se;
-	s->initialize(se);
-	if (se)
-	{
-		TEST_ERROR(se.ec.message().c_str());
-		fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
-	}
+	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path, set);
 
 	// directories are not created up-front, unless they contain
 	// an empty file (all of which are created up-front, along with
@@ -302,6 +324,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, combine_path("folder1", "test2.tmp")))));	
 
 	file::iovec_t b = {&buf[0], 4};
+	storage_error se;
 	s->writev(&b, 1, 2, 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
@@ -331,6 +354,46 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
+}
+
+void test_rename(std::string const& test_path)
+{
+	error_code ec;
+	remove_all(combine_path(test_path, "temp_storage"), ec);
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
+
+	file_storage fs;
+	std::vector<char> buf;
+	file_pool fp;
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	aux::session_settings set;
+
+	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
+		, set);
+
+	// directories are not created up-front, unless they contain
+	// an empty file
+	std::string first_file = fs.file_path(0);
+	for (int i = 0; i < fs.num_files(); ++i)
+	{
+		TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+			, fs.file_path(i)))));	
+	}
+
+	storage_error se;
+	s->rename_file(0, "new_filename", se);
+	if (se.ec)
+	{
+		fprintf(stderr, "default_storage::rename_file failed: %s\n"
+			, se.ec.message().c_str());
+	}
+	TEST_CHECK(!se.ec);
+
+	TEST_EQUAL(s->files().file_path(0), "new_filename");
 }
 
 void test_check_files(std::string const& test_path
@@ -527,6 +590,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	std::cerr << "=== test 6 ===" << std::endl;
 	test_check_files(test_path, storage_mode_sparse, unbuffered);
 	test_check_files(test_path, storage_mode_compact, unbuffered);
+
+	std::cerr << "=== test 7 ===" << std::endl;
+	test_rename(test_path);
 }
 
 void test_fastresume(std::string const& test_path)
