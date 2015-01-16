@@ -323,7 +323,7 @@ namespace libtorrent
 
 	inline std::size_t hash_value(cached_piece_entry const& p)
 	{
-		return std::size_t(p.storage.get()) + p.piece;
+		return std::size_t(p.storage.get()) + std::size_t(p.piece);
 	}
 
 	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
