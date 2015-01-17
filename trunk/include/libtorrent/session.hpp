@@ -365,6 +365,9 @@ namespace libtorrent
 		// For more information, see the session-statistics_ section.
 		void post_session_stats();
 
+		// This will cause a dht_stats_alert to be posted.
+		void post_dht_stats();
+
 		// internal
 		io_service& get_io_service();
 

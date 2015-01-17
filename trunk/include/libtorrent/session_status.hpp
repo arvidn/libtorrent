@@ -36,66 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <vector>
 
+#ifndef TORRENT_NO_DEPRECATE
+// for dht_lookup and dht_routing_bucket
+#include "libtorrent/alert_types.hpp"
+#endif
+
 namespace libtorrent
 {
-
-	// holds statistics about a current dht_lookup operation.
-	// a DHT lookup is the travesal of nodes, looking up a
-	// set of target nodes in the DHT for retrieving and possibly
-	// storing information in the DHT
-	struct TORRENT_EXPORT dht_lookup
-	{
-		// string literal indicating which kind of lookup this is
-		char const* type;
-
-		// the number of outstanding request to individual nodes
-		// this lookup has right now
-		int outstanding_requests;
-
-		// the total number of requests that have timed out so far
-		// for this lookup
-		int timeouts;
-
-		// the total number of responses we have received for this
-		// lookup so far for this lookup
-		int responses;
-
-		// the branch factor for this lookup. This is the number of
-		// nodes we keep outstanding requests to in parallel by default.
-		// when nodes time out we may increase this.
-		int branch_factor;
-
-		// the number of nodes left that could be queries for this
-		// lookup. Many of these are likely to be part of the trail
-		// while performing the lookup and would never end up actually
-		// being queried.
-		int nodes_left;
-
-		// the number of seconds ago the
-		// last message was sent that's still
-		// outstanding
-		int last_sent;
-
-		// the number of outstanding requests
-		// that have exceeded the short timeout
-		// and are considered timed out in the
-		// sense that they increased the branch
-		// factor
-		int first_timeout;
-	};
-
-	// TODO: 3 add accessors to query the DHT state (post the result as an alert)
-	// holds dht routing table stats
-	struct TORRENT_EXPORT dht_routing_bucket
-	{
-		// the total number of nodes and replacement nodes
-		// in the routing table
-		int num_nodes;
-		int num_replacements;
-
-		// number of seconds since last activity
-		int last_active;
-	};
 
 #ifndef TORRENT_NO_DEPRECATE
 	// holds counters and gauges for the uTP sockets

@@ -735,5 +735,14 @@ namespace libtorrent {
 		return "Local Service Discovery error: " + error.message();
 	}
 
+	std::string dht_stats_alert::message() const
+	{
+		char buf[2048];
+		snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
+			, int(active_requests.size())
+			, int(dht_routing_table.size()));
+		return buf;
+	}
+
 } // namespace libtorrent
 

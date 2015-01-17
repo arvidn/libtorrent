@@ -227,6 +227,9 @@ namespace libtorrent
 			dht_get_out,
 			dht_put_in,
 			dht_put_out,
+
+			// TODO: 3 these counters are redundant with dht_bytes_in and dht_bytes_out
+			// remove them
 			sent_dht_bytes,
 			recv_dht_bytes,
 

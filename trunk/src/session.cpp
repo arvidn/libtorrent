@@ -587,6 +587,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(post_session_stats);
 	}
 
+	void session::post_dht_stats()
+	{
+		TORRENT_ASYNC_CALL(post_dht_stats);
+	}
+
 	std::vector<torrent_handle> session::get_torrents() const
 	{
 		return TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);

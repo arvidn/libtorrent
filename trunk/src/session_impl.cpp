@@ -4395,6 +4395,18 @@ retry:
 		m_alerts.post_alert_ptr(alert.release());
 	}
 
+	void session_impl::post_dht_stats()
+	{
+		std::auto_ptr<dht_stats_alert> alert(new dht_stats_alert());
+	
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht)
+			m_dht->dht_status(alert->dht_routing_table, alert->active_requests);
+#endif
+
+		m_alerts.post_alert_ptr(alert.release());
+	}
+
 	std::vector<torrent_handle> session_impl::get_torrents() const
 	{
 		std::vector<torrent_handle> ret;

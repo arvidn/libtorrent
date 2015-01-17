@@ -73,6 +73,7 @@ namespace libtorrent { namespace dht
 
 	struct dht_tracker;
 
+	// TODO: 3 remove these
 	TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
 	TORRENT_EXTRA_EXPORT void intrusive_ptr_release(dht_tracker const*);	
 
@@ -117,6 +118,8 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);
 #endif
+		void dht_status(std::vector<dht_routing_bucket>& table
+			, std::vector<dht_lookup>& requests);
 
 		void network_stats(int& sent, int& received);
 
@@ -163,6 +166,7 @@ namespace libtorrent { namespace dht
 		udp::resolver m_host_resolver;
 
 		// sent and received bytes since queried last time
+		// TODO: 3 these members are probably unnecessary
 		int m_sent_bytes;
 		int m_received_bytes;
 

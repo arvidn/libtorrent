@@ -417,6 +417,7 @@ namespace libtorrent
 				, boost::uint32_t flags) const;
 			void post_torrent_updates();
 			void post_session_stats();
+			void post_dht_stats();
 
 			std::vector<torrent_handle> get_torrents() const;
 			
