@@ -89,21 +89,6 @@ namespace libtorrent { namespace dht
 	int g_failed_announces = 0;
 #endif
 		
-	void intrusive_ptr_add_ref(dht_tracker const* c)
-	{
-		TORRENT_ASSERT(c != 0);
-		TORRENT_ASSERT(c->m_refs >= 0);
-		++c->m_refs;
-	}
-
-	void intrusive_ptr_release(dht_tracker const* c)
-	{
-		TORRENT_ASSERT(c != 0);
-		TORRENT_ASSERT(c->m_refs > 0);
-		if (--c->m_refs == 0)
-			delete c;
-	}
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::string parse_dht_client(lazy_entry const& e)
 	{
@@ -190,9 +175,6 @@ namespace libtorrent { namespace dht
 		, m_refresh_bucket(160)
 		, m_abort(false)
 		, m_host_resolver(sock.get_io_service())
-		, m_sent_bytes(0)
-		, m_received_bytes(0)
-		, m_refs(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		m_counter = 0;
@@ -272,14 +254,6 @@ namespace libtorrent { namespace dht
 		m_dht.status(table, requests);
 	}
 
-	void dht_tracker::network_stats(int& sent, int& received)
-	{
-		sent = m_sent_bytes;
-		received = m_received_bytes;
-		m_sent_bytes = 0;
-		m_received_bytes = 0;
-	}
-
 	void dht_tracker::connection_timeout(error_code const& e)
 	{
 		if (e || m_abort) return;
@@ -325,6 +299,8 @@ namespace libtorrent { namespace dht
 		}
 		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
+		// TODO: 3 move all this out of libtorrent. It can be done in libtorrent-webui
+		// just like session_stats
 		static bool first = true;
 
 		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
@@ -511,9 +487,12 @@ namespace libtorrent { namespace dht
 
 		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
 
+		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
 		// account for IP and UDP overhead
-		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
-	
+		m_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
+			, ep.address().is_v6() ? 48 : 28);
+		m_counters.inc_stats_counter(counters::dht_messages_in);
+
 		if (m_settings.ignore_dark_internet && ep.address().is_v4())
 		{
 			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
@@ -535,8 +514,6 @@ namespace libtorrent { namespace dht
 		++m_total_message_input;
 		m_total_in_bytes += size;
 #endif
-		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
-		m_counters.inc_stats_counter(counters::dht_messages_in);
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
@@ -692,10 +669,10 @@ namespace libtorrent { namespace dht
 				return false;
 			}
 
-			// account for IP and UDP overhead
-			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
-
 			m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
+			// account for IP and UDP overhead
+			m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
+				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			m_total_out_bytes += m_send_buf.size();
