@@ -973,7 +973,7 @@ namespace libtorrent
 			mutable int m_next_port;
 
 #ifndef TORRENT_DISABLE_DHT
-			boost::intrusive_ptr<dht::dht_tracker> m_dht;
+			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
 			
 			// these are used when starting the DHT
