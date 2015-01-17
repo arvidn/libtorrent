@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <cstdlib>
 #include <boost/config.hpp>
+#include <cstdarg>
 
 using namespace libtorrent;
 
