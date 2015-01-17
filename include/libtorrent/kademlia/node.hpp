@@ -61,6 +61,7 @@ namespace libtorrent {
 	struct alert_dispatcher;
 	class alert;
 	struct counters;
+	struct dht_routing_bucket;
 }
 
 namespace libtorrent { namespace dht
@@ -274,6 +275,9 @@ public:
 		mutex_t::scoped_lock l(m_mutex);
 		m_running_requests.erase(a);
 	}
+
+	void status(std::vector<dht_routing_bucket>& table
+		, std::vector<dht_lookup>& requests);
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(libtorrent::session_status& s);

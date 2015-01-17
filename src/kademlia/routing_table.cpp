@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 
 #include "libtorrent/invariant_check.hpp"
 
@@ -93,7 +94,20 @@ int routing_table::bucket_limit(int bucket) const
 	return m_bucket_size;
 }
 
+void routing_table::status(std::vector<dht_routing_bucket>& s) const
+{
+	for (table_t::const_iterator i = m_buckets.begin()
+		, end(m_buckets.end()); i != end; ++i)
+	{
+		dht_routing_bucket b;
+		b.num_nodes = i->live_nodes.size();
+		b.num_replacements = i->replacements.size();
+		s.push_back(b);
+	}
+}
+
 #ifndef TORRENT_NO_DEPRECATE
+// TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
 	int ignore;

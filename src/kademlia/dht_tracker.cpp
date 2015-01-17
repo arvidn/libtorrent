@@ -266,6 +266,12 @@ namespace libtorrent { namespace dht
 	}
 #endif
 
+	void dht_tracker::dht_status(std::vector<dht_routing_bucket>& table
+		, std::vector<dht_lookup>& requests)
+	{
+		m_dht.status(table, requests);
+	}
+
 	void dht_tracker::network_stats(int& sent, int& received)
 	{
 		sent = m_sent_bytes;

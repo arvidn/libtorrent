@@ -565,7 +565,24 @@ time_duration node_impl::connection_timeout()
 	return d;
 }
 
+void node_impl::status(std::vector<dht_routing_bucket>& table
+	, std::vector<dht_lookup>& requests)
+{
+	mutex_t::scoped_lock l(m_mutex);
+
+	m_table.status(table);
+
+	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
+		, end(m_running_requests.end()); i != end; ++i)
+	{
+		requests.push_back(dht_lookup());
+		dht_lookup& l = requests.back();
+		(*i)->status(l);
+	}
+}
+
 #ifndef TORRENT_NO_DEPRECATE
+// TODO: 2 use the non deprecated function instead of this one
 void node_impl::status(session_status& s)
 {
 	mutex_t::scoped_lock l(m_mutex);

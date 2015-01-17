@@ -51,12 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <boost/unordered_set.hpp>
 
-#ifndef TORRENT_NO_DEPRECATE
 namespace libtorrent
 {
+#ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
-}
 #endif
+	struct dht_routing_bucket;
+}
 
 namespace libtorrent { namespace dht
 {
@@ -95,6 +96,8 @@ public:
 #ifndef TORRENT_NO_DEPRECATE
 	void status(session_status& s) const;
 #endif
+
+	void status(std::vector<dht_routing_bucket>& s) const;
 
 	void node_failed(node_id const& id, udp::endpoint const& ep);
 	
