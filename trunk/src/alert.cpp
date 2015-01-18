@@ -740,7 +740,7 @@ namespace libtorrent {
 		char buf[2048];
 		snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
 			, int(active_requests.size())
-			, int(dht_routing_table.size()));
+			, int(routing_table.size()));
 		return buf;
 	}
 

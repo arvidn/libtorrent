@@ -4383,7 +4383,7 @@ retry:
 	
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
-			m_dht->dht_status(alert->dht_routing_table, alert->active_requests);
+			m_dht->dht_status(alert->routing_table, alert->active_requests);
 #endif
 
 		m_alerts.post_alert_ptr(alert.release());

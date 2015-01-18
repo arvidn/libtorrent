@@ -554,9 +554,8 @@ void bind_session()
         .def_readonly("dht_global_nodes", &session_status::dht_global_nodes)
         .def_readonly("active_requests", &session_status::active_requests)
         .def_readonly("dht_total_allocations", &session_status::dht_total_allocations)
-#endif
+#endif // TORRENT_DISABLE_DHT
         .add_property("utp_stats", &get_utp_stats)
-#endif
         ;
 
 #ifndef TORRENT_DISABLE_DHT
@@ -567,7 +566,8 @@ void bind_session()
         .def_readonly("response", &dht_lookup::responses)
         .def_readonly("branch_factor", &dht_lookup::branch_factor)
     ;
-#endif
+#endif // TORRENT_DISABLE_DHT
+#endif // TORRENT_NO_DEPRECATE
 
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)

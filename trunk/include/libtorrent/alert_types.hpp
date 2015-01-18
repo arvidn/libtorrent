@@ -2150,7 +2150,7 @@ namespace libtorrent
 		error_code error;
 	};
 
-	// This alert is generated we send a get_peers request
+	// This alert is generated when we send a get_peers request
 	// It belongs to the ``dht_notification`` category.
 	struct TORRENT_EXPORT dht_outgoing_get_peers_alert: alert
 	{
@@ -2341,7 +2341,7 @@ namespace libtorrent
 
 		// contains information about every bucket in the DHT routing
 		// table.
-		std::vector<dht_routing_bucket> dht_routing_table;
+		std::vector<dht_routing_bucket> routing_table;
 	};
 
 
