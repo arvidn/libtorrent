@@ -37,13 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
 
+#if !TORRENT_THREADSAFE_STATIC
+#include "libtorrent/thread.hpp"
+#endif
+
 namespace libtorrent
 {
 	using boost::random::random_device;
 	using boost::random::mt19937;
 	using boost::random::uniform_int_distribution;
 
-#if __cplusplus < 199711L
+#if !TORRENT_THREADSAFE_STATIC
 	// because local statics are not atomic pre c++11
 	// do it manually, probably at a higher cost
 	namespace
@@ -56,7 +60,7 @@ namespace libtorrent
 
 	boost::uint32_t random()
 	{
-#if __cplusplus >= 199711L
+#if TORRENT_THREADSAFE_STATIC
 		static random_device dev;
 		static mt19937 random_engine(dev());
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
