@@ -69,10 +69,6 @@ enum { announce_interval = 30 };
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(node)
-
-extern int g_failed_announces;
-extern int g_announces;
-
 #endif
 
 // remove peers that have timed out
@@ -338,7 +334,7 @@ namespace
 			a["token"] = i->second;
 			a["seed"] = (flags & node_impl::flag_seed) ? 1 : 0;
 			if (flags & node_impl::flag_implied_port) a["implied_port"] = 1;
-			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_in);
+			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
@@ -864,8 +860,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		};
 
 		lazy_entry const* msg_keys[3];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string
+			, sizeof(error_string)))
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_get_peers);
 			incoming_error(e, error_string);
 			return;
 		}
@@ -927,9 +925,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		lazy_entry const* msg_keys[6];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			++g_failed_announces;
-#endif
+			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, error_string);
 			return;
 		}
@@ -943,9 +939,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		if (port < 0 || port >= 65536)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			++g_failed_announces;
-#endif
+			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, "invalid port");
 			return;
 		}
@@ -960,9 +954,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		if (!verify_token(msg_keys[2]->string_value(), msg_keys[0]->string_ptr(), m.addr))
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			++g_failed_announces;
-#endif
+			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, "invalid token");
 			return;
 		}
@@ -1021,9 +1013,6 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		std::set<peer_entry>::iterator i = v->peers.find(peer);
 		if (i != v->peers.end()) v->peers.erase(i++);
 		v->peers.insert(i, peer);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		++g_announces;
-#endif
 	}
 	else if (strcmp(query, "put") == 0)
 	{
@@ -1044,6 +1033,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		lazy_entry const* msg_keys[7];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, error_string);
 			return;
 		}
@@ -1065,6 +1055,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		std::pair<char const*, int> buf = msg_keys[1]->data_section();
 		if (buf.second > 1000 || buf.second <= 0)
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "message too big", 205);
 			return;
 		}
@@ -1075,6 +1066,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				msg_keys[6]->string_ptr(), msg_keys[6]->string_length());
 		if (salt.second > 64)
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "salt too big", 207);
 			return;
 		}
@@ -1095,6 +1087,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// specific target hashes. it must match the one we got a "get" for
 		if (!verify_token(msg_keys[0]->string_value(), (char const*)&target[0], m.addr))
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "invalid token");
 			return;
 		}
@@ -1147,6 +1140,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			if (!verify_mutable_item(buf, salt
 				, msg_keys[2]->int_value(), pk, sig))
 			{
+				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid signature", 206);
 				return;
 			}
@@ -1205,12 +1199,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				// writers are accessing the same slot
 				if (msg_keys[5] && item->seq != msg_keys[5]->int_value())
 				{
+					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
 					return;
 				}
 
 				if (item->seq > boost::uint64_t(msg_keys[2]->int_value()))
 				{
+					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "old sequence number", 302);
 					return;
 				}
@@ -1257,8 +1253,10 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		lazy_entry const* msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string
+			, sizeof(error_string)))
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_get);
 			incoming_error(e, error_string);
 			return;
 		}

@@ -439,6 +439,12 @@ namespace libtorrent
 		METRIC(dht, dht_put_in)
 		METRIC(dht, dht_put_out)
 
+		// the number of failed incoming DHT requests by kind of request
+		METRIC(dht, dht_invalid_announce)
+		METRIC(dht, dht_invalid_get_peers)
+		METRIC(dht, dht_invalid_put)
+		METRIC(dht, dht_invalid_get)
+
 		// uTP counters. Each counter represents the number of time each event
 		// has occurred.
 		METRIC(utp, utp_packet_loss)
