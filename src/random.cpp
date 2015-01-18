@@ -39,15 +39,37 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	using boost::random::random_device;
+	using boost::random::mt19937;
+	using boost::random::uniform_int_distribution;
+
+#if __cplusplus < 199711L
+	// because local statics are not atomic pre c++11
+	// do it manually, probably at a higher cost
+	namespace
+	{
+		static mutex random_device_mutex;
+		static random_device* dev = NULL;
+		static mt19937* rnd = NULL;
+	}
+#endif
+
 	boost::uint32_t random()
 	{
-		using boost::random::random_device;
-		using boost::random::mt19937;
-		using boost::random::uniform_int_distribution;
-
+#if __cplusplus >= 199711L
 		static random_device dev;
 		static mt19937 random_engine(dev());
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
+#else
+		mutex::scoped_lock l(random_device_mutex);
+
+		if (dev == NULL)
+		{
+			dev = new random_device();
+			rnd = new mt19937((*dev)());
+		}
+		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(*rnd);
+#endif
 	}
 }
 
