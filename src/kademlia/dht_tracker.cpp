@@ -526,28 +526,6 @@ namespace libtorrent { namespace dht
 				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			if (e["y"].string() == "r")
-			{
-/*
-				// This doesn't work. r is a dictionary with return
-				// values. The query type isn't part of the response
-				std::string cmd = e["r"].string();
-				int cmd_idx = -1;
-				if (cmd == "ping") cmd_idx = 0;
-				else if (cmd == "find_node") cmd_idx = 1;
-				else if (cmd == "get_peers") cmd_idx = 2;
-				else if (cmd == "announce_peeer") cmd_idx = 3;
-				if (cmd_idx >= 0)
-				{
-					++m_replies_sent[cmd_idx];
-					m_replies_bytes_sent[cmd_idx] += int(m_send_buf.size());
-				}
-*/
-			}
-			else if (e["y"].string() == "q")
-			{
-				m_queries_out_bytes += m_send_buf.size();
-			}
 			TORRENT_LOG(dht_tracker) << "==> " << addr << " " << log_line.str();
 #endif
 			return true;
