@@ -157,20 +157,6 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		int m_replies_sent[5];
-		int m_queries_received[5];
-		int m_replies_bytes_sent[5];
-		int m_queries_bytes_received[5];
-		int m_counter;
-
-		int m_total_message_input;
-		int m_total_in_bytes;
-		int m_total_out_bytes;
-		
-		int m_queries_out_bytes;
-#endif
 	};
 }}
 

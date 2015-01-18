@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-#include <fstream>
-#endif
-
 #include <set>
 #include <numeric>
 #include <boost/bind.hpp>
@@ -73,22 +69,8 @@ namespace
 
 namespace libtorrent { namespace dht
 {
-
 	void incoming_error(entry& e, char const* msg);
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	int g_az_message_input = 0;
-	int g_ut_message_input = 0;
-	int g_lt_message_input = 0;
-	int g_mp_message_input = 0;
-	int g_gr_message_input = 0;
-	int g_mo_message_input = 0;
-	int g_unknown_message_input = 0;
-
-	int g_announces = 0;
-	int g_failed_announces = 0;
-#endif
-		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::string parse_dht_client(lazy_entry const& e)
 	{
@@ -97,42 +79,34 @@ namespace libtorrent { namespace dht
 		std::string const& client = ver->string_value();
 		if (client.size() < 2)
 		{
-			++g_unknown_message_input;
 			return client;
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "Az"))
 		{
-			++g_az_message_input;
 			return "Azureus";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "UT"))
 		{
-			++g_ut_message_input;
 			return "uTorrent";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "LT"))
 		{
-			++g_lt_message_input;
 			return "libtorrent";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "MP"))
 		{
-			++g_mp_message_input;
 			return "MooPolice";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "GR"))
 		{
-			++g_gr_message_input;
 			return "GetRight";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "MO"))
 		{
-			++g_mo_message_input;
 			return "Mono Torrent";
 		}
 		else
 		{
-			++g_unknown_message_input;
 			return client;
 		}
 	}
@@ -177,18 +151,6 @@ namespace libtorrent { namespace dht
 		, m_host_resolver(sock.get_io_service())
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_counter = 0;
-		std::fill_n(m_replies_bytes_sent, 5, 0);
-		std::fill_n(m_queries_bytes_received, 5, 0);
-		std::fill_n(m_replies_sent, 5, 0);
-		std::fill_n(m_queries_received, 5, 0);
-		g_announces = 0;
-		g_failed_announces = 0;
-		m_total_message_input = 0;
-		m_total_in_bytes = 0;
-		m_total_out_bytes = 0;
-		m_queries_out_bytes = 0;
-		
 		// turns on and off individual components' logging
 
 //		rpc_log().enable(false);
@@ -297,92 +259,6 @@ namespace libtorrent { namespace dht
 			TORRENT_LOG(dht_tracker) << " *** new write key";
 #endif
 		}
-		
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		// TODO: 3 move all this out of libtorrent. It can be done in libtorrent-webui
-		// just like session_stats
-		static bool first = true;
-
-		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
-		m_dht.print_state(st);
-		
-		// count torrents
-		int torrents = m_dht.num_torrents();
-		
-		// count peers
-		int peers = m_dht.num_peers();
-
-		std::ofstream pc("dht_stats.log", first ? std::ios_base::trunc : std::ios_base::app);
-		if (first)
-		{
-			first = false;
-			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
-				<< "minute:active nodes:passive nodes:confirmed nodes"
-				":ping replies sent:ping queries recvd"
-				":ping replies bytes sent:ping queries bytes recvd"
-				":find_node replies sent:find_node queries recv"
-				":find_node replies bytes sent:find_node queries bytes recv"
-				":get_peers replies sent:get_peers queries recvd"
-				":get_peers replies bytes sent:get_peers queries bytes recv"
-				":announce_peer replies sent:announce_peer queries recvd"
-				":announce_peer replies bytes sent:announce_peer queries bytes recv"
-				":error replies sent:error queries recvd"
-				":error replies bytes sent:error queries bytes recv"
-				":num torrents:num peers:announces per min"
-				":failed announces per min:total msgs per min"
-				":az msgs per min:ut msgs per min:lt msgs per min:mp msgs per min"
-				":gr msgs per min:mo msgs per min:bytes in per sec:bytes out per sec"
-				":queries out bytes per sec\n\n";
-		}
-
-		int active;
-		int passive;
-		int confirmed;
-		boost::tie(active, passive, confirmed) = m_dht.size();
-		pc << (m_counter * tick_period)
-			<< "\t" << active
-			<< "\t" << passive
-			<< "\t" << confirmed;
-		for (int i = 0; i < 5; ++i)
-			pc << "\t" << (m_replies_sent[i] / float(tick_period))
-				<< "\t" << (m_queries_received[i] / float(tick_period))
-				<< "\t" << (m_replies_bytes_sent[i] / float(tick_period*60))
-				<< "\t" << (m_queries_bytes_received[i] / float(tick_period*60));
-		
-		pc << "\t" << torrents
-			<< "\t" << peers
-			<< "\t" << g_announces / float(tick_period)
-			<< "\t" << g_failed_announces / float(tick_period)
-			<< "\t" << (m_total_message_input / float(tick_period))
-			<< "\t" << (g_az_message_input / float(tick_period))
-			<< "\t" << (g_ut_message_input / float(tick_period))
-			<< "\t" << (g_lt_message_input / float(tick_period))
-			<< "\t" << (g_mp_message_input / float(tick_period))
-			<< "\t" << (g_gr_message_input / float(tick_period))
-			<< "\t" << (g_mo_message_input / float(tick_period))
-			<< "\t" << (m_total_in_bytes / float(tick_period*60))
-			<< "\t" << (m_total_out_bytes / float(tick_period*60))
-			<< "\t" << (m_queries_out_bytes / float(tick_period*60))
-			<< std::endl;
-		++m_counter;
-		std::fill_n(m_replies_bytes_sent, 5, 0);
-		std::fill_n(m_queries_bytes_received, 5, 0);
-		std::fill_n(m_replies_sent, 5, 0);
-		std::fill_n(m_queries_received, 5, 0);
-		g_announces = 0;
-		g_failed_announces = 0;
-		m_total_message_input = 0;
-		g_az_message_input = 0;
-		g_ut_message_input = 0;
-		g_lt_message_input = 0;
-		g_mp_message_input = 0;
-		g_gr_message_input = 0;
-		g_mo_message_input = 0;
-		g_unknown_message_input = 0;
-		m_total_in_bytes = 0;
-		m_total_out_bytes = 0;
-		m_queries_out_bytes = 0;
-#endif
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
@@ -510,11 +386,6 @@ namespace libtorrent { namespace dht
 		if (!m_blocker.incoming(ep.address(), time_now()))
 			return true;
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		++m_total_message_input;
-		m_total_in_bytes += size;
-#endif
-
 		using libtorrent::entry;
 		using libtorrent::bdecode;
 			
@@ -548,26 +419,6 @@ namespace libtorrent { namespace dht
 //			send_packet(r, ep, 0);
 			return false;
 		}
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		parse_dht_client(e);
-		TORRENT_LOG(dht_tracker) << "<== " << ep << " " << print_entry(e, true);
-
-		if (e.dict_find_string_value("y") == "q")
-		{
-			std::string cmd = e.dict_find_string_value("q");
-			int cmd_idx = -1;
-			if (cmd == "ping") cmd_idx = 0;
-			else if (cmd == "find_node") cmd_idx = 1;
-			else if (cmd == "get_peers") cmd_idx = 2;
-			else if (cmd == "announce_peeer") cmd_idx = 3;
-			if (cmd_idx >= 0)
-			{
-				++m_queries_received[cmd_idx];
-				m_queries_bytes_received[cmd_idx] += size;
-			}
-		}
-#endif
 
 		m_dht.incoming(m);
 		return true;
@@ -675,8 +526,6 @@ namespace libtorrent { namespace dht
 				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_total_out_bytes += m_send_buf.size();
-		
 			if (e["y"].string() == "r")
 			{
 /*

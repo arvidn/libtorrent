@@ -228,6 +228,11 @@ namespace libtorrent
 			dht_put_in,
 			dht_put_out,
 
+			dht_invalid_announce,
+			dht_invalid_get_peers,
+			dht_invalid_put,
+			dht_invalid_get,
+
 			// uTP counters.
 			utp_packet_loss,
 			utp_timeout,
