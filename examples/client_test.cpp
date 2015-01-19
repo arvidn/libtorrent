@@ -915,7 +915,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
 	{
 		dht_active_requests.swap(p->active_requests);
-		dht_routing_table.swap(p->dht_routing_table);
+		dht_routing_table.swap(p->routing_table);
 	}
 #endif
 
