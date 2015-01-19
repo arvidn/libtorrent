@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include <boost/detail/atomic_count.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -73,14 +72,11 @@ namespace libtorrent { namespace dht
 
 	struct dht_tracker;
 
-	TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
-	TORRENT_EXTRA_EXPORT void intrusive_ptr_release(dht_tracker const*);	
-
-	struct dht_tracker : udp_socket_interface, udp_socket_observer
+	struct dht_tracker
+		: udp_socket_interface
+		, udp_socket_observer
+		, boost::enable_shared_from_this<dht_tracker>
 	{
-		friend void intrusive_ptr_add_ref(dht_tracker const*);
-		friend void intrusive_ptr_release(dht_tracker const*);
-
 		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
 			, dht_settings const& settings, counters& cnt, entry const* state = 0);
 		virtual ~dht_tracker();
@@ -117,8 +113,8 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);
 #endif
-
-		void network_stats(int& sent, int& received);
+		void dht_status(std::vector<dht_routing_bucket>& table
+			, std::vector<dht_lookup>& requests);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
@@ -127,8 +123,8 @@ namespace libtorrent { namespace dht
 
 	private:
 	
-		boost::intrusive_ptr<dht_tracker> self()
-		{ return boost::intrusive_ptr<dht_tracker>(this); }
+		boost::shared_ptr<dht_tracker> self()
+		{ return shared_from_this(); }
 
 		void on_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
@@ -161,27 +157,6 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
-
-		// sent and received bytes since queried last time
-		int m_sent_bytes;
-		int m_received_bytes;
-
-		// reference counter for intrusive_ptr
-		mutable boost::detail::atomic_count m_refs;
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		int m_replies_sent[5];
-		int m_queries_received[5];
-		int m_replies_bytes_sent[5];
-		int m_queries_bytes_received[5];
-		int m_counter;
-
-		int m_total_message_input;
-		int m_total_in_bytes;
-		int m_total_out_bytes;
-		
-		int m_queries_out_bytes;
-#endif
 	};
 }}
 

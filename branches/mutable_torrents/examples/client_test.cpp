@@ -162,7 +162,6 @@ bool print_trackers = false;
 bool print_peers = false;
 bool print_log = false;
 bool print_downloads = false;
-bool print_piece_bar = false;
 bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
@@ -180,6 +179,11 @@ bool print_disk_stats = false;
 // the number of times we've asked to save resume data
 // without having received a response (successful or failure)
 int num_outstanding_resume_data = 0;
+
+#ifndef TORRENT_DISABLE_DHT
+std::vector<libtorrent::dht_lookup> dht_active_requests;
+std::vector<libtorrent::dht_routing_bucket> dht_routing_table;
+#endif
 
 torrent_view view;
 session_view ses_view;
@@ -906,6 +910,14 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		ses_view.update_counters(s->values, s->timestamp);
 		return true;
 	}
+	
+#ifndef TORRENT_DISABLE_DHT
+	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
+	{
+		dht_active_requests.swap(p->active_requests);
+		dht_routing_table.swap(p->dht_routing_table);
+	}
+#endif
 
 #ifdef TORRENT_USE_OPENSSL
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
@@ -953,6 +965,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		h.resume();
 	}
 #endif
+
 
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
@@ -1619,6 +1632,7 @@ int main(int argc, char* argv[])
 		++tick;
 		ses.post_torrent_updates();
 		ses.post_session_stats();
+		ses.post_dht_stats();
 
 		int terminal_width = 80;
 		int terminal_height = 50;
@@ -1864,7 +1878,6 @@ int main(int argc, char* argv[])
 				if (c == 'd') print_downloads = !print_downloads;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'P') show_pad_files = !show_pad_files;
-				if (c == 'a') print_piece_bar = !print_piece_bar;
 				if (c == 'g') show_dht_status = !show_dht_status;
 				if (c == 'u') ses_view.print_utp_stats(!ses_view.print_utp_stats());
 				if (c == 'x') print_disk_stats = !print_disk_stats;
@@ -1898,10 +1911,10 @@ int main(int argc, char* argv[])
 						"left/right arrow keys: select torrent filter\n"
 						"up/down arrow keys: select torrent\n"
 						"[i] toggle show peers                           [d] toggle show downloading pieces\n"
-						"[a] toggle piece bar                            [f] toggle show files\n"
+						"[u] show uTP stats                              [f] toggle show files\n"
 						"[g] show DHT                                    [x] toggle disk cache stats\n"
 						"[t] show trackers                               [l] show alert log\n"
-						"[P] show pad files (in file list)               [u] show uTP stats\n"
+						"[P] show pad files (in file list)\n"
 						"\n"
 						"COLUMN OPTIONS\n"
 						"[1] toggle IP column                            [2] toggle AS column\n"
@@ -1953,20 +1966,20 @@ int main(int argc, char* argv[])
 		cache_status cs;
 		ses.get_cache_info(&cs, h, cache_flags);
 
-		// TODO: 3 introce some reasonable way of getting DHT stats
-/*
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
 		{
+			// TODO: 3 expose these counters as performance counters
+/*
 			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
 				"total DHT size: %" PRId64 " total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
 			out += str;
-
+*/
 			int bucket = 0;
-			for (std::vector<dht_routing_bucket>::iterator i = sess_stat.dht_routing_table.begin()
-				, end(sess_stat.dht_routing_table.end()); i != end; ++i, ++bucket)
+			for (std::vector<dht_routing_bucket>::iterator i = dht_routing_table.begin()
+				, end(dht_routing_table.end()); i != end; ++i, ++bucket)
 			{
 				char const* progress_bar =
 					"################################"
@@ -1982,8 +1995,8 @@ int main(int argc, char* argv[])
 				out += str;
 			}
 
-			for (std::vector<dht_lookup>::iterator i = sess_stat.active_requests.begin()
-				, end(sess_stat.active_requests.end()); i != end; ++i)
+			for (std::vector<dht_lookup>::iterator i = dht_active_requests.begin()
+				, end(dht_active_requests.end()); i != end; ++i)
 			{
 				snprintf(str, sizeof(str)
 					, "  %10s [limit: %2d] "
@@ -2005,7 +2018,6 @@ int main(int argc, char* argv[])
 			}
 		}
 #endif
-*/
 		if (h.is_valid())
 		{
 			torrent_status const& s = view.get_active_torrent();

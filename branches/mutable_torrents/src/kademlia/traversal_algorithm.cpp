@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
+#include <libtorrent/alert_types.hpp> // for dht_lookup
 
 #include <boost/bind.hpp>
 

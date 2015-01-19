@@ -730,5 +730,19 @@ namespace libtorrent {
 		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg;
 	}
 
+	std::string lsd_error_alert::message() const
+	{
+		return "Local Service Discovery error: " + error.message();
+	}
+
+	std::string dht_stats_alert::message() const
+	{
+		char buf[2048];
+		snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
+			, int(active_requests.size())
+			, int(routing_table.size()));
+		return buf;
+	}
+
 } // namespace libtorrent
 

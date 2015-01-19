@@ -3007,27 +3007,9 @@ retry:
 			if (!t.want_tick()) --i;
 		}
 
-#ifndef TORRENT_DISABLE_DHT
-		int dht_down = 0;
-		int dht_up = 0;
-		if (m_dht)
-		{
-			m_dht->network_stats(dht_up, dht_down);
-			m_stats_counters.inc_stats_counter(counters::sent_dht_bytes, dht_up);
-			m_stats_counters.inc_stats_counter(counters::recv_dht_bytes, dht_down);
-		}
-#endif
-
 		// TODO: this should apply to all bandwidth channels
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead))
 		{
-			peer_class* gpc = m_classes.at(m_global_class);
-
-#ifndef TORRENT_DISABLE_DHT
-			gpc->channel[peer_connection::download_channel].use_quota(dht_down);
-			gpc->channel[peer_connection::upload_channel].use_quota(dht_up);
-#endif
-
 			int up_limit = upload_rate_limit(m_global_class);
 			int down_limit = download_rate_limit(m_global_class);
 
@@ -4297,7 +4279,6 @@ retry:
 
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
-		va_end(v);
 
 		m_alerts.post_alert(log_alert(buf));
 	}
@@ -4410,6 +4391,18 @@ retry:
 			values[i] = m_stats_counters[i];
 
 		alert->timestamp = total_microseconds(time_now_hires() - m_created);
+
+		m_alerts.post_alert_ptr(alert.release());
+	}
+
+	void session_impl::post_dht_stats()
+	{
+		std::auto_ptr<dht_stats_alert> alert(new dht_stats_alert());
+	
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht)
+			m_dht->dht_status(alert->routing_table, alert->active_requests);
+#endif
 
 		m_alerts.post_alert_ptr(alert.release());
 	}
@@ -5316,8 +5309,8 @@ retry:
 		s.total_tracker_upload = m_stats_counters[counters::sent_tracker_bytes];
 
 		// dht
-		s.total_dht_download = m_stats_counters[counters::recv_dht_bytes];
-		s.total_dht_upload = m_stats_counters[counters::sent_dht_bytes];
+		s.total_dht_download = m_stats_counters[counters::dht_bytes_in];
+		s.total_dht_upload = m_stats_counters[counters::dht_bytes_out];
 
 		// deprecated
 		s.tracker_download_rate = 0;
@@ -5390,7 +5383,9 @@ retry:
 		INVARIANT_CHECK;
 
 		stop_dht();
-		m_dht = new dht::dht_tracker(*this, m_udp_socket, m_dht_settings, m_stats_counters, &startup_state);
+		m_dht = boost::make_shared<dht::dht_tracker>(boost::ref(*this)
+			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
+			, boost::ref(m_stats_counters), &startup_state);
 
 		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
@@ -5408,7 +5403,7 @@ retry:
 		if (!m_dht) return;
 		m_udp_socket.unsubscribe(m_dht.get());
 		m_dht->stop();
-		m_dht = 0;
+		m_dht.reset();
 	}
 
 	void session_impl::set_dht_settings(dht_settings const& settings)
@@ -6234,9 +6229,25 @@ retry:
 		if (m_lsd) return;
 
 		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
-			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2));
+			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2)
+#if defined TORRENT_LOGGING
+			, boost::bind(&session_impl::on_lsd_log, this, _1)
+#endif
+			);
+		error_code ec;
+		m_lsd->start(ec);
+		if (ec && m_alerts.should_post<lsd_error_alert>())
+			m_alerts.post_alert(lsd_error_alert(ec));
 	}
 	
+#if defined TORRENT_LOGGING
+	void session_impl::on_lsd_log(char const* log)
+	{
+		if (!m_alerts.should_post<log_alert>()) return;
+		m_alerts.post_alert(log_alert(log));
+	}
+#endif
+
 	natpmp* session_impl::start_natpmp()
 	{
 		INVARIANT_CHECK;

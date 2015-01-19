@@ -528,6 +528,14 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif
 
+#ifndef TORRENT_THREADSAFE_STATIC
+#if __cplusplus < 199711L || _MSC_VER < 1800
+#define TORRENT_THREADSAFE_STATIC 0
+#else
+#define TORRENT_THREADSAFE_STATIC 1
+#endif
+#endif
+
 // if set to true, piece picker will use less RAM
 // but only support up to ~260000 pieces in a torrent
 #ifndef TORRENT_COMPACT_PICKER
