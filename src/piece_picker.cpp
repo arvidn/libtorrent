@@ -2521,17 +2521,14 @@ namespace libtorrent
 				num_blocks_in_piece = blocks_in_piece(k);
 				TORRENT_ASSERT(is_piece_free(k, pieces));
 				for (int j = 0; j < num_blocks_in_piece; ++j)
-				{
 					interesting_blocks.push_back(piece_block(k, j));
-					--num_blocks;
-				}
+				num_blocks -= num_blocks_in_piece;
 			}
 		}
 #if TORRENT_USE_INVARIANT_CHECKS
 		verify_pick(interesting_blocks, pieces);
 #endif
-		if (num_blocks <= 0) return 0;
-		return num_blocks;
+		return (std::max)(num_blocks, 0);
 	}
 
 	int piece_picker::add_blocks_downloading(downloading_piece const& dp
