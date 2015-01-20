@@ -67,6 +67,7 @@ namespace libtorrent
 			, min_reconnect_time(60)
 			, loop_counter(0)
 			, ip(NULL), port(0)
+			, max_failcount(3)
 			, peer_allocator(NULL)
 		{}
 		bool is_paused;
@@ -89,6 +90,10 @@ namespace libtorrent
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
 		external_ip const* ip;
 		int port;
+
+		// the number of times a peer must fail before it's no longer considered
+		// a connect candidate
+		int max_failcount;
 
 		// this must be set to a torrent_peer allocator
 		torrent_peer_allocator_interface* peer_allocator;
@@ -193,6 +198,8 @@ namespace libtorrent
 		void erase_peer(torrent_peer* p, torrent_state* state);
 		void erase_peer(iterator i, torrent_state* state);
 
+		void set_max_failcount(torrent_state* st);
+
 	private:
 
 		void recalculate_connect_candidates(torrent_state* state);
@@ -207,7 +214,8 @@ namespace libtorrent
 		bool compare_peer(torrent_peer const* lhs, torrent_peer const* rhs
 			, external_ip const& external, int source_port) const;
 
-		void find_connect_candidates(std::vector<torrent_peer*>& peers, int session_time, torrent_state* state);
+		void find_connect_candidates(std::vector<torrent_peer*>& peers
+			, int session_time, torrent_state* state);
 
 		bool is_connect_candidate(torrent_peer const& p) const;
 		bool is_erase_candidate(torrent_peer const& p) const;
@@ -255,6 +263,9 @@ namespace libtorrent
 		// port for them).
 		int m_num_connect_candidates;
 
+		// if a peer has failed this many times or more, we don't consider
+		// it a connect candidate anymore.
+		int m_max_failcount;
 	};
 
 }

@@ -10639,6 +10639,7 @@ namespace libtorrent
 		ret.peer_allocator = m_ses.get_peer_allocator();
 		ret.ip = &m_ses.external_address();
 		ret.port = m_ses.listen_port();
+		ret.max_failcount = settings().get_int(settings_pack::max_failcount);
 		return ret;
 	}
 

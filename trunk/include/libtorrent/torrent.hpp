@@ -977,6 +977,12 @@ namespace libtorrent
 			return m_picker.get() != 0;
 		}
 
+		void update_max_failcount()
+		{
+			if (!m_peer_list) return;
+			torrent_state st = get_policy_state();
+			m_peer_list->set_max_failcount(&st);
+		}
 		int num_known_peers() const { return m_peer_list ? m_peer_list->num_peers() : 0; }
 		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 

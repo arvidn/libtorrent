@@ -129,15 +129,25 @@ namespace libtorrent
 		, m_finished(0)
 		, m_round_robin(0)
 		, m_num_connect_candidates(0)
+		, m_max_failcount(3)
 	{
 		thread_started();
 	}
 
-	// disconnects and removes all peers that are now filtered
-	// fills in 'erased' with torrent_peer pointers that were removed
-	// from the peer list. Any references to these peers must be cleared
-	// immediately after this call returns. For instance, in the piece picker.
-	void peer_list::apply_ip_filter(ip_filter const& filter, torrent_state* state, std::vector<address>& banned)
+	void peer_list::set_max_failcount(torrent_state* state)
+	{
+		if (state->max_failcount == m_max_failcount) return;
+
+		m_max_failcount = state->max_failcount;
+		recalculate_connect_candidates(state);
+	}
+
+	// disconnects and removes all peers that are now filtered fills in 'erased'
+	// with torrent_peer pointers that were removed from the peer list. Any
+	// references to these peers must be cleared immediately after this call
+	// returns. For instance, in the piece picker.
+	void peer_list::apply_ip_filter(ip_filter const& filter
+		, torrent_state* state, std::vector<address>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -169,7 +179,9 @@ namespace libtorrent
 				
 				banned.push_back(p->remote().address());
 
-				p->disconnect(errors::banned_by_ip_filter, peer_connection_interface::op_bittorrent);
+				p->disconnect(errors::banned_by_ip_filter
+					, peer_connection_interface::op_bittorrent);
+
 				// what *i refers to has changed, i.e. cur was deleted
 				if (m_peers.size() < count)
 				{
@@ -196,7 +208,8 @@ namespace libtorrent
 	// fills in 'erased' with torrent_peer pointers that were removed
 	// from the peer list. Any references to these peers must be cleared
 	// immediately after this call returns. For instance, in the piece picker.
-	void peer_list::apply_port_filter(port_filter const& filter, torrent_state* state, std::vector<address>& banned)
+	void peer_list::apply_port_filter(port_filter const& filter
+		, torrent_state* state, std::vector<address>& banned)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -457,14 +470,14 @@ namespace libtorrent
 			|| p.web_seed
 			|| !p.connectable
 			|| (p.seed && m_finished)
-			// TODO: 3 settings_pack::max_failcount should be used here, not 3
-			|| int(p.failcount) >= 3)
+			|| int(p.failcount) >= m_max_failcount)
 			return false;
 		
 		return true;
 	}
 
-	void peer_list::find_connect_candidates(std::vector<torrent_peer*>& peers, int session_time, torrent_state* state)
+	void peer_list::find_connect_candidates(std::vector<torrent_peer*>& peers
+		, int session_time, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
