@@ -13,7 +13,7 @@
 */
 
 
-typedef int32_t fe[10];
+typedef i32 fe[10];
 
 
 void fe_0(fe h);
