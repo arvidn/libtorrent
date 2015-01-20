@@ -4303,7 +4303,7 @@ retry:
 		}
 	}
 	
-	void session_impl::post_torrent_updates()
+	void session_impl::post_torrent_updates(boost::uint32_t flags)
 	{
 		INVARIANT_CHECK;
 
@@ -4333,7 +4333,7 @@ retry:
 			// the torrent to be loaded. Loading a torrent, and evicting another
 			// one will lead to calling state_updated(), which screws with
 			// this list while we're working on it, and break things
-			t->status(&alert->status.back(), ~torrent_handle::query_accurate_download_counters);
+			t->status(&alert->status.back(), flags);
 			t->clear_in_state_update();
 		}
 		state_updates.clear();
