@@ -138,7 +138,6 @@ namespace libtorrent
 	{
 		if (state->max_failcount == m_max_failcount) return;
 
-		m_max_failcount = state->max_failcount;
 		recalculate_connect_candidates(state);
 	}
 
@@ -348,7 +347,7 @@ namespace libtorrent
 		int erase_candidate = -1;
 		int force_erase_candidate = -1;
 
-		if (state->is_finished != m_finished)
+		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
 		int round_robin = random() % m_peers.size();
@@ -1253,18 +1252,22 @@ namespace libtorrent
 	void peer_list::recalculate_connect_candidates(torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
-
-		if (state->is_finished == m_finished) return;
 
 		m_num_connect_candidates = 0;
 		m_finished = state->is_finished;
+		m_max_failcount = state->max_failcount;
 
 		for (const_iterator i = m_peers.begin();
 			i != m_peers.end(); ++i)
 		{
 			m_num_connect_candidates += is_connect_candidate(**i);
 		}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		// the invariant is not likely to be upheld at the entry of this function
+		// but it is likely to have been restored by the end of it
+		check_invariant();
+#endif
 	}
 
 #if TORRENT_USE_ASSERTS
