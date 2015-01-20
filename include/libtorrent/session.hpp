@@ -355,7 +355,9 @@ namespace libtorrent
 		// 
 		// Only torrents who has the state subscription flag set will be
 		// included. This flag is on by default. See add_torrent_params.
-		void post_torrent_updates();
+		// the ``flags`` argument is the same as for torrent_handle::status().
+		// see torrent_handle::status_flags_t.
+		void post_torrent_updates(boost::uint32_t flags = 0xffffffff);
 
 		// This function will post a session_stats_alert object, containing a
 		// snapshot of the performance counters from the internals of libtorrent.
