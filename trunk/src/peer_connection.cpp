@@ -182,7 +182,7 @@ namespace libtorrent
 		, m_send_barrier(INT_MAX)
 		, m_desired_queue_size(2)
 		, m_speed(slow)
-		, m_prefer_whole_pieces(0)
+		, m_prefer_contiguous_blocks(0)
 		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
 		, m_outgoing(!pack.tor.expired())
@@ -866,6 +866,11 @@ namespace libtorrent
 			// the common pieces first, just to make
 			// it more likely for all snubbed peers to
 			// request blocks from the same piece
+			// TODO: 3 this may cause a priority inversion! making a snubbed peer
+			// open up a new piece may cause that piece to become the highest
+			// priority. Unless there is some way to mark pieces as low-priority
+			// this is probably not a good idea. We just want to make all snubbed
+			// peers pick the same common piece.
 			ret |= piece_picker::reverse;
 		}
 

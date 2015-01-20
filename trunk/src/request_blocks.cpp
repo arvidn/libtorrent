@@ -106,13 +106,14 @@ namespace libtorrent
 		std::vector<piece_block> interesting_pieces;
 		interesting_pieces.reserve(100);
 
-		int prefer_whole_pieces = c.prefer_whole_pieces();
+		int prefer_contiguous_blocks = c.prefer_contiguous_blocks();
 
-		if (prefer_whole_pieces == 0 && !time_critical_mode)
+		if (prefer_contiguous_blocks == 0 && !time_critical_mode)
 		{
-			prefer_whole_pieces = c.statistics().download_payload_rate()
+			int blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
+			prefer_contiguous_blocks = c.statistics().download_payload_rate()
 				* t.settings().get_int(settings_pack::whole_pieces_threshold)
-				> t.torrent_file().piece_length() ? 1 : 0;
+				> t.torrent_file().piece_length() ? blocks_per_piece : 0;
 		}
 
 		// if we prefer whole pieces, the piece picker will pick at least
@@ -163,13 +164,13 @@ namespace libtorrent
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
 		p.pick_pieces(*bits, interesting_pieces
-			, num_requests, prefer_whole_pieces, c.peer_info_struct()
+			, num_requests, prefer_contiguous_blocks, c.peer_info_struct()
 			, state, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());
 
 #ifdef TORRENT_LOGGING
-		c.peer_log("*** PIECE_PICKER [ prefer_whole: %d picked: %d ]"
-			, prefer_whole_pieces, int(interesting_pieces.size()));
+		c.peer_log("*** PIECE_PICKER [ prefer_contiguous: %d picked: %d ]"
+			, prefer_contiguous_blocks, int(interesting_pieces.size()));
 #endif
 
 		// if the number of pieces we have + the number of pieces
@@ -192,7 +193,7 @@ namespace libtorrent
 		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
 			i != interesting_pieces.end(); ++i)
 		{
-			if (prefer_whole_pieces == 0 && num_requests <= 0) break;
+			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
 
 			if (time_critical_mode && p.piece_priority(i->piece_index) != 7)
 			{

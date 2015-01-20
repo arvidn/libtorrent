@@ -1829,7 +1829,7 @@ namespace libtorrent
 		{
 			if (src.empty()) return num_blocks;
 			int to_copy;
-//			if (prefer_whole_pieces == 0)
+//			if (prefer_contiguous_blocks == 0)
 				to_copy = (std::min)(int(src.size()), num_blocks);
 //			else
 //				to_copy = int(src.size());
@@ -1845,7 +1845,7 @@ namespace libtorrent
 	// has.
 	// interesting_blocks is an out parameter, and will be filled
 	// with (up to) num_blocks of interesting blocks that the peer has.
-	// prefer_whole_pieces can be set if this peer should download
+	// prefer_contiguous_blocks can be set if this peer should download
 	// whole pieces rather than trying to download blocks from the
 	// same piece as other peers.
 	//	the void* is the pointer to the torrent_peer of the peer we're
@@ -1874,15 +1874,12 @@ namespace libtorrent
 	// * speed_affinity
 	//     have an affinity to pick pieces in the same speed
 	//     category.
-	// * ignore_whole_pieces
-	//     ignores the prefer_whole_pieces parameter (as if
-	//     it was 0)
 
 	// only one of rarest_first, sequential can be set
 
 	void piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
-		, int prefer_whole_pieces, void* peer, piece_state_t speed
+		, int prefer_contiguous_blocks, void* peer, piece_state_t speed
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
 		, counters& pc
@@ -1900,10 +1897,8 @@ namespace libtorrent
 			// them. In order for this to have an affect, also disable
 			// prefer whole pieces (otherwise partial pieces would be de-prioritized)
 			options |= prioritize_partials;
-			prefer_whole_pieces = 0;
+			prefer_contiguous_blocks = 0;
 		}
-
-		if (options & ignore_whole_pieces) prefer_whole_pieces = 0;
 
 		// only one of rarest_first and sequential can be set.
 		TORRENT_ASSERT(((options & rarest_first) ? 1 : 0)
@@ -1927,7 +1922,7 @@ namespace libtorrent
 		std::vector<piece_block> backup_blocks2;
 		const std::vector<int> empty_vector;
 	
-		// When prefer_whole_pieces is set (usually set when downloading from
+		// When prefer_contiguous_blocks is set (usually set when downloading from
 		// fast peers) the partial pieces will not be prioritized, but actually
 		// ignored as long as possible. All blocks found in downloading
 		// pieces are regarded as backup blocks
@@ -1950,7 +1945,7 @@ namespace libtorrent
 
 				num_blocks = add_blocks_downloading(*i, pieces
 					, interesting_blocks, backup_blocks, backup_blocks2
-					, num_blocks, prefer_whole_pieces, peer, speed, options);
+					, num_blocks, prefer_contiguous_blocks, peer, speed, options);
 				if (num_blocks <= 0) return;
 			}
 
@@ -1977,7 +1972,7 @@ namespace libtorrent
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_whole_pieces, peer, empty_vector
+					, prefer_contiguous_blocks, peer, empty_vector
 					, speed, options);
 				if (num_blocks <= 0) return;
 			}
@@ -1995,7 +1990,7 @@ namespace libtorrent
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_whole_pieces, peer, suggested_pieces
+					, prefer_contiguous_blocks, peer, suggested_pieces
 					, speed, options);
 				if (num_blocks <= 0) return;
 			}
@@ -2014,7 +2009,7 @@ namespace libtorrent
 						num_blocks = add_blocks(i, pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_whole_pieces, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, suggested_pieces
 							, speed, options);
 						if (num_blocks <= 0) return;
 					}
@@ -2030,7 +2025,7 @@ namespace libtorrent
 						num_blocks = add_blocks(i, pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_whole_pieces, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, suggested_pieces
 							, speed, options);
 						if (num_blocks <= 0) return;
 					}
@@ -2073,7 +2068,7 @@ namespace libtorrent
 						num_blocks = add_blocks(m_pieces[p], pieces
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
-							, prefer_whole_pieces, peer, suggested_pieces
+							, prefer_contiguous_blocks, peer, suggested_pieces
 							, speed, options);
 						if (num_blocks <= 0) return;
 					}
@@ -2099,7 +2094,7 @@ namespace libtorrent
 					num_blocks = add_blocks(*i, pieces
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
-						, prefer_whole_pieces, peer, suggested_pieces
+						, prefer_contiguous_blocks, peer, suggested_pieces
 						, speed, options);
 					if (num_blocks <= 0) return;
 				}
@@ -2116,7 +2111,7 @@ namespace libtorrent
 				num_blocks = add_blocks(*i, pieces
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
-					, prefer_whole_pieces, peer, suggested_pieces
+					, prefer_contiguous_blocks, peer, suggested_pieces
 					, speed, options);
 				if (num_blocks <= 0) return;
 			}
@@ -2152,20 +2147,22 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
 
 				int start, end;
-				boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces, options);
+				boost::tie(start, end) = expand_piece(piece
+					, prefer_contiguous_blocks, pieces, options);
 				for (int k = start; k < end; ++k)
 				{
 					TORRENT_ASSERT(m_piece_map[k].downloading() == false);
 					TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
 					int num_blocks_in_piece = blocks_in_piece(k);
-					if (prefer_whole_pieces == 0 && num_blocks_in_piece > num_blocks)
-						num_blocks_in_piece = num_blocks;
 					for (int j = 0; j < num_blocks_in_piece; ++j)
 					{
 						pc.inc_stats_counter(counters::piece_picker_rand_loops);
 						TORRENT_ASSERT(is_piece_free(k, pieces));
 						interesting_blocks.push_back(piece_block(k, j));
 						--num_blocks;
+						--prefer_contiguous_blocks;
+						if (prefer_contiguous_blocks == 0
+							&& num_blocks <= 0) break;
 					}
 				}
 				piece = end;
@@ -2436,29 +2433,37 @@ namespace libtorrent
 		// blocks from this piece.
 		// the second bool is true if this is the only active peer that is requesting
 		// and downloading blocks from this piece. Active means having a connection.
-		boost::tuple<bool, bool> requested_from(piece_picker::downloading_piece const& p
+		boost::tuple<bool, bool, int> requested_from(piece_picker::downloading_piece const& p
 			, int num_blocks_in_piece, void* peer)
 		{
 			bool exclusive = true;
 			bool exclusive_active = true;
+			int contiguous_blocks = 0;
+			int max_contiguous = 0;
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				piece_picker::block_info const& info = p.info[j];
 				TORRENT_ASSERT(info.peer == 0 || static_cast<torrent_peer*>(info.peer)->in_use);
 				TORRENT_ASSERT(info.piece_index == p.index);
-				if (info.state != piece_picker::block_info::state_none
-					&& info.peer != peer)
+				if (info.state == piece_picker::block_info::state_none)
+				{
+					++contiguous_blocks;
+					continue;
+				}
+				max_contiguous = (std::max)(contiguous_blocks, max_contiguous);
+				contiguous_blocks = 0;
+				if (info.peer != peer)
 				{
 					exclusive = false;
 					if (info.state == piece_picker::block_info::state_requested
 						&& info.peer != 0)
 					{
 						exclusive_active = false;
-						return boost::make_tuple(exclusive, exclusive_active);
 					}
 				}
 			}
-			return boost::make_tuple(exclusive, exclusive_active);
+			max_contiguous = (std::max)(contiguous_blocks, max_contiguous);
+			return boost::make_tuple(exclusive, exclusive_active, max_contiguous);
 		}
 	}
 
@@ -2467,7 +2472,7 @@ namespace libtorrent
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
-		, int num_blocks, int prefer_whole_pieces
+		, int num_blocks, int prefer_contiguous_blocks
 		, void* peer, std::vector<int> const& ignore
 		, piece_state_t speed, int options) const
 	{
@@ -2496,13 +2501,13 @@ namespace libtorrent
 
 			return add_blocks_downloading(*i, pieces
 				, interesting_blocks, backup_blocks, backup_blocks2
-				, num_blocks, prefer_whole_pieces, peer, speed, options);
+				, num_blocks, prefer_contiguous_blocks, peer, speed, options);
 		}
 
 		int num_blocks_in_piece = blocks_in_piece(piece);
 
 		// pick a new piece
-		if (prefer_whole_pieces == 0)
+		if (prefer_contiguous_blocks == 0)
 		{
 			if (num_blocks_in_piece > num_blocks)
 				num_blocks_in_piece = num_blocks;
@@ -2514,15 +2519,21 @@ namespace libtorrent
 		else
 		{
 			int start, end;
-			boost::tie(start, end) = expand_piece(piece, prefer_whole_pieces, pieces, options);
+			boost::tie(start, end) = expand_piece(piece, prefer_contiguous_blocks
+				, pieces, options);
 			for (int k = start; k < end; ++k)
 			{
 				TORRENT_ASSERT(m_piece_map[k].priority(this) > 0);
 				num_blocks_in_piece = blocks_in_piece(k);
 				TORRENT_ASSERT(is_piece_free(k, pieces));
 				for (int j = 0; j < num_blocks_in_piece; ++j)
+				{
 					interesting_blocks.push_back(piece_block(k, j));
-				num_blocks -= num_blocks_in_piece;
+					--num_blocks;
+					--prefer_contiguous_blocks;
+					if (prefer_contiguous_blocks == 0
+						&& num_blocks <= 0) break;
+				}
 			}
 		}
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -2536,7 +2547,7 @@ namespace libtorrent
 		, std::vector<piece_block>& interesting_blocks
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
-		, int num_blocks, int prefer_whole_pieces
+		, int num_blocks, int prefer_contiguous_blocks
 		, void* peer, piece_state_t speed, int options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
@@ -2553,7 +2564,8 @@ namespace libtorrent
 		// peer as 'peer'.
 		bool exclusive;
 		bool exclusive_active;
-		boost::tie(exclusive, exclusive_active)
+		int contiguous_blocks;
+		boost::tie(exclusive, exclusive_active, contiguous_blocks)
 			= requested_from(dp, num_blocks_in_piece, peer);
 
 		// peers on parole are only allowed to pick blocks from
@@ -2561,8 +2573,13 @@ namespace libtorrent
 		if ((options & on_parole) && !exclusive) return num_blocks;
 
 		// we prefer whole blocks, but there are other peers
-		// downloading from this piece, add it as backups
-		if (prefer_whole_pieces > 0 && !exclusive_active)
+		// downloading from this piece and there aren't enough contiguous blocks
+		// to pick, add it as backups.
+		// if we're on parole, don't let the contiguous blocks stop us, we want
+		// to primarily request from a piece all by ourselves.
+		if (prefer_contiguous_blocks > contiguous_blocks
+			&& !exclusive_active
+			&& (options & on_parole) == 0)
 		{
 			if (int(backup_blocks2.size()) >= num_blocks)
 				return num_blocks;
@@ -2609,19 +2626,21 @@ namespace libtorrent
 				continue;
 			}
 			
-			// this block is interesting (we don't have it
-			// yet).
+			// this block is interesting (we don't have it yet).
 			interesting_blocks.push_back(piece_block(dp.index, j));
 			// we have found a block that's free to download
-			num_blocks--;
-			// if we prefer whole pieces, continue picking from this
+			--num_blocks;
+			// if we prefer contiguous blocks, continue picking from this
 			// piece even though we have num_blocks
-			if (prefer_whole_pieces > 0) continue;
-			TORRENT_ASSERT(num_blocks >= 0);
-			if (num_blocks <= 0) return num_blocks;
+			if (prefer_contiguous_blocks > 0)
+			{
+				--prefer_contiguous_blocks;
+				continue;
+			}
+			if (num_blocks <= 0) return 0;
 		}
 	
-		TORRENT_ASSERT(num_blocks >= 0 || prefer_whole_pieces > 0);
+		TORRENT_ASSERT(num_blocks >= 0 || prefer_contiguous_blocks > 0);
 
 		if (num_blocks <= 0) return 0;
 		if (options & on_parole) return num_blocks;
@@ -2634,10 +2653,15 @@ namespace libtorrent
 		return num_blocks;
 	}
 	
-	std::pair<int, int> piece_picker::expand_piece(int piece, int whole_pieces
+	std::pair<int, int> piece_picker::expand_piece(int piece, int contiguous_blocks
 		, bitfield const& have, int options) const
 	{
-		if (whole_pieces == 0) return std::make_pair(piece, piece + 1);
+		if (contiguous_blocks == 0) return std::make_pair(piece, piece + 1);
+
+		// round to even pieces and expand in order to get the number of
+		// contiguous pieces we want
+		int whole_pieces = (contiguous_blocks + m_blocks_per_piece - 1)
+			/ m_blocks_per_piece;
 
 		int start = piece;
 		int lower_limit;
