@@ -413,27 +413,143 @@ int test_main()
 		// trigger the eviction of one peer
 		torrent_peer* peer = p.add_peer(rand_tcp_ep(), 0, 0, &st);
 		// we either removed an existing peer, or rejected this one
+		// either is valid behavior when the list is full
 		TEST_CHECK(st.erased.size() == 1 || peer == NULL);
 	}
 
-// TODO: test applying a port_filter
+	// test set_ip_filter
+	{
+		std::vector<address> banned;
+		st.erased.clear();
+
+		mock_torrent t;
+		peer_list p;
+		t.m_p = &p;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			p.add_peer(tcp::endpoint(
+				address_v4((10 << 24) + ((i + 10) << 16)), 353), 0, 0, &st);
+			TEST_EQUAL(st.erased.size(), 0);
+			st.erased.clear();
+		}
+		TEST_EQUAL(p.num_peers(), 100);
+		TEST_EQUAL(p.num_connect_candidates(), 100);
+
+		// trigger the removal of one peer
+		ip_filter filter;
+		filter.add_rule(address_v4::from_string("10.13.0.0")
+			, address_v4::from_string("10.13.255.255"), ip_filter::blocked);
+		p.apply_ip_filter(filter, &st, banned);
+		TEST_EQUAL(st.erased.size(), 1);
+		TEST_EQUAL(st.erased[0]->address(), address_v4::from_string("10.13.0.0"));
+		TEST_EQUAL(p.num_peers(), 99);
+		TEST_EQUAL(p.num_connect_candidates(), 99);
+	}
+
+	// test set_port_filter
+	{
+		std::vector<address> banned;
+		st.erased.clear();
+
+		mock_torrent t;
+		peer_list p;
+		t.m_p = &p;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			p.add_peer(tcp::endpoint(
+				address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			TEST_EQUAL(st.erased.size(), 0);
+			st.erased.clear();
+		}
+		TEST_EQUAL(p.num_peers(), 100);
+		TEST_EQUAL(p.num_connect_candidates(), 100);
+
+		// trigger the removal of one peer
+		port_filter filter;
+		filter.add_rule(13, 13, port_filter::blocked);
+		p.apply_port_filter(filter, &st, banned);
+		TEST_EQUAL(st.erased.size(), 1);
+		TEST_EQUAL(st.erased[0]->address(), address_v4::from_string("10.13.0.0"));
+		TEST_EQUAL(st.erased[0]->port, 13);
+		TEST_EQUAL(p.num_peers(), 99);
+		TEST_EQUAL(p.num_connect_candidates(), 99);
+	}
+
+	// test set_max_failcount
+	{
+		st.erased.clear();
+
+		mock_torrent t;
+		peer_list p;
+		t.m_p = &p;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			torrent_peer* peer = p.add_peer(tcp::endpoint(
+				address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			TEST_EQUAL(st.erased.size(), 0);
+			st.erased.clear();
+			// every other peer has a failcount of 1
+			if (i % 2) p.inc_failcount(peer);
+		}
+		TEST_EQUAL(p.num_peers(), 100);
+		TEST_EQUAL(p.num_connect_candidates(), 100);
+
+		// set the max failcount to 1 and observe how half the peers no longer
+		// are connect candidates
+		st.max_failcount = 1;
+		p.set_max_failcount(&st);
+
+		TEST_EQUAL(p.num_connect_candidates(), 50);
+		TEST_EQUAL(p.num_peers(), 100);
+	}
+
+	// test set_seed
+	{
+		st.erased.clear();
+
+		mock_torrent t;
+		peer_list p;
+		t.m_p = &p;
+
+		for (int i = 0; i < 100; ++i)
+		{
+			torrent_peer* peer = p.add_peer(tcp::endpoint(
+				address_v4((10 << 24) + ((i + 10) << 16)), i + 10), 0, 0, &st);
+			TEST_EQUAL(st.erased.size(), 0);
+			st.erased.clear();
+			// make every other peer a seed
+			if (i % 2) p.set_seed(peer, true);
+		}
+		TEST_EQUAL(p.num_peers(), 100);
+		TEST_EQUAL(p.num_connect_candidates(), 100);
+
+		// now, the torrent completes and we're no longer interested in
+		// connecting to seeds. Make sure half the peers are no longer
+		// considered connect candidates
+		st.is_finished = true;
+
+		// this will make the peer_list recalculate the connect candidates
+		std::vector<torrent_peer*> peers;
+		torrent_peer* peer = p.connect_one_peer(1, &st);
+
+		TEST_EQUAL(p.num_connect_candidates(), 50);
+		TEST_EQUAL(p.num_peers(), 100);
+	}
+
 // TODO: test erasing peers
-// TODO: test using port and ip filter
-// TODO: test incrementing failcount (and make sure we no longer consider the peer a connect canidate)
-// TODO: test max peerlist size
-// TODO: test logic for which connection to keep when receiving an incoming connection to the same peer as we just made an outgoing connection to
+// TODO: test logic for which connection to keep when receiving an incoming
+// connection to the same peer as we just made an outgoing connection to
 // TODO: test update_peer_port with allow_multiple_connections_per_ip
-// TODO: test set_seed
 // TODO: test has_peer
-// TODO: test insert_peer with a full list
 // TODO: test add i2p peers
 // TODO: test allow_i2p_mixed
-// TODO: test insert_peer failing
+// TODO: test insert_peer failing with all error conditions
 // TODO: test IPv6
 // TODO: test connect_to_peer() failing
 // TODO: test connection_closed
-// TODO: test recalculate connect candidates
-// TODO: add tests here
 
 	return 0;
 }

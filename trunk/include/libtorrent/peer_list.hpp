@@ -145,8 +145,10 @@ namespace libtorrent
 		void set_failcount(torrent_peer* p, int f);
 		void inc_failcount(torrent_peer* p);
 
-		void apply_ip_filter(ip_filter const& filter, torrent_state* state, std::vector<address>& banned);
-		void apply_port_filter(port_filter const& filter, torrent_state* state, std::vector<address>& banned);
+		void apply_ip_filter(ip_filter const& filter, torrent_state* state
+			, std::vector<address>& banned);
+		void apply_port_filter(port_filter const& filter, torrent_state* state
+			, std::vector<address>& banned);
 
 		void set_seed(torrent_peer* p, bool s);
 
