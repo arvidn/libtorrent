@@ -636,6 +636,7 @@ namespace libtorrent
 			void update_listen_interfaces();
 			void update_privileged_ports();
 			void update_auto_sequential();
+			void update_max_failcount();
 
 			void update_upnp();
 			void update_natpmp();

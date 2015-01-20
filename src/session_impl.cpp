@@ -5012,6 +5012,15 @@ retry:
 			, end(m_torrents.end()); i != end; ++i)
 			i->second->update_auto_sequential();
 	}
+	
+	void session_impl::update_max_failcount()
+	{
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->update_max_failcount();
+		}
+	}
 
 	void session_impl::update_proxy()
 	{
