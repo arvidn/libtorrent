@@ -89,7 +89,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	// request even larger blocks at a time
 	if (!web.supports_keepalive) preferred_size *= 4;
 
-	prefer_whole_pieces((std::max)(preferred_size / tor->torrent_file().piece_length(), 1));
+	prefer_contiguous_blocks((std::max)(preferred_size / tor->block_size(), 1));
 	
 	// we want large blocks as well, so
 	// we can request more bytes at once

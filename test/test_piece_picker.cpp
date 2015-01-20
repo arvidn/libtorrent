@@ -246,14 +246,18 @@ void print_title(char const* name)
 	std::cerr << "==== " << name << " ====\n";
 }
 
-std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p, char const* availability
-	, int num_blocks, int prefer_whole_pieces, void* peer_struct, piece_picker::piece_state_t state
+std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
+	, char const* availability
+	, int num_blocks
+	, int prefer_contiguous_blocks
+	, void* peer_struct
+	, piece_picker::piece_state_t state
 		= piece_picker::fast, int options = piece_picker::rarest_first
 	, std::vector<int> const& suggested_pieces = empty_vector)
 {
 	std::vector<piece_block> picked;
 	counters pc;
-	p->pick_pieces(string2vec(availability), picked, num_blocks, prefer_whole_pieces, peer_struct
+	p->pick_pieces(string2vec(availability), picked, num_blocks, prefer_contiguous_blocks, peer_struct
 		, state, options, suggested_pieces, 20, pc);
 	print_pick(picked);
 	TEST_CHECK(verify_pick(p, picked));
@@ -458,20 +462,23 @@ int test_main()
 	// it is not a whole piece
 	print_title("test pick whole pieces");
 	p = setup_picker("2212222", "       ", "1111111", "1023460");
-	picked = pick_pieces(p, "****** ", 1, 1, &peer_struct, piece_picker::fast, options, empty_vector);
-	TEST_CHECK(int(picked.size()) == 3);
+	picked = pick_pieces(p, "****** ", 1, 1 * blocks_per_piece
+		, &peer_struct, piece_picker::fast, options, empty_vector);
+	TEST_EQUAL(int(picked.size()), 3);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i].piece_index == 2);
+		TEST_EQUAL(picked[i].piece_index, 2);
 
 	p = setup_picker("1111111", "       ", "1111111", "");
-	picked = pick_pieces(p, "****** ", 1, 1, &peer_struct, piece_picker::fast, options, empty_vector);
-	TEST_CHECK(int(picked.size()) == blocks_per_piece);
+	picked = pick_pieces(p, "****** ", 1, 1 * blocks_per_piece
+		, &peer_struct, piece_picker::fast, options, empty_vector);
+	TEST_EQUAL(int(picked.size()), blocks_per_piece);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
-		TEST_CHECK(picked[i].block_index == i);
+		TEST_EQUAL(picked[i].block_index, i);
 
 	p = setup_picker("2221222", "       ", "", "");
-	picked = pick_pieces(p, "*******", 1, 7, &peer_struct, piece_picker::fast, options, empty_vector);
-	TEST_CHECK(int(picked.size()) == 7 *  blocks_per_piece);
+	picked = pick_pieces(p, "*******", 1, 7 * blocks_per_piece
+		, &peer_struct, piece_picker::fast, options, empty_vector);
+	TEST_EQUAL(int(picked.size()), 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(i / blocks_per_piece, i % blocks_per_piece));
 
@@ -867,8 +874,9 @@ int test_main()
 
 	// make sure we still pick from a partial piece even when prefering whole pieces
 	picked.clear();
-	p->pick_pieces(string2vec(" *     "), picked, 1, 1, 0
-		, piece_picker::fast, piece_picker::rarest_first | piece_picker::align_expanded_pieces, empty_vector, 20
+	p->pick_pieces(string2vec(" *     "), picked, 1, 1 * blocks_per_piece, 0
+		, piece_picker::fast, piece_picker::rarest_first
+			| piece_picker::align_expanded_pieces, empty_vector, 20
 		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
 	print_pick(picked);
@@ -879,7 +887,7 @@ int test_main()
 	// don't pick locked pieces
 	picked.clear();
 	p->lock_piece(1);
-	p->pick_pieces(string2vec(" **    "), picked, 7 * blocks_per_piece, 0, 0
+	p->pick_pieces(string2vec(" **    "), picked, 7, 0, 0
 		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20
 		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
@@ -898,7 +906,7 @@ int test_main()
 	p->mark_as_downloading(piece_block(1,3), &tmp1, piece_picker::slow);
 
 	picked.clear();
-	p->pick_pieces(string2vec(" **    "), picked, 2 * blocks_per_piece, 0, 0
+	p->pick_pieces(string2vec(" **    "), picked, 2, 0, 0
 		, piece_picker::fast, piece_picker::rarest_first, empty_vector, 20
 		, pc);
 	TEST_CHECK(verify_pick(p, picked, true));
@@ -1071,10 +1079,11 @@ int test_main()
 
 // ========================================================
 	
-	// test prefer_whole_pieces
-	print_title("test prefer whole pieces");
+	// test prefer_contiguous_blocks
+	print_title("test prefer contiguous blocks");
 	p = setup_picker("1111111", "       ", "", "");
-	picked = pick_pieces(p, "*******", 1, 3, 0, piece_picker::fast, options, empty_vector);
+	picked = pick_pieces(p, "*******", 1, 3 * blocks_per_piece
+		, 0, piece_picker::fast, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 3 * blocks_per_piece);
 	piece_block b = picked.front();
 	for (int i = 1; i < int(picked.size()); ++i)
@@ -1084,7 +1093,8 @@ int test_main()
 		b = picked[i];
 	}
 
-	picked = pick_pieces(p, "*******", 1, 3, 0, piece_picker::fast, options, empty_vector);
+	picked = pick_pieces(p, "*******", 1, 3 * blocks_per_piece
+		, 0, piece_picker::fast, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 3 * blocks_per_piece);
 	b = picked.front();
 	for (int i = 1; i < int(picked.size()); ++i)
@@ -1098,21 +1108,21 @@ int test_main()
 	// are picked if there's no other choice
 	p = setup_picker("1111111", "       ", "", "");
 	p->mark_as_downloading(piece_block(2,2), &tmp1, piece_picker::fast);
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece - 1, 1, 0
-		, piece_picker::fast, options, empty_vector);
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece - 1, 1 * blocks_per_piece
+		, 0, piece_picker::fast, options, empty_vector);
 	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2,2)) == picked.end());
 
 	// test aligned whole pieces
 	print_title("test prefer aligned whole pieces");
 	p = setup_picker("2222221222222222", "                ", "", "");
-	picked = pick_pieces(p, "****************", 1, 4, 0
+	picked = pick_pieces(p, "****************", 1, 4 * blocks_per_piece, 0
 		, piece_picker::fast, options | piece_picker::align_expanded_pieces, empty_vector);
 
 	// the piece picker should pick piece 5, and then align it to even 4 pieces
 	// i.e. it should have picked pieces: 4,5,6,7
 	print_pick(picked);
-	TEST_CHECK(picked.size() == 4 * blocks_per_piece);
+	TEST_EQUAL(picked.size() , 4 * blocks_per_piece);
 
 	std::set<int> picked_pieces;
 	for (std::vector<piece_block>::iterator i = picked.begin()
@@ -1131,17 +1141,19 @@ int test_main()
 	print_title("test parole mode");
 	p = setup_picker("3333133", "       ", "", "");
 	p->mark_as_finished(piece_block(0, 0), 0);
-	picked = pick_pieces(p, "*******", 1, 1, 0, piece_picker::fast
+	picked = pick_pieces(p, "*******", 1, 1 * blocks_per_piece, 0
+		, piece_picker::fast
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
-	TEST_CHECK(int(picked.size()) == blocks_per_piece - 1);
+	TEST_EQUAL(int(picked.size()), blocks_per_piece - 1);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(0, i + 1));
 
 	//	make sure that the partial piece is not picked by a
 	// peer that is has not downloaded/requested the other blocks
-	picked = pick_pieces(p, "*******", 1, 1, &peer_struct, piece_picker::fast
+	picked = pick_pieces(p, "*******", 1, 1 * blocks_per_piece
+		, &peer_struct, piece_picker::fast
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
-	TEST_CHECK(int(picked.size()) == blocks_per_piece);
+	TEST_EQUAL(int(picked.size()), blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(4, i));
 
@@ -1153,7 +1165,8 @@ int test_main()
 	int v[] = {1, 5};
 	std::vector<int> suggested_pieces(v, v + 2);
 	
-	picked = pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, suggested_pieces);
+	picked = pick_pieces(p, "****************", 1, 1 * blocks_per_piece
+		, 0, piece_picker::fast, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(1, i));
@@ -1162,13 +1175,15 @@ int test_main()
 	p->set_piece_priority(2, 0);
 	p->set_piece_priority(3, 0);
 
-	picked = pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, suggested_pieces);
+	picked = pick_pieces(p, "****************", 1, 1 * blocks_per_piece
+		, 0, piece_picker::fast, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
 
 	p = setup_picker("1111222233334444", "****            ", "", "");
-	picked = pick_pieces(p, "****************", 1, 1, 0, piece_picker::fast, options, suggested_pieces);
+	picked = pick_pieces(p, "****************", 1, 1 * blocks_per_piece
+		, 0, piece_picker::fast, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
@@ -1180,13 +1195,13 @@ int test_main()
 	// we have less than half of the pieces
 	p = setup_picker("2122222211221222", "                ", "", "");
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0);
+	pick_pieces(p, "****************", 1, 1 * blocks_per_piece, 0);
 	print_availability(p);
 	p->dec_refcount(string2vec("**  **  **  *   "), &tmp0);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1022112200220222"));
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0);
+	pick_pieces(p, "****************", 1, 1 * blocks_per_piece, 0);
 	p->inc_refcount(string2vec(" **  **  *   *  "), &tmp8);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
@@ -1198,7 +1213,7 @@ int test_main()
 	p = setup_picker("0000000000000000", "                ", "", "");
 
 	// make sure it's not dirty
-	pick_pieces(p, "****************", 1, 1, 0);
+	pick_pieces(p, "****************", 1, 1 * blocks_per_piece, 0);
 
 	p->inc_refcount_all(&tmp0);
 	print_availability(p);

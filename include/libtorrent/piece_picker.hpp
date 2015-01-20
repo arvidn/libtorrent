@@ -156,16 +156,14 @@ namespace libtorrent
 			sequential = 16,
 			// have affinity to pieces with the same speed category
 			speed_affinity = 32,
-			// ignore the prefer_whole_pieces parameter
-			ignore_whole_pieces = 64,
 			// treat pieces with priority 6 and below as filtered
 			// to trigger end-game mode until all prio 7 pieces are
 			// completed
-			time_critical_mode = 128,
-			// only expands pieces (when prefer whole pieces is set)
+			time_critical_mode = 64,
+			// only expands pieces (when prefer contiguous blocks is set)
 			// within properly aligned ranges, not the largest possible
 			// range of pieces.
-			align_expanded_pieces = 256
+			align_expanded_pieces = 128
 		};
 
 		struct downloading_piece
@@ -297,9 +295,15 @@ namespace libtorrent
 		// THIS IS DONE BY THE peer_connection::send_request() MEMBER FUNCTION!
 		// The last argument is the torrent_peer pointer for the peer that
 		// we'll download from.
+		// prefer_contiguous_blocks indicates how many blocks we would like
+		// to request contiguously. The blocks are not merged by the piece
+		// picker, but may be coalesced later by the peer_connection.
+		// this feature is used by web_peer_connection to request larger blocks
+		// at a time to mitigate limited pipelining and lack of keep-alive
+		// (i.e. higher overhead per request).
 		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
-			, int prefer_whole_pieces, void* peer, piece_state_t speed
+			, int prefer_contiguous_blocks, void* peer, piece_state_t speed
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
 			, counters& pc
@@ -315,7 +319,7 @@ namespace libtorrent
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
-			, int num_blocks, int prefer_whole_pieces
+			, int num_blocks, int prefer_contiguous_blocks
 			, void* peer, std::vector<int> const& ignore
 			, piece_state_t speed, int options) const;
 
@@ -325,7 +329,7 @@ namespace libtorrent
 			, std::vector<piece_block>& interesting_blocks
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
-			, int num_blocks, int prefer_whole_pieces
+			, int num_blocks, int prefer_contiguous_blocks
 			, void* peer, piece_state_t speed
 			, int options) const;
 
