@@ -2433,13 +2433,17 @@ namespace libtorrent
 		// blocks from this piece.
 		// the second bool is true if this is the only active peer that is requesting
 		// and downloading blocks from this piece. Active means having a connection.
-		boost::tuple<bool, bool, int> requested_from(piece_picker::downloading_piece const& p
+		// TODO: 2 the first_block returned here is the largest free range, not
+		// the first-fit range, which would be better
+		boost::tuple<bool, bool, int, int> requested_from(
+			piece_picker::downloading_piece const& p
 			, int num_blocks_in_piece, void* peer)
 		{
 			bool exclusive = true;
 			bool exclusive_active = true;
 			int contiguous_blocks = 0;
 			int max_contiguous = 0;
+			int first_block = 0;
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				piece_picker::block_info const& info = p.info[j];
@@ -2450,7 +2454,11 @@ namespace libtorrent
 					++contiguous_blocks;
 					continue;
 				}
-				max_contiguous = (std::max)(contiguous_blocks, max_contiguous);
+				if (contiguous_blocks > max_contiguous)
+				{
+					max_contiguous = contiguous_blocks;
+					first_block = j - contiguous_blocks;
+				}
 				contiguous_blocks = 0;
 				if (info.peer != peer)
 				{
@@ -2462,8 +2470,13 @@ namespace libtorrent
 					}
 				}
 			}
-			max_contiguous = (std::max)(contiguous_blocks, max_contiguous);
-			return boost::make_tuple(exclusive, exclusive_active, max_contiguous);
+			if (contiguous_blocks > max_contiguous)
+			{
+				max_contiguous = contiguous_blocks;
+				first_block = num_blocks_in_piece - contiguous_blocks;
+			}
+			return boost::make_tuple(exclusive, exclusive_active, max_contiguous
+				, first_block);
 		}
 	}
 
@@ -2564,9 +2577,16 @@ namespace libtorrent
 		// peer as 'peer'.
 		bool exclusive;
 		bool exclusive_active;
+
+		// used to report back the largest contiguous block run
 		int contiguous_blocks;
-		boost::tie(exclusive, exclusive_active, contiguous_blocks)
+		int first_block;
+		boost::tie(exclusive, exclusive_active, contiguous_blocks, first_block)
 			= requested_from(dp, num_blocks_in_piece, peer);
+
+		// no need in picking from the largest contiguous block run unless
+		// we're interested in it. In fact, we really want the opposite.
+		if (prefer_contiguous_blocks == 0) first_block = 0;
 
 		// peers on parole are only allowed to pick blocks from
 		// pieces that only they have downloaded/requested from
@@ -2587,10 +2607,11 @@ namespace libtorrent
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				// ignore completed blocks and already requested blocks
-				block_info const& info = dp.info[j];
+				int block_idx = (j + first_block) % num_blocks_in_piece;
+				block_info const& info = dp.info[block_idx];
 				TORRENT_ASSERT(info.piece_index == dp.index);
 				if (info.state != block_info::state_none) continue;
-				backup_blocks2.push_back(piece_block(dp.index, j));
+				backup_blocks2.push_back(piece_block(dp.index, block_idx));
 			}
 			return num_blocks;
 		}
@@ -2598,7 +2619,8 @@ namespace libtorrent
 		for (int j = 0; j < num_blocks_in_piece; ++j)
 		{
 			// ignore completed blocks and already requested blocks
-			block_info const& info = dp.info[j];
+			int block_idx = (j + first_block) % num_blocks_in_piece;
+			block_info const& info = dp.info[block_idx];
 			TORRENT_ASSERT(info.piece_index == dp.index);
 			if (info.state != block_info::state_none) continue;
 
@@ -2615,19 +2637,19 @@ namespace libtorrent
 				{
 					// don't pick too many back-up blocks
 					if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
-					backup_blocks.push_back(piece_block(dp.index, j));
+					backup_blocks.push_back(piece_block(dp.index, block_idx));
 				}
 				else
 				{
 					// don't pick too many back-up blocks
 					if (int(backup_blocks2.size()) >= num_blocks) return num_blocks;
-					backup_blocks2.push_back(piece_block(dp.index, j));
+					backup_blocks2.push_back(piece_block(dp.index, block_idx));
 				}
 				continue;
 			}
 			
 			// this block is interesting (we don't have it yet).
-			interesting_blocks.push_back(piece_block(dp.index, j));
+			interesting_blocks.push_back(piece_block(dp.index, block_idx));
 			// we have found a block that's free to download
 			--num_blocks;
 			// if we prefer contiguous blocks, continue picking from this
