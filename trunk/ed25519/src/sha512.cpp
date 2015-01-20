@@ -17,7 +17,7 @@
 #endif
 
 /* the K array */
-static const uint64_t K[80] = {
+static const u64 K[80] = {
     UINT64_C(0x428a2f98d728ae22), UINT64_C(0x7137449123ef65cd), 
     UINT64_C(0xb5c0fbcfec4d3b2f), UINT64_C(0xe9b5dba58189dbbc),
     UINT64_C(0x3956c25bf348b538), UINT64_C(0x59f111f1b605d019), 
@@ -63,8 +63,8 @@ static const uint64_t K[80] = {
 /* Various logical functions */
 
 #define ROR64c(x, y) \
-    ( ((((x)&UINT64_C(0xFFFFFFFFFFFFFFFF))>>((uint64_t)(y)&UINT64_C(63))) | \
-      ((x)<<((uint64_t)(64-((y)&UINT64_C(63)))))) & UINT64_C(0xFFFFFFFFFFFFFFFF))
+    ( ((((x)&UINT64_C(0xFFFFFFFFFFFFFFFF))>>((u64)(y)&UINT64_C(63))) | \
+      ((x)<<((u64)(64-((y)&UINT64_C(63)))))) & UINT64_C(0xFFFFFFFFFFFFFFFF))
 
 #define STORE64H(x, y)                                                                     \
    { (y)[0] = (unsigned char)(((x)>>56)&255); (y)[1] = (unsigned char)(((x)>>48)&255);     \
@@ -73,16 +73,16 @@ static const uint64_t K[80] = {
      (y)[6] = (unsigned char)(((x)>>8)&255); (y)[7] = (unsigned char)((x)&255); }
 
 #define LOAD64H(x, y)                                                      \
-   { x = (((uint64_t)((y)[0] & 255))<<56)|(((uint64_t)((y)[1] & 255))<<48) | \
-         (((uint64_t)((y)[2] & 255))<<40)|(((uint64_t)((y)[3] & 255))<<32) | \
-         (((uint64_t)((y)[4] & 255))<<24)|(((uint64_t)((y)[5] & 255))<<16) | \
-         (((uint64_t)((y)[6] & 255))<<8)|(((uint64_t)((y)[7] & 255))); }
+   { x = (((u64)((y)[0] & 255))<<56)|(((u64)((y)[1] & 255))<<48) | \
+         (((u64)((y)[2] & 255))<<40)|(((u64)((y)[3] & 255))<<32) | \
+         (((u64)((y)[4] & 255))<<24)|(((u64)((y)[5] & 255))<<16) | \
+         (((u64)((y)[6] & 255))<<8)|(((u64)((y)[7] & 255))); }
 
 
 #define Ch(x,y,z)       (z ^ (x & (y ^ z)))
 #define Maj(x,y,z)      (((x | y) & z) | (x & y)) 
 #define S(x, n)         ROR64c(x, n)
-#define R(x, n)         (((x) &UINT64_C(0xFFFFFFFFFFFFFFFF))>>((uint64_t)n))
+#define R(x, n)         (((x) &UINT64_C(0xFFFFFFFFFFFFFFFF))>>((u64)n))
 #define Sigma0(x)       (S(x, 28) ^ S(x, 34) ^ S(x, 39))
 #define Sigma1(x)       (S(x, 14) ^ S(x, 18) ^ S(x, 41))
 #define Gamma0(x)       (S(x, 1) ^ S(x, 8) ^ R(x, 7))
@@ -94,7 +94,7 @@ static const uint64_t K[80] = {
 /* compress 1024-bits */
 static int sha512_compress(sha512_context *md, unsigned char *buf)
 {
-    uint64_t S[8], W[80], t0, t1;
+    u64 S[8], W[80], t0, t1;
     int i;
 
     /* copy state into S */

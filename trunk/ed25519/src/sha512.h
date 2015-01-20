@@ -7,7 +7,7 @@
 
 /* state */
 typedef struct sha512_context_ {
-    uint64_t  length, state[8];
+    u64  length, state[8];
     size_t curlen;
     unsigned char buf[128];
 } sha512_context;

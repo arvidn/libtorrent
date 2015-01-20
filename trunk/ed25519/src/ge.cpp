@@ -334,14 +334,14 @@ static unsigned char equal(signed char b, signed char c) {
     unsigned char ub = b;
     unsigned char uc = c;
     unsigned char x = ub ^ uc; /* 0: yes; 1..255: no */
-    uint64_t y = x; /* 0: yes; 1..255: no */
+    u64 y = x; /* 0: yes; 1..255: no */
     y -= 1; /* large: yes; 0..254: no */
     y >>= 63; /* 1: yes; 0: no */
     return (unsigned char) y;
 }
 
 static unsigned char negative(signed char b) {
-    uint64_t x = b; /* 18446744073709551361..18446744073709551615: yes; 0..255: no */
+    u64 x = b; /* 18446744073709551361..18446744073709551615: yes; 0..255: no */
     x >>= 63; /* 1: yes; 0: no */
     return (unsigned char) x;
 }
