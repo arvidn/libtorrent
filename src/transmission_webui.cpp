@@ -57,6 +57,7 @@ extern "C" {
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_status.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
@@ -429,7 +430,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		if (fields.count("files"))
 		{
 			file_storage const& files = ti->files();
-			std::vector<libtorrent::size_type> progress;
+			std::vector<boost::int64_t> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"files\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
@@ -446,7 +447,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		if (fields.count("fileStats"))
 		{
 			file_storage const& files = ti->files();
-			std::vector<libtorrent::size_type> progress;
+			std::vector<boost::int64_t> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"fileStats\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
