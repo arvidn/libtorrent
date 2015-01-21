@@ -539,11 +539,49 @@ int test_main()
 		TEST_EQUAL(p.num_peers(), 100);
 	}
 
+	// test has_peer
+	{
+		std::vector<address> banned;
+		st.erased.clear();
+
+		mock_torrent t;
+		peer_list p;
+		t.m_p = &p;
+
+		torrent_peer* peer1 = p.add_peer(tcp::endpoint(
+			address_v4::from_string("10.10.0.1"), 10), 0, 0, &st);
+		TEST_EQUAL(st.erased.size(), 0);
+		st.erased.clear();
+
+		torrent_peer* peer2 = p.add_peer(tcp::endpoint(
+			address_v4::from_string("10.10.0.2"), 11), 0, 0, &st);
+		TEST_EQUAL(st.erased.size(), 0);
+		st.erased.clear();
+
+		TEST_EQUAL(p.num_peers(), 2);
+		TEST_EQUAL(p.num_connect_candidates(), 2);
+
+		TEST_EQUAL(p.has_peer(peer1), true);
+		TEST_EQUAL(p.has_peer(peer2), true);
+
+		ip_filter filter;
+		filter.add_rule(address_v4::from_string("10.10.0.1")
+			, address_v4::from_string("10.10.0.1"), ip_filter::blocked);
+		p.apply_ip_filter(filter, &st, banned);
+		TEST_EQUAL(st.erased.size(), 1);
+		st.erased.clear();
+
+		TEST_EQUAL(p.num_peers(), 1);
+		TEST_EQUAL(p.num_connect_candidates(), 1);
+
+		TEST_EQUAL(p.has_peer(peer1), false);
+		TEST_EQUAL(p.has_peer(peer2), true);
+	}
+
 // TODO: test erasing peers
 // TODO: test logic for which connection to keep when receiving an incoming
 // connection to the same peer as we just made an outgoing connection to
-// TODO: test update_peer_port with allow_multiple_connections_per_ip
-// TODO: test has_peer
+// TODO: test update_peer_port with allow_multiple_connections_per_ip and without
 // TODO: test add i2p peers
 // TODO: test allow_i2p_mixed
 // TODO: test insert_peer failing with all error conditions
