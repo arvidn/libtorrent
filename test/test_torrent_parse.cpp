@@ -96,14 +96,14 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_info.torrent", errors::torrent_missing_info },
 	{ "string.torrent", errors::torrent_is_no_dict },
 	{ "negative_size.torrent", errors::torrent_invalid_length },
-	{ "negative_file_size.torrent", errors::torrent_file_parse_failed },
-	{ "invalid_path_list.torrent", errors::torrent_file_parse_failed },
-	{ "missing_path_list.torrent", errors::torrent_file_parse_failed },
+	{ "negative_file_size.torrent", errors::torrent_invalid_length },
+	{ "invalid_path_list.torrent", errors::torrent_missing_name},
+	{ "missing_path_list.torrent", errors::torrent_missing_name },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
 	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces},
-	{ "invalid_file_size.torrent", errors::torrent_file_parse_failed },
+	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces },
+	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
 };
 
 namespace libtorrent
@@ -377,14 +377,14 @@ int test_main()
 		{
 			// make sure we disambiguated the files
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_CHECK(ti->file_at(0).path == combine_path(combine_path("temp", "foo"), "bar.txt"));
-			TEST_CHECK(ti->file_at(1).path == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
+			TEST_CHECK(ti->files().file_path(0) == combine_path(combine_path("temp", "foo"), "bar.txt"));
+			TEST_CHECK(ti->files().file_path(1) == combine_path(combine_path("temp", "foo"), "bar.1.txt"));
 		}
 		else if (std::string(test_torrents[i].file) == "pad_file.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->file_at(0).pad_file, false);
-			TEST_EQUAL(ti->file_at(1).pad_file, true);
+			TEST_EQUAL(ti->files().file_flags(0) & file_storage::flag_pad_file, false);
+			TEST_EQUAL(ti->files().file_flags(1) & file_storage::flag_pad_file, true);
 		}
 		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
 		{
@@ -444,24 +444,24 @@ int test_main()
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 #ifdef TORRENT_WINDOWS
-			TEST_EQUAL(ti->file_at(0).path, "temp\\bar");
+			TEST_EQUAL(ti->files().file_path(0), "temp\\bar");
 #else
-			TEST_EQUAL(ti->file_at(0).path, "temp/bar");
+			TEST_EQUAL(ti->files().file_path(0), "temp/bar");
 #endif
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path2.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 #ifdef TORRENT_WINDOWS
-			TEST_EQUAL(ti->file_at(0).path, "temp\\abc....def\\bar");
+			TEST_EQUAL(ti->files().file_path(0), "temp\\abc....def\\bar");
 #else
-			TEST_EQUAL(ti->file_at(0).path, "temp/abc....def/bar");
+			TEST_EQUAL(ti->files().file_path(0), "temp/abc....def/bar");
 #endif
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path3.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->file_at(0).path, "temp....abc");
+			TEST_EQUAL(ti->files().file_path(0), "temp....abc");
 		}
 
 		file_storage const& fs = ti->files();

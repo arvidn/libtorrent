@@ -490,26 +490,26 @@ namespace libtorrent
 
 		if (!m_multifile)
 		{
-			file_entry e = m_files.at(0);
-			if (m_include_mtime) info["mtime"] = e.mtime;
-			info["length"] = e.size;
-			if (e.pad_file
-				|| e.hidden_attribute
-				|| e.executable_attribute
-				|| e.symlink_attribute)
+			if (m_include_mtime) info["mtime"] = m_files.mtime(0);
+			info["length"] = m_files.file_size(0);
+			int flags = m_files.file_flags(0);
+			if (flags & (file_storage::flag_pad_file
+				| file_storage::flag_hidden
+				| file_storage::flag_executable
+				| file_storage::flag_symlink))
 			{
 				std::string& attr = info["attr"].string();
-				if (e.pad_file) attr += 'p';
-				if (e.hidden_attribute) attr += 'h';
-				if (e.executable_attribute) attr += 'x';
-				if (m_include_symlinks && e.symlink_attribute) attr += 'l';
+				if (flags & file_storage::flag_pad_file) attr += 'p';
+				if (flags & file_storage::flag_hidden) attr += 'h';
+				if (flags & file_storage::flag_executable) attr += 'x';
+				if (m_include_symlinks && (flags & file_storage::flag_symlink)) attr += 'l';
 			}
 			if (m_include_symlinks
-				&& e.symlink_attribute)
+				&& (flags & file_storage::flag_symlink))
 			{
 				entry& sympath_e = info["symlink path"];
 				
-				std::string split = split_path(e.symlink_path);
+				std::string split = split_path(m_files.symlink(0));
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}
