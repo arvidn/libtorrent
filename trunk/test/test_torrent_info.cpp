@@ -85,10 +85,10 @@ void test_storage()
 
 	for (int i = 0; i < ti.num_files(); ++i)
 	{
-		std::string p = ti.file_at(i).path;
+		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
 		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
-		TEST_CHECK(p == filenames[i]);
+		TEST_EQUAL(p, filenames[i]);
 	}
 }
 
@@ -99,17 +99,6 @@ void test_copy()
 	boost::shared_ptr<torrent_info> a(boost::make_shared<torrent_info>(
 		combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", "sample.torrent"))));
-
-	boost::shared_ptr<torrent_info> b(boost::make_shared<torrent_info>(*a));
-
-	// clear out the  buffer for a, just to make sure b doesn't have any
-	// references into it by mistake
-	int s = a->metadata_size();
-	memset(a->metadata().get(), 0, s);
-
-	a.reset();
-
-	TEST_EQUAL(b->num_files(), 3);
 
 	char const* expected_files[] =
 	{
@@ -125,9 +114,31 @@ void test_copy()
 		sha1_hash("abababababababababab")
 	};
 
+	for (int i = 0; i < a->num_files(); ++i)
+	{
+		std::string p = a->files().file_path(i);
+		convert_path_to_posix(p);
+		TEST_EQUAL(p, expected_files[i]);
+		fprintf(stderr, "%s\n", p.c_str());
+
+		TEST_EQUAL(a->files().hash(i), file_hashes[i]);
+	}
+
+	// copy the torrent_info object
+	boost::shared_ptr<torrent_info> b(boost::make_shared<torrent_info>(*a));
+
+	// clear out the  buffer for a, just to make sure b doesn't have any
+	// references into it by mistake
+	int s = a->metadata_size();
+	memset(a->metadata().get(), 0, s);
+
+	a.reset();
+
+	TEST_EQUAL(b->num_files(), 3);
+
 	for (int i = 0; i < b->num_files(); ++i)
 	{
-		std::string p = b->file_at(i).path;
+		std::string p = b->files().file_path(i);
 		convert_path_to_posix(p);
 		TEST_EQUAL(p, expected_files[i]);
 		fprintf(stderr, "%s\n", p.c_str());

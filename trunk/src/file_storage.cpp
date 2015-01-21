@@ -132,6 +132,7 @@ namespace libtorrent
 		e.set_name(leaf);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	file_entry::file_entry(): offset(0), size(0), file_base(0)
 		, mtime(0), pad_file(false), hidden_attribute(false)
 		, executable_attribute(false)
@@ -139,6 +140,7 @@ namespace libtorrent
 	{}
 
 	file_entry::~file_entry() {}
+#endif // TORRENT_NO_DEPRECATE
 
 	internal_file_entry::~internal_file_entry()
 	{
@@ -231,8 +233,21 @@ namespace libtorrent
 		}
 	}
 
-#if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
+
+	void file_storage::add_file(file_entry const& fe, char const* infohash)
+	{
+		int flags = 0;
+		if (fe.pad_file) flags |= file_storage::flag_pad_file;
+		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
+		if (fe.executable_attribute) flags |= file_storage::flag_executable;
+		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
+
+		add_file_borrow(NULL, 0, fe.path, fe.size, flags, NULL, fe.mtime
+			, fe.symlink_path);
+	}
+
+#if TORRENT_USE_WSTRING
 	void file_storage::set_name(std::wstring const& n)
 	{
 		std::string utf8;
@@ -249,20 +264,20 @@ namespace libtorrent
 		update_path_index(m_files[index]);
 	}
 
-	void file_storage::add_file(std::wstring const& file, boost::int64_t size, int flags
-		, std::time_t mtime, std::string const& symlink_path)
+	void file_storage::add_file(std::wstring const& file, boost::int64_t file_size
+		, int file_flags, std::time_t mtime, std::string const& symlink_path)
 	{
 		std::string utf8;
 		wchar_utf8(file, utf8);
-		add_file(utf8, size, flags, mtime, symlink_path);
+		add_file(utf8, file_size, file_flags, mtime, symlink_path);
 	}
 
 	void file_storage::rename_file(int index, std::wstring const& new_filename)
 	{
 		rename_file_deprecated(index, new_filename);
 	}
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 
 	void file_storage::rename_file(int index, std::string const& new_filename)
 	{
@@ -375,6 +390,7 @@ namespace libtorrent
 		return ret;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	file_entry file_storage::at(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -394,6 +410,7 @@ namespace libtorrent
 		ret.filehash = hash(index);
 		return ret;
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	peer_request file_storage::map_file(int file_index, boost::int64_t file_offset
 		, int size) const
@@ -430,99 +447,77 @@ namespace libtorrent
 		return ret;
 	}
 
-	void file_storage::add_file(std::string const& file, boost::int64_t size, int flags
-		, std::time_t mtime, std::string const& symlink_path)
+	void file_storage::add_file(std::string const& path, boost::int64_t file_size
+		, int file_flags, std::time_t mtime, std::string const& symlink_path)
 	{
-		TORRENT_ASSERT_PRECOND(!is_complete(file));
-		TORRENT_ASSERT_PRECOND(size >= 0);
-		if (size < 0) size = 0;
-		if (!has_parent_path(file))
-		{
-			// you have already added at least one file with a
-			// path to the file (branch_path), which means that
-			// all the other files need to be in the same top
-			// directory as the first file.
-			TORRENT_ASSERT_PRECOND(m_files.empty());
-			m_name = file;
-		}
-		else
-		{
-			if (m_files.empty())
-				m_name = split_path(file).c_str();
-		}
-		TORRENT_ASSERT_PRECOND(m_name == split_path(file).c_str());
-		m_files.push_back(internal_file_entry());
-		++m_num_files;
-		internal_file_entry& e = m_files.back();
-		e.set_name(file.c_str());
-		e.size = size;
-		e.offset = m_total_size;
-		e.pad_file = (flags & pad_file) != 0;
-		e.hidden_attribute = (flags & attribute_hidden) != 0;
-		e.executable_attribute = (flags & attribute_executable) != 0;
-		if ((flags & attribute_symlink) && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
-		{
-			e.symlink_attribute = 1;
-			e.symlink_index = m_symlinks.size();
-			m_symlinks.push_back(symlink_path);
-		}
-		else
-			e.symlink_attribute = 0;
-
-		if (mtime)
-		{
-			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
-			m_mtime[m_files.size() - 1] = mtime;
-		}
-		
-		update_path_index(e);
-		m_total_size += size;
+		add_file_borrow(NULL, 0, path, file_size, file_flags, NULL, mtime
+			, symlink_path);
 	}
 
-	// TODO: 2 it would be nice if file_entry::filehash could be taken into
-	// account as well, and if the file_storage object could actually hold
-	// copies of filehash
-	void file_storage::add_file(file_entry const& ent, char const* filehash)
+	void file_storage::add_file_borrow(char const* filename, int filename_len
+		, std::string const& path, boost::int64_t file_size
+		, boost::uint32_t file_flags, char const* filehash
+		, boost::int64_t mtime, std::string const& symlink_path)
 	{
-		TORRENT_ASSERT_PRECOND(ent.size >= 0);
-		if (!has_parent_path(ent.path))
+		TORRENT_ASSERT_PRECOND(file_size >= 0);
+		if (!has_parent_path(path))
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that
 			// all the other files need to be in the same top
 			// directory as the first file.
 			TORRENT_ASSERT_PRECOND(m_files.empty());
-			m_name = ent.path;
+			m_name = path;
 		}
 		else
 		{
 			if (m_files.empty())
-				m_name = split_path(ent.path).c_str();
+				m_name = split_path(path).c_str();
 		}
-		internal_file_entry ife(ent);
-		int file_index = m_files.size();
+		internal_file_entry ife;
 		m_files.push_back(ife);
-		++m_num_files;
 		internal_file_entry& e = m_files.back();
+
+		// first set the filename to the full path so update_path_index()
+		// can do its thing, then rename it to point to the borrowed filename
+		// pointer
+		e.set_name(path.c_str());
+		update_path_index(e);
+
+		// filename is allowed to be NULL, in which case we just use path
+		if (filename)
+			e.set_name(filename, true, filename_len);
+
+		e.size = file_size;
 		e.offset = m_total_size;
-		m_total_size += e.size;
+		e.pad_file = file_flags & file_storage::flag_pad_file;
+		e.hidden_attribute = file_flags & file_storage::flag_hidden;
+		e.executable_attribute = file_flags & file_storage::flag_executable;
+		e.symlink_attribute = file_flags & file_storage::flag_symlink;
+
 		if (filehash)
 		{
 			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
 			m_file_hashes[m_files.size() - 1] = filehash;
 		}
-		if (!ent.symlink_path.empty() && m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
+		if (!symlink_path.empty()
+			&& m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
-			m_symlinks.push_back(ent.symlink_path);
+			m_symlinks.push_back(symlink_path);
 		}
-		if (ent.mtime)
+		else
+		{
+			e.symlink_attribute = false;
+		}
+		if (mtime)
 		{
 			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
-			m_mtime[m_files.size() - 1] = ent.mtime;
+			m_mtime[m_files.size() - 1] = mtime;
 		}
-		if (ent.file_base) set_file_base(file_index, ent.file_base);
-		update_path_index(e);
+
+		++m_num_files;
+		m_total_size += e.size;
 	}
 
 	sha1_hash file_storage::hash(int index) const

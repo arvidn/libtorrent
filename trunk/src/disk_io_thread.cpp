@@ -835,7 +835,6 @@ namespace libtorrent
 		if (storage)
 		{
 			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
-			// TODO: 2 should this be allocated on the stack?
 			std::vector<int> piece_index;
 			piece_index.reserve(pieces.size());
 			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()

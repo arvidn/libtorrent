@@ -357,47 +357,77 @@ namespace libtorrent
 		if (path.empty()) path = "_";
 	}
 
-	bool extract_single_file(lazy_entry const& dict, file_entry& target
-		, std::string const& root_dir, lazy_entry const** filehash
-		, lazy_entry const** filename, time_t* mtime)
+	// top level is extracting the file for a single-file torrent. The
+	// distinction is that the filename is found in "name" rather than
+	// "path"
+	bool extract_single_file(lazy_entry const& dict, file_storage& files
+		, std::string const& root_dir, ptrdiff_t info_ptr_diff, bool top_level
+		, error_code& ec)
 	{
 		if (dict.type() != lazy_entry::dict_t) return false;
-		lazy_entry const* length = dict.dict_find("length");
-		if (length == 0 || length->type() != lazy_entry::int_t)
+		boost::int64_t file_size = dict.dict_find_int_value("length", -1);
+		if (file_size < 0)
+		{
+			ec = errors::torrent_invalid_length;
 			return false;
-		target.size = length->int_value();
-		if (target.size < 0)
-			return false;
+		}
 
-		boost::int64_t ts = dict.dict_find_int_value("mtime", -1);
-		if (ts > 0) *mtime = std::time_t(ts);
+		boost::int64_t mtime = dict.dict_find_int_value("mtime", 0);
 
-		// prefer the name.utf-8
-		// because if it exists, it is more
-		// likely to be correctly encoded
-
-		lazy_entry const* p = dict.dict_find("path.utf-8");
-		if (p == 0 || p->type() != lazy_entry::list_t)
-			p = dict.dict_find("path");
-		if (p == 0 || p->type() != lazy_entry::list_t)
-			return false;
-
+		// prefer the name.utf-8 because if it exists, it is more likely to be
+		// correctly encoded
 		std::string path = root_dir;
 		std::string path_element;
-		for (int i = 0, end(p->list_size()); i < end; ++i)
+		char const* filename = NULL;
+		int filename_len = 0;
+
+		if (top_level)
 		{
-			if (p->list_at(i)->type() != lazy_entry::string_t)
+			lazy_entry const* p = dict.dict_find_string("name.utf-8");
+			if (p == 0) p = dict.dict_find_string("name");
+			if (p == 0 || p->string_length() == 0)
+			{
+				ec = errors::torrent_missing_name;
 				return false;
-			if (i == end - 1) *filename = p->list_at(i);
-			sanitize_append_path_element(path
-				, p->list_at(i)->string_ptr(), p->list_at(i)->string_length());
+			}
+
+			filename = p->string_ptr() + info_ptr_diff;
+			filename_len = p->string_length();
+			sanitize_append_path_element(path, p->string_ptr(), p->string_length());
+
+//			if (path.empty()) path = to_hex(files.info_hash().to_string());
+		}
+		else
+		{
+			lazy_entry const* p = dict.dict_find_list("path.utf-8");
+			if (p == 0) p = dict.dict_find_list("path");
+			if (p == 0 || p->list_size() == 0)
+			{
+				ec = errors::torrent_missing_name;
+				return false;
+			}
+
+			for (int i = 0, end(p->list_size()); i < end; ++i)
+			{
+				lazy_entry const* e = p->list_at(i);
+				if (e->type() != lazy_entry::string_t)
+				{
+					ec = errors::torrent_missing_name;
+					return false;
+				}
+				if (i == end - 1)
+				{
+					filename = e->string_ptr() + info_ptr_diff;
+					filename_len = e->string_length();
+				}
+				sanitize_append_path_element(path, e->string_ptr(), e->string_length());
+			}
 		}
 
 		// bitcomet pad file
+		boost::uint32_t file_flags = 0;
 		if (path.find("_____padding_file_") != std::string::npos)
-			target.pad_file = true;
-
-		target.path = path;
+			file_flags = file_storage::flag_pad_file;
 
 		lazy_entry const* attr = dict.dict_find_string("attr");
 		if (attr)
@@ -406,32 +436,45 @@ namespace libtorrent
 			{
 				switch (attr->string_ptr()[i])
 				{
-					case 'l': target.symlink_attribute = true; target.size = 0; break;
-					case 'x': target.executable_attribute = true; break;
-					case 'h': target.hidden_attribute = true; break;
-					case 'p': target.pad_file = true; break;
+					case 'l': file_flags |= file_storage::flag_symlink; file_size = 0; break;
+					case 'x': file_flags |= file_storage::flag_executable; break;
+					case 'h': file_flags |= file_storage::flag_hidden; break;
+					case 'p': file_flags |= file_storage::flag_pad_file; break;
 				}
 			}
 		}
 
 		lazy_entry const* fh = dict.dict_find_string("sha1");
-		if (fh && fh->string_length() == 20 && filehash)
-			*filehash = fh;
+		char const* filehash = NULL;
+		if (fh && fh->string_length() == 20)
+			filehash = fh->string_ptr() + info_ptr_diff;
 
+		std::string symlink_path;
 		lazy_entry const* s_p = dict.dict_find("symlink path");
-		if (s_p != 0 && s_p->type() == lazy_entry::list_t && target.symlink_attribute)
+		if (s_p != 0 && s_p->type() == lazy_entry::list_t
+			&& (file_flags & file_storage::flag_symlink))
 		{
 			for (int i = 0, end(s_p->list_size()); i < end; ++i)
 			{
 				std::string path_element = s_p->list_at(i)->string_value();
-				target.symlink_path = combine_path(target.symlink_path, path_element);
+				symlink_path = combine_path(symlink_path, path_element);
 			}
 		}
 		else
 		{
-			target.symlink_attribute = false;
+			file_flags &= ~file_storage::flag_symlink;
 		}
 
+		if (filename_len > path.length()
+			|| path.compare(path.size() - filename_len, filename_len, filename) != 0)
+		{
+			// if the filename was sanitized and differ, clear it to just use path
+			filename = NULL;
+			filename_len = 0;
+		}
+
+		files.add_file_borrow(filename, filename_len, path, file_size, file_flags, filehash
+			, mtime, symlink_path);
 		return true;
 	}
 
@@ -495,32 +538,20 @@ namespace libtorrent
 #endif
 
 	bool extract_files(lazy_entry const& list, file_storage& target
-		, std::string const& root_dir, ptrdiff_t info_ptr_diff)
+		, std::string const& root_dir, ptrdiff_t info_ptr_diff, error_code& ec)
 	{
-		if (list.type() != lazy_entry::list_t) return false;
+		if (list.type() != lazy_entry::list_t)
+		{
+			ec = errors::torrent_file_parse_failed;
+			return false;
+		}
 		target.reserve(list.list_size());
 
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
-			lazy_entry const* file_hash = 0;
-			time_t mtime = 0;
-			file_entry e;
-			lazy_entry const* fee = 0;
-			if (!extract_single_file(*list.list_at(i), e, root_dir
-				, &file_hash, &fee, &mtime))
+			if (!extract_single_file(*list.list_at(i), target, root_dir
+				, info_ptr_diff, false, ec))
 				return false;
-
-			target.add_file(e, file_hash ? file_hash->string_ptr() + info_ptr_diff : 0);
-
-			// This is a memory optimization! Instead of having
-			// each entry keep a string for its filename, make it
-			// simply point into the info-section buffer
-			int last_index = target.num_files() - 1;
-
-			// this string pointer does not necessarily point into
-			// the m_info_section buffer.
-			char const* str_ptr = fee->string_ptr() + info_ptr_diff;
-			target.rename_file_borrow(last_index, str_ptr, fee->string_length());
 		}
 		return true;
 	}
@@ -565,7 +596,7 @@ namespace libtorrent
 		if (ec) return -1;
 		if (s > limit)
 		{
-			ec = error_code(errors::metadata_too_large, get_libtorrent_category());
+			ec = errors::metadata_too_large;
 			return -2;
 		}
 		v.resize((unsigned int)s);
@@ -1151,61 +1182,15 @@ namespace libtorrent
 		{
 			// if there's no list of files, there has to be a length
 			// field.
-			file_entry e;
-			e.path = name;
-			e.offset = 0;
-			e.size = info.dict_find_int_value("length", -1);
-			if (e.size < 0)
-			{
-				ec = errors::torrent_invalid_length;
+			if (!extract_single_file(info, files, "", info_ptr_diff, true, ec))
 				return false;
-			}
-			e.mtime = info.dict_find_int_value("mtime", 0);
-			lazy_entry const* attr = info.dict_find_string("attr");
-			if (attr)
-			{
-				for (int i = 0; i < attr->string_length(); ++i)	
-				{
-					switch (attr->string_ptr()[i])
-					{
-						case 'l': e.symlink_attribute = true; e.size = 0; break;
-						case 'x': e.executable_attribute = true; break;
-						case 'h': e.hidden_attribute = true; break;
-						case 'p': e.pad_file = true; break;
-					}
-				}
-			}
 
-			lazy_entry const* s_p = info.dict_find("symlink path");
-			if (s_p != 0 && s_p->type() == lazy_entry::list_t)
-			{
-				for (int i = 0, end(s_p->list_size()); i < end; ++i)
-				{
-					std::string path_element = s_p->list_at(i)->string_value();
-					e.symlink_path = combine_path(e.symlink_path, path_element);
-				}
-			}
-			else
-			{
-				e.symlink_attribute = false;
-			}
-
-			lazy_entry const* fh = info.dict_find_string("sha1");
-			if (fh && fh->string_length() != 20) fh = 0;
-
-			// bitcomet pad file
-			if (e.path.find("_____padding_file_") != std::string::npos)
-				e.pad_file = true;
-			files.add_file(e, fh ? fh->string_ptr() + info_ptr_diff : 0);
 			m_multifile = false;
 		}
 		else
 		{
-			if (!extract_files(*i, files, name, info_ptr_diff))
-			{
-				ec = errors::torrent_file_parse_failed;
+			if (!extract_files(*i, files, name, info_ptr_diff, ec))
 				return false;
-			}
 			m_multifile = true;
 		}
 		TORRENT_ASSERT(!files.name().empty());

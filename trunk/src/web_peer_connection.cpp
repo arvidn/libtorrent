@@ -244,7 +244,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		if (m_path.empty()) m_path += "/" + t->torrent_file().name();
 		else if (m_path[m_path.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().at(0).path;
+			std::string tmp = t->torrent_file().files().file_path(0);
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
@@ -252,7 +252,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		}
 		else if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().at(0).path;
+			std::string tmp = t->torrent_file().files().file_path(0);
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif

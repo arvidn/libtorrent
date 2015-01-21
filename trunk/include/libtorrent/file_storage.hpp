@@ -46,9 +46,7 @@ namespace libtorrent
 {
 	struct file;
 
-	// TODO: 3 the file_entry should be deprecated and add_file() should be
-	// thought through a bit better
-
+#ifndef TORRENT_NO_DEPRECATE
 	// information about a file in a file_storage
 	struct TORRENT_EXPORT file_entry
 	{
@@ -106,6 +104,7 @@ namespace libtorrent
 		// where the data for this file was found.
 		bool symlink_attribute:1;
 	};
+#endif // TORRENT_NO_DEPRECATE
 
 	// internal
 	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
@@ -129,22 +128,6 @@ namespace libtorrent
 			, name(NULL)
 			, path_index(-1)
 		{}
-
-		internal_file_entry(file_entry const& e)
-			: offset(e.offset)
-			, symlink_index(not_a_symlink)
-			, no_root_dir(false)
-			, size(e.size)
-			, name_len(name_is_owned)
-			, pad_file(e.pad_file)
-			, hidden_attribute(e.hidden_attribute)
-			, executable_attribute(e.executable_attribute)
-			, symlink_attribute(e.symlink_attribute)
-			, name(NULL)
-			, path_index(-1)
-		{
-			set_name(e.path.c_str());
-		}
 
 		internal_file_entry(internal_file_entry const& fe);
 		internal_file_entry& operator=(internal_file_entry const& fe);
@@ -265,11 +248,35 @@ namespace libtorrent
 		// of files to be added is known up-front.
 		void reserve(int num_files);
 
-		// Adds a file to the file storage. The ``flags`` argument sets
-		// attributes on the file. The file attributes is an extension and may
-		// not work in all bittorrent clients.
+		// Adds a file to the file storage. The ``add_file_borrow`` version
+		// expects that ``filename`` points to a string of ``filename_len``
+		// bytes that is the file name (without a path) of the file that's
+		// being added. This memory is *borrowed*, i.e. it is the caller's
+		// responsibility to make sure it stays valid throughout the lifetime
+		// of this file_storage object or any copy of it. The same thing applies
+		// to ``filehash``, wich is an optional pointer to a 20 byte binary
+		// SHA-1 hash of the file.
+		// 
+		// if ``filename`` is NULL, the filename from ``path`` is used and not
+		// borrowed. In this case ``filename_len`` is ignored.
+		// 
+		// The ``path`` argument is the full path (in the torrent file) to
+		// the file to add. Note that this is not supposed to be an absolute
+		// path, but it is expected to include the name of the torrent as the
+		// first path element.
+		// 
+		// ``file_size`` is the size of the file in bytes.
+		// 
+		// The ``file_flags`` argument sets attributes on the file. The file
+		// attributes is an extension and may not work in all bittorrent clients.
 		//
 		// For possible file attributes, see file_storage::flags_t.
+		// 
+		// The ``mtime`` argument is optional and can be set to 0. If non-zero,
+		// it is the posix time of the last modification time of this file.
+		// 
+		// ``symlink_path`` is the path the is a symlink to. To make this a
+		// symlink you also need to set the file_storage::flag_symlink file flag.
 		//
 		// If more files than one are added, certain restrictions to their paths
 		// apply. In a multi-file file storage (torrent), all files must share
@@ -278,16 +285,12 @@ namespace libtorrent
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
-		// 
-		// The ``filehash`` argument is an optional pointer to a sha-1 hash (20
-		// bytes) of the file. The hash is not copied into the file_storage
-		// object, but the pointer is expected to point to memory that stays
-		// valid throughout the life time of the file_storage.
-		// 
-		// Currently, the ``filehash`` from ``file_entry`` is not used.
-		void add_file(file_entry const& e, char const* filehash = 0);
-		void add_file(std::string const& p, boost::int64_t size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+		void add_file_borrow(char const* filename, int filename_len
+			, std::string const& path, boost::int64_t file_size
+			, boost::uint32_t file_flags = 0, char const* filehash = 0
+			, boost::int64_t mtime = 0, std::string const& symlink_path = "");
+		void add_file(std::string const& path, boost::int64_t file_size, int file_flags = 0
+			, std::time_t mtime = 0, std::string const& symlink_path = "");
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
@@ -299,11 +302,14 @@ namespace libtorrent
 		// duplicate names in memory.
 		void rename_file_borrow(int index, char const* new_filename, int len);
 
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		void add_file(file_entry const& fe, char const* infohash = NULL) TORRENT_DEPRECATED;
+
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		void add_file(std::wstring const& p, boost::int64_t size, int flags = 0
 			, std::time_t mtime = 0, std::string const& s_p = "") TORRENT_DEPRECATED;
@@ -313,8 +319,8 @@ namespace libtorrent
 		void set_name(std::wstring const& n) TORRENT_DEPRECATED;
 
 		void rename_file_deprecated(int index, std::wstring const& new_filename);
-#endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
+#endif // TORRENT_NO_DEPRECATE
 
 		// returns a list of file_slice objects representing the portions of
 		// files the specified piece index, byte offset and size range overlaps.
@@ -354,6 +360,11 @@ namespace libtorrent
 		TORRENT_DEPRECATED_PREFIX
 		file_entry at(iterator i) const TORRENT_DEPRECATED;
 
+		// returns a file_entry with information about the file
+		// at ``index``. Index must be in the range [0, ``num_files()`` ).
+		TORRENT_DEPRECATED_PREFIX
+		file_entry at(int index) const TORRENT_DEPRECATED;
+
 		iterator begin_deprecated() const { return m_files.begin(); }
 		iterator end_deprecated() const { return m_files.end(); }
 		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
@@ -364,10 +375,6 @@ namespace libtorrent
 		// returns the number of files in the file_storage
 		int num_files() const
 		{ return int(m_files.size()); }
-
-		// returns a file_entry with information about the file
-		// at ``index``. Index must be in the range [0, ``num_files()`` ).
-		file_entry at(int index) const;
 
 		// returns the total number of bytes all the files in this torrent spans
 		boost::int64_t total_size() const { return m_total_size; }
@@ -388,7 +395,7 @@ namespace libtorrent
 		// set and get the name of this torrent. For multi-file torrents, this is also
 		// the name of the root directory all the files are stored in.
 		void set_name(std::string const& n) { m_name = n; }
-		const std::string& name() const { return m_name; }
+		std::string const& name() const { return m_name; }
 
 		// swap all content of *this* with *ti*.
 		void swap(file_storage& ti)
@@ -487,9 +494,9 @@ namespace libtorrent
 		int file_flags(int index) const;
 
 		// The file base of a file is the offset within the file on the filsystem
-		// where it starts to write. For the most part, this is always 0. It's
-		// possible to map several files (in the torrent) into a single file on
-		// the filesystem by making them all point to the same filename, but with
+		// where it starts to write. For the most part, this is 0. It's possible
+		// to map several files (in the torrent) into a single file on the
+		// filesystem by making them all point to the same filename, but with
 		// different file bases, so that they don't overlap.
 		// torrent_info::remap_files() can be used to use a new file layout.
 		boost::int64_t file_base(int index) const;
@@ -549,12 +556,15 @@ namespace libtorrent
 		// the list of files that this torrent consists of
 		std::vector<internal_file_entry> m_files;
 
-		// if there are sha1 hashes for each individual file
-		// there are as many entries in this array as the
-		// m_files array. Each entry in m_files has a corresponding
-		// hash pointer in this array. The reason to split it up
-		// in separate arrays is to save memory in case the torrent
-		// doesn't have file hashes
+		// if there are sha1 hashes for each individual file there are as many
+		// entries in this array as the m_files array. Each entry in m_files has
+		// a corresponding hash pointer in this array. The reason to split it up
+		// in separate arrays is to save memory in case the torrent doesn't have
+		// file hashes
+		// the pointers in this vector are pointing into the .torrent file in
+		// memory which is _not_ owned by this file_storage object. It's simply
+		// a non-owning pointer. It is the user's responsibility that the hash
+		// stays valid throughout the lifetime of this file_storage object.
 		std::vector<char const*> m_file_hashes;
 
 		// for files that are symlinks, the symlink

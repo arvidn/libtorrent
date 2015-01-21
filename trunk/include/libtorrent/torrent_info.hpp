@@ -483,12 +483,13 @@ namespace libtorrent
 		file_iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED
 		{ return m_files.file_at_offset_deprecated(offset); }
 
+		TORRENT_DEPRECATED_PREFIX
+		file_entry file_at(int index) const TORRENT_DEPRECATED{ return m_files.at(index); }
 #endif // TORRENT_NO_DEPRECATE
 
 		// If you need index-access to files you can use the ``num_files()`` and
 		// ``file_at()`` to access files using indices.
 		int num_files() const { return m_files.num_files(); }
-		file_entry file_at(int index) const { return m_files.at(index); }
 
 		// This function will map a piece index, a byte offset within that piece
 		// and a size (in bytes) into the corresponding files with offsets where
