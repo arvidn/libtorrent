@@ -148,7 +148,7 @@ namespace libtorrent
 	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \
 	break;
 
-		switch(s.type())
+		switch (s.type())
 		{
 			CASE(stream_socket)
 			CASE(socks5_stream)

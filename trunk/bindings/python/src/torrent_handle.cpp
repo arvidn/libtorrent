@@ -265,8 +265,6 @@ list trackers(torrent_handle& h)
 
 list get_download_queue(torrent_handle& handle)
 {
-    using boost::python::make_tuple;
-
     list ret;
 
     std::vector<partial_piece_info> downloading;
@@ -291,7 +289,8 @@ list get_download_queue(torrent_handle& handle)
             block_info["bytes_progress"] = i->blocks[k].bytes_progress;
             block_info["block_size"] = i->blocks[k].block_size;
             block_info["peer"] = boost::python::make_tuple(
-                boost::lexical_cast<std::string>(i->blocks[k].peer().address()), i->blocks[k].peer().port());
+                i->blocks[k].peer().address().to_string()
+					 , i->blocks[k].peer().port());
             block_list.append(block_info);
         }
         partial_piece["blocks"] = block_list;
