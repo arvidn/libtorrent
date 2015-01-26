@@ -4435,14 +4435,16 @@ namespace libtorrent
 				if (k->timed_out || k->not_wanted) continue;
 				if (int(k->block.piece_index) != j->piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
-					, (piece_picker::piece_state_t)p->peer_speed());
+					, (piece_picker::piece_state_t)p->peer_speed()
+					, p->picker_options());
 			}
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
 				, end(rq.end()); k != end; ++k)
 			{
 				if (int(k->block.piece_index) != j->piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
-					, (piece_picker::piece_state_t)p->peer_speed());
+					, (piece_picker::piece_state_t)p->peer_speed()
+					, p->picker_options());
 			}
 		}
 	}

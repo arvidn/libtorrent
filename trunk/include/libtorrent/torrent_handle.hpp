@@ -943,26 +943,13 @@ namespace libtorrent
 		void piece_availability(std::vector<int>& avail) const;
 		
 		// These functions are used to set and get the prioritiy of individual
-		// pieces. By default all pieces have priority 1. That means that the
+		// pieces. By default all pieces have priority 4. That means that the
 		// random rarest first algorithm is effectively active for all pieces.
 		// You may however change the priority of individual pieces. There are 8
-		// different priority levels:
-		// 
-		//  0. piece is not downloaded at all
-		//  1. normal priority. Download order is dependent on availability
-		//  2. higher than normal priority. Pieces are preferred over pieces with
-		//     the same availability, but not over pieces with lower availability
-		//  3. pieces are as likely to be picked as partial pieces.
-		//  4. pieces are preferred over partial pieces, but not over pieces with
-		//     lower availability
-		//  5. *currently the same as 4*
-		//  6. piece is as likely to be picked as any piece with availability 1
-		//  7. maximum priority, availability is disregarded, the piece is
-		//     preferred over any other piece with lower priority
-		// 
-		// The exact definitions of these priorities are implementation details,
-		// and subject to change. The interface guarantees that higher number
-		// means higher priority, and that 0 means do not download.
+		// priority levels. 0 means not to download the piece at all. Otherwise,
+		// lower priority values means less likely to be picked. Piece priority
+		// takes presedence over piece availability. Every priority 7 piece will
+		// be attempted to be picked before a priority 6 piece and so on.
 		// 
 		// ``piece_priority`` sets or gets the priority for an individual piece,
 		// specified by ``index``.
