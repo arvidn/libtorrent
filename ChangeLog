@@ -1,3 +1,5 @@
+	* improve piece picker support for reverse picking (used for snubbed peers)
+	  to not cause priority inversion for regular peers
 	* improve piece picker to better support torrents with very large pieces
 	  and web seeds. (request large contiguous ranges, but not necessarily a
 	  whole piece).

@@ -53,7 +53,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
+// this is really only useful for debugging unit tests
 //#define TORRENT_PICKER_LOG
+
+// heavy weight reference counting invariant checks
 //#define TORRENT_DEBUG_REFCOUNTS
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
@@ -112,7 +115,7 @@ namespace libtorrent
 			// the number of priority levels
 			priority_levels = 8,
 			// priority factor
-			prio_factor = priority_levels - 4
+			prio_factor = 3
 		};
 
 		struct block_info
@@ -139,6 +142,8 @@ namespace libtorrent
 		// are considered fast peers or slow peers.
 		// none is set if the blocks were downloaded
 		// in a previous session
+		// TODO:3 perhaps the piece_state feature could be removed. It's not
+		// obvious that it has any effect
 		enum piece_state_t
 		{ none, slow, medium, fast };
 
@@ -354,8 +359,10 @@ namespace libtorrent
 		bool is_finished(piece_block block) const;
 
 		// marks this piece-block as queued for downloading
+		// options are flags from options_t.
 		bool mark_as_downloading(piece_block block, void* peer
-			, piece_state_t s);
+			, piece_state_t s, int options = 0);
+
 		// returns true if the block was marked as writing,
 		// and false if the block is already finished or writing
 		bool mark_as_writing(piece_block block, void* peer);
@@ -418,7 +425,8 @@ namespace libtorrent
 		std::vector<piece_picker::downloading_piece> get_download_queue() const;
 		int get_download_queue_size() const;
 
-		void get_download_queue_sizes(int* partial, int* full, int* finished, int* zero_prio) const;
+		void get_download_queue_sizes(int* partial
+			, int* full, int* finished, int* zero_prio) const;
 
 		void* get_downloader(piece_block block) const;
 
@@ -454,7 +462,7 @@ namespace libtorrent
 		void check_peer_invariant(bitfield const& have, void const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif
-#if defined TORRENT_PICKER_LOG
+#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
 		void print_pieces() const;
 #endif
 
@@ -488,29 +496,85 @@ namespace libtorrent
 			piece_pos() {}
 			piece_pos(int peer_count_, int index_)
 				: peer_count(peer_count_)
-				, state(piece_pos::piece_open)
-				, piece_priority(1)
+				, download_state(piece_pos::piece_open)
+				, piece_priority(4)
 				, index(index_)
 			{
 				TORRENT_ASSERT(peer_count_ >= 0);
 				TORRENT_ASSERT(index_ >= 0);
 			}
 
-			// state of this piece.
+			// download_state of this piece.
 			enum state_t
 			{
-				// the piece is open to be picked
-				piece_open,
 				// the piece is partially downloaded or requested
 				piece_downloading,
-				// all blocks in the piece have been requested
+				// partial pieces where all blocks in the piece have been requested
 				piece_full,
-				// all blocks in the piece have been received and
-				// are either finished or writing
+				// partial pieces where all blocks in the piece have been received
+				// and are either finished or writing
 				piece_finished,
-				// pieces whose priority is 0
-				piece_zero_prio
+				// partial pieces whose priority is 0
+				piece_zero_prio,
+
+				// the states up to this point indicate the piece is being
+				// downloaded (or at least has a partially downloaded piece
+				// in one of the m_downloads buckets).
+				num_download_categories,
+
+				// the piece is open to be picked
+				piece_open = num_download_categories,
+
+				// this is not a new download category/download list bucket.
+				// it still goes into the piece_downloading bucket. However,
+				// it indicates that this piece only has outstanding requests
+				// form reverse peers. This is to de-prioritize it somewhat
+				piece_downloading_reverse,
+				piece_full_reverse
 			};
+
+			// returns one of the valid download categories of state_t or
+			// piece_open if this piece is not being downloaded
+			int download_queue() const
+			{
+				if (download_state == piece_downloading_reverse)
+					return piece_downloading;
+				if (download_state == piece_full_reverse)
+					return piece_full;
+				return download_state;
+			}
+
+			bool reverse() const
+			{
+				return download_state == piece_downloading_reverse
+					|| download_state == piece_full_reverse;
+			}
+
+			void unreverse()
+			{
+				switch (download_state)
+				{
+					case piece_downloading_reverse:
+						download_state = piece_downloading;
+						break;
+					case piece_full_reverse:
+						download_state = piece_full;
+						break;
+				}
+			}
+
+			void make_reverse()
+			{
+				switch (download_state)
+				{
+					case piece_downloading:
+						download_state = piece_downloading_reverse;
+						break;
+					case piece_full:
+						download_state = piece_full_reverse;
+						break;
+				}
+			}
 
 			// the number of peers that has this piece
 			// (availability)
@@ -520,16 +584,31 @@ namespace libtorrent
 			boost::uint32_t peer_count : 16;
 #endif
 
-			boost::uint32_t state : 3;
+			// one of the enums from state_t. This indicates whether this piece
+			// is currently being downloaded or not, and what state it's in if
+			// it is. Specifically, as an optimization, pieces that have all blocks
+			// requested from them are separated out into separate lists to make
+			// lookups quicker. The main oddity is that whether a downloading piece
+			// has only been requested from peers that are reverse, that's
+			// recorded as piece_downloading_reverse, which really means the same
+			// as piece_downloading, it just saves space to also indicate that it
+			// has a bit lower priority. The reverse bit is only relevant if the
+			// state is piece_downloadin.
+			boost::uint32_t download_state : 3;
+
+			// TODO: 2 having 8 priority levels is probably excessive. It should
+			// probably be changed to 3 levels + dont-download
 
 			// is 0 if the piece is filtered (not to be downloaded)
-			// 1 is normal priority (default)
-			// 2 is higher priority than pieces at the same availability level
-			// 3 is same priority as partial pieces
-			// 4 is higher priority than partial pieces
-			// 5 and 6 same priority as availability 1 (ignores availability)
-			// 7 is maximum priority (ignores availability)
+			// 1 is low priority
+			// 2 is low priority
+			// 3 is mid priority
+			// 4 is default priority
+			// 5 is mid priority
+			// 6 is high priority
+			// 7 is high priority
 			boost::uint32_t piece_priority : 3;
+
 			// index in to the piece_info vector
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
 			boost::uint32_t index : 17;
@@ -565,22 +644,29 @@ namespace libtorrent
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
 			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
-			bool downloading() const { return state > 0; }
+			bool downloading() const { return download_state != piece_open; }
 			
 			bool filtered() const { return piece_priority == filter_priority; }
 
-			//  prio 7 is always top priority
-			//  prio 0 is always -1 (don't pick)
-			//  downloading pieces are always on an even prio_factor priority
+			// this function returns the effective priority of the piece. It's
+			// actually the sort order of this piece compared to other pieces. A
+			// lower index means it will be picked before a piece with a higher
+			// index. 
+			// The availability of the piece (the number of peers that have this
+			// piece) is fundamentally controlling the priority. It's multiplied
+			// by 3 to form 3 levels of priority for each availability.
 			//
-			//  availability x, downloading
-			//   |   availability x, prio 3; availability 2x, prio 6
-			//   |   |   availability x, prio 2; availability 2x, prio 5
-			//   |   |   |   availability x, prio 1; availability 2x, prio 4
-			//   |   |   |   |
-			// +---+---+---+---+
-			// | 0 | 1 | 2 | 3 |
-			// +---+---+---+---+
+			//  downloading pieces (not reverse)
+			//   |   open pieces (not downloading)
+			//   |   |   downloading pieces (reverse peers)
+			//   |   |   |
+			// +---+---+---+
+			// | 0 | 1 | 2 |
+			// +---+---+---+
+			// this '3' is called prio_factor
+			//
+			// the manually set priority takes presedence over the availability
+			// by multiplying availability by priority.
 
 			int priority(piece_picker const* picker) const
 			{
@@ -588,23 +674,28 @@ namespace libtorrent
 				// availability = 0 should not be present in the piece list
 				// returning -1 indicates that they shouldn't.
 				if (filtered() || have() || peer_count + picker->m_seeds == 0
-					|| state == piece_full || state == piece_finished)
+					|| download_state == piece_full
+					|| download_state == piece_finished)
 					return -1;
 
-				// prio 7 disregards availability
-				if (piece_priority == priority_levels - 1) return 1 - downloading();
+				TORRENT_ASSERT(piece_priority > 0);
 
-				// prio 4,5,6 halves the availability of a piece
-				int availability = peer_count;
-				int p = piece_priority;
-				if (piece_priority >= priority_levels / 2)
-				{
-					availability /= 2;
-					p -= (priority_levels - 2) / 2;
-				}
+				// this is to keep downloading pieces at higher priority than
+				// pieces that are not being downloaded, and to make reverse
+				// downloading pieces to be lower priority
+				int adjustment = -2;
+				if (reverse()) adjustment = -1;
+				else if (download_state != piece_open) adjustment = -3;
 
-				if (downloading()) return availability * prio_factor;
-				return availability * prio_factor + (priority_levels / 2) - p;
+				// the + 1 here is because peer_count count be 0, it m_seeds
+				// is > 0. We don't actually care about seeds (except for the
+				// first one) since the order of the pieces is unaffected.
+				int availability = int(peer_count) + 1;
+				TORRENT_ASSERT(availability > 0);
+				TORRENT_ASSERT(int(priority_levels - piece_priority) > 0);
+
+				return availability * int(priority_levels - piece_priority)
+					* prio_factor + adjustment;
 			}
 
 			bool operator!=(piece_pos p) const
@@ -654,10 +745,9 @@ namespace libtorrent
 
 		// returns an iterator to the downloading piece, whichever
 		// download list it may live in now
-		std::vector<downloading_piece>::iterator update_piece_state(std::vector<downloading_piece>::iterator dp);
+		std::vector<downloading_piece>::iterator update_piece_state(
+			std::vector<downloading_piece>::iterator dp);
 
-		// some compilers (e.g. gcc 2.95, does not inherit access
-		// privileges to nested classes)
 	private:
 
 		// the following vectors are mutable because they sometimes may
@@ -689,21 +779,15 @@ namespace libtorrent
 		// 0, priority 1 starts at m_priority_boundries[0] etc.
 		mutable std::vector<int> m_priority_boundries;
 
-		// each piece that's currently being downloaded
-		// has an entry in this list with block allocations.
-		// i.e. it says wich parts of the piece that
-		// is being downloaded. This list is ordered
-		// by piece index to make lookups efficient
-		// there are 3 buckets of downloading pieces, each
-		// is individually sorted by piece index.
-		// 0: downloading pieces with unrequested blocks
-		// 1: downloading pieces where every block is busy
-		//    and some are still in the requested state
-		// 2: downloading pieces where every block is
-		//    finished or writing
-		// 3: partial pieces whose priority is 0
-		enum { num_download_categories = 4 };
-		std::vector<downloading_piece> m_downloads[num_download_categories];
+		// each piece that's currently being downloaded has an entry in this list
+		// with block allocations. i.e. it says wich parts of the piece that is
+		// being downloaded. This list is ordered by piece index to make lookups
+		// efficient there are as many buckets as there are piece states. See
+		// piece_pos::state_t. The only download state that does not have a
+		// corresponding downloading_piece vector is piece_open and
+		// piece_downloading_reverse (the latter uses the same as
+		// piece_downloading).
+		std::vector<downloading_piece> m_downloads[piece_pos::num_download_categories];
 
 		// this holds the information of the
 		// blocks in partially downloaded pieces.

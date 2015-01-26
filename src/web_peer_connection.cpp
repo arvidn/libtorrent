@@ -625,7 +625,7 @@ void web_peer_connection::on_receive(error_code const& error
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
 			{
-				// TODO: 3 just make this peer not have the pieces
+				// TODO: 2 just make this peer not have the pieces
 				// associated with the file we just requested. Only
 				// when it doesn't have any of the file do the following
 				int retry_time = atoi(m_parser.header("retry-after").c_str());

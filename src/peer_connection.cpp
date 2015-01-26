@@ -3367,7 +3367,8 @@ namespace libtorrent
 			}
 		}
 
-		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state))
+		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state
+			, picker_options()))
 		{
 #if defined TORRENT_LOGGING
 			peer_log("*** PIECE_PICKER [ not_picking: %d,%d failed to mark_as_downloading ]"
