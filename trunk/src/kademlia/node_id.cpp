@@ -102,7 +102,9 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	boost::uint8_t* ip = 0;
 	
 	const static boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+#if TORRENT_USE_IPV6
 	const static boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+#endif
 	boost::uint8_t const* mask = 0;
 	int num_octets = 0;
 
