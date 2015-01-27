@@ -466,7 +466,8 @@ namespace libtorrent
 		}
 
 		if (filename_len > path.length()
-			|| path.compare(path.size() - filename_len, filename_len, filename) != 0)
+			|| path.compare(path.size() - filename_len, filename_len, filename
+				, filename_len) != 0)
 		{
 			// if the filename was sanitized and differ, clear it to just use path
 			filename = NULL;
