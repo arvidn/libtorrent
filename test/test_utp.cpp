@@ -95,7 +95,13 @@ void test_transfer()
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
-	for (int i = 0; i < 6; ++i)
+#ifdef TORRENT_USE_VALGRIND
+	const int timeout = 12;
+#else
+	const int timeout = 6;
+#endif
+
+	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);

@@ -77,6 +77,7 @@ enum flags_t
 	expect_dht_msg = 32,
 	expect_peer_connection = 64,
 	expect_possible_udp_connection = 128,
+	expect_possible_dht_msg = 256,
 };
 
 session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
@@ -194,13 +195,23 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	{
 		TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
 	}
-	if (flags & expect_dht_msg)
+
+	if (flags & expect_possible_udp_connection)
 	{
-		TEST_CHECK(num_dht_hits() > 0);
+		// this flag is true if we may fail open, but also might not have had
+		// enough time to fail yet
+		TEST_CHECK(num_dht_hits() == 0 || num_dht_hits() == 1);
 	}
 	else
 	{
-		TEST_EQUAL(num_dht_hits(), 0);
+		if (flags & expect_dht_msg)
+		{
+			TEST_CHECK(num_dht_hits() > 0);
+		}
+		else
+		{
+			TEST_EQUAL(num_dht_hits(), 0);
+		}
 	}
 
 	if (flags & expect_peer_connection)
@@ -237,8 +248,8 @@ int test_main()
 	// or if the proxy doesn't support UDP
 	pr[0] = test_proxy(settings_pack::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
 	pr[1] = test_proxy(settings_pack::socks4, expect_udp_connection | expect_dht_msg);
-	pr[2] = test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_dht_msg);
-	pr[3] = test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_dht_msg);
+	pr[2] = test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_possible_dht_msg);
+	pr[3] = test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
 	pr[4] = test_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
 	pr[5] = test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
 	pr[6] = test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
