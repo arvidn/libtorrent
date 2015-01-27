@@ -43,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-ptime g_start_time;
-
 boost::shared_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
@@ -69,7 +67,6 @@ boost::shared_ptr<torrent_info> generate_torrent()
 
 std::vector<char> generate_resume_data(torrent_info* ti)
 {
-	g_start_time = libtorrent::time_now();
 	entry rd;
 
 	rd["file-format"] = "libtorrent resume file";
@@ -159,12 +156,19 @@ torrent_status test_resume_flags(int flags)
 
 void default_tests(torrent_status const& s)
 {
-	int offset = total_seconds(libtorrent::time_now() - g_start_time);
+	// allow some slack in the time stamps since they are reported as
+	// relative times. If the computer is busy while running the unit test
+	// or running under valgrind it may take several seconds
+	TEST_CHECK(s.last_scrape >= 1349);
+	TEST_CHECK(s.time_since_download >= 1350);
+	TEST_CHECK(s.time_since_upload >= 1351);
+	TEST_CHECK(s.active_time >= 1339);
 
-	TEST_EQUAL(s.last_scrape, 1349 + offset);
-	TEST_EQUAL(s.time_since_download, 1350 + offset);
-	TEST_EQUAL(s.time_since_upload, 1351 + offset);
-	TEST_EQUAL(s.active_time, 1339 + offset);
+	TEST_CHECK(s.last_scrape < 1349 + 10);
+	TEST_CHECK(s.time_since_download < 1350 + 10);
+	TEST_CHECK(s.time_since_upload < 1351 + 10);
+	TEST_CHECK(s.active_time < 1339 + 10);
+
 	TEST_EQUAL(s.finished_time, 1352);
 	TEST_EQUAL(s.seeding_time, 1340);
 	TEST_EQUAL(s.added_time, 1347);
