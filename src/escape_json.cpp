@@ -34,19 +34,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <stdio.h>
 #include <boost/cstdint.hpp>
+#include <iconv.h>
+#include <vector>
 
 #include "escape_json.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
 
-std::string escape_json(std::string const& in)
+std::string escape_json(std::string const& input)
 {
-	std::wstring wide;
-	utf8_wchar(in, wide);
+	std::vector<boost::uint32_t> wide;
+	wide.resize(input.size());
+	static iconv_t iconv_handle = iconv_open("UTF-8", "UTF-32");
+	if (iconv_handle == iconv_t(-1)) return "(iconv error)";
+
+	size_t insize = input.size();
+	size_t outsize = insize * sizeof(boost::uint32_t);
+	char const* in = input.c_str();
+	char* out = (char*)&wide[0];
+	size_t retval = iconv(iconv_handle, (char**)&in, &insize
+		, &out, &outsize);
+	if (retval == (size_t)-1) return "(iconv error)";
+	if (insize != 0) return "(iconv error)";
+	if (outsize > input.size() * 4) return "(iconv error)";
+	TORRENT_ASSERT(wide.size() >= outsize);
+	wide.resize(wide.size() - outsize);
+
 	std::string ret;
-	for (std::wstring::const_iterator s = wide.begin(); s != wide.end(); ++s)
+	for (std::vector<boost::uint32_t>::const_iterator s = wide.begin(); s != wide.end(); ++s)
 	{
 		if (*s > 0x1f && *s < 0x80 && *s != '"' && *s != '\\')
 		{
