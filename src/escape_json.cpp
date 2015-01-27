@@ -46,6 +46,8 @@ namespace libtorrent
 
 std::string escape_json(std::string const& input)
 {
+	if (input.empty()) return "";
+
 	std::vector<boost::uint32_t> wide;
 	wide.resize(input.size());
 	static iconv_t iconv_handle = iconv_open("UTF-8", "UTF-32");
