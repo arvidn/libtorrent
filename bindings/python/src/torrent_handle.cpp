@@ -83,7 +83,7 @@ list file_progress(torrent_handle& handle, int flags)
 
     {
         allow_threading_guard guard;
-        boost::intrusive_ptr<const torrent_info> ti = handle.torrent_file();
+        boost::shared_ptr<const torrent_info> ti = handle.torrent_file();
         if (ti)
         {
            p.reserve(ti->num_files());
