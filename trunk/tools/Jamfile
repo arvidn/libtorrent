@@ -33,6 +33,7 @@ project tools
 	<link>static
    ;  
 
+exe fuzz_torrent : fuzz_torrent.cpp ;
 exe parse_hash_fails : parse_hash_fails.cpp ;
 exe parse_access_log : parse_access_log.cpp ;
 exe parse_request_log : parse_request_log.cpp ;
