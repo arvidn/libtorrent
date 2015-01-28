@@ -83,8 +83,12 @@ list file_progress(torrent_handle& handle, int flags)
 
     {
         allow_threading_guard guard;
-        p.reserve(handle.torrent_file()->num_files());
-        handle.file_progress(p, flags);
+        boost::intrusive_ptr<const torrent_info> ti = handle.torrent_file();
+        if (ti)
+        {
+           p.reserve(ti->num_files());
+           handle.file_progress(p, flags);
+        }
     }
 
     list result;
