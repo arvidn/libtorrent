@@ -3024,6 +3024,10 @@ namespace libtorrent
 					continue;
 				}
 			}
+
+			req.auth = tracker_login();
+			req.key = tracker_key();
+
 #if defined TORRENT_LOGGING
 			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d"
 				, req.url.c_str()
@@ -3034,12 +3038,12 @@ namespace libtorrent
 			if (m_abort)
 			{
 				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
-				m_ses.queue_tracker_request(req, tracker_login(), tl, tracker_key());
+				m_ses.queue_tracker_request(req, tl);
 			}
 			else
 #endif
 			{
-				m_ses.queue_tracker_request(req, tracker_login(), shared_from_this(), tracker_key());
+				m_ses.queue_tracker_request(req, shared_from_this());
 			}
 
 			ae.updating = true;
@@ -3077,7 +3081,9 @@ namespace libtorrent
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind = tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
-		m_ses.queue_tracker_request(req, tracker_login(), shared_from_this(), tracker_key());
+		req.auth = tracker_login();
+		req.key = tracker_key();
+		m_ses.queue_tracker_request(req, shared_from_this());
 	}
 
 	void torrent::tracker_warning(tracker_request const& req, std::string const& msg)

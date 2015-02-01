@@ -62,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/udp_socket.hpp" // for udp_socket_observer
-#include "libtorrent/session_settings.hpp"
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
 #endif
@@ -78,7 +77,10 @@ namespace libtorrent
 	class  udp_socket;
 	struct resolver_interface;
 	struct counters;
-	namespace aux { struct session_impl; struct session_settings; }
+#if TORRENT_USE_I2P
+	class i2p_connection;
+#endif
+	namespace aux { struct session_logger; struct session_settings; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXTRA_EXPORT int gzip_header(const char* buf, int size);
@@ -101,6 +103,9 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
+#if TORRENT_USE_I2P
+			, i2pconn(0)
+#endif
 		{}
 
 		enum event_t
@@ -120,6 +125,7 @@ namespace libtorrent
 
 		std::string url;
 		std::string trackerid;
+		std::string auth;
 
 		boost::int64_t downloaded;
 		boost::int64_t uploaded;
@@ -144,6 +150,9 @@ namespace libtorrent
 		bool apply_ip_filter;
 #ifdef TORRENT_USE_OPENSSL
 		boost::asio::ssl::context* ssl_ctx;
+#endif
+#if TORRENT_USE_I2P
+		i2p_connection* i2pconn;
 #endif
 	};
 
@@ -322,13 +331,20 @@ namespace libtorrent
 	{
 	public:
 
-		tracker_manager(aux::session_impl& ses);
+		tracker_manager(udp_socket& sock
+			, counters& stats_counters
+			, resolver_interface& resolver
+			, struct ip_filter& ipf
+			, aux::session_settings const& sett
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+			, aux::session_logger& ses
+#endif
+			);
 		~tracker_manager();
 
 		void queue_request(
 			io_service& ios
 			, tracker_request r
-			, std::string const& auth
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests(bool all = false);
@@ -371,13 +387,15 @@ namespace libtorrent
 		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
 		http_conns_t m_http_conns;
 
-		aux::session_impl& m_ses;
-
 		struct ip_filter const& m_ip_filter;
 		class udp_socket& m_udp_socket;
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+		aux::session_logger& m_ses;
+#endif
+
 		bool m_abort;
 	};
 }

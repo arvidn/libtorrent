@@ -97,9 +97,35 @@ namespace libtorrent
 
 namespace libtorrent { namespace aux
 {
-	// TOOD: make this interface a lot smaller
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+	// This is the basic logging and debug interface offered by the session.
+	// a release build with logging disabled (which is the default) will
+	// not have this class at all
+	struct session_logger
+	{
+#if defined TORRENT_LOGGING
+		virtual void session_log(char const* fmt, ...) const = 0;
+		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
+		virtual void log_all_torrents(peer_connection* p) = 0;
+#endif
+
+#if TORRENT_USE_ASSERTS
+		virtual bool is_single_thread() const = 0;
+		virtual bool has_peer(peer_connection const* p) const = 0;
+		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
+		virtual bool is_posting_torrent_updates() const = 0;
+#endif
+	};
+#endif // TORRENT_LOGGING || TORRENT_USE_ASSERTS
+
+	// TOOD: 2 make this interface a lot smaller. It could be split up into
+	// several smaller interfaces. Each subsystem could then limit the size
+	// of the mock object to test it.
 	struct session_interface
 		: buffer_allocator_interface
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+		, session_logger
+#endif
 	{
 		// TODO: 2 the IP voting mechanism should be factored out
 		// to its own class, not part of the session
@@ -125,6 +151,8 @@ namespace libtorrent { namespace aux
 
 		typedef boost::function<void(error_code const&, std::vector<address> const&)>
 			callback_t;
+
+		// TODO: 2 remove this. There's already get_resolver()
 		virtual void async_resolve(std::string const& host, int flags
 			, callback_t const& h) = 0;
 
@@ -179,6 +207,8 @@ namespace libtorrent { namespace aux
 		virtual boost::uint16_t listen_port() const = 0;
 		virtual boost::uint16_t ssl_listen_port() const = 0;
 
+		// TODO: 2 factor out the thread pool for socket jobs into a separate
+		// class
 		// used to (potentially) issue socket write calls onto multiple threads
 		virtual void post_socket_job(socket_job& j) = 0;
 
@@ -215,8 +245,7 @@ namespace libtorrent { namespace aux
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
-			, std::string login, boost::weak_ptr<request_callback> c
-			, boost::uint32_t key) = 0;
+			, boost::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
@@ -291,26 +320,8 @@ namespace libtorrent { namespace aux
 		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 #endif
 
-#if TORRENT_USE_ASSERTS
-		virtual bool is_single_thread() const = 0;
-		virtual bool has_peer(peer_connection const* p) const = 0;
-		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
-		virtual bool is_posting_torrent_updates() const = 0;
-#endif
-
 #ifdef TORRENT_REQUEST_LOGGING
 		virtual FILE* get_request_log() = 0;
-#endif
-
-#if defined TORRENT_LOGGING
-		virtual void session_log(char const* fmt, ...) const = 0;
-		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
-		virtual void log_all_torrents(peer_connection* p) = 0;
-#endif
-
-#ifdef TORRENT_BUFFER_STATS
-		virtual void log_buffer_usage() = 0;
-		virtual std::ofstream& buffer_usage_logger() = 0;
 #endif
 
 		virtual counters& stats_counters() = 0;
