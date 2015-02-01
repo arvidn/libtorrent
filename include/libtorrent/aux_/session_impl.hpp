@@ -367,10 +367,8 @@ namespace libtorrent
 			void set_port_filter(port_filter const& f);
 			port_filter const& get_port_filter() const;
 
-			// TODO: move the login info into the tracker_request object
 			void queue_tracker_request(tracker_request& req
-				, std::string login, boost::weak_ptr<request_callback> c
-				, boost::uint32_t key);
+				, boost::weak_ptr<request_callback> c);
 
 			// ==== peer class operations ====
 

@@ -75,22 +75,15 @@ namespace libtorrent
 		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
-		, boost::weak_ptr<request_callback> c
-		, std::string const& auth
-#if TORRENT_USE_I2P
-		, i2p_connection* i2p_conn
-#endif
-		)
+		, boost::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
-#if TORRENT_USE_I2P
-		, m_i2p_conn(i2p_conn)
-#endif
 	{}
 
 	void http_tracker_connection::start()
 	{
-		// TODO: 0 support authentication (i.e. user name and password) in the URL
+		// TODO: 3 take tracker_req().auth into account. Use it when making the
+		// request
 		std::string url = tracker_req().url;
 
 		if (tracker_req().kind == tracker_request::scrape_request)
@@ -175,11 +168,11 @@ namespace libtorrent
 			}
 
 #if TORRENT_USE_I2P
-			if (i2p)
+			if (i2p && tracker_req().i2pconn)
 			{
 				url += "&ip=";
-				url += escape_string(m_i2p_conn->local_endpoint().c_str()
-					, m_i2p_conn->local_endpoint().size());
+				url += escape_string(tracker_req().i2pconn->local_endpoint().c_str()
+					, tracker_req().i2pconn->local_endpoint().size());
 				url += ".i2p";
 			}
 			else
@@ -233,7 +226,7 @@ namespace libtorrent
 				? resolver_interface::prefer_cache
 				: resolver_interface::abort_on_shutdown
 #if TORRENT_USE_I2P
-			, m_i2p_conn
+			, tracker_req().i2pconn
 #endif
 			);
 

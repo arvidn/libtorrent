@@ -71,10 +71,6 @@ namespace libtorrent
 			, tracker_manager& man
 			, tracker_request const& req
 			, boost::weak_ptr<request_callback> c
-			, std::string const& password = ""
-#if TORRENT_USE_I2P
-			, i2p_connection* i2p_conn = 0
-#endif
 			);
 
 		void start();

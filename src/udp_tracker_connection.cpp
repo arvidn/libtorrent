@@ -83,6 +83,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::start()
 	{
+		// TODO: 2 support authentication here. tracker_req().auth
 		std::string hostname;
 		std::string protocol;
 		int port;
@@ -738,7 +739,8 @@ namespace libtorrent
 		std::string request_string;
 		error_code ec;
 		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, ignore, ignore, request_string) = parse_url_components(req.url, ec);
+		boost::tie(ignore, ignore, ignore, ignore, request_string)
+			= parse_url_components(req.url, ec);
 		if (ec) request_string.clear();
 
 		if (!request_string.empty())
