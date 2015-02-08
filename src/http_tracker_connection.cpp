@@ -82,8 +82,6 @@ namespace libtorrent
 
 	void http_tracker_connection::start()
 	{
-		// TODO: 3 take tracker_req().auth into account. Use it when making the
-		// request
 		std::string url = tracker_req().url;
 
 		if (tracker_req().kind == tracker_request::scrape_request)
@@ -225,6 +223,7 @@ namespace libtorrent
 			, tracker_req().event == tracker_request::stopped
 				? resolver_interface::prefer_cache
 				: resolver_interface::abort_on_shutdown
+			, tracker_req().auth
 #if TORRENT_USE_I2P
 			, tracker_req().i2pconn
 #endif

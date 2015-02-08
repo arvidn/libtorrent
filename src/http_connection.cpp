@@ -61,16 +61,15 @@ http_connection::http_connection(io_service& ios
 	, boost::asio::ssl::context* ssl_ctx
 #endif
 	)
-	:
+	: m_sock(ios)
 #ifdef TORRENT_USE_OPENSSL
-	m_ssl_ctx(ssl_ctx),
-	m_own_ssl_context(false),
+	, m_ssl_ctx(ssl_ctx)
+	, m_own_ssl_context(false)
 #endif
-	m_sock(ios),
 #if TORRENT_USE_I2P
-	m_i2p_conn(0),
+	, m_i2p_conn(0)
 #endif
-	m_resolver(resolver)
+	, m_resolver(resolver)
 	, m_handler(handler)
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
@@ -105,7 +104,7 @@ http_connection::~http_connection()
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
 	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, address const& bind_addr, int resolve_flags
+	, address const& bind_addr, int resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
@@ -123,6 +122,10 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	boost::tie(protocol, auth, hostname, port, path)
 		= parse_url_components(url, ec);
+
+	if (auth.empty()) auth = auth_;
+
+	m_auth = auth;
 
 	int default_port = protocol == "https" ? 443 : 80;
 	if (port == -1) port = default_port;
@@ -204,7 +207,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	APPEND_FMT("Connection: close\r\n\r\n");
 
-	sendbuffer.assign(request);
+	m_sendbuffer.assign(request);
 	m_url = url;
 	start(hostname, port, timeout, prio
 		, ps, ssl, handle_redirects, bind_addr, m_resolve_flags
@@ -264,7 +267,7 @@ void http_connection::start(std::string const& hostname, int port
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("http_connection::on_write");
 #endif
-		async_write(m_sock, asio::buffer(sendbuffer)
+		async_write(m_sock, asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, me, _1));
 	}
 	else
@@ -602,7 +605,7 @@ void http_connection::on_connect(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("http_connection::on_write");
 #endif
-		async_write(m_sock, asio::buffer(sendbuffer)
+		async_write(m_sock, asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else if (!m_endpoints.empty() && !m_abort)
@@ -674,7 +677,7 @@ void http_connection::on_write(error_code const& e)
 
 	if (m_abort) return;
 
-	std::string().swap(sendbuffer);
+	std::string().swap(m_sendbuffer);
 	m_recvbuffer.resize(4096);
 
 	int amount_to_read = m_recvbuffer.size() - m_read_pos;
@@ -792,7 +795,7 @@ void http_connection::on_read(error_code const& e
 
 				std::string url = resolve_redirect_location(m_url, location);
 				get(url, m_completion_timeout, m_priority, &m_proxy, m_redirects - 1
-					, m_user_agent, m_bind_addr, m_resolve_flags
+					, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
 #if TORRENT_USE_I2P
 					, m_i2p_conn
 #endif

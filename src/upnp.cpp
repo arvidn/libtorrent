@@ -669,7 +669,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 		, int(strlen(soap)), d.service_namespace, soap_action
 		, soap);
 
-	d.upnp_connection->sendbuffer = header;
+	d.upnp_connection->m_sendbuffer = header;
 
 	char msg[1024];
 	snprintf(msg, sizeof(msg), "sending: %s", header);
