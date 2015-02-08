@@ -2069,7 +2069,7 @@ int main(int argc, char* argv[])
 				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
 					> boost::bind(&cached_piece_info::piece, _2));
 
-				int p = 0;
+				int p = 0; // this is horizontal position
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
 					i != cs.pieces.end(); ++i)
 				{
@@ -2158,6 +2158,8 @@ int main(int argc, char* argv[])
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
 				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
+
+				int p = 0; // this is horizontal position
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
 					if (pos + 1 >= terminal_height) break;
@@ -2201,12 +2203,29 @@ int main(int argc, char* argv[])
 						++f;
 					}
 
-					snprintf(str, sizeof(str), "%s %s prio: %d\x1b[K\n",
-						progress_bar(progress, 70, complete?col_green:col_yellow, '-', '#'
+					const int file_progress_width = 65;
+
+					// do we need to line-break?
+					if (p + file_progress_width + 13 > terminal_width)
+					{
+						out += "\x1b[K\n";
+						pos += 1;
+						p = 0;
+					}
+
+					snprintf(str, sizeof(str), "%s %7s p: %d ",
+						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()
 						, file_prio[i]);
+
+					p += file_progress_width + 13;
 					out += str;
+				}
+
+				if (p != 0)
+				{
+					out += "\x1b[K\n";
 					pos += 1;
 				}
 			}
