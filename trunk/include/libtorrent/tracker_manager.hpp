@@ -369,7 +369,7 @@ namespace libtorrent
 			, boost::uint64_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
-		class udp_socket& udp_socket() { return m_udp_socket; }
+		udp_socket& get_udp_socket() { return m_udp_socket; }
 		struct ip_filter const& ip_filter() const { return m_ip_filter; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
 
