@@ -548,7 +548,6 @@ namespace libtorrent
 					break;
 				}
 
-				TORRENT_ASSERT(blocks_requested == (i->state != none));
 				TORRENT_ASSERT(num_requested == i->requested);
 				TORRENT_ASSERT(num_writing == i->writing);
 				TORRENT_ASSERT(num_finished == i->finished);
@@ -1920,10 +1919,6 @@ namespace libtorrent
 	// peers. the void* is the pointer to the torrent_peer of the peer we're
 	// picking pieces from. This is used when downloading whole pieces, to only
 	// pick from the same piece the same peer is downloading from.
-	// download_state is supposed to be set to fast if the peer is downloading
-	// relatively fast, by some notion. Slow peers will prefer not to pick
-	// blocks from the same pieces as fast peers, and vice versa. Downloading
-	// pieces are marked as being fast, medium or slow once they're started.
 
 	// options are:
 	// * rarest_first
@@ -1939,15 +1934,12 @@ namespace libtorrent
 	//     peer
 	// * prioritize_partials
 	//     pick blocks from downloading pieces first
-	// * speed_affinity
-	//     have an affinity to pick pieces in the same speed
-	//     category.
 
 	// only one of rarest_first or sequential can be set
 
 	void piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
-		, int prefer_contiguous_blocks, void* peer, piece_state_t speed
+		, int prefer_contiguous_blocks, void* peer
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
 		, counters& pc
@@ -1990,10 +1982,6 @@ namespace libtorrent
 
 		// this will be filled with blocks that we should not request
 		// unless we can't find num_blocks among the other ones.
-		// blocks that belong to pieces with a mismatching speed
-		// category for instance, or if we prefer whole pieces,
-		// blocks belonging to a piece that others have
-		// downloaded to
 		std::vector<piece_block> backup_blocks;
 		std::vector<piece_block> backup_blocks2;
 		const std::vector<int> empty_vector;
@@ -2052,7 +2040,7 @@ namespace libtorrent
 			{
 				num_blocks = add_blocks_downloading(*ordered_partials[i], pieces
 					, interesting_blocks, backup_blocks, backup_blocks2
-					, num_blocks, prefer_contiguous_blocks, peer, speed, options);
+					, num_blocks, prefer_contiguous_blocks, peer, options);
 				if (num_blocks <= 0) return;
 				if (int(backup_blocks.size()) >= num_blocks
 					&& int(backup_blocks2.size()) >= num_blocks)
@@ -2084,7 +2072,7 @@ namespace libtorrent
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
 					, prefer_contiguous_blocks, peer, empty_vector
-					, speed, options);
+					, options);
 				if (num_blocks <= 0) return;
 			}
 		}
@@ -2102,7 +2090,7 @@ namespace libtorrent
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
 					, prefer_contiguous_blocks, peer, suggested_pieces
-					, speed, options);
+					, options);
 				if (num_blocks <= 0) return;
 			}
 
@@ -2121,7 +2109,7 @@ namespace libtorrent
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
-							, speed, options);
+							, options);
 						if (num_blocks <= 0) return;
 					}
 				}
@@ -2137,7 +2125,7 @@ namespace libtorrent
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
-							, speed, options);
+							, options);
 						if (num_blocks <= 0) return;
 					}
 				}
@@ -2167,7 +2155,7 @@ namespace libtorrent
 							, interesting_blocks, backup_blocks
 							, backup_blocks2, num_blocks
 							, prefer_contiguous_blocks, peer, suggested_pieces
-							, speed, options);
+							, options);
 						if (num_blocks <= 0) return;
 					}
 				}
@@ -2193,7 +2181,7 @@ namespace libtorrent
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
 						, prefer_contiguous_blocks, peer, suggested_pieces
-						, speed, options);
+						, options);
 					if (num_blocks <= 0) return;
 				}
 			}
@@ -2210,13 +2198,12 @@ namespace libtorrent
 					, interesting_blocks, backup_blocks
 					, backup_blocks2, num_blocks
 					, prefer_contiguous_blocks, peer, suggested_pieces
-					, speed, options);
+					, options);
 				if (num_blocks <= 0) return;
 			}
 		}
 		else
 		{
-
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
@@ -2273,7 +2260,7 @@ namespace libtorrent
 						, interesting_blocks, backup_blocks
 						, backup_blocks2, num_blocks
 						, prefer_contiguous_blocks, peer, empty_vector
-						, speed, options);
+						, options);
 					++piece;
 				}
 
@@ -2626,7 +2613,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
 		, void* peer, std::vector<int> const& ignore
-		, piece_state_t speed, int options) const
+		, int options) const
 	{
 		TORRENT_ASSERT(piece >= 0);
 		TORRENT_ASSERT(piece < (int)m_piece_map.size());
@@ -2658,7 +2645,7 @@ get_out:
 
 			return add_blocks_downloading(*i, pieces
 				, interesting_blocks, backup_blocks, backup_blocks2
-				, num_blocks, prefer_contiguous_blocks, peer, speed, options);
+				, num_blocks, prefer_contiguous_blocks, peer, options);
 		}
 
 		int num_blocks_in_piece = blocks_in_piece(piece);
@@ -2705,7 +2692,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, void* peer, piece_state_t speed, int options) const
+		, void* peer, int options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
 		TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
@@ -2768,30 +2755,6 @@ get_out:
 			TORRENT_ASSERT(info.piece_index == dp.index);
 			if (info.state != block_info::state_none) continue;
 
-			// if the piece is fast and the peer is slow, or vice versa,
-			// add the block as a backup.
-			// override this behavior if all the other blocks
-			// have been requested from the same peer or
-			// if the state of the piece is none (the
-			// piece will in that case change state).
-			if (dp.state != none && dp.state != speed
-				&& !exclusive_active && (options & speed_affinity))
-			{
-				if (abs(dp.state - speed) == 1)
-				{
-					// don't pick too many back-up blocks
-					if (int(backup_blocks.size()) >= num_blocks) return num_blocks;
-					backup_blocks.push_back(piece_block(dp.index, block_idx));
-				}
-				else
-				{
-					// don't pick too many back-up blocks
-					if (int(backup_blocks2.size()) >= num_blocks) return num_blocks;
-					backup_blocks2.push_back(piece_block(dp.index, block_idx));
-				}
-				continue;
-			}
-			
 			// this block is interesting (we don't have it yet).
 			interesting_blocks.push_back(piece_block(dp.index, block_idx));
 			// we have found a block that's free to download
@@ -3108,7 +3071,7 @@ get_out:
 
 	// options may be 0 or piece_picker::reverse
 	bool piece_picker::mark_as_downloading(piece_block block
-		, void* peer, piece_state_t state, int options)
+		, void* peer, int options)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_downloading( {"
@@ -3116,7 +3079,6 @@ get_out:
 #endif
 
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
-		TORRENT_ASSERT(state != piece_picker::none);
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -3140,7 +3102,6 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			dlpiece_iter dp = add_download_piece(block.piece_index);
-			dp->state = state;
 			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.state = block_info::state_requested;
@@ -3210,7 +3171,6 @@ get_out:
 			TORRENT_ASSERT(info.peers.count(peer) == 0);
 			info.peers.insert(peer);
 #endif
-			if (i->state == none) i->state = state;
 		}
 		return true;
 	}
@@ -3291,7 +3251,6 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			dlpiece_iter dp = add_download_piece(block.piece_index);
-			dp->state = none;
 			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3335,12 +3294,6 @@ get_out:
 			info.peers.clear();
 #endif
 
-			if (i->requested == 0)
-			{
-				// there are no blocks requested in this piece.
-				// remove the fast/slow state from it
-				i->state = none;
-			}
 			update_piece_state(i);
 		}
 		return true;
@@ -3529,7 +3482,6 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			dlpiece_iter dp = add_download_piece(block.piece_index);
-			dp->state = none;
 			block_info& info = dp->info[block.block_index];
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3748,12 +3700,6 @@ get_out:
 				else if (prev_prio >= 0) update(prev_prio, p.index);
 			}
 			return;
-		}
-		else if (i->requested == 0)
-		{
-			// there are no blocks requested in this piece.
-			// remove the fast/slow state from it
-			i->state = none;
 		}
 
 		i = update_piece_state(i);

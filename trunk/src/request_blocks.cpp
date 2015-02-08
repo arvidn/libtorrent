@@ -149,12 +149,6 @@ namespace libtorrent
 			bits = &fast_mask;
 		}
 
-		piece_picker::piece_state_t state;
-		peer_connection::peer_speed_t speed = c.peer_speed();
-		if (speed == peer_connection::fast) state = piece_picker::fast;
-		else if (speed == peer_connection::medium) state = piece_picker::medium;
-		else state = piece_picker::slow;
-
 		// picks the interesting pieces from this peer
 		// the integer is the number of pieces that
 		// should be guaranteed to be available for download
@@ -165,7 +159,7 @@ namespace libtorrent
 		// then use this mode.
 		p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_contiguous_blocks, c.peer_info_struct()
-			, state, c.picker_options(), suggested, t.num_peers()
+			, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());
 
 #ifdef TORRENT_LOGGING

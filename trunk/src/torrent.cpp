@@ -1305,7 +1305,7 @@ namespace libtorrent
 				, boost::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 			piece_block block(piece, i);
-			picker().mark_as_downloading(block, 0, piece_picker::fast);
+			picker().mark_as_downloading(block, 0);
 			picker().mark_as_writing(block, 0);
 		}
 		verify_piece(piece);
@@ -4441,7 +4441,6 @@ namespace libtorrent
 				if (k->timed_out || k->not_wanted) continue;
 				if (int(k->block.piece_index) != j->piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
-					, (piece_picker::piece_state_t)p->peer_speed()
 					, p->picker_options());
 			}
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
@@ -4449,7 +4448,6 @@ namespace libtorrent
 			{
 				if (int(k->block.piece_index) != j->piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
-					, (piece_picker::piece_state_t)p->peer_speed()
 					, p->picker_options());
 			}
 		}
@@ -7154,7 +7152,6 @@ namespace libtorrent
 			= q.begin(); i != q.end(); ++i, ++counter)
 		{
 			partial_piece_info pi;
-			pi.piece_state = (partial_piece_info::state_t)i->state;
 			pi.blocks_in_piece = p.blocks_in_piece(i->index);
 			pi.finished = (int)i->finished;
 			pi.writing = (int)i->writing;
@@ -10248,7 +10245,7 @@ namespace libtorrent
 			// the backup lists
 			picker->add_blocks(i->piece, c.get_bitfield(), interesting_blocks
 				, backup1, backup2, blocks_in_piece, 0, c.peer_info_struct()
-				, ignore, piece_picker::none, 0);
+				, ignore, 0);
 
 			interesting_blocks.insert(interesting_blocks.end()
 				, backup1.begin(), backup1.end());

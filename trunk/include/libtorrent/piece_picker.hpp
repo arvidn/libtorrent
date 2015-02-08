@@ -138,15 +138,6 @@ namespace libtorrent
 #endif
 		};
 
-		// the peers that are downloading this piece
-		// are considered fast peers or slow peers.
-		// none is set if the blocks were downloaded
-		// in a previous session
-		// TODO:3 perhaps the piece_state feature could be removed. It's not
-		// obvious that it has any effect
-		enum piece_state_t
-		{ none, slow, medium, fast };
-
 		enum options_t
 		{
 			// pick rarest first 
@@ -159,24 +150,25 @@ namespace libtorrent
 			prioritize_partials = 8,
 			// pick pieces in sequential order
 			sequential = 16,
-			// have affinity to pieces with the same speed category
-			speed_affinity = 32,
 			// treat pieces with priority 6 and below as filtered
 			// to trigger end-game mode until all prio 7 pieces are
 			// completed
-			time_critical_mode = 64,
+			time_critical_mode = 32,
 			// only expands pieces (when prefer contiguous blocks is set)
 			// within properly aligned ranges, not the largest possible
 			// range of pieces.
-			align_expanded_pieces = 128
+			align_expanded_pieces = 64
 		};
 
 		struct downloading_piece
 		{
 			downloading_piece() : info(NULL), index(-1)
-				, finished(0), state(none), writing(0)
-				, passed_hash_check(0), locked(0)
-				, requested(0), outstanding_hash_check(0) {}
+				, finished(0)
+				, passed_hash_check(0)
+				, writing(0)
+				, locked(0)
+				, requested(0)
+				, outstanding_hash_check(0) {}
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
@@ -189,13 +181,7 @@ namespace libtorrent
 			int index;
 
 			// the number of blocks in the finished state
-			boost::uint16_t finished:14;
-
-			// the speed state of this piece
-			boost::uint16_t state:2;
-
-			// the number of blocks in the writing state
-			boost::uint16_t writing:14;
+			boost::uint16_t finished:15;
 
 			// set to true when the hash check job
 			// returns with a valid hash for this piece.
@@ -204,6 +190,9 @@ namespace libtorrent
 			// disk. This is not set of locked is
 			// set.
 			boost::uint16_t passed_hash_check:1;
+
+			// the number of blocks in the writing state
+			boost::uint16_t writing:15;
 
 			// when this is set, blocks from this piece may
 			// not be picked. This is used when the hash check
@@ -308,7 +297,7 @@ namespace libtorrent
 		// (i.e. higher overhead per request).
 		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
-			, int prefer_contiguous_blocks, void* peer, piece_state_t speed
+			, int prefer_contiguous_blocks, void* peer
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
 			, counters& pc
@@ -326,7 +315,7 @@ namespace libtorrent
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
 			, void* peer, std::vector<int> const& ignore
-			, piece_state_t speed, int options) const;
+			, int options) const;
 
 		// picks blocks only from downloading pieces
 		int add_blocks_downloading(downloading_piece const& dp
@@ -335,7 +324,7 @@ namespace libtorrent
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, void* peer, piece_state_t speed
+			, void* peer
 			, int options) const;
 
 		// clears the peer pointer in all downloading pieces with this
@@ -361,7 +350,7 @@ namespace libtorrent
 		// marks this piece-block as queued for downloading
 		// options are flags from options_t.
 		bool mark_as_downloading(piece_block block, void* peer
-			, piece_state_t s, int options = 0);
+			, int options = 0);
 
 		// returns true if the block was marked as writing,
 		// and false if the block is already finished or writing
