@@ -410,9 +410,12 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 	return i - peers.begin();
 }
 
-void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const& peers)
+// returns the number of lines printed
+int print_peer_info(std::string& out
+	, std::vector<libtorrent::peer_info> const& peers, int max_lines)
 {
 	using namespace libtorrent;
+	int pos = 0;
 	if (print_ip) out += "IP                             ";
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
@@ -424,7 +427,8 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 	out += "country ";
 #endif
 	if (print_peer_rate) out += "peer-rate est.rec.rate ";
-	out += "client \n";
+	out += "client \x1b[K\n";
+	++pos;
 
 	char str[500];
 	for (std::vector<peer_info>::const_iterator i = peers.begin();
@@ -569,22 +573,23 @@ void print_peer_info(std::string& out, std::vector<libtorrent::peer_info> const&
 			out += esc("31");
 			out += " waiting for handshake";
 			out += esc("0");
-			out += "\n";
 		}
 		else if (i->flags & peer_info::connecting)
 		{
 			out += esc("31");
 			out += " connecting to peer";
 			out += esc("0");
-			out += "\n";
 		}
 		else
 		{
 			out += " ";
 			out += i->client;
-			out += "\n";
 		}
+		out += "\x1b[K\n";
+		++pos;
+		if (pos >= max_lines) break;
 	}
+	return pos;
 }
 
 int listen_port = 6881;
@@ -1637,8 +1642,8 @@ int main(int argc, char* argv[])
 		int terminal_width = 80;
 		int terminal_height = 50;
 		terminal_size(&terminal_width, &terminal_height);
-		view.set_size(terminal_width, terminal_height / 2);
-		ses_view.set_pos(terminal_height / 2);
+		view.set_size(terminal_width, terminal_height / 3);
+		ses_view.set_pos(terminal_height / 3);
 
 		int c = 0;
 		if (sleep_and_input(&c, refresh_delay))
@@ -1957,7 +1962,6 @@ int main(int argc, char* argv[])
 		char str[500];
 
 		int pos = view.height() + ses_view.height();
-		clear_rows(pos, terminal_height);
 		set_cursor_pos(0, pos);
 
 		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
@@ -1977,6 +1981,7 @@ int main(int argc, char* argv[])
 				, sess_stat.dht_total_allocations);
 			out += str;
 */
+
 			int bucket = 0;
 			for (std::vector<dht_routing_bucket>::iterator i = dht_routing_table.begin()
 				, end(dht_routing_table.end()); i != end; ++i, ++bucket)
@@ -1988,11 +1993,12 @@ int main(int argc, char* argv[])
 					"################################";
 				char const* short_progress_bar = "--------";
 				snprintf(str, sizeof(str)
-					, "%3d [%3d, %d] %s%s\n"
+					, "%3d [%3d, %d] %s%s\x1b[K\n"
 					, bucket, i->num_nodes, i->num_replacements
 					, progress_bar + (128 - i->num_nodes)
 					, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
 				out += str;
+				pos += 1;
 			}
 
 			for (std::vector<dht_lookup>::iterator i = dht_active_requests.begin()
@@ -2005,7 +2011,7 @@ int main(int argc, char* argv[])
 					"1st-timeout: %-2d "
 					"timeouts: %-2d "
 					"responses: %-2d "
-					"last_sent: %-2d\n"
+					"last_sent: %-2d\x1b[K\n"
 					, i->type
 					, i->branch_factor
 					, i->outstanding_requests
@@ -2015,6 +2021,7 @@ int main(int argc, char* argv[])
 					, i->responses
 					, i->last_sent);
 				out += str;
+				pos += 1;
 			}
 		}
 #endif
@@ -2022,14 +2029,15 @@ int main(int argc, char* argv[])
 		{
 			torrent_status const& s = view.get_active_torrent();
 
-			print(piece_bar(s.pieces, 126).c_str());
+			print((piece_bar(s.pieces, 126) + "\x1b[K\n").c_str());
+			pos += 1;
 
 			if ((print_downloads && s.state != torrent_status::seeding)
 				|| print_peers)
 				h.get_peer_info(peers);
 
 			if (print_peers && !peers.empty())
-				print_peer_info(out, peers);
+				pos += print_peer_info(out, peers, terminal_height - pos - 2);
 
 			if (print_trackers)
 			{
@@ -2038,7 +2046,8 @@ int main(int argc, char* argv[])
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\n"
+					if (pos + 1 >= terminal_height) break;
+					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
@@ -2046,6 +2055,7 @@ int main(int argc, char* argv[])
 						, i->last_error ? i->last_error.message().c_str() : ""
 						, i->message.c_str());
 					out += str;
+					pos += 1;
 				}
 			}
 
@@ -2059,10 +2069,12 @@ int main(int argc, char* argv[])
 				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
 					> boost::bind(&cached_piece_info::piece, _2));
 
-				int pos = 0;
+				int p = 0;
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
 					i != cs.pieces.end(); ++i)
 				{
+					if (pos + 3 >= terminal_height) break;
+
 					partial_piece_info* pp = 0;
 					partial_piece_info tmp;
 					tmp.piece_index = i->piece;
@@ -2075,11 +2087,21 @@ int main(int argc, char* argv[])
 					print_piece(pp, &*i, peers, &s, out);
 
 					int num_blocks = pp ? pp->blocks_in_piece : i->blocks.size();
-					pos += num_blocks + 8;
-					if (pos + num_blocks + 8 > terminal_width)
+					p += num_blocks + 8;
+					bool continuous_mode = 8 + num_blocks > terminal_width;
+					if (continuous_mode)
 					{
-						out += "\n";
-						pos = 0;
+						while (p > terminal_width)
+						{
+							p -= terminal_width;
+							++pos;
+						}
+					}
+					else if (p + num_blocks + 8 > terminal_width)
+					{
+						out += "\x1b[K\n";
+						pos += 1;
+						p = 0;
 					}
 
 					if (pp) queue.erase(ppi);
@@ -2088,19 +2110,35 @@ int main(int argc, char* argv[])
 				for (std::vector<partial_piece_info>::iterator i = queue.begin()
 					, end(queue.end()); i != end; ++i)
 				{
+					if (pos + 3 >= terminal_height) break;
+
 					print_piece(&*i, 0, peers, &s, out);
 
 					int num_blocks = i->blocks_in_piece;
-					pos += num_blocks + 8;
-					if (pos + num_blocks + 8 > terminal_width)
+					p += num_blocks + 8;
+					bool continuous_mode = 8 + num_blocks > terminal_width;
+					if (continuous_mode)
 					{
-						out += "\n";
-						pos = 0;
+						while (p > terminal_width)
+						{
+							p -= terminal_width;
+							++pos;
+						}
+					}
+					else if (p + num_blocks + 8 > terminal_width)
+					{
+						out += "\x1b[K\n";
+						pos += 1;
+						p = 0;
 					}
 				}
-				if (out[out.size()] != '\n') out += "\n";
+				if (p != 0)
+				{
+					out += "\x1b[K\n";
+					pos += 1;
+				}
 
-				snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\n"
+				snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
@@ -2108,7 +2146,7 @@ int main(int argc, char* argv[])
 					, esc("35;7"), esc("0") // snubbed
 					);
 				out += str;
-				out += "___________________________________\n";
+				pos += 1;
 			}
 
 			if (print_file_progress && s.has_metadata)
@@ -2122,15 +2160,18 @@ int main(int argc, char* argv[])
 				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
 				for (int i = 0; i < ti->num_files(); ++i)
 				{
+					if (pos + 1 >= terminal_height) break;
+
 					bool pad_file = ti->files().pad_file_at(i);
 					if (pad_file)
 					{
 						if (show_pad_files)
 						{
-							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\n"
+							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
 								, ti->files().file_name(i).c_str()
 								, add_suffix(ti->files().file_size(i)).c_str());
 							out += str;
+							pos += 1;
 						}
 						continue;
 					}
@@ -2160,20 +2201,15 @@ int main(int argc, char* argv[])
 						++f;
 					}
 
-					snprintf(str, sizeof(str), "%s %s prio: %d\n",
+					snprintf(str, sizeof(str), "%s %s prio: %d\x1b[K\n",
 						progress_bar(progress, 70, complete?col_green:col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()
 						, file_prio[i]);
 					out += str;
+					pos += 1;
 				}
-
-				out += "___________________________________\n";
 			}
-		}
-		else
-		{
-			print("\x1b[K");
 		}
 
 		if (print_log)
@@ -2181,15 +2217,17 @@ int main(int argc, char* argv[])
 			for (std::deque<std::string>::iterator i = events.begin();
 				i != events.end(); ++i)
 			{
-				out += "\n";
+				if (pos + 1 >= terminal_height) break;
 				out += *i;
+				out += "\x1b[K\n";
+				pos += 1;
 			}
 		}
 
-		++pos;
-		set_cursor_pos(0, pos);
-
+		// clear rest of screen
+		out += "\x1b[J";
 		print(out.c_str());
+
 		fflush(stdout);
 
 		if (!monitor_dir.empty()
