@@ -108,8 +108,6 @@ namespace libtorrent
 	{
 	public:
 
-		struct piece_pos;
-
 		enum
 		{
 			// the number of priority levels
@@ -374,11 +372,15 @@ namespace libtorrent
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
 
-		piece_pos const& piece_stats(int index) const
+		struct piece_stats_t
 		{
-			TORRENT_ASSERT(index >= 0 && index < int(m_piece_map.size()));
-			return m_piece_map[index];
-		}
+			int peer_count;
+			int priority;
+			bool have;
+			bool downloading;
+		};
+
+		piece_stats_t piece_stats(int index) const;
 
 		// if a piece had a hash-failure, it must be restored and
 		// made available for redownloading
@@ -480,9 +482,6 @@ namespace libtorrent
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, bitfield const& have, int options) const;
 
-	public:
-
-		// TODO: 2 this type should not be public
 		struct piece_pos
 		{
 			piece_pos() {}
@@ -696,8 +695,6 @@ namespace libtorrent
 			bool operator==(piece_pos p) const
 			{ return index == p.index && peer_count == p.peer_count; }
 		};
-
-	private:
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
 #if TORRENT_OPTIMIZE_MEMORY_USAGE
