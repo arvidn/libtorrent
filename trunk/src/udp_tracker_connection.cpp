@@ -230,7 +230,7 @@ namespace libtorrent
 			}
 		}
 
-		// ir all endpoints were filtered by the IP filter, we can't connect
+		// if all endpoints were filtered by the IP filter, we can't connect
 		if (m_endpoints.empty())
 		{
 			fail(error_code(errors::banned_by_ip_filter));

@@ -104,7 +104,8 @@ void reset_globals()
 }
 
 void run_test(std::string const& url, int size, int status, int connected
-	, boost::optional<error_code> ec, proxy_settings const& ps)
+	, boost::optional<error_code> ec, proxy_settings const& ps
+	, std::string const& auth = std::string())
 {
 	reset_globals();
 
@@ -118,7 +119,8 @@ void run_test(std::string const& url, int size, int status, int connected
 
 	boost::shared_ptr<http_connection> h(new http_connection(ios
 		, res, &::http_handler, true, 1024*1024, &::http_connect_handler));
-	h->get(url, seconds(1), 0, &ps);
+	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", address_v4::any()
+		, 0, auth);
 	ios.reset();
 	error_code e;
 	ios.run(e);
@@ -166,6 +168,8 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 	run_test(url_base + "test_file", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "test_file.gz", 3216, 200, 1, error_code(), ps);
 	run_test(url_base + "non-existing-file", -1, 404, 1, err(), ps);
+	run_test(url_base + "password_protected", 3216, 200, 1, error_code(), ps
+		, "testuser:testpass");
 
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)

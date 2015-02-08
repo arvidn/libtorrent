@@ -4,6 +4,7 @@ import sys
 import os
 import ssl
 import gzip
+import base64
 
 chunked_encoding = False
 keepalive = True
@@ -40,6 +41,21 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.path = s.path[s.path.find('/'):]
 
 		file_path = os.path.normpath(s.path)
+
+		if s.path == '/password_protected':
+			passed = False
+			if 'Authorization' in s.headers:
+				auth = s.headers['Authorization']
+				passed = auth == 'Basic %s' % base64.b64encode('testuser:testpass')
+
+			if not passed:
+				s.send_response(401)
+				s.send_header("Connection", "close")
+				s.end_headers()
+				return
+
+			s.path = '/test_file'
+			file_path = os.path.normpath('/test_file')
 
 		if s.path == '/redirect':
 			s.send_response(301)

@@ -866,11 +866,6 @@ namespace libtorrent
 			// the common pieces first, just to make
 			// it more likely for all snubbed peers to
 			// request blocks from the same piece
-			// TODO: 3 this may cause a priority inversion! making a snubbed peer
-			// open up a new piece may cause that piece to become the highest
-			// priority. Unless there is some way to mark pieces as low-priority
-			// this is probably not a good idea. We just want to make all snubbed
-			// peers pick the same common piece.
 			ret |= piece_picker::reverse;
 		}
 

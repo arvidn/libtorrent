@@ -4869,6 +4869,7 @@ namespace libtorrent
 			alerts().post_alert(torrent_paused_alert(get_handle()));
 	}
 
+	// TODO: 2 the tracker login feature should probably be deprecated
 	std::string torrent::tracker_login() const
 	{
 		if (m_username.empty() && m_password.empty()) return "";
