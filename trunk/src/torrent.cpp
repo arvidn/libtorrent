@@ -9774,6 +9774,7 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			if (p->is_connecting()) continue;
+			if (p->is_disconnecting()) continue;
 			++num_peers;
 			if (p->is_seed())
 			{
@@ -9782,8 +9783,10 @@ namespace libtorrent
 			}
 
 			if (p->share_mode()) continue;
+			if (p->upload_only()) continue;
 
 			if ((*i)->is_peer_interested()) ++num_interested;
+
 			++num_downloaders;
 			missing_pieces += pieces_in_torrent - p->num_have_pieces();
 		}
@@ -9811,7 +9814,8 @@ namespace libtorrent
 			std::random_shuffle(seeds.begin(), seeds.end());
 			TORRENT_ASSERT(to_disconnect <= int(seeds.size()));
 			for (int i = 0; i < to_disconnect; ++i)
-				seeds[i]->disconnect(errors::upload_upload_connection, peer_connection_interface::op_bittorrent);
+				seeds[i]->disconnect(errors::upload_upload_connection
+					, peer_connection_interface::op_bittorrent);
 		}
 
 		if (num_downloaders == 0) return;
@@ -9889,13 +9893,6 @@ namespace libtorrent
 		if (num_peers - rarest_rarity
 			< settings().get_int(settings_pack::share_mode_target))
 			return;
-
-		// we might be able to do better than a share ratio of 2 if there are
-		// enough downloaders of the pieces we already have.
-		// TODO: 2 go through the pieces we have and count the total number
-		// of downloaders we have. Only count peers that are interested in us
-		// since some peers might not send have messages for pieces we have.
-		// if num_interested == 0, we need to pick a new piece
 
 		// now, pick one of the rarest pieces to download
 		int pick = random() % rarest_pieces.size();
