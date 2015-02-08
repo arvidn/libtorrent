@@ -169,6 +169,19 @@ namespace libtorrent
 		st.finished = 0;
 	}
 
+	piece_picker::piece_stats_t piece_picker::piece_stats(int index) const
+	{
+		TORRENT_ASSERT(index >= 0 && index < int(m_piece_map.size()));
+		piece_pos const& pp = m_piece_map[index];
+		piece_stats_t ret = {
+			pp.peer_count + m_seeds,
+			pp.priority(this),
+			pp.have(),
+			pp.downloading()
+		};
+		return ret;
+	}
+
 	piece_picker::dlpiece_iter piece_picker::add_download_piece(int piece)
 	{
 		TORRENT_ASSERT(piece >= 0);

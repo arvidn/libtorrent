@@ -9855,25 +9855,25 @@ namespace libtorrent
 		bool prio_updated = false;
 		for (int i = 0; i < num_pieces; ++i)
 		{
-			piece_picker::piece_pos const& pp = m_picker->piece_stats(i);
-			if (pp.peer_count == 0) continue;
-			if (pp.filtered() && (pp.have() || pp.downloading()))
+			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
+			if (ps.peer_count == 0) continue;
+			if (ps.priority == 0 && (ps.have || ps.downloading))
 			{
 				m_picker->set_piece_priority(i, 1);
 				prio_updated = true;
 				continue;
 			}
-			// don't count pieces we already have or are downloading
-			if (!pp.filtered() || pp.have()) continue;
-			if (int(pp.peer_count) > rarest_rarity) continue;
-			if (int(pp.peer_count) == rarest_rarity)
+			// don't count pieces we already have or are trying to download
+			if (ps.priority > 0 || ps.have) continue;
+			if (int(ps.peer_count) > rarest_rarity) continue;
+			if (int(ps.peer_count) == rarest_rarity)
 			{
 				rarest_pieces.push_back(i);
 				continue;
 			}
 
 			rarest_pieces.clear();
-			rarest_rarity = pp.peer_count;
+			rarest_rarity = ps.peer_count;
 			rarest_pieces.push_back(i);
 		}
 
@@ -9886,14 +9886,16 @@ namespace libtorrent
 		// if there's only a single peer that doesn't have the rarest piece
 		// it's impossible for us to download one piece and upload it
 		// twice. i.e. we cannot get a positive share ratio
-		if (num_peers - rarest_rarity < settings().get_int(settings_pack::share_mode_target)) return;
+		if (num_peers - rarest_rarity
+			< settings().get_int(settings_pack::share_mode_target))
+			return;
 
 		// we might be able to do better than a share ratio of 2 if there are
 		// enough downloaders of the pieces we already have.
-		// TODO: go through the pieces we have and count the total number
+		// TODO: 2 go through the pieces we have and count the total number
 		// of downloaders we have. Only count peers that are interested in us
-		// since some peers might not send have messages for pieces we have
-		// it num_interested == 0, we need to pick a new piece
+		// since some peers might not send have messages for pieces we have.
+		// if num_interested == 0, we need to pick a new piece
 
 		// now, pick one of the rarest pieces to download
 		int pick = random() % rarest_pieces.size();
@@ -9901,7 +9903,6 @@ namespace libtorrent
 		m_picker->set_piece_priority(rarest_pieces[pick], 1);
 		update_gauge();
 		update_peer_interest(was_finished);
-
 		update_want_peers();
 	}
 
