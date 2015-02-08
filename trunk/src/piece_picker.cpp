@@ -2027,14 +2027,17 @@ namespace libtorrent
 			}
 
 			// now, sort the list.
-			// TODO: this could probably be optimized by incrementally
-			// calling partial_sort to sort one more element in the list. Because
-			// chances are that we'll just need a single piece, and once we've
-			// picked from it we're done. Sorting the rest of the list in that
-			// case is a waste of time.
-			std::sort(ordered_partials, ordered_partials + num_ordered_partials
-				, boost::bind(&piece_picker::partial_compare_rarest_first, this
-					, _1, _2));
+			if (options & rarest_first)
+			{
+				// TODO: this could probably be optimized by incrementally
+				// calling partial_sort to sort one more element in the list. Because
+				// chances are that we'll just need a single piece, and once we've
+				// picked from it we're done. Sorting the rest of the list in that
+				// case is a waste of time.
+				std::sort(ordered_partials, ordered_partials + num_ordered_partials
+					, boost::bind(&piece_picker::partial_compare_rarest_first, this
+						, _1, _2));
+			}
 
 			for (int i = 0; i < num_ordered_partials; ++i)
 			{
@@ -2212,7 +2215,6 @@ namespace libtorrent
 			int piece = start_piece;
 			while (num_blocks > 0)
 			{
-				bool done = false;
 				// skip pieces we can't pick, and suggested pieces
 				// since we've already picked those
 				while (!is_piece_free(piece, pieces)
