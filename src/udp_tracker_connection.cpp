@@ -506,12 +506,12 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str()
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
 				, m_target.port(), buf, 16, ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, 16, ec);
+			m_man.get_udp_socket().send(m_target, buf, 16, ec);
 
 		}
 
@@ -569,11 +569,11 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, sizeof(buf), ec);
+			m_man.get_udp_socket().send(m_target, buf, sizeof(buf), ec);
 		}
 		m_state = action_scrape;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
@@ -767,12 +767,12 @@ namespace libtorrent
 
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str()
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
 				, m_target.port(), buf, out - buf, ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, out - buf, ec);
+			m_man.get_udp_socket().send(m_target, buf, out - buf, ec);
 		}
 		m_state = action_announce;
 		sent_bytes(out - buf + 28); // assuming UDP/IP header
