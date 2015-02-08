@@ -855,9 +855,11 @@ namespace libtorrent
 	{
 		// internal
 		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, char const* speedmsg, int block_num, int piece_num)
+			, peer_id const& peer_id, int block_num, int piece_num)
 			: peer_alert(h, ep, peer_id)
-			, peer_speedmsg(speedmsg)
+#ifndef TORRENT_NO_DEPRECATE
+			, peer_speedmsg("")
+#endif
 			, block_index(block_num)
 			, piece_index(piece_num)
 		{ TORRENT_ASSERT(block_index >= 0 && piece_index >= 0); }
@@ -867,7 +869,9 @@ namespace libtorrent
 		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		char const* peer_speedmsg;
+#endif
 		int block_index;
 		int piece_index;
 	};

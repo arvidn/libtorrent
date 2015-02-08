@@ -181,7 +181,6 @@ namespace libtorrent
 		, m_upload_rate_peak(0)
 		, m_send_barrier(INT_MAX)
 		, m_desired_queue_size(2)
-		, m_speed(slow)
 		, m_prefer_contiguous_blocks(0)
 		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
@@ -854,10 +853,6 @@ namespace libtorrent
 			// don't pick rare pieces, just pick random ones,
 			// and prioritize finishing them
 			ret |= piece_picker::prioritize_partials;
-		}
-		else
-		{
-			ret |= piece_picker::rarest_first | piece_picker::speed_affinity;
 		}
 
 		if (m_snubbed)
@@ -3308,25 +3303,6 @@ namespace libtorrent
 			return false;
 		}
 
-		piece_picker::piece_state_t state;
-		peer_speed_t speed = peer_speed();
-		char const* speedmsg = 0;
-		if (speed == fast)
-		{
-			speedmsg = "fast";
-			state = piece_picker::fast;
-		}
-		else if (speed == medium)
-		{
-			speedmsg = "medium";
-			state = piece_picker::medium;
-		}
-		else
-		{
-			speedmsg = "slow";
-			state = piece_picker::slow;
-		}
-
 		if ((flags & req_busy) && !(flags & req_time_critical))
 		{
 			// this block is busy (i.e. it has been requested
@@ -3362,7 +3338,7 @@ namespace libtorrent
 			}
 		}
 
-		if (!t->picker().mark_as_downloading(block, peer_info_struct(), state
+		if (!t->picker().mark_as_downloading(block, peer_info_struct()
 			, picker_options()))
 		{
 #if defined TORRENT_LOGGING
@@ -3375,7 +3351,7 @@ namespace libtorrent
 		if (t->alerts().should_post<block_downloading_alert>())
 		{
 			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
-				remote(), pid(), speedmsg, block.block_index, block.piece_index));
+				remote(), pid(), block.block_index, block.piece_index));
 		}
 
 		pending_block pb(block);
@@ -6523,27 +6499,6 @@ namespace libtorrent
 */
 	}
 #endif
-
-	peer_connection::peer_speed_t peer_connection::peer_speed()
-	{
-		TORRENT_ASSERT(is_single_thread());
-		shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-
-		int download_rate = int(statistics().download_payload_rate());
-		int torrent_download_rate = int(t->statistics().download_payload_rate());
-
-		if (download_rate > 512 && download_rate > torrent_download_rate / 16)
-			m_speed = fast;
-		else if (download_rate > 4096 && download_rate > torrent_download_rate / 64)
-			m_speed = medium;
-		else if (download_rate < torrent_download_rate / 15 && m_speed == fast)
-			m_speed = medium;
-		else
-			m_speed = slow;
-
-		return peer_connection::peer_speed_t(m_speed);
-	}
 
 	void peer_connection::keep_alive()
 	{

@@ -325,9 +325,6 @@ namespace libtorrent
 		void peer_disconnected_other()
 		{ m_exceeded_limit = false; }
 
-		enum peer_speed_t { slow = 1, medium, fast };
-		peer_speed_t peer_speed();
-
 		void send_allowed_set();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1136,12 +1133,6 @@ namespace libtorrent
 		// peer resides in.
 		char m_country[2];
 #endif
-
-		// this is a measurement of how fast the peer
-		// it allows some variance without changing
-		// back and forth between states. values are enums
-		// from peer_speed_t.
-		boost::uint8_t m_speed;
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.
