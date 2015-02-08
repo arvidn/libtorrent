@@ -1888,6 +1888,28 @@ namespace libtorrent
 			src.clear();
 			return num_blocks - to_copy;
 		}
+
+	}
+
+	// lower availability comes first. This is a less-than comparison, it returns
+	// true if lhs has lower availability than rhs
+	bool piece_picker::partial_compare_rarest_first(downloading_piece const* lhs
+		, downloading_piece const* rhs) const
+	{
+		int lhs_availability = m_piece_map[lhs->index].peer_count;
+		int rhs_availability = m_piece_map[rhs->index].peer_count;
+		if (lhs_availability != rhs_availability)
+			return lhs_availability < rhs_availability;
+
+		// if the availability is the same, prefer the piece that's closest to
+		// being complete.
+		int lhs_blocks_left = m_blocks_per_piece - lhs->finished - lhs->writing
+			- lhs->requested;
+		TORRENT_ASSERT(lhs_blocks_left > 0);
+		int rhs_blocks_left = m_blocks_per_piece - rhs->finished - rhs->writing
+			- rhs->requested;
+		TORRENT_ASSERT(rhs_blocks_left > 0);
+		return lhs_blocks_left < rhs_blocks_left;
 	}
 
 	// pieces describes which pieces the peer we're requesting from has.
@@ -1983,29 +2005,58 @@ namespace libtorrent
 
 		if (options & prioritize_partials)
 		{
-			// TODO: 3 prioritize partials correctly. either by rarity or by which
-			// one is closest to being complete
+			// first, allocate a small array on the stack of all the partial
+			// pieces (downloading_piece). We'll then sort this list by
+			// availability or by some other condition. The list of partial pieces
+			// in m_downloads is ordered by piece index, this is to have O(log n)
+			// lookups when finding a downloading_piece for a specific piece index.
+			// this is important and needs to stay sorted that way, that's why
+			// we're copying it here
+			downloading_piece const** ordered_partials = TORRENT_ALLOCA(
+				downloading_piece const*, m_downloads[piece_pos::piece_downloading].size());
+			int num_ordered_partials = 0;
+
+			// now, copy over the pointers. We also apply a filter here to not
+			// include ineligible pieces in certain modes. For instance, a piece
+			// that the current peer doesn't have is not included.
 			for (std::vector<downloading_piece>::const_iterator i
 				= m_downloads[piece_pos::piece_downloading].begin()
 				, end(m_downloads[piece_pos::piece_downloading].end()); i != end; ++i)
 			{
+				pc.inc_stats_counter(counters::piece_picker_partial_loops);
+
 				// in time critical mode, only pick high priority pieces
 				if ((options & time_critical_mode)
 					&& piece_priority(i->index) != priority_levels - 1)
 					continue;
 
-				pc.inc_stats_counter(counters::piece_picker_partial_loops);
 				if (!is_piece_free(i->index, pieces)) continue;
+
 				TORRENT_ASSERT(m_piece_map[i->index].download_queue()
 					== piece_pos::piece_downloading);
-				if (int(backup_blocks.size()) >= num_blocks
-					&& int(backup_blocks2.size()) >= num_blocks)
-					break;
 
-				num_blocks = add_blocks_downloading(*i, pieces
+				ordered_partials[num_ordered_partials++] = &*i;
+			}
+
+			// now, sort the list.
+			// TODO: this could probably be optimized by incrementally
+			// calling partial_sort to sort one more element in the list. Because
+			// chances are that we'll just need a single piece, and once we've
+			// picked from it we're done. Sorting the rest of the list in that
+			// case is a waste of time.
+			std::sort(ordered_partials, ordered_partials + num_ordered_partials
+				, boost::bind(&piece_picker::partial_compare_rarest_first, this
+					, _1, _2));
+
+			for (int i = 0; i < num_ordered_partials; ++i)
+			{
+				num_blocks = add_blocks_downloading(*ordered_partials[i], pieces
 					, interesting_blocks, backup_blocks, backup_blocks2
 					, num_blocks, prefer_contiguous_blocks, peer, speed, options);
 				if (num_blocks <= 0) return;
+				if (int(backup_blocks.size()) >= num_blocks
+					&& int(backup_blocks2.size()) >= num_blocks)
+					break;
 			}
 
 			num_blocks = append_blocks(interesting_blocks, backup_blocks

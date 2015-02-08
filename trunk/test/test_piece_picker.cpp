@@ -611,14 +611,36 @@ int test_main()
 
 // ========================================================
 
-	// make sure downloading pieces closer to completion have higher priority
-	// piece 3 has only 1 block from being completed, and should be picked
-//	print_title("test downloading piece order");
-//	p = setup_picker("1111111", "       ", "", "013700f");
-//	picked = pick_pieces(p, "*******", 1, 0, 0, piece_picker::fast
-//		, options | piece_picker::prioritize_partials, empty_vector);
-//	TEST_CHECK(int(picked.size()) > 0);
-//	TEST_CHECK(picked.front() == piece_block(3, 3));
+	// when we're prioritizing partial pieces, make sure to first pick the
+	// rarest of them. The blocks in this test are:
+	// 0: [    ] avail: 1
+	// 1: [x   ] avail: 1
+	// 2: [xx  ] avail: 1
+	// 3: [xxx ] avail: 2
+	// 4: [    ] avail: 1
+	// 5: [    ] avail: 1
+	// 6: [xxxx] avail: 1
+	// piece 6 does not have any blocks left to pick, even though piece 3 only
+	// has a single block left before it completes, it is less rare than piece
+	// 2. Piece 2 is the best pick in this case.
+	print_title("test partial piece order (rarest first)");
+	p = setup_picker("1112111", "       ", "", "013700f");
+	picked = pick_pieces(p, "*******", 1, 0, 0, piece_picker::fast
+		, options | piece_picker::prioritize_partials, empty_vector);
+	TEST_CHECK(int(picked.size()) > 0);
+	TEST_CHECK(picked.front() == piece_block(2, 2)
+		|| picked.front() == piece_block(2, 3));
+
+	// as a tie breaker, make sure downloading pieces closer to completion have
+	// higher priority. piece 3 is only 1 block from being completed, and should
+	// be picked
+
+	print_title("test partial piece order (most complete)");
+	p = setup_picker("1111111", "       ", "", "013700f");
+	picked = pick_pieces(p, "*******", 1, 0, 0, piece_picker::fast
+		, options | piece_picker::prioritize_partials, empty_vector);
+	TEST_CHECK(int(picked.size()) > 0);
+	TEST_CHECK(picked.front() == piece_block(3, 3));
 
 // ========================================================
 

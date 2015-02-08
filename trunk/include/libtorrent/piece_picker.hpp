@@ -480,6 +480,8 @@ namespace libtorrent
 
 		std::pair<int, int> distributed_copies() const;
 
+		void set_num_pad_files(int n) { m_num_pad_files = n; }
+
 	private:
 
 		friend struct piece_pos;
@@ -705,8 +707,6 @@ namespace libtorrent
 			{ return index == p.index && peer_count == p.peer_count; }
 		};
 
-		void set_num_pad_files(int n) { m_num_pad_files = n; }
-
 	private:
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
@@ -716,6 +716,9 @@ namespace libtorrent
 		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
 #endif
 #endif
+
+		bool partial_compare_rarest_first(downloading_piece const* lhs
+		, downloading_piece const* rhs) const;
 
 		void break_one_seed();
 
