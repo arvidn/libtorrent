@@ -642,6 +642,33 @@ int test_main()
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(3, 3));
 
+	// TODO: 3 if we use prioritize_partials + sequential, we should prefer
+	// the the partial pieces based on piece index instead
+
+// ========================================================
+
+	// make sure the random piece picker can still pick partial pieces
+	print_title("test random picking (downloading piece)");
+	p = setup_picker("1111111", "       ", "", "013700f");
+	picked = pick_pieces(p, " ***  *", 1, 0, 0, piece_picker::fast
+		, 0, empty_vector);
+	TEST_CHECK(int(picked.size()) > 0);
+	TEST_CHECK(picked.front() == piece_block(1, 1)
+		|| picked.front() == piece_block(2, 2)
+		|| picked.front() == piece_block(3, 3));
+
+	// make sure the random piece picker can still pick partial pieces
+	// even when prefer_contiguous_blocks is set
+	print_title("test random picking (downloading piece, prefer contiguous)");
+	p = setup_picker("1111111", "       ", "", "013700f");
+	picked = pick_pieces(p, " ***  *", 1, 4, 0, piece_picker::fast
+		, 0, empty_vector);
+	TEST_CHECK(int(picked.size()) > 0);
+	TEST_CHECK(picked.front() == piece_block(1, 1)
+		|| picked.front() == piece_block(2, 2)
+		|| picked.front() == piece_block(3, 3));
+
+
 // ========================================================
 
 	// test sequential download

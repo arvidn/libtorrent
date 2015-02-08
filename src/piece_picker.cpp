@@ -2228,7 +2228,7 @@ namespace libtorrent
 				bool done = false;
 				// skip pieces we can't pick, and suggested pieces
 				// since we've already picked those
-				while (!can_pick(piece, pieces)
+				while (!is_piece_free(piece, pieces)
 					|| std::find(suggested_pieces.begin()
 						, suggested_pieces.end(), piece)
 						!= suggested_pieces.end())
@@ -2237,38 +2237,52 @@ namespace libtorrent
 					++piece;
 					if (piece == int(m_piece_map.size())) piece = 0;
 					// could not find any more pieces
-					if (piece == start_piece) { done = true; break; }
+					if (piece == start_piece) { goto get_out; }
 				}
-				if (done) break;
 
-				TORRENT_ASSERT(can_pick(piece, pieces));
-				TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
-
-				int start, end;
-				boost::tie(start, end) = expand_piece(piece
-					, prefer_contiguous_blocks, pieces, options);
-				for (int k = start; k < end; ++k)
+				if (prefer_contiguous_blocks > 1 && !m_piece_map[piece].downloading())
 				{
-					TORRENT_ASSERT(m_piece_map[k].downloading() == false);
-					TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
-					int num_blocks_in_piece = blocks_in_piece(k);
-					for (int j = 0; j < num_blocks_in_piece; ++j)
+					TORRENT_ASSERT(can_pick(piece, pieces));
+					TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
+
+					int start, end;
+					boost::tie(start, end) = expand_piece(piece
+						, prefer_contiguous_blocks, pieces, options);
+					TORRENT_ASSERT(end - start > 0);
+					for (int k = start; k < end; ++k)
 					{
-						pc.inc_stats_counter(counters::piece_picker_rand_loops);
-						TORRENT_ASSERT(is_piece_free(k, pieces));
-						interesting_blocks.push_back(piece_block(k, j));
-						--num_blocks;
-						--prefer_contiguous_blocks;
-						if (prefer_contiguous_blocks == 0
-							&& num_blocks <= 0) break;
+						TORRENT_ASSERT(m_piece_map[k].downloading() == false);
+						TORRENT_ASSERT(m_piece_map[k].priority(this) >= 0);
+						int num_blocks_in_piece = blocks_in_piece(k);
+						for (int j = 0; j < num_blocks_in_piece; ++j)
+						{
+							pc.inc_stats_counter(counters::piece_picker_rand_loops);
+							TORRENT_ASSERT(is_piece_free(k, pieces));
+							interesting_blocks.push_back(piece_block(k, j));
+							--num_blocks;
+							--prefer_contiguous_blocks;
+							if (prefer_contiguous_blocks <= 0
+								&& num_blocks <= 0) break;
+						}
 					}
+					piece = end;
 				}
-				piece = end;
+				else
+				{
+					num_blocks = add_blocks(piece, pieces
+						, interesting_blocks, backup_blocks
+						, backup_blocks2, num_blocks
+						, prefer_contiguous_blocks, peer, empty_vector
+						, speed, options);
+					++piece;
+				}
+
 				if (piece == int(m_piece_map.size())) piece = 0;
 				// could not find any more pieces
 				if (piece == start_piece) break;
 			}
 		}
+get_out:
 
 		if (num_blocks <= 0) return;
 
@@ -2314,6 +2328,8 @@ namespace libtorrent
 		int c = 0;
 
 #ifdef TORRENT_DEBUG
+		// if we get here, we're about to pick a busy block. First, make sure
+		// we really exhausted the available blocks
 		for (std::vector<downloading_piece>::const_iterator i
 			= m_downloads[piece_pos::piece_downloading].begin()
 			, end(m_downloads[piece_pos::piece_downloading].end()); i != end; ++i)
@@ -2325,6 +2341,19 @@ namespace libtorrent
 				continue;
 
 			// we either don't have this piece, or we've already requested from it
+			if (!pieces[dp.index]) continue;
+
+			// if we already have the piece, obviously we should not have 
+			// since this is a partial piece in the piece_downloading state, we
+			// should not already have it
+			TORRENT_ASSERT(!m_piece_map[dp.index].have());
+
+			// if it was filtered, it would be in the prio_zero queue
+			TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
+
+			// we're not allowed to pick from locked pieces
+			if (dp.locked) continue;
+
 			bool found = false;
 			for (std::vector<piece_block>::const_iterator j
 				= interesting_blocks.begin(), end(interesting_blocks.end());
@@ -2334,7 +2363,9 @@ namespace libtorrent
 				found = true;
 				break;
 			}
-			TORRENT_ASSERT(!pieces[dp.index] || found || dp.locked);
+
+			// we expect to find this piece in our interesting_blocks list
+			TORRENT_ASSERT(found);
 		}
 #endif
 
@@ -2891,7 +2922,6 @@ namespace libtorrent
 		int queue, int index)
 	{
 		TORRENT_ASSERT(queue >= 0 && queue < piece_pos::num_download_categories);
-//		return std::find_if(m_downloads[queue].begin(), m_downloads[queue].end(), has_index(index));
 		downloading_piece cmp;
 		cmp.index = index;
 		std::vector<piece_picker::downloading_piece>::iterator i = std::lower_bound(
@@ -2904,15 +2934,7 @@ namespace libtorrent
 	std::vector<piece_picker::downloading_piece>::const_iterator piece_picker::find_dl_piece(
 		int queue, int index) const
 	{
-		TORRENT_ASSERT(queue >= 0 && queue < piece_pos::num_download_categories);
-//		return std::find_if(m_downloads[queue].begin(), m_downloads[queue].end(), has_index(index));
-		downloading_piece cmp;
-		cmp.index = index;
-		std::vector<piece_picker::downloading_piece>::const_iterator i = std::lower_bound(
-			m_downloads[queue].begin(), m_downloads[queue].end(), cmp);
-		if (i == m_downloads[queue].end()) return i;
-		if (i->index == index) return i;
-		return m_downloads[queue].end();
+		return const_cast<piece_picker*>(this)->find_dl_piece(queue, index);
 	}
 
 	std::vector<piece_picker::downloading_piece>::iterator
