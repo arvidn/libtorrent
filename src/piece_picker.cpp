@@ -1937,8 +1937,15 @@ namespace libtorrent
 		// make this scale by the number of peers we have. For large
 		// scale clients, we would have more peers, and allow a higher
 		// threshold for the number of partials
-		if (int(m_downloads[piece_pos::piece_downloading].size())
-			> m_num_pad_files + num_peers * 3 / 2)
+		// deduct pad files because they case partial pieces which are OK
+		// the second condition is to make sure we cap the number of partial
+		// _bytes_. The larger the pieces are, the fewer partial pieces we want.
+		// 2048 corresponds to 32 MiB
+		// TODO: 2 make the 2048 limit configurable
+		const int num_partials = int(m_downloads[piece_pos::piece_downloading].size())
+			- m_num_pad_files;
+		if (num_partials > num_peers * 3 / 2
+			|| num_partials * m_blocks_per_piece > 2048)
 		{
 			// if we have too many partial pieces, prioritize completing
 			// them. In order for this to have an affect, also disable
@@ -1976,6 +1983,8 @@ namespace libtorrent
 
 		if (options & prioritize_partials)
 		{
+			// TODO: 3 prioritize partials correctly. either by rarity or by which
+			// one is closest to being complete
 			for (std::vector<downloading_piece>::const_iterator i
 				= m_downloads[piece_pos::piece_downloading].begin()
 				, end(m_downloads[piece_pos::piece_downloading].end()); i != end; ++i)
@@ -1991,7 +2000,7 @@ namespace libtorrent
 					== piece_pos::piece_downloading);
 				if (int(backup_blocks.size()) >= num_blocks
 					&& int(backup_blocks2.size()) >= num_blocks)
-					continue;
+					break;
 
 				num_blocks = add_blocks_downloading(*i, pieces
 					, interesting_blocks, backup_blocks, backup_blocks2
@@ -2909,7 +2918,7 @@ namespace libtorrent
 		// the correct list
 		TORRENT_ASSERT(find_dl_piece(p.download_queue(), dp->index) == dp);
 
-		// remove the download_piece from the list corresponding
+		// remove the downloading_piece from the list corresponding
 		// to the old state
 		downloading_piece dp_info = *dp;
 		m_downloads[p.download_queue()].erase(dp);
@@ -2920,7 +2929,7 @@ namespace libtorrent
 		std::cerr << "[" << this << "] " << " " << dp_info.index << " state (" << current_state << " -> " << new_state << ")" << std::endl;
 #endif
 
-		// insert the download_piece in the list corresponding to
+		// insert the downloading_piece in the list corresponding to
 		// the new state
 		downloading_piece cmp;
 		cmp.index = dp_info.index;
