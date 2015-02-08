@@ -493,6 +493,7 @@ namespace libtorrent
 
 	public:
 
+		// TODO: 2 this type should not be public
 		struct piece_pos
 		{
 			piece_pos() {}
