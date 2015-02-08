@@ -279,6 +279,38 @@ void print(char const* str)
 			WriteFile(out, start, buf - start, &written, NULL);
 			buf += 2; // skip escape and '['
 			start = buf;
+			if (*start == 'K')
+			{
+				// this means clear the rest of the line.
+				CONSOLE_SCREEN_BUFFER_INFO sbi;
+				if (GetConsoleScreenBufferInfo(out, &sbi))
+				{
+					COORD pos = sbi.dwCursorPosition;
+					int width = sbi.dwSize.X;
+					int run = width - pos.X;
+					DWORD n;
+					FillConsoleOutputAttribute(out, 0x7, run, pos, &n);
+					FillConsoleOutputCharacter(out, ' ', run, pos, &n);
+				}
+				++buf;
+				continue;
+			}
+			else if (*start == 'J')
+			{
+				// clear rest of screen
+				CONSOLE_SCREEN_BUFFER_INFO sbi;
+				if (GetConsoleScreenBufferInfo(out, &sbi))
+				{
+					COORD pos = sbi.dwCursorPosition;
+					int width = sbi.dwSize.X;
+					int run = (width - pos.X) + width * (sbi.swSize.Y - pos.Y - 1);
+					DWORD n;
+					FillConsoleOutputAttribute(out, 0x7, run, pos, &n);
+					FillConsoleOutputCharacter(out, ' ', run, pos, &n);
+				}
+				++buf;
+				continue;
+			}
 		one_more:
 			while (*buf != 'm' && *buf != ';' && *buf != 0) ++buf;
 			if (*buf == 0) break;
@@ -302,7 +334,7 @@ void print(char const* str)
 	WriteFile(out, start, buf - start, &written, NULL);
 
 #else
-	puts(str);
+	fputs(str, stdout);
 #endif
 }
 
