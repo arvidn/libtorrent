@@ -50,7 +50,7 @@ std::string escape_json(std::string const& input)
 
 	std::vector<boost::uint32_t> wide;
 	wide.resize(input.size());
-	static iconv_t iconv_handle = iconv_open("UTF-8", "UTF-32");
+	static iconv_t iconv_handle = iconv_open("UTF-32", "UTF-8");
 	if (iconv_handle == iconv_t(-1)) return "(iconv error)";
 
 	size_t insize = input.size();
