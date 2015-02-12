@@ -302,6 +302,7 @@ int test_main()
 
 	// test abort_download
 	print_title("test abort_download");
+
 	p = setup_picker("1111111", "       ", "7110000", ""); 
 	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer
 		, options, empty_vector);
@@ -357,6 +358,10 @@ int test_main()
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
 
+// ========================================================
+
+	print_title("test abort_download");
+
 	p = setup_picker("1111111", "       ", "7110000", ""); 
 	p->mark_as_downloading(piece_block(0,0), &tmp1);
 	p->mark_as_finished(piece_block(0,1), 0);
@@ -372,6 +377,12 @@ int test_main()
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
 
+// ========================================================
+
+	print_title("test get_downloaders");
+
+	p = setup_picker("1111111", "       ", "7110000", ""); 
+
 	p->mark_as_downloading(piece_block(0, 2), &tmp1);
 	p->mark_as_writing(piece_block(0, 2), &tmp1);
 	p->abort_download(piece_block(0, 2), &tmp1);
@@ -380,7 +391,11 @@ int test_main()
 
 	std::vector<void*> d;
 	p->get_downloaders(d, 0);
+	TEST_EQUAL(d.size(), 4);
+	TEST_CHECK(d[0] == NULL);
+	TEST_CHECK(d[1] == NULL);
 	TEST_CHECK(d[2] == &tmp2);
+	TEST_CHECK(d[3] == NULL);
 
 	p->mark_as_downloading(piece_block(0, 3), &tmp1);
 	p->abort_download(piece_block(0, 3), &tmp1);
@@ -388,7 +403,24 @@ int test_main()
 	p->mark_as_writing(piece_block(0, 3), &tmp2);
 
 	p->get_downloaders(d, 0);
+
+	TEST_EQUAL(d.size(), 4);
+	TEST_CHECK(d[0] == NULL);
+	TEST_CHECK(d[1] == NULL);
+	TEST_CHECK(d[2] == &tmp2);
 	TEST_CHECK(d[3] == &tmp2);
+
+	// if we ask for downloaders for a piece that's not
+	// curently being downloaded, we get zeroes back
+	p->get_downloaders(d, 1);
+
+	TEST_EQUAL(d.size(), 4);
+	TEST_CHECK(d[0] == NULL);
+	TEST_CHECK(d[1] == NULL);
+	TEST_CHECK(d[2] == NULL);
+	TEST_CHECK(d[3] == NULL);
+
+// ========================================================
 
 	p = setup_picker("2222", "    ", "", "");
 
@@ -1255,18 +1287,15 @@ int test_main()
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
-	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, 0);
 	p->dec_refcount(string2vec("  ****  **      "), &tmp0);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1100001100111111"));
 
-	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, 0);
 	p->inc_refcount(string2vec("  ****  **      "), &tmp0);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
-	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, 0);
 	p->dec_refcount_all(&tmp0);
 	TEST_CHECK(verify_availability(p, "0000000000000000"));
@@ -1275,9 +1304,24 @@ int test_main()
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1111111111111111"));
 
-	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, 0);
 	p->dec_refcount(3, &tmp1);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "1110111111111111"));
+
+	p->inc_refcount(string2vec("****************"), &tmp2);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "2221222222222222"));
+
+	p->inc_refcount(string2vec("* * * * * * * * "), &tmp3);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "3231323232323232"));
+
+	p->dec_refcount(string2vec("****************"), &tmp2);
+	print_availability(p);
+	TEST_CHECK(verify_availability(p, "2120212121212121"));
+
+	p->dec_refcount(string2vec("* * * * * * * * "), &tmp3);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1110111111111111"));
 
@@ -1334,8 +1378,142 @@ int test_main()
 
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::reverse), 0);
 
-// MISSING TESTS:
-// 2. write_failed
+// ========================================================
+
+	print_title("test piece_stats");
+
+	p = setup_picker("3456789", "*      ", "", "0300000");
+
+	piece_picker::piece_stats_t stat = p->piece_stats(0);
+	TEST_EQUAL(stat.peer_count, 3);
+	TEST_EQUAL(stat.have, 1);
+	TEST_EQUAL(stat.downloading, 0);
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.peer_count, 4);
+	TEST_EQUAL(stat.have, 0);
+	TEST_EQUAL(stat.downloading, 1);
+
+// ========================================================
+
+	print_title("test piece passed");
+
+	p = setup_picker("1111111", "*      ", "", "0300000");
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
+
+	p->piece_passed(1);
+	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->num_have(), 1);
+
+	p->we_have(1);
+	TEST_EQUAL(p->num_have(), 2);
+
+	p->mark_as_finished(piece_block(2,0), &tmp1);
+	p->piece_passed(2);
+	TEST_EQUAL(p->num_passed(), 3);
+	// just because the hash check passed doesn't mean
+	// we "have" the piece. We need to write it to disk first
+	TEST_EQUAL(p->num_have(), 2);
+
+	// piece 2 already passed the hash check, as soon as we've
+	// written all the blocks to disk, we should have that piece too
+	p->mark_as_finished(piece_block(2,1), &tmp1);
+	p->mark_as_finished(piece_block(2,2), &tmp1);
+	p->mark_as_finished(piece_block(2,3), &tmp1);
+	TEST_EQUAL(p->num_have(), 3);
+	TEST_EQUAL(p->have_piece(2), true);
+
+// ========================================================
+
+	print_title("test we dont have");
+
+	p = setup_picker("1111111", "* *    ", "1101111", "");
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->has_piece_passed(2), true);
+	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->num_have(), 2);
+	TEST_EQUAL(p->num_have_filtered(), 1);
+	TEST_EQUAL(p->num_filtered(), 0);
+
+	p->we_dont_have(0);
+
+	TEST_EQUAL(p->has_piece_passed(0), false);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->has_piece_passed(2), true);
+	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->num_have_filtered(), 1);
+
+	p = setup_picker("1111111", "* *    ", "1101111", "");
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->has_piece_passed(2), true);
+	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->num_have(), 2);
+	TEST_EQUAL(p->num_have_filtered(), 1);
+	TEST_EQUAL(p->num_filtered(), 0);
+
+	p->we_dont_have(2);
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->has_piece_passed(2), false);
+	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->num_have_filtered(), 0);
+
+// ========================================================
+
+	print_title("test we dont have (don't have but passed hash check)");
+
+	p = setup_picker("1111111", "* *    ", "1101111", "0200000");
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->have_piece(0), true)
+	TEST_EQUAL(p->have_piece(1), false)
+
+	p->piece_passed(1);
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), true);
+	TEST_EQUAL(p->have_piece(1), false)
+
+	p->we_dont_have(1);
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->have_piece(1), false)
+
+// ========================================================
+
+	print_title("test write_failed");
+
+	p = setup_picker("1111111", "* *    ", "1101111", "0200000");
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->have_piece(1), false);
+
+	p->piece_passed(1);
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), true);
+	TEST_EQUAL(p->have_piece(1), false);
+
+	p->mark_as_writing(piece_block(1, 0), &tmp1);
+	p->write_failed(piece_block(1, 0));
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->have_piece(1), false);
+
+// ========================================================
 
 /*
 

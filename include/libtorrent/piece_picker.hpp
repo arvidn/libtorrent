@@ -428,7 +428,8 @@ namespace libtorrent
 		int num_have_filtered() const { return m_num_have_filtered; }
 
 		// number of pieces whose hash has passed _and_ they have
-		// been successfully flushed to disk
+		// been successfully flushed to disk. Including pieces we have
+		// also filtered with priority 0 but have anyway.
 		int num_have() const { return m_num_have; }
 
 		// number of pieces whose hash has passed (but haven't necessarily
@@ -809,7 +810,8 @@ namespace libtorrent
 		// the number of regions of pieces we don't have.
 		int m_sparse_regions;
 
-		// the number of pieces we have (i.e. passed + flushed)
+		// the number of pieces we have (i.e. passed + flushed).
+		// This includes pieces that we have filtered but still have
 		int m_num_have;
 		
 		// this is the number of partial download pieces
