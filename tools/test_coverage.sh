@@ -1,11 +1,41 @@
-#!/bin/sh
+#!/bin/bash
 
+OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/debug-iterators-on/export-extra-on/invariant-checks-off/link-static/logging-on/test-coverage-on/threading-multi/src
+
+function run_test {
+	rm $OBJECT_PATH/*.gcda
+
+	cd test
+	rm -rf bin
+	bjam asserts=off invariant-checks=off link=static boost=source test-coverage=on picker-debugging=off -j4 $1
+	cd ..
+
+	lcov -d $OBJECT_PATH/ -c -o coverage_$1_full
+	lcov --extract coverage_$1_full "$2" -o coverage_$1
+	rm -rf $1_coverage
+	genhtml -o $1_coverage -t $1 --num-spaces 4 coverage_$1
+
+}
+
+# force rebuilding and rerunning the unit tests
 cd test
-bjam asserts=off invariant-checks=off link=static boost=source test-coverage=on picker-debugging=off -j4
+rm -rf bin
 cd ..
-lcov --zerocounters -q 
-lcov -d bin/gcc-4.8/debug/asserts-off/boost-source/debug-iterators-on/export-extra-on/invariant-checks-off/link-static/logging-on/picker-debugging-off/test-coverage-on/threading-multi/src/ -c -o coverage
-lcov --remove coverage "/usr*" -o coverage
-lcov --remove coverage "*/boost/*" -o coverage
-genhtml -o test_coverage -t "libtorrent test coverage" --num-spaces 4 coverage
+
+run_test test_piece_picker "*/piece_picker.*"
+run_test test_torrent_info "*/torrent_info.*"
+run_test test_part_file "*/part_file.*"
+run_test test_http_parser "*/http_parser.*"
+run_test test_ip_filter "*/ip_filter.*"
+run_test test_utp "*/utp_stream.*"
+run_test test_peer_list "*/peer_list.*"
+run_test test_gzip "*/gzip.cpp"
+run_test test_file_storage "*/file_storage.*"
+run_test test_storage "*/storage.*"
+run_test test_xml "*/xml_parse.*"
+run_test test_sliding_average "*/sliding_average.*"
+run_test test_string "*/escape_string.*"
+run_test test_utf8 "*/ConvertUTF.*"
+
+
 
