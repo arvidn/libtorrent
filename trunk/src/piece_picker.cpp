@@ -1566,6 +1566,9 @@ namespace libtorrent
 	{
 		piece_pos& p = m_piece_map[index];
 		int download_state = p.download_queue();
+
+		// this is kind of odd. Could this happen?
+		TORRENT_ASSERT(download_state != piece_pos::piece_open);
 		if (download_state == piece_pos::piece_open) return;
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(download_state, index);
@@ -1590,7 +1593,6 @@ namespace libtorrent
 		TORRENT_ASSERT(index < (int)m_piece_map.size());
 
 		piece_pos& p = m_piece_map[index];
-		TORRENT_ASSERT(p.downloading() == false);
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "piece_picker::we_dont_have(" << index << ")" << std::endl;
@@ -1610,6 +1612,8 @@ namespace libtorrent
 				TORRENT_ASSERT(m_num_passed > 0);
 				--m_num_passed;
 			}
+			m_downloads[download_state].erase(i);
+			p.download_state = piece_pos::piece_open;
 			return;
 		}
 
@@ -1661,6 +1665,8 @@ namespace libtorrent
 		int priority = p.priority(this);
 		TORRENT_ASSERT(priority < int(m_priority_boundries.size()) || m_dirty);
 
+		if (p.have()) return;
+
 		if (p.download_queue() != piece_pos::piece_open)
 		{
 			std::vector<downloading_piece>::iterator i
@@ -1671,8 +1677,6 @@ namespace libtorrent
 			if (i->passed_hash_check) --m_num_passed;
 			erase_download_piece(i);
 		}
-
-		if (p.have()) return;
 
 // maintain sparse_regions
 		if (index == 0)
@@ -3353,6 +3357,8 @@ get_out:
 	// TODO: 2 it would be nice if this could be folded into lock_piece()
 	// the main distinction is that this also maintains the m_num_passed
 	// counter and the passed_hash_check member
+	// Is there ever a case where we call write filed without also locking
+	// the piece? Perhaps write_failed() should imply locking it.
 	void piece_picker::write_failed(piece_block block)
 	{
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -3470,7 +3476,8 @@ get_out:
 #endif
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "mark_as_finished( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+		std::cerr << "[" << this << "] " << "mark_as_finished( {"
+			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
@@ -3562,23 +3569,29 @@ get_out:
 
 	}
 
+	// TODO: 3 this doesn't appear to be used for anything. Can it be removed
+	// or should it be used to plug some race when requesting and checking pieces?
 	void piece_picker::mark_as_checking(int index)
 	{
+/*
 		int state = m_piece_map[index].download_queue();
 		if (state == piece_pos::piece_open) return;
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
 		if (i == m_downloads[state].end()) return;
 		TORRENT_ASSERT(i->outstanding_hash_check == false);
 		i->outstanding_hash_check = true;
+*/
 	}
 
 	void piece_picker::mark_as_done_checking(int index)
 	{
+/*
 		int state = m_piece_map[index].download_queue();
 		if (state == piece_pos::piece_open) return;
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
 		if (i == m_downloads[state].end()) return;
 		i->outstanding_hash_check = false;
+*/
 	}
 
 	void piece_picker::get_requestors(std::vector<void*>& d, int index) const
