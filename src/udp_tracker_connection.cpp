@@ -317,7 +317,6 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
-		m_abort = true;
 		fail(error_code(errors::timed_out));
 	}
 
