@@ -1612,7 +1612,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_num_passed > 0);
 				--m_num_passed;
 			}
-			m_downloads[download_state].erase(i);
+			erase_download_piece(i);
 			p.download_state = piece_pos::piece_open;
 			return;
 		}

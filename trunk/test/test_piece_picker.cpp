@@ -1429,6 +1429,43 @@ int test_main()
 
 // ========================================================
 
+	print_title("test piece passed (causing we_have)");
+
+	p = setup_picker("1111111", "*      ", "", "0700000");
+
+	TEST_EQUAL(p->has_piece_passed(0), true);
+	TEST_EQUAL(p->has_piece_passed(1), false);
+	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
+
+	p->mark_as_finished(piece_block(1,3), &tmp1);
+	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
+
+	p->piece_passed(1);
+	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->num_have(), 2);
+
+// ========================================================
+
+	print_title("test break_one_seed");
+
+	p = setup_picker("0000000", "*      ", "", "0700000");
+	p->inc_refcount_all(&tmp1);
+	p->inc_refcount_all(&tmp2);
+	p->inc_refcount_all(&tmp3);
+
+	TEST_EQUAL(p->piece_stats(0).peer_count, 3);
+
+	p->dec_refcount(0, &tmp1);
+
+	TEST_EQUAL(p->piece_stats(0).peer_count, 2);
+	TEST_EQUAL(p->piece_stats(1).peer_count, 3);
+	TEST_EQUAL(p->piece_stats(2).peer_count, 3);
+	TEST_EQUAL(p->piece_stats(3).peer_count, 3);
+
+// ========================================================
+
 	print_title("test we dont have");
 
 	p = setup_picker("1111111", "* *    ", "1101111", "");
@@ -1514,6 +1551,17 @@ int test_main()
 	TEST_EQUAL(p->have_piece(1), false);
 
 // ========================================================
+
+	// make sure write_failed() and lock_piece() actually
+	// locks the piece, and that it won't be picked.
+	// also make sure restore_piece() unlocks it and makes
+	// it available for picking again.
+
+	// test mark_as_canceled()
+
+	// test get_download_queue()
+
+	// test get_requestors() (similar to get_downloaders())
 
 /*
 
