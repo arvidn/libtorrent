@@ -2790,7 +2790,7 @@ namespace libtorrent
 			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
 			{
 				std::vector<void*> d;
-				t->picker().get_requestors(d, piece);
+				t->picker().get_downloaders(d, piece);
 				if (d.size() == 1)
 				{
 					// only make predictions if all remaining

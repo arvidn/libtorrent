@@ -1550,18 +1550,81 @@ int test_main()
 	TEST_EQUAL(p->has_piece_passed(1), false);
 	TEST_EQUAL(p->have_piece(1), false);
 
-// ========================================================
-
 	// make sure write_failed() and lock_piece() actually
 	// locks the piece, and that it won't be picked.
 	// also make sure restore_piece() unlocks it and makes
 	// it available for picking again.
 
-	// test mark_as_canceled()
+	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, 0);
+	TEST_EQUAL(picked.size(), 0);
 
-	// test get_download_queue()
+	p->restore_piece(1);
 
-	// test get_requestors() (similar to get_downloaders())
+	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, 0);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+
+	// locking pieces only works on partial pieces
+	p->mark_as_writing(piece_block(1, 0), &tmp1);
+	p->lock_piece(1);
+
+	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, 0);
+	TEST_EQUAL(picked.size(), 0);
+
+// ========================================================
+
+	print_title("test write_failed (clear piece)");
+
+	p = setup_picker("1111111", "* *    ", "1101111", "");
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 0);
+
+	p->mark_as_writing(piece_block(1, 0), &tmp1);
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 1);
+
+	p->write_failed(piece_block(1, 0));
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 0);
+
+// ========================================================
+
+	print_title("test mark_as_canceled");
+
+	p = setup_picker("1111111", "* *    ", "1101111", "");
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 0);
+
+	p->mark_as_writing(piece_block(1, 0), &tmp1);
+
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 1);
+
+	p->mark_as_canceled(piece_block(1, 0), &tmp1);
+	stat = p->piece_stats(1);
+	TEST_EQUAL(stat.downloading, 0);
+
+// ========================================================
+
+	print_title("test get_download_queue");
+
+	p = setup_picker("1111111", "       ", "1101111", "0327000");
+
+	std::vector<piece_picker::downloading_piece> downloads
+		= p->get_download_queue();
+
+	// the download queue should have piece 1, 2 and 3 in it
+	TEST_EQUAL(downloads.size(), 3);
+
+	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
+		, boost::bind(&piece_picker::downloading_piece::index, _1) == 1) != downloads.end());
+	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
+		, boost::bind(&piece_picker::downloading_piece::index, _1) == 2) != downloads.end());
+	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
+		, boost::bind(&piece_picker::downloading_piece::index, _1) == 3) != downloads.end());
 
 /*
 

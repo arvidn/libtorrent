@@ -28,14 +28,10 @@ VERSION = 1.1.0 ;
 rule coverage ( properties * )
 {
 	local result ;
-	if ! <test-coverage>on
-	{
-		return $(result) ;
-	}
-
-	if <toolset>gcc in $(properties)
+	if <test-coverage>on in $(properties)
+		&& ( <toolset>gcc in $(properties)
 		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties)
+		|| <toolset>clang in $(properties) )
 	{
 		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
 

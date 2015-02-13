@@ -173,6 +173,8 @@ namespace libtorrent
 			// info about each block
 			// this is a pointer into the m_block_info
 			// vector owned by the piece_picker
+			// TODO: 2 if we could make this an index into m_block_info instead
+			// we would save at least 4 or 5 bytes
 			block_info* info;
 
 			// the index of the piece
@@ -366,8 +368,8 @@ namespace libtorrent
 
 		void piece_passed(int index);
 
-		void mark_as_checking(int index);
-		void mark_as_done_checking(int index);
+//		void mark_as_checking(int index);
+//		void mark_as_done_checking(int index);
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
@@ -404,10 +406,6 @@ namespace libtorrent
 		// the number of downloaded blocks that hasn't passed
 		// the hash-check yet
 		int unverified_blocks() const;
-
-		// return the peer pointers for all blocks that are currently
-		// in requested state (i.e. requested but not received)
-		void get_requestors(std::vector<void*>& d, int index) const;
 
 		// return the peer pointers to all peers that participated in
 		// this piece

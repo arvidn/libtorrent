@@ -3425,7 +3425,9 @@ get_out:
 	void piece_picker::mark_as_canceled(piece_block block, void* peer)
 	{
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "mark_as_cancelled( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+		std::cerr << "[" << this << "] " << "mark_as_cancelled( {"
+			<< block.piece_index << ", " << block.block_index
+			<< "} )" << std::endl;
 #endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -3458,6 +3460,21 @@ get_out:
 		{
 			--i->writing;
 			info.state = block_info::state_none;
+			// i may be invalid after this call
+			i = update_piece_state(i);
+
+			if (i->finished + i->writing + i->requested == 0)
+			{
+				piece_pos& p = m_piece_map[block.piece_index];
+				int prev_priority = p.priority(this);
+				erase_download_piece(i);
+				int new_priority = p.priority(this);
+
+				if (m_dirty) return;
+				if (new_priority == prev_priority) return;
+				if (prev_priority == -1) add(block.piece_index);
+				else update(prev_priority, p.index);
+			}
 		}
 		else
 		{
@@ -3569,48 +3586,26 @@ get_out:
 
 	}
 
-	// TODO: 3 this doesn't appear to be used for anything. Can it be removed
-	// or should it be used to plug some race when requesting and checking pieces?
+/*
 	void piece_picker::mark_as_checking(int index)
 	{
-/*
 		int state = m_piece_map[index].download_queue();
 		if (state == piece_pos::piece_open) return;
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
 		if (i == m_downloads[state].end()) return;
 		TORRENT_ASSERT(i->outstanding_hash_check == false);
 		i->outstanding_hash_check = true;
-*/
 	}
 
 	void piece_picker::mark_as_done_checking(int index)
 	{
-/*
 		int state = m_piece_map[index].download_queue();
 		if (state == piece_pos::piece_open) return;
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
 		if (i == m_downloads[state].end()) return;
 		i->outstanding_hash_check = false;
+	}
 */
-	}
-
-	void piece_picker::get_requestors(std::vector<void*>& d, int index) const
-	{
-		TORRENT_ASSERT(index >= 0 && index <= (int)m_piece_map.size());
-
-		int state = m_piece_map[index].download_queue();
-		TORRENT_ASSERT(state != piece_pos::piece_open);
-		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state, index);
-		TORRENT_ASSERT(i != m_downloads[state].end());
-
-		d.clear();
-		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
-		{
-			if (i->info[j].state != block_info::state_requested) continue;
-			if (i->info[j].peer == 0) continue;
-			d.push_back(i->info[j].peer);
-		}
-	}
 
 	void piece_picker::get_downloaders(std::vector<void*>& d, int index) const
 	{
@@ -3618,18 +3613,21 @@ get_out:
 
 		d.clear();
 		int state = m_piece_map[index].download_queue();
+		int num_blocks = blocks_in_piece(index);
+		d.reserve(num_blocks);
+
 		if (state == piece_pos::piece_open)
 		{
-			int num_blocks = blocks_in_piece(index);
 			for (int i = 0; i < num_blocks; ++i) d.push_back(0);
 			return;
 		}
 
-		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state, index);
+		std::vector<downloading_piece>::const_iterator i
+			= find_dl_piece(state, index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
 		TORRENT_ASSERT(i->info >= &m_block_info[0]
 			&& i->info < &m_block_info[0] + m_block_info.size());
-		for (int j = 0, end(blocks_in_piece(index)); j != end; ++j)
+		for (int j = 0; j != num_blocks; ++j)
 		{
 			TORRENT_ASSERT(i->info[j].peer == 0 || static_cast<torrent_peer*>(i->info[j].peer)->in_use);
 			d.push_back(i->info[j].peer);

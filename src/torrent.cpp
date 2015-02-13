@@ -3897,7 +3897,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_picker->have_piece(j->piece));
 
-		picker().mark_as_done_checking(j->piece);
+//		picker().mark_as_done_checking(j->piece);
 
 		state_updated();
 
@@ -10824,7 +10824,7 @@ namespace libtorrent
 	// adds a piece
 	void torrent::verify_piece(int piece)
 	{
-		picker().mark_as_checking(piece);
+//		picker().mark_as_checking(piece);
 
 		inc_refcount("verify_piece");
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
