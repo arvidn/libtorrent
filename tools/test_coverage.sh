@@ -12,15 +12,18 @@ function run_test {
 
 	lcov -d $OBJECT_PATH/ -c -o coverage_$1_full
 	lcov --extract coverage_$1_full "$2" -o coverage_$1
-	rm -rf $1_coverage
-	genhtml -o $1_coverage -t $1 --num-spaces 4 coverage_$1
-
+	rm -rf test-coverage/$1
+	genhtml -o test-coverage/$1 -t $1 --num-spaces 4 coverage_$1
+	rm coverage_$1 coverage_$1_full
+	
 }
 
 # force rebuilding and rerunning the unit tests
 cd test
 rm -rf bin
 cd ..
+
+mkdir test-coverage
 
 run_test test_piece_picker "*/piece_picker.*"
 run_test test_torrent_info "*/torrent_info.*"
