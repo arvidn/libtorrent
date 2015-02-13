@@ -57,6 +57,9 @@ int test_main()
 	to_hex(bin, 20, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
 
+	TEST_CHECK(to_hex("\x55\x73") == "5573");
+	TEST_CHECK(to_hex("\xaB\xd0") == "abd0");
+
 	// test is_space
 
 	TEST_CHECK(!is_space('C'));
@@ -175,6 +178,18 @@ int test_main()
 	unescape_string("%eg", ec);
 	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
 	ec.clear();
+
+	TEST_CHECK(unescape_string("123+abc", ec) == "123 abc");
+
+
+	// read_until
+
+	char const* test_string1 = "abcdesdf sdgf";
+	char const* tmp1 = test_string1;
+	TEST_CHECK(read_until(tmp1, 'd', test_string1 + strlen(test_string1)) == "abc");
+
+	tmp1 = test_string1;
+	TEST_CHECK(read_until(tmp1, '[', test_string1 + strlen(test_string1)) == "abcdesdf sdgf");
 
 	char hex_chars[] = "0123456789abcdefABCDEF";
 
