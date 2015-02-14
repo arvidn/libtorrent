@@ -568,9 +568,9 @@ namespace libtorrent
 		TORRENT_SYNC_CALL2(refresh_torrent_status, ret, flags);
 	}
 
-	void session::post_torrent_updates()
+	void session::post_torrent_updates(boost::uint32_t flags)
 	{
-		TORRENT_ASYNC_CALL(post_torrent_updates);
+		TORRENT_ASYNC_CALL1(post_torrent_updates, flags);
 	}
 
 	std::vector<stats_metric> session_stats_metrics()

@@ -34,12 +34,12 @@ rule link_libtorrent ( properties * )
 	if <link>shared in $(properties)
 	{
 		result +=
-			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+			<library>/torrent//torrent/<link>shared/<logging>on/<boost-link>shared/<export-extra>on ;
 	}
 	else
 	{
 		result +=
-			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+			<library>/torrent//torrent/<link>static/<logging>on/<boost-link>static/<export-extra>on ;
 	}
 	return $(result) ;
 }
@@ -64,6 +64,7 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
+	<logging>on
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED

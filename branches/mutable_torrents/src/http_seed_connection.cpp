@@ -75,7 +75,7 @@ namespace libtorrent
 		max_out_request_queue(m_settings.get_int(settings_pack::urlseed_pipeline_size)
 			* blocks_per_piece);
 
-		prefer_whole_pieces(1);
+		prefer_contiguous_blocks(blocks_per_piece);
 
 #ifdef TORRENT_LOGGING
 		peer_log("*** http_seed_connection");

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_BUFFER_HPP
 
 #include <cstring>
+#include <limits> // for numeric_limits
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include <cstdlib> // malloc/free/realloc

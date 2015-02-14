@@ -60,7 +60,10 @@ enum flags_t
 	reverse = 8,
 
 	// only use uTP
-	utp = 16
+	utp = 16,
+
+	// upload-only mode
+	upload_only = 32
 };
 
 void test_transfer(int flags
@@ -70,13 +73,14 @@ void test_transfer(int flags
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "\n==== test transfer: timeout=%d %s%s%s%s%s ====\n\n"
+	fprintf(stderr, "\n==== test transfer: timeout=%d %s%s%s%s%s%s ====\n\n"
 		, timeout
 		, (flags & clear_files) ? "clear-files " : ""
 		, (flags & disconnect) ? "disconnect " : ""
 		, (flags & full_encryption) ? "encryption " : ""
 		, (flags & reverse) ? "reverse " : ""
-		, (flags & utp) ? "utp " : "");
+		, (flags & utp) ? "utp " : ""
+		, (flags & upload_only) ? "upload_only " : "");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -123,6 +127,11 @@ void test_transfer(int flags
 	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL
 		, flags & clear_files, true, false, "_meta");	
 
+	if (flags & upload_only)
+	{
+		tor2.set_upload_mode(true);
+	}
+
 	if (flags & reverse)
 	{
 		error_code ec;
@@ -159,6 +168,9 @@ void test_transfer(int flags
 	if (flags & disconnect) goto done;
 
 	TEST_CHECK(tor2.status().has_metadata);
+
+	if (flags & upload_only) goto done;
+
 	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < timeout * 10; ++i)
@@ -203,6 +215,7 @@ int test_main()
 	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
 	test_transfer(full_encryption | utp, &create_ut_metadata_plugin, timeout);
 	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
+	test_transfer(upload_only, &create_ut_metadata_plugin, timeout);
 
 #ifndef TORRENT_NO_DEPRECATE
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)

@@ -47,13 +47,11 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id167">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id168">cache_status</a></li>
-<li><a class="reference internal" href="#stats-metric" id="id169">stats_metric</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id170">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id171">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id172">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id173">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id166">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id167">cache_status</a></li>
+<li><a class="reference internal" href="#stats-metric" id="id168">stats_metric</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id169">session_proxy</a></li>
+<li><a class="reference internal" href="#id38" id="id170">session</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -527,8 +525,9 @@ class session: public boost::noncopyable
    void <strong>get_torrent_status</strong> (std::vector&lt;torrent_status&gt;* ret
       , boost::function&lt;bool(torrent_status const&amp;)&gt; const&amp; pred
       , boost::uint32_t flags = 0) const;
-   void <strong>post_torrent_updates</strong> ();
+   void <strong>post_torrent_updates</strong> (boost::uint32_t flags = 0xffffffff);
    void <strong>post_session_stats</strong> ();
+   void <strong>post_dht_stats</strong> ();
    torrent_handle <strong>find_torrent</strong> (sha1_hash const&amp; info_hash) const;
    std::vector&lt;torrent_handle&gt; <strong>get_torrents</strong> () const;
    void <strong>async_add_torrent</strong> (add_torrent_params const&amp; params);
@@ -676,13 +675,15 @@ a valid torrent are ignored.</p>
 <div class="section" id="post-torrent-updates">
 <h2>post_torrent_updates()</h2>
 <pre class="literal-block">
-void <strong>post_torrent_updates</strong> ();
+void <strong>post_torrent_updates</strong> (boost::uint32_t flags = 0xffffffff);
 </pre>
 <p>This functions instructs the <a class="reference external" href="reference-Session.html#session">session</a> to post the <a class="reference external" href="reference-Alerts.html#state_update_alert">state_update_alert</a>,
 containing the status of all torrents whose state changed since the
 last time this function was called.</p>
 <p>Only torrents who has the state subscription flag set will be
-included. This flag is on by default. See <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.</p>
+included. This flag is on by default. See <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.
+the <tt class="docutils literal">flags</tt> argument is the same as for <a class="reference external" href="reference-Core.html#status()">torrent_handle::status()</a>.
+see <a class="reference external" href="reference-Core.html#status_flags_t">torrent_handle::status_flags_t</a>.</p>
 <a name="post_session_stats()"></a></div>
 <div class="section" id="post-session-stats">
 <h2>post_session_stats()</h2>
@@ -694,6 +695,13 @@ snapshot of the performance counters from the internals of libtorrent.
 To interpret these counters, query the <a class="reference external" href="reference-Session.html#session">session</a> via
 <a class="reference external" href="reference-Session.html#session_stats_metrics()">session_stats_metrics()</a>.</p>
 <p>For more information, see the <a class="reference external" href="manual-ref.html#session-statistics">session statistics</a> section.</p>
+<a name="post_dht_stats()"></a></div>
+<div class="section" id="post-dht-stats">
+<h2>post_dht_stats()</h2>
+<pre class="literal-block">
+void <strong>post_dht_stats</strong> ();
+</pre>
+<p>This will cause a <a class="reference external" href="reference-Alerts.html#dht_stats_alert">dht_stats_alert</a> to be posted.</p>
 <a name="find_torrent()"></a>
 <a name="get_torrents()"></a></div>
 <div class="section" id="find-torrent-get-torrents">
@@ -882,7 +890,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id101">
+<div class="section" id="id104">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -904,7 +912,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id103">
+<div class="section" id="id106">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1409,99 +1417,8 @@ and NAT-PMP.</td>
 </tr>
 </tbody>
 </table>
-<a name="dht_lookup"></a></div>
-</div>
-<div class="section" id="dht-lookup">
-<h1>dht_lookup</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_status.hpp">libtorrent/session_status.hpp</a>&quot;</p>
-<p>holds statistics about a current <a class="reference external" href="reference-Session.html#dht_lookup">dht_lookup</a> operation.
-a DHT lookup is the travesal of nodes, looking up a
-set of target nodes in the DHT for retrieving and possibly
-storing information in the DHT</p>
-<pre class="literal-block">
-struct dht_lookup
-{
-   char const* type;
-   int outstanding_requests;
-   int timeouts;
-   int responses;
-   int branch_factor;
-   int nodes_left;
-   int last_sent;
-   int first_timeout;
-};
-</pre>
-<a name="type"></a><dl class="docutils">
-<dt>type</dt>
-<dd>string literal indicating which kind of lookup this is</dd>
-</dl>
-<a name="outstanding_requests"></a><dl class="docutils">
-<dt>outstanding_requests</dt>
-<dd>the number of outstanding request to individual nodes
-this lookup has right now</dd>
-</dl>
-<a name="timeouts"></a><dl class="docutils">
-<dt>timeouts</dt>
-<dd>the total number of requests that have timed out so far
-for this lookup</dd>
-</dl>
-<a name="responses"></a><dl class="docutils">
-<dt>responses</dt>
-<dd>the total number of responses we have received for this
-lookup so far for this lookup</dd>
-</dl>
-<a name="branch_factor"></a><dl class="docutils">
-<dt>branch_factor</dt>
-<dd>the branch factor for this lookup. This is the number of
-nodes we keep outstanding requests to in parallel by default.
-when nodes time out we may increase this.</dd>
-</dl>
-<a name="nodes_left"></a><dl class="docutils">
-<dt>nodes_left</dt>
-<dd>the number of nodes left that could be queries for this
-lookup. Many of these are likely to be part of the trail
-while performing the lookup and would never end up actually
-being queried.</dd>
-</dl>
-<a name="last_sent"></a><dl class="docutils">
-<dt>last_sent</dt>
-<dd>the number of seconds ago the
-last message was sent that's still
-outstanding</dd>
-</dl>
-<a name="first_timeout"></a><dl class="docutils">
-<dt>first_timeout</dt>
-<dd>the number of outstanding requests
-that have exceeded the short timeout
-and are considered timed out in the
-sense that they increased the branch
-factor</dd>
-</dl>
-<a name="dht_routing_bucket"></a></div>
-<div class="section" id="dht-routing-bucket">
-<h1>dht_routing_bucket</h1>
-<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session_status.hpp">libtorrent/session_status.hpp</a>&quot;</p>
-<p>TODO: 3 add accessors to query the DHT state (post the result as an <a class="reference external" href="reference-Alerts.html#alert">alert</a>)
-holds dht routing table stats</p>
-<pre class="literal-block">
-struct dht_routing_bucket
-{
-   int num_nodes;
-   int num_replacements;
-   int last_active;
-};
-</pre>
-<a name="num_nodes"></a>
-<a name="num_replacements"></a><dl class="docutils">
-<dt>num_nodes  num_replacements</dt>
-<dd>the total number of nodes and replacement nodes
-in the routing table</dd>
-</dl>
-<a name="last_active"></a><dl class="docutils">
-<dt>last_active</dt>
-<dd>number of seconds since last activity</dd>
-</dl>
-<a name="find_metric_idx()"></a><div class="section" id="find-metric-idx">
+<a name="find_metric_idx()"></a></div>
+<div class="section" id="find-metric-idx">
 <h2>find_metric_idx()</h2>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <pre class="literal-block">

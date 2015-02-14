@@ -1,3 +1,8 @@
+	* improve piece picker support for reverse picking (used for snubbed peers)
+	  to not cause priority inversion for regular peers
+	* improve piece picker to better support torrents with very large pieces
+	  and web seeds. (request large contiguous ranges, but not necessarily a
+	  whole piece).
 	* deprecated session_status and session::status() in favor of performance
 	  counters.
 	* improve support for HTTP where one direction of the socket is shut down.
@@ -46,6 +51,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix bug in python binding for file_progress on torrents with no metadata
 	* fix assert when removing a connected web seed
 	* fix bug in tracker timeout logic
 	* switch UPnP post back to HTTP 1.1

@@ -391,6 +391,20 @@ int test_main()
 	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
 
+	TEST_EQUAL(is_ok_status(200), true);
+	TEST_EQUAL(is_ok_status(206), true);
+	TEST_EQUAL(is_ok_status(299), false);
+	TEST_EQUAL(is_ok_status(300), true);
+	TEST_EQUAL(is_ok_status(399), true);
+	TEST_EQUAL(is_ok_status(400), false);
+	TEST_EQUAL(is_ok_status(299), false);
+
+	TEST_EQUAL(is_redirect(299), false);
+	TEST_EQUAL(is_redirect(100), false);
+	TEST_EQUAL(is_redirect(300), true);
+	TEST_EQUAL(is_redirect(399), true);
+	TEST_EQUAL(is_redirect(400), false);
+
 	return 0;
 }
 

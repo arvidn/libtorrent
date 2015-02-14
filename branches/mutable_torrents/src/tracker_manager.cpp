@@ -193,13 +193,25 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 
-	tracker_manager::tracker_manager(aux::session_impl& ses)
-		: m_ses(ses)
-		, m_ip_filter(ses.m_ip_filter)
-		, m_udp_socket(ses.m_udp_socket)
-		, m_host_resolver(ses.m_host_resolver)
-		, m_settings(ses.settings())
-		, m_stats_counters(ses.m_stats_counters)
+	// TODO: 2 some of these arguments could probably be moved to the
+	// tracker request itself. like the ip_filter and settings
+	tracker_manager::tracker_manager(class udp_socket& sock
+		, counters& stats_counters
+		, resolver_interface& resolver
+		, struct ip_filter& ipf
+		, aux::session_settings const& sett
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+		, aux::session_logger& ses
+#endif
+		)
+		: m_ip_filter(ipf)
+		, m_udp_socket(sock)
+		, m_host_resolver(resolver)
+		, m_settings(sett)
+		, m_stats_counters(stats_counters)
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+		, m_ses(ses)
+#endif
 		, m_abort(false)
 	{}
 
@@ -256,7 +268,6 @@ namespace libtorrent
 	void tracker_manager::queue_request(
 		io_service& ios
 		, tracker_request req
-		, std::string const& auth
 		, boost::weak_ptr<request_callback> c)
 	{
 		mutex_t::scoped_lock l(m_mutex);
@@ -280,11 +291,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<http_tracker_connection> con
 				= boost::make_shared<http_tracker_connection>(
-				boost::ref(ios), boost::ref(*this), boost::cref(req), c, auth
-#if TORRENT_USE_I2P
-				, &m_ses.m_i2p_conn
-#endif
-				);
+				boost::ref(ios), boost::ref(*this), boost::cref(req), c);
 			m_http_conns.push_back(con);
 			con->start();
 			return;

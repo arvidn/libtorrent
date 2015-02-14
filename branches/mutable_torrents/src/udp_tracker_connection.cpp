@@ -83,6 +83,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::start()
 	{
+		// TODO: 2 support authentication here. tracker_req().auth
 		std::string hostname;
 		std::string protocol;
 		int port;
@@ -229,7 +230,7 @@ namespace libtorrent
 			}
 		}
 
-		// ir all endpoints were filtered by the IP filter, we can't connect
+		// if all endpoints were filtered by the IP filter, we can't connect
 		if (m_endpoints.empty())
 		{
 			fail(error_code(errors::banned_by_ip_filter));
@@ -316,7 +317,6 @@ namespace libtorrent
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
-		m_abort = true;
 		fail(error_code(errors::timed_out));
 	}
 
@@ -505,12 +505,12 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str()
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
 				, m_target.port(), buf, 16, ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, 16, ec);
+			m_man.get_udp_socket().send(m_target, buf, 16, ec);
 
 		}
 
@@ -568,11 +568,11 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str(), m_target.port(), buf, sizeof(buf), ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, sizeof(buf), ec);
+			m_man.get_udp_socket().send(m_target, buf, sizeof(buf), ec);
 		}
 		m_state = action_scrape;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
@@ -738,7 +738,8 @@ namespace libtorrent
 		std::string request_string;
 		error_code ec;
 		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, ignore, ignore, request_string) = parse_url_components(req.url, ec);
+		boost::tie(ignore, ignore, ignore, ignore, request_string)
+			= parse_url_components(req.url, ec);
 		if (ec) request_string.clear();
 
 		if (!request_string.empty())
@@ -765,12 +766,12 @@ namespace libtorrent
 
 		if (!m_hostname.empty())
 		{
-			m_man.udp_socket().send_hostname(m_hostname.c_str()
+			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
 				, m_target.port(), buf, out - buf, ec);
 		}
 		else
 		{
-			m_man.udp_socket().send(m_target, buf, out - buf, ec);
+			m_man.get_udp_socket().send(m_target, buf, out - buf, ec);
 		}
 		m_state = action_announce;
 		sent_bytes(out - buf + 28); // assuming UDP/IP header

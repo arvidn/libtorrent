@@ -371,6 +371,17 @@ int test_main()
 	}
 
 	{
+		// test CDATA tag
+		char xml[] = "<![CDATA[verbatim tag that can have > and < in it]]>";
+		std::string out;
+
+		xml_parse(xml, xml + sizeof(xml) - 1, boost::bind(&parser_callback
+			, boost::ref(out), _1, _2, _3));
+		std::cerr << out << std::endl;
+		TEST_CHECK(out == "Sverbatim tag that can have > and < in it");
+	}
+
+	{
 		// test unterminated tags
 		char xml[] = "<foo";
 		std::string out;

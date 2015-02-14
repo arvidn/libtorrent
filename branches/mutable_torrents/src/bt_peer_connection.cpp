@@ -257,9 +257,17 @@ namespace libtorrent
 #ifdef TORRENT_LOGGING
 		peer_log("*** ON_METADATA");
 #endif
+
+		disconnect_if_redundant();
+		if (m_disconnecting) return;
+
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		write_upload_only();
+#endif
+
 		if (!m_sent_handshake) return;
 		if (m_sent_bitfield) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -2253,23 +2261,26 @@ namespace libtorrent
 		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
-		// we're upload only, since it might make peers disconnect
-		// don't tell anyone we're upload only when in share mode
-		// we want to stay connected to seeds
-		// if we're super seeding, we don't want to make peers
-		// think that we only have a single piece and is upload
-		// only, since they might disconnect immediately when
-		// they have downloaded a single piece, although we'll
-		// make another piece available
+		// we're upload only, since it might make peers disconnect. don't tell
+		// anyone we're upload only when in share mode, we want to stay connected
+		// to seeds. if we're super seeding, we don't want to make peers think
+		// that we only have a single piece and is upload only, since they might
+		// disconnect immediately when they have downloaded a single piece,
+		// although we'll make another piece available. If we don't have
+		// metadata, we also need to suppress saying we're upload-only. If we do,
+		// we may be disconnected before we receive the metadata.
 		if (t->is_upload_only()
 			&& !t->share_mode()
+			&& t->valid_metadata()
 			&& !t->super_seeding()
 			&& (!m_settings.get_bool(settings_pack::lazy_bitfields)
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			|| m_encrypted
 #endif
 			))
+		{
 			handshake["upload_only"] = 1;
+		}
 
 		if (m_settings.get_bool(settings_pack::support_share_mode)
 			&& t->share_mode())

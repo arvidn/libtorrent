@@ -89,7 +89,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	// request even larger blocks at a time
 	if (!web.supports_keepalive) preferred_size *= 4;
 
-	prefer_whole_pieces((std::max)(preferred_size / tor->torrent_file().piece_length(), 1));
+	prefer_contiguous_blocks((std::max)(preferred_size / tor->block_size(), 1));
 	
 	// we want large blocks as well, so
 	// we can request more bytes at once
@@ -244,7 +244,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		if (m_path.empty()) m_path += "/" + t->torrent_file().name();
 		else if (m_path[m_path.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().at(0).path;
+			std::string tmp = t->torrent_file().files().file_path(0);
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
@@ -252,7 +252,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		}
 		else if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().at(0).path;
+			std::string tmp = t->torrent_file().files().file_path(0);
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
@@ -625,7 +625,7 @@ void web_peer_connection::on_receive(error_code const& error
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
 			{
-				// TODO: 3 just make this peer not have the pieces
+				// TODO: 2 just make this peer not have the pieces
 				// associated with the file we just requested. Only
 				// when it doesn't have any of the file do the following
 				int retry_time = atoi(m_parser.header("retry-after").c_str());

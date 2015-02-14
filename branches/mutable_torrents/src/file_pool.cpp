@@ -119,6 +119,13 @@ namespace libtorrent
 	file_handle file_pool::open_file(void* st, std::string const& p
 		, int file_index, file_storage const& fs, int m, error_code& ec)
 	{
+		// potentially used to hold a reference to a file object that's
+		// about to be destructed. If we have such object we assign it to
+		// this member to be destructed after we release the mutex. On some
+		// operating systems (such as OSX) closing a file may take a long
+		// time. We don't want to hold the mutex for that.
+		file_handle defer_destruction;
+
 		mutex::scoped_lock l(m_mutex);
 
 #if TORRENT_USE_ASSERTS
@@ -163,6 +170,7 @@ namespace libtorrent
 				// be outstanding operations on it, we can't close the
 				// file, we can only delete our reference to it.
 				// if this is the only reference to the file, it will be closed
+				defer_destruction = e.file_ptr;
 				e.file_ptr = boost::make_shared<file>();
 
 				std::string full_path = fs.file_path(file_index, p);

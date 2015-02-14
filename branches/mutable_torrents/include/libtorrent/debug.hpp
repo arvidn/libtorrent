@@ -111,19 +111,24 @@ namespace libtorrent
 		async_t& a = _async_ops[name];
 		TORRENT_ASSERT(a.refs > 0);
 		--a.refs;
-		_wakeups.push_back(wakeup_t());
-		wakeup_t& w = _wakeups.back();
-		w.timestamp = time_now_hires();
+
+		// don't let this grow indefinitely
+		if (_wakeups.size() < 100000)
+		{
+			_wakeups.push_back(wakeup_t());
+			wakeup_t& w = _wakeups.back();
+			w.timestamp = time_now_hires();
 #ifdef __MACH__
-		task_events_info teinfo;
-		mach_msg_type_number_t t_info_count = TASK_EVENTS_INFO_COUNT;
-		task_info(mach_task_self(), TASK_EVENTS_INFO, (task_info_t)&teinfo
-			, &t_info_count);
-		w.context_switches = teinfo.csw;
+			task_events_info teinfo;
+			mach_msg_type_number_t t_info_count = TASK_EVENTS_INFO_COUNT;
+			task_info(mach_task_self(), TASK_EVENTS_INFO, (task_info_t)&teinfo
+				, &t_info_count);
+			w.context_switches = teinfo.csw;
 #else
-		w.context_switches = 0;
+			w.context_switches = 0;
 #endif
-		w.operation = name;
+			w.operation = name;
+		}
 	}
 
 	inline void async_inc_threads()

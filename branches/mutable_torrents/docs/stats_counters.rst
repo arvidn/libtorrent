@@ -1664,25 +1664,35 @@ the total number of bytes sent and received by the DHT
 the number of DHT messages we've sent and received
 by kind.
 
-.. _dht.sent_dht_bytes:
+.. _dht.dht_invalid_announce:
 
-.. _dht.recv_dht_bytes:
+.. _dht.dht_invalid_get_peers:
+
+.. _dht.dht_invalid_put:
+
+.. _dht.dht_invalid_get:
 
 .. raw:: html
 
-	<a name="dht.sent_dht_bytes"></a>
-	<a name="dht.recv_dht_bytes"></a>
+	<a name="dht.dht_invalid_announce"></a>
+	<a name="dht.dht_invalid_get_peers"></a>
+	<a name="dht.dht_invalid_put"></a>
+	<a name="dht.dht_invalid_get"></a>
 
-+--------------------+---------+
-| name               | type    |
-+====================+=========+
-| dht.sent_dht_bytes | counter |
-+--------------------+---------+
-| dht.recv_dht_bytes | counter |
-+--------------------+---------+
++---------------------------+---------+
+| name                      | type    |
++===========================+=========+
+| dht.dht_invalid_announce  | counter |
++---------------------------+---------+
+| dht.dht_invalid_get_peers | counter |
++---------------------------+---------+
+| dht.dht_invalid_put       | counter |
++---------------------------+---------+
+| dht.dht_invalid_get       | counter |
++---------------------------+---------+
 
 
-the number of bytes sent and received by the DHT
+the number of failed incoming DHT requests by kind of request
 
 .. _utp.utp_packet_loss:
 

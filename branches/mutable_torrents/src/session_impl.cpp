@@ -356,7 +356,12 @@ namespace aux {
 #else
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
-		, m_tracker_manager(*this)
+		, m_tracker_manager(m_udp_socket, m_stats_counters, m_host_resolver
+			, m_ip_filter, m_settings
+#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+			, *this
+#endif
+			)
 		, m_num_save_resume(0)
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
@@ -1191,22 +1196,22 @@ namespace aux {
 	}
 
 	void session_impl::queue_tracker_request(tracker_request& req
-		, std::string login, boost::weak_ptr<request_callback> c, boost::uint32_t key)
+		, boost::weak_ptr<request_callback> c)
 	{
 		req.listen_port = listen_port();
-		if (m_key)
-			req.key = m_key;
-		else
-			req.key = key;
+		if (m_key) req.key = m_key;
 
 #ifdef TORRENT_USE_OPENSSL
 		// SSL torrents use the SSL listen port
 		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
 		req.ssl_ctx = &m_ssl_ctx;
 #endif
+#if TORRENT_USE_I2P
+		req.i2pconn = &m_i2p_conn;
+#endif
+
 		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
-		m_tracker_manager.queue_request(get_io_service(), req
-			, login, c);
+		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
 	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
@@ -4321,7 +4326,7 @@ retry:
 		}
 	}
 	
-	void session_impl::post_torrent_updates()
+	void session_impl::post_torrent_updates(boost::uint32_t flags)
 	{
 		INVARIANT_CHECK;
 
@@ -4351,7 +4356,7 @@ retry:
 			// the torrent to be loaded. Loading a torrent, and evicting another
 			// one will lead to calling state_updated(), which screws with
 			// this list while we're working on it, and break things
-			t->status(&alert->status.back(), ~torrent_handle::query_accurate_download_counters);
+			t->status(&alert->status.back(), flags);
 			t->clear_in_state_update();
 		}
 		state_updates.clear();
@@ -5029,6 +5034,15 @@ retry:
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 			i->second->update_auto_sequential();
+	}
+	
+	void session_impl::update_max_failcount()
+	{
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+		{
+			i->second->update_max_failcount();
+		}
 	}
 
 	void session_impl::update_proxy()

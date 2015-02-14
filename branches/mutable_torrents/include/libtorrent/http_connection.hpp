@@ -97,12 +97,13 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	int rate_limit() const
 	{ return m_rate_limit; }
 
-	std::string sendbuffer;
+	std::string m_sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, proxy_settings const* ps = 0, int handle_redirects = 5
-		, std::string const& user_agent = "", address const& bind_addr = address_v4::any()
-		, int resolve_flags = 0
+		, std::string const& user_agent = std::string()
+		, address const& bind_addr = address_v4::any()
+		, int resolve_flags = 0, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
@@ -150,12 +151,13 @@ private:
 
 	std::vector<tcp::endpoint> m_endpoints;
 
+	socket_type m_sock;
+
 #ifdef TORRENT_USE_OPENSSL
 	asio::ssl::context* m_ssl_ctx;
 	bool m_own_ssl_context;
 #endif
 
-	socket_type m_sock;
 #if TORRENT_USE_I2P
 	i2p_connection* m_i2p_conn;
 #endif
@@ -184,6 +186,10 @@ private:
 	// the address to bind to. address_v4::any()
 	// means do not bind
 	address m_bind_addr;
+
+	// if username password was passed in, remember it in case we need to
+	// re-issue the request for a redirect
+	std::string m_auth;
 
 	int m_read_pos;
 

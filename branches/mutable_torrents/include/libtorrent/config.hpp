@@ -529,7 +529,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_THREADSAFE_STATIC
-#if __cplusplus < 199711L || _MSC_VER < 1800
+#if __cplusplus < 199711L || _MSC_VER <= 1800
 #define TORRENT_THREADSAFE_STATIC 0
 #else
 #define TORRENT_THREADSAFE_STATIC 1

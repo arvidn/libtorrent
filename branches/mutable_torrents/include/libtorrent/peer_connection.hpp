@@ -325,9 +325,6 @@ namespace libtorrent
 		void peer_disconnected_other()
 		{ m_exceeded_limit = false; }
 
-		enum peer_speed_t { slow = 1, medium, fast };
-		peer_speed_t peer_speed();
-
 		void send_allowed_set();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -350,18 +347,18 @@ namespace libtorrent
 		void picker_options(int o)
 		{ m_picker_options = o; }
 
-		int prefer_whole_pieces() const
+		int prefer_contiguous_blocks() const
 		{
 			if (on_parole()) return 1;
-			return m_prefer_whole_pieces;
+			return m_prefer_contiguous_blocks;
 		}
 
 		bool on_parole() const;
 
 		int picker_options() const;
 
-		void prefer_whole_pieces(int num)
-		{ m_prefer_whole_pieces = num; }
+		void prefer_contiguous_blocks(int num)
+		{ m_prefer_contiguous_blocks = (std::min)(num, 255); }
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }
@@ -1137,19 +1134,13 @@ namespace libtorrent
 		char m_country[2];
 #endif
 
-		// this is a measurement of how fast the peer
-		// it allows some variance without changing
-		// back and forth between states. values are enums
-		// from peer_speed_t.
-		boost::uint8_t m_speed;
-
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.
 		// where n is the value of this variable.
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		boost::uint8_t m_prefer_whole_pieces;
+		boost::uint8_t m_prefer_contiguous_blocks;
 		
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.

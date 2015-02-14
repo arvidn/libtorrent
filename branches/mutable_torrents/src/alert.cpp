@@ -275,8 +275,8 @@ namespace libtorrent {
 	std::string block_downloading_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u) %s"
-			, torrent_alert::message().c_str(), piece_index, block_index, peer_speedmsg);
+		snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u)"
+			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
 
