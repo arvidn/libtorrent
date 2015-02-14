@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/file.hpp" // for iovec_t
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
@@ -73,12 +74,17 @@ namespace libtorrent
 
 		// tries to allocate a disk buffer. If the cache is full, this function will
 		// return NULL and call the disk_observer once a buffer becomes available
-		char* async_allocate_buffer(char const* category, boost::function<void(char*)> const& handler);
+		char* async_allocate_buffer(char const* category
+			, boost::function<void(char*)> const& handler);
 
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o, char const* category);
+		char* allocate_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
+			, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
+
+		int allocate_iovec(file::iovec_t* iov, int iov_len);
+		void free_iovec(file::iovec_t* iov, int iov_len);
 
 		int block_size() const { return m_block_size; }
 

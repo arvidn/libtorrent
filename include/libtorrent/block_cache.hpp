@@ -345,9 +345,6 @@ namespace libtorrent
 		int pad_job(disk_io_job const* j, int blocks_in_piece
 			, int read_ahead) const;
 
-		int allocate_iovec(file::iovec_t* iov, int iov_len);
-		void free_iovec(file::iovec_t* iov, int iov_len);
-
 		void reclaim_block(block_cache_reference const& ref);
 
 		// returns a range of all pieces. This migh be a very

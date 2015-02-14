@@ -1109,33 +1109,6 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 	return end - start;
 }
 
-// this function allocates buffers and
-// fills in the iovec array with the buffers
-int block_cache::allocate_iovec(file::iovec_t* iov, int iov_len)
-{
-	for (int i = 0; i < iov_len; ++i)
-	{
-		iov[i].iov_base = allocate_buffer("pending read");
-		iov[i].iov_len = block_size();
-		if (iov[i].iov_base == NULL)
-		{
-			// uh oh. We failed to allocate the buffer!
-			// we need to roll back and free all the buffers
-			// we've already allocated
-			for (int j = 0; j < i; ++j)
-				free_buffer((char*)iov[j].iov_base);
-			return -1;
-		}
-	}
-	return 0;
-}
-
-void block_cache::free_iovec(file::iovec_t* iov, int iov_len)
-{
-	for (int i = 0; i < iov_len; ++i)
-		free_buffer((char*)iov[i].iov_base);
-}
-
 void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 	, int iov_len, disk_io_job* j, int flags)
 {

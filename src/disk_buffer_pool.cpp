@@ -302,6 +302,37 @@ namespace libtorrent
 		return ret;
 	}
 
+// this function allocates buffers and
+// fills in the iovec array with the buffers
+	int disk_buffer_pool::allocate_iovec(file::iovec_t* iov, int iov_len)
+	{
+		mutex::scoped_lock l(m_pool_mutex);
+		for (int i = 0; i < iov_len; ++i)
+		{
+			iov[i].iov_base = allocate_buffer_impl(l, "pending read");
+			iov[i].iov_len = block_size();
+			if (iov[i].iov_base == NULL)
+			{
+				// uh oh. We failed to allocate the buffer!
+				// we need to roll back and free all the buffers
+				// we've already allocated
+				for (int j = 0; j < i; ++j)
+					free_buffer_impl((char*)iov[j].iov_base, l);
+				return -1;
+			}
+		}
+		return 0;
+	}
+
+	void disk_buffer_pool::free_iovec(file::iovec_t* iov, int iov_len)
+	{
+		// TODO: perhaps we should sort the buffers here?
+		mutex::scoped_lock l(m_pool_mutex);
+		for (int i = 0; i < iov_len; ++i)
+			free_buffer_impl((char*)iov[i].iov_base, l);
+		check_buffer_level(l);
+	}
+
 	char* disk_buffer_pool::allocate_buffer_impl(mutex::scoped_lock& l, char const* category)
 	{
 		TORRENT_ASSERT(m_settings_set);
@@ -311,7 +342,8 @@ namespace libtorrent
 #if TORRENT_HAVE_MMAP
 		if (m_cache_pool)
 		{
-			if (m_free_list.size() <= (m_max_use - m_low_watermark) / 2 && !m_exceeded_max_size)
+			if (m_free_list.size() <= (m_max_use - m_low_watermark)
+				/ 2 && !m_exceeded_max_size)
 			{
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();
@@ -368,7 +400,8 @@ namespace libtorrent
 #endif
 
 		++m_in_use;
-		if (m_in_use >= m_low_watermark + (m_max_use - m_low_watermark) / 2 && !m_exceeded_max_size)
+		if (m_in_use >= m_low_watermark + (m_max_use - m_low_watermark)
+			/ 2 && !m_exceeded_max_size)
 		{
 			m_exceeded_max_size = true;
 			m_trigger_cache_trim();
@@ -409,7 +442,6 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 		free_buffer_impl(buf, l);
-
 		check_buffer_level(l);
 	}
 
