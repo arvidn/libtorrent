@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/static_assert.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/tuple/tuple.hpp>
 
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -160,7 +161,8 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : info(NULL), index(-1)
+			downloading_piece() : index(UINT32_MAX)
+				, info_idx(UINT16_MAX)
 				, finished(0)
 				, passed_hash_check(0)
 				, writing(0)
@@ -170,15 +172,14 @@ namespace libtorrent
 
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
-			// info about each block
-			// this is a pointer into the m_block_info
-			// vector owned by the piece_picker
-			// TODO: 2 if we could make this an index into m_block_info instead
-			// we would save at least 4 or 5 bytes
-			block_info* info;
-
 			// the index of the piece
-			int index;
+			boost::uint32_t index;
+
+			// info about each block in this piece. this is an index into the
+			// m_block_info array, when multiplied by m_blocks_per_piece.
+			// The m_blocks_per_piece following entries contain information about
+			// all blocks in this piece.
+			boost::uint16_t info_idx;
 
 			// the number of blocks in the finished state
 			boost::uint16_t finished:15;
@@ -472,9 +473,18 @@ namespace libtorrent
 
 		void set_num_pad_files(int n) { m_num_pad_files = n; }
 
+		// return the array of block_info objects for a given downloading_piece.
+		// this array has m_blocks_per_piece elements in it
+		block_info* blocks_for_piece(downloading_piece const& dp);
+		block_info const* blocks_for_piece(downloading_piece const& dp) const;
+
 	private:
 
 		friend struct piece_pos;
+
+		boost::tuple<bool, bool, int, int> requested_from(
+			piece_picker::downloading_piece const& p
+			, int num_blocks_in_piece, void* peer) const;
 
 		bool can_pick(int piece, bitfield const& bitmask) const;
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
@@ -518,7 +528,7 @@ namespace libtorrent
 				// this is not a new download category/download list bucket.
 				// it still goes into the piece_downloading bucket. However,
 				// it indicates that this piece only has outstanding requests
-				// form reverse peers. This is to de-prioritize it somewhat
+				// from reverse peers. This is to de-prioritize it somewhat
 				piece_downloading_reverse,
 				piece_full_reverse
 			};
@@ -778,11 +788,16 @@ namespace libtorrent
 		// piece_downloading).
 		std::vector<downloading_piece> m_downloads[piece_pos::num_download_categories];
 
-		// this holds the information of the
-		// blocks in partially downloaded pieces.
-		// the downloading_piece::info pointers
-		// point into this vector for its storage
+		// this holds the information of the blocks in partially downloaded
+		// pieces. the downloading_piece::info index point into this vector for
+		// its storage
 		std::vector<block_info> m_block_info;
+
+		// these are block ranges in m_block_info that are free. The numbers
+		// in here, when multiplied by m_blocks_per_piece is the index to the
+		// first block in the range that's free to use by a new downloading_piece.
+		// this is a free-list.
+		std::vector<boost::uint16_t> m_free_block_infos;
 
 		boost::uint16_t m_blocks_per_piece;
 		boost::uint16_t m_blocks_in_last_piece;
