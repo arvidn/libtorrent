@@ -1626,6 +1626,27 @@ int test_main()
 	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
 		, boost::bind(&piece_picker::downloading_piece::index, _1) == 3) != downloads.end());
 
+// ========================================================
+
+	print_title("test get_download_queue_size");
+
+	p = setup_picker("1111111", "       ", "1111111", "0327ff0");
+
+	TEST_EQUAL(p->get_download_queue_size(), 5);
+
+	p->set_piece_priority(1, 0);
+
+	int partial;
+	int full;
+	int finished;
+	int zero_prio;
+	p->get_download_queue_sizes(&partial, &full, &finished, &zero_prio);
+
+	TEST_EQUAL(partial, 2);
+	TEST_EQUAL(full, 0);
+	TEST_EQUAL(finished, 2);
+	TEST_EQUAL(zero_prio, 1);
+
 /*
 
 	p.pick_pieces(peer1, picked, 1, false, 0, true);
