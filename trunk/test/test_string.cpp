@@ -130,6 +130,9 @@ int test_main()
    TEST_CHECK(base32decode("MZXW6YTBOI") == "foobar");
    TEST_CHECK(base32decode("mZXw6yTBO1======") == "foobar");
 
+	// make sure invalid encoding returns the empty string
+   TEST_CHECK(base32decode("mZXw6yTBO1{#&*()=") == "");
+
 	std::string test;
 	for (int i = 0; i < 255; ++i)
 		test += char(i);
