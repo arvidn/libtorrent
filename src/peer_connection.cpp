@@ -2936,7 +2936,9 @@ namespace libtorrent
 			{
 				if (i->index != block_finished.piece_index) continue;
 				piece_picker::downloading_piece const& p = *i;
-				TORRENT_ASSERT(p.info[block_finished.block_index].state == piece_picker::block_info::state_finished);
+				piece_picker::block_info* info = picker.blocks_for_piece(p);
+				TORRENT_ASSERT(info[block_finished.block_index].state
+					== piece_picker::block_info::state_finished);
 			}
 		}
 #endif

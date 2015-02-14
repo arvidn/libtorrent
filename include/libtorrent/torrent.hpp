@@ -679,7 +679,7 @@ namespace libtorrent
 
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
 		void get_peer_info(std::vector<peer_info>& v);
-		void get_download_queue(std::vector<partial_piece_info>* queue);
+		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
 		void refresh_explicit_cache(int cache_size);
 
@@ -967,6 +967,11 @@ namespace libtorrent
 		std::string save_path() const;
 		alert_manager& alerts() const;
 		piece_picker& picker()
+		{
+			TORRENT_ASSERT(m_picker.get());
+			return *m_picker;
+		}
+		piece_picker const& picker() const
 		{
 			TORRENT_ASSERT(m_picker.get());
 			return *m_picker;

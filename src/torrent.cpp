@@ -3739,19 +3739,20 @@ namespace libtorrent
 			}
 #endif
 
+			piece_picker::block_info* info = m_picker->blocks_for_piece(*i);
 			for (int j = 0; j < blocks_per_piece; ++j)
 			{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, j))
-					== (i->info[j].state == piece_picker::block_info::state_finished));
+					== (info[j].state == piece_picker::block_info::state_finished));
 #endif
-				if (i->info[j].state == piece_picker::block_info::state_finished)
+				if (info[j].state == piece_picker::block_info::state_finished)
 				{
 					corr += block_bytes_wanted(piece_block(index, j));
 				}
 				TORRENT_ASSERT(corr >= 0);
 				TORRENT_ASSERT(index != last_piece || j < m_picker->blocks_in_last_piece()
-					|| i->info[j].state != piece_picker::block_info::state_finished);
+					|| info[j].state != piece_picker::block_info::state_finished);
 			}
 
 			st.total_done += corr;
@@ -3820,9 +3821,11 @@ namespace libtorrent
 				dl_queue.begin(); i != dl_queue.end(); ++i)
 			{
 				fprintf(stderr, "  %d ", i->index);
+				piece_picker::block_info* info = m_picker->blocks_for_piece(*i);
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
-					char const* state = i->info[j].state == piece_picker::block_info::state_finished ? "1" : "0";
+					char const* state = info[j].state
+						== piece_picker::block_info::state_finished ? "1" : "0";
 					fputs(state, stderr);
 				}
 				fputs("\n", stderr);
@@ -6846,12 +6849,13 @@ namespace libtorrent
 				const int num_bitmask_bytes
 					= (std::max)(num_blocks_per_piece / 8, 1);
 
+				piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char v = 0;
 					int bits = (std::min)(num_blocks_per_piece - j*8, 8);
 					for (int k = 0; k < bits; ++k)
-						v |= (i->info[j*8+k].state == piece_picker::block_info::state_finished)
+						v |= (info[j*8+k].state == piece_picker::block_info::state_finished)
 						? (1 << k) : 0;
 					bitmask.append(1, v);
 					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
@@ -7126,7 +7130,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::get_download_queue(std::vector<partial_piece_info>* queue)
+	void torrent::get_download_queue(std::vector<partial_piece_info>* queue) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		queue->clear();
@@ -7159,22 +7163,23 @@ namespace libtorrent
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[counter * blocks_per_piece];
 			int piece_size = int(torrent_file().piece_size(i->index));
+			piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				block_info& bi = pi.blocks[j];
-				bi.state = i->info[j].state;
+				bi.state = info[j].state;
 				bi.block_size = j < pi.blocks_in_piece - 1 ? block_size()
 					: piece_size - (j * block_size());
 				bool complete = bi.state == block_info::writing
 					|| bi.state == block_info::finished;
-				if (i->info[j].peer == 0)
+				if (info[j].peer == 0)
 				{
 					bi.set_peer(tcp::endpoint());
 					bi.bytes_progress = complete ? bi.block_size : 0;
 				}
 				else
 				{
-					torrent_peer* p = static_cast<torrent_peer*>(i->info[j].peer);
+					torrent_peer* p = static_cast<torrent_peer*>(info[j].peer);
 					TORRENT_ASSERT(p->in_use);
 					if (p->connection)
 					{
@@ -7207,7 +7212,7 @@ namespace libtorrent
 					}
 				}
 
-				pi.blocks[j].num_peers = i->info[j].num_peers;
+				pi.blocks[j].num_peers = info[j].num_peers;
 			}
 			pi.piece_index = i->index;
 			queue->push_back(pi);
@@ -10134,7 +10139,9 @@ namespace libtorrent
 		bool operator<(busy_block_t rhs) const { return peers < rhs.peers; }
 	};
 
-	void pick_busy_blocks(int piece, int blocks_in_piece
+	void pick_busy_blocks(piece_picker const* picker
+		, int piece
+		, int blocks_in_piece
 		, int timed_out
 		, std::vector<piece_block>& interesting_blocks
 		, piece_picker::downloading_piece const& pi)
@@ -10149,27 +10156,29 @@ namespace libtorrent
 			= TORRENT_ALLOCA(busy_block_t, blocks_in_piece);
 		int busy_count = 0;
 
+		piece_picker::block_info const* info = picker->blocks_for_piece(pi);
+
 		// pick busy blocks from the piece
 		for (int k = 0; k < blocks_in_piece; ++k)
 		{
 			// only consider blocks that have been requested
 			// and we're still waiting for them
-			if (pi.info[k].state != piece_picker::block_info::state_requested)
+			if (info[k].state != piece_picker::block_info::state_requested)
 				continue;
 
 			piece_block b(piece, k);
 
 			// only allow a single additional request per block, in order
 			// to spread it out evenly across all stalled blocks
-			if (pi.info[k].num_peers > timed_out)
+			if (info[k].num_peers > timed_out)
 				continue;
 
-			busy_blocks[busy_count].peers = pi.info[k].num_peers; 
+			busy_blocks[busy_count].peers = info[k].num_peers; 
 			busy_blocks[busy_count].index = k;
 			++busy_count;
 
 #if TORRENT_DEBUG_STREAMING > 1
-			printf(" [%d (%d)]", b.block_index, pi.info[k].num_peers);
+			printf(" [%d (%d)]", b.block_index, info[k].num_peers);
 #endif
 		}
 #if TORRENT_DEBUG_STREAMING > 1
@@ -10194,7 +10203,7 @@ namespace libtorrent
 		, std::set<peer_connection*>& peers_with_requests
 		, piece_picker::downloading_piece const& pi
 		, time_critical_piece* i
-		, piece_picker* picker
+		, piece_picker const* picker
 		, int blocks_in_piece
 		, int timed_out)
 	{
@@ -10275,7 +10284,7 @@ namespace libtorrent
 				printf("pick busy blocks\n");
 #endif
 
-				pick_busy_blocks(i->piece, blocks_in_piece, timed_out
+				pick_busy_blocks(picker, i->piece, blocks_in_piece, timed_out
 					, interesting_blocks, pi);
 			}
 
@@ -11045,7 +11054,7 @@ namespace libtorrent
 			boost::int64_t offset = boost::int64_t(i->index) * m_torrent_file->piece_length();
 			int file = fs.file_index_at_offset(offset);
 			int num_blocks = m_picker->blocks_in_piece(i->index);
-			piece_picker::block_info const* info = i->info;
+			piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
 			for (int k = 0; k < num_blocks; ++k)
 			{
 				TORRENT_ASSERT(file < fs.num_files());
