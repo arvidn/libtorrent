@@ -152,7 +152,6 @@ namespace libtorrent
 		int state = m_piece_map[index].download_queue();
 		if (state != piece_pos::piece_open)
 		{
-			// TODO: 3 we need a different type to return to the outside here
 			std::vector<downloading_piece>::const_iterator piece = find_dl_piece(state, index);
 			TORRENT_ASSERT(piece != m_downloads[state].end());
 			st = *piece;
