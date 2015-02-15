@@ -267,6 +267,7 @@ namespace libtorrent
 		// blocks that are allocated from the m_block_info array. 
 		m_free_block_infos.push_back(i->info_idx);
 		
+		TORRENT_ASSERT(find_dl_piece(download_state, i->index) == i);
 		m_piece_map[i->index].download_state = piece_pos::piece_open;
 		m_downloads[download_state].erase(i);
 
@@ -1603,7 +1604,6 @@ namespace libtorrent
 				--m_num_passed;
 			}
 			erase_download_piece(i);
-			p.download_state = piece_pos::piece_open;
 			return;
 		}
 
@@ -1657,11 +1657,12 @@ namespace libtorrent
 
 		if (p.have()) return;
 
-		if (p.download_queue() != piece_pos::piece_open)
+		int state = p.download_queue();
+		if (state != piece_pos::piece_open)
 		{
 			std::vector<downloading_piece>::iterator i
-				= find_dl_piece(p.download_queue(), index);
-			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
+				= find_dl_piece(state, index);
+			TORRENT_ASSERT(i != m_downloads[state].end());
 			// decrement num_passed here to compensate
 			// for the unconditional increment further down
 			if (i->passed_hash_check) --m_num_passed;
@@ -3000,7 +3001,7 @@ get_out:
 
 		return i;
 	}
-
+/*
 	int piece_picker::get_block_state(piece_block block) const
 	{
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
@@ -3022,7 +3023,7 @@ get_out:
 		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
 		return info[block.block_index].state;
 	}
-
+*/
 	bool piece_picker::is_requested(piece_block block) const
 	{
 #ifdef TORRENT_USE_VALGRIND
