@@ -83,13 +83,11 @@ namespace libtorrent
 	}
 
 	void http_seed_connection::disconnect(error_code const& ec
-		, peer_connection_interface::operation_t op, int error)
+		, operation_t op, int error)
 	{
 		if (is_disconnecting()) return;
 
-		if (op == peer_connection_interface::op_connect
-			&& m_web
-			&& !m_web->endpoints.empty())
+		if (op == op_connect && m_web && !m_web->endpoints.empty())
 		{
 			// we failed to connect to this IP. remove it so that the next attempt
 			// uses the next IP in the list.

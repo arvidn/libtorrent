@@ -288,6 +288,29 @@ namespace libtorrent {
 		return ret;
 	}
 
+	namespace
+	{
+		static char const* const sock_type_str[] =
+		{
+			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL"
+		};
+
+		static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
+
+		static char const* const socket_type_str[] = {
+			"null",
+			"TCP",
+			"Socks5/TCP",
+			"HTTP",
+			"uTP",
+			"i2p",
+			"SSL/TCP",
+			"SSL/Socks5",
+			"HTTPS",
+			"SSL/uTP"
+		};
+	}
+
 	std::string listen_failed_alert::message() const
 	{
 		static char const* op_str[] =
@@ -299,52 +322,41 @@ namespace libtorrent {
 			"get_peer_name",
 			"accept"
 		};
-		static char const* type_str[] =
-		{
-			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL"
-		};
 		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
 			, interface.c_str()
 			, op_str[operation]
-			, type_str[sock_type]
+			, sock_type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
 	std::string listen_succeeded_alert::message() const
 	{
-		static char const* type_str[] =
-		{
-			"TCP", "TCP/SSL", "UDP", "uTP/SSL"
-		};
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
-			, type_str[sock_type], print_endpoint(endpoint).c_str());
+			, sock_type_str[sock_type], print_endpoint(endpoint).c_str());
 		return ret;
 	}
 
 	std::string portmap_error_alert::message() const
 	{
-		static char const* type_str[] = {"NAT-PMP", "UPnP"};
-		return std::string("could not map port using ") + type_str[map_type]
+		return std::string("could not map port using ") + nat_type_str[map_type]
 			+ ": " + convert_from_native(error.message());
 	}
 
 	std::string portmap_alert::message() const
 	{
-		static char const* type_str[] = {"NAT-PMP", "UPnP"};
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
-			, type_str[map_type], external_port);
+			, nat_type_str[map_type], external_port);
 		return ret;
 	}
 
 	std::string portmap_log_alert::message() const
 	{
-		static char const* type_str[] = {"NAT-PMP", "UPnP"};
 		char ret[600];
-		snprintf(ret, sizeof(ret), "%s: %s", type_str[map_type], msg.c_str());
+		snprintf(ret, sizeof(ret), "%s: %s", nat_type_str[map_type], msg.c_str());
 		return ret;
 	}
 
@@ -501,25 +513,12 @@ namespace libtorrent {
 		return torrent_alert::message() + " needs SSL certificate";
 	}
 
-	static char const* type_str[] = {
-		"null",
-		"TCP",
-		"Socks5/TCP",
-		"HTTP",
-		"uTP",
-		"i2p",
-		"SSL/TCP",
-		"SSL/Socks5",
-		"HTTPS",
-		"SSL/uTP"
-		};
-
 	std::string incoming_connection_alert::message() const
 	{
 		char msg[600];
 		error_code ec;
 		snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
-			, print_endpoint(ip).c_str(), type_str[socket_type]);
+			, print_endpoint(ip).c_str(), socket_type_str[socket_type]);
 		return msg;
 	}
 
@@ -528,7 +527,7 @@ namespace libtorrent {
 		char msg[600];
 		error_code ec;
 		snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
-			, peer_alert::message().c_str(), type_str[socket_type]);
+			, peer_alert::message().c_str(), socket_type_str[socket_type]);
 		return msg;
 	}
 
@@ -634,8 +633,11 @@ namespace libtorrent {
 	std::string peer_disconnected_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "%s disconnecting [%s] [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
+		snprintf(msg, sizeof(msg), "%s disconnecting (%s) [%s] [%s]: %s"
+			, peer_alert::message().c_str()
+			, socket_type_str[socket_type]
+			, operation_name(operation), error.category().name()
+			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
 

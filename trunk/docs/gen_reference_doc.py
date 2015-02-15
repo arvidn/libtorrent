@@ -100,6 +100,7 @@ category_mapping = {
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
 	'settings_pack.hpp': 'Settings',
+	'operations.hpp': 'Alerts',
 }
 
 category_fun_mapping = {

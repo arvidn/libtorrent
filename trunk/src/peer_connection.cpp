@@ -3898,7 +3898,8 @@ namespace libtorrent
 	// the error argument defaults to 0, which means deliberate disconnect
 	// 1 means unexpected disconnect/error
 	// 2 protocol error (client sent something invalid)
-	void peer_connection::disconnect(error_code const& ec, operation_t op, int error)
+	void peer_connection::disconnect(error_code const& ec
+		, operation_t op, int error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #if TORRENT_USE_ASSERTS
@@ -4080,7 +4081,8 @@ namespace libtorrent
 				else if (error <= 1 && t->alerts().should_post<peer_disconnected_alert>())
 				{
 					t->alerts().post_alert(
-						peer_disconnected_alert(handle, remote(), pid(), op, ec));
+						peer_disconnected_alert(handle, remote(), pid(), op
+							, m_socket->type(), ec));
 				}
 			}
 
