@@ -242,8 +242,12 @@ namespace libtorrent
 		void we_have(int index);
 		void we_dont_have(int index);
 
+		// the lowest piece index we do not have
 		int cursor() const { return m_cursor; }
+		
+		// one past the last piece we do not have.
 		int reverse_cursor() const { return m_reverse_cursor; }
+
 		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
