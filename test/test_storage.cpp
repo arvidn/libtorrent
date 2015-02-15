@@ -802,8 +802,153 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		<< "': " << ec.message() << std::endl;
 }
 
+void alloc_iov(file::iovec_t* iov, int num_bufs)
+{
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		iov[i].iov_base = malloc(num_bufs * (i + 1));
+		iov[i].iov_len  = num_bufs * (i + 1);
+	}
+}
+
+void fill_pattern(file::iovec_t* iov, int num_bufs)
+{
+	int counter = 0;
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		unsigned char* buf = (unsigned char*)iov[i].iov_base;
+		for (int k = 0; k < iov[i].iov_len; ++k)
+		{
+			buf[k] = counter & 0xff;
+			++counter;
+		}
+	}
+}
+
+void fill_pattern2(file::iovec_t* iov, int num_bufs)
+{
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		unsigned char* buf = (unsigned char*)iov[i].iov_base;
+		memset(buf, 0xfe, iov[i].iov_len);
+	}
+}
+
+void free_iov(file::iovec_t* iov, int num_bufs)
+{
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		free(iov[i].iov_base);
+		iov[i].iov_len = 0;
+		iov[i].iov_base = NULL;
+	}
+}
+
+void test_iovec_copy_bufs()
+{
+	file::iovec_t iov1[10];
+	file::iovec_t iov2[10];
+
+	alloc_iov(iov1, 10);
+	fill_pattern(iov1, 10);
+
+	TEST_CHECK(bufs_size(iov1, 10) >= 106);
+
+	// copy exactly 106 bytes from iov1 to iov2
+	int num_bufs = copy_bufs(iov1, 106, iov2);
+
+	// verify that the first 100 bytes is pattern 1
+	// and that the remaining bytes are pattern 2
+
+	int counter = 0;
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		unsigned char* buf = (unsigned char*)iov2[i].iov_base;
+		for (int k = 0; k < iov2[i].iov_len; ++k)
+		{
+			TEST_EQUAL(int(buf[k]), (counter & 0xff));
+			++counter;
+		}
+	}
+	TEST_EQUAL(counter, 106);
+
+	free_iov(iov1, 10);
+}
+
+void test_iovec_clear_bufs()
+{
+	file::iovec_t iov[10];
+	alloc_iov(iov, 10);
+	fill_pattern(iov, 10);
+
+	clear_bufs(iov, 10);
+	for (int i = 0; i < 10; ++i)
+	{
+		unsigned char* buf = (unsigned char*)iov[i].iov_base;
+		for (int k = 0; k < iov[i].iov_len; ++k)
+		{
+			TEST_EQUAL(int(buf[k]), 0);
+		}
+	}
+	free_iov(iov, 10);
+}
+
+void test_iovec_bufs_size()
+{
+	file::iovec_t iov[10];
+
+	for (int i = 1; i < 10; ++i)
+	{
+		alloc_iov(iov, i);
+
+		int expected_size = 0;
+		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
+		TEST_EQUAL(bufs_size(iov, i), expected_size);
+
+		free_iov(iov, i);
+	}
+}
+
+void test_iovec_advance_bufs()
+{
+	file::iovec_t iov1[10];
+	file::iovec_t iov2[10];
+	alloc_iov(iov1, 10);
+	fill_pattern(iov1, 10);
+
+	memcpy(iov2, iov1, sizeof(iov1));
+
+	file::iovec_t* iov = iov2;
+	file::iovec_t* end = iov2 + 10;
+
+	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
+	// 13 bytes
+	advance_bufs(iov, 13);
+
+	// make sure what's in 
+	int counter = 13;
+	for (int i = 0; i < end - iov; ++i)
+	{
+		unsigned char* buf = (unsigned char*)iov[i].iov_base;
+		for (int k = 0; k < iov[i].iov_len; ++k)
+		{
+			TEST_EQUAL(int(buf[k]), (counter & 0xff));
+			++counter;
+		}
+	}
+
+	free_iov(iov1, 10);
+}
+
 int test_main()
 {
+	test_iovec_copy_bufs();
+	test_iovec_clear_bufs();
+	test_iovec_advance_bufs();
+	test_iovec_bufs_size();
+
+	return 0;
+
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
 		*p = random_byte();
