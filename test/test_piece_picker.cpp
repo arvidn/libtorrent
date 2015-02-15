@@ -825,6 +825,37 @@ int test_main()
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
 
+	// sweep in, set_piece_priority()
+	print_title("test cursors. sweep in, set_piece_priority");
+	p = setup_picker("7654321", "       ", "", "");
+	for (int left = 0, right = 6; left <= 3 && right >= 3; ++left, --right)
+	{
+		TEST_EQUAL(p->cursor(), left);
+		TEST_EQUAL(p->reverse_cursor(), right + 1);
+		p->set_piece_priority(left, 0);
+		p->set_piece_priority(right, 0);
+	}
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(!p->is_seeding());
+	TEST_EQUAL(p->cursor(), 7);
+	TEST_EQUAL(p->reverse_cursor(), 0);
+
+	// sweep in, we_have()
+	print_title("test cursors. sweep in, we_have");
+	p = setup_picker("7654321", "       ", "", "");
+	for (int left = 0, right = 6; left <= 3 && right >= 3; ++left, --right)
+	{
+		TEST_EQUAL(p->cursor(), left);
+		TEST_EQUAL(p->reverse_cursor(), right + 1);
+		p->we_have(left);
+		p->we_have(right);
+	}
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+	TEST_EQUAL(p->cursor(), 7);
+	TEST_EQUAL(p->reverse_cursor(), 0);
+
+
 	print_title("test cursors. sweep up, we_dont_have");
 	p = setup_picker("7654321", "*******", "", "");
 	TEST_CHECK(p->is_finished());
@@ -853,6 +884,24 @@ int test_main()
 		p->we_dont_have(i);
 		TEST_EQUAL(p->cursor(), i);
 		TEST_EQUAL(p->reverse_cursor(), 7);
+	}
+	TEST_CHECK(!p->is_finished());
+	TEST_CHECK(!p->is_seeding());
+	TEST_EQUAL(p->cursor(), 0);
+	TEST_EQUAL(p->reverse_cursor(), 7);
+
+	print_title("test cursors. sweep out, we_dont_have");
+	p = setup_picker("7654321", "*******", "", "");
+	TEST_CHECK(p->is_finished());
+	TEST_CHECK(p->is_seeding());
+	TEST_EQUAL(p->cursor(), 7);
+	TEST_EQUAL(p->reverse_cursor(), 0);
+	for (int left = 3, right = 3; left >= 0 && right < 7; --left, ++right)
+	{
+		p->we_dont_have(left);
+		p->we_dont_have(right);
+		TEST_EQUAL(p->cursor(), left);
+		TEST_EQUAL(p->reverse_cursor(), right + 1);
 	}
 	TEST_CHECK(!p->is_finished());
 	TEST_CHECK(!p->is_seeding());
