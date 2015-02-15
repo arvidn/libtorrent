@@ -972,6 +972,19 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	}
 #endif
 
+	// don't log every peer we try to connect to
+	if (alert_cast<peer_connect_alert>(a)) return true;
+
+	if (peer_disconnected_alert* pd = alert_cast<peer_disconnected_alert>(a))
+	{
+		// ignore failures to connect and peers not responding with a
+		// handshake. The peers that we successfully connect to and then
+		// disconnect is more interesting.
+		if (pd->operation == op_connect
+			|| pd->error == error_code(errors::timed_out_no_handshake
+				, get_libtorrent_category()))
+			return true;
+	}
 
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
@@ -1299,7 +1312,6 @@ int main(int argc, char* argv[])
 		, alert::all_categories
 			& ~(alert::dht_notification
 			+ alert::progress_notification
-			+ alert::debug_notification
 			+ alert::stats_notification
 			+ alert::session_log_notification
 			+ alert::torrent_log_notification

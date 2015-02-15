@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/operations.hpp" // for operation_t enum
 
 namespace libtorrent
 {
@@ -90,7 +91,7 @@ namespace libtorrent
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
 		virtual void disconnect(error_code const& ec
-			, peer_connection_interface::operation_t op, int error = 0);
+			, operation_t op, int error = 0);
 
 		virtual void write_request(peer_request const& r);
 

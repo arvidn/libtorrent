@@ -389,7 +389,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(errors::metadata_too_large, peer_connection_interface::op_bittorrent, 2);
+				m_pc.disconnect(errors::metadata_too_large, op_bittorrent, 2);
 				return true;
 			}
 
@@ -412,7 +412,7 @@ namespace libtorrent { namespace
 					if (length != 3)
 					{
 						// invalid metadata request
-						m_pc.disconnect(errors::invalid_metadata_request, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_request, op_bittorrent, 2);
 						return true;
 					}
 
@@ -434,22 +434,22 @@ namespace libtorrent { namespace
 
 					if (total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 					{
-						m_pc.disconnect(errors::metadata_too_large, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::metadata_too_large, op_bittorrent, 2);
 						return true;
 					}
 					if (total_size <= 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_size, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_size, op_bittorrent, 2);
 						return true;
 					}
 					if (offset > total_size || offset < 0)
 					{
-						m_pc.disconnect(errors::invalid_metadata_offset, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_offset, op_bittorrent, 2);
 						return true;
 					}
 					if (offset + data_size > total_size)
 					{
-						m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
+						m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 						return true;
 					}
 
@@ -476,7 +476,7 @@ namespace libtorrent { namespace
 				break;
 			default:
 				{
-					m_pc.disconnect(errors::invalid_metadata_message, peer_connection_interface::op_bittorrent, 2);
+					m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 				}
 			}
 			return true;

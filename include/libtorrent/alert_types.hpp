@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/rss.hpp" // for feed_handle
+#include "libtorrent/operations.hpp" // for operation_t enum
 
 namespace libtorrent
 {
@@ -702,8 +703,9 @@ namespace libtorrent
 	{
 		// internal
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, int op, error_code const& e)
+			, peer_id const& peer_id, operation_t op, int type, error_code const& e)
 			: peer_alert(h, ep, peer_id)
+			, socket_type(type)
 			, operation(op)
 			, error(e)
 		{
@@ -717,9 +719,12 @@ namespace libtorrent
 		const static int static_category = alert::debug_notification;
 		virtual std::string message() const;
 
-		// a NULL-terminated string of the low-level operation that failed, or NULL if
-		// there was no low level disk operation.
-		int operation;
+		// the kind of socket this peer was connected over
+		int socket_type;
+
+		// the operation or level where the error occurred. Specified as an
+		// value from the operation_t enum. Defined in operations.hpp.
+		operation_t operation;
 
 		// tells you what error caused peer to disconnect.
 		error_code error;
