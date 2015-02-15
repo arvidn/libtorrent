@@ -48,7 +48,6 @@ test_programs = \
   test_tailqueue             \
   test_threads               \
   test_torrent               \
-  test_torrent_parse         \
   test_tracker               \
   test_trackers_extension    \
   test_transfer              \
@@ -183,7 +182,6 @@ test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp
-test_torrent_parse_SOURCES = test_torrent_parse.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
