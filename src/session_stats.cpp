@@ -60,6 +60,7 @@ namespace libtorrent
 		METRIC(peer, connreset_peers)
 		METRIC(peer, connrefused_peers)
 		METRIC(peer, connaborted_peers)
+		METRIC(peer, notconnected_peers)
 		METRIC(peer, perm_peers)
 		METRIC(peer, buffer_peers)
 		METRIC(peer, unreachable_peers)

@@ -51,6 +51,7 @@ namespace libtorrent
 			connreset_peers,
 			connrefused_peers,
 			connaborted_peers,
+			notconnected_peers,
 			perm_peers,
 			buffer_peers,
 			unreachable_peers,
