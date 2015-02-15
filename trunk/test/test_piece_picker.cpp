@@ -294,9 +294,27 @@ int test_main()
 	tmp_peer = &tmp1;
 	std::vector<piece_block> picked;
 	boost::shared_ptr<piece_picker> p;
-	int options = piece_picker::rarest_first;
+	const int options = piece_picker::rarest_first;
 	std::pair<int, int> dc;
 	counters pc;
+
+	print_title("test piece_block");
+
+	TEST_CHECK(piece_block(0, 0) != piece_block(0, 1));
+	TEST_CHECK(piece_block(0, 0) != piece_block(1, 0));
+	TEST_CHECK(!(piece_block(0, 0) != piece_block(0, 0)));
+
+	TEST_CHECK(!(piece_block(0, 0) == piece_block(0, 1)));
+	TEST_CHECK(!(piece_block(0, 0) == piece_block(1, 0)));
+	TEST_CHECK(piece_block(0, 0) == piece_block(0, 0));
+
+	TEST_CHECK(!(piece_block(0, 1) < piece_block(0, 0)));
+	TEST_CHECK(!(piece_block(1, 0) < piece_block(0, 0)));
+	TEST_CHECK(piece_block(0, 0) < piece_block(0, 1));
+	TEST_CHECK(piece_block(0, 0) < piece_block(1, 0));
+	TEST_CHECK(!(piece_block(0, 0) < piece_block(0, 0)));
+	TEST_CHECK(!(piece_block(1, 0) < piece_block(1, 0)));
+	TEST_CHECK(!(piece_block(0, 1) < piece_block(0, 1)));
 
 // ========================================================
 
@@ -1231,7 +1249,7 @@ int test_main()
 	print_title("test suggested pieces");
 	p = setup_picker("1111222233334444", "                ", "", "");
 	int v[] = {1, 5};
-	std::vector<int> suggested_pieces(v, v + 2);
+	const std::vector<int> suggested_pieces(v, v + 2);
 	
 	picked = pick_pieces(p, "****************", 1, blocks_per_piece
 		, 0, options, suggested_pieces);
@@ -1647,154 +1665,64 @@ int test_main()
 	TEST_EQUAL(finished, 2);
 	TEST_EQUAL(zero_prio, 1);
 
-/*
+// ========================================================
 
-	p.pick_pieces(peer1, picked, 1, false, 0, true);
-	TEST_CHECK(int(picked.size()) == 1);
-	TEST_CHECK(picked.front().piece_index == 2);
+	print_title("test time_critical_mode");
 
-	// now pick a piece from peer2. The block is supposed to be
-	// from piece 3, since it is the rarest piece that peer has.
-	picked.clear();
-	p.pick_pieces(peer2, picked, 1, false, 0, true);
-	TEST_CHECK(int(picked.size()) == 1);
-	TEST_CHECK(picked.front().piece_index == 3);
+	p = setup_picker("1111111", "       ", "1654741", "0352000");
 
-	// same thing for peer3.
+	// rarest-first
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::rarest_first | piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	picked.clear();
-	p.pick_pieces(peer3, picked, 1, false, 0, true);
-	TEST_CHECK(int(picked.size()) == 1);
-	TEST_CHECK(picked.front().piece_index == 5);
+	// reverse rarest-first
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::reverse | piece_picker::rarest_first
+		| piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	// now, if all peers would have piece 1 (the piece we have partially)
-	// it should be prioritized over picking a completely new piece.
-	peer3[1] = true;
-	p.inc_refcount(1);
-	
-	picked.clear();
-	p.pick_pieces(peer3, picked, 1, false, 0, true);
-	TEST_CHECK(int(picked.size()) == 1);
-	TEST_CHECK(picked.front().piece_index == 1);
-	// and the block picked should not be 0 or 2
-	// since we already have those blocks
+	// sequential
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::sequential | piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	TEST_CHECK(picked.front().block_index != 0);
-	TEST_CHECK(picked.front().block_index != 2);
+	// reverse sequential
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::reverse | piece_picker::sequential
+		| piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	// now, if we mark piece 1 and block 0 in piece 2
-	// as being downloaded and picks a block from peer1,
-	// it should pick a block from piece 2. But since
-	// block 0 is marked as requested from another peer,
-	// the piece_picker will continue to pick blocks
-	// until it can return at least 1 block (since we
-	// tell it we want one block) that is not being
-	// downloaded from anyone else. This is to make it
-	// possible for us to determine if we want to request
-	// the block from more than one peer.
-	// Both piece 1 and 2 are partial pieces, but pice
-	// 2 is the rarest, so that's why it is picked.
+	// just critical
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	// we have block 0 and 2 already, so we can't mark
-	// them as begin downloaded. 
-	p.mark_as_downloading(piece_block(1, 1), &peer_struct);
-	p.mark_as_downloading(piece_block(1, 3), &peer_struct);
-	p.mark_as_downloading(piece_block(2, 0), &peer_struct);
+	// prioritize_partials
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::prioritize_partials | piece_picker::time_critical_mode, empty_vector);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	std::vector<piece_picker::downloading_piece> const& downloads = p.get_download_queue();
-	TEST_CHECK(downloads.size() == 2);
-	TEST_CHECK(downloads[0].index == 1);
-	TEST_CHECK(downloads[0].info[0].state == piece_picker::block_info::state_finished);
-	TEST_CHECK(downloads[0].info[1].state == piece_picker::block_info::state_requested);
-	TEST_CHECK(downloads[0].info[2].state == piece_picker::block_info::state_finished);
-	TEST_CHECK(downloads[0].info[3].state == piece_picker::block_info::state_requested);
+	// even when a non-critical piece is suggested should we ignore it
+	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+		, piece_picker::rarest_first | piece_picker::time_critical_mode
+		, suggested_pieces);
+	TEST_EQUAL(picked.size(), blocks_per_piece);
+	for (int i = 0; i < picked.size(); ++i)
+		TEST_EQUAL(picked[0].piece_index, 4);
 
-	TEST_CHECK(downloads[1].index == 2);
-	TEST_CHECK(downloads[1].info[0].state == piece_picker::block_info::state_requested);
-	TEST_CHECK(downloads[1].info[1].state == piece_picker::block_info::state_none);
-	TEST_CHECK(downloads[1].info[2].state == piece_picker::block_info::state_none);
-	TEST_CHECK(downloads[1].info[3].state == piece_picker::block_info::state_none);
-
-	TEST_CHECK(p.is_requested(piece_block(1, 1)));
-	TEST_CHECK(p.is_requested(piece_block(1, 3)));
-	TEST_CHECK(p.is_requested(piece_block(2, 0)));
-	TEST_CHECK(!p.is_requested(piece_block(2, 1)));
-
-	picked.clear();
-	p.pick_pieces(peer1, picked, 1, false, 0, true);
-	TEST_CHECK(int(picked.size()) == 2);
-
-	piece_block expected3[] = { piece_block(2, 0), piece_block(2, 1) };
-	TEST_CHECK(std::equal(picked.begin()
-		, picked.end(), expected3));
-
-	// now, if we assume we're downloading at such a speed that
-	// we might prefer to download whole pieces at a time from
-	// this peer. It should not pick piece 1 or 2 (since those are
-	// partially selected)
-
-	picked.clear();
-	p.pick_pieces(peer1, picked, 1, true, 0, true);
-
-	// it will pick 4 blocks, since we said we
-	// wanted whole pieces.
-	TEST_CHECK(int(picked.size()) == 4);
-
-	piece_block expected4[] =
-	{
-		piece_block(3, 0), piece_block(3, 1)
-		, piece_block(3, 2), piece_block(3, 3)
-	};
-
-	TEST_CHECK(std::equal(picked.begin()
-		, picked.end(), expected4));
-
-	// now, try the same thing, but pick as many pieces as possible
-	// to make sure it can still fall back on partial pieces
-
-	picked.clear();
-	p.pick_pieces(peer1, picked, 100, true, 0, true);
-
-	TEST_CHECK(int(picked.size()) == 12);
-
-	piece_block expected5[] =
-	{
-		piece_block(3, 0), piece_block(3, 1)
-		, piece_block(3, 2), piece_block(3, 3)
-		, piece_block(5, 0), piece_block(5, 1)
-		, piece_block(5, 2), piece_block(5, 3)
-		, piece_block(2, 0), piece_block(2, 1)
-		, piece_block(2, 2), piece_block(2, 3)
-	};
-
-	TEST_CHECK(std::equal(picked.begin()
-		, picked.end(), expected5));
-
-	// now, try the same thing, but pick as many pieces as possible
-	// to make sure it can still fall back on partial pieces
-
-	picked.clear();
-	p.pick_pieces(peer1, picked, 100, true, &peer_struct, true);
-
-	TEST_CHECK(int(picked.size()) == 11);
-
-	piece_block expected6[] =
-	{
-		piece_block(2, 1), piece_block(2, 2)
-		, piece_block(2, 3)
-		, piece_block(3, 0), piece_block(3, 1)
-		, piece_block(3, 2), piece_block(3, 3)
-		, piece_block(5, 0), piece_block(5, 1)
-		, piece_block(5, 2), piece_block(5, 3)
-	};
-
-	TEST_CHECK(std::equal(picked.begin()
-		, picked.end(), expected6));
-
-	// make sure the piece picker allows filtered pieces
-	// to become available
-	p.mark_as_finished(piece_block(4, 2), 0);
-*/
 	return 0;
 }
 
