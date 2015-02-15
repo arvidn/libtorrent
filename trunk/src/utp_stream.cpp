@@ -230,9 +230,9 @@ struct utp_socket_impl
 		: m_sm(sm)
 		, m_userdata(userdata)
 		, m_nagle_packet(NULL)
-		, m_read_handler(0)
-		, m_write_handler(0)
-		, m_connect_handler(0)
+		, m_read_handler(false)
+		, m_write_handler(false)
+		, m_connect_handler(false)
 		, m_remote_address()
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_history_step(time_now_hires())
@@ -413,11 +413,11 @@ public:
 	// async operation initiated
 	error_code m_error;
 
-	// these are the callbacks made into the utp_stream object
-	// on read/write/connect events
-	utp_stream::handler_t m_read_handler;
-	utp_stream::handler_t m_write_handler;
-	utp_stream::connect_handler_t m_connect_handler;
+	// these indicate whether or not there is an outstanding read/write or
+	// connect operation. i.e. is there upper layer subscribed to these events.
+	bool m_read_handler;
+	bool m_write_handler;
+	bool m_connect_handler;
 
 	// the address of the remote endpoint
 	address m_remote_address;
@@ -871,11 +871,15 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
+//	boost::function2<void, error_code const&, std::size_t> tmp;
+//	tmp.swap(s->m_read_handler);
 	if (kill && s->m_impl)
 	{
+		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec, bytes_transferred);
 }
 
 void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
@@ -889,11 +893,15 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
+//	boost::function2<void, error_code const&, std::size_t> tmp;
+//	tmp.swap(s->m_read_handler);
 	if (kill && s->m_impl)
 	{
+		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec, bytes_transferred);
 }
 
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
@@ -907,12 +915,15 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
 	s->m_connect_handler.clear();
+//	boost::function1<void, error_code const&> tmp;
+//	s->m_connect_handler.swap(tmp);
 	if (kill && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec);
 }
 
 void utp_stream::add_read_buffer(void* buf, size_t len)
@@ -968,13 +979,14 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 // do is to copy any data stored in m_receive_buffer into the user
 // provided buffer. This might be enough to in turn trigger the read
 // handler immediately.
-void utp_stream::set_read_handler(handler_t h)
+void utp_stream::issue_read()
 {
 	TORRENT_ASSERT(m_impl->m_userdata);
+	TORRENT_ASSERT(!m_impl->m_read_handler);
 
 	m_impl->m_null_buffers = m_impl->m_read_buffer_size == 0;
 
-	m_impl->m_read_handler = h;
+	m_impl->m_read_handler = true;
 	if (m_impl->test_socket_state()) return;
 
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
@@ -1075,15 +1087,16 @@ size_t utp_stream::read_some(bool clear_buffers)
 
 // this is called when all user provided write buffers have been
 // added. Start trying to send packets with the payload immediately.
-void utp_stream::set_write_handler(handler_t h)
+void utp_stream::issue_write()
 {
 	UTP_LOGV("%8p: new write handler. %d bytes to write\n"
 		, m_impl, m_impl->m_write_buffer_size);
 
 	TORRENT_ASSERT(m_impl->m_write_buffer_size > 0);
-
+	TORRENT_ASSERT(m_impl->m_write_handler == false);
 	TORRENT_ASSERT(m_impl->m_userdata);
-	m_impl->m_write_handler = h;
+
+	m_impl->m_write_handler = true;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
 
@@ -1097,15 +1110,16 @@ void utp_stream::set_write_handler(handler_t h)
 	if (m_impl) m_impl->maybe_trigger_send_callback();
 }
 
-void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
+void utp_stream::do_connect(tcp::endpoint const& ep)
 {
 	int link_mtu, utp_mtu;
 	m_impl->m_sm->mtu_for_dest(ep.address(), link_mtu, utp_mtu);
 	m_impl->init_mtu(link_mtu, utp_mtu);
-	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
+	TORRENT_ASSERT(m_impl->m_connect_handler == false);
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
-	m_impl->m_connect_handler = handler;
+
+	m_impl->m_connect_handler = true;
 
 	error_code ec;
 	m_impl->m_local_address = m_impl->m_sm->local_endpoint(m_impl->m_remote_address, ec).address();
@@ -1183,15 +1197,15 @@ void utp_socket_impl::maybe_trigger_receive_callback()
 {
 	INVARIANT_CHECK;
 
-	if (m_read_handler == 0) return;
+	if (m_read_handler == false) return;
 
 	// nothing has been read or there's no outstanding read operation
 	if (m_null_buffers && m_receive_buffer_size == 0) return;
 	else if (!m_null_buffers && m_read == 0) return;
 
 	UTP_LOGV("%8p: calling read handler read:%d\n", this, m_read);
-	m_read_handler(m_userdata, m_read, m_error, false);
-	m_read_handler = 0;
+	m_read_handler = false;
+	utp_stream::on_read(m_userdata, m_read, m_error, false);
 	m_read = 0;
 	m_read_buffer_size = 0;
 	m_read_buffer.clear();
@@ -1202,12 +1216,12 @@ void utp_socket_impl::maybe_trigger_send_callback()
 	INVARIANT_CHECK;
 
 	// nothing has been written or there's no outstanding write operation
-	if (m_written == 0 || m_write_handler == 0) return;
+	if (m_written == 0 || m_write_handler == false) return;
 
 	UTP_LOGV("%8p: calling write handler written:%d\n", this, m_written);
 
-	m_write_handler(m_userdata, m_written, m_error, false);
-	m_write_handler = 0;
+	m_write_handler = false;
+	utp_stream::on_write(m_userdata, m_written, m_error, false);
 	m_written = 0;
 	m_write_buffer_size = 0;
 	m_write_buffer.clear();
@@ -2351,12 +2365,16 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	// calling the callbacks with m_userdata being 0 will just crash
 	TORRENT_ASSERT((ret && bool(m_userdata)) || !ret);
 
-	if (m_read_handler) m_read_handler(m_userdata, 0, ec, kill);
-	m_read_handler = 0;
-	if (m_write_handler) m_write_handler(m_userdata, 0, ec, kill);
-	m_write_handler = 0;
-	if (m_connect_handler) m_connect_handler(m_userdata, ec, kill);
-	m_connect_handler = 0;
+	bool read = m_read_handler;
+	bool write = m_write_handler;
+	bool connect = m_connect_handler;
+	m_read_handler = false;
+	m_write_handler = false;
+	m_connect_handler = false;
+
+	if (read) utp_stream::on_read(m_userdata, 0, ec, kill);
+	if (write) utp_stream::on_write(m_userdata, 0, ec, kill);
+	if (connect) utp_stream::on_connect(m_userdata, ec, kill);
 	return ret;
 }
 
@@ -2986,9 +3004,9 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			if (m_connect_handler)
 			{
 				UTP_LOGV("%8p: calling connect handler\n", this);
-				m_connect_handler(m_userdata, m_error, false);
+				m_connect_handler = false;
+				utp_stream::on_connect(m_userdata, m_error, false);
 			}
-			m_connect_handler = 0;
 			// fall through
 		}
 		case UTP_STATE_CONNECTED:

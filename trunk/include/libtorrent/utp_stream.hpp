@@ -232,19 +232,16 @@ public:
 	static void on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
 
-	typedef void(*handler_t)(void*, size_t, error_code const&, bool);
-	typedef void(*connect_handler_t)(void*, error_code const&, bool);
-
 	void add_read_buffer(void* buf, size_t len);
-	void set_read_handler(handler_t h);
+	void issue_read();
 	void add_write_buffer(void const* buf, size_t len);
-	void set_write_handler(handler_t h);
+	void issue_write();
 	size_t read_some(bool clear_buffers);
 	
 	int send_delay() const;
 	int recv_delay() const;
 
-	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
+	void do_connect(tcp::endpoint const& ep);
 
 	endpoint_type local_endpoint() const
 	{
@@ -283,7 +280,7 @@ public:
 		}
 
 		m_connect_handler = handler;
-		do_connect(endpoint, &utp_stream::on_connect);
+		do_connect(endpoint);
 	}
 	
 	template <class Mutable_Buffers, class Handler>
@@ -320,7 +317,7 @@ public:
 		}
 
 		m_read_handler = handler;
-		set_read_handler(&utp_stream::on_read);
+		issue_read();
 	}
 
 	template <class Handler>
@@ -335,11 +332,12 @@ public:
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
+			TORRENT_ASSERT(false); // we should never do this!
 			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
 		m_read_handler = handler;
-		set_read_handler(&utp_stream::on_read);
+		issue_read();
 	}
 
 	void do_async_connect(endpoint_type const& ep
@@ -452,7 +450,7 @@ public:
 			return;
 		}
 		m_write_handler = handler;
-		set_write_handler(&utp_stream::on_write);
+		issue_write();
 	}
 
 //private:

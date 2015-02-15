@@ -3952,18 +3952,33 @@ namespace libtorrent
 
 		m_counters.inc_stats_counter(counters::disconnected_peers);
 		if (error == 2) m_counters.inc_stats_counter(counters::error_peers);
-		if (ec == error::connection_reset) m_counters.inc_stats_counter(counters::connreset_peers);
-		else if (ec == error::eof) m_counters.inc_stats_counter(counters::eof_peers);
-		else if (ec == error::connection_refused) m_counters.inc_stats_counter(counters::connrefused_peers);
-		else if (ec == error::connection_aborted) m_counters.inc_stats_counter(counters::connaborted_peers);
-		else if (ec == error::no_permission) m_counters.inc_stats_counter(counters::perm_peers);
-		else if (ec == error::no_buffer_space) m_counters.inc_stats_counter(counters::buffer_peers);
-		else if (ec == error::host_unreachable) m_counters.inc_stats_counter(counters::unreachable_peers);
-		else if (ec == error::broken_pipe) m_counters.inc_stats_counter(counters::broken_pipe_peers);
-		else if (ec == error::address_in_use) m_counters.inc_stats_counter(counters::addrinuse_peers);
-		else if (ec == error::access_denied) m_counters.inc_stats_counter(counters::no_access_peers);
-		else if (ec == error::invalid_argument) m_counters.inc_stats_counter(counters::invalid_arg_peers);
-		else if (ec == error::operation_aborted) m_counters.inc_stats_counter(counters::aborted_peers);
+
+		if (ec == error::connection_reset)
+			m_counters.inc_stats_counter(counters::connreset_peers);
+		else if (ec == error::eof)
+			m_counters.inc_stats_counter(counters::eof_peers);
+		else if (ec == error::connection_refused)
+			m_counters.inc_stats_counter(counters::connrefused_peers);
+		else if (ec == error::connection_aborted)
+			m_counters.inc_stats_counter(counters::connaborted_peers);
+		else if (ec == error::not_connected)
+			m_counters.inc_stats_counter(counters::notconnected_peers);
+		else if (ec == error::no_permission)
+			m_counters.inc_stats_counter(counters::perm_peers);
+		else if (ec == error::no_buffer_space)
+			m_counters.inc_stats_counter(counters::buffer_peers);
+		else if (ec == error::host_unreachable)
+			m_counters.inc_stats_counter(counters::unreachable_peers);
+		else if (ec == error::broken_pipe)
+			m_counters.inc_stats_counter(counters::broken_pipe_peers);
+		else if (ec == error::address_in_use)
+			m_counters.inc_stats_counter(counters::addrinuse_peers);
+		else if (ec == error::access_denied)
+			m_counters.inc_stats_counter(counters::no_access_peers);
+		else if (ec == error::invalid_argument)
+			m_counters.inc_stats_counter(counters::invalid_arg_peers);
+		else if (ec == error::operation_aborted)
+			m_counters.inc_stats_counter(counters::aborted_peers);
 		else if (ec == error_code(errors::upload_upload_connection)
 			|| ec == error_code(errors::uninteresting_upload_peer)
 			|| ec == error_code(errors::torrent_aborted)
@@ -5683,6 +5698,17 @@ namespace libtorrent
 		// we can read from the socket, and then determine how much there
 		// is to read.
 
+		if (error)
+		{
+#if defined TORRENT_LOGGING
+			peer_log("*** ERROR [ in peer_connection::on_receive_data_nb error: %s ]"
+				, error.message().c_str());
+#endif
+			on_receive(error, bytes_transferred);
+			disconnect(error, op_sock_read);
+			return;
+		}
+
 		error_code ec;
 		std::size_t buffer_size = m_socket->available(ec);
 		if (ec)
@@ -5822,7 +5848,7 @@ namespace libtorrent
 		if (error)
 		{
 #if defined TORRENT_LOGGING
-			peer_log("*** ERROR [ in peer_connection::on_receive_data error: %s ]"
+			peer_log("*** ERROR [ in peer_connection::on_receive_data_impl error: %s ]"
 				, error.message().c_str());
 #endif
 			trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
