@@ -124,6 +124,23 @@ namespace libtorrent
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
+// TODO: sanitize_append_path_element with all kinds of UTF-8 sequences, including invalid ones
+// TODO: torrents with a missing name
+// TODO: torrents with a zero-length name
+// TODO: torrents with a merkle tree and add_merkle_nodes
+// TODO: torrent with a non-dictionary info-section
+// TODO: torrents with DHT nodes
+// TODO: torrent with url-list as a single string
+// TODO: torrent with http seed as a single string
+// TODO: torrent with a comment
+// TODO: torrent with an SSL cert
+// TODO: torrent with attributes (executable and hidden)
+// TODO: torrent_info::add_tracker
+// TODO: torrent_info::add_url_seed
+// TODO: torrent_info::add_http_seed
+// TODO: torrent_info::unload
+// TODO: torrent_info constructor that takes an invalid bencoded buffer
+// TODO: verify_encoding with a string that triggers character replacement
 
 int test_torrent_parse()
 {

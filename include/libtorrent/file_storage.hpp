@@ -275,7 +275,7 @@ namespace libtorrent
 		// The ``mtime`` argument is optional and can be set to 0. If non-zero,
 		// it is the posix time of the last modification time of this file.
 		// 
-		// ``symlink_path`` is the path the is a symlink to. To make this a
+		// ``symlink_path`` is the path the file is a symlink to. To make this a
 		// symlink you also need to set the file_storage::flag_symlink file flag.
 		//
 		// If more files than one are added, certain restrictions to their paths
@@ -295,12 +295,6 @@ namespace libtorrent
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
 		void rename_file(int index, std::string const& new_filename);
-
-		// this is a low-level function that sets the name of a file
-		// by making it reference a buffer that is not owned by the file_storage.
-		// it's an optimization used when loading .torrent files, to not
-		// duplicate names in memory.
-		void rename_file_borrow(int index, char const* new_filename, int len);
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX

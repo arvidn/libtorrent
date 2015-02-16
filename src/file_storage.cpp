@@ -286,12 +286,6 @@ namespace libtorrent
 		update_path_index(m_files[index]);
 	}
 
-	void file_storage::rename_file_borrow(int index, char const* new_filename, int len)
-	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		m_files[index].set_name(new_filename, true, len);
-	}
-
 	namespace
 	{
 		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
