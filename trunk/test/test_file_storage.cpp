@@ -85,7 +85,11 @@ int test_main()
 		st.rename_file(0, combine_path("test", combine_path("c", "d")));
 		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test"
 			, combine_path("c", "d"))));
+		TEST_EQUAL(st.file_path(0, ""), combine_path("test"
+			, combine_path("c", "d")));
 
+		// files with absolute paths should ignore the save_path argument
+		// passed in to file_path()
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
 		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
@@ -96,7 +100,9 @@ int test_main()
 	}
 
 	{
-		// test set_name
+		// test set_name. Make sure the name of the torrent is not encoded
+		// in the paths of each individual file. When changing the name of the
+		// torrent, the path of the files should change too
 		file_storage st;
 		setup_test_storage(st);
 		
@@ -106,19 +112,57 @@ int test_main()
 	}
 
 	{
+		// test rename_file
 		file_storage st;
 		st.add_file("a", 10000);
+		TEST_EQUAL(st.file_path(0, ""), "a");
 
 		st.rename_file(0, combine_path("test", combine_path("c", "d")));
 		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
+		TEST_EQUAL(st.file_path(0, ""), combine_path("test", combine_path("c", "d")));
 
 #ifdef TORRENT_WINDOWS
 		st.rename_file(0, "c:\\tmp\\a");
 		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+		TEST_EQUAL(st.file_path(0, "c:\\test-1\\test2"), "c:\\tmp\\a");
 #else
 		st.rename_file(0, "/tmp/a");
 		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+		TEST_EQUAL(st.file_path(0, "/usr/local/temp"), "/tmp/a");
 #endif
+
+		st.rename_file(0, combine_path("tmp", "a"));
+		TEST_EQUAL(st.file_path(0, "."), combine_path("tmp", "a"));
+	}
+
+	{
+		// test applying pointer offset
+		file_storage st;
+		char const filename[] = "test1fooba";
+
+		st.add_file_borrow(filename, 5, combine_path("test-torrent-1", "test1")
+			, 10);
+
+		// test filename_ptr and filename_len
+		TEST_EQUAL(st.file_name_ptr(0), filename);
+		TEST_EQUAL(st.file_name_len(0), 5);
+
+		TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "test1"));
+		TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
+			, combine_path("test-torrent-1", "test1")));
+
+		// apply a pointer offset of 5 bytes. The name of the file should
+		// change to "fooba".
+
+		st.apply_pointer_offset(5);
+
+		TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "fooba"));
+		TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
+			, combine_path("test-torrent-1", "fooba")));
+
+		// test filename_ptr and filename_len
+		TEST_EQUAL(st.file_name_ptr(0), filename + 5);
+		TEST_EQUAL(st.file_name_len(0), 5);
 	}
 
 	{
