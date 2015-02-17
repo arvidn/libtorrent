@@ -402,7 +402,9 @@ namespace libtorrent
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
+#ifndef TORRENT_NO_DEPRECATE
 			swap(ti.m_file_base, m_file_base);
+#endif
 			swap(ti.m_paths, m_paths);
 			swap(ti.m_name, m_name);
 			swap(ti.m_total_size, m_total_size);
@@ -496,16 +498,6 @@ namespace libtorrent
 		// to file at ``index``.
 		int file_flags(int index) const;
 
-		// The file base of a file is the offset within the file on the filsystem
-		// where it starts to write. For the most part, this is 0. It's possible
-		// to map several files (in the torrent) into a single file on the
-		// filesystem by making them all point to the same filename, but with
-		// different file bases, so that they don't overlap.
-		// torrent_info::remap_files() can be used to use a new file layout.
-		// TODO: 3 deprecate the file_base feature
-		boost::int64_t file_base(int index) const;
-		void set_file_base(int index, boost::int64_t off);
-
 		// returns the index of the file at the given offset in the torrent
 		int file_index_at_offset(boost::int64_t offset) const;
 
@@ -516,6 +508,12 @@ namespace libtorrent
 		int file_name_len(int index) const;
 
 #ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.1
+		TORRENT_DEPRECATED_PREFIX
+		boost::int64_t file_base(int index) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void set_file_base(int index, boost::int64_t off) TORRENT_DEPRECATED;
+
 		// these were deprecated in 1.0. Use the versions that take an index instead
 		TORRENT_DEPRECATED_PREFIX
 		sha1_hash hash(internal_file_entry const& fe) const TORRENT_DEPRECATED;
@@ -583,10 +581,12 @@ namespace libtorrent
 		// index in m_files
 		std::vector<time_t> m_mtime;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// if any file has a non-zero file base (i.e. multiple
 		// files residing in the same physical file at different
 		// offsets)
 		std::vector<boost::int64_t> m_file_base;
+#endif
 
 		// all unique paths files have. The internal_file_entry::path_index
 		// points into this array. The paths don't include the root directory

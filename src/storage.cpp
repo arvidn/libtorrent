@@ -1192,7 +1192,11 @@ namespace libtorrent
 					}
 				}
 
-				boost::int64_t adjusted_offset = files().file_base(file_index) + file_offset;
+				boost::int64_t adjusted_offset =
+#ifndef TORRENT_NO_DEPRECATE
+					files().file_base(file_index) +
+#endif
+					file_offset;
 
 #ifdef TORRENT_DISK_STATS
 				int flags = ((op.mode & file::rw_mask) == file::read_only) ? op_read : op_write;

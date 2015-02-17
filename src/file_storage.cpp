@@ -398,7 +398,11 @@ namespace libtorrent
 			{
 				file_slice f;
 				f.file_index = file_iter - m_files.begin();
-				f.offset = file_offset + file_base(f.file_index);
+				f.offset = file_offset
+#ifndef TORRENT_NO_DEPRECATE
+					+ file_base(f.file_index)
+#endif
+					;
 				f.size = (std::min)(boost::uint64_t(file_iter->size) - file_offset, boost::uint64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
@@ -563,19 +567,6 @@ namespace libtorrent
 		return m_mtime[index];
 	}
 
-	void file_storage::set_file_base(int index, boost::int64_t off)
-	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
-		m_file_base[index] = off;
-	}
-
-	boost::int64_t file_storage::file_base(int index) const
-	{
-		if (index >= int(m_file_base.size())) return 0;
-		return m_file_base[index];
-	}
-
 	namespace
 	{
 		template <class CRC>
@@ -731,6 +722,19 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	void file_storage::set_file_base(int index, boost::int64_t off)
+	{
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
+		m_file_base[index] = off;
+	}
+
+	boost::int64_t file_storage::file_base(int index) const
+	{
+		if (index >= int(m_file_base.size())) return 0;
+		return m_file_base[index];
+	}
+
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
@@ -826,12 +830,14 @@ namespace libtorrent
 			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, NULL);
 			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
+#ifndef TORRENT_NO_DEPRECATE
 		if (!m_file_base.empty())
 		{
 			TORRENT_ASSERT(m_file_base.size() == m_files.size());
 			if (int(m_file_base.size()) < index) m_file_base.resize(index + 1, 0);
 			std::iter_swap(m_file_base.begin() + dst, m_file_base.begin() + index);
 		}
+#endif // TORRENT_DEPRECATED
 	}
 
 	void file_storage::optimize(int pad_file_limit, int alignment)
@@ -930,7 +936,9 @@ namespace libtorrent
 
 				if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
 				if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
+#ifndef TORRENT_NO_DEPRECATE
 				if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
+#endif
 
 				reorder_file(index, cur_index);
 
@@ -949,7 +957,9 @@ namespace libtorrent
 		std::vector<char const*>().swap(m_file_hashes);
 		std::vector<std::string>().swap(m_symlinks);
 		std::vector<time_t>().swap(m_mtime);
+#ifndef TORRENT_NO_DEPRECATE
 		std::vector<boost::int64_t>().swap(m_file_base);
+#endif
 		std::vector<std::string>().swap(m_paths);
 	}
 }
