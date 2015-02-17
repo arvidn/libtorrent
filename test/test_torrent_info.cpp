@@ -533,7 +533,7 @@ int test_torrent_parse()
 	return 0;
 }
 
-void test_storage()
+void test_resolve_duplicates()
 {
 	file_storage fs;
 
@@ -547,6 +547,8 @@ void test_storage()
 	fs.add_file("test/B.exe", 0x4000);
 	fs.add_file("test/test/TEMPORARY.TXT", 0x4000);
 	fs.add_file("test/A", 0x4000);
+	fs.add_file("test/long/path/name/that/collides", 0x4000);
+	fs.add_file("test/long/path", 0x4000);
 
 	libtorrent::create_torrent t(fs, 0x4000);
 
@@ -564,7 +566,7 @@ void test_storage()
 
 	torrent_info ti(&tmp[0], tmp.size());
 
-	char const* filenames[10] =
+	char const* filenames[] =
 	{
 	"test/temporary.txt",
 	"test/A/tmp",
@@ -576,6 +578,8 @@ void test_storage()
 	"test/B.2.exe", // duplicate of b.exe
 	"test/test/TEMPORARY.TXT", // a file with the same name in a seprate directory is fine
 	"test/A.2", // duplicate of directory a
+	"test/long/path/name/that/collides", // a subset of this path collides with the next filename
+	"test/long/path.1" // so this file needs to be renamed, to not collide with the path name
 	};
 
 	for (int i = 0; i < ti.num_files(); ++i)
@@ -645,9 +649,10 @@ void test_copy()
 
 int test_main()
 {
-	test_storage();
+	test_resolve_duplicates();
 	test_copy();
 	test_torrent_parse();
+
 	return 0;
 }
 

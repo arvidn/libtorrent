@@ -117,6 +117,8 @@ namespace libtorrent { namespace
 
 		virtual void on_files_checked()
 		{
+			// TODO: 2 if we were to initialize m_metadata_size lazily instead,
+			// we would probably be more efficient
 			// initialize m_metadata_size
 			metadata();
 		}

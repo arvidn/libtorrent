@@ -136,6 +136,8 @@ namespace libtorrent
 
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
 		std::string filename() const;
+		char const* filename_ptr() const { return name; }
+		int filename_len() const { return name_len == name_is_owned?strlen(name):name_len; }
 
 		enum {
 			name_is_owned = (1<<12)-1,
@@ -457,6 +459,13 @@ namespace libtorrent
 		bool pad_file_at(int index) const;
 		boost::int64_t file_offset(int index) const;
 
+		// returns the crc32 hash of file_path(index)
+		boost::uint32_t file_path_hash(int index, std::string const& save_path) const;
+
+		// returns the crc32 hash of the path at index. Note, this index does not
+		// refer to a file, but to a path in the vector returned by paths().
+		boost::uint32_t path_hash(int index, std::string const& save_path) const;
+
 		// flags indicating various attributes for files in
 		// a file_storage.
 		enum file_flags_t
@@ -493,6 +502,7 @@ namespace libtorrent
 		// filesystem by making them all point to the same filename, but with
 		// different file bases, so that they don't overlap.
 		// torrent_info::remap_files() can be used to use a new file layout.
+		// TODO: 3 deprecate the file_base feature
 		boost::int64_t file_base(int index) const;
 		void set_file_base(int index, boost::int64_t off);
 
@@ -544,7 +554,8 @@ namespace libtorrent
 		// the number of pieces in the torrent
 		int m_num_pieces;
 
-		void update_path_index(internal_file_entry& e);
+		void update_path_index(internal_file_entry& e, std::string const& path
+			, bool set_name = true);
 		void reorder_file(int index, int dst);
 
 		// the list of files that this torrent consists of
