@@ -677,6 +677,9 @@ namespace libtorrent
 
 		void resolve_duplicate_filenames();
 
+		// the slow path, in case we detect/suspect a name collision
+		void resolve_duplicate_filenames_slow();
+
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend class invariant_access;
 		void check_invariant() const;

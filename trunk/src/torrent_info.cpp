@@ -357,9 +357,11 @@ namespace libtorrent
 		if (path.empty()) path = "_";
 	}
 
-	// top level is extracting the file for a single-file torrent. The
+	// 'top_level' is extracting the file for a single-file torrent. The
 	// distinction is that the filename is found in "name" rather than
 	// "path"
+	// root_dir is the name of the torrent, unless this is a single file
+	// torrent, in which case it's empty.
 	bool extract_single_file(lazy_entry const& dict, file_storage& files
 		, std::string const& root_dir, ptrdiff_t info_ptr_diff, bool top_level
 		, error_code& ec)
@@ -374,8 +376,6 @@ namespace libtorrent
 
 		boost::int64_t mtime = dict.dict_find_int_value("mtime", 0);
 
-		// prefer the name.utf-8 because if it exists, it is more likely to be
-		// correctly encoded
 		std::string path = root_dir;
 		std::string path_element;
 		char const* filename = NULL;
@@ -383,6 +383,8 @@ namespace libtorrent
 
 		if (top_level)
 		{
+			// prefer the name.utf-8 because if it exists, it is more likely to be
+			// correctly encoded
 			lazy_entry const* p = dict.dict_find_string("name.utf-8");
 			if (p == 0) p = dict.dict_find_string("name");
 			if (p == 0 || p->string_length() == 0)
@@ -407,6 +409,7 @@ namespace libtorrent
 				return false;
 			}
 
+			int preallocate = path.size();
 			for (int i = 0, end(p->list_size()); i < end; ++i)
 			{
 				lazy_entry const* e = p->list_at(i);
@@ -415,6 +418,13 @@ namespace libtorrent
 					ec = errors::torrent_missing_name;
 					return false;
 				}
+				preallocate += e->string_length() + 1;
+			}
+			path.reserve(preallocate);
+
+			for (int i = 0, end(p->list_size()); i < end; ++i)
+			{
+				lazy_entry const* e = p->list_at(i);
 				if (i == end - 1)
 				{
 					filename = e->string_ptr() + info_ptr_diff;
@@ -538,6 +548,8 @@ namespace libtorrent
 	};
 #endif
 
+	// root_dir is the name of the torrent, unless this is a single file
+	// torrent, in which case it's empty.
 	bool extract_files(lazy_entry const& list, file_storage& target
 		, std::string const& root_dir, ptrdiff_t info_ptr_diff, error_code& ec)
 	{
@@ -752,6 +764,42 @@ namespace libtorrent
 	void torrent_info::resolve_duplicate_filenames()
 	{
 		INVARIANT_CHECK;
+
+#if TORRENT_HAS_BOOST_UNORDERED
+		boost::unordered_set<boost::uint32_t> files;
+#else
+		std::set<boost::uint32_t> files;
+#endif
+
+		std::string empty_str;
+
+		// insert all directories first, to make sure no files
+		// are allowed to collied with them
+		std::vector<std::string> const& paths = m_files.paths();
+		for (int i = 0; i != int(paths.size()); ++i)
+		{
+			files.insert(m_files.path_hash(i, empty_str));
+		}
+
+		for (int i = 0; i < m_files.num_files(); ++i)
+		{
+			// as long as this file already exists
+			// increase the counter
+			boost::uint32_t h = m_files.file_path_hash(i, empty_str);
+			if (!files.insert(h).second)
+			{
+				// This filename appears to already exist!
+				// If this happens, just start over and do it the slow way,
+				// comparing full file names and come up with new names
+				resolve_duplicate_filenames_slow();
+				return;
+			}
+		}
+	}
+
+	void torrent_info::resolve_duplicate_filenames_slow()
+	{
+		INVARIANT_CHECK;
 		int cnt = 0;
 
 #if TORRENT_HAS_BOOST_UNORDERED
@@ -759,7 +807,9 @@ namespace libtorrent
 #else
 		std::set<std::string, string_less_no_case> files;
 #endif
+
 		std::vector<std::string> const& paths = m_files.paths();
+		files.reserve(paths.size() + m_files.num_files());
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them

@@ -166,6 +166,7 @@ int test_main()
 	}
 
 	{
+		// test map_file
 		file_storage fs;
 		fs.set_piece_length(512);
 		fs.add_file(combine_path("temp_storage", "test1.tmp"), 17);
@@ -190,6 +191,29 @@ int test_main()
 		TEST_EQUAL(rq.start, 298);
 		TEST_EQUAL(rq.length, 841);
 	}
+
+	{
+		// test file_path_hash and path_hash. Make sure we can detect a path
+		// whose name collides with
+		file_storage fs;
+		fs.set_piece_length(512);
+		fs.add_file(combine_path("temp_storage", combine_path("foo", "test1")), 17);
+		fs.add_file(combine_path("temp_storage", "foo"), 612);
+
+		fprintf(stderr, "path: %s\n", fs.paths()[0].c_str());
+		fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
+		boost::uint32_t file_hash = fs.file_path_hash(1, "a");
+		boost::uint32_t path_hash = fs.path_hash(0, "a");
+		TEST_EQUAL(file_hash, path_hash);
+	}
+
+	// TODO: test map_block
+	// TODO: test piece_size(int piece)
+	// TODO: test file_index_at_offset
+	// TODO: test file attributes
+	// TODO: test symlinks
+	// TODO: test pad_files
+	// TODO: test reorder_file (make sure internal_file_entry::swap() is used)
 
 	return 0;
 }
