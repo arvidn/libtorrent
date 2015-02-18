@@ -325,23 +325,30 @@ namespace libtorrent
 	}
 #endif
 
-	void stat_file(std::string inf, file_status* s
+	void stat_file(std::string const& inf, file_status* s
 		, error_code& ec, int flags)
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-		// apparently windows doesn't expect paths
-		// to directories to ever end with a \ or /
-		if (!inf.empty() && (inf[inf.size() - 1] == '\\'
-			|| inf[inf.size() - 1] == '/'))
-			inf.resize(inf.size() - 1);
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 #define GetFileAttributesEx_ GetFileAttributesExW
 		std::wstring f = convert_to_wstring(inf);
+
+		// apparently windows doesn't expect paths
+		// to directories to ever end with a \ or /
+		if (!f.empty() && (f[f.size() - 1] == L'\\'
+			|| f[f.size() - 1] == L'/'))
+			f.resize(f.size() - 1);
 #else
 #define GetFileAttributesEx_ GetFileAttributesExA
 		std::string f = convert_to_native(inf);
+
+		// apparently windows doesn't expect paths
+		// to directories to ever end with a \ or /
+		if (!f.empty() && (f[f.size() - 1] == '\\'
+			|| f[f.size() - 1] == '/'))
+			f.resize(f.size() - 1);
 #endif
 		WIN32_FILE_ATTRIBUTE_DATA data;
 		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
@@ -364,7 +371,7 @@ namespace libtorrent
 		
 		// posix version
 
-		std::string f = convert_to_native(inf);
+		std::string const& f = convert_to_native(inf);
 
 		struct stat ret;
 		int retval;
@@ -403,8 +410,8 @@ namespace libtorrent
 		std::wstring f2 = convert_to_wstring(newf);
 		if (_wrename(f1.c_str(), f2.c_str()) < 0)
 #else
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+		std::string const& f1 = convert_to_native(inf);
+		std::string const& f2 = convert_to_native(newf);
 		if (::rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
@@ -438,7 +445,7 @@ namespace libtorrent
 		std::wstring n = convert_to_wstring(f);
 #else
 #define CreateDirectory_ CreateDirectoryA
-		std::string n = convert_to_native(f);
+		std::string const& n = convert_to_native(f);
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -493,8 +500,8 @@ namespace libtorrent
 		std::wstring f2 = convert_to_wstring(newf);
 #else
 #define CopyFile_ CopyFileA
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+		std::string const& f1 = convert_to_native(inf);
+		std::string const& f2 = convert_to_native(newf);
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -750,6 +757,35 @@ namespace libtorrent
 		return std::string(sep + 1);
 	}
 
+	void append_path(std::string& branch, std::string const& leaf)
+	{
+		append_path(branch, leaf.c_str(), leaf.size());
+	}
+
+	void append_path(std::string& branch
+		, char const* str, int len)
+	{
+		TORRENT_ASSERT(!is_complete(std::string(str, len)));
+		if (branch.empty() || branch == ".")
+		{
+			branch.assign(str, len);
+			return;
+		}
+		if (len == 0) return;
+
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#define TORRENT_SEPARATOR_CHAR '\\'
+		bool need_sep = branch[branch.size()-1] != '\\'
+			&& branch[branch.size()-1] != '/';
+#else
+#define TORRENT_SEPARATOR_CHAR '/'
+		bool need_sep = branch[branch.size()-1] != '/';
+#endif
+
+		if (need_sep) branch += TORRENT_SEPARATOR_CHAR;
+		branch.append(str, len);
+	}
+
 	std::string combine_path(std::string const& lhs, std::string const& rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
@@ -917,7 +953,7 @@ namespace libtorrent
 			return;
 		}
 #else // TORRENT_WINDOWS
-		std::string f = convert_to_native(inf);
+		std::string const& f = convert_to_native(inf);
 		if (::remove(f.c_str()) < 0)
 		{
 			ec.assign(errno, generic_category());

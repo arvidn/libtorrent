@@ -119,7 +119,7 @@ namespace libtorrent
 
 	// internal flags for stat_file
 	enum { dont_follow_links = 1 };
-	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
+	TORRENT_EXTRA_EXPORT void stat_file(std::string const& f, file_status* s
 		, error_code& ec, int flags = 0);
 	TORRENT_EXTRA_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
@@ -157,6 +157,10 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
+	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
+		, std::string const& leaf);
+	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
+		, char const* str, int len);
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
