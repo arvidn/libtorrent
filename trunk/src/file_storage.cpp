@@ -670,21 +670,42 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
 
+		std::string ret;
+
 		// -2 means this is an absolute path filename
-		if (fe.path_index == -2) return fe.filename();
+		if (fe.path_index == -2)
+		{
+			ret.assign(fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.path_index == -1)
+		{
+			// -1 means no path
+			ret.reserve(save_path.size() + fe.filename_len() + 1);
+			ret.assign(save_path);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.no_root_dir)
+		{
+			std::string const& p = m_paths[fe.path_index];
 
-		// -1 means no path
-		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
+			ret.reserve(save_path.size() + p.size() + fe.filename_len() + 2);
+			ret.assign(save_path);
+			append_path(ret, p);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
+		else
+		{
+			std::string const& p = m_paths[fe.path_index];
 
-		if (fe.no_root_dir)
-			return combine_path(save_path
-				, combine_path(m_paths[fe.path_index]
-				, fe.filename()));
+			ret.reserve(save_path.size() + m_name.size() + p.size() + fe.filename_len() + 3);
+			ret.assign(save_path);
+			append_path(ret, m_name);
+			append_path(ret, p);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
 
-		return combine_path(save_path
-			, combine_path(m_name
-			, combine_path(m_paths[fe.path_index]
-			, fe.filename())));
+		// a single return statement, just to make NRVO more likely to kick in
+		return ret;
 	}
 
 	std::string file_storage::file_name(int index) const

@@ -3003,6 +3003,10 @@ namespace libtorrent
 		}
 		else
 		{
+			// do this to trigger parsing of the info-dict here. It's better
+			// than to have it be done in the network thread. It has enough to
+			// do as it is.
+			std::string cert = t->ssl_cert();
 			j->buffer = (char*)t;
 		}
 
