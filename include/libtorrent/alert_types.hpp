@@ -402,14 +402,14 @@ namespace libtorrent
 		torrent_status::state_t prev_state;
 	};
 
-	// This alert is generated on tracker time outs, premature disconnects, invalid response or
-	// a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
-	// the tracker belongs to.
+	// This alert is generated on tracker time outs, premature disconnects,
+	// invalid response or a HTTP response other than "200 OK". From the alert
+	// you can get the handle to the torrent the tracker belongs to.
 	//
-	// The ``times_in_row`` member says how many times in a row this tracker has failed.
-	// ``status_code`` is the code returned from the HTTP server. 401 means the tracker needs
-	// authentication, 404 means not found etc. If the tracker timed out, the code will be set
-	// to 0.
+	// The ``times_in_row`` member says how many times in a row this tracker has
+	// failed. ``status_code`` is the code returned from the HTTP server. 401
+	// means the tracker needs authentication, 404 means not found etc. If the
+	// tracker timed out, the code will be set to 0.
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
 	{
 		// internal
@@ -439,9 +439,9 @@ namespace libtorrent
 		std::string msg;
 	};
 
-	// This alert is triggered if the tracker reply contains a warning field. Usually this
-	// means that the tracker announce was successful, but the tracker has a message to
-	// the client.
+	// This alert is triggered if the tracker reply contains a warning field.
+	// Usually this means that the tracker announce was successful, but the
+	// tracker has a message to the client.
 	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
 	{
 		// internal

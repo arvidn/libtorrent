@@ -155,12 +155,9 @@ namespace libtorrent {
 	std::string tracker_error_alert::message() const
 	{
 		char ret[400];
-		std::string error_message;
-		if (error) error_message = error.message();
-		else error_message = msg;
-		snprintf(ret, sizeof(ret), "%s (%d) %s (%d)"
+		snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
 			, tracker_alert::message().c_str(), status_code
-			, error_message.c_str(), times_in_row);
+			, error.message().c_str(), msg.c_str(), times_in_row);
 		return ret;
 	}
 
