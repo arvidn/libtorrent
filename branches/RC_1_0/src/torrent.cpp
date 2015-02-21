@@ -9522,7 +9522,7 @@ namespace libtorrent
 	}
 
 	void torrent::tracker_request_error(tracker_request const& r
-		, int response_code, error_code const& ec, const std::string& msg
+		, int response_code, error_code const& ec, std::string const& msg
 		, int retry_interval)
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
@@ -9530,7 +9530,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
-		debug_log("*** tracker error: (%d) %s %s", ec.value(), ec.message().c_str(), msg.c_str());
+		debug_log("*** tracker error: (%d) %s %s", ec.value()
+			, ec.message().c_str(), msg.c_str());
 #endif
 		if (r.kind == tracker_request::announce_request)
 		{
