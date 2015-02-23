@@ -161,8 +161,8 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : index(UINT32_MAX)
-				, info_idx(UINT16_MAX)
+			downloading_piece() : index((std::numeric_limits<boost::uint32_t>::max)())
+				, info_idx((std::numeric_limits<boost::uint16_t>::max)())
 				, finished(0)
 				, passed_hash_check(0)
 				, writing(0)
