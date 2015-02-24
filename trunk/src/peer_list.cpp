@@ -496,6 +496,9 @@ namespace libtorrent
 
 		int max_peerlist_size = state->max_peerlist_size;
 
+		// TODO: 2 it would be nice if there was a way to iterate over these
+		// torrent_peer objects in the order they are allocated in the pool
+		// instead. It would probably be more efficient
 		for (int iterations = (std::min)(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
