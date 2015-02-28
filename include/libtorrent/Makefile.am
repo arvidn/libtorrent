@@ -26,6 +26,7 @@ nobase_include_HEADERS = \
   byteswap.hpp                 \
   chained_buffer.hpp           \
   choker.hpp                   \
+  close_reason.hpp             \
   config.hpp                   \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \

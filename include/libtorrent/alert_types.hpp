@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat.hpp"
 #include "libtorrent/rss.hpp" // for feed_handle
 #include "libtorrent/operations.hpp" // for operation_t enum
+#include "libtorrent/close_reason.hpp"
 
 namespace libtorrent
 {
@@ -703,11 +704,13 @@ namespace libtorrent
 	{
 		// internal
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, operation_t op, int type, error_code const& e)
+			, peer_id const& peer_id, operation_t op, int type, error_code const& e
+			, close_reason_t r)
 			: peer_alert(h, ep, peer_id)
 			, socket_type(type)
 			, operation(op)
 			, error(e)
+			, reason(r)
 		{
 #ifndef TORRENT_NO_DEPRECATE
 			msg = convert_from_native(error.message());
@@ -728,6 +731,9 @@ namespace libtorrent
 
 		// tells you what error caused peer to disconnect.
 		error_code error;
+
+		// the reason the peer disconnected (if specified)
+		close_reason_t reason;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;

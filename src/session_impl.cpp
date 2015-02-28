@@ -2513,7 +2513,8 @@ retry:
 				m_alerts.post_alert(
 					peer_disconnected_alert(torrent_handle(), endp, peer_id()
 						, op_bittorrent, s->type()
-						, error_code(errors::too_many_connections, get_libtorrent_category())));
+						, error_code(errors::too_many_connections, get_libtorrent_category())
+						, close_no_reason));
 			}
 #if defined TORRENT_LOGGING
 			session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
