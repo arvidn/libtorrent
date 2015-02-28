@@ -644,14 +644,15 @@ namespace libtorrent
 		
 		TORRENT_ASSERT(!m_rc4.get());
 		m_rc4 = boost::make_shared<rc4_handler>();
-		m_rc4->set_incoming_key(&remote_key[0], 20);
-		m_rc4->set_outgoing_key(&local_key[0], 20);
 
 		if (!m_rc4)
 		{
 			disconnect(errors::no_memory, op_encryption);
 			return;
 		}
+
+		m_rc4->set_incoming_key(&remote_key[0], 20);
+		m_rc4->set_outgoing_key(&local_key[0], 20);
 
 #ifdef TORRENT_LOGGING
 		peer_log(" computed RC4 keys");

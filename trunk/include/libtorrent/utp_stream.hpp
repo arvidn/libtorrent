@@ -121,6 +121,11 @@ namespace libtorrent
 enum utp_socket_state_t
 { ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
+// extension headers. 2 is skipped because there is a deprecated
+// extension with that number in the wild
+enum utp_extensions_t
+{ utp_no_extension = 0, utp_sack = 1, utp_close_reason = 3 };
+
 struct utp_header
 {
 	unsigned char type_ver;
@@ -215,7 +220,8 @@ public:
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption&, error_code& ec) { return ec; }
+	error_code get_option(GettableSocketOption&, error_code& ec)
+	{ return ec; }
 
 	error_code cancel(error_code& ec)
 	{
@@ -225,12 +231,19 @@ public:
 
 	void close();
 	void close(error_code const& /*ec*/) { close(); }
+
+	void set_close_reason(boost::uint16_t code);
+	boost::uint16_t get_close_reason();
+
 	bool is_open() const { return m_open; }
 
 	int read_buffer_size() const;
-	static void on_read(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
-	static void on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
+	static void on_read(void* self, size_t bytes_transferred
+		, error_code const& ec, bool kill);
+	static void on_write(void* self, size_t bytes_transferred
+		, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
+	static void on_close_reason(void* self, boost::uint16_t reason);
 
 	void add_read_buffer(void* buf, size_t len);
 	void issue_read();
@@ -421,14 +434,16 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			m_io_service.post(boost::bind<void>(handler
+				, asio::error::not_connected, 0));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_write_handler);
 		if (m_write_handler)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			m_io_service.post(boost::bind<void>(handler
+				, asio::error::operation_not_supported, 0));
 			return;
 		}
 
@@ -453,7 +468,7 @@ public:
 		issue_write();
 	}
 
-//private:
+private:
 
 	void cancel_handlers(error_code const&);
 
@@ -463,6 +478,8 @@ public:
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
+
+	boost::uint16_t m_incoming_close_reason;
 
 	// this field requires another 8 bytes (including padding)
 	bool m_open;

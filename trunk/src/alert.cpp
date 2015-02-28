@@ -575,8 +575,10 @@ namespace libtorrent {
 	std::string peer_error_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s peer error [%s] [%s]: %s", peer_alert::message().c_str()
-			, operation_name(operation), error.category().name(), convert_from_native(error.message()).c_str());
+		snprintf(msg, sizeof(msg), "%s peer error [%s] [%s]: %s"
+			, peer_alert::message().c_str()
+			, operation_name(operation), error.category().name()
+			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
@@ -630,11 +632,12 @@ namespace libtorrent {
 	std::string peer_disconnected_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "%s disconnecting (%s) [%s] [%s]: %s"
+		snprintf(msg, sizeof(msg), "%s disconnecting (%s) [%s] [%s]: %s (reason: %d)"
 			, peer_alert::message().c_str()
 			, socket_type_str[socket_type]
 			, operation_name(operation), error.category().name()
-			, convert_from_native(error.message()).c_str());
+			, convert_from_native(error.message()).c_str()
+			, int(reason));
 		return msg;
 	}
 

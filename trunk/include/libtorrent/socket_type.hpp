@@ -202,6 +202,11 @@ namespace libtorrent
 
 		void open(protocol_type const& p, error_code& ec);
 		void close(error_code& ec);
+		
+		// this is only relevant for uTP connections
+		void set_close_reason(boost::uint16_t code);
+		boost::uint16_t get_close_reason();
+
 		endpoint_type local_endpoint(error_code& ec) const;
 		endpoint_type remote_endpoint(error_code& ec) const;
 		void bind(endpoint_type const& endpoint, error_code& ec);

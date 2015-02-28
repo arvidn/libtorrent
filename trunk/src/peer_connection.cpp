@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/close_reason.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -2290,8 +2291,13 @@ namespace libtorrent
 			// every ten invalid request, remind the peer that it's choked
 			if (!m_peer_interested && m_num_invalid_requests % 10 == 0 && m_choked)
 			{
+				// TODO: 2 this should probably be based on time instead of number
+				// of request messages. For a very high throughput connection, 300
+				// may be a legitimate number of requests to have in flight when
+				// getting choked
 				if (m_num_invalid_requests > 300 && !m_peer_choked
-					&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
+					&& can_disconnect(error_code(errors::too_many_requests_when_choked
+						, get_libtorrent_category())))
 				{
 					disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 					return;
@@ -3908,6 +3914,15 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
+		m_socket->set_close_reason(error_to_close_reason(ec));
+		close_reason_t close_reason = (close_reason_t)m_socket->get_close_reason();
+#if defined TORRENT_LOGGING
+		if (close_reason != 0)
+		{
+			peer_log("*** CLOSE REASON [ %d ]", int(close_reason));
+		}
+#endif
+
 		// while being disconnected, it's possible that our torrent_peer
 		// pointer gets cleared. Make sure we save it to be able to keep
 		// proper books in the piece_picker (when debugging is enabled)
@@ -4078,11 +4093,12 @@ namespace libtorrent
 					t->alerts().post_alert(
 						peer_error_alert(handle, remote(), pid(), op, ec));
 				}
-				else if (error <= 1 && t->alerts().should_post<peer_disconnected_alert>())
+
+				if (error <= 1 && t->alerts().should_post<peer_disconnected_alert>())
 				{
 					t->alerts().post_alert(
 						peer_disconnected_alert(handle, remote(), pid(), op
-							, m_socket->type(), ec));
+							, m_socket->type(), ec, close_reason));
 				}
 			}
 
@@ -4657,7 +4673,7 @@ namespace libtorrent
 			&& d2 > time_limit
 			&& (m_ses.num_connections() >= m_settings.get_int(settings_pack::connections_limit)
 				|| (t && t->num_peers() >= t->max_connections()))
-			&& can_disconnect(error_code(errors::timed_out_no_interest, get_libtorrent_category())))
+			&& can_disconnect(error_code(errors::timed_out_no_interest)))
 		{
 #if defined TORRENT_LOGGING
 			peer_log("*** MUTUAL NO INTEREST [ t1: %d t2: %d ]"
@@ -6404,12 +6420,12 @@ namespace libtorrent
 		if (m_settings.get_bool(settings_pack::close_redundant_connections) && !t->share_mode())
 		{
 			bool ok_to_disconnect = 
-				can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category()))
-					|| can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category()))
-					|| can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category()))
-					|| can_disconnect(error_code(errors::timed_out_no_interest, get_libtorrent_category()))
-					|| can_disconnect(error_code(errors::timed_out_no_request, get_libtorrent_category()))
-					|| can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category()));
+				can_disconnect(error_code(errors::upload_upload_connection))
+					|| can_disconnect(error_code(errors::uninteresting_upload_peer))
+					|| can_disconnect(error_code(errors::too_many_requests_when_choked))
+					|| can_disconnect(error_code(errors::timed_out_no_interest))
+					|| can_disconnect(error_code(errors::timed_out_no_request))
+					|| can_disconnect(error_code(errors::timed_out_inactivity));
 
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only()
