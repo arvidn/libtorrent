@@ -310,7 +310,7 @@ namespace libtorrent
 				break;
 #ifdef TORRENT_USE_OPENSSL
 			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				get<ssl_stream<utp_stream> >()->set_close_reason(boost::uint16_t code);
+				get<ssl_stream<utp_stream> >()->lowest_layer().set_close_reason(code);
 				break;
 #endif
 			default: break;
@@ -325,7 +325,7 @@ namespace libtorrent
 				return get<utp_stream>()->get_close_reason();
 #ifdef TORRENT_USE_OPENSSL
 			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				return get<ssl_stream<utp_stream> >()->get_close_reason();
+				return get<ssl_stream<utp_stream> >()->lowest_layer().get_close_reason();
 #endif
 			default: return 0;
 		}
