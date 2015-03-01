@@ -129,10 +129,6 @@ namespace libtorrent
 #endif
 
 				default:
-					// we should include this error code in the map
-					fprintf(stderr, "(%s : %d) %s\n", ec.category().name(), ec.value()
-						, ec.message().c_str());
-					TORRENT_ASSERT(false);
 					return close_no_reason;
 			}
 		}
@@ -167,14 +163,6 @@ namespace libtorrent
 		{
 			return close_no_memory;
 		}
-
-		fprintf(stderr, "(%s : %d) %s\n", ec.category().name(), ec.value()
-			, ec.message().c_str());
-
-		// we should proboably include this in the map
-		TORRENT_ASSERT(false);
-
-		// TODO: map some system errors too?
 
 		return close_no_reason;
 	}
