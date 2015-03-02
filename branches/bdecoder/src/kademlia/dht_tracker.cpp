@@ -391,6 +391,8 @@ namespace libtorrent { namespace dht
 			
 		TORRENT_ASSERT(size > 0);
 
+		// TODO: 4 use bdecode_node here instead. Use a persistent bdecode_node
+		// object to reuse its storage.
 		lazy_entry e;
 		int pos;
 		error_code err;

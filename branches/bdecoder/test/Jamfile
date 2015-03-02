@@ -9,8 +9,12 @@ exe test_natpmp : test_natpmp.cpp /torrent//torrent
 exe enum_if : enum_if.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
+exe bdecode_benchmark : test_bdecode_performance.cpp /torrent//torrent
+	: <variant>release ;
+
 explicit test_natpmp ;
 explicit enum_if ;
+explicit bdecode_benchmark ;
 
 rule link_test ( properties * )
 {
@@ -117,6 +121,7 @@ test-suite libtorrent :
 	[ run test_buffer.cpp ]
 	[ run test_piece_picker.cpp ]
 	[ run test_bencoding.cpp ]
+	[ run test_bdecode.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_primitives.cpp ]
 	[ run test_http_parser.cpp ]
@@ -149,7 +154,6 @@ test-suite libtorrent :
 	[ run test_web_seed_http_pw.cpp ]
 	[ run test_web_seed_chunked.cpp ]
 	[ run test_web_seed_ban.cpp ]
-	[ run test_bdecode_performance.cpp ]
 	[ run test_pe_crypto.cpp ]
 	[ run test_dos_blocker.cpp ]
 

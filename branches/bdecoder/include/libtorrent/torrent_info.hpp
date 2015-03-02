@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/torrent_peer.hpp"
 
+// TODO: 4 replace all lazy_entry with bdecode_node
+
 namespace libtorrent
 {
 	class peer_connection;

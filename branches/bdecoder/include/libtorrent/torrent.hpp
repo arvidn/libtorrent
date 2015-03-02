@@ -116,6 +116,7 @@ namespace libtorrent
 	struct resume_data_t
 	{
 		std::vector<char> buf;
+		// TODO: 4 use bdecode_node here instead
 		lazy_entry entry;
 	};
 

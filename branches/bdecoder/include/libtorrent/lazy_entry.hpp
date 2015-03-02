@@ -41,10 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/bdecode.hpp" // for error codes
 
 namespace libtorrent
 {
 	struct lazy_entry;
+
+	// TODO: 4 deprecate lazy_entry and lazy_bdecode and reimplement it in terms
+	// of bdecode_node
 
 	// This function decodes bencoded_ data.
 	// 
@@ -397,58 +401,12 @@ namespace libtorrent
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 
-	// get the ``error_category`` for bdecode errors
-	TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
-
-	namespace bdecode_errors
-	{
-		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-		// its own error category get_bdecode_category() whith the error codes defined by error_code_enum.
-		enum error_code_enum
-		{
-			// Not an error
-			no_error = 0,
-			// expected string in bencoded string
-			expected_string,
-			// expected colon in bencoded string
-			expected_colon,
-			// unexpected end of file in bencoded string
-			unexpected_eof,
-			// expected value (list, dict, int or string) in bencoded string
-			expected_value,
-			// bencoded recursion depth limit exceeded
-			depth_exceeded,
-			// bencoded item count limit exceeded
-			limit_exceeded,
-			// integer overflow
-			overflow,
-
-			// the number of error codes
-			error_code_max
-		};
-
-		// hidden
-		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
-	}
-
+	// defined in bdecode.cpp
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 		, char const* end, char delimiter, boost::int64_t& val
 		, bdecode_errors::error_code_enum& ec);
 
 }
-
-#if BOOST_VERSION >= 103500
-
-namespace boost { namespace system {
-
-	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
-	{ static const bool value = true; };
-
-	template<> struct is_error_condition_enum<libtorrent::bdecode_errors::error_code_enum>
-	{ static const bool value = true; };
-} }
-
-#endif
 
 #endif
 

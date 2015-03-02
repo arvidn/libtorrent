@@ -57,8 +57,6 @@ entry decode(std::string const& str)
 
 int test_main()
 {
-	using namespace libtorrent;
-
 	// ** strings **
 	{	
 		entry e("spam");
@@ -347,7 +345,7 @@ int test_main()
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_CHECK(ret != 0);
 		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
 			, get_bdecode_category()));
 	}
 
@@ -386,7 +384,7 @@ int test_main()
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_CHECK(ret != 0);
 		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
 			, get_bdecode_category()));
 	}
 
@@ -564,7 +562,7 @@ int test_main()
 		boost::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
-		TEST_EQUAL(ec, bdecode_errors::expected_string);
+		TEST_EQUAL(ec, bdecode_errors::expected_digit);
 		TEST_EQUAL(e, b + 1);
 	}
 
