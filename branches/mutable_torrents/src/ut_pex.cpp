@@ -280,7 +280,7 @@ namespace libtorrent { namespace
 
 			if (length > 500 * 1024)
 			{
-				m_pc.disconnect(errors::pex_message_too_large, peer_connection_interface::op_bittorrent, 2);
+				m_pc.disconnect(errors::pex_message_too_large, op_bittorrent, 2);
 				return true;
 			}
  
@@ -291,7 +291,7 @@ namespace libtorrent { namespace
 			{
 				// this client appears to be trying to flood us
 				// with pex messages. Don't allow that.
-				m_pc.disconnect(errors::too_frequent_pex, peer_connection_interface::op_bittorrent);
+				m_pc.disconnect(errors::too_frequent_pex, op_bittorrent);
 				return true;
 			}
 
@@ -305,7 +305,7 @@ namespace libtorrent { namespace
 			int ret = lazy_bdecode(body.begin, body.end, pex_msg, ec);
 			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
 			{
-				m_pc.disconnect(errors::invalid_pex_message, peer_connection_interface::op_bittorrent, 2);
+				m_pc.disconnect(errors::invalid_pex_message, op_bittorrent, 2);
 				return true;
 			}
 

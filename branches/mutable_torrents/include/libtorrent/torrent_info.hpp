@@ -64,7 +64,8 @@ namespace libtorrent
 
 	namespace aux { struct session_settings; }
 	// exposed for the unit test
-	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path, char const* element, int element_len);
+	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
+		, char const* element, int element_len);
 
 	enum
 	{
@@ -685,6 +686,9 @@ namespace libtorrent
 	private:
 
 		void resolve_duplicate_filenames();
+
+		// the slow path, in case we detect/suspect a name collision
+		void resolve_duplicate_filenames_slow();
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend class invariant_access;

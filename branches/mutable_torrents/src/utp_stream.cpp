@@ -230,9 +230,9 @@ struct utp_socket_impl
 		: m_sm(sm)
 		, m_userdata(userdata)
 		, m_nagle_packet(NULL)
-		, m_read_handler(0)
-		, m_write_handler(0)
-		, m_connect_handler(0)
+		, m_read_handler(false)
+		, m_write_handler(false)
+		, m_connect_handler(false)
 		, m_remote_address()
 		, m_timeout(time_now_hires() + milliseconds(m_sm->connect_timeout()))
 		, m_last_history_step(time_now_hires())
@@ -252,6 +252,7 @@ struct utp_socket_impl
 		, m_out_packets(0)
 		, m_send_delay(0)
 		, m_recv_delay(0)
+		, m_close_reason(0)
 		, m_port(0)
 		, m_send_id(send_id)
 		, m_recv_id(recv_id)
@@ -306,6 +307,7 @@ struct utp_socket_impl
 	// returns true if there were handlers cancelled
 	// if it returns false, we can detach immediately
 	bool destroy();
+	void set_close_reason(boost::uint16_t code);
 	void detach();
 	void send_syn();
 	void send_fin();
@@ -318,8 +320,9 @@ struct utp_socket_impl
 	bool send_pkt(int flags = 0);
 	bool resend_packet(packet* p, bool fast_resend = false);
 	void send_reset(utp_header* ph);
-	void parse_sack(boost::uint16_t packet_ack, boost::uint8_t const* ptr, int size, int* acked_bytes
-		, ptime const now, boost::uint32_t& min_rtt);
+	void parse_sack(boost::uint16_t packet_ack, boost::uint8_t const* ptr
+		, int size, int* acked_bytes, ptime const now, boost::uint32_t& min_rtt);
+	void parse_close_reason(boost::uint8_t const* ptr, int size);
 	void write_payload(boost::uint8_t* ptr, int size);
 	void maybe_inc_acked_seq_nr();
 	void ack_packet(packet* p, ptime const& receive_time
@@ -413,11 +416,11 @@ public:
 	// async operation initiated
 	error_code m_error;
 
-	// these are the callbacks made into the utp_stream object
-	// on read/write/connect events
-	utp_stream::handler_t m_read_handler;
-	utp_stream::handler_t m_write_handler;
-	utp_stream::connect_handler_t m_connect_handler;
+	// these indicate whether or not there is an outstanding read/write or
+	// connect operation. i.e. is there upper layer subscribed to these events.
+	bool m_read_handler;
+	bool m_write_handler;
+	bool m_connect_handler;
 
 	// the address of the remote endpoint
 	address m_remote_address;
@@ -513,6 +516,11 @@ public:
 
 	// average RTT
 	sliding_average<16> m_rtt;
+
+	// if this is != 0, it means the upper layer provided a reason for why
+	// the connection is being closed. The reason is indicated by this
+	// non-zero value which is included in a packet header extension
+	boost::uint16_t m_close_reason;
 
 	// port of destination endpoint
 	boost::uint16_t m_port;
@@ -789,6 +797,7 @@ int utp_stream::recv_delay() const
 utp_stream::utp_stream(asio::io_service& io_service)
 	: m_io_service(io_service)
 	, m_impl(0)
+	, m_incoming_close_reason(0)
 	, m_open(false)
 {
 }
@@ -796,6 +805,17 @@ utp_stream::utp_stream(asio::io_service& io_service)
 utp_socket_impl* utp_stream::get_impl()
 {
 	return m_impl;
+}
+
+void utp_stream::set_close_reason(boost::uint16_t code)
+{
+	if (!m_impl) return;
+	m_impl->set_close_reason(code);
+}
+
+boost::uint16_t utp_stream::get_close_reason()
+{
+	return m_incoming_close_reason;
 }
 
 void utp_stream::close()
@@ -860,7 +880,15 @@ int utp_stream::read_buffer_size() const
 	return m_impl->m_receive_buffer_size;
 }
 
-void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
+void utp_stream::on_close_reason(void* self, boost::uint16_t close_reason)
+{
+	utp_stream* s = (utp_stream*)self;
+	TORRENT_ASSERT(s->m_impl);
+	s->m_incoming_close_reason = close_reason;
+}
+
+void utp_stream::on_read(void* self, size_t bytes_transferred
+	, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
 
@@ -871,14 +899,19 @@ void utp_stream::on_read(void* self, size_t bytes_transferred, error_code const&
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
 	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
+//	boost::function2<void, error_code const&, std::size_t> tmp;
+//	tmp.swap(s->m_read_handler);
 	if (kill && s->m_impl)
 	{
+		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec, bytes_transferred);
 }
 
-void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill)
+void utp_stream::on_write(void* self, size_t bytes_transferred
+	, error_code const& ec, bool kill)
 {
 	utp_stream* s = (utp_stream*)self;
 
@@ -889,11 +922,15 @@ void utp_stream::on_write(void* self, size_t bytes_transferred, error_code const
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
 	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
+//	boost::function2<void, error_code const&, std::size_t> tmp;
+//	tmp.swap(s->m_read_handler);
 	if (kill && s->m_impl)
 	{
+		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec, bytes_transferred);
 }
 
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
@@ -907,12 +944,15 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
 	s->m_connect_handler.clear();
+//	boost::function1<void, error_code const&> tmp;
+//	s->m_connect_handler.swap(tmp);
 	if (kill && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
 		s->m_impl = 0;
 	}
+//	tmp(ec);
 }
 
 void utp_stream::add_read_buffer(void* buf, size_t len)
@@ -968,13 +1008,14 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 // do is to copy any data stored in m_receive_buffer into the user
 // provided buffer. This might be enough to in turn trigger the read
 // handler immediately.
-void utp_stream::set_read_handler(handler_t h)
+void utp_stream::issue_read()
 {
 	TORRENT_ASSERT(m_impl->m_userdata);
+	TORRENT_ASSERT(!m_impl->m_read_handler);
 
 	m_impl->m_null_buffers = m_impl->m_read_buffer_size == 0;
 
-	m_impl->m_read_handler = h;
+	m_impl->m_read_handler = true;
 	if (m_impl->test_socket_state()) return;
 
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
@@ -1075,15 +1116,16 @@ size_t utp_stream::read_some(bool clear_buffers)
 
 // this is called when all user provided write buffers have been
 // added. Start trying to send packets with the payload immediately.
-void utp_stream::set_write_handler(handler_t h)
+void utp_stream::issue_write()
 {
 	UTP_LOGV("%8p: new write handler. %d bytes to write\n"
 		, m_impl, m_impl->m_write_buffer_size);
 
 	TORRENT_ASSERT(m_impl->m_write_buffer_size > 0);
-
+	TORRENT_ASSERT(m_impl->m_write_handler == false);
 	TORRENT_ASSERT(m_impl->m_userdata);
-	m_impl->m_write_handler = h;
+
+	m_impl->m_write_handler = true;
 	m_impl->m_written = 0;
 	if (m_impl->test_socket_state()) return;
 
@@ -1097,15 +1139,16 @@ void utp_stream::set_write_handler(handler_t h)
 	if (m_impl) m_impl->maybe_trigger_send_callback();
 }
 
-void utp_stream::do_connect(tcp::endpoint const& ep, utp_stream::connect_handler_t handler)
+void utp_stream::do_connect(tcp::endpoint const& ep)
 {
 	int link_mtu, utp_mtu;
 	m_impl->m_sm->mtu_for_dest(ep.address(), link_mtu, utp_mtu);
 	m_impl->init_mtu(link_mtu, utp_mtu);
-	TORRENT_ASSERT(m_impl->m_connect_handler == 0);
+	TORRENT_ASSERT(m_impl->m_connect_handler == false);
 	m_impl->m_remote_address = ep.address();
 	m_impl->m_port = ep.port();
-	m_impl->m_connect_handler = handler;
+
+	m_impl->m_connect_handler = true;
 
 	error_code ec;
 	m_impl->m_local_address = m_impl->m_sm->local_endpoint(m_impl->m_remote_address, ec).address();
@@ -1183,15 +1226,15 @@ void utp_socket_impl::maybe_trigger_receive_callback()
 {
 	INVARIANT_CHECK;
 
-	if (m_read_handler == 0) return;
+	if (m_read_handler == false) return;
 
 	// nothing has been read or there's no outstanding read operation
 	if (m_null_buffers && m_receive_buffer_size == 0) return;
 	else if (!m_null_buffers && m_read == 0) return;
 
 	UTP_LOGV("%8p: calling read handler read:%d\n", this, m_read);
-	m_read_handler(m_userdata, m_read, m_error, false);
-	m_read_handler = 0;
+	m_read_handler = false;
+	utp_stream::on_read(m_userdata, m_read, m_error, false);
 	m_read = 0;
 	m_read_buffer_size = 0;
 	m_read_buffer.clear();
@@ -1202,15 +1245,24 @@ void utp_socket_impl::maybe_trigger_send_callback()
 	INVARIANT_CHECK;
 
 	// nothing has been written or there's no outstanding write operation
-	if (m_written == 0 || m_write_handler == 0) return;
+	if (m_written == 0 || m_write_handler == false) return;
 
 	UTP_LOGV("%8p: calling write handler written:%d\n", this, m_written);
 
-	m_write_handler(m_userdata, m_written, m_error, false);
-	m_write_handler = 0;
+	m_write_handler = false;
+	utp_stream::on_write(m_userdata, m_written, m_error, false);
 	m_written = 0;
 	m_write_buffer_size = 0;
 	m_write_buffer.clear();
+}
+
+void utp_socket_impl::set_close_reason(boost::uint16_t code)
+{
+#if TORRENT_UTP_LOG
+	UTP_LOGV("%8p: set_close_reason: %d\n"
+		, this, int(m_close_reason));
+#endif
+	m_close_reason = code;
 }
 
 bool utp_socket_impl::destroy()
@@ -1218,7 +1270,8 @@ bool utp_socket_impl::destroy()
 	INVARIANT_CHECK;
 
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: destroy state:%s\n", this, socket_state_names[m_state]);
+	UTP_LOGV("%8p: destroy state:%s (close-reason: %d)\n"
+		, this, socket_state_names[m_state], int(m_close_reason));
 #endif
 
 	if (m_userdata == 0) return false;
@@ -1279,7 +1332,7 @@ void utp_socket_impl::send_syn()
 	p->need_resend = false;
 	utp_header* h = (utp_header*)p->buf;
 	h->type_ver = (ST_SYN << 4) | 1;
-	h->extension = 0;
+	h->extension = utp_no_extension;
 	// using recv_id here is intentional! This is an odd
 	// thing in uTP. The syn packet is sent with the connection
 	// ID that it expects to receive the syn ack on. All
@@ -1378,7 +1431,7 @@ void utp_socket_impl::send_reset(utp_header* ph)
 
 	utp_header h;
 	h.type_ver = (ST_RESET << 4) | 1;
-	h.extension = 0;
+	h.extension = utp_no_extension;
 	h.connection_id = m_send_id;
 	h.timestamp_difference_microseconds = m_reply_micro;
 	h.wnd_size = 0;
@@ -1399,6 +1452,21 @@ void utp_socket_impl::send_reset(utp_header* ph)
 std::size_t utp_socket_impl::available() const
 {
 	return m_receive_buffer_size;
+}
+
+void utp_socket_impl::parse_close_reason(boost::uint8_t const* ptr, int size)
+{
+	if (size != 4) return;
+	// skip reserved bytes
+	ptr += 2;
+	boost::uint16_t incoming_close_reason = detail::read_uint16(ptr);
+
+	UTP_LOGV("%8p: incoming close_reason: %d\n"
+		, this, int(incoming_close_reason));
+
+	if (m_userdata == 0) return;
+
+	utp_stream::on_close_reason(m_userdata, incoming_close_reason);
 }
 
 void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t const* ptr
@@ -1586,11 +1654,12 @@ void utp_socket_impl::remove_sack_header(packet* p)
 	boost::uint8_t* ptr = p->buf + sizeof(utp_header);
 	utp_header* h = (utp_header*)p->buf;
 
-	TORRENT_ASSERT(h->extension == 1);
+	TORRENT_ASSERT(h->extension == utp_sack);
 
 	h->extension = ptr[0];
 	int sack_size = ptr[1];
-	TORRENT_ASSERT(h->extension == 0);
+	TORRENT_ASSERT(h->extension == utp_no_extension
+		|| h->extension == utp_close_reason);
 
 	UTP_LOGV("%8p: removing SACK header, %d bytes\n"
 		, this, sack_size + 2);
@@ -1641,7 +1710,8 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	// first see if we need to resend any packets
 
-	// TODO: this loop may not be very efficient
+	// TODO: this loop is not very efficient. It could be fixed by having
+	// a separate list of sequence numbers that need resending
 	for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
 	{
 		packet* p = (packet*)m_outbuf.at(i);
@@ -1673,7 +1743,11 @@ bool utp_socket_impl::send_pkt(int flags)
 		if (sack > 32) sack = 32;
 	}
 
-	int header_size = sizeof(utp_header) + (sack ? sack + 2 : 0);
+	boost::uint32_t close_reason = m_close_reason;
+
+	int header_size = sizeof(utp_header)
+		+ (sack ? sack + 2 : 0)
+		+ (close_reason ? 6 : 0);
 	int payload_size = m_write_buffer_size;
 	if (m_mtu - header_size < payload_size)
 		payload_size = m_mtu - header_size;
@@ -1784,7 +1858,8 @@ bool utp_socket_impl::send_pkt(int flags)
 		h = (utp_header*)ptr;
 		ptr += sizeof(utp_header);
 
-		h->extension = sack ? 1 : 0;
+		h->extension = sack ? utp_sack
+			: close_reason ? utp_close_reason : utp_no_extension;
 		h->connection_id = m_send_id;
 		// seq_nr is ignored for ST_STATE packets, so it doesn't
 		// matter that we say this is a sequence number we haven't
@@ -1805,7 +1880,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 		// if the packet has a selective force header, we'll need
 		// to update it
-		if (h->extension == 1)
+		if (h->extension == utp_sack)
 		{
 			sack = ptr[1];
 			// if we no longer have any out-of-order packets waiting
@@ -1850,11 +1925,18 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	if (sack)
 	{
-		*ptr++ = 0; // end of extension chain
+		*ptr++ = close_reason ? utp_close_reason : utp_no_extension;
 		*ptr++ = sack; // bytes for SACK bitfield
 		write_sack(ptr, sack);
 		ptr += sack;
 		TORRENT_ASSERT(ptr <= p->buf + p->header_size);
+	}
+
+	if (close_reason)
+	{
+		*ptr++ = utp_no_extension;
+		*ptr++ = 4;
+		detail::write_uint32(close_reason, ptr);
 	}
 
 	if (m_bytes_in_flight > 0
@@ -2100,7 +2182,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 
 	// if the packet has a selective ack header, we'll need
 	// to update it
-	if (h->extension == 1 && h->ack_nr != m_ack_nr)
+	if (h->extension == utp_sack && h->ack_nr != m_ack_nr)
 	{
 		boost::uint8_t* ptr = p->buf + sizeof(utp_header);
 		int sack_size = ptr[1];
@@ -2351,12 +2433,16 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	// calling the callbacks with m_userdata being 0 will just crash
 	TORRENT_ASSERT((ret && bool(m_userdata)) || !ret);
 
-	if (m_read_handler) m_read_handler(m_userdata, 0, ec, kill);
-	m_read_handler = 0;
-	if (m_write_handler) m_write_handler(m_userdata, 0, ec, kill);
-	m_write_handler = 0;
-	if (m_connect_handler) m_connect_handler(m_userdata, ec, kill);
-	m_connect_handler = 0;
+	bool read = m_read_handler;
+	bool write = m_write_handler;
+	bool connect = m_connect_handler;
+	m_read_handler = false;
+	m_write_handler = false;
+	m_connect_handler = false;
+
+	if (read) utp_stream::on_read(m_userdata, 0, ec, kill);
+	if (write) utp_stream::on_write(m_userdata, 0, ec, kill);
+	if (connect) utp_stream::on_connect(m_userdata, ec, kill);
 	return ret;
 }
 
@@ -2824,8 +2910,11 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		}
 		switch(extension)
 		{
-			case 1: // selective ACKs
+			case utp_sack: // selective ACKs
 				parse_sack(ph->ack_nr, ptr, len, &acked_bytes, receive_time, min_rtt);
+				break;
+			case utp_close_reason:
+				parse_close_reason(ptr, len);
 				break;
 		}
 		ptr += len;
@@ -2986,9 +3075,9 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			if (m_connect_handler)
 			{
 				UTP_LOGV("%8p: calling connect handler\n", this);
-				m_connect_handler(m_userdata, m_error, false);
+				m_connect_handler = false;
+				utp_stream::on_connect(m_userdata, m_error, false);
 			}
-			m_connect_handler = 0;
 			// fall through
 		}
 		case UTP_STATE_CONNECTED:

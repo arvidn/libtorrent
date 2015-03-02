@@ -276,7 +276,7 @@ void torrent_view::print_headers()
 
 	// print title bar for torrent list
 	pos = snprintf(str, sizeof(str)
-		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1bK"
+		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
 		, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
 

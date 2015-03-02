@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/operations.hpp" // for operation_t enum
 
 //#define TORRENT_LOG_HASH_FAILURES
 
@@ -291,7 +292,7 @@ namespace
 #endif
 					m_torrent.ban_peer(p);
 					if (p->connection) p->connection->disconnect(
-						errors::peer_banned, peer_connection_interface::op_bittorrent);
+						errors::peer_banned, op_bittorrent);
 				}
 				// we already have this exact entry in the map
 				// we don't have to insert it
@@ -366,7 +367,7 @@ namespace
 #endif
 			m_torrent.ban_peer(p);
 			if (p->connection) p->connection->disconnect(
-				errors::peer_banned, peer_connection_interface::op_bittorrent);
+				errors::peer_banned, op_bittorrent);
 		}
 		
 		torrent& m_torrent;

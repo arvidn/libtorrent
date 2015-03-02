@@ -1,3 +1,4 @@
+	* deprecate file_base feature in file_storage/torrent_info
 	* improve piece picker support for reverse picking (used for snubbed peers)
 	  to not cause priority inversion for regular peers
 	* improve piece picker to better support torrents with very large pieces

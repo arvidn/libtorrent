@@ -26,6 +26,7 @@ nobase_include_HEADERS = \
   byteswap.hpp                 \
   chained_buffer.hpp           \
   choker.hpp                   \
+  close_reason.hpp             \
   config.hpp                   \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
@@ -77,6 +78,7 @@ nobase_include_HEADERS = \
   max.hpp                      \
   natpmp.hpp                   \
   network_thread_pool.hpp      \
+  operations.hpp               \
   packet_buffer.hpp            \
   parse_url.hpp                \
   part_file.hpp                \

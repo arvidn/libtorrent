@@ -63,10 +63,14 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			ret.get<1>() += protocol;
 			ret.get<2>() |= error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
-			TORRENT_ASSERT(payload + protocol == chunk_size);
+			TORRENT_ASSERT(payload + protocol == chunk_size || ret.get<2>());
 		}
-		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
-		TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
+		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev || ret.get<2>());
+		if (!ret.get<2>())
+		{
+			TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
+		}
+
 		prev = ret;
 	}
 	return ret;
@@ -269,6 +273,48 @@ int test_main()
 
 	parser.reset();
 
+	// test invalid content range
+	char const* invalid_range_response =
+		"HTTP/1.1 206 OK\n"
+		"content-range: bytes 4-0\n"
+		"content-type: test/plain\n"
+		"\n"
+		"\ntest";
+
+	received = feed_bytes(parser, invalid_range_response);
+
+	TEST_CHECK(received.get<2>() == true);
+
+	parser.reset();
+
+	// test invalid status line
+	char const* invalid_status_response =
+		"HTTP/1.1 206\n"
+		"content-range: bytes 4-0\n"
+		"content-type: test/plain\n"
+		"\n"
+		"\ntest";
+
+	received = feed_bytes(parser, invalid_status_response);
+
+	TEST_CHECK(received.get<2>() == true);
+
+	parser.reset();
+
+	// test invalid status line 2
+	char const* invalid_status_response2 =
+		"HTTP/1.1\n"
+		"content-range: bytes 4-0\n"
+		"content-type: test/plain\n"
+		"\n"
+		"\ntest";
+
+	received = feed_bytes(parser, invalid_status_response2);
+
+	TEST_CHECK(received.get<2>() == true);
+
+	parser.reset();
+
 	// make sure we support content-range responses
 	// and that we're case insensitive
 	char const* one_hundred_response =
@@ -391,6 +437,28 @@ int test_main()
 	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
 
+	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "http://test.com/d")
+		, "http://test.com/d");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com", "/d")
+		, "http://example.com/d");
+
+	TEST_EQUAL(resolve_redirect_location("http://example.com", "d")
+		, "http://example.com/d");
+
+	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "/d")
+		, "my-custom-scheme://example.com/d");
+
+	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "c/d")
+		, "my-custom-scheme://example.com/a/c/d");
+
+	// if the referrer is invalid, just respond the verbatim location
+
+	TEST_EQUAL(resolve_redirect_location("example.com/a/b", "/c/d")
+		, "/c/d");
+
+	// is_ok_status
+
 	TEST_EQUAL(is_ok_status(200), true);
 	TEST_EQUAL(is_ok_status(206), true);
 	TEST_EQUAL(is_ok_status(299), false);
@@ -398,6 +466,8 @@ int test_main()
 	TEST_EQUAL(is_ok_status(399), true);
 	TEST_EQUAL(is_ok_status(400), false);
 	TEST_EQUAL(is_ok_status(299), false);
+
+	// is_redirect
 
 	TEST_EQUAL(is_redirect(299), false);
 	TEST_EQUAL(is_redirect(100), false);

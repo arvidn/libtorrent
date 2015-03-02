@@ -35,8 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include <boost/bind.hpp>
+#include <boost/crc.hpp>
 #include <cstdio>
 #include <algorithm>
+
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#define TORRENT_SEPARATOR '\\'
+#else
+#define TORRENT_SEPARATOR '/'
+#endif
 
 namespace libtorrent
 {
@@ -70,43 +77,56 @@ namespace libtorrent
 			return piece_length();
 	}
 
-	void file_storage::update_path_index(internal_file_entry& e)
+	namespace
 	{
-		std::string fn = e.filename();
-		if (is_complete(fn))
+		bool compare_string(char const* str, int len, std::string const& str2)
 		{
+			if (str2.size() != len) return false;
+			return memcmp(str2.c_str(), str, len) == 0;
+		}
+	}
+
+	// path is not supposed to include the name of the torrent itself.
+	void file_storage::update_path_index(internal_file_entry& e
+		, std::string const& path, bool set_name)
+	{
+		if (is_complete(path))
+		{
+			TORRENT_ASSERT(set_name);
+			e.set_name(path.c_str());
 			e.path_index = -2;
 			return;
 		}
+
+		TORRENT_ASSERT(path[0] != '/');
+
 		// sorry about this messy string handling, but I did
 		// profile it, and it was expensive
-		char const* leaf = filename_cstr(fn.c_str());
+		char const* leaf = filename_cstr(path.c_str());
 		char const* branch_path = "";
-		if (leaf > fn.c_str())
+		int branch_len = 0;
+		if (leaf > path.c_str())
 		{
 			// split the string into the leaf filename
 			// and the branch path
-			branch_path = fn.c_str();
-			((char*)leaf)[-1] = 0;
+			branch_path = path.c_str();
+			branch_len = leaf - path.c_str();
 		}
-		if (branch_path[0] == 0)
+		if (branch_len <= 0)
 		{
+			if (set_name) e.set_name(leaf);
 			e.path_index = -1;
 			return;
 		}
 
-		int branch_len = strlen(branch_path);
 		if (branch_len >= m_name.size()
-			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0
-			&& (branch_len == m_name.size()
-#ifdef TORRENT_WINDOWS
-				|| branch_path[m_name.size()] == '\\'
-#endif
-				|| branch_path[m_name.size()] == '/'
-			))
+			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
 		{
-			branch_path += m_name.size()
+			// the +1 is to skip the trailing '/' (or '\')
+			int offset = m_name.size()
 				+ (m_name.size() == branch_len?0:1);
+			branch_path += offset;
+			branch_len -= offset;
 			e.no_root_dir = false;
 		}
 		else
@@ -116,20 +136,29 @@ namespace libtorrent
 
 		// do we already have this path in the path list?
 		std::vector<std::string>::reverse_iterator p
-			= std::find(m_paths.rbegin(), m_paths.rend(), branch_path);
+			= std::find_if(m_paths.rbegin(), m_paths.rend()
+				, boost::bind(&compare_string, branch_path, branch_len, _1));
 
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
 			e.path_index = m_paths.size();
-			m_paths.push_back(branch_path);
+			TORRENT_ASSERT(branch_path[0] != '/');
+
+			// trim trailing slashes
+			if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
+				--branch_len;
+
+			// poor man's emplace back
+			m_paths.resize(m_paths.size() + 1);
+			m_paths.back().assign(branch_path, branch_len);
 		}
 		else
 		{
 			// yes we do. use it
 			e.path_index = p.base() - m_paths.begin() - 1;
 		}
-		e.set_name(leaf);
+		if (set_name) e.set_name(leaf);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -260,8 +289,7 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		std::string utf8;
 		wchar_utf8(new_filename, utf8);
-		m_files[index].set_name(utf8.c_str());
-		update_path_index(m_files[index]);
+		update_path_index(m_files[index], utf8);
 	}
 
 	void file_storage::add_file(std::wstring const& file, boost::int64_t file_size
@@ -282,14 +310,7 @@ namespace libtorrent
 	void file_storage::rename_file(int index, std::string const& new_filename)
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		m_files[index].set_name(new_filename.c_str());
-		update_path_index(m_files[index]);
-	}
-
-	void file_storage::rename_file_borrow(int index, char const* new_filename, int len)
-	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		m_files[index].set_name(new_filename, true, len);
+		update_path_index(m_files[index], new_filename);
 	}
 
 	namespace
@@ -377,7 +398,11 @@ namespace libtorrent
 			{
 				file_slice f;
 				f.file_index = file_iter - m_files.begin();
-				f.offset = file_offset + file_base(f.file_index);
+				f.offset = file_offset
+#ifndef TORRENT_NO_DEPRECATE
+					+ file_base(f.file_index)
+#endif
+					;
 				f.size = (std::min)(boost::uint64_t(file_iter->size) - file_offset, boost::uint64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
@@ -474,15 +499,17 @@ namespace libtorrent
 			if (m_files.empty())
 				m_name = split_path(path).c_str();
 		}
-		internal_file_entry ife;
-		m_files.push_back(ife);
+
+		// this is poor-man's emplace_back()
+		m_files.resize(m_files.size() + 1);
 		internal_file_entry& e = m_files.back();
 
-		// first set the filename to the full path so update_path_index()
-		// can do its thing, then rename it to point to the borrowed filename
-		// pointer
-		e.set_name(path.c_str());
-		update_path_index(e);
+		// the last argument specified whether the function should also set
+		// the filename. If it does, it will copy the leaf filename from path.
+		// if filename is NULL, we should copy it. If it isn't, we're borrowing
+		// it and we can save the copy by setting it after this call to
+		// update_path_index().
+		update_path_index(e, path, filename == NULL);
 
 		// filename is allowed to be NULL, in which case we just use path
 		if (filename)
@@ -540,17 +567,102 @@ namespace libtorrent
 		return m_mtime[index];
 	}
 
-	void file_storage::set_file_base(int index, boost::int64_t off)
+	namespace
 	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
-		m_file_base[index] = off;
+		template <class CRC>
+		void process_string_lowercase(CRC& crc, char const* str, int len)
+		{
+			for (int i = 0; i < len; ++i, ++str)
+				crc.process_byte(to_lower(*str));
+		}
 	}
 
-	boost::int64_t file_storage::file_base(int index) const
+	boost::uint32_t file_storage::path_hash(int index
+		, std::string const& save_path) const
 	{
-		if (index >= int(m_file_base.size())) return 0;
-		return m_file_base[index];
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_paths.size()));
+		
+		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+
+		if (!save_path.empty())
+		{
+			process_string_lowercase(crc, save_path.c_str(), save_path.size());
+			TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
+			crc.process_byte(TORRENT_SEPARATOR);
+		}
+
+		process_string_lowercase(crc, m_name.c_str(), m_name.size());
+		crc.process_byte(TORRENT_SEPARATOR);
+		process_string_lowercase(crc, m_paths[index].c_str(), m_paths[index].size());
+		return crc.checksum();
+	}
+
+	boost::uint32_t file_storage::file_path_hash(int index
+		, std::string const& save_path) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		internal_file_entry const& fe = m_files[index];
+
+		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+
+		if (fe.path_index == -2)
+		{
+			// -2 means this is an absolute path filename
+			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.path_index == -1)
+		{
+			// -1 means no path
+			if (!save_path.empty())
+			{
+				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
+				crc.process_byte(TORRENT_SEPARATOR);
+			}
+			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.no_root_dir)
+		{
+			if (!save_path.empty())
+			{
+				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
+				crc.process_byte(TORRENT_SEPARATOR);
+			}
+			std::string const& p = m_paths[fe.path_index];
+			if (!p.empty())
+			{
+				process_string_lowercase(crc, p.c_str(), p.size());
+				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
+				crc.process_byte(TORRENT_SEPARATOR);
+			}
+			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+		}
+		else
+		{
+			if (!save_path.empty())
+			{
+				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
+				crc.process_byte(TORRENT_SEPARATOR);
+			}
+			process_string_lowercase(crc, m_name.c_str(), m_name.size());
+			TORRENT_ASSERT(m_name.size() > 0);
+			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
+			crc.process_byte(TORRENT_SEPARATOR);
+
+			std::string const& p = m_paths[fe.path_index];
+			if (!p.empty())
+			{
+				process_string_lowercase(crc, p.c_str(), p.size());
+				TORRENT_ASSERT(p.size() > 0);
+				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
+				crc.process_byte(TORRENT_SEPARATOR);
+			}
+			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+		}
+
+		return crc.checksum();
 	}
 
 	std::string file_storage::file_path(int index, std::string const& save_path) const
@@ -558,21 +670,42 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
 
+		std::string ret;
+
 		// -2 means this is an absolute path filename
-		if (fe.path_index == -2) return fe.filename();
+		if (fe.path_index == -2)
+		{
+			ret.assign(fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.path_index == -1)
+		{
+			// -1 means no path
+			ret.reserve(save_path.size() + fe.filename_len() + 1);
+			ret.assign(save_path);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
+		else if (fe.no_root_dir)
+		{
+			std::string const& p = m_paths[fe.path_index];
 
-		// -1 means no path
-		if (fe.path_index == -1) return combine_path(save_path, fe.filename());
+			ret.reserve(save_path.size() + p.size() + fe.filename_len() + 2);
+			ret.assign(save_path);
+			append_path(ret, p);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
+		else
+		{
+			std::string const& p = m_paths[fe.path_index];
 
-		if (fe.no_root_dir)
-			return combine_path(save_path
-				, combine_path(m_paths[fe.path_index]
-				, fe.filename()));
+			ret.reserve(save_path.size() + m_name.size() + p.size() + fe.filename_len() + 3);
+			ret.assign(save_path);
+			append_path(ret, m_name);
+			append_path(ret, p);
+			append_path(ret, fe.filename_ptr(), fe.filename_len());
+		}
 
-		return combine_path(save_path
-			, combine_path(m_name
-			, combine_path(m_paths[fe.path_index]
-			, fe.filename())));
+		// a single return statement, just to make NRVO more likely to kick in
+		return ret;
 	}
 
 	std::string file_storage::file_name(int index) const
@@ -610,6 +743,19 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	void file_storage::set_file_base(int index, boost::int64_t off)
+	{
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
+		m_file_base[index] = off;
+	}
+
+	boost::int64_t file_storage::file_base(int index) const
+	{
+		if (index >= int(m_file_base.size())) return 0;
+		return m_file_base[index];
+	}
+
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
@@ -705,12 +851,14 @@ namespace libtorrent
 			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, NULL);
 			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
+#ifndef TORRENT_NO_DEPRECATE
 		if (!m_file_base.empty())
 		{
 			TORRENT_ASSERT(m_file_base.size() == m_files.size());
 			if (int(m_file_base.size()) < index) m_file_base.resize(index + 1, 0);
 			std::iter_swap(m_file_base.begin() + dst, m_file_base.begin() + index);
 		}
+#endif // TORRENT_DEPRECATED
 	}
 
 	void file_storage::optimize(int pad_file_limit, int alignment
@@ -853,7 +1001,9 @@ namespace libtorrent
 		std::vector<char const*>().swap(m_file_hashes);
 		std::vector<std::string>().swap(m_symlinks);
 		std::vector<time_t>().swap(m_mtime);
+#ifndef TORRENT_NO_DEPRECATE
 		std::vector<boost::int64_t>().swap(m_file_base);
+#endif
 		std::vector<std::string>().swap(m_paths);
 	}
 }

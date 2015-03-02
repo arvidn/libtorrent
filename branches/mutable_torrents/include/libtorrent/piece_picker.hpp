@@ -161,8 +161,8 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : index(UINT32_MAX)
-				, info_idx(UINT16_MAX)
+			downloading_piece() : index((std::numeric_limits<boost::uint32_t>::max)())
+				, info_idx((std::numeric_limits<boost::uint16_t>::max)())
 				, finished(0)
 				, passed_hash_check(0)
 				, writing(0)
@@ -242,8 +242,12 @@ namespace libtorrent
 		void we_have(int index);
 		void we_dont_have(int index);
 
+		// the lowest piece index we do not have
 		int cursor() const { return m_cursor; }
+		
+		// one past the last piece we do not have.
 		int reverse_cursor() const { return m_reverse_cursor; }
+
 		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
@@ -337,7 +341,7 @@ namespace libtorrent
 		void check_peers();
 #endif
 
-		int get_block_state(piece_block block) const;
+//		int get_block_state(piece_block block) const;
 
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client

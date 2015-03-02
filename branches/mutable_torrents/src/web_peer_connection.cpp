@@ -115,12 +115,11 @@ void web_peer_connection::on_connected()
 }
 
 void web_peer_connection::disconnect(error_code const& ec
-	, peer_connection_interface::operation_t op, int error)
+	, operation_t op, int error)
 {
 	if (is_disconnecting()) return;
 
-	if (op == peer_connection_interface::op_sock_write
-		&& ec == boost::system::errc::broken_pipe)
+	if (op == op_sock_write && ec == boost::system::errc::broken_pipe)
 	{
 #ifdef TORRENT_LOGGING
 		// a write operation failed with broken-pipe. This typically happens
@@ -144,9 +143,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		return;
 	}
 
-	if (op == peer_connection_interface::op_connect
-		&& m_web
-		&& !m_web->endpoints.empty())
+	if (op == op_connect && m_web && !m_web->endpoints.empty())
 	{
 		// we failed to connect to this IP. remove it so that the next attempt
 		// uses the next IP in the list.

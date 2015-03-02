@@ -286,7 +286,9 @@ void bind_alert()
 
     class_<block_downloading_alert, bases<peer_alert>, noncopyable>(
         "block_downloading_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("peer_speedmsg", &block_downloading_alert::peer_speedmsg)
+#endif
         .def_readonly("block_index", &block_downloading_alert::block_index)
         .def_readonly("piece_index", &block_downloading_alert::piece_index)
         ;

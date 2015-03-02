@@ -484,7 +484,7 @@ namespace libtorrent
 
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec
-			, peer_connection_interface::operation_t op, int error = 0);
+			, operation_t op, int error = 0);
 
 		// called when a connect attempt fails (not when an
 		// established connection fails)

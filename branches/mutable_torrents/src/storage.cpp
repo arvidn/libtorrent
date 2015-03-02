@@ -186,7 +186,7 @@ namespace libtorrent
 		return size;
 	}
 	
-	void clear_bufs(file::iovec_t const* bufs, int num_bufs)
+	TORRENT_EXTRA_EXPORT void clear_bufs(file::iovec_t const* bufs, int num_bufs)
 	{
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			std::memset(i->iov_base, 0, i->iov_len);
@@ -348,11 +348,10 @@ namespace libtorrent
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
 
-			std::string file_path = files().file_path(file_index, m_save_path);
-
 			if (m_stat_cache.get_filesize(file_index) == stat_cache::not_in_cache)
 			{
 				file_status s;
+				std::string file_path = files().file_path(file_index, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
@@ -370,6 +369,7 @@ namespace libtorrent
 			if ((!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
 				|| files().file_size(file_index) == 0)
 			{
+				std::string file_path = files().file_path(file_index, m_save_path);
 				std::string dir = parent_path(file_path);
 
 				if (dir != last_path)
@@ -389,19 +389,21 @@ namespace libtorrent
 					| file::random_access, ec);
 				if (ec) return;
 
-				f->set_size(files().file_size(file_index), ec.ec);
+				boost::int64_t size = files().file_size(file_index);
+				f->set_size(size, ec.ec);
 				if (ec)
 				{
 					ec.file = file_index;
 					ec.operation = storage_error::fallocate;
 					break;
 				}
+				size_t mtime = m_stat_cache.get_filetime(file_index);
+				m_stat_cache.set_cache(file_index, size, mtime);
 			}
 			ec.ec.clear();
 		}
 
 		// close files that were opened in write mode
-		m_stat_cache.clear();
 		m_pool.release(this);
 
 #if TORRENT_DEBUG_FILE_LEAKS
@@ -463,7 +465,6 @@ namespace libtorrent
 			ec.operation = storage_error::stat;
 			return false;
 		}
-		m_stat_cache.clear();
 		return false;
 	}
 
@@ -1233,7 +1234,11 @@ namespace libtorrent
 					}
 				}
 
-				boost::int64_t adjusted_offset = files().file_base(file_index) + file_offset;
+				boost::int64_t adjusted_offset =
+#ifndef TORRENT_NO_DEPRECATE
+					files().file_base(file_index) +
+#endif
+					file_offset;
 
 #ifdef TORRENT_DISK_STATS
 				int flags = ((op.mode & file::rw_mask) == file::read_only) ? op_read : op_write;

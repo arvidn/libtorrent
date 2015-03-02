@@ -78,29 +78,52 @@ namespace libtorrent
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
-			// referrer with location
+			// referrer with location. 
 
-			// 8 is to skip the ur;l scheme://. We want the first slash
-			// that's part of the path.
-			std::size_t i = url.find_first_of('/', 8);
+			// first skip the url scheme of the referer
+			std::size_t i = url.find("://");
+
+			// if the referrer doesn't appear to have a proper URL scheme
+			// just return the location verbatim (and probably fail)
 			if (i == std::string::npos)
 				return location;
-			url.resize(i);
+
+			// then skip the hostname and port, it's fine for this to fail, in
+			// case the referrer doesn't have a path component, it's just the
+			// url-scheme and hostname, in which case we just append the location
+			i = url.find_first_of('/', i + 3);
+			if (i != std::string::npos)
+				url.resize(i);
+
 			url += location;
 		}
 		else
 		{
 			// some web servers send out relative paths
 			// in the location header.
+
 			// remove the leaf filename
-			std::size_t i = url.find_last_of('/');
-			if (i == std::string::npos)
+			// first skip the url scheme of the referer
+			std::size_t start = url.find("://");
+
+			// the referrer is not a valid full URL
+			if (start == std::string::npos)
 				return location;
 
-			url.resize(i);
+			std::size_t end = url.find_last_of('/');
+			// if the / we find is part of the scheme, there is no / in the path
+			// component or hostname.
+			if (end <= start + 2) end = std::string::npos;
 
-			if ((url.empty() || url[url.size()-1] != '/')
-				&& (location.empty() || location[0] != '/'))
+			// if this fails, the referrer is just url-scheme and hostname. We can
+			// just append the location to it.
+			if (end != std::string::npos)
+				url.resize(end);
+
+			// however, we may still need to insert a '/' in case neither side
+			// has one. We know the location doesn't start with a / already.
+			// so, if the referrer doesn't end with one, add it.
+			if ((url.empty() || url[url.size()-1] != '/'))
 				url += '/';
 			url += location;
 		}

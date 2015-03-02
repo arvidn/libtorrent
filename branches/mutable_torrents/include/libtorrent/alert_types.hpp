@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/rss.hpp" // for feed_handle
+#include "libtorrent/operations.hpp" // for operation_t enum
+#include "libtorrent/close_reason.hpp"
 
 namespace libtorrent
 {
@@ -401,14 +403,14 @@ namespace libtorrent
 		torrent_status::state_t prev_state;
 	};
 
-	// This alert is generated on tracker time outs, premature disconnects, invalid response or
-	// a HTTP response other than "200 OK". From the alert you can get the handle to the torrent
-	// the tracker belongs to.
+	// This alert is generated on tracker time outs, premature disconnects,
+	// invalid response or a HTTP response other than "200 OK". From the alert
+	// you can get the handle to the torrent the tracker belongs to.
 	//
-	// The ``times_in_row`` member says how many times in a row this tracker has failed.
-	// ``status_code`` is the code returned from the HTTP server. 401 means the tracker needs
-	// authentication, 404 means not found etc. If the tracker timed out, the code will be set
-	// to 0.
+	// The ``times_in_row`` member says how many times in a row this tracker has
+	// failed. ``status_code`` is the code returned from the HTTP server. 401
+	// means the tracker needs authentication, 404 means not found etc. If the
+	// tracker timed out, the code will be set to 0.
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
 	{
 		// internal
@@ -438,9 +440,9 @@ namespace libtorrent
 		std::string msg;
 	};
 
-	// This alert is triggered if the tracker reply contains a warning field. Usually this
-	// means that the tracker announce was successful, but the tracker has a message to
-	// the client.
+	// This alert is triggered if the tracker reply contains a warning field.
+	// Usually this means that the tracker announce was successful, but the
+	// tracker has a message to the client.
 	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
 	{
 		// internal
@@ -702,10 +704,13 @@ namespace libtorrent
 	{
 		// internal
 		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, int op, error_code const& e)
+			, peer_id const& peer_id, operation_t op, int type, error_code const& e
+			, close_reason_t r)
 			: peer_alert(h, ep, peer_id)
+			, socket_type(type)
 			, operation(op)
 			, error(e)
+			, reason(r)
 		{
 #ifndef TORRENT_NO_DEPRECATE
 			msg = convert_from_native(error.message());
@@ -717,12 +722,18 @@ namespace libtorrent
 		const static int static_category = alert::debug_notification;
 		virtual std::string message() const;
 
-		// a NULL-terminated string of the low-level operation that failed, or NULL if
-		// there was no low level disk operation.
-		int operation;
+		// the kind of socket this peer was connected over
+		int socket_type;
+
+		// the operation or level where the error occurred. Specified as an
+		// value from the operation_t enum. Defined in operations.hpp.
+		operation_t operation;
 
 		// tells you what error caused peer to disconnect.
 		error_code error;
+
+		// the reason the peer disconnected (if specified)
+		close_reason_t reason;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
