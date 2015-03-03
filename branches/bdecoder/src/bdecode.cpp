@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bdecode.hpp"
+#include <limits>
 
 namespace libtorrent
 {
