@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
+int load_file(std::string const& filename, std::vector<char>& v
+	, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");

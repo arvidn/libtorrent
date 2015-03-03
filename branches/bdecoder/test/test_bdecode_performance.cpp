@@ -42,27 +42,92 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-sha1_hash generate_id()
+int load_file(std::string const& filename, std::vector<char>& v
+	, libtorrent::error_code& ec, int limit = 8000000)
 {
-	sha1_hash ret;
-	for (int i = 0; i < 20; ++i) ret[i] = rand() & 0xff;
-	return ret;
+	ec.clear();
+	FILE* f = fopen(filename.c_str(), "rb");
+	if (f == NULL)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		return -1;
+	}
+
+	int r = fseek(f, 0, SEEK_END);
+	if (r != 0)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		fclose(f);
+		return -1;
+	}
+	long s = ftell(f);
+	if (s < 0)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	if (s > limit)
+	{
+		fclose(f);
+		return -2;
+	}
+
+	r = fseek(f, 0, SEEK_SET);
+	if (r != 0)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	v.resize(s);
+	if (s == 0)
+	{
+		fclose(f);
+		return 0;
+	}
+
+	r = fread(&v[0], 1, v.size(), f);
+	if (r < 0)
+	{
+		ec.assign(errno, boost::system::generic_category());
+		fclose(f);
+		return -1;
+	}
+
+	fclose(f);
+
+	if (r != s) return -3;
+
+	return 0;
 }
-int main()
+
+int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
 
-	// generate an example DHT message to use in the parser benchmark
-	entry e;
-	e["q"] = "find_node";
-	e["t"] = 3235;
-	e["y"] = "q";
-	entry::dictionary_type& a = e["a"].dict();
-	a["id"] = generate_id().to_string();
-	a["target"] = generate_id().to_string();
-	a["n"] = "test-name";
-	char b[1500];
-	bencode(b, e);
+	if (argc != 2)
+	{
+		fputs("usage: bdecode_benchmark torrent-file\n", stderr);
+		return 1;
+	}
+
+	std::vector<char> buf;
+	error_code ec;
+	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
+	if (ret == -1)
+	{
+		fprintf(stderr, "file too big, aborting\n");
+		return 1;
+	}
+
+	if (ret != 0)
+	{
+		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
+		return 1;
+	}
 
 	{
 	ptime start(time_now_hires());
@@ -70,7 +135,8 @@ int main()
 	for (int i = 0; i < 1000000; ++i)
 	{
 		int len;
-		e = bdecode(b, b + sizeof(b)-1, len);
+		e = bdecode(&buf[0], &buf[0] + buf.size(), len);
+//		entry& info = e["info"];
 	}
 	ptime stop(time_now_hires());
 
@@ -86,7 +152,8 @@ int main()
 	for (int i = 0; i < 1000000; ++i)
 	{
 		error_code ec;
-		lazy_bdecode(b, b + sizeof(b)-1, e, ec);
+		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+//		lazy_entry* info = e.dict_find("info");
 	}
 	ptime stop(time_now_hires());
 
@@ -102,7 +169,8 @@ int main()
 	for (int i = 0; i < 1000000; ++i)
 	{
 		error_code ec;
-		bdecode(b, b + sizeof(b)-1, e, ec);
+		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+//		bdecode_node info = e.dict_find("info");
 	}
 	ptime stop(time_now_hires());
 
