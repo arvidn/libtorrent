@@ -34,7 +34,7 @@ set +e
 mkdir test-coverage
 set -e
 
-run_test test_bdecode "*/decode.*"
+run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
 run_test test_torrent_info "*/torrent_info.*"
 run_test test_part_file "*/part_file.*"
