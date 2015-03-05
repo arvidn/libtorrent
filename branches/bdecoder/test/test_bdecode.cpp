@@ -42,7 +42,6 @@ std::string print_bdecode_tree(bdecode_node n)
 	return "";
 }
 
-// TODO: 3 for all these tests, also test the position of the error
 int test_main()
 {
 	// test integer
@@ -486,46 +485,6 @@ int test_main()
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 		printf("%s\n", print_bdecode_tree(e).c_str());
 	}
-/*
-	// test pascal string dict
-	{
-		char b[] = "d6:foobar6:barfooe";
-
-		bdecode_node e;
-		error_code ec;
-		int ret = bdecode(b, b + sizeof(b)-1, e, ec, NULL);
-		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
-
-		pascal_string ps = e.dict_find_pstr("foobar");
-		TEST_EQUAL(memcmp(ps.ptr, "barfoo", ps.len), 0);
-		TEST_EQUAL(ps.len, 6);
-
-		ps = e.dict_find_pstr("foobar2");
-		TEST_EQUAL(ps.ptr, NULL);
-		TEST_EQUAL(ps.len, 0);
-	}
-
-	// test pascal string in list
-	{
-		char b[] = "l6:foobari4ee";
-
-		bdecode_node e;
-		error_code ec;
-		int ret = bdecode(b, b + sizeof(b)-1, e, ec, NULL);
-		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
-
-		TEST_EQUAL(e.list_size(), 2);
-		pascal_string ps = e.list_pstr_at(0);
-		TEST_EQUAL(memcmp(ps.ptr, "foobar", ps.len), 0);
-		TEST_EQUAL(ps.len, 6);
-
-		ps = e.list_pstr_at(1);
-		TEST_EQUAL(ps.ptr, NULL);
-		TEST_EQUAL(ps.len, 0);
-	}
-*/
 
 	{
 		std::string buf;

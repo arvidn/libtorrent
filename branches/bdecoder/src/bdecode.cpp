@@ -565,6 +565,9 @@ namespace libtorrent
 		return (*m_root_tokens)[m_token_idx + 1].offset - t.offset - t.header;
 	}
 
+	void bdecode_node::reserve(int tokens)
+	{ m_tokens.reserve(tokens); }
+
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); \
 	if (error_pos) *error_pos = start - orig_start; \
 	return fail(ret.m_tokens, stack, start - orig_start); } while (false)

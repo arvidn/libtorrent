@@ -247,6 +247,13 @@ struct bdecode_node
 
 	void clear();
 
+	// pre-allocate memory for the specified numbers of tokens. This is
+	// useful if you know approximately how many tokens are in the file
+	// you are about to parse. Doing so will save realloc operations
+	// while parsing. You should only call this on the root node, before
+	// passing it in to bdecode().
+	void reserve(int tokens);
+
 private:
 	bdecode_node(std::vector<detail::bdecode_token> const& tokens, char const* buf
 		, int len, int idx);
