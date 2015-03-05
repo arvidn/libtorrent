@@ -159,29 +159,40 @@ struct bdecode_token
 	enum type_t
 	{ none, dict, list, string, integer, end };
 
+	enum limits_t
+	{
+		max_offset = (1 << 29) - 1,
+		max_next_item = (1 << 29) - 1
+	};
+
 	bdecode_token(boost::uint32_t off, bdecode_token::type_t t)
 		: offset(off)
 		, type(t)
+		, next_item(0)
 		, header(0)
 	{
-#if TORRENT_DEBUG
-		next_item = 0xffff;
-#endif
+		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
-	bdecode_token(boost::uint32_t off, boost::uint16_t next
+	bdecode_token(boost::uint32_t off, boost::uint32_t next
 		, bdecode_token::type_t t, boost::uint8_t header_size = 0)
 		: offset(off)
-		, next_item(next)
 		, type(t)
+		, next_item(next)
 		, header(header_size)
 	{
+		TORRENT_ASSERT(off <= max_offset);
+		TORRENT_ASSERT(next <= max_next_item);
+		TORRENT_ASSERT(header_size < 8);
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
 	// offset into the bdecoded buffer where this node is
-	boost::uint32_t offset;
+	boost::uint32_t offset:29;
+
+	// one of type_t enums
+	boost::uint32_t type:3;
 
 	// if this node is a member of a list, 'next_item' is the number of nodes
 	// to jump forward in th node array to get to the next item in the list.
@@ -189,15 +200,13 @@ struct bdecode_token
 	// to its corresponding value. If it's a value in a dictionary, it's the
 	// number of steps to the next key, or to the end node.
 	// this is the _relative_ offset to the next node
-	boost::uint16_t next_item;
-
-	boost::uint8_t type;
+	boost::uint32_t next_item:29;
 
 	// this is the number of bytes to skip forward from the offset to get to
 	// the value of this typ. For a string, this is the length of the length
 	// prefix and the colon. For an integer, this is just to skip the 'i'
 	// character.
-	boost::uint8_t header;
+	boost::uint32_t header:3;
 };
 }
 

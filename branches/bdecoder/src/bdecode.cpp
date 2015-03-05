@@ -108,6 +108,7 @@ namespace libtorrent
 		// so far valid
 		while (!stack.empty()) {
 			int top = stack.back().token;
+			TORRENT_ASSERT(tokens.size() - top <= bdecode_token::max_next_item);
 			tokens[top].next_item = tokens.size() - top;
 			tokens.push_back(bdecode_token(offset, 1, bdecode_token::end));
 			stack.pop_back();
@@ -565,12 +566,20 @@ namespace libtorrent
 	}
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); \
-		if (error_pos) *error_pos = start - orig_start; \
+	if (error_pos) *error_pos = start - orig_start; \
 	return fail(ret.m_tokens, stack, start - orig_start); } while (false)
 
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit)
 	{
+
+		if (end - start > bdecode_token::max_offset)
+		{
+			if (error_pos) *error_pos = 0;
+			ec = make_error_code(bdecode_errors::overflow);
+			return -1;
+		}
+
 		// this is the stack of bdecode_token indices, into m_tokens.
 		std::vector<stack_frame> stack;
 
@@ -667,6 +676,9 @@ namespace libtorrent
 					int top = stack.back().token;
 					// subtract the token's own index, since this is a relative
 					// offset
+					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
+						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
+
 					ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
 
 					// and pop it from the stack.
