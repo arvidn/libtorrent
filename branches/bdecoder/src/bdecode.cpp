@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bdecode.hpp"
 #include <limits>
+#include <cstring> // for memset
 
 namespace libtorrent
 {
@@ -899,6 +900,7 @@ namespace libtorrent
 		, bool single_line, int indent)
 	{
 		char indent_str[200];
+		using std::memset;
 		memset(indent_str, ' ', 200);
 		indent_str[0] = ',';
 		indent_str[1] = '\n';
