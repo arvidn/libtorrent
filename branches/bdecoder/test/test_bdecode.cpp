@@ -36,12 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-// TODO: 3 temp!
-std::string print_bdecode_tree(bdecode_node n)
-{
-	return "";
-}
-
 int test_main()
 {
 	// test integer
@@ -51,7 +45,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
 		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
@@ -66,7 +60,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
 		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
@@ -82,7 +76,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
 		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
@@ -105,7 +99,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
 		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
 		TEST_CHECK(section.second == sizeof(b) - 1);
@@ -169,7 +163,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 0);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_value));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test strings with overflow length-prefix
@@ -182,7 +176,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 19);
 		TEST_CHECK(ec == error_code(bdecode_errors::overflow));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test integer without any digits
@@ -195,7 +189,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
 		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test integer with just a minus
@@ -208,7 +202,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
 		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 
@@ -222,7 +216,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 6);
 		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 
@@ -233,7 +227,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		// the lazy aspect makes this overflow when asking for
 		// the value. turning it to zero.
 		TEST_EQUAL(e.int_value(), 0);
@@ -246,7 +240,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		TEST_CHECK(e.int_value() == 9223372036854775807LL);
 	}
 
@@ -257,7 +251,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 		TEST_CHECK(e.int_value() == -9223372036854775807LL);
 	}
 
@@ -344,7 +338,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 5);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test unexpected EOF (really expected terminator)
@@ -358,7 +352,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 6);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test expected string
@@ -373,7 +367,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -387,7 +381,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 5);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -401,7 +395,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 5);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test expected string while parsing dict key
@@ -415,7 +409,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test unexpected EOF while parsing int
@@ -429,7 +423,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test unexpected EOF while parsing int
@@ -443,7 +437,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 3);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 
@@ -458,7 +452,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 5);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test empty string
@@ -469,7 +463,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_EQUAL(ret, 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test partial string
@@ -483,7 +477,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 3);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	{
@@ -612,7 +606,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
-		printf("%s\n", print_bdecode_tree(e).c_str());
+		printf("%s\n", print_entry(e).c_str());
 
 		TEST_EQUAL(e.dict_find_int_value("a"), 1);
 		// make sure default values work if the key is not found
