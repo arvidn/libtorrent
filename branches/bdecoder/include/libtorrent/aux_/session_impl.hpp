@@ -492,7 +492,7 @@ namespace libtorrent
 			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false);
 
 			void save_state(entry* e, boost::uint32_t flags) const;
-			void load_state(lazy_entry const* e);
+			void load_state(bdecode_node const* e);
 
 			bool has_connection(peer_connection* p) const;
 			void insert_peer(boost::shared_ptr<peer_connection> const& c);

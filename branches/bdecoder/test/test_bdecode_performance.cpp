@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 	{
 	ptime start(time_now_hires());
 	entry e;
-	for (int i = 0; i < 1000000; ++i)
+//	for (int i = 0; i < 1000000; ++i)
 	{
 		int len;
 		e = bdecode(&buf[0], &buf[0] + buf.size(), len);
@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
 	{
 	ptime start(time_now_hires());
 	lazy_entry e;
-	for (int i = 0; i < 1000000; ++i)
+//	for (int i = 0; i < 1000000; ++i)
 	{
 		error_code ec;
 		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
 	{
 	ptime start(time_now_hires());
 	bdecode_node e;
-	for (int i = 0; i < 1000000; ++i)
+//	for (int i = 0; i < 1000000; ++i)
 	{
 		error_code ec;
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);

@@ -1783,11 +1783,11 @@ namespace libtorrent
 
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
-		lazy_entry root;
+		bdecode_node root;
 		error_code ec;
 		int pos;
-		int ret = lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
-		if (ret != 0 || ec || root.type() != lazy_entry::dict_t)
+		int ret = bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
+		if (ret != 0 || ec || root.type() != bdecode_node::dict_t)
 		{
 #ifdef TORRENT_LOGGING
 			peer_log("*** invalid extended handshake: %s pos: %d"
@@ -1813,11 +1813,11 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 		// upload_only
-		if (lazy_entry const* m = root.dict_find_dict("m"))
+		if (bdecode_node m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = boost::uint8_t(m->dict_find_int_value("upload_only", 0));
-			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
-			m_dont_have_id = boost::uint8_t(m->dict_find_int_value("lt_donthave", 0));
+			m_upload_only_id = boost::uint8_t(m.dict_find_int_value("upload_only", 0));
+			m_holepunch_id = boost::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
+			m_dont_have_id = boost::uint8_t(m.dict_find_int_value("lt_donthave", 0));
 		}
 
 		// there is supposed to be a remote listen port

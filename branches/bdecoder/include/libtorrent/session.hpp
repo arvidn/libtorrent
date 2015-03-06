@@ -316,7 +316,8 @@ namespace libtorrent
 		// filter which parts of the session state to save. By default, all state
 		// is saved (except for the individual torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
-		void load_state(lazy_entry const& e);
+		// TODO: 3 introduce a deprecated overload that takes a lazy_entry
+		void load_state(bdecode_node const& e);
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with

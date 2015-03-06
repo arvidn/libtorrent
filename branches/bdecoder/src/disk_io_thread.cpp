@@ -1902,7 +1902,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
-		, lazy_entry const* resume_data
+		, bdecode_node const* resume_data
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 #ifdef TORRENT_DEBUG
@@ -2603,8 +2603,8 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
-		lazy_entry const* rd = (lazy_entry const*)j->buffer;
-		lazy_entry tmp;
+		bdecode_node const* rd = (bdecode_node const*)j->buffer;
+		bdecode_node tmp;
 		if (rd == NULL) rd = &tmp;
 
 		return j->storage->check_fastresume(*rd, j->error);

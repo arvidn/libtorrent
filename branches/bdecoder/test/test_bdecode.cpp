@@ -605,6 +605,26 @@ int test_main()
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
+
+	{
+		char b[] = "d1:ai1e3:fooi8e3:bar6:barfooe";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_CHECK(ret == 0);
+		printf("%s\n", print_bdecode_tree(e).c_str());
+
+		TEST_EQUAL(e.dict_find_int_value("a"), 1);
+		// make sure default values work if the key is not found
+		TEST_EQUAL(e.dict_find_int_value("b", -10), -10);
+
+		TEST_EQUAL(e.dict_find_string_value("bar"), "barfoo");
+		// make sure default values work if the key is not found
+		TEST_EQUAL(e.dict_find_string_value("b", "blah"), "blah");
+	}
+
+	// TODO: test the entire API of bdecode_node
+
 	return 0;
 }
 

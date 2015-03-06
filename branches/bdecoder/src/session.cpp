@@ -433,7 +433,7 @@ namespace libtorrent
 		TORRENT_SYNC_CALL2(save_state, &e, flags);
 	}
 
-	void session::load_state(lazy_entry const& e)
+	void session::load_state(bdecode_node const& e)
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
@@ -494,12 +494,12 @@ namespace libtorrent
 		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
-		lazy_entry e;
+		bdecode_node e;
 		error_code ec;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
 #endif
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS

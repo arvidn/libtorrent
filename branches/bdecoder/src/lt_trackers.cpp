@@ -167,14 +167,14 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(lazy_entry const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h)
 		{
 			m_message_index = 0;
-			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			if (h.type() != bdecode_node::dict_t) return false;
+			bdecode_node messages = h.dict_find("m");
+			if (!messages || messages.type() != bdecode_node::dict_t) return false;
 
-			int index = int(messages->dict_find_int_value("lt_tex", -1));
+			int index = int(messages.dict_find_int_value("lt_tex", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 
@@ -196,16 +196,16 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return false;
 			if (!m_pc.packet_finished()) return true;
 
-			lazy_entry msg;
+			bdecode_node msg;
 			error_code ec;
-			int ret = lazy_bdecode(body.begin, body.end, msg, ec);
-			if (ret != 0 || msg.type() != lazy_entry::dict_t)
+			int ret = bdecode(body.begin, body.end, msg, ec);
+			if (ret != 0 || msg.type() != bdecode_node::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_lt_tracker_message, op_bittorrent, 2);
 				return true;
 			}
 
-			lazy_entry const* added = msg.dict_find_list("added");
+			bdecode_node added = msg.dict_find_list("added");
 
 			// invalid tex message
 			if (added == 0)
@@ -231,9 +231,9 @@ namespace libtorrent { namespace
 				"added: ";
 #endif
 
-			for (int i = 0; i < added->list_size(); ++i)
+			for (int i = 0; i < added.list_size(); ++i)
 			{
-				announce_entry e(added->list_string_value_at(i));
+				announce_entry e(added.list_string_value_at(i));
 				if (e.url.empty()) continue;
 
 				// ignore urls with binary data in them

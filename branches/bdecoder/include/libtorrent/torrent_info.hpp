@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
@@ -57,8 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/torrent_peer.hpp"
-
-// TODO: 4 replace all lazy_entry with bdecode_node
 
 namespace libtorrent
 {
@@ -282,10 +280,10 @@ namespace libtorrent
 		// metadata will be created by libtorrent as soon as it has been
 		// downloaded from the swarm.
 		// 
-		// The constructor that takes a lazy_entry will create a torrent_info
+		// The constructor that takes a bdecode_node will create a torrent_info
 		// object from the information found in the given torrent_file. The
-		// lazy_entry represents a tree node in an bencoded file. To load an
-		// ordinary .torrent file into a lazy_entry, use lazy_bdecode().
+		// bdecode_node represents a tree node in an bencoded file. To load an
+		// ordinary .torrent file into a bdecode_node, use bdecode().
 		// 
 		// The version that takes a buffer pointer and a size will decode it as a
 		// .torrent file and initialize the torrent_info object for you.
@@ -308,7 +306,8 @@ namespace libtorrent
 		// 
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS
-		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		// TODO: 3 re-introduced a deprecated constructor that takes a lazy_entry
+		torrent_info(bdecode_node const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
@@ -322,7 +321,8 @@ namespace libtorrent
 #endif
 		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
-		torrent_info(lazy_entry const& torrent_file, error_code& ec, int flags = 0);
+		// TODO: 3 re-introduced a deprecated constructor that takes a lazy_entry
+		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
@@ -631,23 +631,24 @@ namespace libtorrent
 		
 		// populates the torrent_info by providing just the info-dict buffer.
 		// This is used when loading a torrent from a magnet link for instance,
-		// where we only have the info-dict. The lazy_entry ``e`` points to a
+		// where we only have the info-dict. The bdecode_node ``e`` points to a
 		// parsed info-dictionary. ``ec`` returns an error code if something
 		// fails (typically if the info dictionary is malformed). ``flags`` are
 		// currently unused.
-		bool parse_info_section(lazy_entry const& e, error_code& ec, int flags);
+		bool parse_info_section(bdecode_node const& e, error_code& ec, int flags);
+		// TODO: 3 re-introduced a deprecated overload that takes a lazy_entry
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
 		// .torrent file. If the specified key cannot be found, it returns NULL.
-		lazy_entry const* info(char const* key) const
+		bdecode_node info(char const* key) const
 		{
-			if (m_info_dict.type() == lazy_entry::none_t)
+			if (m_info_dict.type() == bdecode_node::none_t)
 			{
 				error_code ec;
-				lazy_bdecode(m_info_section.get(), m_info_section.get()
+				bdecode(m_info_section.get(), m_info_section.get()
 					+ m_info_section_size, m_info_dict, ec);
-				if (ec) return NULL;
+				if (ec) return bdecode_node();
 			}
 			return m_info_dict.dict_find(key);
 		}
@@ -672,7 +673,7 @@ namespace libtorrent
 		// __ http://bittorrent.org/beps/bep_0030.html
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 
-		bool parse_torrent_file(lazy_entry const& libtorrent, error_code& ec, int flags);
+		bool parse_torrent_file(bdecode_node const& libtorrent, error_code& ec, int flags);
 
 		// if we're logging member offsets, we need access to them
 	private:
@@ -728,7 +729,7 @@ namespace libtorrent
 
 		// the info section parsed. points into m_info_section
 		// parsed lazily
-		mutable lazy_entry m_info_dict;
+		mutable bdecode_node m_info_dict;
 
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be

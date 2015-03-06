@@ -253,6 +253,9 @@ namespace libtorrent
 		return (bdecode_node::type_t)(*m_root_tokens)[m_token_idx].type;
 	}
 
+	bdecode_node::operator bool() const
+	{ return m_token_idx != -1; }
+
 	std::pair<char const*, int> bdecode_node::data_section() const
 	{
 		if (m_token_idx == -1) return std::make_pair(m_buffer, 0);
@@ -298,10 +301,19 @@ namespace libtorrent
 		return bdecode_node(tokens, m_buffer, m_buffer_size, token);
 	}
 
-	boost::int64_t bdecode_node::list_int_value_at(int i)
+	std::string bdecode_node::list_string_value_at(int i
+		, char const* default_val)
 	{
 		bdecode_node n = list_at(i);
-		if (n.type() != bdecode_node::int_t) return 0;
+		if (n.type() != bdecode_node::string_t) return default_val;
+		return n.string_value();
+	}
+
+	boost::int64_t bdecode_node::list_int_value_at(int i
+		, boost::int64_t default_val)
+	{
+		bdecode_node n = list_at(i);
+		if (n.type() != bdecode_node::int_t) return default_val;
 		return n.int_value();
 	}
 
@@ -462,11 +474,43 @@ namespace libtorrent
 			// skip value
 			token += tokens[token].next_item;
 			TORRENT_ASSERT(token < int(tokens.size()));
-			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 		}
 
 		return bdecode_node();
 	}
+
+	bdecode_node bdecode_node::dict_find_list(char const* key) const
+	{
+		bdecode_node ret = dict_find(key);
+		if (ret.type() == bdecode_node::list_t)
+			return ret;
+		return bdecode_node();
+	}
+
+	bdecode_node bdecode_node::dict_find_dict(char const* key) const
+	{
+		bdecode_node ret = dict_find(key);
+		if (ret.type() == bdecode_node::dict_t)
+			return ret;
+		return bdecode_node();
+	}
+
+	bdecode_node bdecode_node::dict_find_string(char const* key) const
+	{
+		bdecode_node ret = dict_find(key);
+		if (ret.type() == bdecode_node::string_t)
+			return ret;
+		return bdecode_node();
+	}
+
+	bdecode_node bdecode_node::dict_find_int(char const* key) const
+	{
+		bdecode_node ret = dict_find(key);
+		if (ret.type() == bdecode_node::int_t)
+			return ret;
+		return bdecode_node();
+	}
+
 
 	bdecode_node bdecode_node::dict_find(char const* key) const
 	{
@@ -500,23 +544,24 @@ namespace libtorrent
 			// skip value
 			token += tokens[token].next_item;
 			TORRENT_ASSERT(token < int(tokens.size()));
-			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 		}
 
 		return bdecode_node();
 	}
 
-	std::string bdecode_node::dict_find_string_value(char const* key) const
+	std::string bdecode_node::dict_find_string_value(char const* key
+		, char const* default_value) const
 	{
 		bdecode_node n = dict_find(key);
-		if (n.type() != bdecode_node::string_t) return std::string();
+		if (n.type() != bdecode_node::string_t) return default_value;
 		return n.string_value();
 	}
 
-	boost::int64_t bdecode_node::dict_find_int_value(char const* key) const
+	boost::int64_t bdecode_node::dict_find_int_value(char const* key
+		, boost::int64_t default_val) const
 	{
 		bdecode_node n = dict_find(key);
-		if (n.type() != bdecode_node::int_t) return 0;
+		if (n.type() != bdecode_node::int_t) return default_val;
 		return n.int_value();
 	}
 
@@ -567,6 +612,18 @@ namespace libtorrent
 
 	void bdecode_node::reserve(int tokens)
 	{ m_tokens.reserve(tokens); }
+
+	void bdecode_node::swap(bdecode_node& n)
+	{
+		m_tokens.swap(n.m_tokens);
+		std::swap(m_root_tokens, n.m_root_tokens);
+		std::swap(m_buffer, n.m_buffer);
+		std::swap(m_buffer_size, n.m_buffer_size);
+		std::swap(m_token_idx, n.m_token_idx);
+		std::swap(m_last_index, n.m_last_index);
+		std::swap(m_last_token, n.m_last_token);
+		std::swap(m_size, n.m_size);
+	}
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); \
 	if (error_pos) *error_pos = start - orig_start; \
@@ -728,6 +785,177 @@ namespace libtorrent
 		ret.m_buffer = orig_start;
 		ret.m_buffer_size = start - orig_start;
 		return 0;
+	}
+
+	namespace {
+
+	int line_longer_than(bdecode_node const& e, int limit)
+	{
+		int line_len = 0;
+		switch (e.type())
+		{
+		case bdecode_node::list_t:
+			line_len += 4;
+			if (line_len > limit) return -1;
+			for (int i = 0; i < e.list_size(); ++i)
+			{
+				int ret = line_longer_than(e.list_at(i), limit - line_len);
+				if (ret == -1) return -1;
+				line_len += ret + 2;
+			}
+			break;
+		case bdecode_node::dict_t:
+			line_len += 4;
+			if (line_len > limit) return -1;
+			for (int i = 0; i < e.dict_size(); ++i)
+			{
+				line_len += 4 + e.dict_at(i).first.size();
+				if (line_len > limit) return -1;
+				int ret = line_longer_than(e.dict_at(i).second, limit - line_len);
+				if (ret == -1) return -1;
+				line_len += ret + 1;
+			}
+			break;
+		case bdecode_node::string_t:
+			line_len += 3 + e.string_length();
+			break;
+		case bdecode_node::int_t:
+		{
+			boost::int64_t val = e.int_value();
+			while (val > 0)
+			{
+				++line_len;
+				val /= 10;
+			}
+			line_len += 2;
+		}
+		break;
+		case bdecode_node::none_t:
+			line_len += 4;
+			break;
+		}
+	
+		if (line_len > limit) return -1;
+		return line_len;
+	}
+
+	void escape_string(std::string& ret, char const* str, int len)
+	{
+		for (int i = 0; i < len; ++i)
+		{
+			if (str[i] >= 32 && str[i] < 127)
+			{
+				ret += str[i];
+			}
+			else
+			{
+				char tmp[5];
+				snprintf(tmp, sizeof(tmp), "\\x%02x", (unsigned char)str[i]);
+				ret += tmp;
+			}
+		}
+	}
+
+	void print_string(std::string& ret, char const* str, int len, bool single_line)
+	{
+		bool printable = true;
+		for (int i = 0; i < len; ++i)
+		{
+			char c = str[i];
+			if (c >= 32 && c < 127) continue;
+			printable = false;
+			break;
+		}
+		ret += "'";
+		if (printable)
+		{
+			if (single_line && len > 30)
+			{
+				ret.append(str, 14);
+				ret += "...";
+				ret.append(str + len-14, 14);
+			}
+			else
+				ret.append(str, len);
+			ret += "'";
+			return;
+		}
+		if (single_line && len > 20)
+		{
+			escape_string(ret, str, 9);
+			ret += "...";
+			escape_string(ret, str + len - 9, 9);
+		}
+		else
+		{
+			escape_string(ret, str, len);
+		}
+		ret += "'";
+	}
+
+}
+
+	std::string print_entry(bdecode_node const& e
+		, bool single_line, int indent)
+	{
+		char indent_str[200];
+		memset(indent_str, ' ', 200);
+		indent_str[0] = ',';
+		indent_str[1] = '\n';
+		indent_str[199] = 0;
+		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
+		std::string ret;
+		switch (e.type())
+		{
+			case bdecode_node::none_t: return "none";
+			case bdecode_node::int_t:
+			{
+				char str[100];
+				snprintf(str, sizeof(str), "%" PRId64, e.int_value());
+				return str;
+			}
+			case bdecode_node::string_t:
+			{
+				print_string(ret, e.string_ptr(), e.string_length(), single_line);
+				return ret;
+			}
+			case bdecode_node::list_t:
+			{
+				ret += '[';
+				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
+
+				if (!one_liner) ret += indent_str + 1;
+				for (int i = 0; i < e.list_size(); ++i)
+				{
+					if (i == 0 && one_liner) ret += " ";
+					ret += print_entry(e.list_at(i), single_line, indent + 2);
+					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
+					else ret += (one_liner?" ":indent_str+1);
+				}
+				ret += "]";
+				return ret;
+			}
+			case bdecode_node::dict_t:
+			{
+				ret += "{";
+				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
+
+				if (!one_liner) ret += indent_str+1;
+				for (int i = 0; i < e.dict_size(); ++i)
+				{
+					if (i == 0 && one_liner) ret += " ";
+					std::pair<std::string, bdecode_node> ent = e.dict_at(i);
+					print_string(ret, ent.first.c_str(), ent.first.size(), true);
+					ret += ": ";
+					ret += print_entry(ent.second, single_line, indent + 2);
+					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
+					else ret += (one_liner?" ":indent_str+1);
+				}
+				ret += "}";
+				return ret;
+			}
+		}
+		return ret;
 	}
 }
 

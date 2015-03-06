@@ -211,7 +211,7 @@ struct bdecode_token
 }
 
 // TODO: 4 document this class. Can probably borrow a lot from lazy_entry
-struct bdecode_node
+struct TORRENT_EXPORT bdecode_node
 {
 	friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
@@ -223,18 +223,29 @@ struct bdecode_node
 
 	type_t type() const;
 
+	operator bool() const;
+
 	std::pair<char const*, int> data_section() const;
 
 	bdecode_node list_at(int i) const;
-	boost::int64_t list_int_value_at(int i);
+	std::string list_string_value_at(int i
+		, char const* default_val = "");
+	boost::int64_t list_int_value_at(int i
+		, boost::int64_t default_val = 0);
 	int list_size() const;
 
 	// dictionary operations
 	bdecode_node dict_find(std::string key) const;
 	bdecode_node dict_find(char const* key) const;
 	std::pair<std::string, bdecode_node> dict_at(int i) const;
-	std::string dict_find_string_value(char const* key) const;
-	boost::int64_t dict_find_int_value(char const* key) const;
+	bdecode_node dict_find_dict(char const* key) const;
+	bdecode_node dict_find_list(char const* key) const;
+	bdecode_node dict_find_string(char const* key) const;
+	bdecode_node dict_find_int(char const* key) const;
+	std::string dict_find_string_value(char const* key
+		, char const* default_value = "") const;
+	boost::int64_t dict_find_int_value(char const* key
+		, boost::int64_t default_val = 0) const;
 	int dict_size() const;
 
 	// integer operations
@@ -246,6 +257,8 @@ struct bdecode_node
 	int string_length() const;
 
 	void clear();
+
+	void swap(bdecode_node& n);
 
 	// pre-allocate memory for the specified numbers of tokens. This is
 	// useful if you know approximately how many tokens are in the file
@@ -286,7 +299,12 @@ private:
 	mutable int m_size;
 };
 
-int bdecode(char const* start, char const* end, bdecode_node& ret
+// print the bencoded structure in a human-readable format to a stting
+// that's returned.
+TORRENT_EXPORT std::string print_entry(bdecode_node const& e
+	, bool single_line = false, int indent = 0);
+
+TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
 	, error_code& ec, int* error_pos = 0, int depth_limit = 1000
 	, int token_limit = 1000000);
 
