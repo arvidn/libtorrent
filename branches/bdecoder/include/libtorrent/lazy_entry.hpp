@@ -49,9 +49,6 @@ namespace libtorrent
 {
 	struct lazy_entry;
 
-	// TODO: 4 deprecate lazy_entry and lazy_bdecode and reimplement it in terms
-	// of bdecode_node
-
 	// This function decodes bencoded_ data.
 	// 
 	// .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification

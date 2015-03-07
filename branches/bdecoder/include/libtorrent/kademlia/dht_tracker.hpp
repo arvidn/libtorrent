@@ -138,6 +138,11 @@ namespace libtorrent { namespace dht
 		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
 			, int send_flags);
 
+		// this is the bdecode_node DHT messages are parsed into. It's a member
+		// in order to avoid having to deallocate and re-allocate it for every
+		// message.
+		bdecode_node m_msg;
+
 		counters& m_counters;
 		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;

@@ -392,11 +392,9 @@ namespace libtorrent { namespace dht
 			
 		TORRENT_ASSERT(size > 0);
 
-		// TODO: 4 Use a persistent bdecode_node object to reuse its storage.
-		bdecode_node e;
 		int pos;
 		error_code err;
-		int ret = bdecode(buf, buf + size, e, err, &pos, 10, 500);
+		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -406,9 +404,7 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
-		libtorrent::dht::msg m(e, ep);
-
-		if (e.type() != bdecode_node::dict_t)
+		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: not a dictionary: "
@@ -422,6 +418,7 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
+		libtorrent::dht::msg m(m_msg, ep);
 		m_dht.incoming(m);
 		return true;
 	}
