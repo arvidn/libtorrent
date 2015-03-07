@@ -185,14 +185,14 @@ void item::assign(entry const& v, std::pair<char const*, int> salt
 		m_mutable = false;
 }
 
-bool item::assign(lazy_entry const* v
+bool item::assign(bdecode_node const& v
 	, std::pair<char const*, int> salt
 	, boost::uint64_t seq, char const* pk, char const* sig)
 {
-	TORRENT_ASSERT(v->data_section().second <= 1000);
+	TORRENT_ASSERT(v.data_section().second <= 1000);
 	if (pk && sig)
 	{
-		if (!verify_mutable_item(v->data_section(), salt, seq, pk, sig))
+		if (!verify_mutable_item(v.data_section(), salt, seq, pk, sig))
 			return false;
 		memcpy(m_pk.c_array(), pk, item_pk_len);
 		memcpy(m_sig.c_array(), sig, item_sig_len);
@@ -206,7 +206,7 @@ bool item::assign(lazy_entry const* v
 	else
 		m_mutable = false;
 
-	m_value = *v;
+	m_value = v;
 	return true;
 }
 

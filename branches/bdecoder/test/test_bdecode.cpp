@@ -983,6 +983,9 @@ int test_main()
 		TEST_EQUAL(print_entry(e2), str2);
 	}
 
+	// TODO: 4 make sure clear actually clears everything
+	// (size and token cache)
+
 	return 0;
 }
 

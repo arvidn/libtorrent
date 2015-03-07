@@ -245,6 +245,9 @@ namespace libtorrent
 
 	bdecode_node& bdecode_node::operator=(bdecode_node const& n)
 	{
+		// copying a root node? that's probably not what you want
+		TORRENT_ASSERT(n.m_tokens.empty());
+
 		m_tokens = n.m_tokens;
 		m_root_tokens = n.m_root_tokens;
 		m_buffer = n.m_buffer;
@@ -277,11 +280,24 @@ namespace libtorrent
 		TORRENT_ASSERT(idx >= 0);
 	}
 
+	bdecode_node bdecode_node::non_owning() const
+	{
+		// if we're not a root, just return a copy of ourself
+		if (m_tokens.empty()) return *this;
+
+		// otherwise, return a reference to this node, but without
+		// being an owning root node
+		return bdecode_node(&m_tokens[0], m_buffer, m_buffer_size, m_token_idx);
+	}
+
 	void bdecode_node::clear()
 	{
 		m_tokens.clear();
 		m_root_tokens = NULL;
 		m_token_idx = -1;
+		m_size = -1;
+		m_last_index = -1;
+		m_last_token = -1;
 	}
 
 	bdecode_node::type_t bdecode_node::type() const

@@ -54,7 +54,7 @@ using detail::read_v6_endpoint;
 
 void find_data_observer::reply(msg const& m)
 {
-	lazy_entry const* r = m.message.dict_find_dict("r");
+	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -63,19 +63,19 @@ void find_data_observer::reply(msg const& m)
 		return;
 	}
 
-	lazy_entry const* id = r->dict_find_string("id");
-	if (!id || id->string_length() != 20)
+	bdecode_node id = r.dict_find_string("id");
+	if (!id || id.string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
 #endif
 		return;
 	}
-	lazy_entry const* token = r->dict_find_string("token");
+	bdecode_node token = r.dict_find_string("token");
 	if (token)
 	{
 		static_cast<find_data*>(m_algorithm.get())->got_write_token(
-			node_id(id->string_ptr()), token->string_value());
+			node_id(id.string_ptr()), token.string_value());
 	}
 
 	traversal_observer::reply(m);

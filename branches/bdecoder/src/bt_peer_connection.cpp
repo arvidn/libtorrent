@@ -1263,9 +1263,9 @@ namespace libtorrent
 #ifdef TORRENT_LOGGING
 			peer_log("<== HASHPIECE [ piece: %d list: %d ]", p.piece, list_size);
 #endif
-			lazy_entry hash_list;
+			bdecode_node hash_list;
 			error_code ec;
-			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
+			if (bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
 				, hash_list, ec) != 0)
 			{
 				disconnect(errors::invalid_hash_piece, op_bittorrent, 2);
@@ -1274,7 +1274,7 @@ namespace libtorrent
 
 			// the list has this format:
 			// [ [node-index, hash], [node-index, hash], ... ]
-			if (hash_list.type() != lazy_entry::list_t)
+			if (hash_list.type() != bdecode_node::list_t)
 			{
 				disconnect(errors::invalid_hash_list, op_bittorrent, 2);
 				return;
@@ -1283,15 +1283,15 @@ namespace libtorrent
 			std::map<int, sha1_hash> nodes;
 			for (int i = 0; i < hash_list.list_size(); ++i)
 			{
-				lazy_entry const* e = hash_list.list_at(i);
-				if (e->type() != lazy_entry::list_t
-					|| e->list_size() != 2
-					|| e->list_at(0)->type() != lazy_entry::int_t
-					|| e->list_at(1)->type() != lazy_entry::string_t
-					|| e->list_at(1)->string_length() != 20) continue;
+				bdecode_node e = hash_list.list_at(i);
+				if (e.type() != bdecode_node::list_t
+					|| e.list_size() != 2
+					|| e.list_at(0).type() != bdecode_node::int_t
+					|| e.list_at(1).type() != bdecode_node::string_t
+					|| e.list_at(1).string_length() != 20) continue;
 
-				nodes.insert(std::make_pair(int(e->list_int_value_at(0))
-					, sha1_hash(e->list_at(1)->string_ptr())));
+				nodes.insert(std::make_pair(int(e.list_int_value_at(0))
+					, sha1_hash(e.list_at(1).string_ptr())));
 			}
 			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
 			{

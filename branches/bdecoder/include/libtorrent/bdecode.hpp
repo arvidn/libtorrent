@@ -228,6 +228,8 @@ struct TORRENT_EXPORT bdecode_node
 
 	operator bool() const;
 
+	bdecode_node non_owning() const;
+
 	std::pair<char const*, int> data_section() const;
 
 	bdecode_node list_at(int i) const;

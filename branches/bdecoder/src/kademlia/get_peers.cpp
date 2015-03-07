@@ -47,7 +47,7 @@ using detail::read_v6_endpoint;
 
 void get_peers_observer::reply(msg const& m)
 {
-	lazy_entry const* r = m.message.dict_find_dict("r");
+	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -57,27 +57,27 @@ void get_peers_observer::reply(msg const& m)
 	}
 
 	// look for peers
-	lazy_entry const* n = r->dict_find_list("values");
+	bdecode_node n = r.dict_find_list("values");
 	if (n)
 	{
 		std::vector<tcp::endpoint> peer_list;
-		if (n->list_size() == 1 && n->list_at(0)->type() == lazy_entry::string_t)
+		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t)
 		{
 			// assume it's mainline format
-			char const* peers = n->list_at(0)->string_ptr();
-			char const* end = peers + n->list_at(0)->string_length();
+			char const* peers = n.list_at(0).string_ptr();
+			char const* end = peers + n.list_at(0).string_length();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			lazy_entry const* id = r->dict_find_string("id");
-			if (id && id->string_length() == 20)
+			bdecode_node id = r.dict_find_string("id");
+			if (id && id.string_length() == 20)
 			{
 				TORRENT_LOG(traversal)
 					<< "[" << m_algorithm.get() << "] PEERS"
-					<< " invoke-count: " << m_algorithm->invoke_count()
-					<< " branch-factor: " << m_algorithm->branch_factor()
+					<< " invoke-count: " << m_algorithm.invoke_count()
+					<< " branch-factor: " << m_algorithm.branch_factor()
 					<< " addr: " << m.addr
-					<< " id: " << node_id(id->string_ptr())
-					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
+					<< " id: " << node_id(id.string_ptr())
+					<< " distance: " << distance_exp(m_algorithm.target(), node_id(id.string_ptr()))
 					<< " p: " << ((end - peers) / 6);
 			}
 #endif
@@ -89,17 +89,17 @@ void get_peers_observer::reply(msg const& m)
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			lazy_entry const* id = r->dict_find_string("id");
-			if (id && id->string_length() == 20)
+			bdecode_node id = r.dict_find_string("id");
+			if (id && id.string_length() == 20)
 			{
 				TORRENT_LOG(traversal)
 					<< "[" << m_algorithm.get() << "] PEERS"
 					<< " invoke-count: " << m_algorithm->invoke_count()
 					<< " branch-factor: " << m_algorithm->branch_factor()
 					<< " addr: " << m.addr
-					<< " id: " << node_id(id->string_ptr())
+					<< " id: " << node_id(id.string_ptr())
 					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
-					<< " p: " << n->list_size();
+					<< " p: " << n.list_size();
 			}
 #endif
 		}
@@ -295,7 +295,7 @@ void obfuscated_get_peers::done()
 
 void obfuscated_get_peers_observer::reply(msg const& m)
 {
-	lazy_entry const* r = m.message.dict_find_dict("r");
+	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -305,8 +305,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		return;
 	}
 
-	lazy_entry const* id = r->dict_find_string("id");
-	if (!id || id->string_length() != 20)
+	bdecode_node id = r.dict_find_string("id");
+	if (!id || id.string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << m_algorithm.get()
