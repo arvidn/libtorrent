@@ -300,6 +300,14 @@ namespace libtorrent
 		m_last_token = -1;
 	}
 
+	void bdecode_node::switch_underlying_buffer(char const* buf)
+	{
+		TORRENT_ASSERT(!m_tokens.empty());
+		if (m_tokens.empty()) return;
+
+		m_buffer = buf;
+	}
+
 	bdecode_node::type_t bdecode_node::type() const
 	{
 		if (m_token_idx == -1) return none_t;

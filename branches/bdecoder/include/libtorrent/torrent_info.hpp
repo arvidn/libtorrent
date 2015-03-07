@@ -636,7 +636,7 @@ namespace libtorrent
 		// fails (typically if the info dictionary is malformed). ``flags`` are
 		// currently unused.
 		bool parse_info_section(bdecode_node const& e, error_code& ec, int flags);
-		// TODO: 4 re-introduced a deprecated overload that takes a lazy_entry
+		// TODO: 4 re-introduce a deprecated overload that takes a lazy_entry
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the

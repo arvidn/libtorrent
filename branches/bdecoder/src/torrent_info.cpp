@@ -747,17 +747,12 @@ namespace libtorrent
 		if (m_orig_files)
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
-		// TODO: 4 we don't need to re-parse the torrent here, just add a function
-		// to bdecode_node to add an offset to its pointer.
-#if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
-		int ret =
-#endif
-			bdecode(m_info_section.get(), m_info_section.get()
-			+ m_info_section_size, m_info_dict, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw libtorrent_exception(ec);
-#endif
-		TORRENT_ASSERT(ret == 0);
+		if (m_info_dict)
+		{
+			// make this decoded object point to our copy of the info section
+			// buffer
+			m_info_dict.switch_underlying_buffer(m_info_section.get());
+		}
 
 		m_piece_hashes += offset;
 		TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
@@ -1169,7 +1164,7 @@ namespace libtorrent
 	std::string torrent_info::ssl_cert() const
 	{
 		// this is parsed lazily
-		if (m_info_dict.type() == bdecode_node::none_t)
+		if (!m_info_dict)
 		{
 			error_code ec;
 			bdecode(m_info_section.get(), m_info_section.get()

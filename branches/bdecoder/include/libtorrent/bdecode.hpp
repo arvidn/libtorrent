@@ -272,6 +272,11 @@ struct TORRENT_EXPORT bdecode_node
 	// passing it in to bdecode().
 	void reserve(int tokens);
 
+	// this buffer MUST be identical to the one originally parsed.
+	// This operation is only defined on owning root nodes, i.e. the one
+	// passed in to decode().
+	void switch_underlying_buffer(char const* buf);
+
 private:
 	bdecode_node(detail::bdecode_token const* tokens, char const* buf
 		, int len, int idx);
