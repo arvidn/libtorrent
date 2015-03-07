@@ -218,6 +218,10 @@ struct TORRENT_EXPORT bdecode_node
 
 	bdecode_node();
 
+	// TODO: 3 since this type has a pointer to (potentially) its own member,
+	// its generated copy constructor and copy assignment won't work. Implement
+	// manual versions of those
+
 	enum type_t
 	{ none_t, dict_t, list_t, string_t, int_t };
 
@@ -268,7 +272,7 @@ struct TORRENT_EXPORT bdecode_node
 	void reserve(int tokens);
 
 private:
-	bdecode_node(std::vector<detail::bdecode_token> const& tokens, char const* buf
+	bdecode_node(detail::bdecode_token const* tokens, char const* buf
 		, int len, int idx);
 
 	// if this is the root node, that owns all the tokens, they live in this
@@ -278,7 +282,7 @@ private:
 
 	// this points to the root nodes token vector
 	// for the root node, this points to its own m_tokens member
-	std::vector<detail::bdecode_token> const* m_root_tokens;
+	detail::bdecode_token const* m_root_tokens;
 
 	// this points to the original buffer that was parsed
 	char const* m_buffer;
