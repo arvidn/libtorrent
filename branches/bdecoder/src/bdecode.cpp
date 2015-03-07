@@ -245,9 +245,6 @@ namespace libtorrent
 
 	bdecode_node& bdecode_node::operator=(bdecode_node const& n)
 	{
-		// copying a root node? that's probably not what you want
-		TORRENT_ASSERT(n.m_tokens.empty());
-
 		m_tokens = n.m_tokens;
 		m_root_tokens = n.m_root_tokens;
 		m_buffer = n.m_buffer;
