@@ -179,8 +179,8 @@ int main(int argc, char* argv[])
 	error_code ec;
 	if (load_file(".ses_state", in, ec) == 0)
 	{
-		lazy_entry e;
-		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
+		bdecode_node e;
+		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}
 

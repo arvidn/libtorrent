@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LAZY_ENTRY_HPP_INCLUDED
 #define TORRENT_LAZY_ENTRY_HPP_INCLUDED
 
+#ifndef TORRENT_NO_DEPRECATE
+
 #include <utility>
 #include <vector>
 #include <string>
@@ -83,9 +85,10 @@ namespace libtorrent
 	// in case the function fails. ``error_pos`` is an optional pointer to an int,
 	// which will be set to the byte offset into the buffer where an error occurred,
 	// in case the function fails.
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
-		, int depth_limit = 1000, int item_limit = 1000000);
+		, int depth_limit = 1000, int item_limit = 1000000) TORRENT_DEPRECATED;
 
 #ifndef TORRENT_NO_DEPRECATE
 	// for backwards compatibility, does not report error code
@@ -398,15 +401,19 @@ namespace libtorrent
 
 	// print the bencoded structure in a human-readable format to a stting
 	// that's returned.
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
-		, bool single_line = false, int indent = 0);
+		, bool single_line = false, int indent = 0) TORRENT_DEPRECATED;
 
 	// defined in bdecode.cpp
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 		, char const* end, char delimiter, boost::int64_t& val
-		, bdecode_errors::error_code_enum& ec);
+		, bdecode_errors::error_code_enum& ec) TORRENT_DEPRECATED;
 
 }
+
+#endif // TORRENT_NO_DEPRECATE
 
 #endif
 

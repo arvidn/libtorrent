@@ -128,8 +128,10 @@ namespace libtorrent
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
 
 #ifndef TORRENT_NO_DEPRECATE
-	TORRENT_EXPORT session_settings min_memory_usage();
-	TORRENT_EXPORT session_settings high_performance_seed();
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT session_settings min_memory_usage() TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT session_settings high_performance_seed() TORRENT_DEPRECATED;
 #endif
 
 #ifndef TORRENT_CFG
@@ -309,14 +311,14 @@ namespace libtorrent
 		// to the ``entry`` that's passed in, which needs to either not be
 		// initialized, or initialized as a dictionary.
 		// 
-		// ``load_state`` expects a lazy_entry which can be built from a bencoded
-		// buffer with lazy_bdecode().
+		// ``load_state`` expects a bdecode_node which can be built from a bencoded
+		// buffer with bdecode().
 		// 
 		// The ``flags`` arguments passed in to ``save_state`` can be used to
 		// filter which parts of the session state to save. By default, all state
 		// is saved (except for the individual torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
-		// TODO: 3 introduce a deprecated overload that takes a lazy_entry
+		// TODO: 4 introduce a deprecated overload that takes a lazy_entry
 		void load_state(bdecode_node const& e);
 
 		// .. note::

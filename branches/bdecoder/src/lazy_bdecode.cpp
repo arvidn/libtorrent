@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_NO_DEPRECATE
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
@@ -641,4 +643,6 @@ namespace libtorrent
 		return ret;
 	}
 };
+
+#endif // TORRENT_NO_DEPRECATE
 
