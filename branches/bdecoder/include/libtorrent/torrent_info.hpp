@@ -306,7 +306,7 @@ namespace libtorrent
 		// 
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS
-		// TODO: 3 re-introduced a deprecated constructor that takes a lazy_entry
+		// TODO: 4 re-introduced a deprecated constructor that takes a lazy_entry
 		torrent_info(bdecode_node const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
@@ -321,7 +321,7 @@ namespace libtorrent
 #endif
 		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
-		// TODO: 3 re-introduced a deprecated constructor that takes a lazy_entry
+		// TODO: 4 re-introduced a deprecated constructor that takes a lazy_entry
 		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
@@ -636,7 +636,7 @@ namespace libtorrent
 		// fails (typically if the info dictionary is malformed). ``flags`` are
 		// currently unused.
 		bool parse_info_section(bdecode_node const& e, error_code& ec, int flags);
-		// TODO: 3 re-introduced a deprecated overload that takes a lazy_entry
+		// TODO: 4 re-introduced a deprecated overload that takes a lazy_entry
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the

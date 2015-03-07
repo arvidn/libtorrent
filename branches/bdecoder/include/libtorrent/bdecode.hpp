@@ -218,7 +218,7 @@ struct TORRENT_EXPORT bdecode_node
 
 	bdecode_node();
 
-	// TODO: 3 since this type has a pointer to (potentially) its own member,
+	// TODO: 4 since this type has a pointer to (potentially) its own member,
 	// its generated copy constructor and copy assignment won't work. Implement
 	// manual versions of those
 

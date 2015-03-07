@@ -747,7 +747,7 @@ namespace libtorrent
 		if (m_orig_files)
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
-		// TODO: 3 we don't need to re-parse the torrent here, just add a function
+		// TODO: 4 we don't need to re-parse the torrent here, just add a function
 		// to bdecode_node to add an offset to its pointer.
 #if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =

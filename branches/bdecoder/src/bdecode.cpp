@@ -460,7 +460,7 @@ namespace libtorrent
 			bdecode_token const& t = tokens[token];
 			TORRENT_ASSERT(t.type == bdecode_token::string);
 			int size = m_root_tokens[token + 1].offset - t.offset - t.header;
-			if (key.size() == size
+			if (int(key.size()) == size
 				&& std::equal(key.c_str(), key.c_str() + size, m_buffer + t.offset + t.header))
 			{
 				// skip key
