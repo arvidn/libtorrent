@@ -260,14 +260,14 @@ namespace libtorrent { namespace
 			messages[extension_name] = extension_index;
 		}
 
-		virtual bool on_extension_handshake(lazy_entry const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h)
 		{
 			m_message_index = 0;
-			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			if (h.type() != bdecode_node::dict_t) return false;
+			bdecode_node messages = h.dict_find_dict("m");
+			if (!messages) return false;
 
-			int index = int(messages->dict_find_int_value(extension_name, -1));
+			int index = int(messages.dict_find_int_value(extension_name, -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
@@ -300,26 +300,26 @@ namespace libtorrent { namespace
 				m_last_pex[i] = m_last_pex[i+1];
 			m_last_pex[num_pex_timers-1] = now;
 
-			lazy_entry pex_msg;
+			bdecode_node pex_msg;
 			error_code ec;
-			int ret = lazy_bdecode(body.begin, body.end, pex_msg, ec);
-			if (ret != 0 || pex_msg.type() != lazy_entry::dict_t)
+			int ret = bdecode(body.begin, body.end, pex_msg, ec);
+			if (ret != 0 || pex_msg.type() != bdecode_node::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_pex_message, op_bittorrent, 2);
 				return true;
 			}
 
-			lazy_entry const* p = pex_msg.dict_find_string("dropped");
+			bdecode_node p = pex_msg.dict_find_string("dropped");
 
 #ifdef TORRENT_LOGGING
 			int num_dropped = 0;
 			int num_added = 0;
-			if (p) num_dropped += p->string_length()/6;
+			if (p) num_dropped += p.string_length()/6;
 #endif
 			if (p)
 			{
-				int num_peers = p->string_length() / 6;
-				char const* in = p->string_ptr();
+				int num_peers = p.string_length() / 6;
+				char const* in = p.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -331,18 +331,16 @@ namespace libtorrent { namespace
 			}
 
 			p = pex_msg.dict_find_string("added");
-			lazy_entry const* pf = pex_msg.dict_find_string("added.f");
+			bdecode_node pf = pex_msg.dict_find_string("added.f");
 
 #ifdef TORRENT_LOGGING
-			if (p) num_added += p->string_length() / 6;
+			if (p) num_added += p.string_length() / 6;
 #endif
-			if (p != 0
-				&& pf != 0
-				&& pf->string_length() == p->string_length() / 6)
+			if (p && pf && pf.string_length() == p.string_length() / 6)
 			{
-				int num_peers = pf->string_length();
-				char const* in = p->string_ptr();
-				char const* fin = pf->string_ptr();
+				int num_peers = pf.string_length();
+				char const* in = p.string_ptr();
+				char const* fin = pf.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -366,14 +364,14 @@ namespace libtorrent { namespace
 
 #if TORRENT_USE_IPV6
 
-			lazy_entry const* p6 = pex_msg.dict_find("dropped6");
+			bdecode_node p6 = pex_msg.dict_find("dropped6");
 #ifdef TORRENT_LOGGING
-			if (p6) num_dropped += p6->string_length() / 18;
+			if (p6) num_dropped += p6.string_length() / 18;
 #endif
-			if (p6 != 0 && p6->type() == lazy_entry::string_t)
+			if (p6 != 0 && p6.type() == bdecode_node::string_t)
 			{
-				int num_peers = p6->string_length() / 18;
-				char const* in = p6->string_ptr();
+				int num_peers = p6.string_length() / 18;
+				char const* in = p6.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -386,18 +384,18 @@ namespace libtorrent { namespace
 
 			p6 = pex_msg.dict_find("added6");
 #ifdef TORRENT_LOGGING
-			if (p6) num_added += p6->string_length() / 18;
+			if (p6) num_added += p6.string_length() / 18;
 #endif
-			lazy_entry const* p6f = pex_msg.dict_find("added6.f");
+			bdecode_node p6f = pex_msg.dict_find("added6.f");
 			if (p6 != 0
 				&& p6f != 0
-				&& p6->type() == lazy_entry::string_t
-				&& p6f->type() == lazy_entry::string_t
-				&& p6f->string_length() == p6->string_length() / 18)
+				&& p6.type() == bdecode_node::string_t
+				&& p6f.type() == bdecode_node::string_t
+				&& p6f.string_length() == p6.string_length() / 18)
 			{
-				int num_peers = p6f->string_length();
-				char const* in = p6->string_ptr();
-				char const* fin = p6f->string_ptr();
+				int num_peers = p6f.string_length();
+				char const* in = p6.string_ptr();
+				char const* fin = p6f.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
@@ -500,21 +498,21 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
 
 #ifdef TORRENT_LOGGING
-			lazy_entry m;
+			bdecode_node m;
 			error_code ec;
-			int ret = lazy_bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
+			int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
 			TORRENT_ASSERT(ret == 0);
 			TORRENT_ASSERT(!ec);
 			int num_dropped = 0;
 			int num_added = 0;
-			lazy_entry const* e = m.dict_find_string("added");
-			if (e) num_added += e->string_length() / 6;
+			bdecode_node e = m.dict_find_string("added");
+			if (e) num_added += e.string_length() / 6;
 			e = m.dict_find_string("dropped");
-			if (e) num_dropped += e->string_length() / 6;
+			if (e) num_dropped += e.string_length() / 6;
 			e = m.dict_find_string("added6");
-			if (e) num_added += e->string_length() / 18;
+			if (e) num_added += e.string_length() / 18;
 			e = m.dict_find_string("dropped6");
-			if (e) num_dropped += e->string_length() / 18;
+			if (e) num_dropped += e.string_length() / 18;
 			m_pc.peer_log("==> PEX_DIFF [ dropped: %d added: %d msg_size: %d ]"
 				, num_dropped, num_added, int(pex_msg.size()));
 #endif

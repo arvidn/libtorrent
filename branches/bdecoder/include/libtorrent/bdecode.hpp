@@ -305,7 +305,7 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 	, bool single_line = false, int indent = 0);
 
 TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
-	, error_code& ec, int* error_pos = 0, int depth_limit = 1000
+	, error_code& ec, int* error_pos = 0, int depth_limit = 100
 	, int token_limit = 1000000);
 
 }

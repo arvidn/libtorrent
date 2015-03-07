@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bdecode.hpp"
+#include "libtorrent/alloca.hpp"
 #include <limits>
 #include <cstring> // for memset
 
@@ -102,17 +103,18 @@ namespace libtorrent
 	};
 
 	int fail(std::vector<bdecode_token>& tokens
-		, std::vector<stack_frame>& stack
+		, stack_frame* stack
+		, int sp
 		, boost::uint32_t offset)
 	{
 		// unwind the stack by inserting terminator to make whatever we have
 		// so far valid
-		while (!stack.empty()) {
-			int top = stack.back().token;
+		while (sp > 0) {
+			--sp;
+			int top = stack[sp].token;
 			TORRENT_ASSERT(tokens.size() - top <= bdecode_token::max_next_item);
 			tokens[top].next_item = tokens.size() - top;
 			tokens.push_back(bdecode_token(offset, 1, bdecode_token::end));
-			stack.pop_back();
 		}
 		return -1;
 	}
@@ -628,7 +630,7 @@ namespace libtorrent
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); \
 	if (error_pos) *error_pos = start - orig_start; \
-	return fail(ret.m_tokens, stack, start - orig_start); } while (false)
+	return fail(ret.m_tokens, stack, sp, start - orig_start); } while (false)
 
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit)
@@ -642,7 +644,9 @@ namespace libtorrent
 		}
 
 		// this is the stack of bdecode_token indices, into m_tokens.
-		std::vector<stack_frame> stack;
+		// sp is the stack pointer, as index into the array, stack
+		int sp = 0;
+		stack_frame* stack = TORRENT_ALLOCA(stack_frame, depth_limit);
 
 		char const* const orig_start = start;
 		ret.clear();
@@ -652,7 +656,7 @@ namespace libtorrent
 		{
 			if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
-			if (stack.size() > depth_limit)
+			if (sp >= depth_limit)
 				TORRENT_FAIL_BDECODE(bdecode_errors::depth_exceeded);
 
 			--token_limit;
@@ -664,10 +668,10 @@ namespace libtorrent
 
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
-			if (!stack.empty()
-				&& ret.m_tokens[stack.back().token].type == bdecode_token::dict)
+			if (sp > 0
+				&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict)
 			{
-				if (stack.back().state == 0)
+				if (stack[sp-1].state == 0)
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
@@ -675,13 +679,13 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 				}
 				// the next item we parse is the opposite
-				stack.back().state = ~stack.back().state;;
+				stack[sp-1].state = ~stack[sp-1].state;
 			}
 
 			switch (t)
 			{
 				case 'd':
-					stack.push_back(ret.m_tokens.size());
+					stack[sp++] = ret.m_tokens.size();
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the dictionary in the buffer
@@ -690,7 +694,7 @@ namespace libtorrent
 					++start;
 					break;
 				case 'l':
-					stack.push_back(ret.m_tokens.size());
+					stack[sp++] = ret.m_tokens.size();
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the list in the buffer
@@ -716,12 +720,12 @@ namespace libtorrent
 				case 'e':
 				{
 					// this is the end of a list or dict
-					if (stack.empty())
+					if (sp == 0)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
-					if (!stack.empty()
-						&& ret.m_tokens[stack.back().token].type == bdecode_token::dict
-						&& stack.back().state == 0)
+					if (sp > 0
+						&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict
+						&& stack[sp-1].state == 0)
 					{
 						// this means we're parsing a dictionary and about to parse a
 						// value associated with a key. Instad, we got a termination
@@ -734,7 +738,7 @@ namespace libtorrent
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					int top = stack.back().token;
+					int top = stack[sp-1].token;
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
@@ -743,7 +747,7 @@ namespace libtorrent
 					ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
 
 					// and pop it from the stack.
-					stack.pop_back();
+					--sp;
 					++start;
 					break;
 				}
@@ -776,8 +780,7 @@ namespace libtorrent
 				}
 			}
 			// this terminates the top level node, we're done!
-			if (stack.empty())
-				break;
+			if (sp == 0) break;
 		}
 		ret.m_tokens.push_back(bdecode_token(start - orig_start, 0
 			, bdecode_token::end));
