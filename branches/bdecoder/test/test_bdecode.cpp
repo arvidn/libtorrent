@@ -153,6 +153,16 @@ int test_main()
 		TEST_EQUAL(d.int_value(), 1);
 	}
 
+	// premature e
+	{
+		char b[] = "e";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
+	}
+
 	// test strings with negative length-prefix
 	{
 		char b[] = "-10:foobar";
@@ -233,6 +243,51 @@ int test_main()
 		TEST_EQUAL(e.int_value(), 0);
 	}
 
+	// test integers with more than 20 digits (overflow on parsing)
+	{
+		char b[] = "i184467440737095516154e";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 22);
+		TEST_CHECK(ec == error_code(bdecode_errors::overflow));
+	}
+
+	// test truncated negative integer
+	{
+		char b[] = "i-";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 2);
+		TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
+	}
+
+	// test truncated negative integer
+	{
+		char b[] = "i-e";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 2);
+		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
+	}
+
+	// bdecode_error
+	{
+		error_code ec(bdecode_errors::overflow);
+		TEST_EQUAL(ec.message(), "integer overflow");
+		TEST_EQUAL(ec.category().name(), std::string("bdecode error"));
+		ec.assign(5434, get_bdecode_category());
+		TEST_EQUAL(ec.message(), "Unknown error");
+	}
+
 	// test integers that just exactly fit in 64 bits
 	{
 		char b[] = "i9223372036854775807e";
@@ -304,7 +359,7 @@ int test_main()
 
 		bdecode_node e;
 		error_code ec;
-		int ret = bdecode(b, b + sizeof(b), e, ec);
+		int ret = bdecode(b, b + sizeof(b), e, ec, NULL, 100);
 		TEST_CHECK(ret != 0);
 		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
 			, get_bdecode_category()));
@@ -564,6 +619,17 @@ int test_main()
 		TEST_EQUAL(e.list_at(0).string_length(), 3);
 	}
 
+	// test exceeding buffer size limit
+	{
+		char b[] = "l3:fooe";
+
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + 0x3fffffff, e, ec);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
+	}
+
 	// test parse_int
 	{
 		char b[] = "1234567890e";
@@ -584,12 +650,14 @@ int test_main()
 		TEST_EQUAL(e, b + 1);
 	}
 
+	// test parse_int overflow
 	{
 		char b[] = "9223372036854775808:";
 		boost::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
-		TEST_CHECK(ec == bdecode_errors::overflow);
+		TEST_EQUAL(ec, bdecode_errors::overflow);
+		TEST_EQUAL(e, b + 18);
 	}
 
 	{
@@ -597,27 +665,91 @@ int test_main()
 		boost::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
-		TEST_CHECK(ec == bdecode_errors::expected_colon);
+		TEST_EQUAL(ec, bdecode_errors::expected_colon);
+		TEST_EQUAL(e, b + 3);
 	}
 
+	// test dict_find_* functions
 	{
-		char b[] = "d1:ai1e3:fooi8e3:bar6:barfooe";
+		// a: int
+		// b: string
+		// c: list
+		// d: dict
+		char b[] = "d1:ai1e1:b3:foo1:cli1ei2ee1:dd1:xi1eee";
 		bdecode_node e;
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-		TEST_CHECK(ret == 0);
+		TEST_EQUAL(ret, 0);
 		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(e.type(), bdecode_node::dict_t);
 
 		TEST_EQUAL(e.dict_find_int_value("a"), 1);
 		// make sure default values work if the key is not found
 		TEST_EQUAL(e.dict_find_int_value("b", -10), -10);
 
-		TEST_EQUAL(e.dict_find_string_value("bar"), "barfoo");
+		TEST_EQUAL(e.dict_find_string_value("b"), "foo");
 		// make sure default values work if the key is not found
-		TEST_EQUAL(e.dict_find_string_value("b", "blah"), "blah");
+		TEST_EQUAL(e.dict_find_string_value("c", "blah"), "blah");
+
+		TEST_CHECK(e.dict_find_list("c"));
+		TEST_EQUAL(e.dict_find_list("c").list_size(), 2);
+		TEST_EQUAL(e.dict_find_list("c").list_int_value_at(0), 1);
+		TEST_EQUAL(e.dict_find_list("c").list_int_value_at(1), 2);
+		TEST_CHECK(!e.dict_find_list("d"));
+
+		TEST_CHECK(e.dict_find_dict("d"));
+		TEST_EQUAL(e.dict_find_dict("d").dict_find_int_value("x"), 1);
+		TEST_EQUAL(e.dict_find_dict("d").dict_find_int_value("y", -10), -10);
+		TEST_CHECK(!e.dict_find_dict("c"));
+
+		TEST_EQUAL(e.dict_size(), 4);
+		TEST_EQUAL(e.dict_size(), 4);
+
+		// TODO: test dict_at
+		// TODO: test all the versions of dict_find that take std::string
+	}
+
+	// test list_*_at functions
+	{
+		// int
+		// string
+		// list
+		// dict
+		char b[] = "li1e3:fooli1ei2eed1:xi1eee";
+		bdecode_node e;
+		error_code ec;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
+		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(e.type(), bdecode_node::list_t);
+
+		TEST_EQUAL(e.list_int_value_at(0), 1);
+		// make sure default values work
+		TEST_EQUAL(e.list_int_value_at(1, -10), -10);
+
+		TEST_EQUAL(e.list_string_value_at(1), "foo");
+		// make sure default values work
+		TEST_EQUAL(e.list_string_value_at(2, "blah"), "blah");
+
+		TEST_EQUAL(e.list_at(2).type(), bdecode_node::list_t);
+		TEST_EQUAL(e.list_at(2).list_size(), 2);
+		TEST_EQUAL(e.list_at(2).list_int_value_at(0), 1);
+		TEST_EQUAL(e.list_at(2).list_int_value_at(1), 2);
+
+		TEST_EQUAL(e.list_at(3).type(), bdecode_node::dict_t);
+		TEST_EQUAL(e.list_at(3).dict_size(), 1);
+		TEST_EQUAL(e.list_at(3).dict_find_int_value("x"), 1);
+		TEST_EQUAL(e.list_at(3).dict_find_int_value("y", -10), -10);
+
+		TEST_EQUAL(e.list_size(), 4);
+		TEST_EQUAL(e.list_size(), 4);
 	}
 
 	// TODO: test the entire API of bdecode_node
+
+	// TODO: test swap
 
 	return 0;
 }

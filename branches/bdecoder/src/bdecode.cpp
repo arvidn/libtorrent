@@ -69,11 +69,6 @@ namespace libtorrent
 		int digits = 0;
 		do
 		{
-			if (digits > 20)
-			{
-				e = bdecode_errors::overflow;
-				break;
-			}
 			if (!numeric(*start))
 			{
 				e = bdecode_errors::expected_digit;
@@ -89,6 +84,12 @@ namespace libtorrent
 			}
 		}
 		while (*start != 'e');
+
+		if (digits > 20)
+		{
+			e = bdecode_errors::overflow;
+		}
+
 		return start;
 	}
 
@@ -639,7 +640,7 @@ namespace libtorrent
 		if (end - start > bdecode_token::max_offset)
 		{
 			if (error_pos) *error_pos = 0;
-			ec = make_error_code(bdecode_errors::overflow);
+			ec = make_error_code(bdecode_errors::limit_exceeded);
 			return -1;
 		}
 
