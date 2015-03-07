@@ -218,9 +218,8 @@ struct TORRENT_EXPORT bdecode_node
 
 	bdecode_node();
 
-	// TODO: 4 since this type has a pointer to (potentially) its own member,
-	// its generated copy constructor and copy assignment won't work. Implement
-	// manual versions of those
+	bdecode_node(bdecode_node const&);
+	bdecode_node& operator=(bdecode_node const&);
 
 	enum type_t
 	{ none_t, dict_t, list_t, string_t, int_t };
