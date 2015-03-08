@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // There are two mechanims to *decode* bencoded buffers in libtorrent.
 //
-// The most flexible one is bdecode(), which returns a structure
+// The most flexible one is `bdecode() bencode()`_, which returns a structure
 // represented by entry. When a buffer is decoded with this function,
 // it can be discarded. The entry does not contain any references back
 // to it. This means that bdecode() actually copies all the data out
@@ -59,16 +59,16 @@ POSSIBILITY OF SUCH DAMAGE.
 // function potentially expensive, if you're parsing large amounts
 // of data.
 //
-// Another consideration is that bdecode() is a recursive parser.
+// Another consideration is that `bdecode() bencode()`_ is a recursive parser.
 // For this reason, in order to avoid DoS attacks by triggering
 // a stack overflow, there is a recursion limit. This limit is
 // a sanity check to make sure it doesn't run the risk of
 // busting the stack.
 //
-// The second mechanism is lazy_bdecode(), which returns a
-// bencoded structure represented by lazy_entry. This function
+// The second mechanism is bdecode(), which returns a
+// bencoded structure represented by bdecode_node. This function
 // builds a tree that points back into the original buffer.
-// The returned lazy_entry will not be valid once the buffer
+// The returned bdecode_node will not be valid once the buffer
 // it was parsed out of is discarded.
 //
 // Not only is this function more efficient because of less
@@ -391,9 +391,10 @@ namespace libtorrent
 		}
 	}
 	
-	// These functions will encode data to bencoded_ or decode bencoded_ data.
+	// These functions will encode data to bencoded or decode bencoded data.
 	// 
-	// If possible, lazy_bdecode() should be preferred over ``bdecode()``.
+	// If possible, bdecode() and bdecode_node should be preferred over this
+	// function.
 	// 
 	// The entry_ class is the internal representation of the bencoded data
 	// and it can be used to retrieve information, an entry_ can also be build by

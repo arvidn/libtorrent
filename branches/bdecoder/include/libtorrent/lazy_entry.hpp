@@ -53,9 +53,8 @@ namespace libtorrent
 	// 
 	// .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
 	// 
-	// Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
-	// It is more efficient and more secure. It supports having constraints on the
-	// amount of memory is consumed by the parser.
+	// The lazy bdecoder and lazy_entry has been deprecated in favour of
+	// bdecode_node and its corresponding bdecode() function.
 	// 
 	// *lazy* refers to the fact that it doesn't copy any actual data out of the
 	// bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
@@ -396,7 +395,7 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	// print the bencoded structure in a human-readable format to a stting
+	// print the bencoded structure in a human-readable format to a string
 	// that's returned.
 	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e

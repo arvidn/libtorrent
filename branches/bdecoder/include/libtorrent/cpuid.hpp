@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// internal
 	inline void cpuid(unsigned int info[4], int type)
 	{
 #if TORRENT_HAS_SSE && defined _MSC_VER

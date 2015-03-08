@@ -215,28 +215,75 @@ struct bdecode_token
 };
 }
 
-// TODO: 4 document this class. Can probably borrow a lot from lazy_entry
+// a ``bdecode_node`` is used to traverse and hold the tree structure defined
+// by bencoded data after it has been parse by bdecode().
+// 
+// There are primarily two kinds of bdecode_nodes. The ones that own the tree
+// structure, and defines its lifetime, and nodes that are child nodes in the
+// tree, pointing back into the root's tree.
+// 
+// The ``bdecode_node`` passed in to ``bdecode()`` becomes the one owning the
+// tree structure. Make sure not to destruct that object for as long as you
+// use any of its child nodes. Also, keep in mind that the buffer originally
+// parsed also must remain valid while using it. (see switch_underlying_buffer()).
+//
+// Copying an owning node will create a copy of the whole tree, but will still
+// point into the same parsed bencoded buffer as the first one.
+
+// Sometimes it's important to get a non-owning reference to the root node (
+// to be able to copy it as a reference for instance). For that, use the
+// non_owninig() member function.
+//
+// There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
 	friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
 
+	// creates a default constructed node, it will have the type ``none_t``.
 	bdecode_node();
 
+	// For owning nodes, the copy will create a copy of the tree, but the
+	// underlying buffer remains the same.
 	bdecode_node(bdecode_node const&);
 	bdecode_node& operator=(bdecode_node const&);
 
+	// the dypes of bdecoded nodes
 	enum type_t
-	{ none_t, dict_t, list_t, string_t, int_t };
+	{
+		// uninitialized or default constructed. This is also used
+		// to indicate that a node was not found in some cases.
+		none_t,
+		// a dictionary node. The ``dict_find_`` functions are valid.
+		dict_t,
+		// a list node. The ``list_`` functions are valid.
+		list_t,
+		// a string node, the ``string_`` functions are valid.
+		string_t,
+		// an integer node. The ``int_`` functions are valid.
+		int_t
+	};
 
+	// the type of this node. See type_t.
 	type_t type() const;
 
+	// returns true if type() != none_t.
 	operator bool() const;
 
+	// return a non-owning reference to this node. This is useful to refer to
+	// the root node without copying it in assignments.
 	bdecode_node non_owning() const;
 
+	// returns the buffer and length of the section in the original bencoded
+	// buffer where this node is defined. For a dictionary for instance, this
+	// starts with ``d`` and ends with ``e``, and has all the content of the
+	// dictionary in between.
 	std::pair<char const*, int> data_section() const;
 
+	// functions with the ``list_`` prefix operate on lists. These functions are
+	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item
+	// in the list at index ``i``. ``i`` may not be greater than or equal to the
+	// size of the list. ``size()`` returns the size of the list.
 	bdecode_node list_at(int i) const;
 	std::string list_string_value_at(int i
 		, char const* default_val = "");
@@ -244,7 +291,12 @@ struct TORRENT_EXPORT bdecode_node
 		, boost::int64_t default_val = 0);
 	int list_size() const;
 
-	// dictionary operations
+	// functions with the ``dict_`` prefix operates on dictionaries. Theu are
+	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
+	// contains a 0 byte, you cannot use the null-terminated string overloads,
+	// but have to use ``std::string`` instead. ``dict_find_list`` will return
+	// a valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
+	// it will return a default-constructed bdecode_node.
 	bdecode_node dict_find(std::string key) const;
 	bdecode_node dict_find(char const* key) const;
 	std::pair<std::string, bdecode_node> dict_at(int i) const;
@@ -259,16 +311,22 @@ struct TORRENT_EXPORT bdecode_node
 		, boost::int64_t default_val = 0) const;
 	int dict_size() const;
 
-	// integer operations
+	// this function is only valid if ``type()`` == ``int_t``. It returns the
+	// value of the integer.
 	boost::int64_t int_value() const;
 
-	// string oeprations
+	// these functions are only valid if ``type()`` == ``string_t``. They return
+	// the string values. Note that ``string_ptr()`` is _not_ null-terminated.
+	// ``string_length()`` returns the number of bytes in the string.
 	std::string string_value() const;
 	char const* string_ptr() const;
 	int string_length() const;
 
+	// resets the ``bdecoded_node`` to a default constructed state. If this is
+	// an owning node, the tree is freed and all child nodes are invalidated.
 	void clear();
 
+	// Swap contents.
 	void swap(bdecode_node& n);
 
 	// pre-allocate memory for the specified numbers of tokens. This is
@@ -315,11 +373,36 @@ private:
 	mutable int m_size;
 };
 
-// print the bencoded structure in a human-readable format to a stting
+// print the bencoded structure in a human-readable format to a string
 // that's returned.
 TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 	, bool single_line = false, int indent = 0);
 
+// This function decodes/parses bdecoded data (for example a .torrent file).
+// The data structure is returned in the ``ret`` argument.
+// the buffer to parse is specified by the ``start`` of the buffer as well as
+// the ``end``, i.e. one byte past the end. If the buffer fails to parse, the
+// function returns a non-zero value and fills in ``ec`` with the error code.
+// The optional argument ``error_pos``, if set to non-null, will be set to the byte
+// offset into the buffer where the parse failure occurred.
+// 
+// ``depth_limit`` specifies the max number of nested lists or dictionaries are
+// allowed in the data structure. (This affects the stack usage of the
+// function, be careful not to set it too high).
+//
+// ``token_limit`` is the max number of tokens allowed to be parsed from the
+// buffer. This is simply a sanity check to not have unbounded memory usage.
+// 
+// The resulting ``bdecode_node`` is an *owning* node. That means it will
+// be holding the whole parsed tree. When iterating lists and dictionaries,
+// those ``bdecode_node``s will simply have references to the root or owning
+// ``bdecode_node``. If the root node is destructed, all other nodes that
+// refer to anything in that tree become invalid.
+// 
+// However, the underlying buffer passed in to this function (``start``, ``end``)
+// must also remain valid while the bdecoded tree is used. The parsed tree
+// produced by this function does not copy any data out of the buffer, but
+// simply produces references back into it.
 TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
 	, error_code& ec, int* error_pos = 0, int depth_limit = 100
 	, int token_limit = 1000000);
