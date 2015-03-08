@@ -248,6 +248,7 @@ struct TORRENT_EXPORT bdecode_node
 	bdecode_node dict_find(std::string key) const;
 	bdecode_node dict_find(char const* key) const;
 	std::pair<std::string, bdecode_node> dict_at(int i) const;
+	bdecode_node dict_find_dict(std::string key) const;
 	bdecode_node dict_find_dict(char const* key) const;
 	bdecode_node dict_find_list(char const* key) const;
 	bdecode_node dict_find_string(char const* key) const;

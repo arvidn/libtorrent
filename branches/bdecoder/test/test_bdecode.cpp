@@ -744,6 +744,11 @@ int test_main()
 		TEST_EQUAL(e.dict_find_dict("d").dict_find_int_value("y", -10), -10);
 		TEST_CHECK(!e.dict_find_dict("c"));
 
+		// variants taking std::string
+		TEST_EQUAL(e.dict_find_dict(std::string("d")).dict_find_int_value("x"), 1);
+		TEST_CHECK(!e.dict_find_dict(std::string("c")));
+		TEST_CHECK(!e.dict_find_dict(std::string("x")));
+
 		TEST_EQUAL(e.dict_size(), 4);
 		TEST_EQUAL(e.dict_size(), 4);
 
