@@ -54,6 +54,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/lazy_entry.hpp"
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 #endif
@@ -859,6 +863,50 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	torrent_info::torrent_info(lazy_entry const& torrent_file, error_code& ec
+		, int flags)
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
+		, m_multifile(false)
+		, m_private(false)
+		, m_i2p(false)
+	{
+		std::pair<char const*, int> buf = torrent_file.data_section();
+		bdecode_node e;
+		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
+			return;
+		parse_torrent_file(e, ec, 0);
+	}
+
+	torrent_info::torrent_info(lazy_entry const& torrent_file, int flags)
+		: m_piece_hashes(0)
+		, m_creation_date(0)
+		, m_merkle_first_leaf(0)
+		, m_info_section_size(0)
+		, m_multifile(false)
+		, m_private(false)
+		, m_i2p(false)
+	{
+		std::pair<char const*, int> buf = torrent_file.data_section();
+		bdecode_node e;
+		error_code ec;
+		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw invalid_torrent_file(ec);
+#endif
+			return;
+		}
+#ifndef BOOST_NO_EXCEPTIONS
+		if (!parse_torrent_file(e, ec, 0))
+			throw invalid_torrent_file(ec);
+#else
+		parse_torrent_file(e, ec, 0);
+#endif
+	}
+
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
 		: m_piece_hashes(0)
@@ -1617,6 +1665,18 @@ namespace libtorrent
 	{
 		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
 			, filter_web_seed_type(web_seed_entry::http_seed)).urls;
+	}
+
+	bool torrent_info::parse_info_section(lazy_entry const& le, error_code& ec
+		, int flags)
+	{
+		if (le.type() == lazy_entry::none_t) return false;
+		std::pair<char const*, int> buf = le.data_section();
+		bdecode_node e;
+		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
+			return false;
+
+		return parse_info_section(e, ec, flags);
 	}
 
 #endif // TORRENT_NO_DEPRECATE

@@ -508,6 +508,24 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
+	void session::load_state(lazy_entry const& ses_state)
+	{
+		if (ses_state.type() == lazy_entry::none_t) return;
+		std::pair<char const*, int> buf = ses_state.data_section();
+		bdecode_node e;
+		error_code ec;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
+		int ret =
+#endif
+		bdecode(buf.first, buf.first + buf.second, e, ec);
+
+		TORRENT_ASSERT(ret == 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (ret != 0) throw libtorrent_exception(ec);
+#endif
+		TORRENT_SYNC_CALL1(load_state, &e);
+	}
+
 	entry session::state() const
 	{
 		entry ret;

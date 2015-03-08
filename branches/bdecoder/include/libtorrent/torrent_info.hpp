@@ -306,7 +306,6 @@ namespace libtorrent
 		// 
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS
-		// TODO: 4 re-introduced a deprecated constructor that takes a lazy_entry
 		torrent_info(bdecode_node const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
@@ -318,19 +317,24 @@ namespace libtorrent
 		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
-#endif
+#endif // BOOST_NO_EXCEPTIONS
 		torrent_info(torrent_info const& t);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
-		// TODO: 4 re-introduced a deprecated constructor that takes a lazy_entry
 		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		torrent_info(lazy_entry const& torrent_file, int flags = 0) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		torrent_info(lazy_entry const& torrent_file, error_code& ec
+			, int flags = 0) TORRENT_DEPRECATED;
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
 		TORRENT_DEPRECATED_PREFIX
-		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0) TORRENT_DEPRECATED;
+		torrent_info(std::wstring const& filename, error_code& ec
+			, int flags = 0) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
@@ -415,6 +419,11 @@ namespace libtorrent
 		std::vector<std::string> url_seeds() const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		std::vector<std::string> http_seeds() const TORRENT_DEPRECATED;
+
+		// deprecated in 1.1
+		TORRENT_DEPRECATED_PREFIX
+		bool parse_info_section(lazy_entry const& e, error_code& ec
+			, int flags) TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
@@ -636,7 +645,6 @@ namespace libtorrent
 		// fails (typically if the info dictionary is malformed). ``flags`` are
 		// currently unused.
 		bool parse_info_section(bdecode_node const& e, error_code& ec, int flags);
-		// TODO: 4 re-introduce a deprecated overload that takes a lazy_entry
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
