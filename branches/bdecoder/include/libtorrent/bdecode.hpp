@@ -162,7 +162,8 @@ struct bdecode_token
 	enum limits_t
 	{
 		max_offset = (1 << 29) - 1,
-		max_next_item = (1 << 29) - 1
+		max_next_item = (1 << 29) - 1,
+		max_header = (1 << 3) - 1,
 	};
 
 	bdecode_token(boost::uint32_t off, bdecode_token::type_t t)
@@ -180,13 +181,16 @@ struct bdecode_token
 		: offset(off)
 		, type(t)
 		, next_item(next)
-		, header(header_size)
+		, header(type == string ? header_size - 2 : 0)
 	{
+		TORRENT_ASSERT(type != string || header_size >= 2);
 		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(next <= max_next_item);
 		TORRENT_ASSERT(header_size < 8);
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
+
+	int start_offset() const { TORRENT_ASSERT(type == string); return header + 2; }
 
 	// offset into the bdecoded buffer where this node is
 	boost::uint32_t offset:29;
@@ -202,10 +206,11 @@ struct bdecode_token
 	// this is the _relative_ offset to the next node
 	boost::uint32_t next_item:29;
 
-	// this is the number of bytes to skip forward from the offset to get to
-	// the value of this typ. For a string, this is the length of the length
-	// prefix and the colon. For an integer, this is just to skip the 'i'
-	// character.
+	// this is the number of bytes to skip forward from the offset to get to the
+	// first character of the string, if this is a string. This field is not
+	// used for other types. Essentially this is the length of the length prefix
+	// and the colon. Since a string always has at least one character of length
+	// prefix and always a colon, those 2 characters are implied.
 	boost::uint32_t header:3;
 };
 }

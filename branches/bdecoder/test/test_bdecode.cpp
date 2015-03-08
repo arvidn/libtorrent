@@ -185,7 +185,34 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 19);
-		TEST_CHECK(ec == error_code(bdecode_errors::overflow));
+		TEST_EQUAL(ec,  error_code(bdecode_errors::overflow));
+		printf("%s\n", print_entry(e).c_str());
+	}
+
+	// test strings with almost overflow (more than 8 digits)
+	{
+		char b[] = "99999999:foobar";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 8);
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
+		printf("%s\n", print_entry(e).c_str());
+	}
+
+	// test strings with overflow (more than 8 digits)
+	{
+		char b[] = "199999999:foobar";
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		// pretend that we have a large buffer like that
+		int ret = bdecode(b, b + 999999999, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 0);
+		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
 		printf("%s\n", print_entry(e).c_str());
 	}
 
@@ -198,7 +225,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 		printf("%s\n", print_entry(e).c_str());
 	}
 
@@ -211,7 +238,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 		printf("%s\n", print_entry(e).c_str());
 	}
 
@@ -225,7 +252,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 6);
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
+		TEST_EQUAL(ec,  error_code(bdecode_errors::expected_digit));
 		printf("%s\n", print_entry(e).c_str());
 	}
 
@@ -252,7 +279,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 22);
-		TEST_CHECK(ec == error_code(bdecode_errors::overflow));
+		TEST_EQUAL(ec,  error_code(bdecode_errors::overflow));
 	}
 
 	// test truncated negative integer
@@ -264,7 +291,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
-		TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
+		TEST_EQUAL(ec,  error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test truncated negative integer
@@ -276,7 +303,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_digit));
+		TEST_EQUAL(ec,  error_code(bdecode_errors::expected_digit));
 	}
 
 	// bdecode_error

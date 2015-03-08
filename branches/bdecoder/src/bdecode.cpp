@@ -512,9 +512,10 @@ namespace libtorrent
 		{
 			bdecode_token const& t = tokens[token];
 			TORRENT_ASSERT(t.type == bdecode_token::string);
-			int size = m_root_tokens[token + 1].offset - t.offset - t.header;
+			int size = m_root_tokens[token + 1].offset - t.offset - t.start_offset();
 			if (int(key.size()) == size
-				&& std::equal(key.c_str(), key.c_str() + size, m_buffer + t.offset + t.header))
+				&& std::equal(key.c_str(), key.c_str() + size, m_buffer
+					+ t.offset + t.start_offset()))
 			{
 				// skip key
 				token += t.next_item;
@@ -583,8 +584,8 @@ namespace libtorrent
 		{
 			bdecode_token const& t = tokens[token];
 			TORRENT_ASSERT(t.type == bdecode_token::string);
-			int size = m_root_tokens[token + 1].offset - t.offset - t.header;
-			if (string_equal(key, m_buffer + t.offset + t.header, size))
+			int size = m_root_tokens[token + 1].offset - t.offset - t.start_offset();
+			if (string_equal(key, m_buffer + t.offset + t.start_offset(), size))
 			{
 				// skip key
 				token += t.next_item;
@@ -630,7 +631,8 @@ namespace libtorrent
 		int size = m_root_tokens[m_token_idx + 1].offset - t.offset;
 		TORRENT_ASSERT(t.type == bdecode_token::integer);
 	
-		char const* ptr = m_buffer + t.offset + t.header;
+		// +1 is to skip the 'i'
+		char const* ptr = m_buffer + t.offset + 1;
 		boost::int64_t val = 0;
 		bool negative = false;
 		if (*ptr == '-') negative = true;
@@ -646,10 +648,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		int size = m_root_tokens[m_token_idx + 1].offset - t.offset - t.header;
+		int size = m_root_tokens[m_token_idx + 1].offset - t.offset - t.start_offset();
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
-		return std::string(m_buffer + t.offset + t.header, size);
+		return std::string(m_buffer + t.offset + t.start_offset(), size);
 	}
 
 	char const* bdecode_node::string_ptr() const
@@ -657,7 +659,7 @@ namespace libtorrent
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		TORRENT_ASSERT(t.type == bdecode_token::string);
-		return m_buffer + t.offset + t.header;
+		return m_buffer + t.offset + t.start_offset();
 	}
 
 	int bdecode_node::string_length() const
@@ -665,7 +667,7 @@ namespace libtorrent
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		TORRENT_ASSERT(t.type == bdecode_token::string);
-		return m_root_tokens[m_token_idx + 1].offset - t.offset - t.header;
+		return m_root_tokens[m_token_idx + 1].offset - t.offset - t.start_offset();
 	}
 
 	void bdecode_node::reserve(int tokens)
@@ -848,6 +850,12 @@ namespace libtorrent
 					// skip ':'
 					++start;
 					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+
+					// the bdecode_token only has 8 bits to keep the header size
+					// in. If it overflows, fail!
+					if (start - str_start - 2 > detail::bdecode_token::max_header)
+						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
+
 					ret.m_tokens.push_back(bdecode_token(str_start - orig_start
 						, 1, bdecode_token::string, start - str_start));
 					start += len;
