@@ -303,7 +303,7 @@ void print(char const* str)
 				{
 					COORD pos = sbi.dwCursorPosition;
 					int width = sbi.dwSize.X;
-					int run = (width - pos.X) + width * (sbi.swSize.Y - pos.Y - 1);
+					int run = (width - pos.X) + width * (sbi.dwSize.Y - pos.Y - 1);
 					DWORD n;
 					FillConsoleOutputAttribute(out, 0x7, run, pos, &n);
 					FillConsoleOutputCharacter(out, ' ', run, pos, &n);
