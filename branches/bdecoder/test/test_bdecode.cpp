@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/bdecode.hpp"
-#include "libtorrent/bencode.hpp"
 
 using namespace libtorrent;
 

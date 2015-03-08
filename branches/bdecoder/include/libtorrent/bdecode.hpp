@@ -128,8 +128,6 @@ namespace bdecode_errors
 }
 } // namespace libtorrent
 
-#if BOOST_VERSION >= 103500
-
 namespace boost { namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
@@ -138,8 +136,6 @@ namespace boost { namespace system {
 	template<> struct is_error_condition_enum<libtorrent::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 } }
-
-#endif
 
 namespace libtorrent {
 

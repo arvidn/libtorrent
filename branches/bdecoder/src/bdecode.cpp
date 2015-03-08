@@ -273,7 +273,6 @@ namespace libtorrent
 		, m_size(-1)
 	{
 		TORRENT_ASSERT(tokens != NULL);
-//		TORRENT_ASSERT(idx < int(m_root_tokens->size()));
 		TORRENT_ASSERT(idx >= 0);
 	}
 
@@ -347,7 +346,6 @@ namespace libtorrent
 		{
 			token += tokens[token].next_item;
 			++item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 
 			// index 'i' out of range
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
@@ -399,7 +397,6 @@ namespace libtorrent
 		{
 			token += tokens[token].next_item;
 			++ret;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 		}
 
 		m_size = ret;
@@ -431,14 +428,12 @@ namespace libtorrent
 
 			// skip the key
 			token += tokens[token].next_item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 			// skip the value
 			token += tokens[token].next_item;
 
 			++item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 
 			// index 'i' out of range
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
@@ -452,7 +447,6 @@ namespace libtorrent
 		}
 
 		int value_token = token + tokens[token].next_item;
-//		TORRENT_ASSERT(token < int(tokens.size()));
 		TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 		return std::make_pair(
@@ -484,7 +478,6 @@ namespace libtorrent
 		{
 			token += tokens[token].next_item;
 			++ret;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 		}
 
 		// a dictionary must contain full key-value pairs. which means
@@ -519,7 +512,6 @@ namespace libtorrent
 			{
 				// skip key
 				token += t.next_item;
-//				TORRENT_ASSERT(token < int(tokens.size()));
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 			
 				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
@@ -527,12 +519,10 @@ namespace libtorrent
 
 			// skip key
 			token += t.next_item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 			// skip value
 			token += tokens[token].next_item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 		}
 
 		return bdecode_node();
@@ -597,7 +587,6 @@ namespace libtorrent
 			{
 				// skip key
 				token += t.next_item;
-//				TORRENT_ASSERT(token < int(tokens.size()));
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 			
 				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
@@ -605,12 +594,10 @@ namespace libtorrent
 
 			// skip key
 			token += t.next_item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 			// skip value
 			token += tokens[token].next_item;
-//			TORRENT_ASSERT(token < int(tokens.size()));
 		}
 
 		return bdecode_node();
