@@ -1257,16 +1257,6 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-		const static DWORD share_array[] =
-		{
-			// read only (no locking)
-			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			// write only (no locking)
-			FILE_SHARE_READ,
-			// read/write (no locking)
-			FILE_SHARE_READ,
-		};
-
 		std::string p = convert_separators(path);
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
@@ -1298,7 +1288,7 @@ namespace libtorrent
 			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
-			, (mode & lock_file) ? 0 : share_array[mode & rw_mask]
+			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
@@ -1338,12 +1328,7 @@ namespace libtorrent
 		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
 #endif
 
-#ifdef O_NOATIME
-		static const int no_atime_flag[] = {0, O_NOATIME};
-#endif
-
- 		handle_type handle = ::open(convert_to_native(path).c_str()
- 			, mode_array[mode & rw_mask]
+		int open_mode = 0
 #ifdef O_NOATIME
 			| ((mode & no_atime) ? O_NOATIME : 0)
 #endif
@@ -1353,6 +1338,10 @@ namespace libtorrent
 #ifdef O_SYNC
 			| ((mode & no_cache) ? O_SYNC: 0)
 #endif
+			;
+
+ 		handle_type handle = ::open(convert_to_native(path).c_str()
+ 			, mode_array[mode & rw_mask] | open_mode
 			, permissions);
 
 #ifdef O_NOATIME
@@ -1362,7 +1351,9 @@ namespace libtorrent
 		if (handle == -1 && (mode & no_atime) && errno == EPERM)
 		{
 			mode &= ~no_atime;
-			handle = ::open(path.c_str(), mode_array[mode & rw_mask], permissions);
+			open_mode &= ~O_NOATIME;
+			handle = ::open(path.c_str(), mode_array[mode & rw_mask] | open_mode
+				, permissions);
 		}
 #endif
 		if (handle == -1)
