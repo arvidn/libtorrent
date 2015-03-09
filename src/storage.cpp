@@ -1281,6 +1281,7 @@ namespace libtorrent
 	{
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
+
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
@@ -1297,8 +1298,19 @@ namespace libtorrent
 			mode |= file::no_cache;
 		}
 
-		return m_pool.open_file(const_cast<default_storage*>(this), m_save_path
-			, file, files(), mode, ec);
+		file_handle ret = m_pool.open_file(const_cast<default_storage*>(this)
+			, m_save_path, file, files(), mode, ec);
+		if (ec && (mode & file::lock_file))
+		{
+			// we failed to open the file and we're trying to lock it. It's
+			// possible we're failing because we have another handle to this
+			// file in use (but waiting to be closed). Just retry to open it
+			// without locking.
+			mode &= ~file::lock_file;
+			ret = m_pool.open_file(const_cast<default_storage*>(this)
+				, m_save_path, file, files(), mode, ec);
+		}
+		return ret;
 	}
 
 	bool default_storage::tick()
