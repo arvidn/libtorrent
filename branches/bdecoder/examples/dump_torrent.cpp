@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
 int load_file(std::string const& filename, std::vector<char>& v
@@ -128,11 +128,11 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
 		return 1;
 	}
-	lazy_entry e;
+	bdecode_node e;
 	int pos = -1;
 	printf("decoding. recursion limit: %d total item count limit: %d\n"
 		, depth_limit, item_limit);
-	ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
+	ret = bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
 		, depth_limit, item_limit);
 
 	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());

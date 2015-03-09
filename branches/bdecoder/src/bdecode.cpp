@@ -707,6 +707,8 @@ namespace libtorrent
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit)
 	{
+		ec.clear();
+		ret.clear();
 
 		if (end - start > bdecode_token::max_offset)
 		{

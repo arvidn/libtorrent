@@ -31,10 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <cstring>
+
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/lazy_entry.hpp"
+#endif
 
 #include "test.hpp"
 
@@ -102,6 +105,7 @@ int test_main()
 		TEST_CHECK(decode(encode(e)) == e);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	{
 		char b[] = "i12453e";
 		lazy_entry e;
@@ -581,6 +585,7 @@ int test_main()
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	return 0;
 }

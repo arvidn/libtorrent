@@ -602,7 +602,6 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
 	, int num_pieces, bool add_tracker, std::string ssl_certificate)
 {
-	char const* tracker_url = "http://non-existent-name.com/announce";
 	// excercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
@@ -613,7 +612,6 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 	libtorrent::create_torrent t(fs, piece_size);
 	if (add_tracker)
 	{
-		t.add_tracker(tracker_url);
 		t.add_tracker(invalid_tracker_url);
 		t.add_tracker(invalid_tracker_protocol);
 	}

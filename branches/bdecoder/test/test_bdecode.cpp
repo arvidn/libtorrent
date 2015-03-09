@@ -1078,6 +1078,26 @@ int test_main()
 		// e2 is invalid now
 	}
 
+/*
+	// test that a partial parse can be still be printed up to the
+	// point where it faild
+	{
+		char b[] = "d1:ai1e1:b3:foo1:cli1ei2ee1:dd1:xi1-eee";
+
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 35);
+		TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [1, 2], 'd': {} }");
+	}
+*/
+
 	// TODO: test switch_underlying_buffer
 
 	return 0;

@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -697,7 +697,6 @@ void add_torrent(libtorrent::session& ses
 	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-	lazy_entry resume_data;
 
 	std::string filename = path_append(save_path, path_append(".resume"
 		, leaf_path(torrent) + ".resume"));
@@ -1324,8 +1323,8 @@ int main(int argc, char* argv[])
 	error_code ec;
 	if (load_file(".ses_state", in, ec) == 0)
 	{
-		lazy_entry e;
-		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
+		bdecode_node e;
+		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}
 

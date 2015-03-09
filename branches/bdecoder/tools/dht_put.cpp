@@ -177,9 +177,9 @@ int main(int argc, char* argv[])
 			state.resize(size);
 			fread(&state[0], 1, state.size(), f);
 
-			lazy_entry e;
+			bdecode_node e;
 			error_code ec;
-			lazy_bdecode(&state[0], &state[0] + state.size(), e, ec);
+			bdecode(&state[0], &state[0] + state.size(), e, ec);
 			if (ec)
 				fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 					, ec.value(), ec.message().c_str());
