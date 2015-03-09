@@ -478,7 +478,8 @@ void test_dont_have()
 
 		lazy_entry e;
 		error_code ec;
-		lazy_bdecode(recv_buffer + 2, recv_buffer + len - 2, e, ec);
+		int ret = lazy_bdecode(recv_buffer + 2, recv_buffer + len, e, ec);
+		TEST_EQUAL(ret, 0);
 		
 		printf("extension handshake: %s\n", print_entry(e).c_str());
 		lazy_entry const* m = e.dict_find_dict("m");
