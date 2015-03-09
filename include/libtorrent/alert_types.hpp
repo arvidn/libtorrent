@@ -56,6 +56,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
+// c++/cx keyword
+#undef interface
+
 namespace libtorrent
 {
 
