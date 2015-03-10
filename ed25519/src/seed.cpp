@@ -3,11 +3,18 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
+#include "libtorrent/config.hpp"
 #include "libtorrent/ed25519.hpp"
 
 #ifndef ED25519_NO_SEED
 
-#ifdef _WIN32
+#ifdef TORRENT_WINRT
+#include <robuffer.h>
+#include <wrl/client.h>
+using namespace Windows::Security::Cryptography;
+using namespace Windows::Storage::Streams;
+using namespace Microsoft::WRL;
+#elif defined _WIN32
 #include <Windows.h>
 #include <Wincrypt.h>
 #else
@@ -15,7 +22,12 @@
 #endif
 
 void ed25519_create_seed(unsigned char *seed) {
-#ifdef _WIN32
+#ifdef TORRENT_WINRT
+    IBuffer^ seedBuffer = CryptographicBuffer::GenerateRandom(32);
+    ComPtr<IBufferByteAccess> bufferByteAccess;
+    reinterpret_cast<IInspectable*>(seedBuffer)->QueryInterface(IID_PPV_ARGS(&bufferByteAccess));
+    bufferByteAccess->Buffer(&seed);
+#elif defined _WIN32
     HCRYPTPROV prov;
 
     if (!CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))  {
