@@ -103,23 +103,6 @@ namespace libtorrent
 		boost::uint32_t state:1;
 	};
 
-	int fail(std::vector<bdecode_token>& tokens
-		, stack_frame* stack
-		, int sp
-		, boost::uint32_t offset)
-	{
-		// unwind the stack by inserting terminator to make whatever we have
-		// so far valid
-		while (sp > 0) {
-			--sp;
-			int top = stack[sp].token;
-			TORRENT_ASSERT(tokens.size() - top <= bdecode_token::max_next_item);
-			tokens[top].next_item = tokens.size() - top;
-			tokens.push_back(bdecode_token(offset, 1, bdecode_token::end));
-		}
-		return -1;
-	}
-
 	// str1 is null-terminated
 	// str2 is not, str2 is len2 chars
 	bool string_equal(char const* str1, char const* str2, int len2)
@@ -700,9 +683,11 @@ namespace libtorrent
 		std::swap(m_size, n.m_size);
 	}
 
-#define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); \
+#define TORRENT_FAIL_BDECODE(code) do { \
+	ec = make_error_code(code); \
 	if (error_pos) *error_pos = start - orig_start; \
-	return fail(ret.m_tokens, stack, sp, start - orig_start); } while (false)
+	goto done; \
+	} while (false)
 
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit)
@@ -723,7 +708,6 @@ namespace libtorrent
 		stack_frame* stack = TORRENT_ALLOCA(stack_frame, depth_limit);
 
 		char const* const orig_start = start;
-		ret.clear();
 		if (start == end) return 0;
 
 		while (start <= end)
@@ -738,22 +722,22 @@ namespace libtorrent
 				TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 			// look for a new token
-			char t = *start;
+			const char t = *start;
+
+			const int current_frame = sp;
 
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
-			if (sp > 0
-				&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict)
+			if (current_frame > 0
+				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
 			{
-				if (stack[sp-1].state == 0)
+				if (stack[current_frame-1].state == 0)
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
 					if (!numeric(t) && t != 'e')
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 				}
-				// the next item we parse is the opposite
-				stack[sp-1].state = ~stack[sp-1].state;
 			}
 
 			switch (t)
@@ -780,13 +764,21 @@ namespace libtorrent
 				{
 					char const* int_start = start;
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
-					start = check_integer(start + 1, end, e);
-					if (e) TORRENT_FAIL_BDECODE(e);
-					TORRENT_ASSERT(*start == 'e');
-
 					// +1 here to point to the first digit, rather than 'i'
+					start = check_integer(start + 1, end, e);
+					if (e)
+					{
+						// in order to gracefully terminate the tree,
+						// make sure the end of the previous token is set correctly
+						if (error_pos) *error_pos = start - orig_start;
+						error_pos = NULL;
+						start = int_start;
+						TORRENT_FAIL_BDECODE(e);
+					}
 					ret.m_tokens.push_back(bdecode_token(int_start - orig_start
 						, 1, bdecode_token::integer, 1));
+					TORRENT_ASSERT(*start == 'e');
+
 					// skip 'e'
 					++start;
 					break;
@@ -799,7 +791,7 @@ namespace libtorrent
 
 					if (sp > 0
 						&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict
-						&& stack[sp-1].state == 0)
+						&& stack[sp-1].state == 1)
 					{
 						// this means we're parsing a dictionary and about to parse a
 						// value associated with a key. Instad, we got a termination
@@ -859,9 +851,45 @@ namespace libtorrent
 					break;
 				}
 			}
+
+			if (current_frame > 0
+				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
+			{
+				// the next item we parse is the opposite
+				stack[current_frame-1].state = ~stack[current_frame-1].state;
+			}
+
 			// this terminates the top level node, we're done!
 			if (sp == 0) break;
 		}
+
+done:
+
+		// if parse failed, sp will be greater than 1
+		// unwind the stack by inserting terminator to make whatever we have
+		// so far valid
+		while (sp > 0) {
+			TORRENT_ASSERT(ec);
+			--sp;
+
+			// we may need to insert a dummy token to properly terminate the tree,
+			// in case we just parsed a key to a dict and failed in the value
+			if (ret.m_tokens[stack[sp].token].type == bdecode_token::dict
+				&& stack[sp].state == 1)
+			{
+				// insert an empty dictionary as the value
+				ret.m_tokens.push_back(bdecode_token(start - orig_start
+					, 2, bdecode_token::dict));
+				ret.m_tokens.push_back(bdecode_token(start - orig_start
+					, bdecode_token::end));
+			}
+
+			int top = stack[sp].token;
+			TORRENT_ASSERT(ret.m_tokens.size() - top <= bdecode_token::max_next_item);
+			ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
+			ret.m_tokens.push_back(bdecode_token(start - orig_start, 1, bdecode_token::end));
+		}
+
 		ret.m_tokens.push_back(bdecode_token(start - orig_start, 0
 			, bdecode_token::end));
 
@@ -869,7 +897,8 @@ namespace libtorrent
 		ret.m_buffer = orig_start;
 		ret.m_buffer_size = start - orig_start;
 		ret.m_root_tokens = &ret.m_tokens[0];
-		return 0;
+
+		return ec ? -1 : 0;
 	}
 
 	namespace {

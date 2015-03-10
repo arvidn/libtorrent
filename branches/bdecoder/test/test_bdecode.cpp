@@ -97,7 +97,7 @@ int test_main()
 		bdecode_node e;
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-		TEST_CHECK(ret == 0);
+		TEST_EQUAL(ret, 0);
 		printf("%s\n", print_entry(e).c_str());
 		std::pair<const char*, int> section = e.data_section();
 		TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
@@ -122,9 +122,10 @@ int test_main()
 		error_code ec;
 		int pos;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
-		TEST_CHECK(ret == -1);
+		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 10);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_value));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test dictionary with a key that's not a string
@@ -134,9 +135,10 @@ int test_main()
 		error_code ec;
 		int pos;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
-		TEST_CHECK(ret == -1);
+		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// dictionary key with \0
@@ -160,6 +162,7 @@ int test_main()
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test strings with negative length-prefix
@@ -279,6 +282,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 22);
 		TEST_EQUAL(ec,  error_code(bdecode_errors::overflow));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test truncated negative integer
@@ -291,6 +295,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
 		TEST_EQUAL(ec,  error_code(bdecode_errors::unexpected_eof));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test truncated negative integer
@@ -303,6 +308,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 2);
 		TEST_EQUAL(ec,  error_code(bdecode_errors::expected_digit));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// bdecode_error
@@ -346,6 +352,7 @@ int test_main()
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(pos, 9);
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test invalid encoding
@@ -654,6 +661,7 @@ int test_main()
 		int ret = bdecode(b, b + 0x3fffffff, e, ec);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
+		printf("%s\n", print_entry(e).c_str());
 	}
 
 	// test parse_int
@@ -853,6 +861,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
 	
 		TEST_EQUAL(print_entry(e), "[ 1, 'foo', [ 1, 2 ], { 'x': 1 } ]");
 	}
@@ -863,6 +872,7 @@ int test_main()
 		error_code ec;
 		int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_EQUAL(ret, 0);
+		printf("%s\n", print_entry(e).c_str());
 	
 		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1, 2 ], 'd': { 'x': 1 } }");
 	}
@@ -886,6 +896,7 @@ int test_main()
 		std::string str2 = print_entry(e2);
 		TEST_EQUAL(e1.type(), bdecode_node::dict_t);
 		TEST_EQUAL(e2.type(), bdecode_node::int_t);
+		printf("%s\n", print_entry(e1).c_str());
 
 		e1.swap(e2);
 
@@ -893,6 +904,7 @@ int test_main()
 		TEST_EQUAL(e2.type(), bdecode_node::dict_t);
 		TEST_EQUAL(print_entry(e1), str2);
 		TEST_EQUAL(print_entry(e2), str1);
+		printf("%s\n", print_entry(e1).c_str());
 
 		e1.swap(e2);
 
@@ -900,6 +912,7 @@ int test_main()
 		TEST_EQUAL(e2.type(), bdecode_node::int_t);
 		TEST_EQUAL(print_entry(e1), str1);
 		TEST_EQUAL(print_entry(e2), str2);
+		printf("%s\n", print_entry(e1).c_str());
 	}
 
 	// test swap() (one node is the root of the other node)
@@ -920,6 +933,7 @@ int test_main()
 		std::string str2 = print_entry(e2);
 		TEST_EQUAL(e1.type(), bdecode_node::dict_t);
 		TEST_EQUAL(e2.type(), bdecode_node::int_t);
+		printf("%s\n", print_entry(e1).c_str());
 
 		e1.swap(e2);
 
@@ -927,6 +941,7 @@ int test_main()
 		TEST_EQUAL(e2.type(), bdecode_node::dict_t);
 		TEST_EQUAL(print_entry(e1), str2);
 		TEST_EQUAL(print_entry(e2), str1);
+		printf("%s\n", print_entry(e1).c_str());
 
 		// swap back
 		e1.swap(e2);
@@ -935,6 +950,7 @@ int test_main()
 		TEST_EQUAL(e2.type(), bdecode_node::int_t);
 		TEST_EQUAL(print_entry(e1), str1);
 		TEST_EQUAL(print_entry(e2), str2);
+		printf("%s\n", print_entry(e1).c_str());
 	}
 
 	// test swap() (neither is a root and they don't share a root)
@@ -1022,12 +1038,14 @@ int test_main()
 		bdecode_node e;
 		error_code ec;
 		int ret = bdecode(b1, b1 + sizeof(b1)-1, e, ec);
+		printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), bdecode_node::dict_t);
 		TEST_EQUAL(e.dict_size(), 4);
 		TEST_EQUAL(e.dict_at(1).first, "b");
 
 		ret = bdecode(b2, b2 + sizeof(b2)-1, e, ec);
+		printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e.type(), bdecode_node::list_t);
 		TEST_EQUAL(e.list_size(), 2);
@@ -1043,6 +1061,7 @@ int test_main()
 		int ret = bdecode(b1, b1 + sizeof(b1)-1, e1, ec);
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e1.type(), bdecode_node::dict_t);
+		printf("%s\n", print_entry(e1).c_str());
 
 		bdecode_node e2(e1);
 		bdecode_node e3;
@@ -1066,8 +1085,10 @@ int test_main()
 		bdecode_node e1;
 		error_code ec;
 		int ret = bdecode(b1, b1 + sizeof(b1)-1, e1, ec);
+
 		TEST_EQUAL(ret, 0);
 		TEST_EQUAL(e1.type(), bdecode_node::dict_t);
+		printf("%s\n", print_entry(e1).c_str());
 
 		bdecode_node e2 = e1.non_owning();
 
@@ -1078,7 +1099,6 @@ int test_main()
 		// e2 is invalid now
 	}
 
-/*
 	// test that a partial parse can be still be printed up to the
 	// point where it faild
 	{
@@ -1094,9 +1114,53 @@ int test_main()
 
 		printf("%s\n", print_entry(e).c_str());
 
-		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [1, 2], 'd': {} }");
+		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1, 2 ], 'd': { 'x': {} } }");
 	}
-*/
+	{
+		char b[] = "d1:ai1e1:b3:foo1:cli1ei2ee1:d-d1:xi1eee";
+
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 29);
+		TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1, 2 ], 'd': {} }");
+	}
+	{
+		char b[] = "d1:ai1e1:b3:foo1:cli1ei2ee-1:dd1:xi1eee";
+
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 26);
+		TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1, 2 ] }");
+	}
+	{
+		char b[] = "d1:ai1e1:b3:foo1:cli1e-i2ee1:dd1:xi1eee";
+
+		bdecode_node e;
+		error_code ec;
+		int pos;
+		int ret = bdecode(b, b + sizeof(b)-1, e, ec, &pos);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(pos, 22);
+		TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+		printf("%s\n", print_entry(e).c_str());
+
+		TEST_EQUAL(print_entry(e), "{ 'a': 1, 'b': 'foo', 'c': [ 1 ] }");
+	}
 
 	// TODO: test switch_underlying_buffer
 
