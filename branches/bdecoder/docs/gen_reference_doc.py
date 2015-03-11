@@ -82,7 +82,7 @@ category_mapping = {
 	'alert_types.hpp': 'Alerts',
 	'bencode.hpp': 'Bencoding',
 	'lazy_entry.hpp': 'Bencoding',
-	'bdecode.hpp': 'Bencoding',
+	'bdecode.hpp': 'Bdecoding',
 	'entry.hpp': 'Bencoding',
 	'time.hpp': 'Time',
 	'ptime.hpp': 'Time',
