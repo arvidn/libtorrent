@@ -112,7 +112,7 @@ namespace libtorrent { namespace
 		// max_peer_entries limits the packet size
 		virtual void tick()
 		{
-			ptime now = time_now();
+			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
 
@@ -229,7 +229,7 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 
 		std::set<tcp::endpoint> m_old_peers;
-		ptime m_last_msg;
+		time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message;
 	};
@@ -286,7 +286,7 @@ namespace libtorrent { namespace
  
 			if (body.left() < length) return true;
 
-			ptime now = time_now();
+			time_point now = aux::time_now();
 			if (now - seconds(60) <  m_last_pex[0])
 			{
 				// this client appears to be trying to flood us
@@ -433,7 +433,7 @@ namespace libtorrent { namespace
 			// no handshake yet
 			if (!m_message_index) return;
 
-			ptime now = time_now();
+			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg)
 			{
 #ifdef TORRENT_LOGGING
@@ -442,7 +442,7 @@ namespace libtorrent { namespace
 #endif
 				return;
 			}
-			static ptime global_last = min_time();
+			static time_point global_last = min_time();
 
 			int num_peers = m_torrent.num_peers();
 			if (num_peers <= 1) return;
@@ -636,9 +636,9 @@ namespace libtorrent { namespace
 		// then once we read from the socket it will look like
 		// we received them all back to back. That's why
 		// we look at 6 pex messages back.
-		ptime m_last_pex[6];
+		time_point m_last_pex[6];
 
-		ptime m_last_msg;
+		time_point m_last_msg;
 		int m_message_index;
 
 		// this is initialized to true, and set to

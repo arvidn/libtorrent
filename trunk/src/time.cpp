@@ -42,25 +42,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #endif
 
-namespace libtorrent
+namespace libtorrent { namespace aux
 {
-	namespace aux
-	{
-		// used to cache the current time
-		// every 100 ms. This is cheaper
-		// than a system call and can be
-		// used where more accurate time
-		// is not necessary
-		ptime g_current_time;
-	}
+	// used to cache the current time
+	// every 100 ms. This is cheaper
+	// than a system call and can be
+	// used where more accurate time
+	// is not necessary
+	time_point g_current_time;
 
-	TORRENT_EXPORT ptime const& time_now() { return aux::g_current_time; }
+	time_point const& time_now() { return aux::g_current_time; }
 
 	TORRENT_EXTRA_EXPORT char const* time_now_string()
 	{
-		static const ptime start = time_now_hires();
+		static const time_point start = clock_type::now();
 		static char ret[200];
-		int t = total_milliseconds(time_now_hires() - start);
+		int t = total_milliseconds(clock_type::now() - start);
 		int h = t / 1000 / 60 / 60;
 		t -= h * 60 * 60 * 1000;
 		int m = t / 1000 / 60;
@@ -74,10 +71,10 @@ namespace libtorrent
 
 	std::string log_time()
 	{
-		static const ptime start = time_now_hires();
+		static const time_point start = clock_type::now();
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%" PRId64, total_microseconds(time_now_hires() - start));
+		snprintf(ret, sizeof(ret), "%" PRId64, total_microseconds(clock_type::now() - start));
 		return ret;
 	}
-}
+} }
 

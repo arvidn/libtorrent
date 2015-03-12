@@ -43,7 +43,7 @@ int test_main()
 {
 	using namespace libtorrent;
 
-	ptime start(time_now());
+	time_point start(clock_type::now());
 
 	for (int i = 0; i < 100000; ++i)
 	{
@@ -52,7 +52,7 @@ int test_main()
 		error_code ec;
 		lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 	}
-	ptime stop(time_now());
+	time_point stop(clock_type::now());
 
 	std::cout << "done in " << total_milliseconds(stop - start) / 100. << " seconds per million message" << std::endl;
 	return 0;

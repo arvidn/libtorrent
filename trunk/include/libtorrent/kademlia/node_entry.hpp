@@ -37,11 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/union_endpoint.hpp"
-#include "libtorrent/time.hpp" // for time_now()
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-#include "libtorrent/time.hpp"
-#endif
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 namespace libtorrent { namespace dht
 {
@@ -50,7 +46,7 @@ struct node_entry
 {
 	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff
 		, bool pinged = false)
-		: last_queried(pinged ? time_now() : min_time())
+		: last_queried(pinged ? aux::time_now() : min_time())
 		, id(id_)
 		, a(ep.address().to_v4().to_bytes())
 		, p(ep.port())
@@ -58,7 +54,7 @@ struct node_entry
 		, timeout_count(pinged ? 0 : 0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		first_seen = time_now();
+		first_seen = aux::time_now();
 #endif
 	}
 
@@ -71,7 +67,7 @@ struct node_entry
 		, timeout_count(0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		first_seen = time_now();
+		first_seen = aux::time_now();
 #endif
 	}
 
@@ -83,7 +79,7 @@ struct node_entry
 		, timeout_count(0xff)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		first_seen = time_now();
+		first_seen = aux::time_now();
 #endif
 	}
 	
@@ -106,11 +102,11 @@ struct node_entry
 	int port() const { return p; }
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	ptime first_seen;
+	time_point first_seen;
 #endif
 
 	// the time we last received a response for a request to this peer
-	ptime last_queried;
+	time_point last_queried;
 
 	node_id id;
 

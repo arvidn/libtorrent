@@ -147,13 +147,15 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
-  $(GEOIP_H) \
-  tommath.h \
-  tommath_class.h \
-  tommath_superclass.h \
+  tommath.h                         \
+  tommath_class.h                   \
+  tommath_superclass.h              \
   \
-  aux_/session_impl.hpp        \
-  aux_/session_settings.hpp\
+  aux_/session_call.hpp             \
+  aux_/session_impl.hpp             \
+  aux_/session_settings.hpp         \
+  aux_/session_interface.hpp        \
+  aux_/time.hpp                     \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

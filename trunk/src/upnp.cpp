@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -366,7 +367,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (time_now_hires() - seconds(60) > m_last_if_update)
+	if (clock_type::now() - seconds(60) > m_last_if_update)
 	{
 		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
@@ -376,7 +377,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
 		}
-		m_last_if_update = time_now();
+		m_last_if_update = aux::time_now();
 	}
 
 	if (!ec && !in_local_network(m_interfaces, from.address()))
@@ -1431,10 +1432,10 @@ void upnp::on_upnp_map_response(error_code const& e
 		l.lock();
 		if (d.lease_duration > 0)
 		{
-			m.expires = time_now()
+			m.expires = aux::time_now()
 				+ seconds(int(d.lease_duration * 0.75f));
-			ptime next_expire = m_refresh_timer.expires_at();
-			if (next_expire < time_now()
+			time_point next_expire = m_refresh_timer.expires_at();
+			if (next_expire < aux::time_now()
 				|| next_expire > m.expires)
 			{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -1540,8 +1541,8 @@ void upnp::on_expire(error_code const& ec)
 #endif
 	if (ec) return;
 
-	ptime now = time_now();
-	ptime next_expire = max_time();
+	time_point now = aux::time_now();
+	time_point next_expire = max_time();
 
 	mutex::scoped_lock l(m_mutex);
 

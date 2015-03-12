@@ -262,10 +262,10 @@ namespace libtorrent
 
 		// used for timeouts
 		// this is set when the request has been sent
-		ptime m_start_time;
+		time_point m_start_time;
 
 		// this is set every time something is received
-		ptime m_read_time;
+		time_point m_read_time;
 
 		// the asio async operation
 		deadline_timer m_timeout;

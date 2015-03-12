@@ -107,7 +107,7 @@ bool TORRENT_EXTRA_EXPORT verify_message(lazy_entry const* msg, key_desc_t const
 // to remove stale peers
 struct peer_entry
 {
-	ptime added;
+	time_point added;
 	tcp::endpoint addr;
 	bool seed;
 };
@@ -129,7 +129,7 @@ struct dht_immutable_item
 	// popularity if we reach the limit of items to store
 	bloom_filter<128> ips;
 	// the last time we heard about this
-	ptime last_seen;
+	time_point last_seen;
 	// number of IPs in the bloom filter
 	int num_announcers;
 	// size of malloced space pointed to by value
@@ -322,11 +322,11 @@ private:
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;
 	
-	ptime m_last_tracker_tick;
+	time_point m_last_tracker_tick;
 
 	// the last time we issued a bootstrap or a refresh on our own ID, to expand
 	// the routing table buckets close to us.
-	ptime m_last_self_refresh;
+	time_point m_last_self_refresh;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];

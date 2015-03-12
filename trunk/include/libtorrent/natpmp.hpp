@@ -105,7 +105,7 @@ private:
 		int action;
 
 		// the time the port mapping will expire
-		ptime expires;
+		time_point expires;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use

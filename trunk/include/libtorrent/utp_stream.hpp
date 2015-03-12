@@ -149,10 +149,10 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
-void tick_utp_impl(utp_socket_impl* s, ptime now);
+void tick_utp_impl(utp_socket_impl* s, time_point now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
-	, int size, udp::endpoint const& ep, ptime receive_time);
+	, int size, udp::endpoint const& ep, time_point receive_time);
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);

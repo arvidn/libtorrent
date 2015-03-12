@@ -128,8 +128,10 @@ namespace libtorrent
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
 
 #ifndef TORRENT_NO_DEPRECATE
-	TORRENT_EXPORT session_settings min_memory_usage();
-	TORRENT_EXPORT session_settings high_performance_seed();
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT session_settings min_memory_usage() TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED_PREFIX
+	TORRENT_EXPORT session_settings high_performance_seed() TORRENT_DEPRECATED;
 #endif
 
 #ifndef TORRENT_CFG

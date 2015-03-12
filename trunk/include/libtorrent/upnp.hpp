@@ -232,7 +232,7 @@ private:
 		{}
 
 		// the time the port mapping will expire
-		ptime expires;
+		time_point expires;
 		
 		int action;
 
@@ -375,7 +375,7 @@ private:
 
 	// cache of interfaces
 	mutable std::vector<ip_interface> m_interfaces;
-	mutable ptime m_last_if_update;
+	mutable time_point m_last_if_update;
 };
 
 }

@@ -1,3 +1,5 @@
+	* deprecate time functions, expose typedefs of boost::chrono in the libtorrent
+	  namespace instead
 	* deprecate file_base feature in file_storage/torrent_info
 	* improve piece picker support for reverse picking (used for snubbed peers)
 	  to not cause priority inversion for regular peers

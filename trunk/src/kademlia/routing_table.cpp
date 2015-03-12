@@ -215,7 +215,7 @@ void routing_table::print_state(std::ostream& os) const
 		os << "\n";
 	}
 
-	ptime now = time_now();
+	time_point now = aux::time_now();
 
 	os << "\nnodes:";
 	int bucket_index = 0;
@@ -366,7 +366,7 @@ out:
 	// make sure we don't pick the same node again next time we want to refresh
 	// the routing table
 	if (candidate)
-		candidate->last_queried = time_now();
+		candidate->last_queried = aux::time_now();
 
 	return candidate;
 }
@@ -988,7 +988,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			" ip: " << j->ep() <<
 			" fails: " << j->fail_count() <<
 			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(time_now() - j->first_seen);
+			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
 #endif
 		return;
 	}
@@ -1008,7 +1008,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			" ip: " << j->ep() <<
 			" fails: " << j->fail_count() <<
 			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(time_now() - j->first_seen);
+			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
 #endif
 
 		// if this node has failed too many times, or if this node

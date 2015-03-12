@@ -98,7 +98,7 @@ private:
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 	std::ofstream m_log;
-	ptime m_start;
+	time_point m_start;
 #endif
 };
 

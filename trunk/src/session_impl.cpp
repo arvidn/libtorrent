@@ -383,7 +383,7 @@ namespace aux {
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
-		, m_created(time_now_hires())
+		, m_created(clock_type::now())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
@@ -2360,7 +2360,7 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		// add the current time to the PRNG, to add more unpredictability
-		boost::uint64_t now = time_now_hires().time_since_epoch().count();
+		boost::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
@@ -2694,11 +2694,11 @@ retry:
 	// than a system call and can be
 	// used where more accurate time
 	// is not necessary
-	extern ptime g_current_time;
+	extern time_point g_current_time;
 
 	initialize_timer::initialize_timer()
 	{
-		g_current_time = time_now_hires();
+		g_current_time = clock_type::now();
 	}
 
 	int session_impl::rate_limit(peer_class_t c, int channel) const
@@ -2810,7 +2810,7 @@ retry:
 		// submit all disk jobs when we leave this function
 		deferred_submit_jobs();
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 		aux::g_current_time = now;
 // too expensive
 //		INVARIANT_CHECK;
@@ -3252,8 +3252,8 @@ retry:
 	void session_impl::update_rss_feeds()
 	{
 		time_t now_posix = time(0);
-		ptime min_update = max_time();
-		ptime now = time_now();
+		time_point min_update = max_time();
+		time_point now = aux::time_now();
 		for (std::vector<boost::shared_ptr<feed> >::iterator i
 			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
 		{
@@ -3262,7 +3262,7 @@ retry:
 			if (delta <= 0)
 				delta = f.update_feed();
 			TORRENT_ASSERT(delta >= 0);
-			ptime next_update = now + seconds(delta);
+			time_point next_update = now + seconds(delta);
 			if (next_update < min_update) min_update = next_update;
 		}
 		m_next_rss_update = min_update;
@@ -3854,7 +3854,7 @@ retry:
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		time_duration unchoke_interval = now - m_last_choke;
 		m_last_choke = now;
 
@@ -4378,7 +4378,7 @@ retry:
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
 
-		alert->timestamp = total_microseconds(time_now_hires() - m_created);
+		alert->timestamp = total_microseconds(clock_type::now() - m_created);
 
 		m_alerts.post_alert_ptr(alert.release());
 	}
@@ -5628,9 +5628,9 @@ retry:
 		FILE* f = fopen("wakeups.log", "w+");
 		if (f != NULL)
 		{
-			ptime m = min_time();
+			time_point m = min_time();
 			if (_wakeups.size() > 0) m = _wakeups[0].timestamp;
-			ptime prev = m;
+			time_point prev = m;
 			boost::uint64_t prev_csw = 0;
 			if (_wakeups.size() > 0) prev_csw = _wakeups[0].context_switches;
 			fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");

@@ -48,7 +48,7 @@ namespace libtorrent
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 		if (log)
 			m_log.open("bandwidth_limiter.log", std::ios::trunc);
-		m_start = time_now();
+		m_start = aux::time_now();
 #endif
 	}
 

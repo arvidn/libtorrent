@@ -62,33 +62,33 @@ char* piece3 = page_aligned_allocator::malloc(piece_size);
 void signal_bool(bool* b, char const* string)
 {
 	*b = true;
-	std::cerr << time_now_string() << " " << string << std::endl;
+	std::cerr << aux::time_now_string() << " " << string << std::endl;
 }
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
-	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
+	std::cerr << aux::time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
 }
 
 void on_check_resume_data(disk_io_job const* j, bool* done)
 {
-	std::cerr << time_now_string() << " on_check_resume_data ret: " << j->ret;
+	std::cerr << aux::time_now_string() << " on_check_resume_data ret: " << j->ret;
 	switch (j->ret)
 	{
 		case piece_manager::no_error:
-			std::cerr << time_now_string() << " success" << std::endl;
+			std::cerr << aux::time_now_string() << " success" << std::endl;
 			break;
 		case piece_manager::fatal_disk_error:
-			std::cerr << time_now_string() << " disk error: " << j->error.ec.message()
+			std::cerr << aux::time_now_string() << " disk error: " << j->error.ec.message()
 				<< " file: " << j->error.file << std::endl;
 			break;
 		case piece_manager::need_full_check:
-			std::cerr << time_now_string() << " need full check" << std::endl;
+			std::cerr << aux::time_now_string() << " need full check" << std::endl;
 			break;
 		case piece_manager::disk_check_aborted:
-			std::cerr << time_now_string() << " aborted" << std::endl;
+			std::cerr << aux::time_now_string() << " aborted" << std::endl;
 			break;
 	}
 	std::cerr << std::endl;
@@ -98,7 +98,7 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
-		, time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
+		, aux::time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -113,7 +113,7 @@ void run_until(io_service& ios, bool const& done)
 			std::cerr << "run_one: " << ec.message().c_str() << std::endl;
 			return;
 		}
-		std::cerr << time_now_string() << " done: " << done << std::endl;
+		std::cerr << aux::time_now_string() << " done: " << done << std::endl;
 	}
 }
 
@@ -678,12 +678,12 @@ void test_fastresume(std::string const& test_path)
 		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
-		ptime end = time_now() + seconds(20);
-		while (time_now() < end
+		time_point end = aux::time_now() + seconds(20);
+		while (aux::time_now() < end
 			&& (a.get() == 0
 				|| alert_cast<fastresume_rejected_alert>(a.get()) == 0))
 		{
-			if (ses.wait_for_alert(end - time_now()) == 0)
+			if (ses.wait_for_alert(end - aux::time_now()) == 0)
 			{
 				std::cerr << "wait_for_alert() expired" << std::endl;
 				break;

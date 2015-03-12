@@ -115,7 +115,7 @@ namespace libtorrent
 		op_end = 2
 	};
 
-	void write_access_log(boost::uint64_t offset, boost::uint32_t fileid, int flags, ptime timestamp)
+	void write_access_log(boost::uint64_t offset, boost::uint32_t fileid, int flags, time_point timestamp)
 	{
 		if (g_access_log == NULL) return;
 
@@ -1201,7 +1201,7 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 				int flags = ((op.mode & file::rw_mask) == file::read_only) ? op_read : op_write;
-				write_access_log(adjusted_offset, handle->file_id(), op_start | flags, time_now_hires());
+				write_access_log(adjusted_offset, handle->file_id(), op_start | flags, clock_type::now());
 #endif
 
 				bytes_transferred = (int)((*handle).*op.op)(adjusted_offset
@@ -1211,7 +1211,7 @@ namespace libtorrent
 				TORRENT_ASSERT(e || bytes_transferred >= 0);
 
 #ifdef TORRENT_DISK_STATS
-				write_access_log(adjusted_offset + bytes_transferred, handle->file_id(), op_end | flags, time_now_hires());
+				write_access_log(adjusted_offset + bytes_transferred, handle->file_id(), op_end | flags, clock_type::now());
 #endif
 				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
