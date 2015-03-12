@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -111,7 +112,7 @@ namespace libtorrent
 		// uint32_t length
 		char event[32];
 		char* ptr = event;
-		detail::write_uint64(time_now_hires().time_since_epoch().count(), ptr);
+		detail::write_uint64(clock_type::now().time_since_epoch().count(), ptr);
 		memcpy(ptr, &ih[0], 8);
 		ptr += 8;
 		detail::write_uint32(uintptr_t(p) & 0xffffffff, ptr);
@@ -151,19 +152,19 @@ namespace libtorrent
 		, m_allocator(*pack.allocator)
 		, m_ios(*pack.ios)
 		, m_work(m_ios)
-		, m_last_piece(time_now())
-		, m_last_request(time_now())
+		, m_last_piece(aux::time_now())
+		, m_last_request(aux::time_now())
 		, m_last_incoming_request(min_time())
-		, m_last_unchoke(time_now())
-		, m_last_unchoked(time_now())
+		, m_last_unchoke(aux::time_now())
+		, m_last_unchoked(aux::time_now())
 		, m_last_choke(min_time())
-		, m_last_receive(time_now())
-		, m_last_sent(time_now())
+		, m_last_receive(aux::time_now())
+		, m_last_sent(aux::time_now())
 		, m_requested(min_time())
-		, m_remote_dl_update(time_now())
-		, m_connect(time_now())
-		, m_became_uninterested(time_now())
-		, m_became_uninteresting(time_now())
+		, m_remote_dl_update(aux::time_now())
+		, m_connect(aux::time_now())
+		, m_became_uninterested(aux::time_now())
+		, m_became_uninteresting(aux::time_now())
 		, m_downloaded_at_last_round(0)
 		, m_uploaded_at_last_round(0)
 		, m_uploaded_at_last_unchoke(0)
@@ -416,7 +417,7 @@ namespace libtorrent
 
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
-		m_connect = time_now_hires();
+		m_connect = clock_type::now();
 
 		sent_syn(m_remote.address().is_v6());
 
@@ -1000,11 +1001,11 @@ namespace libtorrent
 
 		// if we haven't received any data recently, the current download rate
 		// is not representative
-		if (time_now() - m_last_piece > seconds(30) && m_download_rate_peak > 0)
+		if (aux::time_now() - m_last_piece > seconds(30) && m_download_rate_peak > 0)
 		{
 			rate = m_download_rate_peak;
 		}
-		else if (time_now() - m_last_unchoked < seconds(5)
+		else if (aux::time_now() - m_last_unchoked < seconds(5)
 			&& m_statistics.total_payload_upload() < 2 * 0x4000)
 		{
 			// if we're have only been unchoked for a short period of time,
@@ -1165,7 +1166,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #if defined TORRENT_LOGGING
-		m_connect_time = time_now_hires();
+		m_connect_time = clock_type::now();
 		peer_log("*** attached to torrent");
 #endif
 
@@ -1567,7 +1568,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #if defined TORRENT_LOGGING
-		m_unchoke_time = time_now_hires();
+		m_unchoke_time = clock_type::now();
 		t->debug_log("UNCHOKE [%p] (%d ms)", this, int(total_milliseconds(m_unchoke_time - m_bitfield_time)));
 #endif
 
@@ -1586,7 +1587,7 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_down_unchoked);
 
 		m_peer_choked = false;
-		m_last_unchoked = time_now();
+		m_last_unchoked = aux::time_now();
 		if (is_disconnecting()) return;
 
 		if (is_interesting())
@@ -1717,7 +1718,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_became_uninterested = time_now();
+		m_became_uninterested = aux::time_now();
 
 #if defined TORRENT_LOGGING
 		peer_log("<== NOT_INTERESTED");
@@ -2025,7 +2026,7 @@ namespace libtorrent
 		m_bitfield_received = true;
 
 #if defined TORRENT_LOGGING
-		m_bitfield_time = time_now_hires();
+		m_bitfield_time = clock_type::now();
 		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 		// if we don't have metadata yet
@@ -2337,7 +2338,7 @@ namespace libtorrent
 
 			// allow peers to send request up to 2 seconds after getting choked,
 			// then disconnect them
-			if (time_now() - seconds(2) > m_last_choke
+			if (aux::time_now() - seconds(2) > m_last_choke
 				&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
@@ -2359,7 +2360,7 @@ namespace libtorrent
 			if (log)
 				write_request_log(log, t->info_hash(), this, r);
 #endif
-			m_last_incoming_request = time_now();
+			m_last_incoming_request = aux::time_now();
 			fill_send_buffer();
 		}
 	}
@@ -2384,7 +2385,7 @@ namespace libtorrent
 	void peer_connection::incoming_piece_fragment(int bytes)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_last_piece = time_now();
+		m_last_piece = aux::time_now();
 		TORRENT_ASSERT(m_outstanding_bytes >= bytes);
 		m_outstanding_bytes -= bytes;
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
@@ -2629,7 +2630,7 @@ namespace libtorrent
 			return;
 		}
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 
 		t->need_picker();
 
@@ -2727,7 +2728,7 @@ namespace libtorrent
 
 #if defined TORRENT_LOGGING
 		t->debug_log("PIECE [%p] (%d ms) (%d)", this
-			, int(total_milliseconds(time_now_hires() - m_unchoke_time)), t->num_have());
+			, int(total_milliseconds(clock_type::now() - m_unchoke_time)), t->num_have());
 
 		peer_log("*** FILE ASYNC WRITE [ piece: %d | s: %x | l: %x ]"
 			, p.piece, p.start, p.length);
@@ -3064,7 +3065,7 @@ namespace libtorrent
 		m_bitfield_received = true;
 
 #if defined TORRENT_LOGGING
-		m_bitfield_time = time_now_hires();
+		m_bitfield_time = clock_type::now();
 		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 
@@ -3136,7 +3137,7 @@ namespace libtorrent
 		m_bitfield_received = true;
 
 #if defined TORRENT_LOGGING
-		m_bitfield_time = time_now_hires();
+		m_bitfield_time = clock_type::now();
 		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 		m_have_piece.clear_all();
@@ -3166,7 +3167,7 @@ namespace libtorrent
 
 #if defined TORRENT_LOGGING
 		{
-			ptime now = time_now_hires();
+			time_point now = clock_type::now();
 			t->debug_log("ALLOW FAST [%p] (%d ms)", this, int(total_milliseconds(now - m_connect_time)));
 			if (m_peer_choked) m_unchoke_time = now;
 		}
@@ -3526,7 +3527,7 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
 		m_choked = true;
 
-		m_last_choke = time_now();
+		m_last_choke = aux::time_now();
 		m_num_invalid_requests = 0;
 
 		// reject the requests we have in the queue
@@ -3582,7 +3583,7 @@ namespace libtorrent
 			m_sent_suggests = true;
 		}
 
-		m_last_unchoke = time_now();
+		m_last_unchoke = aux::time_now();
 		write_unchoke();
 		m_counters.inc_stats_counter(counters::num_peers_up_unchoked_all);
 		if (!ignore_unchoke_slots())
@@ -3635,7 +3636,7 @@ namespace libtorrent
 
 		write_not_interested();
 
-		m_became_uninteresting = time_now();
+		m_became_uninteresting = aux::time_now();
 
 #if defined TORRENT_LOGGING
 		peer_log("==> NOT_INTERESTED");
@@ -3811,7 +3812,7 @@ namespace libtorrent
 #endif
 			{
 				write_request(r);
-				m_last_request = time_now();
+				m_last_request = aux::time_now();
 			}
 
 #if defined TORRENT_LOGGING
@@ -3822,7 +3823,7 @@ namespace libtorrent
 				, m_request_large_blocks?"large":"single");
 #endif
 		}
-		m_last_piece = time_now();
+		m_last_piece = aux::time_now();
 
 		if (!m_download_queue.empty()
 			&& empty_download_queue)
@@ -3830,10 +3831,10 @@ namespace libtorrent
 			// This means we just added a request to this connection that
 			// previously did not have a request. That's when we start the
 			// request timeout.
-			m_requested = time_now();
+			m_requested = aux::time_now();
 #if defined TORRENT_LOGGING
 			t->debug_log("REQUEST [%p] (%d ms)", this
-				, int(total_milliseconds(time_now_hires() - m_unchoke_time)));
+				, int(total_milliseconds(clock_type::now() - m_unchoke_time)));
 #endif
 		}
 	}
@@ -4225,7 +4226,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!associated_torrent().expired());
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 
 		p.download_rate_peak = m_download_rate_peak;
 		p.upload_rate_peak = m_upload_rate_peak;
@@ -4485,7 +4486,7 @@ namespace libtorrent
 	void peer_connection::second_tick(int tick_interval_ms)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		boost::shared_ptr<peer_connection> me(self());
 
 		// the invariant check must be run before me is destructed
@@ -4984,7 +4985,7 @@ namespace libtorrent
 				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, r, time_now_hires()), this);
+					, self(), _1, r, clock_type::now()), this);
 			}
 			m_requests.erase(m_requests.begin() + i);
 
@@ -5054,14 +5055,14 @@ namespace libtorrent
 	}
 
 	void peer_connection::on_disk_read_complete(disk_io_job const* j
-		, peer_request r, ptime issue_time)
+		, peer_request r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// return value:
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		int disk_rtt = int(total_microseconds(time_now_hires() - issue_time));
+		int disk_rtt = int(total_microseconds(clock_type::now() - issue_time));
 
 #if defined TORRENT_LOGGING
 		peer_log("*** FILE ASYNC READ COMPLETE [ ret: %d | piece: %d | s: %x | l: %x"
@@ -5960,7 +5961,7 @@ namespace libtorrent
 		}
 		while (bytes_transferred > 0);
 
-		m_last_receive = time_now();
+		m_last_receive = aux::time_now();
 
 		if (is_seed())
 		{
@@ -6041,7 +6042,7 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_LOGGING || defined TORRENT_USE_OPENSSL
-		ptime completed = time_now_hires();
+		time_point completed = clock_type::now();
 #endif
 
 		INVARIANT_CHECK;
@@ -6085,7 +6086,7 @@ namespace libtorrent
 		m_counters.inc_stats_counter(counters::num_peers_connected);
 
 		if (m_disconnecting) return;
-		m_last_receive = time_now();
+		m_last_receive = aux::time_now();
 
 		error_code ec;
 		m_local = m_socket->local_endpoint(ec);
@@ -6217,7 +6218,7 @@ namespace libtorrent
 
 		m_send_buffer.pop_front(bytes_transferred);
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 
 		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
 			, end(m_download_queue.end()); i != end; ++i)
@@ -6554,7 +6555,7 @@ namespace libtorrent
 #endif
 
 		time_duration d;
-		d = time_now() - m_last_sent;
+		d = aux::time_now() - m_last_sent;
 		if (total_seconds(d) < timeout() / 2) return;
 		
 		if (m_connecting) return;
@@ -6568,7 +6569,7 @@ namespace libtorrent
 		peer_log("==> KEEPALIVE");
 #endif
 
-		m_last_sent = time_now();
+		m_last_sent = aux::time_now();
 		write_keepalive();
 	}
 

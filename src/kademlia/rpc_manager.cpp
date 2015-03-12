@@ -85,9 +85,9 @@ void observer::set_target(udp::endpoint const& ep)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	// use high resolution timers for logging
-	m_sent = time_now_hires();
+	m_sent = clock_type::now();
 #else
-	m_sent = time_now();
+	m_sent = aux::time_now();
 #endif
 
 	m_port = ep.port();
@@ -168,7 +168,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
 	, m_table(table)
-	, m_timer(time_now())
+	, m_timer(aux::time_now())
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
@@ -316,7 +316,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	ptime now = time_now_hires();
+	time_point now = clock_type::now();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
@@ -388,7 +388,7 @@ time_duration rpc_manager::tick()
 	std::vector<observer_ptr> short_timeouts;
 
 	time_duration ret = seconds(short_timeout);
-	ptime now = time_now();
+	time_point now = aux::time_now();
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)

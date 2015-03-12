@@ -145,10 +145,10 @@ std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
 std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
-	ptime end = time_now() + seconds(10);
+	time_point end = aux::time_now() + seconds(10);
 	while (!ret.get())
 	{
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		if (now > end) return std::auto_ptr<alert>();
 
 		ses.wait_for_alert(end - now);
@@ -157,7 +157,7 @@ std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name
 		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
+			fprintf(stderr, "%s: %s: [%s] %s\n", aux::time_now_string(), name
 				, (*i)->what(), (*i)->message().c_str());
 			if (!ret.get() && (*i)->type() == type)
 			{
@@ -268,14 +268,14 @@ bool print_alerts(lt::session& ses, char const* name
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
 		{
-			fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
+			fprintf(stderr, "%s: %s: [%s] (%s): %s\n", aux::time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if ((*i)->message() != "block downloading"
 			&& (*i)->message() != "block finished"
 			&& (*i)->message() != "piece finished"
 			&& !no_output)
 		{
-			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
+			fprintf(stderr, "%s: %s: [%s] %s\n", aux::time_now_string(), name, (*i)->what(), (*i)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
@@ -283,7 +283,7 @@ bool print_alerts(lt::session& ses, char const* name
 		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
-			fprintf(stderr, "%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
+			fprintf(stderr, "%s: peer error: %s\n", aux::time_now_string(), pea->error.message().c_str());
 			TEST_CHECK((!handles.empty() && h.status().is_seeding)
 				|| pea->error.message() == "connecting to peer"
 				|| pea->error.message() == "closing connection to ourself"
@@ -503,7 +503,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
+	unsigned int seed = total_microseconds(clock_type::now() - min_time()) & 0xffffffff;
 	printf("random seed: %u\n", seed);
 	std::srand(seed);
 
@@ -541,13 +541,13 @@ int start_proxy(int proxy_type)
 	char buf[512];
 	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
-	fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", aux::time_now_string(), port, type, auth);
 	fprintf(stderr, "%s\n", buf);
 	pid_type r = async_run(buf);
 	if (r == 0) exit(1);
 	proxy_t t = { r, proxy_type };
 	running_proxies.insert(std::make_pair(port, t));
-	fprintf(stderr, "%s launched\n", time_now_string());
+	fprintf(stderr, "%s launched\n", aux::time_now_string());
 	test_sleep(500);
 	return port;
 }
@@ -823,7 +823,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			port = ses2->listen_port();
 
 		fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
-			, time_now_string(), port);
+			, aux::time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, port));
 
@@ -860,7 +860,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	unsigned int seed = total_microseconds(time_now_hires() - min_time()) & 0xffffffff;
+	unsigned int seed = total_microseconds(clock_type::now() - min_time()) & 0xffffffff;
 	fprintf(stderr, "random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
@@ -869,13 +869,13 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
 		, port, chunked_encoding , ssl, keepalive);
 
-	fprintf(stderr, "%s starting web_server on port %d...\n", time_now_string(), port);
+	fprintf(stderr, "%s starting web_server on port %d...\n", aux::time_now_string(), port);
 
 	fprintf(stderr, "%s\n", buf);
 	pid_type r = async_run(buf);
 	if (r == 0) exit(1);
 	web_server_pid = r;
-	fprintf(stderr, "%s launched\n", time_now_string());
+	fprintf(stderr, "%s launched\n", aux::time_now_string());
 	test_sleep(500);
 	return port;
 }

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include <boost/bind.hpp>
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent
 {
@@ -58,7 +59,7 @@ namespace libtorrent
 		}
 	
 		dns_cache_entry& ce = m_cache[hostname];
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		ce.last_seen = now;
 		ce.addresses.clear();
 		while (i != tcp::resolver::iterator())
@@ -95,7 +96,7 @@ namespace libtorrent
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::prefer_cache)
-				|| i->second.last_seen + m_timeout >= time_now())
+				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				error_code ec;
 				m_ios.post(boost::bind(h, ec, i->second.addresses));

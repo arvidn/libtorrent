@@ -466,7 +466,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			case 2: // have no data
-				m_no_metadata = time_now();
+				m_no_metadata = aux::time_now();
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
@@ -498,13 +498,13 @@ namespace libtorrent { namespace
 				m_last_metadata_request = m_tp.metadata_request();
 				write_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = true;
-				m_metadata_request = time_now();
+				m_metadata_request = aux::time_now();
 			}
 		}
 
 		bool has_metadata() const
 		{
-			return time_now() - minutes(5) > m_no_metadata;
+			return aux::time_now() - minutes(5) > m_no_metadata;
 		}
 
 	private:
@@ -527,11 +527,11 @@ namespace libtorrent { namespace
 
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
-		ptime m_no_metadata;
+		time_point m_no_metadata;
 
 		// this is set to the time when we last sent
 		// a request for metadata to this peer
-		ptime m_metadata_request;
+		time_point m_metadata_request;
 
 		// if we're waiting for a metadata request
 		// this was the request we sent

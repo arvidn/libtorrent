@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/random.hpp"
@@ -323,7 +324,7 @@ void block_cache::bump_lru(cached_piece_entry* p)
 	// move to the back (MRU) of the list
 	lru_list->erase(p);
 	lru_list->push_back(p);
-	p->expire = time_now();
+	p->expire = aux::time_now();
 }
 
 // this is called for pieces that we're reading from, when they
@@ -397,7 +398,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	m_lru[p->cache_state].erase(p);
 	m_lru[target_queue].push_back(p);
 	p->cache_state = target_queue;
-	p->expire = time_now();
+	p->expire = aux::time_now();
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
 	{
@@ -435,7 +436,7 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 
 	src->erase(p);
 	dst->push_back(p);
-	p->expire = time_now();
+	p->expire = aux::time_now();
 	p->cache_state = desired_state;
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
@@ -475,7 +476,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		cached_piece_entry pe;
 		pe.piece = j->piece;
 		pe.storage = j->storage;
-		pe.expire = time_now();
+		pe.expire = aux::time_now();
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		pe.cache_state = cache_state;
@@ -542,7 +543,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 			m_lru[p->cache_state].erase(p);
 			p->cache_state = cache_state;
 			m_lru[p->cache_state].push_back(p);
-			p->expire = time_now();
+			p->expire = aux::time_now();
 #if TORRENT_USE_ASSERTS
 			switch (p->cache_state)
 			{
@@ -1480,7 +1481,7 @@ void block_cache::check_invariant() const
 
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
 	{
-		ptime timeout = min_time();
+		time_point timeout = min_time();
 
 		for (list_iterator p = m_lru[i].iterate(); p.get(); p.next())
 		{

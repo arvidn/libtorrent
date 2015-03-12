@@ -78,7 +78,7 @@ void purge_peers(std::set<peer_entry>& peers)
 		  , end(peers.end()); i != end;)
 	{
 		// the peer has timed out
-		if (i->added + minutes(int(announce_interval * 1.5f)) < time_now())
+		if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(node) << "peer timed out at: " << i->addr;
@@ -102,7 +102,7 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, m_table(m_id, 8, settings)
 	, m_rpc(m_id, m_table, sock)
 	, m_observer(observer)
-	, m_last_tracker_tick(time_now())
+	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_post_alert(alert_disp)
 	, m_sock(sock)
@@ -178,7 +178,7 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	make_id_secret(target);
 
 	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
-	m_last_self_refresh = time_now();
+	m_last_self_refresh = aux::time_now();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	int count = 0;
@@ -453,7 +453,7 @@ void node_impl::tick()
 {
 	// every now and then we refresh our own ID, just to keep
 	// expanding the routing table buckets closer to us.
-	ptime now = time_now();
+	time_point now = aux::time_now();
 	if (m_last_self_refresh + minutes(10) < now)
 	{
 		node_id target = m_id;
@@ -521,7 +521,7 @@ void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 time_duration node_impl::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
-	ptime now(time_now());
+	time_point now(aux::time_now());
 	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 
@@ -1008,7 +1008,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		peer_entry peer;
 		peer.addr = tcp::endpoint(m.addr.address(), port);
-		peer.added = time_now();
+		peer.added = aux::time_now();
 		peer.seed = msg_keys[4] && msg_keys[4]->int_value();
 		std::set<peer_entry>::iterator i = v->peers.find(peer);
 		if (i != v->peers.end()) v->peers.erase(i++);
@@ -1231,7 +1231,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		m_table.node_seen(id, m.addr, 0xffff);
 
-		f->last_seen = time_now();
+		f->last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash iphash;

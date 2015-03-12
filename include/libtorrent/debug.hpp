@@ -74,7 +74,7 @@ namespace libtorrent
 	// timestamp -> operation
 	struct wakeup_t
 	{
-		ptime timestamp;
+		time_point timestamp;
 		boost::uint64_t context_switches;
 		char const* operation;
 	};
@@ -117,7 +117,7 @@ namespace libtorrent
 		{
 			_wakeups.push_back(wakeup_t());
 			wakeup_t& w = _wakeups.back();
-			w.timestamp = time_now_hires();
+			w.timestamp = clock_type::now();
 #ifdef __MACH__
 			task_events_info teinfo;
 			mach_msg_type_number_t t_info_count = TASK_EVENTS_INFO_COUNT;

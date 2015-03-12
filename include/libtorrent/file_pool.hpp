@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent
 {
@@ -48,7 +49,7 @@ namespace libtorrent
 		int file_index;
 
 		// a (high precision) timestamp of when the file was last used.
-		ptime last_use;
+		time_point last_use;
 
 		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
 		// are the flags used in the ``file::open()`` function. This enum is defined as a member
@@ -126,10 +127,10 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): key(0), last_use(time_now()), mode(0) {}
+			lru_file_entry(): key(0), last_use(aux::time_now()), mode(0) {}
 			mutable file_handle file_ptr;
 			void* key;
-			ptime last_use;
+			time_point last_use;
 			int mode;
 		};
 

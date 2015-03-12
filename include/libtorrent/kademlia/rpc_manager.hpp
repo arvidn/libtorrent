@@ -123,7 +123,7 @@ private:
 	
 	udp_socket_interface* m_sock;
 	routing_table& m_table;
-	ptime m_timer;
+	time_point m_timer;
 	node_id m_our_id;
 	boost::uint32_t m_allocated_observers:31;
 	boost::uint32_t m_destructing:1;

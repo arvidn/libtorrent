@@ -42,13 +42,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/escape_string.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include <boost/bind.hpp>
 
 namespace libtorrent {
 
-	alert::alert() : m_timestamp(time_now()) {}
+	alert::alert() : m_timestamp(aux::time_now()) {}
 	alert::~alert() {}
-	ptime alert::timestamp() const { return m_timestamp; }
+	time_point alert::timestamp() const { return m_timestamp; }
 
 	torrent_alert::torrent_alert(torrent_handle const& h)
 		: handle(h)

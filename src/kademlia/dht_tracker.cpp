@@ -141,7 +141,7 @@ namespace libtorrent { namespace dht
 		, m_dht(&ses, this, settings, extract_node_id(state)
 			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
-		, m_last_new_key(time_now() - minutes(int(key_refresh)))
+		, m_last_new_key(aux::time_now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -250,7 +250,7 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(minutes(tick_period), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
@@ -383,7 +383,7 @@ namespace libtorrent { namespace dht
 				return true;
 		}
 
-		if (!m_blocker.incoming(ep.address(), time_now()))
+		if (!m_blocker.incoming(ep.address(), aux::time_now()))
 			return true;
 
 		using libtorrent::entry;

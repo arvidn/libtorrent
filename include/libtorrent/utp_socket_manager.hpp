@@ -64,7 +64,7 @@ namespace libtorrent
 
 		virtual void socket_drained();
 
-		void tick(ptime now);
+		void tick(time_point now);
 
 		tcp::endpoint local_endpoint(address const& remote, error_code& ec) const;
 		int local_port(error_code& ec) const;
@@ -139,11 +139,11 @@ namespace libtorrent
 
 		// the timestamp for the last time we updated
 		// the routing table
-		mutable ptime m_last_route_update;
+		mutable time_point m_last_route_update;
 
 		// cache of interfaces
 		mutable std::vector<ip_interface> m_interfaces;
-		mutable ptime m_last_if_update;
+		mutable time_point m_last_if_update;
 
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size

@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "peer_server.hpp"
 
 #include <boost/detail/atomic_count.hpp>
@@ -87,7 +88,7 @@ struct peer_server
 			return;
 		}
 
-		fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
+		fprintf(stderr, "%s: PEER peer initialized on port %d\n", aux::time_now_string(), m_port);
 
 		m_thread.reset(new thread(boost::bind(&peer_server::thread_fun, this)));
 	}
@@ -134,7 +135,7 @@ struct peer_server
 				return;
 			}
 
-			fprintf(stderr, "%s: PEER incoming peer connection\n", time_now_string());
+			fprintf(stderr, "%s: PEER incoming peer connection\n", aux::time_now_string());
 			++m_peer_requests;
 			socket.close(ec);
 		}
@@ -158,8 +159,8 @@ int num_peer_hits()
 
 void stop_peer()
 {
-	fprintf(stderr, "%s: PEER stop_peer()\n", time_now_string());
+	fprintf(stderr, "%s: PEER stop_peer()\n", aux::time_now_string());
 	g_peer.reset();
-	fprintf(stderr, "%s: PEER stop_peer() done\n", time_now_string());
+	fprintf(stderr, "%s: PEER stop_peer() done\n", aux::time_now_string());
 }
 

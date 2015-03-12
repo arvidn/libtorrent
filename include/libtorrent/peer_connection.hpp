@@ -479,8 +479,8 @@ namespace libtorrent
 		std::vector<int> const& allowed_fast();
 		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
 
-		ptime connected_time() const { return m_connect; }
-		ptime last_received() const { return m_last_receive; }
+		time_point connected_time() const { return m_connect; }
+		time_point last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec
@@ -555,9 +555,9 @@ namespace libtorrent
 #endif
 
 #if defined TORRENT_LOGGING
-		ptime m_connect_time;
-		ptime m_bitfield_time;
-		ptime m_unchoke_time;
+		time_point m_connect_time;
+		time_point m_bitfield_time;
+		time_point m_unchoke_time;
 #endif
 
 		// the message handlers are called
@@ -714,7 +714,7 @@ namespace libtorrent
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
 		// the time we last unchoked this peer
-		ptime time_of_last_unchoke() const
+		time_point time_of_last_unchoke() const
 		{ return m_last_unchoke; }
 
 		// called when the disk write buffer is drained again, and we can
@@ -813,7 +813,7 @@ namespace libtorrent
 		int preferred_caching() const;
 		void fill_send_buffer();
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
-			, ptime issue_time);
+			, time_point issue_time);
 		void on_disk_write_complete(disk_io_job const* j
 			, peer_request r, boost::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(disk_io_job const* j);
@@ -913,29 +913,29 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		ptime m_last_piece;
+		time_point m_last_piece;
 
 		// the time we sent a request to
 		// this peer the last time
-		ptime m_last_request;
+		time_point m_last_request;
 		// the time we received the last
 		// piece request from the peer
-		ptime m_last_incoming_request;
+		time_point m_last_incoming_request;
 
 		// the time when we unchoked this peer
-		ptime m_last_unchoke;
+		time_point m_last_unchoke;
 
 		// if we're unchoked by this peer, this
 		// was the time
-		ptime m_last_unchoked;
+		time_point m_last_unchoked;
 
 		// the time we last choked this peer. min_time() in
 		// case we never unchoked it
-		ptime m_last_choke;
+		time_point m_last_choke;
 
 		// timeouts
-		ptime m_last_receive;
-		ptime m_last_sent;
+		time_point m_last_receive;
+		time_point m_last_sent;
 
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
@@ -944,23 +944,23 @@ namespace libtorrent
 		// Once we get that response, we set it to the current time.
 		// for more information, see the blog post at:
 		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
-		ptime m_requested;
+		time_point m_requested;
 
 		// a timestamp when the remote download rate
 		// was last updated
-		ptime m_remote_dl_update;
+		time_point m_remote_dl_update;
 
 		// the time when async_connect was called
 		// or when the incoming connection was established
-		ptime m_connect;
+		time_point m_connect;
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		ptime m_became_uninterested;
+		time_point m_became_uninterested;
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		ptime m_became_uninteresting;
+		time_point m_became_uninteresting;
 
 		// the total payload download bytes
 		// at the last unchoke round. This is used to

@@ -659,10 +659,10 @@ namespace libtorrent
 	announce_entry::~announce_entry() {}
 
 	int announce_entry::next_announce_in() const
-	{ return total_seconds(next_announce - time_now()); }
+	{ return total_seconds(next_announce - aux::time_now()); }
 
 	int announce_entry::min_announce_in() const
-	{ return total_seconds(min_announce - time_now()); }
+	{ return total_seconds(min_announce - aux::time_now()); }
 
 	void announce_entry::reset()
 	{
@@ -681,11 +681,11 @@ namespace libtorrent
 			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
 			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
-		next_announce = time_now() + seconds(delay);
+		next_announce = aux::time_now() + seconds(delay);
 		updating = false;
 	}
 
-	bool announce_entry::can_announce(ptime now, bool is_seed) const
+	bool announce_entry::can_announce(time_point now, bool is_seed) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through

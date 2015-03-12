@@ -146,7 +146,7 @@ namespace libtorrent { namespace dht
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
-		ptime m_last_new_key;
+		time_point m_last_new_key;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;
