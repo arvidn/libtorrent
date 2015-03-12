@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
-//#include "libtorrent/random.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
@@ -233,7 +233,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	int mapping_index = i - m_mappings.begin();
 
 #ifdef NATPMP_LOG
-	ptime now = time_now();
+	time_point now = aux::time_now();
 	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
 		, end(m_mappings.end()); m != end; ++m)
 	{
@@ -254,7 +254,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
 {
 #ifdef NATPMP_LOG
-	ptime now = time_now();
+	time_point now = aux::time_now();
 	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
 		, end(m_mappings.end()); m != end; ++m)
 	{
@@ -399,7 +399,7 @@ void natpmp::resend_request(int i, error_code const& e)
 		m_currently_mapping = -1;
 		m_mappings[i].action = mapping_t::action_none;
 		// try again in two hours
-		m_mappings[i].expires = time_now() + hours(2);
+		m_mappings[i].expires = aux::time_now() + hours(2);
 		try_next_mapping(i, l);
 		return;
 	}
@@ -543,7 +543,7 @@ void natpmp::on_reply(error_code const& e
 	}
 	else
 	{
-		m->expires = time_now() + seconds(int(lifetime * 0.7f));
+		m->expires = aux::time_now() + seconds(int(lifetime * 0.7f));
 		m->external_port = public_port;
 	}
 
@@ -560,7 +560,7 @@ void natpmp::on_reply(error_code const& e
 		int ev = errors::no_error;
 		if (result >= 1 && result <= 5) ev = errors[result - 1];
 
-		m->expires = time_now() + hours(2);
+		m->expires = aux::time_now() + hours(2);
 		l.unlock();
 		m_callback(index, address(), 0, error_code(ev, get_libtorrent_category()));
 		l.lock();
@@ -586,7 +586,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 {
 	if (m_abort) return;
 
-	ptime now = time_now() + milliseconds(100);
+	time_point now = aux::time_now() + milliseconds(100);
 #ifdef NATPMP_LOG
 	std::cout << time_now_string() << " update_expiration_timer " << std::endl;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
@@ -601,7 +601,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 			<< " ]" << std::endl;
 	}
 #endif
-	ptime min_expire = now + seconds(3600);
+	time_point min_expire = now + seconds(3600);
 	int min_index = -1;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
@@ -633,7 +633,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 #ifdef NATPMP_LOG
 	std::cout << time_now_string() << " next expiration ["
 			" i: " << min_index
-			<< " ttl: " << total_seconds(min_expire - time_now())
+			<< " ttl: " << total_seconds(min_expire - aux::time_now())
 			<< " ]" << std::endl;
 #endif
 		error_code ec;
@@ -675,7 +675,7 @@ void natpmp::close_impl(mutex::scoped_lock& l)
 	log("closing", l);
 #ifdef NATPMP_LOG
 	std::cout << time_now_string() << " close" << std::endl;
-	ptime now = time_now();
+	time_point now = aux::time_now();
 #endif
 	if (m_disabled) return;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()

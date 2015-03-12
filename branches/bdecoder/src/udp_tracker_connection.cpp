@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #if defined TORRENT_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -289,7 +290,7 @@ namespace libtorrent
 		{
 			// we found a cached entry! Now, we can only
 			// use if if it hasn't expired
-			if (time_now() < cc->second.expires)
+			if (aux::time_now() < cc->second.expires)
 			{
 				if (tracker_req().kind == tracker_request::announce_request)
 					send_udp_announce();
@@ -468,7 +469,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
-		cce.expires = time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
+		cce.expires = aux::time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
 
 		if (tracker_req().kind == tracker_request::announce_request)
 			send_udp_announce();

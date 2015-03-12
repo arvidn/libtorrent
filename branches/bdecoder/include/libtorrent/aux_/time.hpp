@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,36 +30,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp"
-#include "setup_transfer.hpp"
-#include "libtorrent/address.hpp"
+#ifndef TORRENT_AUX_TIME_HPP
+#define TORRENT_AUX_TIME_HPP
+
+#include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/kademlia/dos_blocker.hpp"
+#include <string>
+#include <boost/cstdint.hpp>
 
-int test_main()
+namespace libtorrent { namespace aux
 {
-#ifndef TORRENT_DISABLE_DHT
-	using namespace libtorrent;
-	using namespace libtorrent::dht;
+	// TODO: 3 this is only used for debug logging. It should probably not
+	// be included unconditionally
+	TORRENT_EXTRA_EXPORT char const* time_now_string();
 
-	dos_blocker b;
+	std::string log_time();
 
-	address spammer = address_v4::from_string("10.10.10.10");
+	// returns the current time, as represented by time_point. The
+	// resolution of this timer is about 100 ms.
+	time_point const& time_now();
 
-	time_point now = aux::time_now();
-	for (int i = 0; i < 1000; ++i)
-	{
-		b.incoming(spammer, now);
-		now += milliseconds(1);
-		TEST_EQUAL(b.incoming(rand_v4(), now), true);
-		now += milliseconds(1);
-	}
+} }
 
-	now += milliseconds(1);
-
-	TEST_EQUAL(b.incoming(spammer, now), false);
 #endif
-
-	return 0;
-}
 

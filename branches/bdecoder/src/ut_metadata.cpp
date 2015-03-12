@@ -196,7 +196,7 @@ namespace libtorrent { namespace
 		{
 			metadata_piece(): num_requests(0), last_request(min_time()) {}
 			int num_requests;
-			ptime last_request;
+			time_point last_request;
 			boost::weak_ptr<ut_metadata_peer_plugin> source;
 			bool operator<(metadata_piece const& rhs) const
 			{ return num_requests < rhs.num_requests; }
@@ -410,7 +410,7 @@ namespace libtorrent { namespace
 				break;
 			case 2: // have no data
 				{
-					m_request_limit = (std::max)(time_now() + minutes(1), m_request_limit);
+					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
 					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
@@ -463,10 +463,10 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return m_pc.has_metadata() || (time_now() > m_request_limit);
+			return m_pc.has_metadata() || (aux::time_now() > m_request_limit);
 		}
 
-		void failed_hash_check(ptime const& now)
+		void failed_hash_check(time_point const& now)
 		{
 			m_request_limit = now + seconds(20 + (boost::int64_t(random()) * 50) / UINT_MAX);
 		}
@@ -481,7 +481,7 @@ namespace libtorrent { namespace
 		// again. It is updated every time we get a
 		// "I don't have metadata" message, but also when
 		// we receive metadata that fails the infohash check
-		ptime m_request_limit;
+		time_point m_request_limit;
 
 		// request queues
 		std::vector<int> m_sent_requests;
@@ -521,7 +521,7 @@ namespace libtorrent { namespace
 		int piece = i - m_requested_metadata.begin();
 
 		// don't request the same block more than once every 3 seconds
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		if (m_requested_metadata[piece].last_request != min_time()
 			&& total_seconds(now - m_requested_metadata[piece].last_request) < 3)
 			return -1;
@@ -606,7 +606,7 @@ namespace libtorrent { namespace
 		{
 			if (!m_torrent.valid_metadata())
 			{
-				ptime now = time_now();
+				time_point now = aux::time_now();
 				// any peer that we downloaded metadata from gets a random time
 				// penalty, from 5 to 30 seconds or so. During this time we don't
 				// make any metadata requests from those peers (to mix it up a bit

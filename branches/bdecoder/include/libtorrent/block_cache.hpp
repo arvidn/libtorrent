@@ -211,7 +211,7 @@ namespace libtorrent
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
 		//TODO: make this 32 bits and to count seconds since the block cache was created
-		ptime expire;
+		time_point expire;
 
 		boost::uint64_t piece:22;
 

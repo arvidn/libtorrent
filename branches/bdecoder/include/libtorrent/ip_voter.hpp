@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/address.hpp"
 #include "libtorrent/bloom_filter.hpp"
-#include "libtorrent/time.hpp" // for ptime
+#include "libtorrent/time.hpp" // for time_point
 
 namespace libtorrent
 {
@@ -101,7 +101,7 @@ namespace libtorrent
 		// the last time we rotated this ip_voter. i.e. threw
 		// away all the votes and started from scratch, in case
 		// our IP has changed
-		ptime m_last_rotate;
+		time_point m_last_rotate;
 	};
 
 	// this keeps track of multiple external IPs (for now, just IPv6 and IPv4, but

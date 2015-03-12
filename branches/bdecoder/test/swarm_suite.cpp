@@ -191,10 +191,10 @@ void test_swarm(int flags)
 	ses3.remove_torrent(tor3, lt::session::delete_files);
 
 	std::auto_ptr<alert> a = ses1.pop_alert();
-	ptime end = time_now() + seconds(20);
+	time_point end = aux::time_now() + seconds(20);
 	while (a.get() == 0 || alert_cast<torrent_deleted_alert>(a.get()) == 0)
 	{
-		if (ses1.wait_for_alert(end - time_now()) == 0)
+		if (ses1.wait_for_alert(end - aux::time_now()) == 0)
 		{
 			std::cerr << "wait_for_alert() expired" << std::endl;
 			break;
@@ -210,13 +210,13 @@ void test_swarm(int flags)
 	// make sure that the timer in wait_for_alert() works
 	// this should time out (ret == 0) and it should take
 	// about 2 seconds
-	ptime start = time_now_hires();
+	time_point start = clock_type::now();
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
 		a = ses1.pop_alert();
 		std::cerr << ret->message() << std::endl;
-		start = time_now();
+		start = aux::time_now();
 	}
 
 	// this allows shutting down the sessions in parallel
@@ -224,8 +224,8 @@ void test_swarm(int flags)
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 
-	TEST_CHECK(time_now_hires() - start < seconds(3));
-	TEST_CHECK(time_now_hires() - start >= seconds(2));
+	TEST_CHECK(clock_type::now() - start < seconds(3));
+	TEST_CHECK(clock_type::now() - start >= seconds(2));
 
 	TEST_CHECK(!exists("tmp1_swarm/temporary"));
 	TEST_CHECK(!exists("tmp2_swarm/temporary"));

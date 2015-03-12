@@ -153,7 +153,7 @@ struct peer_conn
 		, blocks_received(0)
 		, blocks_sent(0)
 		, num_pieces(num_pieces)
-		, start_time(time_now_hires())
+		, start_time(clock_type::now())
 		, churn(churn_)
 		, corrupt(corrupt_)
 		, endpoint(ep)
@@ -222,8 +222,8 @@ struct peer_conn
 	int blocks_received;
 	int blocks_sent;
 	int num_pieces;
-	ptime start_time;
-	ptime end_time;
+	time_point start_time;
+	time_point end_time;
 	int churn;
 	bool corrupt;
 	tcp::endpoint endpoint;
@@ -408,7 +408,7 @@ struct peer_conn
 
 	void close(char const* fmt, error_code const& ec)
 	{
-		end_time = time_now_hires();
+		end_time = clock_type::now();
 		char tmp[1024];
 		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = total_milliseconds(end_time - start_time);

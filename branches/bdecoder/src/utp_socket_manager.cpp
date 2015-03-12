@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 // #define TORRENT_DEBUG_MTU 1135
 
@@ -70,7 +71,7 @@ namespace libtorrent
 		}
 	}
 
-	void utp_socket_manager::tick(ptime now)
+	void utp_socket_manager::tick(time_point now)
 	{
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
@@ -89,9 +90,9 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (time_now() - seconds(60) > m_last_route_update)
+		if (aux::time_now() - seconds(60) > m_last_route_update)
 		{
-			m_last_route_update = time_now();
+			m_last_route_update = aux::time_now();
 			error_code ec;
 			m_routes = enum_routes(m_sock.get_io_service(), ec);
 		}
@@ -198,9 +199,9 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		if (time_now() - seconds(60) > m_last_route_update)
+		if (aux::time_now() - seconds(60) > m_last_route_update)
 		{
-			m_last_route_update = time_now();
+			m_last_route_update = aux::time_now();
 			error_code ec;
 			m_routes = enum_routes(m_sock.get_io_service(), ec);
 			if (ec) return socket_ep;
@@ -229,9 +230,9 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		if (time_now() - seconds(60) > m_last_if_update)
+		if (aux::time_now() - seconds(60) > m_last_if_update)
 		{
-			m_last_if_update = time_now();
+			m_last_if_update = aux::time_now();
 			error_code ec;
 			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), ec);
 			if (ec) return socket_ep;
@@ -262,7 +263,7 @@ namespace libtorrent
 
 		if (ph->get_version() != 1) return false;
 
-		const ptime receive_time = time_now_hires();
+		const time_point receive_time = clock_type::now();
 		
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.

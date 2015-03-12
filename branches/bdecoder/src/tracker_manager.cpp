@@ -58,7 +58,7 @@ namespace libtorrent
 {
 	timeout_handler::timeout_handler(io_service& ios)
 		: m_completion_timeout(0)
-		, m_start_time(time_now_hires())
+		, m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
 		, m_read_timeout(0)
@@ -69,7 +69,7 @@ namespace libtorrent
 	{
 		m_completion_timeout = completion_timeout;
 		m_read_timeout = read_timeout;
-		m_start_time = m_read_time = time_now_hires();
+		m_start_time = m_read_time = clock_type::now();
 
 		TORRENT_ASSERT(completion_timeout > 0 || read_timeout > 0);
 
@@ -95,7 +95,7 @@ namespace libtorrent
 
 	void timeout_handler::restart_read_timeout()
 	{
-		m_read_time = time_now_hires();
+		m_read_time = clock_type::now();
 	}
 
 	void timeout_handler::cancel()
@@ -113,7 +113,7 @@ namespace libtorrent
 #endif
 		if (m_abort) return;
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
 		

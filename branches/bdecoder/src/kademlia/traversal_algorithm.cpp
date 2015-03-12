@@ -503,7 +503,7 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.first_timeout = 0;
 
 	int last_sent = INT_MAX;
-	ptime now = time_now();
+	time_point now = aux::time_now();
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end; ++i)
 	{

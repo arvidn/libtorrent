@@ -50,7 +50,7 @@ namespace libtorrent { namespace dht
 		// called every time we receive an incoming packet. Returns
 		// true if we should let the packet through, and false if
 		// it's blocked
-		bool incoming(address addr, ptime now);
+		bool incoming(address addr, time_point now);
 
 		void set_rate_limit(int l)
 		{
@@ -71,7 +71,7 @@ namespace libtorrent { namespace dht
 		{
 			node_ban_entry(): count(0) {}
 			address src;
-			ptime limit;
+			time_point limit;
 			int count;
 		};
 

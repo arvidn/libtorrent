@@ -137,7 +137,7 @@ void test_transfer(int flags
 		error_code ec;
 		int port = seed->listen_port();
 		fprintf(stderr, "%s: downloader: connecting peer port: %d\n"
-			, time_now_string(), port);
+			, aux::time_now_string(), port);
 		tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, port));
 	}
@@ -146,7 +146,7 @@ void test_transfer(int flags
 		error_code ec;
 		int port = downloader->listen_port();
 		fprintf(stderr, "%s: seed: connecting peer port: %d\n"
-			, time_now_string(), port);
+			, aux::time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, port));
 	}

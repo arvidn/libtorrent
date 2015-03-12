@@ -700,15 +700,6 @@ External libraries:
   system libiconv:      ${ARG_WITH_LIBICONV:-no}
 END
 
-AS_IF([test "x$ARG_WITH_LIBGEOIP" = "xyes"], [
-cat >> config.report << END
-
-GeoIP library:
-  GeoIP CFlags:         ${GEOIP_CFLAGS}
-  GeoIP Libs:           ${GEOIP_LIBS}
-END
-])
-
 AS_IF([test "x$ARG_WITH_LIBICONV" = "xyes"], [
 cat >> config.report << END
 

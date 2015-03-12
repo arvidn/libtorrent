@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_any() etc.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random()
-#include "libtorrent/time.hpp" // for time_now()
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 #include <boost/bind.hpp>
 
@@ -43,14 +43,14 @@ namespace libtorrent
 	ip_voter::ip_voter()
 		: m_total_votes(0)
 		, m_valid_external(false)
-		, m_last_rotate(time_now())
+		, m_last_rotate(aux::time_now())
 	{
 	}
 
 	// returns true if our external IP changed
 	bool ip_voter::maybe_rotate()
 	{
-		ptime now = time_now();
+		time_point now = aux::time_now();
 
 		// if we have more than or equal to 50 votes,
 		// we rotate. Also, if it's been more than 5 minutes

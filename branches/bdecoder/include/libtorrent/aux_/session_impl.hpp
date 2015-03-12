@@ -950,18 +950,18 @@ namespace libtorrent
 			void recalculate_unchoke_slots();
 			void recalculate_optimistic_unchoke_slots();
 
-			ptime m_created;
-			boost::int64_t session_time() const { return total_seconds(time_now() - m_created); }
+			time_point m_created;
+			boost::int64_t session_time() const { return total_seconds(aux::time_now() - m_created); }
 
-			ptime m_last_tick;
-			ptime m_last_second_tick;
+			time_point m_last_tick;
+			time_point m_last_second_tick;
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke
-			ptime m_last_choke;
+			time_point m_last_choke;
 
 			// the time when the next rss feed needs updating
-			ptime m_next_rss_update;
+			time_point m_next_rss_update;
 
 			// update any rss feeds that need updating and
 			// recalculate m_next_rss_update

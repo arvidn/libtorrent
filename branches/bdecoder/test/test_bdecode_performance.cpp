@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 	}
 
 	{
-	ptime start(time_now_hires());
+	time_point start(clock_type::now());
 	entry e;
 	for (int i = 0; i < 1000000; ++i)
 	{
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
 		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 //		lazy_entry* info = e.dict_find("info");
 	}
-	ptime stop(time_now_hires());
+	time_point stop(clock_type::now());
 
 	fprintf(stderr, "lazy_bdecode done in   %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));

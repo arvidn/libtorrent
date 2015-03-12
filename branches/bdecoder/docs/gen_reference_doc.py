@@ -85,7 +85,6 @@ category_mapping = {
 	'bdecode.hpp': 'Bdecoding',
 	'entry.hpp': 'Bencoding',
 	'time.hpp': 'Time',
-	'ptime.hpp': 'Time',
 	'escape_string.hpp': 'String',
 	'string_util.hpp': 'String',
 	'utf8.hpp': 'String',
