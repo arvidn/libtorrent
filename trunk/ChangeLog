@@ -1,3 +1,4 @@
+	* replaced lazy_bdecode with a new bdecoder that's a lot more efficient
 	* deprecate time functions, expose typedefs of boost::chrono in the libtorrent
 	  namespace instead
 	* deprecate file_base feature in file_storage/torrent_info

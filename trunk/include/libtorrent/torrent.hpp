@@ -116,7 +116,7 @@ namespace libtorrent
 	struct resume_data_t
 	{
 		std::vector<char> buf;
-		lazy_entry entry;
+		bdecode_node node;
 	};
 
 	struct time_critical_piece
@@ -1019,7 +1019,7 @@ namespace libtorrent
 		torrent_handle get_handle();
 
 		void write_resume_data(entry& rd) const;
-		void read_resume_data(lazy_entry const& rd);
+		void read_resume_data(bdecode_node const& rd);
 
 		void seen_complete() { m_last_seen_complete = time(0); }
 		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }

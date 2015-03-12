@@ -311,14 +311,14 @@ namespace libtorrent
 		// to the ``entry`` that's passed in, which needs to either not be
 		// initialized, or initialized as a dictionary.
 		// 
-		// ``load_state`` expects a lazy_entry which can be built from a bencoded
-		// buffer with lazy_bdecode().
+		// ``load_state`` expects a bdecode_node which can be built from a bencoded
+		// buffer with bdecode().
 		// 
 		// The ``flags`` arguments passed in to ``save_state`` can be used to
 		// filter which parts of the session state to save. By default, all state
 		// is saved (except for the individual torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
-		void load_state(lazy_entry const& e);
+		void load_state(bdecode_node const& e);
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with
@@ -735,6 +735,9 @@ namespace libtorrent
 		void load_state(entry const& ses_state) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		entry state() const TORRENT_DEPRECATED;
+		// deprecated in 1.1
+		TORRENT_DEPRECATED_PREFIX
+		void load_state(lazy_entry const& ses_state) TORRENT_DEPRECATED;
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well

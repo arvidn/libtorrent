@@ -221,44 +221,44 @@ void node_impl::unreachable(udp::endpoint const& ep)
 void node_impl::incoming(msg const& m)
 {
 	// is this a reply?
-	lazy_entry const* y_ent = m.message.dict_find_string("y");
-	if (!y_ent || y_ent->string_length() == 0)
+	bdecode_node y_ent = m.message.dict_find_string("y");
+	if (!y_ent || y_ent.string_length() == 0)
 	{
 		// don't respond to this obviously broken messages. We don't
 		// want to open up a magnification opportunity
 //		entry e;
 //		incoming_error(e, "missing 'y' entry");
-//		m_sock->send_packet(e, m.addr, 0);
+//		m_sock.send_packet(e, m.addr, 0);
 		return;
 	}
 
-	char y = *(y_ent->string_ptr());
+	char y = *(y_ent.string_ptr());
 
-	lazy_entry const* ext_ip = m.message.dict_find_string("ip");
+	bdecode_node ext_ip = m.message.dict_find_string("ip");
 
 	// backwards compatibility
-	if (ext_ip == NULL)
+	if (!ext_ip)
 	{
-		lazy_entry const* r = m.message.dict_find_dict("r");
+		bdecode_node r = m.message.dict_find_dict("r");
 		if (r)
-			ext_ip = r->dict_find_string("ip");
+			ext_ip = r.dict_find_string("ip");
 	}
 
 #if TORRENT_USE_IPV6
-	if (ext_ip && ext_ip->string_length() >= 16)
+	if (ext_ip && ext_ip.string_length() >= 16)
 	{
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
-		memcpy(&b[0], ext_ip->string_ptr(), 16);
+		memcpy(&b[0], ext_ip.string_ptr(), 16);
 		if (m_observer)
 			m_observer->set_external_address(address_v6(b)
 				, m.addr.address());
 	} else
 #endif
-	if (ext_ip && ext_ip->string_length() >= 4)
+	if (ext_ip && ext_ip.string_length() >= 4)
 	{
 		address_v4::bytes_type b;
-		memcpy(&b[0], ext_ip->string_ptr(), 4);
+		memcpy(&b[0], ext_ip.string_ptr(), 4);
 		if (m_observer)
 			m_observer->set_external_address(address_v4(b)
 				, m.addr.address());
@@ -283,10 +283,10 @@ void node_impl::incoming(msg const& m)
 		case 'e':
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			lazy_entry const* err = m.message.dict_find_list("e");
-			if (err && err->list_size() >= 2)
+			bdecode_node err = m.message.dict_find_list("e");
+			if (err && err.list_size() >= 2)
 			{
-				TORRENT_LOG(node) << "INCOMING ERROR: " << err->list_string_value_at(1);
+				TORRENT_LOG(node) << "INCOMING ERROR: " << err.list_string_value_at(1);
 			}
 #endif
 			node_id id;
@@ -419,7 +419,7 @@ struct ping_observer : observer
 	{
 		flags |= flag_done;
 
-		lazy_entry const* r = m.message.dict_find_dict("r");
+		bdecode_node r = m.message.dict_find_dict("r");
 		if (!r)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -430,11 +430,11 @@ struct ping_observer : observer
 		}
 
 		// look for nodes
-		lazy_entry const* n = r->dict_find_string("nodes");
+		bdecode_node n = r.dict_find_string("nodes");
 		if (n)
 		{
-			char const* nodes = n->string_ptr();
-			char const* end = nodes + n->string_length();
+			char const* nodes = n.string_ptr();
+			char const* end = nodes + n.string_length();
 
 			while (end - nodes >= 26)
 			{
@@ -674,18 +674,23 @@ using detail::write_nodes_entry;
 
 // verifies that a message has all the required
 // entries and returns them in ret
-bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry const* ret[]
-	, int size , char* error, int error_size)
+bool verify_message(bdecode_node const& message, key_desc_t const desc[]
+	, bdecode_node ret[], int size , char* error, int error_size)
 {
+	// get a non-root bdecode_node that still
+	// points to the root. message should not be copied
+	bdecode_node msg = message.non_owning();
+
 	// clear the return buffer
-	memset(ret, 0, sizeof(ret[0]) * size);
+	for (int i = 0; i < size; ++i)
+		ret[i].clear();
 
 	// when parsing child nodes, this is the stack
-	// of lazy_entry pointers to return to
-	lazy_entry const* stack[5];
+	// of bdecode_nodes to return to
+	bdecode_node stack[5];
 	int stack_ptr = -1;
 
-	if (msg->type() != lazy_entry::dict_t)
+	if (msg.type() != bdecode_node::dict_t)
 	{
 		snprintf(error, error_size, "not a dictionary");
 		return false;
@@ -698,9 +703,10 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 
 //		fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
 
-		ret[i] = msg->dict_find(k.name);
+		ret[i] = msg.dict_find(k.name);
 		// none_t means any type
-		if (ret[i] && ret[i]->type() != k.type && k.type != lazy_entry::none_t) ret[i] = 0;
+		if (ret[i] && ret[i].type() != k.type && k.type != bdecode_node::none_t)
+			ret[i].clear();
 		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
 		{
 			// the key was not found, and it's not an optional key
@@ -710,18 +716,18 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 
 		if (k.size > 0
 			&& ret[i]
-			&& k.type == lazy_entry::string_t)
+			&& k.type == bdecode_node::string_t)
 		{
 			bool invalid = false;
 			if (k.flags & key_desc_t::size_divisible)
-				invalid = (ret[i]->string_length() % k.size) != 0;
+				invalid = (ret[i].string_length() % k.size) != 0;
 			else
-				invalid = ret[i]->string_length() != k.size;
+				invalid = ret[i].string_length() != k.size;
 
 			if (invalid)
 			{
 				// the string was not of the required size
-				ret[i] = 0;
+				ret[i].clear();
 				if ((k.flags & key_desc_t::optional) == 0)
 				{
 					snprintf(error, error_size, "invalid value for '%s'", k.name);
@@ -731,7 +737,7 @@ bool verify_message(lazy_entry const* msg, key_desc_t const desc[], lazy_entry c
 		}
 		if (k.flags & key_desc_t::parse_children)
 		{
-			TORRENT_ASSERT(k.type == lazy_entry::dict_t);
+			TORRENT_ASSERT(k.type == bdecode_node::dict_t);
 
 			if (ret[i])
 			{
@@ -805,15 +811,16 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	e["t"] = m.message.dict_find_string_value("t");
 
 	key_desc_t top_desc[] = {
-		{"q", lazy_entry::string_t, 0, 0},
-		{"ro", lazy_entry::int_t, 0, key_desc_t::optional},
-		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
-			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
+		{"q", bdecode_node::string_t, 0, 0},
+		{"ro", bdecode_node::int_t, 0, key_desc_t::optional},
+		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
-	lazy_entry const* top_level[4];
+	bdecode_node top_level[4];
 	char error_string[200];
-	if (!verify_message(&m.message, top_desc, top_level, 4, error_string, sizeof(error_string)))
+	if (!verify_message(m.message, top_desc, top_level, 4, error_string
+		, sizeof(error_string)))
 	{
 		incoming_error(e, error_string);
 		return;
@@ -821,11 +828,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 	e["ip"] = endpoint_to_bytes(m.addr);
 
-	char const* query = top_level[0]->string_cstr();
+	char const* query = top_level[0].string_ptr();
+	int query_len = top_level[0].string_length();
 
-	lazy_entry const* arg_ent = top_level[2];
-	bool read_only = top_level[1] && top_level[1]->int_value() != 0;
-	node_id id(top_level[3]->string_ptr());
+	bdecode_node arg_ent = top_level[2];
+	bool read_only = top_level[1] && top_level[1].int_value() != 0;
+	node_id id(top_level[3].string_ptr());
 
 	// if this nodes ID doesn't match its IP, tell it what
 	// its IP is with an error
@@ -845,21 +853,21 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();
 
-	if (strcmp(query, "ping") == 0)
+	if (query_len == 4 && memcmp(query, "ping", 4) == 0)
 	{
 		m_counters.inc_stats_counter(counters::dht_ping_in);
 		// we already have 't' and 'id' in the response
 		// no more left to add
 	}
-	else if (strcmp(query, "get_peers") == 0)
+	else if (query_len == 9 && memcmp(query, "get_peers", 9) == 0)
 	{
 		key_desc_t msg_desc[] = {
-			{"info_hash", lazy_entry::string_t, 20, 0},
-			{"noseed", lazy_entry::int_t, 0, key_desc_t::optional},
-			{"scrape", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"info_hash", bdecode_node::string_t, 20, 0},
+			{"noseed", bdecode_node::int_t, 0, key_desc_t::optional},
+			{"scrape", bdecode_node::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[3];
+		bdecode_node msg_keys[3];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string
 			, sizeof(error_string)))
 		{
@@ -868,11 +876,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		reply["token"] = generate_token(m.addr, msg_keys[0]->string_ptr());
+		reply["token"] = generate_token(m.addr, msg_keys[0].string_ptr());
 		
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
-		sha1_hash info_hash(msg_keys[0]->string_ptr());
+		sha1_hash info_hash(msg_keys[0].string_ptr());
 		nodes_t n;
 		// always return nodes as well as peers
 		m_table.find_node(info_hash, n, 0);
@@ -880,8 +888,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		bool noseed = false;
 		bool scrape = false;
-		if (msg_keys[1] && msg_keys[1]->int_value() != 0) noseed = true;
-		if (msg_keys[2] && msg_keys[2]->int_value() != 0) scrape = true;
+		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
+		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
 		lookup_peers(info_hash, reply, noseed, scrape);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (reply.find_key("values"))
@@ -890,13 +898,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		}
 #endif
 	}
-	else if (strcmp(query, "find_node") == 0)
+	else if (query_len == 9 && memcmp(query, "find_node", 9) == 0)
 	{
 		key_desc_t msg_desc[] = {
-			{"target", lazy_entry::string_t, 20, 0},
+			{"target", bdecode_node::string_t, 20, 0},
 		};
 
-		lazy_entry const* msg_keys[1];
+		bdecode_node msg_keys[1];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
@@ -904,25 +912,25 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_find_node_in);
-		sha1_hash target(msg_keys[0]->string_ptr());
+		sha1_hash target(msg_keys[0].string_ptr());
 
 		// TODO: 2 find_node should write directly to the response entry
 		nodes_t n;
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 	}
-	else if (strcmp(query, "announce_peer") == 0)
+	else if (query_len == 13 && memcmp(query, "announce_peer", 13) == 0)
 	{
 		key_desc_t msg_desc[] = {
-			{"info_hash", lazy_entry::string_t, 20, 0},
-			{"port", lazy_entry::int_t, 0, 0},
-			{"token", lazy_entry::string_t, 0, 0},
-			{"n", lazy_entry::string_t, 0, key_desc_t::optional},
-			{"seed", lazy_entry::int_t, 0, key_desc_t::optional},
-			{"implied_port", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"info_hash", bdecode_node::string_t, 20, 0},
+			{"port", bdecode_node::int_t, 0, 0},
+			{"token", bdecode_node::string_t, 0, 0},
+			{"n", bdecode_node::string_t, 0, key_desc_t::optional},
+			{"seed", bdecode_node::int_t, 0, key_desc_t::optional},
+			{"implied_port", bdecode_node::int_t, 0, key_desc_t::optional},
 		};
 
-		lazy_entry const* msg_keys[6];
+		bdecode_node msg_keys[6];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
@@ -930,11 +938,11 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		int port = int(msg_keys[1]->int_value());
+		int port = int(msg_keys[1].int_value());
 
 		// is the announcer asking to ignore the explicit
 		// listen port and instead use the source port of the packet?
-		if (msg_keys[5] && msg_keys[5]->int_value() != 0)
+		if (msg_keys[5] && msg_keys[5].int_value() != 0)
 			port = m.addr.port();
 
 		if (port < 0 || port >= 65536)
@@ -944,7 +952,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash info_hash(msg_keys[0]->string_ptr());
+		sha1_hash info_hash(msg_keys[0].string_ptr());
 
 		if (m_post_alert)
 		{
@@ -952,7 +960,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			if (!m_post_alert->post_alert(a)) delete a;
 		}
 
-		if (!verify_token(msg_keys[2]->string_value(), msg_keys[0]->string_ptr(), m.addr))
+		if (!verify_token(msg_keys[2].string_value(), msg_keys[0].string_ptr(), m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, "invalid token");
@@ -1001,7 +1009,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// for this torrent. Store it.
 		if (msg_keys[3] && v->name.empty())
 		{
-			std::string name = msg_keys[3]->string_value();
+			std::string name = msg_keys[3].string_value();
 			if (name.size() > 50) name.resize(50);
 			v->name = name;
 		}
@@ -1009,28 +1017,28 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		peer_entry peer;
 		peer.addr = tcp::endpoint(m.addr.address(), port);
 		peer.added = aux::time_now();
-		peer.seed = msg_keys[4] && msg_keys[4]->int_value();
+		peer.seed = msg_keys[4] && msg_keys[4].int_value();
 		std::set<peer_entry>::iterator i = v->peers.find(peer);
 		if (i != v->peers.end()) v->peers.erase(i++);
 		v->peers.insert(i, peer);
 	}
-	else if (strcmp(query, "put") == 0)
+	else if (query_len == 3 && memcmp(query, "put", 3) == 0)
 	{
 		// the first 2 entries are for both mutable and
 		// immutable puts
 		const static key_desc_t msg_desc[] = {
-			{"token", lazy_entry::string_t, 0, 0},
-			{"v", lazy_entry::none_t, 0, 0},
-			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
+			{"token", bdecode_node::string_t, 0, 0},
+			{"v", bdecode_node::none_t, 0, 0},
+			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", lazy_entry::string_t, item_pk_len, key_desc_t::optional},
-			{"sig", lazy_entry::string_t, item_sig_len, key_desc_t::optional},
-			{"cas", lazy_entry::int_t, 0, key_desc_t::optional},
-			{"salt", lazy_entry::string_t, 0, key_desc_t::optional},
+			{"k", bdecode_node::string_t, item_pk_len, key_desc_t::optional},
+			{"sig", bdecode_node::string_t, item_sig_len, key_desc_t::optional},
+			{"cas", bdecode_node::int_t, 0, key_desc_t::optional},
+			{"salt", bdecode_node::string_t, 0, key_desc_t::optional},
 		};
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[7];
+		bdecode_node msg_keys[7];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
@@ -1045,14 +1053,14 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		// public key (only set if it's a mutable put)
 		char const* pk = NULL;
-		if (msg_keys[3]) pk = msg_keys[3]->string_ptr();
+		if (msg_keys[3]) pk = msg_keys[3].string_ptr();
 
 		// signature (only set if it's a mutable put)
 		char const* sig = NULL;
-		if (msg_keys[4]) sig = msg_keys[4]->string_ptr();
+		if (msg_keys[4]) sig = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
-		std::pair<char const*, int> buf = msg_keys[1]->data_section();
+		std::pair<char const*, int> buf = msg_keys[1].data_section();
 		if (buf.second > 1000 || buf.second <= 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
@@ -1063,7 +1071,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		std::pair<char const*, int> salt(static_cast<char const*>(NULL), 0);
 		if (msg_keys[6])
 			salt = std::pair<char const*, int>(
-				msg_keys[6]->string_ptr(), msg_keys[6]->string_length());
+				msg_keys[6].string_ptr(), msg_keys[6].string_length());
 		if (salt.second > 64)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
@@ -1085,7 +1093,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
-		if (!verify_token(msg_keys[0]->string_value(), (char const*)&target[0], m.addr))
+		if (!verify_token(msg_keys[0].string_value(), (char const*)&target[0], m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "invalid token");
@@ -1133,12 +1141,12 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			// mutable put, we must verify the signature
 
 #ifdef TORRENT_USE_VALGRIND
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4]->string_ptr(), item_sig_len);
+			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4].string_ptr(), item_sig_len);
 			VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
 #endif
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (!verify_mutable_item(buf, salt
-				, msg_keys[2]->int_value(), pk, sig))
+				, msg_keys[2].int_value(), pk, sig))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid signature", 206);
@@ -1167,7 +1175,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				dht_mutable_item to_add;
 				to_add.value = (char*)malloc(buf.second);
 				to_add.size = buf.second;
-				to_add.seq = msg_keys[2]->int_value();
+				to_add.seq = msg_keys[2].int_value();
 				to_add.salt = NULL;
 				to_add.salt_size = 0;
 				if (salt.second > 0)
@@ -1177,7 +1185,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 					memcpy(to_add.salt, salt.first, salt.second);
 				}
 				memcpy(to_add.sig, sig, sizeof(to_add.sig));
-				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4]->string_length());
+				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4].string_length());
 				memcpy(to_add.value, buf.first, buf.second);
 				memcpy(&to_add.key, pk, sizeof(to_add.key));
 		
@@ -1197,21 +1205,21 @@ void node_impl::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item->seq != msg_keys[5]->int_value())
+				if (msg_keys[5] && item->seq != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
 					return;
 				}
 
-				if (item->seq > boost::uint64_t(msg_keys[2]->int_value()))
+				if (item->seq > boost::uint64_t(msg_keys[2].int_value()))
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "old sequence number", 302);
 					return;
 				}
 
-				if (item->seq < boost::uint64_t(msg_keys[2]->int_value()))
+				if (item->seq < boost::uint64_t(msg_keys[2].int_value()))
 				{
 					if (item->size != buf.second)
 					{
@@ -1219,9 +1227,9 @@ void node_impl::incoming_request(msg const& m, entry& e)
 						item->value = (char*)malloc(buf.second);
 						item->size = buf.second;
 					}
-					item->seq = msg_keys[2]->int_value();
-					memcpy(item->sig, msg_keys[4]->string_ptr(), sizeof(item->sig));
-					TORRENT_ASSERT(sizeof(item->sig) == msg_keys[4]->string_length());
+					item->seq = msg_keys[2].int_value();
+					memcpy(item->sig, msg_keys[4].string_ptr(), sizeof(item->sig));
+					TORRENT_ASSERT(sizeof(item->sig) == msg_keys[4].string_length());
 					memcpy(item->value, buf.first, buf.second);
 				}
 			}
@@ -1242,17 +1250,17 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			++f->num_announcers;
 		}
 	}
-	else if (strcmp(query, "get") == 0)
+	else if (query_len == 3 && memcmp(query, "get", 3) == 0)
 	{
 		key_desc_t msg_desc[] = {
-			{"seq", lazy_entry::int_t, 0, key_desc_t::optional},
-			{"target", lazy_entry::string_t, 20, 0},
+			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
+			{"target", bdecode_node::string_t, 20, 0},
 		};
 
 		// k is not used for now
 
 		// attempt to parse the message
-		lazy_entry const* msg_keys[2];
+		bdecode_node msg_keys[2];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string
 			, sizeof(error_string)))
 		{
@@ -1262,13 +1270,13 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		}
 
 		m_counters.inc_stats_counter(counters::dht_get_in);
-		sha1_hash target(msg_keys[1]->string_ptr());
+		sha1_hash target(msg_keys[1].string_ptr());
 
 //		fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, to_hex(target.to_string()).c_str());
 
-		reply["token"] = generate_token(m.addr, msg_keys[1]->string_ptr());
+		reply["token"] = generate_token(m.addr, msg_keys[1].string_ptr());
 		
 		nodes_t n;
 		// always return nodes as well as peers
@@ -1294,7 +1302,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 			{
 				dht_mutable_item const& f = i->second;
 				reply["seq"] = f.seq;
-				if (!msg_keys[0] || boost::uint64_t(msg_keys[0]->int_value()) < f.seq)
+				if (!msg_keys[0] || boost::uint64_t(msg_keys[0].int_value()) < f.seq)
 				{
 					reply["v"] = bdecode(f.value, f.value + f.size);
 					reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
@@ -1308,18 +1316,18 @@ void node_impl::incoming_request(msg const& m, entry& e)
 		// if we don't recognize the message but there's a
 		// 'target' or 'info_hash' in the arguments, treat it
 		// as find_node to be future compatible
-		lazy_entry const* target_ent = arg_ent->dict_find_string("target");
-		if (target_ent == 0 || target_ent->string_length() != 20)
+		bdecode_node target_ent = arg_ent.dict_find_string("target");
+		if (!target_ent || target_ent.string_length() != 20)
 		{
-			target_ent = arg_ent->dict_find_string("info_hash");
-			if (target_ent == 0 || target_ent->string_length() != 20)
+			target_ent = arg_ent.dict_find_string("info_hash");
+			if (!target_ent || target_ent.string_length() != 20)
 			{
 				incoming_error(e, "unknown message");
 				return;
 			}
 		}
 
-		sha1_hash target(target_ent->string_ptr());
+		sha1_hash target(target_ent.string_ptr());
 		nodes_t n;
 		// always return nodes as well as peers
 		m_table.find_node(target, n, 0);

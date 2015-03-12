@@ -229,7 +229,7 @@ namespace libtorrent
 
 		int next_update(time_t now) const;
 
-		void load_state(lazy_entry const& rd);
+		void load_state(bdecode_node const& rd);
 		void save_state(entry& rd) const;
 	
 //	private:

@@ -459,7 +459,7 @@ void test_check_files(std::string const& test_path
 	libtorrent::mutex lock;
 
 	bool done = false;
-	lazy_entry frd;
+	bdecode_node frd;
 	io.async_check_fastresume(pm.get(), &frd, boost::bind(&on_check_resume_data, _1, &done));
 	io.submit_jobs();
 	ios.reset();

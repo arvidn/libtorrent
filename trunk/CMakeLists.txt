@@ -13,6 +13,7 @@ set(sources
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
+	bdecode
 	block_cache
 	bloom_filter
 	chained_buffer

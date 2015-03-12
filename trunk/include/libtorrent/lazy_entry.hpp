@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LAZY_ENTRY_HPP_INCLUDED
 #define TORRENT_LAZY_ENTRY_HPP_INCLUDED
 
+#ifndef TORRENT_NO_DEPRECATE
+
 #include <utility>
 #include <vector>
 #include <string>
@@ -41,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/bdecode.hpp" // for error codes
 
 namespace libtorrent
 {
@@ -50,9 +53,8 @@ namespace libtorrent
 	// 
 	// .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
 	// 
-	// Whenever possible, ``lazy_bdecode()`` should be preferred over ``bdecode()``.
-	// It is more efficient and more secure. It supports having constraints on the
-	// amount of memory is consumed by the parser.
+	// The lazy bdecoder and lazy_entry has been deprecated in favour of
+	// bdecode_node and its corresponding bdecode() function.
 	// 
 	// *lazy* refers to the fact that it doesn't copy any actual data out of the
 	// bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
@@ -79,9 +81,10 @@ namespace libtorrent
 	// in case the function fails. ``error_pos`` is an optional pointer to an int,
 	// which will be set to the byte offset into the buffer where an error occurred,
 	// in case the function fails.
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
-		, int depth_limit = 1000, int item_limit = 1000000);
+		, int depth_limit = 1000, int item_limit = 1000000) TORRENT_DEPRECATED;
 
 #ifndef TORRENT_NO_DEPRECATE
 	// for backwards compatibility, does not report error code
@@ -392,63 +395,21 @@ namespace libtorrent
 		lazy_entry val;
 	};
 
-	// print the bencoded structure in a human-readable format to a stting
+	// print the bencoded structure in a human-readable format to a string
 	// that's returned.
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
-		, bool single_line = false, int indent = 0);
+		, bool single_line = false, int indent = 0) TORRENT_DEPRECATED;
 
-	// get the ``error_category`` for bdecode errors
-	TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
-
-	namespace bdecode_errors
-	{
-		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-		// its own error category get_bdecode_category() whith the error codes defined by error_code_enum.
-		enum error_code_enum
-		{
-			// Not an error
-			no_error = 0,
-			// expected string in bencoded string
-			expected_string,
-			// expected colon in bencoded string
-			expected_colon,
-			// unexpected end of file in bencoded string
-			unexpected_eof,
-			// expected value (list, dict, int or string) in bencoded string
-			expected_value,
-			// bencoded recursion depth limit exceeded
-			depth_exceeded,
-			// bencoded item count limit exceeded
-			limit_exceeded,
-			// integer overflow
-			overflow,
-
-			// the number of error codes
-			error_code_max
-		};
-
-		// hidden
-		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
-	}
-
+	// defined in bdecode.cpp
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 		, char const* end, char delimiter, boost::int64_t& val
-		, bdecode_errors::error_code_enum& ec);
+		, bdecode_errors::error_code_enum& ec) TORRENT_DEPRECATED;
 
 }
 
-#if BOOST_VERSION >= 103500
-
-namespace boost { namespace system {
-
-	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
-	{ static const bool value = true; };
-
-	template<> struct is_error_condition_enum<libtorrent::bdecode_errors::error_code_enum>
-	{ static const bool value = true; };
-} }
-
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 #endif
 

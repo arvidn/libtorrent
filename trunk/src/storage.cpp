@@ -712,47 +712,47 @@ namespace libtorrent
 		return int((data_start + files().piece_length() - 1) / files().piece_length());
 	}
 
-	bool default_storage::verify_resume_data(lazy_entry const& rd, storage_error& ec)
+	bool default_storage::verify_resume_data(bdecode_node const& rd, storage_error& ec)
 	{
 		// TODO: make this more generic to not just work if files have been
 		// renamed, but also if they have been merged into a single file for instance
 		// maybe use the same format as .torrent files and reuse some code from torrent_info
-		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files->list_size() == m_files.num_files())
+		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
+		if (mapped_files && mapped_files.list_size() == m_files.num_files())
 		{
 			m_mapped_files.reset(new file_storage(m_files));
 			for (int i = 0; i < m_files.num_files(); ++i)
 			{
-				std::string new_filename = mapped_files->list_string_value_at(i);
+				std::string new_filename = mapped_files.list_string_value_at(i);
 				if (new_filename.empty()) continue;
 				m_mapped_files->rename_file(i, new_filename);
 			}
 		}
 		
-		lazy_entry const* file_priority = rd.dict_find_list("file_priority");
-		if (file_priority && file_priority->list_size()
+		bdecode_node file_priority = rd.dict_find_list("file_priority");
+		if (file_priority && file_priority.list_size()
 			== files().num_files())
 		{
-			m_file_priority.resize(file_priority->list_size());
-			for (int i = 0; i < file_priority->list_size(); ++i)
-				m_file_priority[i] = boost::uint8_t(file_priority->list_int_value_at(i, 1));
+			m_file_priority.resize(file_priority.list_size());
+			for (int i = 0; i < file_priority.list_size(); ++i)
+				m_file_priority[i] = boost::uint8_t(file_priority.list_int_value_at(i, 1));
 		}
 
-		lazy_entry const* file_sizes_ent = rd.dict_find_list("file sizes");
+		bdecode_node file_sizes_ent = rd.dict_find_list("file sizes");
 		if (file_sizes_ent == 0)
 		{
 			ec.ec = errors::missing_file_sizes;
 			return false;
 		}
 		
-		if (file_sizes_ent->list_size() == 0)
+		if (file_sizes_ent.list_size() == 0)
 		{
 			ec.ec = errors::no_files_in_resume_data;
 			return false;
 		}
 		
 		file_storage const& fs = files();
-		if (file_sizes_ent->list_size() != fs.num_files())
+		if (file_sizes_ent.list_size() != fs.num_files())
 		{
 			ec.ec = errors::mismatching_number_of_files;
 			ec.file = -1;
@@ -761,27 +761,27 @@ namespace libtorrent
 		}
 
 		bool seed = false;
-		lazy_entry const* slots = rd.dict_find_list("slots");
+		bdecode_node slots = rd.dict_find_list("slots");
 		if (slots)
 		{
-			if (int(slots->list_size()) == m_files.num_pieces())
+			if (int(slots.list_size()) == m_files.num_pieces())
 			{
 				seed = true;
-				for (int i = 0; i < slots->list_size(); ++i)
+				for (int i = 0; i < slots.list_size(); ++i)
 				{
-					if (slots->list_int_value_at(i, -1) >= 0) continue;
+					if (slots.list_int_value_at(i, -1) >= 0) continue;
 					seed = false;
 					break;
 				}
 			}
 		}
-		else if (lazy_entry const* pieces = rd.dict_find_string("pieces"))
+		else if (bdecode_node pieces = rd.dict_find_string("pieces"))
 		{
-			if (int(pieces->string_length()) == m_files.num_pieces())
+			if (int(pieces.string_length()) == m_files.num_pieces())
 			{
 				seed = true;
-				char const* p = pieces->string_ptr();
-				for (int i = 0; i < pieces->string_length(); ++i)
+				char const* p = pieces.string_ptr();
+				for (int i = 0; i < pieces.string_length(); ++i)
 				{
 					if ((p[i] & 1) == 1) continue;
 					seed = false;
@@ -795,14 +795,14 @@ namespace libtorrent
 			return false;
 		}
 
-		for (int i = 0; i < file_sizes_ent->list_size(); ++i)
+		for (int i = 0; i < file_sizes_ent.list_size(); ++i)
 		{
 			if (fs.pad_file_at(i)) continue;
-			lazy_entry const* e = file_sizes_ent->list_at(i);
-			if (e->type() != lazy_entry::list_t
-				|| e->list_size() < 2
-				|| e->list_at(0)->type() != lazy_entry::int_t
-				|| e->list_at(1)->type() != lazy_entry::int_t)
+			bdecode_node e = file_sizes_ent.list_at(i);
+			if (e.type() != bdecode_node::list_t
+				|| e.list_size() < 2
+				|| e.list_at(0).type() != bdecode_node::int_t
+				|| e.list_at(1).type() != bdecode_node::int_t)
 			{
 				ec.ec = errors::missing_file_sizes;
 				ec.file = i;
@@ -810,8 +810,8 @@ namespace libtorrent
 				return false;
 			}
 
-			boost::int64_t expected_size = e->list_int_value_at(0);
-			time_t expected_time = e->list_int_value_at(1);
+			boost::int64_t expected_size = e.list_int_value_at(0);
+			time_t expected_time = e.list_int_value_at(1);
 
 			// if we're a seed, the expected size should match
 			// the actual full size according to the torrent
@@ -1472,14 +1472,14 @@ namespace libtorrent
 	// isn't return false and the full check
 	// will be run
 	int piece_manager::check_fastresume(
-		lazy_entry const& rd, storage_error& ec)
+		bdecode_node const& rd, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 		
 		// if we don't have any resume data, return
-		if (rd.type() == lazy_entry::none_t) return check_no_fastresume(ec);
+		if (rd.type() == bdecode_node::none_t) return check_no_fastresume(ec);
 
-		if (rd.type() != lazy_entry::dict_t)
+		if (rd.type() != bdecode_node::dict_t)
 		{
 			ec.ec = errors::not_a_dictionary;
 			return check_no_fastresume(ec);

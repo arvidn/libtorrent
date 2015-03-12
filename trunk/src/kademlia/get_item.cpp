@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-void get_item::got_data(lazy_entry const* v,
+void get_item::got_data(bdecode_node const& v,
 	char const* pk,
 	boost::uint64_t seq,
 	char const* sig)
@@ -55,7 +55,7 @@ void get_item::got_data(lazy_entry const* v,
 	if (pk)
 		incoming_target = item_target_id(salt, pk);
 	else
-		incoming_target = item_target_id(v->data_section());
+		incoming_target = item_target_id(v.data_section());
 
 	if (incoming_target != m_target) return;
 
@@ -248,7 +248,7 @@ void get_item_observer::reply(msg const& m)
 	char const* sig = NULL;
 	boost::uint64_t seq = 0;
 
-	lazy_entry const* r = m.message.dict_find_dict("r");
+	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -257,21 +257,21 @@ void get_item_observer::reply(msg const& m)
 		return;
 	}
 
-	lazy_entry const* k = r->dict_find_string("k");
-	if (k && k->string_length() == item_pk_len)
-		pk = k->string_ptr();
+	bdecode_node k = r.dict_find_string("k");
+	if (k && k.string_length() == item_pk_len)
+		pk = k.string_ptr();
 
-	lazy_entry const* s = r->dict_find_string("sig");
-	if (s && s->string_length() == item_sig_len)
-		sig = s->string_ptr();
+	bdecode_node s = r.dict_find_string("sig");
+	if (s && s.string_length() == item_sig_len)
+		sig = s.string_ptr();
 
-	lazy_entry const* q = r->dict_find_int("seq");
+	bdecode_node q = r.dict_find_int("seq");
 	if (q)
-		seq = q->int_value();
+		seq = q.int_value();
 	else if (pk && sig)
 		return;
 
-	lazy_entry const* v = r->dict_find("v");
+	bdecode_node v = r.dict_find("v");
 	if (v)
 	{
 		static_cast<get_item*>(m_algorithm.get())->got_data(v, pk, seq, sig);

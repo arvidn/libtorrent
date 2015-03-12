@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -476,20 +476,26 @@ void test_dont_have()
 		int ext_msg = recv_buffer[1];
 		if (ext_msg != 0) continue;
 
-		lazy_entry e;
+		bdecode_node e;
 		error_code ec;
-		int ret = lazy_bdecode(recv_buffer + 2, recv_buffer + len, e, ec);
+		int pos = 0;
+		int ret = bdecode(recv_buffer + 2, recv_buffer + len, e, ec, &pos);
+		if (ret != 0)
+		{
+			fprintf(stderr, "failed to parse extension handshake: %s at pos %d\n"
+				, ec.message().c_str(), pos);
+		}
 		TEST_EQUAL(ret, 0);
 		
 		printf("extension handshake: %s\n", print_entry(e).c_str());
-		lazy_entry const* m = e.dict_find_dict("m");
+		bdecode_node m = e.dict_find_dict("m");
 		TEST_CHECK(m);
 		if (!m) return;
-		lazy_entry const* dont_have = m->dict_find_int("lt_donthave");
+		bdecode_node dont_have = m.dict_find_int("lt_donthave");
 		TEST_CHECK(dont_have);
 		if (!dont_have) return;
 
-		lt_dont_have = dont_have->int_value();
+		lt_dont_have = dont_have.int_value();
 	}
 
 	char* ptr = recv_buffer;
