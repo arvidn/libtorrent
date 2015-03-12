@@ -169,8 +169,8 @@ int test_main()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);
-	lazy_entry session_state2;
-	int ret = lazy_bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
+	bdecode_node session_state2;
+	int ret = bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
 	TEST_CHECK(ret == 0);
 
 	fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());
@@ -204,7 +204,8 @@ int test_main()
 #endif
 
 	// make sure settings that haven't been changed from their defaults are not saved
-	TEST_CHECK(session_state2.dict_find("settings")->dict_find("optimistic_disk_retry") == 0);
+	TEST_CHECK(session_state2.dict_find("settings")
+		.dict_find("optimistic_disk_retry") == 0);
 
 	s->load_state(session_state2);
 

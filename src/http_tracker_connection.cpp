@@ -377,18 +377,18 @@ namespace libtorrent
 		close();
 	}
 
-	bool extract_peer_info(lazy_entry const& info, peer_entry& ret, error_code& ec)
+	bool extract_peer_info(bdecode_node const& info, peer_entry& ret, error_code& ec)
 	{
 		// extract peer id (if any)
-		if (info.type() != lazy_entry::dict_t)
+		if (info.type() != bdecode_node::dict_t)
 		{
 			ec.assign(errors::invalid_peer_dict, get_libtorrent_category());
 			return false;
 		}
-		lazy_entry const* i = info.dict_find_string("peer id");
-		if (i != 0 && i->string_length() == 20)
+		bdecode_node i = info.dict_find_string("peer id");
+		if (i && i.string_length() == 20)
 		{
-			std::copy(i->string_ptr(), i->string_ptr()+20, ret.pid.begin());
+			std::copy(i.string_ptr(), i.string_ptr()+20, ret.pid.begin());
 		}
 		else
 		{
@@ -403,7 +403,7 @@ namespace libtorrent
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
-		ret.hostname = i->string_value();
+		ret.hostname = i.string_value();
 
 		// extract port
 		i = info.dict_find_int("port");
@@ -412,7 +412,7 @@ namespace libtorrent
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
-		ret.port = (unsigned short)i->int_value();
+		ret.port = (unsigned short)i.int_value();
 
 		return true;
 	}
@@ -422,12 +422,12 @@ namespace libtorrent
 	{
 		tracker_response resp;
 
-		lazy_entry e;
-		int res = lazy_bdecode(data, data + size, e, ec);
+		bdecode_node e;
+		int res = bdecode(data, data + size, e, ec);
 
 		if (ec) return resp;
 
-		if (res != 0 || e.type() != lazy_entry::dict_t)
+		if (res != 0 || e.type() != bdecode_node::dict_t)
 		{
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return resp;
@@ -441,45 +441,45 @@ namespace libtorrent
 		resp.interval = interval;
 		resp.min_interval = min_interval;
 
-		lazy_entry const* tracker_id = e.dict_find_string("tracker id");
+		bdecode_node tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
-			resp.trackerid = tracker_id->string_value();
+			resp.trackerid = tracker_id.string_value();
 
 		// parse the response
-		lazy_entry const* failure = e.dict_find_string("failure reason");
+		bdecode_node failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			resp.failure_reason = failure->string_value();
+			resp.failure_reason = failure.string_value();
 			ec.assign(errors::tracker_failure, get_libtorrent_category());
 			return resp;
 		}
 
-		lazy_entry const* warning = e.dict_find_string("warning message");
+		bdecode_node warning = e.dict_find_string("warning message");
 		if (warning)
-			resp.warning_message = warning->string_value();
+			resp.warning_message = warning.string_value();
 
 		if (scrape_request)
 		{
-			lazy_entry const* files = e.dict_find_dict("files");
-			if (files == 0)
+			bdecode_node files = e.dict_find_dict("files");
+			if (!files)
 			{
 				ec.assign(errors::invalid_files_entry, get_libtorrent_category());
 				return resp;
 			}
 
-			lazy_entry const* scrape_data = files->dict_find_dict(
+			bdecode_node scrape_data = files.dict_find_dict(
 				scrape_ih.to_string());
 
-			if (scrape_data == 0)
+			if (!scrape_data)
 			{
 				ec.assign(errors::invalid_hash_entry, get_libtorrent_category());
 				return resp;
 			}
 
-			resp.complete = int(scrape_data->dict_find_int_value("complete", -1));
-			resp.incomplete = int(scrape_data->dict_find_int_value("incomplete", -1));
-			resp.downloaded = int(scrape_data->dict_find_int_value("downloaded", -1));
-			resp.downloaders = int(scrape_data->dict_find_int_value("downloaders", -1));
+			resp.complete = int(scrape_data.dict_find_int_value("complete", -1));
+			resp.incomplete = int(scrape_data.dict_find_int_value("incomplete", -1));
+			resp.downloaded = int(scrape_data.dict_find_int_value("downloaded", -1));
+			resp.downloaders = int(scrape_data.dict_find_int_value("downloaders", -1));
 
 			return resp;
 		}
@@ -489,11 +489,11 @@ namespace libtorrent
 		resp.incomplete = int(e.dict_find_int_value("incomplete", -1));
 		resp.downloaded = int(e.dict_find_int_value("downloaded", -1));
 
-		lazy_entry const* peers_ent = e.dict_find("peers");
-		if (peers_ent && peers_ent->type() == lazy_entry::string_t)
+		bdecode_node peers_ent = e.dict_find("peers");
+		if (peers_ent && peers_ent.type() == bdecode_node::string_t)
 		{
-			char const* peers = peers_ent->string_ptr();
-			int len = peers_ent->string_length();
+			char const* peers = peers_ent.string_ptr();
+			int len = peers_ent.string_length();
 			resp.peers4.reserve(len / 6);
 			for (int i = 0; i < len; i += 6)
 			{
@@ -506,15 +506,15 @@ namespace libtorrent
 				resp.peers4.push_back(p);
 			}
 		}
-		else if (peers_ent && peers_ent->type() == lazy_entry::list_t)
+		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
 		{
-			int len = peers_ent->list_size();
+			int len = peers_ent.list_size();
 			resp.peers.reserve(len);
 			error_code parse_error;
 			for (int i = 0; i < len; ++i)
 			{
 				peer_entry p;
-				if (!extract_peer_info(*peers_ent->list_at(i), p, parse_error))
+				if (!extract_peer_info(peers_ent.list_at(i), p, parse_error))
 					continue;
 				resp.peers.push_back(p);
 			}
@@ -528,15 +528,15 @@ namespace libtorrent
 		}
 		else
 		{
-			peers_ent = 0;
+			peers_ent.clear();
 		}
 
 #if TORRENT_USE_IPV6
-		lazy_entry const* ipv6_peers = e.dict_find_string("peers6");
+		bdecode_node ipv6_peers = e.dict_find_string("peers6");
 		if (ipv6_peers)
 		{
-			char const* peers = ipv6_peers->string_ptr();
-			int len = ipv6_peers->string_length();
+			char const* peers = ipv6_peers.string_ptr();
+			int len = ipv6_peers.string_length();
 			resp.peers6.reserve(len / 18);
 			for (int i = 0; i < len; i += 18)
 			{
@@ -550,10 +550,10 @@ namespace libtorrent
 		}
 		else
 		{
-			ipv6_peers = 0;
+			ipv6_peers.clear();
 		}
 #else
-		lazy_entry const* ipv6_peers = 0;
+		bdecode_node ipv6_peers = 0;
 #endif
 /*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
@@ -564,14 +564,14 @@ namespace libtorrent
 			return resp;
 		}
 */
-		lazy_entry const* ip_ent = e.dict_find_string("external ip");
+		bdecode_node ip_ent = e.dict_find_string("external ip");
 		if (ip_ent)
 		{
-			char const* p = ip_ent->string_ptr();
-			if (ip_ent->string_length() == int(address_v4::bytes_type().size()))
+			char const* p = ip_ent.string_ptr();
+			if (ip_ent.string_length() == int(address_v4::bytes_type().size()))
 				resp.external_ip = detail::read_v4_address(p);
 #if TORRENT_USE_IPV6
-			else if (ip_ent->string_length() == int(address_v6::bytes_type().size()))
+			else if (ip_ent.string_length() == int(address_v6::bytes_type().size()))
 				resp.external_ip = detail::read_v6_address(p);
 #endif
 		}

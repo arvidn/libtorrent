@@ -3,10 +3,15 @@
 OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/debug-iterators-on/export-extra-on/invariant-checks-off/link-static/logging-on/test-coverage-on/threading-multi/src
 
 function run_test {
+	set +e
 	rm $OBJECT_PATH/*.gcda
+	set -e
 
 	cd test
+	set +e
 	rm -rf bin
+	set -e
+
 	bjam asserts=off invariant-checks=off link=static boost=source test-coverage=on picker-debugging=off -j4 $1
 	cd ..
 
@@ -20,11 +25,16 @@ function run_test {
 
 # force rebuilding and rerunning the unit tests
 cd test
+set +e
 rm -rf bin
+set -e
 cd ..
 
+set +e
 mkdir test-coverage
+set -e
 
+run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
 run_test test_torrent_info "*/torrent_info.*"
 run_test test_part_file "*/part_file.*"
@@ -39,6 +49,4 @@ run_test test_xml "*/xml_parse.*"
 run_test test_sliding_average "*/sliding_average.*"
 run_test test_string "*/escape_string.*"
 run_test test_utf8 "*/ConvertUTF.*"
-
-
 

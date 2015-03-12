@@ -38,7 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/escape_string.hpp"
+#ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
+#endif
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/escape_string.hpp"
 
 #if defined(_MSC_VER)
@@ -314,6 +317,44 @@ namespace libtorrent
 		m_type = int_t;
 	}
 
+	// convert a bdecode_node into an old skool entry
+	void entry::operator=(bdecode_node const& e)
+	{
+		switch (e.type())
+		{
+			case bdecode_node::string_t:
+				this->string() = e.string_value();
+				break;
+			case bdecode_node::int_t:
+				this->integer() = e.int_value();
+				break;
+			case bdecode_node::dict_t:
+			{
+				dictionary_type& d = this->dict();
+				for (int i = 0; i < e.dict_size(); ++i)
+				{
+					std::pair<std::string, bdecode_node> elem = e.dict_at(i);
+					d[elem.first] = elem.second;
+				}
+				break;
+			}
+			case bdecode_node::list_t:
+			{
+				list_type& l = this->list();
+				for (int i = 0; i < e.list_size(); ++i)
+				{
+					l.push_back(entry());
+					l.back() = e.list_at(i);
+				}
+				break;
+			}
+			case bdecode_node::none_t:
+				destruct();
+				break;
+		}
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	// convert a lazy_entry into an old skool entry
 	void entry::operator=(lazy_entry const& e)
 	{
@@ -350,6 +391,7 @@ namespace libtorrent
 				break;
 		}
 	}
+#endif
 
 	void entry::operator=(dictionary_type const& v)
 	{

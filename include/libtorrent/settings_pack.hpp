@@ -51,9 +51,9 @@ namespace libtorrent
 	namespace aux { struct session_impl; struct session_settings; }
 
 	struct settings_pack;
-	struct lazy_entry;
+	struct bdecode_node;
 
-	TORRENT_EXTRA_EXPORT settings_pack* load_pack_from_dict(lazy_entry const* settings);
+	TORRENT_EXTRA_EXPORT settings_pack* load_pack_from_dict(bdecode_node const& settings);
 	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
 

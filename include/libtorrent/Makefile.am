@@ -16,6 +16,7 @@ nobase_include_HEADERS = \
   bandwidth_socket.hpp         \
   bandwidth_queue_entry.hpp    \
   bencode.hpp                  \
+  bdecode.hpp                  \
   bitfield.hpp                 \
   block_cache.hpp              \
   bloom_filter.hpp             \

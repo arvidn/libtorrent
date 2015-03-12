@@ -324,13 +324,13 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		<< std::endl;
 #endif
 
-	lazy_entry const* ret_ent = m.message.dict_find_dict("r");
-	if (ret_ent == 0)
+	bdecode_node ret_ent = m.message.dict_find_dict("r");
+	if (!ret_ent)
 	{
 		// it may be an error
 		ret_ent = m.message.dict_find("e");
 		o->timeout();
-		if (ret_ent == NULL)
+		if (!ret_ent)
 		{
 			entry e;
 			incoming_error(e, "missing 'r' key");
@@ -339,8 +339,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	lazy_entry const* node_id_ent = ret_ent->dict_find_string("id");
-	if (node_id_ent == 0 || node_id_ent->string_length() != 20)
+	bdecode_node node_id_ent = ret_ent.dict_find_string("id");
+	if (!node_id_ent || node_id_ent.string_length() != 20)
 	{
 		o->timeout();
 		entry e;
@@ -349,7 +349,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	node_id nid = node_id(node_id_ent->string_ptr());
+	node_id nid = node_id(node_id_ent.string_ptr());
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();

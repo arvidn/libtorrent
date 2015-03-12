@@ -45,7 +45,7 @@ class get_item : public find_data
 public:
 	typedef boost::function<bool(item&)> data_callback;
 
-	void got_data(lazy_entry const* v,
+	void got_data(bdecode_node const& v,
 		char const* pk,
 		boost::uint64_t seq,
 		char const* sig);

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_ITEM_HPP
 
 #include <libtorrent/sha1_hash.hpp>
-#include <libtorrent/lazy_entry.hpp>
+#include <libtorrent/bdecode.hpp>
 #include <libtorrent/entry.hpp>
 #include <vector>
 #include <exception>
@@ -91,7 +91,7 @@ public:
 	item(entry const& v
 		, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sk);
-	item(lazy_entry const* v) { assign(v); }
+	item(bdecode_node const& v) { assign(v); }
 
 	void assign(entry const& v)
 	{
@@ -100,12 +100,12 @@ public:
 	}
 	void assign(entry const& v, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sk);
-	void assign(lazy_entry const* v)
+	void assign(bdecode_node const& v)
 	{
 		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
 			, 0), 0, NULL, NULL);
 	}
-	bool assign(lazy_entry const* v, std::pair<char const*, int> salt
+	bool assign(bdecode_node const& v, std::pair<char const*, int> salt
 		, boost::uint64_t seq, char const* pk, char const* sig);
 	void assign(entry const& v, std::string salt, boost::uint64_t seq
 		, char const* pk, char const* sig);

@@ -521,7 +521,7 @@ void traversal_algorithm::status(dht_lookup& l)
 
 void traversal_observer::reply(msg const& m)
 {
-	lazy_entry const* r = m.message.dict_find_dict("r");
+	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -532,20 +532,20 @@ void traversal_observer::reply(msg const& m)
 	}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	lazy_entry const* nid = r->dict_find_string("id");
+	bdecode_node nid = r.dict_find_string("id");
 	TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] "
-		"RESPONSE id: " << to_hex(nid->string_value())
-		<< " invoke-count: " << m_algorithm->invoke_count()
+		"RESPONSE id: " << to_hex(nid.string_value())
+		<< " invoke-count: " << m_algorithm.invoke_count()
 		<< " addr: " << m.addr
-		<< " type: " << m_algorithm->name()
+		<< " type: " << m_algorithm.name()
 		;
 #endif
 	// look for nodes
-	lazy_entry const* n = r->dict_find_string("nodes");
+	bdecode_node n = r.dict_find_string("nodes");
 	if (n)
 	{
-		char const* nodes = n->string_ptr();
-		char const* end = nodes + n->string_length();
+		char const* nodes = n.string_ptr();
+		char const* end = nodes + n.string_length();
 
 		while (end - nodes >= 26)
 		{
@@ -556,8 +556,8 @@ void traversal_observer::reply(msg const& m)
 		}
 	}
 
-	lazy_entry const* id = r->dict_find_string("id");
-	if (!id || id->string_length() != 20)
+	bdecode_node id = r.dict_find_string("id");
+	if (!id || id.string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
@@ -567,7 +567,7 @@ void traversal_observer::reply(msg const& m)
 
 	// in case we didn't know the id of this peer when we sent the message to
 	// it. For instance if it's a bootstrap node.
-	set_id(node_id(id->string_ptr()));
+	set_id(node_id(id.string_ptr()));
 }
 
 void traversal_algorithm::abort()

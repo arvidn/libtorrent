@@ -86,12 +86,12 @@ int test_main()
 #endif
 
 	char const eplist[] = "l6:\x10\x05\x80\x01\x05\x39" "18:\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39" "e";
-	lazy_entry e;
+	bdecode_node e;
 	error_code ec;
-	lazy_bdecode(eplist, eplist + sizeof(eplist)-1, e, ec);
+	bdecode(eplist, eplist + sizeof(eplist)-1, e, ec);
 	TEST_CHECK(!ec);
 	std::vector<udp::endpoint> list;
-	read_endpoint_list<udp::endpoint>(&e, list);
+	read_endpoint_list<udp::endpoint>(e, list);
 
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(list.size(), 2);

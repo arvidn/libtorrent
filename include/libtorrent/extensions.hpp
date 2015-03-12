@@ -191,7 +191,7 @@ namespace libtorrent
 	struct peer_request;
 	class peer_connection;
 	class entry;
-	struct lazy_entry;
+	struct bdecode_node;
 	struct disk_buffer_holder;
 	struct bitfield;
 	class alert;
@@ -248,7 +248,7 @@ namespace libtorrent
 		virtual void save_state(entry&) const {}
 
 		// called when loading settings state
-		virtual void load_state(lazy_entry const&) {}
+		virtual void load_state(bdecode_node const&) {}
 	};
 
 	// Torrent plugins are associated with a single torrent and have a number
@@ -387,7 +387,7 @@ namespace libtorrent
 		// supported by this peer. It will result in this peer_plugin
 		// being removed from the peer_connection and destructed. 
 		// this is not called for web seeds
-		virtual bool on_extension_handshake(lazy_entry const&) { return true; }
+		virtual bool on_extension_handshake(bdecode_node const&) { return true; }
 
 		// returning true from any of the message handlers
 		// indicates that the plugin has handeled the message.

@@ -277,14 +277,14 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(lazy_entry const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h)
 		{
 			m_message_index = 0;
-			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			if (h.type() != bdecode_node::dict_t) return false;
+			bdecode_node messages = h.dict_find("m");
+			if (!messages || messages.type() != bdecode_node::dict_t) return false;
 
-			int index = int(messages->dict_find_int_value("LT_metadata", -1));
+			int index = int(messages.dict_find_int_value("LT_metadata", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
