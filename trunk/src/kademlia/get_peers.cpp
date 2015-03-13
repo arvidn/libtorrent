@@ -73,11 +73,11 @@ void get_peers_observer::reply(msg const& m)
 			{
 				TORRENT_LOG(traversal)
 					<< "[" << m_algorithm.get() << "] PEERS"
-					<< " invoke-count: " << m_algorithm.invoke_count()
-					<< " branch-factor: " << m_algorithm.branch_factor()
+					<< " invoke-count: " << m_algorithm->invoke_count()
+					<< " branch-factor: " << m_algorithm->branch_factor()
 					<< " addr: " << m.addr
 					<< " id: " << node_id(id.string_ptr())
-					<< " distance: " << distance_exp(m_algorithm.target(), node_id(id.string_ptr()))
+					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
 					<< " p: " << ((end - peers) / 6);
 			}
 #endif
@@ -98,7 +98,7 @@ void get_peers_observer::reply(msg const& m)
 					<< " branch-factor: " << m_algorithm->branch_factor()
 					<< " addr: " << m.addr
 					<< " id: " << node_id(id.string_ptr())
-					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
+					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
 					<< " p: " << n.list_size();
 			}
 #endif

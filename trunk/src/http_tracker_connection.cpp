@@ -553,7 +553,7 @@ namespace libtorrent
 			ipv6_peers.clear();
 		}
 #else
-		bdecode_node ipv6_peers = 0;
+		bdecode_node ipv6_peers;
 #endif
 /*
 		// if we didn't receive any peers. We don't care if we're stopping anyway
