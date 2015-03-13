@@ -393,8 +393,8 @@ namespace libtorrent
 	
 	// These functions will encode data to bencoded or decode bencoded data.
 	// 
-	// If possible, bdecode() and bdecode_node should be preferred over this
-	// function.
+	// If possible, ``bdecode()`` producing a bdecode_node should be preferred
+	// over this function.
 	// 
 	// The entry_ class is the internal representation of the bencoded data
 	// and it can be used to retrieve information, an entry_ can also be build by

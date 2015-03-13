@@ -121,7 +121,7 @@ namespace libtorrent
 enum utp_socket_state_t
 { ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
-// extension headers. 2 is skipped because there is a deprecated
+// internal: extension headers. 2 is skipped because there is a deprecated
 // extension with that number in the wild
 enum utp_extensions_t
 { utp_no_extension = 0, utp_sack = 1, utp_close_reason = 3 };

@@ -19,6 +19,8 @@ REFERENCE_TARGETS = \
 	reference-RSS \
 	reference-Filter \
 	reference-Settings \
+	reference-Bdecoding \
+	reference-ed25519 \
 	manual-ref
 
 TARGETS = index \

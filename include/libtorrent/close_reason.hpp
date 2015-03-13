@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// these are all the reasons to disconnect a peer
+	// internal: these are all the reasons to disconnect a peer
 	// all reasons caused by the peer sending unexpected data
 	// are 256 and up.
 	enum close_reason_t

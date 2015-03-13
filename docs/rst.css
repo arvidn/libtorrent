@@ -35,6 +35,23 @@ h3 { text-transform: uppercase; }
 div.section p, div.section ul, div.section dl {
 }
 
+div.main-toc {
+	column-count: 4;
+	-webkit-column-count: 4;
+	-moz-column-count: 4;
+	border: 1px solid #999;
+	padding: 5px;
+	margin-bottom: 10px;
+}
+
+.rubric
+{
+	margin-top: 5px;
+	margin-bottom: 5px;
+	font-size: 120%;
+	font-weight: bold;
+}
+
 table.docinfo {
     text-align: left;
     float: right;
@@ -57,7 +74,7 @@ table.docinfo td {
 
 table.docinfo tr.field td, table.docinfo tr.field th {display: none;}
 
-h1.title { display: none; }
+#h1.title { display: none; }
 
 dt {
     font-size: 100%;

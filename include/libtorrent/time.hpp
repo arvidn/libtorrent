@@ -69,7 +69,10 @@ namespace libtorrent {
 	using boost::chrono::duration_cast;
 #endif
 
+	// internal
 	inline time_point min_time() { return (time_point::min)(); }
+
+	// internal
 	inline time_point max_time() { return (time_point::max)(); }
 
 	template<class T>
