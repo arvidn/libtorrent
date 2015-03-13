@@ -388,9 +388,15 @@ void print_ses_rate(float time
 	fprintf(stderr, "\n");
 }
 
-void test_sleep(int millisec)
+void test_sleep(int milliseconds)
 {
-	libtorrent::sleep(millisec);
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+	usleep(milliseconds * 1000);
+#endif
 }
 
 #ifdef _WIN32
