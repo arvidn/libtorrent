@@ -243,7 +243,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	if (id.is_all_zeros())
 	{
-		TORRENT_LOG(traversal) << time_now_string() << "[" << this << "] WARNING node returned a list which included a node with id 0";
+		TORRENT_LOG(traversal) << aux::time_now_string() << "[" << this << "] WARNING node returned a list which included a node with id 0";
 	}
 #endif
 
@@ -535,9 +535,9 @@ void traversal_observer::reply(msg const& m)
 	bdecode_node nid = r.dict_find_string("id");
 	TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] "
 		"RESPONSE id: " << to_hex(nid.string_value())
-		<< " invoke-count: " << m_algorithm.invoke_count()
+		<< " invoke-count: " << m_algorithm->invoke_count()
 		<< " addr: " << m.addr
-		<< " type: " << m_algorithm.name()
+		<< " type: " << m_algorithm->name()
 		;
 #endif
 	// look for nodes

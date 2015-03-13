@@ -248,7 +248,7 @@ void rpc_manager::check_invariant() const
 void rpc_manager::unreachable(udp::endpoint const& ep)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(rpc) << time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
+	TORRENT_LOG(rpc) << aux::time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
 #endif
 
 	for (transactions_t::iterator i = m_transactions.begin();

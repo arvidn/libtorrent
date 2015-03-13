@@ -76,7 +76,7 @@ namespace libtorrent { namespace dht
 	{
 		bdecode_node ver = e.dict_find_string("v");
 		if (!ver) return "generic";
-		std::string const& client = ver->string_value();
+		std::string const& client = ver.string_value();
 		if (client.size() < 2)
 		{
 			return client;
@@ -408,7 +408,7 @@ namespace libtorrent { namespace dht
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: not a dictionary: "
-				<< print_entry(e, true);
+				<< print_entry(m_msg, true);
 #endif
 			// it's not a good idea to send invalid messages
 			// especially not in response to an invalid message
