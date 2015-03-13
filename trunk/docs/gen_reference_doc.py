@@ -61,6 +61,7 @@ static_links = \
 anon_index = 0
 
 category_mapping = {
+	'ed25519.hpp': 'ed25519',
 	'session.hpp': 'Session',
 	'add_torrent_params.hpp': 'Session',
 	'session_status.hpp': 'Session',
@@ -828,16 +829,16 @@ def print_link(name, target):
 	link_targets.append(target)
 	return "`%s`__" % name
 
-def dump_link_targets():
+def dump_link_targets(indent = ''):
 	global link_targets
 	ret = '\n'
 	for l in link_targets:
-		ret += '__ %s\n' % l
+		ret += '%s__ %s\n' % (indent, l)
 	link_targets = []
 	return ret
 
-def heading(string, c):
-	return '\n' + string + '\n' + (c * len(string)) + '\n'
+def heading(string, c, indent = ''):
+	return '\n' + indent + string + '\n' + indent + (c * len(string)) + '\n'
 
 def render_enums(out, enums, print_declared_reference):
 	for e in enums:
@@ -873,45 +874,65 @@ def render_enums(out, enums, print_declared_reference):
 
 		print >>out, dump_link_targets()
 
+sections = \
+{
+	'Core': 0,
+	'Session': 0,
+	'Settings': 0,
+
+	'Bencoding': 1,
+	'Bdecoding': 1,
+	'Filter': 1,
+	'Error Codes': 1,
+	'Create Torrents': 1,
+
+	'ed25519': 2,
+	'String': 2,
+	'Utility': 2,
+	'Storage': 2,
+	'Custom Storage': 2,
+	'Plugins': 2,
+
+	'Alerts': 3
+}
+
+def print_toc(out, categories, s):
+	for cat in categories:
+		if (s != 2 and cat not in sections) or \
+			(cat in sections and sections[cat] != s): continue
+
+		print >>out, '\t.. rubric:: %s\n' % cat
+
+		if 'overview' in categories[cat]:
+			print >>out, '\t| overview__'
+
+		category_filename = categories[cat]['filename'].replace('.rst', '.html')
+		for c in categories[cat]['classes']:
+			print >>out, '\t| ' + print_link(c['name'], symbols[c['name']])
+		for f in categories[cat]['functions']:
+			for n in f['names']:
+				print >>out, '\t| ' + print_link(n, symbols[n])
+		for e in categories[cat]['enums']:
+			print >>out, '\t| ' + print_link(e['name'], symbols[e['name']])
+		print >>out, ''
+
+		if 'overview' in categories[cat]:
+			print >>out, '\t__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
+		print >>out, dump_link_targets('\t')
+
 
 out = open('reference.rst', 'w+')
-out.write('''==================================
-libtorrent reference documentation
-==================================
-
-.. raw:: html
-
-	<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4">
+out.write('''=======================
+reference documentation
+=======================
 
 ''')
 
-for cat in categories:
-	print >>out, '%s' % heading(cat, '-')
+for i in range(4):
 
-	if 'overview' in categories[cat]:
-		print >>out, '| overview__'
+	out.write('.. container:: main-toc\n\n')
+	print_toc(out, categories, i)
 
-	category_filename = categories[cat]['filename'].replace('.rst', '.html')
-	for c in categories[cat]['classes']:
-		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
-	for f in categories[cat]['functions']:
-		for n in f['names']:
-			print >>out, '| ' + print_link(n, symbols[n])
-	for e in categories[cat]['enums']:
-		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
-	print >>out, ''
-
-	if 'overview' in categories[cat]:
-		print >>out, '__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
-	print >>out, dump_link_targets()
-
-out.write('''
-
-.. raw:: html
-
-	</div>
-
-''')
 out.close()
 
 for cat in categories:

@@ -63,6 +63,8 @@ namespace libtorrent
 
 	// pauses the calling thread at least for the specified
 	// number of milliseconds
+	// TODO: 3 remove this function. at the very least it should not be part
+	// of the API
 	TORRENT_EXPORT void sleep(int milliseconds);
 
 	struct TORRENT_EXTRA_EXPORT condition_variable
