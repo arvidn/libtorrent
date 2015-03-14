@@ -198,7 +198,7 @@ namespace libtorrent {
 
 	std::string tracker_announce_alert::message() const
 	{
-		const static char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
+		static const char* event_str[] = {"none", "completed", "started", "stopped", "paused"};
 		TORRENT_ASSERT_VAL(event < int(sizeof(event_str)/sizeof(event_str[0])), event);
 		return tracker_alert::message() + " sending announce (" + event_str[event] + ")";
 	}
@@ -644,7 +644,7 @@ namespace libtorrent {
 
 	std::string dht_error_alert::message() const
 	{
-		const static char* const operation_names[] =
+		static const char* const operation_names[] =
 		{
 			"unknown",
 			"hostname lookup"

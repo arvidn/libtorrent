@@ -1026,7 +1026,7 @@ void node_impl::incoming_request(msg const& m, entry& e)
 	{
 		// the first 2 entries are for both mutable and
 		// immutable puts
-		const static key_desc_t msg_desc[] = {
+		static const key_desc_t msg_desc[] = {
 			{"token", bdecode_node::string_t, 0, 0},
 			{"v", bdecode_node::none_t, 0, 0},
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},

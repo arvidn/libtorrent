@@ -123,7 +123,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // .. parsed-literal::
 // 
-// 	const static int alert_type = *<unique alert ID>*;
+// 	static const int alert_type = *<unique alert ID>*;
 // 	virtual int type() const { return alert_type; }
 // 
 // 	virtual std::string message() const;
@@ -131,7 +131,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // 	virtual std::auto_ptr<alert> clone() const
 // 	{ return std::auto_ptr<alert>(new name(\*this)); }
 // 
-// 	const static int static_category = *<bitmask of alert::category_t flags>*;
+// 	static const int static_category = *<bitmask of alert::category_t flags>*;
 // 	virtual int category() const { return static_category; }
 // 
 // 	virtual char const* what() const { return *<string literal of the name of this alert>*; }

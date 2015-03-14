@@ -75,7 +75,7 @@ namespace libtorrent
 
 	void assert_print_piece(cached_piece_entry const* pe)
 	{
-		const static char* const cache_state[] =
+		static const char* const cache_state[] =
 		{
 			"write", "volatile-read", "read-lru", "read-lru-ghost", "read-lfu", "read-lfu-ghost"
 		};

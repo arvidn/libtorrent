@@ -443,7 +443,7 @@ namespace aux {
 			boost::uint32_t filter;
 		};
 
-		const static class_mapping v4_classes[] =
+		static const class_mapping v4_classes[] =
 		{
 			// everything
 </pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(8)">../src/session_impl.cpp:1813</a></td><td>the udp socket(s) should be using the same generic mechanism and not be restricted to a single one we should open a one listen socket for each entry in the listen_interfaces list</td></tr><tr id="8" style="display: none;" colspan="3"><td colspan="3"><h2>the udp socket(s) should be using the same generic
@@ -1319,7 +1319,7 @@ void node_impl::lookup_peers(sha1_hash const&amp; info_hash, entry&amp; reply
 
 		if (port &lt; 0 || port &gt;= 65536)
 </pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(25)">../src/kademlia/routing_table.cpp:110</a></td><td>use the non deprecated function instead of this one</td></tr><tr id="25" style="display: none;" colspan="3"><td colspan="3"><h2>use the non deprecated function instead of this one</h2><h4>../src/kademlia/routing_table.cpp:110</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
-	const static int size_exceptions[] = {16, 8, 4, 2};
+	static const int size_exceptions[] = {16, 8, 4, 2};
 	if (bucket &lt; int(sizeof(size_exceptions)/sizeof(size_exceptions[0])))
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;

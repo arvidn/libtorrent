@@ -203,7 +203,7 @@ void terminal_size(int* terminal_width, int* terminal_height)
 #ifdef _WIN32
 void apply_ansi_code(int* attributes, bool* reverse, int code)
 {
-	const static int color_table[8] =
+	static const int color_table[8] =
 	{
 		0, // black
 		FOREGROUND_RED, // red
@@ -221,10 +221,10 @@ void apply_ansi_code(int* attributes, bool* reverse, int code)
 		background_mask = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE
 	};
 
-	const static int fg_mask[2] = {foreground_mask, background_mask};
-	const static int bg_mask[2] = {background_mask, foreground_mask};
-	const static int fg_shift[2] = { 0, 4};
-	const static int bg_shift[2] = { 4, 0};
+	static const int fg_mask[2] = {foreground_mask, background_mask};
+	static const int bg_mask[2] = {background_mask, foreground_mask};
+	static const int fg_shift[2] = { 0, 4};
+	static const int bg_shift[2] = { 4, 0};
 
 	if (code == 0)
 	{
