@@ -377,8 +377,8 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	const static int short_timeout = 1;
-	const static int timeout = 15;
+	static const int short_timeout = 1;
+	static const int timeout = 15;
 
 	//	look for observers that have timed out
 

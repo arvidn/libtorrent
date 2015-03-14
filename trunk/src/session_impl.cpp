@@ -242,7 +242,7 @@ namespace aux {
 			boost::uint32_t filter;
 		};
 
-		const static class_mapping v4_classes[] =
+		static const class_mapping v4_classes[] =
 		{
 			// everything
 			{"0.0.0.0", "255.255.255.255", gfilter},
@@ -257,7 +257,7 @@ namespace aux {
 		};
 
 #if TORRENT_USE_IPV6
-		const static class_mapping v6_classes[] =
+		static const class_mapping v6_classes[] =
 		{
 			// everything
 			{"::0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", gfilter},
@@ -1250,7 +1250,7 @@ namespace aux {
 		boost::uint32_t peer_class_mask = m_peer_class_filter.access(a);
 
 		// assign peer class based on socket type
-		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
+		static const int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
 		int socket_type = mapping[st];
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);

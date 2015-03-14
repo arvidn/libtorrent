@@ -195,7 +195,7 @@ namespace libtorrent
 #if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
 		// if we're not using UNC paths on windows, there
 		// are certain filenames we're not allowed to use
-		const static char const* reserved_names[] =
+		static const char const* reserved_names[] =
 		{
 			"con", "prn", "aux", "clock$", "nul",
 			"com0", "com1", "com2", "com3", "com4",

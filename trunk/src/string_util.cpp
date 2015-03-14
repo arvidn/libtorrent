@@ -57,7 +57,7 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		const static char* ws = " \t\n\r\f\v";
+		static const char* ws = " \t\n\r\f\v";
 		return strchr(ws, c) != 0;
 	}
 

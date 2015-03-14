@@ -88,7 +88,7 @@ int routing_table::bucket_limit(int bucket) const
 {
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
-	const static int size_exceptions[] = {16, 8, 4, 2};
+	static const int size_exceptions[] = {16, 8, 4, 2};
 	if (bucket < int(sizeof(size_exceptions)/sizeof(size_exceptions[0])))
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;

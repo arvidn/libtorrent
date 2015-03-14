@@ -1239,7 +1239,7 @@ namespace libtorrent
 			DWORD create_mode;
 		};
 
-		const static open_mode_t mode_array[] =
+		static const open_mode_t mode_array[] =
 		{
 			// read_only
 			{GENERIC_READ, OPEN_EXISTING},
@@ -1249,7 +1249,7 @@ namespace libtorrent
 			{GENERIC_WRITE | GENERIC_READ, OPEN_ALWAYS},
 		};
 
-		const static DWORD attrib_array[] =
+		static const DWORD attrib_array[] =
 		{
 			FILE_ATTRIBUTE_NORMAL, // no attrib
 			FILE_ATTRIBUTE_HIDDEN, // hidden

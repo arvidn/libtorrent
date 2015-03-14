@@ -1093,7 +1093,7 @@ int test_main()
 	}
 
 	// test verify_message
-	const static key_desc_t msg_desc[] = {
+	static const key_desc_t msg_desc[] = {
 		{"A", bdecode_node::string_t, 4, 0},
 		{"B", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
 			{"B1", bdecode_node::string_t, 0, 0},
