@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
 
 #include <string>

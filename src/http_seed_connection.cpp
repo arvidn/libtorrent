@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for is_hex
 
 using boost::shared_ptr;
 using libtorrent::aux::session_impl;

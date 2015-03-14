@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/hex.hpp"
 
 #if TORRENT_USE_I2P
 

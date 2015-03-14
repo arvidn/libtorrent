@@ -47,17 +47,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
-#include "libtorrent/escape_string.hpp" // for string conversion
 #include "libtorrent/file.hpp"
 #include <cstring>
 #include <vector>
+
 #if TORRENT_DEBUG_FILE_LEAKS
 #include <set>
 #include "libtorrent/thread.hpp"
 #endif
 
 // for convert_to_wstring and convert_to_native
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include <stdio.h>
 #include "libtorrent/assert.hpp"
 

@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;

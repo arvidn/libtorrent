@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/storage_defs.hpp"

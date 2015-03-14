@@ -37,12 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/escape_string.hpp"
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
 #endif
 #include "libtorrent/bdecode.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/hex.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for

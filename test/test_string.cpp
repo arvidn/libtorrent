@@ -31,7 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/hex.hpp"
 #include "libtorrent/string_util.hpp"
 #include <iostream>
 #include <string.h> // for strcmp

@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/random.hpp"
 
@@ -56,6 +55,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/thread.hpp"
 
+#include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/string_util.hpp" // for to_string
+
 #if TORRENT_USE_ICONV
 #include <iconv.h>
 #include <locale.h>
@@ -63,24 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-	// lexical_cast's result depends on the locale. We need
-	// a well defined result
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> to_string(boost::int64_t n)
-	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
-		char *p = &ret.back();
-		*p = '\0';
-		boost::uint64_t un = n;
-		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
-		do {
-			*--p = '0' + un % 10;
-			un /= 10;
-		} while (un);
-		if (n < 0) *--p = '-';
-		std::memmove(&ret[0], p, &ret.back() - p + 1);
-		return ret;
-	}
 
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
@@ -217,6 +201,7 @@ namespace libtorrent
 	}
 #endif
 
+	// TODO: 2 this should probably be moved into string_util.cpp
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);

@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/time.hpp"
+
+#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
+
 #include <boost/bind.hpp>
 
 namespace libtorrent {

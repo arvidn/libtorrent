@@ -90,7 +90,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/io.hpp" // for write_string
 
 namespace libtorrent

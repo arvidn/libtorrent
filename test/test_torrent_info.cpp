@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include <boost/make_shared.hpp>
 
 #if TORRENT_USE_IOSTREAM
@@ -587,6 +588,8 @@ void test_resolve_duplicates()
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
 		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
+
+		// TODO: 3 fix duplicate name detection to make this test pass
 		TEST_EQUAL(p, filenames[i]);
 	}
 }

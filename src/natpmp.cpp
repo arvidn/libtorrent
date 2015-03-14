@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>

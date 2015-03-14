@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/hex.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_settings.hpp"

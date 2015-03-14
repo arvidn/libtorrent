@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LOG_HASH_FAILURES
 
 #include "libtorrent/peer_id.hpp" // sha1_hash
-#include "libtorrent/escape_string.hpp" // to_hex
+#include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/socket_io.hpp"
 
 void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
