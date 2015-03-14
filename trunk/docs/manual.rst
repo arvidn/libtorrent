@@ -687,7 +687,6 @@ disk cache, by requesting all blocks in a single piece, from the same peer.
 This threshold is controlled by the settings_pack::whole_pieces_threshold
 setting.
 
-*TODO: piece affinity by speed category*
 *TODO: piece priorities*
 
 predictive piece announce

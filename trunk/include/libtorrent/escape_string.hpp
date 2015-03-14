@@ -80,14 +80,13 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
 
-	// converts (binary) the string ``s`` to hexadecimal representation and
-	// returns it.
+	// The overload taking a ``std::string`` converts (binary) the string ``s``
+	// to hexadecimal representation and returns it.
+	// The overload taking a ``char const*`` and a length converts the binary
+	// buffer [``in``, ``in`` + len) to hexadecimal and prints it to the buffer
+	// ``out``. The caller is responsible for making sure the buffer pointed to
+	// by ``out`` is large enough, i.e. has at least len * 2 bytes of space.
 	TORRENT_EXPORT std::string to_hex(std::string const& s);
-
-	// converts the binary buffer [``in``, ``in`` + len) to hexadecimal
-	// and prints it to the buffer ``out``. The caller is responsible for
-	// making sure the buffer pointed to by ``out`` is large enough,
-	// i.e. has at least len * 2 bytes of space.
 	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
 
 	// converts the buffer [``in``, ``in`` + len) from hexadecimal to

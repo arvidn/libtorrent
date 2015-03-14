@@ -45,11 +45,6 @@ namespace libtorrent
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 	}
 
-	bool is_digit(char c)
-	{
-		return c >= '0' && c <= '9';
-	}
-
 	bool is_print(char c)
 	{
 		return c >= 32 && c < 127;

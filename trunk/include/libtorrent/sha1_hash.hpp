@@ -69,6 +69,7 @@ namespace libtorrent
 	{
 		enum { number_size = 5 };
 	public:
+		// internal
 		// the number of bytes of the number
 		static const int size = number_size * sizeof(boost::uint32_t);
 

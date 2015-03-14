@@ -121,9 +121,9 @@ p.admonition-title {
     border-bottom: solid 1px #D1DFD5
 }
 
-h1 { font-size: 180%; }
+h1 { font-size: 200%; }
 h2 { font-size: 130%; }
-h3 { font-size: 100%; }
+h3 { font-size: 100%; font-style: italic; }
 
 h1.title { text-align: center; }
 
