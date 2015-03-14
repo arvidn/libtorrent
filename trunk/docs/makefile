@@ -10,7 +10,6 @@ REFERENCE_TARGETS = \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \
-	reference-Time \
 	reference-Storage \
 	reference-Custom_Storage \
 	reference-Utility \

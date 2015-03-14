@@ -163,6 +163,9 @@ def highlight_signature(s):
 	# a parsed literal in rst
 	name[1] = name[1].replace('*', '\\*')
 
+	# we also have to escape colons
+	name[1] = name[1].replace(':', '\\:')
+
 	# comments in signatures are italic
 	name[1] = name[1].replace('/\\*', '*/\\*')
 	name[1] = name[1].replace('\\*/', '\\*/*')
@@ -942,17 +945,17 @@ for cat in categories:
 	functions = categories[cat]['functions']
 	enums = categories[cat]['enums']
 
-	out.write('%s\n' % heading(cat, '='))
-
 	out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.1.0
 
+%s
+
 .. contents:: Table of contents
-  :depth: 1
+  :depth: 2
   :backlinks: none
 
-''')
+''' % heading(cat, '='))
 
 	if 'overview' in categories[cat]:
 		out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
