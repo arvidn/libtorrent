@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
 
 namespace libtorrent { namespace

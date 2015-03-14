@@ -89,7 +89,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // for convert_to_wstring and convert_to_native
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0

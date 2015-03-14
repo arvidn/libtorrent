@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LOGGING
 #include <stdarg.h> // for va_start, va_end
 #include <stdio.h> // for vsnprintf
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp"
 #endif
 

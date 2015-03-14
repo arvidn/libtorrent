@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/ConvertUTF.h"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/escape_string.hpp" // is_space
+#include "libtorrent/string_util.hpp" // is_space
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 

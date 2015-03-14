@@ -48,7 +48,6 @@ nobase_include_HEADERS = \
   enum_net.hpp                 \
   error.hpp                    \
   error_code.hpp               \
-  escape_string.hpp            \
   export.hpp                   \
   extensions.hpp               \
   file.hpp                     \
@@ -57,6 +56,7 @@ nobase_include_HEADERS = \
   fingerprint.hpp              \
   gzip.hpp                     \
   hasher.hpp                   \
+  hex.hpp                      \
   http_connection.hpp          \
   http_parser.hpp              \
   http_seed_connection.hpp     \
@@ -157,6 +157,7 @@ nobase_include_HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_interface.hpp        \
   aux_/time.hpp                     \
+  aux_/escape_string.hpp            \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

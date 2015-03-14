@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/byteswap.hpp"
 
 #if TORRENT_USE_IOSTREAM
-#include "libtorrent/escape_string.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #include <iostream>
 #include <iomanip>
 #endif

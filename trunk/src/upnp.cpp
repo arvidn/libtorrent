@@ -37,9 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"

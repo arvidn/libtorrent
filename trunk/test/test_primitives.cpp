@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/rss.hpp" // for feed_handle
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/close_reason.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
 namespace libtorrent
 {

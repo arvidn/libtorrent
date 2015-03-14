@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/gzip.hpp"
 #include "libtorrent/parse_url.hpp"

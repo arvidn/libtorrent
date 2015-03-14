@@ -40,6 +40,25 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// lexical_cast's result depends on the locale. We need
+	// a well defined result
+	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
+		to_string(boost::int64_t n)
+	{
+		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		char *p = &ret.back();
+		*p = '\0';
+		boost::uint64_t un = n;
+		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
+		do {
+			*--p = '0' + un % 10;
+			un /= 10;
+		} while (un);
+		if (n < 0) *--p = '-';
+		std::memmove(&ret[0], p, &ret.back() - p + 1);
+		return ret;
+	}
+
 	bool is_alpha(char c)
 	{
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
