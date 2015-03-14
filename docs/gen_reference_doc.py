@@ -62,9 +62,9 @@ anon_index = 0
 
 category_mapping = {
 	'ed25519.hpp': 'ed25519',
-	'session.hpp': 'Session',
-	'add_torrent_params.hpp': 'Session',
-	'session_status.hpp': 'Session',
+	'session.hpp': 'Core',
+	'add_torrent_params.hpp': 'Core',
+	'session_status.hpp': 'Core',
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
 	'storage.hpp': 'Custom Storage',
@@ -86,9 +86,7 @@ category_mapping = {
 	'bdecode.hpp': 'Bdecoding',
 	'entry.hpp': 'Bencoding',
 	'time.hpp': 'Time',
-	'escape_string.hpp': 'String',
-	'string_util.hpp': 'String',
-	'utf8.hpp': 'String',
+	'escape_string.hpp': 'Utility',
 	'enum_net.hpp': 'Network',
 	'broadcast_socket.hpp': 'Network',
 	'socket.hpp': 'Network',
@@ -96,18 +94,21 @@ category_mapping = {
 	'rss.hpp': 'RSS',
 	'bitfield.hpp': 'Utility',
 	'sha1_hash.hpp': 'Utility',
+	'hasher.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
 	'settings_pack.hpp': 'Settings',
 	'operations.hpp': 'Alerts',
+	'disk_buffer_holder.hpp': 'Custom Storage',
+	'alert_dispatcher.hpp': 'Alerts',
 }
 
 category_fun_mapping = {
 	'min_memory_usage()': 'Settings',
 	'high_performance_seed()': 'Settings',
-	'cache_status': 'Session',
+	'cache_status': 'Core',
 }
 
 def categorize_symbol(name, filename):
@@ -841,14 +842,15 @@ def dump_link_targets(indent = ''):
 	return ret
 
 def heading(string, c, indent = ''):
+	string = string.strip()
 	return '\n' + indent + string + '\n' + indent + (c * len(string)) + '\n'
 
-def render_enums(out, enums, print_declared_reference):
+def render_enums(out, enums, print_declared_reference, header_level):
 	for e in enums:
 		print >>out, '.. raw:: html\n'
 		print >>out, '\t<a name="%s"></a>' % e['name']
 		print >>out, ''
-		print >>out, heading('enum %s' % e['name'], '.')
+		print >>out, heading('enum %s' % e['name'], header_level)
 
 		print_declared_in(out, e)
 
@@ -890,7 +892,6 @@ sections = \
 	'Create Torrents': 1,
 
 	'ed25519': 2,
-	'String': 2,
 	'Utility': 2,
 	'Storage': 2,
 	'Custom Storage': 2,
@@ -1022,7 +1023,7 @@ for cat in categories:
 	
 			print >>out, dump_link_targets()
 
-		render_enums(out, c['enums'], False)
+		render_enums(out, c['enums'], False, '.')
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
@@ -1049,7 +1050,7 @@ for cat in categories:
 		print >>out, ''
 		for n in f['names']:
 			h += '%s ' % n
-		print >>out, heading(h, '.')
+		print >>out, heading(h, '-')
 		print_declared_in(out, f)
 
 		block = '.. parsed-literal::\n\n'
@@ -1061,7 +1062,7 @@ for cat in categories:
 
 		print >>out, dump_link_targets()
 	
-	render_enums(out, enums, True)
+	render_enums(out, enums, True, '-')
 
 	print >>out, dump_link_targets()
 

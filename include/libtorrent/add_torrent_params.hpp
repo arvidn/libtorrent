@@ -318,7 +318,8 @@ namespace libtorrent
 		storage_constructor_type storage;
 
 		// The ``userdata`` parameter is optional and will be passed on to the
-		// extension constructor functions, if any (see `add_extension()`_).
+		// extension constructor functions, if any
+		// (see torrent_handle::add_extension()).
 		void* userdata;
 
 		// can be set to control the initial file priorities when adding a

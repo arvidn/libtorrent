@@ -287,12 +287,16 @@ struct TORRENT_EXPORT bdecode_node
 		, boost::int64_t default_val = 0);
 	int list_size() const;
 
-	// functions with the ``dict_`` prefix operates on dictionaries. Theu are
+	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
 	// contains a 0 byte, you cannot use the null-terminated string overloads,
-	// but have to use ``std::string`` instead. ``dict_find_list`` will return
-	// a valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
+	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
+	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
+	// 
+	// Functions with the ``_value`` suffix return the value of the node
+	// directly, rather than the nodes. In case the node is not found, or it has
+	// a different type, a default value is returned (which can be specified).
 	bdecode_node dict_find(std::string key) const;
 	bdecode_node dict_find(char const* key) const;
 	std::pair<std::string, bdecode_node> dict_at(int i) const;
@@ -312,7 +316,7 @@ struct TORRENT_EXPORT bdecode_node
 	boost::int64_t int_value() const;
 
 	// these functions are only valid if ``type()`` == ``string_t``. They return
-	// the string values. Note that ``string_ptr()`` is _not_ null-terminated.
+	// the string values. Note that ``string_ptr()`` is *not* null-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
 	std::string string_value() const;
 	char const* string_ptr() const;
@@ -332,9 +336,9 @@ struct TORRENT_EXPORT bdecode_node
 	// passing it in to bdecode().
 	void reserve(int tokens);
 
-	// this buffer MUST be identical to the one originally parsed.
-	// This operation is only defined on owning root nodes, i.e. the one
-	// passed in to decode().
+	// this buffer *MUST* be identical to the one originally parsed. This
+	// operation is only defined on owning root nodes, i.e. the one passed in to
+	// decode().
 	void switch_underlying_buffer(char const* buf);
 
 private:
@@ -375,12 +379,12 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 	, bool single_line = false, int indent = 0);
 
 // This function decodes/parses bdecoded data (for example a .torrent file).
-// The data structure is returned in the ``ret`` argument.
-// the buffer to parse is specified by the ``start`` of the buffer as well as
-// the ``end``, i.e. one byte past the end. If the buffer fails to parse, the
-// function returns a non-zero value and fills in ``ec`` with the error code.
-// The optional argument ``error_pos``, if set to non-null, will be set to the byte
-// offset into the buffer where the parse failure occurred.
+// The data structure is returned in the ``ret`` argument. the buffer to parse
+// is specified by the ``start`` of the buffer as well as the ``end``, i.e. one
+// byte past the end. If the buffer fails to parse, the function returns a
+// non-zero value and fills in ``ec`` with the error code. The optional
+// argument ``error_pos``, if set to non-null, will be set to the byte offset
+// into the buffer where the parse failure occurred.
 // 
 // ``depth_limit`` specifies the max number of nested lists or dictionaries are
 // allowed in the data structure. (This affects the stack usage of the
@@ -391,9 +395,9 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // 
 // The resulting ``bdecode_node`` is an *owning* node. That means it will
 // be holding the whole parsed tree. When iterating lists and dictionaries,
-// those ``bdecode_node``s will simply have references to the root or owning
-// ``bdecode_node``. If the root node is destructed, all other nodes that
-// refer to anything in that tree become invalid.
+// those ``bdecode_node`` objects will simply have references to the root or
+// owning ``bdecode_node``. If the root node is destructed, all other nodes
+// that refer to anything in that tree become invalid.
 // 
 // However, the underlying buffer passed in to this function (``start``, ``end``)
 // must also remain valid while the bdecoded tree is used. The parsed tree

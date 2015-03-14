@@ -131,15 +131,15 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	const entry& entry::operator[](char const* key) const
 	{
-		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) throw type_error(
-			(std::string("key not found: ") + key).c_str());
-		return i->second;
+		return (*this)[std::string(key)];
 	}
 
 	const entry& entry::operator[](std::string const& key) const
 	{
-		return (*this)[key.c_str()];
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) throw type_error(
+			(std::string("key not found: ") + key).c_str());
+		return i->second;
 	}
 #endif
 

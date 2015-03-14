@@ -12,8 +12,7 @@
 body, table { font: 0.9em Verdana, sans-serif;}
 
 h1, h2, h3 {
-    font: 1.5em Georgia "Times New Roman", serif;
-/*    letter-spacing: 1px; */
+    font-family: Georgia "Times New Roman", serif;
     padding-bottom: 0.5em;
     font-weight: bold;
 }

@@ -321,6 +321,7 @@ namespace libtorrent
 #endif
 	};
 
+	// internal
 	inline std::size_t hash_value(cached_piece_entry const& p)
 	{
 		return std::size_t(p.storage.get()) + std::size_t(p.piece);

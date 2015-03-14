@@ -40,8 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
-	// this is used by bdecode_recursive's header file
-	TORRENT_EXPORT bool is_digit(char c);
+
+	// internal
+	inline bool is_digit(char c)
+	{ return c >= '0' && c <= '9'; }
+
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);
