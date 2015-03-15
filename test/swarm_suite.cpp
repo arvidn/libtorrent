@@ -191,10 +191,10 @@ void test_swarm(int flags)
 	ses3.remove_torrent(tor3, lt::session::delete_files);
 
 	std::auto_ptr<alert> a = ses1.pop_alert();
-	time_point end = aux::time_now() + seconds(20);
+	time_point end = clock_type::now() + seconds(20);
 	while (a.get() == 0 || alert_cast<torrent_deleted_alert>(a.get()) == 0)
 	{
-		if (ses1.wait_for_alert(end - aux::time_now()) == 0)
+		if (ses1.wait_for_alert(end - clock_type::now()) == 0)
 		{
 			std::cerr << "wait_for_alert() expired" << std::endl;
 			break;
@@ -216,7 +216,7 @@ void test_swarm(int flags)
 	{
 		a = ses1.pop_alert();
 		std::cerr << ret->message() << std::endl;
-		start = aux::time_now();
+		start = clock_type::now();
 	}
 
 	// this allows shutting down the sessions in parallel
