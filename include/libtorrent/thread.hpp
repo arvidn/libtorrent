@@ -61,6 +61,9 @@ namespace libtorrent
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 
+	// internal
+	void sleep(int milliseconds);
+
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{
 		condition_variable();

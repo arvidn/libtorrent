@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/random.hpp"
 
-#include <stdlib.h> // for malloc/free
-#include <string.h> // for strcpy/strlen
+#include <cstdlib> // for malloc
+#include <cstring> // for memmov/strcpy/strlen
 
 namespace libtorrent
 {
@@ -138,9 +138,9 @@ namespace libtorrent
 	char* allocate_string_copy(char const* str)
 	{
 		if (str == 0) return 0;
-		char* tmp = (char*)malloc(strlen(str) + 1);
+		char* tmp = (char*)std::malloc(std::strlen(str) + 1);
 		if (tmp == 0) return 0;
-		strcpy(tmp, str);
+		std::strcpy(tmp, str);
 		return tmp;
 	}
 

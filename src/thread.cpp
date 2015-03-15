@@ -47,6 +47,17 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	void sleep(int milliseconds)
+	{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+		Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+		snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+		usleep(milliseconds * 1000);
+#endif
+	}
+
 #ifdef BOOST_HAS_PTHREADS
 
 	condition_variable::condition_variable()
