@@ -678,12 +678,12 @@ void test_fastresume(std::string const& test_path)
 		torrent_handle h = ses.add_torrent(p, ec);
 	
 		std::auto_ptr<alert> a = ses.pop_alert();
-		time_point end = aux::time_now() + seconds(20);
-		while (aux::time_now() < end
+		time_point end = clock_type::now() + seconds(20);
+		while (clock_type::now() < end
 			&& (a.get() == 0
 				|| alert_cast<fastresume_rejected_alert>(a.get()) == 0))
 		{
-			if (ses.wait_for_alert(end - aux::time_now()) == 0)
+			if (ses.wait_for_alert(end - clock_type::now()) == 0)
 			{
 				std::cerr << "wait_for_alert() expired" << std::endl;
 				break;
