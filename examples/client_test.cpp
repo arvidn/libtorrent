@@ -76,6 +76,17 @@ POSSIBILITY OF SUCH DAMAGE.
 using boost::bind;
 using libtorrent::total_milliseconds;
 
+void sleep_ms(int milliseconds)
+{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+	usleep(milliseconds * 1000);
+#endif
+}
+
 #ifdef _WIN32
 
 #include <windows.h>
@@ -150,7 +161,7 @@ retry:
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
 	{
 		fprintf(stderr, "select failed: %s\n", strerror(errno));
-		libtorrent::sleep(500);
+		sleep_ms(500);
 	}
 
 	return false;
