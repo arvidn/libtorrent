@@ -145,10 +145,10 @@ std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
 std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	std::auto_ptr<alert> ret;
-	time_point end = aux::time_now() + seconds(10);
+	time_point end = libtorrent::clock_type::now() + seconds(10);
 	while (!ret.get())
 	{
-		time_point now = aux::time_now();
+		time_point now = clock_type::now();
 		if (now > end) return std::auto_ptr<alert>();
 
 		ses.wait_for_alert(end - now);

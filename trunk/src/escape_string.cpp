@@ -449,7 +449,7 @@ namespace libtorrent
 		return url.substr(pos, url.find('&', pos) - pos);
 	}
 
-	TORRENT_EXTRA_EXPORT std::string to_hex(std::string const& s)
+	TORRENT_EXPORT std::string to_hex(std::string const& s)
 	{
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -460,7 +460,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	TORRENT_EXTRA_EXPORT void to_hex(char const *in, int len, char* out)
+	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
@@ -488,7 +488,7 @@ namespace libtorrent
 		return true;
 	}
 
-	TORRENT_EXTRA_EXPORT bool from_hex(char const *in, int len, char* out)
+	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in, ++out)
 		{
