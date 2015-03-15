@@ -233,8 +233,9 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
-	friend int bdecode(char const* start, char const* end, bdecode_node& ret
-		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
+	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
+		, error_code& ec, int* error_pos, int depth_limit
+		, int token_limit);
 
 	// creates a default constructed node, it will have the type ``none_t``.
 	bdecode_node();
