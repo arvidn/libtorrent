@@ -86,7 +86,7 @@ int test_main()
 	thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 	thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 
-	sleep(100);
+	test_sleep(100);
 
 	cv.notify_all();
 
