@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/escape_string.hpp" // for from_hex
+#include "libtorrent/hex.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
