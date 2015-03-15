@@ -1,0 +1,153 @@
+.entry { min-height: 135px; }
+
+#main {
+    font-family: Verdana;
+    text-align: left;
+    margin-top: 10px;
+}
+
+/* Base elements */
+
+* {margin: 0; padding: 0;}
+body, table { font: 0.9em Verdana, sans-serif;}
+
+h1, h2, h3 {
+    font-family: Georgia "Times New Roman", serif;
+    padding-bottom: 0.5em;
+    font-weight: bold;
+}
+
+div.sidebar {
+    background: #f8f8e8;
+    float: right;
+    width: 20em;
+    margin-right: 1em;
+    border: solid 1px #e5e5d5;
+    padding: 1.3em;
+}
+
+div.sidebar p.sidebar-title {
+    font: 1.3em Georgia;
+    border-bottom: solid 1px #e5e5d5;
+    padding-bottom: 0.5em;
+    margin: 0 0 0.5em 0;
+}
+
+a {
+    text-decoration: none;
+    color: #8D370A;
+    border-bottom: dotted 1px #8D370A;
+}
+
+ul, ol { line-height: 1.8em; }
+ul { list-style: square; }
+li { margin-left: 2.8em; font-size: 92%; }
+
+p, ul, ol, img {margin-bottom: 1em;}
+
+.align-right {
+	float: right;
+}
+
+.document {
+    margin: 0px;
+}
+
+div.section {
+    margin-bottom: 3em;
+}
+
+div.section div.section div.section {
+    margin-bottom: 2em;
+}
+
+div.section p, div.section ul, div.section dl {
+}
+
+#container {
+    text-align: left;
+    width: 65em;
+    margin: 0 auto;
+    position: relative;
+}
+
+#header {
+    height: 116px;
+    width: 100%;
+    border: none;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+#header tr td {
+    border: none;
+}
+
+#orange {
+    margin: 0;
+    padding: 0;
+    width: 159px;
+    height: 116px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    background: url('img/orange.png') no-repeat top left;
+}
+
+#logo {
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    color: white;
+    font-size: 50pt;
+    height: 116px;
+    font-family: Georgia;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background: url('img/bg.png');
+}
+
+#gradient {
+    width: 100%;
+    clear: both;
+    height: 30px;
+    background: linear-gradient(#bbb, #ddd);
+}
+
+#footer {
+    margin: 0px;
+    padding: 0px;
+    text-align: center;
+    background: #ddd;
+    width: 100%;
+    color: #777;
+    overflow: hidden;
+}
+
+#footer table {
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 1em;
+}
+
+#footer tr td {
+    border: none;
+    background: none;
+    color: #777;
+    text-align: left;
+}
+
+#footer a {
+    color: #777;
+}
+
+#footer a:hover {
+    color: #000;
+}
+
+#filler {
+    height: 200px;
+    background: linear-gradient(#ddd, #fff);
+}
+
+li p, li li { font-size: 100%; }
+

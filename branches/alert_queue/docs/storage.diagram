@@ -1,0 +1,31 @@
++--------------------------+
+|      disk_io_thread      |
+|   (manages piece cache)  |
++--------------------------+
+              ^
+              |
+              v
++--------------------------+
+|      piece_manager       |
+|  (maps pieces to slots)  |
++--------------------------+
+              ^
+              |
+              v customization point
+/--------------------------\      +------------------+
+|          storage         |<---->| file_pool        |
+| cGRE                     |      | open file cache  |
+| (maps slots to file and  |      +------------------+
+| offset. reads and writes |
+| to disk)                 |      +------------------+
+|                          |<-----+ file_storage     |
+\--------------------------/      | standard slot to |
+              ^                   | file mapping     |
+              |                   +------------------+
+              v
++--------------------------+
+|           file           |
+| (file class reads and    |
+| writes files)            |
++--------------------------+
+

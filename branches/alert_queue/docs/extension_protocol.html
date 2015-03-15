@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title></title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org Ludvig Strigeus, ludde&#64;utorrent.com" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a>
+Ludvig Strigeus, <a class="last reference external" href="mailto:ludde&#64;utorrent.com">ludde&#64;utorrent.com</a></td></tr>
+</tbody>
+</table>
+<div class="section" id="extension-protocol-for-bittorrent">
+<h1>extension protocol for bittorrent</h1>
+<p>The intention of this protocol is to provide a simple and thin transport
+for extensions to the bittorrent protocol. Supporting this protocol makes
+it easy to add new extensions without interfering with the standard
+bittorrent protocol or clients that don't support this extension or the
+one you want to add.</p>
+<p>To advertise to other clients that you support, one bit from the reserved
+bytes is used.</p>
+<p>The bit selected for the extension protocol is bit 20 from the right (counting
+starts at 0). So (reserved_byte[5] &amp; 0x10) is the expression to use for checking
+if the client supports extended messaging.</p>
+<p>Once support for the protocol is established, the client is supposed to
+support 1 new message:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="86%" />
+<col width="14%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">id</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">extended</tt></td>
+<td>20</td>
+</tr>
+</tbody>
+</table>
+<p>This message is sent as any other bittorrent message, with a 4 byte length
+prefix and a single byte identifying the message (the single byte being 20
+in this case). At the start of the payload of the message, is a single byte
+message identifier. This identifier can refer to different extension messages
+and only one ID is specified, 0. If the ID is 0, the message is a handshake
+message which is described below. The layout of a general <tt class="docutils literal">extended</tt> message
+follows (including the message headers used by the bittorrent protocol):</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="85%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint32_t</td>
+<td>length prefix. Specifies the number of bytes for the
+entire message. (Big endian)</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>bittorrent message ID, = 20</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>extended message ID. 0 = handshake, &gt;0 = extended
+message as specified by the handshake.</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="handshake-message">
+<h2>handshake message</h2>
+<p>The payload of the handshake message is a bencoded dictionary. All items
+in the dictionary are optional. Any unknown names should be ignored
+by the client. All parts of the dictionary are case sensitive.
+This is the defined item in the dictionary:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="89%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>m</td>
+<td><p class="first">Dictionary of supported extension messages which maps
+names of extensions to an extended message ID for each
+extension message. The only requirement on these IDs
+is that no extension message share the same one. Setting
+an extension number to zero means that the extension is
+not supported/disabled. The client should ignore any
+extension names it doesn't recognize.</p>
+<p class="last">The extension message IDs are the IDs used to send the
+extension messages to the peer sending this handshake.
+i.e. The IDs are local to this particular peer.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Here are some other items that an implementation may choose to support:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="12%" />
+<col width="88%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>p</td>
+<td>Local TCP listen port. Allows each side to learn about
+the TCP port number of the other side. Note that there is
+no need for the receiving side of the connection to send
+this extension message, since its port number is already
+known.</td>
+</tr>
+<tr><td>v</td>
+<td>Client name and version (as a utf-8 string).
+This is a much more reliable way of identifying the
+client than relying on the peer id encoding.</td>
+</tr>
+<tr><td>yourip</td>
+<td>A string containing the compact representation of the ip
+address this peer sees you as. i.e. this is the
+receiver's external ip address (no port is included).
+This may be either an IPv4 (4 bytes) or an IPv6
+(16 bytes) address.</td>
+</tr>
+<tr><td>ipv6</td>
+<td>If this peer has an IPv6 interface, this is the compact
+representation of that address (16 bytes). The client may
+prefer to connect back via the IPv6 address.</td>
+</tr>
+<tr><td>ipv4</td>
+<td>If this peer has an IPv4 interface, this is the compact
+representation of that address (4 bytes). The client may
+prefer to connect back via this interface.</td>
+</tr>
+<tr><td>reqq</td>
+<td>An integer, the number of outstanding request messages
+this client supports without dropping any. The default in
+in libtorrent is 250.</td>
+</tr>
+</tbody>
+</table>
+<p>The handshake dictionary could also include extended handshake
+information, such as support for encrypted headers or anything
+imaginable.</p>
+<p>An example of what the payload of a handshake message could look like:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="36%" />
+<col width="64%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="2">Dictionary</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">m</tt></td>
+<td><table border="1" class="first last docutils">
+<colgroup>
+<col width="88%" />
+<col width="12%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head" colspan="2">Dictionary</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">LT_metadata</tt></td>
+<td>1</td>
+</tr>
+<tr><td><tt class="docutils literal">ut_pex</tt></td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr><td><tt class="docutils literal">p</tt></td>
+<td>6881</td>
+</tr>
+<tr><td><tt class="docutils literal">v</tt></td>
+<td>&quot;uTorrent 1.2&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>and in the encoded form:</p>
+<p><tt class="docutils literal">d1:md11:LT_metadatai1e6:ut_pexi2ee1:pi6881e1:v12:uTorrent 1.2e</tt></p>
+<p>To make sure the extension names do not collide by mistake, they should be
+prefixed with the two (or one) character code that is used to identify the
+client that introduced the extension. This applies for both the names of
+extension messages, and for any additional information put inside the
+top-level dictionary. All one and two byte identifiers are invalid to use
+unless defined by this specification.</p>
+<p>This message should be sent immediately after the standard bittorrent handshake
+to any peer that supports this extension protocol. It is valid to send the
+handshake message more than once during the lifetime of a connection,
+the sending client should not be disconnected. An implementation may choose
+to ignore the subsequent handshake messages (or parts of them).</p>
+<p>Subsequent handshake messages can be used to enable/disable extensions
+without restarting the connection. If a peer supports changing extensions
+at run time, it should note that the <tt class="docutils literal">m</tt> dictionary is additive.
+It's enough that it contains the actual <em>CHANGES</em> to the extension list.
+To disable the support for <tt class="docutils literal">LT_metadata</tt> at run-time, without affecting
+any other extensions, this message should be sent:
+<tt class="docutils literal">d11:LT_metadatai0ee</tt>.
+As specified above, the value 0 is used to turn off an extension.</p>
+<p>The extension IDs must be stored for every peer, becuase every peer may have
+different IDs for the same extension.</p>
+<p>This specification, deliberately, does not specify any extensions such as
+peer-exchange or metadata exchange. This protocol is merely a transport
+for the actual extensions to the bittorrent protocol and the extensions
+named in the example above (such as <tt class="docutils literal">p</tt>) are just examples of possible
+extensions.</p>
+</div>
+<div class="section" id="rationale">
+<h2>rationale</h2>
+<p>The reason why the extension messages' IDs would be defined in the handshake
+is to avoid having a global registry of message IDs. Instead the names of the
+extension messages requires unique names, which is much easier to do without
+a global registry. The convention is to use a two letter prefix on the
+extension message names, the prefix would identify the client first
+implementing the extension message. e.g. <tt class="docutils literal">LT_metadata</tt> is implemented by
+libtorrent, and hence it has the <tt class="docutils literal">LT</tt> prefix.</p>
+<p>If the client supporting the extensions can decide which numbers the messages
+it receives will have, it means they are constants within that client. i.e.
+they can be used in <tt class="docutils literal">switch</tt> statements. It's easy for the other end to
+store an array with the ID's we expect for each message and use that for
+lookups each time it sends an extension message.</p>
+<p>The reason for having a dictionary instead of having an array (using
+implicitly assigned index numbers to the extensions) is that if a client
+want to disable some extensions, the ID numbers would change, and it wouldn't
+be able to use constants (and hence, not use them in a <tt class="docutils literal">switch</tt>). If the
+messages IDs would map directly to bittorrent message IDs, It would also make
+it possible to map extensions in the handshake to existing extensions with
+fixed message IDs.</p>
+<p>The reasoning behind having a single byte as extended message identifier is
+to follow the the bittorrent spec. with its single byte message identifiers.
+It is also considered to be enough. It won't limit the total number of
+extensions, only the number of extensions used simultaneously.</p>
+<p>The reason for using single byte identifiers for the standardized handshake
+identifiers is 1) The mainline DHT uses single byte identifiers. 2) Saves
+bandwidth. The only advantage of longer messages is that it makes the
+protocol more readable for a human, but the BT protocol wasn't designed to
+be a human readable protocol, so why bother.</p>
+</div>
+</div>
+<div class="section" id="extensions">
+<h1>extensions</h1>
+<p>These extensions all operates within the <a class="reference external" href="extension_protocol.html">extension protocol</a>. The name of the
+extension is the name used in the extension-list packets, and the payload is
+the data in the extended message (not counting the length-prefix, message-id
+nor extension-id).</p>
+<p>Note that since this protocol relies on one of the reserved bits in the
+handshake, it may be incompatible with future versions of the mainline
+bittorrent client.</p>
+<p>These are the extensions that are currently implemented.</p>
+<div class="section" id="metadata-from-peers">
+<h2>metadata from peers</h2>
+<p>Extension name: &quot;LT_metadata&quot;</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">This extension is deprecated in favor of the more widely supported
+<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.</p>
+</div>
+<p>The point with this extension is that you don't have to distribute the
+metadata (.torrent-file) separately. The metadata can be distributed
+through the bittorrent swarm. The only thing you need to download such
+a torrent is the tracker url and the info-hash of the torrent.</p>
+<p>It works by assuming that the initial seeder has the metadata and that the
+metadata will propagate through the network as more peers join.</p>
+<p>There are three kinds of messages in the metadata extension. These packets are
+put as payload to the extension message. The three packets are:</p>
+<blockquote>
+<ul class="simple">
+<li>request metadata</li>
+<li>metadata</li>
+<li>don't have metadata</li>
+</ul>
+</blockquote>
+<p>request metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>Determines the kind of message this is
+0 means 'request metadata'</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>start</td>
+<td>The start of the metadata block that
+is requested. It is given in 256:ths
+of the total size of the metadata,
+since the requesting client don't know
+the size of the metadata.</td>
+</tr>
+<tr><td>uint8_t</td>
+<td>size</td>
+<td>The size of the metadata block that is
+requested. This is also given in
+256:ths of the total size of the
+metadata. The size is given as size-1.
+That means that if this field is set
+0, the request wants one 256:th of the
+metadata.</td>
+</tr>
+</tbody>
+</table>
+<p>metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>1 means 'metadata'</td>
+</tr>
+<tr><td>int32_t</td>
+<td>total_size</td>
+<td>The total size of the metadata, given
+in number of bytes.</td>
+</tr>
+<tr><td>int32_t</td>
+<td>offset</td>
+<td>The offset of where the metadata block
+in this message belongs in the final
+metadata. This is given in bytes.</td>
+</tr>
+<tr><td>uint8_t[]</td>
+<td>metadata</td>
+<td>The actual metadata block. The size of
+this part is given implicit by the
+length prefix in the bittorrent
+protocol packet.</td>
+</tr>
+</tbody>
+</table>
+<p>Don't have metadata:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint8_t</td>
+<td>msg_type</td>
+<td>2 means 'I don't have metadata'.
+This message is sent as a reply to a
+metadata request if the the client
+doesn't have any metadata.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="dont-have">
+<h2>dont_have</h2>
+<p>Extension name: &quot;lt_donthave&quot;</p>
+<p>The <tt class="docutils literal">dont_have</tt> extension message is used to tell peers that the client no
+longer has a specific piece. The extension message should be advertised in the
+<tt class="docutils literal">m</tt> dictionary as <tt class="docutils literal">lt_donthave</tt>. The message format mimics the regular
+<tt class="docutils literal">HAVE</tt> bittorrent message.</p>
+<p>Just like all extension messages, the first 2 bytes in the mssage itself are 20
+(the bittorrent extension message) and the message ID assigned to this
+extension in the <tt class="docutils literal">m</tt> dictionary in the handshake.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="23%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">size</th>
+<th class="head">name</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>uint32_t</td>
+<td>piece</td>
+<td>index of the piece the peer no longer
+has.</td>
+</tr>
+</tbody>
+</table>
+<p>The length of this message (including the extension message prefix) is 6 bytes,
+i.e. one byte longer than the normal <tt class="docutils literal">HAVE</tt> message, because of the extension
+message wrapping.</p>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div></div>
+
+</div>
+</body>
+</html>

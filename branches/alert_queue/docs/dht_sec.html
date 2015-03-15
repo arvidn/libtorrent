@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>BitTorrent DHT security extension</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="bittorrent-dht-security-extension">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">BitTorrent DHT security extension</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.1.0</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#id1" id="id2">BitTorrent DHT security extension</a></li>
+<li><a class="reference internal" href="#considerations" id="id3">considerations</a></li>
+<li><a class="reference internal" href="#node-id-restriction" id="id4">Node ID restriction</a></li>
+<li><a class="reference internal" href="#bootstrapping" id="id5">bootstrapping</a></li>
+<li><a class="reference internal" href="#rationale" id="id6">rationale</a></li>
+<li><a class="reference internal" href="#enforcement" id="id7">enforcement</a></li>
+<li><a class="reference internal" href="#backwards-compatibility-and-transition" id="id8">backwards compatibility and transition</a></li>
+<li><a class="reference internal" href="#forward-compatibility" id="id9">forward compatibility</a></li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h1>BitTorrent DHT security extension</h1>
+<p>The purpose of this extension is to make it harder to launch a few
+specific attacks against the BitTorrent DHT and also to make it harder
+to snoop the network.</p>
+<p>Specifically the attack this extension intends to make harder is launching
+8 or more DHT nodes which node-IDs selected close to a specific target
+info-hash, in order to become the main nodes hosting peers for it. Currently
+this is very easy to do and lets the attacker not only see all the traffic
+related to this specific info-hash but also block access to it by other
+peers.</p>
+<p>The proposed guard against this is to enforce restrictions on which node-ID
+a node can choose, based on its external IP address.</p>
+</div>
+<div class="section" id="considerations">
+<h1>considerations</h1>
+<p>One straight forward scheme to tie the node ID to an IP would be to hash
+the IP and force the node ID to share the prefix of that hash. One main
+draw back of this approach is that an entities control over the DHT key
+space grows linearly with its control over the IP address space.</p>
+<p>In order to successfully launch an attack, you just need to find 8 IPs
+whose hash will be <em>closest</em> to the target info-hash. Given the current
+size of the DHT, that is quite likely to be possible by anyone in control
+of a /8 IP block.</p>
+<p>The size of the DHT is approximately 8.4 million nodes. This is estmiated
+by observing that a typical routing table typically has about 20 of its
+top routing table buckets full. That means the key space is dense enough
+to contain 8 nodes for every combination of the 20 top bits of node IDs.</p>
+<blockquote>
+<tt class="docutils literal">2^20 * 8 = 8388608</tt></blockquote>
+<p>By controlling that many IP addresses, an attacker could snoop any info-hash.
+By controlling 8 times that many IP addresses, an attacker could actually
+take over any info-hash.</p>
+<p>With IPv4, snooping would require a /8 IP block, giving access to 16.7 million
+Ips.</p>
+<p>Another problem with hashing the IP is that multiple users behind a NAT are
+forced to run their DHT nodes on the same node ID.</p>
+</div>
+<div class="section" id="node-id-restriction">
+<h1>Node ID restriction</h1>
+<p>In order to avoid the number node IDs controlled to grow linearly by the number
+of IPs, as well as allowing more than one node ID per external IP, the node
+ID can be restricted at each class level of the IP.</p>
+<p>Another important property of the restriction put on node IDs is that the
+distribution of the IDs remoain uniform. This is why CRC32C (Castagnoli) was
+chosen as the hash function.</p>
+<p>The expression to calculate a valid ID prefix (from an IPv4 address) is:</p>
+<pre class="literal-block">
+crc32c((ip &amp; 0x030f3fff) | (r &lt;&lt; 29))
+</pre>
+<p>And for an IPv6 address (<tt class="docutils literal">ip</tt> is the high 64 bits of the address):</p>
+<pre class="literal-block">
+crc32c((ip &amp; 0x0103070f1f3f7fff) | (r &lt;&lt; 61))
+</pre>
+<p><tt class="docutils literal">r</tt> is a random number in the range [0, 7]. The resulting integer,
+representing the masked IP address is supposed to be big-endian before
+hashed. The &quot;|&quot; operator means bit-wise OR.</p>
+<p>The details of implementing this is to evaluate the expression, store the
+result in a big endian 64 bit integer and hash those 8 bytes with CRC32C.</p>
+<p>The first (most significant) 21 bits of the node ID used in the DHT MUST
+match the first 21 bits of the resulting hash. The last byte of the hash MUST
+match the random number (<tt class="docutils literal">r</tt>) used to generate the hash.</p>
+<img alt="ip_id_v4.png" src="ip_id_v4.png" />
+<img alt="ip_id_v6.png" src="ip_id_v6.png" />
+<p>Example code code for calculating a valid node ID:</p>
+<pre class="literal-block">
+uint8_t* ip; // our external IPv4 or IPv6 address (network byte order)
+int num_octets; // the number of octets to consider in ip (4 or 8)
+uint8_t node_id[20]; // resulting node ID
+
+uint8_t v4_mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+uint8_t v6_mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+uint8_t* mask = num_octets == 4 ? v4_mask : v6_mask;
+
+for (int i = 0; i &lt; num_octets; ++i)
+        ip[i] &amp;= mask[i];
+
+uint32_t rand = std::rand() &amp; 0xff;
+uint8_t r = rand &amp; 0x7;
+ip[0] |= r &lt;&lt; 5;
+
+uint32_t crc = 0;
+crc = crc32c(crc, ip, num_octets);
+
+// only take the top 21 bits from crc
+node_id[0] = (crc &gt;&gt; 24) &amp; 0xff;
+node_id[1] = (crc &gt;&gt; 16) &amp; 0xff;
+node_id[2] = ((crc &gt;&gt; 8) &amp; 0xf8) | (std::rand() &amp; 0x7);
+for (int i = 3; i &lt; 19; ++i) node_id[i] = std::rand();
+node_id[19] = rand;
+</pre>
+<p>test vectors:</p>
+<pre class="literal-block">
+IP           rand  example node ID
+============ ===== ==========================================
+124.31.75.21   1   <strong>5fbfbf</strong> f10c5d6a4ec8a88e4c6ab4c28b95eee4 <strong>01</strong>
+21.75.31.124  86   <strong>5a3ce9</strong> c14e7a08645677bbd1cfe7d8f956d532 <strong>56</strong>
+65.23.51.170  22   <strong>a5d432</strong> 20bc8f112a3d426c84764f8c2a1150e6 <strong>16</strong>
+84.124.73.14  65   <strong>1b0321</strong> dd1bb1fe518101ceef99462b947a01ff <strong>41</strong>
+43.213.53.83  90   <strong>e56f6c</strong> bf5b7c4be0237986d5243b87aa6d5130 <strong>5a</strong>
+</pre>
+<p>The bold parts of the node ID are the important parts. The rest are
+random numbers. The last bold number of each row has only its most significant
+bit pulled from the CRC32C function. The lower 3 bits are random.</p>
+</div>
+<div class="section" id="bootstrapping">
+<h1>bootstrapping</h1>
+<p>In order to set ones initial node ID, the external IP needs to be known. This
+is not a trivial problem. With this extension, <em>all</em> DHT responses SHOULD include
+a <em>top-level</em> field called <tt class="docutils literal">ip</tt>, containing a compact binary representation of
+the requestor's IP and port. That is big endian IP followed by 2 bytes of big endian
+port.</p>
+<p>The IP portion is the same byte sequence used to verify the node ID.</p>
+<p>It is important that the <tt class="docutils literal">ip</tt> field is in the top level dictionary. Nodes that
+enforce the node-ID will respond with an error message (&quot;y&quot;: &quot;e&quot;, &quot;e&quot;: { ... }),
+whereas a node that supports this extension but without enforcing it will respond
+with a normal reply (&quot;y&quot;: &quot;r&quot;, &quot;r&quot;: { ... }).</p>
+<p>A DHT node which receives an <tt class="docutils literal">ip</tt> result in a request SHOULD consider restarting
+its DHT node with a new node ID, taking this IP into account. Since a single node
+can not be trusted, there should be some mechanism to determine whether or
+not the node has a correct understanding of its external IP or not. This could
+be done by voting, or only restart the DHT once at least a certain number of
+nodes, from separate searches, tells you your node ID is incorrect.</p>
+</div>
+<div class="section" id="rationale">
+<h1>rationale</h1>
+<p>The choice of using CRC32C instead of a more traditional cryptographic hash
+function is justified primarily of these reasons:</p>
+<ol class="arabic simple">
+<li>it is a fast function</li>
+<li>produces well distributed results</li>
+<li>there is no need for the hash function to be one-way (the input set is
+so small that any hash function could be reversed).</li>
+<li>CRC32C (Castagnoli) is supported in hardware by SSE 4.2, which can
+significantly speed up computation</li>
+</ol>
+<p>There are primarily two tests run on SHA-1 and CRC32C to establish the
+distribution of results. The first one is the number of bits in the output
+set that contain every possible combination of bits. The CRC32C function
+has a longer such prefix in its output than SHA-1. This means nodes will still
+have well uniformly distributed IDs, even when IP addresses in use are not
+uniformly distributed.</p>
+<p>The following graph illustrate a few different hash functions with regard
+to this property.</p>
+<img alt="complete_bit_prefixes.png" src="complete_bit_prefixes.png" />
+<p>This test takes into account IP addresses that are not globally routable, i.e.
+reserved for local networks, multicast and other things. It also takes into
+account that some /8 blocks are not in use by end-users and exremely unlikely
+to ever run a DHT node. This makes the results likely to be very similar to
+what we would see in the wild.</p>
+<p>These results indicate that CRC32C provides the best uniformity in the results
+in terms of bit prefixes where all possibilities are represented, and that
+no more than 21 bits should be used from the result. If more than 21 bits
+were to be used, there would be certain node IDs that would be impossible to
+have, which would make routing sub-optimal.</p>
+<p>The second test is more of a sanity test for the uniform distribution property.
+The target space (32 bit interger) is divided up into 1000 buckets. Every valid
+IP and <tt class="docutils literal">r</tt> input is run through the algorithm and the result is put in the
+bucket it falls in. The expectation is that each bucket has roughly an equal
+number of results falling into it. The following graph shows the resulting
+histogram, comparing SHA-1 and CRC32C.</p>
+<img alt="hash_distribution.png" src="hash_distribution.png" />
+<p>The source code for these tests can be found <a class="reference external" href="https://github.com/arvidn/hash_complete_prefix">here</a>.</p>
+<p>The reason to use CRC32C instead of the CRC32 implemented by zlib is that
+Intel CPUs have hardware support for the CRC32C calculations. The input
+being exactly 4 bytes is also deliberate, to make it fit in a single
+instruction.</p>
+</div>
+<div class="section" id="enforcement">
+<h1>enforcement</h1>
+<p>Once enforced, write tokens from peers whose node ID does not match its external
+IP should be considered dropped. In other words, a peer that uses a non-matching
+ID MUST never be used to store information on, regardless of which request. In the
+original DHT specification only <tt class="docutils literal">announce_peer</tt> stores data in the network,
+but any future extension which stores data in the network SHOULD use the same
+restriction.</p>
+<p>Any peer on a local network address is exempt from this node ID verification.
+This includes the following IP blocks:</p>
+<dl class="docutils">
+<dt>10.0.0.0/8</dt>
+<dd>reserved for local networks</dd>
+<dt>172.16.0.0/12</dt>
+<dd>reserved for local networks</dd>
+<dt>192.168.0.0/16</dt>
+<dd>reserved for local networks</dd>
+<dt>169.254.0.0/16</dt>
+<dd>reserved for self-assigned IPs</dd>
+<dt>127.0.0.0/8</dt>
+<dd>reserved for loopback</dd>
+</dl>
+</div>
+<div class="section" id="backwards-compatibility-and-transition">
+<h1>backwards compatibility and transition</h1>
+<p>During some transition period, this restriction should not be enforced, and
+peers whose node ID does not match this formula relative to their external IP
+should not be blocked.</p>
+<p>Requests from peers whose node ID does not match their external IP should
+always be serviced, even after the transition period. The attack this protects
+from is storing data on an attacker's node, not servicing an attackers request.</p>
+</div>
+<div class="section" id="forward-compatibility">
+<h1>forward compatibility</h1>
+<p>If the total size of the DHT grows to the point where the inherent size limit
+in this proposal is too small, the modulus constants can be updated in a new
+proposal, and another transition period where both sets of modulus constants
+are accepted.</p>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div></div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,299 @@
+// Copyright Daniel Wallin 2006. Use, modification and distribution is
+// subject to the Boost Software License, Version 1.0. (See accompanying
+// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#include <boost/python.hpp>
+#include <libtorrent/session.hpp>
+
+using namespace boost::python;
+using namespace libtorrent;
+
+void bind_session_settings()
+{
+#ifndef TORRENT_NO_DEPRECATE
+    class_<session_settings>("session_settings")
+        .def_readwrite("user_agent", &session_settings::user_agent)
+        .def_readwrite("tracker_completion_timeout", &session_settings::tracker_completion_timeout)
+        .def_readwrite("tracker_receive_timeout", &session_settings::tracker_receive_timeout)
+        .def_readwrite("stop_tracker_timeout", &session_settings::stop_tracker_timeout)
+        .def_readwrite("tracker_maximum_response_length", &session_settings::tracker_maximum_response_length)
+        .def_readwrite("piece_timeout", &session_settings::piece_timeout)
+        .def_readwrite("request_timeout", &session_settings::request_timeout)
+        .def_readwrite("request_queue_time", &session_settings::request_queue_time)
+        .def_readwrite("max_allowed_in_request_queue", &session_settings::max_allowed_in_request_queue)
+        .def_readwrite("max_out_request_queue", &session_settings::max_out_request_queue)
+        .def_readwrite("whole_pieces_threshold", &session_settings::whole_pieces_threshold)
+        .def_readwrite("peer_timeout", &session_settings::peer_timeout)
+        .def_readwrite("urlseed_timeout", &session_settings::urlseed_timeout)
+        .def_readwrite("urlseed_pipeline_size", &session_settings::urlseed_pipeline_size)
+        .def_readwrite("urlseed_wait_retry", &session_settings::urlseed_wait_retry)
+        .def_readwrite("file_pool_size", &session_settings::file_pool_size)
+        .def_readwrite("allow_multiple_connections_per_ip", &session_settings::allow_multiple_connections_per_ip)
+        .def_readwrite("max_failcount", &session_settings::max_failcount)
+        .def_readwrite("min_reconnect_time", &session_settings::min_reconnect_time)
+        .def_readwrite("peer_connect_timeout", &session_settings::peer_connect_timeout)
+        .def_readwrite("ignore_limits_on_local_network", &session_settings::ignore_limits_on_local_network)
+        .def_readwrite("connection_speed", &session_settings::connection_speed)
+        .def_readwrite("send_redundant_have", &session_settings::send_redundant_have)
+        .def_readwrite("lazy_bitfields", &session_settings::lazy_bitfields)
+        .def_readwrite("inactivity_timeout", &session_settings::inactivity_timeout)
+        .def_readwrite("unchoke_interval", &session_settings::unchoke_interval)
+        .def_readwrite("optimistic_unchoke_interval", &session_settings::optimistic_unchoke_interval)
+        .def_readwrite("announce_ip", &session_settings::announce_ip)
+        .def_readwrite("num_want", &session_settings::num_want)
+        .def_readwrite("initial_picker_threshold", &session_settings::initial_picker_threshold)
+        .def_readwrite("allowed_fast_set_size", &session_settings::allowed_fast_set_size)
+		  // this is no longer used
+        .def_readwrite("max_queued_disk_bytes", &session_settings::max_queued_disk_bytes)
+        .def_readwrite("max_queued_disk_bytes_low_watermark", &session_settings::max_queued_disk_bytes_low_watermark)
+        .def_readwrite("handshake_timeout", &session_settings::handshake_timeout)
+#ifndef TORRENT_DISABLE_DHT
+        .def_readwrite("use_dht_as_fallback", &session_settings::use_dht_as_fallback)
+#endif
+        .def_readwrite("free_torrent_hashes", &session_settings::free_torrent_hashes)
+        .def_readwrite("upnp_ignore_nonrouters", &session_settings::upnp_ignore_nonrouters)
+        .def_readwrite("send_buffer_low_watermark", &session_settings::send_buffer_low_watermark)
+        .def_readwrite("send_buffer_watermark", &session_settings::send_buffer_watermark)
+        .def_readwrite("send_buffer_watermark_factor", &session_settings::send_buffer_watermark_factor)
+        .def_readwrite("choking_algorithm", &session_settings::choking_algorithm)
+        .def_readwrite("seed_choking_algorithm", &session_settings::seed_choking_algorithm)
+        .def_readwrite("use_parole_mode", &session_settings::use_parole_mode)
+        .def_readwrite("cache_size", &session_settings::cache_size)
+        .def_readwrite("cache_buffer_chunk_size", &session_settings::cache_buffer_chunk_size)
+        .def_readwrite("cache_expiry", &session_settings::cache_expiry)
+        .def_readwrite("use_read_cache", &session_settings::use_read_cache)
+        .def_readwrite("explicit_read_cache", &session_settings::explicit_read_cache)
+        .def_readwrite("explicit_cache_interval", &session_settings::explicit_cache_interval)
+        .def_readwrite("disk_io_write_mode", &session_settings::disk_io_write_mode)
+        .def_readwrite("disk_io_read_mode", &session_settings::disk_io_read_mode)
+        .def_readwrite("coalesce_reads", &session_settings::coalesce_reads)
+        .def_readwrite("coalesce_writes", &session_settings::coalesce_writes)
+        .def_readwrite("peer_tos", &session_settings::peer_tos)
+        .def_readwrite("active_downloads", &session_settings::active_downloads)
+        .def_readwrite("active_seeds", &session_settings::active_seeds)
+        .def_readwrite("active_dht_limit", &session_settings::active_dht_limit)
+        .def_readwrite("active_tracker_limit", &session_settings::active_tracker_limit)
+        .def_readwrite("active_lsd_limit", &session_settings::active_lsd_limit)
+        .def_readwrite("active_limit", &session_settings::active_limit)
+        .def_readwrite("auto_manage_prefer_seeds", &session_settings::auto_manage_prefer_seeds)
+        .def_readwrite("dont_count_slow_torrents", &session_settings::dont_count_slow_torrents)
+        .def_readwrite("auto_manage_interval", &session_settings::auto_manage_interval)
+        .def_readwrite("share_ratio_limit", &session_settings::share_ratio_limit)
+        .def_readwrite("seed_time_ratio_limit", &session_settings::seed_time_ratio_limit)
+        .def_readwrite("seed_time_limit", &session_settings::seed_time_limit)
+        .def_readwrite("peer_turnover_interval", &session_settings::peer_turnover_interval)
+        .def_readwrite("peer_turnover", &session_settings::peer_turnover)
+        .def_readwrite("peer_turnover_cutoff", &session_settings::peer_turnover_cutoff)
+        .def_readwrite("close_redundant_connections", &session_settings::close_redundant_connections)
+        .def_readwrite("auto_scrape_interval", &session_settings::auto_scrape_interval)
+        .def_readwrite("auto_scrape_min_interval", &session_settings::auto_scrape_min_interval)
+        .def_readwrite("max_peerlist_size", &session_settings::max_peerlist_size)
+        .def_readwrite("max_paused_peerlist_size", &session_settings::max_paused_peerlist_size)
+        .def_readwrite("min_announce_interval", &session_settings::min_announce_interval)
+        .def_readwrite("prioritize_partial_pieces", &session_settings::prioritize_partial_pieces)
+        .def_readwrite("auto_manage_startup", &session_settings::auto_manage_startup)
+        .def_readwrite("rate_limit_ip_overhead", &session_settings::rate_limit_ip_overhead)
+        .def_readwrite("announce_to_all_trackers", &session_settings::announce_to_all_trackers)
+        .def_readwrite("announce_to_all_tiers", &session_settings::announce_to_all_tiers)
+        .def_readwrite("prefer_udp_trackers", &session_settings::prefer_udp_trackers)
+        .def_readwrite("strict_super_seeding", &session_settings::strict_super_seeding)
+        .def_readwrite("seeding_piece_quota", &session_settings::seeding_piece_quota)
+        .def_readwrite("max_sparse_regions", &session_settings::max_sparse_regions)
+#ifndef TORRENT_DISABLE_MLOCK
+        .def_readwrite("lock_disk_cache", &session_settings::lock_disk_cache)
+#endif
+        .def_readwrite("max_rejects", &session_settings::max_rejects)
+        .def_readwrite("recv_socket_buffer_size", &session_settings::recv_socket_buffer_size)
+        .def_readwrite("send_socket_buffer_size", &session_settings::send_socket_buffer_size)
+        .def_readwrite("optimize_hashing_for_speed", &session_settings::optimize_hashing_for_speed)
+        .def_readwrite("file_checks_delay_per_block", &session_settings::file_checks_delay_per_block)
+        .def_readwrite("disk_cache_algorithm", &session_settings::disk_cache_algorithm)
+        .def_readwrite("read_cache_line_size", &session_settings::read_cache_line_size)
+        .def_readwrite("write_cache_line_size", &session_settings::write_cache_line_size)
+        .def_readwrite("optimistic_disk_retry", &session_settings::optimistic_disk_retry)
+        .def_readwrite("disable_hash_checks", &session_settings::disable_hash_checks)
+        .def_readwrite("allow_reordered_disk_operations", &session_settings::allow_reordered_disk_operations)
+        .def_readwrite("allow_i2p_mixed", &session_settings::allow_i2p_mixed)
+        .def_readwrite("max_suggest_pieces", &session_settings::max_suggest_pieces)
+        .def_readwrite("drop_skipped_requests", &session_settings::drop_skipped_requests)
+        .def_readwrite("low_prio_disk", &session_settings::low_prio_disk)
+        .def_readwrite("local_service_announce_interval", &session_settings::local_service_announce_interval)
+        .def_readwrite("dht_announce_interval", &session_settings::dht_announce_interval)
+        .def_readwrite("udp_tracker_token_expiry", &session_settings::udp_tracker_token_expiry)
+        .def_readwrite("volatile_read_cache", &session_settings::volatile_read_cache)
+        .def_readwrite("guided_read_cache", &session_settings::guided_read_cache)
+        .def_readwrite("default_cache_min_age", &session_settings::default_cache_min_age)
+        .def_readwrite("num_optimistic_unchoke_slots", &session_settings::num_optimistic_unchoke_slots)
+        .def_readwrite("no_atime_storage", &session_settings::no_atime_storage)
+        .def_readwrite("default_est_reciprocation_rate", &session_settings::default_est_reciprocation_rate)
+        .def_readwrite("increase_est_reciprocation_rate", &session_settings::increase_est_reciprocation_rate)
+        .def_readwrite("decrease_est_reciprocation_rate", &session_settings::decrease_est_reciprocation_rate)
+        .def_readwrite("incoming_starts_queued_torrents", &session_settings::incoming_starts_queued_torrents)
+        .def_readwrite("report_true_downloaded", &session_settings::report_true_downloaded)
+        .def_readwrite("strict_end_game_mode", &session_settings::strict_end_game_mode)
+        .def_readwrite("broadcast_lsd", &session_settings::broadcast_lsd)
+        .def_readwrite("ignore_resume_timestamps", &session_settings::ignore_resume_timestamps)
+        .def_readwrite("no_recheck_incomplete_resume", &session_settings::no_recheck_incomplete_resume)
+        .def_readwrite("anonymous_mode", &session_settings::anonymous_mode)
+        .def_readwrite("force_proxy", &session_settings::force_proxy)
+        .def_readwrite("tick_interval", &session_settings::tick_interval)
+        .def_readwrite("report_web_seed_downloads", &session_settings::report_web_seed_downloads)
+        .def_readwrite("share_mode_target", &session_settings::share_mode_target)
+        .def_readwrite("rate_limit_utp", &session_settings::rate_limit_utp)
+        .def_readwrite("upload_rate_limit", &session_settings::upload_rate_limit)
+        .def_readwrite("download_rate_limit", &session_settings::download_rate_limit)
+        .def_readwrite("local_upload_rate_limit", &session_settings::local_upload_rate_limit)
+        .def_readwrite("local_download_rate_limit", &session_settings::local_download_rate_limit)
+        .def_readwrite("dht_upload_rate_limit", &session_settings::dht_upload_rate_limit)
+        .def_readwrite("unchoke_slots_limit", &session_settings::unchoke_slots_limit)
+        .def_readwrite("connections_limit", &session_settings::connections_limit)
+        .def_readwrite("utp_target_delay", &session_settings::utp_target_delay)
+        .def_readwrite("utp_gain_factor", &session_settings::utp_gain_factor)
+        .def_readwrite("utp_min_timeout", &session_settings::utp_min_timeout)
+        .def_readwrite("utp_syn_resends", &session_settings::utp_syn_resends)
+        .def_readwrite("utp_fin_resends", &session_settings::utp_fin_resends)
+        .def_readwrite("utp_num_resends", &session_settings::utp_num_resends)
+        .def_readwrite("utp_connect_timeout", &session_settings::utp_connect_timeout)
+        .def_readwrite("half_open_limit", &session_settings::half_open_limit)
+        .def_readwrite("utp_delayed_ack", &session_settings::utp_delayed_ack)
+        .def_readwrite("utp_dynamic_sock_buf", &session_settings::utp_dynamic_sock_buf)
+        .def_readwrite("utp_loss_multiplier", &session_settings::utp_loss_multiplier)
+        .def_readwrite("mixed_mode_algorithm", &session_settings::mixed_mode_algorithm)
+        .def_readwrite("listen_queue_size", &session_settings::listen_queue_size)
+        .def_readwrite("announce_double_nat", &session_settings::announce_double_nat)
+        .def_readwrite("torrent_connect_boost", &session_settings::torrent_connect_boost)
+        .def_readwrite("seeding_outgoing_connections", &session_settings::seeding_outgoing_connections)
+        .def_readwrite("no_connect_privileged_ports", &session_settings::no_connect_privileged_ports)
+        .def_readwrite("alert_queue_size", &session_settings::alert_queue_size)
+        .def_readwrite("max_metadata_size", &session_settings::max_metadata_size)
+        .def_readwrite("smooth_connects", &session_settings::smooth_connects)
+        .def_readwrite("always_send_user_agent", &session_settings::always_send_user_agent)
+        .def_readwrite("apply_ip_filter_to_trackers", &session_settings::apply_ip_filter_to_trackers)
+        .def_readwrite("read_job_every", &session_settings::read_job_every)
+        .def_readwrite("use_disk_read_ahead", &session_settings::use_disk_read_ahead)
+        .def_readwrite("lock_files", &session_settings::lock_files)
+        .def_readwrite("enable_outgoing_tcp", &session_settings::enable_outgoing_tcp)
+        .def_readwrite("enable_incoming_tcp", &session_settings::enable_incoming_tcp)
+        .def_readwrite("enable_outgoing_utp", &session_settings::enable_outgoing_utp)
+        .def_readwrite("enable_incoming_utp", &session_settings::enable_incoming_utp)
+        .def_readwrite("max_pex_peers", &session_settings::max_pex_peers)
+        .def_readwrite("ssl_listen", &session_settings::ssl_listen)
+        .def_readwrite("tracker_backoff", &session_settings::tracker_backoff)
+        .def_readwrite("ban_web_seeds", &session_settings::ban_web_seeds)
+        .def_readwrite("max_http_recv_buffer_size", &session_settings::max_http_recv_buffer_size)
+		  .def_readwrite("support_share_mode", &session_settings::support_share_mode)
+		  .def_readwrite("support_merkle_torrents", &session_settings::support_merkle_torrents)
+		  .def_readwrite("report_redundant_bytes", &session_settings::report_redundant_bytes)
+		  .def_readwrite("handshake_client_version", &session_settings::handshake_client_version)
+		  .def_readwrite("use_disk_cache_pool", &session_settings::use_disk_cache_pool)
+    ;
+
+    enum_<session_settings::disk_cache_algo_t>("disk_cache_algo_t")
+        .value("lru", session_settings::lru)
+        .value("largest_contiguous", session_settings::largest_contiguous)
+        .value("avoid_readback", session_settings::avoid_readback)
+    ;
+#endif // TORRENT_NO_DEPRECATE
+
+    enum_<settings_pack::choking_algorithm_t>("choking_algorithm_t")
+        .value("fixed_slots_choker", settings_pack::fixed_slots_choker)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("auto_expand_choker", settings_pack::rate_based_choker)
+#endif
+        .value("rate_based_choker", settings_pack::rate_based_choker)
+        .value("bittyrant_choker", settings_pack::bittyrant_choker)
+    ;
+
+    enum_<settings_pack::seed_choking_algorithm_t>("seed_choking_algorithm_t")
+        .value("round_robin", settings_pack::round_robin)
+        .value("fastest_upload", settings_pack::fastest_upload)
+        .value("anti_leech", settings_pack::anti_leech)
+    ;
+
+    enum_<settings_pack::suggest_mode_t>("suggest_mode_t")
+        .value("no_piece_suggestions", settings_pack::no_piece_suggestions)
+        .value("suggest_read_cache", settings_pack::suggest_read_cache)
+    ;
+
+    enum_<settings_pack::io_buffer_mode_t>("io_buffer_mode_t")
+        .value("enable_os_cache", settings_pack::enable_os_cache)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("disable_os_cache_for_aligned_files", settings_pack::disable_os_cache_for_aligned_files)
+#endif
+        .value("disable_os_cache", settings_pack::disable_os_cache)
+    ;
+
+    enum_<settings_pack::bandwidth_mixed_algo_t>("bandwidth_mixed_algo_t")
+        .value("prefer_tcp", settings_pack::prefer_tcp)
+        .value("peer_proportional", settings_pack::peer_proportional)
+    ;
+
+    enum_<settings_pack::enc_policy>("enc_policy")
+        .value("pe_forced", settings_pack::pe_forced)
+        .value("pe_enabled", settings_pack::pe_enabled)
+        .value("pe_disabled", settings_pack::pe_disabled)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("forced", settings_pack::pe_forced)
+        .value("enabled", settings_pack::pe_enabled)
+        .value("disabled", settings_pack::pe_disabled)
+#endif
+	  ;
+
+    enum_<settings_pack::enc_level>("enc_level")
+        .value("pe_rc4", settings_pack::pe_rc4)
+        .value("pe_plaintext", settings_pack::pe_plaintext)
+        .value("pe_both", settings_pack::pe_both)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("rc4", settings_pack::pe_rc4)
+        .value("plaintext", settings_pack::pe_plaintext)
+        .value("both", settings_pack::pe_both)
+#endif
+    ;
+
+#ifndef TORRENT_NO_DEPRECATE
+    enum_<proxy_settings::proxy_type>("proxy_type")
+        .value("none", proxy_settings::none)
+        .value("socks4", proxy_settings::socks4)
+        .value("socks5", proxy_settings::socks5)
+        .value("socks5_pw", proxy_settings::socks5_pw)
+        .value("http", proxy_settings::http)
+        .value("http_pw", proxy_settings::http_pw)
+        .value("i2p_proxy", proxy_settings::i2p_proxy)
+    ;
+
+    class_<proxy_settings>("proxy_settings")
+        .def_readwrite("hostname", &proxy_settings::hostname)
+        .def_readwrite("port", &proxy_settings::port)
+        .def_readwrite("password", &proxy_settings::password)
+        .def_readwrite("username", &proxy_settings::username)
+        .def_readwrite("type", &proxy_settings::type)
+        .def_readwrite("proxy_peer_connections", &proxy_settings::proxy_peer_connections)
+        .def_readwrite("proxy_hostnames", &proxy_settings::proxy_hostnames)
+    ;
+#endif
+
+#ifndef TORRENT_DISABLE_DHT
+    class_<dht_settings>("dht_settings")
+        .def_readwrite("max_peers_reply", &dht_settings::max_peers_reply)
+        .def_readwrite("search_branching", &dht_settings::search_branching)
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("service_port", &dht_settings::service_port)
+#endif
+        .def_readwrite("max_fail_count", &dht_settings::max_fail_count)
+        .def_readwrite("max_torrents", &dht_settings::max_torrents)
+        .def_readwrite("max_dht_items", &dht_settings::max_dht_items)
+        .def_readwrite("restrict_routing_ips", &dht_settings::restrict_routing_ips)
+        .def_readwrite("restrict_search_ips", &dht_settings::restrict_search_ips)
+    ;
+#endif
+
+#ifndef TORRENT_NO_DEPRECATE
+    class_<pe_settings>("pe_settings")
+        .def_readwrite("out_enc_policy", &pe_settings::out_enc_policy)
+        .def_readwrite("in_enc_policy", &pe_settings::in_enc_policy)
+        .def_readwrite("allowed_enc_level", &pe_settings::allowed_enc_level)
+        .def_readwrite("prefer_rc4", &pe_settings::prefer_rc4)
+    ;
+#endif
+
+}

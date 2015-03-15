@@ -1,0 +1,11 @@
+/exclude:boost::*
+/exclude:std::*
+/exclude:mp_*
+/exclude:fast_s_mp_*
+/exclude:fast_mp_*
+/exclude:fe_*
+/exclude:ge_*
+/exclude:boost_asio_handler*
+/exclude:boost_asio_signal_handler
+/exclude:s_mp_*
+/exclude:ed25519_*
