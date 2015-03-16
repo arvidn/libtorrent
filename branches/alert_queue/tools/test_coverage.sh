@@ -34,6 +34,7 @@ set +e
 mkdir test-coverage
 set -e
 
+run_test test_heterogeneous_queue "include/libtorrent/heterogeneous_queue.hpp"
 run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
 run_test test_torrent_info "*/torrent_info.*"

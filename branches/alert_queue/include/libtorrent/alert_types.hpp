@@ -1976,6 +1976,7 @@ namespace libtorrent
 		// the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
+		// TODO: 3 this would be more efficient if we had a hard-coded array
 		std::vector<boost::uint64_t> values;
 	};
 

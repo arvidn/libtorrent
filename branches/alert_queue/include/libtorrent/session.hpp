@@ -1092,7 +1092,18 @@ namespace libtorrent
 		int max_connections() const TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		int max_uploads() const TORRENT_DEPRECATED;
+
+		TORRENT_DEPRECATED_PREFIX
+		std::auto_ptr<alert> pop_alert() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		void pop_alerts(std::deque<alert*>* alerts) TORRENT_DEPRECATED;
+
 #endif
+
+		// TODO: 3 fix documentation here. alerts may *NOT* be deleted by client.
+		// Alerts are only valid until pop_alerts is called again. *SHOULD NOT*
+		// be mixed with deprecated functions to pop alerts. pop_alert() and
+		// pop_alerts() should not be mixed, as the 
 
 		// ``pop_alert()`` is used to ask the session if any errors or events has
 		// occurred. With settings_pack::alert_mask you can filter which alerts
@@ -1145,9 +1156,10 @@ namespace libtorrent
 		// 
 		// save_resume_data_alert and save_resume_data_failed_alert are always
 		// posted, regardelss of the alert mask.
-		std::auto_ptr<alert> pop_alert();
-		void pop_alerts(std::deque<alert*>* alerts);
+		void pop_alerts(std::vector<alert const*>* alerts);
 		alert const* wait_for_alert(time_duration max_wait);
+		// TODO: 3 there should probably be a new pop_alert() that just returns
+		// a const alert pointer
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX

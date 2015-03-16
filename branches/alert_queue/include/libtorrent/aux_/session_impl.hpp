@@ -419,14 +419,18 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents() const;
 			
-			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-			std::auto_ptr<alert> pop_alert();
-			void pop_alerts(std::deque<alert*>* alerts);
-			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
+			// swaps the m_alert_storage vector to contain the last batch of
+			// alerts, and update m_alert_pointers and m_alert_pointer_pos
+			void pop_alerts();
+			alert* pop_alert();
+			void pop_alerts(std::vector<alert const*>* alerts);
+			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 
 			alert const* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
+			void pop_alerts(std::deque<alert*>* alerts);
+			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
 			int local_upload_rate_limit() const;
@@ -695,6 +699,21 @@ namespace libtorrent
 
 			// handles delayed alerts
 			mutable alert_manager m_alerts;
+
+			// this is the copy of alerts belonging to the client thread. When the
+			// clint asks for alerts, they are all pulled in here to be stored
+			// and accessed by the user until another batch is pulled in. (at that
+			// point these are swapped back into the alert_manager and destructed).
+			mutable heterogeneous_queue<alert> m_alert_storage;
+			
+			// the alert pointers stored in m_alerts
+			mutable std::vector<alert*> m_alert_pointers;
+
+			// if not all the alerts in m_alert_pointers have been delivered to
+			// the client. This is the offset into m_alert_pointers where the next
+			// alert is. If this is greater than or equal to m_alert_pointers.size()
+			// it means we need to request new alerts from the main thread.
+			mutable int m_alert_pointer_pos;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer

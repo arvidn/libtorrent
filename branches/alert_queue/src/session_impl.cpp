@@ -348,6 +348,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
+		, m_alert_pointer_pos(0)
 		, m_disk_thread(m_io_service, this, m_stats_counters
 			, (uncork_interface*)this)
 		, m_download_rate(peer_connection::download_channel)
@@ -2657,8 +2658,9 @@ retry:
 	// implements alert_dispatcher
 	bool session_impl::post_alert(alert* a)
 	{
-		if (!m_alerts.should_post(a)) return false;
-		m_alerts.post_alert_ptr(a);
+		// TODO: 3 fix this. probably by passing around the alert_manager
+//		if (!m_alerts.should_post(a)) return false;
+//		m_alerts.post_alert_ptr(a);
 		return true;
 	}
 
@@ -6175,15 +6177,16 @@ retry:
 
 	void session_impl::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		m_alerts.set_dispatch_function(fun);
+		// TODO: 3 support this again
+//		m_alerts.set_dispatch_function(fun);
 	}
 
 	// this function is called on the user's thread
 	// not the network thread
-	std::auto_ptr<alert> session_impl::pop_alert()
+	void session_impl::pop_alerts()
 	{
 		int num_resume = 0;
-		std::auto_ptr<alert> ret = m_alerts.get(num_resume);
+		m_alerts.get_all(m_alert_storage, num_resume);
 		if (num_resume > 0)
 		{
 			// we can only issue more resume data jobs from
@@ -6191,20 +6194,67 @@ retry:
 			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
 				, this, num_resume));
 		}
-		return ret;
+		m_alert_storage.get_pointers(m_alert_pointers);
+		m_alert_pointer_pos = 0;
 	}
-	
-	// this function is called on the user's thread
-	// not the network thread
+
+	void session_impl::pop_alerts(std::vector<alert const*>* alerts)
+	{
+		// if we don't have any alerts in our local cache, we have to ask
+		// the alert_manager for more. It will swap our vector with its and
+		// destruct eny left-over alerts in there.
+		if (m_alert_pointer_pos >= m_alert_pointers.size())
+		{
+			pop_alerts();
+			if (m_alert_pointers.empty())
+			{
+				// if it's still empty, we don't have any new alerts
+				alerts->clear();
+				return;
+			}
+		}
+
+		alerts->assign(m_alert_pointers.begin(), m_alert_pointers.end());
+		m_alert_pointer_pos = m_alert_pointers.size();
+	}
+
+	alert* session_impl::pop_alert()
+	{
+		if (m_alert_pointer_pos >= m_alert_pointers.size())
+		{
+			pop_alerts();
+			if (m_alert_pointers.empty())
+				return NULL;
+		}
+
+		if (m_alert_pointers.empty()) return NULL;
+
+		// clone here to be backwards compatible, to make the client delete the
+		// alert object
+		return m_alert_pointers[m_alert_pointer_pos++];
+	}
+
+
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::pop_alerts(std::deque<alert*>* alerts)
 	{
-		int num_resume = 0;
-		m_alerts.get_all(alerts, num_resume);
-		// we can only issue more resume data jobs from
-		// the network thread
-		m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-			, this, num_resume));
+		alerts->clear();
+		if (m_alert_pointer_pos >= m_alert_pointers.size())
+		{
+			pop_alerts();
+			if (m_alert_pointers.empty())
+				return;
+		}
+
+		for (std::vector<alert*>::iterator i = m_alert_pointers.begin()
+			+ m_alert_pointer_pos, end(m_alert_pointers.end());
+			i != end; ++i)
+		{
+			alerts->push_back((*i)->clone().release());
+		}
+		m_alert_pointer_pos = m_alert_pointers.size();
 	}
+#endif
 
 	alert const* session_impl::wait_for_alert(time_duration max_wait)
 	{

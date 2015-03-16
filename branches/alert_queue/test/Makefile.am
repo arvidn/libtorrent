@@ -20,6 +20,7 @@ test_programs = \
   test_checking              \
   test_fast_extension        \
   test_hasher                \
+  test_heterogeneous_queue   \
   test_http_connection       \
   test_ip_filter             \
   test_dht                   \

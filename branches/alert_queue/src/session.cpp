@@ -1136,21 +1136,11 @@ namespace libtorrent
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
-	}
-
-	std::auto_ptr<alert> session::pop_alert()
-	{
-		return m_impl->pop_alert();
-	}
-
-	void session::pop_alerts(std::deque<alert*>* alerts)
-	{
-		for (std::deque<alert*>::iterator i = alerts->begin()
-			, end(alerts->end()); i != end; ++i)
-			delete *i;
-		alerts->clear();
-		m_impl->pop_alerts(alerts);
+		// TODO: 3 support this again. The proper way of doing this is probably
+		// to notify the client whenever the number of alerts go from 0 -> 1.
+		// the callback can post a message to the client's main loop whose handler
+		// then pulls down all alerts, with pop_alerts()
+//		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
 	}
 
 	alert const* session::wait_for_alert(time_duration max_wait)
@@ -1158,7 +1148,23 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
+	// the alerts are const, they may not be deleted by the client
+	void session::pop_alerts(std::vector<alert const*>* alerts)
+	{
+		m_impl->pop_alerts(alerts);
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
+	void session::pop_alerts(std::deque<alert*>* alerts)
+	{
+		m_impl->pop_alerts(alerts);
+	}
+
+	std::auto_ptr<alert> session::pop_alert()
+	{
+		return std::auto_ptr<alert>(m_impl->pop_alert());
+	}
+
 	void session::set_alert_mask(boost::uint32_t m)
 	{
 		settings_pack p;

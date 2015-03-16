@@ -57,6 +57,7 @@ nobase_include_HEADERS = \
   gzip.hpp                     \
   hasher.hpp                   \
   hex.hpp                      \
+  heterogeneous_queue.hpp      \
   http_connection.hpp          \
   http_parser.hpp              \
   http_seed_connection.hpp     \

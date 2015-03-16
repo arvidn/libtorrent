@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/heterogeneous_queue.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/shared_ptr.hpp>
@@ -54,11 +55,30 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-		void post_alert(const alert& alert_);
-		void post_alert_ptr(alert* alert_);
+		// TODO: 3 remove this
+		template <class T>
+		void post_alert_ptr(T const* a)
+		{
+			post_alert(*a);
+			delete a;
+		}
+
+		// TODO: 2 instead of copying the alert, pass in all the constructor
+		// arguments and construct it in place
+		template <class T>
+		void post_alert(T const& a)
+		{
+			mutex::scoped_lock lock(m_mutex);
+			if (m_alerts.size() >= m_queue_size_limit) return;
+
+			m_alerts.push_back(a);
+
+			if (m_alerts.size() == 1)
+				m_condition.notify_all();
+		}
+
 		bool pending() const;
-		std::auto_ptr<alert> get(int& num_resume);
-		void get_all(std::deque<alert*>* alerts, int& num_resume);
+		void get_all(heterogeneous_queue<alert>& alerts, int& num_resume);
 
 		template <class T>
 		bool should_post() const
@@ -69,9 +89,7 @@ namespace libtorrent {
 		}
 
 		bool should_post(alert const* a) const
-		{
-			return (m_alert_mask & a->category()) != 0;
-		}
+		{ return (m_alert_mask & a->category()) != 0; }
 
 		alert const* wait_for_alert(time_duration max_wait);
 
@@ -95,9 +113,11 @@ namespace libtorrent {
 #endif
 
 	private:
-		void post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l);
 
-		std::deque<alert*> m_alerts;
+		// non-copyable
+		alert_manager(alert_manager const&);
+		alert_manager& operator=(alert_manager const&);
+
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
@@ -107,12 +127,13 @@ namespace libtorrent {
 		// the number of resume data alerts  in the alert queue
 		int m_num_queued_resume;
 
+		heterogeneous_queue<alert> m_alerts;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 		ses_extension_list_t m_ses_extensions;
 #endif
 	};
-
 }
 
 #endif
