@@ -40,6 +40,17 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+void sleep_ms(int milliseconds)
+{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+	usleep(milliseconds * 1000);
+#endif
+}
+
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
@@ -210,7 +221,7 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "fetching feed ... %c", spinner[i]);
 	while (fs.updating)
 	{
-		sleep(100);
+		sleep_ms(100);
 		i = (i + 1) % 4;
 		fprintf(stderr, "\b%c", spinner[i]);
 		fs = fh.get_feed_status();
@@ -251,7 +262,7 @@ int main(int argc, char* argv[])
 				, st.num_peers, st.num_seeds, status.c_str());
 		}
 	
-		sleep(500);
+		sleep_ms(500);
 		if (quit) break;
 		printf("\033[%dA", int(t.size()));
 	}

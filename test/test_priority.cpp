@@ -284,7 +284,7 @@ void test_transfer(settings_pack const& sett)
 	}
 	TEST_CHECK(resume_data.size());	
 
-	fprintf(stderr, "%s\n", resume_data.data());
+	fprintf(stderr, "%s\n", &resume_data[0]);
 
 	ses2.remove_torrent(tor2);
 

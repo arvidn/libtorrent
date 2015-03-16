@@ -56,10 +56,10 @@ namespace libtorrent
 {
 	
 	// return true if the status code is 200, 206, or in the 300-400 range
-	bool is_ok_status(int http_status);
+	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
 
 	// return true if the status code is a redirect
-	bool is_redirect(int http_status);
+	TORRENT_EXTRA_EXPORT bool is_redirect(int http_status);
 
 	TORRENT_EXTRA_EXPORT std::string resolve_redirect_location(std::string referrer
 		, std::string location);

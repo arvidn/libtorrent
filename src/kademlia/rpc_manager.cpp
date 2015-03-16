@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/time.hpp>
+#include <libtorrent/aux_/time.hpp> // for aux::time_now
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
