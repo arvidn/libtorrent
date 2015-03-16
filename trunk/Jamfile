@@ -631,6 +631,7 @@ SOURCES =
 KADEMLIA_SOURCES =
 	dht_tracker
 	node
+	node_entry
 	refresh
 	rpc_manager
 	find_data

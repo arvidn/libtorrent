@@ -7,6 +7,7 @@ KADEMLIA_SOURCES = \
   kademlia/dht_tracker.cpp      \
   kademlia/find_data.cpp        \
   kademlia/node.cpp             \
+  kademlia/node_entry.cpp       \
   kademlia/node_id.cpp          \
   kademlia/refresh.cpp          \
   kademlia/routing_table.cpp    \
