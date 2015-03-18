@@ -41,15 +41,15 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.3</td></tr>
+<td>1.0.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#file-entry" id="id25">file_entry</a></li>
-<li><a class="reference internal" href="#file-slice" id="id26">file_slice</a></li>
-<li><a class="reference internal" href="#file-storage" id="id27">file_storage</a></li>
+<li><a class="reference internal" href="#file-entry" id="id27">file_entry</a></li>
+<li><a class="reference internal" href="#file-slice" id="id28">file_slice</a></li>
+<li><a class="reference internal" href="#file-storage" id="id29">file_storage</a></li>
 </ul>
 </div>
 <a name="file_entry"></a><div class="section" id="file-entry">
@@ -252,16 +252,21 @@ void <strong>add_file</strong> (std::string const&amp; p, size_type size, int fl
       , std::time_t mtime = 0, std::string const&amp; s_p = &quot;&quot;);
 void <strong>add_file</strong> (file_entry const&amp; e, char const* filehash = 0);
 </pre>
-<p>Adds a file to the file storage. The <tt class="docutils literal">flags</tt> argument sets attributes on the file.
-The file attributes is an extension and may not work in all bittorrent clients.</p>
+<p>Adds a file to the file storage. The <tt class="docutils literal">flags</tt> argument sets
+attributes on the file. The file attributes is an extension and may
+not work in all bittorrent clients.</p>
 <p>For possible file attributes, see <a class="reference external" href="reference-Storage.html#flags_t">file_storage::flags_t</a>.</p>
-<p>If more files than one are added, certain restrictions to their paths apply.
-In a multi-file file storage (torrent), all files must share the same root directory.</p>
+<p>If more files than one are added, certain restrictions to their paths
+apply. In a multi-file file storage (torrent), all files must share
+the same root directory.</p>
 <p>That is, the first path element of all files must be the same.
 This shared path element is also set to the name of the torrent. It
 can be changed by calling <tt class="docutils literal">set_name</tt>.</p>
-<p>The built in functions to traverse a directory to add files will
-make sure this requirement is fulfilled.</p>
+<p>The <tt class="docutils literal">filehash</tt> argument is an optional pointer to a sha-1 hash (20
+bytes) of the file. The hash is not copied into the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a>
+object, but the pointer is expected to point to memory that stays
+valid throughout the life time of the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a>.</p>
+<p>Currently, the <tt class="docutils literal">filehash</tt> from <tt class="docutils literal">file_entry</tt> is not used.</p>
 <a name="rename_file()"></a></div>
 <div class="section" id="rename-file">
 <h2>rename_file()</h2>
@@ -399,7 +404,7 @@ std::string <strong>file_path</strong> (int index, std::string const&amp; save_p
 </pre>
 <p>These functions are used to query attributes of files at
 a given index.</p>
-<p>The <tt class="docutils literal">file_hash()</tt> is a sha-1 hash of the file, or 0 if none was
+<p>The <tt class="docutils literal">hash()</tt> is a sha-1 hash of the file, or 0 if none was
 provided in the torrent file. This can potentially be used to
 join a bittorrent network with other file sharing networks.</p>
 <p>The <tt class="docutils literal">mtime()</tt> is the modification time is the posix

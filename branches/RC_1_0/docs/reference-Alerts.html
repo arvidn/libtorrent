@@ -41,7 +41,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.3</td></tr>
+<td>1.0.4</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -194,7 +194,7 @@ order to cast to that <a class="reference external" href="reference-Alerts.html#
 <span class="name">std</span><span class="operator">::</span><span class="name">auto_ptr</span><span class="operator">&lt;</span><span class="name">alert</span><span class="operator">&gt;</span> <span class="name">a</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">pop_alert</span><span class="punctuation">();</span>
 <span class="keyword">switch</span> <span class="punctuation">(</span><span class="name">a</span><span class="operator">-&gt;</span><span class="name">type</span><span class="punctuation">())</span>
 <span class="punctuation">{</span>
-        <span class="keyword">case</span> <span class="name">read_piece_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
+        <span class="keyword">case</span> <span class="name">read_piece_alert</span><span class="operator">::</span><span class="name label">alert_type</span><span class="punctuation">:</span>
         <span class="punctuation">{</span>
                 <span class="name">read_piece_alert</span><span class="operator">*</span> <span class="name">p</span> <span class="operator">=</span> <span class="punctuation">(</span><span class="name">read_piece_alert</span><span class="operator">*</span><span class="punctuation">)</span><span class="name">a</span><span class="punctuation">.</span><span class="name">get</span><span class="punctuation">();</span>
                 <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">p</span><span class="operator">-&gt;</span><span class="name">ec</span><span class="punctuation">)</span> <span class="punctuation">{</span>
@@ -204,7 +204,7 @@ order to cast to that <a class="reference external" href="reference-Alerts.html#
                 <span class="comment single">// use p
 </span>                <span class="keyword">break</span><span class="punctuation">;</span>
         <span class="punctuation">}</span>
-        <span class="keyword">case</span> <span class="name">file_renamed_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
+        <span class="keyword">case</span> <span class="name">file_renamed_alert</span><span class="operator">::</span><span class="name label">alert_type</span><span class="punctuation">:</span>
         <span class="punctuation">{</span>
                 <span class="comment single">// etc...
 </span>        <span class="punctuation">}</span>
@@ -714,13 +714,13 @@ struct state_changed_alert: torrent_alert
 <div class="section" id="tracker-error-alert">
 <h1>tracker_error_alert</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/alert_types.hpp">libtorrent/alert_types.hpp</a>&quot;</p>
-<p>This <a class="reference external" href="reference-Alerts.html#alert">alert</a> is generated on tracker time outs, premature disconnects, invalid response or
-a HTTP response other than &quot;200 OK&quot;. From the <a class="reference external" href="reference-Alerts.html#alert">alert</a> you can get the handle to the torrent
-the tracker belongs to.</p>
-<p>The <tt class="docutils literal">times_in_row</tt> member says how many times in a row this tracker has failed.
-<tt class="docutils literal">status_code</tt> is the code returned from the HTTP server. 401 means the tracker needs
-authentication, 404 means not found etc. If the tracker timed out, the code will be set
-to 0.</p>
+<p>This <a class="reference external" href="reference-Alerts.html#alert">alert</a> is generated on tracker time outs, premature disconnects,
+invalid response or a HTTP response other than &quot;200 OK&quot;. From the <a class="reference external" href="reference-Alerts.html#alert">alert</a>
+you can get the handle to the torrent the tracker belongs to.</p>
+<p>The <tt class="docutils literal">times_in_row</tt> member says how many times in a row this tracker has
+failed. <tt class="docutils literal">status_code</tt> is the code returned from the HTTP server. 401
+means the tracker needs authentication, 404 means not found etc. If the
+tracker timed out, the code will be set to 0.</p>
 <pre class="literal-block">
 struct tracker_error_alert: tracker_alert
 {
@@ -737,9 +737,9 @@ struct tracker_error_alert: tracker_alert
 <div class="section" id="tracker-warning-alert">
 <h1>tracker_warning_alert</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/alert_types.hpp">libtorrent/alert_types.hpp</a>&quot;</p>
-<p>This <a class="reference external" href="reference-Alerts.html#alert">alert</a> is triggered if the tracker reply contains a warning field. Usually this
-means that the tracker announce was successful, but the tracker has a message to
-the client.</p>
+<p>This <a class="reference external" href="reference-Alerts.html#alert">alert</a> is triggered if the tracker reply contains a warning field.
+Usually this means that the tracker announce was successful, but the
+tracker has a message to the client.</p>
 <pre class="literal-block">
 struct tracker_warning_alert: tracker_alert
 {
