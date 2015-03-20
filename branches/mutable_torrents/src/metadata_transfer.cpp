@@ -277,14 +277,14 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(lazy_entry const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h)
 		{
 			m_message_index = 0;
-			if (h.type() != lazy_entry::dict_t) return false;
-			lazy_entry const* messages = h.dict_find("m");
-			if (!messages || messages->type() != lazy_entry::dict_t) return false;
+			if (h.type() != bdecode_node::dict_t) return false;
+			bdecode_node messages = h.dict_find("m");
+			if (!messages || messages.type() != bdecode_node::dict_t) return false;
 
-			int index = int(messages->dict_find_int_value("LT_metadata", -1));
+			int index = int(messages.dict_find_int_value("LT_metadata", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 			return true;
@@ -466,7 +466,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			case 2: // have no data
-				m_no_metadata = time_now();
+				m_no_metadata = aux::time_now();
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
@@ -498,13 +498,13 @@ namespace libtorrent { namespace
 				m_last_metadata_request = m_tp.metadata_request();
 				write_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = true;
-				m_metadata_request = time_now();
+				m_metadata_request = aux::time_now();
 			}
 		}
 
 		bool has_metadata() const
 		{
-			return time_now() - minutes(5) > m_no_metadata;
+			return aux::time_now() - minutes(5) > m_no_metadata;
 		}
 
 	private:
@@ -527,11 +527,11 @@ namespace libtorrent { namespace
 
 		// this is set to the current time each time we get a
 		// "I don't have metadata" message.
-		ptime m_no_metadata;
+		time_point m_no_metadata;
 
 		// this is set to the time when we last sent
 		// a request for metadata to this peer
-		ptime m_metadata_request;
+		time_point m_metadata_request;
 
 		// if we're waiting for a metadata request
 		// this was the request we sent

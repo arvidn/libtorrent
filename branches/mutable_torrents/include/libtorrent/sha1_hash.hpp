@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/byteswap.hpp"
 
 #if TORRENT_USE_IOSTREAM
-#include "libtorrent/escape_string.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #include <iostream>
 #include <iomanip>
 #endif
@@ -69,6 +69,7 @@ namespace libtorrent
 	{
 		enum { number_size = 5 };
 	public:
+		// internal
 		// the number of bytes of the number
 		static const int size = number_size * sizeof(boost::uint32_t);
 

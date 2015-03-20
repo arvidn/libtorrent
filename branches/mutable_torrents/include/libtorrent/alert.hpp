@@ -197,7 +197,7 @@ namespace libtorrent {
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
-		ptime timestamp() const;
+		time_point timestamp() const;
 
 		// returns an integer that is unique to this alert type. It can be
 		// compared against a specific alert by querying a static constant called ``alert_type``
@@ -256,7 +256,7 @@ namespace libtorrent {
 		virtual std::auto_ptr<alert> clone() const = 0;
 
 	private:
-		ptime m_timestamp;
+		time_point m_timestamp;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

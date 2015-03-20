@@ -28,6 +28,8 @@ disconnected initiated by this client (``disconnected_peers``).
 
 .. _peer.connaborted_peers:
 
+.. _peer.notconnected_peers:
+
 .. _peer.perm_peers:
 
 .. _peer.buffer_peers:
@@ -50,6 +52,7 @@ disconnected initiated by this client (``disconnected_peers``).
 	<a name="peer.connreset_peers"></a>
 	<a name="peer.connrefused_peers"></a>
 	<a name="peer.connaborted_peers"></a>
+	<a name="peer.notconnected_peers"></a>
 	<a name="peer.perm_peers"></a>
 	<a name="peer.buffer_peers"></a>
 	<a name="peer.unreachable_peers"></a>
@@ -59,33 +62,35 @@ disconnected initiated by this client (``disconnected_peers``).
 	<a name="peer.invalid_arg_peers"></a>
 	<a name="peer.aborted_peers"></a>
 
-+------------------------+---------+
-| name                   | type    |
-+========================+=========+
-| peer.eof_peers         | counter |
-+------------------------+---------+
-| peer.connreset_peers   | counter |
-+------------------------+---------+
-| peer.connrefused_peers | counter |
-+------------------------+---------+
-| peer.connaborted_peers | counter |
-+------------------------+---------+
-| peer.perm_peers        | counter |
-+------------------------+---------+
-| peer.buffer_peers      | counter |
-+------------------------+---------+
-| peer.unreachable_peers | counter |
-+------------------------+---------+
-| peer.broken_pipe_peers | counter |
-+------------------------+---------+
-| peer.addrinuse_peers   | counter |
-+------------------------+---------+
-| peer.no_access_peers   | counter |
-+------------------------+---------+
-| peer.invalid_arg_peers | counter |
-+------------------------+---------+
-| peer.aborted_peers     | counter |
-+------------------------+---------+
++-------------------------+---------+
+| name                    | type    |
++=========================+=========+
+| peer.eof_peers          | counter |
++-------------------------+---------+
+| peer.connreset_peers    | counter |
++-------------------------+---------+
+| peer.connrefused_peers  | counter |
++-------------------------+---------+
+| peer.connaborted_peers  | counter |
++-------------------------+---------+
+| peer.notconnected_peers | counter |
++-------------------------+---------+
+| peer.perm_peers         | counter |
++-------------------------+---------+
+| peer.buffer_peers       | counter |
++-------------------------+---------+
+| peer.unreachable_peers  | counter |
++-------------------------+---------+
+| peer.broken_pipe_peers  | counter |
++-------------------------+---------+
+| peer.addrinuse_peers    | counter |
++-------------------------+---------+
+| peer.no_access_peers    | counter |
++-------------------------+---------+
+| peer.invalid_arg_peers  | counter |
++-------------------------+---------+
+| peer.aborted_peers      | counter |
++-------------------------+---------+
 
 
 these counters break down the peer errors into more specific

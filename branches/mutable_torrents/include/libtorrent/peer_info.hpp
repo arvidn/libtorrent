@@ -216,7 +216,7 @@ namespace libtorrent
 		};
 
 		// a combination of flags describing from which sources this peer
-		// was received.
+		// was received. See peer_source_flags.
 		boost::uint32_t source;
 
 		// the current upload and download speed we have to and from this peer
@@ -305,7 +305,7 @@ namespace libtorrent
 		// the kind of connection this is. Used for the connection_type field.
 		enum connection_type_t
 		{
-			// Regular bittorrent connection over TCP
+			// Regular bittorrent connection
 			standard_bittorrent = 0,
 
 			// HTTP connection using the `BEP 19`_ protocol

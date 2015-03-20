@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/time.hpp>
+#include <libtorrent/aux_/time.hpp> // for aux::time_now
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
@@ -85,9 +86,9 @@ void observer::set_target(udp::endpoint const& ep)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	// use high resolution timers for logging
-	m_sent = time_now_hires();
+	m_sent = clock_type::now();
 #else
-	m_sent = time_now();
+	m_sent = aux::time_now();
 #endif
 
 	m_port = ep.port();
@@ -168,7 +169,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
 	, m_table(table)
-	, m_timer(time_now())
+	, m_timer(aux::time_now())
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
@@ -248,7 +249,7 @@ void rpc_manager::check_invariant() const
 void rpc_manager::unreachable(udp::endpoint const& ep)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(rpc) << time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
+	TORRENT_LOG(rpc) << aux::time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
 #endif
 
 	for (transactions_t::iterator i = m_transactions.begin();
@@ -316,7 +317,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	ptime now = time_now_hires();
+	time_point now = clock_type::now();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
@@ -324,13 +325,13 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		<< std::endl;
 #endif
 
-	lazy_entry const* ret_ent = m.message.dict_find_dict("r");
-	if (ret_ent == 0)
+	bdecode_node ret_ent = m.message.dict_find_dict("r");
+	if (!ret_ent)
 	{
 		// it may be an error
 		ret_ent = m.message.dict_find("e");
 		o->timeout();
-		if (ret_ent == NULL)
+		if (!ret_ent)
 		{
 			entry e;
 			incoming_error(e, "missing 'r' key");
@@ -339,8 +340,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	lazy_entry const* node_id_ent = ret_ent->dict_find_string("id");
-	if (node_id_ent == 0 || node_id_ent->string_length() != 20)
+	bdecode_node node_id_ent = ret_ent.dict_find_string("id");
+	if (!node_id_ent || node_id_ent.string_length() != 20)
 	{
 		o->timeout();
 		entry e;
@@ -349,7 +350,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings c
 		return false;
 	}
 
-	node_id nid = node_id(node_id_ent->string_ptr());
+	node_id nid = node_id(node_id_ent.string_ptr());
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();
@@ -377,8 +378,8 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	const static int short_timeout = 1;
-	const static int timeout = 15;
+	static const int short_timeout = 1;
+	static const int timeout = 15;
 
 	//	look for observers that have timed out
 
@@ -388,7 +389,7 @@ time_duration rpc_manager::tick()
 	std::vector<observer_ptr> short_timeouts;
 
 	time_duration ret = seconds(short_timeout);
-	ptime now = time_now();
+	time_point now = aux::time_now();
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)

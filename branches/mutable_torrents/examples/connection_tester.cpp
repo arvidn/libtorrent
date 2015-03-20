@@ -102,6 +102,17 @@ boost::detail::atomic_count num_suggest(0);
 // the number of requests made from suggested pieces
 boost::detail::atomic_count num_suggested_requests(0);
 
+void sleep_ms(int milliseconds)
+{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+	usleep(milliseconds * 1000);
+#endif
+}
+
 std::string leaf_path(std::string f)
 {
 	if (f.empty()) return "";
@@ -153,7 +164,7 @@ struct peer_conn
 		, blocks_received(0)
 		, blocks_sent(0)
 		, num_pieces(num_pieces)
-		, start_time(time_now_hires())
+		, start_time(clock_type::now())
 		, churn(churn_)
 		, corrupt(corrupt_)
 		, endpoint(ep)
@@ -222,8 +233,8 @@ struct peer_conn
 	int blocks_received;
 	int blocks_sent;
 	int num_pieces;
-	ptime start_time;
-	ptime end_time;
+	time_point start_time;
+	time_point end_time;
 	int churn;
 	bool corrupt;
 	tcp::endpoint endpoint;
@@ -408,7 +419,7 @@ struct peer_conn
 
 	void close(char const* fmt, error_code const& ec)
 	{
-		end_time = time_now_hires();
+		end_time = clock_type::now();
 		char tmp[1024];
 		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = total_milliseconds(end_time - start_time);
@@ -1044,7 +1055,7 @@ int main(int argc, char* argv[])
 		else if (test_mode == dual_test) seed = (i & 1);
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0], seed, churn, corrupt));
-		libtorrent::sleep(1);
+		sleep_ms(1);
 		ios[i % num_threads].poll_one(ec);
 		if (ec)
 		{

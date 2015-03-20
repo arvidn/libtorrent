@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
 	void sleep(int milliseconds)
 	{
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN

@@ -37,9 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/escape_string.hpp"
+#ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/escape_string.hpp"
+#endif
+#include "libtorrent/bdecode.hpp"
+#include "libtorrent/hex.hpp"
 
 #if defined(_MSC_VER)
 #define for if (false) {} else for
@@ -128,15 +130,15 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	const entry& entry::operator[](char const* key) const
 	{
-		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) throw type_error(
-			(std::string("key not found: ") + key).c_str());
-		return i->second;
+		return (*this)[std::string(key)];
 	}
 
 	const entry& entry::operator[](std::string const& key) const
 	{
-		return (*this)[key.c_str()];
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) throw type_error(
+			(std::string("key not found: ") + key).c_str());
+		return i->second;
 	}
 #endif
 
@@ -314,6 +316,44 @@ namespace libtorrent
 		m_type = int_t;
 	}
 
+	// convert a bdecode_node into an old skool entry
+	void entry::operator=(bdecode_node const& e)
+	{
+		switch (e.type())
+		{
+			case bdecode_node::string_t:
+				this->string() = e.string_value();
+				break;
+			case bdecode_node::int_t:
+				this->integer() = e.int_value();
+				break;
+			case bdecode_node::dict_t:
+			{
+				dictionary_type& d = this->dict();
+				for (int i = 0; i < e.dict_size(); ++i)
+				{
+					std::pair<std::string, bdecode_node> elem = e.dict_at(i);
+					d[elem.first] = elem.second;
+				}
+				break;
+			}
+			case bdecode_node::list_t:
+			{
+				list_type& l = this->list();
+				for (int i = 0; i < e.list_size(); ++i)
+				{
+					l.push_back(entry());
+					l.back() = e.list_at(i);
+				}
+				break;
+			}
+			case bdecode_node::none_t:
+				destruct();
+				break;
+		}
+	}
+
+#ifndef TORRENT_NO_DEPRECATE
 	// convert a lazy_entry into an old skool entry
 	void entry::operator=(lazy_entry const& e)
 	{
@@ -350,6 +390,7 @@ namespace libtorrent
 				break;
 		}
 	}
+#endif
 
 	void entry::operator=(dictionary_type const& v)
 	{

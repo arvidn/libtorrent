@@ -125,7 +125,7 @@ namespace libtorrent
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
-		, retry(time_now())
+		, retry(aux::time_now())
 		, peer_info(tcp::endpoint(), true, 0)
 		, supports_keepalive(true)
 		, resolving(false)
@@ -139,7 +139,7 @@ namespace libtorrent
 		, std::string const& auth_
 		, web_seed_entry::headers_t const& extra_headers_)
 		: web_seed_entry(url_, type_, auth_, extra_headers_)
-		, retry(time_now())
+		, retry(aux::time_now())
 		, peer_info(tcp::endpoint(), true, 0)
 		, supports_keepalive(true)
 		, resolving(false)
@@ -764,8 +764,8 @@ namespace libtorrent
 		{
 			int pos;
 			error_code ec;
-			if (lazy_bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
-					+ m_resume_data->buf.size(), m_resume_data->entry, ec, &pos) != 0)
+			if (bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
+					+ m_resume_data->buf.size(), m_resume_data->node, ec, &pos) != 0)
 			{
 				m_resume_data.reset();
 #if defined TORRENT_LOGGING
@@ -1552,7 +1552,7 @@ namespace libtorrent
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		boost::uint64_t now = time_now_hires().time_since_epoch().count();
+		boost::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 9 bits of entropy (i.e. about 1 millisecond)
 		RAND_add(&now, 8, 1.125);
 		RAND_add(&info_hash()[0], 20, 3);
@@ -1746,13 +1746,16 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
+		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 		{
 			int ev = 0;
-			if (m_resume_data->entry.dict_find_string_value("file-format") != "libtorrent resume file")
+			if (m_resume_data->node.dict_find_string_value("file-format")
+				!= "libtorrent resume file")
+			{
 				ev = errors::invalid_file_tag;
+			}
 	
-			std::string info_hash = m_resume_data->entry.dict_find_string_value("info-hash");
+			std::string info_hash = m_resume_data->node.dict_find_string_value("info-hash");
 			if (!ev && info_hash.empty())
 				ev = errors::missing_info_hash;
 
@@ -1775,7 +1778,7 @@ namespace libtorrent
 			}
 			else
 			{
-				read_resume_data(m_resume_data->entry);
+				read_resume_data(m_resume_data->node);
 			}
 		}
 	
@@ -1787,12 +1790,14 @@ namespace libtorrent
 
 		if (!m_seed_mode && m_resume_data)
 		{
-			lazy_entry const* piece_priority = m_resume_data->entry.dict_find_string("piece_priority");
-			if (piece_priority && piece_priority->string_length()
+			bdecode_node piece_priority = m_resume_data->node
+				.dict_find_string("piece_priority");
+
+			if (piece_priority && piece_priority.string_length()
 				== m_torrent_file->num_pieces())
 			{
-				char const* p = piece_priority->string_ptr();
-				for (int i = 0; i < piece_priority->string_length(); ++i)
+				char const* p = piece_priority.string_ptr();
+				for (int i = 0; i < piece_priority.string_length(); ++i)
 				{
 					int prio = p[i];
 					if (!has_picker() && prio == 1) continue;
@@ -1981,7 +1986,7 @@ namespace libtorrent
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will release links
 		m_ses.disk_thread().async_check_fastresume(
-			m_storage.get(), m_resume_data ? &m_resume_data->entry : NULL
+			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 #if defined TORRENT_LOGGING
@@ -2203,14 +2208,14 @@ namespace libtorrent
 
 		state_updated();
 
-		if (m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
+		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
 
-			if (lazy_entry const* peers_entry = m_resume_data->entry.dict_find_string("peers"))
+			if (bdecode_node peers_entry = m_resume_data->node.dict_find_string("peers"))
 			{
-				int num_peers = peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
-				char const* ptr = peers_entry->string_ptr();
+				int num_peers = peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
+				char const* ptr = peers_entry.string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
@@ -2219,10 +2224,11 @@ namespace libtorrent
 				update_want_peers();
 			}
 
-			if (lazy_entry const* banned_peers_entry = m_resume_data->entry.dict_find_string("banned_peers"))
+			if (bdecode_node banned_peers_entry
+				= m_resume_data->node.dict_find_string("banned_peers"))
 			{
-				int num_peers = banned_peers_entry->string_length() / (sizeof(address_v4::bytes_type) + 2);
-				char const* ptr = banned_peers_entry->string_ptr();
+				int num_peers = banned_peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
+				char const* ptr = banned_peers_entry.string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					std::vector<torrent_peer*> peers;
@@ -2235,10 +2241,10 @@ namespace libtorrent
 			}
 
 #if TORRENT_USE_IPV6
-			if (lazy_entry const* peers6_entry = m_resume_data->entry.dict_find_string("peers6"))
+			if (bdecode_node peers6_entry = m_resume_data->node.dict_find_string("peers6"))
 			{
-				int num_peers = peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
-				char const* ptr = peers6_entry->string_ptr();
+				int num_peers = peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
+				char const* ptr = peers6_entry.string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
@@ -2247,10 +2253,10 @@ namespace libtorrent
 				update_want_peers();
 			}
 
-			if (lazy_entry const* banned_peers6_entry = m_resume_data->entry.dict_find_string("banned_peers6"))
+			if (bdecode_node banned_peers6_entry = m_resume_data->node.dict_find_string("banned_peers6"))
 			{
-				int num_peers = banned_peers6_entry->string_length() / (sizeof(address_v6::bytes_type) + 2);
-				char const* ptr = banned_peers6_entry->string_ptr();
+				int num_peers = banned_peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
+				char const* ptr = banned_peers6_entry.string_ptr();
 				for (int i = 0; i < num_peers; ++i)
 				{
 					torrent_peer* p = add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
@@ -2262,14 +2268,14 @@ namespace libtorrent
 #endif
 
 			// parse out "peers" from the resume data and add them to the peer list
-			if (lazy_entry const* peers_entry = m_resume_data->entry.dict_find_list("peers"))
+			if (bdecode_node peers_entry = m_resume_data->node.dict_find_list("peers"))
 			{
-				for (int i = 0; i < peers_entry->list_size(); ++i)
+				for (int i = 0; i < peers_entry.list_size(); ++i)
 				{
-					lazy_entry const* e = peers_entry->list_at(i);
-					if (e->type() != lazy_entry::dict_t) continue;
-					std::string ip = e->dict_find_string_value("ip");
-					int port = e->dict_find_int_value("port");
+					bdecode_node e = peers_entry.list_at(i);
+					if (e.type() != bdecode_node::dict_t) continue;
+					std::string ip = e.dict_find_string_value("ip");
+					int port = e.dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
@@ -2280,14 +2286,14 @@ namespace libtorrent
 			}
 
 			// parse out "banned_peers" and add them as banned
-			if (lazy_entry const* banned_peers_entry = m_resume_data->entry.dict_find_list("banned_peers"))
+			if (bdecode_node banned_peers_entry = m_resume_data->node.dict_find_list("banned_peers"))
 			{	
-				for (int i = 0; i < banned_peers_entry->list_size(); ++i)
+				for (int i = 0; i < banned_peers_entry.list_size(); ++i)
 				{
-					lazy_entry const* e = banned_peers_entry->list_at(i);
-					if (e->type() != lazy_entry::dict_t) continue;
-					std::string ip = e->dict_find_string_value("ip");
-					int port = e->dict_find_int_value("port");
+					bdecode_node e = banned_peers_entry.list_at(i);
+					if (e.type() != bdecode_node::dict_t) continue;
+					std::string ip = e.dict_find_string_value("ip");
+					int port = e.dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
 					error_code ec;
 					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
@@ -2333,15 +2339,15 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!j->error && m_resume_data && m_resume_data->entry.type() == lazy_entry::dict_t)
+			if (!j->error && m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 			{
 				// parse have bitmask
-				lazy_entry const* pieces = m_resume_data->entry.dict_find("pieces");
-				if (pieces && pieces->type() == lazy_entry::string_t
-					&& int(pieces->string_length()) == m_torrent_file->num_pieces())
+				bdecode_node pieces = m_resume_data->node.dict_find("pieces");
+				if (pieces && pieces.type() == bdecode_node::string_t
+					&& int(pieces.string_length()) == m_torrent_file->num_pieces())
 				{
-					char const* pieces_str = pieces->string_ptr();
-					for (int i = 0, end(pieces->string_length()); i < end; ++i)
+					char const* pieces_str = pieces.string_ptr();
+					for (int i = 0, end(pieces.string_length()); i < end; ++i)
 					{
 						if (pieces_str[i] & 1)
 						{
@@ -2356,12 +2362,12 @@ namespace libtorrent
 				}
 				else
 				{
-					lazy_entry const* slots = m_resume_data->entry.dict_find("slots");
-					if (slots && slots->type() == lazy_entry::list_t)
+					bdecode_node slots = m_resume_data->node.dict_find("slots");
+					if (slots && slots.type() == bdecode_node::list_t)
 					{
-						for (int i = 0; i < slots->list_size(); ++i)
+						for (int i = 0; i < slots.list_size(); ++i)
 						{
-							int piece = slots->list_int_value_at(i, -1);
+							int piece = slots.list_int_value_at(i, -1);
 							if (piece >= 0)
 							{
 								need_picker();
@@ -2378,13 +2384,14 @@ namespace libtorrent
 				int num_blocks_per_piece =
 					static_cast<int>(torrent_file().piece_length()) / block_size();
 
-				if (lazy_entry const* unfinished_ent = m_resume_data->entry.dict_find_list("unfinished"))
+				if (bdecode_node unfinished_ent
+					= m_resume_data->node.dict_find_list("unfinished"))
 				{
-					for (int i = 0; i < unfinished_ent->list_size(); ++i)
+					for (int i = 0; i < unfinished_ent.list_size(); ++i)
 					{
-						lazy_entry const* e = unfinished_ent->list_at(i);
-						if (e->type() != lazy_entry::dict_t) continue;
-						int piece = e->dict_find_int_value("piece", -1);
+						bdecode_node e = unfinished_ent.list_at(i);
+						if (e.type() != bdecode_node::dict_t) continue;
+						int piece = e.dict_find_int_value("piece", -1);
 						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
 
 						if (has_picker() && m_picker->have_piece(piece))
@@ -2393,7 +2400,7 @@ namespace libtorrent
 							update_gauge();
 						}
 
-						std::string bitmask = e->dict_find_string_value("bitmask");
+						std::string bitmask = e.dict_find_string_value("bitmask");
 						if (bitmask.empty()) continue;
 
 						need_picker();
@@ -2863,7 +2870,7 @@ namespace libtorrent
 
 #if defined TORRENT_LOGGING
 		debug_log("START DHT announce");
-		m_dht_start_time = time_now_hires();
+		m_dht_start_time = clock_type::now();
 #endif
 
 		// if we're a seed, we tell the DHT for better scrape stats
@@ -2895,7 +2902,7 @@ namespace libtorrent
 
 #if defined TORRENT_LOGGING
 		debug_log("END DHT announce (%d ms) (%d peers)"
-			, int(total_milliseconds(time_now_hires() - m_dht_start_time))
+			, int(total_milliseconds(clock_type::now() - m_dht_start_time))
 			, int(peers.size()));
 #endif
 
@@ -2988,7 +2995,7 @@ namespace libtorrent
 		req.num_want = (req.event == tracker_request::stopped)
 			?0:settings().get_int(settings_pack::num_want);
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -3225,7 +3232,7 @@ namespace libtorrent
 				, aux::session_interface::source_tracker
 				, *tracker_ips.begin());
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 
 		int interval = resp.interval;
 		if (interval < settings().get_int(settings_pack::min_announce_interval))
@@ -3498,12 +3505,12 @@ namespace libtorrent
 		if (want_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
 
-	ptime torrent::next_announce() const
+	time_point torrent::next_announce() const
 	{
 		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
 	}
 
-	void torrent::force_tracker_request(ptime t, int tracker_idx)
+	void torrent::force_tracker_request(time_point t, int tracker_idx)
 	{
 		if (is_paused()) return;
 		if (tracker_idx == -1)
@@ -3520,7 +3527,7 @@ namespace libtorrent
 			announce_entry& e = m_trackers[tracker_idx];
 			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
 		}
-		update_tracker_timer(time_now_hires());
+		update_tracker_timer(clock_type::now());
 	}
 
 	void torrent::set_tracker_login(
@@ -4997,7 +5004,7 @@ namespace libtorrent
 			return;
 		}
 
-		ptime deadline = time_now() + milliseconds(t);
+		time_point deadline = aux::time_now() + milliseconds(t);
 
 		// if we already have the piece, no need to set the deadline.
 		// however, if the user asked to get the piece data back, we still
@@ -5107,7 +5114,7 @@ namespace libtorrent
 				{
 					// update the average download time and average
 					// download time deviation
-					int dl_time = total_milliseconds(time_now() - i->first_requested);
+					int dl_time = total_milliseconds(aux::time_now() - i->first_requested);
    
 					if (m_average_piece_time == 0)
 					{
@@ -6235,7 +6242,7 @@ namespace libtorrent
 #endif
 
 			// unavailable, retry in 30 minutes
-			web->retry = time_now() + minutes(30);
+			web->retry = aux::time_now() + minutes(30);
 			return;
 		}
 
@@ -6592,7 +6599,7 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::read_resume_data(lazy_entry const& rd)
+	void torrent::read_resume_data(bdecode_node const& rd)
 	{
 		m_total_uploaded = rd.dict_find_int_value("total_uploaded");
 		m_total_downloaded = rd.dict_find_int_value("total_downloaded");
@@ -6685,12 +6692,12 @@ namespace libtorrent
 		// The mapped_files needs to be read both in the network thread
 		// and in the disk thread, since they both have their own mapped files structures
 		// which are kept in sync
-		lazy_entry const* mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files->list_size() == m_torrent_file->num_files())
+		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
+		if (mapped_files && mapped_files.list_size() == m_torrent_file->num_files())
 		{
 			for (int i = 0; i < m_torrent_file->num_files(); ++i)
 			{
-				std::string new_filename = mapped_files->list_string_value_at(i);
+				std::string new_filename = mapped_files.list_string_value_at(i);
 				if (new_filename.empty()) continue;
 				m_torrent_file->rename_file(i, new_filename);
 			}
@@ -6703,14 +6710,14 @@ namespace libtorrent
 
 		if (!m_seed_mode && !m_override_resume_data)
 		{
-			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
-			if (file_priority && file_priority->list_size()
+			bdecode_node file_priority = rd.dict_find_list("file_priority");
+			if (file_priority && file_priority.list_size()
 				== m_torrent_file->num_files())
 			{
 				int num_files = m_torrent_file->num_files();
 				m_file_priority.resize(num_files);
 				for (int i = 0; i < num_files; ++i)
-					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+					m_file_priority[i] = file_priority.list_int_value_at(i, 1);
 				// unallocated slots are assumed to be priority 1, so cut off any
 				// trailing ones
 				int end_range = num_files - 1;
@@ -6729,19 +6736,19 @@ namespace libtorrent
 			update_piece_priorities();
 		}
 
-		lazy_entry const* trackers = rd.dict_find_list("trackers");
+		bdecode_node trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
 			if (!m_merge_resume_trackers) m_trackers.clear();
 			int tier = 0;
-			for (int i = 0; i < trackers->list_size(); ++i)
+			for (int i = 0; i < trackers.list_size(); ++i)
 			{
-				lazy_entry const* tier_list = trackers->list_at(i);
-				if (tier_list == 0 || tier_list->type() != lazy_entry::list_t)
+				bdecode_node tier_list = trackers.list_at(i);
+				if (!tier_list || tier_list.type() != bdecode_node::list_t)
 					continue;
-				for (int j = 0; j < tier_list->list_size(); ++j)
+				for (int j = 0; j < tier_list.list_size(); ++j)
 				{
-					announce_entry e(tier_list->list_string_value_at(j));
+					announce_entry e(tier_list.list_string_value_at(j));
 					if (std::find_if(m_trackers.begin(), m_trackers.end()
 						, boost::bind(&announce_entry::url, _1) == e.url) != m_trackers.end())
 						continue;
@@ -6758,24 +6765,24 @@ namespace libtorrent
 				prioritize_udp_trackers();
 		}
 
-		lazy_entry const* url_list = rd.dict_find_list("url-list");
+		bdecode_node url_list = rd.dict_find_list("url-list");
 		if (url_list)
 		{
-			for (int i = 0; i < url_list->list_size(); ++i)
+			for (int i = 0; i < url_list.list_size(); ++i)
 			{
-				std::string url = url_list->list_string_value_at(i);
+				std::string url = url_list.list_string_value_at(i);
 				if (url.empty()) continue;
 				if (m_torrent_file->num_files() > 1 && url[url.size()-1] != '/') url += '/';
 				add_web_seed(url, web_seed_entry::url_seed);
 			}
 		}
 
-		lazy_entry const* httpseeds = rd.dict_find_list("httpseeds");
+		bdecode_node httpseeds = rd.dict_find_list("httpseeds");
 		if (httpseeds)
 		{
-			for (int i = 0; i < httpseeds->list_size(); ++i)
+			for (int i = 0; i < httpseeds.list_size(); ++i)
 			{
-				std::string url = httpseeds->list_string_value_at(i);
+				std::string url = httpseeds.list_string_value_at(i);
 				if (url.empty()) continue;
 				add_web_seed(url, web_seed_entry::http_seed);
 			}
@@ -6783,16 +6790,16 @@ namespace libtorrent
 
 		if (m_torrent_file->is_merkle_torrent())
 		{
-			lazy_entry const* mt = rd.dict_find_string("merkle tree");
+			bdecode_node mt = rd.dict_find_string("merkle tree");
 			if (mt)
 			{
 				std::vector<sha1_hash> tree;
 				tree.resize(m_torrent_file->merkle_tree().size());
-				std::memcpy(&tree[0], mt->string_ptr()
-					, (std::min)(mt->string_length(), int(tree.size()) * 20));
-				if (mt->string_length() < int(tree.size()) * 20)
-					std::memset(&tree[0] + mt->string_length() / 20, 0
-						, tree.size() - mt->string_length() / 20);
+				std::memcpy(&tree[0], mt.string_ptr()
+					, (std::min)(mt.string_length(), int(tree.size()) * 20));
+				if (mt.string_length() < int(tree.size()) * 20)
+					std::memset(&tree[0] + mt.string_length() / 20, 0
+						, tree.size() - mt.string_length() / 20);
 				m_torrent_file->set_merkle_tree(tree);
 			}
 			else
@@ -7483,9 +7490,9 @@ namespace libtorrent
 			return false;
 		}
 
-		lazy_entry metadata;
+		bdecode_node metadata;
 		error_code ec;
-		int ret = lazy_bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
+		int ret = bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
 			update_gauge();
@@ -7949,7 +7956,7 @@ namespace libtorrent
 		boost::int64_t lhs_transferred = lhs->statistics().total_payload_download();
 		boost::int64_t rhs_transferred = rhs->statistics().total_payload_download();
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		boost::int64_t lhs_time_connected = total_seconds(now - lhs->connected_time());
 		boost::int64_t rhs_time_connected = total_seconds(now - rhs->connected_time());
 
@@ -8126,7 +8133,7 @@ namespace libtorrent
 		std::vector<boost::uint64_t>().swap(m_file_progress);
 		if (!m_announcing) return;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
@@ -8474,8 +8481,8 @@ namespace libtorrent
 		// this fires during disconnecting peers
 //		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
-		TORRENT_ASSERT(!m_resume_data || m_resume_data->entry.type() == lazy_entry::dict_t
-			|| m_resume_data->entry.type() == lazy_entry::none_t);
+		TORRENT_ASSERT(!m_resume_data || m_resume_data->node.type() == bdecode_node::dict_t
+			|| m_resume_data->node.type() == bdecode_node::none_t);
 
 		int seeds = 0;
 		int num_uploads = 0;
@@ -9387,7 +9394,7 @@ namespace libtorrent
 		do_connect_boost();
 	}
 
-	void torrent::update_tracker_timer(ptime now)
+	void torrent::update_tracker_timer(time_point now)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_announcing)
@@ -9398,7 +9405,7 @@ namespace libtorrent
 			return;
 		}
 
-		ptime next_announce = max_time();
+		time_point next_announce = max_time();
 		int tier = INT_MAX;
 
 		bool found_working = false;
@@ -9433,7 +9440,7 @@ namespace libtorrent
 			}
 			else
 			{
-				ptime next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
+				time_point next_tracker_announce = (std::max)(i->next_announce, i->min_announce);
 				if (next_tracker_announce < next_announce
 					&& (!found_working || i->is_working()))
 					next_announce = next_tracker_announce;
@@ -9539,7 +9546,7 @@ namespace libtorrent
 
 		m_announcing = false;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
@@ -9812,7 +9819,7 @@ namespace libtorrent
 			{
 				std::list<web_seed_t>::iterator w = i++;
 				if (w->peer_info.connection) continue;
-				if (w->retry > time_now()) continue;
+				if (w->retry > aux::time_now()) continue;
 				if (w->resolving) continue;
 
 				connect_to_url_seed(w);
@@ -10131,7 +10138,7 @@ namespace libtorrent
 	{
 		using namespace libtorrent;
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 
 		float deadline = 0.f;
 		float last_request = 0.f;
@@ -10269,7 +10276,7 @@ namespace libtorrent
 		std::vector<piece_block> backup2;
 		std::vector<int> ignore;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 
 		// loop until every block has been requested from this piece (i->piece)
 		do
@@ -10492,7 +10499,7 @@ namespace libtorrent
 		// piece is done
 		std::vector<peer_connection*> ignore_peers;
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 
 		// now, iterate over all time critical pieces, in order of importance, and
 		// request them from the peers, in order of responsiveness. i.e. request
@@ -10692,7 +10699,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
 		if (retry == 0) retry = m_ses.settings().get_int(settings_pack::urlseed_wait_retry);
-		i->retry = time_now() + seconds(retry);
+		i->retry = aux::time_now() + seconds(retry);
 	}
 
 	torrent_state torrent::get_policy_state()
@@ -11304,7 +11311,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 
 		st->handle = get_handle();
 		st->info_hash = info_hash();
@@ -11615,7 +11622,7 @@ namespace libtorrent
 		// announce to the next working tracker
 		if ((!m_abort && !is_paused()) || r.event == tracker_request::stopped)
 			announce_with_tracker(r.event);
-		update_tracker_timer(time_now());
+		update_tracker_timer(aux::time_now());
 	}
 
 #if defined TORRENT_LOGGING

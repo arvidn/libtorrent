@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	namespace aux { struct session_impl; }
-	struct lazy_entry;
 	struct counters;
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
@@ -139,6 +138,11 @@ namespace libtorrent { namespace dht
 		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
 			, int send_flags);
 
+		// this is the bdecode_node DHT messages are parsed into. It's a member
+		// in order to avoid having to deallocate and re-allocate it for every
+		// message.
+		bdecode_node m_msg;
+
 		counters& m_counters;
 		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;
@@ -146,7 +150,7 @@ namespace libtorrent { namespace dht
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
-		ptime m_last_new_key;
+		time_point m_last_new_key;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;

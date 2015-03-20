@@ -217,7 +217,7 @@ namespace libtorrent
 	sha1_hash torrent_handle::info_hash() const
 	{
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		const static sha1_hash empty;
+		static const sha1_hash empty;
 		if (!t) return empty;
 		return t->info_hash();
 	}
@@ -602,7 +602,7 @@ namespace libtorrent
 
 	std::vector<announce_entry> torrent_handle::trackers() const
 	{
-		const static std::vector<announce_entry> empty;
+		static const std::vector<announce_entry> empty;
 		TORRENT_SYNC_CALL_RET(std::vector<announce_entry>, empty, trackers);
 		return r;
 	}
@@ -619,7 +619,7 @@ namespace libtorrent
 
 	std::set<std::string> torrent_handle::url_seeds() const
 	{
-		const static std::set<std::string> empty;
+		static const std::set<std::string> empty;
 		TORRENT_SYNC_CALL_RET1(std::set<std::string>, empty, web_seeds, web_seed_entry::url_seed);
 		return r;
 	}
@@ -636,7 +636,7 @@ namespace libtorrent
 
 	std::set<std::string> torrent_handle::http_seeds() const
 	{
-		const static std::set<std::string> empty;
+		static const std::set<std::string> empty;
 		TORRENT_SYNC_CALL_RET1(std::set<std::string>, empty, web_seeds, web_seed_entry::http_seed);
 		return r;
 	}
@@ -747,7 +747,7 @@ namespace libtorrent
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
-		TORRENT_ASYNC_CALL2(force_tracker_request, time_now()
+		TORRENT_ASYNC_CALL2(force_tracker_request, aux::time_now()
 			+ seconds(duration.total_seconds()), -1);
 	}
 #endif
@@ -761,7 +761,7 @@ namespace libtorrent
 
 	void torrent_handle::force_reannounce(int s, int idx) const
 	{
-		TORRENT_ASYNC_CALL2(force_tracker_request, time_now() + seconds(s), idx);
+		TORRENT_ASYNC_CALL2(force_tracker_request, aux::time_now() + seconds(s), idx);
 	}
 
 	void torrent_handle::file_status(std::vector<pool_file_status>& status) const

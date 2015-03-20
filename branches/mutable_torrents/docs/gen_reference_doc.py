@@ -61,9 +61,10 @@ static_links = \
 anon_index = 0
 
 category_mapping = {
-	'session.hpp': 'Session',
-	'add_torrent_params.hpp': 'Session',
-	'session_status.hpp': 'Session',
+	'ed25519.hpp': 'ed25519',
+	'session.hpp': 'Core',
+	'add_torrent_params.hpp': 'Core',
+	'session_status.hpp': 'Core',
 	'error_code.hpp': 'Error Codes',
 	'file.hpp': 'File',
 	'storage.hpp': 'Custom Storage',
@@ -82,12 +83,10 @@ category_mapping = {
 	'alert_types.hpp': 'Alerts',
 	'bencode.hpp': 'Bencoding',
 	'lazy_entry.hpp': 'Bencoding',
+	'bdecode.hpp': 'Bdecoding',
 	'entry.hpp': 'Bencoding',
 	'time.hpp': 'Time',
-	'ptime.hpp': 'Time',
-	'escape_string.hpp': 'String',
-	'string_util.hpp': 'String',
-	'utf8.hpp': 'String',
+	'escape_string.hpp': 'Utility',
 	'enum_net.hpp': 'Network',
 	'broadcast_socket.hpp': 'Network',
 	'socket.hpp': 'Network',
@@ -95,18 +94,21 @@ category_mapping = {
 	'rss.hpp': 'RSS',
 	'bitfield.hpp': 'Utility',
 	'sha1_hash.hpp': 'Utility',
+	'hasher.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
 	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
 	'settings_pack.hpp': 'Settings',
 	'operations.hpp': 'Alerts',
+	'disk_buffer_holder.hpp': 'Custom Storage',
+	'alert_dispatcher.hpp': 'Alerts',
 }
 
 category_fun_mapping = {
 	'min_memory_usage()': 'Settings',
 	'high_performance_seed()': 'Settings',
-	'cache_status': 'Session',
+	'cache_status': 'Core',
 }
 
 def categorize_symbol(name, filename):
@@ -161,6 +163,9 @@ def highlight_signature(s):
 	# we have to escape asterisks, since this is rendered into
 	# a parsed literal in rst
 	name[1] = name[1].replace('*', '\\*')
+
+	# we also have to escape colons
+	name[1] = name[1].replace(':', '\\:')
 
 	# comments in signatures are italic
 	name[1] = name[1].replace('/\\*', '*/\\*')
@@ -828,23 +833,24 @@ def print_link(name, target):
 	link_targets.append(target)
 	return "`%s`__" % name
 
-def dump_link_targets():
+def dump_link_targets(indent = ''):
 	global link_targets
 	ret = '\n'
 	for l in link_targets:
-		ret += '__ %s\n' % l
+		ret += '%s__ %s\n' % (indent, l)
 	link_targets = []
 	return ret
 
-def heading(string, c):
-	return '\n' + string + '\n' + (c * len(string)) + '\n'
+def heading(string, c, indent = ''):
+	string = string.strip()
+	return '\n' + indent + string + '\n' + indent + (c * len(string)) + '\n'
 
-def render_enums(out, enums, print_declared_reference):
+def render_enums(out, enums, print_declared_reference, header_level):
 	for e in enums:
 		print >>out, '.. raw:: html\n'
 		print >>out, '\t<a name="%s"></a>' % e['name']
 		print >>out, ''
-		print >>out, heading('enum %s' % e['name'], '.')
+		print >>out, heading('enum %s' % e['name'], header_level)
 
 		print_declared_in(out, e)
 
@@ -873,45 +879,64 @@ def render_enums(out, enums, print_declared_reference):
 
 		print >>out, dump_link_targets()
 
+sections = \
+{
+	'Core': 0,
+	'Session': 0,
+	'Settings': 0,
+
+	'Bencoding': 1,
+	'Bdecoding': 1,
+	'Filter': 1,
+	'Error Codes': 1,
+	'Create Torrents': 1,
+
+	'ed25519': 2,
+	'Utility': 2,
+	'Storage': 2,
+	'Custom Storage': 2,
+	'Plugins': 2,
+
+	'Alerts': 3
+}
+
+def print_toc(out, categories, s):
+	for cat in categories:
+		if (s != 2 and cat not in sections) or \
+			(cat in sections and sections[cat] != s): continue
+
+		print >>out, '\t.. rubric:: %s\n' % cat
+
+		if 'overview' in categories[cat]:
+			print >>out, '\t| overview__'
+
+		category_filename = categories[cat]['filename'].replace('.rst', '.html')
+		for c in categories[cat]['classes']:
+			print >>out, '\t| ' + print_link(c['name'], symbols[c['name']])
+		for f in categories[cat]['functions']:
+			for n in f['names']:
+				print >>out, '\t| ' + print_link(n, symbols[n])
+		for e in categories[cat]['enums']:
+			print >>out, '\t| ' + print_link(e['name'], symbols[e['name']])
+		print >>out, ''
+
+		if 'overview' in categories[cat]:
+			print >>out, '\t__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
+		print >>out, dump_link_targets('\t')
+
 
 out = open('reference.rst', 'w+')
-out.write('''==================================
-libtorrent reference documentation
-==================================
-
-.. raw:: html
-
-	<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4">
+out.write('''=======================
+reference documentation
+=======================
 
 ''')
 
-for cat in categories:
-	print >>out, '%s' % heading(cat, '-')
+for i in range(4):
 
-	if 'overview' in categories[cat]:
-		print >>out, '| overview__'
+	out.write('.. container:: main-toc\n\n')
+	print_toc(out, categories, i)
 
-	category_filename = categories[cat]['filename'].replace('.rst', '.html')
-	for c in categories[cat]['classes']:
-		print >>out, '| ' + print_link(c['name'], symbols[c['name']])
-	for f in categories[cat]['functions']:
-		for n in f['names']:
-			print >>out, '| ' + print_link(n, symbols[n])
-	for e in categories[cat]['enums']:
-		print >>out, '| ' + print_link(e['name'], symbols[e['name']])
-	print >>out, ''
-
-	if 'overview' in categories[cat]:
-		print >>out, '__ %s#overview' % categories[cat]['filename'].replace('.rst', '.html')
-	print >>out, dump_link_targets()
-
-out.write('''
-
-.. raw:: html
-
-	</div>
-
-''')
 out.close()
 
 for cat in categories:
@@ -921,17 +946,17 @@ for cat in categories:
 	functions = categories[cat]['functions']
 	enums = categories[cat]['enums']
 
-	out.write('%s\n' % heading(cat, '='))
-
 	out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.1.0
 
+%s
+
 .. contents:: Table of contents
-  :depth: 1
+  :depth: 2
   :backlinks: none
 
-''')
+''' % heading(cat, '='))
 
 	if 'overview' in categories[cat]:
 		out.write('%s\n' % linkify_symbols(categories[cat]['overview']))
@@ -998,7 +1023,7 @@ for cat in categories:
 	
 			print >>out, dump_link_targets()
 
-		render_enums(out, c['enums'], False)
+		render_enums(out, c['enums'], False, '.')
 
 		for f in c['fields']:
 			if f['desc'] == '': continue
@@ -1025,7 +1050,7 @@ for cat in categories:
 		print >>out, ''
 		for n in f['names']:
 			h += '%s ' % n
-		print >>out, heading(h, '.')
+		print >>out, heading(h, '-')
 		print_declared_in(out, f)
 
 		block = '.. parsed-literal::\n\n'
@@ -1037,7 +1062,7 @@ for cat in categories:
 
 		print >>out, dump_link_targets()
 	
-	render_enums(out, enums, True)
+	render_enums(out, enums, True, '-')
 
 	print >>out, dump_link_targets()
 

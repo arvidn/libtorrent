@@ -78,7 +78,7 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
-		const static piece_block invalid;
+		static const piece_block invalid;
 
 		piece_block() {}
 		piece_block(boost::uint32_t p_index, boost::uint16_t b_index)

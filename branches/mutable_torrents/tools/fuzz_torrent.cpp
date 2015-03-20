@@ -34,11 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/error_code.hpp"
 
-using libtorrent::lazy_entry;
+using libtorrent::bdecode_node;
 using boost::random::mt19937;
 using boost::random::uniform_int_distribution;
 
@@ -233,52 +233,52 @@ void render_arbitrary_item(std::string& out)
 	}
 }
 
-void render_variant(std::string& out, lazy_entry const& e)
+void render_variant(std::string& out, bdecode_node const& e)
 {
 	switch (e.type())
 	{
-		case lazy_entry::dict_t:
+		case bdecode_node::dict_t:
 			print_dict(out);
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				std::pair<std::string, lazy_entry const*> item = e.dict_at(i);
+				std::pair<std::string, bdecode_node> item = e.dict_at(i);
 				const bool duplicate = g_seed == 1;
 				const bool skipped = g_seed == 2;
 				g_seed -= 2;
 				if (duplicate)
 				{
 					print_string(out, item.first);
-					render_variant(out, *item.second);
+					render_variant(out, item.second);
 				}
 				if (!skipped)
 				{
 					print_string(out, item.first);
-					render_variant(out, *item.second);
+					render_variant(out, item.second);
 				}
 
 				render_arbitrary_item(out);
 			}
 			print_terminate(out);
 			break;
-		case lazy_entry::list_t:
+		case bdecode_node::list_t:
 			print_list(out);
 			for (int i = 0; i < e.list_size(); ++i)
 			{
 				const bool duplicate = g_seed == 1;
 				const bool skipped = g_seed == 2;
 				g_seed -= 2;
-				if (duplicate) render_variant(out, *e.list_at(i));
+				if (duplicate) render_variant(out, e.list_at(i));
 
 				render_arbitrary_item(out);
 
-				if (!skipped) render_variant(out, *e.list_at(i));
+				if (!skipped) render_variant(out, e.list_at(i));
 			}
 			print_terminate(out);
 			break;
-		case lazy_entry::int_t:
+		case bdecode_node::int_t:
 			print_int(out, e.int_value());
 			break;
-		case lazy_entry::string_t:
+		case bdecode_node::string_t:
 			print_string(out, e.string_value());
 			break;
 		default:
@@ -371,8 +371,8 @@ int main(int argc, char const* argv[])
 			continue;
 		}
 
-		lazy_entry e;
-		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		bdecode_node e;
+		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 		{
 			fprintf(stderr, "ERROR parsing file: %s\n%s\n"
 				, *argv, ec.message().c_str());

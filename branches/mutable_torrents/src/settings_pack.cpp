@@ -386,27 +386,27 @@ namespace libtorrent
 		return "";
 	}
 
-	settings_pack* load_pack_from_dict(lazy_entry const* settings)
+	settings_pack* load_pack_from_dict(bdecode_node const& settings)
 	{
 		settings_pack* pack = new settings_pack;
 
-		for (int i = 0; i < settings->dict_size(); ++i)
+		for (int i = 0; i < settings.dict_size(); ++i)
 		{
 			std::string key;
-			lazy_entry const* val;
-			boost::tie(key, val) = settings->dict_at(i);
-			switch (val->type())
+			bdecode_node val;
+			boost::tie(key, val) = settings.dict_at(i);
+			switch (val.type())
 			{
-				case lazy_entry::dict_t:
-				case lazy_entry::list_t:
+				case bdecode_node::dict_t:
+				case bdecode_node::list_t:
 					continue;
-				case lazy_entry::int_t:
+				case bdecode_node::int_t:
 				{
 					bool found = false;
 					for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack->set_int(settings_pack::int_type_base + k, val->int_value());
+						pack->set_int(settings_pack::int_type_base + k, val.int_value());
 						found = true;
 						break;
 					}
@@ -414,20 +414,20 @@ namespace libtorrent
 					for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack->set_bool(settings_pack::bool_type_base + k, val->int_value());
+						pack->set_bool(settings_pack::bool_type_base + k, val.int_value());
 						break;
 					}
 				}
 				break;
-			case lazy_entry::string_t:
+			case bdecode_node::string_t:
 				for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack->set_str(settings_pack::string_type_base + k, val->string_value());
+					pack->set_str(settings_pack::string_type_base + k, val.string_value());
 					break;
 				}
 				break;
-			case lazy_entry::none_t:
+			case bdecode_node::none_t:
 				break;
 			}
 		}

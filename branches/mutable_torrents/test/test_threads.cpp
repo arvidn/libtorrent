@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include "libtorrent/thread.hpp"
 #include "test.hpp"
+#include "setup_transfer.hpp" // for test_sleep
 
 using namespace libtorrent;
 
@@ -83,7 +84,7 @@ int test_main()
 	while (waiting < 20)
 	{
 		l.unlock();
-		sleep(10);
+		test_sleep(10);
 		l.lock();
 	}
 
@@ -110,7 +111,7 @@ int test_main()
 	while (waiting < 6)
 	{
 		l.unlock();
-		sleep(10);
+		test_sleep(10);
 		l.lock();
 	}
 

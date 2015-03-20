@@ -218,7 +218,7 @@ private:
 
 	// the last time we refreshed our own bucket
 	// refreshed every 15 minutes
-	mutable ptime m_last_self_refresh;
+	mutable time_point m_last_self_refresh;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will

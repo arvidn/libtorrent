@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/escape_string.hpp" // for to_string()
+#include "libtorrent/string_util.hpp" // for to_string()
+#include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
 
 namespace libtorrent
 {

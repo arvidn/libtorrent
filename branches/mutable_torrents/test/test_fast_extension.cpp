@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
@@ -53,7 +53,7 @@ int read_message(stream_socket& s, char* buffer)
 		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << time_now_string() << ": " << ec.message() << std::endl;
+		std::cout << aux::time_now_string() << ": " << ec.message() << std::endl;
 		TEST_ERROR("read_message: " + ec.message());
 		return 0;
 	}
@@ -64,7 +64,7 @@ int read_message(stream_socket& s, char* buffer)
 		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << time_now_string() << ": " << ec.message() << std::endl;
+		std::cout << aux::time_now_string() << ": " << ec.message() << std::endl;
 		TEST_ERROR("read_message: " + ec.message());
 		return 0;
 	}
@@ -111,12 +111,12 @@ void print_message(char const* buffer, int len)
 		}
 	}
 
-	fprintf(stderr, "%s <== %s %s\n", time_now_string(), message, extra);
+	fprintf(stderr, "%s <== %s %s\n", aux::time_now_string(), message, extra);
 }
 
 void send_allow_fast(stream_socket& s, int piece)
 {
-	std::cout << time_now_string() << " ==> allow fast: " << piece << std::endl;
+	std::cout << aux::time_now_string() << " ==> allow fast: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
@@ -128,7 +128,7 @@ void send_allow_fast(stream_socket& s, int piece)
 
 void send_suggest_piece(stream_socket& s, int piece)
 {
-	std::cout << time_now_string() << " ==> suggest piece: " << piece << std::endl;
+	std::cout << aux::time_now_string() << " ==> suggest piece: " << piece << std::endl;
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
@@ -140,7 +140,7 @@ void send_suggest_piece(stream_socket& s, int piece)
 
 void send_keepalive(stream_socket& s)
 {
-	std::cout << time_now_string() << " ==> keepalive" << std::endl;
+	std::cout << aux::time_now_string() << " ==> keepalive" << std::endl;
 	char msg[] = "\0\0\0\0";
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4)
@@ -149,7 +149,7 @@ void send_keepalive(stream_socket& s)
 
 void send_unchoke(stream_socket& s)
 {
-	std::cout << time_now_string() << " ==> unchoke" << std::endl;
+	std::cout << aux::time_now_string() << " ==> unchoke" << std::endl;
 	char msg[] = "\0\0\0\x01\x01";
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -158,7 +158,7 @@ void send_unchoke(stream_socket& s)
 
 void send_have_all(stream_socket& s)
 {
-	std::cout << time_now_string() << " ==> have_all" << std::endl;
+	std::cout << aux::time_now_string() << " ==> have_all" << std::endl;
 	char msg[] = "\0\0\0\x01\x0e"; // have_all
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -167,7 +167,7 @@ void send_have_all(stream_socket& s)
 
 void send_have_none(stream_socket& s)
 {
-	std::cout << time_now_string() << " ==> have_none" << std::endl;
+	std::cout << aux::time_now_string() << " ==> have_none" << std::endl;
 	char msg[] = "\0\0\0\x01\x0f"; // have_none
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -185,7 +185,7 @@ void send_bitfield(stream_socket& s, char const* bits)
 	char* ptr = msg;
 	write_int32(packet_size-4, ptr);
 	write_int8(5, ptr);
-	std::cout << time_now_string() << " ==> bitfield [" << bits << "]" << std::endl;;
+	std::cout << aux::time_now_string() << " ==> bitfield [" << bits << "]" << std::endl;;
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
@@ -200,7 +200,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa"; // peer-id
-	std::cout << time_now_string() << " ==> handshake" << std::endl;
+	std::cout << aux::time_now_string() << " ==> handshake" << std::endl;
 	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
 	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1)
@@ -211,10 +211,10 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << time_now_string() << ": " << ec.message() << std::endl;
+		std::cout << aux::time_now_string() << ": " << ec.message() << std::endl;
 		exit(1);
 	}
-	std::cout << time_now_string() << " <== handshake" << std::endl;
+	std::cout << aux::time_now_string() << " <== handshake" << std::endl;
 
 	TEST_CHECK(buffer[0] == 19);
 	TEST_CHECK(std::memcmp(buffer + 1, "BitTorrent protocol", 19) == 0);
@@ -303,7 +303,7 @@ void test_reject_fast()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		std::cerr << time_now_string() << " ==> reject" << std::endl;
+		std::cerr << aux::time_now_string() << " ==> reject" << std::endl;
 		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
 			, libtorrent::asio::transfer_all(), ec);
 		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
@@ -361,7 +361,7 @@ void test_respect_suggest()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		std::cerr << time_now_string() << " ==> reject" << std::endl;
+		std::cerr << aux::time_now_string() << " ==> reject" << std::endl;
 		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
 			, libtorrent::asio::transfer_all(), ec);
 		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
@@ -476,19 +476,26 @@ void test_dont_have()
 		int ext_msg = recv_buffer[1];
 		if (ext_msg != 0) continue;
 
-		lazy_entry e;
+		bdecode_node e;
 		error_code ec;
-		lazy_bdecode(recv_buffer + 2, recv_buffer + len - 2, e, ec);
+		int pos = 0;
+		int ret = bdecode(recv_buffer + 2, recv_buffer + len, e, ec, &pos);
+		if (ret != 0)
+		{
+			fprintf(stderr, "failed to parse extension handshake: %s at pos %d\n"
+				, ec.message().c_str(), pos);
+		}
+		TEST_EQUAL(ret, 0);
 		
 		printf("extension handshake: %s\n", print_entry(e).c_str());
-		lazy_entry const* m = e.dict_find_dict("m");
+		bdecode_node m = e.dict_find_dict("m");
 		TEST_CHECK(m);
 		if (!m) return;
-		lazy_entry const* dont_have = m->dict_find_int("lt_donthave");
+		bdecode_node dont_have = m.dict_find_int("lt_donthave");
 		TEST_CHECK(dont_have);
 		if (!dont_have) return;
 
-		lt_dont_have = dont_have->int_value();
+		lt_dont_have = dont_have.int_value();
 	}
 
 	char* ptr = recv_buffer;

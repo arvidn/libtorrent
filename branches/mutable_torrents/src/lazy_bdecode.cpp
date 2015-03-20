@@ -30,8 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_NO_DEPRECATE
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp" // for error codes
 #include <cstring>
 #include <limits> // for numeric_limits
 
@@ -69,40 +72,6 @@ namespace libtorrent
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } while (false)
 
 	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
-
-	// fills in 'val' with what the string between start and the
-	// first occurance of the delimiter is interpreted as an int.
-	// return the pointer to the delimiter, or 0 if there is a
-	// parse error. val should be initialized to zero
-	char const* parse_int(char const* start, char const* end, char delimiter
-		, boost::int64_t& val, bdecode_errors::error_code_enum& ec)
-	{
-		while (start < end && *start != delimiter)
-		{
-			if (!numeric(*start))
-			{
-				ec = bdecode_errors::expected_string;
-				return start;
-			}
-			if (val > (std::numeric_limits<boost::int64_t>::max)() / 10)
-			{
-				ec = bdecode_errors::overflow;
-				return start;
-			}
-			val *= 10;
-			int digit = *start - '0';
-			if (val > (std::numeric_limits<boost::int64_t>::max)() - digit)
-			{
-				ec = bdecode_errors::overflow;
-				return start;
-			}
-			val += digit;
-			++start;
-		}
-		if (*start != delimiter)
-			ec = bdecode_errors::expected_colon;
-		return start;
-	}
 
 	char const* find_char(char const* start, char const* end, char delimiter)
 	{
@@ -153,7 +122,7 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_string);
+					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 					boost::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
@@ -382,7 +351,8 @@ namespace libtorrent
 		return e;
 	}
 
-	boost::int64_t lazy_entry::dict_find_int_value(char const* name, boost::int64_t default_val) const
+	boost::int64_t lazy_entry::dict_find_int_value(char const* name
+		, boost::int64_t default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -672,50 +642,7 @@ namespace libtorrent
 		}
 		return ret;
 	}
-
-	struct bdecode_error_category : boost::system::error_category
-	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
-		{ return boost::system::error_condition(ev, *this); }
-	};
-
-	const char* bdecode_error_category::name() const BOOST_SYSTEM_NOEXCEPT
-	{
-		return "bdecode error";
-	}
-
-	std::string bdecode_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
-	{
-		static char const* msgs[] =
-		{
-			"no error",
-			"expected string in bencoded string",
-			"expected colon in bencoded string",
-			"unexpected end of file in bencoded string",
-			"expected value (list, dict, int or string) in bencoded string",
-			"bencoded nesting depth exceeded",
-			"bencoded item count limit exceeded",
-			"integer overflow",
-		};
-		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
-			return "Unknown error";
-		return msgs[ev];
-	}
-
-	boost::system::error_category& get_bdecode_category()
-	{
-		static bdecode_error_category bdecode_category;
-		return bdecode_category;
-	}
-
-	namespace bdecode_errors
-	{
-		boost::system::error_code make_error_code(error_code_enum e)
-		{
-			return boost::system::error_code(e, get_bdecode_category());
-		}
-	}
 };
+
+#endif // TORRENT_NO_DEPRECATE
 

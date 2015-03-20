@@ -4,13 +4,10 @@ WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 
 REFERENCE_TARGETS = \
 	reference \
-	reference-Session \
 	reference-Core \
-	reference-String \
 	reference-Plugins \
 	reference-Create_Torrents \
 	reference-Error_Codes \
-	reference-Time \
 	reference-Storage \
 	reference-Custom_Storage \
 	reference-Utility \
@@ -19,6 +16,8 @@ REFERENCE_TARGETS = \
 	reference-RSS \
 	reference-Filter \
 	reference-Settings \
+	reference-Bdecoding \
+	reference-ed25519 \
 	manual-ref
 
 TARGETS = index \
@@ -85,8 +84,8 @@ $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../i
 	rst2pdf $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html-2.6.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	rst2html-2.6.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
+	rst2html-3.4.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+	rst2html-3.4.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
 
 %.png:%.dot
 	dot -Tpng $? >$@

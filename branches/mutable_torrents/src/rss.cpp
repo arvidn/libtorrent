@@ -398,31 +398,31 @@ void feed::on_feed(error_code const& ec
 	m_ses.update_rss_feeds();
 }
 
-void feed::load_state(lazy_entry const& rd)
+void feed::load_state(bdecode_node const& rd)
 {
 	m_title = rd.dict_find_string_value("m_title");
 	m_description = rd.dict_find_string_value("m_description");
 	m_last_attempt = rd.dict_find_int_value("m_last_attempt");
 	m_last_update = rd.dict_find_int_value("m_last_update");
 
-	lazy_entry const* e = rd.dict_find_list("items");
+	bdecode_node e = rd.dict_find_list("items");
 	if (e)
 	{
-		m_items.reserve(e->list_size());
-		for (int i = 0; i < e->list_size(); ++i)
+		m_items.reserve(e.list_size());
+		for (int i = 0; i < e.list_size(); ++i)
 		{
-			lazy_entry const* entry = e->list_at(i);
-			if (entry->type() != lazy_entry::dict_t) continue;
+			bdecode_node entry = e.list_at(i);
+			if (entry.type() != bdecode_node::dict_t) continue;
 			
 			m_items.push_back(feed_item());
 			feed_item& item = m_items.back();
-			item.url = entry->dict_find_string_value("url");
-			item.uuid = entry->dict_find_string_value("uuid");
-			item.title = entry->dict_find_string_value("title");
-			item.description = entry->dict_find_string_value("description");
-			item.comment = entry->dict_find_string_value("comment");
-			item.category = entry->dict_find_string_value("category");
-			item.size = entry->dict_find_int_value("size");
+			item.url = entry.dict_find_string_value("url");
+			item.uuid = entry.dict_find_string_value("uuid");
+			item.title = entry.dict_find_string_value("title");
+			item.description = entry.dict_find_string_value("description");
+			item.comment = entry.dict_find_string_value("comment");
+			item.category = entry.dict_find_string_value("category");
+			item.size = entry.dict_find_int_value("size");
 
 			// don't load duplicates
 			if (m_urls.find(item.url) != m_urls.end())
@@ -442,27 +442,27 @@ void feed::load_state(lazy_entry const& rd)
 	e = rd.dict_find_dict("add_params");
 	if (e)
 	{
-		m_settings.add_args.save_path = e->dict_find_string_value("save_path");
-		m_settings.add_args.flags = e->dict_find_int_value("flags");
+		m_settings.add_args.save_path = e.dict_find_string_value("save_path");
+		m_settings.add_args.flags = e.dict_find_int_value("flags");
 	}
 
 	e = rd.dict_find_list("history");
 	if (e)
 	{
-		for (int i = 0; i < e->list_size(); ++i)
+		for (int i = 0; i < e.list_size(); ++i)
 		{
-			if (e->list_at(i)->type() != lazy_entry::list_t) continue;
+			if (e.list_at(i).type() != bdecode_node::list_t) continue;
 
-			lazy_entry const* item = e->list_at(i);
+			bdecode_node item = e.list_at(i);
 
-			if (item->list_size() != 2
-				|| item->list_at(0)->type() != lazy_entry::string_t
-				|| item->list_at(1)->type() != lazy_entry::int_t)
+			if (item.list_size() != 2
+				|| item.list_at(0).type() != bdecode_node::string_t
+				|| item.list_at(1).type() != bdecode_node::int_t)
 				continue;
 
 			m_added.insert(std::pair<std::string, time_t>(
-				item->list_at(0)->string_value()
-				, item->list_at(1)->int_value()));
+				item.list_at(0).string_value()
+				, item.list_at(1).int_value()));
 		}
 	}
 }

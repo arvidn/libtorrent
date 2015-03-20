@@ -211,7 +211,7 @@ namespace libtorrent
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
 		//TODO: make this 32 bits and to count seconds since the block cache was created
-		ptime expire;
+		time_point expire;
 
 		boost::uint64_t piece:22;
 
@@ -321,6 +321,7 @@ namespace libtorrent
 #endif
 	};
 
+	// internal
 	inline std::size_t hash_value(cached_piece_entry const& p)
 	{
 		return std::size_t(p.storage.get()) + std::size_t(p.piece);

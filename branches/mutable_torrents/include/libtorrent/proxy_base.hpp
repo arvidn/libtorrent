@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
 #include <boost/function/function1.hpp>
 

@@ -433,7 +433,7 @@ namespace libtorrent
 		TORRENT_SYNC_CALL2(save_state, &e, flags);
 	}
 
-	void session::load_state(lazy_entry const& e)
+	void session::load_state(bdecode_node const& e)
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
@@ -494,12 +494,30 @@ namespace libtorrent
 		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), ses_state);
-		lazy_entry e;
+		bdecode_node e;
 		error_code ec;
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
 #endif
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+
+		TORRENT_ASSERT(ret == 0);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (ret != 0) throw libtorrent_exception(ec);
+#endif
+		TORRENT_SYNC_CALL1(load_state, &e);
+	}
+
+	void session::load_state(lazy_entry const& ses_state)
+	{
+		if (ses_state.type() == lazy_entry::none_t) return;
+		std::pair<char const*, int> buf = ses_state.data_section();
+		bdecode_node e;
+		error_code ec;
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
+		int ret =
+#endif
+		bdecode(buf.first, buf.first + buf.second, e, ec);
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS

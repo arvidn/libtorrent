@@ -278,7 +278,7 @@ namespace libtorrent
 
 		int m_rate_limit;
 		int m_quota;
-		ptime m_last_tick;
+		time_point m_last_tick;
 	};
 }
 

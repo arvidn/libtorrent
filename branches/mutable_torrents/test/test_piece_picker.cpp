@@ -98,7 +98,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 		const int avail = availability[i] - '0';
 		assert(avail >= 0);
 		
-		const static torrent_peer* peers[10] = { &tmp0, &tmp1, &tmp2
+		static const torrent_peer* peers[10] = { &tmp0, &tmp1, &tmp2
 			, &tmp3, &tmp4, &tmp5, &tmp6, &tmp7, &tmp8, &tmp9 };
 		TORRENT_ASSERT(avail < 10);
 		for (int j = 0; j < avail; ++j) p->inc_refcount(i, peers[j]);

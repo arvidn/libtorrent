@@ -98,7 +98,7 @@ struct observer : boost::noncopyable
 	// is being destructed
 	void abort();
 
-	ptime sent() const { return m_sent; }
+	time_point sent() const { return m_sent; }
 
 	void set_target(udp::endpoint const& ep);
 	address target_addr() const;
@@ -130,7 +130,7 @@ protected:
 
 	void done();
 
-	ptime m_sent;
+	time_point m_sent;
 
 	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
 

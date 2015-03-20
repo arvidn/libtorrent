@@ -62,7 +62,7 @@ private:
 
 	struct dns_cache_entry
 	{
-		ptime last_seen;
+		time_point last_seen;
 		std::vector<address> addresses;
 	};
 

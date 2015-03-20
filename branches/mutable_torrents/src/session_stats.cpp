@@ -45,7 +45,7 @@ namespace libtorrent
 	};
 
 #define METRIC(category, name) { #category "." #name, counters:: name },
-	const static stats_metric_impl metrics[] =
+	static const stats_metric_impl metrics[] =
 	{
 		// ``error_peers`` is the total number of peer disconnects
 		// caused by an error (not initiated by this client) and

@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for test_sleep
+
 #include "libtorrent/time.hpp"
 #include "libtorrent/thread.hpp"
 
@@ -38,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void check_timer_loop(mutex& m, ptime& last, condition_variable& cv)
+void check_timer_loop(mutex& m, time_point& last, condition_variable& cv)
 {
 	mutex::scoped_lock l(m);
 	cv.wait(l);
@@ -47,7 +49,7 @@ void check_timer_loop(mutex& m, ptime& last, condition_variable& cv)
 	for (int i = 0; i < 10000; ++i)
 	{
 		mutex::scoped_lock l(m);
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 		TEST_CHECK(now >= last);
 		last = now;
 	}
@@ -70,11 +72,11 @@ int test_main()
 
 	// make sure the timer is monotonic
 
-	ptime now = time_now_hires();
-	ptime last = now;
+	time_point now = clock_type::now();
+	time_point last = now;
 	for (int i = 0; i < 1000; ++i)
 	{
-		now = time_now_hires();
+		now = clock_type::now();
 		TEST_CHECK(now >= last);
 		last = now;
 	}
@@ -86,7 +88,7 @@ int test_main()
 	thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 	thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 
-	sleep(100);
+	test_sleep(100);
 
 	cv.notify_all();
 

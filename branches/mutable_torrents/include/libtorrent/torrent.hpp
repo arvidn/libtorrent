@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include "libtorrent/storage_defs.hpp"
@@ -116,17 +115,17 @@ namespace libtorrent
 	struct resume_data_t
 	{
 		std::vector<char> buf;
-		lazy_entry entry;
+		bdecode_node node;
 	};
 
 	struct time_critical_piece
 	{
 		// when this piece was first requested
-		ptime first_requested;
+		time_point first_requested;
 		// when this piece was last requested
-		ptime last_requested;
+		time_point last_requested;
 		// by what time we want this piece
-		ptime deadline;
+		time_point deadline;
 		// 1 = send alert with piece data when available
 		int flags;
 		// how many peers it's been requested from
@@ -151,7 +150,7 @@ namespace libtorrent
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
 
 		// if this is > now, we can't reconnect yet
-		ptime retry;
+		time_point retry;
 
 		// if the hostname of the web seed has been resolved,
 		// these are its IP addresses
@@ -729,10 +728,10 @@ namespace libtorrent
 
 		// returns the absolute time when the next tracker
 		// announce will take place.
-		ptime next_announce() const;
+		time_point next_announce() const;
 
 		// forcefully sets next_announce to the current time
-		void force_tracker_request(ptime, int tracker_idx);
+		void force_tracker_request(time_point, int tracker_idx);
 		void scrape_tracker();
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none
@@ -1019,7 +1018,7 @@ namespace libtorrent
 		torrent_handle get_handle();
 
 		void write_resume_data(entry& rd) const;
-		void read_resume_data(lazy_entry const& rd);
+		void read_resume_data(bdecode_node const& rd);
 
 		void seen_complete() { m_last_seen_complete = time(0); }
 		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }
@@ -1029,7 +1028,7 @@ namespace libtorrent
 #if defined TORRENT_LOGGING
 		virtual void debug_log(const char* fmt, ...) const;
 		void log_to_all_peers(char const* message);
-		ptime m_dht_start_time;
+		time_point m_dht_start_time;
 #endif
 
 		// DEBUG
@@ -1181,7 +1180,7 @@ namespace libtorrent
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
 
-		void update_tracker_timer(ptime now);
+		void update_tracker_timer(time_point now);
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);

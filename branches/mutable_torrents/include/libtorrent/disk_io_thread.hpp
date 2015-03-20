@@ -75,7 +75,7 @@ namespace libtorrent
 
 		// the time when a block was last written to this piece. The older
 		// a piece is, the more likely it is to be flushed to disk.
-		ptime last_use;
+		time_point last_use;
 
 		// The index of the next block that needs to be hashed.
 		// Blocks are hashed as they are downloaded in order to not
@@ -307,7 +307,7 @@ namespace libtorrent
 		void async_delete_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
-			, lazy_entry const* resume_data
+			, bdecode_node const* resume_data
 			, std::auto_ptr<std::vector<std::string> >& links
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_save_resume_data(piece_manager* storage
@@ -522,9 +522,9 @@ namespace libtorrent
 		void* m_userdata;
 
 		// the last time we expired write blocks from the cache
-		ptime m_last_cache_expiry;
+		time_point m_last_cache_expiry;
 
-		ptime m_last_file_check;
+		time_point m_last_file_check;
 
 		// LRU cache of open files
 		file_pool m_file_pool;
@@ -585,7 +585,7 @@ namespace libtorrent
 		tailqueue m_queued_hash_jobs;
 		
 		// used to rate limit disk performance warnings
-		ptime m_last_disk_aio_performance_warning;
+		time_point m_last_disk_aio_performance_warning;
 
 		// function to be posted to the network thread to post
 		// an alert (used for performance warnings)

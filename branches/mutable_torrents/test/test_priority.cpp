@@ -260,7 +260,7 @@ void test_transfer(settings_pack const& sett)
 	std::vector<char> resume_data;
 
 	alert const* a = ses2.wait_for_alert(seconds(10));
-	ptime start = time_now_hires();
+	time_point start = clock_type::now();
 	while (a)
 	{
 		std::auto_ptr<alert> holder = ses2.pop_alert();
@@ -277,14 +277,14 @@ void test_transfer(settings_pack const& sett)
 			fprintf(stderr, "save resume failed\n");
 			break;
 		}
-		if (total_seconds(time_now_hires() - start) > 10)
+		if (total_seconds(clock_type::now() - start) > 10)
 			break;
 
 		a = ses2.wait_for_alert(seconds(10));
 	}
 	TEST_CHECK(resume_data.size());	
 
-	fprintf(stderr, "%s\n", resume_data.data());
+	fprintf(stderr, "%s\n", &resume_data[0]);
 
 	ses2.remove_torrent(tor2);
 

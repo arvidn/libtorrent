@@ -124,7 +124,7 @@ namespace libtorrent
 		struct connection_cache_entry
 		{
 			boost::int64_t connection_id;
-			ptime expires;
+			time_point expires;
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;

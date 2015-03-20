@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
+#include "libtorrent/aux_/escape_string.hpp" // for read_until
 
 using namespace libtorrent;
 

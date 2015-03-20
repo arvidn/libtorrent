@@ -12,7 +12,7 @@
 #include <libtorrent/disk_io_thread.hpp>
 #include <libtorrent/aux_/session_settings.hpp>
 #include <libtorrent/extensions.hpp>
-#include <libtorrent/lazy_entry.hpp>
+#include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 
@@ -486,9 +486,9 @@ namespace
 
 		 std::vector<char> buf;
 		 bencode(std::back_inserter(buf), st);
-		 lazy_entry e;
+		 bdecode_node e;
 		 error_code ec;
-		 lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		 bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 		 TORRENT_ASSERT(!ec);
 		 ses.load_state(e);
 	 }

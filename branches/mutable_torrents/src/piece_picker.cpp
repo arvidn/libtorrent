@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <algorithm>
 #include <numeric>
+#include <limits>
 
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -215,7 +216,7 @@ namespace libtorrent
 			, m_downloads[download_state].end(), ret);
 		TORRENT_ASSERT(i == m_downloads[download_state].end() || i->index != piece);
 		TORRENT_ASSERT(block_index >= 0);
-		TORRENT_ASSERT(block_index < UINT16_MAX);
+		TORRENT_ASSERT(block_index < (std::numeric_limits<boost::uint16_t>::max)());
 		ret.info_idx = block_index;
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= m_block_info.size());

@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
+#include "libtorrent/aux_/escape_string.hpp" // for is_hex
 
 using boost::shared_ptr;
 

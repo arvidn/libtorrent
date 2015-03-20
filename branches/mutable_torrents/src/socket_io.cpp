@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"

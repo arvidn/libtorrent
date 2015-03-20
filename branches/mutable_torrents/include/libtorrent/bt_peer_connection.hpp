@@ -256,7 +256,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
-		ptime m_last_choke;
+		time_point m_last_choke;
 #endif
 
 	private:

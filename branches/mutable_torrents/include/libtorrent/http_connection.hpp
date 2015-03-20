@@ -176,8 +176,8 @@ private:
 	// as all the quota was used.
 	deadline_timer m_limiter_timer;
 
-	ptime m_last_receive;
-	ptime m_start_time;
+	time_point m_last_receive;
+	time_point m_start_time;
 	
 	// specifies whether or not the connection is
 	// configured to use a proxy

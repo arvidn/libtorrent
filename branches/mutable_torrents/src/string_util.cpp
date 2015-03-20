@@ -34,20 +34,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/random.hpp"
 
-#include <stdlib.h> // for malloc/free
-#include <string.h> // for strcpy/strlen
+#include <cstdlib> // for malloc
+#include <cstring> // for memmov/strcpy/strlen
 
 namespace libtorrent
 {
 
+	// lexical_cast's result depends on the locale. We need
+	// a well defined result
+	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
+		to_string(boost::int64_t n)
+	{
+		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		char *p = &ret.back();
+		*p = '\0';
+		boost::uint64_t un = n;
+		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
+		do {
+			*--p = '0' + un % 10;
+			un /= 10;
+		} while (un);
+		if (n < 0) *--p = '-';
+		std::memmove(&ret[0], p, &ret.back() - p + 1);
+		return ret;
+	}
+
 	bool is_alpha(char c)
 	{
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-	}
-
-	bool is_digit(char c)
-	{
-		return c >= '0' && c <= '9';
 	}
 
 	bool is_print(char c)
@@ -57,7 +71,7 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		const static char* ws = " \t\n\r\f\v";
+		static const char* ws = " \t\n\r\f\v";
 		return strchr(ws, c) != 0;
 	}
 
@@ -124,9 +138,9 @@ namespace libtorrent
 	char* allocate_string_copy(char const* str)
 	{
 		if (str == 0) return 0;
-		char* tmp = (char*)malloc(strlen(str) + 1);
+		char* tmp = (char*)std::malloc(std::strlen(str) + 1);
 		if (tmp == 0) return 0;
-		strcpy(tmp, str);
+		std::strcpy(tmp, str);
 		return tmp;
 	}
 

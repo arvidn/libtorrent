@@ -242,7 +242,7 @@ namespace aux {
 			boost::uint32_t filter;
 		};
 
-		const static class_mapping v4_classes[] =
+		static const class_mapping v4_classes[] =
 		{
 			// everything
 			{"0.0.0.0", "255.255.255.255", gfilter},
@@ -257,7 +257,7 @@ namespace aux {
 		};
 
 #if TORRENT_USE_IPV6
-		const static class_mapping v6_classes[] =
+		static const class_mapping v6_classes[] =
 		{
 			// everything
 			{"::0", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", gfilter},
@@ -383,7 +383,7 @@ namespace aux {
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
-		, m_created(time_now_hires())
+		, m_created(clock_type::now())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
@@ -740,35 +740,35 @@ namespace aux {
 		return proxy_settings(m_settings);
 	}
 	
-	void session_impl::load_state(lazy_entry const* e)
+	void session_impl::load_state(bdecode_node const* e)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		lazy_entry const* settings;
-		if (e->type() != lazy_entry::dict_t) return;
+		bdecode_node settings;
+		if (e->type() != bdecode_node::dict_t) return;
 
 #ifndef TORRENT_DISABLE_DHT
 		// load from the old settings names
 		settings = e->dict_find_dict("dht");
 		if (settings)
 		{
-			lazy_entry const* val;
-			val = settings->dict_find_int("max_peers_reply");
-			if (val) m_dht_settings.max_peers_reply = val->int_value();
-			val = settings->dict_find_int("search_branching");
-			if (val) m_dht_settings.search_branching = val->int_value();
-			val = settings->dict_find_int("max_fail_count");
-			if (val) m_dht_settings.max_fail_count = val->int_value();
-			val = settings->dict_find_int("max_torrents");
-			if (val) m_dht_settings.max_torrents = val->int_value();
-			val = settings->dict_find_int("max_dht_items");
-			if (val) m_dht_settings.max_dht_items = val->int_value();
-			val = settings->dict_find_int("max_torrent_search_reply");
-			if (val) m_dht_settings.max_torrent_search_reply = val->int_value();
-			val = settings->dict_find_int("restrict_routing_ips");
-			if (val) m_dht_settings.restrict_routing_ips = val->int_value();
-			val = settings->dict_find_int("extended_routing_table");
-			if (val) m_dht_settings.extended_routing_table = val->int_value();
+			bdecode_node val;
+			val = settings.dict_find_int("max_peers_reply");
+			if (val) m_dht_settings.max_peers_reply = val.int_value();
+			val = settings.dict_find_int("search_branching");
+			if (val) m_dht_settings.search_branching = val.int_value();
+			val = settings.dict_find_int("max_fail_count");
+			if (val) m_dht_settings.max_fail_count = val.int_value();
+			val = settings.dict_find_int("max_torrents");
+			if (val) m_dht_settings.max_torrents = val.int_value();
+			val = settings.dict_find_int("max_dht_items");
+			if (val) m_dht_settings.max_dht_items = val.int_value();
+			val = settings.dict_find_int("max_torrent_search_reply");
+			if (val) m_dht_settings.max_torrent_search_reply = val.int_value();
+			val = settings.dict_find_int("restrict_routing_ips");
+			if (val) m_dht_settings.restrict_routing_ips = val.int_value();
+			val = settings.dict_find_int("extended_routing_table");
+			if (val) m_dht_settings.extended_routing_table = val.int_value();
 		}
 #endif
 
@@ -776,35 +776,35 @@ namespace aux {
 		settings = e->dict_find_dict("proxy");
 		if (settings)
 		{
-			lazy_entry const* val;
-			val = settings->dict_find_int("port");
-			if (val) m_settings.set_int(settings_pack::proxy_port, val->int_value());
-			val = settings->dict_find_int("type");
-			if (val) m_settings.set_int(settings_pack::proxy_type, val->int_value());
-			val = settings->dict_find_int("proxy_hostnames");
-			if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val->int_value());
-			val = settings->dict_find_int("proxy_peer_connections");
-			if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val->int_value());
-			val = settings->dict_find_string("hostname");
-			if (val) m_settings.set_str(settings_pack::proxy_hostname, val->string_value());
-			val = settings->dict_find_string("password");
-			if (val) m_settings.set_str(settings_pack::proxy_password, val->string_value());
-			val = settings->dict_find_string("username");
-			if (val) m_settings.set_str(settings_pack::proxy_username, val->string_value());
+			bdecode_node val;
+			val = settings.dict_find_int("port");
+			if (val) m_settings.set_int(settings_pack::proxy_port, val.int_value());
+			val = settings.dict_find_int("type");
+			if (val) m_settings.set_int(settings_pack::proxy_type, val.int_value());
+			val = settings.dict_find_int("proxy_hostnames");
+			if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val.int_value());
+			val = settings.dict_find_int("proxy_peer_connections");
+			if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val.int_value());
+			val = settings.dict_find_string("hostname");
+			if (val) m_settings.set_str(settings_pack::proxy_hostname, val.string_value());
+			val = settings.dict_find_string("password");
+			if (val) m_settings.set_str(settings_pack::proxy_password, val.string_value());
+			val = settings.dict_find_string("username");
+			if (val) m_settings.set_str(settings_pack::proxy_username, val.string_value());
 		}
 
 		settings = e->dict_find_dict("encryption");
 		if (settings)
 		{
-			lazy_entry const* val;
-			val = settings->dict_find_int("prefer_rc4");
-			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val->int_value());
-			val = settings->dict_find_int("out_enc_policy");
-			if (val) m_settings.set_int(settings_pack::out_enc_policy, val->int_value());
-			val = settings->dict_find_int("in_enc_policy");
-			if (val) m_settings.set_int(settings_pack::in_enc_policy, val->int_value());
-			val = settings->dict_find_int("allowed_enc_level");
-			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val->int_value());
+			bdecode_node val;
+			val = settings.dict_find_int("prefer_rc4");
+			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val.int_value());
+			val = settings.dict_find_int("out_enc_policy");
+			if (val) m_settings.set_int(settings_pack::out_enc_policy, val.int_value());
+			val = settings.dict_find_int("in_enc_policy");
+			if (val) m_settings.set_int(settings_pack::in_enc_policy, val.int_value());
+			val = settings.dict_find_int("allowed_enc_level");
+			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val.int_value());
 		}
 #endif
 		
@@ -824,19 +824,19 @@ namespace aux {
 		settings = e->dict_find_dict("dht state");
 		if (settings)
 		{
-			m_dht_state = *settings;
+			m_dht_state = settings;
 		}
 #endif
 
 		settings = e->dict_find_list("feeds");
 		if (settings)
 		{
-			m_feeds.reserve(settings->list_size());
-			for (int i = 0; i < settings->list_size(); ++i)
+			m_feeds.reserve(settings.list_size());
+			for (int i = 0; i < settings.list_size(); ++i)
 			{
-				if (settings->list_at(i)->type() != lazy_entry::dict_t) continue;
+				if (settings.list_at(i).type() != bdecode_node::dict_t) continue;
 				boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
-				f->load_state(*settings->list_at(i));
+				f->load_state(settings.list_at(i));
 				f->update_feed();
 				m_feeds.push_back(f);
 			}
@@ -1250,7 +1250,7 @@ namespace aux {
 		boost::uint32_t peer_class_mask = m_peer_class_filter.access(a);
 
 		// assign peer class based on socket type
-		const static int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
+		static const int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
 		int socket_type = mapping[st];
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
@@ -2360,7 +2360,7 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		// add the current time to the PRNG, to add more unpredictability
-		boost::uint64_t now = time_now_hires().time_since_epoch().count();
+		boost::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
@@ -2694,11 +2694,11 @@ retry:
 	// than a system call and can be
 	// used where more accurate time
 	// is not necessary
-	extern ptime g_current_time;
+	extern time_point g_current_time;
 
 	initialize_timer::initialize_timer()
 	{
-		g_current_time = time_now_hires();
+		g_current_time = clock_type::now();
 	}
 
 	int session_impl::rate_limit(peer_class_t c, int channel) const
@@ -2810,7 +2810,7 @@ retry:
 		// submit all disk jobs when we leave this function
 		deferred_submit_jobs();
 
-		ptime now = time_now_hires();
+		time_point now = clock_type::now();
 		aux::g_current_time = now;
 // too expensive
 //		INVARIANT_CHECK;
@@ -3252,8 +3252,8 @@ retry:
 	void session_impl::update_rss_feeds()
 	{
 		time_t now_posix = time(0);
-		ptime min_update = max_time();
-		ptime now = time_now();
+		time_point min_update = max_time();
+		time_point now = aux::time_now();
 		for (std::vector<boost::shared_ptr<feed> >::iterator i
 			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
 		{
@@ -3262,7 +3262,7 @@ retry:
 			if (delta <= 0)
 				delta = f.update_feed();
 			TORRENT_ASSERT(delta >= 0);
-			ptime next_update = now + seconds(delta);
+			time_point next_update = now + seconds(delta);
 			if (next_update < min_update) min_update = next_update;
 		}
 		m_next_rss_update = min_update;
@@ -3854,7 +3854,7 @@ retry:
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		time_duration unchoke_interval = now - m_last_choke;
 		m_last_choke = now;
 
@@ -4396,7 +4396,7 @@ retry:
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = m_stats_counters[i];
 
-		alert->timestamp = total_microseconds(time_now_hires() - m_created);
+		alert->timestamp = total_microseconds(clock_type::now() - m_created);
 
 		m_alerts.post_alert_ptr(alert.release());
 	}
@@ -4560,14 +4560,14 @@ retry:
 		{
 			int pos;
 			error_code ec;
-			lazy_entry tmp;
-			lazy_entry const* info = 0;
+			bdecode_node tmp;
+			bdecode_node info;
 #if defined TORRENT_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
-			if (lazy_bdecode(&params.resume_data[0], &params.resume_data[0]
+			if (bdecode(&params.resume_data[0], &params.resume_data[0]
 					+ params.resume_data.size(), tmp, ec, &pos) == 0
-				&& tmp.type() == lazy_entry::dict_t
+				&& tmp.type() == bdecode_node::dict_t
 				&& (info = tmp.dict_find_dict("info")))
 			{
 #if defined TORRENT_LOGGING
@@ -4576,7 +4576,7 @@ retry:
 				// verify the info-hash of the metadata stored in the resume file matches
 				// the torrent we're loading
 
-				std::pair<char const*, int> buf = info->data_section();
+				std::pair<char const*, int> buf = info.data_section();
 				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
 
 				// if url is set, the info_hash is not actually the info-hash of the
@@ -4591,7 +4591,7 @@ retry:
 #endif
 					params.ti = boost::make_shared<torrent_info>(resume_ih);
 
-					if (params.ti->parse_info_section(*info, ec, 0))
+					if (params.ti->parse_info_section(info, ec, 0))
 					{
 #if defined TORRENT_LOGGING
 						session_log("successfully loaded metadata from resume file");
@@ -5646,9 +5646,9 @@ retry:
 		FILE* f = fopen("wakeups.log", "w+");
 		if (f != NULL)
 		{
-			ptime m = min_time();
+			time_point m = min_time();
 			if (_wakeups.size() > 0) m = _wakeups[0].timestamp;
-			ptime prev = m;
+			time_point prev = m;
 			boost::uint64_t prev_csw = 0;
 			if (_wakeups.size() > 0) prev_csw = _wakeups[0].context_switches;
 			fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");

@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/escape_string.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;
@@ -72,11 +71,11 @@ namespace libtorrent { namespace dht
 	void incoming_error(entry& e, char const* msg);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	std::string parse_dht_client(lazy_entry const& e)
+	std::string parse_dht_client(bdecode_node const& e)
 	{
-		lazy_entry const* ver = e.dict_find_string("v");
+		bdecode_node ver = e.dict_find_string("v");
 		if (!ver) return "generic";
-		std::string const& client = ver->string_value();
+		std::string const& client = ver.string_value();
 		if (client.size() < 2)
 		{
 			return client;
@@ -116,12 +115,12 @@ namespace libtorrent { namespace dht
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
 
-	node_id extract_node_id(lazy_entry const* e)
+	node_id extract_node_id(bdecode_node e)
 	{
-		if (e == 0 || e->type() != lazy_entry::dict_t) return (node_id::min)();
-		lazy_entry const* nid = e->dict_find_string("node-id");
-		if (nid == 0 || nid->string_length() != 20) return (node_id::min)();
-		return node_id(node_id(nid->string_ptr()));
+		if (!e || e.type() != bdecode_node::dict_t) return (node_id::min)();
+		bdecode_node nid = e.dict_find_string("node-id");
+		if (!nid || nid.string_length() != 20) return (node_id::min)();
+		return node_id(node_id(nid.string_ptr()));
 	}
 
 	node_id extract_node_id(entry const* e)
@@ -135,13 +134,14 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
+	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses
+		, rate_limited_udp_socket& sock
 		, dht_settings const& settings, counters& cnt, entry const* state)
 		: m_counters(cnt)
 		, m_dht(&ses, this, settings, extract_node_id(state)
 			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
-		, m_last_new_key(time_now() - minutes(int(key_refresh)))
+		, m_last_new_key(aux::time_now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -250,7 +250,7 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(minutes(tick_period), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		ptime now = time_now();
+		time_point now = aux::time_now();
 		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
@@ -383,7 +383,7 @@ namespace libtorrent { namespace dht
 				return true;
 		}
 
-		if (!m_blocker.incoming(ep.address(), time_now()))
+		if (!m_blocker.incoming(ep.address(), aux::time_now()))
 			return true;
 
 		using libtorrent::entry;
@@ -391,10 +391,9 @@ namespace libtorrent { namespace dht
 			
 		TORRENT_ASSERT(size > 0);
 
-		lazy_entry e;
 		int pos;
 		error_code err;
-		int ret = lazy_bdecode(buf, buf + size, e, err, &pos, 10, 500);
+		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -404,13 +403,11 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
-		libtorrent::dht::msg m(e, ep);
-
-		if (e.type() != lazy_entry::dict_t)
+		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: not a dictionary: "
-				<< print_entry(e, true);
+				<< print_entry(m_msg, true);
 #endif
 			// it's not a good idea to send invalid messages
 			// especially not in response to an invalid message
@@ -420,6 +417,7 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
+		libtorrent::dht::msg m(m_msg, ep);
 		m_dht.incoming(m);
 		return true;
 	}
@@ -503,8 +501,8 @@ namespace libtorrent { namespace dht
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		std::stringstream log_line;
-		lazy_entry print;
-		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
+		bdecode_node print;
+		int ret = bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
 		TORRENT_ASSERT(ret == 0);
 		log_line << print_entry(print, true);
 #endif

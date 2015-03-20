@@ -16,6 +16,7 @@ nobase_include_HEADERS = \
   bandwidth_socket.hpp         \
   bandwidth_queue_entry.hpp    \
   bencode.hpp                  \
+  bdecode.hpp                  \
   bitfield.hpp                 \
   block_cache.hpp              \
   bloom_filter.hpp             \
@@ -47,7 +48,6 @@ nobase_include_HEADERS = \
   enum_net.hpp                 \
   error.hpp                    \
   error_code.hpp               \
-  escape_string.hpp            \
   export.hpp                   \
   extensions.hpp               \
   file.hpp                     \
@@ -56,6 +56,7 @@ nobase_include_HEADERS = \
   fingerprint.hpp              \
   gzip.hpp                     \
   hasher.hpp                   \
+  hex.hpp                      \
   http_connection.hpp          \
   http_parser.hpp              \
   http_seed_connection.hpp     \
@@ -147,13 +148,16 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
-  $(GEOIP_H) \
-  tommath.h \
-  tommath_class.h \
-  tommath_superclass.h \
+  tommath.h                         \
+  tommath_class.h                   \
+  tommath_superclass.h              \
   \
-  aux_/session_impl.hpp        \
-  aux_/session_settings.hpp\
+  aux_/session_call.hpp             \
+  aux_/session_impl.hpp             \
+  aux_/session_settings.hpp         \
+  aux_/session_interface.hpp        \
+  aux_/time.hpp                     \
+  aux_/escape_string.hpp            \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

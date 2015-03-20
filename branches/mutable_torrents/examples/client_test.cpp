@@ -64,7 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -75,6 +75,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::bind;
 using libtorrent::total_milliseconds;
+
+void sleep_ms(int milliseconds)
+{
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+	Sleep(milliseconds);
+#elif defined TORRENT_BEOS
+	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+#else
+	usleep(milliseconds * 1000);
+#endif
+}
 
 #ifdef _WIN32
 
@@ -127,7 +138,7 @@ bool sleep_and_input(int* c, int sleep)
 	// sets the terminal to single-character mode
 	// and resets when destructed
 	set_keypress s;
-	libtorrent::ptime start = libtorrent::time_now_hires();
+	libtorrent::time_point start = libtorrent::clock_type::now();
 	int ret = 0;
 retry:
 	fd_set set;
@@ -142,7 +153,7 @@ retry:
 	}
 	if (errno == EINTR)
 	{
-		if (total_milliseconds(libtorrent::time_now_hires() - start) < sleep)
+		if (total_milliseconds(libtorrent::clock_type::now() - start) < sleep)
 			goto retry;
 		return false;
 	}
@@ -150,7 +161,7 @@ retry:
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
 	{
 		fprintf(stderr, "select failed: %s\n", strerror(errno));
-		libtorrent::sleep(500);
+		sleep_ms(500);
 	}
 
 	return false;
@@ -697,7 +708,6 @@ void add_torrent(libtorrent::session& ses
 	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-	lazy_entry resume_data;
 
 	std::string filename = path_append(save_path, path_append(".resume"
 		, leaf_path(torrent) + ".resume"));
@@ -1188,7 +1198,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
 	snprintf(str, sizeof(str), " %3d cache age: %-5.1f state: %s%s\n"
 		, cs ? cs->next_to_hash : 0
-		, cs ? (total_milliseconds(time_now() - cs->last_use) / 1000.f) : 0.f
+		, cs ? (total_milliseconds(clock_type::now() - cs->last_use) / 1000.f) : 0.f
 		, cs ? cache_kind_str[cs->kind] : "N/A"
 		, ts && ts->pieces.size() ? (ts->pieces[piece] ? " have" : " dont-have") : "");
 	out += str;
@@ -1296,7 +1306,7 @@ int main(int argc, char* argv[])
 
 	std::deque<std::string> events;
 
-	ptime next_dir_scan = time_now();
+	time_point next_dir_scan = clock_type::now();
 
 	// the string is the filename of the .torrent file, but only if
 	// it was added through the directory monitor. It is used to
@@ -1324,8 +1334,8 @@ int main(int argc, char* argv[])
 	error_code ec;
 	if (load_file(".ses_state", in, ec) == 0)
 	{
-		lazy_entry e;
-		if (lazy_bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
+		bdecode_node e;
+		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
 			ses.load_state(e);
 	}
 
@@ -2055,7 +2065,7 @@ int main(int argc, char* argv[])
 			if (print_trackers)
 			{
 				std::vector<announce_entry> tr = h.trackers();
-				ptime now = time_now();
+				time_point now = clock_type::now();
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
@@ -2263,12 +2273,12 @@ int main(int argc, char* argv[])
 		fflush(stdout);
 
 		if (!monitor_dir.empty()
-			&& next_dir_scan < time_now())
+			&& next_dir_scan < clock_type::now())
 		{
 			scan_dir(monitor_dir, ses, files, non_files
 				, allocation_mode, save_path, torrent_upload_limit
 				, torrent_download_limit);
-			next_dir_scan = time_now() + seconds(poll_interval);
+			next_dir_scan = clock_type::now() + seconds(poll_interval);
 		}
 	}
 

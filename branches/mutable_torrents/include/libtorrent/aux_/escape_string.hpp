@@ -34,16 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ESCAPE_STRING_HPP_INCLUDED
 
 #include <string>
-#include <boost/limits.hpp>
-#include <boost/array.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n);
-
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
 	TORRENT_EXTRA_EXPORT std::string escape_string(const char* str, int len);
@@ -79,23 +74,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
 
 	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
-
-	// converts (binary) the string ``s`` to hexadecimal representation and
-	// returns it.
-	TORRENT_EXPORT std::string to_hex(std::string const& s);
-
-	// converts the binary buffer [``in``, ``in`` + len) to hexadecimal
-	// and prints it to the buffer ``out``. The caller is responsible for
-	// making sure the buffer pointed to by ``out`` is large enough,
-	// i.e. has at least len * 2 bytes of space.
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
-
-	// converts the buffer [``in``, ``in`` + len) from hexadecimal to
-	// binary. The binary output is written to the buffer pointed to
-	// by ``out``. The caller is responsible for making sure the buffer
-	// at ``out`` has enough space for the result to be written to, i.e.
-	// (len + 1) / 2 bytes.
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	TORRENT_EXTRA_EXPORT std::wstring convert_to_wstring(std::string const& s);

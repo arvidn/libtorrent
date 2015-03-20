@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
@@ -1332,13 +1334,13 @@ rate_limited_udp_socket::rate_limited_udp_socket(io_service& ios)
 	: udp_socket(ios)
 	, m_rate_limit(8000)
 	, m_quota(8000)
-	, m_last_tick(time_now())
+	, m_last_tick(aux::time_now())
 {
 }
 
 bool rate_limited_udp_socket::has_quota()
 {
-	ptime now = time_now_hires();
+	time_point now = clock_type::now();
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
 	// add any new quota we've accrued since last time
@@ -1349,7 +1351,7 @@ bool rate_limited_udp_socket::has_quota()
 bool rate_limited_udp_socket::send(udp::endpoint const& ep, char const* p
 	, int len, error_code& ec, int flags)
 {
-	ptime now = time_now_hires();
+	time_point now = clock_type::now();
 	time_duration delta = now - m_last_tick;
 	m_last_tick = now;
 

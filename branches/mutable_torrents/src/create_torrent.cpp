@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/escape_string.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for convert_to_wstring
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/torrent_info.hpp" // for merkle_*()
 #include "libtorrent/performance_counters.hpp" // for counters

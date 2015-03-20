@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/escape_string.hpp" // for from_hex
+#include "libtorrent/hex.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
@@ -177,9 +177,9 @@ int main(int argc, char* argv[])
 			state.resize(size);
 			fread(&state[0], 1, state.size(), f);
 
-			lazy_entry e;
+			bdecode_node e;
 			error_code ec;
-			lazy_bdecode(&state[0], &state[0] + state.size(), e, ec);
+			bdecode(&state[0], &state[0] + state.size(), e, ec);
 			if (ec)
 				fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 					, ec.value(), ec.message().c_str());

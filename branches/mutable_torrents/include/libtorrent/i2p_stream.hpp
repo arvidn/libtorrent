@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent {
 

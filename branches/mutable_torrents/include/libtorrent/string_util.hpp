@@ -36,12 +36,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <vector>
 #include <string>
+#include <boost/cstdint.hpp>
+#include <boost/limits.hpp>
+#include <boost/array.hpp> // for boost::array
 
 namespace libtorrent
 {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
-	// this is used by bdecode_recursive's header file
-	TORRENT_EXPORT bool is_digit(char c);
+
+	TORRENT_EXTRA_EXPORT
+		boost::array<char, 4+std::numeric_limits<boost::int64_t>::digits10>
+		to_string(boost::int64_t n);
+
+	// internal
+	inline bool is_digit(char c)
+	{ return c >= '0' && c <= '9'; }
+
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);

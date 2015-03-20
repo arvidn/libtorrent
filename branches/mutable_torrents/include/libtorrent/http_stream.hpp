@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/function/function1.hpp>
 #include "libtorrent/proxy_base.hpp"
+#include "libtorrent/string_util.hpp"
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
