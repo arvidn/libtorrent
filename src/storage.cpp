@@ -712,7 +712,9 @@ namespace libtorrent
 		return int((data_start + files().piece_length() - 1) / files().piece_length());
 	}
 
-	bool default_storage::verify_resume_data(bdecode_node const& rd, storage_error& ec)
+	bool default_storage::verify_resume_data(bdecode_node const& rd
+		, std::vector<std::string> const* links
+		, storage_error& ec)
 	{
 		// TODO: make this more generic to not just work if files have been
 		// renamed, but also if they have been merged into a single file for instance
@@ -742,6 +744,8 @@ namespace libtorrent
 		if (file_sizes_ent == 0)
 		{
 			ec.ec = errors::missing_file_sizes;
+			ec.file = -1;
+			ec.operation = storage_error::check_resume;
 			return false;
 		}
 		
@@ -756,7 +760,7 @@ namespace libtorrent
 		{
 			ec.ec = errors::mismatching_number_of_files;
 			ec.file = -1;
-			ec.operation = storage_error::none;
+			ec.operation = storage_error::check_resume;
 			return false;
 		}
 
@@ -792,6 +796,8 @@ namespace libtorrent
 		else
 		{
 			ec.ec = errors::missing_pieces;
+			ec.file = -1;
+			ec.operation = storage_error::check_resume;
 			return false;
 		}
 
@@ -806,7 +812,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::missing_file_sizes;
 				ec.file = i;
-				ec.operation = storage_error::none;
+				ec.operation = storage_error::check_resume;
 				return false;
 			}
 
@@ -819,7 +825,7 @@ namespace libtorrent
 			{
 				ec.ec = errors::mismatching_file_size;
 				ec.file = i;
-				ec.operation = storage_error::none;
+				ec.operation = storage_error::check_resume;
 				return false;
 			}
 
@@ -882,6 +888,41 @@ namespace libtorrent
 		bool full_allocation_mode = false;
 		if (rd.dict_find_string_value("allocation") != "compact")
 			full_allocation_mode = true;
+
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		if (links)
+		{
+			// if this is a mutable torrent, and we need to pick up some files
+			// from other torrents, do that now. Note that there is an inherent
+			// race condition here. We checked if the files existed on a different
+			// thread a while ago. These files may no longer exist or may have been
+			// moved. If so, we just fail. The user is responsible to not touch
+			// other torrents until a new mutable torrent has been completely
+			// added.
+			int idx = 0;
+			for (std::vector<std::string>::const_iterator i = links->begin();
+				i != links->end(); ++i, ++idx)
+			{
+				if (i->empty()) continue;
+
+				error_code err;
+				std::string file_path = fs.file_path(idx, m_save_path);
+				hard_link(*i, file_path, err);
+
+				// if the file already exists, that's not an error
+				// TODO: 2 is this risky? The upper layer will assume we have the
+				// whole file. Perhaps we should verify that at least the size
+				// of the file is correct
+				if (!err || err == boost::system::errc::file_exists)
+					continue;
+
+				ec.ec = err;
+				ec.file = idx;
+				ec.operation = storage_error::hard_link;
+				return false;
+			}
+		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return true;
 	}
@@ -1470,9 +1511,15 @@ namespace libtorrent
 	// check if the fastresume data is up to date
 	// if it is, use it and return true. If it 
 	// isn't return false and the full check
-	// will be run
+	// will be run. If the links pointer is non-null, it has the same number
+	// of elements as there are files. Each element is either empty or contains
+	// the absolute path to a file identical to the corresponding file in this
+	// torrent. The storage must create hard links (or copy) those files. If
+	// any file does not exist or is inaccessible, the disk job must fail.
 	int piece_manager::check_fastresume(
-		bdecode_node const& rd, storage_error& ec)
+		bdecode_node const& rd
+		, std::vector<std::string> const* links
+		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 		
@@ -1494,7 +1541,7 @@ namespace libtorrent
 			return check_no_fastresume(ec);
 		}
 
-		if (!m_storage->verify_resume_data(rd, ec))
+		if (!m_storage->verify_resume_data(rd, links, ec))
 			return check_no_fastresume(ec);
 
 		return check_init_storage(ec);

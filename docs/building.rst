@@ -289,6 +289,10 @@ Build features:
 |                          |   connections. The shipped public domain SHA-1     |
 |                          |   implementation is used.                          |
 +--------------------------+----------------------------------------------------+
+| ``mutable-torrents``     | * ``on`` - mutable torrents are supported          |
+|                          |   (`BEP 38`_) (default).                           |
+|                          | * ``off`` - mutable torrents are not supported.    |
++--------------------------+----------------------------------------------------+
 | ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
 |                          |   implementation.                                  |
 |                          | * ``openssl`` - links against openssl and          |
@@ -578,6 +582,8 @@ defines you can use to control the build.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_POOL_ALLOCATOR``     | Disables use of ``boost::pool<>``.              |
 +----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_MUTABLE_TORRENTS``   | Disables mutable torrent support (`BEP 38`_)    |
++----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |
 |                                        | will be tagged with ``__declspec(dllimport)``   |
@@ -644,6 +650,7 @@ defines you can use to control the build.
 |                                        | custom one.                                     |
 +----------------------------------------+-------------------------------------------------+
 
+.. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 
 If you experience that libtorrent uses unreasonable amounts of cpu, it will
 definitely help to define ``NDEBUG``, since it will remove the invariant checks

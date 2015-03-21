@@ -86,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/resolve_links.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -1855,8 +1856,6 @@ namespace libtorrent
 			return;
 		}
 
-		set_state(torrent_status::checking_resume_data);
-
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
 		file_storage const& fs = m_torrent_file->files();
@@ -1927,10 +1926,68 @@ namespace libtorrent
 		if (num_pad_files > 0)
 			m_picker->set_num_pad_files(num_pad_files);
 
+		std::auto_ptr<std::vector<std::string> > links;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		if (!m_torrent_file->similar_torrents().empty()
+			|| !m_torrent_file->collections().empty())
+		{
+			resolve_links res(m_torrent_file);
+
+			std::vector<sha1_hash> s = m_torrent_file->similar_torrents();
+			for (std::vector<sha1_hash>::iterator i = s.begin(), end(s.end());
+				i != end; ++i)
+			{
+				boost::shared_ptr<torrent> t = m_ses.find_torrent(*i).lock();
+				if (!t) continue;
+
+				// Only attempt to reuse files from torrents that are seeding.
+				// TODO: this could be optimized by looking up which files are
+				// complete and just look at those
+				if (!t->is_seed()) continue;
+
+				res.match(t->get_torrent_copy(), t->save_path());
+			}
+			std::vector<std::string> c = m_torrent_file->collections();
+			for (std::vector<std::string>::iterator i = c.begin(), end(c.end());
+				i != end; ++i)
+			{
+				std::vector<boost::shared_ptr<torrent> > ts = m_ses.find_collection(*i);
+
+				for (std::vector<boost::shared_ptr<torrent> >::iterator k = ts.begin()
+					, end(ts.end()); k != end; ++k)
+				{
+					// Only attempt to reuse files from torrents that are seeding.
+					// TODO: this could be optimized by looking up which files are
+					// complete and just look at those
+					if (!(*k)->is_seed()) continue;
+
+					res.match((*k)->get_torrent_copy(), (*k)->save_path());
+				}
+			}
+
+			std::vector<resolve_links::link_t> const& l = res.get_links();
+			if (!l.empty())
+			{
+				links.reset(new std::vector<std::string>(l.size()));
+				for (std::vector<resolve_links::link_t>::const_iterator i = l.begin()
+					, end(l.end()); i != end; ++i)
+				{
+					if (!i->ti) continue;
+
+					torrent_info const& ti = *i->ti;
+					std::string const& save_path = i->save_path;
+					links->push_back(combine_path(save_path
+						, ti.files().file_path(i->file_idx)));
+				}
+			}
+		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
+
 		inc_refcount("check_fastresume");
+		// async_check_fastresume will release links
 		m_ses.disk_thread().async_check_fastresume(
 			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
-			, boost::bind(&torrent::on_resume_data_checked
+			, links, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 #if defined TORRENT_LOGGING
 		debug_log("init, async_check_fastresume");
@@ -2443,9 +2500,10 @@ namespace libtorrent
 
 		m_resume_data.reset();
 
+		std::auto_ptr<std::vector<std::string> > links;
 		inc_refcount("force_recheck");
 		m_ses.disk_thread().async_check_fastresume(m_storage.get(), NULL
-			, boost::bind(&torrent::on_force_recheck
+			, links, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
 	}
 

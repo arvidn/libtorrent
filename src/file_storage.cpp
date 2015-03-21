@@ -861,7 +861,8 @@ namespace libtorrent
 #endif // TORRENT_DEPRECATED
 	}
 
-	void file_storage::optimize(int pad_file_limit, int alignment)
+	void file_storage::optimize(int pad_file_limit, int alignment
+		, bool tail_padding)
 	{
 		if (alignment == -1)
 			alignment = m_piece_length;
@@ -938,38 +939,60 @@ namespace libtorrent
 				// then swap it in place. This minimizes the amount
 				// of copying of internal_file_entry, which is somewhat
 				// expensive (until we have move semantics)
-				int cur_index = i - m_files.begin();
-				int index = m_files.size();
-				m_files.push_back(internal_file_entry());
-				++m_num_files;
-				internal_file_entry& e = m_files.back();
-				// i may have been invalidated, refresh it
-				i = m_files.begin() + cur_index;
-				e.size = pad_size;
-				e.offset = off;
-				char name[30];
-				snprintf(name, sizeof(name), ".____padding_file/%d", padding_file);
-				std::string path = combine_path(m_name, name);
-				e.set_name(path.c_str());
-				e.pad_file = true;
-				off += pad_size;
-				++padding_file;
-
-				if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
-				if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
-#ifndef TORRENT_NO_DEPRECATE
-				if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
-#endif
-
-				reorder_file(index, cur_index);
+				add_pad_file(pad_size, i, off, padding_file);
 
 				TORRENT_ASSERT((off % alignment) == 0);
 				continue;
 			}
 			i->offset = off;
 			off += i->size;
+
+			if (tail_padding
+				&& i->size > boost::uint32_t(pad_file_limit)
+				&& (off % alignment) != 0)
+			{
+				// skip the file we just put in place, so we put the pad
+				// file after it
+				++i;
+
+				// tail-padding is enabled, and the offset after this file is not
+				// aligned and it's not the last file. The last file must be padded
+				// too, in order to match an equivalent tail-padded file.
+				add_pad_file(alignment - (off % alignment), i, off, padding_file);
+
+				TORRENT_ASSERT((off % alignment) == 0);
+			}
 		}
 		m_total_size = off;
+	}
+
+	void file_storage::add_pad_file(int size
+		, std::vector<internal_file_entry>::iterator& i
+		, boost::int64_t& offset
+		, int& pad_file_counter)
+	{
+		int cur_index = i - m_files.begin();
+		int index = m_files.size();
+		m_files.push_back(internal_file_entry());
+		++m_num_files;
+		internal_file_entry& e = m_files.back();
+		// i may have been invalidated, refresh it
+		i = m_files.begin() + cur_index;
+		e.size = size;
+		e.offset = offset;
+		char name[30];
+		snprintf(name, sizeof(name), ".____padding_file/%d", pad_file_counter);
+		std::string path = combine_path(m_name, name);
+		e.set_name(path.c_str());
+		e.pad_file = true;
+		offset += size;
+		++pad_file_counter;
+
+		if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
+		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
+		if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
+
+		reorder_file(index, cur_index);
 	}
 
 	void file_storage::unload()

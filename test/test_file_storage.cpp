@@ -207,6 +207,7 @@ int test_main()
 		TEST_EQUAL(file_hash, path_hash);
 	}
 
+	// TODO: test file_storage::optimize too
 	// TODO: test map_block
 	// TODO: test piece_size(int piece)
 	// TODO: test file_index_at_offset

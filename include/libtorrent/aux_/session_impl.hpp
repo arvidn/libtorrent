@@ -268,6 +268,10 @@ namespace libtorrent
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const;
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+			std::vector<boost::shared_ptr<torrent> > find_collection(
+				std::string const& collection) const;
+#endif
 			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const;
 			int num_torrents() const { return m_torrents.size(); }
 

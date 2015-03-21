@@ -115,7 +115,9 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool rename_file(int file, std::string const& new_name)
 //		{ assert(false); return false; }
 //		virtual bool move_storage(std::string const& save_path) { return false; }
-//		virtual bool verify_resume_data(bdecode_node const& rd, storage_error& error) { return false; }
+//		virtual bool verify_resume_data(bdecode_node const& rd
+//			, std::vector<std::string> const* links
+//			, storage_error& error) { return false; }
 //		virtual bool write_resume_data(entry& rd) const { return false; }
 //		virtual boost::int64_t physical_offset(int slot, int offset)
 //		{ return slot * m_files.piece_length() + offset; };
@@ -307,7 +309,15 @@ namespace libtorrent
 		// This function should verify the resume data ``rd`` with the files
 		// on disk. If the resume data seems to be up-to-date, return true. If
 		// not, set ``error`` to a description of what mismatched and return false.
-		virtual bool verify_resume_data(bdecode_node const& rd, storage_error& ec) = 0;
+		// 
+		// If the ``links`` pointer is non-null, it has the same number
+		// of elements as there are files. Each element is either empty or contains
+		// the absolute path to a file identical to the corresponding file in this
+		// torrent. The storage must create hard links (or copy) those files. If
+		// any file does not exist or is inaccessible, the disk job must fail.
+		virtual bool verify_resume_data(bdecode_node const& rd
+			, std::vector<std::string> const* links
+			, storage_error& ec) = 0;
 
 		// This function should fill in resume data, the current state of the
 		// storage, in ``rd``. The default storage adds file timestamps and
@@ -423,7 +433,9 @@ namespace libtorrent
 		void initialize(storage_error& ec);
 		int move_storage(std::string const& save_path, int flags, storage_error& ec);
 		int sparse_end(int start) const;
-		bool verify_resume_data(bdecode_node const& rd, storage_error& error);
+		bool verify_resume_data(bdecode_node const& rd
+			, std::vector<std::string> const* links
+			, storage_error& error);
 		void write_resume_data(entry& rd, storage_error& ec) const;
 		bool tick();
 
@@ -519,7 +531,9 @@ namespace libtorrent
 		int writev(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec);
 
-		bool verify_resume_data(bdecode_node const&, storage_error&) { return false; }
+		bool verify_resume_data(bdecode_node const&
+			, std::vector<std::string> const* links
+			, storage_error&) { return false; }
 		void write_resume_data(entry&, storage_error&) const {}
 
 		int m_piece_size;
@@ -541,7 +555,9 @@ namespace libtorrent
 			, storage_error&) {}
 		virtual int move_storage(std::string const& /* save_path */
 			, int /* flags */, storage_error&) { return 0; }
-		virtual bool verify_resume_data(bdecode_node const& /* rd */, storage_error&)
+		virtual bool verify_resume_data(bdecode_node const& /* rd */
+			, std::vector<std::string> const* /* links */
+			, storage_error&)
 			{ return false; }
 		virtual void write_resume_data(entry&, storage_error&) const {}
 		virtual void release_files(storage_error&) {}
@@ -674,7 +690,9 @@ namespace libtorrent
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		int check_fastresume(bdecode_node const& rd, storage_error& error);
+		int check_fastresume(bdecode_node const& rd
+			, std::vector<std::string> const* links
+			, storage_error& error);
 
 		// helper functions for check_fastresume	
 		int check_no_fastresume(storage_error& error);
