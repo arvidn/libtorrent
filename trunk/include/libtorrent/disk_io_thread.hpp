@@ -308,6 +308,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
 			, bdecode_node const* resume_data
+			, std::auto_ptr<std::vector<std::string> >& links
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_save_resume_data(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler);
@@ -420,6 +421,7 @@ namespace libtorrent
 		int do_load_torrent(disk_io_job* j, tailqueue& completed_jobs);
 		int do_clear_piece(disk_io_job* j, tailqueue& completed_jobs);
 		int do_tick(disk_io_job* j, tailqueue& completed_jobs);
+		int do_resolve_links(disk_io_job* j, tailqueue& completed_jobs);
 
 		void call_job_handlers(void* userdata);
 

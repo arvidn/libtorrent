@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/escape_string.hpp" // for from_hex
 
 #include <boost/bind.hpp>
 
@@ -164,29 +165,38 @@ void print_usage()
 		"Generates a torrent file from the specified file\n"
 		"or directory and writes it to standard out\n\n"
 		"OPTIONS:\n"
-		"-m file     generate a merkle hash tree torrent.\n"
-		"            merkle torrents require client support\n"
-		"            the resulting full merkle tree is written to\n"
-		"            the specified file\n"
-		"-w url      adds a web seed to the torrent with\n"
-		"            the specified url\n"
-		"-t url      adds the specified tracker to the\n"
-		"            torrent. For multiple trackers, specify more\n"
-		"            -t options\n"
-		"-c comment  sets the comment to the specified string\n"
-		"-C creator  sets the created-by field to the specified string\n"
-		"-p bytes    enables padding files. Files larger\n"
-		"            than bytes will be piece-aligned\n"
-		"-s bytes    specifies a piece size for the torrent\n"
-		"            This has to be a multiple of 16 kiB\n"
-		"-l          Don't follow symlinks, instead encode them as\n"
-		"            links in the torrent file\n"
-		"-o file     specifies the output filename of the torrent file\n"
-		"            If this is not specified, the torrent file is\n"
-		"            printed to the standard out, except on windows\n"
-		"            where the filename defaults to a.torrent\n"
-		"-r file     add root certificate to the torrent, to verify\n"
-		"            the HTTPS tracker\n"
+		"-m file       generate a merkle hash tree torrent.\n"
+		"              merkle torrents require client support\n"
+		"              the resulting full merkle tree is written to\n"
+		"              the specified file\n"
+		"-w url        adds a web seed to the torrent with\n"
+		"              the specified url\n"
+		"-t url        adds the specified tracker to the\n"
+		"              torrent. For multiple trackers, specify more\n"
+		"              -t options\n"
+		"-c comment    sets the comment to the specified string\n"
+		"-C creator    sets the created-by field to the specified string\n"
+		"-p bytes      enables padding files. Files larger\n"
+		"              than bytes will be piece-aligned\n"
+		"-s bytes      specifies a piece size for the torrent\n"
+		"              This has to be a multiple of 16 kiB\n"
+		"-l            Don't follow symlinks, instead encode them as\n"
+		"              links in the torrent file\n"
+		"-o file       specifies the output filename of the torrent file\n"
+		"              If this is not specified, the torrent file is\n"
+		"              printed to the standard out, except on windows\n"
+		"              where the filename defaults to a.torrent\n"
+		"-r file       add root certificate to the torrent, to verify\n"
+		"              the HTTPS tracker\n"
+		"-S info-hash  add a similar torrent by info-hash. The similar\n"
+		"              torrent is expected to share some files with this one\n"
+		"-L collection add a collection name to this torrent. Other torrents\n"
+		"              in the same collection is expected to share files\n"
+		"              with this one.\n"
+		"-M            make the torrent compatible with mutable torrents\n"
+		"              this means aligning large files and pad them in order\n"
+		"              for piece hashes to uniquely indentify a file without\n"
+		"              overlap\n"
 		, stderr);
 }
 
@@ -209,6 +219,8 @@ int main(int argc, char* argv[])
 #endif
 		std::vector<std::string> web_seeds;
 		std::vector<std::string> trackers;
+		std::vector<std::string> collections;
+		std::vector<sha1_hash> similar;
 		int pad_file_limit = -1;
 		int piece_size = 0;
 		int flags = 0;
@@ -239,6 +251,10 @@ int main(int argc, char* argv[])
 				case 't':
 					++i;
 					trackers.push_back(argv[i]);
+					break;
+				case 'M':
+					flags |= create_torrent::mutable_torrent_support;
+					pad_file_limit = 0x4000;
 					break;
 				case 'p':
 					++i;
@@ -272,6 +288,30 @@ int main(int argc, char* argv[])
 				case 'r':
 					++i;
 					root_cert = argv[i];
+					break;
+				case 'S':
+					{
+					++i;
+					if (strlen(argv[i]) != 40)
+					{
+						fprintf(stderr, "invalid info-hash for -S. "
+							"Expected 40 hex characters\n");
+						print_usage();
+						return 1;
+					}
+					sha1_hash ih;
+					if (!from_hex(argv[i], 40, (char*)&ih[0]))
+					{
+						fprintf(stderr, "invalid info-hash for -S\n");
+						print_usage();
+						return 1;
+					}
+					similar.push_back(ih);
+					}
+					break;
+				case 'L':
+					++i;
+					collections.push_back(argv[i]);
 					break;
 				default:
 					print_usage();
@@ -313,6 +353,14 @@ int main(int argc, char* argv[])
 		for (std::vector<std::string>::iterator i = web_seeds.begin()
 			, end(web_seeds.end()); i != end; ++i)
 			t.add_url_seed(*i);
+
+		for (std::vector<std::string>::iterator i = collections.begin()
+			, end(collections.end()); i != end; ++i)
+			t.add_collection(*i);
+
+		for (std::vector<sha1_hash>::iterator i = similar.begin()
+			, end(similar.end()); i != end; ++i)
+			t.add_similar_torrent(*i);
 
 		error_code ec;
 		set_piece_hashes(t, branch_path(full_path)

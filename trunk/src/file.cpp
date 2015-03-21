@@ -440,23 +440,83 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#ifdef TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING
 #define CreateDirectory_ CreateDirectoryW
 		std::wstring n = convert_to_wstring(f);
 #else
 #define CreateDirectory_ CreateDirectoryA
 		std::string const& n = convert_to_native(f);
-#endif
+#endif // TORRENT_USE_WSTRING
 
-#ifdef TORRENT_WINDOWS
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), boost::system::system_category());
 #else
+		std::string n = convert_to_native(f);
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, generic_category());
 #endif
+	}
+
+	void hard_link(std::string const& file, std::string const& link
+		, error_code& ec)
+	{
+#ifdef TORRENT_WINDOWS
+
+#if TORRENT_USE_WSTRING
+#define CreateHardLink_ CreateHardLinkW
+		std::wstring n_exist = convert_to_wstring(file);
+		std::wstring n_link = convert_to_wstring(link);
+#else
+#define CreateHardLink_ CreateHardLinkA
+		std::string n_exist = convert_to_native(file);
+		std::string n_link = convert_to_native(link);
+#endif
+		BOOL ret = CreateHardLink(n_link.c_str(), n_exist.c_str(), NULL);
+		if (ret)
+		{
+			ec.clear();
+			return;
+		}
+
+		// something failed. Does the filesystem not support hard links?
+		// TODO: 3 find out what error code is reported when the filesystem
+		// does not support hard links.
+
+		// it's possible CreateHardLink will copy the file internally too,
+		// if the filesystem does not support it.
+		ec.assign(GetLastError(), system_category());
+		return;
+
+#else
+
+		std::string n_exist = convert_to_native(file);
+		std::string n_link = convert_to_native(link);
+
+		// assume posix's link() function exists
+		int ret = ::link(n_exist.c_str(), n_link.c_str());
+
+		if (ret == 0)
+		{
+			ec.clear();
+			return;
+		}
+
+		// most errors are passed through, except for the ones that indicate that
+		// hard links are not supported and require a copy.
+		// TODO: 2 test this on a FAT volume to see what error we get!
+		if (errno != EMLINK || errno != EXDEV)
+		{
+			// some error happened, report up to the caller
+			ec.assign(errno, generic_category());
+			return;
+		}
+#endif
+
+		// if we get here, we should copy the file
+		copy_file(file, link, ec);
 	}
 
 	bool is_directory(std::string const& f, error_code& ec)
@@ -494,7 +554,8 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
+#ifdef TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING
 #define CopyFile_ CopyFileW
 		std::wstring f1 = convert_to_wstring(inf);
 		std::wstring f2 = convert_to_wstring(newf);
@@ -504,17 +565,22 @@ namespace libtorrent
 		std::string const& f2 = convert_to_native(newf);
 #endif
 
-#ifdef TORRENT_WINDOWS
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), boost::system::system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
+		std::string f1 = convert_to_native(inf);
+		std::string f2 = convert_to_native(newf);
+
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
 			ec.assign(errno, generic_category());
 		copyfile_state_free(state);
 #else
-		int infd = ::open(inf.c_str(), O_RDONLY);
+		std::string f1 = convert_to_native(inf);
+		std::string f2 = convert_to_native(newf);
+
+		int infd = ::open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
 			ec.assign(errno, generic_category());
@@ -527,7 +593,7 @@ namespace libtorrent
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		int outfd = ::open(newf.c_str(), O_WRONLY | O_CREAT, permissions);
+		int outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
 		if (outfd < 0)
 		{
 			close(infd);

@@ -413,6 +413,16 @@ namespace libtorrent
 		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
+		// These two functions are related to BEP38_ (mutable torrents). The
+		// vectors returned from these correspond to the "similar" and
+		// "collections" keys in the .torrent file. Both info-hashes and
+		// collections from within the info-dict and from outside of it are
+		// included.
+		// 
+		// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
+		std::vector<sha1_hash> similar_torrents() const;
+		std::vector<std::string> collections() const;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16. Use web_seeds() instead
 		TORRENT_DEPRECATED_PREFIX
@@ -712,6 +722,27 @@ namespace libtorrent
 		std::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
 		nodes_t m_nodes;
+
+		// the info-hashes (20 bytes each) in the "similar" key. The pointers
+		// point directly into the info_section. When copied, these pointers must
+		// be corrected to point into the copied-to buffer
+		std::vector<char const*> m_similar_torrents;
+
+		// these are similar torrents from outside of the info-dict. We can't
+		// have non-owning pointers to those, as we only keep the info-dict
+		// around.
+		std::vector<sha1_hash> m_owned_similar_torrents;
+
+		// these or strings of the "collections" key from the torrent file. The
+		// pointers point directly into the info_section buffer and when copied,
+		// these pointers must be corrected to point into the new buffer. The
+		// int is the length of the string. Strings are not NULL-terminated.
+		std::vector<std::pair<char const*, int> > m_collections;
+
+		// these are the collections from outside of the info-dict. These are
+		// owning strings, since we only keep the info-section around, these
+		// cannot be pointers into that buffer.
+		std::vector<std::string> m_owned_collections;
 
 		// if this is a merkle torrent, this is the merkle
 		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))

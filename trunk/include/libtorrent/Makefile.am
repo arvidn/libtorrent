@@ -101,6 +101,7 @@ nobase_include_HEADERS = \
   proxy_base.hpp               \
   puff.hpp                     \
   random.hpp                   \
+  resolve_links.hpp            \
   resolver.hpp                 \
   resolver_interface.hpp       \
   rss.hpp                      \

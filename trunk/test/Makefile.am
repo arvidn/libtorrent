@@ -113,6 +113,14 @@ EXTRA_DIST = Jamfile \
   test_torrents/empty_path_multi.torrent \
   test_torrents/duplicate_web_seeds.torrent \
   test_torrents/sample.torrent \
+  mutable_test_torrents/test1.torrent \
+  mutable_test_torrents/test1_pad_files.torrent \
+  mutable_test_torrents/test1_single.torrent\
+  mutable_test_torrents/test1_single_padded.torrent \
+  mutable_test_torrents/test2.torrent \
+  mutable_test_torrents/test2_pad_files.torrent \
+  mutable_test_torrents/test3.torrent \
+  mutable_test_torrents/test3_pad_files.torrent \
   eztv.xml \
   kat.xml \
   cb.xml \

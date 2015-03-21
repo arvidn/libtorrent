@@ -326,6 +326,12 @@ namespace libtorrent
 			piece_size = 64*1024;
 		}
 
+		// to support mutable torrents, alignment always has to be the piece size,
+		// because piece hashes are compared to determine whether files are
+		// identical
+		if (flags & mutable_torrent_support)
+			alignment = piece_size;
+
 		// make sure the size is an even power of 2
 #ifndef NDEBUG
 		for (int i = 0; i < 32; ++i)
@@ -338,8 +344,9 @@ namespace libtorrent
 		}
 #endif
 		m_files.set_piece_length(piece_size);
-		if (flags & optimize)
-			m_files.optimize(pad_file_limit, alignment);
+		if (flags & (optimize_alignment | mutable_torrent_support))
+			m_files.optimize(pad_file_limit, alignment, flags & mutable_torrent_support);
+
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
 		m_piece_hash.resize(m_files.num_pieces());
@@ -479,6 +486,26 @@ namespace libtorrent
 		{
 			info = m_info_dict;
 			return dict;
+		}
+
+		if (!m_collections.empty())
+		{
+			entry& list = info["collections"];
+			for (std::vector<std::string>::const_iterator i
+				= m_collections.begin(); i != m_collections.end(); ++i)
+			{
+				list.list().push_back(entry(*i));
+			}
+		}
+
+		if (!m_similar.empty())
+		{
+			entry& list = info["similar"];
+			for (std::vector<sha1_hash>::const_iterator i
+				= m_similar.begin(); i != m_similar.end(); ++i)
+			{
+				list.list().push_back(entry(i->to_string()));
+			}
 		}
 
 		info["name"] = m_files.name();
@@ -633,6 +660,16 @@ namespace libtorrent
 	void create_torrent::set_root_cert(std::string const& cert)
 	{
 		m_root_cert = cert;
+	}
+
+	void create_torrent::add_similar_torrent(sha1_hash ih)
+	{
+		m_similar.push_back(ih);
+	}
+
+	void create_torrent::add_collection(std::string c)
+	{
+		m_collections.push_back(c);
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)
