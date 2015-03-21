@@ -42,30 +42,20 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT peer_entry
 	{
-		std::string hostname;
+		std::string ip;
+		int port;
 		peer_id pid;
-		boost::uint16_t port;
 
 		bool operator==(const peer_entry& p) const
-		{ return pid == p.pid; }
+		{
+			return pid == p.pid;
+		}
 
 		bool operator<(const peer_entry& p) const
-		{ return pid < p.pid; }
+		{
+			return pid < p.pid;
+		}
 	};
-
-	struct ipv4_peer_entry
-	{
-		address_v4::bytes_type ip;
-		boost::uint16_t port;
-	};
-
-#if TORRENT_USE_IPV6
-	struct ipv6_peer_entry
-	{
-		address_v6::bytes_type ip;
-		boost::uint16_t port;
-	};
-#endif
 
 }
 

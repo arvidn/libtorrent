@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/get_peers.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/socket_io.hpp>
-#include <libtorrent/performance_counters.hpp>
-#include <libtorrent/alert_types.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -47,7 +45,7 @@ using detail::read_v6_endpoint;
 
 void get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -57,27 +55,27 @@ void get_peers_observer::reply(msg const& m)
 	}
 
 	// look for peers
-	bdecode_node n = r.dict_find_list("values");
+	lazy_entry const* n = r->dict_find_list("values");
 	if (n)
 	{
 		std::vector<tcp::endpoint> peer_list;
-		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t)
+		if (n->list_size() == 1 && n->list_at(0)->type() == lazy_entry::string_t)
 		{
 			// assume it's mainline format
-			char const* peers = n.list_at(0).string_ptr();
-			char const* end = peers + n.list_at(0).string_length();
+			char const* peers = n->list_at(0)->string_ptr();
+			char const* end = peers + n->list_at(0)->string_length();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
-			if (id && id.string_length() == 20)
+			lazy_entry const* id = r->dict_find_string("id");
+			if (id && id->string_length() == 20)
 			{
 				TORRENT_LOG(traversal)
 					<< "[" << m_algorithm.get() << "] PEERS"
 					<< " invoke-count: " << m_algorithm->invoke_count()
 					<< " branch-factor: " << m_algorithm->branch_factor()
 					<< " addr: " << m.addr
-					<< " id: " << node_id(id.string_ptr())
-					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
+					<< " id: " << node_id(id->string_ptr())
+					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
 					<< " p: " << ((end - peers) / 6);
 			}
 #endif
@@ -89,17 +87,17 @@ void get_peers_observer::reply(msg const& m)
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
-			if (id && id.string_length() == 20)
+			lazy_entry const* id = r->dict_find_string("id");
+			if (id && id->string_length() == 20)
 			{
 				TORRENT_LOG(traversal)
 					<< "[" << m_algorithm.get() << "] PEERS"
 					<< " invoke-count: " << m_algorithm->invoke_count()
 					<< " branch-factor: " << m_algorithm->branch_factor()
 					<< " addr: " << m.addr
-					<< " id: " << node_id(id.string_ptr())
-					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
-					<< " p: " << n.list_size();
+					<< " id: " << node_id(id->string_ptr())
+					<< " distance: " << distance_exp(m_algorithm->target(), node_id(id->string_ptr()))
+					<< " p: " << n->list_size();
 			}
 #endif
 		}
@@ -143,11 +141,6 @@ bool get_peers::invoke(observer_ptr o)
 	e["q"] = "get_peers";
 	a["info_hash"] = m_target.to_string();
 	if (m_noseeds) a["noseed"] = 1;
-
-	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target, m_target
-		, o->target_ep()));
-
-	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
@@ -207,7 +200,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
 	// start receiving peers
-	if (shared_prefix > m_node.m_table.depth() - 4)
+	if (shared_prefix > m_node.m_table.depth() - 10)
 	{
 		m_obfuscated = false;
 		// clear the queried bits on all successful nodes in
@@ -243,9 +236,6 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	node_id obfuscated_target = generate_random_id() & ~mask;
 	obfuscated_target |= m_target & mask;
 	a["info_hash"] = obfuscated_target.to_string();
-
-	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target
-		, obfuscated_target, o->target_ep()));
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
@@ -295,7 +285,7 @@ void obfuscated_get_peers::done()
 
 void obfuscated_get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -305,8 +295,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
-	if (!id || id.string_length() != 20)
+	lazy_entry const* id = r->dict_find_string("id");
+	if (!id || id->string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(traversal) << "[" << m_algorithm.get()

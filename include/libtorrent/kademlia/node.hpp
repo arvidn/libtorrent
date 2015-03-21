@@ -59,9 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 	class alert_manager;
 	struct alert_dispatcher;
-	class alert;
-	struct counters;
-	struct dht_routing_bucket;
 }
 
 namespace libtorrent { namespace dht
@@ -99,15 +96,15 @@ struct key_desc_t
 	}; 
 };
 
-bool TORRENT_EXTRA_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
-	, bdecode_node ret[], int size , char* error, int error_size);
+bool TORRENT_EXTRA_EXPORT verify_message(lazy_entry const* msg, key_desc_t const desc[]
+	, lazy_entry const* ret[], int size , char* error, int error_size);
 
 // this is the entry for every peer
 // the timestamp is there to make it possible
 // to remove stale peers
 struct peer_entry
 {
-	time_point added;
+	ptime added;
 	tcp::endpoint addr;
 	bool seed;
 };
@@ -129,7 +126,7 @@ struct dht_immutable_item
 	// popularity if we reach the limit of items to store
 	bloom_filter<128> ips;
 	// the last time we heard about this
-	time_point last_seen;
+	ptime last_seen;
 	// number of IPs in the bloom filter
 	int num_announcers;
 	// size of malloced space pointed to by value
@@ -187,7 +184,6 @@ struct count_peers
 
 struct udp_socket_interface
 {
-	virtual bool has_quota() = 0;
 	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
 };
 
@@ -200,7 +196,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 public:
 	node_impl(alert_dispatcher* alert_disp, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
-		, dht_observer* observer, counters& cnt);
+		, dht_observer* observer);
 
 	virtual ~node_impl() {}
 
@@ -225,7 +221,7 @@ public:
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int, int> size() const { return m_table.size(); }
-	boost::int64_t num_global_nodes() const
+	size_type num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
 	int data_size() const { return int(m_map.size()); }
@@ -276,17 +272,9 @@ public:
 		m_running_requests.erase(a);
 	}
 
-	void status(std::vector<dht_routing_bucket>& table
-		, std::vector<dht_lookup>& requests);
-
-#ifndef TORRENT_NO_DEPRECATE
 	void status(libtorrent::session_status& s);
-#endif
 
 	libtorrent::dht_settings const& settings() const { return m_settings; }
-	counters& stats_counters() const { return m_counters; }
-
-	void post_alert(alert* a);
 
 protected:
 
@@ -298,7 +286,7 @@ protected:
 		, char* tags) const;
 
 	libtorrent::dht_settings const& m_settings;
-
+	
 private:
 	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;
@@ -322,18 +310,17 @@ private:
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;
 	
-	time_point m_last_tracker_tick;
+	ptime m_last_tracker_tick;
 
 	// the last time we issued a bootstrap or a refresh on our own ID, to expand
 	// the routing table buckets close to us.
-	time_point m_last_self_refresh;
+	ptime m_last_self_refresh;
 
 	// secret random numbers used to create write tokens
 	int m_secret[2];
 
 	alert_dispatcher* m_post_alert;
 	udp_socket_interface* m_sock;
-	counters& m_counters;
 };
 
 

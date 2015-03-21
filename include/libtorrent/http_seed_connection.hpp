@@ -81,8 +81,12 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		http_seed_connection(peer_connection_args const& pack
-			, web_seed_t& web);
+		http_seed_connection(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, web_seed_entry& web);
 
 		virtual int type() const { return peer_connection::http_seed_connection; }
 
@@ -94,7 +98,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 
 		void write_request(peer_request const& r);
 
@@ -111,11 +115,9 @@ namespace libtorrent
 		// if it's changed referencing back into that list will fail
 		const std::string m_url;
 
-		web_seed_t* m_web;
-
 		// the number of bytes left to receive of the response we're
 		// currently parsing
-		boost::int64_t m_response_left;
+		size_type m_response_left;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -123,7 +125,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		boost::int64_t m_chunk_pos;
+		size_type m_chunk_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for

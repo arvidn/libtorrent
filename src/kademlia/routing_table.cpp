@@ -43,20 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 
 #include "libtorrent/invariant_check.hpp"
 
 using boost::uint8_t;
-
-#if BOOST_VERSION <= 104700
-namespace boost {
-size_t hash_value(libtorrent::address_v4::bytes_type ip)
-{
-	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
-}
-}
-#endif
 
 namespace libtorrent { namespace dht
 {
@@ -76,10 +66,10 @@ void erase_one(T& container, K const& key)
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings)
 	: m_settings(settings)
+	, m_bucket_size(bucket_size)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
-	, m_bucket_size(bucket_size)
 {
 	m_buckets.reserve(30);
 }
@@ -88,26 +78,12 @@ int routing_table::bucket_limit(int bucket) const
 {
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
-	static const int size_exceptions[] = {16, 8, 4, 2};
+	const static int size_exceptions[] = {16, 8, 4, 2};
 	if (bucket < int(sizeof(size_exceptions)/sizeof(size_exceptions[0])))
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;
 }
 
-void routing_table::status(std::vector<dht_routing_bucket>& s) const
-{
-	for (table_t::const_iterator i = m_buckets.begin()
-		, end(m_buckets.end()); i != end; ++i)
-	{
-		dht_routing_bucket b;
-		b.num_nodes = i->live_nodes.size();
-		b.num_replacements = i->replacements.size();
-		s.push_back(b);
-	}
-}
-
-#ifndef TORRENT_NO_DEPRECATE
-// TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
 	int ignore;
@@ -126,7 +102,6 @@ void routing_table::status(session_status& s) const
 		s.dht_routing_table.push_back(b);
 	}
 }
-#endif
 
 boost::tuple<int, int, int> routing_table::size() const
 {
@@ -148,7 +123,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
-boost::int64_t routing_table::num_global_nodes() const
+size_type routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
@@ -163,8 +138,8 @@ boost::int64_t routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (boost::int64_t(1) << deepest_bucket) * m_bucket_size;
-	else return (boost::int64_t(2) << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (size_type(1) << deepest_bucket) * m_bucket_size;
+	else return (size_type(2) << deepest_bucket) * deepest_size;
 }
 
 int routing_table::depth() const
@@ -215,7 +190,7 @@ void routing_table::print_state(std::ostream& os) const
 		os << "\n";
 	}
 
-	time_point now = aux::time_now();
+	ptime now = time_now();
 
 	os << "\nnodes:";
 	int bucket_index = 0;
@@ -366,7 +341,7 @@ out:
 	// make sure we don't pick the same node again next time we want to refresh
 	// the routing table
 	if (candidate)
-		candidate->last_queried = aux::time_now();
+		candidate->last_queried = time_now();
 
 	return candidate;
 }
@@ -480,7 +455,7 @@ bool routing_table::add_node(node_entry e)
 		// harden our resistence towards this attack. Perhaps by never
 		// splitting a bucket (and discard nodes) if the two buckets above it
 		// are empty or close to empty
-//		TORRENT_ASSERT(m_buckets.size() <= 50);
+		TORRENT_ASSERT(m_buckets.size() <= 50);
 		if (m_buckets.size() > 50)
 		{
 			// this is a sanity check. In the wild, we shouldn't see routing
@@ -506,9 +481,7 @@ bool routing_table::add_node(node_entry e)
 
 routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 {
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
-#endif
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())
@@ -897,7 +870,7 @@ void routing_table::split_bucket()
 
 	if (b.size() > bucket_size_limit)
 	{
-		// TODO: 2 move the lowest priority nodes to the replacement bucket
+		// TODO: 3 move the lowest priority nodes to the replacement bucket
 		for (bucket_t::iterator i = b.begin() + bucket_size_limit
 			, end(b.end()); i != end; ++i)
 		{
@@ -958,9 +931,7 @@ void routing_table::for_each_node(
 
 void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 {
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
-#endif
 
 	// if messages to ourself fails, ignore it
 	if (nid == m_id) return;
@@ -988,7 +959,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			" ip: " << j->ep() <<
 			" fails: " << j->fail_count() <<
 			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
+			" up-time: " << total_seconds(time_now() - j->first_seen);
 #endif
 		return;
 	}
@@ -1008,7 +979,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			" ip: " << j->ep() <<
 			" fails: " << j->fail_count() <<
 			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
+			" up-time: " << total_seconds(time_now() - j->first_seen);
 #endif
 
 		// if this node has failed too many times, or if this node
@@ -1150,7 +1121,7 @@ void routing_table::find_node(node_id const& target
 #if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	boost::unordered_multiset<address_v4::bytes_type> all_ips;
+	std::multiset<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

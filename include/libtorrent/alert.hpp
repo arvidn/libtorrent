@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <deque>
 #include <string>
-#include <vector>
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
@@ -72,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(pop)
 #endif
 
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -83,12 +82,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_TYPEID
-#include <typeinfo>
-#endif
 #endif
 
 namespace libtorrent {
@@ -165,23 +158,6 @@ namespace libtorrent {
 			// will make you receive rss_alert alerts.
 			rss_notification = 0x1000,
 
-			// Enables debug logging alerts. These are only available when
-			// libtorrent is built with logging enabled (``TORRENT_LOGGING``).
-			// The alerts being posted are log_alert and are session wide.
-			session_log_notification = 0x2000,
-
-			// Enables debug logging alerts for torrents. These are only available
-			// when libtorrent is built with logging enabled
-			// (``TORRENT_LOGGING``). The alerts being posted are
-			// torrent_log_alert and are torrent wide debug events.
-			torrent_log_notification = 0x4000,
-
-			// Enables debug logging alerts for peers. These are only available
-			// when libtorrent is built with logging enabled
-			// (``TORRENT_LOGGING``). The alerts being posted are peer_log_alert
-			// and low-level peer events and messages.
-			peer_log_notification = 0x8000,
-
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't
@@ -197,7 +173,7 @@ namespace libtorrent {
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
-		time_point timestamp() const;
+		ptime timestamp() const;
 
 		// returns an integer that is unique to this alert type. It can be
 		// compared against a specific alert by querying a static constant called ``alert_type``
@@ -256,7 +232,7 @@ namespace libtorrent {
 		virtual std::auto_ptr<alert> clone() const = 0;
 
 	private:
-		time_point m_timestamp;
+		ptime m_timestamp;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS

@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/xml_parse.hpp"
-#include "libtorrent/string_util.hpp"
 
 namespace libtorrent
 {

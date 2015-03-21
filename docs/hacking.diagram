@@ -16,11 +16,11 @@
  +-------------------+    |                 | 
  | cGRE torrent_info |<---+                 | m_socket                     
  +-------------------+    |                 |  +--------------------------+
-              m_peer_list |          +------+->| socket_type (variant)    |
-   +-----------+          |          |         | (TCP/uTP/SSL/socks5/...) |
-   | peer_list |<---------+          |         +--------------------------+
-   +---------+-+                     v      
+                          |          +------+->| socket_type (variant)    |
+      +--------+ m_policy |          |         | (TCP/uTP/SSL/socks5/...) |
+      | policy |<---------+          |         +--------------------------+
+      +------+-+                     v      
  list of all |     m_peers[] +--------------+        
-    peers we +-------------->| torrent_peer ++ contains contact information
+    peers we +-------------->| policy::peer ++ contains contact information
      know of                 ++-------------+| for peers we're not necessarily
                               +--------------+ connected to

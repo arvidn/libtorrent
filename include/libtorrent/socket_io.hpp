@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/bdecode.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include <string>
@@ -47,8 +47,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(std::string str, error_code& ec);
-
 	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
 	// internal 
 	TORRENT_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
@@ -123,21 +121,20 @@ namespace libtorrent
 #endif
 
 		template <class EndpointType>
-		void read_endpoint_list(libtorrent::bdecode_node const& n
-			, std::vector<EndpointType>& epl)
+		void read_endpoint_list(libtorrent::lazy_entry const* n, std::vector<EndpointType>& epl)
 		{
 			using namespace libtorrent;
-			if (n.type() != bdecode_node::list_t) return;
-			for (int i = 0; i < n.list_size(); ++i)
+			if (n->type() != lazy_entry::list_t) return;
+			for (int i = 0; i < n->list_size(); ++i)
 			{
-				bdecode_node e = n.list_at(i);
-				if (e.type() != bdecode_node::string_t) return;
-				if (e.string_length() < 6) continue;
-				char const* in = e.string_ptr();
-				if (e.string_length() == 6)
+				lazy_entry const* e = n->list_at(i);
+				if (e->type() != lazy_entry::string_t) return;
+				if (e->string_length() < 6) continue;
+				char const* in = e->string_ptr();
+				if (e->string_length() == 6)
 					epl.push_back(read_v4_endpoint<EndpointType>(in));
 #if TORRENT_USE_IPV6
-				else if (e.string_length() == 18)
+				else if (e->string_length() == 18)
 					epl.push_back(read_v6_endpoint<EndpointType>(in));
 #endif
 			}

@@ -24,9 +24,6 @@ counter = 0;
 #  d: distance (from target)
 #  o: outstanding searches
 #  e: event (NEW, COMPLETED, ADD, INVOKE, TIMEOUT)
-#  i: node-id
-#  a: IP address and port
-#  s: source node-id (only for ADD events)
 outstanding_searches = {}
 
 # list of completed searches
@@ -36,10 +33,6 @@ def convert_timestamp(t):
 	parts = t.split('.')
 	hms = parts[0].split(':')
 	return (int(hms[0]) * 3600 + int(hms[1]) * 60 + int(hms[2])) * 1000 + int(parts[1])
-
-last_incoming = ''
-
-our_node_id = ''
 
 unique_ips = set()
 client_version_histogram = {}
@@ -51,9 +44,6 @@ for line in f:
 #		print '\r%d' % counter,
 	try:
 		l = line.split(' ')
-		if 'starting DHT tracker with node id:' in line:
-			our_node_id = l[l.index('id:') + 1].strip()
-
 		try:
 			if len(l) > 4 and l[2] == '<==' and l[1] == '[dht_tracker]':
 				ip = l[3].split(':')[0]
@@ -99,43 +89,18 @@ for line in f:
 		ts = l[0]
 		event = l[3]
 
-		if event == 'RESPONSE':
-			outstanding = int(l[l.index('invoke-count:')+1])
-			nid = l[l.index('id:')+1]
-			addr = l[l.index('addr:')+1]
-			last_response = addr
-			outstanding_searches[search_id].append({ 't': ts, 'd': distance,
-				'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
-		elif event == 'NEW':
-			nid = l[l.index('target:')+1]
-			outstanding_searches[search_id] = [{ 't': ts, 'd': 0, 'o': 0, \
-				'e': event, 'abstime': ts, 'i': nid}]
-			last_response = ''
-		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or \
-			event == 'TIMEOUT' or event == 'PEERS':
+		if event == 'NEW':
+			outstanding_searches[search_id] = [{ 't': ts, 'd': 160, 'o': 0, 'e': 'NEW'}]
+		elif event == 'INVOKE' or event == 'ADD' or event == '1ST_TIMEOUT' or event == 'TIMEOUT' or event == 'PEERS':
 			if not search_id in outstanding_searches:
 				print 'orphaned event: %s' % line
 			else:
 				outstanding = int(l[l.index('invoke-count:')+1])
 				distance = int(l[l.index('distance:')+1])
-				nid = l[l.index('id:')+1]
-				addr = l[l.index('addr:')+1]
-				source = ''
-				if event == 'ADD':
-					if last_response == '': continue
-					source = last_response
-
-				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
-					'o': outstanding + 1, 'a':addr, 'e': event,'i':nid, 's':source})
-		elif event == 'ABORTED':
-				outstanding_searches[search_id].append({ 't': ts, 'e': event})
+				outstanding_searches[search_id].append({ 't': ts, 'd': distance, 'o': outstanding + 1, 'e': event})
 		elif event == 'COMPLETED':
 				distance = int(l[l.index('distance:')+1])
-				lookup_type = l[l.index('type:')+1].strip()
-				outstanding_searches[search_id].append({ 't': ts, 'd': distance,
-					'o': 0, 'e': event,'i':''})
-
-				outstanding_searches[search_id][0]['type'] = lookup_type
+				outstanding_searches[search_id].append({ 't': ts, 'd': distance, 'o': 0, 'e': event})
 
 				s = outstanding_searches[search_id]
 
@@ -150,7 +115,7 @@ for line in f:
 
 	except Exception, e:
 		print e
-		print line.split(' ')
+		print 'ERROR: ', line.split(' ')
 
 lookup_times_min = []
 lookup_times_max = []
@@ -207,24 +172,16 @@ out = open('dht_lookups.txt', 'w+')
 for s in searches:
 	for i in s:
 		if i['e'] == 'INVOKE':
-			print >>out, ' ->', i['t'], 160 - i['d'], i['i'], i['a']
+			print >>out, ' ->', i['t'], 160 - i['d']
 		elif i['e'] == '1ST_TIMEOUT':
-			print >>out, ' x ', i['t'], 160 - i['d'], i['i'], i['a']
+			print >>out, ' x ', i['t'], 160 - i['d']
 		elif i['e'] == 'TIMEOUT':
-			print >>out, ' X ', i['t'], 160 - i['d'], i['i'], i['a']
-		elif i['e'] == 'ADD':
-			print >>out, ' + ', i['t'], 160 - i['d'], i['i'], i['a'], i['s']
-		elif i['e'] == 'RESPONSE':
-			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
+			print >>out, ' X ', i['t'], 160 - i['d']
 		elif i['e'] == 'PEERS':
-			print >>out, ' <-', i['t'], 160 - i['d'], i['i'], i['a']
-		elif i['e'] == 'ABORTED':
-			print >>out, 'abort'
+			print >>out, ' <-', i['t'], 160 - i['d']
 		elif i['e'] == 'COMPLETED':
 			print >>out, '***', i['t'], 160 - i['d'], '\n'
-		elif i['e'] == 'NEW':
-			print >>out, '===', i['abstime'], i['type'], '==='
-			print >>out, '<> ', 0, our_node_id, i['i']
+			break
 out.close()
 
 out = open('dht_announce_distribution.dat', 'w+')

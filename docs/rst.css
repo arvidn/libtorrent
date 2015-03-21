@@ -30,24 +30,9 @@ div.section div.section div.section {
     margin-bottom: 2em;
 }
 
+h3 { text-transform: uppercase; }
+
 div.section p, div.section ul, div.section dl {
-}
-
-div.main-toc {
-	column-count: 4;
-	-webkit-column-count: 4;
-	-moz-column-count: 4;
-	border: 1px solid #999;
-	padding: 5px;
-	margin-bottom: 10px;
-}
-
-.rubric
-{
-	margin-top: 5px;
-	margin-bottom: 5px;
-	font-size: 120%;
-	font-weight: bold;
 }
 
 table.docinfo {
@@ -72,22 +57,28 @@ table.docinfo td {
 
 table.docinfo tr.field td, table.docinfo tr.field th {display: none;}
 
-#h1.title { display: none; }
+h1.title { display: none; }
 
 dt {
-    margin-bottom: 0.5em;
+    font-size: 100%;
+    letter-spacing: 2px;
+    line-height: 1em;
+    color: #315586;
     color: #000;
+    font-family: Tahoma;
     font-weight: bold;
 }
 
 dd {
-    margin-left: 2em;
+    line-height: 1.5em;
+    margin-left: 1em;
     margin-bottom: 1em;
+    font-size: 92%;
 }
 
 tt {
     font: 1em "Courier New", "Courier";
-    font-size: 110%;
+    color: #315566;
 }
 
 pre {
@@ -121,11 +112,25 @@ p.admonition-title {
     border-bottom: solid 1px #D1DFD5
 }
 
-h1 { font-size: 200%; }
-h2 { font-size: 130%; }
-h3 { font-size: 100%; font-style: italic; }
+div.sidebar {
+    background: #f8f8e8;
+    float: right;
+    width: 20em;
+    margin-right: 1em;
+    border: solid 1px #e5e5d5;
+    padding: 1.3em;
+}
 
-h1.title { text-align: center; }
+div.sidebar p.sidebar-title {
+    font: 1.3em Georgia;
+    border-bottom: solid 1px #e5e5d5;
+    padding-bottom: 0.5em;
+    margin: 0 0 0.5em 0;
+}
+
+h1 { font-size: 230%; }
+h2 { font-size: 180%; }
+h3 { font-size: 130%; }
 
 table { margin-bottom: 1em; border-collapse: collapse; }
 table, th, td { border: none; }
@@ -159,7 +164,7 @@ div.topic {
 }
 
 p.topic-title {
-    font: 1.3em Georgia, "Times New Roman", serif;
+    font: 1.3em Georgia, "Times New Roman", serif;   
 }
 
 /* TOC */
@@ -218,26 +223,23 @@ div.contents {
     padding: 0;
 }
 
-#table-of-contents a.reference:hover
-{
-   border-bottom: solid 1px #8D370A;
+#table-of-contents a.reference:hover {text-decoration: underline;}
+
+dd p {
+    font-size: 100%;
 }
 
-#librarySidebar {
-    float: left;
-    width: 150px;
+dd pre {
+    font-size: 108.7%;
 }
 
-#libraryBody {
-    border-left: solid 1px #eee;
-    padding-left: 10px;
-    margin-left: 158px;
-    margin-right: 10px;
-}
+li p, li li { font-size: 100%; }
 
-.keyword { font-weight: bold }
-.string { color: #771; }
-.comment { font-style: italic; color: #559; }
-.preproc { font-style: italic; color: #959; }
-.number { color: #595; }
+/* IE Hacks */
+
+/* Hides from IE-mac \*/
+* html li pre { height: 1%; }
+* html .topic pre { height: 1%; }
+* html #table-of-contents ul ul { height: 1%; }
+/* End hide from IE-mac */
 

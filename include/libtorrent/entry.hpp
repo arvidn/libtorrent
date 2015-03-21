@@ -63,8 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <boost/cstdint.hpp>
 
+#include "libtorrent/size_type.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
@@ -76,10 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
-#endif
-	struct bdecode_node;
 
 	// thrown by any accessor function of entry if the accessor
 	// function requires a type different than the actual type
@@ -103,7 +100,7 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
-		typedef boost::int64_t integer_type;
+		typedef size_type integer_type;
 
 		// the types an entry can have
 		enum data_type
@@ -145,10 +142,7 @@ namespace libtorrent
 		
 		// copies the structure of the right hand side into this
 		// entry.
-#ifndef TORRENT_NO_DEPRECATE
 		void operator=(lazy_entry const&);
-#endif
-		void operator=(bdecode_node const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
 		void operator=(string_type const&);

@@ -54,7 +54,22 @@ extern "C"
 }
 
 #else
-#include "libtorrent/sha1.hpp"
+// from sha1.cpp
+namespace libtorrent
+{
+
+	struct TORRENT_EXTRA_EXPORT sha_ctx
+	{
+		boost::uint32_t state[5];
+		boost::uint32_t count[2];
+		boost::uint8_t buffer[64];
+	};
+
+	TORRENT_EXTRA_EXPORT void SHA1_init(sha_ctx* context);
+	TORRENT_EXTRA_EXPORT void SHA1_update(sha_ctx* context, boost::uint8_t const* data, boost::uint32_t len);
+	TORRENT_EXTRA_EXPORT void SHA1_final(boost::uint8_t* digest, sha_ctx* context);
+} // namespace libtorrent
+
 #endif
 
 namespace libtorrent
@@ -97,11 +112,14 @@ namespace libtorrent
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.
 		sha1_hash final();
+
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.
 		void reset();
 
+#ifdef TORRENT_USE_GCRYPT
 		~hasher();
+#endif
 
 	private:
 
@@ -115,7 +133,6 @@ namespace libtorrent
 		sha_ctx m_context;
 #endif
 	};
-
 }
 
 #endif // TORRENT_HASHER_HPP_INCLUDED

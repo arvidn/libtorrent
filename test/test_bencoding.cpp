@@ -31,13 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/lazy_entry.hpp"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <cstring>
-
-#ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/lazy_entry.hpp"
-#endif
 
 #include "test.hpp"
 
@@ -60,6 +57,8 @@ entry decode(std::string const& str)
 
 int test_main()
 {
+	using namespace libtorrent;
+
 	// ** strings **
 	{	
 		entry e("spam");
@@ -105,7 +104,6 @@ int test_main()
 		TEST_CHECK(decode(encode(e)) == e);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	{
 		char b[] = "i12453e";
 		lazy_entry e;
@@ -349,7 +347,7 @@ int test_main()
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_CHECK(ret != 0);
 		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
 			, get_bdecode_category()));
 	}
 
@@ -388,7 +386,7 @@ int test_main()
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
 		TEST_CHECK(ret != 0);
 		printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_string
 			, get_bdecode_category()));
 	}
 
@@ -501,55 +499,6 @@ int test_main()
 		TEST_CHECK(ent == entry());
 	}
 
-	{
-		std::string buf;
-		buf += "l";
-		for (int i = 0; i < 1000; ++i)
-		{
-			char tmp[20];
-			snprintf(tmp, sizeof(tmp), "i%de", i);
-			buf += tmp;
-		}
-		buf += "e";
-
-		lazy_entry e;
-		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
-		TEST_EQUAL(ret, 0);
-		TEST_EQUAL(e.type(), lazy_entry::list_t);
-		TEST_EQUAL(e.list_size(), 1000);
-		for (int i = 0; i < 1000; ++i)
-		{
-			TEST_EQUAL(e.list_int_value_at(i), i);
-		}
-	}
-
-	{
-		std::string buf;
-		buf += "d";
-		for (int i = 0; i < 1000; ++i)
-		{
-			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
-			buf += tmp;
-		}
-		buf += "e";
-
-		printf("%s\n", buf.c_str());
-		lazy_entry e;
-		error_code ec;
-		int ret = lazy_bdecode((char*)&buf[0], (char*)&buf[0] + buf.size(), e, ec);
-		TEST_EQUAL(ret, 0);
-		TEST_EQUAL(e.type(), lazy_entry::dict_t);
-		TEST_EQUAL(e.dict_size(), 1000);
-		for (int i = 0; i < 1000; ++i)
-		{
-			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%04d", i);
-			TEST_EQUAL(e.dict_find_int_value(tmp), i);
-		}
-	}
-
 	// test parse_int
 	{
 		char b[] = "1234567890e";
@@ -566,7 +515,7 @@ int test_main()
 		boost::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
-		TEST_EQUAL(ec, bdecode_errors::expected_digit);
+		TEST_EQUAL(ec, bdecode_errors::expected_string);
 		TEST_EQUAL(e, b + 1);
 	}
 
@@ -585,7 +534,6 @@ int test_main()
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	return 0;
 }

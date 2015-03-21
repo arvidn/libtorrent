@@ -31,12 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <boost/bind.hpp>
-#include <boost/atomic.hpp>
 #include <list>
 #include "libtorrent/thread.hpp"
+#include <boost/smart_ptr/detail/atomic_count.hpp>
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
 
+using boost::detail::atomic_count;
 using namespace libtorrent;
 
 void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)
@@ -48,7 +48,7 @@ void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)
 	fprintf(stderr, "thread %d done\n", i);
 }
 
-void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, boost::atomic<int>* c)
+void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, atomic_count* c)
 {
 	libtorrent::mutex::scoped_lock l(*m);
 	*waiting += 1;
@@ -58,7 +58,7 @@ void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, boost:
 		++*c;
 }
 
-void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, boost::atomic<int>* c)
+void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, atomic_count* c)
 {
 	libtorrent::mutex::scoped_lock l(*m);
 	*waiting += 1;
@@ -84,7 +84,7 @@ int test_main()
 	while (waiting < 20)
 	{
 		l.unlock();
-		test_sleep(10);
+		sleep(10);
 		l.lock();
 	}
 
@@ -99,7 +99,7 @@ int test_main()
 	threads.clear();
 
 	waiting = 0;
-	boost::atomic<int> c(0);
+	atomic_count c(0);
 	for (int i = 0; i < 3; ++i)
 	{
 		threads.push_back(new thread(boost::bind(&increment, &cond, &m, &waiting, &c)));
@@ -111,7 +111,7 @@ int test_main()
 	while (waiting < 6)
 	{
 		l.unlock();
-		test_sleep(10);
+		sleep(10);
 		l.lock();
 	}
 

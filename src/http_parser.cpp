@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
-#include "libtorrent/aux_/escape_string.hpp" // for read_until
 
 using namespace libtorrent;
 
@@ -78,52 +78,29 @@ namespace libtorrent
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
-			// referrer with location. 
+			// referrer with location
 
-			// first skip the url scheme of the referer
-			std::size_t i = url.find("://");
-
-			// if the referrer doesn't appear to have a proper URL scheme
-			// just return the location verbatim (and probably fail)
+			// 8 is to skip the ur;l scheme://. We want the first slash
+			// that's part of the path.
+			std::size_t i = url.find_first_of('/', 8);
 			if (i == std::string::npos)
 				return location;
-
-			// then skip the hostname and port, it's fine for this to fail, in
-			// case the referrer doesn't have a path component, it's just the
-			// url-scheme and hostname, in which case we just append the location
-			i = url.find_first_of('/', i + 3);
-			if (i != std::string::npos)
-				url.resize(i);
-
+			url.resize(i);
 			url += location;
 		}
 		else
 		{
 			// some web servers send out relative paths
 			// in the location header.
-
 			// remove the leaf filename
-			// first skip the url scheme of the referer
-			std::size_t start = url.find("://");
-
-			// the referrer is not a valid full URL
-			if (start == std::string::npos)
+			std::size_t i = url.find_last_of('/');
+			if (i == std::string::npos)
 				return location;
 
-			std::size_t end = url.find_last_of('/');
-			// if the / we find is part of the scheme, there is no / in the path
-			// component or hostname.
-			if (end <= start + 2) end = std::string::npos;
+			url.resize(i);
 
-			// if this fails, the referrer is just url-scheme and hostname. We can
-			// just append the location to it.
-			if (end != std::string::npos)
-				url.resize(end);
-
-			// however, we may still need to insert a '/' in case neither side
-			// has one. We know the location doesn't start with a / already.
-			// so, if the referrer doesn't end with one, add it.
-			if ((url.empty() || url[url.size()-1] != '/'))
+			if ((url.empty() || url[url.size()-1] != '/')
+				&& (location.empty() || location[0] != '/'))
 				url += '/';
 			url += location;
 		}
@@ -134,20 +111,20 @@ namespace libtorrent
 
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
+		, m_status_code(-1)
 		, m_content_length(-1)
 		, m_range_start(-1)
 		, m_range_end(-1)
-		, m_recv_buffer(0, 0)
-		, m_cur_chunk_end(-1)
-		, m_status_code(-1)
-		, m_chunk_header_size(0)
-		, m_partial_chunk_header(0)
-		, m_flags(flags)
-		, m_body_start_pos(0)
 		, m_state(read_status)
+		, m_recv_buffer(0, 0)
+		, m_body_start_pos(0)
 		, m_connection_close(false)
 		, m_chunked_encoding(false)
 		, m_finished(false)
+		, m_cur_chunk_end(-1)
+		, m_chunk_header_size(0)
+		, m_partial_chunk_header(0)
+		, m_flags(flags)
 	{}
 
 	boost::tuple<int, int> http_parser::incoming(
@@ -334,7 +311,7 @@ restart_response:
 
 				while (m_cur_chunk_end <= m_recv_pos + incoming && !m_finished && incoming > 0)
 				{
-					boost::int64_t payload = m_cur_chunk_end - m_recv_pos;
+					size_type payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
 						TORRENT_ASSERT(payload < INT_MAX);
@@ -343,13 +320,13 @@ restart_response:
 						incoming -= int(payload);
 					}
 					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
-					boost::int64_t chunk_size;
+					size_type chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
 						if (chunk_size > 0)
 						{
-							std::pair<boost::int64_t, boost::int64_t> chunk_range(m_cur_chunk_end + header_size
+							std::pair<size_type, size_type> chunk_range(m_cur_chunk_end + header_size
 								, m_cur_chunk_end + header_size + chunk_size);
 							m_chunked_ranges.push_back(chunk_range);
 						}
@@ -393,7 +370,7 @@ restart_response:
 			}
 			else
 			{
-				boost::int64_t payload_received = m_recv_pos - m_body_start_pos + incoming;
+				size_type payload_received = m_recv_pos - m_body_start_pos + incoming;
 				if (payload_received > m_content_length
 					&& m_content_length >= 0)
 				{
@@ -417,7 +394,7 @@ restart_response:
 	}
 	
 	bool http_parser::parse_chunk_header(buffer::const_interval buf
-		, boost::int64_t* chunk_size, int* header_size)
+		, size_type* chunk_size, int* header_size)
 	{
 		char const* pos = buf.begin;
 
@@ -504,7 +481,7 @@ restart_response:
 	buffer::const_interval http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
-		boost::int64_t last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
+		size_type last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
 			? (std::min)(m_chunked_ranges.back().second, m_recv_pos)
 			: m_content_length < 0
 				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
@@ -547,8 +524,8 @@ restart_response:
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
 		int offset = body_start();
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& c = chunks();
-		for (std::vector<std::pair<boost::int64_t, boost::int64_t> >::const_iterator i = c.begin()
+		std::vector<std::pair<size_type, size_type> > const& c = chunks();
+		for (std::vector<std::pair<size_type, size_type> >::const_iterator i = c.begin()
 			, end(c.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->second - i->first < INT_MAX);

@@ -39,9 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/alert_dispatcher.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
-#include "libtorrent/ed25519.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -96,13 +94,22 @@ std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
 struct mock_socket : udp_socket_interface
 {
-	bool has_quota() { return true; }
 	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
 	{
 		g_sent_packets.push_back(std::make_pair(ep, msg));
 		return true;
 	}
 };
+
+address rand_v4()
+{
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+}
+
+udp::endpoint rand_ep()
+{
+	return udp::endpoint(rand_v4(), rand());
+}
 
 sha1_hash generate_next()
 {
@@ -127,17 +134,17 @@ find_packet(udp::endpoint ep)
 		, boost::bind(&std::pair<udp::endpoint, entry>::first, _1) == ep);
 }
 
-void lazy_from_entry(entry const& e, bdecode_node& l)
+void lazy_from_entry(entry const& e, lazy_entry& l)
 {
 	error_code ec;
 	static char inbuf[1500];
 	int len = bencode(inbuf, e);
-	int ret = bdecode(inbuf, inbuf + len, l, ec);
+	int ret = lazy_bdecode(inbuf, inbuf + len, l, ec);
 	TEST_CHECK(ret == 0);
 }
 
 void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
-	, bdecode_node* reply, char const* t = "10", char const* info_hash = 0
+	, lazy_entry* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
 	, char const* target = 0, entry const* value = 0
 	, bool scrape = false, bool seed = false
@@ -179,10 +186,10 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
 #endif
 
-	bdecode_node decoded;
+	lazy_entry decoded;
 	error_code ec;
-	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	lazy_bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) fprintf(stderr, "lazy_bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
 	node.incoming(m);
@@ -222,7 +229,7 @@ void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers
 	}
 }
 
-void send_dht_response(node_impl& node, bdecode_node const& request, udp::endpoint const& ep
+void send_dht_response(node_impl& node, lazy_entry const& request, udp::endpoint const& ep
 	, nodes_t const& nodes = nodes_t()
 	, std::string const token = std::string(), int port = 0
 	, std::set<tcp::endpoint> const& peers = std::set<tcp::endpoint>()
@@ -256,10 +263,10 @@ void send_dht_response(node_impl& node, bdecode_node const& request, udp::endpoi
 	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
 #endif
 
-	bdecode_node decoded;
+	lazy_entry decoded;
 	error_code ec;
-	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	lazy_bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) fprintf(stderr, "lazy_bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
 	node.incoming(m);
@@ -295,29 +302,28 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 		for (int j = 0; j < num_items; ++j)
 		{
 			if ((i % items[j].num_peers) == 0) continue;
-			bdecode_node response;
+			lazy_entry response;
 			send_dht_request(node, "get", eps[i], &response, "10", 0
 				, 0, no, 0, (char const*)&items[j].target[0]);
 			
 			key_desc_t desc[] =
 			{
-				{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
-					{ "id", bdecode_node::string_t, 20, 0},
-					{ "token", bdecode_node::string_t, 0, 0},
-					{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
-				{ "y", bdecode_node::string_t, 1, 0},
+				{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+					{ "id", lazy_entry::string_t, 20, 0},
+					{ "token", lazy_entry::string_t, 0, 0},
+					{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+				{ "y", lazy_entry::string_t, 1, 0},
 			};
 
-			bdecode_node parsed[6];
+			lazy_entry const* parsed[6];
 			char error_string[200];
 
 //			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			int ret = verify_message(response, desc, parsed, 5, error_string
-				, sizeof(error_string));
+			int ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
 			if (ret)
 			{
-				TEST_EQUAL(parsed[4].string_value(), "r");
-				token = parsed[2].string_value();
+				TEST_EQUAL(parsed[4]->string_value(), "r");
+				token = parsed[2]->string_value();
 //				fprintf(stderr, "got token: %s\n", token.c_str());
 			}
 			else
@@ -330,7 +336,7 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 			if (parsed[3])
 			{
 				address_v4::bytes_type b;
-				memcpy(&b[0], parsed[3].string_ptr(), b.size());
+				memcpy(&b[0], parsed[3]->string_ptr(), b.size());
 				address_v4 addr(b);
 				TEST_EQUAL(addr, eps[i].address());
 			}
@@ -340,17 +346,16 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 
 			key_desc_t desc2[] =
 			{
-				{ "y", bdecode_node::string_t, 1, 0 }
+				{ "y", lazy_entry::string_t, 1, 0 }
 			};
 
-			ret = verify_message(response, desc2, parsed, 1, error_string
-				, sizeof(error_string));
+			ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 			if (ret)
 			{
-				if (parsed[0].string_value() != "r")
+				if (parsed[0]->string_value() != "r")
 					fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 
-				TEST_EQUAL(parsed[0].string_value(), "r");
+				TEST_EQUAL(parsed[0]->string_value(), "r");
 			}
 			else
 			{
@@ -364,23 +369,22 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 	std::set<int> items_num;
 	for (int j = 0; j < num_items; ++j)
 	{
-		bdecode_node response;
+		lazy_entry response;
 		send_dht_request(node, "get", eps[j], &response, "10", 0
 			, 0, no, 0, (char const*)&items[j].target[0]);
 		
 		key_desc_t desc[] =
 		{
-			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
-				{ "v", bdecode_node::dict_t, 0, 0},
-				{ "id", bdecode_node::string_t, 20, key_desc_t::last_child},
-			{ "y", bdecode_node::string_t, 1, 0},
+			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+				{ "v", lazy_entry::dict_t, 0, 0},
+				{ "id", lazy_entry::string_t, 20, key_desc_t::last_child},
+			{ "y", lazy_entry::string_t, 1, 0},
 		};
 
-		bdecode_node parsed[4];
+		lazy_entry const* parsed[4];
 		char error_string[200];
 
-		int ret = verify_message(response, desc, parsed, 4, error_string
-			, sizeof(error_string));
+		int ret = verify_message(&response, desc, parsed, 4, error_string, sizeof(error_string));
 		if (ret)
 		{
 			items_num.insert(items_num.begin(), j);
@@ -436,9 +440,11 @@ bool get_item_cb(dht::item& i)
 	return false;
 }
 
-// TODO: test obfuscated_get_peers
+// TODO: 3 test obfuscated_get_peers
 int test_main()
 {
+	random_seed(total_microseconds(time_now_hires() - min_time()));
+
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
@@ -446,12 +452,11 @@ int test_main()
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
 	print_alert ad;
-	counters cnt;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0, cnt);
+	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0);
 
 	// DHT should be running on port 48199 now
-	bdecode_node response;
-	bdecode_node parsed[11];
+	lazy_entry response;
+	lazy_entry const* parsed[11];
 	char error_string[200];
 	bool ret;
 
@@ -460,20 +465,19 @@ int test_main()
 	send_dht_request(node, "ping", source, &response, "10");
 
 	dht::key_desc_t pong_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, pong_desc, parsed, 4, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, pong_desc, parsed, 4, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		TEST_CHECK(parsed[1].string_value() == "10");
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		TEST_CHECK(parsed[1]->string_value() == "10");
 	}
 	else
 	{
@@ -485,21 +489,20 @@ int test_main()
 	send_dht_request(node, "find_node", source, &response, "10");
 
 	dht::key_desc_t err_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"e", bdecode_node::list_t, 2, 0}
+		{"y", lazy_entry::string_t, 1, 0},
+		{"e", lazy_entry::list_t, 2, 0}
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "e");
-		if (parsed[1].list_at(0).type() == bdecode_node::int_t
-			&& parsed[1].list_at(1).type() == bdecode_node::string_t)
+		TEST_CHECK(parsed[0]->string_value() == "e");
+		if (parsed[1]->list_at(0)->type() == lazy_entry::int_t
+			&& parsed[1]->list_at(1)->type() == lazy_entry::string_t)
 		{
-			TEST_CHECK(parsed[1].list_at(1).string_value() == "missing 'target' key");
+			TEST_CHECK(parsed[1]->list_at(1)->string_value() == "missing 'target' key");
 		}
 		else
 		{
@@ -516,21 +519,20 @@ int test_main()
 	send_dht_request(node, "get_peers", source, &response, "10", "01010101010101010101");
 
 	dht::key_desc_t peer1_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"token", bdecode_node::string_t, 0, 0},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"token", lazy_entry::string_t, 0, 0},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	std::string token;
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, peer1_desc, parsed, 4, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		token = parsed[2].string_value();
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		token = parsed[2]->string_value();
 //		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
@@ -544,18 +546,17 @@ int test_main()
 	send_dht_request(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", token, 8080);
 
 	dht::key_desc_t ann_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, ann_desc, parsed, 3, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, ann_desc, parsed, 3, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
+		TEST_CHECK(parsed[0]->string_value() == "r");
 	}
 	else
 	{
@@ -568,13 +569,12 @@ int test_main()
 	{
 		source = udp::endpoint(rand_v4(), 6000);
 		send_dht_request(node, "get_peers", source, &response, "10", "01010101010101010101");
-		ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
-			, sizeof(error_string));
+		ret = dht::verify_message(&response, peer1_desc, parsed, 4, error_string, sizeof(error_string));
 
 		if (ret)
 		{
-			TEST_CHECK(parsed[0].string_value() == "r");
-			token = parsed[2].string_value();
+			TEST_CHECK(parsed[0]->string_value() == "r");
+			token = parsed[2]->string_value();
 //			fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
@@ -594,26 +594,25 @@ int test_main()
 		, 0, no, 0, 0, 0, true);
 
 	dht::key_desc_t peer2_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"BFpe", bdecode_node::string_t, 256, 0},
-			{"BFsd", bdecode_node::string_t, 256, 0},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"BFpe", lazy_entry::string_t, 256, 0},
+			{"BFsd", lazy_entry::string_t, 256, 0},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer2_desc, parsed, 5, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, peer2_desc, parsed, 5, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		TEST_EQUAL(parsed[1].dict_find_string_value("n"), "test");
+		TEST_CHECK(parsed[0]->string_value() == "r");
+		TEST_EQUAL(parsed[1]->dict_find_string_value("n"), "test");
 
 		bloom_filter<256> downloaders;
 		bloom_filter<256> seeds;
-		downloaders.from_string(parsed[2].string_ptr());
-		seeds.from_string(parsed[3].string_ptr());
+		downloaders.from_string(parsed[2]->string_ptr());
+		seeds.from_string(parsed[3]->string_ptr());
 
 		fprintf(stderr, "seeds: %f\n", seeds.size());
 		fprintf(stderr, "downloaders: %f\n", downloaders.size());
@@ -653,18 +652,17 @@ int test_main()
 		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
 
 	dht::key_desc_t nodes_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"r", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, nodes_desc, parsed, 3, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, nodes_desc, parsed, 3, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
+		TEST_CHECK(parsed[0]->string_value() == "r");
 	}
 	else
 	{
@@ -678,16 +676,15 @@ int test_main()
 	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
 		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
 
-	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(&response, err_desc, parsed, 2, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "e");
-		if (parsed[1].list_at(0).type() == bdecode_node::int_t
-			&& parsed[1].list_at(1).type() == bdecode_node::string_t)
+		TEST_CHECK(parsed[0]->string_value() == "e");
+		if (parsed[1]->list_at(0)->type() == lazy_entry::int_t
+			&& parsed[1]->list_at(1)->type() == lazy_entry::string_t)
 		{
-			TEST_CHECK(parsed[1].list_at(1).string_value() == "invalid node ID");
+			TEST_CHECK(parsed[1]->list_at(1)->string_value() == "invalid node ID");
 		}
 		else
 		{
@@ -772,13 +769,13 @@ int test_main()
 
 	key_desc_t desc2[] =
 	{
-		{ "y", bdecode_node::string_t, 1, 0 }
+		{ "y", lazy_entry::string_t, 1, 0 }
 	};
 
 	key_desc_t desc_error[] =
 	{
-		{ "e", bdecode_node::list_t, 2, 0 },
-		{ "y", bdecode_node::string_t, 1, 0},
+		{ "e", lazy_entry::list_t, 2, 0 },
+		{ "y", lazy_entry::string_t, 1, 0},
 	};
 
 	// ==== get / put mutable items ===
@@ -825,19 +822,18 @@ int test_main()
 
 		key_desc_t desc[] =
 		{
-			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
-			{ "id", bdecode_node::string_t, 20, 0},
-			{ "token", bdecode_node::string_t, 0, 0},
-			{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
-			{ "y", bdecode_node::string_t, 1, 0},
+			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "token", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+			{ "y", lazy_entry::string_t, 1, 0},
 		};
 
-		ret = verify_message(response, desc, parsed, 5, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc, parsed, 5, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[4].string_value(), "r");
-			token = parsed[2].string_value();
+			TEST_EQUAL(parsed[4]->string_value(), "r");
+			token = parsed[2]->string_value();
 			fprintf(stderr, "get response: %s\n"
 				, print_entry(response).c_str());
 			fprintf(stderr, "got token: %s\n", to_hex(token).c_str());
@@ -862,13 +858,12 @@ int test_main()
 			, std::string(public_key, item_pk_len)
 			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
 
-		ret = verify_message(response, desc2, parsed, 1, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[0].string_value(), "r");
+			TEST_EQUAL(parsed[0]->string_value(), "r");
 		}
 		else
 		{
@@ -886,17 +881,16 @@ int test_main()
 
 		key_desc_t desc3[] =
 		{
-			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
-			{ "id", bdecode_node::string_t, 20, 0},
-			{ "v", bdecode_node::none_t, 0, 0},
-			{ "seq", bdecode_node::int_t, 0, 0},
-			{ "sig", bdecode_node::string_t, 0, 0},
-			{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
-			{ "y", bdecode_node::string_t, 1, 0},
+			{ "r", lazy_entry::dict_t, 0, key_desc_t::parse_children },
+			{ "id", lazy_entry::string_t, 20, 0},
+			{ "v", lazy_entry::none_t, 0, 0},
+			{ "seq", lazy_entry::int_t, 0, 0},
+			{ "sig", lazy_entry::string_t, 0, 0},
+			{ "ip", lazy_entry::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+			{ "y", lazy_entry::string_t, 1, 0},
 		};
 
-		ret = verify_message(response, desc3, parsed, 7, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc3, parsed, 7, error_string, sizeof(error_string));
 		if (ret == 0)
 		{
 			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
@@ -911,10 +905,10 @@ int test_main()
 			char value[1020];
 			char* ptr = value;
 			int value_len = bencode(ptr, items[0].ent);
-			TEST_EQUAL(value_len, parsed[2].data_section().second);
-			TEST_CHECK(memcmp(parsed[2].data_section().first, value, value_len) == 0);
+			TEST_EQUAL(value_len, parsed[2]->data_section().second);
+			TEST_CHECK(memcmp(parsed[2]->data_section().first, value, value_len) == 0);
 
-			TEST_EQUAL(seq, parsed[3].int_value());
+			TEST_EQUAL(seq, parsed[3]->int_value());
 		}
 
 		// also test that invalid signatures fail!
@@ -937,14 +931,13 @@ int test_main()
 			, std::string(public_key, item_pk_len)
 			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
 
-		ret = verify_message(response, desc_error, parsed, 2, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
-			TEST_EQUAL(parsed[1].string_value(), "e");
+			TEST_EQUAL(parsed[1]->string_value(), "e");
 			// 206 is the code for invalid signature
-			TEST_EQUAL(parsed[0].list_int_value_at(0), 206);
+			TEST_EQUAL(parsed[0]->list_int_value_at(0), 206);
 		}
 		else
 		{
@@ -960,10 +953,10 @@ int test_main()
 			, 0, false, false, std::string(), std::string(), seq-1);
 
 		{
-			bdecode_node r = response.dict_find_dict("r");
-			TEST_CHECK(r.dict_find("v"));
-			TEST_CHECK(r.dict_find("k"));
-			TEST_CHECK(r.dict_find("sig"));
+			lazy_entry const* r = response.dict_find_dict("r");
+			TEST_CHECK(r->dict_find("v"));
+			TEST_CHECK(r->dict_find("k"));
+			TEST_CHECK(r->dict_find("sig"));
 		}
 
 		send_dht_request(node, "get", source, &response, "10", 0
@@ -971,10 +964,10 @@ int test_main()
 			, 0, false, false, std::string(), std::string(), seq);
 
 		{
-			bdecode_node r = response.dict_find_dict("r");
-			TEST_CHECK(!r.dict_find("v"));
-			TEST_CHECK(!r.dict_find("k"));
-			TEST_CHECK(!r.dict_find("sig"));
+			lazy_entry const* r = response.dict_find_dict("r");
+			TEST_CHECK(!r->dict_find("v"));
+			TEST_CHECK(!r->dict_find("k"));
+			TEST_CHECK(!r->dict_find("sig"));
 		}
 
 		// === test CAS put ===
@@ -1002,13 +995,12 @@ int test_main()
 			, std::string(signature, item_sig_len), seq
 			, cas, NULL, salt.first);
 
-		ret = verify_message(response, desc2, parsed, 1, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc2, parsed, 1, error_string, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[0].string_value(), "r");
+			TEST_EQUAL(parsed[0]->string_value(), "r");
 		}
 		else
 		{
@@ -1028,15 +1020,14 @@ int test_main()
 			, std::string(signature, item_sig_len), seq
 			, cas, NULL, salt.first);
 
-		ret = verify_message(response, desc_error, parsed, 2, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, desc_error, parsed, 2, error_string, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[1].string_value(), "e");
+			TEST_EQUAL(parsed[1]->string_value(), "e");
 			// 301 is the error code for CAS hash mismatch
-			TEST_EQUAL(parsed[0].list_int_value_at(0), 301);
+			TEST_EQUAL(parsed[0]->list_int_value_at(0), 301);
 		}
 		else
 		{
@@ -1063,7 +1054,7 @@ int test_main()
 			// test a node with the same IP:port changing ID
 			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+			tbl.node_seen(id, rand_ep(), 20 + (id[19] & 0xff));
 		}
 		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
@@ -1083,7 +1074,7 @@ int test_main()
 		{
 			add_and_replace(id, diff);
 			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+			tbl.node_seen(id, rand_ep(), 20 + (id[19] & 0xff));
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
@@ -1093,100 +1084,95 @@ int test_main()
 	}
 
 	// test verify_message
-	static const key_desc_t msg_desc[] = {
-		{"A", bdecode_node::string_t, 4, 0},
-		{"B", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
-			{"B1", bdecode_node::string_t, 0, 0},
-			{"B2", bdecode_node::string_t, 0, key_desc_t::last_child},
-		{"C", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
-			{"C1", bdecode_node::string_t, 0, 0},
-			{"C2", bdecode_node::string_t, 0, key_desc_t::last_child},
+	const static key_desc_t msg_desc[] = {
+		{"A", lazy_entry::string_t, 4, 0},
+		{"B", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"B1", lazy_entry::string_t, 0, 0},
+			{"B2", lazy_entry::string_t, 0, key_desc_t::last_child},
+		{"C", lazy_entry::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"C1", lazy_entry::string_t, 0, 0},
+			{"C2", lazy_entry::string_t, 0, key_desc_t::last_child},
 	};
 
-	bdecode_node msg_keys[7];
+	lazy_entry const* msg_keys[7];
 
-	bdecode_node ent;
+	lazy_entry ent;
 
 	error_code ec;
 	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
-	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
+	lazy_bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
-	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
 	TEST_CHECK(msg_keys[1]);
 	TEST_CHECK(msg_keys[2]);
-	if (msg_keys[2]) TEST_EQUAL(msg_keys[2].string_value(), "test2");
+	if (msg_keys[2]) TEST_EQUAL(msg_keys[2]->string_value(), "test2");
 	TEST_CHECK(msg_keys[3]);
-	if (msg_keys[3]) TEST_EQUAL(msg_keys[3].string_value(), "test3");
-	TEST_CHECK(!msg_keys[4]);
-	TEST_CHECK(!msg_keys[5]);
-	TEST_CHECK(!msg_keys[6]);
+	if (msg_keys[3]) TEST_EQUAL(msg_keys[3]->string_value(), "test3");
+	TEST_CHECK(msg_keys[4] == 0);
+	TEST_CHECK(msg_keys[5] == 0);
+	TEST_CHECK(msg_keys[6] == 0);
 
 	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
-	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
+	lazy_bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
-	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
-	TEST_CHECK(!msg_keys[1]);
-	TEST_CHECK(!msg_keys[2]);
-	TEST_CHECK(!msg_keys[3]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0]->string_value(), "test");
+	TEST_CHECK(msg_keys[1] == 0);
+	TEST_CHECK(msg_keys[2] == 0);
+	TEST_CHECK(msg_keys[3] == 0);
 	TEST_CHECK(msg_keys[4]);
 	TEST_CHECK(msg_keys[5]);
-	if (msg_keys[5]) TEST_EQUAL(msg_keys[5].string_value(), "test2");
+	if (msg_keys[5]) TEST_EQUAL(msg_keys[5]->string_value(), "test2");
 	TEST_CHECK(msg_keys[6]);
-	if (msg_keys[6]) TEST_EQUAL(msg_keys[6].string_value(), "test3");
+	if (msg_keys[6]) TEST_EQUAL(msg_keys[6]->string_value(), "test3");
 
 
 	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
-	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
+	lazy_bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'A' key"));
 
 	char const test_msg4[] = "d1:A6:foobare";
-	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
+	lazy_bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
 
 	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
-	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
+	lazy_bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
+	ret = verify_message(&ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
 
 	// test empty strings [ { "":1 }, "" ]
 	char const test_msg6[] = "ld0:i1ee0:e";
-	bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
+	lazy_bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-	TEST_CHECK(ent.type() == bdecode_node::list_t);
-	if (ent.type() == bdecode_node::list_t)
+	TEST_CHECK(ent.type() == lazy_entry::list_t);
+	if (ent.type() == lazy_entry::list_t)
 	{
 		TEST_CHECK(ent.list_size() == 2);
 		if (ent.list_size() == 2)
 		{
-			TEST_CHECK(ent.list_at(0).dict_find_int_value("") == 1);
-			TEST_CHECK(ent.list_at(1).string_value() == "");
+			TEST_CHECK(ent.list_at(0)->dict_find_int_value("") == 1);
+			TEST_CHECK(ent.list_at(1)->string_value() == "");
 		}
 	}
 
@@ -1432,31 +1418,31 @@ int test_main()
 	// test traversal algorithms
 
 	dht::key_desc_t find_node_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"q", bdecode_node::string_t, 9, 0},
-		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, 0},
-			{"target", bdecode_node::string_t, 20, key_desc_t::optional},
-			{"info_hash", bdecode_node::string_t, 20, key_desc_t::optional | key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"q", lazy_entry::string_t, 9, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, 0},
+			{"target", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"info_hash", lazy_entry::string_t, 20, key_desc_t::optional | key_desc_t::last_child},
 	};
 
 	dht::key_desc_t get_peers_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"q", bdecode_node::string_t, 9, 0},
-		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, 0},
-			{"info_hash", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"q", lazy_entry::string_t, 9, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, 0},
+			{"info_hash", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	dht::key_desc_t get_item_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"q", bdecode_node::string_t, 3, 0},
-		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, 0},
-			{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"q", lazy_entry::string_t, 3, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, 0},
+			{"target", lazy_entry::string_t, 20, key_desc_t::last_child},
 	};
 
 	// bootstrap
@@ -1464,7 +1450,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1476,17 +1462,16 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, parsed, 7, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, find_node_desc, parsed, 7, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_CHECK(parsed[2].string_value() == "find_node"
-				|| parsed[2].string_value() == "get_peers");
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_CHECK(parsed[2]->string_value() == "find_node"
+				|| parsed[2]->string_value() == "get_peers");
 
-			if (parsed[0].string_value() != "q"
-				|| (parsed[2].string_value() != "find_node"
-					&& parsed[2].string_value() != "get_peers")) break;
+			if (parsed[0]->string_value() != "q"
+				|| (parsed[2]->string_value() != "find_node"
+					&& parsed[2]->string_value() != "get_peers")) break;
 		}
 		else
 		{
@@ -1506,15 +1491,14 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, found_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, parsed, 7, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, find_node_desc, parsed, 7, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_CHECK(parsed[2].string_value() == "find_node"
-				|| parsed[2].string_value() == "get_peers");
-			if (parsed[0].string_value() != "q" || (parsed[2].string_value() != "find_node"
-					&& parsed[2].string_value() == "get_peers")) break;
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_CHECK(parsed[2]->string_value() == "find_node"
+				|| parsed[2]->string_value() == "get_peers");
+			if (parsed[0]->string_value() != "q" || (parsed[2]->string_value() != "find_node"
+					&& parsed[2]->string_value() == "get_peers")) break;
 		}
 		else
 		{
@@ -1536,7 +1520,7 @@ int test_main()
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1548,14 +1532,13 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, parsed, 6, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, get_peers_desc, parsed, 6, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get_peers");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get_peers") break;
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_EQUAL(parsed[2]->string_value(), "get_peers");
+			TEST_EQUAL(parsed[5]->string_value(), target.to_string());
+			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "get_peers") break;
 		}
 		else
 		{
@@ -1581,14 +1564,13 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, next_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, parsed, 6, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, get_peers_desc, parsed, 6, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get_peers");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get_peers") break;
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_EQUAL(parsed[2]->string_value(), "get_peers");
+			TEST_EQUAL(parsed[5]->string_value(), target.to_string());
+			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "get_peers") break;
 		}
 		else
 		{
@@ -1629,7 +1611,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1641,14 +1623,13 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, parsed, 6, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, get_item_desc, parsed, 6, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get");
-			TEST_EQUAL(parsed[5].string_value(), items[0].target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_EQUAL(parsed[2]->string_value(), "get");
+			TEST_EQUAL(parsed[5]->string_value(), items[0].target.to_string());
+			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "get") break;
 		}
 		else
 		{
@@ -1675,7 +1656,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1688,14 +1669,13 @@ int test_main()
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, parsed, 6, error_string
-			, sizeof(error_string));
+		ret = verify_message(&response, get_item_desc, parsed, 6, error_string, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
+			TEST_EQUAL(parsed[0]->string_value(), "q");
+			TEST_EQUAL(parsed[2]->string_value(), "get");
+			TEST_EQUAL(parsed[5]->string_value(), target.to_string());
+			if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "get") break;
 		}
 		else
 		{
@@ -1724,34 +1704,34 @@ int test_main()
 	} while (false);
 
 	dht::key_desc_t put_immutable_item_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"q", bdecode_node::string_t, 3, 0},
-		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, 0},
-			{"token", bdecode_node::string_t, 2, 0},
-			{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"q", lazy_entry::string_t, 3, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, 0},
+			{"token", lazy_entry::string_t, 2, 0},
+			{"v", lazy_entry::none_t, 0, key_desc_t::last_child},
 	};
 
 	dht::key_desc_t put_mutable_item_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"t", bdecode_node::string_t, 2, 0},
-		{"q", bdecode_node::string_t, 3, 0},
-		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, 0},
-			{"cas", bdecode_node::string_t, 20, key_desc_t::optional},
-			{"k", bdecode_node::string_t, item_pk_len, 0},
-			{"seq", bdecode_node::int_t, 0, 0},
-			{"sig", bdecode_node::string_t, item_sig_len, 0},
-			{"token", bdecode_node::string_t, 2, 0},
-			{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
+		{"y", lazy_entry::string_t, 1, 0},
+		{"t", lazy_entry::string_t, 2, 0},
+		{"q", lazy_entry::string_t, 3, 0},
+		{"a", lazy_entry::dict_t, 0, key_desc_t::parse_children},
+			{"id", lazy_entry::string_t, 20, 0},
+			{"cas", lazy_entry::string_t, 20, key_desc_t::optional},
+			{"k", lazy_entry::string_t, item_pk_len, 0},
+			{"seq", lazy_entry::int_t, 0, 0},
+			{"sig", lazy_entry::string_t, item_sig_len, 0},
+			{"token", lazy_entry::string_t, 2, 0},
+			{"v", lazy_entry::none_t, 0, key_desc_t::last_child},
 	};
 
 	// immutable put
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
@@ -1773,8 +1753,7 @@ int test_main()
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6, error_string
-				, sizeof(error_string));
+			ret = verify_message(&response, get_item_desc, parsed, 6, error_string, sizeof(error_string));
 			if (!ret)
 			{
 				fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
@@ -1801,19 +1780,18 @@ int test_main()
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, put_immutable_item_desc, parsed, 7
-				, error_string, sizeof(error_string));
+			ret = verify_message(&response, put_immutable_item_desc, parsed, 7, error_string, sizeof(error_string));
 			if (ret)
 			{
-				TEST_EQUAL(parsed[0].string_value(), "q");
-				TEST_EQUAL(parsed[2].string_value(), "put");
-				std::pair<const char*, int> v = parsed[6].data_section();
+				TEST_EQUAL(parsed[0]->string_value(), "q");
+				TEST_EQUAL(parsed[2]->string_value(), "put");
+				std::pair<const char*, int> v = parsed[6]->data_section();
 				TEST_EQUAL(v.second, itemv.second);
 				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
 				char t[10];
 				snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(parsed[5].string_value(), t);
-				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+				TEST_EQUAL(parsed[5]->string_value(), t);
+				if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "put") continue;
 			}
 			else
 			{
@@ -1833,7 +1811,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
@@ -1857,8 +1835,7 @@ int test_main()
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6
-				, error_string, sizeof(error_string));
+			ret = verify_message(&response, get_item_desc, parsed, 6, error_string, sizeof(error_string));
 			if (!ret)
 			{
 				fprintf(stderr, "   invalid mutable put request: %s\n", print_entry(response).c_str());
@@ -1885,22 +1862,21 @@ int test_main()
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, put_mutable_item_desc, parsed, 11
-				, error_string, sizeof(error_string));
+			ret = verify_message(&response, put_mutable_item_desc, parsed, 11, error_string, sizeof(error_string));
 			if (ret)
 			{
-				TEST_EQUAL(parsed[0].string_value(), "q");
-				TEST_EQUAL(parsed[2].string_value(), "put");
-				TEST_EQUAL(parsed[6].string_value(), std::string(public_key, item_pk_len));
-				TEST_EQUAL(parsed[7].int_value(), seq);
-				TEST_EQUAL(parsed[8].string_value(), sig);
-				std::pair<const char*, int> v = parsed[10].data_section();
+				TEST_EQUAL(parsed[0]->string_value(), "q");
+				TEST_EQUAL(parsed[2]->string_value(), "put");
+				TEST_EQUAL(parsed[6]->string_value(), std::string(public_key, item_pk_len));
+				TEST_EQUAL(parsed[7]->int_value(), seq);
+				TEST_EQUAL(parsed[8]->string_value(), sig);
+				std::pair<const char*, int> v = parsed[10]->data_section();
 				TEST_EQUAL(v.second, itemv.second);
 				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
 				char t[10];
 				snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(parsed[9].string_value(), t);
-				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+				TEST_EQUAL(parsed[9]->string_value(), t);
+				if (parsed[0]->string_value() != "q" || parsed[2]->string_value() != "put") continue;
 			}
 			else
 			{

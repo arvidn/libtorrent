@@ -21,12 +21,6 @@ tuple endpoint_to_tuple(tcp::endpoint const& ep)
     return boost::python::make_tuple(ep.address().to_string(), ep.port());
 }
 
-tuple endpoint_to_tuple(udp::endpoint const& ep)
-{
-    return boost::python::make_tuple(ep.address().to_string(), ep.port());
-}
-
-
 tuple peer_alert_ip(peer_alert const& pa)
 {
     return endpoint_to_tuple(pa.ip);
@@ -47,11 +41,6 @@ std::string dht_announce_alert_ip(dht_announce_alert const& pa)
 tuple incoming_connection_alert_ip(incoming_connection_alert const& ica)
 {
     return endpoint_to_tuple(ica.ip);
-}
-
-tuple dht_outgoing_get_peers_alert_ip(dht_outgoing_get_peers_alert const& a)
-{
-    return endpoint_to_tuple(a.ip);
 }
 
 std::string external_ip_alert_ip(external_ip_alert const& eia)
@@ -104,45 +93,6 @@ dict get_params(add_torrent_alert const& alert)
     return ret;
 }
 
-list dht_stats_active_requests(dht_stats_alert const& a)
-{
-   list result;
-
-   for (std::vector<dht_lookup>::const_iterator i = a.active_requests.begin();
-		i != a.active_requests.end(); ++i)
-   {
-		dict d;
-
-		d["type"] = i->type;
-		d["outstanding_requests"] = i->outstanding_requests;
-		d["timeouts"] = i->timeouts;
-		d["responses"] = i->responses;
-		d["branch_factor"] = i->branch_factor;
-		d["nodes_left"] = i->nodes_left;
-		d["last_sent"] = i->last_sent;
-		d["first_timeout"] = i->first_timeout;
-
-      result.append(d);
-   }
-   return result;
-}
-
-list dht_stats_routing_table(dht_stats_alert const& a)
-{
-   list result;
-
-   for (std::vector<dht_routing_bucket>::const_iterator i = a.routing_table.begin();
-		i != a.routing_table.end(); ++i)
-   {
-		dict d;
-
-		d["num_nodes"] = i->num_nodes;
-		d["num_replacements"] = i->num_replacements;
-
-      result.append(d);
-   }
-   return result;
-}
 
 void bind_alert()
 {
@@ -286,9 +236,7 @@ void bind_alert()
 
     class_<block_downloading_alert, bases<peer_alert>, noncopyable>(
         "block_downloading_alert", no_init)
-#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("peer_speedmsg", &block_downloading_alert::peer_speedmsg)
-#endif
         .def_readonly("block_index", &block_downloading_alert::block_index)
         .def_readonly("piece_index", &block_downloading_alert::piece_index)
         ;
@@ -337,10 +285,8 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-        .def_readonly("interface", &listen_failed_alert::interface)
+        .def_readonly("endpoint", &listen_failed_alert::endpoint)
         .def_readonly("error", &listen_failed_alert::error)
-        .def_readonly("operation", &listen_failed_alert::operation)
-        .def_readonly("sock_type", &listen_failed_alert::sock_type)
         ;
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
@@ -554,17 +500,13 @@ void bind_alert()
         .value("upload_payload", stats_alert::upload_payload)
         .value("upload_protocol", stats_alert::upload_protocol)
         .value("upload_ip_protocol", stats_alert::upload_ip_protocol)
-#ifndef TORRENT_NO_DEPRECATE
         .value("upload_dht_protocol", stats_alert::upload_dht_protocol)
         .value("upload_tracker_protocol", stats_alert::upload_tracker_protocol)
-#endif
         .value("download_payload", stats_alert::download_payload)
         .value("download_protocol", stats_alert::download_protocol)
         .value("download_ip_protocol", stats_alert::download_ip_protocol)
-#ifndef TORRENT_NO_DEPRECATE
         .value("download_dht_protocol", stats_alert::download_dht_protocol)
         .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
-#endif
     ;
 
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
@@ -598,38 +540,4 @@ void bind_alert()
         .def_readonly("old_ih", &torrent_update_alert::old_ih)
         .def_readonly("new_ih", &torrent_update_alert::new_ih)
         ;
-
-    class_<dht_outgoing_get_peers_alert, bases<alert>, noncopyable>(
-       "dht_outgoing_get_peers_alert", no_init)
-        .def_readonly("info_hash", &dht_outgoing_get_peers_alert::info_hash)
-        .def_readonly("obfuscated_info_hash", &dht_outgoing_get_peers_alert::obfuscated_info_hash)
-        .add_property("ip", &dht_outgoing_get_peers_alert_ip)
-        ;
-
-    class_<log_alert, bases<alert>, noncopyable>(
-       "log_alert", no_init)
-        .def_readonly("msg", &log_alert::msg)
-        ;
-
-    class_<torrent_log_alert, bases<torrent_alert>, noncopyable>(
-       "torrent_log_alert", no_init)
-        .def_readonly("msg", &torrent_log_alert::msg)
-        ;
-
-    class_<peer_log_alert, bases<peer_alert>, noncopyable>(
-       "peer_log_alert", no_init)
-        .def_readonly("msg", &peer_log_alert::msg)
-        ;
-
-    class_<lsd_error_alert, bases<alert>, noncopyable>(
-       "lsd_error_alert", no_init)
-        .def_readonly("error", &lsd_error_alert::error)
-        ;
-
-    class_<dht_stats_alert, bases<alert>, noncopyable>(
-       "dht_stats_alert", no_init)
-		 .add_property("active_requests", &dht_stats_active_requests)
-		 .add_property("routing_table", &dht_stats_routing_table)
-        ;
-
 }

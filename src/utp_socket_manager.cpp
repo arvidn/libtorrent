@@ -37,18 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
-#include "libtorrent/performance_counters.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent
 {
 
-	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
-		, udp_socket& s
-		, counters& cnt
-		, void* ssl_context
+	utp_socket_manager::utp_socket_manager(session_settings const& sett, udp_socket& s
 		, incoming_utp_callback_t cb)
 		: m_sock(s)
 		, m_cb(cb)
@@ -58,9 +53,9 @@ namespace libtorrent
 		, m_last_route_update(min_time())
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
-		, m_counters(cnt)
-		, m_ssl_context(ssl_context)
-	{}
+	{
+		memset(m_counters, 0, sizeof(m_counters));
+	}
 
 	utp_socket_manager::~utp_socket_manager()
 	{
@@ -71,7 +66,44 @@ namespace libtorrent
 		}
 	}
 
-	void utp_socket_manager::tick(time_point now)
+	void utp_socket_manager::get_status(utp_status& s) const
+	{
+		s.num_idle = 0;
+		s.num_syn_sent = 0;
+		s.num_connected = 0;
+		s.num_fin_sent = 0;
+		s.num_close_wait = 0;
+
+		s.packet_loss = m_counters[packet_loss];
+		s.timeout = m_counters[timeout];
+		s.packets_in = m_counters[packets_in];
+		s.packets_out = m_counters[packets_out];
+		s.fast_retransmit = m_counters[fast_retransmit];
+		s.packet_resend = m_counters[packet_resend];
+		s.samples_above_target = m_counters[samples_above_target];
+		s.samples_below_target = m_counters[samples_below_target];
+		s.payload_pkts_in = m_counters[payload_pkts_in];
+		s.payload_pkts_out = m_counters[payload_pkts_out];
+		s.invalid_pkts_in = m_counters[invalid_pkts_in];
+		s.redundant_pkts_in = m_counters[redundant_pkts_in];
+
+		for (socket_map_t::const_iterator i = m_utp_sockets.begin()
+			, end(m_utp_sockets.end()); i != end; ++i)
+		{
+			int state = utp_socket_state(i->second);
+			switch (state)
+			{
+				case 0: ++s.num_idle; break;
+				case 1: ++s.num_syn_sent; break;
+				case 2: ++s.num_connected; break;
+				case 3: ++s.num_fin_sent; break;
+				case 4: ++s.num_close_wait; break;
+				case 5: ++s.num_close_wait; break;
+			}
+		}
+	}
+
+	void utp_socket_manager::tick(ptime now)
 	{
 		for (socket_map_t::iterator i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
@@ -90,9 +122,9 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (aux::time_now() - seconds(60) > m_last_route_update)
+		if (time_now() - m_last_route_update > seconds(60))
 		{
-			m_last_route_update = aux::time_now();
+			m_last_route_update = time_now();
 			error_code ec;
 			m_routes = enum_routes(m_sock.get_io_service(), ec);
 		}
@@ -138,8 +170,8 @@ namespace libtorrent
 
 		mtu -= TORRENT_UDP_HEADER;
 
-		if (m_sock.get_proxy_settings().type == settings_pack::socks5
-			|| m_sock.get_proxy_settings().type == settings_pack::socks5_pw)
+		if (m_sock.get_proxy_settings().type == proxy_settings::socks5
+			|| m_sock.get_proxy_settings().type == proxy_settings::socks5_pw)
 		{
 			// this is for the IP layer
 			address proxy_addr = m_sock.proxy_addr().address();
@@ -199,9 +231,9 @@ namespace libtorrent
 		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
 
 		// first enumerate the routes in the routing table
-		if (aux::time_now() - seconds(60) > m_last_route_update)
+		if (time_now() - m_last_route_update > seconds(60))
 		{
-			m_last_route_update = aux::time_now();
+			m_last_route_update = time_now();
 			error_code ec;
 			m_routes = enum_routes(m_sock.get_io_service(), ec);
 			if (ec) return socket_ep;
@@ -230,9 +262,9 @@ namespace libtorrent
 		// for this target. Now figure out what the local address
 		// is for that interface
 
-		if (aux::time_now() - seconds(60) > m_last_if_update)
+		if (time_now() - m_last_if_update > seconds(60))
 		{
-			m_last_if_update = aux::time_now();
+			m_last_if_update = time_now();
 			error_code ec;
 			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), ec);
 			if (ec) return socket_ep;
@@ -263,7 +295,7 @@ namespace libtorrent
 
 		if (ph->get_version() != 1) return false;
 
-		const time_point receive_time = clock_type::now();
+		const ptime receive_time = time_now_hires();
 		
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
@@ -290,7 +322,7 @@ namespace libtorrent
 
 //		UTP_LOGV("incoming packet id:%d source:%s\n", id, print_endpoint(ep).c_str());
 
-		if (!m_sett.get_bool(settings_pack::enable_incoming_utp))
+		if (!m_sett.enable_incoming_utp)
 			return false;
 
 		// if not found, see if it's a SYN packet, if it is,
@@ -298,7 +330,7 @@ namespace libtorrent
 		if (ph->get_type() == ST_SYN)
 		{
 			// possible SYN flood. Just ignore
-			if (int(m_utp_sockets.size()) > m_sett.get_int(settings_pack::connections_limit) * 2)
+			if (int(m_utp_sockets.size()) > m_sett.connections_limit * 2)
 				return false;
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
@@ -310,18 +342,8 @@ namespace libtorrent
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c
-				, m_ssl_context, this, true);
-
-
-			utp_stream* str = NULL;
-#ifdef TORRENT_USE_OPENSSL
-			if (is_ssl(*c))
-				str = &c->get<ssl_stream<utp_stream> >()->next_layer();
-			else
-#endif
-				str = c->get<utp_stream>();
-
+			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c, 0, this);
+			utp_stream* str = c->get<utp_stream>();
 			TORRENT_ASSERT(str);
 			int link_mtu, utp_mtu;
 			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
@@ -427,13 +449,11 @@ namespace libtorrent
 		m_sock_buf_size = size;
 	}
 
-	void utp_socket_manager::inc_stats_counter(int counter, int delta)
+	void utp_socket_manager::inc_stats_counter(int counter)
 	{
-		TORRENT_ASSERT((counter >= counters::utp_packet_loss
-				&& counter <= counters::utp_redundant_pkts_in)
-			|| (counter >= counters::num_utp_idle
-				&& counter <= counters::num_utp_deleted));
-		m_counters.inc_stats_counter(counter, delta);
+		TORRENT_ASSERT(counter >= 0);
+		TORRENT_ASSERT(counter < num_counters);
+		++m_counters[counter];
 	}
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)

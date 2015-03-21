@@ -60,11 +60,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/operations.hpp" // for operation_t enum
 
 namespace libtorrent
 {
 	class torrent;
+
+	namespace detail
+	{
+		struct session_impl;
+	}
 
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
@@ -75,8 +79,12 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		web_peer_connection(peer_connection_args const& pack
-			, web_seed_t& web);
+		web_peer_connection(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, web_seed_entry& web);
 
 		virtual void on_connected();
 
@@ -90,8 +98,7 @@ namespace libtorrent
 		std::string const& url() const { return m_url; }
 		
 		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec
-			, operation_t op, int error = 0);
+		virtual void disconnect(error_code const& ec, int error = 0);
 
 		virtual void write_request(peer_request const& r);
 
@@ -116,7 +123,7 @@ namespace libtorrent
 
 		std::string m_url;
 	
-		web_seed_t* m_web;
+		web_seed_entry* m_web;
 			
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
@@ -128,10 +135,13 @@ namespace libtorrent
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts
-		boost::int64_t m_received_body;
+		size_type m_received_body;
 
 		// position in the current range response
-		boost::int64_t m_range_pos;
+		size_type m_range_pos;
+
+		// the position in the current block
+		int m_block_pos;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -139,10 +149,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		boost::int64_t m_chunk_pos;
-
-		// the position in the current block
-		int m_block_pos;
+		size_type m_chunk_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for

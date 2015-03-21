@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/socket_type.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
@@ -40,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ssl/rfc2818_verification.hpp>
 #endif
 
-#endif
-
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
 #endif
 
 namespace libtorrent
@@ -142,7 +137,6 @@ namespace libtorrent
 #else
 #define MAYBE_ASIO_DEBUGGING
 #endif
-
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	MAYBE_ASIO_DEBUGGING \
 	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \
@@ -299,36 +293,6 @@ namespace libtorrent
 	{
 		if (m_type == 0) return;
 		TORRENT_SOCKTYPE_FORWARD(close(ec))
-	}
-
-	void socket_type::set_close_reason(boost::uint16_t code)
-	{
-		switch (m_type)
-		{
-			case socket_type_int_impl<utp_stream>::value:
-				get<utp_stream>()->set_close_reason(code);
-				break;
-#ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				get<ssl_stream<utp_stream> >()->lowest_layer().set_close_reason(code);
-				break;
-#endif
-			default: break;
-		}
-	}
-
-	boost::uint16_t socket_type::get_close_reason()
-	{
-		switch (m_type)
-		{
-			case socket_type_int_impl<utp_stream>::value:
-				return get<utp_stream>()->get_close_reason();
-#ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				return get<ssl_stream<utp_stream> >()->lowest_layer().get_close_reason();
-#endif
-			default: return 0;
-		}
 	}
 
 	socket_type::endpoint_type socket_type::local_endpoint(error_code& ec) const

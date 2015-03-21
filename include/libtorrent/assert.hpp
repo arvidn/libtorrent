@@ -34,12 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) \
-	|| defined TORRENT_ASIO_DEBUGGING \
-	|| defined TORRENT_PROFILE_CALLS \
-	|| TORRENT_RELEASE_ASSERTS \
-	|| defined TORRENT_DEBUG_BUFFERS
-
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING \
+	|| TORRENT_RELEASE_ASSERTS || defined TORRENT_DEBUG_BUFFERS
 #include <string>
 std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
@@ -51,27 +47,25 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 extern char const* libtorrent_assert_log;
 #endif
 
-#if !TORRENT_USE_SYSTEM_ASSERT
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 
 #if TORRENT_USE_IOSTREAM
 #include <sstream>
 #endif
 
-TORRENT_EXPORT void assert_print(char const* fmt, ...);
-
 TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
 	, char const* function, char const* val, int kind = 0);
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } while (false)
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 1); } while (false)
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } while (false)
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 0); } while (false)
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } while (false)
+	assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, __s__.str().c_str(), 0); } } while (false)
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
 #endif

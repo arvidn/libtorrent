@@ -31,9 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/lazy_entry.hpp"
-#include "libtorrent/bdecode.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/sha1_hash.hpp"
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 
@@ -42,143 +39,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int load_file(std::string const& filename, std::vector<char>& v
-	, libtorrent::error_code& ec, int limit = 8000000)
-{
-	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		fclose(f);
-		return 0;
-	}
-
-	r = fread(&v[0], 1, v.size(), f);
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::generic_category());
-		fclose(f);
-		return -1;
-	}
-
-	fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
-}
-
-int main(int argc, char* argv[])
+int test_main()
 {
 	using namespace libtorrent;
 
-	if (argc != 2)
-	{
-		fputs("usage: bdecode_benchmark torrent-file\n", stderr);
-		return 1;
-	}
+	ptime start(time_now());
 
-	std::vector<char> buf;
-	error_code ec;
-	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
-	if (ret == -1)
+	for (int i = 0; i < 100000; ++i)
 	{
-		fprintf(stderr, "file too big, aborting\n");
-		return 1;
-	}
-
-	if (ret != 0)
-	{
-		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
-		return 1;
-	}
-
-	{
-	time_point start(clock_type::now());
-	entry e;
-	for (int i = 0; i < 1000000; ++i)
-	{
-		int len;
-		e = bdecode(&buf[0], &buf[0] + buf.size(), len);
-//		entry& info = e["info"];
-	}
-	ptime stop(time_now_hires());
-
-	fprintf(stderr, "(slow) bdecode done in %5d ns per message\n"
-		, int(total_microseconds(stop - start) / 1000));
-	}
-
-	// ===============================================
-
-	{
-	ptime start(time_now_hires());
-	lazy_entry e;
-	for (int i = 0; i < 1000000; ++i)
-	{
+		char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
+		lazy_entry e;
 		error_code ec;
-		lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-//		lazy_entry* info = e.dict_find("info");
+		lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 	}
-	time_point stop(clock_type::now());
+	ptime stop(time_now());
 
-	fprintf(stderr, "lazy_bdecode done in   %5d ns per message\n"
-		, int(total_microseconds(stop - start) / 1000));
-	}
-
-	// ===============================================
-
-	{
-	ptime start(time_now_hires());
-	bdecode_node e;
-	e.reserve(100);
-	for (int i = 0; i < 1000000; ++i)
-	{
-		error_code ec;
-		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-//		bdecode_node info = e.dict_find("info");
-	}
-	ptime stop(time_now_hires());
-
-	fprintf(stderr, "bdecode done in        %5d ns per message\n"
-		, int(total_microseconds(stop - start) / 1000));
-	}
-
+	std::cout << "done in " << total_milliseconds(stop - start) / 100. << " seconds per million message" << std::endl;
 	return 0;
 }
 

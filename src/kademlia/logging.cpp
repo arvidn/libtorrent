@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/logging.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -40,7 +39,7 @@ namespace libtorrent { namespace dht
 		: log_(log) 
 	{
 		if (log_.enabled())
-			log_ << libtorrent::aux::time_now_string() << " [" << log.id() << "] ";
+			log_ << time_now_string() << " [" << log.id() << "] ";
 	}
 
 	log_event::~log_event()

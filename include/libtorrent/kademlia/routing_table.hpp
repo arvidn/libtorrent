@@ -47,16 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
+#include <libtorrent/size_type.hpp>
 #include <libtorrent/assert.hpp>
-#include <libtorrent/time.hpp>
-#include <boost/unordered_set.hpp>
+#include <libtorrent/ptime.hpp>
 
 namespace libtorrent
 {
-#ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
-#endif
-	struct dht_routing_bucket;
 }
 
 namespace libtorrent { namespace dht
@@ -93,11 +90,7 @@ public:
 	routing_table(node_id const& id, int bucket_size
 		, dht_settings const& settings);
 
-#ifndef TORRENT_NO_DEPRECATE
 	void status(session_status& s) const;
-#endif
-
-	void status(std::vector<dht_routing_bucket>& s) const;
 
 	void node_failed(node_id const& id, udp::endpoint const& ep);
 	
@@ -165,7 +158,7 @@ public:
 	// been pinged and confirmed up
 	boost::tuple<int, int, int> size() const;
 
-	boost::int64_t num_global_nodes() const;
+	size_type num_global_nodes() const;
 
 	// the number of bits down we have full buckets
 	// i.e. essentially the number of full buckets
@@ -202,6 +195,9 @@ private:
 
 	dht_settings const& m_settings;
 
+	// constant called k in paper
+	int m_bucket_size;
+	
 	// (k-bucket, replacement cache) pairs
 	// the first entry is the bucket the furthest
 	// away from our own ID. Each time the bucket
@@ -218,7 +214,7 @@ private:
 
 	// the last time we refreshed our own bucket
 	// refreshed every 15 minutes
-	mutable time_point m_last_self_refresh;
+	mutable ptime m_last_self_refresh;
 	
 	// this is a set of all the endpoints that have
 	// been identified as router nodes. They will
@@ -230,11 +226,7 @@ private:
 	// table. It's used to only allow a single entry
 	// per IP in the whole table. Currently only for
 	// IPv4
-	boost::unordered_multiset<address_v4::bytes_type> m_ips;
-
-	// constant called k in paper
-	int m_bucket_size;
-	
+	std::multiset<address_v4::bytes_type> m_ips;
 };
 
 } } // namespace libtorrent::dht

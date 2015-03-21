@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(libtorrent)
 set (SOVERSION "8")
-set (VERSION "1.1.0")
+set (VERSION "1.0.4")
 
 set(sources
 	web_connection_base
@@ -13,13 +13,9 @@ set(sources
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
-	bdecode
-	block_cache
 	bloom_filter
 	chained_buffer
-	choker
-	close_reason
-	crc32c
+	connection_queue
 	create_torrent
 	disk_buffer_holder
 	entry
@@ -38,48 +34,31 @@ set(sources
 	identify_client
 	ip_filter
 	ip_voter
-	performance_counters
-	peer_class
-	peer_class_set
 	peer_connection
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
 	instantiate_connection
 	natpmp
-	part_file
 	packet_buffer
 	piece_picker
-	platform_util
-	proxy_base
-	peer_list
+	policy
 	puff
 	random
-	receive_buffer
-	request_blocks
-	resolve_links
-	resolver
 	rss
 	session
-	session_call
 	session_impl
-	session_settings
-	session_stats
-	settings_pack
+	settings
 	socket_io
 	socket_type  
 	socks5_stream
 	stat
-	stat_cache
 	storage
-	tailqueue
 	time
 	timestamp_history
 	torrent
 	torrent_handle
 	torrent_info
-	torrent_peer
-	torrent_peer_allocator
 	tracker_manager
 	http_tracker_connection
 	utf8
@@ -88,10 +67,9 @@ set(sources
 	upnp
 	utp_socket_manager
 	utp_stream
+	logger
 	file_pool
 	lsd
-	disk_io_job
-	disk_job_pool
 	disk_buffer_pool
 	disk_io_thread
 	enum_net
@@ -112,10 +90,8 @@ set(sources
 
 # -- kademlia --
 set(kademlia_sources
-	dos_blocker
 	dht_tracker
 	node
-	node_entry
 	refresh
 	rpc_manager
 	find_data
@@ -149,12 +125,14 @@ option(static_runtime "build libtorrent with static runtime" OFF)
 option(tcmalloc "link against google performance tools tcmalloc" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
+option(geoip "link against LGPL GeoIP code from Maxmind, to enable geoip database support" OFF)
 option(dht "enable support for Mainline DHT" ON)
 option(resolve-countries "enable support for resolving countries from peer IPs" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
 option(logging "build with logging" OFF)
+option(verbose-logging "build with verbose logging" OFF)
 option(build_tests "build tests" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
@@ -192,6 +170,9 @@ endif (encryption)
 
 if (logging)
 	add_definitions(-DTORRENT_LOGGING)
+endif()
+if (verbose-logging)
+	add_definitions(-DTORRENT_VERBOSE_LOGGING)
 endif()
 
 foreach(s ${sources})
@@ -239,7 +220,7 @@ endif()
 
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono random)
+	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono)
 endif()
 include_directories(${Boost_INCLUDE_DIR})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
@@ -267,6 +248,10 @@ endif()
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
+endif()
+
+if (NOT geoip)
+	add_definitions(-DTORRENT_DISABLE_GEO_IP)
 endif()
 
 if (NOT resolve-countries)
