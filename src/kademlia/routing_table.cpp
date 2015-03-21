@@ -480,7 +480,7 @@ bool routing_table::add_node(node_entry e)
 		// harden our resistence towards this attack. Perhaps by never
 		// splitting a bucket (and discard nodes) if the two buckets above it
 		// are empty or close to empty
-		TORRENT_ASSERT(m_buckets.size() <= 50);
+//		TORRENT_ASSERT(m_buckets.size() <= 50);
 		if (m_buckets.size() > 50)
 		{
 			// this is a sanity check. In the wild, we shouldn't see routing
