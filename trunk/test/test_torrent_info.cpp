@@ -574,22 +574,37 @@ int test_torrent_parse()
 	return 0;
 }
 
-void test_resolve_duplicates()
+void test_resolve_duplicates(int test_case)
 {
 	file_storage fs;
 
-	fs.add_file("test/temporary.txt", 0x4000);
-	fs.add_file("test/A/tmp", 0x4000);
-	fs.add_file("test/Temporary.txt", 0x4000);
-	fs.add_file("test/TeMPorArY.txT", 0x4000);
-	fs.add_file("test/a", 0x4000);
-	fs.add_file("test/b.exe", 0x4000);
-	fs.add_file("test/B.ExE", 0x4000);
-	fs.add_file("test/B.exe", 0x4000);
-	fs.add_file("test/test/TEMPORARY.TXT", 0x4000);
-	fs.add_file("test/A", 0x4000);
-	fs.add_file("test/long/path/name/that/collides", 0x4000);
-	fs.add_file("test/long/path", 0x4000);
+	switch (test_case)
+	{
+		case 0:
+			fs.add_file("test/temporary.txt", 0x4000);
+			fs.add_file("test/Temporary.txt", 0x4000);
+			fs.add_file("test/TeMPorArY.txT", 0x4000);
+			fs.add_file("test/test/TEMPORARY.TXT", 0x4000);
+			break;
+		case 1:
+			fs.add_file("test/b.exe", 0x4000);
+			fs.add_file("test/B.ExE", 0x4000);
+			fs.add_file("test/B.exe", 0x4000);
+			fs.add_file("test/filler", 0x4000);
+			break;
+		case 2:
+			fs.add_file("test/A/tmp", 0x4000);
+			fs.add_file("test/a", 0x4000);
+			fs.add_file("test/A", 0x4000);
+			fs.add_file("test/filler", 0x4000);
+			break;
+		case 3:
+			fs.add_file("test/long/path/name/that/collides", 0x4000);
+			fs.add_file("test/long/path", 0x4000);
+			fs.add_file("test/filler-1", 0x4000);
+			fs.add_file("test/filler-2", 0x4000);
+			break;
+	}
 
 	libtorrent::create_torrent t(fs, 0x4000);
 
@@ -607,30 +622,45 @@ void test_resolve_duplicates()
 
 	torrent_info ti(&tmp[0], tmp.size());
 
-	char const* filenames[] =
+	char const* filenames[4][4] =
 	{
-	"test/temporary.txt",
-	"test/A/tmp",
-	"test/Temporary.1.txt", // duplicate of temporary.txt
-	"test/TeMPorArY.2.txT", // duplicate of temporary.txt
-	"test/a.1", // a file may not have the same name as a directory
-	"test/b.exe",
-	"test/B.1.ExE", // duplicate of b.exe
-	"test/B.2.exe", // duplicate of b.exe
-	"test/test/TEMPORARY.TXT", // a file with the same name in a seprate directory is fine
-	"test/A.2", // duplicate of directory a
-	"test/long/path/name/that/collides", // a subset of this path collides with the next filename
-	"test/long/path.1" // so this file needs to be renamed, to not collide with the path name
+		{ // case 0
+			"test/temporary.txt",
+			"test/Temporary.1.txt", // duplicate of temporary.txt
+			"test/TeMPorArY.2.txT", // duplicate of temporary.txt
+			// a file with the same name in a seprate directory is fine
+			"test/test/TEMPORARY.TXT",
+		},
+		{ // case 1
+			"test/b.exe",
+			"test/B.1.ExE", // duplicate of b.exe
+			"test/B.2.exe", // duplicate of b.exe
+			"test/filler",
+		},
+		{ // case 2
+			"test/A/tmp",
+			"test/a.1", // a file may not have the same name as a directory
+			"test/A.2", // duplicate of directory a
+			"test/filler",
+		},
+		{ // case 3
+			// a subset of this path collides with the next filename
+			"test/long/path/name/that/collides",
+			// so this file needs to be renamed, to not collide with the path name
+			"test/long/path.1",
+			"test/filler-1",
+			"test/filler-2",
+		}
 	};
 
 	for (int i = 0; i < ti.num_files(); ++i)
 	{
 		std::string p = ti.files().file_path(i);
 		convert_path_to_posix(p);
-		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
+		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[test_case][i]);
 
 		// TODO: 3 fix duplicate name detection to make this test pass
-		TEST_EQUAL(p, filenames[i]);
+		TEST_EQUAL(p, filenames[test_case][i]);
 	}
 }
 
@@ -692,7 +722,9 @@ void test_copy()
 
 int test_main()
 {
-	test_resolve_duplicates();
+	for (int i = 0; i < 4; ++i)
+		test_resolve_duplicates(i);
+
 	test_copy();
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	test_mutable_torrents();

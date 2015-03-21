@@ -575,26 +575,41 @@ namespace libtorrent
 			for (int i = 0; i < len; ++i, ++str)
 				crc.process_byte(to_lower(*str));
 		}
+
+		template <class CRC>
+		void process_path_lowercase(
+			boost::unordered_set<boost::uint32_t>& table
+			, CRC crc
+			, char const* str, int len)
+		{
+			if (len == 0) return;
+			for (int i = 0; i < len; ++i, ++str)
+			{
+				if (*str == TORRENT_SEPARATOR)
+					table.insert(crc.checksum());
+				crc.process_byte(to_lower(*str));
+			}
+			table.insert(crc.checksum());
+		}
 	}
 
-	boost::uint32_t file_storage::path_hash(int index
-		, std::string const& save_path) const
+	void file_storage::all_path_hashes(
+		boost::unordered_set<boost::uint32_t>& table) const
 	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_paths.size()));
-		
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 
-		if (!save_path.empty())
+		if (!m_name.empty())
 		{
-			process_string_lowercase(crc, save_path.c_str(), save_path.size());
-			TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
+			process_string_lowercase(crc, m_name.c_str(), m_name.size());
+			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
 			crc.process_byte(TORRENT_SEPARATOR);
 		}
 
-		process_string_lowercase(crc, m_name.c_str(), m_name.size());
-		crc.process_byte(TORRENT_SEPARATOR);
-		process_string_lowercase(crc, m_paths[index].c_str(), m_paths[index].size());
-		return crc.checksum();
+		for (int i = 0; i != int(m_paths.size()); ++i)
+		{
+			std::string const& p = m_paths[i];
+			process_path_lowercase(table, crc, p.c_str(), p.size());
+		}
 	}
 
 	boost::uint32_t file_storage::file_path_hash(int index
