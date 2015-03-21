@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/debug-iterators-on/export-extra-on/invariant-checks-off/link-static/logging-on/test-coverage-on/threading-multi/src
+OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/deprecated-functions-off/export-extra-on/invariant-checks-off/link-static/logging-on/test-coverage-on/threading-multi/src
 
 function run_test {
 	set +e
@@ -10,10 +10,10 @@ function run_test {
 	cd test
 	set +e
 	rm -rf bin
-	set -e
 
-	bjam asserts=off invariant-checks=off link=static boost=source test-coverage=on picker-debugging=off -j4 $1
+	bjam asserts=off invariant-checks=off link=static boost=source deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off -j4 $1
 	cd ..
+	set -e
 
 	lcov -d $OBJECT_PATH/ -c -o coverage_$1_full
 	lcov --extract coverage_$1_full "$2" -o coverage_$1
@@ -34,6 +34,7 @@ set +e
 mkdir test-coverage
 set -e
 
+run_test test_dht "*/kademlia/*"
 run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
 run_test test_torrent_info "*/torrent_info.*"

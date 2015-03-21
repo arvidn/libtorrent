@@ -990,7 +990,9 @@ namespace libtorrent
 
 		if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
 		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
+#ifndef TORRENT_NO_DEPRECATE
 		if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
+#endif
 
 		reorder_file(index, cur_index);
 	}
