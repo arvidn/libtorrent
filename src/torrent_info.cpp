@@ -65,9 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/assert.hpp>
-#if TORRENT_HAS_BOOST_UNORDERED
 #include <boost/unordered_set.hpp>
-#endif
 
 #include <set>
 
@@ -776,22 +774,13 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#if TORRENT_HAS_BOOST_UNORDERED
 		boost::unordered_set<boost::uint32_t> files;
-#else
-		std::set<boost::uint32_t> files;
-#endif
 
 		std::string empty_str;
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		std::vector<std::string> const& paths = m_files.paths();
-		for (int i = 0; i != int(paths.size()); ++i)
-		{
-			files.insert(m_files.path_hash(i, empty_str));
-		}
-
+		m_files.all_path_hashes(files);
 		for (int i = 0; i < m_files.num_files(); ++i)
 		{
 			// as long as this file already exists
@@ -827,7 +816,16 @@ namespace libtorrent
 		for (std::vector<std::string>::const_iterator i = paths.begin()
 			, end(paths.end()); i != end; ++i)
 		{
-			files.insert(combine_path(m_files.name(), *i));
+			std::string p = combine_path(m_files.name(), *i);
+			files.insert(p);
+			while (has_parent_path(p))
+			{
+				p = parent_path(p);
+				// we don't want trailing slashes here
+				TORRENT_ASSERT(p.back() == *TORRENT_SEPARATOR);
+				p.pop_back();
+				files.insert(p);
+			}
 		}
 
 		for (int i = 0; i < m_files.num_files(); ++i)

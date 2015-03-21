@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <ctime>
 #include <boost/cstdint.hpp>
+#include <boost/unordered_set.hpp>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -468,9 +469,13 @@ namespace libtorrent
 		// returns the crc32 hash of file_path(index)
 		boost::uint32_t file_path_hash(int index, std::string const& save_path) const;
 
-		// returns the crc32 hash of the path at index. Note, this index does not
-		// refer to a file, but to a path in the vector returned by paths().
-		boost::uint32_t path_hash(int index, std::string const& save_path) const;
+		// this will add the CRC32 hash of all directory entries to the table. No
+		// filename will be included, just directories. Every depth of directories
+		// are added separately to allow test for collisions with files at all
+		// levels. i.e. if one path in the torrent is ``foo/bar/baz``, the CRC32
+		// hashes for ``foo``, ``foo/bar`` and ``foo/bar/baz`` will be added to
+		// the set.
+		void all_path_hashes(boost::unordered_set<boost::uint32_t>& table) const;
 
 		// flags indicating various attributes for files in
 		// a file_storage.
