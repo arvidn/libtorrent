@@ -1,0 +1,134 @@
+import python ;
+import feature : feature ;
+import project ;
+import targets ;
+import "class" : new ;
+
+use-project /torrent : ../.. ;
+
+lib boost_python : : <target-os>darwin <name>boost_python-mt $(boost-library-search-path) ;
+lib boost_python : : <name>boost_python ;
+
+feature visibility : default hidden : composite propagated link-incompatible ;
+feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
+
+feature libtorrent-link : static shared : ;
+feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
+feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
+
+rule libtorrent_linking ( properties * )
+{
+    local result ;
+
+    if ! <target-os>windows in $(properties)
+        && <toolset>gcc in $(properties)
+    {
+        result += <libtorrent-python-pic>on ;
+    }
+
+    if <toolset>gcc in $(properties)
+      || <toolset>darwin in $(properties)
+      || <toolset>clang in $(properties)
+      || <toolset>clang-darwin in $(properties)
+    {
+        result += <visibility>hidden ;
+
+        if ( <toolset>gcc in $(properties) )
+        {
+           result += <linkflags>-Wl,-Bsymbolic ;
+        }
+    }
+
+    if <boost>source in $(properties)
+    {
+        # linux must link dynamically against boost python because it pulls
+        # in libpthread, which must be linked dynamically since we're building a .so
+        # (the static build of libpthread is not position independent)
+        if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
+        {
+            result += <library>/boost/python//boost_python/<link>shared ;
+        }
+        else
+        {
+            result += <library>/boost/python//boost_python/<link>static ;
+        }
+
+        if <libtorrent-link>shared in $(properties)
+        {
+            result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+        }
+        else
+        {
+            result += <library>/torrent//torrent/<link>static/<boost-link>static ;
+        }
+    }
+    else
+    {
+        result += <library>boost_python ;
+
+        if <libtorrent-link>shared in $(properties)
+        {
+            result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+        }
+        else
+        {
+            result += <library>/torrent//torrent/<link>static/<boost-link>static ;
+        }
+    }
+
+    return $(result) ;
+}
+
+# this is a copy of the rule from boost-build's python-extension, but without
+# specifying <suppress-import-lib>no as a mandatory property. That property
+# would otherwise cause build failures because it suppresses linking against the
+# runtime library and kernel32 on windows
+
+rule my-python-extension ( name : sources * : requirements * : default-build * :
+                        usage-requirements * )
+{
+    requirements += <use>/python//python_for_extensions ;
+
+    local project = [ project.current ] ;
+
+    targets.main-target-alternative
+        [ new typed-target $(name) : $(project) : PYTHON_EXTENSION
+            : [ targets.main-target-sources $(sources) : $(name) ]
+            : [ targets.main-target-requirements $(requirements) : $(project) ]
+            : [ targets.main-target-default-build $(default-build) : $(project) ]
+        ] ;
+}
+
+my-python-extension libtorrent 
+  : # sources
+    src/module.cpp
+    src/big_number.cpp
+    src/converters.cpp
+    src/create_torrent.cpp
+    src/fingerprint.cpp
+    src/utility.cpp
+    src/session.cpp
+    src/entry.cpp
+    src/torrent_info.cpp
+    src/string.cpp
+    src/torrent_handle.cpp
+    src/torrent_status.cpp
+    src/session_settings.cpp
+    src/version.cpp
+    src/alert.cpp
+    src/datetime.cpp
+    src/peer_info.cpp
+    src/ip_filter.cpp
+    src/magnet_uri.cpp
+    src/error_code.cpp
+  : # requirements
+    <include>src
+    <conditional>@libtorrent_linking
+  : # default build
+    <boost-link>static
+    <libtorrent-link>static
+    <suppress-import-lib>false
+  ;
+
+install stage_module : libtorrent : <location>. ;
+
