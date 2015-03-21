@@ -57,6 +57,7 @@ set(sources
 	random
 	receive_buffer
 	request_blocks
+	resolve_links
 	resolver
 	rss
 	session
@@ -114,6 +115,7 @@ set(kademlia_sources
 	dos_blocker
 	dht_tracker
 	node
+	node_entry
 	refresh
 	rpc_manager
 	find_data

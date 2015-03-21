@@ -7,6 +7,7 @@ KADEMLIA_SOURCES = \
   kademlia/dht_tracker.cpp      \
   kademlia/find_data.cpp        \
   kademlia/node.cpp             \
+  kademlia/node_entry.cpp       \
   kademlia/node_id.cpp          \
   kademlia/refresh.cpp          \
   kademlia/routing_table.cpp    \
@@ -101,6 +102,7 @@ libtorrent_rasterbar_la_SOURCES = \
   random.cpp                      \
   receive_buffer.cpp              \
   request_blocks.cpp              \
+  resolve_links.cpp               \
   resolver.cpp                    \
   rss.cpp                         \
   session.cpp                     \

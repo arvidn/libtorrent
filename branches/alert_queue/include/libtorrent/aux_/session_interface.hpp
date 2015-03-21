@@ -226,6 +226,11 @@ namespace libtorrent { namespace aux
 		virtual bool verify_bound_address(address const& addr, bool utp
 			, error_code& ec) = 0;
 
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		virtual std::vector<boost::shared_ptr<torrent> > find_collection(
+			std::string const& collection) const = 0;
+#endif
+
 		// TODO: it would be nice to not have this be part of session_interface
 		virtual proxy_settings proxy() const = 0;
 

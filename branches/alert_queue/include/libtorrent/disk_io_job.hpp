@@ -96,6 +96,7 @@ namespace libtorrent
 			, load_torrent
 			, clear_piece
 			, tick_storage
+			, resolve_links
 
 			, num_job_ids
 		};
@@ -163,6 +164,12 @@ namespace libtorrent
 		{
 			// result for hash jobs
 			char piece_hash[20];
+
+			// this is used for check_fastresume to pass in a vector of hard-links
+			// to create. Each element corresponds to a file in the file_storage.
+			// The string is the absolute path of the identical file to create
+			// the hard link to.
+			std::vector<std::string>* links;
 
 			struct io_args
 			{

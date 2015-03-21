@@ -30,57 +30,61 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef KADEMLIA_NODE_ENTRY_HPP
-#define KADEMLIA_NODE_ENTRY_HPP
-
-#include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/union_endpoint.hpp"
-#include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/kademlia/node_entry.hpp"
+#include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 namespace libtorrent { namespace dht
 {
 
-struct TORRENT_EXTRA_EXPORT node_entry
-{
-	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff
-		, bool pinged = false);
-	node_entry(udp::endpoint ep);
-	node_entry();
-	void update_rtt(int new_rtt);
-	
-	bool pinged() const { return timeout_count != 0xff; }
-	void set_pinged() { if (timeout_count == 0xff) timeout_count = 0; }
-	void timed_out() { if (pinged() && timeout_count < 0xfe) ++timeout_count; }
-	int fail_count() const { return pinged() ? timeout_count : 0; }
-	void reset_fail_count() { if (pinged()) timeout_count = 0; }
-	udp::endpoint ep() const { return udp::endpoint(address_v4(a), p); }
-	bool confirmed() const { return timeout_count == 0; }
-	address addr() const { return address_v4(a); }
-	int port() const { return p; }
-
+	node_entry::node_entry(node_id const& id_, udp::endpoint ep
+		, int roundtriptime
+		, bool pinged)
+		: last_queried(pinged ? aux::time_now() : min_time())
+		, id(id_)
+		, a(ep.address().to_v4().to_bytes())
+		, p(ep.port())
+		, rtt(roundtriptime & 0xffff)
+		, timeout_count(pinged ? 0 : 0xff)
+	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	time_point first_seen;
+		first_seen = aux::time_now();
 #endif
+	}
 
-	// the time we last received a response for a request to this peer
-	time_point last_queried;
-
-	node_id id;
-
-	address_v4::bytes_type a;
-	boost::uint16_t p;
-
-	// the average RTT of this node
-	boost::uint16_t rtt;
-
-	// the number of times this node has failed to
-	// respond in a row
-	boost::uint8_t timeout_count;
-};
-
-} } // namespace libtorrent::dht
-
+	node_entry::node_entry(udp::endpoint ep)
+		: last_queried(min_time())
+		, id(0)
+		, a(ep.address().to_v4().to_bytes())
+		, p(ep.port())
+		, rtt(0xffff)
+		, timeout_count(0xff)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		first_seen = aux::time_now();
 #endif
+	}
+
+	node_entry::node_entry()
+		: last_queried(min_time())
+		, id(0)
+		, p(0)
+		, rtt(0xffff)
+		, timeout_count(0xff)
+	{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		first_seen = aux::time_now();
+#endif
+	}
+	
+	void node_entry::update_rtt(int new_rtt)
+	{
+		TORRENT_ASSERT(new_rtt <= 0xffff);
+		TORRENT_ASSERT(new_rtt >= 0);
+		if (new_rtt == 0xffff) return;
+		if (rtt == 0xffff) rtt = new_rtt;
+		else rtt = int(rtt) * 2 / 3 + int(new_rtt) / 3;
+	}
+
+}}
+
 

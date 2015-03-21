@@ -315,11 +315,12 @@ feature tcmalloc : no yes : composite propagated link-incompatible ;
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
-feature sanitize : off bounds undefined thread rtc : composite propagated link-incompatible ;
+feature sanitize : off address bounds undefined thread rtc : composite propagated link-incompatible ;
 # sanitize is a clang and GCC feature
 feature.compose <sanitize>bounds : <cflags>-fsanitize=bounds <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=bounds <linkflags>-fsanitize-undefined-trap-on-error ;
 feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;
 feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
+feature.compose <sanitize>address : <cflags>-fsanitize=address <linkflags>-fsanitize=address ;
 # RTC (runtime check) is an msvc feature
 feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
@@ -403,6 +404,9 @@ feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature encryption : on off : composite propagated link-incompatible ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
+
+feature mutable-torrents : on off : composite propagated link-incompatible ;
+feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
 feature crypto : built-in openssl gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
@@ -572,6 +576,7 @@ SOURCES =
 	puff
 	random
 	receive_buffer
+	resolve_links
 	rss
 	session
 	session_impl
@@ -631,6 +636,7 @@ SOURCES =
 KADEMLIA_SOURCES =
 	dht_tracker
 	node
+	node_entry
 	refresh
 	rpc_manager
 	find_data

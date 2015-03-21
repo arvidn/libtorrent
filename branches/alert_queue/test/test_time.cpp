@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp" // for test_sleep
+
 #include "libtorrent/time.hpp"
 #include "libtorrent/thread.hpp"
 
