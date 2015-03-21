@@ -67,6 +67,12 @@ struct D
 	~D() { --instances; }
 };
 
+struct E
+{
+	E(char const* msg) : string_member(msg) {}
+	std::string string_member;
+};
+
 int D::instances = 0;
 
 int test_main()
@@ -183,6 +189,14 @@ int test_main()
 		q.clear();
 
 		TEST_EQUAL(D::instances, 0);
+	}
+
+	{
+		heterogeneous_queue<E> q;
+		for (int i = 0; i < 10000; ++i)
+		{
+			q.push_back(E("testing to allocate non-trivial objects"));
+		}
 	}
 
 	return 0;

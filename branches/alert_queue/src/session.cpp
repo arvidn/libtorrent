@@ -402,6 +402,7 @@ namespace libtorrent
 
 	void session::start(int flags, settings_pack const& pack)
 	{
+		m_impl->
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
@@ -1162,7 +1163,9 @@ namespace libtorrent
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
-		return std::auto_ptr<alert>(m_impl->pop_alert());
+		alert* a = m_impl->pop_alert();
+		if (a == NULL) return std::auto_ptr<alert>();
+		return a->clone();
 	}
 
 	void session::set_alert_mask(boost::uint32_t m)
