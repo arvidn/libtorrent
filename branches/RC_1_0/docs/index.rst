@@ -21,7 +21,6 @@
 * `report bugs`_
 * `sourceforge page`_
 * `blog`_
-* `wiki`_
 
 --------
 
@@ -84,7 +83,6 @@ libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: http://code.google.com/p/libtorrent/issues/entry
 .. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _wiki: http://code.google.com/p/libtorrent/wiki/index
 .. _blog: http://blog.libtorrent.org
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
