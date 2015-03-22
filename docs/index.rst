@@ -21,7 +21,6 @@
 * `report bugs`_
 * `sourceforge page`_
 * `blog`_
-* `wiki`_
 
 --------
 
@@ -83,8 +82,7 @@ libtorrent
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: http://code.google.com/p/libtorrent/issues/entry
-.. _sourceforge page: http://www.sourceforge.net/projects/libtorrent
-.. _wiki: http://code.google.com/p/libtorrent/wiki/index
+.. _sourceforge page: http://sourceforge.net/projects/libtorrent
 .. _blog: http://blog.libtorrent.org
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
@@ -115,7 +113,7 @@ Support the development of libtorrent
 .. raw:: html
 	
 	<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
-	<noscript><a href="http://flattr.com/thing/95662/libtorrent" target="_blank">
+	<noscript><a href="https://flattr.com/thing/95662/libtorrent" target="_blank">
 	<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript>
 
 
@@ -133,7 +131,7 @@ license
 
 libtorrent is released under the BSD-license_.
 
-.. _BSD-license: http://www.opensource.org/licenses/bsd-license.php
+.. _BSD-license: http://opensource.org/licenses/bsd-license.php
 
 This means that you can use the library in your project without having to
 release its source code. The only requirement is that you give credit

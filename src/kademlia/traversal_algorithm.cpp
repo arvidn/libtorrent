@@ -217,7 +217,7 @@ void traversal_algorithm::start()
 {
 	// in case the routing table is empty, use the
 	// router nodes in the table
-	if (m_results.size() < 8) add_router_entries();
+	if (m_results.size() < 3) add_router_entries();
 	init();
 	bool is_done = add_requests();
 	if (is_done) done();
