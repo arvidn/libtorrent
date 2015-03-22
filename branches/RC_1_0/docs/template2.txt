@@ -26,7 +26,7 @@
     </table>
     <div id="main">
 
-<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" type="text/javascript"></script>
 <!-- libtorrent, 728x90, created 11/12/08 -->
 <ins class="adsbygoogle"
      style="display:inline-block;width:728px;height:90px"
@@ -72,7 +72,7 @@
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
     <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
     </script>
