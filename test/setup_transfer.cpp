@@ -81,7 +81,7 @@ static std::vector<std::string> failure_strings;
 
 address rand_v4()
 {
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+	return address_v4(((boost::uint32_t(rand()) << 16) | rand()) & 0xffffffff);
 }
 
 #if TORRENT_USE_IPV6
@@ -509,7 +509,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	unsigned int seed = total_microseconds(clock_type::now() - min_time()) & 0xffffffff;
+	unsigned int seed = total_microseconds(clock_type::now().time_since_epoch()) & 0xffffffff;
 	printf("random seed: %u\n", seed);
 	std::srand(seed);
 
@@ -864,7 +864,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	unsigned int seed = total_microseconds(clock_type::now() - min_time()) & 0xffffffff;
+	unsigned int seed = total_microseconds(clock_type::now().time_since_epoch()) & 0xffffffff;
 	fprintf(stderr, "random seed: %u\n", seed);
 	std::srand(seed);
 	int port = 5000 + (rand() % 55000);
