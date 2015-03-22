@@ -1,3 +1,5 @@
+1.0.4 release
+
 	* fix bug in python binding for file_progress on torrents with no metadata
 	* fix assert when removing a connected web seed
 	* fix bug in tracker timeout logic
