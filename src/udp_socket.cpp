@@ -995,6 +995,13 @@ void udp_socket::on_connected(error_code const& e, int ticket)
 	CHECK_MAGIC;
 
 	TORRENT_ASSERT(is_single_thread());
+	if (m_connection_ticket == -1
+		&& e == asio::error::operation_aborted)
+	{
+		// this socket has already been aborted and closed.
+		return;
+	}
+
 	if (m_cc.done(ticket))
 	{
 		// if the tickets mismatch, another connection attempt
