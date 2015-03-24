@@ -66,7 +66,7 @@ sha1_hash to_hash(char const* s)
 
 address rand_v4()
 {
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+	return address_v4(((boost::uint32_t(rand()) << 16) | rand()) & 0xffffffff);
 }
 
 #if TORRENT_USE_IPV6
