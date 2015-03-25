@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-/*
-	Physical file offset patch by Morten Husveit
-*/
-
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
 

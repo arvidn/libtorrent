@@ -402,7 +402,6 @@ namespace libtorrent
 
 	void session::start(int flags, settings_pack const& pack)
 	{
-		m_impl->
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
