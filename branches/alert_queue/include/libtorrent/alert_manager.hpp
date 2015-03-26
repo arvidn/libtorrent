@@ -78,7 +78,7 @@ namespace libtorrent {
 		}
 
 		bool pending() const;
-		void get_all(heterogeneous_queue<alert>& alerts, int& num_resume);
+		void get_all(std::vector<alert const*>& alerts, int& num_resume);
 
 		template <class T>
 		bool should_post() const
@@ -128,6 +128,12 @@ namespace libtorrent {
 		int m_num_queued_resume;
 
 		heterogeneous_queue<alert> m_alerts;
+
+		// this is the copy of alerts belonging to the client thread. When the
+		// clint asks for alerts, they are all pulled in here to be stored
+		// and accessed by the user until another batch is pulled in. (at that
+		// point these are swapped back into the alert_manager and destructed).
+		heterogeneous_queue<alert> m_client_alerts;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;

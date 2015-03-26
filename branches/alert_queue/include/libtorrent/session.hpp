@@ -1100,66 +1100,46 @@ namespace libtorrent
 
 #endif
 
-		// TODO: 3 fix documentation here. alerts may *NOT* be deleted by client.
-		// Alerts are only valid until pop_alerts is called again. *SHOULD NOT*
-		// be mixed with deprecated functions to pop alerts. pop_alert() and
-		// pop_alerts() should not be mixed, as the 
-
-		// ``pop_alert()`` is used to ask the session if any errors or events has
-		// occurred. With settings_pack::alert_mask you can filter which alerts
-		// to receive through ``pop_alert()``. For information about the alert
-		// categories, see alerts_.
+		// Alerts is the main mechanism for libtorrent to report errors and
+		// events. ``pop_alerts`` fills in the vector passed to it with pointers
+		// to new alerts. The session still owns these alerts and they will stay
+		// valid until the next time ``pop_alerts`` is called. The pointers are
+		// const to indicate that you may not delete them.
 		// 
-		// ``pop_alerts()`` pops all pending alerts in a single call. In high
-		// performance environments with a very high alert churn rate, this can
-		// save significant amount of time compared to popping alerts one at a
-		// time. Each call requires one round-trip to the network thread. If
-		// alerts are produced in a higher rate than they can be popped (when
-		// popped one at a time) it's easy to get stuck in an infinite loop,
-		// trying to drain the alert queue. Popping the entire queue at once
-		// avoids this problem.
+		// It is safe to call ``pop_alert`` from multiple different threads, as
+		// long as the alerts themselves are not accessed once another thread
+		// calls ``pop_alerts``. Doing this requires manual synchronization
+		// between the popping threads.
 		// 
-		// However, the ``pop_alerts`` function comes with significantly more
-		// responsibility. You pass in an *empty* ``std::dequeue<alert*>`` to it.
-		// If it's not empty, all elements in it will be deleted and then
-		// cleared. All currently pending alerts are returned by being swapped
-		// into the passed in container. The responsibility of deleting the
-		// alerts is transferred to the caller. This means you need to call
-		// delete for each item in the returned dequeue. It's probably a good
-		// idea to delete the alerts as you handle them, to save one extra pass
-		// over the dequeue.
-		// 
-		// Alternatively, you can pass in the same container the next time you
-		// call ``pop_alerts``.
-		// 
-		// ``wait_for_alert`` blocks until an alert is available, or for no more
-		// than ``max_wait`` time. If ``wait_for_alert`` returns because of the
-		// time-out, and no alerts are available, it returns 0. If at least one
-		// alert was generated, a pointer to that alert is returned. The alert is
-		// not popped, any subsequent calls to ``wait_for_alert`` will return the
-		// same pointer until the alert is popped by calling ``pop_alert``. This
-		// is useful for leaving any alert dispatching mechanism independent of
-		// this blocking call, the dispatcher can be called and it can pop the
-		// alert independently.
-		// 
-		// .. note::
-		// 	Although these functions are all thread-safe, popping alerts from
-		// 	multiple separate threads may introduce race conditions in that
-		// 	the thread issuing an asynchronous operation may not be the one
-		// 	receiving the alert with the result.
-		// 
+		// ``wait_for_alert`` will block the current thread for ``max_wait`` time
+		// duration, or until another alert is posted. If an alert is available
+		// at the time of the call, it returns immediately. The returned alert
+		// pointer is the head of the alert queue. ``wait_for_alert`` does not
+		// pop alerts from the queue, it merely peeks at it. The returned alert
+		// will stay valid until ``pop_alerts`` is called twice. The first time
+		// will pop it and the second will free it.
+		//
+		// If there is no alert in the queue and no alert arrives within the
+		// specified timeout, ``wait_for_alert`` returns NULL.
+		//
 		// In the python binding, ``wait_for_alert`` takes the number of
 		// milliseconds to wait as an integer.
 		// 
-		// To control the max number of alerts that's queued by the session, see
+		// The alert queue in the session will not grow indefinitely. Make sure
+		// to pop periodically to not miss notifications. To control the max
+		// number of alerts that's queued by the session, see
 		// ``session_settings::alert_queue_size``.
 		// 
+		// Some alerts are considered so important that they are posted even when
+		// the alert queue is full. Some alerts are considered mandatory and cannot
+		// be disabled by the ``alert_mask``. For instance,
 		// save_resume_data_alert and save_resume_data_failed_alert are always
 		// posted, regardelss of the alert mask.
+		// 
+		// To control which alerts are posted, set the alert_mask
+		// (settings_pack::alert_mask).
 		void pop_alerts(std::vector<alert const*>* alerts);
 		alert const* wait_for_alert(time_duration max_wait);
-		// TODO: 3 there should probably be a new pop_alert() that just returns
-		// a const alert pointer
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX

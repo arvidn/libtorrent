@@ -51,7 +51,7 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 
 int peer_disconnects = 0;
 
-bool on_alert(alert* a)
+bool on_alert(alert const* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
@@ -138,8 +138,8 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, on_alert);
-		print_alerts(ses2, "ses2", true, true, true, on_alert);
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -181,7 +181,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses2, "ses2", true, true, true, on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st2 = tor2.status();
 
@@ -273,8 +273,8 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, on_alert);
-		print_alerts(ses2, "ses2", true, true, true, on_alert);
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -316,7 +316,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses2, "ses2", true, true, true, on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st2 = tor2.status();
 
@@ -440,8 +440,8 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, on_alert);
-		print_alerts(ses2, "ses2", true, true, true, on_alert);
+		print_alerts(ses1, "ses1", true, true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();

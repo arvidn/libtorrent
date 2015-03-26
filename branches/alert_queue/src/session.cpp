@@ -1162,7 +1162,7 @@ namespace libtorrent
 
 	std::auto_ptr<alert> session::pop_alert()
 	{
-		alert* a = m_impl->pop_alert();
+		alert const* a = m_impl->pop_alert();
 		if (a == NULL) return std::auto_ptr<alert>();
 		return a->clone();
 	}

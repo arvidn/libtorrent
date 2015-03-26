@@ -165,7 +165,7 @@ namespace libtorrent
 	}
 #endif
 
-	void alert_manager::get_all(heterogeneous_queue<alert>& alerts, int& num_resume)
+	void alert_manager::get_all(std::vector<alert const*>& alerts, int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(m_num_queued_resume <= m_alerts.size());
@@ -173,9 +173,11 @@ namespace libtorrent
 
 		alerts.clear();
 		if (m_alerts.empty()) return;
-		m_alerts.swap(alerts);
+		m_client_alerts.clear();
+		m_alerts.swap(m_client_alerts);
 
 		m_num_queued_resume = 0;
+		m_client_alerts.get_pointers(alerts);
 	}
 
 	bool alert_manager::pending() const

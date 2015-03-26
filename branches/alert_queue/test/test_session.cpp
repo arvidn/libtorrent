@@ -55,20 +55,20 @@ int test_main()
 	// we're allowing a larger queue than we have cache.
 
 
-	std::auto_ptr<alert> a;
+	alert const* a;
 	for (;;)
 	{
 		a = wait_for_alert(ses, performance_alert::alert_type, "ses1");
 
-		if (a.get() == NULL) break;
-		TEST_EQUAL(a.get()->type(), performance_alert::alert_type);
+		if (a == NULL) break;
+		TEST_EQUAL(a->type(), performance_alert::alert_type);
 
-		if (alert_cast<performance_alert>(a.get())->warning_code
+		if (alert_cast<performance_alert>(a)->warning_code
 			== performance_alert::too_high_disk_queue_limit)
 			break;
 	}
 
-	TEST_CHECK(a.get());
+	TEST_CHECK(a);
 
 	sett.set_int(settings_pack::unchoke_slots_limit, 0);
 	ses.apply_settings(sett);

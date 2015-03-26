@@ -137,27 +137,18 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 
 		std::cout << "reading piece 0" << std::endl;
 		h.read_piece(0);
-		alert const* a = ses.wait_for_alert(seconds(10));
-		bool passed = false;
-		while (a)
+		alert const* a = wait_for_alert(ses, read_piece_alert::alert_type, "read_piece");
+		TEST_CHECK(a);
+		read_piece_alert const* rpa = alert_cast<read_piece_alert>(a);
+		TEST_CHECK(rpa);
+		if (rpa)
 		{
-			std::auto_ptr<alert> al = ses.pop_alert();
-			assert(al.get());
-			std::cout << "  " << al->message() << std::endl;
-			if (read_piece_alert* rpa = alert_cast<read_piece_alert>(al.get()))
-			{
-				std::cout << "SUCCEEDED!" << std::endl;
-				passed = true;
-				TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
-				TEST_CHECK(rpa->size == info->piece_size(0));
-				TEST_CHECK(rpa->piece == 0);
-				TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
-				break;
-			}
-			a = ses.wait_for_alert(seconds(10));
-			TEST_CHECK(a);
+			std::cout << "SUCCEEDED!" << std::endl;
+			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
+			TEST_CHECK(rpa->size == info->piece_size(0));
+			TEST_CHECK(rpa->piece == 0);
+			TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
 		}
-		TEST_CHECK(passed);
 	}
 }
 
