@@ -1103,8 +1103,8 @@ namespace libtorrent
 		// Alerts is the main mechanism for libtorrent to report errors and
 		// events. ``pop_alerts`` fills in the vector passed to it with pointers
 		// to new alerts. The session still owns these alerts and they will stay
-		// valid until the next time ``pop_alerts`` is called. The pointers are
-		// const to indicate that you may not delete them.
+		// valid until the next time ``pop_alerts`` is called. You may not delete
+		// the alert objects.
 		// 
 		// It is safe to call ``pop_alert`` from multiple different threads, as
 		// long as the alerts themselves are not accessed once another thread
@@ -1138,8 +1138,8 @@ namespace libtorrent
 		// 
 		// To control which alerts are posted, set the alert_mask
 		// (settings_pack::alert_mask).
-		void pop_alerts(std::vector<alert const*>* alerts);
-		alert const* wait_for_alert(time_duration max_wait);
+		void pop_alerts(std::vector<alert*>* alerts);
+		alert* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX

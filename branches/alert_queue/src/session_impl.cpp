@@ -6201,7 +6201,7 @@ retry:
 //		m_alerts.set_dispatch_function(fun);
 	}
 
-	void session_impl::pop_alerts(std::vector<alert const*>* alerts)
+	void session_impl::pop_alerts(std::vector<alert*>* alerts)
 	{
 		int num_resume = 0;
 		m_alerts.get_all(*alerts, num_resume);
@@ -6266,7 +6266,7 @@ retry:
 	}
 #endif
 
-	alert const* session_impl::wait_for_alert(time_duration max_wait)
+	alert* session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);
 	}

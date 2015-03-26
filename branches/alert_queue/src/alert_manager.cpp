@@ -55,7 +55,7 @@ namespace libtorrent
 		return m_num_queued_resume;
 	}
 
-	alert const* alert_manager::wait_for_alert(time_duration max_wait)
+	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
@@ -165,7 +165,7 @@ namespace libtorrent
 	}
 #endif
 
-	void alert_manager::get_all(std::vector<alert const*>& alerts, int& num_resume)
+	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
 		TORRENT_ASSERT(m_num_queued_resume <= m_alerts.size());

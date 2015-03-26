@@ -423,10 +423,9 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents() const;
 			
-			void pop_alerts(std::vector<alert const*>* alerts);
+			void pop_alerts(std::vector<alert*>* alerts);
 			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
-
-			alert const* wait_for_alert(time_duration max_wait);
+			alert* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
 			void pop_alerts();

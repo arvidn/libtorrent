@@ -262,13 +262,13 @@ void test_transfer(settings_pack const& sett)
 	time_point start = clock_type::now();
 	while (true)
 	{
-		std::vector<alert const*> alerts;
+		std::vector<alert*> alerts;
 		ses2.pop_alerts(&alerts);
 		if (alerts.empty()) break;
-		for (std::vector<alert const*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			alert const* a = *i;
+			alert* a = *i;
 			std::cerr << "ses2: " << a->message() << std::endl;
 			if (alert_cast<save_resume_data_alert>(a))
 			{

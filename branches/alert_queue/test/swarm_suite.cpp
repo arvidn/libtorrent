@@ -202,9 +202,9 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
-		std::vector<alert const*> alerts;
+		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
-		for (std::vector<alert const*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			std::cerr << ret->message() << std::endl;

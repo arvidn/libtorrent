@@ -78,7 +78,7 @@ namespace libtorrent {
 		}
 
 		bool pending() const;
-		void get_all(std::vector<alert const*>& alerts, int& num_resume);
+		void get_all(std::vector<alert*>& alerts, int& num_resume);
 
 		template <class T>
 		bool should_post() const
@@ -91,7 +91,7 @@ namespace libtorrent {
 		bool should_post(alert const* a) const
 		{ return (m_alert_mask & a->category()) != 0; }
 
-		alert const* wait_for_alert(time_duration max_wait);
+		alert* wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(boost::uint32_t m)
 		{

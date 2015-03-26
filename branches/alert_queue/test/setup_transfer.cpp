@@ -151,9 +151,9 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		if (now > end) return NULL;
 
 		ses.wait_for_alert(end - now);
-		std::vector<alert const*> alerts;
+		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		for (std::vector<alert const*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			fprintf(stderr, "%s: %s: [%s] %s\n", aux::time_now_string(), name
@@ -258,9 +258,9 @@ bool print_alerts(lt::session& ses, char const* name
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
 	if (!handles.empty()) h = handles[0];
-	std::vector<alert const*> alerts;
+	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
-	for (std::vector<alert const*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
+	for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
 	{
 		if (predicate && predicate(*i)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(*i))

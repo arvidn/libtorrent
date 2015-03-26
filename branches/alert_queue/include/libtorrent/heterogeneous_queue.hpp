@@ -83,22 +83,6 @@ namespace libtorrent {
 			}
 		}
 
-		void get_pointers(std::vector<T const*>& out)
-		{
-			out.clear();
-			if (m_storage.empty()) return;
-
-			uintptr_t* ptr = &m_storage[0];
-			uintptr_t const* const end = &m_storage[0] + m_storage.size();
-			while (ptr < end)
-			{
-				int len = *ptr++;
-				TORRENT_ASSERT(ptr + len <= end);
-				out.push_back((T*)ptr);
-				ptr += len;
-			}
-		}
-
 		void get_pointers(std::vector<T*>& out)
 		{
 			out.clear();

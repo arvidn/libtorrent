@@ -1143,13 +1143,13 @@ namespace libtorrent
 //		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
 	}
 
-	alert const* session::wait_for_alert(time_duration max_wait)
+	alert* session::wait_for_alert(time_duration max_wait)
 	{
 		return m_impl->wait_for_alert(max_wait);
 	}
 
 	// the alerts are const, they may not be deleted by the client
-	void session::pop_alerts(std::vector<alert const*>* alerts)
+	void session::pop_alerts(std::vector<alert*>* alerts)
 	{
 		m_impl->pop_alerts(alerts);
 	}
