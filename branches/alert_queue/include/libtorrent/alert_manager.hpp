@@ -38,7 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/heterogeneous_queue.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
 #include <boost/function/function1.hpp>
+#endif
+#include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
 #include <list>
 
@@ -69,12 +72,28 @@ namespace libtorrent {
 		void post_alert(T const& a)
 		{
 			mutex::scoped_lock lock(m_mutex);
+#ifndef TORRENT_NO_DEPRECATE
+			if (m_dispatch)
+			{
+				m_dispatch(a.clone());
+				return;
+			}
+#endif
 			if (m_alerts.size() >= m_queue_size_limit) return;
 
 			m_alerts.push_back(a);
 
 			if (m_alerts.size() == 1)
+			{
+				lock.unlock();
+
+				// we just posted to an empty queue. If anyone is waiting for
+				// alerts, we need to notify them. Also (potentially) call the
+				// user supplied m_notify callback to let the client wake up its
+				// message loop to poll for alerts.
+				if (m_notify) m_notify();
 				m_condition.notify_all();
+			}
 		}
 
 		bool pending() const;
@@ -104,7 +123,11 @@ namespace libtorrent {
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
+		void set_notify_function(boost::function<void()> const& fun);
+
+#ifndef TORRENT_NO_DEPRECATE
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
+#endif
 
 		int num_queued_resume() const;
 
@@ -122,7 +145,18 @@ namespace libtorrent {
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
+
+#ifndef TORRENT_NO_DEPRECATE
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+#endif
+
+		// this function (if set) is called whenever the number of alerts in
+		// the alert queue goes from 0 to 1. The client is expected to wake up
+		// its main message loop for it to poll for alerts (using get_alerts()).
+		// That call will drain every alert in one atomic operation and this
+		// notification function will be called again the next time an alert is
+		// posted to the queue
+		boost::function<void()> m_notify;
 
 		// the number of resume data alerts  in the alert queue
 		int m_num_queued_resume;

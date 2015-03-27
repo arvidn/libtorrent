@@ -6155,6 +6155,24 @@ retry:
 		}
 	}
 
+	void session_impl::update_alert_mask()
+	{
+		m_alerts.set_alert_mask(m_settings.get_int(settings_pack::alert_mask));
+	}
+
+	void session_impl::pop_alerts(std::vector<alert*>* alerts)
+	{
+		int num_resume = 0;
+		m_alerts.get_all(*alerts, num_resume);
+		if (num_resume > 0)
+		{
+			// we can only issue more resume data jobs from
+			// the network thread
+			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
+				, this, num_resume));
+		}
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_rate_limit_utp()
 	{
@@ -6186,35 +6204,10 @@ retry:
 
 	void session_impl::update_ignore_rate_limits_on_local_network()
 	{
-		init_peer_class_filter(m_settings.get_bool(settings_pack::ignore_limits_on_local_network));
-	}
-#endif
-
-	void session_impl::update_alert_mask()
-	{
-		m_alerts.set_alert_mask(m_settings.get_int(settings_pack::alert_mask));
+		init_peer_class_filter(
+			m_settings.get_bool(settings_pack::ignore_limits_on_local_network));
 	}
 
-	void session_impl::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
-	{
-		// TODO: 3 support this again
-//		m_alerts.set_dispatch_function(fun);
-	}
-
-	void session_impl::pop_alerts(std::vector<alert*>* alerts)
-	{
-		int num_resume = 0;
-		m_alerts.get_all(*alerts, num_resume);
-		if (num_resume > 0)
-		{
-			// we can only issue more resume data jobs from
-			// the network thread
-			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-				, this, num_resume));
-		}
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
 	// this function is called on the user's thread
 	// not the network thread
 	void session_impl::pop_alerts()
@@ -6256,7 +6249,7 @@ retry:
 				return;
 		}
 
-		for (std::vector<alert const*>::iterator i = m_alert_pointers.begin()
+		for (std::vector<alert*>::iterator i = m_alert_pointers.begin()
 			+ m_alert_pointer_pos, end(m_alert_pointers.end());
 			i != end; ++i)
 		{

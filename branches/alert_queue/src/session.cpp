@@ -1132,16 +1132,12 @@ namespace libtorrent
 	{
 		return TORRENT_SYNC_CALL_RET(int, num_connections);
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		// TODO: 3 support this again. The proper way of doing this is probably
-		// to notify the client whenever the number of alerts go from 0 -> 1.
-		// the callback can post a message to the client's main loop whose handler
-		// then pulls down all alerts, with pop_alerts()
-//		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
+		m_impl->m_alerts.set_dispatch_function(fun);
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	alert* session::wait_for_alert(time_duration max_wait)
 	{
@@ -1152,6 +1148,11 @@ namespace libtorrent
 	void session::pop_alerts(std::vector<alert*>* alerts)
 	{
 		m_impl->pop_alerts(alerts);
+	}
+
+	void session::set_alert_notify(boost::function<void()> const& fun)
+	{
+		m_impl->m_alerts.set_notify_function(fun);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

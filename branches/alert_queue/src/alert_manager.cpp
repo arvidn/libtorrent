@@ -67,97 +67,41 @@ namespace libtorrent
 
 		return NULL;
 	}
-/*
+
+#ifndef TORRENT_NO_DEPRECATE
 	void alert_manager::set_dispatch_function(
-		boost::function<void(alert const& a)> const& fun)
+		boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
 		m_dispatch = fun;
 
-		std::vector<char> storage;
-		m_storage.swap(storage);
+		heterogeneous_queue<alert> storage;
+		m_alerts.swap(storage);
 		lock.unlock();
 
-		char* const start = &storage[0];
-		char* const end = &storage[0] + storage.size();
-		char* ptr = start;
-		while (ptr < end)
+		std::vector<alert*> alerts;
+		storage.get_pointers(alerts);
+
+		for (std::vector<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
 		{
-			int len = alignment<sizeof(void*)>::read_uintptr(ptr);
-			TORRENT_ASSERT(len <= storage.size() - (ptr - start));
-			alert* a = (alert*)ptr;
-			m_dispatch(*a);
-			a->~alert();
-			ptr += len;
+			m_dispatch((*i)->clone());
 		}
-		clear_alert_storage(storage);
 	}
-
-	void dispatch_alert(boost::function<void(alert const&)> dispatcher
-		, alert* alert_)
-	{
-		std::auto_ptr<alert> holder(alert_);
-		dispatcher(*alert_);
-	}
-
-	void alert_manager::post_alert_ptr(alert* alert_)
-	{
-		std::auto_ptr<alert> a(alert_);
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			TORRENT_TRY {
-				(*i)->on_alert(alert_);
-			} TORRENT_CATCH(std::exception&) {}
-		}
 #endif
 
-		mutex::scoped_lock lock(m_mutex);
-		post_impl(a, lock);
-	}
-
-	void alert_manager::post_alert(const alert& alert_)
+	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
-		std::auto_ptr<alert> a(alert_.clone());
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			TORRENT_TRY {
-				(*i)->on_alert(&alert_);
-			} TORRENT_CATCH(std::exception&) {}
-		}
-#endif
-
 		mutex::scoped_lock lock(m_mutex);
-		post_impl(a, lock);
+		m_notify = fun;
+		if (!m_alerts.empty())
+		{
+			lock.unlock();
+			m_notify();
+		}
 	}
-		
-	void alert_manager::post_impl(std::auto_ptr<alert>& alert_
-		, mutex::scoped_lock& l)
-	{
-		if (alert_cast<save_resume_data_failed_alert>(alert_.get())
-			|| alert_cast<save_resume_data_alert>(alert_.get()))
-			++m_num_queued_resume;
 
-		if (m_dispatch)
-		{
-			TORRENT_TRY {
-				m_dispatch(alert_);
-			} TORRENT_CATCH(std::exception&) {}
-		}
-		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
-		{
-			m_alerts.push_back(alert_.release());
-			if (m_alerts.size() == 1)
-				m_condition.notify_all();
-		}
-	}
-*/
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
 	{

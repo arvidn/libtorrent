@@ -424,7 +424,6 @@ namespace libtorrent
 			std::vector<torrent_handle> get_torrents() const;
 			
 			void pop_alerts(std::vector<alert*>* alerts);
-			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
 			alert* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -703,7 +702,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			// the alert pointers stored in m_alerts
-			mutable std::vector<alert const*> m_alert_pointers;
+			mutable std::vector<alert*> m_alert_pointers;
 
 			// if not all the alerts in m_alert_pointers have been delivered to
 			// the client. This is the offset into m_alert_pointers where the next

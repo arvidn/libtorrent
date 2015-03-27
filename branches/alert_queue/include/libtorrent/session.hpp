@@ -1138,8 +1138,22 @@ namespace libtorrent
 		// 
 		// To control which alerts are posted, set the alert_mask
 		// (settings_pack::alert_mask).
+
+		// the ``set_alert_notify`` function lets the client set a function object
+		// to be invoked every time the alert queue goes from having 0 alerts to
+		// 1 alert. This function is called from within libtorrent, it may be the
+		// main thread, or it may be from within a user call. The intention of
+		// of the function is that the client wakes up its main thread, to poll
+		// for more alerts using ``pop_alerts()``. If the notify function fails
+		// to do so, it won't be called again, until pop_alert is called for some
+		// other reason. For instance, it could signal an eventfd, post a message
+		// to an HWND or some other main message pump. The actual retrieval of 
+		// alerts should not be done in the callback. In fact, the callback should
+		// not block. It should not perform any expensive work. It really should
+		// just notify the main application thread.
 		void pop_alerts(std::vector<alert*>* alerts);
 		alert* wait_for_alert(time_duration max_wait);
+		void set_alert_notify(boost::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
@@ -1160,20 +1174,19 @@ namespace libtorrent
 		void set_alert_mask(boost::uint32_t m) TORRENT_DEPRECATED;
 		TORRENT_DEPRECATED_PREFIX
 		boost::uint32_t get_alert_mask() const TORRENT_DEPRECATED;
-#endif
 
 		// This sets a function to be called (from within libtorrent's netowrk
 		// thread) every time an alert is posted. Since the function (``fun``) is
-		// run in libtorrent's internal thread, it may not call any of
-		// libtorrent's external API functions. Doing so results in a dead lock.
+		// run in libtorrent's internal thread, it may not block.
 		// 
 		// The main intention with this function is to support integration with
 		// platform-dependent message queues or signalling systems. For instance,
 		// on windows, one could post a message to an HNWD or on linux, write to
 		// a pipe or an eventfd.
-		void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun);
+		TORRENT_DEPRECATED_PREFIX
+		void set_alert_dispatch(
+			boost::function<void(std::auto_ptr<alert>)> const& fun) TORRENT_DEPRECATED;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to
 		// look for peers on the same swarm within multicast reach.
