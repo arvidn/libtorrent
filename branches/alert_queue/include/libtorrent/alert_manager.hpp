@@ -58,7 +58,6 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-		// TODO: 3 remove this
 		template <class T>
 		void post_alert_ptr(T const* a)
 		{
@@ -66,8 +65,8 @@ namespace libtorrent {
 			delete a;
 		}
 
-		// TODO: 2 instead of copying the alert, pass in all the constructor
-		// arguments and construct it in place
+		// TODO: 2 instead of copying the alert perhaps there should be an
+		// emplace-style function
 		template <class T>
 		void post_alert(T const& a)
 		{
@@ -79,7 +78,10 @@ namespace libtorrent {
 				return;
 			}
 #endif
-			if (m_alerts.size() >= m_queue_size_limit) return;
+			// don't add more than this number of alerts, unless it's a
+			// high priority alert, in which case we try harder to deliver it
+			// for high priority alerts, double the upper limit
+			if (m_alerts.size() >= m_queue_size_limit * (1 + T::priority)) return;
 
 			m_alerts.push_back(a);
 
@@ -103,12 +105,18 @@ namespace libtorrent {
 		bool should_post() const
 		{
 			mutex::scoped_lock lock(m_mutex);
-			if (m_alerts.size() >= m_queue_size_limit) return false;
+			if (m_alerts.size() >= m_queue_size_limit * (1 + T::priority)) return false;
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
 		bool should_post(alert const* a) const
-		{ return (m_alert_mask & a->category()) != 0; }
+		{
+			mutex::scoped_lock lock(m_mutex);
+			boost::uint32_t mask = m_alert_mask;
+			lock.unlock();
+
+			return (mask & a->category()) != 0;
+		}
 
 		alert* wait_for_alert(time_duration max_wait);
 
@@ -118,7 +126,11 @@ namespace libtorrent {
 			m_alert_mask = m;
 		}
 
-		int alert_mask() const { return m_alert_mask; }
+		boost::uint32_t alert_mask() const
+		{
+			mutex::scoped_lock lock(m_mutex);
+			return m_alert_mask;
+		}
 
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);

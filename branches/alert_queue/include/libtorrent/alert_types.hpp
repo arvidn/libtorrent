@@ -119,6 +119,16 @@ namespace libtorrent
 	};
 
 #define TORRENT_DEFINE_ALERT(name, seq) \
+	static const int priority = 0; \
+	static const int alert_type = seq; \
+	virtual int type() const { return alert_type; } \
+	virtual std::auto_ptr<alert> clone() const \
+	{ return std::auto_ptr<alert>(new name(*this)); } \
+	virtual int category() const { return static_category; } \
+	virtual char const* what() const { return #name; }
+
+#define TORRENT_DEFINE_ALERT_PRIO(name, seq) \
+	static const int priority = 1; \
 	static const int alert_type = seq; \
 	virtual int type() const { return alert_type; } \
 	virtual std::auto_ptr<alert> clone() const \
@@ -162,10 +172,12 @@ namespace libtorrent
 			, info_hash(ih)
 		{}
 
-		TORRENT_DEFINE_ALERT(torrent_removed_alert, 4);
+		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4);
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 		sha1_hash info_hash;
 	};
 
@@ -194,11 +206,13 @@ namespace libtorrent
 			, size(0)
 		{}
 
-		TORRENT_DEFINE_ALERT(read_piece_alert, 5);
+		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5);
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		error_code ec;
 		boost::shared_array<char> buffer;
@@ -239,11 +253,13 @@ namespace libtorrent
 			, index(idx)
 		{}
 
-		TORRENT_DEFINE_ALERT(file_renamed_alert, 7);
+		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7);
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		std::string name;
 
@@ -265,12 +281,14 @@ namespace libtorrent
 			, error(ec)
 		{}
 
-		TORRENT_DEFINE_ALERT(file_rename_failed_alert, 8);
+		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8);
 
 		static const int static_category = alert::storage_notification;
 
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// refers to the index of the file that was supposed to be renamed,
 		// ``error`` is the error code returned from the filesystem.
@@ -984,12 +1002,14 @@ namespace libtorrent
 			: torrent_alert(h)
 		{ info_hash = ih; }
 	
-		TORRENT_DEFINE_ALERT(torrent_deleted_alert, 35);
+		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35);
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " deleted"; }
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		sha1_hash info_hash;
 	};
@@ -1009,7 +1029,7 @@ namespace libtorrent
 #endif
 		}
 	
-		TORRENT_DEFINE_ALERT(torrent_delete_failed_alert, 36);
+		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36);
 
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1018,7 +1038,9 @@ namespace libtorrent
 			return torrent_alert::message() + " torrent deletion failed: "
 				+convert_from_native(error.message());
 		}
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// tells you why it failed.
 		error_code error;
@@ -1042,12 +1064,14 @@ namespace libtorrent
 			, resume_data(rd)
 		{}
 	
-		TORRENT_DEFINE_ALERT(save_resume_data_alert, 37);
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37);
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const
 		{ return torrent_alert::message() + " resume data generated"; }
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// points to the resume data.
 		boost::shared_ptr<entry> resume_data;
@@ -1068,7 +1092,7 @@ namespace libtorrent
 #endif
 		}
 	
-		TORRENT_DEFINE_ALERT(save_resume_data_failed_alert, 38);
+		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38);
 
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
@@ -1077,7 +1101,9 @@ namespace libtorrent
 			return torrent_alert::message() + " resume data was not generated: "
 				+ convert_from_native(error.message());
 		}
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		error_code error;
 
@@ -1355,11 +1381,13 @@ namespace libtorrent
 			, sock_type(t)
 		{}
 
-		TORRENT_DEFINE_ALERT(listen_failed_alert, 48);
+		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48);
 
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// the interface libtorrent attempted to listen on
 		std::string interface;
@@ -1392,11 +1420,13 @@ namespace libtorrent
 			, sock_type(t)
 		{}
 
-		TORRENT_DEFINE_ALERT(listen_succeeded_alert, 49);
+		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49);
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
@@ -1842,11 +1872,13 @@ namespace libtorrent
 			: torrent_alert(h)
 		{}
 
-		TORRENT_DEFINE_ALERT(torrent_need_cert_alert, 65);
+		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65);
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		error_code error;
 	};
@@ -1903,11 +1935,13 @@ namespace libtorrent
 			, error(ec)
 		{}
 
-		TORRENT_DEFINE_ALERT(add_torrent_alert, 67);
+		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67);
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// a copy of the parameters used when adding the torrent, it can be used
 		// to identify which invocation to ``async_add_torrent()`` caused this alert.
@@ -1923,11 +1957,13 @@ namespace libtorrent
 	// it's not subject to filtering, since it's only manually posted anyway.
 	struct TORRENT_EXPORT state_update_alert : alert
 	{
-		TORRENT_DEFINE_ALERT(state_update_alert, 68);
+		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68);
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// contains the torrent status of all torrents that changed since last time
 		// this message was posted. Note that you can map a torrent status to a specific torrent
@@ -1954,11 +1990,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT session_stats_alert : alert
 	{
 		session_stats_alert() {}
-		TORRENT_DEFINE_ALERT(session_stats_alert, 70);
+		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70);
 
 		static const int static_category = alert::stats_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// the number of microseconds since the session was
 		// started. It represent the time when the snapshot of values was taken. When
@@ -1995,11 +2033,13 @@ namespace libtorrent
 			, new_ih(new_hash)
 		{}
 
-		TORRENT_DEFINE_ALERT(torrent_update_alert, 71);
+		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71);
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 		sha1_hash old_ih;
@@ -2062,12 +2102,15 @@ namespace libtorrent
 		dht_immutable_item_alert(sha1_hash const& t, entry const& i)
 			: target(t), item(i) {}
 		
-		TORRENT_DEFINE_ALERT(dht_immutable_item_alert, 74);
+		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74);
 
 		static const int static_category = alert::error_notification
 			| alert::dht_notification;
+
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// the target hash of the immutable item. This must
 		// match the sha-1 hash of the bencoded form of ``item``.
@@ -2088,12 +2131,14 @@ namespace libtorrent
 			, entry const& i)
 			: key(k), signature(sig), seq(sequence), salt(s), item(i) {}
 		
-		TORRENT_DEFINE_ALERT(dht_mutable_item_alert, 75);
+		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75);
 
 		static const int static_category = alert::error_notification
 			| alert::dht_notification;
 		virtual std::string message() const;
+#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
+#endif
 
 		// the public key that was looked up
 		boost::array<char, 32> key;

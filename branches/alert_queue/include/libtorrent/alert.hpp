@@ -242,12 +242,13 @@ namespace libtorrent {
 		// returns a bitmask specifying which categories this alert belong to.
 		virtual int category() const = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
-		virtual bool discardable() const { return true; }
+		TORRENT_DEPRECATED_PREFIX
+		virtual bool discardable() const TORRENT_DEPRECATED { return true; }
 
-#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED_PREFIX
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
 #endif

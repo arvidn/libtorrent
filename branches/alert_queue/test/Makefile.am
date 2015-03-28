@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
+  test_alert_manager         \
   test_bitfield              \
   test_crc32                 \
   test_torrent_info          \
