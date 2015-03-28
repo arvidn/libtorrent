@@ -1,3 +1,4 @@
+	* deprecated RSS API
 	* experimental support for BEP 38, "mutable torrents"
 	* replaced lazy_bdecode with a new bdecoder that's a lot more efficient
 	* deprecate time functions, expose typedefs of boost::chrono in the libtorrent

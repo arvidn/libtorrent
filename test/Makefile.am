@@ -39,7 +39,6 @@ test_programs = \
   test_settings_pack         \
   test_read_piece            \
   test_resume                \
-  test_rss                   \
   test_ssl                   \
   test_storage               \
   test_time_critical         \
@@ -121,12 +120,6 @@ EXTRA_DIST = Jamfile \
   mutable_test_torrents/test2_pad_files.torrent \
   mutable_test_torrents/test3.torrent \
   mutable_test_torrents/test3_pad_files.torrent \
-  eztv.xml \
-  kat.xml \
-  cb.xml \
-  mn.xml \
-  pb.xml \
-  upnp.xml \
   zeroes.gz \
   utf8_test.txt
 
@@ -186,7 +179,6 @@ test_super_seeding_SOURCES = test_super_seeding.cpp
 test_swarm_SOURCES = test_swarm.cpp
 test_tailqueue_SOURCES = test_tailqueue.cpp
 test_resume_SOURCES = test_resume.cpp
-test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <string>
 
+#ifndef TORRENT_NO_DEPRECATE
 namespace libtorrent
 {
 	namespace aux
@@ -271,6 +272,7 @@ namespace libtorrent
 	};
 	
 }
+#endif // TORRENT_NO_DEPRECATE
 	
 #endif
 

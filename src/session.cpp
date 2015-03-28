@@ -440,6 +440,7 @@ namespace libtorrent
 		TORRENT_SYNC_CALL1(load_state, &e);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	feed_handle session::add_feed(feed_settings const& feed)
 	{
 		// if you have auto-download enabled, you must specify a download directory!
@@ -457,6 +458,7 @@ namespace libtorrent
 		f.clear();
 		TORRENT_SYNC_CALL1(get_feeds, &f);
 	}
+#endif
 
 	void session::set_load_function(user_load_function_t fun)
 	{

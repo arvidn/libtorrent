@@ -262,9 +262,11 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 		
+#ifndef TORRENT_NO_DEPRECATE
 			feed_handle add_feed(feed_settings const& feed);
 			void remove_feed(feed_handle h);
 			void get_feeds(std::vector<feed_handle>* f) const;
+#endif
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const;
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
@@ -964,12 +966,14 @@ namespace libtorrent
 			// to decide which ones to choke/unchoke
 			time_point m_last_choke;
 
+#ifndef TORRENT_NO_DEPRECATE
 			// the time when the next rss feed needs updating
 			time_point m_next_rss_update;
 
 			// update any rss feeds that need updating and
 			// recalculate m_next_rss_update
 			void update_rss_feeds();
+#endif
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
@@ -1166,7 +1170,9 @@ namespace libtorrent
 			// is true if the session is paused
 			bool m_paused;
 			
+#ifndef TORRENT_NO_DEPRECATE
 			std::vector<boost::shared_ptr<feed> > m_feeds;
+#endif
 
 			// this is a list of peer connections who have been
 			// corked (i.e. their network socket) and needs to be
