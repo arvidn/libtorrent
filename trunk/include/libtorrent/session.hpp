@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/rss.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/build_config.hpp"
@@ -65,6 +64,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef _MSC_VER
 #	include <eh.h>
+#endif
+
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/rss.hpp"
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
@@ -290,13 +293,12 @@ namespace libtorrent
 			save_encryption_settings = 0x020,
 
 			// internal
-			save_as_map =       0x040,
-
-			// saves RSS feeds
-			save_feeds =        0x080
+			save_as_map =       0x040
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
+			// saves RSS feeds
+			save_feeds =        0x080,
 			save_proxy =        0x008,
 			save_i2p_proxy =    0x010,
 			save_dht_proxy = save_proxy,
@@ -522,6 +524,7 @@ namespace libtorrent
 		// will not be set. This may significantly reduce the cost of this call.
 		void get_cache_info(cache_status* ret, torrent_handle h = torrent_handle(), int flags = 0) const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// This adds an RSS feed to the session. The feed will be refreshed
 		// regularly and optionally add all torrents from the feed, as they
 		// appear.
@@ -531,17 +534,19 @@ namespace libtorrent
 		// is a handle which is used to interact with the feed, things like
 		// forcing a refresh or querying for information about the items in the
 		// feed. For more information, see feed_handle.
-		feed_handle add_feed(feed_settings const& feed);
+		TORRENT_DEPRECATED_PREFIX
+		feed_handle add_feed(feed_settings const& feed) TORRENT_DEPRECATED;
 
 		// Removes a feed from being watched by the session. When this
 		// call returns, the feed handle is invalid and won't refer
 		// to any feed.
-		void remove_feed(feed_handle h);
+		TORRENT_DEPRECATED_PREFIX
+		void remove_feed(feed_handle h) TORRENT_DEPRECATED;
 
 		// Returns a list of all RSS feeds that are being watched by the session.
-		void get_feeds(std::vector<feed_handle>& f) const;
+		TORRENT_DEPRECATED_PREFIX
+		void get_feeds(std::vector<feed_handle>& f) const TORRENT_DEPRECATED;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// ``start_dht`` starts the dht node and makes the trackerless service
 		// available to torrents.
 		// 

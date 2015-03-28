@@ -41,7 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp" // for feed_handle
+#endif
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
@@ -1761,6 +1764,7 @@ namespace libtorrent
 		virtual std::string message() const;
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted on RSS feed events such as start of RSS feed updates,
 	// successful completed updates and errors during updates.
 	// 
@@ -1807,6 +1811,7 @@ namespace libtorrent
 		// an error code used for when an error occurs on the feed.
 		error_code error;
 	};
+#endif // TORRENT_NO_DEPRECATE
 
 	// This is posted whenever a torrent is transitioned into the error state.
 	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
@@ -2005,6 +2010,7 @@ namespace libtorrent
 		sha1_hash new_ih;
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted every time a new RSS item (i.e. torrent) is received
 	// from an RSS feed.
 	// 
@@ -2026,6 +2032,7 @@ namespace libtorrent
 		feed_handle handle;
 		feed_item item;
 	};
+#endif
 
 	// posted when something fails in the DHT. This is not necessarily a fatal
 	// error, but it could prevent proper operation
