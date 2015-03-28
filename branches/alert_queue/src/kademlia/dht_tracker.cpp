@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
+// TODO: it would be nice to not have a dependency on session here
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -138,7 +139,7 @@ namespace libtorrent { namespace dht
 		, rate_limited_udp_socket& sock
 		, dht_settings const& settings, counters& cnt, entry const* state)
 		: m_counters(cnt)
-		, m_dht(&ses, this, settings, extract_node_id(state)
+		, m_dht(this, settings, extract_node_id(state)
 			, ses.external_address().external_address(address_v4()), &ses, cnt)
 		, m_sock(sock)
 		, m_last_new_key(aux::time_now() - minutes(int(key_refresh)))

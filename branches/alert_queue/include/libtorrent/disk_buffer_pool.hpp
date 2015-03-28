@@ -56,14 +56,12 @@ namespace libtorrent
 {
 	namespace aux { struct session_settings; }
 	class alert;
-	struct alert_dispatcher;
 	struct disk_observer;
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
-			, boost::function<void()> const& trigger_trim
-			, alert_dispatcher* alert_disp);
+			, boost::function<void()> const& trigger_trim);
 		~disk_buffer_pool();
 
 #if TORRENT_USE_ASSERTS
@@ -98,7 +96,7 @@ namespace libtorrent
 		boost::uint32_t num_to_evict(int num_needed = 0);
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
-		void set_settings(aux::session_settings const& sett);
+		void set_settings(aux::session_settings const& sett, error_code& ec);
 
 		struct handler_t
 		{
@@ -168,8 +166,6 @@ namespace libtorrent
 		// corresponding memory lives
 		std::vector<int> m_free_list;
 #endif
-
-		alert_dispatcher* m_post_alert;
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// if this is true, all buffers are allocated

@@ -93,7 +93,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/resolver.hpp"
 
@@ -170,7 +169,6 @@ namespace libtorrent
 		// thread started to run the main downloader loop
 		struct TORRENT_EXTRA_EXPORT session_impl
 			: session_interface
-			, alert_dispatcher
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
@@ -574,6 +572,10 @@ namespace libtorrent
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
 				, address const& source);
+			virtual void get_peers(sha1_hash const& ih);
+			virtual void announce(sha1_hash const& ih, address const& addr, int port);
+			virtual void outgoing_get_peers(sha1_hash const& target
+				, sha1_hash const& sent_target, udp::endpoint const& ep);
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
@@ -616,9 +618,6 @@ namespace libtorrent
 //		private:
 
 			void submit_disk_jobs();
-
-			// implements alert_dispatcher
-			virtual bool post_alert(alert* a);
 
 			void update_proxy();
 			void update_i2p_bridge();

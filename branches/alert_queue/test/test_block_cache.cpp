@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/session.hpp"
 
 #include <boost/bind.hpp>
@@ -45,16 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/make_shared.hpp>
 
 using namespace libtorrent;
-
-struct print_alert : alert_dispatcher
-{
-	virtual bool post_alert(alert* a)
-	{
-		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
-		delete a;
-		return true;
-	}
-};
 
 struct test_storage_impl : storage_interface
 {
@@ -97,8 +86,7 @@ void nop() {}
 
 #define TEST_SETUP \
 	io_service ios; \
-	print_alert ad; \
-	block_cache bc(0x4000, ios, boost::bind(&nop), &ad); \
+	block_cache bc(0x4000, ios, boost::bind(&nop)); \
 	aux::session_settings sett; \
 	file_storage fs; \
 	fs.add_file("a/test0", 0x4000); \
@@ -113,7 +101,8 @@ void nop() {}
 	fs.set_num_pieces(5); \
 	test_storage_impl* st = new test_storage_impl; \
 	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
-	bc.set_settings(sett); \
+	error_code ec; \
+	bc.set_settings(sett, ec); \
 	st->m_settings = &sett; \
 	disk_io_job rj; \
 	disk_io_job wj; \

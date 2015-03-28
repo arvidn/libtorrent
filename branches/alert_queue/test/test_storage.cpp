@@ -204,7 +204,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	{ // avoid having two storages use the same files	
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	storage_params p;
 	p.path = test_path;
 	p.files = &fs;
@@ -296,7 +296,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -369,7 +369,7 @@ void test_rename(std::string const& test_path)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	aux::session_settings set;
 
 	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
@@ -446,8 +446,8 @@ void test_check_files(std::string const& test_path
 	file_pool fp;
 	libtorrent::asio::io_service ios;
 	counters cnt;
-	disk_io_thread io(ios, NULL, cnt, NULL);
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_io_thread io(ios, cnt, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	storage_params p;
 	p.files = &fs;
 	p.path = test_path;

@@ -32,9 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/get_peers.hpp>
 #include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
-#include <libtorrent/alert_types.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -144,8 +144,10 @@ bool get_peers::invoke(observer_ptr o)
 	a["info_hash"] = m_target.to_string();
 	if (m_noseeds) a["noseed"] = 1;
 
-	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target, m_target
-		, o->target_ep()));
+	if (m_node.observer())
+	{
+		m_node.observer()->outgoing_get_peers(m_target, m_target, o->target_ep());
+	}
 
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
 
@@ -244,8 +246,11 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	obfuscated_target |= m_target & mask;
 	a["info_hash"] = obfuscated_target.to_string();
 
-	m_node.post_alert(new dht_outgoing_get_peers_alert(m_target
-		, obfuscated_target, o->target_ep()));
+	if (m_node.observer())
+	{
+		m_node.observer()->outgoing_get_peers(m_target, obfuscated_target
+			, o->target_ep());
+	}
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }

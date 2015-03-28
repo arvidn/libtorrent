@@ -351,7 +351,7 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 		, m_alert_pointer_pos(0)
 #endif
-		, m_disk_thread(m_io_service, this, m_stats_counters
+		, m_disk_thread(m_io_service, m_stats_counters
 			, (uncork_interface*)this)
 		, m_download_rate(peer_connection::download_channel)
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
@@ -1515,7 +1515,7 @@ namespace aux {
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(pack, m_settings, this);
-		m_disk_thread.set_settings(pack);
+		m_disk_thread.set_settings(pack, m_alerts);
 		delete pack;
 
 		if (reopen_listen_port)
@@ -2655,15 +2655,6 @@ retry:
 		connection_map::iterator i = m_connections.find(sp);
 		// make sure the next disk peer round-robin cursor stays valid
 		if (i != m_connections.end()) m_connections.erase(i);
-	}
-
-	// implements alert_dispatcher
-	bool session_impl::post_alert(alert* a)
-	{
-		// TODO: 3 fix this. probably by passing around the alert_manager
-//		if (!m_alerts.should_post(a)) return false;
-//		m_alerts.post_alert_ptr(a);
-		return true;
 	}
 
 	void session_impl::set_peer_id(peer_id const& id)
@@ -6435,6 +6426,26 @@ retry:
 		, address const& source)
 	{
 		set_external_address(ip, source_dht, source);
+	}
+
+	void session_impl::get_peers(sha1_hash const& ih)
+	{
+		if (!m_alerts.should_post<dht_get_peers_alert>()) return;
+		m_alerts.post_alert(dht_get_peers_alert(ih));
+	}
+
+	void session_impl::announce(sha1_hash const& ih, address const& addr
+		, int port)
+	{
+		if (!m_alerts.should_post<dht_announce_alert>()) return;
+		m_alerts.post_alert(dht_announce_alert(addr, port, ih));
+	}
+
+	void session_impl::outgoing_get_peers(sha1_hash const& target
+		, sha1_hash const& sent_target, udp::endpoint const& ep)
+	{
+		if (!m_alerts.should_post<dht_outgoing_get_peers_alert>()) return;
+		m_alerts.post_alert(dht_outgoing_get_peers_alert(target, sent_target, ep));
 	}
 
 	void session_impl::set_external_address(address const& ip
