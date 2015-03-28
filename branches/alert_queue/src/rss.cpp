@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <algorithm>
 
+#ifndef TORRENT_NO_DEPRECATE
+
 namespace libtorrent {
 
 feed_item::feed_item(): size(-1) {}
@@ -661,4 +663,6 @@ feed_settings feed_handle::settings() const
 }
 
 }
+
+#endif // TORRENT_NO_DEPRECATE
 

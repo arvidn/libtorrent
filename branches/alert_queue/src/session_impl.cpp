@@ -390,7 +390,9 @@ namespace aux {
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
+#ifndef TORRENT_NO_DEPRECATE
 		, m_next_rss_update(min_time())
+#endif
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
 		, m_dht_interval_update_torrents(0)
@@ -716,6 +718,7 @@ namespace aux {
 		}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (flags & session::save_feeds)
 		{
 			entry::list_type& feeds = e["feeds"].list();
@@ -726,6 +729,7 @@ namespace aux {
 				(*i)->save_state(feeds.back());
 			}
 		}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
@@ -831,6 +835,7 @@ namespace aux {
 		}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		settings = e->dict_find_list("feeds");
 		if (settings)
 		{
@@ -845,6 +850,7 @@ namespace aux {
 			}
 			update_rss_feeds();
 		}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
@@ -891,6 +897,7 @@ namespace aux {
 	}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 	feed_handle session_impl::add_feed(feed_settings const& sett)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -935,6 +942,7 @@ namespace aux {
 			, end(m_feeds.end()); i != end; ++i)
 			ret->push_back(feed_handle(*i));
 	}
+#endif
 
 	void session_impl::pause()
 	{
@@ -2898,11 +2906,13 @@ retry:
 		// don't do any of the following while we're shutting down
 		if (m_abort) return;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// --------------------------------------------------------------
 		// RSS feeds
 		// --------------------------------------------------------------
 		if (now > m_next_rss_update)
 			update_rss_feeds();
+#endif
 
 		switch (m_settings.get_int(settings_pack::mixed_mode_algorithm))
 		{
@@ -3244,6 +3254,7 @@ retry:
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_rss_feeds()
 	{
 		time_t now_posix = time(0);
@@ -3262,6 +3273,7 @@ retry:
 		}
 		m_next_rss_update = min_update;
 	}
+#endif
 
 	void session_impl::prioritize_connections(boost::weak_ptr<torrent> t)
 	{

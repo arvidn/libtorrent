@@ -482,6 +482,7 @@ namespace libtorrent {
 		return "DHT bootstrap complete";
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	std::string rss_alert::message() const
 	{
 		char msg[600];
@@ -490,6 +491,7 @@ namespace libtorrent {
 			, url.c_str(), state_msg[state], convert_from_native(error.message()).c_str());
 		return msg;
 	}
+#endif
 
 	std::string torrent_error_alert::message() const
 	{
@@ -623,6 +625,7 @@ namespace libtorrent {
 		return torrent_alert::message() + msg;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	std::string rss_item_alert::message() const
 	{
 		char msg[500];
@@ -631,6 +634,7 @@ namespace libtorrent {
 			, item.title.empty() ? item.url.c_str() : item.title.c_str());
 		return msg;
 	}
+#endif
 
 	std::string peer_disconnected_alert::message() const
 	{
