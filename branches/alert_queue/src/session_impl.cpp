@@ -519,9 +519,9 @@ namespace aux {
 
 #if defined TORRENT_LOGGING
 
-		session_log("libtorrent configuration: %s\n"
-			"libtorrent version: %s\n"
-			"libtorrent revision: %s\n\n"
+		session_log("config: %s\n"
+			"version: %s\n"
+			"revision: %s\n\n"
 		  	, TORRENT_CFG_STRING
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);
@@ -4293,7 +4293,7 @@ retry:
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
 
-		m_alerts.post_alert(log_alert(buf));
+		m_alerts.emplace_alert<log_alert>(buf);
 	}
 
 	void session_impl::log_all_torrents(peer_connection* p)
@@ -4340,31 +4340,33 @@ retry:
 
 		TORRENT_ASSERT(is_single_thread());
 
-		std::auto_ptr<state_update_alert> alert(new state_update_alert());
 		std::vector<torrent*>& state_updates
 			= m_torrent_lists[aux::session_impl::torrent_state_updates];
-
-		alert->status.reserve(state_updates.size());
 
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = true;
 #endif
 
+		std::vector<torrent_status> status;
+		status.reserve(state_updates.size());
+
 		// TODO: it might be a nice feature here to limit the number of torrents
 		// to send in a single update. By just posting the first n torrents, they
 		// would nicely be round-robined because the torrent lists are always
-		// pushed back
+		// pushed back. Perhaps the status_update_alert could even have a fixed
+		// array of n entries rather than a vector, to further improve memory
+		// locality.
 		for (std::vector<torrent*>::iterator i = state_updates.begin()
 			, end(state_updates.end()); i != end; ++i)
 		{
 			torrent* t = *i;
 			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
-			alert->status.push_back(torrent_status());
+			status.push_back(torrent_status());
 			// querying accurate download counters may require
 			// the torrent to be loaded. Loading a torrent, and evicting another
 			// one will lead to calling state_updated(), which screws with
 			// this list while we're working on it, and break things
-			t->status(&alert->status.back(), flags);
+			t->status(&status.back(), flags);
 			t->clear_in_state_update();
 		}
 		state_updates.clear();
@@ -4373,15 +4375,11 @@ retry:
 		m_posting_torrent_updates = false;
 #endif
 
-		m_alerts.post_alert_ptr(alert.release());
+		m_alerts.post_alert(state_update_alert(status));
 	}
 
 	void session_impl::post_session_stats()
 	{
-		std::auto_ptr<session_stats_alert> alert(new session_stats_alert());
-		std::vector<boost::uint64_t>& values = alert->values;
-		values.resize(counters::num_counters, 0);
-
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
 		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
@@ -4400,24 +4398,20 @@ retry:
 		m_stats_counters.set_value(counters::limiter_down_bytes
 			, m_download_rate.queued_bytes());
 
-		for (int i = 0; i < counters::num_counters; ++i)
-			values[i] = m_stats_counters[i];
-
-		alert->timestamp = total_microseconds(clock_type::now() - m_created);
-
-		m_alerts.post_alert_ptr(alert.release());
+		m_alerts.post_alert(session_stats_alert(m_stats_counters));
 	}
 
 	void session_impl::post_dht_stats()
 	{
-		std::auto_ptr<dht_stats_alert> alert(new dht_stats_alert());
-	
+		std::vector<dht_lookup> requests;
+		std::vector<dht_routing_bucket> table;
+
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
-			m_dht->dht_status(alert->routing_table, alert->active_requests);
+			m_dht->dht_status(table, requests);
 #endif
 
-		m_alerts.post_alert_ptr(alert.release());
+		m_alerts.post_alert(dht_stats_alert(table, requests));
 	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
@@ -6297,7 +6291,7 @@ retry:
 	void session_impl::on_lsd_log(char const* log)
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
-		m_alerts.post_alert(log_alert(log));
+		m_alerts.emplace_alert<log_alert>(log);
 	}
 #endif
 

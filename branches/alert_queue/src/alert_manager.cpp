@@ -45,6 +45,7 @@ namespace libtorrent
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
 		, m_num_queued_resume(0)
+		, m_generation(0)
 	{}
 
 	alert_manager::~alert_manager() {}
@@ -59,16 +60,48 @@ namespace libtorrent
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		if (!m_alerts.empty()) return m_alerts.front();
+		if (!m_alerts[m_generation].empty())
+			return m_alerts[m_generation].front();
 		
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
-		if (!m_alerts.empty()) return m_alerts.front();
+		if (!m_alerts[m_generation].empty())
+			return m_alerts[m_generation].front();
 
 		return NULL;
 	}
 
+	void alert_manager::maybe_notify(mutex::scoped_lock& lock)
+	{
+
+		if (m_alerts[m_generation].size() == 1)
+		{
+			lock.unlock();
+
+			// we just posted to an empty queue. If anyone is waiting for
+			// alerts, we need to notify them. Also (potentially) call the
+			// user supplied m_notify callback to let the client wake up its
+			// message loop to poll for alerts.
+			if (m_notify) m_notify();
+
+			// TODO: 2 keep a count of the number of threads waiting. Only if it's
+			// > 0 notify them
+			m_condition.notify_all();
+		}
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
+
+	bool alert_manager::maybe_dispatch(alert const& a)
+	{
+		if (m_dispatch)
+		{
+			m_dispatch(a.clone());
+			return true;
+		}
+		return false;
+	}
+
 	void alert_manager::set_dispatch_function(
 		boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
@@ -77,7 +110,7 @@ namespace libtorrent
 		m_dispatch = fun;
 
 		heterogeneous_queue<alert> storage;
-		m_alerts.swap(storage);
+		m_alerts[m_generation].swap(storage);
 		lock.unlock();
 
 		std::vector<alert*> alerts;
@@ -95,8 +128,9 @@ namespace libtorrent
 	{
 		mutex::scoped_lock lock(m_mutex);
 		m_notify = fun;
-		if (!m_alerts.empty())
+		if (!m_alerts[m_generation].empty())
 		{
+			// never call a callback with the lock held!
 			lock.unlock();
 			m_notify();
 		}
@@ -112,22 +146,25 @@ namespace libtorrent
 	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
 	{
 		mutex::scoped_lock lock(m_mutex);
-		TORRENT_ASSERT(m_num_queued_resume <= m_alerts.size());
-		num_resume = m_num_queued_resume;
+		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
 
 		alerts.clear();
-		if (m_alerts.empty()) return;
-		m_client_alerts.clear();
-		m_alerts.swap(m_client_alerts);
+		if (m_alerts[m_generation].empty()) return;
 
+		m_alerts[m_generation].get_pointers(alerts);
+		num_resume = m_num_queued_resume;
 		m_num_queued_resume = 0;
-		m_client_alerts.get_pointers(alerts);
+
+		// swap buffers
+		m_generation = (m_generation + 1) & 1;
+		// clear the one we will start writing to now
+		m_alerts[m_generation].clear();
 	}
 
 	bool alert_manager::pending() const
 	{
 		mutex::scoped_lock lock(m_mutex);
-		return !m_alerts.empty();
+		return !m_alerts[m_generation].empty();
 	}
 
 	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)

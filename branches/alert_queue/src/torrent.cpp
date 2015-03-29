@@ -2936,7 +2936,7 @@ namespace libtorrent
 		if (m_trackers.empty())
 		{
 #if defined TORRENT_LOGGING
-			debug_log("*** announce_with_tracker: no trackers");
+			debug_log("*** announce: no trackers");
 #endif
 			return;
 		}
@@ -2948,7 +2948,7 @@ namespace libtorrent
 		if (e != tracker_request::stopped && !m_announce_to_trackers)
 		{
 #if defined TORRENT_LOGGING
-			debug_log("*** announce_with_tracker: event != stopped && !m_announce_to_trackers");
+			debug_log("*** announce: event != stopped && !m_announce_to_trackers");
 #endif
 			return;
 		}
@@ -2957,7 +2957,7 @@ namespace libtorrent
 		if (e != tracker_request::stopped && !m_allow_peers)
 		{
 #if defined TORRENT_LOGGING
-			debug_log("*** announce_with_tracker: event != stopped && !m_allow_peers");
+			debug_log("*** announce: event != stopped && !m_allow_peers");
 #endif
 			return;
 		}
@@ -3009,11 +3009,11 @@ namespace libtorrent
 		{
 			announce_entry& ae = m_trackers[i];
 #if defined TORRENT_LOGGING
-			debug_log("*** announce with tracker: considering \"%s\" "
-				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d"
-				" i->tier: %d tier: %d "
-				" is_working: %d fails: %d fail_limit: %d updating: %d"
-				" can_announce: %d sent_announce: %d ]"
+			debug_log("*** tracker: \"%s\" "
+				"[ tiers: %d trackers: %d"
+				" i->tier: %d tier: %d"
+				" working: %d fails: %d limit: %d upd: %d"
+				" can: %d sent: %d ]"
 				, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
 				, settings().get_bool(settings_pack::announce_to_all_trackers)
 				, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
@@ -9415,10 +9415,10 @@ namespace libtorrent
 		{
 #if defined TORRENT_LOGGING
 			char msg[1000];
-			snprintf(msg, sizeof(msg), "*** update tracker timer: considering \"%s\" "
-				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d"
-				" found_working: %d i->tier: %d tier: %d "
-				" is_working: %d fails: %d fail_limit: %d updating: %d ]"
+			snprintf(msg, sizeof(msg), "*** tracker: \"%s\" "
+				"[ tiers: %d trackers: %d"
+				" found: %d i->tier: %d tier: %d"
+				" working: %d fails: %d limit: %d upd: %d ]"
 				, i->url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
 				, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
 				, i->tier, tier, i->is_working(), i->fails, i->fail_limit
@@ -11637,8 +11637,8 @@ namespace libtorrent
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 
-		alerts().post_alert(torrent_log_alert(
-			const_cast<torrent*>(this)->get_handle(), buf));
+		alerts().emplace_alert<torrent_log_alert>(
+			const_cast<torrent*>(this)->get_handle(), buf);
 	}
 #endif
 

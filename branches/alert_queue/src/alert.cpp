@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/performance_counters.hpp"
+#include "libtorrent/stack_allocator.hpp"
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
@@ -573,7 +575,7 @@ namespace libtorrent {
 	std::string session_stats_alert::message() const
 	{
 		char msg[100];
-		snprintf(msg, sizeof(msg), "session stats (%d values)", int(values.size()));
+		snprintf(msg, sizeof(msg), "session stats (%d values)", int(sizeof(values)));
 		return msg;
 	}
 
@@ -724,24 +726,65 @@ namespace libtorrent {
 		return msg;
 	}
 
+	log_alert::log_alert(aux::stack_allocator& alloc, char const* log)
+		: m_alloc(alloc)
+		, m_str_idx(alloc.copy_string(log))
+	{}
+
+	char const* log_alert::msg() const
+	{
+		return m_alloc.ptr(m_str_idx);
+	}
+
 	std::string log_alert::message() const
 	{
-		return msg;
+		return msg();
+	}
+
+	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
+		, char const* log)
+		: torrent_alert(h)
+		, m_alloc(alloc)
+		, m_str_idx(alloc.copy_string(log))
+	{}
+
+	char const* torrent_log_alert::msg() const
+	{
+		return m_alloc.ptr(m_str_idx);
 	}
 
 	std::string torrent_log_alert::message() const
 	{
-		return torrent_alert::message() + ": " + msg;
+		return torrent_alert::message() + ": " + msg();
+	}
+
+	peer_log_alert::peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, tcp::endpoint const& i
+		, peer_id const& pi, char const* log)
+		: peer_alert(h, i, pi)
+		, m_alloc(alloc)
+		, m_str_idx(alloc.copy_string(log))
+	{}
+
+	char const* peer_log_alert::msg() const
+	{
+		return m_alloc.ptr(m_str_idx);
 	}
 
 	std::string peer_log_alert::message() const
 	{
-		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg;
+		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg();
 	}
 
 	std::string lsd_error_alert::message() const
 	{
 		return "Local Service Discovery error: " + error.message();
+	}
+
+	session_stats_alert::session_stats_alert(counters const& cnt)
+	{
+		for (int i = 0; i < counters::num_counters; ++i)
+			values[i] = cnt[i];
 	}
 
 	std::string dht_stats_alert::message() const

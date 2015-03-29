@@ -119,6 +119,7 @@ nobase_include_HEADERS = \
   socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
+  stack_allocator.hpp          \
   stat.hpp                     \
   stat_cache.hpp               \
   storage.hpp                  \

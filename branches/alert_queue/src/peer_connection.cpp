@@ -525,8 +525,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) h = t->get_handle();
 
-		m_ses.alerts().post_alert(peer_log_alert(
-			h, m_remote, m_peer_id, buf));
+		m_ses.alerts().emplace_alert<peer_log_alert>(
+			h, m_remote, m_peer_id, buf);
 	}
 #endif
 

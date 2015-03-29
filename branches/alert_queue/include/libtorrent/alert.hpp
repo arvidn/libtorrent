@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // The pop_alerts() function on session is the main interface for retrieving
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
-// been posted by libtorrent pop_alert() will return an empty list.
+// been posted by libtorrent pop_alerts() will return an empty list.
 // 
 // By default, only errors are reported. set_alert_mask() can be used to
 // specify which kinds of events should be reported. The alert mask is
@@ -208,23 +208,26 @@ namespace libtorrent {
 		//
 		// .. code:: c++
 		//
-		//	std::auto_ptr<alert> a = ses.pop_alert();
-		//	switch (a->type())
-		//	{
-		//		case read_piece_alert::alert_type:
-		//		{
-		//			read_piece_alert* p = (read_piece_alert*)a.get();
-		//			if (p->ec) {
-		//				// read_piece failed
+		// std::vector<alert*> alerts;
+		//	ses.pop_alerts(&alerts);
+		// for (alert* i : alerts) {
+		//		switch (a->type()) {
+		// 
+		//			case read_piece_alert::alert_type:
+		//			{
+		//				read_piece_alert* p = (read_piece_alert*)a;
+		//				if (p->ec) {
+		//					// read_piece failed
+		//					break;
+		//				}
+		//				// use p
 		//				break;
 		//			}
-		//			// use p
-		//			break;
-		//		}
-		//		case file_renamed_alert::alert_type:
-		//		{
-		//			// etc...
-		//		}
+		//			case file_renamed_alert::alert_type:
+		//			{
+		//				// etc...
+		//			}
+		// 	}
 		//	}
 		virtual int type() const = 0;
 
@@ -251,10 +254,10 @@ namespace libtorrent {
 
 		TORRENT_DEPRECATED_PREFIX
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
-#endif
 
 		// returns a pointer to a copy of the alert.
 		virtual std::auto_ptr<alert> clone() const = 0;
+#endif
 
 	private:
 		time_point m_timestamp;

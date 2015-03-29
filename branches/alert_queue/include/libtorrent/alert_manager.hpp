@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/heterogeneous_queue.hpp"
+#include "libtorrent/stack_allocator.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include <boost/function/function1.hpp>
@@ -44,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
 #include <list>
+#include <utility> // for std::forward
 
 namespace libtorrent {
 
@@ -59,43 +61,48 @@ namespace libtorrent {
 		~alert_manager();
 
 		template <class T>
-		void post_alert_ptr(T const* a)
+		void post_alert(T const& a)
 		{
-			post_alert(*a);
-			delete a;
+			mutex::scoped_lock lock(m_mutex);
+#ifndef TORRENT_NO_DEPRECATE
+			if (maybe_dispatch(a)) return;
+#endif
+			// don't add more than this number of alerts, unless it's a
+			// high priority alert, in which case we try harder to deliver it
+			// for high priority alerts, double the upper limit
+			if (m_alerts[m_generation].size() >= m_queue_size_limit
+				* (1 + T::priority))
+				return;
+
+			m_alerts[m_generation].push_back(a);
+
+			maybe_notify(lock);
 		}
 
-		// TODO: 2 instead of copying the alert perhaps there should be an
-		// emplace-style function
-		template <class T>
-		void post_alert(T const& a)
+		// TODO: 3 emulate this in c++98 mode
+		template <class T, typename... Args>
+		void emplace_alert(Args&&... args)
 		{
 			mutex::scoped_lock lock(m_mutex);
 #ifndef TORRENT_NO_DEPRECATE
 			if (m_dispatch)
 			{
-				m_dispatch(a.clone());
+				m_dispatch(std::auto_ptr<alert>(new T(m_allocations[m_generation]
+					, std::forward<Args>(args)...)));
 				return;
 			}
 #endif
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
-			if (m_alerts.size() >= m_queue_size_limit * (1 + T::priority)) return;
+			if (m_alerts[m_generation].size() >= m_queue_size_limit
+				* (1 + T::priority))
+				return;
 
-			m_alerts.push_back(a);
+			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
+			m_alerts[m_generation].push_back(alert);
 
-			if (m_alerts.size() == 1)
-			{
-				lock.unlock();
-
-				// we just posted to an empty queue. If anyone is waiting for
-				// alerts, we need to notify them. Also (potentially) call the
-				// user supplied m_notify callback to let the client wake up its
-				// message loop to poll for alerts.
-				if (m_notify) m_notify();
-				m_condition.notify_all();
-			}
+			maybe_notify(lock);
 		}
 
 		bool pending() const;
@@ -105,7 +112,11 @@ namespace libtorrent {
 		bool should_post() const
 		{
 			mutex::scoped_lock lock(m_mutex);
-			if (m_alerts.size() >= m_queue_size_limit * (1 + T::priority)) return false;
+			if (m_alerts[m_generation].size() >= m_queue_size_limit
+				* (1 + T::priority))
+			{
+				return false;
+			}
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
@@ -153,12 +164,15 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
+		void maybe_notify(mutex::scoped_lock& lock);
+
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
+		bool maybe_dispatch(alert const& a);
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
 #endif
 
@@ -173,13 +187,21 @@ namespace libtorrent {
 		// the number of resume data alerts  in the alert queue
 		int m_num_queued_resume;
 
-		heterogeneous_queue<alert> m_alerts;
+		// this is either 0 or 1, it indicates which m_alerts and m_allocations
+		// the alert_manager is allowed to use right now. This is swapped when
+		// the client calls get_all(), at which point 
+		int m_generation;
 
-		// this is the copy of alerts belonging to the client thread. When the
-		// clint asks for alerts, they are all pulled in here to be stored
-		// and accessed by the user until another batch is pulled in. (at that
-		// point these are swapped back into the alert_manager and destructed).
-		heterogeneous_queue<alert> m_client_alerts;
+		// this is where all alerts are queued up. There are two heterogenous
+		// queues to double buffer the thread access. The mutex in the alert
+		// manager gives exclusive access to m_alerts[m_generation] and
+		// m_allocations[m_generation] whereas the other copy is exclusively
+		// used by the client thread.
+		heterogeneous_queue<alert> m_alerts[2];
+
+		// this is a stack where alerts can allocate variable length content,
+		// such as strings, to go with the alerts.
+		aux::stack_allocator m_allocations[2];
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
