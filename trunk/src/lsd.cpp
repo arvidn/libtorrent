@@ -145,7 +145,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	char msg[200];
 
 #if defined TORRENT_LOGGING
-	debug_log("==> announce: ih: %s port: %u\n", ih_hex, listen_port);
+	debug_log("==> LSD: ih: %s port: %u\n", ih_hex, listen_port);
 #endif
 
 	error_code ec;
@@ -158,7 +158,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		{
 			m_disabled = true;
 #if defined TORRENT_LOGGING
-			debug_log("failed to send message: (%d) %s", ec.value()
+			debug_log("*** LSD: failed to send message: (%d) %s", ec.value()
 				, ec.message().c_str());
 #endif
 		}
@@ -174,7 +174,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		{
 			m_disabled6 = true;
 #if defined TORRENT_LOGGING
-			debug_log("failed to send message6: (%d) %s", ec.value()
+			debug_log("*** LSD: failed to send message6: (%d) %s", ec.value()
 				, ec.message().c_str());
 #endif
 		}
@@ -223,7 +223,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (!p.header_finished() || error)
 	{
 #if defined TORRENT_LOGGING
-		debug_log("<== announce: incomplete HTTP message\n");
+		debug_log("<== LSD: incomplete HTTP message");
 #endif
 		return;
 	}
@@ -231,7 +231,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (p.method() != "bt-search")
 	{
 #if defined TORRENT_LOGGING
-		debug_log("<== announce: invalid HTTP method: %s\n", p.method().c_str());
+		debug_log("<== LSD: invalid HTTP method: %s", p.method().c_str());
 #endif
 		return;
 	}
@@ -240,7 +240,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	if (port_str.empty())
 	{
 #if defined TORRENT_LOGGING
-		debug_log("<== announce: invalid BT-SEARCH, missing port\n");
+		debug_log("<== LSD: invalid BT-SEARCH, missing port");
 #endif
 		return;
 	}
@@ -259,7 +259,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (cookie == m_cookie)
 		{
 #if defined TORRENT_LOGGING
-			debug_log("<== announce: ignoring packet (cookie matched our own): %x == %x\n"
+			debug_log("<== LSD: ignoring packet (cookie matched our own): %x == %x"
 				, cookie, m_cookie);
 #endif
 			return;
@@ -275,7 +275,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (ih_str.size() != 40)
 		{
 #if defined TORRENT_LOGGING
-			debug_log("<== announce: invalid BT-SEARCH, invalid infohash: %s\n"
+			debug_log("<== LSD: invalid BT-SEARCH, invalid infohash: %s"
 				, ih_str.c_str());
 #endif
 			continue;
@@ -287,7 +287,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		if (!ih.is_all_zeros() && port != 0)
 		{
 #if defined TORRENT_LOGGING
-			debug_log("*** incoming local announce %s:%d ih: %s\n"
+			debug_log("<== LSD: %s:%d ih: %s"
 				, print_address(from.address()).c_str()
 				, port, ih_str.c_str());
 #endif
