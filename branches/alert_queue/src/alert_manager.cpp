@@ -159,6 +159,7 @@ namespace libtorrent
 		m_generation = (m_generation + 1) & 1;
 		// clear the one we will start writing to now
 		m_alerts[m_generation].clear();
+		m_allocations[m_generation].reset();
 	}
 
 	bool alert_manager::pending() const
