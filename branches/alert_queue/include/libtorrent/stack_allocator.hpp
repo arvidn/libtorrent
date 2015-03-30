@@ -43,6 +43,14 @@ namespace libtorrent { namespace aux
 	{
 		stack_allocator() {}
 	
+		int copy_string(std::string const& str)
+		{
+			int ret = int(m_storage.size());
+			m_storage.resize(ret + str.length() + 1);
+			strcpy(&m_storage[ret], str.c_str());
+			return ret;
+		}
+
 		int copy_string(char const* str)
 		{
 			int ret = int(m_storage.size());

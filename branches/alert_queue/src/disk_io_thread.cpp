@@ -298,7 +298,7 @@ namespace libtorrent
 		m_disk_cache.set_settings(m_settings, ec);
 		if (ec && alerts.should_post<mmap_cache_alert>())
 		{
-			alerts.post_alert(mmap_cache_alert(ec));
+			alerts.emplace_alert<mmap_cache_alert>(ec);
 		}
 	}
 

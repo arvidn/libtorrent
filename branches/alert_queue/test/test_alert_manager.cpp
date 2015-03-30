@@ -49,7 +49,7 @@ void test_limit()
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (int i = 0; i < 600; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -71,11 +71,11 @@ void test_priority_limit()
 
 	// this should only add 100 because of the limit
 	for (int i = 0; i < 200; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	// the limit is twice as high for priority alerts
 	for (int i = 0; i < 200; ++i)
-		mgr.post_alert(file_rename_failed_alert(torrent_handle(), i, error_code()));
+		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;
 	int num_resume;
@@ -101,7 +101,7 @@ void test_dispatch_function()
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -112,7 +112,7 @@ void test_dispatch_function()
 	TEST_EQUAL(cnt, 20);
 
 	for (int i = 0; i < 200; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), false);
 	TEST_EQUAL(cnt, 220);
@@ -133,7 +133,7 @@ void test_notify_function()
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -147,7 +147,7 @@ void test_notify_function()
 	// subsequent posted alerts will not cause an edge (because there are
 	// already alerts queued)
 	for (int i = 0; i < 20; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);
@@ -161,7 +161,7 @@ void test_notify_function()
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.post_alert(torrent_added_alert(torrent_handle()));
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 2);

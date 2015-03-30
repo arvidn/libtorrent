@@ -60,25 +60,6 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-		template <class T>
-		void post_alert(T const& a)
-		{
-			mutex::scoped_lock lock(m_mutex);
-#ifndef TORRENT_NO_DEPRECATE
-			if (maybe_dispatch(a)) return;
-#endif
-			// don't add more than this number of alerts, unless it's a
-			// high priority alert, in which case we try harder to deliver it
-			// for high priority alerts, double the upper limit
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
-				return;
-
-			m_alerts[m_generation].push_back(a);
-
-			maybe_notify(lock);
-		}
-
 		// TODO: 3 emulate this in c++98 mode
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args)

@@ -1577,7 +1577,7 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
+				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 
 #if defined TORRENT_LOGGING
 			session_log("failed to open socket: %s: %s"
@@ -1648,7 +1648,7 @@ namespace aux {
 		{
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
+				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 #if defined TORRENT_LOGGING
 			session_log("cannot bind to interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
@@ -1666,7 +1666,7 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
+				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 #if defined TORRENT_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
@@ -1683,7 +1683,7 @@ namespace aux {
 			if (ec)
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.post_alert(listen_failed_alert(device, last_op, ec, sock_type));
+					m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 #if defined TORRENT_LOGGING
 				session_log("failed to get peer name \"%s\": %s"
 					, device.c_str(), ec.message().c_str());
@@ -1693,9 +1693,9 @@ namespace aux {
 		}
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
-			m_alerts.post_alert(listen_succeeded_alert(tcp::endpoint(bind_ip, port)
+			m_alerts.emplace_alert<listen_succeeded_alert>(tcp::endpoint(bind_ip, port)
 				, (flags & open_ssl_socket) ? listen_succeeded_alert::tcp_ssl
-				: listen_succeeded_alert::tcp));
+				: listen_succeeded_alert::tcp);
 
 #if defined TORRENT_LOGGING
 		session_log(" listening on: %s external port: %d"
@@ -1889,10 +1889,10 @@ retry:
 				{
 					// only report this if both IPv4 and IPv6 fails for a device
 					if (m_alerts.should_post<listen_failed_alert>())
-						m_alerts.post_alert(listen_failed_alert(device
+						m_alerts.emplace_alert<listen_failed_alert>(device
 							, listen_failed_alert::bind
 							, error_code(boost::system::errc::no_such_device, generic_category())
-							, listen_failed_alert::tcp));
+							, listen_failed_alert::tcp);
 				}
 			}
 		}
@@ -1910,8 +1910,8 @@ retry:
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
+					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
 			return;
 		}
 
@@ -1934,17 +1934,17 @@ retry:
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					error_code err;
-					m_alerts.post_alert(listen_failed_alert(print_endpoint(ssl_bind_if)
-							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl));
+					m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ssl_bind_if)
+							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
 				}
 				ec.clear();
 			}
 			else
 			{
 				if (m_alerts.should_post<listen_succeeded_alert>())
-					m_alerts.post_alert(listen_succeeded_alert(
+					m_alerts.emplace_alert<listen_succeeded_alert>(
 							tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
-							, listen_succeeded_alert::utp_ssl));
+							, listen_succeeded_alert::utp_ssl);
 			}
 		}
 #endif // TORRENT_USE_OPENSSL
@@ -1966,8 +1966,8 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.post_alert(listen_failed_alert(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
+					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
 			}
 			return;
 		}
@@ -1977,7 +1977,7 @@ retry:
 			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
 			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
 			if (m_alerts.should_post<listen_succeeded_alert>())
-				m_alerts.post_alert(listen_succeeded_alert(m_listen_interface, listen_succeeded_alert::udp));
+				m_alerts.emplace_alert<listen_succeeded_alert>(m_listen_interface, listen_succeeded_alert::udp);
 		}
 
 		if (m_settings.get_int(settings_pack::peer_tos) != 0)
@@ -1991,7 +1991,7 @@ retry:
 		if (ec)
 		{
 			if (m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
+				m_alerts.emplace_alert<udp_error_alert>(udp::endpoint(), ec);
 		}
 
 		// initiate accepting on the listen sockets
@@ -2098,7 +2098,7 @@ retry:
 		if (ec)
 		{
 			if (m_alerts.should_post<i2p_alert>())
-				m_alerts.post_alert(i2p_alert(ec));
+				m_alerts.emplace_alert<i2p_alert>(ec);
 
 #if defined TORRENT_LOGGING
 			session_log("i2p open failed (%d) %s", ec.value(), ec.message().c_str());
@@ -2143,8 +2143,8 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert("i2p", listen_failed_alert::accept
-						, e, listen_failed_alert::i2p));
+				m_alerts.emplace_alert<listen_failed_alert>("i2p", listen_failed_alert::accept
+						, e, listen_failed_alert::i2p);
 #if defined TORRENT_LOGGING
 			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
@@ -2166,7 +2166,7 @@ retry:
 			// don't bubble up operation aborted errors to the user
 			if (ec != asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(ep, ec));
+				m_alerts.emplace_alert<udp_error_alert>(ep, ec);
 
 #if defined TORRENT_LOGGING
 			session_log("UDP socket error: (%d) %s", ec.value(), ec.message().c_str());
@@ -2266,8 +2266,8 @@ retry:
 							, boost::bind(&torrent_map::value_type::second, _1)));
 
 					if (m_alerts.should_post<performance_alert>())
-						m_alerts.post_alert(performance_alert(
-							torrent_handle(), performance_alert::too_few_file_descriptors));
+						m_alerts.emplace_alert<performance_alert>(
+							torrent_handle(), performance_alert::too_few_file_descriptors);
 
 					if (i != m_torrents.end())
 					{
@@ -2282,8 +2282,8 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.post_alert(listen_failed_alert(print_endpoint(ep), listen_failed_alert::accept, e
-					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp));
+				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ep), listen_failed_alert::accept, e
+					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp);
 			}
 			return;
 		}
@@ -2354,8 +2354,8 @@ retry:
 		{
 			if (m_alerts.should_post<peer_error_alert>())
 			{
-				m_alerts.post_alert(peer_error_alert(torrent_handle(), endp
-					, peer_id(), op_ssl_handshake, ec));
+				m_alerts.emplace_alert<peer_error_alert>(torrent_handle(), endp
+					, peer_id(), op_ssl_handshake, ec);
 			}
 			return;
 		}
@@ -2410,8 +2410,8 @@ retry:
 			session_log("    rejected uTP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
-					, endp.address(), peer_blocked_alert::utp_disabled));
+				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
+					, endp.address(), peer_blocked_alert::utp_disabled);
 			return;
 		}
 
@@ -2422,8 +2422,8 @@ retry:
 			session_log("    rejected TCP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
-					, endp.address(), peer_blocked_alert::tcp_disabled));
+				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
+					, endp.address(), peer_blocked_alert::tcp_disabled);
 			return;
 		}
 
@@ -2458,8 +2458,8 @@ retry:
 					, local.address().to_string(ec).c_str());
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
-					m_alerts.post_alert(peer_blocked_alert(torrent_handle()
-						, endp.address(), peer_blocked_alert::invalid_local_interface));
+					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
+						, endp.address(), peer_blocked_alert::invalid_local_interface);
 				return;
 			}
 		}
@@ -2481,8 +2481,8 @@ retry:
 			session_log("filtered blocked ip");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
-				m_alerts.post_alert(peer_blocked_alert(torrent_handle()
-					, endp.address(), peer_blocked_alert::ip_filter));
+				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
+					, endp.address(), peer_blocked_alert::ip_filter);
 			return;
 		}
 
@@ -2521,11 +2521,10 @@ retry:
 		{
 			if (m_alerts.should_post<peer_disconnected_alert>())
 			{
-				m_alerts.post_alert(
-					peer_disconnected_alert(torrent_handle(), endp, peer_id()
+				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
 						, op_bittorrent, s->type()
 						, error_code(errors::too_many_connections, get_libtorrent_category())
-						, close_no_reason));
+						, close_no_reason);
 			}
 #if defined TORRENT_LOGGING
 			session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
@@ -2564,7 +2563,7 @@ retry:
 		m_stats_counters.inc_stats_counter(counters::incoming_connections);
 
 		if (m_alerts.should_post<incoming_connection_alert>())
-			m_alerts.post_alert(incoming_connection_alert(s->type(), endp));
+			m_alerts.emplace_alert<incoming_connection_alert>(s->type(), endp);
 
 		setup_socket_buffers(*s);
 
@@ -2618,8 +2617,8 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.post_alert(listen_failed_alert("socks5", listen_failed_alert::accept, e
-						, listen_failed_alert::socks5));
+				m_alerts.emplace_alert<listen_failed_alert>("socks5", listen_failed_alert::accept, e
+						, listen_failed_alert::socks5);
 			return;
 		}
 		open_new_incoming_socks_connection();
@@ -3028,16 +3027,16 @@ retry:
 				&& m_stat.download_ip_overhead() >= down_limit
 				&& m_alerts.should_post<performance_alert>())
 			{
-				m_alerts.post_alert(performance_alert(torrent_handle()
-					, performance_alert::download_limit_too_low));
+				m_alerts.emplace_alert<performance_alert>(torrent_handle()
+					, performance_alert::download_limit_too_low);
 			}
 
 			if (up_limit > 0
 				&& m_stat.upload_ip_overhead() >= up_limit
 				&& m_alerts.should_post<performance_alert>())
 			{
-				m_alerts.post_alert(performance_alert(torrent_handle()
-					, performance_alert::upload_limit_too_low));
+				m_alerts.emplace_alert<performance_alert>(torrent_handle()
+					, performance_alert::upload_limit_too_low);
 			}
 		}
 
@@ -3916,8 +3915,8 @@ retry:
 			// assume 20 kB/s
 			max_upload_rate = (std::max)(20000, m_peak_up_rate + 10000);
 			if (m_alerts.should_post<performance_alert>())
-				m_alerts.post_alert(performance_alert(torrent_handle()
-					, performance_alert::bittyrant_with_no_uplimit));
+				m_alerts.emplace_alert<performance_alert>(torrent_handle()
+					, performance_alert::bittyrant_with_no_uplimit);
 		}
 
 		int allowed_upload_slots = unchoke_sort(peers, max_upload_rate
@@ -4375,7 +4374,7 @@ retry:
 		m_posting_torrent_updates = false;
 #endif
 
-		m_alerts.post_alert(state_update_alert(status));
+		m_alerts.emplace_alert<state_update_alert>(status);
 	}
 
 	void session_impl::post_session_stats()
@@ -4398,7 +4397,7 @@ retry:
 		m_stats_counters.set_value(counters::limiter_down_bytes
 			, m_download_rate.queued_bytes());
 
-		m_alerts.post_alert(session_stats_alert(m_stats_counters));
+		m_alerts.emplace_alert<session_stats_alert>(m_stats_counters);
 	}
 
 	void session_impl::post_dht_stats()
@@ -4411,7 +4410,7 @@ retry:
 			m_dht->dht_status(table, requests);
 #endif
 
-		m_alerts.post_alert(dht_stats_alert(table, requests));
+		m_alerts.emplace_alert<dht_stats_alert>(table, requests);
 	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
@@ -4455,7 +4454,7 @@ retry:
 		if (j->error.ec)
 		{
 			ec = j->error.ec;
-			m_alerts.post_alert(add_torrent_alert(handle, *params, ec));
+			m_alerts.emplace_alert<add_torrent_alert>(handle, *params, ec);
 		}
 		else
 		{
@@ -4484,7 +4483,7 @@ retry:
 		, error_code& ec)
 	{
 		torrent_handle h = add_torrent_impl(p, ec);
-		m_alerts.post_alert(add_torrent_alert(h, p, ec));
+		m_alerts.emplace_alert<add_torrent_alert>(h, p, ec);
 		return h;
 	}
 
@@ -4736,7 +4735,7 @@ retry:
 				? params.url : params.uuid, torrent_ptr));
 
 		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
+			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
@@ -4850,7 +4849,7 @@ retry:
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		m_alerts.post_alert(torrent_removed_alert(tptr->get_handle(), tptr->info_hash()));
+		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle(), tptr->info_hash());
 
 		remove_torrent_impl(tptr, options);
 
@@ -4887,8 +4886,8 @@ retry:
 			if (!t.delete_files())
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
-					m_alerts.post_alert(torrent_delete_failed_alert(t.get_handle()
-						, error_code(), t.torrent_file().info_hash()));
+					m_alerts.emplace_alert<torrent_delete_failed_alert>(t.get_handle()
+						, error_code(), t.torrent_file().info_hash());
 			}
 		}
 
@@ -5195,7 +5194,7 @@ retry:
 		t->do_connect_boost();
 
 		if (m_alerts.should_post<lsd_peer_alert>())
-			m_alerts.post_alert(lsd_peer_alert(t->get_handle(), peer));
+			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
 	void session_impl::on_port_map_log(
@@ -5204,7 +5203,7 @@ retry:
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 		// log message
 		if (m_alerts.should_post<portmap_log_alert>())
-			m_alerts.post_alert(portmap_log_alert(map_transport, msg));
+			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
 	}
 
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
@@ -5218,8 +5217,8 @@ retry:
 		{
 			m_external_udp_port = port;
 			if (m_alerts.should_post<portmap_alert>())
-				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport));
+				m_alerts.emplace_alert<portmap_alert>(mapping, port
+					, map_transport);
 			return;
 		}
 
@@ -5237,22 +5236,22 @@ retry:
 				m_listen_sockets.front().external_port = port;
 			}
 			if (m_alerts.should_post<portmap_alert>())
-				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport));
+				m_alerts.emplace_alert<portmap_alert>(mapping, port
+					, map_transport);
 			return;
 		}
 
 		if (ec)
 		{
 			if (m_alerts.should_post<portmap_error_alert>())
-				m_alerts.post_alert(portmap_error_alert(mapping
-					, map_transport, ec));
+				m_alerts.emplace_alert<portmap_error_alert>(mapping
+					, map_transport, ec);
 		}
 		else
 		{
 			if (m_alerts.should_post<portmap_alert>())
-				m_alerts.post_alert(portmap_alert(mapping, port
-					, map_transport));
+				m_alerts.emplace_alert<portmap_alert>(mapping, port
+					, map_transport);
 		}
 	}
 
@@ -5391,7 +5390,7 @@ retry:
 	void on_bootstrap(alert_manager& alerts)
 	{
 		if (alerts.should_post<dht_bootstrap_alert>())
-			alerts.post_alert(dht_bootstrap_alert());
+			alerts.emplace_alert<dht_bootstrap_alert>();
 	}
 
 	void session_impl::start_dht(entry const& startup_state)
@@ -5459,8 +5458,8 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<dht_error_alert>())
-				m_alerts.post_alert(dht_error_alert(
-					dht_error_alert::hostname_lookup, e));
+				m_alerts.emplace_alert<dht_error_alert>(
+					dht_error_alert::hostname_lookup, e);
 			return;
 		}
 
@@ -5480,7 +5479,7 @@ retry:
 		, dht::item const& i)
 	{
 		TORRENT_ASSERT(!i.is_mutable());
-		m_alerts.post_alert(dht_immutable_item_alert(target, i.value()));
+		m_alerts.emplace_alert<dht_immutable_item_alert>(target, i.value());
 	}
 
 	void session_impl::dht_get_immutable_item(sha1_hash const& target)
@@ -5494,8 +5493,8 @@ retry:
 	void session_impl::get_mutable_callback(dht::item const& i)
 	{
 		TORRENT_ASSERT(i.is_mutable());
-		m_alerts.post_alert(dht_mutable_item_alert(i.pk(), i.sig(), i.seq()
-			, i.salt(), i.value()));
+		m_alerts.emplace_alert<dht_mutable_item_alert>(i.pk(), i.sig(), i.seq()
+			, i.salt(), i.value());
 	}
 
 	// key is a 32-byte binary string, the public key to look up.
@@ -5511,7 +5510,7 @@ retry:
 	void on_dht_put(alert_manager& alerts, sha1_hash target)
 	{
 		if (alerts.should_post<dht_put_alert>())
-			alerts.post_alert(dht_put_alert(target));
+			alerts.emplace_alert<dht_put_alert>(target);
 	}
 
 	void session_impl::dht_put_item(entry data, sha1_hash target)
@@ -5534,7 +5533,7 @@ retry:
 		i.assign(value, salt, seq, pk.data(), sig.data());
 
 		if (alerts.should_post<dht_put_alert>())
-			alerts.post_alert(dht_put_alert(pk, sig, salt, seq));
+			alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq);
 	}
 
 	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
@@ -5799,8 +5798,8 @@ retry:
 			>= allowed_upload_slots / 2)
 		{
 			if (m_alerts.should_post<performance_alert>())
-				m_alerts.post_alert(performance_alert(torrent_handle()
-					, performance_alert::too_many_optimistic_unchoke_slots));
+				m_alerts.emplace_alert<performance_alert>(torrent_handle()
+					, performance_alert::too_many_optimistic_unchoke_slots);
 		}
 	}
 
@@ -5818,8 +5817,8 @@ retry:
 			&& cache_size > 5
 			&& m_alerts.should_post<performance_alert>())
 		{
-			m_alerts.post_alert(performance_alert(torrent_handle()
-				, performance_alert::too_high_disk_queue_limit));
+			m_alerts.emplace_alert<performance_alert>(torrent_handle()
+				, performance_alert::too_high_disk_queue_limit);
 		}
 	}
 
@@ -5950,7 +5949,7 @@ retry:
 		if (ec)
 		{
 			if (m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
+				m_alerts.emplace_alert<udp_error_alert>(udp::endpoint(), ec);
 		}
 
 #ifdef TORRENT_USE_OPENSSL
@@ -5958,7 +5957,7 @@ retry:
 		if (ec)
 		{
 			if (m_alerts.should_post<udp_error_alert>())
-				m_alerts.post_alert(udp_error_alert(udp::endpoint(), ec));
+				m_alerts.emplace_alert<udp_error_alert>(udp::endpoint(), ec);
 		}
 #endif
 	}
@@ -6284,7 +6283,7 @@ retry:
 		error_code ec;
 		m_lsd->start(ec);
 		if (ec && m_alerts.should_post<lsd_error_alert>())
-			m_alerts.post_alert(lsd_error_alert(ec));
+			m_alerts.emplace_alert<lsd_error_alert>(ec);
 	}
 	
 #if defined TORRENT_LOGGING
@@ -6437,21 +6436,21 @@ retry:
 	void session_impl::get_peers(sha1_hash const& ih)
 	{
 		if (!m_alerts.should_post<dht_get_peers_alert>()) return;
-		m_alerts.post_alert(dht_get_peers_alert(ih));
+		m_alerts.emplace_alert<dht_get_peers_alert>(ih);
 	}
 
 	void session_impl::announce(sha1_hash const& ih, address const& addr
 		, int port)
 	{
 		if (!m_alerts.should_post<dht_announce_alert>()) return;
-		m_alerts.post_alert(dht_announce_alert(addr, port, ih));
+		m_alerts.emplace_alert<dht_announce_alert>(addr, port, ih);
 	}
 
 	void session_impl::outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep)
 	{
 		if (!m_alerts.should_post<dht_outgoing_get_peers_alert>()) return;
-		m_alerts.post_alert(dht_outgoing_get_peers_alert(target, sent_target, ep));
+		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
 	}
 
 	void session_impl::set_external_address(address const& ip
@@ -6469,7 +6468,7 @@ retry:
 #endif
 
 		if (m_alerts.should_post<external_ip_alert>())
-			m_alerts.post_alert(external_ip_alert(ip));
+			m_alerts.emplace_alert<external_ip_alert>(ip);
 
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)

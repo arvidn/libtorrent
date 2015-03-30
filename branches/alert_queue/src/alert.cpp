@@ -55,22 +55,41 @@ namespace libtorrent {
 	alert::~alert() {}
 	time_point alert::timestamp() const { return m_timestamp; }
 
-	torrent_alert::torrent_alert(torrent_handle const& h)
+	torrent_alert::torrent_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h)
 		: handle(h)
-		, name(h.native_handle() ? h.native_handle()->name() : "")
+		, m_alloc(alloc)
 	{
-		if (name.empty() && h.is_valid())
+		std::string name_str;
+		if (h.native_handle())
+		{
+			m_name_idx = alloc.copy_string(h.native_handle()->name());
+		}
+		else if (h.is_valid())
 		{
 			char msg[41];
 			to_hex((char const*)&h.native_handle()->info_hash()[0], 20, msg);
-			name = msg;
+			m_name_idx = alloc.copy_string(msg);
 		}
+		else
+		{
+			m_name_idx = alloc.copy_string("");
+		}
+
+#ifndef TORRENT_NO_DEPRECATE
+		name = torrent_name();
+#endif
+	}
+
+	char const* torrent_alert::torrent_name() const
+	{
+		return m_alloc.ptr(m_name_idx);
 	}
 
 	std::string torrent_alert::message() const
 	{
 		if (!handle.is_valid()) return " - ";
-		return name;
+		return torrent_name();
 	}
 
 	std::string peer_alert::message() const
@@ -80,9 +99,23 @@ namespace libtorrent {
 			+ ", " + identify_client(pid) + ")";
 	}
 
+	tracker_alert::tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, std::string const& u)
+		: torrent_alert(alloc, h)
+		, m_url_idx(alloc.copy_string(u))
+#ifndef TORRENT_NO_DEPRECATE
+		, url(u)
+#endif
+	{}
+
+	char const* tracker_alert::tracker_url() const
+	{
+		return m_alloc.ptr(m_url_idx);
+	}
+
 	std::string tracker_alert::message() const
 	{
-		return torrent_alert::message() + " (" + url + ")";
+		return torrent_alert::message() + " (" + tracker_url() + ")";
 	}
 
 	std::string read_piece_alert::message() const
@@ -403,8 +436,9 @@ namespace libtorrent {
 		return msg;
 	}
 
-	stats_alert::stats_alert(torrent_handle const& h, int in, stat const& s)
-		: torrent_alert(h)
+	stats_alert::stats_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, int in, stat const& s)
+		: torrent_alert(alloc, h)
 		, interval(in)
 	{
 		transferred[upload_payload] = s[stat::upload_payload].counter();
@@ -452,7 +486,9 @@ namespace libtorrent {
 		return msg;
 	}
 
-	cache_flushed_alert::cache_flushed_alert(torrent_handle const& h): torrent_alert(h) {}
+	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h) {}
 
 	std::string anonymous_mode_alert::message() const
 	{
@@ -743,8 +779,7 @@ namespace libtorrent {
 
 	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
 		, char const* log)
-		: torrent_alert(h)
-		, m_alloc(alloc)
+		: torrent_alert(alloc, h)
 		, m_str_idx(alloc.copy_string(log))
 	{}
 
@@ -761,8 +796,7 @@ namespace libtorrent {
 	peer_log_alert::peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& i
 		, peer_id const& pi, char const* log)
-		: peer_alert(h, i, pi)
-		, m_alloc(alloc)
+		: peer_alert(alloc, h, i, pi)
 		, m_str_idx(alloc.copy_string(log))
 	{}
 
@@ -781,7 +815,7 @@ namespace libtorrent {
 		return "Local Service Discovery error: " + error.message();
 	}
 
-	session_stats_alert::session_stats_alert(counters const& cnt)
+	session_stats_alert::session_stats_alert(aux::stack_allocator&, counters const& cnt)
 	{
 		for (int i = 0; i < counters::num_counters; ++i)
 			values[i] = cnt[i];
