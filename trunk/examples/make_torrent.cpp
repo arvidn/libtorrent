@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/file_pool.hpp"
-#include "libtorrent/escape_string.hpp" // for from_hex
+#include "libtorrent/hex.hpp" // for from_hex
 
 #include <boost/bind.hpp>
 
