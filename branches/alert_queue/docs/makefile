@@ -13,7 +13,6 @@ REFERENCE_TARGETS = \
 	reference-Utility \
 	reference-Bencoding \
 	reference-Alerts \
-	reference-RSS \
 	reference-Filter \
 	reference-Settings \
 	reference-Bdecoding \

@@ -214,9 +214,9 @@ namespace libtorrent {
 		//
 		// .. code:: c++
 		//
-		// std::vector<alert*> alerts;
+		//	std::vector<alert*> alerts;
 		//	ses.pop_alerts(&alerts);
-		// for (alert* i : alerts) {
+		//	for (alert* i : alerts) {
 		//		switch (a->type()) {
 		// 
 		//			case read_piece_alert::alert_type:
@@ -233,7 +233,7 @@ namespace libtorrent {
 		//			{
 		//				// etc...
 		//			}
-		// 	}
+		//		}
 		//	}
 		virtual int type() const = 0;
 

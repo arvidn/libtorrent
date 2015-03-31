@@ -1111,7 +1111,7 @@ namespace libtorrent
 		// valid until the next time ``pop_alerts`` is called. You may not delete
 		// the alert objects.
 		// 
-		// It is safe to call ``pop_alert`` from multiple different threads, as
+		// It is safe to call ``pop_alerts`` from multiple different threads, as
 		// long as the alerts themselves are not accessed once another thread
 		// calls ``pop_alerts``. Doing this requires manual synchronization
 		// between the popping threads.
@@ -1143,19 +1143,19 @@ namespace libtorrent
 		// 
 		// To control which alerts are posted, set the alert_mask
 		// (settings_pack::alert_mask).
-
+		// 
 		// the ``set_alert_notify`` function lets the client set a function object
 		// to be invoked every time the alert queue goes from having 0 alerts to
 		// 1 alert. This function is called from within libtorrent, it may be the
 		// main thread, or it may be from within a user call. The intention of
 		// of the function is that the client wakes up its main thread, to poll
 		// for more alerts using ``pop_alerts()``. If the notify function fails
-		// to do so, it won't be called again, until pop_alert is called for some
-		// other reason. For instance, it could signal an eventfd, post a message
-		// to an HWND or some other main message pump. The actual retrieval of 
-		// alerts should not be done in the callback. In fact, the callback should
-		// not block. It should not perform any expensive work. It really should
-		// just notify the main application thread.
+		// to do so, it won't be called again, until ``pop_alerts`` is called for
+		// some other reason. For instance, it could signal an eventfd, post a
+		// message to an HWND or some other main message pump. The actual
+		// retrieval of alerts should not be done in the callback. In fact, the
+		// callback should not block. It should not perform any expensive work.
+		// It really should just notify the main application thread.
 		void pop_alerts(std::vector<alert*>* alerts);
 		alert* wait_for_alert(time_duration max_wait);
 		void set_alert_notify(boost::function<void()> const& fun);
