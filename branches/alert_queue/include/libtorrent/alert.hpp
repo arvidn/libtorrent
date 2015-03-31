@@ -58,15 +58,21 @@ POSSIBILITY OF SUCH DAMAGE.
 // specify which kinds of events should be reported. The alert mask is
 // comprised by bits from the category_t enum.
 // 
-// Every alert belongs to one or more category. There is a small cost involved
-// in posting alerts. Only alerts that belong to an enabled category are
+// Every alert belongs to one or more category. There is a cost associated with
+// posting alerts. Only alerts that belong to an enabled category are
 // posted. Setting the alert bitmask to 0 will disable all alerts (except those
-// that are non-discardable).
+// that are non-discardable). Alerts that are responses to API calls such as
+// save_resume_data() and post_session_stats() are non-discardable and will be
+// posted even if their category is disabled.
 // 
 // There are other alert base classes that some alerts derive from, all the
 // alerts that are generated for a specific torrent are derived from
 // torrent_alert, and tracker events derive from tracker_alert.
 //
+// Alerts returned by pop_alerts() are only valid until the next call to
+// pop_alerts(). You may not copy an alert object to access it after the next
+// call to pop_alerts(). Internal members of alerts also become invalid once
+// pop_alerts() is called again.
 
 #ifdef _MSC_VER
 #pragma warning(pop)
