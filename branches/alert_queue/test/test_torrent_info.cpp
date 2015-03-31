@@ -659,7 +659,6 @@ void test_resolve_duplicates(int test_case)
 		convert_path_to_posix(p);
 		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[test_case][i]);
 
-		// TODO: 3 fix duplicate name detection to make this test pass
 		TEST_EQUAL(p, filenames[test_case][i]);
 	}
 }
