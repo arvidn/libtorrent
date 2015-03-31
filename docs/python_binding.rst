@@ -122,7 +122,7 @@ A very simple example usage of the module would be something like this::
 	e = lt.bdecode(open("test.torrent", 'rb').read())
 	info = lt.torrent_info(e)
 
-	params = { save_path: './', \
+	params = { save_path: '.', \
 		storage_mode: lt.storage_mode_t.storage_mode_sparse, \
 		ti: info }
 	h = ses.add_torrent(params)
