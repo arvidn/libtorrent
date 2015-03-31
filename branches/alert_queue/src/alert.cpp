@@ -102,10 +102,10 @@ namespace libtorrent {
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, std::string const& u)
 		: torrent_alert(alloc, h)
-		, m_url_idx(alloc.copy_string(u))
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
 #endif
+		, m_url_idx(alloc.copy_string(u))
 	{}
 
 	char const* tracker_alert::tracker_url() const
@@ -142,11 +142,28 @@ namespace libtorrent {
 		return msg;
 	}
 
+	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, std::string const& n
+		, int idx)
+		: torrent_alert(alloc, h)
+#ifndef TORRENT_NO_DEPRECATE
+		, name(n)
+#endif
+		, index(idx)
+		, m_name_idx(alloc.copy_string(n))
+	{}
+
+	char const* file_renamed_alert::new_name() const
+	{
+		return m_alloc.ptr(m_name_idx);
+	}
+
 	std::string file_renamed_alert::message() const
 	{
 		char msg[200 + TORRENT_MAX_PATH * 2];
-		snprintf(msg, sizeof(msg), "%s: file %d renamed to %s", torrent_alert::message().c_str()
-			, index, name.c_str());
+		snprintf(msg, sizeof(msg), "%s: file %d renamed to %s"
+			, torrent_alert::message().c_str(), index, new_name());
 		return msg;
 	}
 
@@ -190,18 +207,60 @@ namespace libtorrent {
 			+ state_str[state];
 	}
 
+	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, int times
+		, int status
+		, std::string const& u
+		, error_code const& e
+		, std::string const& m)
+		: tracker_alert(alloc, h, u)
+		, times_in_row(times)
+		, status_code(status)
+		, error(e)
+#ifndef TORRENT_NO_DEPRECATE
+		, msg(m)
+#endif
+		, m_msg_idx(alloc.copy_string(m))
+	{
+		TORRENT_ASSERT(!u.empty());
+	}
+
+	char const* tracker_error_alert::error_message() const
+	{
+		return m_alloc.ptr(m_msg_idx);
+	}
+
 	std::string tracker_error_alert::message() const
 	{
 		char ret[400];
 		snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
 			, tracker_alert::message().c_str(), status_code
-			, error.message().c_str(), msg.c_str(), times_in_row);
+			, error.message().c_str(), error_message(), times_in_row);
 		return ret;
+	}
+
+	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, std::string const& u
+		, std::string const& m)
+		: tracker_alert(alloc, h, u)
+#ifndef TORRENT_NO_DEPRECATE
+		, msg(m)
+#endif
+		, m_msg_idx(alloc.copy_string(m))
+	{
+		TORRENT_ASSERT(!u.empty());
+	}
+
+	char const* tracker_warning_alert::warning_message() const
+	{
+		return m_alloc.ptr(m_msg_idx);
 	}
 
 	std::string tracker_warning_alert::message() const
 	{
-		return tracker_alert::message() + " warning: " + msg;
+		return tracker_alert::message() + " warning: " + warning_message();
 	}
 
 	std::string scrape_reply_alert::message() const
@@ -212,9 +271,43 @@ namespace libtorrent {
 		return ret;
 	}
 
+	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, std::string const& u
+		, error_code const& e)
+		: tracker_alert(alloc, h, u)
+#ifndef TORRENT_NO_DEPRECATE
+		, msg(convert_from_native(e.message()))
+#endif
+		, error(e)
+		, m_msg_idx(-1)
+	{
+		TORRENT_ASSERT(!u.empty());
+	}
+
+	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, std::string const& u
+		, std::string const& m)
+		: tracker_alert(alloc, h, u)
+#ifndef TORRENT_NO_DEPRECATE
+		, msg(m)
+#endif
+		, error(errors::tracker_failure)
+		, m_msg_idx(alloc.copy_string(m))
+	{
+		TORRENT_ASSERT(!u.empty());
+	}
+
+	char const* scrape_failed_alert::error_message() const
+	{
+		if (m_msg_idx == -1) return "";
+		else return m_alloc.ptr(m_msg_idx);
+	}
+
 	std::string scrape_failed_alert::message() const
 	{
-		return tracker_alert::message() + " scrape failed: " + msg;
+		return tracker_alert::message() + " scrape failed: " + error_message();
 	}
 
 	std::string tracker_reply_alert::message() const
@@ -264,6 +357,12 @@ namespace libtorrent {
 	}
 
 
+	invalid_request_alert::invalid_request_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, peer_id const& peer_id, peer_request const& r)
+		: peer_alert(alloc, h, ep, peer_id)
+		, request(r)
+	{}
 
 	std::string invalid_request_alert::message() const
 	{
@@ -273,6 +372,15 @@ namespace libtorrent {
 		return ret;
 	}
 
+	torrent_finished_alert::torrent_finished_alert(aux::stack_allocator& alloc, 
+		torrent_handle h)
+		: torrent_alert(alloc, h)
+	{}
+
+	std::string torrent_finished_alert::message() const
+	{
+		return torrent_alert::message() + " torrent finished downloading";
+	}
 
 	std::string piece_finished_alert::message() const
 	{
@@ -282,6 +390,15 @@ namespace libtorrent {
 		return ret;
 	}
 
+	request_dropped_alert::request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+		, int piece_num)
+		: peer_alert(alloc, h, ep, peer_id)
+		, block_index(block_num)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+	}
 
 	std::string request_dropped_alert::message() const
 	{
@@ -289,6 +406,16 @@ namespace libtorrent {
 		snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
+	}
+
+	block_timeout_alert::block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+		, int piece_num)
+		: peer_alert(alloc, h, ep, peer_id)
+		, block_index(block_num)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
 	}
 
 	std::string block_timeout_alert::message() const
@@ -299,12 +426,35 @@ namespace libtorrent {
 		return ret;
 	}
 
+	block_finished_alert::block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+		, int piece_num)
+		: peer_alert(alloc, h, ep, peer_id)
+		, block_index(block_num)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+	}
+
 	std::string block_finished_alert::message() const
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
+	}
+
+	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep
+		, peer_id const& peer_id, int block_num, int piece_num)
+		: peer_alert(alloc, h, ep, peer_id)
+#ifndef TORRENT_NO_DEPRECATE
+		, peer_speedmsg("")
+#endif
+		, block_index(block_num)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
 	}
 
 	std::string block_downloading_alert::message() const
@@ -315,12 +465,155 @@ namespace libtorrent {
 		return ret;
 	}
 
+	unwanted_block_alert::unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep
+		, peer_id const& peer_id, int block_num, int piece_num)
+		: peer_alert(alloc, h, ep, peer_id)
+		, block_index(block_num)
+		, piece_index(piece_num)
+	{
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+	}
+
 	std::string unwanted_block_alert::message() const
 	{
 		char ret[200];
 		snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
+	}
+
+	storage_moved_alert::storage_moved_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, std::string const& p)
+		: torrent_alert(alloc, h)
+#ifndef TORRENT_NO_DEPRECATE
+		, path(p)
+#endif
+		, m_path_idx(alloc.copy_string(p))
+	{}
+
+	std::string storage_moved_alert::message() const
+	{
+		return torrent_alert::message() + " moved storage to: "
+			+ storage_path();
+	}
+
+	char const* storage_moved_alert::storage_path() const
+	{
+		return m_alloc.ptr(m_path_idx);
+	}
+
+	storage_moved_failed_alert::storage_moved_failed_alert(
+		aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, error_code const& e
+		, std::string const& file
+		, char const* op)
+		: torrent_alert(alloc, h)
+		, error(e)
+#ifndef TORRENT_NO_DEPRECATE
+		, file(file)
+#endif
+		, operation(op)
+		, m_file_idx(alloc.copy_string(file))
+	{}
+
+	char const* storage_moved_failed_alert::file_path() const
+	{
+		return m_alloc.ptr(m_file_idx);
+	}
+
+	std::string storage_moved_failed_alert::message() const
+	{
+		return torrent_alert::message() + " storage move failed. "
+			+ (operation?operation:"") + " (" + file_path() + "): "
+			+ convert_from_native(error.message());
+	}
+
+	torrent_deleted_alert::torrent_deleted_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, sha1_hash const& ih)
+		: torrent_alert(alloc, h)
+		, info_hash(ih)
+	{}
+
+	std::string torrent_deleted_alert::message() const
+	{
+		return torrent_alert::message() + " deleted";
+	}
+
+	torrent_delete_failed_alert::torrent_delete_failed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, error_code const& e, sha1_hash const& ih)
+		: torrent_alert(alloc, h)
+		, error(e)
+		, info_hash(ih)
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
+	}
+
+	std::string torrent_delete_failed_alert::message() const
+	{
+		return torrent_alert::message() + " torrent deletion failed: "
+			+convert_from_native(error.message());
+	}
+
+	save_resume_data_alert::save_resume_data_alert(aux::stack_allocator& alloc
+		, boost::shared_ptr<entry> const& rd
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+		, resume_data(rd)
+	{}
+
+	std::string save_resume_data_alert::message() const
+	{
+		return torrent_alert::message() + " resume data generated";
+	}
+
+	save_resume_data_failed_alert::save_resume_data_failed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, error_code const& e)
+		: torrent_alert(alloc, h)
+		, error(e)
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
+	}
+
+	std::string save_resume_data_failed_alert::message() const
+	{
+		return torrent_alert::message() + " resume data was not generated: "
+			+ convert_from_native(error.message());
+	}
+
+	torrent_paused_alert::torrent_paused_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+	{}
+
+	std::string torrent_paused_alert::message() const
+	{
+		return torrent_alert::message() + " paused";
+	}
+
+	torrent_resumed_alert::torrent_resumed_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+	{}
+
+	std::string torrent_resumed_alert::message() const
+	{
+		return torrent_alert::message() + " resumed";
+	}
+
+	torrent_checked_alert::torrent_checked_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+	{}
+
+	std::string torrent_checked_alert::message() const
+	{
+		return torrent_alert::message() + " checked";
 	}
 
 	namespace
@@ -388,11 +681,57 @@ namespace libtorrent {
 		return ret;
 	}
 
+	portmap_log_alert::portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m)
+		: map_type(t)
+#ifndef TORRENT_NO_DEPRECATE
+		, msg(m)
+#endif
+		, m_alloc(alloc)
+		, m_log_idx(alloc.copy_string(m))
+	{}
+
+	char const* portmap_log_alert::log_message() const
+	{
+		return m_alloc.ptr(m_log_idx);
+	}
+
 	std::string portmap_log_alert::message() const
 	{
 		char ret[600];
-		snprintf(ret, sizeof(ret), "%s: %s", nat_type_str[map_type], msg.c_str());
+		snprintf(ret, sizeof(ret), "%s: %s", nat_type_str[map_type]
+			, log_message());
 		return ret;
+	}
+
+	fastresume_rejected_alert::fastresume_rejected_alert(
+		aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, error_code const& ec
+		, std::string const& file
+		, char const* op)
+		: torrent_alert(alloc, h)
+		, error(ec)
+#ifndef TORRENT_NO_DEPRECATE
+		, file(file)
+#endif
+		, operation(op)
+		, m_path_idx(alloc.copy_string(file))
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
+	}
+
+	std::string fastresume_rejected_alert::message() const
+	{
+		return torrent_alert::message() + " fast resume rejected. "
+			+ (operation?operation:"") + "(" + file_path() + "): "
+			+ convert_from_native(error.message());
+	}
+
+	char const* fastresume_rejected_alert::file_path() const
+	{
+		return m_alloc.ptr(m_path_idx);
 	}
 
 	std::string peer_blocked_alert::message() const
@@ -510,9 +849,26 @@ namespace libtorrent {
 		return msg;
 	}
 
+	trackerid_alert::trackerid_alert(
+		aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, std::string const& u
+		, const std::string& id)
+		: tracker_alert(alloc, h, u)
+#ifndef TORRENT_NO_DEPRECATE
+		, trackerid(id)
+#endif
+		, m_tracker_idx(alloc.copy_string(id))
+	{}
+
+	char const* trackerid_alert::tracker_id() const
+	{
+		return m_alloc.ptr(m_tracker_idx);
+	}
+
 	std::string trackerid_alert::message() const
 	{
-		return "trackerid received: " + trackerid;
+		return std::string("trackerid received: ") + tracker_id();
 	}
 
 	std::string dht_bootstrap_alert::message() const
@@ -530,6 +886,18 @@ namespace libtorrent {
 		return msg;
 	}
 #endif
+
+	torrent_error_alert::torrent_error_alert(
+		aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, error_code const& e, std::string const& f)
+		: torrent_alert(alloc, h)
+		, error(e)
+#ifndef TORRENT_NO_DEPRECATE
+		, error_file(f)
+#endif
+		, m_file_idx(alloc.copy_string(f))
+	{}
 
 	std::string torrent_error_alert::message() const
 	{
@@ -561,6 +929,12 @@ namespace libtorrent {
 			, print_endpoint(ip).c_str(), socket_type_str[socket_type]);
 		return msg;
 	}
+
+	peer_connect_alert::peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id, int type)
+		: peer_alert(alloc, h, ep, peer_id)
+		, socket_type(type)
+	{}
 
 	std::string peer_connect_alert::message() const
 	{
@@ -613,6 +987,18 @@ namespace libtorrent {
 		char msg[100];
 		snprintf(msg, sizeof(msg), "session stats (%d values)", int(sizeof(values)));
 		return msg;
+	}
+
+	peer_error_alert::peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, tcp::endpoint const& ep, peer_id const& peer_id, int op
+		, error_code const& e)
+		: peer_alert(alloc, h, ep, peer_id)
+		, operation(op)
+		, error(e)
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
 	}
 
 	std::string peer_error_alert::message() const
@@ -673,6 +1059,21 @@ namespace libtorrent {
 		return msg;
 	}
 #endif
+
+	peer_disconnected_alert::peer_disconnected_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h, tcp::endpoint const& ep
+		, peer_id const& peer_id, operation_t op, int type, error_code const& e
+		, close_reason_t r)
+		: peer_alert(alloc, h, ep, peer_id)
+		, socket_type(type)
+		, operation(op)
+		, error(e)
+		, reason(r)
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
+	}
 
 	std::string peer_disconnected_alert::message() const
 	{
@@ -828,6 +1229,76 @@ namespace libtorrent {
 			, int(active_requests.size())
 			, int(routing_table.size()));
 		return buf;
+	}
+
+	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, std::string const& u, error_code const& e)
+		: torrent_alert(alloc, h)
+#ifndef TORRENT_NO_DEPRECATE
+		, url(u)
+		, msg(convert_from_native(e.message()))
+#endif
+		, error(e)
+		, m_url_idx(alloc.copy_string(u))
+		, m_msg_idx(-1)
+	{}
+
+	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, std::string const& u, std::string const& m)
+		: torrent_alert(alloc, h)
+#ifndef TORRENT_NO_DEPRECATE
+		, url(u)
+		, msg(m)
+#endif
+		, m_url_idx(alloc.copy_string(u))
+		, m_msg_idx(alloc.copy_string(m))
+	{}
+
+	std::string url_seed_alert::message() const
+	{
+		return torrent_alert::message() + " url seed ("
+			+ server_url() + ") failed: " + convert_from_native(error.message());
+	}
+
+	char const* url_seed_alert::server_url() const
+	{
+		return m_alloc.ptr(m_url_idx);
+	}
+
+	char const* url_seed_alert::error_message() const
+	{
+		if (m_msg_idx == -1) return "";
+		return m_alloc.ptr(m_msg_idx);
+	}
+
+	file_error_alert::file_error_alert(aux::stack_allocator& alloc
+		, error_code const& ec
+		, std::string const& file
+		, char const* op
+		, torrent_handle const& h)
+		: torrent_alert(alloc, h)
+#ifndef TORRENT_NO_DEPRECATE
+		, file(file)
+#endif
+		, error(ec)
+		, operation(op)
+		, m_file_idx(alloc.copy_string(file))
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		msg = convert_from_native(error.message());
+#endif
+	}
+
+	char const* file_error_alert::filename() const
+	{
+		return m_alloc.ptr(m_file_idx);
+	}
+
+	std::string file_error_alert::message() const
+	{
+		return torrent_alert::message() + " "
+			+ (operation?operation:"") + " (" + filename()
+			+ ") error: " + convert_from_native(error.message());
 	}
 
 } // namespace libtorrent
