@@ -94,7 +94,7 @@ namespace libtorrent {
 
 // emulate variadic templates for c++98
 
-#include "libtorrent/alert_manager_variadic_emplace.hpp"
+#include "libtorrent/aux_/alert_manager_variadic_emplace.hpp"
 
 #endif
 
