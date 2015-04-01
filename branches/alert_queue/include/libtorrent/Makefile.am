@@ -154,6 +154,7 @@ nobase_include_HEADERS = \
   tommath_class.h                   \
   tommath_superclass.h              \
   \
+  aux_/alert_manager_variadic_emplace.hpp \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
   aux_/session_settings.hpp         \
