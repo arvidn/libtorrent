@@ -6,7 +6,6 @@ nobase_include_HEADERS = \
   alert.hpp                    \
   alert_manager.hpp            \
   alert_observer.hpp           \
-  alert_dispatcher.hpp         \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
@@ -57,6 +56,7 @@ nobase_include_HEADERS = \
   gzip.hpp                     \
   hasher.hpp                   \
   hex.hpp                      \
+  heterogeneous_queue.hpp      \
   http_connection.hpp          \
   http_parser.hpp              \
   http_seed_connection.hpp     \
@@ -119,6 +119,7 @@ nobase_include_HEADERS = \
   socket_type_fwd.hpp          \
   socks5_stream.hpp            \
   ssl_stream.hpp               \
+  stack_allocator.hpp          \
   stat.hpp                     \
   stat_cache.hpp               \
   storage.hpp                  \
@@ -153,6 +154,7 @@ nobase_include_HEADERS = \
   tommath_class.h                   \
   tommath_superclass.h              \
   \
+  aux_/alert_manager_variadic_emplace.hpp \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
   aux_/session_settings.hpp         \

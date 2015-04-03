@@ -689,8 +689,7 @@ namespace libtorrent
 		//	extern int outstanding_resume_data; // global counter of outstanding resume data
 		//	std::vector<torrent_handle> handles = ses.get_torrents();
 		//	ses.pause();
-		//	for (std::vector<torrent_handle>::iterator i = handles.begin();
-		//		i != handles.end(); ++i)
+		//	for (torrent_handle i : handles)
 		//	{
 		//		torrent_handle& h = *i;
 		//		if (!h.is_valid()) continue;
@@ -709,30 +708,35 @@ namespace libtorrent
 		//		// if we don't get an alert within 10 seconds, abort
 		//		if (a == 0) break;
 		//		
-		//		std::auto_ptr<alert> holder = ses.pop_alert();
+		// 	std::vector<alert*> alerts;
+		//		ses.pop_alerts(&alerts);
 		//
-		//		if (alert_cast<save_resume_data_failed_alert>(a))
-		//		{
-		//			process_alert(a);
-		//			--outstanding_resume_data;
-		//			continue;
-		//		}
+		// 	for (alert* i : alerts)
+		// 	{
+		//			if (alert_cast<save_resume_data_failed_alert>(a))
+		//			{
+		//				process_alert(a);
+		//				--outstanding_resume_data;
+		//				continue;
+		//			}
 		//
-		//		save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
-		//		if (rd == 0)
-		//		{
-		//			process_alert(a);
-		//			continue;
-		//		}
+		//			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(a);
+		//			if (rd == 0)
+		//			{
+		//				process_alert(a);
+		//				continue;
+		//			}
 		//		
-		//		torrent_handle h = rd->handle;
-		//		torrent_status st = h.status(torrent_handle::query_save_path | torrent_handle::query_name);
-		//		std::ofstream out((st.save_path
-		//			+ "/" + st.name + ".fastresume").c_str()
-		//			, std::ios_base::binary);
-		//		out.unsetf(std::ios_base::skipws);
-		//		bencode(std::ostream_iterator<char>(out), *rd->resume_data);
-		//		--outstanding_resume_data;
+		//			torrent_handle h = rd->handle;
+		//			torrent_status st = h.status(torrent_handle::query_save_path
+		// 			| torrent_handle::query_name);
+		//			std::ofstream out((st.save_path
+		//				+ "/" + st.name + ".fastresume").c_str()
+		//				, std::ios_base::binary);
+		//			out.unsetf(std::ios_base::skipws);
+		//			bencode(std::ostream_iterator<char>(out), *rd->resume_data);
+		//			--outstanding_resume_data;
+		// 	}
 		//	}
 		// 
 		//.. note::

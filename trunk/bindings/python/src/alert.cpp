@@ -195,7 +195,10 @@ void bind_alert()
 
     class_<tracker_alert, bases<torrent_alert>, noncopyable>(
         "tracker_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("url", &tracker_alert::url)
+#endif
+        .def("tracker_url", &tracker_alert::tracker_url)
         ;
 
     class_<torrent_added_alert, bases<torrent_alert>, noncopyable>(
@@ -221,7 +224,10 @@ void bind_alert()
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
         "tracker_error_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &tracker_error_alert::msg)
+#endif
+        .def_readonly("error_message", &tracker_error_alert::error_message)
         .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
         .def_readonly("status_code", &tracker_error_alert::status_code)
         .def_readonly("error", &tracker_error_alert::error)
@@ -295,7 +301,10 @@ void bind_alert()
 
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("path", &storage_moved_alert::path)
+#endif
+        .def("storage_path", &storage_moved_alert::storage_path)
         ;
 
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -316,15 +325,19 @@ void bind_alert()
 
     class_<url_seed_alert, bases<torrent_alert>, noncopyable>(
         "url_seed_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("url", &url_seed_alert::url)
         .def_readonly("msg", &url_seed_alert::msg)
+#endif
+        .def("server_url", &url_seed_alert::server_url)
         ;
 
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
         "file_error_alert", no_init)
-        .def_readonly("file", &file_error_alert::file)
         .def_readonly("error", &file_error_alert::error)
+        .def("filename", &file_error_alert::filename)
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("file", &file_error_alert::file)
         .def_readonly("msg", &file_error_alert::msg)
 #endif
         ;
@@ -337,7 +350,10 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("interface", &listen_failed_alert::interface)
+#endif
+        .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("operation", &listen_failed_alert::operation)
         .def_readonly("sock_type", &listen_failed_alert::sock_type)
@@ -399,7 +415,10 @@ void bind_alert()
 
     class_<scrape_failed_alert, bases<tracker_alert>, noncopyable>(
         "scrape_failed_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &scrape_failed_alert::msg)
+#endif
+        .def("error_message", &scrape_failed_alert::error_message)
         ;
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
@@ -426,7 +445,10 @@ void bind_alert()
     class_<file_renamed_alert, bases<torrent_alert>, noncopyable>(
         "file_renamed_alert", no_init)
         .def_readonly("index", &file_renamed_alert::index)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("name", &file_renamed_alert::name)
+#endif
+        .def("new_name", &file_renamed_alert::new_name)
         ;
 
     class_<file_rename_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -608,17 +630,17 @@ void bind_alert()
 
     class_<log_alert, bases<alert>, noncopyable>(
        "log_alert", no_init)
-        .def_readonly("msg", &log_alert::msg)
+        .def("msg", &log_alert::msg)
         ;
 
     class_<torrent_log_alert, bases<torrent_alert>, noncopyable>(
        "torrent_log_alert", no_init)
-        .def_readonly("msg", &torrent_log_alert::msg)
+        .def("msg", &torrent_log_alert::msg)
         ;
 
     class_<peer_log_alert, bases<peer_alert>, noncopyable>(
        "peer_log_alert", no_init)
-        .def_readonly("msg", &peer_log_alert::msg)
+        .def("msg", &peer_log_alert::msg)
         ;
 
     class_<lsd_error_alert, bases<alert>, noncopyable>(

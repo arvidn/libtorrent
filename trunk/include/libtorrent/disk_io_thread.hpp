@@ -61,9 +61,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class alert;
-	struct alert_dispatcher;
 	struct add_torrent_params;
 	struct counters;
+	class  alert_manager;
 
 	struct cached_piece_info
 	{
@@ -281,13 +281,12 @@ namespace libtorrent
 		, buffer_allocator_interface
 	{
 		disk_io_thread(io_service& ios
-			, alert_dispatcher* alert_disp
 			, counters& cnt
 			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(settings_pack* sett);
+		void set_settings(settings_pack* sett, alert_manager& alerts);
 		void set_num_threads(int i, bool wait = true);
 
 		void async_read(piece_manager* storage, peer_request const& r
@@ -586,10 +585,6 @@ namespace libtorrent
 		
 		// used to rate limit disk performance warnings
 		time_point m_last_disk_aio_performance_warning;
-
-		// function to be posted to the network thread to post
-		// an alert (used for performance warnings)
-		alert_dispatcher* m_post_alert;
 
 		// jobs that are completed are put on this queue
 		// whenever the queue size grows from 0 to 1

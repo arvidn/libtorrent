@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/torrent_info.hpp" // for merkle_*()
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/alert_manager.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
@@ -251,7 +252,7 @@ namespace libtorrent
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy;
 		counters cnt;
-		disk_io_thread disk_thread(ios, 0, cnt, 0);
+		disk_io_thread disk_thread(ios, cnt, 0);
 
 		storage_params params;
 		params.files = &t.files();
@@ -269,7 +270,9 @@ namespace libtorrent
 		sett.set_int(settings_pack::cache_size, 0);
 		sett.set_int(settings_pack::hashing_threads, 2);
 
-		disk_thread.set_settings(&sett);
+		// TODO: this should probably be optional
+		alert_manager dummy2(0, 0);
+		disk_thread.set_settings(&sett, dummy2);
 
 		int piece_counter = 0;
 		int completed_piece = 0;

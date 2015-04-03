@@ -344,8 +344,8 @@ void feed::on_feed(error_code const& ec
 		m_error = ec;
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
-			m_ses.m_alerts.post_alert(rss_alert(my_handle(), m_settings.url
-				, rss_alert::state_error, m_error));
+			m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+				, rss_alert::state_error, m_error);
 		}
 		return;
 	}
@@ -356,8 +356,8 @@ void feed::on_feed(error_code const& ec
 		m_error = error_code(parser.status_code(), get_http_category());
 		if (m_ses.m_alerts.should_post<rss_alert>())
 		{
-			m_ses.m_alerts.post_alert(rss_alert(my_handle(), m_settings.url
-				, rss_alert::state_error, m_error));
+			m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+				, rss_alert::state_error, m_error);
 		}
 		return;
 	}
@@ -391,8 +391,8 @@ void feed::on_feed(error_code const& ec
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
-		m_ses.m_alerts.post_alert(rss_alert(my_handle(), m_settings.url
-			, rss_alert::state_updated, error_code()));
+		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+			, rss_alert::state_updated, error_code());
 	}
 
 	// update m_ses.m_next_rss_update timestamps
@@ -541,7 +541,7 @@ void feed::add_item(feed_item const& item)
 		i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
 
 	if (m_ses.m_alerts.should_post<rss_item_alert>())
-		m_ses.m_alerts.post_alert(rss_item_alert(my_handle(), i));
+		m_ses.m_alerts.emplace_alert<rss_item_alert>(my_handle(), i);
 
 	if (m_settings.auto_download)
 	{
@@ -581,8 +581,8 @@ int feed::update_feed()
 
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
-		m_ses.m_alerts.post_alert(rss_alert(my_handle(), m_settings.url
-			, rss_alert::state_updating, error_code()));
+		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+			, rss_alert::state_updating, error_code());
 	}
 
 	boost::shared_ptr<http_connection> feed(

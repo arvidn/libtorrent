@@ -127,13 +127,13 @@ std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
 	s.post_session_stats();
 
 	std::map<std::string, boost::uint64_t> ret;
-	std::auto_ptr<alert> a = wait_for_alert(s, session_stats_alert::alert_type
+	alert const* a = wait_for_alert(s, session_stats_alert::alert_type
 		, "get_counters()");
 
-	TEST_CHECK(a.get());
-	if (!a.get()) return ret;
+	TEST_CHECK(a);
+	if (!a) return ret;
 
-	session_stats_alert* sa = alert_cast<session_stats_alert>(a.get());
+	session_stats_alert const* sa = alert_cast<session_stats_alert>(a);
 	if (!sa) return ret;
 
 	static std::vector<stats_metric> metrics = session_stats_metrics();
@@ -142,32 +142,29 @@ std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
 	return ret;
 }
 
-std::auto_ptr<alert> wait_for_alert(lt::session& ses, int type, char const* name)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 {
-	std::auto_ptr<alert> ret;
 	time_point end = libtorrent::clock_type::now() + seconds(10);
-	while (!ret.get())
+	while (true)
 	{
 		time_point now = clock_type::now();
-		if (now > end) return std::auto_ptr<alert>();
+		if (now > end) return NULL;
 
 		ses.wait_for_alert(end - now);
-		std::deque<alert*> alerts;
+		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		for (std::deque<alert*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			fprintf(stderr, "%s: %s: [%s] %s\n", aux::time_now_string(), name
 				, (*i)->what(), (*i)->message().c_str());
-			if (!ret.get() && (*i)->type() == type)
+			if ((*i)->type() == type)
 			{
-				ret = std::auto_ptr<alert>(*i);
+				return *i;
 			}
-			else
-				delete *i;
 		}
 	}
-	return ret;
+	return NULL;
 }
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit)
@@ -254,19 +251,19 @@ void save_file(char const* filename, char const* data, int size)
 
 bool print_alerts(lt::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
-	, bool (*predicate)(libtorrent::alert*), bool no_output)
+	, bool (*predicate)(libtorrent::alert const*), bool no_output)
 {
 	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();
 	TEST_CHECK(!handles.empty() || allow_no_torrents);
 	torrent_handle h;
 	if (!handles.empty()) h = handles[0];
-	std::deque<alert*> alerts;
+	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
-	for (std::deque<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
+	for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
 	{
 		if (predicate && predicate(*i)) ret = true;
-		if (peer_disconnected_alert* p = alert_cast<peer_disconnected_alert>(*i))
+		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(*i))
 		{
 			fprintf(stderr, "%s: %s: [%s] (%s): %s\n", aux::time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
@@ -280,7 +277,7 @@ bool print_alerts(lt::session& ses, char const* name
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
 /*
-		peer_error_alert* pea = alert_cast<peer_error_alert>(*i);
+		peer_error_alert const* pea = alert_cast<peer_error_alert>(*i);
 		if (pea)
 		{
 			fprintf(stderr, "%s: peer error: %s\n", aux::time_now_string(), pea->error.message().c_str());
@@ -298,19 +295,18 @@ bool print_alerts(lt::session& ses, char const* name
 		}
 */
 
-		invalid_request_alert* ira = alert_cast<invalid_request_alert>(*i);
+		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(*i);
 		if (ira)
 		{
 			fprintf(stderr, "peer error: %s\n", ira->message().c_str());
 			TEST_CHECK(false);
 		}
-		delete *i;
 	}
 	return ret;
 }
 
 bool listen_done = false;
-bool listen_alert(libtorrent::alert* a)
+bool listen_alert(libtorrent::alert const* a)
 {
 	if (alert_cast<listen_failed_alert>(a)
 		|| alert_cast<listen_succeeded_alert>(a))
@@ -333,9 +329,9 @@ void wait_for_listen(lt::session& ses, char const* name)
 }
 
 bool downloading_done = false;
-bool downloading_alert(libtorrent::alert* a)
+bool downloading_alert(libtorrent::alert const* a)
 {
-	state_changed_alert* sc = alert_cast<state_changed_alert>(a);
+	state_changed_alert const* sc = alert_cast<state_changed_alert>(a);
 	if (sc && sc->state == torrent_status::downloading) 
 		downloading_done = true;
 	return true;

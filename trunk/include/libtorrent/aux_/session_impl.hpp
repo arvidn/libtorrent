@@ -93,7 +93,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/resolver.hpp"
 
@@ -170,7 +169,6 @@ namespace libtorrent
 		// thread started to run the main downloader loop
 		struct TORRENT_EXTRA_EXPORT session_impl
 			: session_interface
-			, alert_dispatcher
 			, dht::dht_observer
 			, boost::noncopyable
 			, initialize_timer
@@ -425,14 +423,14 @@ namespace libtorrent
 
 			std::vector<torrent_handle> get_torrents() const;
 			
-			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-			std::auto_ptr<alert> pop_alert();
-			void pop_alerts(std::deque<alert*>* alerts);
-			void set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const&);
-
-			alert const* wait_for_alert(time_duration max_wait);
+			void pop_alerts(std::vector<alert*>* alerts);
+			alert* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
+			void pop_alerts();
+			alert const* pop_alert();
+			void pop_alerts(std::deque<alert*>* alerts);
+			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 			int upload_rate_limit() const;
 			int download_rate_limit() const;
 			int local_upload_rate_limit() const;
@@ -576,6 +574,10 @@ namespace libtorrent
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
 				, address const& source);
+			virtual void get_peers(sha1_hash const& ih);
+			virtual void announce(sha1_hash const& ih, address const& addr, int port);
+			virtual void outgoing_get_peers(sha1_hash const& target
+				, sha1_hash const& sent_target, udp::endpoint const& ep);
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
@@ -618,9 +620,6 @@ namespace libtorrent
 //		private:
 
 			void submit_disk_jobs();
-
-			// implements alert_dispatcher
-			virtual bool post_alert(alert* a);
 
 			void update_proxy();
 			void update_i2p_bridge();
@@ -701,6 +700,17 @@ namespace libtorrent
 
 			// handles delayed alerts
 			mutable alert_manager m_alerts;
+
+#ifndef TORRENT_NO_DEPRECATE
+			// the alert pointers stored in m_alerts
+			mutable std::vector<alert*> m_alert_pointers;
+
+			// if not all the alerts in m_alert_pointers have been delivered to
+			// the client. This is the offset into m_alert_pointers where the next
+			// alert is. If this is greater than or equal to m_alert_pointers.size()
+			// it means we need to request new alerts from the main thread.
+			mutable int m_alert_pointer_pos;
+#endif
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer

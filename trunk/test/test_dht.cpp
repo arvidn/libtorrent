@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/ed25519.hpp"
@@ -396,17 +395,6 @@ void announce_immutable_items(node_impl& node, udp::endpoint const* eps
 //	TEST_CHECK(items_num.find(3) != items_num.end());
 }
 
-struct print_alert : alert_dispatcher
-{
-	virtual bool post_alert(alert* a)
-	{
-		fprintf(stderr, "ALERT: %s\n", a->message().c_str());
-		delete a;
-		return true;
-	}
-};
-
-
 int sum_distance_exp(int s, node_entry const& e, node_id const& ref)
 {
 	return s + distance_exp(e.id, ref);
@@ -445,9 +433,8 @@ int test_main()
 	sett.enforce_node_id = false;
 	address ext = address::from_string("236.0.0.1");
 	mock_socket s;
-	print_alert ad;
 	counters cnt;
-	dht::node_impl node(&ad, &s, sett, node_id(0), ext, 0, cnt);
+	dht::node_impl node(&s, sett, node_id(0), ext, 0, cnt);
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
@@ -1464,7 +1451,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1536,7 +1523,7 @@ int test_main()
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1629,7 +1616,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1675,7 +1662,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1751,7 +1738,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
@@ -1833,7 +1820,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&ad, &s, sett, node_id::min(), ext, 0, cnt);
+		dht::node_impl node(&s, sett, node_id::min(), ext, 0, cnt);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))

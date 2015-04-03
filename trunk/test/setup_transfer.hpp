@@ -60,7 +60,7 @@ libtorrent::udp::endpoint EXPORT rand_udp_ep();
 
 std::map<std::string, boost::uint64_t> EXPORT get_counters(libtorrent::session& s);
 
-std::auto_ptr<libtorrent::alert> EXPORT wait_for_alert(
+libtorrent::alert const* EXPORT wait_for_alert(
 	libtorrent::session& ses, int type, char const* name = "");
 
 void EXPORT print_ses_rate(float time
@@ -72,7 +72,7 @@ bool EXPORT print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
-	, bool (*)(libtorrent::alert*) = 0
+	, bool (*)(libtorrent::alert const*) = 0
 	, bool no_output = false);
 
 void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);

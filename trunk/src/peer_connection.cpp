@@ -422,8 +422,8 @@ namespace libtorrent
 
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
-			t->alerts().post_alert(peer_connect_alert(
-				t->get_handle(), remote(), pid(), m_socket->type()));
+			t->alerts().emplace_alert<peer_connect_alert>(
+				t->get_handle(), remote(), pid(), m_socket->type());
 		}
 #if defined TORRENT_LOGGING
 		peer_log("*** LOCAL ENDPOINT[ e: %s ]", print_endpoint(m_socket->local_endpoint(ec)).c_str());
@@ -525,8 +525,8 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) h = t->get_handle();
 
-		m_ses.alerts().post_alert(peer_log_alert(
-			h, m_remote, m_peer_id, buf));
+		m_ses.alerts().emplace_alert<peer_log_alert>(
+			h, m_remote, m_peer_id, buf);
 	}
 #endif
 
@@ -2193,8 +2193,8 @@ namespace libtorrent
 
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
-				t->alerts().post_alert(invalid_request_alert(
-					t->get_handle(), m_remote, m_peer_id, r));
+				t->alerts().emplace_alert<invalid_request_alert>(
+					t->get_handle(), m_remote, m_peer_id, r);
 			}
 			return;
 		}
@@ -2284,8 +2284,8 @@ namespace libtorrent
 
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
-				t->alerts().post_alert(invalid_request_alert(
-					t->get_handle(), m_remote, m_peer_id, r));
+				t->alerts().emplace_alert<invalid_request_alert>(
+					t->get_handle(), m_remote, m_peer_id, r);
 			}
 
 			// every ten invalid request, remind the peer that it's choked
@@ -2463,8 +2463,8 @@ namespace libtorrent
 			{
 				if (t->alerts().should_post<unwanted_block_alert>())
 				{
-					t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
-						, m_peer_id, b.block_index, b.piece_index));
+					t->alerts().emplace_alert<unwanted_block_alert>(t->get_handle()
+						, m_remote, m_peer_id, int(b.block_index), int(b.piece_index));
 				}
 #if defined TORRENT_LOGGING
 				peer_log("*** The block we just got was not in the request queue ***");
@@ -2603,8 +2603,8 @@ namespace libtorrent
 		{
 			if (t->alerts().should_post<peer_error_alert>())
 			{
-				t->alerts().post_alert(peer_error_alert(t->get_handle(), m_remote
-					, m_peer_id, op_bittorrent, errors::peer_sent_empty_piece));
+				t->alerts().emplace_alert<peer_error_alert>(t->get_handle(), m_remote
+					, m_peer_id, op_bittorrent, errors::peer_sent_empty_piece);
 			}
 			// This is used as a reject-request by bitcomet
 			incoming_reject_request(p);
@@ -2648,8 +2648,9 @@ namespace libtorrent
 		{
 			if (t->alerts().should_post<unwanted_block_alert>())
 			{
-				t->alerts().post_alert(unwanted_block_alert(t->get_handle(), m_remote
-					, m_peer_id, block_finished.block_index, block_finished.piece_index));
+				t->alerts().emplace_alert<unwanted_block_alert>(t->get_handle()
+					, m_remote, m_peer_id, int(block_finished.block_index)
+					, int(block_finished.piece_index));
 			}
 #if defined TORRENT_LOGGING
 			peer_log("*** The block we just got was not in the request queue ***");
@@ -2720,8 +2721,8 @@ namespace libtorrent
 			m_snubbed = false;
 			if (t->alerts().should_post<peer_unsnubbed_alert>())
 			{
-				t->alerts().post_alert(peer_unsnubbed_alert(t->get_handle()
-					, m_remote, m_peer_id));
+				t->alerts().emplace_alert<peer_unsnubbed_alert>(t->get_handle()
+					, m_remote, m_peer_id);
 			}
 		}
 
@@ -2759,8 +2760,8 @@ namespace libtorrent
 			&& m_settings.get_int(settings_pack::cache_size) > 5
 			&& t->alerts().should_post<performance_alert>())
 		{
-			t->alerts().post_alert(performance_alert(t->get_handle()
-				, performance_alert::too_high_disk_queue_limit));
+			t->alerts().emplace_alert<performance_alert>(t->get_handle()
+				, performance_alert::too_high_disk_queue_limit);
 		}
 
 		m_request_time.add_sample(total_milliseconds(now - m_requested));
@@ -2923,8 +2924,9 @@ namespace libtorrent
 
 		if (t->alerts().should_post<block_finished_alert>())
 		{
-			t->alerts().post_alert(block_finished_alert(t->get_handle(), 
-				remote(), pid(), block_finished.block_index, block_finished.piece_index));
+			t->alerts().emplace_alert<block_finished_alert>(t->get_handle(), 
+				remote(), pid(), int(block_finished.block_index)
+				, int(block_finished.piece_index));
 		}
 
 		disconnect_if_redundant();
@@ -3358,8 +3360,8 @@ namespace libtorrent
 
 		if (t->alerts().should_post<block_downloading_alert>())
 		{
-			t->alerts().post_alert(block_downloading_alert(t->get_handle(), 
-				remote(), pid(), block.block_index, block.piece_index));
+			t->alerts().emplace_alert<block_downloading_alert>(t->get_handle(), 
+				remote(), pid(), block.block_index, block.piece_index);
 		}
 
 		pending_block pb(block);
@@ -4079,8 +4081,8 @@ namespace libtorrent
 			&& t)
 		{
 			if (t->alerts().should_post<performance_alert>())
-				t->alerts().post_alert(performance_alert(
-					handle, performance_alert::too_few_outgoing_ports));
+				t->alerts().emplace_alert<performance_alert>(
+					handle, performance_alert::too_few_outgoing_ports);
 		}
 
 		if (t)
@@ -4090,15 +4092,14 @@ namespace libtorrent
 				if ((error > 1 || ec.category() == get_socks_category())
 					&& t->alerts().should_post<peer_error_alert>())
 				{
-					t->alerts().post_alert(
-						peer_error_alert(handle, remote(), pid(), op, ec));
+					t->alerts().emplace_alert<peer_error_alert>(handle, remote()
+						, pid(), op, ec);
 				}
 
 				if (error <= 1 && t->alerts().should_post<peer_disconnected_alert>())
 				{
-					t->alerts().post_alert(
-						peer_disconnected_alert(handle, remote(), pid(), op
-							, m_socket->type(), ec, close_reason));
+					t->alerts().emplace_alert<peer_disconnected_alert>(handle
+						, remote(), pid(), op, m_socket->type(), ec, close_reason);
 				}
 			}
 
@@ -4509,10 +4510,10 @@ namespace libtorrent
 			for (int channel = 0; channel < 2; ++channel)
 			{
 				if ((warning & (1 << channel)) == 0) continue;
-				t->alerts().post_alert(performance_alert(t->get_handle()
+				t->alerts().emplace_alert<performance_alert>(t->get_handle()
 					, channel == peer_connection::download_channel
 					? performance_alert::download_limit_too_low
-					: performance_alert::upload_limit_too_low));
+					: performance_alert::upload_limit_too_low);
 			}
 		}
 
@@ -4713,8 +4714,8 @@ namespace libtorrent
 		if (m_desired_queue_size == m_max_out_request_queue 
 				&& t->alerts().should_post<performance_alert>())
 		{
-			t->alerts().post_alert(performance_alert(t->get_handle()
-				, performance_alert::outstanding_request_limit_reached));
+			t->alerts().emplace_alert<performance_alert>(t->get_handle()
+				, performance_alert::outstanding_request_limit_reached);
 		}
 
 		int piece_timeout = m_settings.get_int(settings_pack::piece_timeout);
@@ -4768,8 +4769,8 @@ namespace libtorrent
 			m_snubbed = true;
 			if (t->alerts().should_post<peer_snubbed_alert>())
 			{
-				t->alerts().post_alert(peer_snubbed_alert(t->get_handle()
-					, m_remote, m_peer_id));
+				t->alerts().emplace_alert<peer_snubbed_alert>(t->get_handle()
+					, m_remote, m_peer_id);
 			}
 		}
 		m_desired_queue_size = 1;
@@ -4824,8 +4825,9 @@ namespace libtorrent
 
 			if (t->alerts().should_post<block_timeout_alert>())
 			{
-				t->alerts().post_alert(block_timeout_alert(t->get_handle()
-					, remote(), pid(), qe.block.block_index, qe.block.piece_index));
+				t->alerts().emplace_alert<block_timeout_alert>(t->get_handle()
+					, remote(), pid(), int(qe.block.block_index)
+					, int(qe.block.piece_index));
 			}
 
 			// request a new block before removing the previous
@@ -5089,9 +5091,9 @@ namespace libtorrent
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
-				t->alerts().post_alert(file_error_alert(j->error.ec
+				t->alerts().emplace_alert<file_error_alert>(j->error.ec
 					, t->resolve_filename(j->error.file)
-					, j->error.operation_str(), t->get_handle()));
+					, j->error.operation_str(), t->get_handle());
 
 			++m_disk_read_failures;
 			if (m_disk_read_failures > 100) disconnect(j->error.ec, op_file_read);
@@ -5343,8 +5345,8 @@ namespace libtorrent
 				// peer to hang on to the disk
 				if (t && t->alerts().should_post<performance_alert>())
 				{
-					t->alerts().post_alert(performance_alert(t->get_handle()
-						, performance_alert::send_buffer_watermark_too_low));
+					t->alerts().emplace_alert<performance_alert>(t->get_handle()
+						, performance_alert::send_buffer_watermark_too_low);
 				}
 			}
 		}

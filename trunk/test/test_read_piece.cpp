@@ -101,8 +101,8 @@ void test_read_piece(int flags)
 	TEST_CHECK(!ec);
 	TEST_CHECK(tor1.is_valid());
 
-	std::auto_ptr<alert> a = wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
-	TEST_CHECK(a.get());
+	alert const* a = wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
+	TEST_CHECK(a);
 
 	TEST_CHECK(tor1.status().is_seeding);
 
@@ -117,10 +117,10 @@ void test_read_piece(int flags)
 
 	a = wait_for_alert(ses, read_piece_alert::alert_type, "ses");
 
-	TEST_CHECK(a.get());
-	if (a.get())
+	TEST_CHECK(a);
+	if (a)
 	{
-		read_piece_alert* rp = alert_cast<read_piece_alert>(a.get());
+		read_piece_alert const* rp = alert_cast<read_piece_alert>(a);
 		TEST_CHECK(rp);
 		if (rp)
 		{

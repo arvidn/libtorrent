@@ -64,7 +64,6 @@ namespace libtorrent
 	struct block_cache_reference;
 	struct counters;
 	namespace aux { struct session_settings; }
-	struct alert_dispatcher;
 #if TORRENT_USE_ASSERTS
 	class file_storage;
 #endif
@@ -330,8 +329,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
 	{
 		block_cache(int block_size, io_service& ios
-			, boost::function<void()> const& trigger_trim
-			, alert_dispatcher* alert_disp);
+			, boost::function<void()> const& trigger_trim);
 
 	private:
 
@@ -447,7 +445,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		void get_stats(cache_status* ret) const;
 #endif
-		void set_settings(aux::session_settings const& sett);
+		void set_settings(aux::session_settings const& sett, error_code& ec);
 
 		enum reason_t { ref_hashing = 0, ref_reading = 1, ref_flushing = 2 };
 		bool inc_block_refcount(cached_piece_entry* pe, int block, int reason);

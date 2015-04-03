@@ -36,10 +36,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/heterogeneous_queue.hpp"
+#include "libtorrent/stack_allocator.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
 #include <boost/function/function1.hpp>
+#endif
+#include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
 #include <list>
+#include <utility> // for std::forward
+
+// used for emplace_alert() variadic template emulation for c++98
+#define TORRENT_ALERT_MANAGER_MAX_ARITY 7
 
 namespace libtorrent {
 
@@ -54,26 +63,66 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-		void post_alert(const alert& alert_);
-		void post_alert_ptr(alert* alert_);
+#if __cplusplus >= 201103L
+
+		template <class T, typename... Args>
+		void emplace_alert(Args&&... args)
+		{
+			mutex::scoped_lock lock(m_mutex);
+#ifndef TORRENT_NO_DEPRECATE
+			if (m_dispatch)
+			{
+				m_dispatch(std::auto_ptr<alert>(new T(m_allocations[m_generation]
+					, std::forward<Args>(args)...)));
+				return;
+			}
+#endif
+			// don't add more than this number of alerts, unless it's a
+			// high priority alert, in which case we try harder to deliver it
+			// for high priority alerts, double the upper limit
+			if (m_alerts[m_generation].size() >= m_queue_size_limit
+				* (1 + T::priority))
+				return;
+
+			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
+			m_alerts[m_generation].push_back(alert);
+
+			maybe_notify(lock);
+		}
+
+#else
+
+// emulate variadic templates for c++98
+
+#include "libtorrent/aux_/alert_manager_variadic_emplace.hpp"
+
+#endif
+
 		bool pending() const;
-		std::auto_ptr<alert> get(int& num_resume);
-		void get_all(std::deque<alert*>* alerts, int& num_resume);
+		void get_all(std::vector<alert*>& alerts, int& num_resume);
 
 		template <class T>
 		bool should_post() const
 		{
 			mutex::scoped_lock lock(m_mutex);
-			if (m_alerts.size() >= m_queue_size_limit) return false;
+			if (m_alerts[m_generation].size() >= m_queue_size_limit
+				* (1 + T::priority))
+			{
+				return false;
+			}
 			return (m_alert_mask & T::static_category) != 0;
 		}
 
 		bool should_post(alert const* a) const
 		{
-			return (m_alert_mask & a->category()) != 0;
+			mutex::scoped_lock lock(m_mutex);
+			boost::uint32_t mask = m_alert_mask;
+			lock.unlock();
+
+			return (mask & a->category()) != 0;
 		}
 
-		alert const* wait_for_alert(time_duration max_wait);
+		alert* wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(boost::uint32_t m)
 		{
@@ -81,12 +130,20 @@ namespace libtorrent {
 			m_alert_mask = m;
 		}
 
-		int alert_mask() const { return m_alert_mask; }
+		boost::uint32_t alert_mask() const
+		{
+			mutex::scoped_lock lock(m_mutex);
+			return m_alert_mask;
+		}
 
 		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
 		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
+		void set_notify_function(boost::function<void()> const& fun);
+
+#ifndef TORRENT_NO_DEPRECATE
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
+#endif
 
 		int num_queued_resume() const;
 
@@ -95,24 +152,55 @@ namespace libtorrent {
 #endif
 
 	private:
-		void post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l);
 
-		std::deque<alert*> m_alerts;
+		// non-copyable
+		alert_manager(alert_manager const&);
+		alert_manager& operator=(alert_manager const&);
+
+		void maybe_notify(mutex::scoped_lock& lock);
+
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		size_t m_queue_size_limit;
+
+#ifndef TORRENT_NO_DEPRECATE
+		bool maybe_dispatch(alert const& a);
 		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
+#endif
+
+		// this function (if set) is called whenever the number of alerts in
+		// the alert queue goes from 0 to 1. The client is expected to wake up
+		// its main message loop for it to poll for alerts (using get_alerts()).
+		// That call will drain every alert in one atomic operation and this
+		// notification function will be called again the next time an alert is
+		// posted to the queue
+		boost::function<void()> m_notify;
 
 		// the number of resume data alerts  in the alert queue
 		int m_num_queued_resume;
+
+		// this is either 0 or 1, it indicates which m_alerts and m_allocations
+		// the alert_manager is allowed to use right now. This is swapped when
+		// the client calls get_all(), at which point 
+		int m_generation;
+
+		// this is where all alerts are queued up. There are two heterogenous
+		// queues to double buffer the thread access. The mutex in the alert
+		// manager gives exclusive access to m_alerts[m_generation] and
+		// m_allocations[m_generation] whereas the other copy is exclusively
+		// used by the client thread.
+		heterogeneous_queue<alert> m_alerts[2];
+
+		// this is a stack where alerts can allocate variable length content,
+		// such as strings, to go with the alerts.
+		aux::stack_allocator m_allocations[2];
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 		ses_extension_list_t m_ses_extensions;
 #endif
 	};
-
 }
 
 #endif

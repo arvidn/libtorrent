@@ -204,7 +204,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	{ // avoid having two storages use the same files	
 	file_pool fp;
 	libtorrent::asio::io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	storage_params p;
 	p.path = test_path;
 	p.files = &fs;
@@ -296,7 +296,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -369,7 +369,7 @@ void test_rename(std::string const& test_path)
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	aux::session_settings set;
 
 	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
@@ -446,8 +446,8 @@ void test_check_files(std::string const& test_path
 	file_pool fp;
 	libtorrent::asio::io_service ios;
 	counters cnt;
-	disk_io_thread io(ios, NULL, cnt, NULL);
-	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop), NULL);
+	disk_io_thread io(ios, cnt, NULL);
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	storage_params p;
 	p.files = &fs;
 	p.path = test_path;
@@ -653,11 +653,12 @@ void test_fastresume(std::string const& test_path)
 			return;
 
 		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra);
+		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
 		ses.remove_torrent(h, lt::session::delete_files);
-		std::auto_ptr<alert> da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
+		alert const* da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
+		TEST_CHECK(da);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("tmp1", "temporary"))));
 	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))
@@ -679,23 +680,10 @@ void test_fastresume(std::string const& test_path)
 		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 	
-		std::auto_ptr<alert> a = ses.pop_alert();
-		time_point end = clock_type::now() + seconds(20);
-		while (clock_type::now() < end
-			&& (a.get() == 0
-				|| alert_cast<fastresume_rejected_alert>(a.get()) == 0))
-		{
-			if (ses.wait_for_alert(end - clock_type::now()) == 0)
-			{
-				std::cerr << "wait_for_alert() expired" << std::endl;
-				break;
-			}
-			a = ses.pop_alert();
-			assert(a.get());
-			std::cerr << a->message() << std::endl;
-		}
+		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
+			, "ses");
 		// we expect the fast resume to be rejected because the files were removed
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a.get()) != 0);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) != 0);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
@@ -703,7 +691,7 @@ void test_fastresume(std::string const& test_path)
 		<< "': " << ec.message() << std::endl;
 }
 
-bool got_file_rename_alert(alert* a)
+bool got_file_rename_alert(alert const* a)
 {
 	return alert_cast<libtorrent::file_renamed_alert>(a)
 		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
@@ -752,9 +740,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		TEST_CHECK(s.state == torrent_status::seeding);
 
 		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra);
+		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
@@ -789,9 +777,9 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 		TEST_CHECK(stat.state == torrent_status::seeding);
 
 		h.save_resume_data();
-		std::auto_ptr<alert> ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
-		TEST_CHECK(ra.get());
-		if (ra.get()) resume = *alert_cast<save_resume_data_alert>(ra.get())->resume_data;
+		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+		TEST_CHECK(ra);
+		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());

@@ -57,7 +57,7 @@ int peer_disconnects = 0;
 
 int tracker_responses = 0;
 
-bool on_alert(alert* a)
+bool on_alert(alert const* a)
 {
 	if (alert_cast<tracker_reply_alert>(a))
 		++tracker_responses;

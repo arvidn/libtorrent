@@ -86,8 +86,13 @@ int main(int argc, char* argv[])
 			s.apply_settings(p);
 			break;
 		}
-		std::auto_ptr<alert> holder = s.pop_alert();
-		print_alert(holder.get());
+		std::vector<alert*> alerts;
+		s.pop_alerts(&alerts);
+		for (std::vector<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			print_alert(*i);
+		}
 	}
 
 	printf("\x1b[1m\n\n===================== done mapping. Now deleting mappings ========================\n\n\n\x1b[0m");
@@ -96,8 +101,13 @@ int main(int argc, char* argv[])
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
 		if (a == 0) break;
-		std::auto_ptr<alert> holder = s.pop_alert();
-		print_alert(holder.get());
+		std::vector<alert*> alerts;
+		s.pop_alerts(&alerts);
+		for (std::vector<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			print_alert(*i);
+		}
 	}
 
 

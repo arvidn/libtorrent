@@ -273,6 +273,7 @@ namespace
         s.async_add_torrent(p);
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     void dict_to_feed_settings(dict params, feed_settings& feed)
     {
         if (params.has_key("auto_download"))
@@ -354,7 +355,6 @@ namespace
         return ret;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
     void start_natpmp(lt::session& s)
     {
         allow_threading_guard guard;
@@ -452,6 +452,7 @@ namespace
         return e;
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     object pop_alert(lt::session& ses)
     {
         std::auto_ptr<alert> a;
@@ -462,17 +463,18 @@ namespace
 
         return object(boost::shared_ptr<alert>(a.release()));
     }
+#endif
 
     list pop_alerts(lt::session& ses)
     {
-        std::deque<alert*> alerts;
+        std::vector<alert*> alerts;
         {
             allow_threading_guard guard;
             ses.pop_alerts(&alerts);
         }
 
         list ret;
-        for (std::deque<alert*>::iterator i = alerts.begin()
+        for (std::vector<alert*>::iterator i = alerts.begin()
             , end(alerts.end()); i != end; ++i)
         {
             ret.append(boost::shared_ptr<alert>(*i));
@@ -677,9 +679,9 @@ void bind_session()
         )
 #endif // TORRENT_NO_DEPRECATE
 #endif // BOOST_NO_EXCEPTIONS
-        .def("add_feed", &add_feed)
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
+        .def("add_feed", &add_feed)
         .def("status", allow_threads(&lt::session::status))
         .def("set_settings", &lt::session::set_settings)
         .def("settings", &lt::session::settings)
@@ -697,11 +699,11 @@ void bind_session()
 #endif
         .def("load_state", &load_state)
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
-        .def("pop_alert", &pop_alert)
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
+        .def("pop_alert", &pop_alert)
 #if TORRENT_USE_I2P
         .def("set_i2p_proxy", allow_threads(&lt::session::set_i2p_proxy))
         .def("i2p_proxy", allow_threads(&lt::session::i2p_proxy))
@@ -789,7 +791,6 @@ void bind_session()
         .value("listen_reuse_address", lt::session::listen_reuse_address)
         .value("listen_no_system_port", lt::session::listen_no_system_port)
     ;
-#endif
 
     class_<feed_handle>("feed_handle")
         .def("update_feed", &feed_handle::update_feed)
@@ -797,6 +798,7 @@ void bind_session()
         .def("set_settings", &set_feed_settings)
         .def("settings", &get_feed_settings)
     ;
+#endif
 
     register_ptr_to_python<std::auto_ptr<alert> >();
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2012-2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,21 +30,76 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
-#define TORRENT_ALERT_DISPATCHER_HPP_INCLUDED
+#ifndef TORRENT_STACK_ALLOCATOR
 
-namespace libtorrent
+#include "libtorrent/assert.hpp"
+#include "libtorrent/buffer.hpp"
+
+namespace libtorrent { namespace aux
 {
-	class alert;
 
-	struct TORRENT_EXPORT alert_dispatcher
+	struct stack_allocator
 	{
-		// return true if the alert was swallowed (i.e.
-		// ownership was taken over). In this case, the
-		// alert will not be passed on to any one else
-		virtual bool post_alert(alert* a) = 0;
+		stack_allocator() {}
+	
+		int copy_string(std::string const& str)
+		{
+			int ret = int(m_storage.size());
+			m_storage.resize(ret + str.length() + 1);
+			strcpy(&m_storage[ret], str.c_str());
+			return ret;
+		}
+
+		int copy_string(char const* str)
+		{
+			int ret = int(m_storage.size());
+			int len = strlen(str);
+			m_storage.resize(ret + len + 1);
+			strcpy(&m_storage[ret], str);
+			return ret;
+		}
+
+		int allocate(int bytes)
+		{
+			int ret = int(m_storage.size());
+			m_storage.resize(ret + bytes);
+			return ret;
+		}
+
+		char* ptr(int idx)
+		{
+			TORRENT_ASSERT(idx >= 0);
+			TORRENT_ASSERT(idx < int(m_storage.size()));
+			return &m_storage[idx];
+		}
+
+		char const* ptr(int idx) const
+		{
+			TORRENT_ASSERT(idx >= 0);
+			TORRENT_ASSERT(idx < int(m_storage.size()));
+			return &m_storage[idx];
+		}
+
+		void swap(stack_allocator& rhs)
+		{
+			m_storage.swap(rhs.m_storage);
+		}
+
+		void reset()
+		{
+			m_storage.clear();
+		}
+
+	private:
+
+		// non-copyable
+		stack_allocator(stack_allocator const&);
+		stack_allocator& operator=(stack_allocator const&);
+
+		buffer m_storage;
 	};
-}
+
+} }
 
 #endif
 

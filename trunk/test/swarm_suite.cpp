@@ -190,21 +190,9 @@ void test_swarm(int flags)
 	ses2.remove_torrent(tor2, lt::session::delete_files);
 	ses3.remove_torrent(tor3, lt::session::delete_files);
 
-	std::auto_ptr<alert> a = ses1.pop_alert();
-	time_point end = clock_type::now() + seconds(20);
-	while (a.get() == 0 || alert_cast<torrent_deleted_alert>(a.get()) == 0)
-	{
-		if (ses1.wait_for_alert(end - clock_type::now()) == 0)
-		{
-			std::cerr << "wait_for_alert() expired" << std::endl;
-			break;
-		}
-		a = ses1.pop_alert();
-		assert(a.get());
-		std::cerr << a->message() << std::endl;
-	}
+	alert const* a = wait_for_alert(ses1, torrent_deleted_alert::alert_type, "swarm_suite");
 
-	TEST_CHECK(alert_cast<torrent_deleted_alert>(a.get()) != 0);
+	TEST_CHECK(alert_cast<torrent_deleted_alert>(a) != 0);
 
 	// there shouldn't be any alerts generated from now on
 	// make sure that the timer in wait_for_alert() works
@@ -214,8 +202,13 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
-		a = ses1.pop_alert();
-		std::cerr << ret->message() << std::endl;
+		std::vector<alert*> alerts;
+		ses1.pop_alerts(&alerts);
+		for (std::vector<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
+		{
+			std::cerr << ret->message() << std::endl;
+		}
 		start = clock_type::now();
 	}
 

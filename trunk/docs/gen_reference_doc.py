@@ -91,7 +91,6 @@ category_mapping = {
 	'broadcast_socket.hpp': 'Network',
 	'socket.hpp': 'Network',
 	'socket_io.hpp': 'Network',
-	'rss.hpp': 'RSS',
 	'bitfield.hpp': 'Utility',
 	'sha1_hash.hpp': 'Utility',
 	'hasher.hpp': 'Utility',
