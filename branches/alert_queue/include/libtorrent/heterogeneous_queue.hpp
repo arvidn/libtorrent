@@ -47,7 +47,10 @@ namespace libtorrent {
 	struct heterogeneous_queue
 	{
 		heterogeneous_queue()
-			: m_size(0)
+			: m_storage(NULL)
+			, m_capacity(0)
+			, m_size(0)
+			, m_num_items(0)
 		{}
 
 		// TODO: 2 add emplace_back() version
@@ -56,87 +59,91 @@ namespace libtorrent {
 		push_back(U const& a)
 		{
 			// the size of the type rounded up to pointer alignment
-			const int size = (sizeof(U) + sizeof(uintptr_t) - 1)
-				/ sizeof(uintptr_t);
+			const int object_size = (sizeof(U) + sizeof(*m_storage) - 1)
+				/ sizeof(*m_storage);
 
 			// +1 for the length prefix
-			// TODO: technically the storage here need to call move/copy-operators
-			// here. For now, just require trivial move-types
-			m_storage.resize(m_storage.size() + size + 1);
-			uintptr_t* ptr = &m_storage[m_storage.size() - size - 1];
+			if (m_size + object_size + header_size > m_capacity)
+				grow_capacity(object_size);
+
+			uintptr_t* ptr = m_storage + m_size;
 
 			// length prefix
-			*ptr++ = size;
+			header_t* hdr = (header_t*)ptr;
+			hdr->len = object_size;
+			hdr->move = &move<U>;
+			ptr += header_size;
 
-			try
-			{
-				// construct in-place
-				new (ptr) U(a);
-				++m_size;
-			}
-			catch (...)
-			{
-				// in case the copy constructor throws, restore the size of the
-				// storage to not include the space we allocated for it
-				m_storage.resize(m_storage.size() - size - 1);
-				throw;
-			}
+			// construct in-place
+			new (ptr) U(a);
+
+			// if we constructed the object without throwing any exception
+			// update counters to indicate the new item is in there
+			++m_num_items;
+			m_size += header_size + object_size;
 		}
 
 		void get_pointers(std::vector<T*>& out)
 		{
 			out.clear();
-			if (m_storage.empty()) return;
 
-			uintptr_t* ptr = &m_storage[0];
-			uintptr_t const* const end = &m_storage[0] + m_storage.size();
+			uintptr_t* ptr = m_storage;
+			uintptr_t const* const end = m_storage + m_size;
 			while (ptr < end)
 			{
-				int len = *ptr++;
-				TORRENT_ASSERT(ptr + len <= end);
+				header_t* hdr = (header_t*)ptr;
+				ptr += header_size;
+				TORRENT_ASSERT(ptr + hdr->len <= end);
 				out.push_back((T*)ptr);
-				ptr += len;
+				ptr += hdr->len;
 			}
 		}
 
 		void swap(heterogeneous_queue& rhs)
 		{
-			m_storage.swap(rhs.m_storage);
+			std::swap(m_storage, rhs.m_storage);
+			std::swap(m_capacity, rhs.m_capacity);
 			std::swap(m_size, rhs.m_size);
+			std::swap(m_num_items, rhs.m_num_items);
 		}
 
-		int size() const { return m_size; }
-		bool empty() const { return m_size == 0; }
+		int size() const { return m_num_items; }
+		bool empty() const { return m_num_items == 0; }
 
 		void clear()
 		{
-			uintptr_t* ptr = &m_storage[0];
-			uintptr_t const* const end = &m_storage[0] + m_storage.size();
+			uintptr_t* ptr = m_storage;
+			uintptr_t const* const end = m_storage + m_size;
 			while (ptr < end)
 			{
-				int len = *ptr++;
-				TORRENT_ASSERT(ptr + len <= end);
+				header_t* hdr = (header_t*)ptr;
+				ptr += header_size;
+				TORRENT_ASSERT(ptr + hdr->len <= end);
 				T* a = (T*)ptr;
 				a->~T();
-				ptr += len;
+				ptr += hdr->len;
 			}
-			m_storage.clear();
 			m_size = 0;
+			m_num_items = 0;
 		}
 
 		T* front()
 		{
-			if (m_storage.empty()) return NULL;
+			if (m_size == 0) return NULL;
 
-			TORRENT_ASSERT(m_storage.size() > 1);
-			uintptr_t* ptr = &m_storage[0];
-			int len = *ptr++;
-			TORRENT_ASSERT(len <= m_storage.size());
+			TORRENT_ASSERT(m_size > 1);
+			uintptr_t* ptr = m_storage;
+			header_t* hdr = (header_t*)ptr;
+			ptr += header_size;
+			TORRENT_ASSERT(hdr->len <= m_size);
 			return (T*)ptr;
 		}
 
 		~heterogeneous_queue()
-		{ clear(); }
+		{
+			clear();
+			delete[] m_storage;
+		}
 
 	private:
 
@@ -144,9 +151,67 @@ namespace libtorrent {
 		heterogeneous_queue(heterogeneous_queue const&);
 		heterogeneous_queue& operator=(heterogeneous_queue const&);
 
-		std::vector<uintptr_t> m_storage;
+		// this header is put in front of every element. It tells us
+		// how many uintptr_t's it's using for its allocation, and it
+		// also tells us how to move this type if we need to grow our
+		// allocation.
+		struct header_t
+		{
+			int len;
+			void (*move)(uintptr_t* dst, uintptr_t* src);
+		};
 
+		const static int header_size = (sizeof(header_t) + sizeof(uintptr_t)
+			- 1) / sizeof(uintptr_t);
+
+		void grow_capacity(int size)
+		{
+			int amount_to_grow = (std::max)(size + header_size
+				, (std::max)(m_capacity * 3 / 2, 128));
+
+			uintptr_t* new_storage = new uintptr_t[m_capacity + amount_to_grow];
+
+			uintptr_t* src = m_storage;
+			uintptr_t* dst = new_storage;
+			uintptr_t const* const end = m_storage + m_size;
+			while (src < end)
+			{
+				header_t* src_hdr = (header_t*)src;
+				header_t* dst_hdr = (header_t*)dst;
+				*dst_hdr = *src_hdr;
+				src += header_size;
+				dst += header_size;
+				TORRENT_ASSERT(src + src_hdr->len <= end);
+				// TODO: if this throws, should we do anything?
+				src_hdr->move(dst, src);
+				src += src_hdr->len;
+				dst += src_hdr->len;
+			}
+
+			delete[] m_storage;
+			m_storage = new_storage;
+			m_capacity += amount_to_grow;
+		}
+
+		template <class U>
+		static void move(uintptr_t* dst, uintptr_t* src)
+		{
+			U* rhs = (U*)src;
+#if __cplusplus >= 201103L
+			new (dst) U(std::move(*rhs));
+#else
+			new (dst) U(*rhs);
+#endif
+			rhs->~U();
+		}
+
+		uintptr_t* m_storage;
+		// number of uintptr_t's allocated under m_storage
+		int m_capacity;
+		// the number of uintptr_t's used under m_storage
 		int m_size;
+		// the number of objects allocated under m_storage
+		int m_num_items;
 	};
 }
 

@@ -75,6 +75,68 @@ struct E
 
 int D::instances = 0;
 
+struct F
+{
+	F(int f_)
+		: self(this)
+		, f(f_)
+		, constructed(true)
+		, destructed(false)
+		, gutted(false)
+	{}
+
+	F(F const& f_)
+		: self(this), f(f_.f)
+		, constructed(f_.constructed)
+		, destructed(f_.destructed)
+		, gutted(false)
+	{
+		TEST_EQUAL(f_.constructed, true);
+		TEST_EQUAL(f_.destructed, false);
+		TEST_EQUAL(f_.gutted, false);
+	}
+
+#if __cplusplus >= 201103L
+	F(F&& f_)
+		: self(this)
+		, f(f_.f)
+		, constructed(f_.constructed)
+		, destructed(f_.destructed)
+	{
+		TEST_EQUAL(f_.constructed, true);
+		TEST_EQUAL(f_.destructed, false);
+		TEST_EQUAL(f_.gutted, false);
+		f_.gutted = true;
+	}
+#endif
+
+	~F()
+	{
+		TEST_EQUAL(constructed, true);
+		TEST_EQUAL(destructed, false);
+		TEST_EQUAL(self, this);
+		destructed = true;
+		constructed = false;
+	}
+
+	void check_invariant()
+	{
+		TEST_EQUAL(constructed, true);
+		TEST_EQUAL(destructed, false);
+		TEST_EQUAL(gutted, false);
+		TEST_EQUAL(self, this);
+	}
+
+	F* self;
+	int f;
+	bool constructed;
+	bool destructed;
+	bool gutted;
+private:
+	// non-copyable
+	F& operator=(F const& f);
+};
+
 int test_main()
 {
 	using namespace libtorrent;
@@ -189,6 +251,30 @@ int test_main()
 		q.clear();
 
 		TEST_EQUAL(D::instances, 0);
+	}
+
+	// test copy/move
+	{
+		heterogeneous_queue<F> q;
+
+		// make sure the queue has to grow at some point, to exercise its
+		// copy/move of elements
+		for (int i = 0; i < 1000; ++i)
+			q.push_back(F(i));
+
+		std::vector<F*> ptrs;
+		q.get_pointers(ptrs);
+
+		TEST_EQUAL(ptrs.size(), 1000);
+
+		for (int i = 0; i < ptrs.size(); ++i)
+		{
+			ptrs[i]->check_invariant();
+			TEST_EQUAL(ptrs[i]->f, i);
+		}
+
+		// destroy all objects, asserting that their invariant still holds
+		q.clear();
 	}
 
 	{
