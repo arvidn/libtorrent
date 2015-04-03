@@ -639,6 +639,28 @@ namespace libtorrent {
 		};
 	}
 
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string iface
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		:
+#ifndef TORRENT_NO_DEPRECATE
+			interface(iface),
+#endif
+		error(ec)
+		, operation(op)
+		, sock_type(t)
+		, m_alloc(alloc)
+		, m_interface_idx(alloc.copy_string(iface))
+	{}
+
+	char const* listen_failed_alert::listen_interface() const
+	{
+		return m_alloc.ptr(m_interface_idx);
+	}
+
 	std::string listen_failed_alert::message() const
 	{
 		static char const* op_str[] =
@@ -652,7 +674,7 @@ namespace libtorrent {
 		};
 		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
-			, interface.c_str()
+			, listen_interface()
 			, op_str[operation]
 			, sock_type_str[sock_type]
 			, convert_from_native(error.message()).c_str());

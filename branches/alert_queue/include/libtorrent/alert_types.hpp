@@ -1083,6 +1083,7 @@ namespace libtorrent
 		virtual bool discardable() const { return false; }
 #endif
 
+		// the error code from the resume_data failure
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1341,12 +1342,7 @@ namespace libtorrent
 			, std::string iface
 			, int op
 			, error_code const& ec
-			, socket_type_t t)
-			: interface(iface)
-			, error(ec)
-			, operation(op)
-			, sock_type(t)
-		{}
+			, socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48);
 
@@ -1354,10 +1350,13 @@ namespace libtorrent
 		virtual std::string message() const;
 #ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// the interface libtorrent attempted to listen on
 		std::string interface;
+#endif
+
+		// the interface libtorrent attempted to listen on that failed.
+		char const* listen_interface() const;
 
 		// the error the system returned
 		error_code error;
@@ -1372,6 +1371,9 @@ namespace libtorrent
 
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
+	private:
+		aux::stack_allocator const& m_alloc;
+		int m_interface_idx;
 	};
 
 	// This alert is posted when the listen port succeeds to be opened on a

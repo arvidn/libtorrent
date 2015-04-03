@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STACK_ALLOCATOR
 
 #include "libtorrent/assert.hpp"
-
-#include <vector>
+#include "libtorrent/buffer.hpp"
 
 namespace libtorrent { namespace aux
 {
@@ -81,7 +80,6 @@ namespace libtorrent { namespace aux
 			return &m_storage[idx];
 		}
 
-
 		void swap(stack_allocator& rhs)
 		{
 			m_storage.swap(rhs.m_storage);
@@ -92,13 +90,13 @@ namespace libtorrent { namespace aux
 			m_storage.clear();
 		}
 
-		private:
+	private:
 
-			// non-copyable
-			stack_allocator(stack_allocator const&);
-			stack_allocator& operator=(stack_allocator const&);
+		// non-copyable
+		stack_allocator(stack_allocator const&);
+		stack_allocator& operator=(stack_allocator const&);
 
-			std::vector<char> m_storage;
+		buffer m_storage;
 	};
 
 } }

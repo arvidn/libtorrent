@@ -350,7 +350,10 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("interface", &listen_failed_alert::interface)
+#endif
+        .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("operation", &listen_failed_alert::operation)
         .def_readonly("sock_type", &listen_failed_alert::sock_type)
