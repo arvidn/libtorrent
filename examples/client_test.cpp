@@ -922,15 +922,16 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
-		ses_view.update_counters(s->values, s->timestamp);
+		ses_view.update_counters(s->values, sizeof(s->values)/sizeof(s->values[0])
+			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
 		return true;
 	}
 	
 #ifndef TORRENT_DISABLE_DHT
 	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
 	{
-		dht_active_requests.swap(p->active_requests);
-		dht_routing_table.swap(p->routing_table);
+		dht_active_requests = p->active_requests;
+		dht_routing_table = p->routing_table;
 		return true;
 	}
 #endif
@@ -1959,10 +1960,10 @@ int main(int argc, char* argv[])
 		}
 
 		// loop through the alert queue to see if anything has happened.
-		std::deque<alert*> alerts;
+		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		std::string now = timestamp();
-		for (std::deque<alert*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			TORRENT_TRY
@@ -1976,7 +1977,6 @@ int main(int argc, char* argv[])
 					if (events.size() >= 20) events.pop_front();
 				}
 			} TORRENT_CATCH(std::exception& e) {}
-			delete *i;
 		}
 		alerts.clear();
 
@@ -2323,16 +2323,13 @@ int main(int argc, char* argv[])
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == 0) continue;
 
-		std::deque<alert*> alerts;
+		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		std::string now = timestamp();
-		for (std::deque<alert*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			// make sure to delete each alert
-			std::auto_ptr<alert> a(*i);
-
-			torrent_paused_alert const* tp = alert_cast<torrent_paused_alert>(*i);
+			torrent_paused_alert* tp = alert_cast<torrent_paused_alert>(*i);
 			if (tp)
 			{
 				++num_paused;
@@ -2350,7 +2347,7 @@ int main(int argc, char* argv[])
 				continue;
 			}
 
-			save_resume_data_alert const* rd = alert_cast<save_resume_data_alert>(*i);
+			save_resume_data_alert* rd = alert_cast<save_resume_data_alert>(*i);
 			if (!rd) continue;
 			--num_outstanding_resume_data;
 			printf("\rleft: %d failed: %d pause: %d "

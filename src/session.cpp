@@ -1134,33 +1134,42 @@ namespace libtorrent
 	{
 		return TORRENT_SYNC_CALL_RET(int, num_connections);
 	}
-#endif // TORRENT_NO_DEPRECATE
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		TORRENT_ASYNC_CALL1(set_alert_dispatch, fun);
+		m_impl->m_alerts.set_dispatch_function(fun);
 	}
+#endif // TORRENT_NO_DEPRECATE
 
-	std::auto_ptr<alert> session::pop_alert()
-	{
-		return m_impl->pop_alert();
-	}
-
-	void session::pop_alerts(std::deque<alert*>* alerts)
-	{
-		for (std::deque<alert*>::iterator i = alerts->begin()
-			, end(alerts->end()); i != end; ++i)
-			delete *i;
-		alerts->clear();
-		m_impl->pop_alerts(alerts);
-	}
-
-	alert const* session::wait_for_alert(time_duration max_wait)
+	alert* session::wait_for_alert(time_duration max_wait)
 	{
 		return m_impl->wait_for_alert(max_wait);
 	}
 
+	// the alerts are const, they may not be deleted by the client
+	void session::pop_alerts(std::vector<alert*>* alerts)
+	{
+		m_impl->pop_alerts(alerts);
+	}
+
+	void session::set_alert_notify(boost::function<void()> const& fun)
+	{
+		m_impl->m_alerts.set_notify_function(fun);
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
+	void session::pop_alerts(std::deque<alert*>* alerts)
+	{
+		m_impl->pop_alerts(alerts);
+	}
+
+	std::auto_ptr<alert> session::pop_alert()
+	{
+		alert const* a = m_impl->pop_alert();
+		if (a == NULL) return std::auto_ptr<alert>();
+		return a->clone();
+	}
+
 	void session::set_alert_mask(boost::uint32_t m)
 	{
 		settings_pack p;

@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -266,9 +265,8 @@ cached_piece_entry::~cached_piece_entry()
 }
 
 block_cache::block_cache(int block_size, io_service& ios
-	, boost::function<void()> const& trigger_trim
-	, alert_dispatcher* alert_disp)
-	: disk_buffer_pool(block_size, ios, trigger_trim, alert_disp)
+	, boost::function<void()> const& trigger_trim)
+	: disk_buffer_pool(block_size, ios, trigger_trim)
 	, m_last_cache_op(cache_miss)
 	, m_ghost_size(8)
 	, m_read_cache_size(0)
@@ -1458,7 +1456,7 @@ void block_cache::get_stats(cache_status* ret) const
 }
 #endif
 
-void block_cache::set_settings(aux::session_settings const& sett)
+void block_cache::set_settings(aux::session_settings const& sett, error_code& ec)
 {
 	// the ghost size is the number of pieces to keep track of
 	// after they are evicted. Since cache_size is blocks, the
@@ -1467,7 +1465,7 @@ void block_cache::set_settings(aux::session_settings const& sett)
 
 	m_ghost_size = (std::max)(8, sett.get_int(settings_pack::cache_size)
 		/ (std::max)(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
-	disk_buffer_pool::set_settings(sett);
+	disk_buffer_pool::set_settings(sett, ec);
 }
 
 #if TORRENT_USE_INVARIANT_CHECKS

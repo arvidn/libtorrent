@@ -20,7 +20,7 @@ struct session_view
 	void print_utp_stats(bool p) { m_print_utp_stats = p; }
 	bool print_utp_stats() const { return m_print_utp_stats; }
 
-	void update_counters(std::vector<boost::uint64_t>& stats_counters
+	void update_counters(boost::uint64_t* stats_counters, int num_cnt
 		, boost::uint64_t t);
 
 private:

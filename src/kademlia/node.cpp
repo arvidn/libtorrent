@@ -37,11 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/alert.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/alert_types.hpp" // for dht_lookup
+
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -92,8 +92,7 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
-node_impl::node_impl(alert_dispatcher* alert_disp
-	, udp_socket_interface* sock
+node_impl::node_impl(udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid, address const& external_address
 	, dht_observer* observer
 	, struct counters& cnt)
@@ -104,20 +103,11 @@ node_impl::node_impl(alert_dispatcher* alert_disp
 	, m_observer(observer)
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
-	, m_post_alert(alert_disp)
 	, m_sock(sock)
 	, m_counters(cnt)
 {
 	m_secret[0] = random();
 	m_secret[1] = random();
-}
-
-void node_impl::post_alert(alert* a)
-{
-	if (!m_post_alert)
-		delete a;
-	else
-		m_post_alert->post_alert(a);
 }
 
 bool node_impl::verify_token(std::string const& token, char const* info_hash
@@ -600,11 +590,8 @@ void node_impl::status(session_status& s)
 void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
-	if (m_post_alert)
-	{
-		alert* a = new dht_get_peers_alert(info_hash);
-		if (!m_post_alert->post_alert(a)) delete a;
-	}
+	if (m_observer)
+		m_observer->get_peers(info_hash);
 
 	table_t::const_iterator i = m_map.lower_bound(info_hash);
 	if (i == m_map.end()) return;
@@ -954,11 +941,8 @@ void node_impl::incoming_request(msg const& m, entry& e)
 
 		sha1_hash info_hash(msg_keys[0].string_ptr());
 
-		if (m_post_alert)
-		{
-			alert* a = new dht_announce_alert(m.addr.address(), port, info_hash);
-			if (!m_post_alert->post_alert(a)) delete a;
-		}
+		if (m_observer)
+			m_observer->announce(info_hash, m.addr.address(), port);
 
 		if (!verify_token(msg_keys[2].string_value(), msg_keys[0].string_ptr(), m.addr))
 		{

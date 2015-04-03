@@ -73,17 +73,17 @@ void usage()
 	exit(1);
 }
 
-std::auto_ptr<alert> wait_for_alert(lt::session& s, int alert_type)
+alert* wait_for_alert(lt::session& s, int alert_type)
 {
-	std::auto_ptr<alert> ret;
+	alert* ret = NULL;
 	bool found = false;
 	while (!found)
 	{
 		s.wait_for_alert(seconds(5));
 
-		std::deque<alert*> alerts;
+		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
-		for (std::deque<alert*>::iterator i = alerts.begin()
+		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			if ((*i)->type() != alert_type)
@@ -94,10 +94,9 @@ std::auto_ptr<alert> wait_for_alert(lt::session& s, int alert_type)
 				fflush(stdout);
 				spinner = (spinner + 1) & 3;
 				//print some alerts?
-				delete *i;
 				continue;
 			}
-			ret = std::auto_ptr<alert>(*i);
+			ret = *i;
 			found = true;
 		}
 	}
@@ -214,9 +213,9 @@ int main(int argc, char* argv[])
 
 		printf("GET %s\n", to_hex(target.to_string()).c_str());
 
-		std::auto_ptr<alert> a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
+		alert* a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
 
-		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a.get());
+		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a);
 		entry data;
 		if (item)
 			data.swap(item->item);
@@ -298,9 +297,9 @@ int main(int argc, char* argv[])
 		bootstrap(s);
 		s.dht_get_item(public_key);
 
-		std::auto_ptr<alert> a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
+		alert* a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
 
-		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a.get());
+		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a);
 		entry data;
 		if (item)
 			data.swap(item->item);

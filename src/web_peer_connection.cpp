@@ -634,8 +634,8 @@ void web_peer_connection::on_receive(error_code const& error
 					+ (" " + m_parser.message());
 				if (t->alerts().should_post<url_seed_alert>())
 				{
-					t->alerts().post_alert(url_seed_alert(t->get_handle(), m_url
-						, error_msg));
+					t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), m_url
+						, error_msg);
 				}
 				received_bytes(0, bytes_transferred);
 				disconnect(error_code(m_parser.status_code(), get_http_category()), op_bittorrent, 1);

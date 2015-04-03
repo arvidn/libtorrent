@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/disk_observer.hpp"
 
 #include <algorithm>
@@ -91,16 +90,8 @@ namespace libtorrent
 		}
 	}
 
-	// this is posted to the network thread and run from there
-	static void alert_callback(alert_dispatcher* disp, alert* a)
-	{
-		if (disp && disp->post_alert(a)) return;
-		delete a;
-	}
-
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
-		, boost::function<void()> const& trigger_trim
-		, alert_dispatcher* alert_disp)
+		, boost::function<void()> const& trigger_trim)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)
@@ -114,7 +105,6 @@ namespace libtorrent
 		, m_cache_fd(-1)
 		, m_cache_pool(0)
 #endif
-		, m_post_alert(alert_disp)
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_using_pool_allocator(false)
 		, m_want_pool_allocator(false)
@@ -492,7 +482,8 @@ namespace libtorrent
 		return ret;
 	}
 
-	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
+	void disk_buffer_pool::set_settings(aux::session_settings const& sett
+		, error_code& ec)
 	{
 		mutex::scoped_lock l(m_pool_mutex);
 
@@ -569,11 +560,7 @@ namespace libtorrent
 			m_cache_fd = open(sett.get_str(settings_pack::mmap_cache).c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0)
 			{
-				if (m_post_alert)
-				{
-					error_code ec(errno, boost::system::generic_category());
-					m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
-				}
+				ec.assign(errno, boost::system::generic_category());
 			}
 			else
 			{
@@ -585,11 +572,8 @@ namespace libtorrent
 					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0);
 				if (intptr_t(m_cache_pool) == -1)
 				{
-					if (m_post_alert)
-					{
-						error_code ec(errno, boost::system::generic_category());
-						m_ios.post(boost::bind(alert_callback, m_post_alert, new mmap_cache_alert(ec)));
-					}
+					ec.assign(errno, boost::system::generic_category());
+
 					m_cache_pool = 0;
 					// attempt to make MacOS not flush this to disk, making close()
 					// block for a long time

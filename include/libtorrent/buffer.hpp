@@ -136,6 +136,18 @@ public:
 		b.m_begin = NULL;
 		b.m_size = b.m_capacity = 0;
 	}
+
+	buffer& operator=(buffer&& b)
+	{
+		if (&b == this) return *this;
+		std::free(m_begin);
+		m_begin = b.m_begin;
+		m_size = b.m_size;
+		m_capacity = b.m_capacity;
+		b.m_begin = NULL;
+		b.m_size = b.m_capacity = 0;
+		return *this;
+	}
 #endif
 
 	buffer& operator=(buffer const& b)

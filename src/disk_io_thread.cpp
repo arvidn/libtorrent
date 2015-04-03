@@ -48,9 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/alert_dispatcher.hpp"
 #include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/alert_manager.hpp"
 
 #include "libtorrent/debug.hpp"
 
@@ -155,7 +155,6 @@ namespace libtorrent
 // ------- disk_io_thread ------
 
 	disk_io_thread::disk_io_thread(io_service& ios
-		, alert_dispatcher* alert_disp
 		, counters& cnt
 		, void* userdata
 		, int block_size)
@@ -165,12 +164,11 @@ namespace libtorrent
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(clock_type::now())
 		, m_file_pool(40)
-		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this), alert_disp)
+		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 		, m_work(io_service::work(m_ios))
 		, m_last_disk_aio_performance_warning(min_time())
-		, m_post_alert(alert_disp)
 		, m_outstanding_reclaim_message(false)
 #if TORRENT_USE_ASSERTS
 		, m_magic(0x1337)
@@ -179,7 +177,9 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("disk_io_thread::work");
 #endif
-		m_disk_cache.set_settings(m_settings);
+		error_code ec;
+		m_disk_cache.set_settings(m_settings, ec);
+		TORRENT_ASSERT(!ec);
 
 #ifdef TORRENT_DISK_STATS
 		if (g_access_log == NULL) g_access_log = fopen("file_access.log", "a+");
@@ -289,12 +289,17 @@ namespace libtorrent
 		m_blocks_to_reclaim.clear();
 	}
 
-	void disk_io_thread::set_settings(settings_pack* pack)
+	void disk_io_thread::set_settings(settings_pack* pack, alert_manager& alerts)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		mutex::scoped_lock l(m_cache_mutex);
 		apply_pack(pack, m_settings);
-		m_disk_cache.set_settings(m_settings);
+		error_code ec;
+		m_disk_cache.set_settings(m_settings, ec);
+		if (ec && alerts.should_post<mmap_cache_alert>())
+		{
+			alerts.emplace_alert<mmap_cache_alert>(ec);
+		}
 	}
 
 	// flush all blocks that are below p->hash.offset, since we've

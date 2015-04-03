@@ -182,8 +182,8 @@ void session_view::render()
 	}
 }
 
-void session_view::update_counters(std::vector<boost::uint64_t>& stats_counters
-	, boost::uint64_t t)
+void session_view::update_counters(boost::uint64_t* stats_counters
+	, int num_cnt, boost::uint64_t t)
 {
 	// only update the previous counters if there's been enough
 	// time since it was last updated
@@ -193,7 +193,7 @@ void session_view::update_counters(std::vector<boost::uint64_t>& stats_counters
 		m_timestamp[1] = m_timestamp[0];
 	}
 
-	m_cnt[0].swap(stats_counters);
+	m_cnt[0].assign(stats_counters, stats_counters + num_cnt);
 	m_timestamp[0] = t;
 	render();
 }

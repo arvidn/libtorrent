@@ -822,8 +822,8 @@ namespace libtorrent
 			{
 				p = parent_path(p);
 				// we don't want trailing slashes here
-				TORRENT_ASSERT(p.back() == *TORRENT_SEPARATOR);
-				p.pop_back();
+				TORRENT_ASSERT(p[p.size() - 1] == *TORRENT_SEPARATOR);
+				p.resize(p.size() - 1);
 				files.insert(p);
 			}
 		}

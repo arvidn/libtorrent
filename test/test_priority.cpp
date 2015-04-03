@@ -57,7 +57,7 @@ int peer_disconnects = 0;
 
 int tracker_responses = 0;
 
-bool on_alert(alert* a)
+bool on_alert(alert const* a)
 {
 	if (alert_cast<tracker_reply_alert>(a))
 		++tracker_responses;
@@ -259,28 +259,34 @@ void test_transfer(settings_pack const& sett)
 
 	std::vector<char> resume_data;
 
-	alert const* a = ses2.wait_for_alert(seconds(10));
 	time_point start = clock_type::now();
-	while (a)
+	while (true)
 	{
-		std::auto_ptr<alert> holder = ses2.pop_alert();
-		std::cerr << "ses2: " << a->message() << std::endl;
-		if (alert_cast<save_resume_data_alert>(a))
+		std::vector<alert*> alerts;
+		ses2.pop_alerts(&alerts);
+		if (alerts.empty()) break;
+		for (std::vector<alert*>::iterator i = alerts.begin()
+			, end(alerts.end()); i != end; ++i)
 		{
-			bencode(std::back_inserter(resume_data)
+			alert* a = *i;
+			std::cerr << "ses2: " << a->message() << std::endl;
+			if (alert_cast<save_resume_data_alert>(a))
+			{
+				bencode(std::back_inserter(resume_data)
 					, *alert_cast<save_resume_data_alert>(a)->resume_data);
-			fprintf(stderr, "saved resume data\n");
-			break;
-		}
-		else if (alert_cast<save_resume_data_failed_alert>(a))
-		{
-			fprintf(stderr, "save resume failed\n");
-			break;
-		}
-		if (total_seconds(clock_type::now() - start) > 10)
-			break;
+				fprintf(stderr, "saved resume data\n");
+				break;
+			}
+			else if (alert_cast<save_resume_data_failed_alert>(a))
+			{
+				fprintf(stderr, "save resume failed\n");
+				break;
+			}
+			if (total_seconds(clock_type::now() - start) > 10)
+				break;
 
-		a = ses2.wait_for_alert(seconds(10));
+			ses2.wait_for_alert(seconds(10));
+		}
 	}
 	TEST_CHECK(resume_data.size());	
 

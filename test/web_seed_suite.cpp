@@ -56,7 +56,7 @@ namespace lt = libtorrent;
 
 int peer_disconnects = 0;
 
-bool on_alert(alert* a)
+bool on_alert(alert const* a)
 {
 	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
