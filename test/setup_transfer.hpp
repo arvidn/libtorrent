@@ -43,65 +43,65 @@ namespace libtorrent
 	struct add_torrent_params;
 }
 
-int EXPORT print_failures();
-unsigned char EXPORT random_byte();
+EXPORT int print_failures();
+EXPORT unsigned char random_byte();
 
-int EXPORT load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000);
-void EXPORT save_file(char const* filename, char const* data, int size);
+EXPORT int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000);
+EXPORT void save_file(char const* filename, char const* data, int size);
 
-void EXPORT report_failure(char const* err, char const* file, int line);
+EXPORT void report_failure(char const* err, char const* file, int line);
 
-libtorrent::address EXPORT rand_v4();
+EXPORT libtorrent::address rand_v4();
 #if TORRENT_USE_IPV6
-libtorrent::address EXPORT rand_v6();
+EXPORT libtorrent::address rand_v6();
 #endif
-libtorrent::tcp::endpoint EXPORT rand_tcp_ep();
-libtorrent::udp::endpoint EXPORT rand_udp_ep();
+EXPORT libtorrent::tcp::endpoint rand_tcp_ep();
+EXPORT libtorrent::udp::endpoint rand_udp_ep();
 
-std::map<std::string, boost::uint64_t> EXPORT get_counters(libtorrent::session& s);
+EXPORT std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s);
 
-libtorrent::alert const* EXPORT wait_for_alert(
+EXPORT libtorrent::alert const* wait_for_alert(
 	libtorrent::session& ses, int type, char const* name = "");
 
-void EXPORT print_ses_rate(float time
+EXPORT void print_ses_rate(float time
 	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3 = NULL);
 
-bool EXPORT print_alerts(libtorrent::session& ses, char const* name
+EXPORT bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
 	, bool (*)(libtorrent::alert const*) = 0
 	, bool no_output = false);
 
-void EXPORT wait_for_listen(libtorrent::session& ses, char const* name);
-void EXPORT wait_for_downloading(libtorrent::session& ses, char const* name);
-void EXPORT test_sleep(int millisec);
+EXPORT void wait_for_listen(libtorrent::session& ses, char const* name);
+EXPORT void wait_for_downloading(libtorrent::session& ses, char const* name);
+EXPORT void test_sleep(int millisec);
+       
+EXPORT void create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
-void EXPORT create_random_files(std::string const& path, const int file_sizes[], int num_files);
-
-boost::shared_ptr<libtorrent::torrent_info> EXPORT create_torrent(std::ostream* file = 0
+EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true
 	, std::string ssl_certificate = "");
 
-boost::tuple<libtorrent::torrent_handle
+EXPORT boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
-EXPORT setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
+setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
 	, boost::shared_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false
 	, boost::shared_ptr<libtorrent::torrent_info>* torrent2 = 0);
 
-int EXPORT start_web_server(bool ssl = false, bool chunked = false
+EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true);
 
-void EXPORT stop_web_server();
-int EXPORT start_proxy(int type);
-void EXPORT stop_proxy(int port);
-void EXPORT stop_all_proxies();
+EXPORT void stop_web_server();
+EXPORT int start_proxy(int type);
+EXPORT void stop_proxy(int port);
+EXPORT void stop_all_proxies();
 
 #endif
 
