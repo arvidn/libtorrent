@@ -141,6 +141,6 @@ my-python-extension libtorrent
     <suppress-import-lib>false
   ;
 
-install stage_module : libtorrent : <install-type>LIB <install-dependencies>on <location>. ;
+install stage_module : libtorrent : <location>. ;
 
 
