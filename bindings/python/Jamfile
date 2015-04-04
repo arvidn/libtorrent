@@ -47,10 +47,10 @@ rule libtorrent_linking ( properties * )
     if <boost>source in $(properties)
     {
 
-    	if <boost-link>static in $(properties) && <target-os>linux
-    	{
-    	    ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
-    	}
+        if <boost-link>static in $(properties) && <target-os>linux in $(properties)
+        {
+            ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
+        }
 
         # linux must link dynamically against boost python because it pulls
         # in libpthread, which must be linked dynamically since we're building a .so
