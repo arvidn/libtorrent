@@ -111,7 +111,6 @@ nobase_include_HEADERS = \
   settings_pack.hpp            \
   sha1.hpp                     \
   sha1_hash.hpp                \
-  size_type.hpp                \
   sliding_average.hpp          \
   socket.hpp                   \
   socket_io.hpp                \
