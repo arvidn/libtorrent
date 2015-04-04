@@ -136,8 +136,8 @@ namespace libtorrent {
 			return m_alert_mask;
 		}
 
-		size_t alert_queue_size_limit() const { return m_queue_size_limit; }
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+		int alert_queue_size_limit() const { return m_queue_size_limit; }
+		int set_alert_queue_size_limit(int queue_size_limit_);
 
 		void set_notify_function(boost::function<void()> const& fun);
 
@@ -162,7 +162,7 @@ namespace libtorrent {
 		mutable mutex m_mutex;
 		condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
-		size_t m_queue_size_limit;
+		int m_queue_size_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
 		bool maybe_dispatch(alert const& a);

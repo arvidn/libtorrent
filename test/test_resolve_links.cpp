@@ -87,8 +87,8 @@ int test_main()
 {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	std::string path
-		= combine_path("..", "mutable_test_torrents");
+	std::string path = combine_path(parent_path(current_working_directory())
+		, "mutable_test_torrents");
 
 	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
 	{
