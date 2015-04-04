@@ -136,7 +136,7 @@ rule linking ( properties * )
 	}
 
 	# clock_gettime on linux requires librt
-	if <need-librt>yes in $(properties)
+	if <target-os>linux in $(properties)
 	{
 		result += <library>librt ;
 	}
@@ -324,8 +324,6 @@ feature.compose <sanitize>address : <cflags>-fsanitize=address <linkflags>-fsani
 # RTC (runtime check) is an msvc feature
 feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
-feature need-librt : no yes : composite propagated link-incompatible ;
-
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
 
@@ -503,7 +501,7 @@ lib boost_random : : <name>boost_random ;
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib z : : <link>shared <name>z <search>/usr/lib ;
-lib crypto : : <name>crypto <search>/usr/lib <use>z ;
+lib crypto : : <name>crypto <link>shared <search>/usr/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
 lib aio : : <link>shared <name>aio ;

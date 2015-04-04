@@ -88,14 +88,14 @@ int ssl_peer_disconnects = 0;
 
 bool on_alert(alert const* a)
 {
-	if (peer_disconnected_alert* e = alert_cast<peer_disconnected_alert>(a))
+	if (peer_disconnected_alert const* e = alert_cast<peer_disconnected_alert>(a))
 	{
 		++peer_disconnects;
 		if (e->error.category() == boost::asio::error::get_ssl_category())
 			++ssl_peer_disconnects;
 	}
 
-	if (peer_error_alert* e = alert_cast<peer_error_alert>(a))
+	if (peer_error_alert const* e = alert_cast<peer_error_alert>(a))
 	{
 		++peer_disconnects;
 		++peer_errors;

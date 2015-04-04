@@ -39,8 +39,19 @@ rule libtorrent_linking ( properties * )
         }
     }
 
+    if <link>static in $(properties)
+    {
+        ECHO "WARNING: you probably want to specify libtorrent-link=static rather than link=static" ;
+    }
+
     if <boost>source in $(properties)
     {
+
+    	if <boost-link>static in $(properties) && <target-os>linux
+    	{
+    	    ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
+    	}
+
         # linux must link dynamically against boost python because it pulls
         # in libpthread, which must be linked dynamically since we're building a .so
         # (the static build of libpthread is not position independent)
@@ -130,5 +141,6 @@ my-python-extension libtorrent
     <suppress-import-lib>false
   ;
 
-install stage_module : libtorrent : <location>. ;
+install stage_module : libtorrent : <install-type>LIB <install-dependencies>on <location>. ;
+
 
