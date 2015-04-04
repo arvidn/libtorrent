@@ -55,6 +55,8 @@ def style_output(logfile, outfile):
 			'Invalid write of size' in l or \
 			'Use of uninitialised value of size' in l or \
 			'Uninitialised byte(s) found during' in l or \
+			'Terminated with exception: ' in l or \
+			'TEST(S) FAILED' in l or \
 			'points to uninitialised byte(s)' in l:
 			print >>outfile, '<span class="test-error">%s</span>' % l
 		elif '**passed**' in l:
