@@ -96,34 +96,13 @@ namespace
     }
 #endif
 
-#if !defined TORRENT_NO_DEPRECATE
-    list files(torrent_info const& ti, bool storage) {
-        list result;
-
-        for (int i = 0; i < ti.num_files(); ++i)
-            result.append(ti.files().at(i));
-
-        return result;
-    }
-
-    list orig_files(torrent_info const& ti, bool storage) {
-        list result;
-
-        file_storage const& st = ti.orig_files();
-
-        for (int i = 0; i < st.num_files(); ++i)
-            result.append(st.at(i));
-
-        return result;
-    }
-#endif
-
     std::string hash_for_piece(torrent_info const& ti, int i)
     {
         return ti.hash_for_piece(i).to_string();
     }
 
-    std::string metadata(torrent_info const& ti) {
+    std::string metadata(torrent_info const& ti)
+    {
         std::string result(ti.metadata().get(), ti.metadata_size());
         return result;
     }
