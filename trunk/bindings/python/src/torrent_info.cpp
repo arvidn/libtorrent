@@ -39,7 +39,7 @@ namespace
 
         for (list_type::const_iterator i = ti.nodes().begin(); i != ti.nodes().end(); ++i)
         {
-            result.append(make_tuple(i->first, i->second));
+            result.append(boost::python::make_tuple(i->first, i->second));
         }
 
         return result;
