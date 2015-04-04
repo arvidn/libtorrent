@@ -650,7 +650,7 @@ void bind_session()
             init<fingerprint, int, boost::uint32_t>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins
-                , arg("alert_mask")=alert::error_notification))
+                , arg("alert_mask")=int(alert::error_notification)))
         )
         .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates))
         .def("outgoing_ports", &outgoing_ports)
