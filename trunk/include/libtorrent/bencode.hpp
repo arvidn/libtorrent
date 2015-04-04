@@ -218,7 +218,7 @@ namespace libtorrent
 				break;
 			default:
 				// trying to encode a structure with uninitialized values!
-				TORRENT_ASSERT_VAL(false, e.type());
+//				TORRENT_ASSERT_VAL(false, e.type());
 				// do nothing
 				break;
 			}

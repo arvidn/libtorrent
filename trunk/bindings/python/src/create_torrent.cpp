@@ -59,6 +59,49 @@ namespace
     {
        ct.add_file(fe);
     }
+
+    struct FileIter
+    {
+        typedef libtorrent::file_entry value_type;
+        typedef libtorrent::file_entry reference;
+        typedef libtorrent::file_entry* pointer;
+        typedef int difference_type;
+        typedef std::forward_iterator_tag iterator_category;
+
+        FileIter(file_storage const& fs, int i) : m_fs(&fs), m_i(i) {}
+        FileIter(FileIter const& fi) : m_fs(fi.m_fs), m_i(fi.m_i) {}
+        FileIter() : m_fs(NULL), m_i(0) {}
+        libtorrent::file_entry operator*() const
+        { return m_fs->at(m_i); }
+
+        FileIter operator++() { m_i++; return *this; }
+        FileIter operator++(int) { return FileIter(*m_fs, m_i++); }
+
+        bool operator==(FileIter const& rhs) const
+        { return m_fs == rhs.m_fs && m_i == rhs.m_i; }
+
+        int operator-(FileIter const& rhs) const
+        {
+            assert(rhs.m_fs == m_fs);
+            return m_i - rhs.m_i;
+        }
+
+        FileIter& operator=(FileIter const& rhs)
+        {
+            m_fs = rhs.m_fs;
+            m_i = rhs.m_i;
+            return *this;
+        }
+
+        file_storage const* m_fs;
+        int m_i;
+    };
+
+    FileIter begin_files(file_storage const& self)
+    { return FileIter(self, 0); }
+
+    FileIter end_files(file_storage const& self)
+    { return FileIter(self, self.num_files()); }
 #endif
 
     char const* filestorage_name(file_storage const& fs)
@@ -74,6 +117,7 @@ namespace
     {
         add_files(fs, file, boost::bind(&call_python_object2, cb, _1), flags);
     }
+
 }
 
 void bind_create_torrent()
@@ -120,11 +164,11 @@ void bind_create_torrent()
 #if !defined TORRENT_NO_DEPRECATE
         .def("at", at)
         .def("add_file", add_file, arg("entry"))
+        .def("__iter__", boost::python::range(&begin_files, &end_files))
+        .def("__len__", &file_storage::num_files)
 #endif
         .def("hash", file_storage_hash)
         .def("symlink", file_storage_symlink, return_value_policy<copy_const_reference>())
-//        .def("file_base", &file_storage::file_base)
-//        .def("set_file_base", &file_storage::set_file_base)
         .def("file_path", file_storage_file_path, (arg("idx"), arg("save_path") = ""))
         .def("file_size", file_storage_file_size)
         .def("file_offset", file_storage_file_offset)
