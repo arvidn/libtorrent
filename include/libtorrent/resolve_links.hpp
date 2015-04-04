@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/unordered_map.hpp>
 #include <vector>
 #include <utility>
+#include "libtorrent/export.hpp"
 
 namespace libtorrent
 {
@@ -45,7 +46,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	// this class is used for mutable torrents, to discover identical files
 	// in other torrents.
-	struct resolve_links
+	struct TORRENT_EXTRA_EXPORT resolve_links
 	{
 		struct link_t
 		{
