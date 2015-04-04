@@ -86,7 +86,7 @@ int peer_disconnects = 0;
 int peer_errors = 0;
 int ssl_peer_disconnects = 0;
 
-bool on_alert(alert* a)
+bool on_alert(alert const* a)
 {
 	if (peer_disconnected_alert* e = alert_cast<peer_disconnected_alert>(a))
 	{
@@ -561,10 +561,10 @@ void test_malicious_peer()
 		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
-	std::auto_ptr<alert> a = wait_for_alert(ses1
+	alert const* a = wait_for_alert(ses1
 		, torrent_finished_alert::alert_type, "ses1");
-	TEST_CHECK(a.get());
-	if (a.get())
+	TEST_CHECK(a);
+	if (a)
 	{
 		TEST_EQUAL(a->type(), torrent_finished_alert::alert_type);
 	}
