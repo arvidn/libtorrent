@@ -168,7 +168,7 @@ namespace libtorrent
 		return !m_alerts[m_generation].empty();
 	}
 
-	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)
+	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
