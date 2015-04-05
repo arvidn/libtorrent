@@ -153,8 +153,8 @@ void stats_logging::handle_alert(alert const* a)
 	if (time_now_hires() - m_last_log_rotation > hours(1))
 		rotate_stats_log();
 
-	fprintf(m_stats_logger, "%f", double(s->timestamp) / 1000000.0);
-	for (int i = 0; i < s->values.size(); ++i)
+	fprintf(m_stats_logger, "%f", double(total_microseconds(s->timestamp() - m_last_log_rotation)) / 1000000.0);
+	for (int i = 0; i < counters::num_counters; ++i)
 	{
 		fprintf(m_stats_logger, "\t%" PRId64, s->values[i]);
 	}

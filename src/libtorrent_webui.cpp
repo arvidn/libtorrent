@@ -746,17 +746,18 @@ namespace libtorrent
 		++m_stats_frame;
 		io::write_uint32(m_stats_frame, ptr);
 
-		std::vector<boost::uint64_t> const& stats = ss->values;
+		boost::uint64_t* stats = ss->values;
 
-		if (m_stats.size() < stats.size())
-			m_stats.resize(stats.size(), std::pair<boost::uint64_t, boost::uint32_t>(0, 0));
+		if (m_stats.size() < counters::num_counters)
+			m_stats.resize(counters::num_counters
+				, std::pair<boost::uint64_t, boost::uint32_t>(0, 0));
 
 		// we'll fill in the counter later
 		int counter_pos = response.size();
 		io::write_uint16(0, ptr);
 
 		// first update our copy of the stats, and update their frame counters
-		for (int i = 0; i < stats.size(); ++i)
+		for (int i = 0; i < counters::num_counters; ++i)
 		{
 			if (m_stats[i].first != stats[i])
 			{
