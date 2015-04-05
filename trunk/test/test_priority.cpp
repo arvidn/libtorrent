@@ -262,6 +262,7 @@ void test_transfer(settings_pack const& sett)
 	time_point start = clock_type::now();
 	while (true)
 	{
+		ses2.wait_for_alert(seconds(10));
 		std::vector<alert*> alerts;
 		ses2.pop_alerts(&alerts);
 		if (alerts.empty()) break;
@@ -275,20 +276,22 @@ void test_transfer(settings_pack const& sett)
 				bencode(std::back_inserter(resume_data)
 					, *alert_cast<save_resume_data_alert>(a)->resume_data);
 				fprintf(stderr, "saved resume data\n");
-				break;
+				goto done;
 			}
 			else if (alert_cast<save_resume_data_failed_alert>(a))
 			{
 				fprintf(stderr, "save resume failed\n");
-				break;
+				goto done;
 			}
 			if (total_seconds(clock_type::now() - start) > 10)
-				break;
-
-			ses2.wait_for_alert(seconds(10));
+				goto done;
 		}
 	}
+done:
 	TEST_CHECK(resume_data.size());	
+
+	if (resume_data.empty())
+		return;
 
 	fprintf(stderr, "%s\n", &resume_data[0]);
 
