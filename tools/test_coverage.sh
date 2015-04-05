@@ -34,6 +34,7 @@ set +e
 mkdir test-coverage
 set -e
 
+run_test test_alert_manager "*alert_manager.*"
 run_test test_heterogeneous_queue "include/libtorrent/heterogeneous_queue.hpp"
 run_test test_dht "*/kademlia/*"
 run_test test_bdecode "*/bdecode.*"
