@@ -390,6 +390,7 @@ namespace aux {
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
+		, m_last_auto_manage(m_created)
 #ifndef TORRENT_NO_DEPRECATE
 		, m_next_rss_update(min_time())
 #endif
@@ -3494,6 +3495,7 @@ retry:
 	{
 		INVARIANT_CHECK;
 
+		m_last_auto_manage = time_now_hires();
 		m_need_auto_manage = false;
 
 		if (is_paused()) return;
@@ -5918,6 +5920,13 @@ retry:
 	{
 		if (m_pending_auto_manage || m_abort) return;
 
+		// we we recalculated auto-managed torrents less than a second ago,
+		// put it off one second.
+		if (time_now_hires() - m_last_auto_manage < seconds(1))
+		{
+			m_auto_manage_time_scaler = 0;
+			return;
+		}
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
