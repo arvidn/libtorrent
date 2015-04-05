@@ -976,6 +976,10 @@ namespace libtorrent
 			// to decide which ones to choke/unchoke
 			time_point m_last_choke;
 
+			// the last time we recalculated which torrents should be started
+			// and stopped (only the auto managed ones)
+			time_point m_last_auto_manage;
+
 #ifndef TORRENT_NO_DEPRECATE
 			// the time when the next rss feed needs updating
 			time_point m_next_rss_update;
