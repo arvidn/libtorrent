@@ -138,7 +138,8 @@ namespace libtorrent
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
 		std::string filename() const;
 		char const* filename_ptr() const { return name; }
-		int filename_len() const { return name_len == name_is_owned?strlen(name):name_len; }
+		int filename_len() const
+		{ return name_len == name_is_owned?int(strlen(name)):int(name_len); }
 
 		enum {
 			name_is_owned = (1<<12)-1,

@@ -10,17 +10,17 @@
 using namespace boost::python;
 using namespace libtorrent;
 
-int get_last_active(peer_info const& pi)
+boost::int64_t get_last_active(peer_info const& pi)
 {
     return total_seconds(pi.last_active);
 }
 
-int get_last_request(peer_info const& pi)
+boost::int64_t get_last_request(peer_info const& pi)
 {
     return total_seconds(pi.last_request);
 }
 
-int get_download_queue_time(peer_info const& pi)
+boost::int64_t get_download_queue_time(peer_info const& pi)
 {
     return total_seconds(pi.download_queue_time);
 }
