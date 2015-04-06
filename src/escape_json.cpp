@@ -63,7 +63,7 @@ std::string escape_json(std::string const& input)
 	if (insize != 0) return "(iconv error)";
 	if (outsize > input.size() * 4) return "(iconv error)";
 	TORRENT_ASSERT(wide.size() >= outsize);
-	wide.resize(wide.size() - outsize);
+	wide.resize(wide.size() - outsize / sizeof(boost::uint32_t));
 
 	std::string ret;
 	for (std::vector<boost::uint32_t>::const_iterator s = wide.begin(); s != wide.end(); ++s)
