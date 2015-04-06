@@ -3495,7 +3495,7 @@ retry:
 	{
 		INVARIANT_CHECK;
 
-		m_last_auto_manage = time_now_hires();
+		m_last_auto_manage = time_now();
 		m_need_auto_manage = false;
 
 		if (is_paused()) return;
@@ -5922,7 +5922,7 @@ retry:
 
 		// we we recalculated auto-managed torrents less than a second ago,
 		// put it off one second.
-		if (time_now_hires() - m_last_auto_manage < seconds(1))
+		if (time_now() - m_last_auto_manage < seconds(1))
 		{
 			m_auto_manage_time_scaler = 0;
 			return;
