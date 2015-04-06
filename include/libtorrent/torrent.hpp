@@ -739,7 +739,7 @@ namespace libtorrent
 		int seconds_since_last_scrape() const
 		{
 			return m_last_scrape == (std::numeric_limits<boost::int16_t>::min)()
-				? -1 : m_ses.session_time() - m_last_scrape;
+				? -1 : int(m_ses.session_time() - m_last_scrape);
 		}
 
 #ifndef TORRENT_DISABLE_DHT
