@@ -1,6 +1,5 @@
 
 #if !BOOST_PP_IS_ITERATING
-
 // set-up iteration
 
 #include <boost/preprocessor/repetition/enum_params.hpp>
@@ -47,7 +46,7 @@
 				BOOST_PP_ENUM_PARAMS(I, a));
 			m_alerts[m_generation].push_back(alert);
 
-			maybe_notify(lock);
+			maybe_notify(&alert, lock);
 		}
 
 #undef I
