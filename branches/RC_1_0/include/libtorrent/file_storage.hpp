@@ -328,7 +328,10 @@ namespace libtorrent
 
 		// returns a peer_request representing the piece index, byte offset
 		// and size the specified file range overlaps. This is the inverse
-		// mapping ove map_block().
+		// mapping ove map_block(). Note that the ``peer_request`` return type
+		// is meant to hold bittorrent block requests, which may not be larger
+		// than 16 kiB. Mapping a range larger than that may return an overflown
+		// integer.
 		peer_request map_file(int file, size_type offset, int size) const;
 
 #ifndef TORRENT_NO_DEPRECATE
