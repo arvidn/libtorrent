@@ -78,7 +78,11 @@ namespace libtorrent { namespace
 		// metadata. If the torrent is greater than 16 MiB,
 		// we may hit this case (and the client requesting
 		// doesn't throttle its requests)
-		max_incoming_requests = 1024
+		max_incoming_requests = 1024,
+
+		metadata_req = 0,
+		metadata_piece = 1,
+		metadata_dont_have = 2
 	};
 
 	int div_round_up(int numerator, int denominator)
@@ -277,21 +281,15 @@ namespace libtorrent { namespace
 			char const* metadata = 0;
 			int metadata_piece_size = 0;
 
+			if (m_torrent.valid_metadata())
+				e["total_size"] = m_tp.get_metadata_size();
+
 			if (type == 1)
 			{
-
-				if (piece < 0 || piece >= int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024))
-				{
-#ifdef TORRENT_LOGGING
-					m_pc.peer_log("*** UT_METADATA [ invalid piece %d metadata size: %d ]"
-						, piece, int(m_tp.get_metadata_size()));
-#endif
-					m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
-					return;
-				}
-
+				TORRENT_ASSERT(piece >= 0 && piece < int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024));
 				TORRENT_ASSERT(m_pc.associated_torrent().lock()->valid_metadata());
-				e["total_size"] = m_tp.get_metadata_size();
+				TORRENT_ASSERT(m_torrent.valid_metadata());
+
 				int offset = piece * 16 * 1024;
 				// unloaded torrents don't have any metadata. Since we're
 				// about to send the metadata, we need it to be loaded
@@ -372,22 +370,28 @@ namespace libtorrent { namespace
 
 			switch (type)
 			{
-			case 0: // request
+				case metadata_req:
 				{
-					if (!m_torrent.valid_metadata())
+					if (!m_torrent.valid_metadata()
+						|| piece < 0 || piece >= int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024))
 					{
-						write_metadata_packet(2, piece);
+#ifdef TORRENT_LOGGING
+						m_pc.peer_log("*** UT_METADATA [ have: %d invalid piece %d metadata size: %d ]"
+							, int(m_torrent.valid_metadata()), piece
+							, int(m_tp.get_metadata_size()));
+#endif
+						write_metadata_packet(metadata_dont_have, piece);
 						return true;
 					}
 					if (m_pc.send_buffer_size() < send_buffer_limit)
-						write_metadata_packet(1, piece);
+						write_metadata_packet(metadata_piece, piece);
 					else if (m_incoming_requests.size() < max_incoming_requests)
 						m_incoming_requests.push_back(piece);
 					else
-						write_metadata_packet(2, piece);
+						write_metadata_packet(metadata_dont_have, piece);
 				}
 				break;
-			case 1: // data
+				case metadata_piece:
 				{
 					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
@@ -408,7 +412,7 @@ namespace libtorrent { namespace
 					maybe_send_request();
 				}
 				break;
-			case 2: // have no data
+				case metadata_dont_have:
 				{
 					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
 					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
@@ -436,7 +440,7 @@ namespace libtorrent { namespace
 			{
 				int piece = m_incoming_requests.front();
 				m_incoming_requests.erase(m_incoming_requests.begin());
-				write_metadata_packet(1, piece);
+				write_metadata_packet(metadata_piece, piece);
 			}
 		}
 
@@ -457,7 +461,7 @@ namespace libtorrent { namespace
 				if (piece == -1) return;
 
 				m_sent_requests.push_back(piece);
-				write_metadata_packet(0, piece);
+				write_metadata_packet(metadata_req, piece);
 			}
 		}
 
