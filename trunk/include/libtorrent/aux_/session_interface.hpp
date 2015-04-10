@@ -106,7 +106,6 @@ namespace libtorrent { namespace aux
 #if defined TORRENT_LOGGING
 		virtual void session_log(char const* fmt, ...) const = 0;
 		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
-		virtual void log_all_torrents(peer_connection* p) = 0;
 #endif
 
 #if TORRENT_USE_ASSERTS

@@ -390,9 +390,9 @@ namespace libtorrent
 			return;
 		}
 
-#if defined TORRENT_LOGGING
 		tcp::endpoint bound_ip = m_ses.bind_outgoing_socket(*m_socket
 			, m_remote.address(), ec);
+#if defined TORRENT_LOGGING
 		peer_log(">>> BIND [ dst: %s ec: %s ]", print_endpoint(bound_ip).c_str()
 			, ec.message().c_str());
 #endif
@@ -1196,7 +1196,6 @@ namespace libtorrent
 			// we couldn't find the torrent!
 #if defined TORRENT_LOGGING
 			peer_log("*** couldn't find a torrent with the given info_hash: %s torrents:", to_hex(ih.to_string()).c_str());
-			m_ses.log_all_torrents(this);
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
