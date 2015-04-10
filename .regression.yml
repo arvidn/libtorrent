@@ -22,7 +22,7 @@ build_features:
  - asserts=production debug
  - asserts=on release
  - variant=test_barebones
- - link=shared boost-link=shared
+ - link=shared boost-link=shared deprecated-functions=off
 
 project: libtorrent
 
