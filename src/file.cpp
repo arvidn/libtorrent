@@ -349,7 +349,7 @@ namespace libtorrent
 		WIN32_FILE_ATTRIBUTE_DATA data;
 		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
 		{
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(GetLastError(), get_system_category());
 			return;
 		}
 
@@ -447,7 +447,7 @@ namespace libtorrent
 
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(GetLastError(), get_system_category());
 #else
 		std::string n = convert_to_native(f);
 		int ret = mkdir(n.c_str(), 0777);
@@ -562,7 +562,7 @@ namespace libtorrent
 #endif
 
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(GetLastError(), get_system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
@@ -1011,7 +1011,7 @@ namespace libtorrent
 				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(GetLastError(), get_system_category());
 			return;
 		}
 #else // TORRENT_WINDOWS
