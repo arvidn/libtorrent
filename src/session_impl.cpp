@@ -4296,15 +4296,6 @@ retry:
 
 		m_alerts.emplace_alert<log_alert>(buf);
 	}
-
-	void session_impl::log_all_torrents(peer_connection* p)
-	{
-		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-		{
-			p->peer_log("   %s", to_hex(i->second->torrent_file().info_hash().to_string()).c_str());
-		}
-	}
 #endif
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret

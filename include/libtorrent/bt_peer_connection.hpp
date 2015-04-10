@@ -71,11 +71,6 @@ namespace libtorrent
 {
 	class torrent;
 
-	namespace detail
-	{
-		struct session_impl;
-	}
-
 	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection
 	{
