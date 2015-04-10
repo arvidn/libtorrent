@@ -349,7 +349,7 @@ namespace libtorrent
 		WIN32_FILE_ATTRIBUTE_DATA data;
 		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
 		{
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return;
 		}
 
@@ -447,7 +447,7 @@ namespace libtorrent
 
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 #else
 		std::string n = convert_to_native(f);
 		int ret = mkdir(n.c_str(), 0777);
@@ -562,7 +562,7 @@ namespace libtorrent
 #endif
 
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
@@ -1011,7 +1011,7 @@ namespace libtorrent
 				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
-			ec.assign(GetLastError(), get_system_category());
+			ec.assign(GetLastError(), system_category());
 			return;
 		}
 #else // TORRENT_WINDOWS
@@ -1094,7 +1094,7 @@ namespace libtorrent
 		m_handle = FindFirstFile_(p.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(GetLastError(), system_category());
 			m_done = true;
 			return;
 		}
@@ -1168,7 +1168,7 @@ namespace libtorrent
 			m_done = true;
 			int err = GetLastError();
 			if (err != ERROR_NO_MORE_FILES)
-				ec.assign(err, boost::system::system_category());
+				ec.assign(err, system_category());
 		}
 		++m_inode;
 #else
@@ -1420,7 +1420,7 @@ namespace libtorrent
 #endif
 		if (handle == -1)
 		{
-			ec.assign(errno, get_posix_category());
+			ec.assign(errno, generic_category());
 			TORRENT_ASSERT(ec);
 			return false;
 		}
@@ -1667,7 +1667,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 				ec.assign(GetLastError(), system_category());
 #else
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 #endif
 				return -1;
 			}
@@ -1690,7 +1690,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 				ec.assign(GetLastError(), system_category());
 #else
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 #endif
 				return -1;
 			}
@@ -1714,7 +1714,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #else
 		if (lseek(fd, file_offset, SEEK_SET) < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec.assign(errno, generic_category());
 			return -1;
 		}
 #endif
@@ -1727,7 +1727,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 				ec.assign(GetLastError(), system_category());
 #else
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 #endif
 				return -1;
 			}
@@ -1751,7 +1751,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, system_category());
+			ec = error_code(EBADF, generic_category());
 #endif
 			return -1;
 		}
@@ -1796,7 +1796,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_WINDOWS
 			ec = error_code(ERROR_INVALID_HANDLE, system_category());
 #else
-			ec = error_code(EBADF, system_category());
+			ec = error_code(EBADF, generic_category());
 #endif
 			return -1;
 		}
@@ -1838,7 +1838,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				&& errno != EINVAL
 				&& errno != ENOSYS)
 			{
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 			}
 		}
 #endif
@@ -2033,7 +2033,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		struct stat st;
 		if (fstat(native_handle(), &st) != 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec.assign(errno, generic_category());
 			return false;
 		}
 
@@ -2041,7 +2041,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// have the right size. We don't want to update
 		if (st.st_size != s && ftruncate(native_handle(), s) < 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec.assign(errno, generic_category());
 			return false;
 		}
 
@@ -2063,14 +2063,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			{
 				if (errno != ENOSPC)
 				{
-					ec.assign(errno, get_posix_category());
+					ec.assign(errno, generic_category());
 					return false;
 				}
 				// ok, let's try to allocate non contiguous space then
 				fstore_t f = {F_ALLOCATEALL, F_PEOFPOSMODE, 0, s, 0};
 				if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 				{
-					ec.assign(errno, get_posix_category());
+					ec.assign(errno, generic_category());
 					return false;
 				}
 			}
@@ -2083,7 +2083,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			fl64.l_len = s;
 			if (fcntl(native_handle(), F_ALLOCSP64, &fl64) < 0)
 			{
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 				return false;
 			}
 
@@ -2105,7 +2105,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// and report it.
 			if (errno != ENOSYS && errno != EOPNOTSUPP && errno != EINVAL)
 			{
-				ec.assign(errno, get_posix_category());
+				ec.assign(errno, generic_category());
 				return false;
 			}
 #endif // TORRENT_LINUX
@@ -2120,7 +2120,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// filesystem does bot support this operation
 			if (ret != 0 && ret != EINVAL)
 			{
-				ec.assign(ret, get_posix_category());
+				ec.assign(ret, generic_category());
 				return false;
 			}
 #endif // TORRENT_HAS_FALLOCATE
@@ -2143,7 +2143,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		struct stat fs;
 		if (fstat(native_handle(), &fs) != 0)
 		{
-			ec.assign(errno, get_posix_category());
+			ec.assign(errno, generic_category());
 			return -1;
 		}
 		return fs.st_size;
