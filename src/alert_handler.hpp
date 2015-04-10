@@ -60,7 +60,7 @@ struct TORRENT_EXPORT alert_handler
 	// TODO 3: make subscriptions automatically enable
 	// the corresponding category of alerts in the session somehow
 	void subscribe(alert_observer* o, int flags = 0, ...);
-	void dispatch_alerts(std::deque<alert*>& alerts) const;
+	void dispatch_alerts(std::vector<alert*>& alerts) const;
 	void dispatch_alerts() const;
 	void unsubscribe(alert_observer* o);
 

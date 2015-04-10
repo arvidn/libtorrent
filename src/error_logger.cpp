@@ -149,7 +149,7 @@ namespace libtorrent
 			case save_resume_data_failed_alert::alert_type:
 			{
 				save_resume_data_failed_alert const* rs= alert_cast<save_resume_data_failed_alert>(a);
-				if (rs)
+				if (rs && rs->error != error_code(libtorrent::errors::resume_data_not_modified))
 					fprintf(m_file, "%s\tsave-resume-failed (%s:%d) %s\n", timestamp
 						, rs->error.category().name(), rs->error.value()
 						, rs->message().c_str());

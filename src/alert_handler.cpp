@@ -67,9 +67,9 @@ namespace libtorrent
 		subscribe_impl(types, i, o, flags);
 	}
 
-	void alert_handler::dispatch_alerts(std::deque<alert*>& alerts) const
+	void alert_handler::dispatch_alerts(std::vector<alert*>& alerts) const
 	{
-		for (std::deque<alert*>::const_iterator i = alerts.begin()
+		for (std::vector<alert*>::const_iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			alert* a = *i;
@@ -96,15 +96,13 @@ namespace libtorrent
 			{
 				(*i)->set_value(a->clone().release());
 			}
-
-			delete a;
 		}
 		alerts.clear();
 	}
 
 	void alert_handler::dispatch_alerts() const
 	{
-		std::deque<alert*> alert_queue;
+		std::vector<alert*> alert_queue;
 		m_ses.pop_alerts(&alert_queue);
 		dispatch_alerts(alert_queue);
 	}
