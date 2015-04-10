@@ -349,22 +349,22 @@ namespace libtorrent
 		, char const* hostname, char const* buf, int size)
 	{
 		// ignore packets smaller than 8 bytes
-		if (size < 8)
-		{
-#if defined TORRENT_LOGGING
-			m_ses.session_log("incoming packet from %s, not a UDP tracker message "
-				"(%d Bytes)", hostname, size);
-#endif
-			return false;
-		}
+		if (size < 16) return false;
 
-		const char* ptr = buf + 4;
+		// the first word is the action, if it's not [0, 3]
+		// it's not a valid udp tracker response
+		const char* ptr = buf;
+		boost::uint32_t action = detail::read_uint32(ptr);
+		if (action > 3) return false;
+
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 		udp_conns_t::iterator i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
 		{
 #if defined TORRENT_LOGGING
+			// now, this may not have been meant to be a tracker response,
+			// but chances are pretty good, so it's probably worth logging
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
 				"transaction ID (%x)", hostname, int(transaction));
 #endif
