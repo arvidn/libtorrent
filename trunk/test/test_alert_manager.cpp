@@ -34,8 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/extensions.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 using namespace libtorrent;
 
@@ -61,6 +64,19 @@ void test_limit()
 	TEST_EQUAL(alerts.size(), 500);
 
 	TEST_EQUAL(mgr.pending(), false);
+
+	// now, try lowering the limit and do the same thing again
+	mgr.set_alert_queue_size_limit(200);
+
+	for (int i = 0; i < 600; ++i)
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	TEST_EQUAL(mgr.pending(), true);
+
+	mgr.get_all(alerts, num_resume);
+
+	// even though we posted 600, the limit was 200
+	TEST_EQUAL(alerts.size(), 200);
 }
 
 void test_priority_limit()
@@ -167,16 +183,115 @@ void test_notify_function()
 	TEST_EQUAL(cnt, 2);
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+int plugin_alerts[3] = { 0, 0, 0 };
+
+struct test_plugin : libtorrent::plugin
+{
+	test_plugin(int index) : m_index(index) {}
+	virtual void on_alert(alert const* a)
+	{
+		++plugin_alerts[m_index];
+	}
+	int m_index;
+};
+
+#endif
+
+void test_extensions()
+{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	alert_manager mgr(100, 0xffffffff);
+
+	mgr.add_extension(boost::make_shared<test_plugin>(0));
+	mgr.add_extension(boost::make_shared<test_plugin>(1));
+	mgr.add_extension(boost::make_shared<test_plugin>(2));
+
+	for (int i = 0; i < 53; ++i)
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	TEST_EQUAL(plugin_alerts[0], 53);
+	TEST_EQUAL(plugin_alerts[1], 53);
+	TEST_EQUAL(plugin_alerts[2], 53);
+
+	for (int i = 0; i < 17; ++i)
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	TEST_EQUAL(plugin_alerts[0], 70);
+	TEST_EQUAL(plugin_alerts[1], 70);
+	TEST_EQUAL(plugin_alerts[2], 70);
+#endif
+}
+
+void test_wait_for_alert()
+{
+	alert_manager mgr(100, 0xffffffff);
+
+	time_point start = clock_type::now();
+	
+	alert* a = mgr.wait_for_alert(seconds(1));
+
+	time_point end = clock_type::now();
+	TEST_EQUAL(a, NULL);
+	TEST_CHECK(end - start > milliseconds(900));
+	TEST_CHECK(end - start < milliseconds(1100));
+
+	mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	start = clock_type::now();
+	a = mgr.wait_for_alert(seconds(1));
+	end = clock_type::now();
+	TEST_CHECK(end - start < milliseconds(1));
+	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
+}
+
+void test_queued_resume()
+{
+	alert_manager mgr(100, 0xffffffff);
+
+	for (int i = 0; i < 17; ++i)
+		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	std::vector<alert*> alerts;
+	int num_resume = 0;
+	mgr.get_all(alerts, num_resume);
+	TEST_EQUAL(num_resume, 0);
+	TEST_EQUAL(alerts.size(), 17);
+
+	error_code ec(boost::system::errc::no_such_file_or_directory
+		, generic_category());
+
+	for (int i = 0; i < 2; ++i)
+		mgr.emplace_alert<save_resume_data_failed_alert>(torrent_handle(), ec);
+
+	mgr.get_all(alerts, num_resume);
+	TEST_EQUAL(num_resume, 2);
+	TEST_EQUAL(alerts.size(), 2);
+}
+
+void test_alert_mask()
+{
+	alert_manager mgr(100, 0xffffffff);
+
+	TEST_CHECK(mgr.should_post<torrent_added_alert>());
+	TEST_CHECK(mgr.should_post<torrent_paused_alert>());
+
+	mgr.set_alert_mask(0);
+
+	TEST_CHECK(!mgr.should_post<torrent_added_alert>());
+	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
+}
+
 int test_main()
 {
 	test_limit();
 	test_priority_limit();
 	test_dispatch_function();
 	test_notify_function();
-
-	// TODO: test wait_for_alert
-	// TODO: test num_queued_resume
-	// TODO: test alert_mask
+	test_extensions();
+	test_wait_for_alert();
+	test_queued_resume();
+	test_alert_mask();
 
 	return 0;
 }

@@ -222,9 +222,7 @@ namespace libtorrent
 		// called when plugin is added to a session
 		virtual void added(aux::session_impl*) {}
 
-		// called when an alert is posted
-		// alerts that are filtered are not
-		// posted
+		// called when an alert is posted alerts that are filtered are not posted
 		virtual void on_alert(alert const*) {}
 
 		// return true if the add_torrent_params should be added
