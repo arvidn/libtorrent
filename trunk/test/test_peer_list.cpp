@@ -533,7 +533,7 @@ int test_main()
 
 		// this will make the peer_list recalculate the connect candidates
 		std::vector<torrent_peer*> peers;
-		torrent_peer* peer = p.connect_one_peer(1, &st);
+		p.connect_one_peer(1, &st);
 
 		TEST_EQUAL(p.num_connect_candidates(), 50);
 		TEST_EQUAL(p.num_peers(), 100);

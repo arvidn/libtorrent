@@ -45,6 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+void print_session_log(lt::session& ses)
+{
+	print_alerts(ses, "ses", true, true);
+}
+
 int read_message(stream_socket& s, char* buffer)
 {
 	using namespace libtorrent::detail;
@@ -211,8 +216,8 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		, libtorrent::asio::transfer_all(), ec);
 	if (ec)
 	{
-		std::cout << aux::time_now_string() << ": " << ec.message() << std::endl;
-		exit(1);
+		TEST_ERROR(ec.message());
+		return;
 	}
 	std::cout << aux::time_now_string() << " <== handshake" << std::endl;
 
@@ -236,11 +241,14 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
 }
 
-boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih, boost::shared_ptr<lt::session>& ses)
+boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih
+	, boost::shared_ptr<lt::session>& ses, torrent_handle* th = NULL)
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
-	ses.reset(new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48900, 49000), "0.0.0.0", 0));
+	ses.reset(new lt::session(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48900, 49000), "0.0.0.0", 0, alert::all_categories));
+
 	error_code ec;
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
@@ -251,11 +259,16 @@ boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih, boos
 	remove("./tmp1_fast/temporary", ec);
 	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
 	ec.clear();
-	ses->add_torrent(p, ec);
+	torrent_handle ret = ses->add_torrent(p, ec);
+	if (th) *th = ret;
 
-	test_sleep(300);
+	// wait for the torrent to be ready
+	wait_for_downloading(*ses, "ses");
 
 	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+
+	print_session_log(*ses);
+
 	return t;
 }
 
@@ -273,7 +286,9 @@ void test_reject_fast()
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
 	send_have_all(s);
+	print_session_log(*ses);
 	
 	std::vector<int> allowed_fast;
 	allowed_fast.push_back(0);
@@ -283,9 +298,11 @@ void test_reject_fast()
 
 	std::for_each(allowed_fast.begin(), allowed_fast.end()
 		, boost::bind(&send_allow_fast, boost::ref(s), _1));
+	print_session_log(*ses);
 
 	while (!allowed_fast.empty())
 	{
+		print_session_log(*ses);
 		int len = read_message(s, recv_buffer);
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
@@ -309,8 +326,10 @@ void test_reject_fast()
 		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
 			, libtorrent::asio::transfer_all(), ec);
 	}
+	print_session_log(*ses);
 	s.close();
 	test_sleep(500);
+	print_session_log(*ses);
 }
 
 void test_respect_suggest()
@@ -325,7 +344,9 @@ void test_respect_suggest()
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
 	send_have_all(s);
+	print_session_log(*ses);
 	
 	std::vector<int> suggested;
 	suggested.push_back(0);
@@ -335,14 +356,18 @@ void test_respect_suggest()
 
 	std::for_each(suggested.begin(), suggested.end()
 		, boost::bind(&send_suggest_piece, boost::ref(s), _1));
+	print_session_log(*ses);
 
 	send_unchoke(s);
+	print_session_log(*ses);
 
 	send_keepalive(s);
+	print_session_log(*ses);
 
 	int fail_counter = 100;	
 	while (!suggested.empty() && fail_counter > 0)
 	{
+		print_session_log(*ses);
 		int len = read_message(s, recv_buffer);
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
@@ -367,10 +392,12 @@ void test_respect_suggest()
 		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
 			, libtorrent::asio::transfer_all(), ec);
 	}
+	print_session_log(*ses);
 	TEST_CHECK(fail_counter > 0);
 
 	s.close();
 	test_sleep(500);
+	print_session_log(*ses);
 }
 
 void test_multiple_bitfields()
@@ -382,22 +409,29 @@ void test_multiple_bitfields()
 	io_service ios;
 	stream_socket s(ios);
 	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	print_session_log(*ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
 
 	std::string bitfield;
 	bitfield.resize(ti->num_pieces(), '0');
 	send_bitfield(s, bitfield.c_str());
+	print_session_log(*ses);
 	bitfield[0] = '1';
 	send_bitfield(s, bitfield.c_str());
+	print_session_log(*ses);
 	bitfield[1] = '1';
 	send_bitfield(s, bitfield.c_str());
+	print_session_log(*ses);
 	bitfield[2] = '1';
 	send_bitfield(s, bitfield.c_str());
+	print_session_log(*ses);
 	
 	s.close();
 	test_sleep(500);
+	print_session_log(*ses);
 }
 
 void test_multiple_have_all()
@@ -413,13 +447,21 @@ void test_multiple_have_all()
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
 
+	print_session_log(*ses);
+
 	send_have_all(s);
+	print_session_log(*ses);
 	send_have_all(s);
+	print_session_log(*ses);
 	send_have_none(s);
+	print_session_log(*ses);
 	send_have_all(s);
+	print_session_log(*ses);
 	
 	s.close();
+	print_session_log(*ses);
 	test_sleep(500);
+	print_session_log(*ses);
 }
 
 // makes sure that pieces that are lost are not requested
@@ -429,32 +471,21 @@ void test_dont_have()
 
 	std::cerr << " === test dont_have ===" << std::endl;
 
-	boost::shared_ptr<torrent_info> t = ::create_torrent();
-	sha1_hash ih = t->info_hash();
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48950, 49050), "0.0.0.0", 0);
-	error_code ec;
-	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.ti = t;
-	p.save_path = "./tmp1_dont_have";
-
-	remove("./tmp1_dont_have/temporary", ec);
-	if (ec) fprintf(stderr, "remove(): %s\n", ec.message().c_str());
-	ec.clear();
-	torrent_handle th = ses1.add_torrent(p, ec);
-
-	test_sleep(300);
-
+	sha1_hash ih;
+	torrent_handle th;
+	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	stream_socket s(ios);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses1.listen_port()), ec);
+	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
 	send_have_all(s);
+	print_session_log(*ses);
 
 	test_sleep(300);
+	print_session_log(*ses);
 
 	std::vector<peer_info> pi;
 	th.get_peer_info(pi);
@@ -466,8 +497,11 @@ void test_dont_have()
 	TEST_CHECK(pi[0].flags & peer_info::seed);
 
 	int lt_dont_have = 0;
+	error_code ec;
 	while (lt_dont_have == 0)
 	{
+		print_session_log(*ses);
+
 		int len = read_message(s, recv_buffer);
 		print_message(recv_buffer, len);
 		if (len == 0) continue;
@@ -477,7 +511,6 @@ void test_dont_have()
 		if (ext_msg != 0) continue;
 
 		bdecode_node e;
-		error_code ec;
 		int pos = 0;
 		int ret = bdecode(recv_buffer + 2, recv_buffer + len, e, ec, &pos);
 		if (ret != 0)
@@ -497,6 +530,7 @@ void test_dont_have()
 
 		lt_dont_have = dont_have.int_value();
 	}
+	print_session_log(*ses);
 
 	char* ptr = recv_buffer;
 	write_uint32(6, ptr);
@@ -507,7 +541,11 @@ void test_dont_have()
 	libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 10)
 		, libtorrent::asio::transfer_all(), ec);
 
+	print_session_log(*ses);
+
 	test_sleep(1000);
+
+	print_session_log(*ses);
 
 	th.get_peer_info(pi);
 
@@ -520,6 +558,8 @@ void test_dont_have()
 	TEST_EQUAL(pi[0].pieces[2], true);
 	TEST_EQUAL(pi[0].pieces[1], true);
 	TEST_EQUAL(pi[0].pieces[0], true);
+
+	print_session_log(*ses);
 }
 
 int test_main()
