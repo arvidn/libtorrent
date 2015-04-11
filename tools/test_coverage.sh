@@ -8,19 +8,20 @@ function run_test {
 	set -e
 
 	cd test
-	set +e
-	rm -rf bin
 
+	set +e
 	bjam asserts=off invariant-checks=off link=static boost=source deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off -j4 $1
-	cd ..
 	set -e
+	cd ..
 
 	lcov -d $OBJECT_PATH/ -c -o coverage_$1_full
-	lcov --extract coverage_$1_full "$2" -o coverage_$1
-	rm -rf test-coverage/$1
-	genhtml -o test-coverage/$1 -t $1 --num-spaces 4 coverage_$1
-	rm coverage_$1 coverage_$1_full
-	
+	lcov --extract coverage_$1_full "$2" -o test-coverage/coverage_$1
+	if [ ! -f test-coverage/coverage_all ]; then
+		cp test-coverage/coverage_$1 test-coverage/coverage_all
+	else
+		lcov --add-tracefile test-coverage/coverage_$1 --add-tracefile test-coverage/coverage_all -o test-coverage/coverage_all
+	fi
+	rm coverage_$1_full
 }
 
 # force rebuilding and rerunning the unit tests
@@ -32,10 +33,10 @@ cd ..
 
 set +e
 mkdir test-coverage
+rm test-coverage/coverage_all
 set -e
 
 run_test test_alert_manager "*alert_manager.*"
-run_test test_heterogeneous_queue "include/libtorrent/heterogeneous_queue.hpp"
 run_test test_dht "*/kademlia/*"
 run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
@@ -52,4 +53,6 @@ run_test test_xml "*/xml_parse.*"
 run_test test_sliding_average "*/sliding_average.*"
 run_test test_string "*/escape_string.*"
 run_test test_utf8 "*/ConvertUTF.*"
+
+genhtml -o test-coverage/ -t $1 --num-spaces=4 test-coverage/coverage_all
 
