@@ -331,7 +331,7 @@ namespace libtorrent {
 		, incomplete(incomp)
 		, complete(comp)
 	{
-		TORRENT_ASSERT(!url.empty());
+		TORRENT_ASSERT(!u.empty());
 	}
 
 	std::string scrape_reply_alert::message() const
@@ -388,7 +388,7 @@ namespace libtorrent {
 		: tracker_alert(alloc, h, u)
 		, num_peers(np)
 	{
-		TORRENT_ASSERT(!url.empty());
+		TORRENT_ASSERT(!u.empty());
 	}
 
 	std::string tracker_reply_alert::message() const
@@ -420,7 +420,7 @@ namespace libtorrent {
 		: tracker_alert(alloc, h, u)
 		, event(e)
 	{
-		TORRENT_ASSERT(!url.empty());
+		TORRENT_ASSERT(!u.empty());
 	}
 
 	std::string tracker_announce_alert::message() const
