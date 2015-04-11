@@ -532,7 +532,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
-	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n", int(file_size(combine_path(base, "test7.tmp"))), int(last_file_size - piece_size), last_file_size, piece_size);
+	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n"
+		, int(file_size(combine_path(base, "test7.tmp")))
+		, int(last_file_size - piece_size), last_file_size, piece_size);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
