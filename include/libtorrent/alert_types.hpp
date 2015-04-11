@@ -95,12 +95,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_alert: torrent_alert
 	{
 		// internal
-		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i, peer_id const& pi)
-			: torrent_alert(alloc, h)
-			, ip(i)
-			, pid(pi)
-		{}
+		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
+			tcp::endpoint const& i , peer_id const& pi);
 
 		static const int alert_type = 1;
 		static const int static_category = alert::peer_notification;
@@ -168,9 +164,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_added_alert: torrent_alert
 	{
 		// internal
-		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h)
-			: torrent_alert(alloc, h)
-		{}
+		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT(torrent_added_alert, 3);
 		static const int static_category = alert::status_notification;
@@ -193,10 +187,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih)
-			: torrent_alert(alloc, h)
-			, info_hash(ih)
-		{}
+			, torrent_handle const& h, sha1_hash const& ih);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4);
 		static const int static_category = alert::status_notification;
@@ -219,18 +210,8 @@ namespace libtorrent
 	{
 		// internal
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int p, boost::shared_array<char> d, int s)
-			: torrent_alert(alloc, h)
-			, buffer(d)
-			, piece(p)
-			, size(s)
-		{}
-		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h, int p, error_code e)
-			: torrent_alert(alloc, h)
-			, ec(e)
-			, piece(p)
-			, size(0)
-		{}
+			, int p, boost::shared_array<char> d, int s);
+		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h, int p, error_code e);
 
 		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5);
 
@@ -252,10 +233,7 @@ namespace libtorrent
 	{
 		// internal
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int idx)
-			: torrent_alert(alloc, h)
-			, index(idx)
-		{}
+			, int idx);
 
 		TORRENT_DEFINE_ALERT(file_completed_alert, 6);
 
@@ -300,11 +278,7 @@ namespace libtorrent
 		// internal
 		file_rename_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, int idx
-			, error_code ec)
-			: torrent_alert(alloc, h)
-			, index(idx)
-			, error(ec)
-		{}
+			, error_code ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8);
 
@@ -408,10 +382,7 @@ namespace libtorrent
 
 		// internal
 		performance_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, performance_warning_t w)
-			: torrent_alert(alloc, h)
-			, warning_code(w)
-		{}
+			, performance_warning_t w);
 
 		TORRENT_DEFINE_ALERT(performance_alert, 9);
 
@@ -428,11 +399,7 @@ namespace libtorrent
 		// internal
 		state_changed_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, torrent_status::state_t st
-			, torrent_status::state_t prev_st)
-			: torrent_alert(alloc, h)
-			, state(st)
-			, prev_state(prev_st)
-		{}
+			, torrent_status::state_t prev_st);
 
 		TORRENT_DEFINE_ALERT(state_changed_alert, 10);
 
@@ -521,11 +488,7 @@ namespace libtorrent
 			, torrent_handle const& h
 			, int incomp
 			, int comp
-			, std::string const& u)
-			: tracker_alert(alloc, h, u)
-			, incomplete(incomp)
-			, complete(comp)
-		{ TORRENT_ASSERT(!u.empty()); }
+			, std::string const& u);
 
 		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13);
 
@@ -584,10 +547,7 @@ namespace libtorrent
 		tracker_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h
 			, int np
-			, std::string const& u)
-			: tracker_alert(alloc, h, u)
-			, num_peers(np)
-		{ TORRENT_ASSERT(!u.empty()); }
+			, std::string const& u);
 
 		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15);
 
@@ -608,10 +568,7 @@ namespace libtorrent
 		// internal
 		dht_reply_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h
-			, int np)
-			: tracker_alert(alloc, h, "")
-			, num_peers(np)
-		{}
+			, int np);
 
 		TORRENT_DEFINE_ALERT(dht_reply_alert, 16);
 
@@ -628,10 +585,7 @@ namespace libtorrent
 		// internal
 		tracker_announce_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h
-			, std::string const& u, int e)
-			: tracker_alert(alloc, h, u)
-			, event(e)
-		{ TORRENT_ASSERT(!u.empty()); }
+			, std::string const& u, int e);
 
 		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17);
 
@@ -652,10 +606,7 @@ namespace libtorrent
 	{
 		// internal
 		hash_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int index)
-			: torrent_alert(alloc, h)
-			, piece_index(index)
-		{ TORRENT_ASSERT(index >= 0);}
+			, int index);
 
 		TORRENT_DEFINE_ALERT(hash_failed_alert, 18);
 
@@ -671,9 +622,7 @@ namespace libtorrent
 	{
 		// internal
 		peer_ban_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id)
-			: peer_alert(alloc, h, ep, peer_id)
-		{}
+			, tcp::endpoint const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_ban_alert, 19);
 
@@ -686,9 +635,7 @@ namespace libtorrent
 	{
 		// internal
 		peer_unsnubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id)
-			: peer_alert(alloc, h, ep, peer_id)
-		{}
+			, tcp::endpoint const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert, 20);
 
@@ -701,9 +648,7 @@ namespace libtorrent
 	{
 		// internal
 		peer_snubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id)
-			: peer_alert(alloc, h, ep, peer_id)
-		{}
+			, tcp::endpoint const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_snubbed_alert, 21);
 
@@ -823,11 +768,7 @@ namespace libtorrent
 	{
 		// internal
 		piece_finished_alert(aux::stack_allocator& alloc, 
-			torrent_handle h
-			, int piece_num)
-			: torrent_alert(alloc, h)
-			, piece_index(piece_num)
-		{ TORRENT_ASSERT(piece_index >= 0);}
+			torrent_handle const& h, int piece_num);
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27);
 
@@ -1214,16 +1155,12 @@ namespace libtorrent
 	{
 		// internal
 		metadata_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle h, error_code const& ec)
-			: torrent_alert(alloc, h)
-			, error(ec)
-		{}
+			, torrent_handle const& h, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(metadata_failed_alert, 44);
 
 		static const int static_category = alert::error_notification;
-		virtual std::string message() const
-		{ return torrent_alert::message() + " invalid metadata received: " + error.message(); }
+		virtual std::string message() const;
 
 		// indicates what failed when parsing the metadata. This error is
 		// what's returned from lazy_bdecode().
@@ -1258,15 +1195,12 @@ namespace libtorrent
 	{
 		// internal
 		metadata_received_alert(aux::stack_allocator& alloc
-			, torrent_handle h)
-			: torrent_alert(alloc, h)
-		{}
+			, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT(metadata_received_alert, 45);
 
 		static const int static_category = alert::status_notification;
-		virtual std::string message() const
-		{ return torrent_alert::message() + " metadata successfully received"; }
+		virtual std::string message() const;
 	};
 
 	// This alert is posted when there is an error on the UDP socket. The
@@ -1278,19 +1212,12 @@ namespace libtorrent
 		udp_error_alert(
 			aux::stack_allocator& alloc
 			, udp::endpoint const& ep
-			, error_code const& ec)
-			: endpoint(ep)
-			, error(ec)
-		{}
+			, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(udp_error_alert, 46);
 
 		static const int static_category = alert::error_notification;
-		virtual std::string message() const
-		{
-			error_code ec;
-			return "UDP error: " + convert_from_native(error.message()) + " from: " + endpoint.address().to_string(ec);
-		}
+		virtual std::string message() const;
 
 		// the source address associated with the error (if any)
 		udp::endpoint endpoint;
@@ -1306,18 +1233,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT external_ip_alert: alert
 	{
 		// internal
-		external_ip_alert(aux::stack_allocator& alloc, address const& ip)
-			: external_address(ip)
-		{}
+		external_ip_alert(aux::stack_allocator& alloc, address const& ip);
 
 		TORRENT_DEFINE_ALERT(external_ip_alert, 47);
 
 		static const int static_category = alert::status_notification;
-		virtual std::string message() const
-		{
-			error_code ec;
-			return "external IP received: " + external_address.to_string(ec);
-		}
+		virtual std::string message() const;
 
 		// the IP address that is believed to be our external IP
 		address external_address;
@@ -1385,10 +1306,7 @@ namespace libtorrent
 
 		// internal
 		listen_succeeded_alert(aux::stack_allocator& alloc, tcp::endpoint const& ep
-			, socket_type_t t)
-			: endpoint(ep)
-			, sock_type(t)
-		{}
+			, socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49);
 
@@ -1416,13 +1334,7 @@ namespace libtorrent
 	{
 		// internal
 		portmap_error_alert(aux::stack_allocator& alloc, int i, int t
-			, error_code const& e)
-			:  mapping(i), map_type(t), error(e)
-		{
-#ifndef TORRENT_NO_DEPRECATE
-			msg = convert_from_native(error.message());
-#endif
-		}
+			, error_code const& e);
 
 		TORRENT_DEFINE_ALERT(portmap_error_alert, 50);
 
@@ -1451,9 +1363,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
 		// internal
-		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t)
-			: mapping(i), external_port(port), map_type(t)
-		{}
+		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t);
 
 		TORRENT_DEFINE_ALERT(portmap_alert, 51);
 
@@ -1553,11 +1463,7 @@ namespace libtorrent
 	{
 		// internal
 		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, address const& i, int r)
-			: torrent_alert(alloc, h)
-			, ip(i)
-			, reason(r)
-		{}
+			, address const& i, int r);
 		
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54);
 
@@ -1587,11 +1493,7 @@ namespace libtorrent
 	{
 		// internal
 		dht_announce_alert(aux::stack_allocator& alloc, address const& i, int p
-			, sha1_hash const& ih)
-			: ip(i)
-			, port(p)
-			, info_hash(ih)
-		{}
+			, sha1_hash const& ih);
 		
 		TORRENT_DEFINE_ALERT(dht_announce_alert, 55);
 
@@ -1608,9 +1510,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_get_peers_alert: alert
 	{
 		// internal
-		dht_get_peers_alert(aux::stack_allocator& alloc, sha1_hash const& ih)
-			: info_hash(ih)
-		{}
+		dht_get_peers_alert(aux::stack_allocator& alloc, sha1_hash const& ih);
 
 		TORRENT_DEFINE_ALERT(dht_get_peers_alert, 56);
 
@@ -1693,11 +1593,7 @@ namespace libtorrent
 	{
 		// internal
 		anonymous_mode_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int k, std::string const& s)
-			: torrent_alert(alloc, h)
-			, kind(k)
-			, str(s)
-		{}
+			, int k, std::string const& s);
 
 		TORRENT_DEFINE_ALERT(anonymous_mode_alert, 59);
 
@@ -1723,9 +1619,7 @@ namespace libtorrent
 	{
 		// internal
 		lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i)
-			: peer_alert(alloc, h, i, peer_id(0))
-		{}
+			, tcp::endpoint const& i);
 
 		TORRENT_DEFINE_ALERT(lsd_peer_alert, 60);
 
@@ -1764,7 +1658,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_bootstrap_alert: alert
 	{
 		// internal
-		dht_bootstrap_alert(aux::stack_allocator& alloc) {}
+		dht_bootstrap_alert(aux::stack_allocator& alloc);
 		
 		TORRENT_DEFINE_ALERT(dht_bootstrap_alert, 62);
 
@@ -1782,9 +1676,7 @@ namespace libtorrent
 	{
 		// internal
 		rss_alert(aux::stack_allocator& alloc, feed_handle h
-			, std::string const& u, int s, error_code const& ec)
-			: handle(h), url(u), state(s), error(ec)
-		{}
+			, std::string const& u, int s, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(rss_alert, 63);
 
@@ -1857,9 +1749,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_need_cert_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h)
-			: torrent_alert(alloc, h)
-		{}
+			, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65);
 
@@ -1882,10 +1772,7 @@ namespace libtorrent
 	{
 		// internal
 		incoming_connection_alert(aux::stack_allocator& alloc, int t
-			, tcp::endpoint const& i)
-			: socket_type(t)
-			, ip(i)
-		{}
+			, tcp::endpoint const& i);
 
 		TORRENT_DEFINE_ALERT(incoming_connection_alert, 66);
 
@@ -1920,11 +1807,7 @@ namespace libtorrent
 	{
 		// internal
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
-			, add_torrent_params const& p, error_code ec)
-			: torrent_alert(alloc, h)
-			, params(p)
-			, error(ec)
-		{}
+			, add_torrent_params const& p, error_code ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67);
 
@@ -2019,11 +1902,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-			, sha1_hash const& old_hash, sha1_hash const& new_hash)
-			: torrent_alert(alloc, h)
-			, old_ih(old_hash)
-			, new_ih(new_hash)
-		{}
+			, sha1_hash const& old_hash, sha1_hash const& new_hash);
 
 		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71);
 
@@ -2048,10 +1927,7 @@ namespace libtorrent
 	{
 		// internal
 		rss_item_alert(aux::stack_allocator& alloc, feed_handle h
-			, feed_item const& item)
-			: handle(h)
-			, item(item)
-		{}
+			, feed_item const& item);
 
 		TORRENT_DEFINE_ALERT(rss_item_alert, 72);
 
@@ -2068,8 +1944,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_error_alert: alert
 	{
 		// internal
-		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec)
-			: error(ec), operation(op_t(op)) {}
+		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec);
 		
 		TORRENT_DEFINE_ALERT(dht_error_alert, 73);
 
@@ -2095,8 +1970,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_immutable_item_alert: alert
 	{
 		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
-			, entry const& i)
-			: target(t), item(i) {}
+			, entry const& i);
 		
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74);
 
@@ -2125,8 +1999,7 @@ namespace libtorrent
 			, boost::array<char, 64> sig
 			, boost::uint64_t sequence
 			, std::string const& s
-			, entry const& i)
-			: key(k), signature(sig), seq(sequence), salt(s), item(i) {}
+			, entry const& i);
 		
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75);
 
@@ -2163,20 +2036,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_put_alert: alert
 	{
 		// internal
-		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t)
-			: target(t)
-			, seq(0)
-		{}
+		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t);
 		dht_put_alert(aux::stack_allocator& alloc, boost::array<char, 32> key
 			, boost::array<char, 64> sig
 			, std::string s
-			, boost::uint64_t sequence_number)
-			: target(0)
-			, public_key(key)
-			, signature(sig)
-			, salt(s)
-			, seq(sequence_number)
-		{}
+			, boost::uint64_t sequence_number);
 
 		TORRENT_DEFINE_ALERT(dht_put_alert, 76);
 
@@ -2198,7 +2062,7 @@ namespace libtorrent
 	// this alert is used to report errors in the i2p SAM connection
 	struct TORRENT_EXPORT i2p_alert : alert
 	{
-		i2p_alert(aux::stack_allocator& alloc, error_code const& ec) : error(ec) {}
+		i2p_alert(aux::stack_allocator& alloc, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT(i2p_alert, 77);
 
@@ -2420,7 +2284,6 @@ namespace libtorrent
 
 	enum { num_alert_types = 84 };
 }
-
 
 #endif
 

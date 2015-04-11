@@ -56,6 +56,39 @@ namespace libtorrent
 
 	file_storage::~file_storage() {}
 
+	// even though this copy constructor and the copy assignment
+	// operator are identical to what the compiler would have
+	// generated, they are put here to explicitly make them part
+	// of libtorrent and properly exported by the .dll.
+	file_storage::file_storage(file_storage const& f)
+		: m_files(f.m_files)
+		, m_file_hashes(f.m_file_hashes)
+		, m_symlinks(f.m_symlinks)
+		, m_mtime(f.m_mtime)
+		, m_file_base(f.m_file_base)
+		, m_paths(f.m_paths)
+		, m_name(f.m_name)
+		, m_total_size(f.m_total_size)
+		, m_num_pieces(f.m_num_pieces)
+		, m_piece_length(f.m_piece_length)
+	{
+	}
+
+	file_storage& file_storage::operator=(file_storage const& f)
+	{
+		m_files = f.m_files;
+		m_file_hashes = f.m_file_hashes;
+		m_symlinks = f.m_symlinks;
+		m_mtime = f.m_mtime;
+		m_file_base = f.m_file_base;
+		m_paths = f.m_paths;
+		m_name = f.m_name;
+		m_total_size = f.m_total_size;
+		m_num_pieces = f.m_num_pieces;
+		m_piece_length = f.m_piece_length;
+		return *this;
+	}
+
 	void file_storage::reserve(int num_files)
 	{
 		m_files.reserve(num_files);
