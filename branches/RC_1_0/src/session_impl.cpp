@@ -4561,11 +4561,11 @@ retry:
 					// more to downloading torrents with less than
 					// average number of connections
 					int num_attempts = 1;
-					if (!t.is_finished())
+					if (!t.is_finished() && m_num_active_downloading > 0)
 					{
 						// TODO: make this bias configurable
-						// TODO: also take average_peers into account, to create a bias for downloading torrents with < average peers
-						TORRENT_ASSERT(m_num_active_downloading > 0);
+						// TODO: also take average_peers into account, to create a
+						// bias for downloading torrents with < average peers
 						num_attempts += m_num_active_finished / m_num_active_downloading;
 					}
 					while (m_current_connect_attempts < num_attempts)
