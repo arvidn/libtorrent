@@ -54,30 +54,30 @@ namespace libtorrent
 	// of libtorrent and properly exported by the .dll.
 	file_storage::file_storage(file_storage const& f)
 		: m_files(f.m_files)
-		, m_file_hashes(m_file_hashes)
-		, m_symlinks(m_symlinks)
-		, m_mtime(m_mtime)
-		, m_file_base(m_file_base)
-		, m_paths(m_paths)
-		, m_name(m_name)
-		, m_total_size(m_total_size)
-		, m_num_pieces(m_num_pieces)
-		, m_piece_length(m_piece_length)
+		, m_file_hashes(f.m_file_hashes)
+		, m_symlinks(f.m_symlinks)
+		, m_mtime(f.m_mtime)
+		, m_file_base(f.m_file_base)
+		, m_paths(f.m_paths)
+		, m_name(f.m_name)
+		, m_total_size(f.m_total_size)
+		, m_num_pieces(f.m_num_pieces)
+		, m_piece_length(f.m_piece_length)
 	{
 	}
 
 	file_storage& file_storage::operator=(file_storage const& f)
 	{
 		m_files = f.m_files;
-		m_file_hashes = m_file_hashes;
-		m_symlinks = m_symlinks;
-		m_mtime = m_mtime;
-		m_file_base = m_file_base;
-		m_paths = m_paths;
-		m_name = m_name;
-		m_total_size = m_total_size;
-		m_num_pieces = m_num_pieces;
-		m_piece_length = m_piece_length;
+		m_file_hashes = f.m_file_hashes;
+		m_symlinks = f.m_symlinks;
+		m_mtime = f.m_mtime;
+		m_file_base = f.m_file_base;
+		m_paths = f.m_paths;
+		m_name = f.m_name;
+		m_total_size = f.m_total_size;
+		m_num_pieces = f.m_num_pieces;
+		m_piece_length = f.m_piece_length;
 		return *this;
 	}
 
