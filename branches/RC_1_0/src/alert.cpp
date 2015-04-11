@@ -902,12 +902,15 @@ namespace libtorrent {
 			, transferred[1]
 			, transferred[2]
 			, transferred[3]
+#ifndef TORRENT_DISABLE_FULL_STATS
 			, transferred[4]
 			, transferred[5]
 			, transferred[6]
 			, transferred[7]
 			, transferred[8]
-			, transferred[9]);
+			, transferred[9]
+#endif
+			);
 		return msg;
 	}
 
