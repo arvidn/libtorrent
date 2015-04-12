@@ -47,12 +47,25 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+void log(char const* fmt, ...)
+{
+	va_list v;
+	va_start(v, fmt);
+
+	char buf[1024];
+	vsnprintf(buf, sizeof(buf), fmt, v);
+	va_end(v);
+
+	fprintf(stderr, "\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
+		, aux::time_now_string(), buf);
+}
+
 void print_session_log(lt::session& ses)
 {
 	print_alerts(ses, "ses", true, true);
 }
 
-int read_message(stream_socket& s, char* buffer)
+int read_message(stream_socket& s, char* buffer, int max_size)
 {
 	using namespace libtorrent::detail;
 	error_code ec;
@@ -65,6 +78,12 @@ int read_message(stream_socket& s, char* buffer)
 	}
 	char* ptr = buffer;
 	int length = read_int32(ptr);
+	if (length > max_size)
+	{
+		log("message size: %d", length);
+		TEST_ERROR("message size exceeds max limt");
+		return -1;
+	}
 
 	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, length)
 		, libtorrent::asio::transfer_all(), ec);
@@ -127,6 +146,11 @@ void print_message(char const* buffer, int len)
 			int index = detail::read_int32(ptr);
 			snprintf(extra, sizeof(extra), "p: %d", index);
 		}
+		else if (msg == 20 && len > 4 && buffer[1] == 0 )
+		{
+			snprintf(extra, sizeof(extra), "%s"
+				, bdecode(buffer + 2, buffer + len).to_string().c_str());
+		}
 	}
 
 	log("<== %s %s", message, extra);
@@ -134,7 +158,7 @@ void print_message(char const* buffer, int len)
 
 void send_allow_fast(stream_socket& s, int piece)
 {
-	log(" ==> allow fast: %d", piece);
+	log("==> allow fast: %d", piece);
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x11\0\0\0\0";
 	char* ptr = msg + 5;
@@ -147,7 +171,7 @@ void send_allow_fast(stream_socket& s, int piece)
 
 void send_suggest_piece(stream_socket& s, int piece)
 {
-	log(" ==> suggest piece: %d", piece);
+	log("==> suggest piece: %d", piece);
 	using namespace libtorrent::detail;
 	char msg[] = "\0\0\0\x05\x0d\0\0\0\0";
 	char* ptr = msg + 5;
@@ -160,7 +184,7 @@ void send_suggest_piece(stream_socket& s, int piece)
 
 void send_keepalive(stream_socket& s)
 {
-	log(" ==> keepalive");
+	log("==> keepalive");
 	char msg[] = "\0\0\0\0";
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4)
@@ -170,7 +194,7 @@ void send_keepalive(stream_socket& s)
 
 void send_unchoke(stream_socket& s)
 {
-	log(" ==> unchoke");
+	log("==> unchoke");
 	char msg[] = "\0\0\0\x01\x01";
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -180,7 +204,7 @@ void send_unchoke(stream_socket& s)
 
 void send_have_all(stream_socket& s)
 {
-	log(" ==> have_all");
+	log("==> have_all");
 	char msg[] = "\0\0\0\x01\x0e"; // have_all
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -190,7 +214,7 @@ void send_have_all(stream_socket& s)
 
 void send_have_none(stream_socket& s)
 {
-	log(" ==> have_none");
+	log("==> have_none");
 	char msg[] = "\0\0\0\x01\x0f"; // have_none
 	error_code ec;
 	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
@@ -209,7 +233,7 @@ void send_bitfield(stream_socket& s, char const* bits)
 	char* ptr = msg;
 	write_int32(packet_size-4, ptr);
 	write_int8(5, ptr);
-	log(" ==> bitfield [%s]");
+	log("==> bitfield [%s]");
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
@@ -225,7 +249,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa"; // peer-id
-	log(" ==> handshake");
+	log("==> handshake");
 	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
 	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1)
@@ -244,7 +268,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 		TEST_ERROR(ec.message());
 		return;
 	}
-	log(" <== handshake");
+	log("<== handshake");
 
 	TEST_CHECK(buffer[0] == 19);
 	TEST_CHECK(std::memcmp(buffer + 1, "BitTorrent protocol", 19) == 0);
@@ -291,6 +315,80 @@ void send_extension_handshake(stream_socket& s, entry const& e)
 	if (ec) TEST_ERROR(ec.message());
 }
 
+entry read_extension_handshake(stream_socket& s, char* recv_buffer, int size)
+{
+	for (;;)
+	{
+		int len = read_message(s, recv_buffer, size);
+		if (len == -1)
+		{
+			TEST_ERROR("failed to read message");
+			return entry();
+		}
+		print_message(recv_buffer, len);
+
+		if (len < 4) continue;
+		int msg = recv_buffer[0];
+		if (msg != 20) continue;
+		int extmsg = recv_buffer[1];
+		if (extmsg != 0) continue;
+
+		return bdecode(recv_buffer + 2, recv_buffer + len);
+	}
+}
+
+void send_ut_metadata_msg(stream_socket& s, int ut_metadata_msg, int type, int piece)
+{
+	std::vector<char> buf;
+
+	// reserve space for the message header
+	// uint32: packet-length 
+	//  uint8: 20 (extension message)
+	//  uint8: <ut_metadata_msg> (ut_metadata)
+	buf.resize(4 + 1 + 1);
+
+	entry e;
+	e["msg_type"] = type;
+	e["piece"] = piece;
+	bencode(std::back_inserter(buf), e);
+
+	using namespace libtorrent::detail;
+
+	char* ptr = &buf[0];
+	write_uint32(buf.size() - 4, ptr);
+	write_uint8(20, ptr);
+	write_uint8(ut_metadata_msg, ptr);
+
+	log("==> ut_metadata [ type: %d piece: %d ]", type, piece);
+
+	error_code ec;
+	libtorrent::asio::write(s, libtorrent::asio::buffer(&buf[0], buf.size())
+		, libtorrent::asio::transfer_all(), ec);
+	if (ec) TEST_ERROR(ec.message());
+}
+
+entry read_ut_metadata_msg(stream_socket& s, char* recv_buffer, int size)
+{
+	for (;;)
+	{
+		int len = read_message(s, recv_buffer, size);
+		if (len == -1)
+		{
+			TEST_ERROR("failed to read message");
+			return entry();
+		}
+		print_message(recv_buffer, len);
+
+		if (len < 4) continue;
+		int msg = recv_buffer[0];
+		if (msg != 20) continue;
+		int extmsg = recv_buffer[1];
+		if (extmsg != 1) continue;
+
+		return bdecode(recv_buffer + 2, recv_buffer + len);
+	}
+}
+
 boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih
 	, boost::shared_ptr<lt::session>& ses, torrent_handle* th = NULL)
 {
@@ -328,7 +426,7 @@ boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih
 // rejected aren't requested again
 void test_reject_fast()
 {
-	std::cerr << " === test reject ===" << std::endl;
+	std::cerr << "\n === test reject ===\n" << std::endl;
 
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
@@ -355,7 +453,7 @@ void test_reject_fast()
 	while (!allowed_fast.empty())
 	{
 		print_session_log(*ses);
-		int len = read_message(s, recv_buffer);
+		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
 		if (msg != 0x6) continue;
@@ -372,7 +470,7 @@ void test_reject_fast()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		log(" ==> reject");
+		log("==> reject");
 		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
 			, libtorrent::asio::transfer_all(), ec);
 		if (ec)
@@ -396,7 +494,7 @@ void test_reject_fast()
 
 void test_respect_suggest()
 {
-	std::cerr << " === test suggest ===" << std::endl;
+	std::cerr << "\n === test suggest ===\n" << std::endl;
 
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
@@ -430,7 +528,7 @@ void test_respect_suggest()
 	while (!suggested.empty() && fail_counter > 0)
 	{
 		print_session_log(*ses);
-		int len = read_message(s, recv_buffer);
+		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
 		fail_counter--;
@@ -448,7 +546,7 @@ void test_respect_suggest()
 		// send reject request
 		recv_buffer[0] = 0x10;
 		error_code ec;
-		log(" ==> reject");
+		log("==> reject");
 		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
 			, libtorrent::asio::transfer_all(), ec);
 		if (ec)
@@ -474,7 +572,7 @@ void test_respect_suggest()
 
 void test_multiple_bitfields()
 {
-	std::cerr << " === test multiple bitfields ===" << std::endl;
+	std::cerr << "\n === test multiple bitfields ===\n" << std::endl;
 
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
@@ -508,7 +606,7 @@ void test_multiple_bitfields()
 
 void test_multiple_have_all()
 {
-	std::cerr << " === test multiple have_all ===" << std::endl;
+	std::cerr << "\n === test multiple have_all ===\n" << std::endl;
 
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
@@ -541,7 +639,7 @@ void test_dont_have()
 {
 	using namespace libtorrent::detail;
 
-	std::cerr << " === test dont_have ===" << std::endl;
+	std::cerr << "\n === test dont_have ===\n" << std::endl;
 
 	sha1_hash ih;
 	torrent_handle th;
@@ -574,7 +672,7 @@ void test_dont_have()
 	{
 		print_session_log(*ses);
 
-		int len = read_message(s, recv_buffer);
+		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
 		print_message(recv_buffer, len);
 		if (len == 0) continue;
 		int msg = recv_buffer[0];
@@ -643,7 +741,7 @@ void test_invalid_metadata_requests()
 {
 	using namespace libtorrent::detail;
 
-	std::cerr << " === test invalid metadata ===" << std::endl;
+	std::cerr << "\n === test invalid metadata ===\n" << std::endl;
 
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
@@ -661,13 +759,37 @@ void test_invalid_metadata_requests()
 	extensions["m"]["ut_metadata"] = 1;
 	send_extension_handshake(s, extensions);
 
-#error read messages until we get the extension handshake back. extract the \
-	message code for ut_metadata
+	extensions = read_extension_handshake(s, recv_buffer, sizeof(recv_buffer));
 
-	test_sleep(1000);
+	int ut_metadata = extensions["m"]["ut_metadata"].integer();
+
+	log("ut_metadata: %d", ut_metadata);
+
+	// 0 = request
+	// 1 = piece
+	// 2 = dont-have
+	// first send an invalid request
+	send_ut_metadata_msg(s, ut_metadata, 0, 1);
+
+	// then send a valid one. If we get a response to the second one,
+	// we assume we were not disconnected because of the invalid one
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+
+	entry ut_metadata_msg = read_ut_metadata_msg(s, recv_buffer
+		, sizeof(recv_buffer));
+
+	// the first response should be "dont-have"
+	TEST_EQUAL(ut_metadata_msg["msg_type"].integer(), 2);
+	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 1);
+
+	ut_metadata_msg = read_ut_metadata_msg(s, recv_buffer
+		, sizeof(recv_buffer));
+
+	// the second response should be the payload
+	TEST_EQUAL(ut_metadata_msg["msg_type"].integer(), 1);
+	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
+
 	print_session_log(*ses);
-
-	TEST_ERROR("test");
 }
 
 int test_main()
