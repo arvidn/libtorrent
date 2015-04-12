@@ -65,7 +65,6 @@ namespace libtorrent
 #if defined TORRENT_LOGGING
 		virtual void peer_log(char const* fmt, ...) const = 0;
 #endif
-
 	};
 }
 

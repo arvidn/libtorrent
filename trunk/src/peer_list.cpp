@@ -565,7 +565,8 @@ namespace libtorrent
 		}
 	}
 
-	bool peer_list::new_connection(peer_connection_interface& c, int session_time, torrent_state* state)
+	bool peer_list::new_connection(peer_connection_interface& c, int session_time
+		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 //		TORRENT_ASSERT(!c.is_outgoing());

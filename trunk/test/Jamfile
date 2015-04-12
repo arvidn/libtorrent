@@ -72,6 +72,7 @@ lib libtorrent_test
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
+	<logging>on
 ;
 
 explicit libtorrent_test ;

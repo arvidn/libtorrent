@@ -60,7 +60,8 @@ namespace libtorrent
 	struct torrent_state
 	{
 		torrent_state()
-			: is_paused(false), is_finished(false)
+			: is_paused(false)
+			, is_finished(false)
 			, allow_multiple_connections_per_ip(false)
 			, first_time_seen(false)
 			, max_peerlist_size(1000)
