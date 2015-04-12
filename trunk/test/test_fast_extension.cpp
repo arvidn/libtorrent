@@ -95,19 +95,6 @@ int read_message(stream_socket& s, char* buffer, int max_size)
 	return length;
 }
 
-void log(char const* fmt, ...)
-{
-	va_list v;
-	va_start(v, fmt);
-
-	char buf[1024];
-	vsnprintf(buf, sizeof(buf), fmt, v);
-	va_end(v);
-
-	fprintf(stderr, "\x1b[34m%s: %s\x1b[0m\n"
-		, aux::time_now_string(), buf);
-}
-
 void print_message(char const* buffer, int len)
 {
 	char const* message_name[] = {"choke", "unchoke", "interested", "not_interested"
