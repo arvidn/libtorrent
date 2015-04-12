@@ -220,7 +220,7 @@ void send_bitfield(stream_socket& s, char const* bits)
 	char* ptr = msg;
 	write_int32(packet_size-4, ptr);
 	write_int8(5, ptr);
-	log("==> bitfield [%s]");
+	log("==> bitfield [%s]", bits);
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
