@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/thread.hpp"
+#include "setup_transfer.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
@@ -223,6 +225,12 @@ void test_extensions()
 #endif
 }
 
+void post_torrent_added(alert_manager* mgr)
+{
+	test_sleep(10);
+	mgr->emplace_alert<torrent_added_alert>(torrent_handle());
+}
+
 void test_wait_for_alert()
 {
 	alert_manager mgr(100, 0xffffffff);
@@ -243,14 +251,32 @@ void test_wait_for_alert()
 	end = clock_type::now();
 	TEST_CHECK(end - start < milliseconds(1));
 	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
+
+	std::vector<alert*> alerts;
+	int num_resume = 0;
+	mgr.get_all(alerts, num_resume);
+
+	start = clock_type::now();
+	thread posting_thread(boost::bind(&post_torrent_added, &mgr));
+
+	a = mgr.wait_for_alert(seconds(10));
+	end = clock_type::now();
+	TEST_CHECK(end - start < milliseconds(500));
+	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
+
+	posting_thread.join();
 }
 
 void test_queued_resume()
 {
 	alert_manager mgr(100, 0xffffffff);
 
+	TEST_EQUAL(mgr.num_queued_resume(), 0);
+
 	for (int i = 0; i < 17; ++i)
 		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+
+	TEST_EQUAL(mgr.num_queued_resume(), 0);
 
 	std::vector<alert*> alerts;
 	int num_resume = 0;
@@ -258,15 +284,21 @@ void test_queued_resume()
 	TEST_EQUAL(num_resume, 0);
 	TEST_EQUAL(alerts.size(), 17);
 
+	TEST_EQUAL(mgr.num_queued_resume(), 0);
+
 	error_code ec(boost::system::errc::no_such_file_or_directory
 		, generic_category());
 
 	for (int i = 0; i < 2; ++i)
 		mgr.emplace_alert<save_resume_data_failed_alert>(torrent_handle(), ec);
 
+	TEST_EQUAL(mgr.num_queued_resume(), 2);
+
 	mgr.get_all(alerts, num_resume);
 	TEST_EQUAL(num_resume, 2);
 	TEST_EQUAL(alerts.size(), 2);
+
+	TEST_EQUAL(mgr.num_queued_resume(), 0);
 }
 
 void test_alert_mask()
