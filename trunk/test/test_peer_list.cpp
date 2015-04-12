@@ -52,24 +52,24 @@ tcp::endpoint ep(char const* ip, int port)
 	return tcp::endpoint(address_v4::from_string(ip), port);
 }
 
+struct mock_torrent;
+
 struct mock_peer_connection : peer_connection_interface
 	, boost::enable_shared_from_this<mock_peer_connection>
 {
-	mock_peer_connection(bool out, tcp::endpoint const& ep)
+	mock_peer_connection(mock_torrent& tor, bool out, tcp::endpoint const& remote)
 		: m_choked(false)
 		, m_outgoing(out)
 		, m_tp(NULL)
-		, m_remote(ep)
+		, m_remote(remote)
+		, m_local(ep("127.0.0.1", 8080))
 		, m_disconnect_called(false)
+		, m_torrent(tor)
 	{
-		fprintf(stderr, "construct %p\n", this);
 		for (int i = 0; i < 20; ++i) m_id[i] = rand();
 	}
 
-	virtual ~mock_peer_connection()
-	{
-		fprintf(stderr, "destruct %p\n", this);
-	}
+	virtual ~mock_peer_connection() {}
 
 #if defined TORRENT_LOGGING
 	virtual void peer_log(char const* fmt, ...) const
@@ -82,24 +82,23 @@ struct mock_peer_connection : peer_connection_interface
 #endif
 
 	bool was_disconnected() const { return m_disconnect_called; }
+	void set_local_ep(tcp::endpoint const& ep) { m_local = ep; }
 
 	libtorrent::stat m_stat;
 	bool m_choked;
 	bool m_outgoing;
 	torrent_peer* m_tp;
 	tcp::endpoint m_remote;
+	tcp::endpoint m_local;
 	peer_id m_id;
 	bool m_disconnect_called;
+	mock_torrent& m_torrent;
 
 	virtual void get_peer_info(peer_info& p) const {}
 	virtual tcp::endpoint const& remote() const { return m_remote; }
-	virtual tcp::endpoint local_endpoint() const { return ep("127.0.0.1", 8080); }
+	virtual tcp::endpoint local_endpoint() const { return m_local; }
 	virtual void disconnect(error_code const& ec
-		, operation_t op, int error = 0)
-	{
-		/* remove from mock_torrent list */ m_tp = 0;
-		m_disconnect_called = true;
-	}
+		, operation_t op, int error = 0);
 	virtual peer_id const& pid() const { return m_id; }
 	virtual void set_holepunch_mode() {}
 	virtual torrent_peer* peer_info_struct() const { return m_tp; }
@@ -115,7 +114,7 @@ struct mock_peer_connection : peer_connection_interface
 
 struct mock_torrent
 {
-	mock_torrent() : m_p(NULL) {}
+	mock_torrent(torrent_state* st) : m_p(NULL), m_state(st) {}
 	virtual ~mock_torrent() {}
 
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
@@ -123,7 +122,8 @@ struct mock_torrent
 		TORRENT_ASSERT(peerinfo->connection == NULL);
 		if (peerinfo->connection) return false;
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(true, peerinfo->ip());
+			= boost::make_shared<mock_peer_connection>(*this, true, peerinfo->ip());
+		c->set_peer_info(peerinfo);
 
 		m_connections.push_back(c);
 		m_p->set_connection(peerinfo, c.get());
@@ -141,11 +141,29 @@ struct mock_torrent
 #endif
 
 	peer_list* m_p;
-
-private:
-
+	torrent_state* m_state;
 	std::vector<boost::shared_ptr<mock_peer_connection> > m_connections;
 };
+
+void mock_peer_connection::disconnect(error_code const& ec
+	, operation_t op, int error)
+{
+	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
+	std::vector<boost::shared_ptr<mock_peer_connection> >::iterator i
+		= std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
+			, shared_from_this());
+	if (i != m_torrent.m_connections.end()) m_torrent.m_connections.erase(i);
+
+	m_tp = 0;
+	m_disconnect_called = true;
+}
+
+bool has_peer(peer_list const& p, tcp::endpoint const& ep)
+{
+	std::pair<peer_list::const_iterator, peer_list::const_iterator> its
+		= p.find_peers(ep.address());
+	return its.first != its.second;
+}
 
 torrent_state init_state(torrent_peer_allocator& allocator
 	, external_ip& ext_ip)
@@ -189,7 +207,7 @@ int test_main()
 	// when disallowing it
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
@@ -210,7 +228,7 @@ int test_main()
 	// when allowing it
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = true;
 		peer_list p;
 		t.m_p = &p;
@@ -231,7 +249,7 @@ int test_main()
 	// with allow_multiple_connections_per_ip enabled
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = true;
 		peer_list p;
 		t.m_p = &p;
@@ -269,7 +287,7 @@ int test_main()
 	// with allow_multiple_connections_per_ip disabled
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = false;
 		peer_list p;
 		t.m_p = &p;
@@ -302,13 +320,13 @@ int test_main()
 	// and update_peer_port
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = false;
 		peer_list p;
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
@@ -325,7 +343,7 @@ int test_main()
 	// and update_peer_port, causing collission
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = true;
 		peer_list p;
 		t.m_p = &p;
@@ -335,7 +353,7 @@ int test_main()
 
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		// at this point we have two peers, because we think they have different 
@@ -355,7 +373,7 @@ int test_main()
 	// test ip filter
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = false;
 		peer_list p;
 		t.m_p = &p;
@@ -394,7 +412,7 @@ int test_main()
 	// test port filter
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = false;
 		peer_list p;
 		t.m_p = &p;
@@ -433,7 +451,7 @@ int test_main()
 	// test banning peers
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.allow_multiple_connections_per_ip = false;
 		peer_list p;
 		t.m_p = &p;
@@ -442,7 +460,7 @@ int test_main()
 
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
@@ -462,7 +480,7 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		st.erased.clear();
 
-		c = boost::make_shared<mock_peer_connection>(true, ep("10.0.0.1", 8080));
+		c = boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
 		ok = p.new_connection(*c, 0, &st);
 		// since it's banned, we should not allow this incoming connection
 		TEST_EQUAL(ok, false);
@@ -473,7 +491,7 @@ int test_main()
 	// test erase_peers when we fill up the peer list
 	{
 		torrent_state st = init_state(allocator, ext_ip);
-		mock_torrent t;
+		mock_torrent t(&st);
 		st.max_peerlist_size = 100;
 		st.allow_multiple_connections_per_ip = true;
 		peer_list p;
@@ -505,7 +523,7 @@ int test_main()
 		torrent_state st = init_state(allocator, ext_ip);
 		std::vector<address> banned;
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
@@ -535,7 +553,7 @@ int test_main()
 		torrent_state st = init_state(allocator, ext_ip);
 		std::vector<address> banned;
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
@@ -564,7 +582,7 @@ int test_main()
 	{
 		torrent_state st = init_state(allocator, ext_ip);
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
@@ -593,7 +611,7 @@ int test_main()
 	{
 		torrent_state st = init_state(allocator, ext_ip);
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
@@ -627,7 +645,7 @@ int test_main()
 		torrent_state st = init_state(allocator, ext_ip);
 		std::vector<address> banned;
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
@@ -659,18 +677,23 @@ int test_main()
 		torrent_state st = init_state(allocator, ext_ip);
 		std::vector<address> banned;
 
-		mock_torrent t;
+		mock_torrent t(&st);
 		peer_list p;
 		t.m_p = &p;
 
 		torrent_peer* peer1 = add_peer(p, st, ep("10.10.0.1", 10));
+		TEST_CHECK(peer1);
 		p.set_seed(peer1, true);
 		torrent_peer* peer2 = add_peer(p, st, ep("10.10.0.2", 11));
+		TEST_CHECK(peer2);
 		p.set_seed(peer2, true);
 		torrent_peer* peer3 = add_peer(p, st, ep("10.10.0.3", 11));
+		TEST_CHECK(peer3);
 		p.set_seed(peer3, true);
 		torrent_peer* peer4 = add_peer(p, st, ep("10.10.0.4", 11));
+		TEST_CHECK(peer4);
 		torrent_peer* peer5 = add_peer(p, st, ep("10.10.0.5", 11));
+		TEST_CHECK(peer5);
 
 		TEST_EQUAL(p.num_peers(), 5);
 		TEST_EQUAL(p.num_connect_candidates(), 5);
@@ -687,9 +710,196 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 	}
 
+	// test self-connection
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+
+		// add and connect peer
+		torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 3000));
+		connect_peer(p, t, st);
+
+		boost::shared_ptr<mock_peer_connection> con_out
+			= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+		con_out->set_local_ep(ep("10.0.0.2", 8080));
+
+		boost::shared_ptr<mock_peer_connection> con_in
+			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 8080));
+		con_in->set_local_ep(ep("10.0.0.2", 3000));
+
+		p.new_connection(*con_in, 0, &st);
+
+		// from the peer_list's point of view, this looks like we made one
+		// outgoing connection and received an incoming one. Since they share
+		// the exact same endpoints (IP ports) but just swapped source and
+		// destination, the peer list is supposed to figure out that we connected
+		// to ourself and disconnect it
+		TEST_EQUAL(con_out->was_disconnected(), true);
+		TEST_EQUAL(con_in->was_disconnected(), true);
+	}
+
+	// test double connection (we loose)
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+
+		// we are 10.0.0.1 and the other peer is 10.0.0.2
+
+		// our outgoing connection
+		torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 3000));
+		connect_peer(p, t, st);
+
+		boost::shared_ptr<mock_peer_connection> con_out
+			= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+		con_out->set_local_ep(ep("10.0.0.1", 3163));
+
+		// and the incoming connection
+		boost::shared_ptr<mock_peer_connection> con_in
+			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 3561));
+		con_in->set_local_ep(ep("10.0.0.1", 8080));
+
+		p.new_connection(*con_in, 0, &st);
+
+		// the peer list is supposed to detect that we now have two connections
+		// to the same peer. We made one outgoing and we received one incoming.
+		// Since this is fundamentally a race condition we can't avoid, we have
+		// to simply agree to consistently leave the same connection alive and
+		// have both sides kill the same connection. This is done by comparing
+		// ports. Only the end receiving a connection has a consistent and well
+		// defined port (the outgoing source port is typically picked by the OS).
+		// so, compare the the two incoming ports. Whoever has the lower port
+		// is disconnected. In this case, 3000 < 8080.
+		TEST_EQUAL(con_out->was_disconnected(), true);
+		TEST_EQUAL(con_in->was_disconnected(), false);
+	}
+
+	// test double connection (we win)
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+
+		// we are 10.0.0.1 and the other peer is 10.0.0.2
+
+		// our outgoing connection
+		torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 8080));
+		connect_peer(p, t, st);
+
+		boost::shared_ptr<mock_peer_connection> con_out
+			= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+		con_out->set_local_ep(ep("10.0.0.1", 3163));
+
+		//and the incoming connection
+		boost::shared_ptr<mock_peer_connection> con_in
+			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 3561));
+		con_in->set_local_ep(ep("10.0.0.1", 3000));
+
+		p.new_connection(*con_in, 0, &st);
+
+		// the peer list is supposed to detect that we now have two connections
+		// to the same peer. We made one outgoing and we received one incoming.
+		// Since this is fundamentally a race condition we can't avoid, we have
+		// to simply agree to consistently leave the same connection alive and
+		// have both sides kill the same connection. This is done by comparing
+		// ports. Only the end receiving a connection has a consistent and well
+		// defined port (the outgoing source port is typically picked by the OS).
+		// so, compare the the two incoming ports. Whoever has the lower port
+		// is disconnected. In this case, 3000 < 8080.
+		TEST_EQUAL(con_out->was_disconnected(), false);
+		TEST_EQUAL(con_in->was_disconnected(), true);
+	}
+
+	// test incoming connection when we are at the list size limit
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		st.max_peerlist_size = 5;
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+	
+		torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 8080));
+		TEST_CHECK(peer1);
+		TEST_EQUAL(p.num_peers(), 1);
+		torrent_peer* peer2 = add_peer(p, st, ep("10.0.0.2", 8080));
+		TEST_CHECK(peer2);
+		TEST_EQUAL(p.num_peers(), 2);
+		torrent_peer* peer3 = add_peer(p, st, ep("10.0.0.3", 8080));
+		TEST_CHECK(peer3);
+		TEST_EQUAL(p.num_peers(), 3);
+		torrent_peer* peer4 = add_peer(p, st, ep("10.0.0.4", 8080));
+		TEST_CHECK(peer4);
+		TEST_EQUAL(p.num_peers(), 4);
+		torrent_peer* peer5 = add_peer(p, st, ep("10.0.0.5", 8080));
+		TEST_CHECK(peer5);
+		TEST_EQUAL(p.num_peers(), 5);
+
+		boost::shared_ptr<mock_peer_connection> con_in
+			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.1.2", 3561));
+		con_in->set_local_ep(ep("10.0.2.1", 3000));
+
+		// since we're already at 5 peers in the peer list, this call should
+		// erase one of the existing ones.
+		p.new_connection(*con_in, 0, &st);
+
+		TEST_EQUAL(con_in->was_disconnected(), false);
+		TEST_EQUAL(p.num_peers(), 5);
+
+		// one of the previous ones should have been removed
+		TEST_EQUAL(has_peer(p, ep("10.0.0.1", 8080))
+			+ has_peer(p, ep("10.0.0.2", 8080))
+			+ has_peer(p, ep("10.0.0.3", 8080))
+			+ has_peer(p, ep("10.0.0.4", 8080))
+			+ has_peer(p, ep("10.0.0.5", 8080))
+			, 4);
+	}
+
+	// test new peer when we are at the list size limit
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		st.max_peerlist_size = 5;
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+	
+		torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 8080));
+		TEST_CHECK(peer1);
+		TEST_EQUAL(p.num_peers(), 1);
+		torrent_peer* peer2 = add_peer(p, st, ep("10.0.0.2", 8080));
+		TEST_CHECK(peer2);
+		TEST_EQUAL(p.num_peers(), 2);
+		torrent_peer* peer3 = add_peer(p, st, ep("10.0.0.3", 8080));
+		TEST_CHECK(peer3);
+		TEST_EQUAL(p.num_peers(), 3);
+		torrent_peer* peer4 = add_peer(p, st, ep("10.0.0.4", 8080));
+		TEST_CHECK(peer4);
+		TEST_EQUAL(p.num_peers(), 4);
+		torrent_peer* peer5 = add_peer(p, st, ep("10.0.0.5", 8080));
+		TEST_CHECK(peer5);
+		TEST_EQUAL(p.num_peers(), 5);
+		torrent_peer* peer6 = p.add_peer(ep("10.0.0.6", 8080), 0, 0, &st);
+		TEST_EQUAL(p.num_peers(), 5);
+
+		// one of the connection should have been removed
+		TEST_EQUAL(has_peer(p, ep("10.0.0.1", 8080))
+			+ has_peer(p, ep("10.0.0.2", 8080))
+			+ has_peer(p, ep("10.0.0.3", 8080))
+			+ has_peer(p, ep("10.0.0.4", 8080))
+			+ has_peer(p, ep("10.0.0.5", 8080))
+			+ has_peer(p, ep("10.0.0.6", 8080))
+			, 5);
+	}
+
 // TODO: test erasing peers
-// TODO: test logic for which connection to keep when receiving an incoming
-// connection to the same peer as we just made an outgoing connection to
 // TODO: test update_peer_port with allow_multiple_connections_per_ip and without
 // TODO: test add i2p peers
 // TODO: test allow_i2p_mixed
@@ -697,9 +907,7 @@ int test_main()
 // TODO: test IPv6
 // TODO: test connect_to_peer() failing
 // TODO: test connection_closed
-// TODO: connect candidates recalculation when finishing torrent
 // TODO: connect candidates recalculation when incrementing failcount
-// TODO: connect candidates recalculation when setting failcount
 
 	return 0;
 }
