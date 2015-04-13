@@ -2193,7 +2193,8 @@ namespace libtorrent
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
 				t->alerts().emplace_alert<invalid_request_alert>(
-					t->get_handle(), m_remote, m_peer_id, r);
+					t->get_handle(), m_remote, m_peer_id, r
+					, t->has_piece_passed(r.piece), bool(m_peer_interested), true);
 			}
 			return;
 		}
@@ -2248,6 +2249,28 @@ namespace libtorrent
 			, m_accept_fast.end(), r.piece);
 		if (fast_iter != m_accept_fast.end()) fast_idx = fast_iter - m_accept_fast.begin();
 
+		if (!m_peer_interested)
+		{
+#if defined TORRENT_LOGGING
+			peer_log("*** INVALID_REQUEST [ peer is not interested "
+				" t: %d n: %d h: %d block_limit: %d ]"
+				, int(t->torrent_file().piece_size(r.piece))
+				, t->torrent_file().num_pieces()
+				, t->has_piece_passed(r.piece)
+				, t->block_size());
+			peer_log("*** artificial INTERESTED message");
+#endif
+			if (t->alerts().should_post<invalid_request_alert>())
+			{
+				t->alerts().emplace_alert<invalid_request_alert>(
+					t->get_handle(), m_remote, m_peer_id, r
+					, t->has_piece_passed(r.piece), bool(m_peer_interested), false);
+			}
+
+			// be lenient and pretend that the peer said it was interested
+			incoming_interested();
+		}
+
 		// make sure this request
 		// is legal and that the peer
 		// is not choked
@@ -2260,7 +2283,6 @@ namespace libtorrent
 			|| r.start >= t->torrent_file().piece_size(r.piece)
 			|| r.length <= 0
 			|| r.length + r.start > t->torrent_file().piece_size(r.piece)
-			|| !m_peer_interested
 			|| r.length > t->block_size())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
@@ -2284,7 +2306,8 @@ namespace libtorrent
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
 				t->alerts().emplace_alert<invalid_request_alert>(
-					t->get_handle(), m_remote, m_peer_id, r);
+					t->get_handle(), m_remote, m_peer_id, r
+					, t->has_piece_passed(r.piece), bool(m_peer_interested), false);
 			}
 
 			// every ten invalid request, remind the peer that it's choked

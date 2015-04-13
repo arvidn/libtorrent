@@ -484,16 +484,26 @@ namespace libtorrent {
 
 	invalid_request_alert::invalid_request_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep
-		, peer_id const& peer_id, peer_request const& r)
+		, peer_id const& peer_id, peer_request const& r
+		, bool we_have, bool peer_interested, bool withheld)
 		: peer_alert(alloc, h, ep, peer_id)
 		, request(r)
+		, we_have(we_have)
+		, peer_interested(peer_interested)
+		, withheld(withheld)
 	{}
 
 	std::string invalid_request_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request (piece: %u start: %u len: %u)"
-			, peer_alert::message().c_str(), request.piece, request.start, request.length);
+		snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request "
+			"(piece: %u start: %u len: %u)%s"
+			, peer_alert::message().c_str(), request.piece, request.start
+			, request.length
+			, withheld ? ": super seeding withheld piece"
+			: !we_have ? ": we don't have piece"
+			: !peer_interested ? ": peer is not interested"
+			: "");
 		return ret;
 	}
 
