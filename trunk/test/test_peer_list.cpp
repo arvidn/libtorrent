@@ -57,14 +57,14 @@ struct mock_torrent;
 struct mock_peer_connection : peer_connection_interface
 	, boost::enable_shared_from_this<mock_peer_connection>
 {
-	mock_peer_connection(mock_torrent& tor, bool out, tcp::endpoint const& remote)
+	mock_peer_connection(mock_torrent* tor, bool out, tcp::endpoint const& remote)
 		: m_choked(false)
 		, m_outgoing(out)
 		, m_tp(NULL)
 		, m_remote(remote)
 		, m_local(ep("127.0.0.1", 8080))
 		, m_disconnect_called(false)
-		, m_torrent(tor)
+		, m_torrent(*tor)
 	{
 		for (int i = 0; i < 20; ++i) m_id[i] = rand();
 	}
@@ -122,7 +122,7 @@ struct mock_torrent
 		TORRENT_ASSERT(peerinfo->connection == NULL);
 		if (peerinfo->connection) return false;
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(*this, true, peerinfo->ip());
+			= boost::make_shared<mock_peer_connection>(this, true, peerinfo->ip());
 		c->set_peer_info(peerinfo);
 
 		m_connections.push_back(c);
@@ -326,7 +326,7 @@ int test_main()
 		t.m_p = &p;
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
@@ -353,7 +353,7 @@ int test_main()
 
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		// at this point we have two peers, because we think they have different 
@@ -460,7 +460,7 @@ int test_main()
 
 		TEST_EQUAL(p.num_connect_candidates(), 1);
 		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
+			= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 		p.new_connection(*c, 0, &st);
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		TEST_EQUAL(p.num_peers(), 1);
@@ -480,7 +480,7 @@ int test_main()
 		TEST_EQUAL(p.num_connect_candidates(), 0);
 		st.erased.clear();
 
-		c = boost::make_shared<mock_peer_connection>(t, true, ep("10.0.0.1", 8080));
+		c = boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 		ok = p.new_connection(*c, 0, &st);
 		// since it's banned, we should not allow this incoming connection
 		TEST_EQUAL(ok, false);
@@ -727,7 +727,7 @@ int test_main()
 		con_out->set_local_ep(ep("10.0.0.2", 8080));
 
 		boost::shared_ptr<mock_peer_connection> con_in
-			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 8080));
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 8080));
 		con_in->set_local_ep(ep("10.0.0.2", 3000));
 
 		p.new_connection(*con_in, 0, &st);
@@ -761,7 +761,7 @@ int test_main()
 
 		// and the incoming connection
 		boost::shared_ptr<mock_peer_connection> con_in
-			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 3561));
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
 		con_in->set_local_ep(ep("10.0.0.1", 8080));
 
 		p.new_connection(*con_in, 0, &st);
@@ -799,7 +799,7 @@ int test_main()
 
 		//and the incoming connection
 		boost::shared_ptr<mock_peer_connection> con_in
-			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.0.2", 3561));
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
 		con_in->set_local_ep(ep("10.0.0.1", 3000));
 
 		p.new_connection(*con_in, 0, &st);
@@ -843,7 +843,7 @@ int test_main()
 		TEST_EQUAL(p.num_peers(), 5);
 
 		boost::shared_ptr<mock_peer_connection> con_in
-			= boost::make_shared<mock_peer_connection>(t, false, ep("10.0.1.2", 3561));
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.1.2", 3561));
 		con_in->set_local_ep(ep("10.0.2.1", 3000));
 
 		// since we're already at 5 peers in the peer list, this call should
