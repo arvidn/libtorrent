@@ -640,6 +640,7 @@ namespace libtorrent
 				if (self_connection)
 				{
 					c.disconnect(errors::self_connection, op_bittorrent, 1);
+					TORRENT_ASSERT(i->connection->peer_info_struct() == i);
 					i->connection->disconnect(errors::self_connection, op_bittorrent, 1);
 					TORRENT_ASSERT(i->connection == 0);
 					return false;
