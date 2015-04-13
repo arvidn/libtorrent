@@ -737,13 +737,26 @@ namespace libtorrent
 		// internal
 		invalid_request_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, peer_request const& r);
+			, peer_id const& peer_id, peer_request const& r
+			, bool we_have, bool peer_interested, bool withheld);
 
 		TORRENT_DEFINE_ALERT(invalid_request_alert, 25);
 
 		virtual std::string message() const;
 
+		// the request we received from the peer
 		peer_request request;
+
+		// true if we have this piece
+		bool we_have;
+
+		// true if the peer indicated that it was interested to download before
+		// sending the request
+		bool peer_interested;
+
+		// if this is true, the peer is not allowed to download this piece because
+		// of superseeding rules.
+		bool withheld;
 	};
 
 	// This alert is generated when a torrent switches from being a downloader to a seed.
