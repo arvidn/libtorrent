@@ -183,8 +183,11 @@ torrent_peer* add_peer(peer_list& p, torrent_state& st, tcp::endpoint const& ep)
 {
 	int cc = p.num_connect_candidates();
 	torrent_peer* peer = p.add_peer(ep, 0, 0, &st);
-	TEST_EQUAL(p.num_connect_candidates(), cc + 1);
-	TEST_EQUAL(peer->port, ep.port());
+	if (peer)
+	{
+		TEST_EQUAL(p.num_connect_candidates(), cc + 1);
+		TEST_EQUAL(peer->port, ep.port());
+	}
 	st.erased.clear();
 	return peer;
 }
@@ -193,6 +196,7 @@ void connect_peer(peer_list& p, mock_torrent& t, torrent_state& st)
 {
 	torrent_peer* tp = p.connect_one_peer(0, &st);
 	TEST_CHECK(tp);
+	if (!tp) return;
 	t.connect_to_peer(tp);
 	st.erased.clear();
 	TEST_CHECK(tp->connection);
@@ -741,6 +745,35 @@ int test_main()
 		TEST_EQUAL(con_in->was_disconnected(), true);
 	}
 
+	// test double connection (both incoming)
+	{
+		torrent_state st = init_state(allocator, ext_ip);
+		mock_torrent t(&st);
+		st.allow_multiple_connections_per_ip = false;
+		peer_list p;
+		t.m_p = &p;
+
+		// we are 10.0.0.1 and the other peer is 10.0.0.2
+
+		// first incoming connection
+		boost::shared_ptr<mock_peer_connection> con1
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 7528));
+		con1->set_local_ep(ep("10.0.0.1", 8080));
+
+		p.new_connection(*con1, 0, &st);
+
+		// and the incoming connection
+		boost::shared_ptr<mock_peer_connection> con2
+			= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
+		con2->set_local_ep(ep("10.0.0.1", 8080));
+
+		p.new_connection(*con2, 0, &st);
+
+		// the second incoming connection should be closed
+		TEST_EQUAL(con1->was_disconnected(), false);
+		TEST_EQUAL(con2->was_disconnected(), true);
+	}
+
 	// test double connection (we loose)
 	{
 		torrent_state st = init_state(allocator, ext_ip);
@@ -766,15 +799,7 @@ int test_main()
 
 		p.new_connection(*con_in, 0, &st);
 
-		// the peer list is supposed to detect that we now have two connections
-		// to the same peer. We made one outgoing and we received one incoming.
-		// Since this is fundamentally a race condition we can't avoid, we have
-		// to simply agree to consistently leave the same connection alive and
-		// have both sides kill the same connection. This is done by comparing
-		// ports. Only the end receiving a connection has a consistent and well
-		// defined port (the outgoing source port is typically picked by the OS).
-		// so, compare the the two incoming ports. Whoever has the lower port
-		// is disconnected. In this case, 3000 < 8080.
+		// the rules are documented in peer_list.cpp
 		TEST_EQUAL(con_out->was_disconnected(), true);
 		TEST_EQUAL(con_in->was_disconnected(), false);
 	}
@@ -804,15 +829,7 @@ int test_main()
 
 		p.new_connection(*con_in, 0, &st);
 
-		// the peer list is supposed to detect that we now have two connections
-		// to the same peer. We made one outgoing and we received one incoming.
-		// Since this is fundamentally a race condition we can't avoid, we have
-		// to simply agree to consistently leave the same connection alive and
-		// have both sides kill the same connection. This is done by comparing
-		// ports. Only the end receiving a connection has a consistent and well
-		// defined port (the outgoing source port is typically picked by the OS).
-		// so, compare the the two incoming ports. Whoever has the lower port
-		// is disconnected. In this case, 3000 < 8080.
+		// the rules are documented in peer_list.cpp
 		TEST_EQUAL(con_out->was_disconnected(), false);
 		TEST_EQUAL(con_in->was_disconnected(), true);
 	}
