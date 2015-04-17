@@ -59,9 +59,9 @@ namespace libtorrent
 	// is deprecated. It can be either be passed in the
 	// add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_DEPRECATED_PREFIX
+	TORRENT_DEPRECATED
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
+	create_metadata_plugin(torrent*, void*);
 #endif
 }
 #endif

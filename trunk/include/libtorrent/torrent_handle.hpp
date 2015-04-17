@@ -405,8 +405,8 @@ namespace libtorrent
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
 		// the torrent_info.
-		TORRENT_DEPRECATED_PREFIX
-		void file_progress(std::vector<float>& progress) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void file_progress(std::vector<float>& progress) const;
 #endif
 #endif
 
@@ -856,74 +856,74 @@ namespace libtorrent
 
 		// deprecated in 1.0
 		// use status() instead (with query_save_path)
-		TORRENT_DEPRECATED_PREFIX
-		std::string save_path() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		std::string save_path() const;
 
 		// deprecated in 1.0
 		// use status() instead (with query_name)
 		// returns the name of this torrent, in case it doesn't
 		// have metadata it returns the name assigned to it
 		// when it was added.
-		TORRENT_DEPRECATED_PREFIX
-		std::string name() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		std::string name() const;
 
 		// use torrent_file() instead
-		TORRENT_DEPRECATED_PREFIX
-		const torrent_info& get_torrent_info() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		const torrent_info& get_torrent_info() const;
 
 		// deprecated in 0.16, feature will be removed
-		TORRENT_DEPRECATED_PREFIX
-		int get_peer_upload_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int get_peer_download_limit(tcp::endpoint ip) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_upload_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_download_limit(tcp::endpoint ip, int limit) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		int get_peer_upload_limit(tcp::endpoint ip) const;
+		TORRENT_DEPRECATED
+		int get_peer_download_limit(tcp::endpoint ip) const;
+		TORRENT_DEPRECATED
+		void set_peer_upload_limit(tcp::endpoint ip, int limit) const;
+		TORRENT_DEPRECATED
+		void set_peer_download_limit(tcp::endpoint ip, int limit) const;
 
 		// deprecated in 0.16, feature will be removed
-		TORRENT_DEPRECATED_PREFIX
-		void set_ratio(float up_down_ratio) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_ratio(float up_down_ratio) const;
 
 		// deprecated in 0.16. use status() instead
-		TORRENT_DEPRECATED_PREFIX
-		bool is_seed() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_finished() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_paused() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_auto_managed() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_sequential_download() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool has_metadata() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool super_seeding() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		bool is_seed() const;
+		TORRENT_DEPRECATED
+		bool is_finished() const;
+		TORRENT_DEPRECATED
+		bool is_paused() const;
+		TORRENT_DEPRECATED
+		bool is_auto_managed() const;
+		TORRENT_DEPRECATED
+		bool is_sequential_download() const;
+		TORRENT_DEPRECATED
+		bool has_metadata() const;
+		TORRENT_DEPRECATED
+		bool super_seeding() const;
 
 		// deprecated in 0.13
 		// all these are deprecated, use piece
 		// priority functions instead
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
-		TORRENT_DEPRECATED_PREFIX
-		void filter_piece(int index, bool filter) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void filter_pieces(std::vector<bool> const& pieces) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool is_piece_filtered(int index) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::vector<bool> filtered_pieces() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void filter_piece(int index, bool filter) const;
+		TORRENT_DEPRECATED
+		void filter_pieces(std::vector<bool> const& pieces) const;
+		TORRENT_DEPRECATED
+		bool is_piece_filtered(int index) const;
+		TORRENT_DEPRECATED
+		std::vector<bool> filtered_pieces() const;
 		// marks the file with the given index as filtered
 		// it will not be downloaded
-		TORRENT_DEPRECATED_PREFIX
-		void filter_files(std::vector<bool> const& files) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void filter_files(std::vector<bool> const& files) const;
 
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
-		TORRENT_DEPRECATED_PREFIX
-		entry write_resume_data() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		entry write_resume_data() const;
 		// ================ end deprecation ============
 #endif
 
@@ -1025,8 +1025,8 @@ namespace libtorrent
 		// This overrides the default announce interval, and no
 		// announce will take place until the given time has
 		// timed out.
-		TORRENT_DEPRECATED_PREFIX
-		void force_reannounce(boost::posix_time::time_duration) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void force_reannounce(boost::posix_time::time_duration) const;
 #endif
 
 		// ``scrape_tracker()`` will send a scrape request to the tracker. A
@@ -1196,10 +1196,10 @@ namespace libtorrent
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		void move_storage(std::wstring const& save_path, int flags = 0) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void rename_file(int index, std::wstring const& new_name) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void move_storage(std::wstring const& save_path, int flags = 0) const;
+		TORRENT_DEPRECATED
+		void rename_file(int index, std::wstring const& new_name) const;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

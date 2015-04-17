@@ -1236,7 +1236,7 @@ namespace libtorrent
 
 				boost::int64_t adjusted_offset =
 #ifndef TORRENT_NO_DEPRECATE
-					files().file_base(file_index) +
+					files().file_base_deprecated(file_index) +
 #endif
 					file_offset;
 

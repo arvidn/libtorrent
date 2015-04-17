@@ -89,11 +89,11 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 
-	TORRENT_DEPRECATED_PREFIX
-	time_point time_now() TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED
+	time_point time_now();
 
-	TORRENT_DEPRECATED_PREFIX
-	time_point time_now_hires() TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED
+	time_point time_now_hires();
 
 	inline time_point time_now() 
 	{ return clock_type::now(); }
@@ -101,7 +101,7 @@ namespace libtorrent {
 	inline time_point time_now_hires()
 	{ return clock_type::now(); }
 
-	typedef time_point ptime TORRENT_DEPRECATED;
+	typedef time_point ptime;
 
 #endif
 

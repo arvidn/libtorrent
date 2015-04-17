@@ -439,7 +439,7 @@ namespace libtorrent
 				f.file_index = file_iter - m_files.begin();
 				f.offset = file_offset
 #ifndef TORRENT_NO_DEPRECATE
-					+ file_base(f.file_index)
+					+ file_base_deprecated(f.file_index)
 #endif
 					;
 				f.size = (std::min)(boost::uint64_t(file_iter->size) - file_offset, boost::uint64_t(size));
@@ -802,6 +802,12 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		if (int(m_file_base.size()) <= index) m_file_base.resize(index + 1, 0);
 		m_file_base[index] = off;
+	}
+
+	boost::int64_t file_storage::file_base_deprecated(int index) const
+	{
+		if (index >= int(m_file_base.size())) return 0;
+		return m_file_base[index];
 	}
 
 	boost::int64_t file_storage::file_base(int index) const
