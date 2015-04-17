@@ -78,7 +78,7 @@ namespace libtorrent
 
 		prefer_contiguous_blocks(blocks_per_piece);
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log("*** http_seed_connection");
 #endif
 	}
@@ -194,7 +194,7 @@ namespace libtorrent
 		request += "\r\n\r\n";
 		m_first_request = false;
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log("==> %s", request.c_str());
 #endif
 
@@ -213,7 +213,7 @@ namespace libtorrent
 		if (error)
 		{
 			received_bytes(0, bytes_transferred);
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			peer_log("*** http_seed_connection error: %s", error.message().c_str());
 #endif
 			return;
@@ -375,7 +375,7 @@ namespace libtorrent
 				}
 				else
 				{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
@@ -413,7 +413,7 @@ namespace libtorrent
 
 				int retry_time = atol(std::string(recv_buffer.begin, recv_buffer.end).c_str());
 				if (retry_time <= 0) retry_time = 60;
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				peer_log("*** retrying in %d seconds", retry_time);
 #endif
 

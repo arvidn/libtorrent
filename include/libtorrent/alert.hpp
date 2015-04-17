@@ -173,21 +173,21 @@ namespace libtorrent {
 			rss_notification = 0x1000,
 #endif
 
-			// Enables debug logging alerts. These are only available when
-			// libtorrent is built with logging enabled (``TORRENT_LOGGING``).
-			// The alerts being posted are log_alert and are session wide.
+			// Enables debug logging alerts. These are available unless libtorrent
+			// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The
+			// alerts being posted are log_alert and are session wide.
 			session_log_notification = 0x2000,
 
-			// Enables debug logging alerts for torrents. These are only available
-			// when libtorrent is built with logging enabled
-			// (``TORRENT_LOGGING``). The alerts being posted are
+			// Enables debug logging alerts for torrents. These are available
+			// unless libtorrent was built with logging disabled
+			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
 			// torrent_log_alert and are torrent wide debug events.
 			torrent_log_notification = 0x4000,
 
-			// Enables debug logging alerts for peers. These are only available
-			// when libtorrent is built with logging enabled
-			// (``TORRENT_LOGGING``). The alerts being posted are peer_log_alert
-			// and low-level peer events and messages.
+			// Enables debug logging alerts for peers. These are available unless
+			// libtorrent was built with logging disabled
+			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
+			// peer_log_alert and low-level peer events and messages.
 			peer_log_notification = 0x8000,
 
 			// The full bitmask, representing all available categories.

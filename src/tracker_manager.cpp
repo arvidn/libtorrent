@@ -200,7 +200,7 @@ namespace libtorrent
 		, resolver_interface& resolver
 		, struct ip_filter& ipf
 		, aux::session_settings const& sett
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, aux::session_logger& ses
 #endif
 		)
@@ -209,7 +209,7 @@ namespace libtorrent
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, m_ses(ses)
 #endif
 		, m_abort(false)
@@ -319,7 +319,7 @@ namespace libtorrent
 		// ignore packets smaller than 8 bytes
 		if (size < 8)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_ses.session_log("incoming packet from %s, not a UDP tracker message "
 				"(%d Bytes)", print_endpoint(ep).c_str(), size);
 #endif
@@ -332,7 +332,7 @@ namespace libtorrent
 
 		if (i == m_udp_conns.end())
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
 				"transaction ID (%" PRIu32 ")", print_endpoint(ep).c_str()
 				, transaction);
@@ -362,7 +362,7 @@ namespace libtorrent
 
 		if (i == m_udp_conns.end())
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			// now, this may not have been meant to be a tracker response,
 			// but chances are pretty good, so it's probably worth logging
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
@@ -395,7 +395,7 @@ namespace libtorrent
 
 			close_http_connections.push_back(*i);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
@@ -410,7 +410,7 @@ namespace libtorrent
 
 			close_udp_connections.push_back(c);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif

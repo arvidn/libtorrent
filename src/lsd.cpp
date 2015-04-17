@@ -66,7 +66,7 @@ namespace libtorrent
 static error_code ec;
 
 lsd::lsd(io_service& ios, peer_callback_t const& cb
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	, log_callback_t const& log
 #endif
 	)
@@ -75,7 +75,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 #if TORRENT_USE_IPV6
 	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771))
 #endif
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	, m_log_cb(log)
 #endif
 	, m_broadcast_timer(ios)
@@ -87,7 +87,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 {
 }
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 void lsd::debug_log(char const* fmt, ...) const
 {
 	va_list v;
@@ -144,7 +144,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	to_hex((char const*)&ih[0], 20, ih_hex);
 	char msg[200];
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	debug_log("==> LSD: ih: %s port: %u\n", ih_hex, listen_port);
 #endif
 
@@ -157,7 +157,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled = true;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("*** LSD: failed to send message: (%d) %s", ec.value()
 				, ec.message().c_str());
 #endif
@@ -173,7 +173,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled6 = true;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("*** LSD: failed to send message6: (%d) %s", ec.value()
 				, ec.message().c_str());
 #endif
@@ -222,7 +222,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	if (!p.header_finished() || error)
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("<== LSD: incomplete HTTP message");
 #endif
 		return;
@@ -230,7 +230,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 	if (p.method() != "bt-search")
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("<== LSD: invalid HTTP method: %s", p.method().c_str());
 #endif
 		return;
@@ -239,7 +239,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	std::string const& port_str = p.header("port");
 	if (port_str.empty())
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("<== LSD: invalid BT-SEARCH, missing port");
 #endif
 		return;
@@ -258,7 +258,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		boost::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
 		if (cookie == m_cookie)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("<== LSD: ignoring packet (cookie matched our own): %x == %x"
 				, cookie, m_cookie);
 #endif
@@ -274,7 +274,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 		std::string const& ih_str = i->second;
 		if (ih_str.size() != 40)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("<== LSD: invalid BT-SEARCH, invalid infohash: %s"
 				, ih_str.c_str());
 #endif
@@ -286,7 +286,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 
 		if (!ih.is_all_zeros() && port != 0)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("<== LSD: %s:%d ih: %s"
 				, print_address(from.address()).c_str()
 				, port, ih_str.c_str());

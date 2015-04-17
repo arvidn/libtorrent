@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/ip_voter.hpp" // for external_ip
 #endif
@@ -620,7 +620,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i->connection != &c);
 			TORRENT_ASSERT(i->address() == c.remote().address());
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			c.peer_log("*** DUPLICATE PEER [ this: \"%s\" that: \"%s\" ]"
 				, print_address(c.remote().address()).c_str()
 				, print_address(i->address()).c_str());
@@ -678,7 +678,7 @@ namespace libtorrent
 
 					if (our_port < other_port)
 					{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
 						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
 #endif
@@ -696,7 +696,7 @@ namespace libtorrent
 					}
 					else
 					{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
 						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
 #endif

@@ -190,8 +190,8 @@ else()
 	list(APPEND sources sha1)
 endif (encryption)
 
-if (logging)
-	add_definitions(-DTORRENT_LOGGING)
+if (NOT logging)
+	add_definitions(-DTORRENT_DISABLE_LOGGING)
 endif()
 
 foreach(s ${sources})

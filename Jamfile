@@ -393,8 +393,8 @@ feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 
-feature logging : off on : composite propagated link-incompatible ;
-feature.compose <logging>on : <define>TORRENT_LOGGING ;
+feature logging : on off : composite propagated link-incompatible ;
+feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
 
 feature dht : on off logging : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;

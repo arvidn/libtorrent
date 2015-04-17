@@ -99,7 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 
 #include "libtorrent/socket_io.hpp"
 
@@ -118,7 +118,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 
-#endif // TORRENT_LOGGING
+#endif // TORRENT_DISABLE_LOGGING
 
 #ifdef TORRENT_USE_GCRYPT
 
@@ -361,7 +361,7 @@ namespace aux {
 #endif
 		, m_tracker_manager(m_udp_socket, m_stats_counters, m_host_resolver
 			, m_ip_filter, m_settings
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, *this
 #endif
 			)
@@ -461,7 +461,7 @@ namespace aux {
 	{
 		m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log("start session");
 #endif
 
@@ -518,7 +518,7 @@ namespace aux {
 		// TODO: there's no rule here to make uTP connections not have the global or
 		// local rate limits apply to it. This used to be the default.
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 
 		session_log("config: %s\n"
 			"version: %s\n"
@@ -527,7 +527,7 @@ namespace aux {
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);
 
-#endif // TORRENT_LOGGING
+#endif // TORRENT_DISABLE_LOGGING
 
 #if TORRENT_USE_RLIMIT
 		// ---- auto-cap max connections ----
@@ -535,7 +535,7 @@ namespace aux {
 		struct rlimit rl;
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log(" max number of open files: %d", rl.rlim_cur);
 #endif
 			// deduct some margin for epoll/kqueue, log files,
@@ -547,7 +547,7 @@ namespace aux {
 				m_settings.get_int(settings_pack::connections_limit)
 				, int(rl.rlim_cur * 8 / 10)));
 			// 20% goes towards regular files (see disk_io_thread)
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
 			session_log("   max files: %d", int(rl.rlim_cur * 2 / 10));
 #endif
@@ -555,7 +555,7 @@ namespace aux {
 #endif // TORRENT_USE_RLIMIT
 
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
@@ -564,7 +564,7 @@ namespace aux {
 		// call update_* after settings set initialized
 		m_io_service.post(boost::bind(&session_impl::init_settings, this));
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" spawning network thread");
 #endif
 		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
@@ -655,7 +655,7 @@ namespace aux {
 
 	void session_impl::init()
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** session thread init");
 #endif
 
@@ -684,7 +684,7 @@ namespace aux {
 		update_dht_announce_interval();
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
 #endif
 	}
@@ -950,7 +950,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_paused) return;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** session paused ***");
 #endif
 		m_paused = true;
@@ -982,7 +982,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** ABORT CALLED ***");
 #endif
 
@@ -1038,7 +1038,7 @@ namespace aux {
 		m_i2p_listen_socket.reset();
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all torrents (%d)", m_torrents.size());
 #endif
 		// abort all torrents
@@ -1049,12 +1049,12 @@ namespace aux {
 		}
 		m_torrents.clear();
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all tracker requests");
 #endif
 		m_tracker_manager.abort_all_requests();
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all connections (%d)", m_connections.size());
 #endif
 		// abort all connections
@@ -1580,7 +1580,7 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("failed to open socket: %s: %s"
 				, device.c_str(), ec.message().c_str());
 #endif
@@ -1622,7 +1622,7 @@ namespace aux {
 
 		while (ec && retries > 0)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("failed to bind to interface [%s] \"%s\": %s"
 				, device.c_str(), bind_ip.to_string(ec).c_str()
 				, ec.message().c_str());
@@ -1650,7 +1650,7 @@ namespace aux {
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind to interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
 #endif
@@ -1668,7 +1668,7 @@ namespace aux {
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
 #endif
@@ -1685,7 +1685,7 @@ namespace aux {
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
 					m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("failed to get peer name \"%s\": %s"
 					, device.c_str(), ec.message().c_str());
 #endif
@@ -1698,7 +1698,7 @@ namespace aux {
 				, (flags & open_ssl_socket) ? listen_succeeded_alert::tcp_ssl
 				: listen_succeeded_alert::tcp);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" listening on: %s external port: %d"
 			, print_endpoint(tcp::endpoint(bind_ip, port)).c_str(), ret.external_port);
 #endif
@@ -1707,7 +1707,7 @@ namespace aux {
 	
 	void session_impl::open_listen_port()
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log("open listen port");
 #endif
 
@@ -1900,7 +1900,7 @@ retry:
 
 		if (m_listen_sockets.empty() && ec)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind TCP listen socket to interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
@@ -1928,7 +1928,7 @@ retry:
 			m_ssl_udp_socket.bind(ssl_bind_if, ec);
 			if (ec)
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("SSL: cannot bind to UDP interface \"%s\": %s"
 					, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
@@ -1954,7 +1954,7 @@ retry:
 		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
 		if (ec)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
@@ -2101,7 +2101,7 @@ retry:
 			if (m_alerts.should_post<i2p_alert>())
 				m_alerts.emplace_alert<i2p_alert>(ec);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("i2p open failed (%d) %s", ec.value(), ec.message().c_str());
 #endif
 		}
@@ -2146,7 +2146,7 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>("i2p", listen_failed_alert::accept
 						, e, listen_failed_alert::i2p);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
 #endif
@@ -2169,7 +2169,7 @@ retry:
 				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.emplace_alert<udp_error_alert>(ep, ec);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("UDP socket error: (%d) %s", ec.value(), ec.message().c_str());
 #endif
 		}
@@ -2231,7 +2231,7 @@ retry:
 		if (e)
 		{
 			tcp::endpoint ep = listener->local_endpoint(ec);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("error accepting connection on '%s': %s"
 				, print_endpoint(ep).c_str(), e.message().c_str());
 #endif
@@ -2346,7 +2346,7 @@ retry:
 		tcp::endpoint endp = s->remote_endpoint(e);
 		if (e) return;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
 			, print_endpoint(endp).c_str(), ec.message().c_str(), s->type_name());
 #endif
@@ -2379,7 +2379,7 @@ retry:
 
 		if (m_paused)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log(" <== INCOMING CONNECTION [ ignored, paused ]");
 #endif
 			return;
@@ -2391,7 +2391,7 @@ retry:
 
 		if (ec)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("%s <== INCOMING CONNECTION FAILED, could "
 				"not retrieve remote endpoint "
 				, print_endpoint(endp).c_str(), ec.message().c_str());
@@ -2399,7 +2399,7 @@ retry:
 			return;
 		}
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" <== INCOMING CONNECTION %s type: %s"
 			, print_endpoint(endp).c_str(), s->type_name());
 #endif
@@ -2407,7 +2407,7 @@ retry:
 		if (!m_settings.get_bool(settings_pack::enable_incoming_utp)
 			&& is_utp(*s))
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("    rejected uTP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
@@ -2419,7 +2419,7 @@ retry:
 		if (!m_settings.get_bool(settings_pack::enable_incoming_tcp)
 			&& s->get<stream_socket>())
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("    rejected TCP connection");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
@@ -2436,7 +2436,7 @@ retry:
 			tcp::endpoint local = s->local_endpoint(ec);
 			if (ec)
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("    rejected connection: (%d) %s", ec.value()
 					, ec.message().c_str());
 #endif
@@ -2447,14 +2447,14 @@ retry:
 			{
 				if (ec)
 				{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					session_log("    rejected connection, not allowed local interface: (%d) %s"
 						, ec.value(), ec.message().c_str());
 #endif
 					return;
 				}
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("    rejected connection, not allowed local interface: %s"
 					, local.address().to_string(ec).c_str());
 #endif
@@ -2478,7 +2478,7 @@ retry:
 		if (m_stats_counters[counters::non_filter_torrents] == 0
 			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("filtered blocked ip");
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
@@ -2491,7 +2491,7 @@ retry:
 		// if we don't reject the connection
 		if (m_torrents.empty())
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log(" There are no torrents, disconnect");
 #endif
 		  	return;
@@ -2527,7 +2527,7 @@ retry:
 						, error_code(errors::too_many_connections, get_libtorrent_category())
 						, close_no_reason);
 			}
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
 				, num_connections(), m_settings.get_int(settings_pack::connections_limit)
 				, m_settings.get_int(settings_pack::connections_slack));
@@ -2554,7 +2554,7 @@ retry:
 			}
 			if (!has_active_torrent)
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log(" There are no _active_ torrents, disconnect");
 #endif
 			  	return;
@@ -2651,7 +2651,7 @@ retry:
 //			TORRENT_ASSERT(!i->second->has_peer((peer_connection*)p));
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" CLOSING CONNECTION %s : %s"
 			, print_endpoint(p->remote()).c_str(), ec.message().c_str());
 #endif
@@ -2686,7 +2686,7 @@ retry:
 		int port = m_next_port;
 		++m_next_port;
 		if (m_next_port > out_ports.second) m_next_port = out_ports.first;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** BINDING OUTGOING CONNECTION [ port: %d ]", port);
 #endif
 		return port;
@@ -2833,7 +2833,7 @@ retry:
 
 		if (e)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("*** TICK TIMER FAILED %s", e.message().c_str());
 #endif
 			::abort();
@@ -3301,7 +3301,7 @@ retry:
 
 		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<torrent> tor = t.lock();
 		if (tor)
 			session_log("prioritizing DHT announce: \"%s\"", tor->name().c_str());
@@ -3330,7 +3330,7 @@ retry:
 		TORRENT_ASSERT(is_single_thread());
 		if (e)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("aborting DHT announce timer (%d): %s"
 				, e.value(), e.message().c_str());
 #endif
@@ -3339,7 +3339,7 @@ retry:
 
 		if (m_abort)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("aborting DHT announce timer: m_abort set");
 #endif
 			return;
@@ -3473,7 +3473,7 @@ retry:
 			{
 				--hard_limit;
 				--type_limit;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				if (!t->allows_peers())
 					t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
 #endif
@@ -3481,7 +3481,7 @@ retry:
 			}
 			else
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				if (t->allows_peers())
 					t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
 #endif
@@ -4040,7 +4040,7 @@ retry:
 			stop_loop = m_abort;
 		}
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" locking mutex");
 #endif
 
@@ -4053,7 +4053,7 @@ retry:
 		}
 #endif
 */
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" cleaning up torrents");
 #endif
 
@@ -4276,7 +4276,7 @@ retry:
 		return i->second;
 	}
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	void session_impl::session_log(char const* fmt, ...) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
@@ -4555,7 +4555,7 @@ retry:
 			error_code ec;
 			bdecode_node tmp;
 			bdecode_node info;
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
 			if (bdecode(&params.resume_data[0], &params.resume_data[0]
@@ -4563,7 +4563,7 @@ retry:
 				&& tmp.type() == bdecode_node::dict_t
 				&& (info = tmp.dict_find_dict("info")))
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("found metadata in resume data");
 #endif
 				// verify the info-hash of the metadata stored in the resume file matches
@@ -4579,14 +4579,14 @@ retry:
 					|| !params.url.empty()
 					|| params.info_hash.is_all_zeros())
 				{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					session_log("info-hash matched");
 #endif
 					params.ti = boost::make_shared<torrent_info>(resume_ih);
 
 					if (params.ti->parse_info_section(info, ec, 0))
 					{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 						session_log("successfully loaded metadata from resume file");
 #endif
 						// make the info-hash be the one in the resume file
@@ -4595,20 +4595,20 @@ retry:
 					}
 					else
 					{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 						session_log("failed to load metadata from resume file: %s"
 								, ec.message().c_str());
 #endif
 					}
 				}
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				else
 				{
 					session_log("metadata info-hash failed");
 				}
 #endif
 			}
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			else
 			{
 				session_log("no metadata found");
@@ -4936,7 +4936,7 @@ retry:
 		// declared in string_util.hpp
 		parse_comma_separated_string_port(net_interfaces, new_listen_interfaces);
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log("update listen interfaces: %s", net_interfaces.c_str());
 #endif
 
@@ -4964,14 +4964,14 @@ retry:
 				device_name[0] == '[' ? device_name + 1 : device_name, ec));
 			if (ec)
 			{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				session_log("failed to treat %s as an IP address [ %s ]"
 					, device_name, ec.message().c_str());
 #endif
 				// it may have been a device name.
 				std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
 				
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				if (ec)
 					session_log("failed to enumerate interfaces [ %s ]"
 						, ec.message().c_str());
@@ -4985,7 +4985,7 @@ retry:
 					// connecting to)
 					if (strcmp(ifs[i].name, device_name) != 0) continue;
 					m_listen_interface.address(ifs[i].interface_address);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					session_log("binding to %s"
 						, m_listen_interface.address().to_string(ec).c_str());
 #endif
@@ -4995,7 +4995,7 @@ retry:
 
 				if (!found)
 				{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					session_log("failed to find device %s", device_name);
 #endif
 					// effectively disable whatever socket decides to bind to this
@@ -5180,7 +5180,7 @@ retry:
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
 		t->add_peer(peer, peer_info::lsd);
@@ -5757,7 +5757,7 @@ retry:
 			m_ssl_udp_socket.set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(">>> SET_TOS [ udp_socket tos: %x e: %s ]"
 			, m_settings.get_int(settings_pack::peer_tos)
 			, ec.message().c_str());
@@ -5967,7 +5967,7 @@ retry:
 #ifndef TORRENT_DISABLE_DHT
 		if (!m_dht)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("not starting DHT announce timer: m_dht == NULL");
 #endif
 			return;
@@ -5978,7 +5978,7 @@ retry:
 		// if we haven't started yet, don't actually trigger this
 		if (!m_thread)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("not starting DHT announce timer: thread not running yet");
 #endif
 			return;
@@ -5986,7 +5986,7 @@ retry:
 
 		if (m_abort)
 		{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			session_log("not starting DHT announce timer: m_abort set");
 #endif
 			return;
@@ -6276,7 +6276,7 @@ retry:
 
 		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2)
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			, boost::bind(&session_impl::on_lsd_log, this, _1)
 #endif
 			);
@@ -6286,7 +6286,7 @@ retry:
 			m_alerts.emplace_alert<lsd_error_alert>(ec);
 	}
 	
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	void session_impl::on_lsd_log(char const* log)
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
@@ -6456,14 +6456,14 @@ retry:
 	void session_impl::set_external_address(address const& ip
 		, int source_type, address const& source)
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
 			, source_type, print_address(source).c_str());
 #endif
 
 		if (!m_external_ip.cast_vote(ip, source_type, source)) return;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		session_log("  external IP updated");
 #endif
 
@@ -6734,7 +6734,7 @@ retry:
 	}
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		tracker_logger::tracker_logger(session_interface& ses): m_ses(ses) {}
 		void tracker_logger::tracker_warning(tracker_request const& req
 			, std::string const& str)
@@ -6747,7 +6747,7 @@ retry:
 			, std::list<address> const& ip_list
 			, struct tracker_response const& resp)
 		{
-#if defined TORRENT_LOGGING 
+#ifndef TORRENT_DISABLE_LOGGING 
 			debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
 				"external ip: %s\n"

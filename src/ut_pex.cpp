@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/extensions/ut_pex.hpp"
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
@@ -311,7 +311,7 @@ namespace libtorrent { namespace
 
 			bdecode_node p = pex_msg.dict_find_string("dropped");
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			int num_dropped = 0;
 			int num_added = 0;
 			if (p) num_dropped += p.string_length()/6;
@@ -333,7 +333,7 @@ namespace libtorrent { namespace
 			p = pex_msg.dict_find_string("added");
 			bdecode_node pf = pex_msg.dict_find_string("added.f");
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			if (p) num_added += p.string_length() / 6;
 #endif
 			if (p && pf && pf.string_length() == p.string_length() / 6)
@@ -365,7 +365,7 @@ namespace libtorrent { namespace
 #if TORRENT_USE_IPV6
 
 			bdecode_node p6 = pex_msg.dict_find("dropped6");
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			if (p6) num_dropped += p6.string_length() / 18;
 #endif
 			if (p6 != 0 && p6.type() == bdecode_node::string_t)
@@ -383,7 +383,7 @@ namespace libtorrent { namespace
 			}
 
 			p6 = pex_msg.dict_find("added6");
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			if (p6) num_added += p6.string_length() / 18;
 #endif
 			bdecode_node p6f = pex_msg.dict_find("added6.f");
@@ -415,7 +415,7 @@ namespace libtorrent { namespace
 				} 
 			}
 #endif
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_pc.peer_log("<== PEX [ dropped: %d added: %d ]"
 				, num_dropped, num_added);
 #endif
@@ -434,7 +434,7 @@ namespace libtorrent { namespace
 			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg)
 			{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log("*** PEX [ waiting: %d seconds to next msg ]"
 					, total_seconds(seconds(60) - (now - m_last_msg)));
 #endif
@@ -452,7 +452,7 @@ namespace libtorrent { namespace
 
 			if (now - milliseconds(delay) < global_last)
 			{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log("*** PEX [ global-wait: %d ]", total_seconds(milliseconds(delay) - (now - global_last)));
 #endif
 				return;
@@ -497,7 +497,7 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node m;
 			error_code ec;
 			int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
@@ -605,7 +605,7 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_pc.peer_log("==> PEX_FULL [ added: %d msg_size: %d ]", num_added, int(pex_msg.size()));
 #endif
 		}

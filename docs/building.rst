@@ -249,10 +249,10 @@ Build features:
 |                          | * ``shared`` - links dynamically against the boost |
 |                          |   libraries.                                       |
 +--------------------------+----------------------------------------------------+
-| ``logging``              | * ``off`` - default. logging disabled.             |
-|                          | * ``on`` - logging alerts available, still need to |
-|                          |   be enabled by the alert mask. The reason logging |
-|                          |   is disabled by default is to keep the binary     |
+| ``logging``              | * ``off`` - logging alerts disabled.               |
+|                          | * ``on`` - default. logging alerts available,      |
+|                          |   still need to be enabled by the alert mask. The  |
+|                          |   reason to disable logging is to keep the binary  |
 |                          |   size down.                                       |
 +--------------------------+----------------------------------------------------+
 | ``dht``                  | * ``on`` - build with support for tracker less     |
@@ -260,12 +260,6 @@ Build features:
 |                          | * ``logging`` - build with DHT support and verbose |
 |                          |   logging of the DHT protocol traffic.             |
 |                          | * ``off`` - build without DHT support.             |
-+--------------------------+----------------------------------------------------+
-| ``need-librt``           | * ``no`` - this platform does not need to link     |
-|                          |   against librt to have POSIX time functions.      |
-|                          | * ``yes`` - specify this if your linux system      |
-|                          |   requires you to link against librt.a. This is    |
-|                          |   typically the case on x86 64 bit systems.        |
 +--------------------------+----------------------------------------------------+
 | ``asserts``              | * ``auto`` - asserts are on if in debug mode       |
 |                          | * ``on`` - asserts are on, even in release mode    |
@@ -356,12 +350,6 @@ Build features:
 |                          |   API. Generates build errors when deprecated      |
 |                          |   functions are used.                              |
 +--------------------------+----------------------------------------------------+
-| ``full-stats``           | * ``on`` - default, collects stats for IP overhead |
-|                          |   and DHT and trackers. This uses a little bit     |
-|                          |   extra memory for each peer and torrent.          |
-|                          | * ``off`` - only collects the standard stats for   |
-|                          |   upload and download rate.                        |
-+--------------------------+----------------------------------------------------+
 | ``iconv``                | * ``auto`` - use iconv for string conversions for  |
 |                          |   linux and mingw and other posix platforms.       |
 |                          | * ``on`` - force use of iconv                      |
@@ -370,20 +358,6 @@ Build features:
 +--------------------------+----------------------------------------------------+
 | ``i2p``                  | * ``on`` - build with I2P support                  |
 |                          | * ``off`` - build without I2P support              |
-+--------------------------+----------------------------------------------------+
-| ``boost-date-time``      | * ``off`` - don't build asio types that depend     |
-|                          |   on boost.date_time. libtorrent doesn't use them  |
-|                          |   but if the client does, you need these to be     |
-|                          |   built.                                           |
-|                          | * ``on`` - build asio types that depend on         |
-|                          |   boost.date_time.                                 |
-+--------------------------+----------------------------------------------------+
-| ``statistics``           | * ``off`` - default. No logging of additional      |
-|                          |   stats.                                           |
-|                          | * ``on`` - log session statistics in current       |
-|                          |   working directory session_stats<pid>. The log    |
-|                          |   is rotated every hour. It can be parsed by the   |
-|                          |   parse_session_stats.py script (requires gnuplot) |
 +--------------------------+----------------------------------------------------+
 | ``profile-calls``        | * ``off`` - default. No additional call profiling. |
 |                          | * ``on`` - Enable logging of stack traces of       |
@@ -557,9 +531,9 @@ defines you can use to control the build.
 |                                        | compilation units having different views of     |
 |                                        | structs and class layouts and sizes.            |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_LOGGING``                    | This macro will enable support for logging      |
+| ``TORRENT_DISABLE_LOGGING``            | This macro will disable support for logging     |
 |                                        | alerts, like log_alert, torrent_log_alert and   |
-|                                        | peer_log_alert. Without this build flag, you    |
+|                                        | peer_log_alert. With this build flag, you       |
 |                                        | cannot enable those alerts.                     |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_STORAGE_DEBUG``              | This will enable extra expensive invariant      |

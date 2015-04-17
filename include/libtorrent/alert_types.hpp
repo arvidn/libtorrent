@@ -2118,9 +2118,7 @@ namespace libtorrent
 	// This alert is posted by some session wide event. Its main purpose is
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::session_log_notification`` bit.
-	// Furhtermore, it's by default disabled as a build configuration. To
-	// enable, build libtorrent with logging support enabled (``logging=on``
-	// with bjam or define ``TORRENT_LOGGING``).
+	// Furhtermore, it's by default disabled as a build configuration.
 	struct TORRENT_EXPORT log_alert : alert
 	{
 		// internal
@@ -2142,9 +2140,7 @@ namespace libtorrent
 	// This alert is posted by torrent wide events. It's meant to be used for
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::torrent_log_notification`` bit. By
-	// default it is disabled as a build configuration. To enable, build
-	// libtorrent with logging support enabled (``logging=on`` with bjam or
-	// define ``TORRENT_LOGGING``).
+	// default it is disabled as a build configuration.
 	struct TORRENT_EXPORT torrent_log_alert : torrent_alert
 	{
 		// internal
@@ -2166,9 +2162,7 @@ namespace libtorrent
 	// This alert is posted by events specific to a peer. It's meant to be used
 	// for trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::peer_log_notification`` bit. By
-	// default it is disabled as a build configuration. To enable, build
-	// libtorrent with logging support enabled (``logging=on`` with bjam or
-	// define ``TORRENT_LOGGING``).
+	// default it is disabled as a build configuration.
 	struct TORRENT_EXPORT peer_log_alert : peer_alert
 	{
 		// internal

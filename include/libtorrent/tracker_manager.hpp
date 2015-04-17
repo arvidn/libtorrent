@@ -230,7 +230,7 @@ namespace libtorrent
 			, const std::string& msg
 			, int retry_interval) = 0;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		virtual void debug_log(const char* fmt, ...) const = 0;
 #endif
 	};
@@ -336,7 +336,7 @@ namespace libtorrent
 			, resolver_interface& resolver
 			, struct ip_filter& ipf
 			, aux::session_settings const& sett
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, aux::session_logger& ses
 #endif
 			);
@@ -392,7 +392,7 @@ namespace libtorrent
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		aux::session_logger& m_ses;
 #endif
 
