@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/debug.hpp"
 #endif
 
@@ -414,7 +414,7 @@ namespace libtorrent
 		void set_holepunch_mode()
 		{
 			m_holepunch_mode = true;
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			peer_log("*** HOLEPUNCH MODE ***");
 #endif
 		}
@@ -550,11 +550,11 @@ namespace libtorrent
 		void decrease_est_reciprocation_rate();
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		virtual void peer_log(char const* fmt, ...) const;
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		time_point m_connect_time;
 		time_point m_bitfield_time;
 		time_point m_unchoke_time;
@@ -650,7 +650,7 @@ namespace libtorrent
 		virtual boost::optional<piece_block_progress>
 		downloading_piece_progress() const
 		{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			peer_log("*** downloading_piece_progress() dispatched to the base class!");
 #endif
 			return boost::optional<piece_block_progress>();

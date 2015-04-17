@@ -152,7 +152,7 @@ namespace libtorrent
 		struct session_impl;
 		struct session_settings;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		struct tracker_logger;
 #endif
 
@@ -350,7 +350,7 @@ namespace libtorrent
 			void on_port_map_log(char const* msg, int map_transport);
 
 			void on_lsd_announce(error_code const& e);
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			void on_lsd_log(char const* log);
 #endif
 
@@ -1131,7 +1131,7 @@ namespace libtorrent
 			// accumulated error
 			boost::uint16_t m_tick_residual;
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			virtual void session_log(char const* fmt, ...) const;
 			virtual void session_vlog(char const* fmt, va_list& va) const;
 
@@ -1203,7 +1203,7 @@ namespace libtorrent
 #endif
 		};
 		
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		struct tracker_logger : request_callback
 		{
 			tracker_logger(session_interface& ses);

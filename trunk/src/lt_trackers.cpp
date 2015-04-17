@@ -209,7 +209,7 @@ namespace libtorrent { namespace
 			// invalid tex message
 			if (added == 0)
 			{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log(" <== LT_TEX [ NOT A DICTIONARY ]");
 #endif
 				return true;
@@ -217,14 +217,14 @@ namespace libtorrent { namespace
 
 			if (m_tp.num_tex_trackers() >= 50)
 			{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log(" <== LT_TEX [ we already have %d trackers "
 					"from tex, don't add any more", m_tp.num_tex_trackers());
 #endif
 				return true;
 			}
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			std::stringstream log_line;
 			log_line << aux::time_now_string() << " <== LT_TEX [ "
 				"added: ";
@@ -259,7 +259,7 @@ namespace libtorrent { namespace
 
 				if (m_tp.num_tex_trackers() >= 50)
 				{
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 					log_line << "**reached-limit** ";
 #endif
 					break;
@@ -271,11 +271,11 @@ namespace libtorrent { namespace
 				if (m_torrent.add_tracker(e))
 					m_tp.increment_tracker_counter();
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				log_line << e.url << " ";
 #endif
 			}
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			log_line << "]\n";
 			m_pc.peer_log("%s", log_line.str().c_str());
 #endif
@@ -329,7 +329,7 @@ namespace libtorrent { namespace
 			if (!m_torrent.valid_metadata() || m_torrent.torrent_file().priv())
 				return false;
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			std::stringstream log_line;
 			log_line << aux::time_now_string() << " ==> LT_TEX [ "
 				"added: ";
@@ -341,14 +341,14 @@ namespace libtorrent { namespace
 			{
 				if (!send_tracker(*i)) continue;
 				added.push_back(i->url);
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				log_line << i->url << " ";
 #endif
 			}
 			std::vector<char> tex_msg;
 			bencode(std::back_inserter(tex_msg), tex);
 
-#ifdef TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			log_line << "]";
 			m_pc.peer_log("%s", log_line.str().c_str());
 #endif

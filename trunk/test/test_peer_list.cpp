@@ -71,7 +71,7 @@ struct mock_peer_connection : peer_connection_interface
 
 	virtual ~mock_peer_connection() {}
 
-#if defined TORRENT_LOGGING
+#if !defined TORRENT_DISABLE_LOGGING
 	virtual void peer_log(char const* fmt, ...) const
 	{
 		va_list v;	
@@ -130,7 +130,7 @@ struct mock_torrent
 		return true;
 	}
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	void debug_log(const char* fmt, ...) const
 	{
 		va_list v;

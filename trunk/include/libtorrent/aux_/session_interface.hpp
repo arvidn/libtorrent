@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #endif
 
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include <boost/shared_ptr.hpp>
 #endif
 
@@ -97,13 +97,13 @@ namespace libtorrent
 
 namespace libtorrent { namespace aux
 {
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.
 	// a release build with logging disabled (which is the default) will
 	// not have this class at all
 	struct session_logger
 	{
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		virtual void session_log(char const* fmt, ...) const = 0;
 		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
 #endif
@@ -115,14 +115,14 @@ namespace libtorrent { namespace aux
 		virtual bool is_posting_torrent_updates() const = 0;
 #endif
 	};
-#endif // TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 
 	// TOOD: 2 make this interface a lot smaller. It could be split up into
 	// several smaller interfaces. Each subsystem could then limit the size
 	// of the mock object to test it.
 	struct session_interface
 		: buffer_allocator_interface
-#if defined TORRENT_LOGGING || TORRENT_USE_ASSERTS
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, session_logger
 #endif
 	{

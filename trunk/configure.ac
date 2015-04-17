@@ -379,11 +379,11 @@ AC_MSG_CHECKING([whether logging to disk should be enabled])
 AS_CASE(["$ARG_ENABLE_LOGGING"],
   ["yes"|"default"], [
       AC_MSG_RESULT([yes])
-      AC_DEFINE([TORRENT_LOGGING],[1],[Define to enable support for logging alerts])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LOGGING "
     ],
   ["no"|"none"], [
       AC_MSG_RESULT([no])
+      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to enable support for logging alerts])
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_LOGGING". Use either "yes" or "no"])]

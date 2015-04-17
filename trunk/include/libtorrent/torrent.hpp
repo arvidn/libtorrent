@@ -1025,7 +1025,7 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		// LOGGING
-#if defined TORRENT_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		virtual void debug_log(const char* fmt, ...) const;
 		void log_to_all_peers(char const* message);
 		time_point m_dht_start_time;
