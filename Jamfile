@@ -743,6 +743,7 @@ lib torrent
 	: # default build
 	<link>static
 	<threading>multi
+	<warnings>all
 
 	: # usage requirements
 	$(usage-requirements)

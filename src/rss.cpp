@@ -338,6 +338,12 @@ void feed::on_feed(error_code const& ec
 //	TORRENT_ASSERT(m_updating);
 	m_updating = false;
 
+	// rss_alert is deprecated, and so is all of this code.
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	if (ec && ec != asio::error::eof)
 	{
 		++m_failures;
@@ -361,6 +367,10 @@ void feed::on_feed(error_code const& ec
 		}
 		return;
 	}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	m_failures = 0;
 
@@ -388,12 +398,22 @@ void feed::on_feed(error_code const& ec
 
 	m_last_update = now;
 
+	// rss_alert is deprecated, and so is all of this code.
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	// report that we successfully updated the feed
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
 		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
 			, rss_alert::state_updated, error_code());
 	}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	// update m_ses.m_next_rss_update timestamps
 	// now that we have updated our timestamp
@@ -579,11 +599,21 @@ int feed::update_feed()
 	m_last_attempt = time(0);
 	m_last_update = 0;
 
+	// rss_alert is deprecated, and so is all of this code.
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	if (m_ses.m_alerts.should_post<rss_alert>())
 	{
 		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
 			, rss_alert::state_updating, error_code());
 	}
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	boost::shared_ptr<http_connection> feed(
 		new http_connection(m_ses.m_io_service

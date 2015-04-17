@@ -131,10 +131,10 @@ namespace libtorrent
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
 
 #ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED_PREFIX
-	TORRENT_EXPORT session_settings min_memory_usage() TORRENT_DEPRECATED;
-	TORRENT_DEPRECATED_PREFIX
-	TORRENT_EXPORT session_settings high_performance_seed() TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED
+	TORRENT_EXPORT session_settings min_memory_usage();
+	TORRENT_DEPRECATED
+	TORRENT_EXPORT session_settings high_performance_seed();
 #endif
 
 #ifndef TORRENT_CFG
@@ -420,17 +420,17 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		torrent_handle add_torrent(
 			torrent_info const& ti
 			, std::string const& save_path
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor) TORRENT_DEPRECATED;
+			, storage_constructor_type sc = default_storage_constructor);
 
 		// deprecated in 0.14
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		torrent_handle add_torrent(
 			char const* tracker_url
 			, sha1_hash const& info_hash
@@ -440,7 +440,7 @@ namespace libtorrent
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
 			, storage_constructor_type sc = default_storage_constructor
-			, void* userdata = 0) TORRENT_DEPRECATED;
+			, void* userdata = 0);
 #endif
 #endif
 
@@ -500,21 +500,21 @@ namespace libtorrent
 		//  deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
-		TORRENT_DEPRECATED_PREFIX
-		session_status status() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		session_status status() const;
 
 		// deprecated in libtorrent 1.1
 		// fills out the supplied vector with information for each piece that is
 		// currently in the disk cache for the torrent with the specified
 		// info-hash (``ih``).
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		void get_cache_info(sha1_hash const& ih
-			, std::vector<cached_piece_info>& ret) const TORRENT_DEPRECATED;
+			, std::vector<cached_piece_info>& ret) const;
 
 		// Returns status of the disk cache for this session.
 		// For more information, see the cache_status type.
-		TORRENT_DEPRECATED_PREFIX
-		cache_status get_cache_status() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		cache_status get_cache_status() const;
 #endif
 
 		enum { disk_cache_no_pieces = 1 };
@@ -534,28 +534,28 @@ namespace libtorrent
 		// is a handle which is used to interact with the feed, things like
 		// forcing a refresh or querying for information about the items in the
 		// feed. For more information, see feed_handle.
-		TORRENT_DEPRECATED_PREFIX
-		feed_handle add_feed(feed_settings const& feed) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		feed_handle add_feed(feed_settings const& feed);
 
 		// Removes a feed from being watched by the session. When this
 		// call returns, the feed handle is invalid and won't refer
 		// to any feed.
-		TORRENT_DEPRECATED_PREFIX
-		void remove_feed(feed_handle h) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void remove_feed(feed_handle h);
 
 		// Returns a list of all RSS feeds that are being watched by the session.
-		TORRENT_DEPRECATED_PREFIX
-		void get_feeds(std::vector<feed_handle>& f) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void get_feeds(std::vector<feed_handle>& f) const;
 
 		// ``start_dht`` starts the dht node and makes the trackerless service
 		// available to torrents.
 		// 
 		// ``stop_dht`` stops the dht node.
 		// deprecated. use settings_pack::enable_dht instead
-		TORRENT_DEPRECATED_PREFIX
-		void start_dht() TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void stop_dht() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void start_dht();
+		TORRENT_DEPRECATED
+		void stop_dht();
 #endif
 
 		// ``set_dht_settings`` sets some parameters availavle to the dht node.
@@ -648,10 +648,10 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead
-		TORRENT_DEPRECATED_PREFIX
-		entry dht_state() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void start_dht(entry const& startup_state) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		entry dht_state() const;
+		TORRENT_DEPRECATED
+		void start_dht(entry const& startup_state);
 #endif
 
 		// This function adds an extension to this session. The argument is a
@@ -718,31 +718,31 @@ namespace libtorrent
 		// 
 		// .. _`MaxMind ASN database`: http://www.maxmind.com/app/asnum
 		// .. _`MaxMind GeoIP database`: http://www.maxmind.com/app/geolitecountry
-		TORRENT_DEPRECATED_PREFIX
-		void load_asnum_db(char const* file) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void load_country_db(char const* file) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int as_for_ip(address const& addr) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void load_asnum_db(char const* file);
+		TORRENT_DEPRECATED
+		void load_country_db(char const* file);
+		TORRENT_DEPRECATED
+		int as_for_ip(address const& addr);
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		void load_country_db(wchar_t const* file) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void load_asnum_db(wchar_t const* file) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void load_country_db(wchar_t const* file);
+		TORRENT_DEPRECATED
+		void load_asnum_db(wchar_t const* file);
 #endif // TORRENT_USE_WSTRING
 
 		// deprecated in 0.15
 		// use load_state and save_state instead
-		TORRENT_DEPRECATED_PREFIX
-		void load_state(entry const& ses_state) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		entry state() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void load_state(entry const& ses_state);
+		TORRENT_DEPRECATED
+		entry state() const;
 		// deprecated in 1.1
-		TORRENT_DEPRECATED_PREFIX
-		void load_state(lazy_entry const& ses_state) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void load_state(lazy_entry const& ses_state);
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well
@@ -764,8 +764,8 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1, use settings_pack::peer_fingerprint instead
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_id(peer_id const& pid) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_peer_id(peer_id const& pid);
 #endif
 		// returns the raw peer ID used by libtorrent. When anonymous mode is set
 		// the peer ID is randomized per peer.
@@ -939,17 +939,17 @@ namespace libtorrent
 
 		// specify which interfaces to bind outgoing connections to
 		// This has been moved to a session setting
-		TORRENT_DEPRECATED_PREFIX
-		void use_interfaces(char const* interfaces) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void use_interfaces(char const* interfaces);
 
 		// instead of using this, specify listen interface and port in
 		// the settings_pack::listen_interfaces setting
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		void listen_on(
 			std::pair<int, int> const& port_range
 			, error_code& ec
 			, const char* net_interface = 0
-			, int flags = 0) TORRENT_DEPRECATED;
+			, int flags = 0);
 
 #endif
 
@@ -990,16 +990,16 @@ namespace libtorrent
 		// Sets the session settings and the packet encryption settings
 		// respectively. See session_settings and pe_settings for more
 		// information on available options.
-		TORRENT_DEPRECATED_PREFIX
-		void set_settings(session_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		session_settings settings() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_settings(session_settings const& s);
+		TORRENT_DEPRECATED
+		session_settings settings() const;
 
 		// deprecated in libtorrent 1.1. use settings_pack instead
-		TORRENT_DEPRECATED_PREFIX
-		void set_pe_settings(pe_settings const& settings) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		pe_settings get_pe_settings() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_pe_settings(pe_settings const& settings);
+		TORRENT_DEPRECATED
+		pe_settings get_pe_settings() const;
 #endif
 
 		// Applies the settings specified by the settings_pack ``s``. This is an
@@ -1017,10 +1017,10 @@ namespace libtorrent
 		//
 		// .. _i2p: http://www.i2p2.de
 
-		TORRENT_DEPRECATED_PREFIX
-		void set_i2p_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings i2p_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_i2p_proxy(proxy_settings const& s);
+		TORRENT_DEPRECATED
+		proxy_settings i2p_proxy() const;
 
 		// These functions sets and queries the proxy settings to be used for the
 		// session.
@@ -1031,77 +1031,77 @@ namespace libtorrent
 		// will flow without using any proxy. If you want to enforce using a
 		// proxy, even when the proxy doesn't work, enable anonymous_mode in
 		// session_settings.
-		TORRENT_DEPRECATED_PREFIX
-		void set_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_proxy(proxy_settings const& s);
+		TORRENT_DEPRECATED
+		proxy_settings proxy() const;
 
 		// deprecated in 0.16
 		// Get the number of uploads.
-		TORRENT_DEPRECATED_PREFIX
-		int num_uploads() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		int num_uploads() const;
 
 		// Get the number of connections. This number also contains the
 		// number of half open connections.
-		TORRENT_DEPRECATED_PREFIX
-		int num_connections() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		int num_connections() const;
 
 		// deprecated in 0.15.
-		TORRENT_DEPRECATED_PREFIX
-		void set_peer_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_web_seed_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_tracker_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_peer_proxy(proxy_settings const& s);
+		TORRENT_DEPRECATED
+		void set_web_seed_proxy(proxy_settings const& s);
+		TORRENT_DEPRECATED
+		void set_tracker_proxy(proxy_settings const& s);
 
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings peer_proxy() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings web_seed_proxy() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings tracker_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		proxy_settings peer_proxy() const;
+		TORRENT_DEPRECATED
+		proxy_settings web_seed_proxy() const;
+		TORRENT_DEPRECATED
+		proxy_settings tracker_proxy() const;
 
-		TORRENT_DEPRECATED_PREFIX
-		void set_dht_proxy(proxy_settings const& s) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		proxy_settings dht_proxy() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_dht_proxy(proxy_settings const& s);
+		TORRENT_DEPRECATED
+		proxy_settings dht_proxy() const;
 
 		// deprecated in 0.16
-		TORRENT_DEPRECATED_PREFIX
-		int upload_rate_limit() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int download_rate_limit() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int local_upload_rate_limit() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int local_download_rate_limit() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int max_half_open_connections() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		int upload_rate_limit() const;
+		TORRENT_DEPRECATED
+		int download_rate_limit() const;
+		TORRENT_DEPRECATED
+		int local_upload_rate_limit() const;
+		TORRENT_DEPRECATED
+		int local_download_rate_limit() const;
+		TORRENT_DEPRECATED
+		int max_half_open_connections() const;
 
-		TORRENT_DEPRECATED_PREFIX
-		void set_local_upload_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_local_download_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_upload_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_download_rate_limit(int bytes_per_second) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_max_uploads(int limit) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_max_connections(int limit) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_max_half_open_connections(int limit) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_local_upload_rate_limit(int bytes_per_second);
+		TORRENT_DEPRECATED
+		void set_local_download_rate_limit(int bytes_per_second);
+		TORRENT_DEPRECATED
+		void set_upload_rate_limit(int bytes_per_second);
+		TORRENT_DEPRECATED
+		void set_download_rate_limit(int bytes_per_second);
+		TORRENT_DEPRECATED
+		void set_max_uploads(int limit);
+		TORRENT_DEPRECATED
+		void set_max_connections(int limit);
+		TORRENT_DEPRECATED
+		void set_max_half_open_connections(int limit);
 
-		TORRENT_DEPRECATED_PREFIX
-		int max_connections() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int max_uploads() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		int max_connections() const;
+		TORRENT_DEPRECATED
+		int max_uploads() const;
 
-		TORRENT_DEPRECATED_PREFIX
-		std::auto_ptr<alert> pop_alert() TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void pop_alerts(std::deque<alert*>* alerts) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		std::auto_ptr<alert> pop_alert();
+		TORRENT_DEPRECATED
+		void pop_alerts(std::deque<alert*>* alerts);
 
 #endif
 
@@ -1161,12 +1161,12 @@ namespace libtorrent
 		void set_alert_notify(boost::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
-		TORRENT_DEPRECATED_PREFIX
-		void set_severity_level(alert::severity_t s) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_severity_level(alert::severity_t s);
 
 		// use the setting instead
-		TORRENT_DEPRECATED_PREFIX
-		size_t set_alert_queue_size_limit(size_t queue_size_limit_) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		size_t set_alert_queue_size_limit(size_t queue_size_limit_);
 
 		// Changes the mask of which alerts to receive. By default only errors
 		// are reported. ``m`` is a bitmask where each bit represents a category
@@ -1175,10 +1175,10 @@ namespace libtorrent
 		// ``get_alert_mask()`` returns the current mask;
 		//
 		// See category_t enum for options.
-		TORRENT_DEPRECATED_PREFIX
-		void set_alert_mask(boost::uint32_t m) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		boost::uint32_t get_alert_mask() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void set_alert_mask(boost::uint32_t m);
+		TORRENT_DEPRECATED
+		boost::uint32_t get_alert_mask() const;
 
 		// This sets a function to be called (from within libtorrent's netowrk
 		// thread) every time an alert is posted. Since the function (``fun``) is
@@ -1188,19 +1188,19 @@ namespace libtorrent
 		// platform-dependent message queues or signalling systems. For instance,
 		// on windows, one could post a message to an HNWD or on linux, write to
 		// a pipe or an eventfd.
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		void set_alert_dispatch(
-			boost::function<void(std::auto_ptr<alert>)> const& fun) TORRENT_DEPRECATED;
+			boost::function<void(std::auto_ptr<alert>)> const& fun);
 
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to
 		// look for peers on the same swarm within multicast reach.
 		//
 		// deprecated. use settings_pack::enable_lsd instead
-		TORRENT_DEPRECATED_PREFIX
-		void start_lsd() TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void stop_lsd() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void start_lsd();
+		TORRENT_DEPRECATED
+		void stop_lsd();
 
 		// Starts and stops the UPnP service. When started, the listen port and
 		// the DHT port are attempted to be forwarded on local UPnP router
@@ -1212,10 +1212,10 @@ namespace libtorrent
 		// until ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// deprecated. use settings_pack::enable_upnp instead
-		TORRENT_DEPRECATED_PREFIX
- 		void start_upnp() TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void stop_upnp() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+ 		void start_upnp();
+		TORRENT_DEPRECATED
+		void stop_upnp();
 
 		// Starts and stops the NAT-PMP service. When started, the listen port
 		// and the DHT port are attempted to be forwarded on the router through
@@ -1227,10 +1227,10 @@ namespace libtorrent
 		// valid until ``stop_natpmp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// deprecated. use settings_pack::enable_natpmp instead
-		TORRENT_DEPRECATED_PREFIX
-		void start_natpmp() TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void stop_natpmp() TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void start_natpmp();
+		TORRENT_DEPRECATED
+		void stop_natpmp();
 #endif
 
 		// protocols used by add_port_mapping()

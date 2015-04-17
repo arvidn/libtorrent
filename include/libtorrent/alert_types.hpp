@@ -1685,7 +1685,7 @@ namespace libtorrent
 	// 
 	// This alert is only posted if the ``rss_notifications`` category is enabled
 	// in the alert_mask.
-	struct TORRENT_EXPORT rss_alert: alert
+	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert: alert
 	{
 		// internal
 		rss_alert(aux::stack_allocator& alloc, feed_handle h

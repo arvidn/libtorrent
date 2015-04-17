@@ -119,7 +119,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // '_vsnprintf': This function or variable may be unsafe
 #pragma warning(disable:4996)
 
-#define TORRENT_DEPRECATED_PREFIX __declspec(deprecated)
+#define TORRENT_DEPRECATED __declspec(deprecated)
 
 #endif
 
@@ -462,16 +462,12 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_HAS_FALLOCATE 1
 #endif
 
-#ifndef TORRENT_DEPRECATED_PREFIX
-#define TORRENT_DEPRECATED_PREFIX
+#ifndef TORRENT_DEPRECATED
+#define TORRENT_DEPRECATED
 #endif
 
 #ifndef TORRENT_USE_COMMONCRYPTO
 #define TORRENT_USE_COMMONCRYPTO 0
-#endif
-
-#ifndef TORRENT_DEPRECATED
-#define TORRENT_DEPRECATED
 #endif
 
 #ifndef TORRENT_HAVE_MMAP

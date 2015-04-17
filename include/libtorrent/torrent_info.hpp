@@ -195,7 +195,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		bool will_announce(time_point now) const TORRENT_DEPRECATED
 		{
 			return now <= next_announce
@@ -313,8 +313,8 @@ namespace libtorrent
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		torrent_info(std::wstring const& filename, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 #endif // BOOST_NO_EXCEPTIONS
@@ -324,17 +324,17 @@ namespace libtorrent
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
-		TORRENT_DEPRECATED_PREFIX
-		torrent_info(lazy_entry const& torrent_file, int flags = 0) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
+		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		TORRENT_DEPRECATED
 		torrent_info(lazy_entry const& torrent_file, error_code& ec
-			, int flags = 0) TORRENT_DEPRECATED;
+			, int flags = 0);
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11 instead, use the wchar
 		// -> utf8 conversion functions and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		torrent_info(std::wstring const& filename, error_code& ec
-			, int flags = 0) TORRENT_DEPRECATED;
+			, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
@@ -387,8 +387,8 @@ namespace libtorrent
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void rename_file(int index, std::wstring const& new_filename);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
@@ -425,15 +425,15 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.16. Use web_seeds() instead
-		TORRENT_DEPRECATED_PREFIX
-		std::vector<std::string> url_seeds() const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::vector<std::string> http_seeds() const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		std::vector<std::string> url_seeds() const;
+		TORRENT_DEPRECATED
+		std::vector<std::string> http_seeds() const;
 
 		// deprecated in 1.1
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		bool parse_info_section(lazy_entry const& e, error_code& ec
-			, int flags) TORRENT_DEPRECATED;
+			, int flags);
 #endif // TORRENT_NO_DEPRECATE
 
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
@@ -493,19 +493,19 @@ namespace libtorrent
 		// You can resolve it into the public representation of a file
 		// (``file_entry``) using the ``file_storage::at`` function, which takes
 		// an index and an iterator.
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin_deprecated(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		file_iterator end_files() const TORRENT_DEPRECATED { return m_files.end_deprecated(); }
 		reverse_file_iterator rbegin_files() const TORRENT_DEPRECATED { return m_files.rbegin_deprecated(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend_deprecated(); }
 
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		file_iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED
 		{ return m_files.file_at_offset_deprecated(offset); }
 
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		file_entry file_at(int index) const TORRENT_DEPRECATED{ return m_files.at(index); }
 #endif // TORRENT_NO_DEPRECATE
 
@@ -543,10 +543,10 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
 // these functions will be removed in a future version
-		TORRENT_DEPRECATED_PREFIX
-		torrent_info(entry const& torrent_file) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void print(std::ostream& os) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		torrent_info(entry const& torrent_file);
+		TORRENT_DEPRECATED
+		void print(std::ostream& os) const;
 // ------- end deprecation -------
 #endif
 

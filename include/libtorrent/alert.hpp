@@ -257,10 +257,10 @@ namespace libtorrent {
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		virtual bool discardable() const TORRENT_DEPRECATED { return true; }
 
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		severity_t severity() const TORRENT_DEPRECATED { return warning; }
 
 		// returns a pointer to a copy of the alert.

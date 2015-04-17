@@ -303,20 +303,20 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_filename);
 
 #ifndef TORRENT_NO_DEPRECATE
-		TORRENT_DEPRECATED_PREFIX
-		void add_file(file_entry const& fe, char const* infohash = NULL) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		void add_file(file_entry const& fe, char const* infohash = NULL);
 
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		void add_file(std::wstring const& p, boost::int64_t size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "") TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void rename_file(int index, std::wstring const& new_filename) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_name(std::wstring const& n) TORRENT_DEPRECATED;
+			, std::time_t mtime = 0, std::string const& s_p = "");
+		TORRENT_DEPRECATED
+		void rename_file(int index, std::wstring const& new_filename);
+		TORRENT_DEPRECATED
+		void set_name(std::wstring const& n);
 
 		void rename_file_deprecated(int index, std::wstring const& new_filename);
 #endif // TORRENT_USE_WSTRING
@@ -343,30 +343,30 @@ namespace libtorrent
 		typedef std::vector<internal_file_entry>::const_iterator iterator;
 		typedef std::vector<internal_file_entry>::const_reverse_iterator reverse_iterator;
 
-		TORRENT_DEPRECATED_PREFIX
-		iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
+		iterator file_at_offset(boost::int64_t offset) const;
+		TORRENT_DEPRECATED
 		iterator begin() const TORRENT_DEPRECATED { return m_files.begin(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		iterator end() const TORRENT_DEPRECATED { return m_files.end(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		reverse_iterator rbegin() const TORRENT_DEPRECATED { return m_files.rbegin(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		reverse_iterator rend() const TORRENT_DEPRECATED { return m_files.rend(); }
-		TORRENT_DEPRECATED_PREFIX
+		TORRENT_DEPRECATED
 		internal_file_entry const& internal_at(int index) const TORRENT_DEPRECATED 
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_files.size()));
 			return m_files[index];
 		}
-		TORRENT_DEPRECATED_PREFIX
-		file_entry at(iterator i) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		file_entry at(iterator i) const;
 
 		// returns a file_entry with information about the file
 		// at ``index``. Index must be in the range [0, ``num_files()`` ).
-		TORRENT_DEPRECATED_PREFIX
-		file_entry at(int index) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		file_entry at(int index) const;
 
 		iterator begin_deprecated() const { return m_files.begin(); }
 		iterator end_deprecated() const { return m_files.end(); }
@@ -524,34 +524,35 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1
-		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_base(int index) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_file_base(int index, boost::int64_t off) TORRENT_DEPRECATED;
+		boost::int64_t file_base_deprecated(int index) const;
+		TORRENT_DEPRECATED
+		boost::int64_t file_base(int index) const;
+		TORRENT_DEPRECATED
+		void set_file_base(int index, boost::int64_t off);
 
 		// these were deprecated in 1.0. Use the versions that take an index instead
-		TORRENT_DEPRECATED_PREFIX
-		sha1_hash hash(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::string const& symlink(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		time_t mtime(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		int file_index(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_base(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		void set_file_base(internal_file_entry const& fe, boost::int64_t off) TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		std::string file_name(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_size(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		bool pad_file_at(internal_file_entry const& fe) const TORRENT_DEPRECATED;
-		TORRENT_DEPRECATED_PREFIX
-		boost::int64_t file_offset(internal_file_entry const& fe) const TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED
+		sha1_hash hash(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		std::string const& symlink(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		time_t mtime(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		int file_index(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		boost::int64_t file_base(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		void set_file_base(internal_file_entry const& fe, boost::int64_t off);
+		TORRENT_DEPRECATED
+		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
+		TORRENT_DEPRECATED
+		std::string file_name(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		boost::int64_t file_size(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		bool pad_file_at(internal_file_entry const& fe) const;
+		TORRENT_DEPRECATED
+		boost::int64_t file_offset(internal_file_entry const& fe) const;
 #endif
 
 		// if the backing buffer changed for this storage, this is the pointer
