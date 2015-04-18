@@ -1590,6 +1590,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	// defined in storage.cpp
 	int bufs_size(file::iovec_t const* bufs, int num_bufs);
 	
+	namespace {
+
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
 		int offset = 0;
@@ -1740,6 +1742,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #endif
 	}
+
+	} // anonymous namespace
 
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls

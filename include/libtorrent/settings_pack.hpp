@@ -200,8 +200,7 @@ namespace libtorrent
 			// used as the peer-id
 			peer_fingerprint,
 
-			max_string_setting_internal,
-			num_string_settings = max_string_setting_internal - string_type_base
+			max_string_setting_internal
 		};
 
 		enum bool_types
@@ -650,8 +649,7 @@ namespace libtorrent
 			// unlikely to matter anyway
 			auto_sequential,
 
-			max_bool_setting_internal,
-			num_bool_settings = max_bool_setting_internal - bool_type_base
+			max_bool_setting_internal
 		};
 
 		enum int_types
@@ -1512,8 +1510,13 @@ namespace libtorrent
 			// .. _i2p: http://www.i2p2.de
 			i2p_port,
 
-			max_int_setting_internal,
+			max_int_setting_internal
+		};
 
+		enum settings_counts_t
+		{
+			num_string_settings = max_string_setting_internal - string_type_base,
+			num_bool_settings = max_bool_setting_internal - bool_type_base,
 			num_int_settings = max_int_setting_internal - int_type_base
 		};
 

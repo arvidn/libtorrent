@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_THREAD
 #define TORRENT_DISK_IO_THREAD
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
@@ -43,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/thread.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/function/function0.hpp>
 #include <boost/noncopyable.hpp>
@@ -50,13 +55,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <deque>
-#include "libtorrent/config.hpp"
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/thread.hpp"
 #include <boost/atomic.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

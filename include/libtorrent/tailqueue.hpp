@@ -47,7 +47,7 @@ namespace libtorrent
 	inline N* postinc(N*& e)
 	{
 		N* ret = e;
-		e = (N*)ret->next;
+		e = static_cast<N*>(ret->next);
 		return ret;
 	}
 

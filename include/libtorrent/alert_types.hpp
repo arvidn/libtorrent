@@ -1822,7 +1822,7 @@ namespace libtorrent
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
 			, add_torrent_params const& p, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67);
+		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
@@ -1845,9 +1845,8 @@ namespace libtorrent
 	// filtering, since it's only manually posted anyway.
 	struct TORRENT_EXPORT state_update_alert : alert
 	{
-		state_update_alert(aux::stack_allocator& alloc, std::vector<torrent_status> st)
-			: status(st)
-		{}
+		state_update_alert(aux::stack_allocator& alloc
+			, std::vector<torrent_status> st);
 
 		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68)
 
@@ -1868,7 +1867,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT mmap_cache_alert : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
-			, error_code const& ec): error(ec) {}
+			, error_code const& ec);
 		TORRENT_DEFINE_ALERT(mmap_cache_alert, 69)
 
 		static const int static_category = alert::error_notification;
@@ -2093,11 +2092,7 @@ namespace libtorrent
 		// internal
 		dht_outgoing_get_peers_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih, sha1_hash const& obfih
-			, udp::endpoint ep)
-			: info_hash(ih)
-			, obfuscated_info_hash(obfih)
-			, ip(ep)
-		{}
+			, udp::endpoint ep);
 
 		TORRENT_DEFINE_ALERT(dht_outgoing_get_peers_alert, 78)
 
@@ -2187,10 +2182,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT lsd_error_alert : alert
 	{
 		// internal
-		lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec)
-			: alert()
-			, error(ec)
-		{}
+		lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec);
 	
 		TORRENT_DEFINE_ALERT(lsd_error_alert, 82)
 
@@ -2264,11 +2256,7 @@ namespace libtorrent
 		// internal
 		dht_stats_alert(aux::stack_allocator& alloc
 			, std::vector<dht_routing_bucket> const& table
-			, std::vector<dht_lookup> const& requests)
-			: alert()
-			, active_requests(requests)
-			, routing_table(table)
-		{}
+			, std::vector<dht_lookup> const& requests);
 	
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 

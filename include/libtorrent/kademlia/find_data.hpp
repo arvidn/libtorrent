@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef FIND_DATA_050323_HPP
 #define FIND_DATA_050323_HPP
 
-#include <vector>
-#include <map>
-
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -43,9 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 
+#include "aux_/disable_warnings_push.hpp"
+
+#include <vector>
+#include <map>
+
 #include <boost/optional.hpp>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace dht
 {

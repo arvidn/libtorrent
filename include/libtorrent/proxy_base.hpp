@@ -38,7 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
 #include <boost/function/function1.hpp>
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
