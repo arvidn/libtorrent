@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "resolve_links.hpp"
+#include "libtorrent/resolve_links.hpp"
 
 #include "libtorrent/torrent_info.hpp"
 #include <boost/shared_ptr.hpp>
