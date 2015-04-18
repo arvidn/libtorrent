@@ -242,6 +242,12 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-disabled-macro-expansion ;
 	}
 
+	if <toolset>gcc in $(properties)
+	{
+		result += <cflags>-Wall ;
+		result += <cflags>-Wextra ;
+	}
+
 	if <toolset>msvc in $(properties)
 	{
 # disable warning C4503: decorated name length exceeded, name was truncated
