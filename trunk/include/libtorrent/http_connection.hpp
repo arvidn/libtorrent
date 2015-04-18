@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_CONNECTION
 #define TORRENT_HTTP_CONNECTION
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
 #include <boost/function/function5.hpp>
@@ -43,6 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/http_parser.hpp"
@@ -52,10 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 
 #include "libtorrent/i2p_stream.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
-#endif
 
 namespace libtorrent
 {

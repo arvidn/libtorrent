@@ -389,6 +389,12 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #include <limits.h>
 #endif
 
+#if defined __cplusplus && __cplusplus >= 199711L
+#define TORRENT_NO_RETURN [[noreturn]]
+#else
+#define TORRENT_NO_RETURN
+#endif
+
 #ifndef TORRENT_ICONV_ARG
 #define TORRENT_ICONV_ARG (char**)
 #endif
@@ -440,6 +446,14 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_SEM_RELTIMEDWAIT
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 0
+#endif
+
+#ifndef TORRENT_USE_MEMALIGN
+#define TORRENT_USE_MEMALIGN 0
+#endif
+
+#ifndef TORRENT_USE_POSIX_MEMALIGN
+#define TORRENT_USE_POSIX_MEMALIGN 0
 #endif
 
 #ifndef TORRENT_USE_LOCALE
@@ -525,7 +539,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #ifndef TORRENT_THREADSAFE_STATIC
-#if __cplusplus < 199711L || _MSC_VER <= 1800
+#if __cplusplus < 199711L || (defined _MSC_VER && _MSC_VER <= 1800)
 #define TORRENT_THREADSAFE_STATIC 0
 #else
 #define TORRENT_THREADSAFE_STATIC 1
@@ -592,6 +606,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_FUNCTION __FUNCTION__
 #endif
 
+
 // debug builds have asserts enabled by default, release
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.
@@ -603,7 +618,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif // TORRENT_USE_ASSERTS
 
-#if defined TORRENT_DEBUG && TORRENT_USE_ASSERTS \
+#if defined TORRENT_DEBUG && defined TORRENT_USE_ASSERTS \
 	&& !defined TORRENT_DISABLE_INVARIANT_CHECKS
 #define TORRENT_USE_INVARIANT_CHECKS 1
 #else

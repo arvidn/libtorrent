@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <string>
 #include <cctype>
 #include <algorithm>
@@ -40,11 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/parse_url.hpp"
-#include "libtorrent/random.hpp"
-
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -52,16 +49,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #endif
 
+#if TORRENT_USE_ICONV
+#include <iconv.h>
+#include <locale.h>
+#endif 
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/parse_url.hpp"
+#include "libtorrent/random.hpp"
+
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/thread.hpp"
 
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/string_util.hpp" // for to_string
-
-#if TORRENT_USE_ICONV
-#include <iconv.h>
-#include <locale.h>
-#endif 
 
 namespace libtorrent
 {

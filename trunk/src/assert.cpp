@@ -31,12 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 #include <boost/atomic.hpp>
 #endif
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) \
+#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
 	|| TORRENT_RELEASE_ASSERTS \
@@ -214,7 +215,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 #if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
 // the number of asserts we've printed to the log
 boost::atomic<int> assert_counter(0);
@@ -222,7 +223,7 @@ boost::atomic<int> assert_counter(0);
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
 {
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 	if (assert_counter > 500) return;
 
 	FILE* out = fopen(libtorrent_assert_log, "a+");
@@ -235,15 +236,15 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 	vfprintf(out, fmt, va);
 	va_end(va);
 
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 	if (out != stderr) fclose(out);
 #endif
 }
 
-TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
-	, char const* function, char const* value, int kind)
+TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
+	, char const* file, char const* function, char const* value, int kind)
 {
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 	// no need to flood the assert log with infinite number of asserts
 	if (assert_counter.fetch_add(1) + 1 > 500) return;
 #endif
@@ -266,7 +267,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	}
 	  
 	assert_print("%s\n"
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 		"#: %d\n"
 #endif
 		"file: '%s'\n"
@@ -277,7 +278,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 		"stack:\n"
 		"%s\n"
 		, message
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 		, assert_counter.load()
 #endif
 		, file, line, function, expr

@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // when this is specified, export a bunch of extra
 // symbols, mostly for the unit tests to reach
-#if TORRENT_EXPORT_EXTRA
+#if defined TORRENT_EXPORT_EXTRA
 # if defined TORRENT_BUILDING_SHARED
 #  define TORRENT_EXTRA_EXPORT BOOST_SYMBOL_EXPORT
 # elif defined TORRENT_LINKING_SHARED

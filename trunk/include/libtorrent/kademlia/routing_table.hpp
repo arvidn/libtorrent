@@ -33,23 +33,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef ROUTING_TABLE_HPP
 #define ROUTING_TABLE_HPP
 
-#include <vector>
-#include <boost/cstdint.hpp>
+#include "aux_/disable_warnings_push.hpp"
 
+#include <vector>
+#include <set>
+
+#include <boost/cstdint.hpp>
 #include <boost/utility.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>
-#include <set>
+#include <boost/unordered_set.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/kademlia/logging.hpp>
-
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
-#include <boost/unordered_set.hpp>
 
 namespace libtorrent
 {

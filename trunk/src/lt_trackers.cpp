@@ -32,21 +32,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #include <vector>
 #include <utility>
 #include <numeric>
 #include <cstdio>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"

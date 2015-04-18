@@ -33,12 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOCK_CACHE
 #define TORRENT_BLOCK_CACHE
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/unordered_set.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
 #include <vector>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"

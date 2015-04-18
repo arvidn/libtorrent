@@ -18,9 +18,13 @@
 #define BOOST_ASIO_DECL BOOST_SYMBOL_EXPORT
 #endif
 
+#include "aux_/disable_warnings_push.hpp"
+
 #if BOOST_VERSION >= 104500
 #include <boost/asio/impl/src.hpp>
 #elif BOOST_VERSION >= 104400
 #include <boost/asio/impl/src.cpp>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
 

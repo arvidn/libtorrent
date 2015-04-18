@@ -33,11 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOOM_FILTER_HPP_INCLUDED
 #define TORRENT_BLOOM_FILTER_HPP_INCLUDED
 
-#include <boost/cstdint.hpp>
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/config.hpp" // for sha1_hash
 
+#include "aux_/disable_warnings_push.hpp"
+
+#include <boost/cstdint.hpp>
 #include <math.h> // for log()
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

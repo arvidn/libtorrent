@@ -33,9 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/assert.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/random/random_device.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int_distribution.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #if !TORRENT_THREADSAFE_STATIC
 #include "libtorrent/thread.hpp"

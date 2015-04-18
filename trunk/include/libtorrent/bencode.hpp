@@ -76,15 +76,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <iterator> // for distance
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/static_assert.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"

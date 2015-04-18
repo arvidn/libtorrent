@@ -85,7 +85,7 @@ namespace libtorrent
 			resize(bits);
 			if (bits > 0)
 			{
-				std::memcpy(m_buf, b, ((bits + 7) / 8));
+				std::memcpy(m_buf, b, size_t((bits + 7) / 8));
 				clear_trailing_bits();
 			}
 		}
@@ -143,7 +143,7 @@ namespace libtorrent
 		// returns the size of the bitfield in bits.
 		int size() const
 		{
-			return m_buf == NULL ? 0 : m_buf[-1];
+			return m_buf == NULL ? 0 : int(m_buf[-1]);
 		}
 
 		int num_words() const
@@ -156,7 +156,7 @@ namespace libtorrent
 
 		// returns a pointer to the internal buffer of the bitfield.
 		// TODO: rename to data() ?
-		char const* bytes() const { return (char const*)m_buf; }
+		char const* bytes() const { return reinterpret_cast<char const*>(m_buf); }
 
 		// copy operator
 		bitfield& operator=(bitfield const& rhs)
@@ -287,13 +287,15 @@ namespace libtorrent
 			{
 				if (old_size_words && b) m_buf[old_size_words - 1] |= htonl((0xffffffff >> b));
 				if (old_size_words < new_size_words)
-					std::memset(m_buf + old_size_words, 0xff, (new_size_words - old_size_words) * 4);
+					std::memset(m_buf + old_size_words, 0xff
+						, size_t((new_size_words - old_size_words) * 4));
 				clear_trailing_bits();
 			}
 			else
 			{
 				if (old_size_words < new_size_words)
-					std::memset(m_buf + old_size_words, 0x00, (new_size_words - old_size_words) * 4);
+					std::memset(m_buf + old_size_words, 0x00
+						, size_t((new_size_words - old_size_words) * 4));
 			}
 			TORRENT_ASSERT(size() == bits);
 		}
@@ -329,12 +331,12 @@ namespace libtorrent
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
-			std::memset(m_buf, 0xff, num_words() * 4);
+			std::memset(m_buf, 0xff, size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
-			std::memset(m_buf, 0x00, num_words() * 4);
+			std::memset(m_buf, 0x00, size_t(num_words() * 4));
 		}
 	
 		// make the bitfield empty, of zero size.

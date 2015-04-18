@@ -35,16 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/weak_ptr.hpp>
 #include <boost/function.hpp>
-
-#include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
-
-#ifndef TORRENT_DISABLE_DHT	
-#include "libtorrent/socket.hpp"
-#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <boost/shared_ptr.hpp>
@@ -52,6 +47,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
+#endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/address.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+
+#ifndef TORRENT_DISABLE_DHT	
+#include "libtorrent/socket.hpp"
 #endif
 
 #include "libtorrent/socket.hpp" // for tcp::endpoint

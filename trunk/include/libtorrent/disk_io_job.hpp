@@ -33,14 +33,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_JOB_HPP
 #define TORRENT_DISK_IO_JOB_HPP
 
-#include <string>
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_id.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
+#include <string>
 #include <boost/function/function1.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

@@ -33,11 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/function/function1.hpp>
-#include "libtorrent/proxy_base.hpp"
-#include "libtorrent/string_util.hpp"
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/proxy_base.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent {
 

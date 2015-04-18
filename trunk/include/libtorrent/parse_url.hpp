@@ -33,15 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PARSE_URL_HPP_INCLUDED
 #define TORRENT_PARSE_URL_HPP_INCLUDED
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/tuple/tuple.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include <string>
 #include "libtorrent/config.hpp"

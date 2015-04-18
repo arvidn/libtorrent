@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
 
+#include "aux_/disable_warnings_push.hpp"
+
 #ifndef TORRENT_NO_DEPRECATE
 #include <boost/function/function1.hpp>
 #endif
@@ -46,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <list>
 #include <utility> // for std::forward
+
+#include "aux_/disable_warnings_pop.hpp"
 
 // used for emplace_alert() variadic template emulation for c++98
 #define TORRENT_ALERT_MANAGER_MAX_ARITY 7

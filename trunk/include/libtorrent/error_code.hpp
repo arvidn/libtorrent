@@ -35,6 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include <stdlib.h> // free
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
@@ -47,8 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
-#include <stdlib.h> // free
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef BOOST_SYSTEM_NOEXCEPT
 #define BOOST_SYSTEM_NOEXCEPT throw()
@@ -59,8 +62,10 @@ namespace libtorrent
 
 	namespace errors
 	{
-		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-		// its own error category get_libtorrent_category() whith the error codes defined by error_code_enum.
+		// libtorrent uses boost.system's ``error_code`` class to represent
+		// errors. libtorrent has its own error category
+		// get_libtorrent_category() whith the error codes defined by
+		// error_code_enum.
 		enum error_code_enum
 		{
 			// Not an error
@@ -535,8 +540,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const throw();
-		virtual ~libtorrent_exception() throw();
+		virtual const char* what() const BOOST_SYSTEM_NOEXCEPT;
+		virtual ~libtorrent_exception() BOOST_SYSTEM_NOEXCEPT;
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
@@ -619,6 +624,9 @@ namespace boost { namespace system {
 
 #endif // BOOST_VERSION
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #endif
 

@@ -305,7 +305,7 @@ namespace libtorrent
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.
 		std::string to_string() const
-		{ return std::string((char const*)&m_number[0], size); }
+		{ return std::string(reinterpret_cast<char const*>(&m_number[0]), size); }
 
 	private:
 
@@ -327,7 +327,7 @@ namespace libtorrent
 	inline std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
 		char out[41];
-		to_hex((char const*)&peer[0], sha1_hash::size, out);
+		to_hex(reinterpret_cast<char const*>(&peer[0]), sha1_hash::size, out);
 		return os << out;
 	}
 
@@ -336,7 +336,7 @@ namespace libtorrent
 	{
 		char hex[40];
 		is.read(hex, 40);
-		if (!from_hex(hex, 40, (char*)&peer[0]))
+		if (!from_hex(hex, 40, reinterpret_cast<char*>(&peer[0])))
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}

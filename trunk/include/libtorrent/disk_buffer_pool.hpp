@@ -33,24 +33,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_BUFFER_POOL_HPP
 #define TORRENT_DISK_BUFFER_POOL_HPP
 
-#include <boost/utility.hpp>
-
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
-#include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/file.hpp" // for iovec_t
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
-
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-#include <set>
-#endif
+#include <boost/utility.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include "libtorrent/allocator.hpp" // for page_aligned_allocator
 #include <boost/pool/pool.hpp>
 #endif
+
+#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#include <set>
+#endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/thread.hpp"
+#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/file.hpp" // for iovec_t
 
 namespace libtorrent
 {

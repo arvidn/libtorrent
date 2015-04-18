@@ -13,7 +13,7 @@ enum color_code
 	col_blue = 4,
 	col_magenta = 5,
 	col_cyan = 6,
-	col_white = 7,
+	col_white = 7
 };
 
 char const* esc(char const* code);

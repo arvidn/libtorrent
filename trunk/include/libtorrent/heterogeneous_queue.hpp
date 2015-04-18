@@ -69,7 +69,7 @@ namespace libtorrent {
 			uintptr_t* ptr = m_storage + m_size;
 
 			// length prefix
-			header_t* hdr = (header_t*)ptr;
+			header_t* hdr = reinterpret_cast<header_t*>(ptr);
 			hdr->len = object_size;
 			hdr->move = &move<U>;
 			ptr += header_size;
@@ -91,10 +91,10 @@ namespace libtorrent {
 			uintptr_t const* const end = m_storage + m_size;
 			while (ptr < end)
 			{
-				header_t* hdr = (header_t*)ptr;
+				header_t* hdr = reinterpret_cast<header_t*>(ptr);
 				ptr += header_size;
 				TORRENT_ASSERT(ptr + hdr->len <= end);
-				out.push_back((T*)ptr);
+				out.push_back(reinterpret_cast<T*>(ptr));
 				ptr += hdr->len;
 			}
 		}
@@ -116,10 +116,10 @@ namespace libtorrent {
 			uintptr_t const* const end = m_storage + m_size;
 			while (ptr < end)
 			{
-				header_t* hdr = (header_t*)ptr;
+				header_t* hdr = reinterpret_cast<header_t*>(ptr);
 				ptr += header_size;
 				TORRENT_ASSERT(ptr + hdr->len <= end);
-				T* a = (T*)ptr;
+				T* a = reinterpret_cast<T*>(ptr);
 				a->~T();
 				ptr += hdr->len;
 			}
@@ -133,10 +133,10 @@ namespace libtorrent {
 
 			TORRENT_ASSERT(m_size > 1);
 			uintptr_t* ptr = m_storage;
-			header_t* hdr = (header_t*)ptr;
+			header_t* hdr = reinterpret_cast<header_t*>(ptr);
 			ptr += header_size;
 			TORRENT_ASSERT(hdr->len <= m_size);
-			return (T*)ptr;
+			return reinterpret_cast<T*>(ptr);
 		}
 
 		~heterogeneous_queue()
@@ -176,8 +176,8 @@ namespace libtorrent {
 			uintptr_t const* const end = m_storage + m_size;
 			while (src < end)
 			{
-				header_t* src_hdr = (header_t*)src;
-				header_t* dst_hdr = (header_t*)dst;
+				header_t* src_hdr = reinterpret_cast<header_t*>(src);
+				header_t* dst_hdr = reinterpret_cast<header_t*>(dst);
 				*dst_hdr = *src_hdr;
 				src += header_size;
 				dst += header_size;
@@ -196,7 +196,7 @@ namespace libtorrent {
 		template <class U>
 		static void move(uintptr_t* dst, uintptr_t* src)
 		{
-			U* rhs = (U*)src;
+			U* rhs = reinterpret_cast<U*>(src);
 #if __cplusplus >= 201103L
 			new (dst) U(std::move(*rhs));
 #else

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG && !TORRENT_NO_ASSERTS) \
+#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
 	|| TORRENT_RELEASE_ASSERTS \
@@ -47,11 +47,11 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 
 #if TORRENT_USE_ASSERTS
 
-#if TORRENT_PRODUCTION_ASSERTS
+#ifdef TORRENT_PRODUCTION_ASSERTS
 extern char const* libtorrent_assert_log;
 #endif
 
-#if !TORRENT_USE_SYSTEM_ASSERT
+#ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #if TORRENT_USE_IOSTREAM
 #include <sstream>
@@ -59,8 +59,8 @@ extern char const* libtorrent_assert_log;
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...);
 
-TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
-	, char const* function, char const* val, int kind = 0);
+TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(const char* expr, int line
+	, char const* file, char const* function, char const* val, int kind = 0);
 
 #define TORRENT_ASSERT_PRECOND(x) \
 	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } while (false)

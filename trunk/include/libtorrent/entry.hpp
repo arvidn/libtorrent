@@ -303,7 +303,7 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// internal
-	inline void throw_type_error()
+	TORRENT_NO_RETURN inline void throw_type_error()
 	{
 		throw libtorrent_exception(error_code(errors::invalid_entry_type
 			, get_libtorrent_category()));

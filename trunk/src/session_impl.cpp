@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <ctime>
 #include <algorithm>
 #include <cctype>
@@ -43,22 +45,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // TORRENT_DEBUG && !TORRENT_DISABLE_INVARIANT_CHECKS
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 
+#ifndef TORRENT_WINDOWS
+#include <sys/resource.h>
+#endif
+
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -94,10 +94,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/choker.hpp"
-
-#ifndef TORRENT_WINDOWS
-#include <sys/resource.h>
-#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 

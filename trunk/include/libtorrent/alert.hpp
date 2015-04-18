@@ -38,15 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW
 //
@@ -73,10 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // pop_alerts(). You may not copy an alert object to access it after the next
 // call to pop_alerts(). Internal members of alerts also become invalid once
 // pop_alerts() is called again.
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
@@ -273,7 +269,7 @@ namespace libtorrent {
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
-	struct TORRENT_EXPORT unhandled_alert : std::exception
+	struct TORRENT_DEPRECATED TORRENT_EXPORT unhandled_alert : std::exception
 	{
 		unhandled_alert() {}
 	};
@@ -286,6 +282,7 @@ namespace libtorrent {
 
 		template<class Handler
 			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, class T)>
+		TORRENT_DEPRECATED
 		void handle_alert_dispatch(
 			const std::auto_ptr<alert>& alert_, const Handler& handler
 			, const std::type_info& typeid_
@@ -296,10 +293,11 @@ namespace libtorrent {
 			else
 				handle_alert_dispatch(alert_, handler, typeid_
 					, BOOST_PP_ENUM_SHIFTED_PARAMS(
-					TORRENT_MAX_ALERT_TYPES, p), (void_*)0);
+					TORRENT_MAX_ALERT_TYPES, p), reinterpret_cast<void_*>(0));
 		}
 
 		template<class Handler>
+		TORRENT_DEPRECATED
 		void handle_alert_dispatch(
 			const std::auto_ptr<alert>&
 			, const Handler&
@@ -313,13 +311,13 @@ namespace libtorrent {
 
 	template<BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(
 		TORRENT_MAX_ALERT_TYPES, class T, detail::void_)>
-	struct TORRENT_EXPORT handle_alert
+	struct TORRENT_DEPRECATED TORRENT_EXPORT handle_alert
 	{
 		template<class Handler>
 		handle_alert(const std::auto_ptr<alert>& alert_
 			, const Handler& handler)
 		{
-			#define ALERT_POINTER_TYPE(z, n, text) (BOOST_PP_CAT(T, n)*)0
+			#define ALERT_POINTER_TYPE(z, n, text) reinterpret_cast<BOOST_PP_CAT(T, n)*>(0)
 
 			detail::handle_alert_dispatch(alert_, handler, typeid(*alert_)
 				, BOOST_PP_ENUM(TORRENT_MAX_ALERT_TYPES, ALERT_POINTER_TYPE, _));

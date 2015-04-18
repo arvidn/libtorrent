@@ -33,13 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STORAGE_HPP_INCLUDE
 #define TORRENT_STORAGE_HPP_INCLUDE
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <sys/types.h>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
 #include <boost/function/function2.hpp>
 #include <boost/function/function0.hpp>
 #include <boost/limits.hpp>
@@ -49,10 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/unordered_set.hpp>
 #include <boost/atomic.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/peer_request.hpp"

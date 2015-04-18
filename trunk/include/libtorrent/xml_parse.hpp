@@ -33,13 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <cctype>
 #include <cstring>
 
+#include <boost/function.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-
-#include <boost/function.hpp>
 
 namespace libtorrent
 {
