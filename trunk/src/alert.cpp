@@ -846,7 +846,7 @@ namespace libtorrent {
 	}
 
 	udp_error_alert::udp_error_alert(
-		aux::stack_allocator& alloc
+		aux::stack_allocator&
 		, udp::endpoint const& ep
 		, error_code const& ec)
 		: endpoint(ep)
@@ -859,7 +859,7 @@ namespace libtorrent {
 		return "UDP error: " + convert_from_native(error.message()) + " from: " + endpoint.address().to_string(ec);
 	}
 
-	external_ip_alert::external_ip_alert(aux::stack_allocator& alloc
+	external_ip_alert::external_ip_alert(aux::stack_allocator&
 		, address const& ip)
 		: external_address(ip)
 	{}
@@ -870,7 +870,7 @@ namespace libtorrent {
 		return "external IP received: " + external_address.to_string(ec);
 	}
 
-	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
+	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
 		, tcp::endpoint const& ep, socket_type_t t)
 		: endpoint(ep)
 		, sock_type(t)
@@ -884,7 +884,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	portmap_error_alert::portmap_error_alert(aux::stack_allocator& alloc
+	portmap_error_alert::portmap_error_alert(aux::stack_allocator&
 		, int i, int t, error_code const& e)
 		:  mapping(i), map_type(t), error(e)
 	{
@@ -899,7 +899,7 @@ namespace libtorrent {
 			+ ": " + convert_from_native(error.message());
 	}
 
-	portmap_alert::portmap_alert(aux::stack_allocator& alloc, int i, int port, int t)
+	portmap_alert::portmap_alert(aux::stack_allocator&, int i, int port, int t)
 		: mapping(i), external_port(port), map_type(t)
 	{}
 
@@ -993,7 +993,7 @@ namespace libtorrent {
 		return ret;
 	}
 
-	dht_announce_alert::dht_announce_alert(aux::stack_allocator& alloc
+	dht_announce_alert::dht_announce_alert(aux::stack_allocator&
 		, address const& i, int p
 		, sha1_hash const& ih)
 		: ip(i)
@@ -1012,7 +1012,7 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_get_peers_alert::dht_get_peers_alert(aux::stack_allocator& alloc
+	dht_get_peers_alert::dht_get_peers_alert(aux::stack_allocator&
 		, sha1_hash const& ih)
 		: info_hash(ih)
 	{}
@@ -1134,7 +1134,7 @@ namespace libtorrent {
 		return std::string("trackerid received: ") + tracker_id();
 	}
 
-	dht_bootstrap_alert::dht_bootstrap_alert(aux::stack_allocator& alloc)
+	dht_bootstrap_alert::dht_bootstrap_alert(aux::stack_allocator&)
 	{}
 
 	std::string dht_bootstrap_alert::message() const
@@ -1143,7 +1143,7 @@ namespace libtorrent {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	rss_alert::rss_alert(aux::stack_allocator& alloc, feed_handle h
+	rss_alert::rss_alert(aux::stack_allocator&, feed_handle h
 		, std::string const& u, int s, error_code const& ec)
 		: handle(h), url(u), state(s), error(ec)
 	{}
@@ -1208,7 +1208,7 @@ namespace libtorrent {
 		return torrent_alert::message() + " needs SSL certificate";
 	}
 
-	incoming_connection_alert::incoming_connection_alert(aux::stack_allocator& alloc, int t
+	incoming_connection_alert::incoming_connection_alert(aux::stack_allocator&, int t
 		, tcp::endpoint const& i)
 		: socket_type(t)
 		, ip(i)
@@ -1268,12 +1268,21 @@ namespace libtorrent {
 		return msg;
 	}
 
+	state_update_alert::state_update_alert(aux::stack_allocator&
+		, std::vector<torrent_status> st)
+		: status(st)
+	{}
+
 	std::string state_update_alert::message() const
 	{
 		char msg[600];
 		snprintf(msg, sizeof(msg), "state updates for %d torrents", int(status.size()));
 		return msg;
 	}
+
+	mmap_cache_alert::mmap_cache_alert(aux::stack_allocator&
+		, error_code const& ec): error(ec)
+	{}
 
 	std::string mmap_cache_alert::message() const
 	{
@@ -1327,7 +1336,7 @@ namespace libtorrent {
 			"get_interface",
 		};
 
-		if (op < 0 || op >= sizeof(names)/sizeof(names[0]))
+		if (op < 0 || op >= int(sizeof(names)/sizeof(names[0])))
 			return "unknown operation";
 
 		return names[op];
@@ -1350,7 +1359,7 @@ namespace libtorrent {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	rss_item_alert::rss_item_alert(aux::stack_allocator& alloc, feed_handle h
+	rss_item_alert::rss_item_alert(aux::stack_allocator&, feed_handle h
 		, feed_item const& item)
 		: handle(h)
 		, item(item)
@@ -1393,7 +1402,8 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_error_alert::dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec)
+	dht_error_alert::dht_error_alert(aux::stack_allocator&, int op
+		, error_code const& ec)
 		: error(ec), operation(op_t(op))
 	{}
 		
@@ -1417,7 +1427,7 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_immutable_item_alert::dht_immutable_item_alert(aux::stack_allocator& alloc
+	dht_immutable_item_alert::dht_immutable_item_alert(aux::stack_allocator&
 		, sha1_hash const& t, entry const& i)
 		: target(t), item(i)
 	{}
@@ -1431,7 +1441,9 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator& alloc
+	// TODO: 2 the salt here is allocated on the heap. It would be nice to
+	// allocate in in the stack_allocator
+	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, boost::array<char, 32> k
 		, boost::array<char, 64> sig
 		, boost::uint64_t sequence
@@ -1451,12 +1463,12 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_put_alert::dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t)
+	dht_put_alert::dht_put_alert(aux::stack_allocator&, sha1_hash const& t)
 		: target(t)
 		, seq(0)
 	{}
 
-	dht_put_alert::dht_put_alert(aux::stack_allocator& alloc
+	dht_put_alert::dht_put_alert(aux::stack_allocator&
 		, boost::array<char, 32> key
 		, boost::array<char, 64> sig
 		, std::string s
@@ -1479,7 +1491,7 @@ namespace libtorrent {
 		return msg;
 	}
 
-	i2p_alert::i2p_alert(aux::stack_allocator& alloc, error_code const& ec)
+	i2p_alert::i2p_alert(aux::stack_allocator&, error_code const& ec)
 		: error(ec)
 	{}
 
@@ -1490,6 +1502,14 @@ namespace libtorrent {
 			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
+
+	dht_outgoing_get_peers_alert::dht_outgoing_get_peers_alert(aux::stack_allocator&
+		, sha1_hash const& ih, sha1_hash const& obfih
+		, udp::endpoint ep)
+		: info_hash(ih)
+		, obfuscated_info_hash(obfih)
+		, ip(ep)
+	{}
 
 	std::string dht_outgoing_get_peers_alert::message() const
 	{
@@ -1556,6 +1576,11 @@ namespace libtorrent {
 		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg();
 	}
 
+	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec)
+		: alert()
+		, error(ec)
+	{}
+
 	std::string lsd_error_alert::message() const
 	{
 		return "Local Service Discovery error: " + error.message();
@@ -1573,6 +1598,14 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), "session stats (%d values)", int(sizeof(values)));
 		return msg;
 	}
+
+	dht_stats_alert::dht_stats_alert(aux::stack_allocator&
+		, std::vector<dht_routing_bucket> const& table
+		, std::vector<dht_lookup> const& requests)
+		: alert()
+		, active_requests(requests)
+		, routing_table(table)
+	{}
 
 	std::string dht_stats_alert::message() const
 	{

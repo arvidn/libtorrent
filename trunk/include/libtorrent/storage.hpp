@@ -526,7 +526,7 @@ namespace libtorrent
 			, int offset, int flags, storage_error& ec);
 
 		bool verify_resume_data(bdecode_node const&
-			, std::vector<std::string> const* links
+			, std::vector<std::string> const*
 			, storage_error&) { return false; }
 		void write_resume_data(entry&, storage_error&) const {}
 

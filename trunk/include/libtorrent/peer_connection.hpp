@@ -764,7 +764,8 @@ namespace libtorrent
 		virtual void on_sent(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
-		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec) { return INT_MAX; }
+		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>&)
+		{ return INT_MAX; }
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
 

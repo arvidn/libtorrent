@@ -36,7 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_peer.hpp"
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/pool/pool.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

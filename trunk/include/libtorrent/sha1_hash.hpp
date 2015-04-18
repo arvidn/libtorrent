@@ -107,13 +107,13 @@ namespace libtorrent
 		explicit sha1_hash(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
-			int sl = int(s.size()) < size ? int(s.size()) : size;
+			size_t sl = s.size() < size_t(size) ? s.size() : size_t(size);
 			std::memcpy(m_number, s.c_str(), sl);
 		}
 		void assign(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
-			int sl = int(s.size()) < size ? int(s.size()) : size;
+			size_t sl = s.size() < size_t(size) ? s.size() : size_t(size);
 			std::memcpy(m_number, s.c_str(), sl);
 		}
 		void assign(char const* str) { std::memcpy(m_number, str, size); }
@@ -133,7 +133,7 @@ namespace libtorrent
 		sha1_hash& operator<<=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			int num_words = n / 32;
+			const size_t num_words = size_t(n) / 32;
 			if (num_words >= number_size)
 			{
 				std::memset(m_number, 0, size);
@@ -172,10 +172,10 @@ namespace libtorrent
 		sha1_hash& operator>>=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			int num_words = n / 32;
+			const size_t num_words = size_t(n) / 32;
 			if (num_words >= number_size)
 			{
-				std::memset(m_number, 0, size);
+				std::memset(m_number, 0, size_t(size));
 				return *this;
 			}
 			if (num_words > 0)
@@ -305,7 +305,10 @@ namespace libtorrent
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.
 		std::string to_string() const
-		{ return std::string(reinterpret_cast<char const*>(&m_number[0]), size); }
+		{
+			return std::string(reinterpret_cast<char const*>(&m_number[0])
+				, size_t(size));
+		}
 
 	private:
 
