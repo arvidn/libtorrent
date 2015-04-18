@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
 #include "aux_/disable_warnings_push.hpp"
 
 #include <string>
@@ -56,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/random.hpp"

@@ -326,7 +326,7 @@ namespace libtorrent
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
-	const char* libtorrent_exception::what() const BOOST_SYSTEM_NOEXCEPT
+	const char* libtorrent_exception::what() const TORRENT_EXCEPTION_THROW_SPECIFIER
 	{
 		if (!m_msg)
 		{
@@ -337,7 +337,7 @@ namespace libtorrent
 		return m_msg;
 	}
 
-	libtorrent_exception::~libtorrent_exception() BOOST_SYSTEM_NOEXCEPT
+	libtorrent_exception::~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER
 	{
 		free(m_msg);
 	}

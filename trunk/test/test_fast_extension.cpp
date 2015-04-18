@@ -40,9 +40,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <cstdarg>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;

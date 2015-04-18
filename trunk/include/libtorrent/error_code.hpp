@@ -53,10 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifndef BOOST_SYSTEM_NOEXCEPT
-#define BOOST_SYSTEM_NOEXCEPT throw()
-#endif
-
 namespace libtorrent
 {
 
@@ -540,8 +536,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const BOOST_SYSTEM_NOEXCEPT;
-		virtual ~libtorrent_exception() BOOST_SYSTEM_NOEXCEPT;
+		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;
+		virtual ~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER;
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
