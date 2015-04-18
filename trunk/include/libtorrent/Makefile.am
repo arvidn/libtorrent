@@ -160,6 +160,8 @@ nobase_include_HEADERS = \
   aux_/session_interface.hpp        \
   aux_/time.hpp                     \
   aux_/escape_string.hpp            \
+  aux_/disable_warnings_push.hpp    \
+  aux_/disable_warnings_pop.hpp     \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \
