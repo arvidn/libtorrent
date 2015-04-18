@@ -36,13 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wswitch-enum"
-#pragma GCC diagnostic ignored "-Wcovered-switch-default"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #pragma GCC diagnostic ignored "-Wundef"
-#pragma GCC diagnostic ignored "-Wweak-vtables"
 #pragma GCC diagnostic ignored "-Wmissing-noreturn"
 #pragma GCC diagnostic ignored "-Wdeprecated"
 #pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
 #ifdef __clang__
