@@ -34,15 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ENUM_NET_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <boost/asio/ip/tcp.hpp>
-#include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/address.hpp"
-#include "libtorrent/error_code.hpp"
 
 #if TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 #include <sys/socket.h> // for SO_BINDTODEVICE
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {

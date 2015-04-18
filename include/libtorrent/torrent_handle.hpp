@@ -33,12 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 #define TORRENT_TORRENT_HANDLE_HPP_INCLUDED
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <set>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
 
 #include <boost/assert.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
@@ -46,9 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/cstdint.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/piece_picker.hpp"
@@ -1223,7 +1219,7 @@ namespace libtorrent
 
 		boost::uint32_t id() const
 		{
-			uintptr_t ret = (uintptr_t)m_torrent.lock().get();
+			uintptr_t ret = reinterpret_cast<uintptr_t>(m_torrent.lock().get());
 			// a torrent object is about 1024 bytes, so
 			// it's safe to shift 11 bits
 			return boost::uint32_t(ret >> 11);
@@ -1335,6 +1331,7 @@ namespace libtorrent
 		// ``torrent_handle::query_torrent_file``.
 		boost::weak_ptr<const torrent_info> torrent_file;
 
+		// TODO: 3 don't use boost.date-time types here. use chrono types
 		// the time until the torrent will announce itself to the tracker.
 		boost::posix_time::time_duration next_announce;
 

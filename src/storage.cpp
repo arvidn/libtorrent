@@ -30,14 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <ctime>
 #include <algorithm>
 #include <set>
 #include <functional>
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
 
 #include <boost/ref.hpp>
 #include <boost/bind.hpp>
@@ -46,28 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if BOOST_VERSION >= 103500
 #include <boost/system/system_error.hpp>
 #endif
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/torrent.hpp"
-#include "libtorrent/hasher.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/invariant_check.hpp"
-#include "libtorrent/file_pool.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/alloca.hpp"
-#include "libtorrent/stat_cache.hpp"
-
-#include <cstdio>
-
-//#define TORRENT_PARTIAL_HASH_LOG
 
 #if defined(__APPLE__)
 // for getattrlist()
@@ -87,6 +63,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/param.h>
 #include <sys/mount.h>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/config.hpp"
+#include "libtorrent/storage.hpp"
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/hasher.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/file.hpp"
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/file_pool.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/alloca.hpp"
+#include "libtorrent/stat_cache.hpp"
+
+#include <cstdio>
+
+//#define TORRENT_PARTIAL_HASH_LOG
 
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"

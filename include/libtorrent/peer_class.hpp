@@ -36,10 +36,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/assert.hpp"
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <string>
 #include <boost/smart_ptr.hpp>
 #include <boost/cstdint.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

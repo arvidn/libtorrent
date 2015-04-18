@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <ctime>
 #include <algorithm>
 #include <set>
@@ -37,18 +41,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <limits> // for numeric_limits
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/ssl_stream.hpp"
+#include <boost/asio/ssl/context.hpp>
+#include <openssl/rand.h>
+#if BOOST_VERSION >= 104700
+#include <boost/asio/ssl/verify_context.hpp>
+#endif // BOOST_VERSION
+#endif // TORRENT_USE_OPENSSL
 
-#include "libtorrent/config.hpp"
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -87,15 +93,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
-
-#ifdef TORRENT_USE_OPENSSL
-#include "libtorrent/ssl_stream.hpp"
-#include <boost/asio/ssl/context.hpp>
-#include <openssl/rand.h>
-#if BOOST_VERSION >= 104700
-#include <boost/asio/ssl/verify_context.hpp>
-#endif // BOOST_VERSION
-#endif // TORRENT_USE_OPENSSL
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger

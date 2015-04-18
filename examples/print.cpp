@@ -50,7 +50,7 @@ std::string to_string(int v, int width)
 
 std::string add_suffix(float val, char const* suffix)
 {
-	if (val == 0)
+	if (val < 0.001f)
 	{
 		std::string ret;
 		ret.resize(4 + 2, ' ');
@@ -85,7 +85,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 {
 	static std::string bar;
 	bar.clear();
-	bar.reserve(width + 10);
+	bar.reserve(size_t(width + 10));
 
 	int progress_chars = (progress * width + 500) / 1000;
 
@@ -105,7 +105,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 		if (c == col_black || c == col_blue)
 			tc = col_white;
 
-		caption.resize(width, ' ');
+		caption.resize(size_t(width), ' ');
 
 		char str[256];
 		if (flags & progress_invert)
@@ -180,7 +180,7 @@ void terminal_size(int* terminal_width, int* terminal_height)
 #else
 	int tty = open("/dev/tty", O_RDONLY);
 	winsize size;
-	int ret = ioctl(tty, TIOCGWINSZ, (char*)&size);
+	int ret = ioctl(tty, TIOCGWINSZ, reinterpret_cast<char*>(&size));
 	close(tty);
 	if (ret == 0)
 	{

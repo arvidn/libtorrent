@@ -36,21 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/smart_ptr.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/time.hpp"
+#include <boost/function.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -82,7 +74,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include <boost/function.hpp>
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -206,7 +202,7 @@ namespace libtorrent
 
 	struct file;
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 	struct file_handle
 	{
 		file_handle();
@@ -338,7 +334,7 @@ namespace libtorrent
 		boost::uint32_t file_id() const { return m_file_id; }
 #endif
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 		void print_info(FILE* out) const;
 #endif
 
@@ -365,7 +361,7 @@ namespace libtorrent
 		static bool has_manage_volume_privs;
 #endif
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 		std::string m_file_path;
 #endif
 	};

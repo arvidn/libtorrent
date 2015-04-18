@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LT_TRACKERS_HPP_INCLUDED
-#define TORRENT_LT_TRACKERS_HPP_INCLUDED
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
-#include "aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
-
-#include "aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
-	struct torrent_plugin;
-	class torrent;
-
-	// constructor function for the trackers exchange extension. This can
-	// either be passed in the add_torrent_params::extensions field, or
-	// via torrent_handle::add_extension().
-	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent*, void*);
-}
-
-#endif // TORRENT_DISABLE_EXTENSIONS
-
-#endif // TORRENT_LT_TRACKERS_HPP_INCLUDED
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 

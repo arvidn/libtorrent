@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_I2P
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <list>
 #include <string>
 #include <vector>
@@ -44,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function/function2.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/string_util.hpp"

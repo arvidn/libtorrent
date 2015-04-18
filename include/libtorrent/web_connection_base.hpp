@@ -33,17 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
+#include "libtorrent/debug.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
-
-#include "libtorrent/debug.hpp"
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -52,9 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"

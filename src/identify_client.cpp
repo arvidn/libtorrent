@@ -34,15 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <stdio.h>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/optional.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"

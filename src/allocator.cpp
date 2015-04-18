@@ -87,7 +87,7 @@ namespace libtorrent
 #elif defined TORRENT_BEOS
 		s = B_PAGE_SIZE;
 #else
-		s = sysconf(_SC_PAGESIZE);
+		s = int(sysconf(_SC_PAGESIZE));
 #endif
 		// assume the page size is 4 kiB if we
 		// fail to query it
@@ -112,18 +112,19 @@ namespace libtorrent
 
 		char* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign((void**)&ret, page_size(), bytes) != 0) ret = NULL;
+		if (posix_memalign(reinterpret_cast<void**>(&ret), page_size(), bytes)
+			!= 0) ret = NULL;
 #elif TORRENT_USE_MEMALIGN
-		ret = (char*)memalign(page_size(), bytes);
+		ret = static_cast<char*>(memalign(page_size(), bytes));
 #elif defined TORRENT_WINDOWS
-		ret = (char*)_aligned_malloc(bytes, page_size());
+		ret = static_cast<char*>(_aligned_malloc(bytes, page_size()));
 #elif defined TORRENT_BEOS
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
 			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
 		if (id < B_OK) return NULL;
-		ret = (char*)ret;
+		ret = static_cast<char*>(ret);
 #else
-		ret = (char*)valloc(bytes);
+		ret = static_cast<char*>(valloc(size_t(bytes)));
 #endif
 		if (ret == NULL) return NULL;
 

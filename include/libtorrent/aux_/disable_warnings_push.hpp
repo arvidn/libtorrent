@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LT_TRACKERS_HPP_INCLUDED
-#define TORRENT_LT_TRACKERS_HPP_INCLUDED
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wswitch-enum"
+#pragma GCC diagnostic ignored "-Wcovered-switch-default"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wundef"
+#pragma GCC diagnostic ignored "-Wweak-vtables"
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wswitch-enum"
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wundef"
+#pragma clang diagnostic ignored "-Wweak-vtables"
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+#pragma clang diagnostic ignored "-Wdeprecated"
+#pragma clang diagnostic ignored "-Wcast-align"
+#pragma clang diagnostic ignored "-Wweak-vtable"
+#pragma clang diagnostic ignored "-Wundef"
+#pragma clang diagnostic ignored "-Wshadow"
+#endif
 
-#include "aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
-
-#include "aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
-{
-	struct torrent_plugin;
-	class torrent;
-
-	// constructor function for the trackers exchange extension. This can
-	// either be passed in the add_torrent_params::extensions field, or
-	// via torrent_handle::add_extension().
-	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent*, void*);
-}
-
-#endif // TORRENT_DISABLE_EXTENSIONS
-
-#endif // TORRENT_LT_TRACKERS_HPP_INCLUDED
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 

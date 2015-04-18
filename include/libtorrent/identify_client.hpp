@@ -33,15 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 #define TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/optional.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/fingerprint.hpp"

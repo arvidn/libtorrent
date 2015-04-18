@@ -33,8 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 #include <boost/atomic.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/config.hpp"
 
 namespace libtorrent

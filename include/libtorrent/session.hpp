@@ -36,15 +36,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/limits.hpp>
-
 #ifdef _MSC_VER
-#pragma warning(pop)
+#	include <eh.h>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -61,10 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/session_settings.hpp"
-
-#ifdef _MSC_VER
-#	include <eh.h>
-#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp"

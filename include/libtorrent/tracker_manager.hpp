@@ -39,9 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <ctime>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -50,9 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
@@ -62,9 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/udp_socket.hpp" // for udp_socket_observer
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
-#endif
 
 namespace libtorrent
 {

@@ -115,8 +115,8 @@ namespace libtorrent
 
 		char version_to_char(int v) const
 		{
-			if (v >= 0 && v < 10) return '0' + v;
-			else if (v >= 10) return 'A' + (v - 10);
+			if (v >= 0 && v < 10) return char('0' + v);
+			else if (v >= 10) return char('A' + (v - 10));
 			TORRENT_ASSERT(false);
 			return '0';
 		}

@@ -225,6 +225,33 @@ rule linking ( properties * )
 	return $(result) ;
 }
 
+rule warnings ( properties * )
+{
+	local result ;
+	if <toolset>clang in $(properties)
+		|| <toolset>darwin in $(properties)
+	{
+		result += <cflags>-Weverything ;
+		result += <cflags>-Wno-documentation ;
+		result += <cflags>-Wno-c++98-compat-pedantic ;
+		result += <cflags>-Wno-padded ;
+		result += <cflags>-Wno-global-constructors ;
+		result += <cflags>-Wno-c++98-compat ;
+		result += <cflags>-Wno-exit-time-destructors ;
+		result += <cflags>-Wno-documentation-unknown-command ;
+		result += <cflags>-Wno-disabled-macro-expansion ;
+	}
+
+	if <toolset>msvc in $(properties)
+	{
+# disable warning C4503: decorated name length exceeded, name was truncated
+		result += <cflags>/wd4503 ;
+		result += <cflags>/W4 ;
+	}
+
+	return $(result) ;
+}
+
 # rule for adding the right source files
 # depending on target-os and features
 rule building ( properties * )
@@ -679,26 +706,10 @@ local usage-requirements =
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
-# disable bogus deprecation warnings on msvc8
-	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
-	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
-# disable warning C4503: decorated name length exceeded, name was truncated
-	<toolset>msvc:<cxxflags>/wd4503
-# disable warning C4275: non-dll interface class 'x' used as base for dll-interface struct 'y'
-	<toolset>msvc:<cxxflags>/wd4275
-# disable warning C4251: 'x' needs to have dll-interface to be used by clients of class 'y'
-	<toolset>msvc:<cxxflags>/wd4251
-# disable some warnings for gcc
-	<toolset>gcc:<cflags>-fno-strict-aliasing
-	<toolset>gcc:<cflags>-Wno-missing-braces
-	<toolset>gcc:<cflags>-Wno-unused-local-typedefs
-# suppress warnings caused by boost using c++11 features even when not
-# in c++11 mode
-	<toolset>darwin:<cxxflags>-Wno-c++11-extensions
-# assert on integer overflow
+
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
@@ -736,19 +747,22 @@ lib torrent
 	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
+	<conditional>@warnings
 	<boost>system:<cxxflags>$(CXXFLAGS)
+
+	# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 
 	$(usage-requirements)
 
 	: # default build
 	<link>static
 	<threading>multi
-	<warnings>all
 
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
-
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

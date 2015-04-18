@@ -37,15 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define Protocol Protocol_
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/version.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #ifdef __OBJC__ 
 #undef Protocol

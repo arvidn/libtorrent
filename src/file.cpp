@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <vector>
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 #include <set>
 #include "libtorrent/thread.hpp"
 #endif
@@ -1285,7 +1285,7 @@ namespace libtorrent
 	{
 		close();
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 		m_file_path = path;
 #endif
 
@@ -1471,7 +1471,7 @@ namespace libtorrent
 		return true;
 	}
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 	void file::print_info(FILE* out) const
 	{
 		if (!is_open()) return;
@@ -2201,7 +2201,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 	}
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#ifdef TORRENT_DEBUG_FILE_LEAKS
 	std::set<file_handle*> global_file_handles;
 	mutex file_handle_mutex;
 

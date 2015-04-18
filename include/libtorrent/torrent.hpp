@@ -39,9 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <deque>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/limits.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -50,9 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/version.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"

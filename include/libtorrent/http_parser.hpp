@@ -38,16 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"

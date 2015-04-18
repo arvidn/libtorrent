@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <boost/shared_ptr.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
 #include <fstream>

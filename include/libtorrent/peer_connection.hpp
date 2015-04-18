@@ -42,9 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -55,9 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include <boost/aligned_storage.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_id.hpp"

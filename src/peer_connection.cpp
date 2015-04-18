@@ -30,10 +30,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
+
+#ifdef TORRENT_DEBUG
+#include <set>
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
+#endif
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <stdarg.h> // for va_start, va_end
@@ -71,14 +83,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/time.hpp"
-
-#ifdef TORRENT_DEBUG
-#include <set>
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#include <openssl/rand.h>
-#endif
 
 //#define TORRENT_CORRUPT_DATA
 

@@ -33,12 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_IMPL_HPP_INCLUDED
 #define TORRENT_SESSION_IMPL_HPP_INCLUDED
 
-#include <algorithm>
-#include <vector>
-#include <set>
-#include <list>
-#include <stdarg.h> // for va_start, va_end
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
@@ -48,17 +42,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
+
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <list>
+#include <stdarg.h> // for va_start, va_end
 
 #if TORRENT_HAS_BOOST_UNORDERED
 #include <boost/unordered_map.hpp>
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/session.hpp" // for user_load_function_t
 #include "libtorrent/ip_voter.hpp"
@@ -98,10 +98,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
 #endif
 
 namespace libtorrent
