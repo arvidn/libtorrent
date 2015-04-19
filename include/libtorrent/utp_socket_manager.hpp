@@ -49,7 +49,7 @@ namespace libtorrent
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager : udp_socket_observer
+	struct utp_socket_manager TORRENT_FINAL : udp_socket_observer
 	{
 		utp_socket_manager(aux::session_settings const& sett, udp_socket& s
 			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
@@ -57,12 +57,12 @@ namespace libtorrent
 
 		// return false if this is not a uTP packet
 		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size);
-		virtual bool incoming_packet(error_code const&, char const*, char const*, int)
+			, char const* p, int size) TORRENT_OVERRIDE;
+		virtual bool incoming_packet(error_code const&, char const*, char const*, int) TORRENT_OVERRIDE
 		{ return false; }
-		virtual void writable();
+		virtual void writable() TORRENT_OVERRIDE;
 
-		virtual void socket_drained();
+		virtual void socket_drained() TORRENT_OVERRIDE;
 
 		void tick(time_point now);
 

@@ -43,6 +43,8 @@ namespace libtorrent
 		// below the low watermark again and we can
 		// resume downloading from peers
 		virtual void on_disk() = 0;
+	protected:
+		~disk_observer() {}
 	};
 }
 

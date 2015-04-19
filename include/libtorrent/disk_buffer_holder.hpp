@@ -55,6 +55,8 @@ namespace libtorrent
 			, char const* category) = 0;
 		virtual char* async_allocate_disk_buffer(char const* category
 			, boost::function<void(char*)> const& handler) = 0;
+	protected:
+		~buffer_allocator_interface() {}
 	};
 
 	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer

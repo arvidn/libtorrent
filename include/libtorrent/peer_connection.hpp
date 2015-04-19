@@ -336,7 +336,7 @@ namespace libtorrent
 
 		// this is called when the metadata is retrieved
 		// and the files has been checked
-		virtual void on_metadata() {};
+		virtual void on_metadata() {}
 
 		void on_metadata_impl();
 

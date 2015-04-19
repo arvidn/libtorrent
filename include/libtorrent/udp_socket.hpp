@@ -61,6 +61,8 @@ namespace libtorrent
 
 		// called every time the socket is drained of packets
 		virtual void socket_drained() {}
+	protected:
+		~udp_socket_observer() {}
 	};
 
 	class udp_socket : single_threaded

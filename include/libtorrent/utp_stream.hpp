@@ -219,7 +219,7 @@ public:
 	error_code get_option(GettableSocketOption&, error_code& ec)
 	{ return ec; }
 
-	error_code cancel(error_code& ec)
+	error_code cancel(error_code&)
 	{
 		cancel_handlers(asio::error::operation_aborted);
 		return error_code();

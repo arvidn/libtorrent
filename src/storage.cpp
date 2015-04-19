@@ -188,6 +188,8 @@ namespace libtorrent
 			std::memset(i->iov_base, 0, i->iov_len);
 	}
 
+	namespace {
+
 #if TORRENT_USE_ASSERTS
 	int count_bufs(file::iovec_t const* bufs, int bytes)
 	{
@@ -202,6 +204,7 @@ namespace libtorrent
 		}
 	}
 #endif
+	} // anonymous namespace
 
 	default_storage::default_storage(storage_params const& params)
 		: m_files(*params.files)
@@ -530,7 +533,7 @@ namespace libtorrent
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
-	void default_storage::release_files(storage_error& ec)
+	void default_storage::release_files(storage_error&)
 	{
 		// make sure we don't have the files open
 		m_pool.release(this);
@@ -1363,14 +1366,14 @@ namespace libtorrent
 		return new default_storage(params);
 	}
 
-	int disabled_storage::readv(file::iovec_t const* bufs
-		, int num_bufs, int slot, int offset, int flags, storage_error& ec)
+	int disabled_storage::readv(file::iovec_t const*
+		, int, int, int, int, storage_error&)
 	{
 		return 0;
 	}
 
-	int disabled_storage::writev(file::iovec_t const* bufs
-		, int num_bufs, int slot, int offset, int flags, storage_error& ec)
+	int disabled_storage::writev(file::iovec_t const*
+		, int, int, int, int, storage_error&)
 	{
 		return 0;
 	}

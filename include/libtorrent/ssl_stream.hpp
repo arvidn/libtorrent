@@ -36,6 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/io_service.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
+#include <boost/function/function1.hpp>
 #include <boost/bind.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ssl.hpp>
@@ -45,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // openssl seems to believe it owns
 // this name in every single scope
 #undef set_key
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 

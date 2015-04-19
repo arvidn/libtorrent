@@ -279,7 +279,7 @@ namespace libtorrent
 	
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXTRA_EXPORT disk_io_thread
+	struct TORRENT_EXTRA_EXPORT disk_io_thread TORRENT_FINAL
 		: disk_job_pool
 		, disk_interface
 		, buffer_allocator_interface

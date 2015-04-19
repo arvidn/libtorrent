@@ -58,21 +58,25 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
+#include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
 
 #include <map>
 #include <list>
 #include <string>
 #include <stdexcept>
 #include <boost/cstdint.hpp>
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/max.hpp"
-
+#include <boost/config.hpp>
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/assert.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/max.hpp"
 
 namespace libtorrent
 {
@@ -303,7 +307,7 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// internal
-	TORRENT_NO_RETURN inline void throw_type_error()
+	BOOST_NORETURN inline void throw_type_error()
 	{
 		throw libtorrent_exception(error_code(errors::invalid_entry_type
 			, get_libtorrent_category()));

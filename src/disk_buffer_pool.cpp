@@ -323,7 +323,8 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
-	char* disk_buffer_pool::allocate_buffer_impl(mutex::scoped_lock& l, char const* category)
+	char* disk_buffer_pool::allocate_buffer_impl(mutex::scoped_lock& l
+		, char const*)
 	{
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(m_magic == 0x1337);

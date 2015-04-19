@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/config.hpp>
 #include <list>
 #include <utility> // for std::forward
 
@@ -67,7 +68,7 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-#if __cplusplus >= 201103L
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args)
