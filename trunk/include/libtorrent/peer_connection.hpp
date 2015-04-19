@@ -33,16 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CONNECTION_HPP_INCLUDED
 #define TORRENT_PEER_CONNECTION_HPP_INCLUDED
 
-#include <ctime>
-#include <algorithm>
-#include <vector>
-#include <string>
+#include "libtorrent/config.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/debug.hpp"
 #endif
 
 #include "aux_/disable_warnings_push.hpp"
+
+#include <ctime>
+#include <algorithm>
+#include <vector>
+#include <string>
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -61,7 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/socket_type_fwd.hpp"
 #include "libtorrent/assert.hpp"

@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| TORRENT_RELEASE_ASSERTS \
+	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 
 #ifdef __APPLE__
@@ -296,9 +296,9 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 
 #else
 
-TORRENT_EXPORT void assert_print(char const* fmt, ...) {}
-TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
-	, char const* function, char const* value, int kind) {}
+TORRENT_EXPORT void assert_print(char const*, ...) {}
+TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const*, int, char const*
+	, char const*, char const*, int) {}
 
 #endif
 
