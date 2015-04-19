@@ -401,12 +401,12 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #ifdef  __GLIBC__
 #define TORRENT_EXCEPTION_THROW_SPECIFIER _GLIBCXX_USE_NOEXCEPT
 #else
-
 #if __cplusplus <= 199711L || defined BOOST_NO_CXX11_NOEXCEPT
 #define TORRENT_EXCEPTION_THROW_SPECIFIER throw()
 #else
 #define TORRENT_EXCEPTION_THROW_SPECIFIER noexcept
 #endif
+#endif // __GLIBC__
 
 #if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
 #define TORRENT_FINAL
@@ -419,9 +419,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #else
 #define TORRENT_OVERRIDE override
 #endif
-
-
-#endif // __GLIBC__
 
 #ifndef TORRENT_ICONV_ARG
 #define TORRENT_ICONV_ARG (char**)

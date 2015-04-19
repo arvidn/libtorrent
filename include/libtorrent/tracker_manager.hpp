@@ -33,13 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TRACKER_MANAGER_HPP_INCLUDED
 #define TORRENT_TRACKER_MANAGER_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <string>
 #include <list>
 #include <utility>
 #include <ctime>
-
-#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -54,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/peer_id.hpp"
