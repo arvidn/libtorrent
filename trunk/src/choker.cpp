@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	namespace {
+
 	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
 	bool unchoke_compare_rr(peer_connection const* lhs
 		, peer_connection const* rhs, int pieces)
@@ -246,6 +248,8 @@ namespace libtorrent
 		// prioritize the one that has waited the longest to be unchoked
 		return lhs->time_of_last_unchoke() < rhs->time_of_last_unchoke();
 	}
+
+	} // anonymous namespace
 
 	int unchoke_sort(std::vector<peer_connection*>& peers
 		, int max_upload_rate

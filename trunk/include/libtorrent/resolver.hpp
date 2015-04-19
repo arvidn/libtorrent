@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-struct TORRENT_EXTRA_EXPORT resolver : resolver_interface
+struct TORRENT_EXTRA_EXPORT resolver TORRENT_FINAL : resolver_interface
 {
 	resolver(io_service& ios);
 

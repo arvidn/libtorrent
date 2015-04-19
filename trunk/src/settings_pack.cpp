@@ -122,6 +122,8 @@ namespace libtorrent
 #pragma GCC diagnostic ignored "-Winvalid-offsetof"
 #endif
 
+	namespace {
+
 	using aux::session_impl;
 
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
@@ -351,6 +353,8 @@ namespace libtorrent
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
+
+	} // anonymous namespace
 
 	int setting_by_name(std::string const& key)
 	{

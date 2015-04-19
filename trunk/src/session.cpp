@@ -480,15 +480,15 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void session::load_asnum_db(char const* file) {}
-	void session::load_country_db(char const* file) {}
+	void session::load_asnum_db(char const*) {}
+	void session::load_country_db(char const*) {}
 
-	int session::as_for_ip(address const& addr)
+	int session::as_for_ip(address const&)
 	{ return 0; }
 
 #if TORRENT_USE_WSTRING
-	void session::load_asnum_db(wchar_t const* file) {}
-	void session::load_country_db(wchar_t const* file) {}
+	void session::load_asnum_db(wchar_t const*) {}
+	void session::load_country_db(wchar_t const*) {}
 #endif // TORRENT_USE_WSTRING
 
 	void session::load_state(entry const& ses_state)

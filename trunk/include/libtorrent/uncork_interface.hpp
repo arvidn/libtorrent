@@ -48,6 +48,8 @@ namespace libtorrent
 	struct uncork_interface
 	{
 		virtual void do_delayed_uncork() = 0;
+	protected:
+		~uncork_interface() {}
 	};
 }
 

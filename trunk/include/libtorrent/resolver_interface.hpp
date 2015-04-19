@@ -64,6 +64,8 @@ struct resolver_interface
 		, callback_t const& h) = 0;
 
 	virtual void abort() = 0;
+protected:
+	~resolver_interface() {}
 };
 
 }

@@ -322,7 +322,7 @@ namespace libtorrent
 		tracker_manager& m_man;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager
+	class TORRENT_EXTRA_EXPORT tracker_manager TORRENT_FINAL
 		: public udp_socket_observer
 		, boost::noncopyable
 	{

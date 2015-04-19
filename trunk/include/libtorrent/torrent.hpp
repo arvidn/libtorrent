@@ -696,14 +696,14 @@ namespace libtorrent
 			tracker_request const& r
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
-			, struct tracker_response const& resp);
+			, struct tracker_response const& resp) TORRENT_OVERRIDE;
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
-			, int retry_interval);
+			, int retry_interval) TORRENT_OVERRIDE;
 		virtual void tracker_warning(tracker_request const& req
-			, std::string const& msg);
+			, std::string const& msg) TORRENT_OVERRIDE;
 		virtual void tracker_scrape_response(tracker_request const& req
-			, int complete, int incomplete, int downloaded, int downloaders);
+			, int complete, int incomplete, int downloaded, int downloaders) TORRENT_OVERRIDE;
 
 		void update_scrape_state();
 
@@ -1022,7 +1022,7 @@ namespace libtorrent
 
 		// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual void debug_log(const char* fmt, ...) const;
+		virtual void debug_log(const char* fmt, ...) const TORRENT_OVERRIDE;
 		void log_to_all_peers(char const* message);
 		time_point m_dht_start_time;
 #endif

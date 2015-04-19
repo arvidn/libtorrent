@@ -240,6 +240,7 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-exit-time-destructors ;
 		result += <cflags>-Wno-documentation-unknown-command ;
 		result += <cflags>-Wno-disabled-macro-expansion ;
+		result += <cflags>-Wno-weak-vtables ;
 	}
 
 	if <toolset>gcc in $(properties)

@@ -119,6 +119,8 @@ namespace libtorrent { namespace aux
 		virtual bool any_torrent_has_peer(peer_connection const* p) const = 0;
 		virtual bool is_posting_torrent_updates() const = 0;
 #endif
+	protected:
+		~session_logger() {}
 	};
 #endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 
@@ -336,6 +338,8 @@ namespace libtorrent { namespace aux
 		virtual counters& stats_counters() = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;
+	protected:
+		~session_interface() {}
 	};
 }}
 

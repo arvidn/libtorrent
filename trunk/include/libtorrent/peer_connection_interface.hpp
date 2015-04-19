@@ -65,6 +65,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual void peer_log(char const* fmt, ...) const = 0;
 #endif
+	protected:
+		~peer_connection_interface() {}
 	};
 }
 
