@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace {
+
 	bool supports_sse42()
 	{
 #if TORRENT_HAS_SSE
@@ -53,6 +55,8 @@ namespace libtorrent
 	}
 
 	static bool sse42_support = supports_sse42();
+
+	} // anonymous namespace
 
 	boost::uint32_t crc32c_32(boost::uint32_t v)
 	{
