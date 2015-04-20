@@ -344,6 +344,11 @@ namespace libtorrent
 	{
 #ifdef TORRENT_USE_OPENSSL
 		TORRENT_ASYNC_CALL4(set_ssl_cert, certificate, private_key, dh_params, passphrase);
+#else
+		TORRENT_UNUSED(certificate);
+		TORRENT_UNUSED(private_key);
+		TORRENT_UNUSED(dh_params);
+		TORRENT_UNUSED(passphrase);
 #endif
 	}
 
@@ -354,6 +359,10 @@ namespace libtorrent
 	{
 #ifdef TORRENT_USE_OPENSSL
 		TORRENT_ASYNC_CALL3(set_ssl_cert_buffer, certificate, private_key, dh_params);
+#else
+		TORRENT_UNUSED(certificate);
+		TORRENT_UNUSED(private_key);
+		TORRENT_UNUSED(dh_params);
 #endif
 	}
 
@@ -506,11 +515,11 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 // ============ start deprecation ===============
 
-	int torrent_handle::get_peer_upload_limit(tcp::endpoint ip) const { return -1; }
-	int torrent_handle::get_peer_download_limit(tcp::endpoint ip) const { return -1; }
-	void torrent_handle::set_peer_upload_limit(tcp::endpoint ip, int limit) const {}
-	void torrent_handle::set_peer_download_limit(tcp::endpoint ip, int limit) const {}
-	void torrent_handle::set_ratio(float ratio) const {}
+	int torrent_handle::get_peer_upload_limit(tcp::endpoint) const { return -1; }
+	int torrent_handle::get_peer_download_limit(tcp::endpoint) const { return -1; }
+	void torrent_handle::set_peer_upload_limit(tcp::endpoint, int /* limit */) const {}
+	void torrent_handle::set_peer_download_limit(tcp::endpoint, int /* limit */) const {}
+	void torrent_handle::set_ratio(float) const {}
 	void torrent_handle::use_interface(const char* net_interface) const
 	{
 		TORRENT_ASYNC_CALL1(use_interface, std::string(net_interface));

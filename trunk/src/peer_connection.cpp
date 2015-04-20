@@ -1132,10 +1132,13 @@ namespace libtorrent
 #endif
 	}
 
+	// single_peer is true if the entire piece was received by a single
+	// peer
 	bool peer_connection::received_invalid_data(int index, bool single_peer)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
+		TORRENT_UNUSED(single_peer);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -1145,6 +1148,8 @@ namespace libtorrent
 				(*i)->on_piece_failed(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
+#else
+		TORRENT_UNUSED(index);
 #endif
 		return true;
 	}

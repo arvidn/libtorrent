@@ -82,11 +82,15 @@ void find_data_observer::reply(msg const& m)
 	done();
 }
 
+namespace {
+
 void add_entry_fun(void* userdata, node_entry const& e)
 {
 	traversal_algorithm* f = (traversal_algorithm*)userdata;
 	f->add_entry(e.id, e.ep(), observer::flag_initial);
 }
+
+} // anonymous namespace
 
 find_data::find_data(
 	node_impl& node

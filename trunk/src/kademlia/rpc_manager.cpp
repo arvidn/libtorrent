@@ -268,10 +268,8 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	}
 }
 
-// defined in node.cpp
-void incoming_error(entry& e, char const* msg, int error_code = 203);
-
-bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings const& settings)
+bool rpc_manager::incoming(msg const& m, node_id* id
+	, libtorrent::dht_settings const& settings)
 {
 	INVARIANT_CHECK;
 

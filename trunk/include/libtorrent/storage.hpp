@@ -456,8 +456,6 @@ namespace libtorrent
 			// this is used to open the file, but also passed along as the
 			// flags argument to the file operation (readv or writev)
 			int mode;
-			// used for error reporting
-			int operation_type;
 		};
 
 		void delete_one_file(std::string const& p, error_code& ec);

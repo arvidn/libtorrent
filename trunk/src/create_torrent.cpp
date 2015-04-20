@@ -54,7 +54,7 @@ namespace libtorrent
 
 	class alert;
 
-	namespace detail
+	namespace
 	{
 		inline bool default_pred(std::string const&) { return true; }
 
@@ -157,7 +157,38 @@ namespace libtorrent
 				}
 			}
 		}
-	} // detail namespace
+
+		void on_hash(disk_io_job const* j, create_torrent* t
+			, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
+			, int* piece_counter, int* completed_piece
+			, boost::function<void(int)> const* f, error_code* ec)
+		{
+			if (j->ret != 0)
+			{
+				// on error
+				*ec = j->error.ec;
+				iothread->set_num_threads(0);
+				return;
+			}
+			t->set_hash(j->piece, sha1_hash(j->d.piece_hash));
+			(*f)(*completed_piece);
+			++(*completed_piece);
+			if (*piece_counter < t->num_pieces())
+			{
+				iothread->async_hash(storage.get(), *piece_counter
+					, disk_io_job::sequential_access
+					, boost::bind(&on_hash, _1, t, storage, iothread
+					, piece_counter, completed_piece, f, ec), (void*)0);
+				++(*piece_counter);
+			}
+			else
+			{
+				iothread->set_num_threads(0);
+			}
+			iothread->submit_jobs();
+		}
+
+	} // anonymous namespace
 
 #if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
@@ -167,7 +198,7 @@ namespace libtorrent
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8))
+		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), p, flags);
 	}
 
@@ -176,8 +207,8 @@ namespace libtorrent
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
-		detail::add_files_impl(fs, parent_path(complete(utf8))
-			, filename(utf8), detail::default_pred, flags);
+		add_files_impl(fs, parent_path(complete(utf8))
+			, filename(utf8), default_pred, flags);
 	}
 	
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
@@ -193,42 +224,13 @@ namespace libtorrent
 	void add_files(file_storage& fs, std::string const& file
 		, boost::function<bool(std::string)> p, boost::uint32_t flags)
 	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
+		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
 
 	void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags)
 	{
-		detail::add_files_impl(fs, parent_path(complete(file)), filename(file)
-			, detail::default_pred, flags);
-	}
-
-	void on_hash(disk_io_job const* j, create_torrent* t
-		, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
-		, int* piece_counter, int* completed_piece
-		, boost::function<void(int)> const* f, error_code* ec)
-	{
-		if (j->ret != 0)
-		{
-			// on error
-			*ec = j->error.ec;
-			iothread->set_num_threads(0);
-			return;
-		}
-		t->set_hash(j->piece, sha1_hash(j->d.piece_hash));
-		(*f)(*completed_piece);
-		++(*completed_piece);
-		if (*piece_counter < t->num_pieces())
-		{
-			iothread->async_hash(storage.get(), *piece_counter, disk_io_job::sequential_access
-				, boost::bind(&on_hash, _1, t, storage, iothread
-				, piece_counter, completed_piece, f, ec), (void*)0);
-			++(*piece_counter);
-		}
-		else
-		{
-			iothread->set_num_threads(0);
-		}
-		iothread->submit_jobs();
+		add_files_impl(fs, parent_path(complete(file)), filename(file)
+			, default_pred, flags);
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p

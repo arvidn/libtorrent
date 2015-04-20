@@ -64,8 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-void incoming_error(entry& e, char const* msg, int error_code = 203);
-
 using detail::write_endpoint;
 
 // TODO: 2 make this configurable in dht_settings
@@ -74,6 +72,8 @@ enum { announce_interval = 30 };
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 TORRENT_DEFINE_LOG(node)
 #endif
+
+namespace {
 
 // remove peers that have timed out
 void purge_peers(std::set<peer_entry>& peers)
@@ -95,6 +95,8 @@ void purge_peers(std::set<peer_entry>& peers)
 }
 
 void nop() {}
+
+} // anonymous namespace
 
 node_impl::node_impl(udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid, address const& external_address
@@ -645,7 +647,7 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	return;
 }
 
-namespace detail
+namespace
 {
 	void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
 	{
@@ -660,8 +662,6 @@ namespace detail
 		}
 	}
 }
-
-using detail::write_nodes_entry;
 
 // verifies that a message has all the required
 // entries and returns them in ret

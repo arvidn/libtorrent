@@ -97,6 +97,8 @@ namespace libtorrent
 		static char const* job_names[7];
 	};
 
+	// TODO: 3 this is defined in disk_io_thread.cpp. The implementation should
+	// be moved out to a separate file and declared in its header
 	char const* job_name(int j);
 
 	void print_piece_log(std::vector<piece_log_t> const& piece_log);
