@@ -30,17 +30,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <algorithm>
+#include "libtorrent/config.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
+#include <algorithm>
 #include <boost/bind.hpp>
+
+#include "aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/entry.hpp"
-#include "libtorrent/config.hpp"
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
 #endif
 #include "libtorrent/bdecode.hpp"
+#include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
 
 #if defined(_MSC_VER)
@@ -61,7 +68,8 @@ namespace libtorrent
 {
 	namespace detail
 	{
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val)
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
+			, entry::integer_type val)
 		{
 			int sign = 0;
 			if (val < 0)

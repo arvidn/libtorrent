@@ -109,6 +109,8 @@ namespace libtorrent
 		}
 	}
 
+	namespace
+	{
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
@@ -182,6 +184,7 @@ namespace libtorrent
 
 		return total_size - size;
 	}
+	} // anonymous namespace
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
 		char const* in

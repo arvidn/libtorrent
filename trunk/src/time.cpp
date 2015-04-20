@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #ifndef _WIN32
 #include <unistd.h>

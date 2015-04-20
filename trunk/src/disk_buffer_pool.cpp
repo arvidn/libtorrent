@@ -436,6 +436,8 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
+	namespace {
+
 	boost::uint64_t physical_ram()
 	{
 		boost::uint64_t ret = 0;
@@ -482,6 +484,8 @@ namespace libtorrent
 #endif
 		return ret;
 	}
+
+	} // anonymous namespace
 
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett
 		, error_code& ec)

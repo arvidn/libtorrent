@@ -3219,6 +3219,7 @@ retry:
 //		m_peer_pool.release_memory();
 	}
 
+	namespace {
 	// returns the index of the first set bit.
 	int log2(boost::uint32_t v)
 	{
@@ -3237,6 +3238,8 @@ retry:
 
 		return MultiplyDeBruijnBitPosition[boost::uint32_t(v * 0x07C4ACDDU) >> 27];
 	}
+
+	} // anonymous namespace
 
 	void session_impl::received_buffer(int s)
 	{
@@ -5376,10 +5379,13 @@ retry:
 	void session_impl::start_dht()
 	{ start_dht(m_dht_state); }
 
-	void on_bootstrap(alert_manager& alerts)
-	{
-		if (alerts.should_post<dht_bootstrap_alert>())
-			alerts.emplace_alert<dht_bootstrap_alert>();
+	namespace {
+
+		void on_bootstrap(alert_manager& alerts)
+		{
+			if (alerts.should_post<dht_bootstrap_alert>())
+				alerts.emplace_alert<dht_bootstrap_alert>();
+		}
 	}
 
 	void session_impl::start_dht(entry const& startup_state)
@@ -5496,33 +5502,37 @@ retry:
 			, this, _1), salt);
 	}
 
-	void on_dht_put(alert_manager& alerts, sha1_hash target)
-	{
-		if (alerts.should_post<dht_put_alert>())
-			alerts.emplace_alert<dht_put_alert>(target);
-	}
+	namespace {
+
+		void on_dht_put(alert_manager& alerts, sha1_hash target)
+		{
+			if (alerts.should_post<dht_put_alert>())
+				alerts.emplace_alert<dht_put_alert>(target);
+		}
+
+		void put_mutable_callback(alert_manager& alerts, dht::item& i
+			, boost::function<void(entry&, boost::array<char,64>&
+				, boost::uint64_t&, std::string const&)> cb)
+		{
+			entry value = i.value();
+			boost::array<char, 64> sig = i.sig();
+			boost::array<char, 32> pk = i.pk();
+			boost::uint64_t seq = i.seq();
+			std::string salt = i.salt();
+			cb(value, sig, seq, salt);
+			i.assign(value, salt, seq, pk.data(), sig.data());
+
+			if (alerts.should_post<dht_put_alert>())
+				alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq);
+		}
+
+	} // anonymous namespace
 
 	void session_impl::dht_put_item(entry data, sha1_hash target)
 	{
 		if (!m_dht) return;
 		m_dht->put_item(data, boost::bind(&on_dht_put, boost::ref(m_alerts)
 			, target));
-	}
-
-	void put_mutable_callback(alert_manager& alerts, dht::item& i
-		, boost::function<void(entry&, boost::array<char,64>&
-			, boost::uint64_t&, std::string const&)> cb)
-	{
-		entry value = i.value();
-		boost::array<char, 64> sig = i.sig();
-		boost::array<char, 32> pk = i.pk();
-		boost::uint64_t seq = i.seq();
-		std::string salt = i.salt();
-		cb(value, sig, seq, salt);
-		i.assign(value, salt, seq, pk.data(), sig.data());
-
-		if (alerts.should_post<dht_put_alert>())
-			alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq);
 	}
 
 	void session_impl::dht_put_mutable_item(boost::array<char, 32> key

@@ -363,6 +363,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+#define TORRENT_UNUSED(x) (void)(x)
+
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 
 #include <stdarg.h>

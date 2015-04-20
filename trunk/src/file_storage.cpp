@@ -123,6 +123,18 @@ namespace libtorrent
 			if (str2.size() != len) return false;
 			return memcmp(str2.c_str(), str, len) == 0;
 		}
+
+		bool compare_file_entry_size(internal_file_entry const& fe1
+			, internal_file_entry const& fe2)
+		{
+			return fe1.size < fe2.size;
+		}
+
+		bool compare_file_offset(internal_file_entry const& lhs
+			, internal_file_entry const& rhs)
+		{
+			return lhs.offset < rhs.offset;
+		}
 	}
 
 	// path is not supposed to include the name of the torrent itself.
@@ -350,14 +362,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		update_path_index(m_files[index], new_filename);
-	}
-
-	namespace
-	{
-		bool compare_file_offset(internal_file_entry const& lhs, internal_file_entry const& rhs)
-		{
-			return lhs.offset < rhs.offset;
-		}
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -888,9 +892,6 @@ namespace libtorrent
 	file_entry file_storage::at(file_storage::iterator i) const
 	{ return at(i - m_files.begin()); }
 #endif // TORRENT_NO_DEPRECATE
-
-	bool compare_file_entry_size(internal_file_entry const& fe1, internal_file_entry const& fe2)
-	{ return fe1.size < fe2.size; }
 
 	void file_storage::reorder_file(int index, int dst)
 	{

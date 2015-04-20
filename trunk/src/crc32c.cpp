@@ -54,7 +54,7 @@ namespace libtorrent
 #endif
 	}
 
-	static bool sse42_support = supports_sse42();
+	bool sse42_support = supports_sse42();
 
 	} // anonymous namespace
 

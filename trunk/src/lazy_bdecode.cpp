@@ -67,17 +67,18 @@ namespace libtorrent
 			if (error_pos) *error_pos = start - orig_start;
 			return -1;
 		}
-	}
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } while (false)
 
-	namespace { bool numeric(char c) { return c >= '0' && c <= '9'; } }
+	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	char const* find_char(char const* start, char const* end, char delimiter)
 	{
 		while (start < end && *start != delimiter) ++start;
 		return start;
 	}
+
+	} // anonymous namespace
 
 #ifndef TORRENT_NO_DEPRECATE
 	int lazy_bdecode(char const* start, char const* end
@@ -170,10 +171,10 @@ namespace libtorrent
 			{
 				case 'd':
 					top->construct_dict(start - 1);
-					continue;
+					break;
 				case 'l':
 					top->construct_list(start - 1);
-					continue;
+					break;
 				case 'i':
 				{
 					char const* int_start = start;
@@ -183,7 +184,7 @@ namespace libtorrent
 					TORRENT_ASSERT(*start == 'e');
 					++start;
 					stack.pop_back();
-					continue;
+					break;
 				}
 				default:
 				{
@@ -204,10 +205,9 @@ namespace libtorrent
 					top->construct_string(start, int(len));
 					stack.pop_back();
 					start += len;
-					continue;
+					break;
 				}
 			}
-			return 0;
 		}
 		return 0;
 	}
@@ -477,6 +477,8 @@ namespace libtorrent
 		return return_t(m_begin, m_len);
 	}
 
+	namespace {
+
 	int line_longer_than(lazy_entry const& e, int limit)
 	{
 		int line_len = 0;
@@ -580,6 +582,7 @@ namespace libtorrent
 		}
 		ret += "'";
 	}
+	} // anonymous namespace
 
 	std::string print_entry(lazy_entry const& e, bool single_line, int indent)
 	{

@@ -97,9 +97,13 @@ namespace libtorrent
 		min_request_queue = 2,
 	};
 
+	namespace {
+
 	bool pending_block_in_buffer(pending_block const& pb)
 	{
 		return pb.send_buffer_offset != pending_block::not_in_buffer;
+	}
+
 	}
 
 #if defined TORRENT_REQUEST_LOGGING
@@ -1398,12 +1402,15 @@ namespace libtorrent
 		}
 	}
 
+	namespace {
+
 	bool match_request(peer_request const& r, piece_block const& b, int block_size)
 	{
 		if (int(b.piece_index) != r.piece) return false;
 		if (int(b.block_index) != r.start / block_size) return false;
 		if (r.start % block_size != 0) return false;
 		return true;
+	}
 	}
 
 	// -----------------------------
@@ -5673,10 +5680,12 @@ namespace libtorrent
 			, userdata, ref);
 	}
 
+	namespace {
 	void session_free_buffer(char* buffer, void* userdata, block_cache_reference)
 	{
 		aux::session_interface* ses = (aux::session_interface*)userdata;
 		ses->free_buffer(buffer);
+	}
 	}
 
 	void peer_connection::send_buffer(char const* buf, int size, int flags)
