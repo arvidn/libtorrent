@@ -680,7 +680,7 @@ namespace libtorrent
 		, sha1_hash const& info_hash
 		, char const* name
 		, std::string const& save_path
-		, entry const& e
+		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
 		, storage_constructor_type sc
@@ -690,8 +690,14 @@ namespace libtorrent
 		p.tracker_url = tracker_url;
 		p.info_hash = info_hash;
 		p.save_path = save_path;
+		p.storage_mode = storage_mode;
 		p.paused = paused;
 		p.userdata = userdata;
+		p.name = name;
+		if (resume_data.type() != entry::undefined_t)
+		{
+			bencode(std::back_inserter(p.resume_data), resume_data);
+		}
 		return add_torrent(p);
 	}
 #endif // TORRENT_NO_DEPRECATE
@@ -1062,7 +1068,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	void session::set_max_half_open_connections(int limit) {}
+	void session::set_max_half_open_connections(int) {}
 	int session::max_half_open_connections() const { return 8; }
 
 	int session::max_uploads() const

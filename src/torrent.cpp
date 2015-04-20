@@ -105,6 +105,8 @@ using boost::tuples::make_tuple;
 
 namespace libtorrent
 {
+	namespace {
+
 	int root2(int x)
 	{
 		int ret = 0;
@@ -119,6 +121,8 @@ namespace libtorrent
 		}
 		return ret;
 	}
+
+	} // anonymous namespace
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
@@ -1167,6 +1171,9 @@ namespace libtorrent
 
 	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b)
 	{
+		TORRENT_UNUSED(j);
+		TORRENT_UNUSED(b);
+
 		update_gauge();
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
@@ -2018,6 +2025,8 @@ namespace libtorrent
 
 	void torrent::dec_refcount(char const* purpose)
 	{
+		TORRENT_UNUSED(purpose);
+
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_refcount > 0);
 		--m_refcount;
@@ -2033,6 +2042,8 @@ namespace libtorrent
 
 	void torrent::inc_refcount(char const* purpose)
 	{
+		TORRENT_UNUSED(purpose);
+
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(is_loaded());
 		++m_refcount;
@@ -2578,8 +2589,6 @@ namespace libtorrent
 #endif
 	}
 	
-	void nop() {}
-
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
 	void torrent::on_piece_hashed(disk_io_job const* j)
@@ -5646,7 +5655,11 @@ namespace libtorrent
 		}
 	}
 
+	namespace {
+
 	bool has_empty_url(announce_entry const& e) { return e.url.empty(); }
+
+	}
 
 	void torrent::replace_trackers(std::vector<announce_entry> const& urls)
 	{
@@ -7545,6 +7558,8 @@ namespace libtorrent
 		return true;
 	}
 
+	namespace {
+
 	bool connecting_time_compare(peer_connection const* lhs, peer_connection const* rhs)
 	{
 		bool lhs_connecting = lhs->is_connecting() && !lhs->is_disconnecting();
@@ -7557,6 +7572,8 @@ namespace libtorrent
 		// waited longer than rhs, we should return false.
 		return lhs->connected_time() > rhs->connected_time();
 	}
+
+	} // anonymous namespaec
 
 	bool torrent::attach_peer(peer_connection* p)
 	{
@@ -7926,6 +7943,8 @@ namespace libtorrent
 		update_want_tick();
 	}
 
+	namespace {
+
 	// this returns true if lhs is a better disconnect candidate than rhs
 	bool compare_disconnect_peer(peer_connection const* lhs, peer_connection const* rhs)
 	{
@@ -7964,6 +7983,8 @@ namespace libtorrent
 
 		return lhs->last_received() < rhs->last_received();
 	}
+
+	} // anonymous namespace
 
 	int torrent::disconnect_peers(int num, error_code const& ec)
 	{
@@ -10191,6 +10212,8 @@ namespace libtorrent
 	}
 #endif // TORRENT_DEBUG_STREAMING
 
+	namespace {
+
 	struct busy_block_t
 	{
 		int peers;
@@ -10448,6 +10471,8 @@ namespace libtorrent
 			}
 		} while (!interesting_blocks.empty());
 	}
+
+	} // anonymous namespace
 
 	void torrent::request_time_critical_pieces()
 	{

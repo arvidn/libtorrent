@@ -116,6 +116,8 @@ namespace libtorrent { namespace dht
 	TORRENT_DEFINE_LOG(dht_tracker)
 #endif
 
+	namespace {
+
 	node_id extract_node_id(bdecode_node e)
 	{
 		if (!e || e.type() != bdecode_node::dict_t) return (node_id::min)();
@@ -132,6 +134,8 @@ namespace libtorrent { namespace dht
 			return (node_id::min)();
 		return node_id(node_id(nid->string().c_str()));
 	}
+
+	} // anonymous namespace
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
@@ -268,6 +272,8 @@ namespace libtorrent { namespace dht
 		m_dht.announce(ih, listen_port, flags, f);
 	}
 
+	namespace {
+
 	// these functions provide a slightly higher level
 	// interface to the get/put functionality in the DHT
 	bool get_immutable_item_callback(item& it, boost::function<void(item const&)> f)
@@ -304,6 +310,8 @@ namespace libtorrent { namespace dht
 		cb(it);
 		return true;
 	}
+
+	} // anonymous namespace
 
 	void dht_tracker::get_item(sha1_hash const& target
 		, boost::function<void(item const&)> cb)
@@ -423,6 +431,8 @@ namespace libtorrent { namespace dht
 		return true;
 	}
 
+	namespace {
+
 	void add_node_fun(void* userdata, node_entry const& e)
 	{
 		entry* n = (entry*)userdata;
@@ -431,6 +441,8 @@ namespace libtorrent { namespace dht
 		write_endpoint(e.ep(), out);
 		n->list().push_back(entry(node));
 	}
+
+	} // anonymous namespace
 	
 	entry dht_tracker::state() const
 	{

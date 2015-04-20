@@ -3260,6 +3260,7 @@ namespace libtorrent
 				std::copy(recv_buffer.begin + 8, recv_buffer.begin + 28
 					, (char*)info_hash.begin());
 
+				// TODO: 3 remove the allow_encrypted parameter
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 				bool allow_encrypted = m_encrypted && m_rc4_encrypted;
 #else

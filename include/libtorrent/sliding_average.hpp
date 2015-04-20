@@ -50,7 +50,7 @@ struct sliding_average
 	{
 		// fixed point
 		s *= 64;
-		int deviation;
+		int deviation = 0;
 
 		if (m_num_samples > 0)
 			deviation = std::abs(m_mean - s);

@@ -153,7 +153,7 @@ namespace libtorrent
 		{
 			std::memcpy(reinterpret_cast<void*>(start), str.c_str(), str.size());
 			start += str.size();
-			return str.size();
+			return int(str.size());
 		}
 
 		template <class OutIt>

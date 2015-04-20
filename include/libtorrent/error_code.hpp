@@ -554,6 +554,7 @@ namespace libtorrent
 		storage_error(error_code e): ec(e), file(-1), operation(0) {}
 
 		operator bool() const { return ec.value() != 0; }
+
 		// the error that occurred
 		error_code ec;
 

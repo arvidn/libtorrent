@@ -444,6 +444,9 @@ namespace libtorrent
 			int h = have[i];
 			TORRENT_ASSERT(m_piece_map[i].have_peers.count(p) == h);
 		}
+#else
+		TORRENT_UNUSED(have);
+		TORRENT_UNUSED(p);
 #endif
 	}
 
@@ -1152,6 +1155,8 @@ namespace libtorrent
 			TORRENT_ASSERT(i->have_peers.count(peer) == 0);
 			i->have_peers.insert(peer);
 		}
+#else
+		TORRENT_UNUSED(peer);
 #endif
 	}
 
@@ -1178,6 +1183,8 @@ namespace libtorrent
 				TORRENT_ASSERT(i->have_peers.count(peer) == 1);
 				i->have_peers.erase(peer);
 			}
+#else
+			TORRENT_UNUSED(peer);
 #endif
 			return;
 		}
@@ -1189,6 +1196,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			TORRENT_ASSERT(i->have_peers.count(peer) == 1);
 			i->have_peers.erase(peer);
+#else
+			TORRENT_UNUSED(peer);
 #endif
 
 			TORRENT_ASSERT(i->peer_count > 0);
@@ -1212,6 +1221,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 		TORRENT_ASSERT(p.have_peers.count(peer) == 0);
 		p.have_peers.insert(peer);
+#else
+		TORRENT_UNUSED(peer);
 #endif
 
 		int prev_priority = p.priority(this);
@@ -1274,6 +1285,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 		TORRENT_ASSERT(p.have_peers.count(peer) == 1);
 		p.have_peers.erase(peer);
+#else
+		TORRENT_UNUSED(peer);
 #endif
 
 		TORRENT_ASSERT(p.peer_count > 0);
@@ -1341,6 +1354,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 					TORRENT_ASSERT(p.have_peers.count(peer) == 0);
 					p.have_peers.insert(peer);
+#else
+					TORRENT_UNUSED(peer);
 #endif
 					int new_priority = p.priority(this);
 					if (prev_priority == new_priority) continue;
@@ -1361,6 +1376,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 				TORRENT_ASSERT(m_piece_map[index].have_peers.count(peer) == 0);
 				m_piece_map[index].have_peers.insert(peer);
+#else
+				TORRENT_UNUSED(peer);
 #endif
 
 				++m_piece_map[index].peer_count;
@@ -1444,6 +1461,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 					TORRENT_ASSERT(p.have_peers.count(peer) == 1);
 					p.have_peers.erase(peer);
+#else
+					TORRENT_UNUSED(peer);
 #endif
 					TORRENT_ASSERT(p.peer_count > 0);
 					--p.peer_count;
@@ -1474,6 +1493,8 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_REFCOUNTS
 				TORRENT_ASSERT(p.have_peers.count(peer) == 1);
 				p.have_peers.erase(peer);
+#else
+				TORRENT_UNUSED(peer);
 #endif
 
 				TORRENT_ASSERT(p.peer_count > 0);
@@ -1591,8 +1612,10 @@ namespace libtorrent
 		piece_pos& p = m_piece_map[index];
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "piece_picker::we_dont_have(" << index << ")" << std::endl;
+		std::cerr << "[" << this << "] " << "piece_picker::we_dont_have("
+			<< index << ")" << std::endl;
 #endif
+
 		if (!p.have())
 		{
 			// even though we don't have the piece, it
@@ -1653,7 +1676,8 @@ namespace libtorrent
 		TORRENT_ASSERT(index < (int)m_piece_map.size());
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "piece_picker::we_have(" << index << ")" << std::endl;
+		std::cerr << "[" << this << "] " << "piece_picker::we_have("
+			<< index << ")" << std::endl;
 #endif
 		piece_pos& p = m_piece_map[index];
 		int info_index = p.index;
@@ -1743,7 +1767,8 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "set_piece_priority(" << index << ", " << new_piece_priority << ")" << std::endl;
+		std::cerr << "[" << this << "] " << "set_piece_priority(" << index
+			<< ", " << new_piece_priority << ")" << std::endl;
 #endif
 
 		TORRENT_ASSERT(new_piece_priority >= 0);

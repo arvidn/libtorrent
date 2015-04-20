@@ -658,21 +658,25 @@ namespace libtorrent
 			else
 			{
 				file_status s;
-				error_code ec;
-				stat_file(fs.file_path(i, m_save_path), &s, ec);
-				if (!ec)
+				error_code error;
+				stat_file(fs.file_path(i, m_save_path), &s, error);
+				if (!error)
 				{
 					file_size = s.file_size;
 					file_time = s.mtime;
 				}
 				else
 				{
-					if (ec == boost::system::errc::no_such_file_or_directory)
+					if (error == error_code(boost::system::errc::no_such_file_or_directory
+						, generic_category()))
 					{
 						m_stat_cache.set_noexist(i);
 					}
 					else
 					{
+						ec.ec = error;
+						ec.file = i;
+						ec.operation = storage_error::stat;
 						m_stat_cache.set_error(i);
 					}
 				}
@@ -1386,7 +1390,7 @@ namespace libtorrent
 	// -- zero_storage ------------------------------------------------------
 
 	int zero_storage::readv(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, int /* piece */, int /* offset */, int /* flags */, storage_error&)
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
@@ -1398,7 +1402,7 @@ namespace libtorrent
 	}
 
 	int zero_storage::writev(file::iovec_t const* bufs, int num_bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, int /* piece */, int /* offset */, int /* flags */, storage_error& ec)
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
@@ -1406,7 +1410,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	storage_interface* zero_storage_constructor(storage_params const& params)
+	storage_interface* zero_storage_constructor(storage_params const&)
 	{
 		return new zero_storage;
 	}
