@@ -64,6 +64,7 @@ namespace libtorrent
 		};
 #undef CASE
 #else
+		TORRENT_UNUSED(s);
 		return false;
 #endif
 	}
@@ -94,7 +95,8 @@ namespace libtorrent
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		s.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
+		s.get<ssl_stream<t> >()->set_verify_callback( \
+			asio::ssl::rfc2818_verification(hostname), ec); \
 		ctx = SSL_get_SSL_CTX(s.get<ssl_stream<t> >()->native_handle()); \
 		break;
 
@@ -116,11 +118,16 @@ namespace libtorrent
 			SSL_CTX_set_tlsext_servername_arg(ctx, 0);
 		}
 #endif // OPENSSL_VERSION_NUMBER
-
+#else
+		TORRENT_UNUSED(ec);
+		TORRENT_UNUSED(hostname);
+		TORRENT_UNUSED(s);
 #endif
 	}
 
-	void on_close_socket(socket_type* s, boost::shared_ptr<void> holder)
+	namespace {
+
+	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("on_close_socket");
@@ -128,6 +135,8 @@ namespace libtorrent
 		error_code ec;
 		s->close(ec);
 	}
+
+	} // anonymous namespace
 
 	// the second argument is a shared pointer to an object that
 	// will keep the socket (s) alive for the duration of the async operation
@@ -158,6 +167,7 @@ namespace libtorrent
 		}
 #undef CASE
 #else
+		TORRENT_UNUSED(holder);
 		s.close(e);
 #endif // TORRENT_USE_OPENSSL
 	}
@@ -247,6 +257,8 @@ namespace libtorrent
 				new ((ssl_stream<utp_stream>*)m_data) ssl_stream<utp_stream>(m_io_service
 					, *((boost::asio::ssl::context*)userdata));
 				break;
+#else
+				TORRENT_UNUSED(userdata);
 #endif
 			default: TORRENT_ASSERT(false);
 		}

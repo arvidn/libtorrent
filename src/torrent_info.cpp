@@ -80,6 +80,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	
+	namespace {
+
 	bool valid_path_character(char c)
 	{
 #ifdef TORRENT_WINDOWS
@@ -90,6 +92,8 @@ namespace libtorrent
 		if (c >= 0 && c < 32) return false;
 		return std::strchr(invalid_chars, c) == 0;
 	}
+
+	} // anonymous namespace
 
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
@@ -360,6 +364,8 @@ namespace libtorrent
 		if (path.empty()) path = "_";
 	}
 
+	namespace {
+
 	// 'top_level' is extracting the file for a single-file torrent. The
 	// distinction is that the filename is found in "name" rather than
 	// "path"
@@ -572,6 +578,32 @@ namespace libtorrent
 		return true;
 	}
 
+	int load_file(std::string const& filename, std::vector<char>& v
+		, error_code& ec, int limit = 8000000)
+	{
+		ec.clear();
+		file f;
+		if (!f.open(filename, file::read_only, ec)) return -1;
+		boost::int64_t s = f.get_size(ec);
+		if (ec) return -1;
+		if (s > limit)
+		{
+			ec = errors::metadata_too_large;
+			return -2;
+		}
+		v.resize((unsigned int)s);
+		if (s == 0) return 0;
+		file::iovec_t b = {&v[0], size_t(s) };
+		boost::int64_t read = f.readv(0, &b, 1, ec);
+		if (read != s) return -3;
+		if (ec) return -3;
+		return 0;
+	}
+
+	} // anonymous namespace
+
+	// TODO: 3 move the merkle functions out into its own file
+	// and header file
 	int merkle_get_parent(int tree_node)
 	{
 		// node 0 doesn't have a parent
@@ -601,27 +633,6 @@ namespace libtorrent
 		int ret = 1;
 		while (pieces > ret) ret <<= 1;
 		return ret;
-	}
-
-	int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit = 8000000)
-	{
-		ec.clear();
-		file f;
-		if (!f.open(filename, file::read_only, ec)) return -1;
-		boost::int64_t s = f.get_size(ec);
-		if (ec) return -1;
-		if (s > limit)
-		{
-			ec = errors::metadata_too_large;
-			return -2;
-		}
-		v.resize((unsigned int)s);
-		if (s == 0) return 0;
-		file::iovec_t b = {&v[0], size_t(s) };
-		boost::int64_t read = f.readv(0, &b, 1, ec);
-		if (read != s) return -3;
-		if (ec) return -3;
-		return 0;
 	}
 
 	announce_entry::announce_entry(std::string const& u)
@@ -1470,6 +1481,9 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_I2P
+
+	// TODO: 3 this function is used in other translation units. Make sure
+	// it's declared in an appropriate header.
 	bool is_i2p_url(std::string const& url)
 	{
 		using boost::tuples::ignore;
@@ -1480,6 +1494,7 @@ namespace libtorrent
 		char const* top_domain = strrchr(hostname.c_str(), '.');
 		return top_domain && strcmp(top_domain, ".i2p") == 0;
 	}
+
 #endif
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file

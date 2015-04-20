@@ -39,13 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	void apply_mask(boost::uint8_t* b, boost::uint8_t const* mask, int size)
-	{
-		for (int i = 0; i < size; ++i)
+	namespace {
+
+		void apply_mask(boost::uint8_t* b, boost::uint8_t const* mask, int size)
 		{
-			*b &= *mask;
-			++b;
-			++mask;
+			for (int i = 0; i < size; ++i)
+			{
+				*b &= *mask;
+				++b;
+				++mask;
+			}
 		}
 	}
 

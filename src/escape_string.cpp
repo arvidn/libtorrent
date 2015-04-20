@@ -475,6 +475,8 @@ namespace libtorrent
 		*out = '\0';
 	}
 
+	// TODO: 3 move the hex coding to its own .cpp file corresponding
+	// to the functions exported by hex.hpp
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
