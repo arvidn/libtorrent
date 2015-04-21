@@ -33,14 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOLVER_HPP_INCLUDE
 #define TORRENT_RESOLVER_HPP_INCLUDE
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/function.hpp>
 #include <boost/unordered_map.hpp>
 #include <vector>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"

@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
 #include <boost/limits.hpp>
@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/rand.h>
 #endif
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <stdarg.h> // for va_start, va_end

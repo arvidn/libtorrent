@@ -33,11 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/cpuid.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

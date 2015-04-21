@@ -38,12 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"

@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/assert.hpp>
@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #endif
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"

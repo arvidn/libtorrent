@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif // BOOST_VERSION
 #endif // TORRENT_USE_OPENSSL
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"

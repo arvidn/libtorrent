@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <deque>
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/limits.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/version.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"

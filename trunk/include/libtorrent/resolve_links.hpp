@@ -33,14 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOLVE_LINKS_HPP
 #define TORRENT_RESOLVE_LINKS_HPP
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 #include <vector>
 #include <utility>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/export.hpp"
 

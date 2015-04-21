@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/smart_ptr.hpp>
@@ -74,7 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"

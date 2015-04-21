@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef __OBJC__
 #define Protocol Protocol_
@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/address.hpp>
 #endif
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef __OBJC__ 
 #undef Protocol

@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/function/function2.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
@@ -46,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_LOGGING
 #include <boost/function/function1.hpp>
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
