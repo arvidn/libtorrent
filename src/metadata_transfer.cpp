@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <algorithm> // count
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"

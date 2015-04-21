@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/debug.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"

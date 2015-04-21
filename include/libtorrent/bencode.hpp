@@ -76,11 +76,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <iterator> // for distance
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/static_assert.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"

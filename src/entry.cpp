@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <boost/bind.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/entry.hpp"
 #ifndef TORRENT_NO_DEPRECATE

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <string>
 #include <cctype>
@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <locale.h>
 #endif 
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp"

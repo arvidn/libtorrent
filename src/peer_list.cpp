@@ -30,12 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/utility.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"

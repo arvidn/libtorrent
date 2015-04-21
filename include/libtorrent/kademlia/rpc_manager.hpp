@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef RPC_MANAGER_HPP
 #define RPC_MANAGER_HPP
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
 #include <deque>
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <multimap>
 #endif
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>

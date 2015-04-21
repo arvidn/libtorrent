@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
 #include <string>
@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/scoped_ptr.hpp>
 #include <boost/config.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW
 //

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FILE_STORAGE_HPP_INCLUDED
 #define TORRENT_FILE_STORAGE_HPP_INCLUDED
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <string>
 #include <vector>
@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/unordered_set.hpp>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
