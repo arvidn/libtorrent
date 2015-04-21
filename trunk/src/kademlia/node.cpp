@@ -647,19 +647,16 @@ void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	return;
 }
 
-namespace
+void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
 {
-	void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
+	entry& n = r["nodes"];
+	std::back_insert_iterator<std::string> out(n.string());
+	for (nodes_t::const_iterator i = nodes.begin()
+		, end(nodes.end()); i != end; ++i)
 	{
-		entry& n = r["nodes"];
-		std::back_insert_iterator<std::string> out(n.string());
-		for (nodes_t::const_iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
-		{
-			if (!i->addr().is_v4()) continue;
-			std::copy(i->id.begin(), i->id.end(), out);
-			write_endpoint(udp::endpoint(i->addr(), i->port()), out);
-		}
+		if (!i->addr().is_v4()) continue;
+		std::copy(i->id.begin(), i->id.end(), out);
+		write_endpoint(udp::endpoint(i->addr(), i->port()), out);
 	}
 }
 

@@ -33,9 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/parse_url.hpp"
+
+#include "aux_/disable_warnings_push.hpp"
+
+#include <boost/tuple/tuple.hpp>
 
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
+
+#include "aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -49,7 +57,9 @@ namespace libtorrent
 		char *p = &ret.back();
 		*p = '\0';
 		boost::uint64_t un = n;
-		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
+		// TODO: warning C4146: unary minus operator applied to unsigned type,
+		// result still unsigned
+		if (n < 0)  un = -un;
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;
@@ -251,6 +261,21 @@ namespace libtorrent
 		while (**next == sep && **next) ++(*next);
 		return last;
 	}
+
+#if TORRENT_USE_I2P
+
+	bool is_i2p_url(std::string const& url)
+	{
+		using boost::tuples::ignore;
+		std::string hostname;
+		error_code ec;
+		boost::tie(ignore, ignore, hostname, ignore, ignore)
+			= parse_url_components(url, ec);
+		char const* top_domain = strrchr(hostname.c_str(), '.');
+		return top_domain && strcmp(top_domain, ".i2p") == 0;
+	}
+
+#endif
 
 }
 

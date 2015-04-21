@@ -97,13 +97,14 @@ namespace libtorrent
 		static char const* job_names[7];
 	};
 
-	// TODO: 3 this is defined in disk_io_thread.cpp. The implementation should
-	// be moved out to a separate file and declared in its header
 	char const* job_name(int j);
 
 	void print_piece_log(std::vector<piece_log_t> const& piece_log);
+	void assert_print_piece(cached_piece_entry const* pe);
 
 #endif
+
+	extern const char* job_action_name[];
 
 	struct TORRENT_EXTRA_EXPORT partial_hash
 	{

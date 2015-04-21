@@ -2757,7 +2757,7 @@ namespace libtorrent
 			{
 				if (!t)
 				{
-					attach_to_torrent(ti->info_hash(), false);
+					attach_to_torrent(ti->info_hash());
 					if (is_disconnecting()) return;
 					TORRENT_ASSERT(!is_disconnecting());
 
@@ -3260,14 +3260,7 @@ namespace libtorrent
 				std::copy(recv_buffer.begin + 8, recv_buffer.begin + 28
 					, (char*)info_hash.begin());
 
-				// TODO: 3 remove the allow_encrypted parameter
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-				bool allow_encrypted = m_encrypted && m_rc4_encrypted;
-#else
-				bool allow_encrypted = true;
-#endif
-
-				attach_to_torrent(info_hash, allow_encrypted);
+				attach_to_torrent(info_hash);
 				if (is_disconnecting()) return;
 			}
 			else

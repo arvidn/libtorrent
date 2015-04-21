@@ -70,10 +70,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void convert_path_to_windows(std::string& path);
 #endif
 
-	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim, char const* end);
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
-
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
+	TORRENT_EXTRA_EXPORT std::string read_until(char const*& str, char delim
+		, char const* end);
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	TORRENT_EXTRA_EXPORT std::wstring convert_to_wstring(std::string const& s);

@@ -1172,7 +1172,7 @@ namespace libtorrent
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
-	void peer_connection::attach_to_torrent(sha1_hash const& ih, bool allow_encrypted)
+	void peer_connection::attach_to_torrent(sha1_hash const& ih)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;

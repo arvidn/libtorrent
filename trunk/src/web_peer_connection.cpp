@@ -48,7 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
-#include "libtorrent/aux_/escape_string.hpp" // for is_hex
+#include "libtorrent/aux_/escape_string.hpp" // for escape_path
+#include "libtorrent/hex.hpp" // for is_hex
 
 using boost::shared_ptr;
 
@@ -807,7 +808,8 @@ void web_peer_connection::on_receive(error_code const& error
 				boost::int64_t chunk_size = 0;
 				buffer::const_interval chunk_start = recv_buffer;
 				chunk_start.begin += m_chunk_pos;
-				TORRENT_ASSERT(chunk_start.begin[0] == '\r' || is_hex(chunk_start.begin, 1));
+				TORRENT_ASSERT(chunk_start.begin[0] == '\r'
+					|| detail::is_hex(chunk_start.begin, 1));
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
