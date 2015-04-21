@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <deque>
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include "libtorrent/request_blocks.hpp" // for source_rank
 
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/piece_picker.hpp"

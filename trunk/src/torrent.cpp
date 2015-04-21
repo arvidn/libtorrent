@@ -3166,7 +3166,7 @@ namespace libtorrent
 	}
 	
  	void torrent::tracker_scrape_response(tracker_request const& req
- 		, int complete, int incomplete, int downloaded, int downloaders)
+ 		, int complete, int incomplete, int downloaded, int /* downloaders */)
  	{
 		TORRENT_ASSERT(is_single_thread());
  
@@ -4931,7 +4931,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_torrent_paused(disk_io_job const* j)
+	void torrent::on_torrent_paused(disk_io_job const*)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -8895,11 +8895,15 @@ namespace libtorrent
 		}
 	}
 
+	namespace {
+
 	int clamped_subtract(int a, int b)
 	{
 		if (a < b) return 0;
 		return a - b;
 	}
+
+	} // anonymous namespace
 
 	// this is called every time the session timer takes a step back. Since the
 	// session time is meant to fit in 16 bits, it only covers a range of
@@ -9118,7 +9122,7 @@ namespace libtorrent
 			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
 	}
 
-	void torrent::on_cache_flushed(disk_io_job const* j)
+	void torrent::on_cache_flushed(disk_io_job const*)
 	{
 		dec_refcount("release_files");
 		TORRENT_ASSERT(is_single_thread());
@@ -11646,6 +11650,9 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+#if defined __GNUC__ || defined __clang__
+	__attribute__((format(printf, 2, 3)))
+#endif
 	void torrent::debug_log(char const* fmt, ...) const
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;

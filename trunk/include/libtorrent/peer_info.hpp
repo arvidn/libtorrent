@@ -452,8 +452,6 @@ namespace libtorrent
 		boost::uint8_t source;
 	};
 
-	// defined in policy.cpp
-	int source_rank(int source_bitmask);
 }
 
 #endif // TORRENT_PEER_INFO_HPP_INCLUDED

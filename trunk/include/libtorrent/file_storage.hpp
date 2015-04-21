@@ -309,7 +309,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
-		void add_file(file_entry const& fe, char const* infohash = NULL);
+		void add_file(file_entry const& fe, char const* filehash = NULL);
 
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11

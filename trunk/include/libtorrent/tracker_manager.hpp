@@ -229,7 +229,11 @@ namespace libtorrent
 			, int retry_interval) = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual void debug_log(const char* fmt, ...) const = 0;
+		virtual void debug_log(const char* fmt, ...) const
+#if defined __GNUC__ || defined __clang__
+			__attribute__((format(printf, 2, 3)))
+#endif
+			= 0;
 #endif
 	};
 

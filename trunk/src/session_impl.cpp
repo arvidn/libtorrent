@@ -4247,6 +4247,8 @@ retry:
 	}
 #endif //TORRENT_DISABLE_MUTABLE_TORRENTS
 
+	namespace {
+
 	// returns true if lhs is a better disconnect candidate than rhs
 	bool compare_disconnect_torrent(session_impl::torrent_map::value_type const& lhs
 		, session_impl::torrent_map::value_type const& rhs)
@@ -4264,6 +4266,8 @@ retry:
 		return lhs.second->num_peers() > rhs.second->num_peers();
 	}
 
+	} // anonymous namespace
+
  	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
  	{
 		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
@@ -4276,6 +4280,9 @@ retry:
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+#if defined __GNUC__ || defined __clang__
+	__attribute__((format(printf, 2, 3)))
+#endif
 	void session_impl::session_log(char const* fmt, ...) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
@@ -4286,6 +4293,9 @@ retry:
 		va_end(v);
 	}
 	
+#if defined __GNUC__ || defined __clang__
+	__attribute__((format(printf, 2, 0)))
+#endif
 	void session_impl::session_vlog(char const* fmt, va_list& v) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;

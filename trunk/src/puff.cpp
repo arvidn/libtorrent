@@ -70,6 +70,10 @@ All "short" has been replaced with boost::int16_t
 and all "long" with boost::int32_t according to the
 type width assuptions in the comment above.
 */
+
+// this whole file is just preserved and warnings are suppressed
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <setjmp.h>             /* for setjmp(), longjmp(), and jmp_buf */
 #include <boost/cstdint.hpp>    /* for types with size guarantees */
 #include "libtorrent/puff.hpp"  /* prototype for puff() */
@@ -840,3 +844,6 @@ int main(int argc, char **argv)
     return ret;
 }
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
