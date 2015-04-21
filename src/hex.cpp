@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2003-2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,72 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_HEX_HPP_INCLUDED
-#define TORRENT_HEX_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-#include "libtorrent/error_code.hpp"
-
-#include "aux_/disable_warnings_push.hpp"
-
-#include <string>
-#include <boost/limits.hpp>
-#include <boost/array.hpp>
-
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/hex.hpp"
 
 namespace libtorrent
 {
+
 	namespace detail {
 
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len);
-
+	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
+	{
+		if (in >= '0' && in <= '9') return int(in) - '0';
+		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+		if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+		return -1;
 	}
 
-	// The overload taking a ``std::string`` converts (binary) the string ``s``
-	// to hexadecimal representation and returns it.
-	// The overload taking a ``char const*`` and a length converts the binary
-	// buffer [``in``, ``in`` + len) to hexadecimal and prints it to the buffer
-	// ``out``. The caller is responsible for making sure the buffer pointed to
-	// by ``out`` is large enough, i.e. has at least len * 2 bytes of space.
-	TORRENT_EXPORT std::string to_hex(std::string const& s);
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out);
+	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			int t = hex_to_int(*in);
+			if (t == -1) return false;
+		}
+		return true;
+	}
 
-	// converts the buffer [``in``, ``in`` + len) from hexadecimal to
-	// binary. The binary output is written to the buffer pointed to
-	// by ``out``. The caller is responsible for making sure the buffer
-	// at ``out`` has enough space for the result to be written to, i.e.
-	// (len + 1) / 2 bytes.
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out);
+	} // detail namespace
+
+	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in, ++out)
+		{
+			int t = detail::hex_to_int(*in);
+			if (t == -1) return false;
+			*out = t << 4;
+			++in;
+			t = detail::hex_to_int(*in);
+			if (t == -1) return false;
+			*out |= t & 15;
+		}
+		return true;
+	}
+
+	extern const char hex_chars[];
+
+	const char hex_chars[] = "0123456789abcdef";
+
+	TORRENT_EXPORT std::string to_hex(std::string const& s)
+	{
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		{
+			ret += hex_chars[((unsigned char)*i) >> 4];
+			ret += hex_chars[((unsigned char)*i) & 0xf];
+		}
+		return ret;
+	}
+
+	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			*out++ = hex_chars[((unsigned char)*in) >> 4];
+			*out++ = hex_chars[((unsigned char)*in) & 0xf];
+		}
+		*out = '\0';
+	}
 
 }
-
-#endif // TORRENT_HEX_HPP_INCLUDED
 

@@ -201,16 +201,16 @@ int test_main()
 	{
 		bool hex = strchr(hex_chars, i) != NULL;
 		char c = i;
-		TEST_EQUAL(is_hex(&c, 1), hex);
+		TEST_EQUAL(detail::is_hex(&c, 1), hex);
 	}
 
-	TEST_EQUAL(hex_to_int('0'), 0);
-	TEST_EQUAL(hex_to_int('7'), 7);
-	TEST_EQUAL(hex_to_int('a'), 10);
-	TEST_EQUAL(hex_to_int('f'), 15);
-	TEST_EQUAL(hex_to_int('b'), 11);
-	TEST_EQUAL(hex_to_int('t'), -1);
-	TEST_EQUAL(hex_to_int('g'), -1);
+	TEST_EQUAL(detail::hex_to_int('0'), 0);
+	TEST_EQUAL(detail::hex_to_int('7'), 7);
+	TEST_EQUAL(detail::hex_to_int('a'), 10);
+	TEST_EQUAL(detail::hex_to_int('f'), 15);
+	TEST_EQUAL(detail::hex_to_int('b'), 11);
+	TEST_EQUAL(detail::hex_to_int('t'), -1);
+	TEST_EQUAL(detail::hex_to_int('g'), -1);
 
 	std::string path = "a\\b\\c";
 	convert_path_to_posix(path);

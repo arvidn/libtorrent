@@ -30,19 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <ctime>
-
-#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
-#include <iostream>
-#include <iomanip>
-#endif
-
-#include <iterator>
-#include <algorithm>
 #include "libtorrent/config.hpp"
 #include "libtorrent/ConvertUTF.h"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/string_util.hpp" // is_space
+#include "libtorrent/string_util.hpp" // is_space, is_i2p_url
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
@@ -59,19 +50,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
+#include "aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/assert.hpp>
 #include <boost/unordered_set.hpp>
 
+#include <iterator>
+#include <algorithm>
 #include <set>
+#include <ctime>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
+#include <iostream>
+#include <iomanip>
 #endif
+
+#include "aux_/disable_warnings_pop.hpp"
 
 #if TORRENT_USE_I2P
 #include "libtorrent/parse_url.hpp"
@@ -1479,23 +1474,6 @@ namespace libtorrent
 		}
 		return ret;
 	}
-
-#if TORRENT_USE_I2P
-
-	// TODO: 3 this function is used in other translation units. Make sure
-	// it's declared in an appropriate header.
-	bool is_i2p_url(std::string const& url)
-	{
-		using boost::tuples::ignore;
-		std::string hostname;
-		error_code ec;
-		boost::tie(ignore, ignore, hostname, ignore, ignore)
-			= parse_url_components(url, ec);
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		return top_domain && strcmp(top_domain, ".i2p") == 0;
-	}
-
-#endif
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, int flags)

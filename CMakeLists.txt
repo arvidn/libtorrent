@@ -31,6 +31,7 @@ set(sources
 	file
 	gzip
 	hasher
+	hex
 	http_connection
 	http_stream
 	http_parser

@@ -102,6 +102,8 @@ struct key_desc_t
 bool TORRENT_EXTRA_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
 	, bdecode_node ret[], int size , char* error, int error_size);
 
+void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
+
 void incoming_error(entry& e, char const* msg, int error_code = 203);
 
 // this is the entry for every peer

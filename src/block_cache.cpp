@@ -182,6 +182,30 @@ void log_refcounts(cached_piece_entry const* pe)
 
 #if TORRENT_USE_ASSERTS
 
+	const char* job_action_name[] =
+	{
+		"read",
+		"write",
+		"hash",
+		"move_storage",
+		"release_files",
+		"delete_files",
+		"check_fastresume",
+		"save_resume_data",
+		"rename_file",
+		"stop_torrent",
+		"cache_piece",
+		"finalize_file",
+		"flush_piece",
+		"flush_hashed",
+		"flush_storage",
+		"trim_cache",
+		"set_file_priority",
+		"load_torrent",
+		"clear_piece",
+		"tick_storage",
+	};
+
 	char const* piece_log_t::job_names[7] =
 	{
 		"flushing",
@@ -192,6 +216,16 @@ void log_refcounts(cached_piece_entry const* pe)
 		"clear_outstanding_jobs",
 		"set_outstanding_jobs",
 	};
+
+	char const* job_name(int j)
+	{
+		if (j < 0 || j >= piece_log_t::last_job)
+			return "unknown";
+
+		if (j < piece_log_t::flushing)
+			return job_action_name[j];
+		return piece_log_t::job_names[j - piece_log_t::flushing];
+	}
 
 	void print_piece_log(std::vector<piece_log_t> const& piece_log)
 	{
@@ -208,8 +242,42 @@ void log_refcounts(cached_piece_entry const* pe)
 		}
 	}
 
-// defined in disk_io_thread.cpp
-	void assert_print_piece(cached_piece_entry const* pe);
+	void assert_print_piece(cached_piece_entry const* pe)
+	{
+		static const char* const cache_state[] =
+		{
+			"write", "volatile-read", "read-lru", "read-lru-ghost", "read-lfu", "read-lfu-ghost"
+		};
+
+		if (pe == NULL)
+		{
+			assert_print("piece: NULL\n");
+		}
+		else
+		{
+			assert_print("piece: %d\nrefcount: %d\npiece_refcount: %d\n"
+				"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
+				"cache_state: (%d) %s\noutstanding_flush: %d\npiece: %d\n"
+				"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
+				"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
+				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
+				"piece_log:\n"
+				, int(pe->piece), pe->refcount, pe->piece_refcount, pe->num_blocks
+				, int(pe->hashing), pe->hash, pe->hash ? pe->hash->offset : -1
+				, int(pe->cache_state), pe->cache_state >= 0 && pe->cache_state
+					< cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
+				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
+				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
+				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
+				, int(pe->read_jobs.size()), int(pe->jobs.size()));
+			for (int i = 0; i < pe->piece_log.size(); ++i)
+			{
+				assert_print(&", %s (%d)"[i==0], job_name(pe->piece_log[i].job), pe->piece_log[i].block);
+			}
+		}
+		assert_print("\n");
+	}
+
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
 	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)

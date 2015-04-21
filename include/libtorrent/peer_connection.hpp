@@ -770,11 +770,7 @@ namespace libtorrent
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);
 
-		// if allow_encrypted is false, and the torrent 'ih' turns out
-		// to be an encrypted torrent (AES-256 encrypted) the peer will
-		// be disconnected. This is to prevent non-encrypted peers to
-		// attach to an encrypted torrent
-		void attach_to_torrent(sha1_hash const& ih, bool allow_encrypted);
+		void attach_to_torrent(sha1_hash const& ih);
 
 		bool verify_piece(peer_request const& p) const;
 

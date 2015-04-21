@@ -201,12 +201,6 @@ void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
 	g_sent_packets.erase(i);
 }
 
-namespace libtorrent { namespace dht { namespace detail
-{
-	// defined in node.cpp
-	void write_nodes_entry(entry& r, nodes_t const& nodes);
-} } }
-
 void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
 {
 	entry::list_type& pe = r["values"].list();
@@ -238,7 +232,7 @@ void send_dht_response(node_impl& node, bdecode_node const& request, udp::endpoi
 	else r["id"] = nid->to_string();
 	if (!token.empty()) r["token"] = token;
 	if (port) r["p"] = port;
-	if (!nodes.empty()) dht::detail::write_nodes_entry(e["r"], nodes);
+	if (!nodes.empty()) dht::write_nodes_entry(e["r"], nodes);
 	if (!peers.empty()) write_peers(r, peers);
 	if (value) r["v"] = *value;
 	if (!sig.empty()) r["sig"] = sig;

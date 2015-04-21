@@ -72,51 +72,14 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 
-	char const* job_name(int j);
-
-	// TODO: 3 decleare this function in the header file, for block_cache.cpp
-	void assert_print_piece(cached_piece_entry const* pe)
-	{
-		static const char* const cache_state[] =
-		{
-			"write", "volatile-read", "read-lru", "read-lru-ghost", "read-lfu", "read-lfu-ghost"
-		};
-
-		if (pe == NULL)
-		{
-			assert_print("piece: NULL\n");
-		}
-		else
-		{
-			assert_print("piece: %d\nrefcount: %d\npiece_refcount: %d\n"
-				"num_blocks: %d\nhashing: %d\n\nhash: %p\nhash_offset: %d\n"
-				"cache_state: (%d) %s\noutstanding_flush: %d\npiece: %d\n"
-				"num_dirty: %d\nnum_blocks: %d\nblocks_in_piece: %d\n"
-				"hashing_done: %d\nmarked_for_deletion: %d\nneed_readback: %d\n"
-				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
-				"piece_log:\n"
-				, int(pe->piece), pe->refcount, pe->piece_refcount, pe->num_blocks
-				, int(pe->hashing), pe->hash, pe->hash ? pe->hash->offset : -1
-				, int(pe->cache_state), pe->cache_state >= 0 && pe->cache_state
-					< cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
-				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
-				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
-				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
-				, int(pe->read_jobs.size()), int(pe->jobs.size()));
-			for (int i = 0; i < pe->piece_log.size(); ++i)
-			{
-				assert_print(&", %s (%d)"[i==0], job_name(pe->piece_log[i].job), pe->piece_log[i].block);
-			}
-		}
-		assert_print("\n");
-	}
-
 #define TORRENT_PIECE_ASSERT(cond, piece) \
 	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
 #endif
+
+	namespace {
 
 	void debug_log(char const* fmt, ...)
 	{
@@ -142,10 +105,12 @@ namespace libtorrent
 		prepend_time = (usr[len-1] == '\n');
 		mutex::scoped_lock l(log_mutex);
 		fputs(buf, stderr);
+#else
+	TORRENT_UNUSED(fmt);
 #endif
 	}
 
-	static int file_flags_for_job(disk_io_job* j)
+	int file_flags_for_job(disk_io_job* j)
 	{
 		int ret = 0;
 
@@ -153,6 +118,8 @@ namespace libtorrent
 		if (j->flags & disk_io_job::coalesce_buffers) ret |= file::coalesce_buffers;
 		return ret;
 	}
+
+	} // anonymous namespace
 
 // ------- disk_io_thread ------
 
@@ -1058,44 +1025,7 @@ namespace libtorrent
 		&disk_io_thread::do_tick,
 	};
 
-	const char* job_action_name[] =
-	{
-		"read",
-		"write",
-		"hash",
-		"move_storage",
-		"release_files",
-		"delete_files",
-		"check_fastresume",
-		"save_resume_data",
-		"rename_file",
-		"stop_torrent",
-		"cache_piece",
-		"finalize_file",
-		"flush_piece",
-		"flush_hashed",
-		"flush_storage",
-		"trim_cache",
-		"set_file_priority",
-		"load_torrent",
-		"clear_piece",
-		"tick_storage",
-	};
-
 	} // anonymous namespace
-
-#if TORRENT_USE_ASSERTS || DEBUG_DISK_THREAD
-	char const* job_name(int j)
-	{
-		if (j < 0 || j >= piece_log_t::last_job)
-			return "unknown";
-
-		if (j < piece_log_t::flushing)
-			return job_action_name[j];
-		return piece_log_t::job_names[j - piece_log_t::flushing];
-	}
-
-#endif
 
 	// evict and/or flush blocks if we're exceeding the cache size
 	// or used to exceed it and haven't dropped below the low watermark yet
@@ -2785,7 +2715,10 @@ namespace libtorrent
 	}
 #endif
 
-	void get_cache_info_impl(cached_piece_info& info, cached_piece_entry const* i, int block_size)
+	namespace {
+
+	void get_cache_info_impl(cached_piece_info& info, cached_piece_entry const* i
+		, int block_size)
 	{
 		info.piece = i->piece;
 		info.storage = i->storage.get();
@@ -2802,6 +2735,8 @@ namespace libtorrent
 		for (int b = 0; b < blocks_in_piece; ++b)
 			info.blocks[b] = i->blocks[b].buf != 0;
 	}
+
+	} // anonymous namespace
 
 	void disk_io_thread::update_stats_counters(counters& c) const
 	{

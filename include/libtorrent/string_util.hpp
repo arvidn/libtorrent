@@ -92,6 +92,12 @@ namespace libtorrent
 	// make the following invocation return NULL, to indicate the end of the
 	// string.
 	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
+
+#if TORRENT_USE_I2P
+
+	bool is_i2p_url(std::string const& url);
+
+#endif
 }
 
 #endif

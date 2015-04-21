@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local
+#include "libtorrent/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -66,11 +67,6 @@ using namespace libtorrent;
 
 namespace libtorrent
 {
-#if TORRENT_USE_I2P	
-	// defined in torrent_info.cpp
-	bool is_i2p_url(std::string const& url);
-#endif
-
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios
 		, tracker_manager& man

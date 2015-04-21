@@ -70,6 +70,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// defined in hex.cpp
+	extern const char hex_chars[];
 
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
@@ -140,8 +142,6 @@ namespace libtorrent
 		// unreserved (alphanumerics)
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
-
-	static const char hex_chars[] = "0123456789abcdef";
 
 	// the offset is used to ignore the first characters in the unreserved_chars table.
 	static std::string escape_string_impl(const char* str, int len, int offset)
@@ -452,62 +452,6 @@ namespace libtorrent
 		size_t pos = i + argument.size();
 		if (out_pos) *out_pos = pos;
 		return url.substr(pos, url.find('&', pos) - pos);
-	}
-
-	TORRENT_EXPORT std::string to_hex(std::string const& s)
-	{
-		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
-		{
-			ret += hex_chars[((unsigned char)*i) >> 4];
-			ret += hex_chars[((unsigned char)*i) & 0xf];
-		}
-		return ret;
-	}
-
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
-	{
-		for (char const* end = in + len; in < end; ++in)
-		{
-			*out++ = hex_chars[((unsigned char)*in) >> 4];
-			*out++ = hex_chars[((unsigned char)*in) & 0xf];
-		}
-		*out = '\0';
-	}
-
-	// TODO: 3 move the hex coding to its own .cpp file corresponding
-	// to the functions exported by hex.hpp
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
-	{
-		if (in >= '0' && in <= '9') return int(in) - '0';
-		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
-		if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
-		return -1;
-	}
-
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
-	{
-		for (char const* end = in + len; in < end; ++in)
-		{
-			int t = hex_to_int(*in);
-			if (t == -1) return false;
-		}
-		return true;
-	}
-
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
-	{
-		for (char const* end = in + len; in < end; ++in, ++out)
-		{
-			int t = hex_to_int(*in);
-			if (t == -1) return false;
-			*out = t << 4;
-			++in;
-			t = hex_to_int(*in);
-			if (t == -1) return false;
-			*out |= t & 15;
-		}
-		return true;
 	}
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
