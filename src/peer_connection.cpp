@@ -516,6 +516,9 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+#if defined __GNUC__ || defined __clang__
+	__attribute__((format(printf, 2, 3)))
+#endif
 	void peer_connection::peer_log(char const* fmt, ...) const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5696,6 +5699,8 @@ namespace libtorrent
 	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_UNUSED(flags);
+
 		int free_space = m_send_buffer.space_in_last_buffer();
 		if (free_space > size) free_space = size;
 		if (free_space > 0)

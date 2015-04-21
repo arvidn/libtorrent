@@ -139,6 +139,7 @@ namespace libtorrent
 	// given a name of a metric, this function returns the counter index of it,
 	// or -1 if it could not be found. The counter index is the index into the
 	// values array returned by session_stats_alert.
+	// TODO: 3 move this declaration into its own header (session_stats.hpp)
 	TORRENT_EXPORT int find_metric_idx(char const* name);
 
 	void TORRENT_EXPORT TORRENT_CFG();

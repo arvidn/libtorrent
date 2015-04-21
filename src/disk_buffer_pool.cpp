@@ -218,19 +218,16 @@ namespace libtorrent
 #if TORRENT_HAVE_MMAP
 		if (m_cache_pool)
 		{
-			return buffer >= m_cache_pool && buffer < m_cache_pool + boost::uint64_t(m_max_use) * 0x4000;
+			return buffer >= m_cache_pool && buffer < m_cache_pool
+				+ boost::uint64_t(m_max_use) * 0x4000;
 		}
 #endif
 
 #if defined TORRENT_DEBUG
 		return m_buffers_in_use.count(buffer) == 1;
-#endif
-
-#ifdef TORRENT_DEBUG_BUFFERS
+#elif defined TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
-#endif
-
-#ifdef TORRENT_DISABLE_POOL_ALLOCATOR
+#elif defined TORRENT_DISABLE_POOL_ALLOCATOR
 		return true;
 #else
 		if (m_using_pool_allocator)

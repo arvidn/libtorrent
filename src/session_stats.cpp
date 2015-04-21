@@ -518,6 +518,8 @@ namespace libtorrent
 	};
 #undef METRIC
 
+	// TODO: 3 create a header for this file and declare these two functions.
+	// currently this is externed into session.cpp
 	void get_stats_metric_map(std::vector<stats_metric>& stats)
 	{
 		const int num = sizeof(metrics)/sizeof(metrics[0]);

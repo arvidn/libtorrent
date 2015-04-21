@@ -31,6 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/platform_util.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 
 #if TORRENT_USE_RLIMIT
@@ -45,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined TORRENT_WINDOWS
 #include <windows.h>
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

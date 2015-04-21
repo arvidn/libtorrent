@@ -548,7 +548,11 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual void peer_log(char const* fmt, ...) const;
+		virtual void peer_log(char const* fmt, ...) const
+#if defined __GNUC__ || defined __clang__
+			__attribute__((format(printf, 2, 3)))
+#endif
+			;
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING

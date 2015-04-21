@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

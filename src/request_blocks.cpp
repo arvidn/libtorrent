@@ -36,15 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/request_blocks.hpp"
 
 #include <vector>
 
 namespace libtorrent
 {
-	// returns the rank of a peer's source. We have an affinity
-	// to connecting to peers with higher rank. This is to avoid
-	// problems when our peer list is diluted by stale peers from
-	// the resume data for instance
 	int source_rank(int source_bitmask)
 	{
 		int ret = 0;

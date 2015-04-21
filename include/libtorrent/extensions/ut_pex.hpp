@@ -33,18 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 #define TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
+
+#include "libtorrent/socket.hpp" // for endpoint
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
 	struct torrent_plugin;
+	struct peer_plugin;
 	class torrent;
 
 	// constructor function for the ut_pex extension. The ut_pex
@@ -56,6 +60,8 @@ namespace libtorrent
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent*, void*);
+
+	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

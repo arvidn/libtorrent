@@ -315,7 +315,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 
-	void file_storage::add_file(file_entry const& fe, char const* infohash)
+	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
 		int flags = 0;
 		if (fe.pad_file) flags |= file_storage::flag_pad_file;
@@ -323,7 +323,7 @@ namespace libtorrent
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
 		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
 
-		add_file_borrow(NULL, 0, fe.path, fe.size, flags, NULL, fe.mtime
+		add_file_borrow(NULL, 0, fe.path, fe.size, flags, filehash, fe.mtime
 			, fe.symlink_path);
 	}
 
@@ -866,7 +866,7 @@ namespace libtorrent
 		, std::string const& save_path) const
 	{
 		int index = &fe - &m_files[0];
-		return file_path(index);
+		return file_path(index, save_path);
 	}
 
 	std::string file_storage::file_name(internal_file_entry const& fe) const

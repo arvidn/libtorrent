@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #if BOOST_VERSION < 103500
@@ -55,13 +57,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <cstdarg>
 
-using namespace libtorrent;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
 	// defined in broadcast_socket.cpp
 	address guess_local_address(io_service&);
+
+namespace {
+
+int render_lsd_packet(char* dst, int len, int listen_port
+	, char const* info_hash_hex, int m_cookie, char const* host)
+{
+	return snprintf(dst, len,
+		"BT-SEARCH * HTTP/1.1\r\n"
+		"Host: %s:6771\r\n"
+		"Port: %d\r\n"
+		"Infohash: %s\r\n"
+		"cookie: %x\r\n"
+		"\r\n\r\n", host, listen_port, info_hash_hex, m_cookie);
 }
+} // anonymous namespace
 
 static error_code ec;
 
@@ -88,6 +104,9 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+#if defined __GNUC__ || defined __clang__
+__attribute__((format(printf, 2, 3)))
+#endif
 void lsd::debug_log(char const* fmt, ...) const
 {
 	va_list v;
@@ -113,18 +132,6 @@ void lsd::start(error_code& ec)
 }
 
 lsd::~lsd() {}
-
-int render_lsd_packet(char* dst, int len, int listen_port
-	, char const* info_hash_hex, int m_cookie, char const* host)
-{
-	return snprintf(dst, len,
-		"BT-SEARCH * HTTP/1.1\r\n"
-		"Host: %s:6771\r\n"
-		"Port: %d\r\n"
-		"Infohash: %s\r\n"
-		"cookie: %x\r\n"
-		"\r\n\r\n", host, listen_port, info_hash_hex, m_cookie);
-}
 
 void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 {
@@ -313,4 +320,7 @@ void lsd::close()
 #endif
 	m_callback.clear();
 }
+
+} // libtorrent namespace
+
 
