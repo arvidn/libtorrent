@@ -59,7 +59,10 @@ extern char const* libtorrent_assert_log;
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...);
 
-TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(const char* expr, int line
+#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
+TORRENT_NO_RETURN
+#endif
+TORRENT_EXPORT void assert_fail(const char* expr, int line
 	, char const* file, char const* function, char const* val, int kind = 0);
 
 #define TORRENT_ASSERT_PRECOND(x) \

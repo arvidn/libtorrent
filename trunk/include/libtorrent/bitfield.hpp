@@ -309,13 +309,13 @@ namespace libtorrent
 			const int b = (bits + 31) / 32;
 			if (m_buf)
 			{
-				m_buf = (boost::uint32_t*)std::realloc(m_buf-1, (b+1) * 4);
+				m_buf = static_cast<boost::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
 				m_buf = m_buf + 1;
 				m_buf[-1] = bits;
 			}
 			else if (bits > 0)
 			{
-				m_buf = (boost::uint32_t*)std::malloc((b+1) * 4);
+				m_buf = static_cast<boost::uint32_t*>(std::malloc((b+1) * 4));
 				m_buf = m_buf + 1;
 				m_buf[-1] = bits;
 			}

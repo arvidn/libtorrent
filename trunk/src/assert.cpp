@@ -297,7 +297,7 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 #else
 
 TORRENT_EXPORT void assert_print(char const*, ...) {}
-TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const*, int, char const*
+TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}
 
 #endif

@@ -271,6 +271,7 @@ namespace libtorrent
 		template <class S>
 		void instantiate(io_service& ios, void* userdata = 0)
 		{
+			TORRENT_UNUSED(ios);
 			TORRENT_ASSERT(&ios == &m_io_service);
 			construct(socket_type_int_impl<S>::value, userdata);
 		}

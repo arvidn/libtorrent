@@ -2427,6 +2427,8 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
+#else
+		TORRENT_UNUSED(index);
 #endif
 	}
 
