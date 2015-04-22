@@ -220,8 +220,7 @@ namespace libtorrent
 			}
 
 			ret = puff(reinterpret_cast<unsigned char*>(&buffer[0]), &destlen
-				, const_cast<unsigned char*>(
-					reinterpret_cast<const unsigned char*>(in)), &srclen);
+				, reinterpret_cast<const unsigned char*>(in), &srclen);
 
 			// if the destination buffer wasn't large enough, double its
 			// size and try again. Unless it's already at its max, in which
