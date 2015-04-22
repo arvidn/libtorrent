@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wweak-vtable"
 #pragma clang diagnostic ignored "-Wundef"
 #pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
 #endif
 
 #ifdef _MSC_VER

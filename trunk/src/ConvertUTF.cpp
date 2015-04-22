@@ -38,6 +38,8 @@
 
 ------------------------------------------------------------------------ */
 
+// ignore warnings in this file
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include "libtorrent/ConvertUTF.h"
 #ifdef CVTUTF_DEBUG

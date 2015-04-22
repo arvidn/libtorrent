@@ -401,6 +401,8 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	return i;
 }
 
+namespace {
+
 bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 {
 	TORRENT_ASSERT(lhs.addr().is_v4() == rhs.addr().is_v4());
@@ -412,6 +414,8 @@ bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 	int dist = cidr_distance(lhs.addr(), rhs.addr());
 	return dist <= cutoff;
 }
+
+} // anonymous namespace
 
 node_entry* routing_table::find_node(udp::endpoint const& ep
 	, routing_table::table_t::iterator* bucket) 

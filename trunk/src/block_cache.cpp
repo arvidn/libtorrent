@@ -180,33 +180,33 @@ void log_refcounts(cached_piece_entry const* pe)
 }
 #endif
 
+const char* const job_action_name[] =
+{
+	"read",
+	"write",
+	"hash",
+	"move_storage",
+	"release_files",
+	"delete_files",
+	"check_fastresume",
+	"save_resume_data",
+	"rename_file",
+	"stop_torrent",
+	"cache_piece",
+	"finalize_file",
+	"flush_piece",
+	"flush_hashed",
+	"flush_storage",
+	"trim_cache",
+	"set_file_priority",
+	"load_torrent",
+	"clear_piece",
+	"tick_storage",
+};
+
 #if TORRENT_USE_ASSERTS
 
-	const char* job_action_name[] =
-	{
-		"read",
-		"write",
-		"hash",
-		"move_storage",
-		"release_files",
-		"delete_files",
-		"check_fastresume",
-		"save_resume_data",
-		"rename_file",
-		"stop_torrent",
-		"cache_piece",
-		"finalize_file",
-		"flush_piece",
-		"flush_hashed",
-		"flush_storage",
-		"trim_cache",
-		"set_file_priority",
-		"load_torrent",
-		"clear_piece",
-		"tick_storage",
-	};
-
-	char const* piece_log_t::job_names[7] =
+	char const* const piece_log_t::job_names[7] =
 	{
 		"flushing",
 		"flush_expired",

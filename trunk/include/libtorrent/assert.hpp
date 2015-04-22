@@ -57,7 +57,11 @@ extern char const* libtorrent_assert_log;
 #include <sstream>
 #endif
 
-TORRENT_EXPORT void assert_print(char const* fmt, ...);
+TORRENT_EXPORT void assert_print(char const* fmt, ...)
+#if defined __GNUC__ || defined __clang__
+	__attribute__((format(printf, 1, 2)))
+#endif
+	;
 
 #if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
 TORRENT_NO_RETURN
