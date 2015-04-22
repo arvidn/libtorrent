@@ -1,3 +1,6 @@
+// ignore warnings in this file
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 /* LibTomCrypt, modular cryptographic library -- Tom St Denis
  *
  * LibTomCrypt is a library that provides various cryptographic

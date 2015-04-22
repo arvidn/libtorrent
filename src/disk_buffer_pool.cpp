@@ -162,6 +162,7 @@ namespace libtorrent
 	// more buffers to received data into
 	void disk_buffer_pool::check_buffer_level(mutex::scoped_lock& l)
 	{
+		TORRENT_ASSERT(l.locked());
 		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
 
 		m_exceeded_max_size = false;
@@ -214,6 +215,8 @@ namespace libtorrent
 		, mutex::scoped_lock& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(l.locked());
+		TORRENT_UNUSED(l);
 
 #if TORRENT_HAVE_MMAP
 		if (m_cache_pool)
@@ -325,6 +328,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(l.locked());
+		TORRENT_UNUSED(l);
 
 		char* ret;
 #if TORRENT_HAVE_MMAP
@@ -601,6 +606,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
+		TORRENT_ASSERT(l.locked());
+		TORRENT_UNUSED(l);
 
 #if TORRENT_USE_MLOCK
 		if (m_lock_disk_cache)

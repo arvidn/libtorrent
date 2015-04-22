@@ -94,7 +94,7 @@ namespace libtorrent
 			last_job
 		};
 
-		static char const* job_names[7];
+		static char const* const job_names[7];
 	};
 
 	char const* job_name(int j);
@@ -104,7 +104,7 @@ namespace libtorrent
 
 #endif
 
-	extern const char* job_action_name[];
+	extern const char* const job_action_name[];
 
 	struct TORRENT_EXTRA_EXPORT partial_hash
 	{

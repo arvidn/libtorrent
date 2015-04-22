@@ -287,8 +287,14 @@ namespace libtorrent
 		m_path = path;
 	}
 
-	void part_file::import_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
+	void part_file::import_file(file& f, boost::int64_t offset
+		, boost::int64_t size, error_code& ec)
 	{
+		TORRENT_UNUSED(f);
+		TORRENT_UNUSED(offset);
+		TORRENT_UNUSED(size);
+		TORRENT_UNUSED(ec);
+
 		// not implemented
 		assert(false);
 	}
