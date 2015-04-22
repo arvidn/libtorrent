@@ -171,8 +171,9 @@ public:
 	
 	void resize(std::size_t n)
 	{
+		TORRENT_ASSERT(n < 0xffffffffu);
 		reserve(n);
-		m_size = n;
+		m_size = boost::uint32_t(n);
 	}
 
 	void insert(char* point, char const* first, char const* last)
@@ -214,9 +215,10 @@ public:
 	{
 		if (n <= capacity()) return;
 		TORRENT_ASSERT(n > 0);
+		TORRENT_ASSERT(n < 0xffffffffu);
 
-		m_begin = (char*)std::realloc(m_begin, n);
-		m_capacity = n;
+		m_begin = static_cast<char*>(std::realloc(m_begin, n));
+		m_capacity = boost::uint32_t(n);
 	}
 
 	bool empty() const { return m_size == 0; }

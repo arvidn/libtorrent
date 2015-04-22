@@ -1323,6 +1323,8 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	};
 	TORRENT_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count);
+#else
+	TORRENT_UNUSED(reason);
 #endif
 	return true;
 }
@@ -1381,6 +1383,8 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 	};
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count, pe);
+#else
+	TORRENT_UNUSED(reason);
 #endif
 }
 
@@ -1675,13 +1679,16 @@ void block_cache::check_invariant() const
 }
 #endif
 
+// TODO: 2 turn these return values into enums
 // returns
 // -1: block not in cache
 // -2: out of memory
 
-int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j, bool expect_no_fail)
+int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
+	, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
+	TORRENT_UNUSED(expect_no_fail);
 
 	TORRENT_PIECE_ASSERT(j->buffer == 0, pe);
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);

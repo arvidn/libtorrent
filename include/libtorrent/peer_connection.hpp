@@ -1269,6 +1269,7 @@ namespace libtorrent
 			friend void* asio_handler_allocate(
 			    std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
+				TORRENT_UNUSED(size);
 				TORRENT_ASSERT(size <= Size);
 #ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(!ctx->storage.used);
@@ -1278,8 +1279,14 @@ namespace libtorrent
 			}
 
 			friend void asio_handler_deallocate(
-				void*, std::size_t, allocating_handler<Handler, Size>* ctx)
+				void* ptr, std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
+				TORRENT_UNUSED(ptr);
+				TORRENT_UNUSED(size);
+				TORRENT_UNUSED(ctx);
+
+				TORRENT_ASSERT(size <= Size);
+				TORRENT_ASSERT(ptr == &ctx->storage.bytes);
 #ifdef TORRENT_DEBUG
 				ctx->storage.used = false;
 #endif

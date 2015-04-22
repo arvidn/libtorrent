@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
@@ -54,6 +55,9 @@ namespace libtorrent
 	struct http_connection;
 	class entry;
 	class http_parser;
+	struct bdecode_node;
+	struct peer_entry;
+
 	namespace aux { struct session_settings; }
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
