@@ -29,5 +29,5 @@
 
 int puff(unsigned char *dest,           /* pointer to destination pointer */
          boost::uint32_t *destlen,        /* amount of output space */
-         unsigned char *source,         /* pointer to source data pointer */
+         const unsigned char *source,         /* pointer to source data pointer */
          boost::uint32_t *sourcelen);     /* amount of input available */
