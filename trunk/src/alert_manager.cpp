@@ -81,7 +81,7 @@ namespace libtorrent
 		}
 #endif
 		if (a->type() == save_resume_data_failed_alert::alert_type
-			|| a->type() == save_resume_data_failed_alert::alert_type)
+			|| a->type() == save_resume_data_alert::alert_type)
 			++m_num_queued_resume;
 
 		if (m_alerts[m_generation].size() == 1)
