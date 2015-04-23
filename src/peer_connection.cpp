@@ -2930,7 +2930,7 @@ namespace libtorrent
 
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
-		setup_receive(read_async);
+		setup_receive();
 
 		piece_block block_finished(p.piece, p.start / t->block_size());
 
@@ -5481,7 +5481,7 @@ namespace libtorrent
 #endif
 		m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
-		setup_receive(read_async);
+		setup_receive();
 	}
 
 	void peer_connection::on_allocate_disk_buffer(char* buffer, int buffer_size)
@@ -5496,10 +5496,10 @@ namespace libtorrent
 		m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
 
-		setup_receive(read_async);
+		setup_receive();
 	}
 
-	void peer_connection::setup_receive(sync_t sync)
+	void peer_connection::setup_receive()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -5832,7 +5832,7 @@ namespace libtorrent
 					// allow reading from the socket again
 					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 					m_channel_state[download_channel] &= ~peer_info::bw_network;
-					setup_receive(read_async);
+					setup_receive();
 					return;
 				}
 				disconnect(ec, op_sock_read);
@@ -6021,7 +6021,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
 		m_channel_state[download_channel] &= ~peer_info::bw_network;
 
-		setup_receive(read_async);
+		setup_receive();
 	}
 
 	bool peer_connection::can_write() const
