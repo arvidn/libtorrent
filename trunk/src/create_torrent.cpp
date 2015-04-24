@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_to_wstring
 #include "libtorrent/disk_io_thread.hpp"
-#include "libtorrent/torrent_info.hpp" // for merkle_*()
+#include "libtorrent/aux_/merkle.hpp" // for merkle_*()
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 

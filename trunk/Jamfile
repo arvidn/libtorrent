@@ -597,6 +597,7 @@ SOURCES =
 	identify_client
 	ip_filter
 	ip_voter
+	merkle
 	peer_connection
 	platform_util
 	bt_peer_connection
