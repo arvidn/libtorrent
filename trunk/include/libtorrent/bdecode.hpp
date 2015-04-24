@@ -164,7 +164,7 @@ struct bdecode_token
 	{
 		max_offset = (1 << 29) - 1,
 		max_next_item = (1 << 29) - 1,
-		max_header = (1 << 3) - 1,
+		max_header = (1 << 3) - 1
 	};
 
 	bdecode_token(boost::uint32_t off, bdecode_token::type_t t)

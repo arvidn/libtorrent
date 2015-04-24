@@ -147,8 +147,7 @@ namespace libtorrent
 		close_corrupt_pieces,
 
 		close_pex_message_too_big,
-		close_pex_too_frequent,
-
+		close_pex_too_frequent
 	};
 
 	close_reason_t error_to_close_reason(error_code const& ec);

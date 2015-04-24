@@ -581,7 +581,7 @@ namespace libtorrent
 			partfile_read,
 			partfile_write,
 			check_resume,
-			hard_link,
+			hard_link
 		};
 
 		// Returns a string literal representing the file operation

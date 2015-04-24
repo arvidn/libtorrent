@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/debug.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/version.hpp>
 #if BOOST_VERSION < 103500
@@ -45,8 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string.h> // for memcpy
 
-#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
-#include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

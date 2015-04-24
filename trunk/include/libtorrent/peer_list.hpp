@@ -124,7 +124,7 @@ namespace libtorrent
 			flag_encryption = 0x1,
 			flag_seed = 0x2,
 			flag_utp = 0x4,
-			flag_holepunch = 0x8,
+			flag_holepunch = 0x8
 		};
 
 		// this is called once for every torrent_peer we get from

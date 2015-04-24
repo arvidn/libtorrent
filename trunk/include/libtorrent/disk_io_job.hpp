@@ -133,7 +133,7 @@ namespace libtorrent
 			in_progress = 0x20,
 
 			// turns into file::coalesce_buffers in the file operation
-			coalesce_buffers = 0x40,
+			coalesce_buffers = 0x40
 		};
 
 		// for write jobs, returns true if its block

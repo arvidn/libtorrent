@@ -610,7 +610,7 @@ namespace libtorrent
 			// priorities having changed etc. If the resume data doesn't need
 			// saving, a save_resume_data_failed_alert is posted with the error
 			// resume_data_not_modified.
-			only_if_modified = 4,
+			only_if_modified = 4
 		};
 
 		// ``save_resume_data()`` generates fast-resume data and returns it as an

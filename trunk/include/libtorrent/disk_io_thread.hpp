@@ -438,7 +438,7 @@ namespace libtorrent
 
 			// the job cannot be completed right now, put it back in the
 			// queue and try again later
-			retry_job = -201,
+			retry_job = -201
 		};
 
 		void add_completed_job(disk_io_job* j);

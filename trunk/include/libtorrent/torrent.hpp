@@ -468,8 +468,9 @@ namespace libtorrent
 
 			// the error occurred while loading the .torrent file via the user
 			// supplied load function
-			error_file_metadata = -4,
+			error_file_metadata = -4
 		};
+
 		void set_error(error_code const& ec, int file);
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
