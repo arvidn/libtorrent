@@ -50,12 +50,5 @@ namespace libtorrent { namespace aux
 
 	time_point const& time_now() { return aux::g_current_time; }
 
-	std::string log_time()
-	{
-		static const time_point start = clock_type::now();
-		char ret[200];
-		snprintf(ret, sizeof(ret), "%" PRId64, total_microseconds(clock_type::now() - start));
-		return ret;
-	}
 } }
 
