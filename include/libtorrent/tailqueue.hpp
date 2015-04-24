@@ -87,7 +87,7 @@ namespace libtorrent
 		tailqueue_node* m_last;
 		int m_size;
 	};
-};
+}
 
 #endif // TAILQUEUE_HPP
 

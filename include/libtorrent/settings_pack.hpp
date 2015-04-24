@@ -98,7 +98,7 @@ namespace libtorrent
 			int_type_base =    0x4000,
 			bool_type_base =   0x8000,
 			type_mask =        0xc000,
-			index_mask =       0x3fff,
+			index_mask =       0x3fff
 		};
 
 		enum string_types

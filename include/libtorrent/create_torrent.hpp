@@ -148,7 +148,7 @@ namespace libtorrent
 			// another torrent.
 			// 
 			// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
-			mutable_torrent_support = 16,
+			mutable_torrent_support = 16
 		};
 
 		// The ``piece_size`` is the size of each piece in bytes. It must

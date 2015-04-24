@@ -307,7 +307,7 @@ namespace libtorrent { namespace aux
 			// all torrents that have resume data to save
 //			torrent_want_save_resume,
 
-			num_torrent_lists,
+			num_torrent_lists
 		};
 
 		virtual std::vector<torrent*>& torrent_list(int i) = 0;

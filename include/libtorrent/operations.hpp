@@ -96,7 +96,7 @@ namespace libtorrent
 		op_ssl_handshake,
 
 		// a connection failed to satisfy the bind interface setting
-		op_get_interface,
+		op_get_interface
 	};
 
 }

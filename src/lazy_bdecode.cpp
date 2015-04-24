@@ -645,7 +645,7 @@ namespace libtorrent
 		}
 		return ret;
 	}
-};
+}
 
 #endif // TORRENT_NO_DEPRECATE
 

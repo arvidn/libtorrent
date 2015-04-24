@@ -145,7 +145,7 @@ namespace libtorrent
 		list_node* m_last;
 		int m_size;
 	};
-};
+}
 
 #endif // LINKED_LIST_HPP
 

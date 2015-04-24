@@ -51,7 +51,7 @@ namespace libtorrent
 		{
 			cache_error = -1,
 			not_in_cache = -2,
-			no_exist = -3,
+			no_exist = -3
 		};
 
 		// returns the size of the file or one

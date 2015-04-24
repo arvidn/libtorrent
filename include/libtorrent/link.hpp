@@ -71,7 +71,7 @@ namespace libtorrent
 			list.push_back(self);
 		}
 	};
-};
+}
 
 #endif
 
