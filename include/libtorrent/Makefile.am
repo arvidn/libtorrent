@@ -162,6 +162,7 @@ nobase_include_HEADERS = \
   aux_/escape_string.hpp            \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \
+  aux_/merkle.hpp                   \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

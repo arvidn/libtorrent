@@ -62,7 +62,8 @@ test_programs = \
   test_gzip                  \
   test_utf8                  \
   test_socket_io             \
-  test_sliding_average
+  test_sliding_average       \
+  test_merkle
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -200,6 +201,7 @@ test_gzip_SOURCES = test_gzip.cpp
 test_utf8_SOURCES = test_utf8.cpp
 test_socket_io_SOURCES = test_socket_io.cpp
 test_sliding_average_SOURCES = test_sliding_average.cpp
+test_merkle_SOURCES = test_merkle.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
+#include "libtorrent/aux_/merkle.hpp" // for merkle_*
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 
@@ -596,39 +597,6 @@ namespace libtorrent
 	}
 
 	} // anonymous namespace
-
-	// TODO: 3 move the merkle functions out into its own file
-	// and header file
-	int merkle_get_parent(int tree_node)
-	{
-		// node 0 doesn't have a parent
-		TORRENT_ASSERT(tree_node > 0);
-		return (tree_node - 1) / 2;
-	}
-
-	int merkle_get_sibling(int tree_node)
-	{
-		// node 0 doesn't have a sibling
-		TORRENT_ASSERT(tree_node > 0);
-		// even numbers have their sibling to the left
-		// odd numbers have their sibling to the right
-		return tree_node + (tree_node&1?1:-1);
-	}
-
-	int merkle_num_nodes(int leafs)
-	{
-		TORRENT_ASSERT(leafs > 0);
-		return (leafs << 1) - 1;
-	}
-
-	int merkle_num_leafs(int pieces)
-	{
-		TORRENT_ASSERT(pieces > 0);
-		// round up to nearest 2 exponent
-		int ret = 1;
-		while (pieces > ret) ret <<= 1;
-		return ret;
-	}
 
 	announce_entry::announce_entry(std::string const& u)
 		: url(u)

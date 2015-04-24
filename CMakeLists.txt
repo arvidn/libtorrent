@@ -47,6 +47,7 @@ set(sources
 	web_peer_connection
 	http_seed_connection
 	instantiate_connection
+	merkle
 	natpmp
 	part_file
 	packet_buffer
