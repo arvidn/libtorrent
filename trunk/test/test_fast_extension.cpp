@@ -32,6 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
+
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/alloca.hpp"
@@ -63,7 +65,7 @@ void log(char const* fmt, ...)
 	va_end(v);
 
 	fprintf(stderr, "\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
-		, aux::time_now_string(), buf);
+		, time_now_string(), buf);
 }
 
 void print_session_log(lt::session& ses)

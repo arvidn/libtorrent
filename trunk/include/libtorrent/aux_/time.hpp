@@ -40,10 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	// TODO: 3 this is only used for debug logging. It should probably not
-	// be included unconditionally
-	TORRENT_EXTRA_EXPORT char const* time_now_string();
-
 	std::string log_time();
 
 	// returns the current time, as represented by time_point. The

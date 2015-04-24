@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TIME_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 
 #if defined BOOST_ASIO_HAS_STD_CHRONO
@@ -41,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <boost/chrono.hpp>
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 

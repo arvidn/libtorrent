@@ -30,16 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+#include "setup_transfer.hpp"
+#include "test_utils.hpp"
+#include "test_utils.hpp"
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/thread.hpp"
-#include <boost/tuple/tuple.hpp>
-
-#include "test.hpp"
-#include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-#include <iostream>
+
+#include <boost/tuple/tuple.hpp>
 
 using boost::tuples::ignore;
 
@@ -137,7 +139,7 @@ void test_transfer(int flags
 		error_code ec;
 		int port = seed->listen_port();
 		fprintf(stderr, "%s: downloader: connecting peer port: %d\n"
-			, aux::time_now_string(), port);
+			, time_now_string(), port);
 		tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, port));
 	}
@@ -146,7 +148,7 @@ void test_transfer(int flags
 		error_code ec;
 		int port = downloader->listen_port();
 		fprintf(stderr, "%s: seed: connecting peer port: %d\n"
-			, aux::time_now_string(), port);
+			, time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, port));
 	}
@@ -171,7 +173,7 @@ void test_transfer(int flags
 
 	if (flags & upload_only) goto done;
 
-	std::cerr << "waiting for transfer to complete\n";
+	fprintf(stderr, "waiting for transfer to complete\n");
 
 	for (int i = 0; i < timeout * 10; ++i)
 	{
@@ -187,7 +189,7 @@ void test_transfer(int flags
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
-	if (tor2.status().is_seeding) std::cerr << "done\n";
+	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
 
 done:
 

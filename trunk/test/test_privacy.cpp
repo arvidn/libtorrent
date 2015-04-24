@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "dht_server.hpp"
 #include "peer_server.hpp"
 #include "udp_tracker.hpp"
+#include "test_utils.hpp"
+
 #include "libtorrent/alert.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -229,7 +231,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	if (flags & expect_http_reject)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
 
-	fprintf(stderr, "%s: ~session\n", aux::time_now_string());
+	fprintf(stderr, "%s: ~session\n", time_now_string());
 	session_proxy pr = s->abort();
 	delete s;
 
