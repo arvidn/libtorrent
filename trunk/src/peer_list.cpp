@@ -719,7 +719,8 @@ namespace libtorrent
 			// add a new entry
 			error_code ec;
 
-			if (int(m_peers.size()) >= state->max_peerlist_size)
+			if (state->max_peerlist_size
+				&& int(m_peers.size()) >= state->max_peerlist_size)
 			{
 				// this may invalidate our iterator!
 				erase_peers(state, force_erase);
