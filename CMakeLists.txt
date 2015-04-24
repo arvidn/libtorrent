@@ -359,7 +359,7 @@ if(build_tests)
 	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
 	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp
 		test/dht_server.cpp test/udp_tracker.cpp test/peer_server.cpp
-		test/web_seed_suite.cpp)
+		test/web_seed_suite.cpp test/test_utils.cpp)
 	enable_testing()
 
 	foreach(s ${tests})

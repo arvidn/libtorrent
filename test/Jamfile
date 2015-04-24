@@ -56,6 +56,7 @@ lib libtorrent_test
 	peer_server.cpp
 	web_seed_suite.cpp
 	swarm_suite.cpp
+	test_utils.cpp
 
 	: # requirements
 	# this is used to determine whether

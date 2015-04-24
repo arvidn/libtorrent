@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,32 +30,26 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <ctime>
-#include <string>
-#include <cstdio>
-#include <boost/limits.hpp>
-#include <boost/version.hpp>
-#include "libtorrent/config.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent { namespace aux
+namespace libtorrent
 {
-	// used to cache the current time
-	// every 100 ms. This is cheaper
-	// than a system call and can be
-	// used where more accurate time
-	// is not necessary
-	time_point g_current_time;
 
-	time_point const& time_now() { return aux::g_current_time; }
-
-	std::string log_time()
+	char const* time_now_string()
 	{
 		static const time_point start = clock_type::now();
-		char ret[200];
-		snprintf(ret, sizeof(ret), "%" PRId64, total_microseconds(clock_type::now() - start));
+		static char ret[200];
+		int t = total_milliseconds(clock_type::now() - start);
+		int h = t / 1000 / 60 / 60;
+		t -= h * 60 * 60 * 1000;
+		int m = t / 1000 / 60;
+		t -= m * 60 * 1000;
+		int s = t / 1000;
+		t -= s * 1000;
+		int ms = t;
+		snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
 		return ret;
 	}
-} }
+}
 

@@ -38,11 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
-#include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
+
+#include <boost/tuple/tuple.hpp>
+#include <boost/bind.hpp>
+
 #include <fstream>
 #include <iostream>
 
@@ -306,7 +309,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
-			fprintf(stderr, "%s: reconnecting peer\n", aux::time_now_string());
+			fprintf(stderr, "%s: reconnecting peer\n", time_now_string());
 			error_code ec;
 			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 				, ses1.listen_port()));
@@ -314,7 +317,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			TEST_CHECK(tor2.status().is_finished == false);
 			fprintf(stderr, "disconnects: %d\n", peer_disconnects);
 			TEST_CHECK(peer_disconnects >= 2);
-			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", aux::time_now_string());
+			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
 			peer_disconnects = 0;
 			continue;
 		}

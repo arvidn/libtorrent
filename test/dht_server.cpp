@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "dht_server.hpp"
+#include "test_utils.hpp"
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
@@ -86,7 +87,7 @@ struct dht_server
 			return;
 		}
 
-		fprintf(stderr, "%s: DHT initialized on port %d\n", aux::time_now_string(), m_port);
+		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread.reset(new thread(boost::bind(&dht_server::thread_fun, this)));
 	}
@@ -171,8 +172,8 @@ int num_dht_hits()
 
 void stop_dht()
 {
-	fprintf(stderr, "%s: stop_dht()\n", aux::time_now_string());
+	fprintf(stderr, "%s: stop_dht()\n", time_now_string());
 	g_dht.reset();
-	fprintf(stderr, "%s: stop_dht() done\n", aux::time_now_string());
+	fprintf(stderr, "%s: stop_dht() done\n", time_now_string());
 }
 

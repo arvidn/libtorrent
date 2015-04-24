@@ -36,11 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht
 {
+	// TODO: 3 replace this logging with alerts
 	log_event::log_event(log& log) 
 		: log_(log) 
 	{
 		if (log_.enabled())
-			log_ << libtorrent::aux::time_now_string() << " [" << log.id() << "] ";
+			log_ << libtorrent::aux::log_time() << " [" << log.id() << "] ";
 	}
 
 	log_event::~log_event()

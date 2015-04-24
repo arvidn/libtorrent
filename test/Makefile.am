@@ -128,7 +128,8 @@ EXTRA_DIST = Jamfile \
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
-	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp
+	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
+	test_utils.hpp
 
 libtest_la_SOURCES = main.cpp \
   setup_transfer.cpp \
@@ -136,7 +137,8 @@ libtest_la_SOURCES = main.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
   web_seed_suite.cpp \
-  swarm_suite.cpp
+  swarm_suite.cpp \
+  test_utils.cpp
 
 test_bitfield_SOURCES = test_bitfield.cpp
 test_crc32_SOURCES = test_crc32.cpp

@@ -222,7 +222,7 @@ namespace libtorrent { namespace
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::stringstream log_line;
-			log_line << aux::time_now_string() << " <== LT_TEX [ "
+			log_line << " <== LT_TEX [ "
 				"added: ";
 #endif
 
@@ -327,7 +327,7 @@ namespace libtorrent { namespace
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::stringstream log_line;
-			log_line << aux::time_now_string() << " ==> LT_TEX [ "
+			log_line << " ==> LT_TEX [ "
 				"added: ";
 #endif
 			entry tex;

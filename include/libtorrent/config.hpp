@@ -394,8 +394,8 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 // at the highest warning level, clang actually warns about functions
 // that could be marked noreturn. There seems to be versions of GCC
 // that declare being 
-#if defined __clang__ && defined __cplusplus && __cplusplus >= 199711L
-#define TORRENT_NO_RETURN [[noreturn]]
+#if defined __clang__ || defined __GNUC__
+#define TORRENT_NO_RETURN __attribute((noreturn))
 #else
 #define TORRENT_NO_RETURN
 #endif
