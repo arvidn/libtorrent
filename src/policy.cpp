@@ -1069,7 +1069,13 @@ namespace libtorrent
 			error_code ec;
 			TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 
-			if (int(m_peers.size()) >= m_torrent->settings().max_peerlist_size)
+			// max peerlist size 0 means infinite
+			int max_peerlist_size = m_torrent->is_paused()
+				? m_torrent->settings().max_paused_peerlist_size
+				: m_torrent->settings().max_peerlist_size;
+
+			if (max_peerlist_size
+				&& int(m_peers.size()) >= max_peerlist_size)
 			{
 				// this may invalidate our iterator!
 				erase_peers(force_erase);

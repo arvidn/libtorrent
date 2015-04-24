@@ -1,3 +1,4 @@
+	* fixed bug when max_peerlist_size was set to 0
 	* fix issues with missing exported symbols when building dll
 	* fix division by zero bug in edge case while connecting peers
 
