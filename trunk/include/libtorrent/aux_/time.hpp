@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	std::string log_time();
-
 	// returns the current time, as represented by time_point. The
 	// resolution of this timer is about 100 ms.
 	time_point const& time_now();
