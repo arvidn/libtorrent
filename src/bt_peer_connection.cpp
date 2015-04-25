@@ -2550,7 +2550,7 @@ namespace libtorrent
 			int consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
 	#ifndef TORRENT_DISABLE_LOGGING
 			if (consumed + bytes_transferred > 0)
-				peer_log("<== decrypted block [ s = %d ]", consumed + bytes_transferred);
+				peer_log("<== decrypted block [ s = %d ]", int(consumed + bytes_transferred));
 	#endif
 			if (bytes_transferred == SIZE_MAX)
 			{
@@ -2721,7 +2721,7 @@ namespace libtorrent
 				std::size_t bytes_processed = syncoffset + 20;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log("*** sync point (hash) found at offset %d"
-					, m_sync_bytes_read + bytes_processed - 20);
+					, int(m_sync_bytes_read + bytes_processed - 20));
 #endif
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
@@ -2857,7 +2857,7 @@ namespace libtorrent
 				std::size_t bytes_processed = syncoffset + 8;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log("*** sync point (verification constant) found at offset %d"
-					, m_sync_bytes_read + bytes_processed - 8);
+					, int(m_sync_bytes_read + bytes_processed - 8));
 #endif
 				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));

@@ -485,23 +485,23 @@ namespace libtorrent
 		// (``file_entry``) using the ``file_storage::at`` function, which takes
 		// an index and an iterator.
 		TORRENT_DEPRECATED
-		file_iterator begin_files() const TORRENT_DEPRECATED { return m_files.begin_deprecated(); }
+		file_iterator begin_files() const { return m_files.begin_deprecated(); }
 		TORRENT_DEPRECATED
-		file_iterator end_files() const TORRENT_DEPRECATED { return m_files.end_deprecated(); }
-		reverse_file_iterator rbegin_files() const TORRENT_DEPRECATED { return m_files.rbegin_deprecated(); }
+		file_iterator end_files() const { return m_files.end_deprecated(); }
+		reverse_file_iterator rbegin_files() const { return m_files.rbegin_deprecated(); }
 		TORRENT_DEPRECATED
-		reverse_file_iterator rend_files() const TORRENT_DEPRECATED { return m_files.rend_deprecated(); }
+		reverse_file_iterator rend_files() const { return m_files.rend_deprecated(); }
 
 		TORRENT_DEPRECATED
-		file_iterator file_at_offset(boost::int64_t offset) const TORRENT_DEPRECATED
+		file_iterator file_at_offset(boost::int64_t offset) const
 		{ return m_files.file_at_offset_deprecated(offset); }
 
 		TORRENT_DEPRECATED
-		file_entry file_at(int index) const TORRENT_DEPRECATED{ return m_files.at(index); }
+		file_entry file_at(int index) const { return m_files.at_deprecated(index); }
 #endif // TORRENT_NO_DEPRECATE
 
 		// If you need index-access to files you can use the ``num_files()`` and
-		// ``file_at()`` to access files using indices.
+		// ``file_path()`` et.al. to access files using indices.
 		int num_files() const { return m_files.num_files(); }
 
 		// This function will map a piece index, a byte offset within that piece

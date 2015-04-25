@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdio.h>
-#include <libtorrent/session.hpp>
+#include "libtorrent/session_stats.hpp"
 
 using namespace libtorrent;
 

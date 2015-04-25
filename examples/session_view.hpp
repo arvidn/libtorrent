@@ -1,7 +1,8 @@
 #ifndef SESSION_VIEW_HPP_
 #define SESSION_VIEW_HPP_
 
-#include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
+#include <boost/cstdint.hpp>
 
 namespace lt = libtorrent;
 

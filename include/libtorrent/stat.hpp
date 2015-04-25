@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <assert.h>
 #include <cstring>
+#include <limits>
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/invariant_check.hpp"
@@ -57,20 +58,20 @@ namespace libtorrent
 
 		void operator+=(stat_channel const& s)
 		{
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<boost::uint32_t>::max)() - s.m_counter);
 			m_counter += s.m_counter;
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<boost::uint64_t>::max)() - s.m_counter);
 			m_total_counter += s.m_counter;
-			TORRENT_ASSERT(m_counter >= m_counter - s.m_counter);
 		}
 
 		void add(int count)
 		{
 			TORRENT_ASSERT(count >= 0);
 
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<boost::uint32_t>::max)() - count);
 			m_counter += count;
-			TORRENT_ASSERT(m_counter >= m_counter - count);
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<boost::uint64_t>::max)() - count);
 			m_total_counter += count;
-			TORRENT_ASSERT(m_total_counter >= m_total_counter - count);
 		}
 
 		// should be called once every second
@@ -82,10 +83,8 @@ namespace libtorrent
 
 		void offset(boost::int64_t c)
 		{
-			TORRENT_ASSERT(c >= 0);
-			TORRENT_ASSERT(m_total_counter >= 0);
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<boost::uint64_t>::max)() - c);
 			m_total_counter += c;
-			TORRENT_ASSERT(m_total_counter >= 0);
 		}
 
 		int counter() const { return m_counter; }

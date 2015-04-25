@@ -198,7 +198,7 @@ namespace libtorrent
 	// represents a window of a file in a torrent.
 	//
 	// The ``file_index`` refers to the index of the file (in the torrent_info).
-	// To get the path and filename, use ``file_at()`` and give the ``file_index``
+	// To get the path and filename, use ``file_path()`` and give the ``file_index``
 	// as argument. The ``offset`` is the byte offset in the file where the range
 	// starts, and ``size`` is the number of bytes this range is. The size + offset
 	// will never be greater than the file size.
@@ -378,6 +378,7 @@ namespace libtorrent
 		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
 		reverse_iterator rend_deprecated() const { return m_files.rend(); }
 		iterator file_at_offset_deprecated(boost::int64_t offset) const;
+		file_entry at_deprecated(int index) const;
 #endif // TORRENT_NO_DEPRECATE
 
 		// returns the number of files in the file_storage

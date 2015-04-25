@@ -137,7 +137,7 @@ void receive_buffer::cut(int size, int packet_size, int offset)
 	TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_pos);
 	TORRENT_ASSERT(m_recv_pos >= size + offset);
 	TORRENT_ASSERT(offset >= 0);
-	TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
+	TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_end);
 	TORRENT_ASSERT(m_recv_start <= m_recv_end);
 	TORRENT_ASSERT(size >= 0);
 

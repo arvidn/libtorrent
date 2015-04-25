@@ -532,7 +532,7 @@ namespace aux {
 		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log(" max number of open files: %d", rl.rlim_cur);
+			session_log(" max number of open files: %d", int(rl.rlim_cur));
 #endif
 			// deduct some margin for epoll/kqueue, log files,
 			// futexes, shared objects etc.
@@ -1035,7 +1035,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" aborting all torrents (%d)", m_torrents.size());
+		session_log(" aborting all torrents (%d)", int(m_torrents.size()));
 #endif
 		// abort all torrents
 		for (torrent_map::iterator i = m_torrents.begin()
@@ -1051,7 +1051,7 @@ namespace aux {
 		m_tracker_manager.abort_all_requests();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" aborting all connections (%d)", m_connections.size());
+		session_log(" aborting all connections (%d)", int(m_connections.size()));
 #endif
 		// abort all connections
 		while (!m_connections.empty())
@@ -2389,7 +2389,7 @@ retry:
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("%s <== INCOMING CONNECTION FAILED, could "
-				"not retrieve remote endpoint "
+				"not retrieve remote endpoint %s: %s"
 				, print_endpoint(endp).c_str(), ec.message().c_str());
 #endif
 			return;

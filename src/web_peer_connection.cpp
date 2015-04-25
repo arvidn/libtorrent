@@ -290,7 +290,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** RESTART-DATA: [ data: %d req: (%d, %d) ]"
+			peer_log("*** RESTART-DATA: [ data: %d req: (%d, %d) size: %d ]"
 				, int(m_piece.size()), int(front.piece), int(front.start)
 				, int (front.start + front.length - 1));
 #endif
@@ -430,7 +430,7 @@ bool web_peer_connection::maybe_harvest_block()
 	peer_request const& front_request = m_requests.front();
 
 	if (int(m_piece.size()) < front_request.length) return false;
-	TORRENT_ASSERT(int(m_piece.size() == front_request.length));
+	TORRENT_ASSERT(int(m_piece.size()) == front_request.length);
 
 	// each call to incoming_piece() may result in us becoming
 	// a seed. If we become a seed, all seeds we're connected to
@@ -823,7 +823,8 @@ void web_peer_connection::on_receive(error_code const& error
 				else
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
+					peer_log("*** parsed chunk: %" PRId64 " header_size: %d"
+						, chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(int(bytes_transferred) >= header_size - m_partial_chunk_header);
 					bytes_transferred -= header_size - m_partial_chunk_header;
@@ -921,7 +922,8 @@ void web_peer_connection::on_receive(error_code const& error
 				std::vector<file_slice> sl = info.orig_files().map_block(
 					front_request.piece, front_request.start, front_request.start
 						+ front_request.length);
-				peer_log("INVALID HTTP RESPONSE [ in=(%d, %d-%d) expected=(%d, %d-%d) piece: %d ]"
+				peer_log("INVALID HTTP RESPONSE [ in=(%d, %" PRId64 "-%" PRId64 ") "
+					"expected=(%d, %" PRId64 "-%" PRId64 ") piece: %d ]"
 					, file_index, range_start, range_end, sl[0].file_index
 					, sl[0].offset, sl[0].offset + sl[0].size, front_request.piece);
 #endif
