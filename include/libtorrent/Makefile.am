@@ -107,6 +107,7 @@ nobase_include_HEADERS = \
   rss.hpp                      \
   session.hpp                  \
   session_settings.hpp         \
+  session_stats.hpp            \
   session_status.hpp           \
   settings_pack.hpp            \
   sha1.hpp                     \

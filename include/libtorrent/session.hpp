@@ -86,16 +86,6 @@ namespace libtorrent
 	struct session_status;
 #endif
 
-	// describes one statistics metric from the session. For more information,
-	// see the session-statistics_ section.
-	struct TORRENT_EXPORT stats_metric
-	{
-		char const* name;
-		int value_index;
-		enum { type_counter, type_gauge };
-		int type;
-	};
-
 	typedef boost::function<void(sha1_hash const&, std::vector<char>&
 		, error_code&)> user_load_function_t;
 
@@ -136,12 +126,6 @@ namespace libtorrent
 #error TORRENT_CFG is not defined!
 #endif
 
-	// given a name of a metric, this function returns the counter index of it,
-	// or -1 if it could not be found. The counter index is the index into the
-	// values array returned by session_stats_alert.
-	// TODO: 3 move this declaration into its own header (session_stats.hpp)
-	TORRENT_EXPORT int find_metric_idx(char const* name);
-
 	void TORRENT_EXPORT TORRENT_CFG();
 
 	namespace aux
@@ -167,13 +151,6 @@ namespace libtorrent
 			: m_impl(impl) {}
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
-
-	// This free function returns the list of available metrics exposed by
-	// libtorrent's statistics API. Each metric has a name and a *value index*.
-	// The value index is the index into the array in session_stats_alert where
-	// this metric's value can be found when the session stats is sampled (by
-	// calling post_session_stats()).
-	TORRENT_EXPORT std::vector<stats_metric> session_stats_metrics();
 
 	// The session holds all state that spans multiple torrents. Among other
 	// things it runs the network loop and manages all torrents. Once it's

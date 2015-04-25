@@ -35,6 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
+
+#ifndef TORRENT_DISABLE_DHT	
+#include "libtorrent/socket.hpp"
+#endif
+
+#include "libtorrent/socket.hpp" // for tcp::endpoint
+
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -50,16 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/address.hpp"
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
-
-#ifndef TORRENT_DISABLE_DHT	
-#include "libtorrent/socket.hpp"
-#endif
-
-#include "libtorrent/socket.hpp" // for tcp::endpoint
 
 namespace libtorrent
 {
@@ -102,6 +102,8 @@ namespace libtorrent
 
 namespace libtorrent { namespace aux
 {
+	struct session_settings;
+
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.
 	// a release build with logging disabled (which is the default) will
