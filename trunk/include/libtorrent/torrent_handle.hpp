@@ -39,10 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 #include <boost/assert.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/cstdint.hpp>
+
+#ifndef TORRENT_NO_DEPRECATE
+// for deprecated force_reannounce
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -1331,13 +1335,17 @@ namespace libtorrent
 		// ``torrent_handle::query_torrent_file``.
 		boost::weak_ptr<const torrent_info> torrent_file;
 
-		// TODO: 3 don't use boost.date-time types here. use chrono types
 		// the time until the torrent will announce itself to the tracker.
-		boost::posix_time::time_duration next_announce;
+		time_duration next_announce;
 
+#ifdef TORRENT_NO_DEPRECATE
 		// the time the tracker want us to wait until we announce ourself
 		// again the next time.
-		boost::posix_time::time_duration announce_interval;
+		time_duration announce_interval;
+#else
+		// leave this here for ABI stability
+		time_duration deprecated_announce_interval_;
+#endif
 
 		// the URL of the last working tracker. If no tracker request has
 		// been successful yet, it's set to an empty string.
