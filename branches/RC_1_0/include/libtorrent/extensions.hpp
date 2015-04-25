@@ -402,8 +402,13 @@ namespace libtorrent
 		// called when an extended message is received. If returning true,
 		// the message is not processed by any other plugin and if false
 		// is returned the next plugin in the chain will receive it to
-		// be able to handle it
-		// this is not called for web seeds
+		// be able to handle it. This is not called for web seeds.
+		// thus function may be called more than once per incoming message, but
+		// only the last of the calls will the ``body`` size equal the ``length``.
+		// i.e. Every time another fragment of the message is received, this
+		// function will be called, until finally the whole message has been
+		// received. The purpose of this is to allow early disconnects for invalid
+		// messages and for reporting progress of receiving large messages.
 		virtual bool on_extended(int /*length*/, int /*msg*/,
 			buffer::const_interval /*body*/)
 		{ return false; }
