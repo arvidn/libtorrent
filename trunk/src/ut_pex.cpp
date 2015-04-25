@@ -434,7 +434,7 @@ namespace libtorrent { namespace
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log("*** PEX [ waiting: %d seconds to next msg ]"
-					, total_seconds(seconds(60) - (now - m_last_msg)));
+					, int(total_seconds(seconds(60) - (now - m_last_msg))));
 #endif
 				return;
 			}
@@ -451,7 +451,8 @@ namespace libtorrent { namespace
 			if (now - milliseconds(delay) < global_last)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("*** PEX [ global-wait: %d ]", total_seconds(milliseconds(delay) - (now - global_last)));
+				m_pc.peer_log("*** PEX [ global-wait: %d ]"
+					, int(total_seconds(milliseconds(delay) - (now - global_last))));
 #endif
 				return;
 			}

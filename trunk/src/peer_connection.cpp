@@ -1829,7 +1829,8 @@ namespace libtorrent
 		if (index >= int(m_have_piece.size()) || index < 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** ERROR: [ have-metadata have_piece.size: %d ]", index, int(m_have_piece.size()));
+			peer_log("*** ERROR: [ have-metadata have_piece: %d size: %d ]"
+				, index, int(m_have_piece.size()));
 #endif
 			disconnect(errors::invalid_have, op_bittorrent, 2);
 			return;
@@ -4719,7 +4720,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log("*** MUTUAL NO INTEREST [ t1: %d t2: %d ]"
-				, total_seconds(d1), total_seconds(d2));
+				, int(total_seconds(d1)), int(total_seconds(d2)));
 #endif
 			disconnect(errors::timed_out_no_interest, op_bittorrent);
 			return;
@@ -4771,7 +4772,7 @@ namespace libtorrent
 			// re-request the blocks.
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log("*** PIECE_REQUEST TIMED OUT [ %d time: %d to: %d ]"
-				, (int)m_download_queue.size(), total_seconds(now - m_last_piece)
+				, int(m_download_queue.size()), int(total_seconds(now - m_last_piece))
 				, piece_timeout);
 #endif
 
@@ -5665,7 +5666,8 @@ namespace libtorrent
 		if (ret == 0 && !ec) ec = asio::error::eof;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log("<<< SYNC_READ [ max: %d ret: %d e: %s ]", max_receive, ret, ec ? ec.message().c_str() : "");
+		peer_log("<<< SYNC_READ [ max: %d ret: %d e: %s ]"
+			, max_receive, int(ret), ec ? ec.message().c_str() : "");
 #endif
 		return ret;
 	}
@@ -5783,7 +5785,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log("<<< READ_AVAILABLE [ bytes: %d ]", buffer_size);
+		peer_log("<<< READ_AVAILABLE [ bytes: %d ]", int(buffer_size));
 #endif
 
 		// at this point the ioctl told us the socket doesn't have any
@@ -5891,7 +5893,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
-			, bytes_transferred, error.message().c_str());
+			, int(bytes_transferred), error.message().c_str());
 #endif
 
 		// submit all disk jobs later
@@ -5929,7 +5931,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log("<<< ON_RECEIVE_DATA [ bytes: %d error: %s ]"
-			, bytes_transferred, error.message().c_str());
+			, int(bytes_transferred), error.message().c_str());
 #endif
 
 		if (m_extension_outstanding_bytes > 0)

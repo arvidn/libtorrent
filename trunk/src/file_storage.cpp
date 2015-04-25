@@ -461,6 +461,11 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	file_entry file_storage::at(int index) const
 	{
+		return at_deprecated(index);
+	}
+
+	file_entry file_storage::at_deprecated(int index) const
+	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		file_entry ret;
 		internal_file_entry const& ife = m_files[index];
@@ -890,7 +895,7 @@ namespace libtorrent
 	}
 
 	file_entry file_storage::at(file_storage::iterator i) const
-	{ return at(i - m_files.begin()); }
+	{ return at_deprecated(i - m_files.begin()); }
 #endif // TORRENT_NO_DEPRECATE
 
 	void file_storage::reorder_file(int index, int dst)

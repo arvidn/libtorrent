@@ -3488,7 +3488,7 @@ namespace libtorrent
 				, print_endpoint(p->ip()).c_str()
 				, p->rank(external, m_ses.listen_port())
 				, print_address(external.external_address(p->address())).c_str()
-				, m_ses.session_time() - p->last_connected);
+				, int(m_ses.session_time() - p->last_connected));
 #endif
 
 			if (!connect_to_peer(p))

@@ -377,7 +377,8 @@ namespace libtorrent
 				else
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log("*** parsed chunk: %d header_size: %d", chunk_size, header_size);
+					peer_log("*** parsed chunk: %" PRId64 " header_size: %d"
+						, chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
 					bytes_transferred -= header_size - m_partial_chunk_header;
