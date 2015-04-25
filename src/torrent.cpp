@@ -11432,21 +11432,23 @@ namespace libtorrent
 		st->upload_payload_rate = m_stat.upload_payload_rate();
 
 		if (m_waiting_tracker && !is_paused())
-			st->next_announce = boost::posix_time::seconds(
-				total_seconds(next_announce() - now));
+			st->next_announce = next_announce() - now;
 		else
-			st->next_announce = boost::posix_time::seconds(0);
+			st->next_announce = seconds(0);
 
-		if (st->next_announce.is_negative())
-			st->next_announce = boost::posix_time::seconds(0);
+		if (st->next_announce.count() < 0)
+			st->next_announce = seconds(0);
 
-		st->announce_interval = boost::posix_time::seconds(0);
+#ifdef TORRENT_NO_DEPRECATE
+		st->announce_interval = seconds(0);
+#endif
 
 		st->current_tracker.clear();
 		if (m_last_working_tracker >= 0)
 		{
 			TORRENT_ASSERT(m_last_working_tracker < int(m_trackers.size()));
-			st->current_tracker = m_trackers[m_last_working_tracker].url;
+			const int i = m_last_working_tracker;
+			st->current_tracker = m_trackers[i].url;
 		}
 		else
 		{
