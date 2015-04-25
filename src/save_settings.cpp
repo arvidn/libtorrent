@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-/*
+
 int load_file(std::string const& filename, std::vector<char>& v, error_code& ec, int limit)
 {
 	ec.clear();
@@ -66,7 +66,7 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 	if (ec) return -3;
 	return 0;
 }
-*/
+
 int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 {
 	file f;

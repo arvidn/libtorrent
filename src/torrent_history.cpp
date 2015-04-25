@@ -216,7 +216,6 @@ namespace libtorrent
 		CMP_SET(save_path);
 		CMP_SET(name);
 		CMP_SET(next_announce);
-		CMP_SET(announce_interval);
 		CMP_SET(current_tracker);
 		CMP_SET(total_download);
 		CMP_SET(total_upload);
@@ -303,7 +302,6 @@ namespace libtorrent
 //		PRINT(save_path, "s");
 		PRINT(name, "s");
 //		PRINT(next_announce, PRId64);
-//		PRINT(announce_interval, PRId64);
 		PRINT(current_tracker, "s");
 		PRINT(total_download, PRId64);
 		PRINT(total_upload, PRId64);

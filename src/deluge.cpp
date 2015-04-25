@@ -685,7 +685,7 @@ void deluge::handle_get_torrents_status(conn_state* st)
 		MAYBE_ADD(out.append_bool(false)); // move completed
 		MAYBE_ADD(out.append_string(i->handle.name()));
 
-		MAYBE_ADD(out.append_int(i->next_announce.total_seconds()));
+		MAYBE_ADD(out.append_int(total_seconds(i->next_announce)));
 		MAYBE_ADD(out.append_int(i->num_peers));
 		MAYBE_ADD(out.append_int(i->num_seeds));
 		MAYBE_ADD(out.append_bool(i->paused));

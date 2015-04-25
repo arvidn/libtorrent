@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "local_mongoose.h"
 #include "auth.hpp"
