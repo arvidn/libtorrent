@@ -34,21 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <map>
 
-#include "setup_transfer.hpp"
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/thread.hpp"
-
-#include "libtorrent/thread.hpp"
-#include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-
-#include "test.hpp"
-#include "test_utils.hpp"
-
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -56,6 +45,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/session_stats.hpp"
+#include "libtorrent/thread.hpp"
+
+#include <boost/tuple/tuple.hpp>
+#include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
+
+#include "test.hpp"
+#include "test_utils.hpp"
+#include "setup_transfer.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/stream.hpp>

@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/session.hpp" // for stats_metric
+#include "libtorrent/session_stats.hpp" // for stats_metric
 #include "libtorrent/aux_/session_interface.hpp" // for stats counter names
 #include "libtorrent/performance_counters.hpp" // for counters
 #include <boost/bind.hpp>
@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct TORRENT_EXPORT stats_metric_impl
+	struct stats_metric_impl
 	{
 		char const* name;
 		int value_index;
@@ -518,10 +518,9 @@ namespace libtorrent
 	};
 #undef METRIC
 
-	// TODO: 3 create a header for this file and declare these two functions.
-	// currently this is externed into session.cpp
-	void get_stats_metric_map(std::vector<stats_metric>& stats)
+	std::vector<stats_metric> session_stats_metrics()
 	{
+		std::vector<stats_metric> stats;
 		const int num = sizeof(metrics)/sizeof(metrics[0]);
 		stats.resize(num);
 		for (int i = 0; i < num; ++i)
@@ -531,6 +530,7 @@ namespace libtorrent
 			stats[i].type = metrics[i].value_index >= counters::num_stats_counters
 				? stats_metric::type_gauge : stats_metric::type_counter;
 		}
+		return stats;
 	}
 
 	int find_metric_idx(char const* name)
