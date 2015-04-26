@@ -30,7 +30,6 @@ nobase_include_HEADERS = \
   config.hpp                   \
   ConvertUTF.h                 \
   copy_ptr.hpp                 \
-  cpuid.hpp                    \
   crc32c.hpp                   \
   create_torrent.hpp           \
   deadline_timer.hpp           \
@@ -157,15 +156,16 @@ nobase_include_HEADERS = \
   tommath_superclass.h              \
   \
   aux_/alert_manager_variadic_emplace.hpp \
+  aux_/cpuid.hpp                    \
+  aux_/disable_warnings_push.hpp    \
+  aux_/disable_warnings_pop.hpp     \
+  aux_/escape_string.hpp            \
+  aux_/merkle.hpp                   \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
   aux_/session_settings.hpp         \
   aux_/session_interface.hpp        \
   aux_/time.hpp                     \
-  aux_/escape_string.hpp            \
-  aux_/disable_warnings_push.hpp    \
-  aux_/disable_warnings_pop.hpp     \
-  aux_/merkle.hpp                   \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

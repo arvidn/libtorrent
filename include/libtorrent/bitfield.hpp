@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/byteswap.hpp"
-#include "libtorrent/cpuid.hpp"
+#include "libtorrent/aux_/cpuid.hpp"
 
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
@@ -171,9 +171,7 @@ namespace libtorrent
 			int ret = 0;
 			const int words = num_words();
 #if TORRENT_HAS_SSE
-			unsigned int cpui[4];
-			cpuid(cpui, 1);
-			if (cpui[2] & (1 << 23))
+			if (aux::mmx_support)
 			{
 				for (int i = 0; i < words; ++i)
 				{
