@@ -40,12 +40,14 @@ void bind_torrent_status()
                 &torrent_status::next_announce, return_value_policy<return_by_value>()
             )
         )
+#ifndef TORRENT_NO_DEPRECATE
         .add_property(
             "announce_interval"
           , make_getter(
                 &torrent_status::announce_interval, return_value_policy<return_by_value>()
             )
         )
+#endif
         .def_readonly("current_tracker", &torrent_status::current_tracker)
         .def_readonly("total_download", &torrent_status::total_download)
         .def_readonly("total_upload", &torrent_status::total_upload)

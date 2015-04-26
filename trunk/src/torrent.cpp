@@ -11439,7 +11439,7 @@ namespace libtorrent
 		if (st->next_announce.count() < 0)
 			st->next_announce = seconds(0);
 
-#ifdef TORRENT_NO_DEPRECATE
+#ifndef TORRENT_NO_DEPRECATE
 		st->announce_interval = seconds(0);
 #endif
 
