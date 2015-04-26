@@ -1338,7 +1338,7 @@ namespace libtorrent
 		// the time until the torrent will announce itself to the tracker.
 		time_duration next_announce;
 
-#ifdef TORRENT_NO_DEPRECATE
+#ifndef TORRENT_NO_DEPRECATE
 		// the time the tracker want us to wait until we announce ourself
 		// again the next time.
 		time_duration announce_interval;

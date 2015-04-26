@@ -1,6 +1,8 @@
 #include "session_view.hpp"
 #include "print.hpp"
 
+#include <algorithm> // for std::max
+
 session_view::session_view()
 	: m_print_utp_stats(false)
 {
