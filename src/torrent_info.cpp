@@ -854,6 +854,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_i2p(false)
 	{
+		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
@@ -870,6 +871,7 @@ namespace libtorrent
 		, m_private(false)
 		, m_i2p(false)
 	{
+		TORRENT_UNUSED(flags);
 		std::pair<char const*, int> buf = torrent_file.data_section();
 		bdecode_node e;
 		error_code ec;
@@ -1020,7 +1022,8 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #endif
 
-	torrent_info::torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags)
+	torrent_info::torrent_info(bdecode_node const& torrent_file, error_code& ec
+		, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_merkle_first_leaf(0)
@@ -1074,7 +1077,8 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 #ifndef TORRENT_NO_DEPRECATE
-	torrent_info::torrent_info(std::wstring const& filename, error_code& ec, int flags)
+	torrent_info::torrent_info(std::wstring const& filename, error_code& ec
+		, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
 		, m_merkle_first_leaf(0)
@@ -1112,7 +1116,9 @@ namespace libtorrent
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
-	{}
+	{
+		TORRENT_UNUSED(flags);
+	}
 
 	torrent_info::~torrent_info()
 	{}
@@ -1207,6 +1213,7 @@ namespace libtorrent
 	bool torrent_info::parse_info_section(bdecode_node const& info
 		, error_code& ec, int flags)
 	{
+		TORRENT_UNUSED(flags);
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;

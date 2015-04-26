@@ -262,7 +262,7 @@ void torrent_view::print_tabs()
 	}
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 
-	if (m_width + 1 < sizeof(str))
+	if (m_width + 1 < int(sizeof(str)))
 		str[m_width + 1] = '\0';
 	print(str);
 }
@@ -272,15 +272,14 @@ void torrent_view::print_headers()
 	set_cursor_pos(0, 1);
 
 	char str[400];
-	int pos = 0;
 
 	// print title bar for torrent list
-	pos = snprintf(str, sizeof(str)
+	snprintf(str, sizeof(str)
 		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
 		, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
 
-	if (m_width + 1 < sizeof(str))
+	if (m_width + 1 < int(sizeof(str)))
 		str[m_width + 1] = '\0';
 
 	print(str);
@@ -337,7 +336,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 
-	if (m_width + 1 < sizeof(str))
+	if (m_width + 1 < int(sizeof(str)))
 		str[m_width + 1] = '\0';
 
 	print(str);

@@ -888,10 +888,6 @@ namespace libtorrent
 			}
 		}
 
-		bool full_allocation_mode = false;
-		if (rd.dict_find_string_value("allocation") != "compact")
-			full_allocation_mode = true;
-
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (links)
 		{
@@ -1402,7 +1398,7 @@ namespace libtorrent
 	}
 
 	int zero_storage::writev(file::iovec_t const* bufs, int num_bufs
-		, int /* piece */, int /* offset */, int /* flags */, storage_error& ec)
+		, int /* piece */, int /* offset */, int /* flags */, storage_error&)
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)

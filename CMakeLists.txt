@@ -180,6 +180,8 @@ endif (build_tests)
 
 include_directories(${includes})
 
+add_definitions(-DTORRENT_BUILDING_LIBRARY)
+
 if (encryption)
 	list(APPEND sources pe_crypto asio_ssl)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)

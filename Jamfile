@@ -228,6 +228,12 @@ rule linking ( properties * )
 rule warnings ( properties * )
 {
 	local result ;
+
+	if <warnings>off in $(properties)
+	{
+		return $(result) ;
+	}
+
 	if <toolset>clang in $(properties)
 		|| <toolset>darwin in $(properties)
 	{
@@ -747,6 +753,7 @@ lib torrent
 	: # requirements
 	<include>./ed25519/src
 	<threading>multi
+	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
 

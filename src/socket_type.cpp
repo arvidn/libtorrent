@@ -125,6 +125,7 @@ namespace libtorrent
 #endif
 	}
 
+#ifdef TORRENT_USE_OPENSSL
 	namespace {
 
 	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
@@ -137,6 +138,7 @@ namespace libtorrent
 	}
 
 	} // anonymous namespace
+#endif
 
 	// the second argument is a shared pointer to an object that
 	// will keep the socket (s) alive for the duration of the async operation

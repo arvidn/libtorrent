@@ -7,7 +7,6 @@ test_programs = \
   test_torrent_info          \
   test_recheck               \
   test_stat_cache            \
-  test_policy                \
   test_part_file             \
   test_file                  \
   test_file_storage          \
@@ -29,6 +28,7 @@ test_programs = \
   test_metadata_extension    \
   test_pe_crypto             \
   test_peer_classes          \
+  test_peer_list             \
   test_peer_priority         \
   test_pex                   \
   test_piece_picker          \
@@ -141,12 +141,12 @@ libtest_la_SOURCES = main.cpp \
   swarm_suite.cpp \
   test_utils.cpp
 
+test_alert_manager_SOURCES = test_alert_manager.cpp
 test_bitfield_SOURCES = test_bitfield.cpp
 test_crc32_SOURCES = test_crc32.cpp
 test_torrent_info_SOURCES = test_torrent_info.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
-test_policy_SOURCES = test_policy.cpp
 test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
 test_file_storage_SOURCES = test_file_storage.cpp
@@ -161,6 +161,7 @@ test_block_cache_SOURCES = test_block_cache.cpp
 test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_hasher_SOURCES = test_hasher.cpp
+test_heterogeneous_queue_SOURCES = test_heterogeneous_queue.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
 test_ip_filter_SOURCES = test_ip_filter.cpp
 test_lsd_SOURCES = test_lsd.cpp
@@ -168,6 +169,7 @@ test_metadata_extension_SOURCES = test_metadata_extension.cpp
 test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_peer_classes_SOURCES = test_peer_classes.cpp
+test_peer_list_SOURCES = test_peer_list.cpp
 test_pex_SOURCES = test_pex.cpp
 test_piece_picker_SOURCES = test_piece_picker.cpp
 test_xml_SOURCES = test_xml.cpp

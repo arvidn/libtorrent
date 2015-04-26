@@ -274,8 +274,8 @@ void traversal_algorithm::finished(observer_ptr o)
 	o->flags |= observer::flag_alive;
 
 	++m_responses;
+	TORRENT_ASSERT(m_invoke_count > 0);
 	--m_invoke_count;
-	TORRENT_ASSERT(m_invoke_count >= 0);
 	bool is_done = add_requests();
 	if (is_done) done();
 }
@@ -285,8 +285,6 @@ void traversal_algorithm::finished(observer_ptr o)
 // So, if this is true, don't make another request
 void traversal_algorithm::failed(observer_ptr o, int flags)
 {
-	TORRENT_ASSERT(m_invoke_count >= 0);
-
 	// don't tell the routing table about
 	// node ids that we just generated ourself
 	if ((o->flags & observer::flag_no_id) == 0)
@@ -337,8 +335,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 #endif
 
 		++m_timeouts;
+		TORRENT_ASSERT(m_invoke_count > 0);
 		--m_invoke_count;
-		TORRENT_ASSERT(m_invoke_count >= 0);
 	}
 
 	if (flags & prevent_request)
@@ -450,7 +448,7 @@ bool traversal_algorithm::add_requests()
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
-			TORRENT_ASSERT(m_invoke_count >= 0);
+			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<boost::uint16_t>::max)());
 			++m_invoke_count;
 			++outstanding;
 		}

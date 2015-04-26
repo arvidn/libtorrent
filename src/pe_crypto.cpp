@@ -314,6 +314,7 @@ namespace libtorrent
 		, int& produce
 		, int& packet_size)
 	{
+		TORRENT_UNUSED(consume);
 		if (!m_decrypt) return;
 
 		int bytes_processed = 0;

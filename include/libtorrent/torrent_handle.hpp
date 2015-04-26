@@ -1343,7 +1343,7 @@ namespace libtorrent
 		// again the next time.
 		time_duration announce_interval;
 #else
-		// leave this here for ABI stability
+		// hidden
 		time_duration deprecated_announce_interval_;
 #endif
 
