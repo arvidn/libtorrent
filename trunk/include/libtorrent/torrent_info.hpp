@@ -187,7 +187,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
 		TORRENT_DEPRECATED
-		bool will_announce(time_point now) const TORRENT_DEPRECATED
+		bool will_announce(time_point now) const
 		{
 			return now <= next_announce
 				&& (fails < fail_limit || fail_limit == 0)

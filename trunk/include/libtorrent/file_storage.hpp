@@ -351,15 +351,15 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		iterator file_at_offset(boost::int64_t offset) const;
 		TORRENT_DEPRECATED
-		iterator begin() const TORRENT_DEPRECATED { return m_files.begin(); }
+		iterator begin() const { return m_files.begin(); }
 		TORRENT_DEPRECATED
-		iterator end() const TORRENT_DEPRECATED { return m_files.end(); }
+		iterator end() const { return m_files.end(); }
 		TORRENT_DEPRECATED
-		reverse_iterator rbegin() const TORRENT_DEPRECATED { return m_files.rbegin(); }
+		reverse_iterator rbegin() const { return m_files.rbegin(); }
 		TORRENT_DEPRECATED
-		reverse_iterator rend() const TORRENT_DEPRECATED { return m_files.rend(); }
+		reverse_iterator rend() const { return m_files.rend(); }
 		TORRENT_DEPRECATED
-		internal_file_entry const& internal_at(int index) const TORRENT_DEPRECATED 
+		internal_file_entry const& internal_at(int index) const 
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_files.size()));
