@@ -34,31 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CPUID_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include <cstring>
 
-#if defined _MSC_VER && TORRENT_HAS_SSE
-#include <intrin.h>
-#include <nmmintrin.h>
-#endif
-
-namespace libtorrent
+namespace libtorrent { namespace aux
 {
-	// internal
-	inline void cpuid(unsigned int info[4], int type)
-	{
-#if TORRENT_HAS_SSE && defined _MSC_VER
-		__cpuid((int*)info, type);
-
-#elif TORRENT_HAS_SSE && defined __GNUC__
-		asm volatile
-			("cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
-			 : "a" (type), "c" (0));
-#else
-		// for non-x86 and non-amd64, just return zeroes
-		std::memset(&info[0], 0, sizeof(unsigned int) * 4);
-#endif
-	}
-}
+	// initialized by static initializers (in cpuid.cpp)
+	extern bool sse42_support;
+	extern bool mmx_support;
+} }
 
 #endif // TORRENT_CPUID_HPP_INCLUDED
 

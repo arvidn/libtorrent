@@ -31,8 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/crc32c.hpp"
-#include "libtorrent/cpuid.hpp"
-
+#include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
@@ -41,27 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace {
-
-	bool supports_sse42()
-	{
-#if TORRENT_HAS_SSE
-		unsigned int cpui[4];
-		cpuid(cpui, 1);
-		return cpui[2] & (1 << 20);
-#else
-		return false;
-#endif
-	}
-
-	bool sse42_support = supports_sse42();
-
-	} // anonymous namespace
-
 	boost::uint32_t crc32c_32(boost::uint32_t v)
 	{
 #if TORRENT_HAS_SSE
-		if (sse42_support)
+		if (aux::sse42_support)
 		{
 			boost::uint32_t ret = 0xffffffff;
 #ifdef __GNUC__
@@ -86,7 +68,7 @@ namespace libtorrent
 	boost::uint32_t crc32c(boost::uint64_t const* buf, int num_words)
 	{
 #if TORRENT_HAS_SSE
-		if (sse42_support)
+		if (aux::sse42_support)
 		{
 #if defined _M_AMD64 || defined __x86_64__ \
 	|| defined __x86_64 || defined _M_X64 || defined __amd64__

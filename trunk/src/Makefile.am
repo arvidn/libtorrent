@@ -53,6 +53,7 @@ libtorrent_rasterbar_la_SOURCES = \
   choker.cpp                      \
   close_reason.cpp                \
   ConvertUTF.cpp                  \
+  cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
   disk_buffer_holder.cpp          \

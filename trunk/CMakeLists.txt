@@ -19,6 +19,7 @@ set(sources
 	chained_buffer
 	choker
 	close_reason
+	cpuid
 	crc32c
 	create_torrent
 	disk_buffer_holder
