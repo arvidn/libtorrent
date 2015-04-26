@@ -34,29 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CONNECTION_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/debug.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <ctime>
-#include <algorithm>
-#include <vector>
-#include <string>
-
-#include <boost/smart_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
-#include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/pool/pool.hpp>
-#include <boost/aligned_storage.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/stat.hpp"
@@ -82,6 +59,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
+
+#ifndef TORRENT_DISABLE_LOGGING
+#include "libtorrent/debug.hpp"
+#endif
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <ctime>
+#include <algorithm>
+#include <vector>
+#include <string>
+
+#include <boost/smart_ptr.hpp>
+#include <boost/weak_ptr.hpp>
+#include <boost/noncopyable.hpp>
+#include <boost/array.hpp>
+#include <boost/optional.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/pool/pool.hpp>
+#include <boost/aligned_storage.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

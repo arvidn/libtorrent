@@ -1193,7 +1193,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		== m_deleted_storages.end());
 #endif
 
-	cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
+	cache_hit(pe, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
 
 	TORRENT_ASSERT(pe->in_use);
 
