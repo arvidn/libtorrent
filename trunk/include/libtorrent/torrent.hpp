@@ -988,7 +988,7 @@ namespace libtorrent
 		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 
 		piece_manager& storage();
-		bool has_storage() const { return m_storage.get(); }
+		bool has_storage() const { return m_storage; }
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }

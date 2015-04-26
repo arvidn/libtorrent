@@ -31,15 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/bencode.hpp"
@@ -57,6 +48,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/lazy_entry.hpp"
 #endif
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/shared_ptr.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace
 {

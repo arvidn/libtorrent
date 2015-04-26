@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <ctime>
