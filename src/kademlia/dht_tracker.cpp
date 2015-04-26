@@ -139,6 +139,8 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
+	// TODO: 3 don't pass in session here. pass in dht_observer and maybe add
+	// a way to ask it for the external IP. use bdecode_node instead of entry
 	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses
 		, rate_limited_udp_socket& sock
 		, dht_settings const& settings, counters& cnt, entry const* state)

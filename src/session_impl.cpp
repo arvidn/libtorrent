@@ -2391,7 +2391,7 @@ retry:
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("%s <== INCOMING CONNECTION FAILED, could "
-				"not retrieve remote endpoint %s: %s"
+				"not retrieve remote endpoint: %s"
 				, print_endpoint(endp).c_str(), ec.message().c_str());
 #endif
 			return;
@@ -5400,6 +5400,7 @@ retry:
 		}
 	}
 
+	// TODO: 3 use bdecode_node instead of entry.
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
