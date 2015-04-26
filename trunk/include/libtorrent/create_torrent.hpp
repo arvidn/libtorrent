@@ -453,29 +453,36 @@ namespace libtorrent
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, boost::function<void(int)> f, error_code& ec);
 
+	TORRENT_EXPORT void set_piece_hashes_deprecated(create_torrent& t
+		, std::wstring const& p
+		, boost::function<void(int)> f, error_code& ec);
+
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	TORRENT_DEPRECATED
-	void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
+	void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+		, std::wstring const& p, Fun f)
 	{
 		error_code ec;
-		set_piece_hashes(t, p, f, ec);
+		set_piece_hashes_deprecated(t, p, f, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 
 	TORRENT_DEPRECATED
-	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p)
+	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+		, std::wstring const& p)
 	{
 		error_code ec;
-		set_piece_hashes(t, p, detail::nop, ec);
+		set_piece_hashes_deprecated(t, p, detail::nop, ec);
 		if (ec) throw libtorrent_exception(ec);
 	}
 #endif
 
 	TORRENT_DEPRECATED
-	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t, std::wstring const& p, error_code& ec)
+	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+		, std::wstring const& p, error_code& ec)
 	{
-		set_piece_hashes(t, p, detail::nop, ec);
+		set_piece_hashes_deprecated(t, p, detail::nop, ec);
 	} 
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING

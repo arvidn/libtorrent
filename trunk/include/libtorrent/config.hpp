@@ -91,7 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined __GNUC__
 
-# if __GNUC__ >= 3
+// deprecation markup is only enabled when libtorrent
+// headers are included by clients, not while building
+// libtorrent itself
+# if __GNUC__ >= 3 && !defined TORRENT_BUILDING_LIBRARY
 #  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 # endif
 
@@ -116,7 +119,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // '_vsnprintf': This function or variable may be unsafe
 #pragma warning(disable:4996)
 
-#define TORRENT_DEPRECATED __declspec(deprecated)
+// deprecation markup is only enabled when libtorrent
+// headers are included by clients, not while building
+// libtorrent itself
+#if !defined TORRENT_BUILDING_LIBRARY
+# define TORRENT_DEPRECATED __declspec(deprecated)
+#endif
 
 #endif
 

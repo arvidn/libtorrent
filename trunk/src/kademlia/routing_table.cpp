@@ -333,7 +333,6 @@ node_entry const* routing_table::next_refresh()
 	// a missing prefix for that bucket
 
 	node_entry* candidate = NULL;
-	int bucket_idx = -1;
 
 	// this will have a bias towards pinging nodes close to us first.
 	int idx = m_buckets.size() - 1;
@@ -349,7 +348,6 @@ node_entry const* routing_table::next_refresh()
 
 			if (j->last_queried == min_time())
 			{
-				bucket_idx = idx;
 				candidate = &*j;
 				goto out;
 			}
@@ -357,7 +355,6 @@ node_entry const* routing_table::next_refresh()
 			if (candidate == NULL || j->last_queried < candidate->last_queried)
 			{
 				candidate = &*j;
-				bucket_idx = idx;
 			}
 		}
 	}

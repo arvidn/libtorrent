@@ -146,17 +146,11 @@ libtorrent_rasterbar_la_SOURCES = \
   $(KADEMLIA_SOURCES)             \
   $(ASIO_OPENSSL_SOURCES)
 
-#libtorrent_rasterbar_la_LDFLAGS = $(LDFLAGS) -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
-
-#libtorrent_rasterbar_la_LIBADD =  @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LIBS@
 libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
 
-#AM_CXXFLAGS= -ftemplate-depth-100 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-AM_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
 
-#AM_CFLAGS= -I$(top_srcdir)/include @DEBUGFLAGS@
-#AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
 

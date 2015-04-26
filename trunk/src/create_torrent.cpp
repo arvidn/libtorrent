@@ -219,6 +219,14 @@ namespace libtorrent
 		wchar_utf8(p, utf8);
 		set_piece_hashes(t, utf8, f, ec);
 	}
+
+	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
+		, boost::function<void(int)> f, error_code& ec)
+	{
+		std::string utf8;
+		wchar_utf8(p, utf8);
+		set_piece_hashes(t, utf8, f, ec);
+	}
 #endif
 #endif
 

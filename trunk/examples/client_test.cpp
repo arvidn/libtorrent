@@ -668,7 +668,7 @@ std::string path_to_url(std::string f)
 		f = path_append(cwd, f);
 	}
 
-	for (int i = 0; i < f.size(); ++i)
+	for (int i = 0; i < int(f.size()); ++i)
 	{
 #ifdef TORRENT_WINDOWS
 		if (f[i] == '\\') ret.push_back('/');

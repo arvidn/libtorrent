@@ -267,6 +267,7 @@ namespace libtorrent {
 		time_point m_timestamp;
 	};
 
+	// TODO: 3 delete this functionality
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 	struct TORRENT_DEPRECATED TORRENT_EXPORT unhandled_alert : std::exception

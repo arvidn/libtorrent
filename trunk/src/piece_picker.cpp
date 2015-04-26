@@ -501,7 +501,6 @@ namespace libtorrent
 				, end(m_downloads[j].end()); i != end; ++i)
 			{
 				TORRENT_ASSERT(m_piece_map[i->index].download_queue() == j);
-				bool blocks_requested = false;
 				int num_blocks = blocks_in_piece(i->index);
 				int num_requested = 0;
 				int num_finished = 0;
@@ -522,7 +521,6 @@ namespace libtorrent
 					else if (info[k].state == block_info::state_requested)
 					{
 						++num_requested;
-						blocks_requested = true;
 						TORRENT_ASSERT(info[k].num_peers > 0);
 					}
 					else if (info[k].state == block_info::state_writing)
