@@ -30,11 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
+#ifdef _MSC_VER
+#include <nmmintrin.h>
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

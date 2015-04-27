@@ -46,7 +46,7 @@ namespace libtorrent
 		typedef int size_type;
 		typedef std::ptrdiff_t difference_type;
 
-		static char* malloc(const size_type bytes);
+		static char* malloc(size_type bytes);
 		static void free(char* block);
 #ifdef TORRENT_DEBUG_BUFFERS
 		static bool in_use(char const* block);
