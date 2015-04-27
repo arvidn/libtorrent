@@ -147,6 +147,9 @@ namespace libtorrent
 		piece_block const& block;
 		bool operator()(pending_block const& pb) const
 		{ return pb.block == block; }
+	private:
+		// explicitly disallow assignment, to silence msvc warning
+		has_block& operator=(has_block const&);
 	};
 
 	// argument pack passed to peer_connection constructor
@@ -257,6 +260,9 @@ namespace libtorrent
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
+	private:
+		// explicitly disallow assignment, to silence msvc warning
+		peer_connection_hot_members& operator=(peer_connection_hot_members const&);
 	};
 
 	class TORRENT_EXTRA_EXPORT peer_connection
@@ -805,6 +811,8 @@ namespace libtorrent
 		virtual int timeout() const;
 
 	private:
+		// explicitly disallow assignment, to silence msvc warning
+		peer_connection& operator=(peer_connection const&);
 
 		void do_update_interest();
 		int preferred_caching() const;

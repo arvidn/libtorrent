@@ -90,8 +90,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0
 
-#define DLOG if (DEBUG_STORAGE) fprintf
-#define DFLOG if (DEBUG_DELETE_FILES) fprintf
+#if DEBUG_STORAGE
+#define DLOG fprintf
+#else
+#define DLOG TORRENT_WHILE_0 fprintf
+#endif
+
+#if DEBUG_DELETE_FILES
+#define DFLOG fprintf
+#else
+#define DFLOG TORRENT_WHILE_0 fprintf
+#endif
 
 namespace libtorrent
 {

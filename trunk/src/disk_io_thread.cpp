@@ -60,7 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_DISK_THREAD 0
 
-#define DLOG if (DEBUG_DISK_THREAD) debug_log
+#if DEBUG_DISK_THREAD
+#define DLOG debug_log
+#else
+#define DLOG TORRENT_WHILE_0 debug_log
+#endif
 
 namespace libtorrent
 {
@@ -73,10 +77,10 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } TORRENT_WHILE_0
 
 #else
-#define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
+#define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0
 #endif
 
 	namespace {

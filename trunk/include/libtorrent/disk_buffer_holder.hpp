@@ -111,6 +111,9 @@ namespace libtorrent
 		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
 
 	private:
+		// explicitly disallow assignment, to silence msvc warning
+		disk_buffer_holder& operator=(disk_buffer_holder const&);
+
 		buffer_allocator_interface& m_allocator;
 		char* m_buf;
 		block_cache_reference m_ref;

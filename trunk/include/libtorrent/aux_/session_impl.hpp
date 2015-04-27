@@ -1228,6 +1228,9 @@ namespace libtorrent
 #endif
 				;
 			session_interface& m_ses;
+		private:
+			// explicitly disallow assignment, to silence msvc warning
+			tracker_logger& operator=(tracker_logger const&);
 		};
 #endif
 

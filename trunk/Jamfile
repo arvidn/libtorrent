@@ -266,7 +266,15 @@ rule warnings ( properties * )
 	{
 # disable warning C4503: decorated name length exceeded, name was truncated
 		result += <cflags>/wd4503 ;
-		result += <cflags>/W4 ;
+		result += <warnings>all ;
+
+# enable these warnings again, once the other ones are dealt with
+
+# disable warning C4389: signed/unsigned mismatch
+		result += <cflags>/wd4389 ;
+		result += <cflags>/wd4245 ;
+# disable warning C4244: 'argument' : conversion from 'int' to 'unsigned short', possible loss of data
+		result += <cflags>/wd4244 ;
 	}
 
 	return $(result) ;

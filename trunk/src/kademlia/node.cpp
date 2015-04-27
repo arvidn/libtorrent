@@ -785,6 +785,10 @@ struct immutable_item_comparator
 		return lhs.second.num_announcers / 5 - l_distance < rhs.second.num_announcers / 5 - r_distance;
 	}
 
+private:
+	// explicitly disallow assignment, to silence msvc warning
+	immutable_item_comparator& operator=(immutable_item_comparator const&);
+
 	node_id const& m_our_id;
 };
 

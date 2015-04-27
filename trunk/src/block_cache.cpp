@@ -280,10 +280,10 @@ const char* const job_action_name[] =
 
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } while(false)
+	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } TORRENT_WHILE_0
 
 #else
-#define TORRENT_PIECE_ASSERT(cond, piece) do {} while(false)
+#define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0
 #endif
 
 cached_piece_entry::cached_piece_entry()

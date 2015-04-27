@@ -233,8 +233,12 @@ namespace libtorrent
 		void load_state(bdecode_node const& rd);
 		void save_state(entry& rd) const;
 	
-//	private:
+	private:
+		friend struct aux::session_impl;
 	
+		// explicitly disallow assignment, to silence msvc warning
+		feed& operator=(feed const&);
+
 		void add_item(feed_item const& item);
 
 		feed_handle my_handle();
@@ -257,9 +261,9 @@ namespace libtorrent
 		std::map<std::string, time_t> m_added;
 
 		std::string m_title;
-   	std::string m_description;
+		std::string m_description;
 		time_t m_last_attempt;
-   	time_t m_last_update;
+		time_t m_last_update;
 		// refresh rate of this feed in minutes
 		int m_ttl;
 		// the number of update failures in a row

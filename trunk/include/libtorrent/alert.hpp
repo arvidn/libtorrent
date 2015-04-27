@@ -264,6 +264,9 @@ namespace libtorrent {
 #endif
 
 	private:
+		// explicitly disallow assignment, to silence msvc warning
+		alert& operator=(alert const&);
+
 		time_point m_timestamp;
 	};
 

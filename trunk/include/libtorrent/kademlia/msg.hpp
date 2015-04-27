@@ -58,6 +58,9 @@ struct msg
 	// the address of the process sending or receiving
 	// the message.
 	udp::endpoint addr;
+private:
+	// explicitly disallow assignment, to silence msvc warning
+	msg& operator=(msg const&);
 };
 
 } }

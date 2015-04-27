@@ -101,6 +101,9 @@ namespace libtorrent
 		void inc_stats_counter(int counter, int delta = 1);
 
 	private:
+		// explicitly disallow assignment, to silence msvc warning
+		utp_socket_manager& operator=(utp_socket_manager const&);
+
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
 

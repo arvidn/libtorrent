@@ -89,13 +89,13 @@ void utp_log(char const* fmt, ...)
 #if TORRENT_VERBOSE_UTP_LOG
 #define UTP_LOGV utp_log
 #else
-#define UTP_LOGV if (false) printf
+#define UTP_LOGV TORRENT_WHILE_0 printf
 #endif
 
 #else
 
-#define UTP_LOG if (false) printf
-#define UTP_LOGV if (false) printf
+#define UTP_LOG TORRENT_WHILE_0 printf
+#define UTP_LOGV TORRENT_WHILE_0 printf
 
 #endif
 
