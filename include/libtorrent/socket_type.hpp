@@ -289,6 +289,8 @@ namespace libtorrent
 		}
 
 	private:
+		// explicitly disallow assignment, to silence msvc warning
+		socket_type& operator=(socket_type const&);
 
 		void destruct();
 		void construct(int type, void* userdata);
@@ -316,6 +318,8 @@ namespace libtorrent
 			>::value
 		};
 
+		// TODO: 2 it would be nice to use aligned_storage here when
+		// building on c++11
 		boost::int64_t m_data[(storage_size + sizeof(boost::int64_t) - 1)
 			/ sizeof(boost::int64_t)];
 	};

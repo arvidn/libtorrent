@@ -123,7 +123,7 @@ udp_socket::~udp_socket()
 		int& m;
 	};
 #else
-	#define CHECK_MAGIC do {} while (false)
+	#define CHECK_MAGIC do {} TORRENT_WHILE_0
 #endif
 
 void udp_socket::send_hostname(char const* hostname, int port

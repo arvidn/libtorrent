@@ -45,6 +45,18 @@ std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 #endif
 
+// this is to disable the warning of conditional expressions
+// being constant in msvc
+#ifdef _MSC_VER
+#define TORRENT_WHILE_0  \
+	__pragma( warning(push) ) \
+	__pragma( warning(disable:4127) ) \
+	while (0) \
+	__pragma( warning(pop) )
+#else
+#define TORRENT_WHILE_0 while (0)
+#endif
+
 #if TORRENT_USE_ASSERTS
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
@@ -70,15 +82,15 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line
 	, char const* file, char const* function, char const* val, int kind = 0);
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } while (false)
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } while (false)
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } TORRENT_WHILE_0
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } while (false)
+	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
 #endif
@@ -92,9 +104,9 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line
 
 #else // TORRENT_USE_ASSERTS
 
-#define TORRENT_ASSERT_PRECOND(a) do {} while(false)
-#define TORRENT_ASSERT(a) do {} while(false)
-#define TORRENT_ASSERT_VAL(a, b) do {} while(false)
+#define TORRENT_ASSERT_PRECOND(a) do {} TORRENT_WHILE_0
+#define TORRENT_ASSERT(a) do {} TORRENT_WHILE_0
+#define TORRENT_ASSERT_VAL(a, b) do {} TORRENT_WHILE_0
 
 #endif // TORRENT_USE_ASSERTS
 

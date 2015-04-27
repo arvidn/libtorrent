@@ -623,7 +623,16 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if defined _MSC_VER && _MSC_VER <= 1200
-#define for if (false) {} else for
+// this is here to provide a standard-conforming for
+// keyword for old versions of msvc. The pragmas are
+// there to silence the warning it produces by using
+// a constant as conditional
+#define for \
+	__pragma( warning(push) ) \
+	__pragma( warning(disable:4127) ) \
+	if (false) {} else \
+	__pragma( warning(pop) )
+	for
 #endif
 
 #if TORRENT_BROKEN_UNIONS

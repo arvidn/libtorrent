@@ -465,6 +465,8 @@ public:
 	}
 
 private:
+	// explicitly disallow assignment, to silence msvc warning
+	utp_stream& operator=(utp_stream const&);
 
 	void cancel_handlers(error_code const&);
 

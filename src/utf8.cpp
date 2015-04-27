@@ -47,6 +47,10 @@ namespace libtorrent
 		wchar_t const* dst_start = wide.c_str();
 		char const* src_start = utf8.c_str();
 		ConversionResult ret;
+		// TODO: 3 refactor this to use wchar_t as a template
+		// it would cause less code to be generated without
+		// relying on dead-code elimination and fix msvc constant
+		// expression warning
 		if (sizeof(wchar_t) == sizeof(UTF32))
 		{
 			ret = ConvertUTF8toUTF32((const UTF8**)&src_start, (const UTF8*)src_start

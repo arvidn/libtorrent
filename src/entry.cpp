@@ -50,10 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
 
-#if defined(_MSC_VER)
-#define for if (false) {} else for
-#endif
-
 namespace
 {
 	template <class T>

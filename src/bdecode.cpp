@@ -692,7 +692,7 @@ namespace libtorrent
 	ec = make_error_code(code); \
 	if (error_pos) *error_pos = start - orig_start; \
 	goto done; \
-	} while (false)
+	} TORRENT_WHILE_0
 
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit, int token_limit)

@@ -129,6 +129,8 @@ public:
 	void send_name_lookup(boost::shared_ptr<handler_type> h);
 
 private:
+	// explicitly disallow assignment, to silence msvc warning
+	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h);
@@ -185,6 +187,8 @@ public:
 	void async_name_lookup(char const* name, name_lookup_handler handler);
 
 private:
+	// explicitly disallow assignment, to silence msvc warning
+	i2p_connection& operator=(i2p_connection const&);
 
 	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
 		, boost::shared_ptr<i2p_stream>);

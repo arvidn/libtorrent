@@ -138,6 +138,9 @@ struct receive_buffer
 #endif
 
 private:
+	// explicitly disallow assignment, to silence msvc warning
+	receive_buffer& operator=(receive_buffer const&);
+
 	// recv_buf.begin (start of actual receive buffer)
 	// |
 	// |      m_recv_start (logical start of current
@@ -263,6 +266,9 @@ struct crypto_receive_buffer
 		, std::size_t bytes_transfered);
 
 private:
+	// explicitly disallow assignment, to silence msvc warning
+	crypto_receive_buffer& operator=(crypto_receive_buffer const&);
+
 	int m_recv_pos;
 	int m_packet_size;
 	int m_soft_packet_size;

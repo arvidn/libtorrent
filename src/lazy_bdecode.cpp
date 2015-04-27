@@ -68,7 +68,7 @@ namespace libtorrent
 			return -1;
 		}
 
-#define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } while (false)
+#define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } TORRENT_WHILE_0
 
 	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
