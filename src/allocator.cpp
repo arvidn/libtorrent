@@ -104,9 +104,9 @@ namespace libtorrent
 
 		TORRENT_ASSERT(int(bytes) >= page_size());
 #ifdef TORRENT_DEBUG_BUFFERS
-		int page = page_size();
-		int num_pages = (bytes + (page-1)) / page + 2;
-		int orig_bytes = bytes;
+		const int page = page_size();
+		const int num_pages = (bytes + (page-1)) / page + 2;
+		const int orig_bytes = bytes;
 		bytes = num_pages * page;
 #endif
 
@@ -165,11 +165,11 @@ namespace libtorrent
 #define PROT_READ PAGE_READONLY
 #define PROT_WRITE PAGE_READWRITE
 #endif
-		int page = page_size();
+		const int page = page_size();
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
 		alloc_header* h = (alloc_header*)(block - page);
-		int num_pages = (h->size + (page-1)) / page + 2;
+		const int num_pages = (h->size + (page-1)) / page + 2;
 		TORRENT_ASSERT(h->magic == 0x1337);
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
@@ -200,7 +200,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_BUFFERS
 	bool page_aligned_allocator::in_use(char const* block)
 	{
-		int page = page_size();
+		const int page = page_size();
 		alloc_header* h = (alloc_header*)(block - page);
 		return h->magic == 0x1337;
 	}
