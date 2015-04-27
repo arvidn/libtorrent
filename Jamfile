@@ -273,6 +273,7 @@ rule warnings ( properties * )
 # disable warning C4389: signed/unsigned mismatch
 		result += <cflags>/wd4389 ;
 		result += <cflags>/wd4245 ;
+		result += <cflags>/wd4018 ;
 # disable warning C4244: 'argument' : conversion from 'int' to 'unsigned short', possible loss of data
 		result += <cflags>/wd4244 ;
 	}
