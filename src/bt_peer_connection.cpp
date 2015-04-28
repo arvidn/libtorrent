@@ -1774,7 +1774,13 @@ namespace libtorrent
 		if (!client_info.empty()) m_client_version = client_info;
 
 		int reqq = int(root.dict_find_int_value("reqq"));
-		if (reqq > 0) max_out_request_queue(reqq);
+		if (reqq > 0)
+		{
+			max_out_request_queue(reqq);
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** MAX OUT REQUEST QUEUE [ %d ]", req);
+#endif
+		}
 
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);

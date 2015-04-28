@@ -609,10 +609,8 @@ namespace libtorrent
 
 		int receive_pos() const { return m_recv_pos; }
 
-		void max_out_request_queue(int s)
-		{ m_max_out_request_queue = s; }
-		int max_out_request_queue() const
-		{ return m_max_out_request_queue; }
+		void max_out_request_queue(int s);
+		int max_out_request_queue() const;
 
 #ifdef TORRENT_DEBUG
 		bool piece_failed;
