@@ -4502,6 +4502,20 @@ namespace libtorrent
 		m_superseed_piece[0] = new_piece;
 	}
 
+	void peer_connection::max_out_request_queue(int s)
+	{
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** MAX OUT QUEUE SIZE [ %d -> %d ]"
+			, m_max_out_request_queue, s);
+#endif
+		m_max_out_request_queue = s;
+	}
+
+	int peer_connection::max_out_request_queue() const
+	{
+		return m_max_out_request_queue;
+	}
+
 	void peer_connection::update_desired_queue_size()
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -4532,6 +4546,12 @@ namespace libtorrent
 			m_desired_queue_size = m_max_out_request_queue;
 		if (m_desired_queue_size < min_request_queue)
 			m_desired_queue_size = min_request_queue;
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** UPDATE_QUEUE_SIZE [ dqs: %d max: %d dl: %d qt: %d snubbed: %d ]"
+			, m_desired_queue_size, m_max_out_request_queue
+			, download_rate, queue_time, int(m_snubbed));
+#endif
 	}
 
 	void peer_connection::second_tick(int tick_interval_ms)
@@ -4955,6 +4975,12 @@ namespace libtorrent
 		{
 			buffer_size_watermark = m_settings.get_int(settings_pack::send_buffer_watermark);
 		}
+
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(">>> SEND_BUFFER_WATERMARK [ %d max: %d min: %d factor: %d ]"
+			, buffer_size_watermark, m_ses.settings().send_buffer_watermark
+			, m_ses.settings().send_buffer_low_watermark, m_ses.settings().send_buffer_watermark_factor);
+#endif
 
 		// don't just pop the front element here, since in seed mode one request may
 		// be blocked because we have to verify the hash first, so keep going with the
