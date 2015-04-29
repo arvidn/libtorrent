@@ -902,14 +902,10 @@ int save_file(std::string const& filename, std::vector<char>& v)
 		return -1;
 
 	int w = fwrite(&v[0], 1, v.size(), f);
-	if (w < 0)
-	{
-		fclose(f);
-		return -1;
-	}
-
-	if (w != int(v.size())) return -3;
 	fclose(f);
+
+	if (w < 0) return -1;
+	if (w != int(v.size())) return -3;
 	return 0;
 }
 
