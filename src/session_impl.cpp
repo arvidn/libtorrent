@@ -2390,7 +2390,7 @@ retry:
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("%s <== INCOMING CONNECTION FAILED, could "
+			session_log(" <== INCOMING CONNECTION FAILED, could "
 				"not retrieve remote endpoint: %s"
 				, print_endpoint(endp).c_str(), ec.message().c_str());
 #endif

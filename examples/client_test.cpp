@@ -400,7 +400,7 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
-		int color = int(std::ceil(num_have / float(num_pieces) * (table_size - 1)));
+		int color = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
 		char buf[10];
 		snprintf(buf, 10, "48;5;%d", 232 + color);
 		bar += esc(buf);
