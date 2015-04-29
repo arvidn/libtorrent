@@ -143,11 +143,16 @@ bool file_filter(std::string const& f)
 	char const* sep = strrchr(first, '/');
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 	char const* altsep = strrchr(first, '\\');
-	if (sep == 0 || altsep > sep) sep = altsep;
+	if (sep == NULL || altsep > sep) sep = altsep;
 #endif
+	// if there is no parent path, just set 'sep'
+	// to point to the filename.
+	// if there is a parent path, skip the '/' character
+	if (sep == NULL) sep = first;
+	else ++sep;
+
 	// return false if the first character of the filename is a .
-	if (sep == 0 && f[0] == '.') return false;
-	if (sep[1] == '.') return false;
+	if (sep[0] == '.') return false;
 
 	fprintf(stderr, "%s\n", f.c_str());
 	return true;
