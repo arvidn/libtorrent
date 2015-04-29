@@ -265,8 +265,8 @@ const char* const job_action_name[] =
 				"piece_log:\n"
 				, int(pe->piece), pe->refcount, pe->piece_refcount, int(pe->num_blocks)
 				, int(pe->hashing), pe->hash, pe->hash ? pe->hash->offset : -1
-				, int(pe->cache_state), pe->cache_state >= 0 && pe->cache_state
-					< cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
+				, int(pe->cache_state)
+				, pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
 				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes

@@ -223,7 +223,7 @@ namespace libtorrent
 		TORRENT_ASSERT(block_index < (std::numeric_limits<boost::uint16_t>::max)());
 		ret.info_idx = block_index;
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
-			+ m_blocks_per_piece <= m_block_info.size());
+			+ m_blocks_per_piece <= int(m_block_info.size()));
 
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_VALUE_IS_DEFINED(piece);
@@ -343,7 +343,7 @@ namespace libtorrent
 //					TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
 					TORRENT_ASSERT(dp.index < next.index);
 					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
-						+ m_blocks_per_piece <= m_block_info.size());
+						+ m_blocks_per_piece <= int(m_block_info.size()));
 					block_info const* info = blocks_for_piece(dp);
 					for (int k = 0; k < m_blocks_per_piece; ++k)
 					{
@@ -476,7 +476,7 @@ namespace libtorrent
 //					TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
 					TORRENT_ASSERT(dp.index < next.index);
 					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
-						+ m_blocks_per_piece <= m_block_info.size());
+						+ m_blocks_per_piece <= int(m_block_info.size()));
 #if TORRENT_USE_ASSERTS
 					block_info const* info = blocks_for_piece(dp);
 					for (int k = 0; k < m_blocks_per_piece; ++k)
@@ -1109,7 +1109,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(i != m_downloads[download_state].end());
 		TORRENT_ASSERT(int(i->info_idx) * m_blocks_per_piece
-			+ m_blocks_per_piece <= m_block_info.size());
+			+ m_blocks_per_piece <= int(m_block_info.size()));
 
 		i->locked = false;
 
