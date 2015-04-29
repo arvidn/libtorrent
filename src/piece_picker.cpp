@@ -855,7 +855,7 @@ namespace libtorrent
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_map.size());
+		TORRENT_ASSERT(index < int(m_piece_map.size()));
 
 		TORRENT_ASSERT(m_piece_map[index].downloading == 1);
 
