@@ -202,6 +202,7 @@ const char* const job_action_name[] =
 	"load_torrent",
 	"clear_piece",
 	"tick_storage",
+	"resolve_links"
 };
 
 #if TORRENT_USE_ASSERTS
@@ -341,7 +342,11 @@ block_cache::block_cache(int block_size, io_service& ios
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
 	, m_pinned_blocks(0)
-{}
+{
+	// make sure the job names array covers all the job IDs
+	TORRENT_ASSERT(sizeof(job_action_name)/sizeof(job_action_name[0])
+		== disk_io_job::num_job_ids);
+}
 
 // returns:
 // -1: not in cache
