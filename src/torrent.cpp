@@ -1084,43 +1084,40 @@ namespace libtorrent
 			piece_block block_finished(j->piece, j->d.io.offset / block_size());
 
 			// we failed to write j->piece to disk tell the piece picker
-			if (j->piece >= 0)
+			// this will block any other peer from issuing requests
+			// to this piece, until we've cleared it.
+			if (j->error.ec == asio::error::operation_aborted)
 			{
-				// this will block any other peer from issuing requests
-				// to this piece, until we've cleared it.
-				if (j->error.ec == asio::error::operation_aborted)
+				if (has_picker())
+					picker().mark_as_canceled(block_finished, NULL);
+			}
+			else
+			{
+				// if any other peer has a busy request to this block, we need
+				// to cancel it too
+				cancel_block(block_finished);
+				if (has_picker())
+					picker().write_failed(block_finished);
+
+				if (m_storage)
 				{
-					if (has_picker())
-						picker().mark_as_canceled(block_finished, NULL);
+					// when this returns, all outstanding jobs to the
+					// piece are done, and we can restore it, allowing
+					// new requests to it
+					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
+						, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
 				}
 				else
 				{
-					// if any other peer has a busy request to this block, we need
-					// to cancel it too
-					cancel_block(block_finished);
-					if (has_picker())
-						picker().write_failed(block_finished);
-
-					if (m_storage)
-					{
-						// when this returns, all outstanding jobs to the
-						// piece are done, and we can restore it, allowing
-						// new requests to it
-						m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
-							, boost::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
-					}
-					else
-					{
-						// is m_abort true? if so, we should probably just
-						// exit this function early, no need to keep the picker
-						// state up-to-date, right?
-						disk_io_job sj;
-						sj.piece = j->piece;
-						on_piece_fail_sync(&sj, block_finished);
-					}
+					// is m_abort true? if so, we should probably just
+					// exit this function early, no need to keep the picker
+					// state up-to-date, right?
+					disk_io_job sj;
+					sj.piece = j->piece;
+					on_piece_fail_sync(&sj, block_finished);
 				}
-				update_gauge();
 			}
+			update_gauge();
 		}
 
 		if (j->error.ec == error_code(boost::system::errc::not_enough_memory, generic_category()))
