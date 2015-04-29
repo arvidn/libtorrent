@@ -124,9 +124,11 @@ namespace libtorrent
 				if (m_buf[i] != 0xffffffff) return false;
 			}
 			int rest = size() & 31;
-			boost::uint32_t mask = htonl(0xffffffff << (32-rest));
-			if (rest > 0 && (m_buf[words] & mask) != mask)
-				return false;
+			if (rest > 0)
+			{
+				boost::uint32_t mask = htonl(0xffffffff << (32-rest));
+				if ((m_buf[words] & mask) != mask) return false;
+			}
 			return true;
 		}
 
