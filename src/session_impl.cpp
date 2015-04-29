@@ -2783,7 +2783,7 @@ retry:
 		if (ec)
 		{
 #if defined(TORRENT_VERBOSE_LOGGING) || defined(TORRENT_LOGGING)
-			session_log("%s <== INCOMING CONNECTION FAILED, could "
+			session_log(" <== INCOMING CONNECTION FAILED, could "
 				"not retrieve remote endpoint "
 				, print_endpoint(endp).c_str(), ec.message().c_str());
 #endif
