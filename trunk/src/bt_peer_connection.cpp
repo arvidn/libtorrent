@@ -1847,7 +1847,7 @@ namespace libtorrent
 		{
 			max_out_request_queue(reqq);
 #ifdef TORRENT_VERBOSE_LOGGING
-			peer_log("*** MAX OUT REQUEST QUEUE [ %d ]", req);
+			peer_log("*** MAX OUT REQUEST QUEUE [ %d ]", reqq);
 #endif
 		}
 

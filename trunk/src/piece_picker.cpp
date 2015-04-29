@@ -1099,7 +1099,7 @@ namespace libtorrent
 		std::cerr << "[" << this << "] " << "restore_piece(" << index << ")" << std::endl;
 #endif
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_map.size());
+		TORRENT_ASSERT(index < int(m_piece_map.size()));
 
 		int download_state = m_piece_map[index].download_queue();
 		TORRENT_ASSERT(download_state != piece_pos::piece_open);
