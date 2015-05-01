@@ -455,7 +455,7 @@ namespace libtorrent
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
-		mutex m_mutex;
+		mutable mutex m_mutex;
 		boost::int64_t m_stats_counter[num_counters];
 #endif
 	};
