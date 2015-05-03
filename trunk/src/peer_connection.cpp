@@ -5316,19 +5316,21 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		shared_ptr<torrent> t = m_torrent.lock();
 
+		const int tick_interval = (std::max)(1, m_settings.get_int(settings_pack::tick_interval));
+
 		if (channel == download_channel)
 		{
 			return (std::max)((std::max)(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(boost::int64_t(m_statistics.download_rate()) * 2
-					/ (1000 / m_settings.get_int(settings_pack::tick_interval))));
+					/ (1000 / tick_interval)));
 		}
 		else
 		{
 			return (std::max)((std::max)(m_reading_bytes
 				, m_send_buffer.size())
 				, int((boost::int64_t(m_statistics.upload_rate()) * 2
-					* m_settings.get_int(settings_pack::tick_interval)) / 1000));
+					* tick_interval) / 1000));
 		}
 	}
 

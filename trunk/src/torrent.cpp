@@ -918,14 +918,22 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
-		int piece_size = m_torrent_file->piece_size(piece);
-		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		const int piece_size = m_torrent_file->piece_size(piece);
+		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
-		// if blocks_in_piece is 0, rp will leak
 		TORRENT_ASSERT(blocks_in_piece > 0);
 		TORRENT_ASSERT(piece_size > 0);
 
-		read_piece_struct* rp = new read_piece_struct;
+		if (blocks_in_piece == 0)
+		{
+			// this shouldn't actually happen
+			boost::shared_array<char> buf;
+			m_ses.alerts().emplace_alert<read_piece_alert>(
+				get_handle(), piece, buf, 0);
+			return;
+		}
+
+		boost::shared_ptr<read_piece_struct> rp = boost::make_shared<read_piece_struct>();
 		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
 		rp->blocks_left = 0;
 		rp->fail = false;
@@ -939,7 +947,6 @@ namespace libtorrent
 			rp->piece_data.reset();
 			m_ses.alerts().emplace_alert<read_piece_alert>(
 				get_handle(), r.piece, rp->piece_data, 0);
-			delete rp;
 			return;
 		}
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
@@ -1194,7 +1201,8 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp)
+	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r
+		, boost::shared_ptr<read_piece_struct> rp)
 	{
 		// hold a reference until this function returns
 		torrent_ref_holder h(this, "read_piece");
@@ -1229,7 +1237,6 @@ namespace libtorrent
 				m_ses.alerts().emplace_alert<read_piece_alert>(
 					get_handle(), r.piece, rp->piece_data, size);
 			}
-			delete rp;
 		}
 	}
 
@@ -9920,7 +9927,7 @@ namespace libtorrent
 		int num_downloaded_pieces = (std::max)(m_picker->num_have()
 			, pieces_in_torrent - m_picker->num_filtered());
 
-		if (num_downloaded_pieces * m_torrent_file->piece_length()
+		if (boost::int64_t(num_downloaded_pieces) * m_torrent_file->piece_length()
 			* settings().get_int(settings_pack::share_mode_target) > m_total_uploaded
 			&& num_downloaded_pieces > 0)
 			return;
