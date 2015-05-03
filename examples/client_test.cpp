@@ -1187,6 +1187,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		else
 			out += chr;
 
+		last_color = color;
 		out += str;
 	}
 	out += esc("0");
