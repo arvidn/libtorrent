@@ -76,7 +76,7 @@ namespace libtorrent {
 					, boost::memory_order_relaxed);
 #else
 		mutex::scoped_lock l(m_mutex);
-		mutex::scoped_lock l(c.m_mutex);
+		mutex::scoped_lock l2(c.m_mutex);
 		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
 #endif
 		return *this;

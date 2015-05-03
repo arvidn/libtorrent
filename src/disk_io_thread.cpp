@@ -2359,9 +2359,6 @@ namespace libtorrent
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		
-		file::iovec_t iov;
-		int ret = 0;
-
 		// keep track of which blocks we have locked by incrementing
 		// their refcounts. This is used to decrement only these blocks
 		// later.
@@ -2374,8 +2371,6 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(ph->offset % block_size == 0, pe);
 		for (int i = ph->offset / block_size; i < blocks_in_piece; ++i)
 		{
-			iov.iov_len = (std::min)(block_size, piece_size - ph->offset);
-
 			// is the block not in the cache?
 			if (pe->blocks[i].buf == NULL) continue;
 
@@ -2388,9 +2383,11 @@ namespace libtorrent
 
 		l.unlock();
 
+		int ret = 0;
 		int next_locked_block = 0;
 		for (int i = ph->offset / block_size; i < blocks_in_piece; ++i)
 		{
+			file::iovec_t iov;
 			iov.iov_len = (std::min)(block_size, piece_size - ph->offset);
 
 			if (next_locked_block < num_locked_blocks
