@@ -63,7 +63,12 @@ namespace libtorrent
 		virtual stat const& statistics() const = 0;
 		virtual void get_peer_info(peer_info& p) const = 0;
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual void peer_log(char const* fmt, ...) const = 0;
+		virtual void peer_log(peer_log_alert::direction_t direction
+			, char const* event, char const* fmt = "", ...) const
+#if defined __GNUC__ || defined __clang__
+			__attribute__((format(printf, 4, 5)))
+#endif
+			= 0;
 #endif
 	protected:
 		~peer_connection_interface() {}

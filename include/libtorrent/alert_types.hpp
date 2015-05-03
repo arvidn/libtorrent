@@ -2160,15 +2160,33 @@ namespace libtorrent
 	// default it is disabled as a build configuration.
 	struct TORRENT_EXPORT peer_log_alert : peer_alert
 	{
+		// describes whether this log refers to in-flow or out-flow of the
+		// peer. The exception is ``info`` which is neither incoming or outgoing.
+		enum direction_t
+		{
+			incoming_message,
+			outgoing_message,
+			incoming,
+			outgoing,
+			info,
+		};
+
 		// internal
 		peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i
-			, peer_id const& pi, char const* log);
+			, tcp::endpoint const& i, peer_id const& pi
+			, peer_log_alert::direction_t dir
+			, char const* event, char const* log);
 	
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
 		static const int static_category = alert::peer_log_notification;
 		virtual std::string message() const;
+
+		// string literal indicating the kind of event. For messages, this is the
+		// message name.
+		char const* event_type;
+
+		direction_t direction;
 
 		// returns the log message
 		char const* msg() const;

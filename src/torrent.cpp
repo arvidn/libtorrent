@@ -4264,7 +4264,7 @@ namespace libtorrent
 			, end(m_connections.end()); p != end; ++p)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			(*p)->peer_log(">>> PREDICTIVE_HAVE [ piece: %d expected in %d ms]"
+			(*p)->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
 				, index, milliseconds);
 #endif
 			(*p)->announce_piece(index);
@@ -4410,7 +4410,7 @@ namespace libtorrent
 						, print_endpoint(p->ip()).c_str());
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-					peer->peer_log("*** BANNING PEER: Too many corrupt pieces");
+					peer->peer_log(peer_log_alert::info, "BANNING_PEER", "Too many corrupt pieces");
 #endif
 					peer->disconnect(errors::too_many_corrupt_pieces, op_bittorrent);
 				}
@@ -4768,7 +4768,7 @@ namespace libtorrent
 		m_inactivity_timer.cancel(ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		log_to_all_peers("ABORTING TORRENT");
+		log_to_all_peers("aborting");
 #endif
 
 		// disconnect all peers and close all
@@ -8054,7 +8054,7 @@ namespace libtorrent
 				if (p->upload_only())
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log("*** SEED, CLOSING CONNECTION");
+					p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
 #endif
 					seeds.push_back(p);
 				}
@@ -8295,7 +8295,7 @@ namespace libtorrent
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			pc->peer_log("*** ON_FILES_CHECKED");
+			pc->peer_log(peer_log_alert::info, "ON_FILES_CHECKED");
 #endif
 			if (pc->is_interesting() && !pc->has_peer_choked())
 			{
@@ -8781,7 +8781,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		log_to_all_peers("DELETING FILES IN TORRENT");
+		log_to_all_peers("deleting files");
 #endif
 
 		disconnect_all(errors::torrent_removed, op_bittorrent);
@@ -8857,7 +8857,7 @@ namespace libtorrent
 		if (ec)
 		{
 			char buf[1024];
-			snprintf(buf, sizeof(buf), "TORRENT ERROR: %s: %s", ec.message().c_str()
+			snprintf(buf, sizeof(buf), "error %s: %s", ec.message().c_str()
 				, resolve_filename(error_file).c_str());
 			log_to_all_peers(buf);
 		}
@@ -9199,7 +9199,7 @@ namespace libtorrent
 		update_want_scrape();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		log_to_all_peers("PAUSING TORRENT");
+		log_to_all_peers("pausing");
 #endif
 
 		// when checking and being paused in graceful pause mode, we
@@ -9256,7 +9256,7 @@ namespace libtorrent
 				if (p->outstanding_bytes() > 0)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log("*** CHOKING PEER: torrent graceful paused");
+					p->peer_log(peer_log_alert::info, "CHOKING_PEER", "torrent graceful paused");
 #endif
 					// remove any un-sent requests from the queue
 					p->clear_request_queue();
@@ -9266,7 +9266,7 @@ namespace libtorrent
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
-				p->peer_log("*** CLOSING CONNECTION: torrent_paused");
+				p->peer_log(peer_log_alert::info, "CLOSING_CONNECTION", "torrent_paused");
 #endif
 				p->disconnect(errors::torrent_paused, op_bittorrent);
 				i = j;
@@ -9291,13 +9291,11 @@ namespace libtorrent
 	void torrent::log_to_all_peers(char const* message)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#ifndef TORRENT_DISABLE_LOGGING
 		for (peer_iterator i = m_connections.begin();
 				i != m_connections.end(); ++i)
 		{
-			(*i)->peer_log("*** %s", message);
+			(*i)->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
 		}
-#endif
 
 		debug_log("%s", message);
 	}
@@ -9748,7 +9746,7 @@ namespace libtorrent
 				TORRENT_DECLARE_DUMMY(std::exception, e);
 				(void)e;
 #ifndef TORRENT_DISABLE_LOGGING
-				p->peer_log("*** ERROR %s", e.what());
+				p->peer_log(peer_log_alert::info, "ERROR", "%s", e.what());
 #endif
 				p->disconnect(errors::no_error, op_bittorrent, 1);
 			}

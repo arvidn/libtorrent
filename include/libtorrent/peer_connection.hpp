@@ -413,13 +413,7 @@ namespace libtorrent
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
 
-		void set_holepunch_mode()
-		{
-			m_holepunch_mode = true;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** HOLEPUNCH MODE ***");
-#endif
-		}
+		void set_holepunch_mode();
 
 		// will send a keep-alive message to the peer
 		void keep_alive();
@@ -553,9 +547,10 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual void peer_log(char const* fmt, ...) const
+		void peer_log(peer_log_alert::direction_t direction
+			, char const* event, char const* fmt = "", ...) const
 #if defined __GNUC__ || defined __clang__
-			__attribute__((format(printf, 2, 3)))
+			__attribute__((format(printf, 4, 5)))
 #endif
 			;
 #endif
@@ -654,13 +649,7 @@ namespace libtorrent
 		// a piece for the moment, the boost::optional
 		// will be invalid.
 		virtual boost::optional<piece_block_progress>
-		downloading_piece_progress() const
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** downloading_piece_progress() dispatched to the base class!");
-#endif
-			return boost::optional<piece_block_progress>();
-		}
+		downloading_piece_progress() const;
 
 		enum message_type_flags { message_type_request = 1 };
 		void send_buffer(char const* begin, int size, int flags = 0);

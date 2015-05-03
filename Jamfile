@@ -257,6 +257,7 @@ rule warnings ( properties * )
 	{
 		result += <cflags>-Wall ;
 		result += <cflags>-Wextra ;
+		result += <cflags>-Wno-format-zero-length ;
 
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-sign-compare ;

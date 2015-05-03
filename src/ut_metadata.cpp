@@ -264,7 +264,8 @@ namespace libtorrent { namespace
 			char const* names[] = {"request", "data", "dont-have"};
 			char const* n = "";
 			if (type >= 0 && type < 3) n = names[type];
-			m_pc.peer_log("==> UT_METADATA [ type: %d (%s) | piece: %d ]", type, n, piece);
+			m_pc.peer_log(peer_log_alert::outgoing_message, "UT_METADATA"
+				, "type: %d (%s) piece: %d", type, n, piece);
 #endif
 
 			// abort if the peer doesn't support the metadata extension
@@ -327,7 +328,8 @@ namespace libtorrent { namespace
 			if (length > 17 * 1024)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("<== UT_METADATA [ packet too big %d ]", length);
+				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+					, "packet too big %d", length);
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 				return true;
@@ -340,7 +342,8 @@ namespace libtorrent { namespace
 			if (msg.type() != entry::dictionary_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("<== UT_METADATA [ not a dictionary ]");
+				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+					, "not a dictionary");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 				return true;
@@ -352,7 +355,8 @@ namespace libtorrent { namespace
 				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("<== UT_METADATA [ missing or invalid keys ]");
+				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+					, "missing or invalid keys");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 				return true;
@@ -361,7 +365,8 @@ namespace libtorrent { namespace
 			int piece = piece_ent->integer();
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log("<== UT_METADATA [ type: %d | piece: %d ]", type, piece);
+			m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+				, "type: %d piece: %d", type, piece);
 #endif
 
 			switch (type)
@@ -372,7 +377,8 @@ namespace libtorrent { namespace
 						|| piece < 0 || piece >= int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						m_pc.peer_log("*** UT_METADATA [ have: %d invalid piece %d metadata size: %d ]"
+						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+							, "have: %d invalid piece %d metadata size: %d"
 							, int(m_torrent.valid_metadata()), piece
 							, int(m_tp.get_metadata_size()));
 #endif
@@ -396,7 +402,8 @@ namespace libtorrent { namespace
 					if (i == m_sent_requests.end())
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						m_pc.peer_log("*** UT_METADATA [ UNWANTED / TIMED OUT ]");				
+						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+							, "UNWANTED / TIMED OUT");
 #endif
 						return true;
 					}
@@ -544,7 +551,8 @@ namespace libtorrent { namespace
 		if (m_torrent.valid_metadata())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log("*** UT_METADATA [ ALREADY HAVE METADATA ]");				
+			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+				, "already have metadata");
 #endif
 			m_torrent.add_redundant_bytes(size, torrent::piece_unknown);
 			return false;
@@ -556,7 +564,8 @@ namespace libtorrent { namespace
 			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				source.m_pc.peer_log("*** UT_METADATA [ metadata size too big: %d ]", total_size);				
+				source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+					, "metadata size too big: %d", total_size);				
 #endif
 // #error post alert
 				return false;
@@ -570,7 +579,8 @@ namespace libtorrent { namespace
 		if (piece < 0 || piece >= int(m_requested_metadata.size()))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log("*** UT_METADATA [ piece: %d INVALID ]", piece);				
+			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+				, "piece: %d INVALID", piece);				
 #endif
 			return false;
 		}
@@ -578,7 +588,8 @@ namespace libtorrent { namespace
 		if (total_size != m_metadata_size)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log("*** UT_METADATA [ total_size: %d INCONSISTENT WITH: %d ]"
+			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+				, "total_size: %d INCONSISTENT WITH: %d"
 				, total_size, m_metadata_size);				
 #endif
 			// they disagree about the size!

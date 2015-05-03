@@ -88,7 +88,8 @@ namespace libtorrent
 			- (int)c.request_queue().size();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		c.peer_log("*** PIECE_PICKER [ dlq: %d rqq: %d target: %d req: %d engame: %d ]"
+		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+			, "dlq: %d rqq: %d target: %d req: %d engame: %d"
 			, int(c.download_queue().size()), int(c.request_queue().size())
 			, c.desired_queue_size(), num_requests, c.endgame());
 #endif
@@ -160,7 +161,8 @@ namespace libtorrent
 			, ses.stats_counters());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		c.peer_log("*** PIECE_PICKER [ prefer_contiguous: %d picked: %d ]"
+		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+			, "prefer_contiguous: %d picked: %d"
 			, prefer_contiguous_blocks, int(interesting_pieces.size()));
 #endif
 
@@ -225,7 +227,8 @@ namespace libtorrent
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-				c.peer_log("*** PIECE_PICKER [ not_picking: %d,%d already in queue ]"
+				c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+					, "not_picking: %d,%d already in queue"
 					, i->piece_index, i->block_index);
 #endif
 				continue;
