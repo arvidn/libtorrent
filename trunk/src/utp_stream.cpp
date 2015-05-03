@@ -3084,13 +3084,13 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
+				// only use the minimum from the last 3 delay measurements
+				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+
 				// it's impossible for delay to be more than the RTT, so make
 				// sure to clamp it as a sanity check
 				if (delay > min_rtt) delay = min_rtt;
                 
-				// only use the minimum from the last 3 delay measurements
-				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
-
 				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
 				m_send_delay = delay;
 			}

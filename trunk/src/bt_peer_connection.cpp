@@ -2142,7 +2142,15 @@ namespace libtorrent
 			return;
 		}
 	
-		int num_pieces = t->torrent_file().num_pieces();
+		const int num_pieces = t->torrent_file().num_pieces();
+		TORRENT_ASSERT(num_pieces > 0);
+		if (num_pieces <= 0)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, num_pieces == 0");
+#endif
+			return;
+		}
 
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;

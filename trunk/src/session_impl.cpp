@@ -1192,11 +1192,14 @@ namespace aux {
 		{
 #ifdef TORRENT_DEBUG
 			// make it obvious that the return value is undefined
-			ret.upload_limit = random();
-			ret.download_limit = random();
+			ret.upload_limit = 0xf0f0f0f;
+			ret.download_limit = 0xf0f0f0f;
 			ret.label.resize(20);
 			url_random(&ret.label[0], &ret.label[0] + 20);
 			ret.ignore_unchoke_slots = false;
+			ret.connection_limit_factor = 0xf0f0f0f;
+			ret.upload_priority = 0xf0f0f0f;
+			ret.download_priority = 0xf0f0f0f;
 #endif
 			return ret;
 		}
@@ -2392,7 +2395,7 @@ retry:
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log(" <== INCOMING CONNECTION FAILED, could "
 				"not retrieve remote endpoint: %s"
-				, print_endpoint(endp).c_str(), ec.message().c_str());
+				, ec.message().c_str());
 #endif
 			return;
 		}
