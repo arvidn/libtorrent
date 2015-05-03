@@ -3323,7 +3323,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	return false;
 }
 
-void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
+void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
+	, const int in_flight)
 {
 	INVARIANT_CHECK;
 
@@ -3333,15 +3334,15 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight)
 	TORRENT_ASSERT(in_flight > 0);
 	TORRENT_ASSERT(acked_bytes > 0);
 
-	int target_delay = m_sm->target_delay();
+	const int target_delay = (std::max)(1, m_sm->target_delay());
 
 	// true if the upper layer is pushing enough data down the socket to be
 	// limited by the cwnd. If this is not the case, we should not adjust cwnd.
-	bool cwnd_saturated = (m_bytes_in_flight + acked_bytes + m_mtu > (m_cwnd >> 16));
+	const bool cwnd_saturated = (m_bytes_in_flight + acked_bytes + m_mtu > (m_cwnd >> 16));
 
 	// all of these are fixed points with 16 bits fraction portion
-	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
-	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
+	const boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
+	const boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
 	boost::int64_t scaled_gain;
   
 	if (delay >= target_delay)

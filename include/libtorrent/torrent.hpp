@@ -393,7 +393,8 @@ namespace libtorrent
 			error_code error;
 		};
 		void read_piece(int piece);
-		void on_disk_read_complete(disk_io_job const* j, peer_request r, read_piece_struct* rp);
+		void on_disk_read_complete(disk_io_job const* j, peer_request r
+			, boost::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const { return (storage_mode_t)m_storage_mode; }
 		storage_interface* get_storage()

@@ -835,6 +835,8 @@ namespace libtorrent
 
 		int priority = p.priority(this);
 		TORRENT_ASSERT(priority >= 0);
+		if (priority < 0) return;
+
 		if (int(m_priority_boundries.size()) <= priority)
 			m_priority_boundries.resize(priority + 1, m_pieces.size());
 

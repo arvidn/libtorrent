@@ -179,6 +179,12 @@ void terminal_size(int* terminal_width, int* terminal_height)
 		*terminal_height = coninfo.srWindow.Bottom - coninfo.srWindow.Top;
 #else
 	int tty = open("/dev/tty", O_RDONLY);
+	if (tty < 0)
+	{
+		*terminal_width = 190;
+		*terminal_height = 100;
+		return;
+	}
 	winsize size;
 	int ret = ioctl(tty, TIOCGWINSZ, reinterpret_cast<char*>(&size));
 	close(tty);
