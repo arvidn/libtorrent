@@ -206,7 +206,8 @@ namespace libtorrent { namespace
 			if (added == 0)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(" <== LT_TEX [ NOT A DICTIONARY ]");
+				m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX"
+					, "NOT A DICTIONARY");
 #endif
 				return true;
 			}
@@ -214,16 +215,15 @@ namespace libtorrent { namespace
 			if (m_tp.num_tex_trackers() >= 50)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(" <== LT_TEX [ we already have %d trackers "
-					"from tex, don't add any more", m_tp.num_tex_trackers());
+				m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX"
+					, "we already have %d trackers from tex, don't add any more"
+					, m_tp.num_tex_trackers());
 #endif
 				return true;
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			std::stringstream log_line;
-			log_line << " <== LT_TEX [ "
-				"added: ";
+			m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX");
 #endif
 
 			for (int i = 0; i < added.list_size(); ++i)
@@ -254,12 +254,7 @@ namespace libtorrent { namespace
 					continue;
 
 				if (m_tp.num_tex_trackers() >= 50)
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					log_line << "**reached-limit** ";
-#endif
 					break;
-				}
 
 				e.fail_limit = 1;
 				e.send_stats = false;
@@ -268,13 +263,9 @@ namespace libtorrent { namespace
 					m_tp.increment_tracker_counter();
 
 #ifndef TORRENT_DISABLE_LOGGING
-				log_line << e.url << " ";
+				m_pc.peer_log(peer_log_alert::info, "LT_TEX", "added: %s", e.url.c_str());
 #endif
 			}
-#ifndef TORRENT_DISABLE_LOGGING
-			log_line << "]\n";
-			m_pc.peer_log("%s", log_line.str().c_str());
-#endif
 			return true;
 		}
 
@@ -326,9 +317,7 @@ namespace libtorrent { namespace
 				return false;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			std::stringstream log_line;
-			log_line << " ==> LT_TEX [ "
-				"added: ";
+			m_pc.peer_log(peer_log_alert::outgoing_message, "LT_TEX");
 #endif
 			entry tex;
 			entry::list_type& added = tex["added"].list();
@@ -338,16 +327,12 @@ namespace libtorrent { namespace
 				if (!send_tracker(*i)) continue;
 				added.push_back(i->url);
 #ifndef TORRENT_DISABLE_LOGGING
-				log_line << i->url << " ";
+				m_pc.peer_log(peer_log_alert::info, "LT_TEX"
+					, "sending: %s", i->url.c_str());
 #endif
 			}
 			std::vector<char> tex_msg;
 			bencode(std::back_inserter(tex_msg), tex);
-
-#ifndef TORRENT_DISABLE_LOGGING
-			log_line << "]";
-			m_pc.peer_log("%s", log_line.str().c_str());
-#endif
 
 			char msg[6];
 			char* ptr = msg;

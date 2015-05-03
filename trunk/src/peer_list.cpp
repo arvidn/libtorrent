@@ -617,7 +617,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i->address() == c.remote().address());
 
 #ifndef TORRENT_DISABLE_LOGGING
-			c.peer_log("*** DUPLICATE PEER [ this: \"%s\" that: \"%s\" ]"
+			c.peer_log(peer_log_alert::info, "DUPLICATE PEER [ this: \"%s\" that: \"%s\" ]"
 				, print_address(c.remote().address()).c_str()
 				, print_address(i->address()).c_str());
 #endif
@@ -675,8 +675,10 @@ namespace libtorrent
 					if (our_port < other_port)
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
-						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" < \"%d\" ]", our_port, other_port);
+						c.peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+							, "\"%d\" < \"%d\"", our_port, other_port);
+						i->connection->peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+							, "\"%d\" < \"%d\"", our_port, other_port);
 #endif
 
 						// we should keep our outgoing connection
@@ -693,8 +695,10 @@ namespace libtorrent
 					else
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						c.peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
-						i->connection->peer_log("*** DUPLICATE PEER RESOLUTION [ \"%d\" >= \"%d\" ]", our_port, other_port);
+						c.peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+							, "\"%d\" >= \"%d\"", our_port, other_port);
+						i->connection->peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+							, "\"%d\" >= \"%d\"", our_port, other_port);
 #endif
 						// they should keep their outgoing connection
 						if (outgoing1)

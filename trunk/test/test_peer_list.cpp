@@ -72,7 +72,8 @@ struct mock_peer_connection : peer_connection_interface
 	virtual ~mock_peer_connection() {}
 
 #if !defined TORRENT_DISABLE_LOGGING
-	virtual void peer_log(char const* fmt, ...) const
+	virtual void peer_log(peer_log_alert::direction_t dir, char const* event
+		, char const* fmt, ...) const
 	{
 		va_list v;	
 		va_start(v, fmt);

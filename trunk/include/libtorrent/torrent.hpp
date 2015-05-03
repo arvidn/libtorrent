@@ -1028,6 +1028,7 @@ namespace libtorrent
 			__attribute__((format(printf, 2, 3)))
 #endif
 			;
+
 		void log_to_all_peers(char const* message);
 		time_point m_dht_start_time;
 #endif

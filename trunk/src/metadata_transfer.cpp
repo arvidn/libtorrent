@@ -301,8 +301,8 @@ namespace libtorrent { namespace
 			if (m_message_index == 0) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log("==> METADATA_REQUEST  [ start: %d | size: %d ]\n"
-				, start, size);
+			m_pc.peer_log(peer_log_alert::outgoing_message, "METADATA_REQUEST"
+				, "start: %d size: %d", start, size);
 #endif
 
 			char msg[9];
@@ -339,7 +339,8 @@ namespace libtorrent { namespace
 				char* ptr = msg;
 
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("==> METADATA [ start: %d | total_size: %d | offset: %d | data_size: %d ]"
+				m_pc.peer_log(peer_log_alert::outgoing_message, "METADATA"
+					, "start: %d total_size: %d offset: %d data_size: %d"
 					, req.first, req.second, offset.first, offset.second);
 #endif
 				// yes, we have metadata, send it
@@ -360,7 +361,8 @@ namespace libtorrent { namespace
 			else
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("==> DONT HAVE METADATA\n");
+				m_pc.peer_log(peer_log_alert::outgoing_message, "METADATA"
+					, "don't have metadata");
 #endif
 				char msg[4+3];
 				char* ptr = msg;
@@ -401,8 +403,8 @@ namespace libtorrent { namespace
 					int size = detail::read_uint8(body.begin) + 1;
 
 #ifndef TORRENT_DISABLE_LOGGING
-					m_pc.peer_log("<== METADATA_REQUEST  [ start: %d | size: %d ]\n"
-						, start, size);
+					m_pc.peer_log(peer_log_alert::incoming_message, "METADATA_REQUEST"
+						, "start: %d size: %d", start, size);
 #endif
 
 					if (length != 3)
@@ -424,7 +426,8 @@ namespace libtorrent { namespace
 					int data_size = length - 9;
 
 #ifndef TORRENT_DISABLE_LOGGING
-					m_pc.peer_log("<== METADATA [ total_size: %d | offset: %d | data_size: %d ]"
+					m_pc.peer_log(peer_log_alert::incoming_message, "METADATA"
+						, "total_size: %d | offset: %d | data_size: %d"
 						,total_size, offset, data_size);
 #endif
 
@@ -467,7 +470,8 @@ namespace libtorrent { namespace
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log("<== DONT HAVE METADATA\n");
+				m_pc.peer_log(peer_log_alert::incoming_message, "METADATA"
+					, "don't have metadata");
 #endif
 				break;
 			default:

@@ -3476,7 +3476,7 @@ retry:
 				--type_limit;
 #ifndef TORRENT_DISABLE_LOGGING
 				if (!t->allows_peers())
-					t->log_to_all_peers("AUTO MANAGER STARTING TORRENT");
+					t->log_to_all_peers("auto manager starting torrent");
 #endif
 				t->set_allow_peers(true);
 			}
@@ -3484,7 +3484,7 @@ retry:
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (t->allows_peers())
-					t->log_to_all_peers("AUTO MANAGER PAUSING TORRENT");
+					t->log_to_all_peers("auto manager pausing torrent");
 #endif
 				// use graceful pause for auto-managed torrents
 				t->set_allow_peers(false, true);

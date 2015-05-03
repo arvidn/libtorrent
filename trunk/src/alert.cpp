@@ -1559,10 +1559,16 @@ namespace libtorrent {
 		return torrent_alert::message() + ": " + msg();
 	}
 
-	peer_log_alert::peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
+	peer_log_alert::peer_log_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
 		, tcp::endpoint const& i
-		, peer_id const& pi, char const* log)
+		, peer_id const& pi
+		, direction_t dir
+		, char const* event
+		, char const* log)
 		: peer_alert(alloc, h, i, pi)
+		, event_type(event)
+		, direction(dir)
 		, m_str_idx(alloc.copy_string(log))
 	{}
 
@@ -1573,7 +1579,10 @@ namespace libtorrent {
 
 	std::string peer_log_alert::message() const
 	{
-		return torrent_alert::message() + " [" + print_endpoint(ip) + "] " + msg();
+		static char const* mode[] =
+		{ "<==", "==>", "<<<", ">>>", "***" };
+		return torrent_alert::message() + " [" + print_endpoint(ip) + "] "
+			+ mode[direction] + " " + event_type + " [ " + msg() + " ]";
 	}
 
 	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec)

@@ -100,7 +100,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	request_large_blocks(true);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log("*** web_peer_connection %s", m_url.c_str());
+	peer_log(peer_log_alert::info, "URL", "web_peer_connection %s", m_url.c_str());
 #endif
 }
 
@@ -130,7 +130,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		// us bailing out and failing the entire request just because our
 		// write-end was closed, ignore it and keep reading until the read-end
 		// also is closed.
-		peer_log("*** WRITE-DIRECTION CLOSED");
+		peer_log(peer_log_alert::info, "WRITE_DIRECTION", "CLOSED");
 #endif
 
 		// prevent the peer from trying to send anything more
@@ -158,7 +158,8 @@ void web_peer_connection::disconnect(error_code const& ec
 		&& !m_piece.empty() && m_web)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log("*** SAVE-RESTART-DATA: [ data: %d req: %d off: %d ]"
+		peer_log(peer_log_alert::info, "SAVE_RESTART_DATA"
+			, "data: %d req: %d off: %d"
 			, int(m_piece.size()), int(m_requests.front().piece)
 			, int(m_requests.front().start));
 #endif
@@ -278,7 +279,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		m_requests.push_back(pr);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log("==> REQUESTING [ piece: %d start: %d len: %d ]"
+		peer_log(peer_log_alert::outgoing_message, "REQUESTING", "piece: %d start: %d len: %d"
 			, pr.piece, pr.start, pr.length);
 #endif
 
@@ -290,7 +291,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** RESTART-DATA: [ data: %d req: (%d, %d) size: %d ]"
+			peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
 				, int(m_piece.size()), int(front.piece), int(front.start)
 				, int (front.start + front.length - 1));
 #endif
@@ -397,7 +398,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log("==> %s", request.c_str());
+	peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
 	// in case the first file on this series of requests is a padfile
@@ -443,7 +444,8 @@ bool web_peer_connection::maybe_harvest_block()
 
 	incoming_piece(front_request, &m_piece[0]);
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log("<== POP REQUEST [ piece: %d start: %d len: %d ]"
+	peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
+		, "piece: %d start: %d len: %d"
 		, front_request.piece, front_request.start, front_request.length);
 #endif
 	m_requests.pop_front();
@@ -520,7 +522,8 @@ void web_peer_connection::on_receive(error_code const& error
 	{
 		received_bytes(0, bytes_transferred);
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log("*** web_peer_connection error: %s", error.message().c_str());
+		peer_log(peer_log_alert::info, "ERROR"
+			, "web_peer_connection error: %s", error.message().c_str());
 #endif
 #ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(statistics().last_payload_downloaded()
@@ -558,7 +561,8 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				received_bytes(0, bytes_transferred);
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log("*** %s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
+				peer_log(peer_log_alert::info, "RECEIVE_BYTES"
+					, "%s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
 #ifdef TORRENT_DEBUG
@@ -615,11 +619,12 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** STATUS: %d %s", m_parser.status_code(), m_parser.message().c_str());
+			peer_log(peer_log_alert::info, "STATUS"
+				, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 			std::multimap<std::string, std::string> const& headers = m_parser.headers();
 			for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
 				, end(headers.end()); i != end; ++i)
-				peer_log("   %s: %s", i->first.c_str(), i->second.c_str());
+				peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
 #endif
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
@@ -713,7 +718,7 @@ void web_peer_connection::on_receive(error_code const& error
 					}
 
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log("*** LOCATION: %s", location.c_str());
+					peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
 					t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 					t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);
@@ -823,7 +828,8 @@ void web_peer_connection::on_receive(error_code const& error
 				else
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log("*** parsed chunk: %" PRId64 " header_size: %d"
+					peer_log(peer_log_alert::info, "PARSE"
+						, "parsed chunk: %" PRId64 " header_size: %d"
 						, chunk_size, header_size);
 #endif
 					TORRENT_ASSERT(int(bytes_transferred) >= header_size - m_partial_chunk_header);
@@ -874,7 +880,8 @@ void web_peer_connection::on_receive(error_code const& error
 			TORRENT_ASSERT(m_block_pos >= 0);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log("*** payload_transferred: %d [ %d:%d = %d ]"
+			peer_log(peer_log_alert::info, "TRAMSFER"
+				, "payload_transferred: %d [ %d:%d = %d ]"
 				, payload_transferred, front_request.piece
 				, front_request.start, front_request.length);
 #endif
@@ -922,8 +929,8 @@ void web_peer_connection::on_receive(error_code const& error
 				std::vector<file_slice> sl = info.orig_files().map_block(
 					front_request.piece, front_request.start, front_request.start
 						+ front_request.length);
-				peer_log("INVALID HTTP RESPONSE [ in=(%d, %" PRId64 "-%" PRId64 ") "
-					"expected=(%d, %" PRId64 "-%" PRId64 ") piece: %d ]"
+				peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
+					, "in=(%d, %" PRId64 "-%" PRId64 ") expected=(%d, %" PRId64 "-%" PRId64 ") piece: %d ]"
 					, file_index, range_start, range_end, sl[0].file_index
 					, sl[0].offset, sl[0].offset + sl[0].size, front_request.piece);
 #endif
@@ -985,7 +992,8 @@ void web_peer_connection::on_receive(error_code const& error
 				incoming_piece(r, recv_buffer.begin);
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log("<== POP REQUEST [ piece: %d start: %d len: %d ]"
+				peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
+					, "piece: %d start: %d len: %d"
 					, r.piece, r.start, r.length);
 #endif
 				m_requests.pop_front();
