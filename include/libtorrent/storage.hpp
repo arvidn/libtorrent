@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STORAGE_HPP_INCLUDE
 #define TORRENT_STORAGE_HPP_INCLUDE
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
@@ -51,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/thread.hpp"
@@ -414,35 +415,37 @@ namespace libtorrent
 		// hidden
 		~default_storage();
 
-		// hidden
-		void set_file_priority(std::vector<boost::uint8_t> const& prio);
 #ifndef TORRENT_NO_DEPRECATE
-		void finalize_file(int file, storage_error& ec);
+		void finalize_file(int file, storage_error& ec) TORRENT_OVERRIDE;
 #endif
-		bool has_any_file(storage_error& ec);
-		void set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec);
-		void rename_file(int index, std::string const& new_filename, storage_error& ec);
-		void release_files(storage_error& ec);
-		void delete_files(storage_error& ec);
-		void initialize(storage_error& ec);
-		int move_storage(std::string const& save_path, int flags, storage_error& ec);
-		int sparse_end(int start) const;
-		bool verify_resume_data(bdecode_node const& rd
+		virtual bool has_any_file(storage_error& ec) TORRENT_OVERRIDE;
+		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+			, storage_error& ec) TORRENT_OVERRIDE;
+		virtual void rename_file(int index, std::string const& new_filename
+			, storage_error& ec) TORRENT_OVERRIDE;
+		virtual void release_files(storage_error& ec) TORRENT_OVERRIDE;
+		virtual void delete_files(storage_error& ec) TORRENT_OVERRIDE;
+		virtual void initialize(storage_error& ec) TORRENT_OVERRIDE;
+		virtual int move_storage(std::string const& save_path, int flags
+			, storage_error& ec) TORRENT_OVERRIDE;
+		virtual bool verify_resume_data(bdecode_node const& rd
 			, std::vector<std::string> const* links
-			, storage_error& error);
-		void write_resume_data(entry& rd, storage_error& ec) const;
-		bool tick();
+			, storage_error& error) TORRENT_OVERRIDE;
+		virtual void write_resume_data(entry& rd, storage_error& ec) const TORRENT_OVERRIDE;
+		virtual bool tick() TORRENT_OVERRIDE;
 
 		int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec);
+			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 		int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec);
+			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
 	private:
+
+		int sparse_end(int start) const;
 
 		// this identifies a read or write operation
 		// so that default_storage::readwritev() knows what to
@@ -510,23 +513,26 @@ namespace libtorrent
 	{
 	public:
 		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
-		bool has_any_file(storage_error&) { return false; }
-		void set_file_priority(std::vector<boost::uint8_t> const&, storage_error&) {}
-		void rename_file(int, std::string const&, storage_error&) {}
-		void release_files(storage_error&) {}
-		void delete_files(storage_error&) {}
-		void initialize(storage_error&) {}
-		int move_storage(std::string const&, int, storage_error&) { return 0; }
+		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
+		virtual void set_file_priority(std::vector<boost::uint8_t> const&
+			, storage_error&) TORRENT_OVERRIDE {}
+		virtual void rename_file(int, std::string const&, storage_error&) TORRENT_OVERRIDE {}
+		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
+		virtual void delete_files(storage_error&) TORRENT_OVERRIDE {}
+		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
+		virtual int move_storage(std::string const&, int, storage_error&) TORRENT_OVERRIDE { return 0; }
 
-		int readv(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec);
-		int writev(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec);
+		virtual int readv(file::iovec_t const* bufs, int num_bufs, int piece
+			, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+		virtual int writev(file::iovec_t const* bufs, int num_bufs, int piece
+			, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 
-		bool verify_resume_data(bdecode_node const&
+		virtual bool verify_resume_data(bdecode_node const&
 			, std::vector<std::string> const*
-			, storage_error&) { return false; }
-		void write_resume_data(entry&, storage_error&) const {}
+			, storage_error&) TORRENT_OVERRIDE { return false; }
+		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
+
+	private:
 
 		int m_piece_size;
 	};
@@ -535,27 +541,27 @@ namespace libtorrent
 	// anything written to it
 	struct zero_storage : storage_interface
 	{
-		virtual void initialize(storage_error&) {}
+		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec);
+			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 		virtual int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec);
+			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 
-		virtual bool has_any_file(storage_error&) { return false; }
+		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
-			, storage_error&) {}
+			, storage_error&) TORRENT_OVERRIDE {}
 		virtual int move_storage(std::string const& /* save_path */
-			, int /* flags */, storage_error&) { return 0; }
+			, int /* flags */, storage_error&) TORRENT_OVERRIDE { return 0; }
 		virtual bool verify_resume_data(bdecode_node const& /* rd */
 			, std::vector<std::string> const* /* links */
-			, storage_error&)
+			, storage_error&) TORRENT_OVERRIDE
 			{ return false; }
-		virtual void write_resume_data(entry&, storage_error&) const {}
-		virtual void release_files(storage_error&) {}
+		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
+		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
 		virtual void rename_file(int /* index */
-			, std::string const& /* new_filenamem */, storage_error&) {}
-		virtual void delete_files(storage_error&) {}
+			, std::string const& /* new_filenamem */, storage_error&) TORRENT_OVERRIDE {}
+		virtual void delete_files(storage_error&) TORRENT_OVERRIDE {}
 	};
 
 	struct disk_io_thread;

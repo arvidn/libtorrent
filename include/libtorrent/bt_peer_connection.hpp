@@ -79,7 +79,7 @@ namespace libtorrent
 		bt_peer_connection(peer_connection_args const& pack
 			, peer_id const& pid);
 
-		void start();
+		virtual void start() TORRENT_OVERRIDE;
 
 		enum
 		{
@@ -105,7 +105,8 @@ namespace libtorrent
 		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
 #endif
 
-		virtual int type() const { return peer_connection::bittorrent_connection; }
+		virtual int type() const TORRENT_OVERRIDE
+		{ return peer_connection::bittorrent_connection; }
 
 		enum message_type
 		{
@@ -152,17 +153,17 @@ namespace libtorrent
 		// work to do.
 
 		void on_sent(error_code const& error
-			, std::size_t bytes_transferred);
+			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
 		void on_receive(error_code const& error
-			, std::size_t bytes_transferred);
+			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
 		void on_receive_impl(std::size_t bytes_transferred);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec);
+		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec) TORRENT_OVERRIDE;
 #endif
 		
-		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual bool in_handshake() const;
+		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
+		virtual bool in_handshake() const TORRENT_OVERRIDE;
 		bool packet_finished() const { return m_recv_buffer.packet_finished(); }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -211,16 +212,17 @@ namespace libtorrent
 
 		// the following functions appends messages
 		// to the send buffer
-		void write_choke();
-		void write_unchoke();
-		void write_interested();
-		void write_not_interested();
-		void write_request(peer_request const& r);
-		void write_cancel(peer_request const& r);
-		void write_bitfield();
-		void write_have(int index);
-		void write_dont_have(int index);
-		void write_piece(peer_request const& r, disk_buffer_holder& buffer);
+		void write_choke() TORRENT_OVERRIDE;
+		void write_unchoke() TORRENT_OVERRIDE;
+		void write_interested() TORRENT_OVERRIDE;
+		void write_not_interested() TORRENT_OVERRIDE;
+		void write_request(peer_request const& r) TORRENT_OVERRIDE;
+		void write_cancel(peer_request const& r) TORRENT_OVERRIDE;
+		void write_bitfield() TORRENT_OVERRIDE;
+		void write_have(int index) TORRENT_OVERRIDE;
+		void write_dont_have(int index) TORRENT_OVERRIDE;
+		void write_piece(peer_request const& r, disk_buffer_holder& buffer) TORRENT_OVERRIDE;
+		void write_keepalive() TORRENT_OVERRIDE;
 		void write_handshake(bool plain_handshake = false);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
@@ -230,7 +232,6 @@ namespace libtorrent
 #endif
 		void write_metadata(std::pair<int, int> req);
 		void write_metadata_request(std::pair<int, int> req);
-		void write_keepalive();
 
 		// DHT extension
 		void write_dht_port(int listen_port);
@@ -238,12 +239,12 @@ namespace libtorrent
 		// FAST extension
 		void write_have_all();
 		void write_have_none();
-		void write_reject_request(peer_request const&);
-		void write_allow_fast(int piece);
-		void write_suggest(int piece);
+		void write_reject_request(peer_request const&) TORRENT_OVERRIDE;
+		void write_allow_fast(int piece) TORRENT_OVERRIDE;
+		void write_suggest(int piece) TORRENT_OVERRIDE;
 		
-		void on_connected();
-		void on_metadata();
+		void on_connected() TORRENT_OVERRIDE;
+		void on_metadata() TORRENT_OVERRIDE;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
@@ -258,7 +259,7 @@ namespace libtorrent
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const;
+		boost::optional<piece_block_progress> downloading_piece_progress() const TORRENT_OVERRIDE;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
@@ -300,7 +301,7 @@ public:
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
 			, void* userdata = NULL, block_cache_reference ref
-			= block_cache_reference());
+			= block_cache_reference()) TORRENT_OVERRIDE;
 
 private:
 

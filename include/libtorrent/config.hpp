@@ -421,7 +421,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_FINAL final
 #endif
 
-#if __cplusplus <= 199711L
+#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
 #define TORRENT_OVERRIDE
 #else
 #define TORRENT_OVERRIDE override

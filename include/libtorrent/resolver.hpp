@@ -55,10 +55,10 @@ struct TORRENT_EXTRA_EXPORT resolver TORRENT_FINAL : resolver_interface
 {
 	resolver(io_service& ios);
 
-	void async_resolve(std::string const& host, int flags
-		, callback_t const& h);
+	virtual void async_resolve(std::string const& host, int flags
+		, callback_t const& h) TORRENT_OVERRIDE;
 
-	void abort();
+	virtual void abort() TORRENT_OVERRIDE;
 
 private:
 
