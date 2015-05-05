@@ -388,7 +388,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::init()
+	void session::start(int flags, settings_pack const& pack)
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -398,10 +398,6 @@ namespace libtorrent
 #endif
 
 		m_impl.reset(new session_impl());
-	}
-
-	void session::start(int flags, settings_pack const& pack)
-	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{

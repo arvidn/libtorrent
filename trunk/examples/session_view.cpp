@@ -4,7 +4,8 @@
 #include <algorithm> // for std::max
 
 session_view::session_view()
-	: m_print_utp_stats(false)
+	: m_position(0)
+	, m_print_utp_stats(false)
 {
 	using libtorrent::find_metric_idx;
 
