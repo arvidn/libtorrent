@@ -121,7 +121,7 @@ namespace libtorrent
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec)
+		, add_torrent_params const& p, error_code& ec)
 	{
 		return add_magnet_uri_deprecated(ses, uri, p, ec);
 	}
@@ -160,7 +160,7 @@ namespace libtorrent
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params p)
+		, add_torrent_params const& p)
 	{
 		error_code ec;
 		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, p, ec);
