@@ -121,12 +121,9 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT rc4_handler : crypto_plugin
 	{
 	public:
-		// Input longkeys must be 20 bytes
-		rc4_handler()
-			: m_encrypt(false)
-			, m_decrypt(false)
-		{}
+		rc4_handler();
 
+		// Input keys must be 20 bytes
 		void set_incoming_key(unsigned char const* key, int len);
 		void set_outgoing_key(unsigned char const* key, int len);
 		

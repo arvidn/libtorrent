@@ -41,6 +41,8 @@ namespace libtorrent
 		: m_allocator(alloc), m_buf(buf)
 	{
 		m_ref.storage = 0;
+		m_ref.piece = -1;
+		m_ref.block = -1;
 	}
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j)

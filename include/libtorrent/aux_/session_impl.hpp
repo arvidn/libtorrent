@@ -1143,7 +1143,8 @@ namespace libtorrent
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
-
+#endif
+#ifdef TORRENT_REQUEST_LOGGING
 			FILE* m_request_logger;
 #endif
 

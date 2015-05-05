@@ -186,7 +186,6 @@ namespace libtorrent
 			, int flags = start_default_features | add_default_plugins)
 		{
 			TORRENT_CFG();
-			init();
 			start(flags, pack);
 		}
 		session(fingerprint const& print = fingerprint("LT"
@@ -196,6 +195,9 @@ namespace libtorrent
 		{
 			TORRENT_CFG();
 			settings_pack pack;
+			// TODO: 2 the two second constructors here should probably
+			// be deprecated in favor of the more generic one that just
+			// takes a settings_pack and a string
 			pack.set_int(settings_pack::alert_mask, alert_mask);
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			if ((flags & start_default_features) == 0)
@@ -206,7 +208,6 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 
-			init();
 			start(flags, pack);
 		}
 		session(fingerprint const& print
@@ -234,7 +235,6 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			init();
 			start(flags, pack);
 		}
 			
@@ -1218,7 +1218,6 @@ namespace libtorrent
 
 	private:
 
-		void init();
 		void start(int flags, settings_pack const& pack);
 
 		// data shared between the main thread

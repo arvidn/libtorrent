@@ -264,6 +264,16 @@ namespace libtorrent
 		recv_buffer.crypto_reset(packet_size);
 	}
 
+	rc4_handler::rc4_handler()
+		: m_encrypt(false)
+		, m_decrypt(false)
+	{
+		m_rc4_incoming.x = 0;
+		m_rc4_incoming.y = 0;
+		m_rc4_outgoing.x = 0;
+		m_rc4_outgoing.y = 0;
+	}
+
 	void rc4_handler::set_incoming_key(unsigned char const* key, int len)
 	{
 		m_decrypt = true;

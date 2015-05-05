@@ -74,6 +74,9 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
+#if TORRENT_USE_I2P
+		, m_i2p_conn(NULL)
+#endif
 	{}
 
 	void http_tracker_connection::start()

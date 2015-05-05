@@ -357,6 +357,9 @@ namespace aux {
 #else
 		, m_upload_rate(peer_connection::upload_channel)
 #endif
+		, m_global_class(0)
+		, m_tcp_peer_class(0)
+		, m_local_peer_class(0)
 		, m_tracker_manager(m_udp_socket, m_stats_counters, m_host_resolver
 			, m_ip_filter, m_settings
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
@@ -392,6 +395,7 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 		, m_next_rss_update(min_time())
 #endif
+		, m_next_port(0)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
 		, m_dht_interval_update_torrents(0)
@@ -410,7 +414,10 @@ namespace aux {
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
+		, m_next_downloading_connect_torrent(0)
+		, m_next_finished_connect_torrent(0)
 		, m_download_connect_attempts(0)
+		, m_next_scrape_torrent(0)
 		, m_tick_residual(0)
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
@@ -435,6 +442,8 @@ namespace aux {
 		m_ssl_udp_socket.subscribe(this);
 #endif
 
+		// TODO: 3 remove REQUESST_LOGGING build configuration. Make sure the
+		// same information can be logged via alerts
 #ifdef TORRENT_REQUEST_LOGGING
 		char log_filename[200];
 #ifdef TORRENT_WINDOWS
@@ -478,10 +487,6 @@ namespace aux {
 		m_next_dht_torrent = m_torrents.begin();
 #endif
 		m_next_lsd_torrent = m_torrents.begin();
-		m_next_downloading_connect_torrent = 0;
-		m_next_finished_connect_torrent = 0;
-		m_next_scrape_torrent = 0;
-
 		m_tcp_mapping[0] = -1;
 		m_tcp_mapping[1] = -1;
 		m_udp_mapping[0] = -1;

@@ -92,7 +92,8 @@ namespace libtorrent
 	}
 
 	i2p_connection::i2p_connection(io_service& ios)
-		: m_state(sam_idle)
+		: m_port(0)
+		, m_state(sam_idle)
 		, m_io_service(ios)
 	{}
 

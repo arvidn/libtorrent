@@ -134,6 +134,8 @@ namespace libtorrent
 	{
 		peer_info.web_seed = true;
 		restart_request.piece = -1;
+		restart_request.start = -1;
+		restart_request.length = -1;
 	}
 
 	web_seed_t::web_seed_t(std::string const& url_, web_seed_entry::type_t type_
@@ -148,6 +150,8 @@ namespace libtorrent
 	{
 		peer_info.web_seed = true;
 		restart_request.piece = -1;
+		restart_request.start = -1;
+		restart_request.length = -1;
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -266,6 +270,7 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
+		, m_last_active_change(0)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
 		if (m_pinned)

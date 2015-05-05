@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
+// TODO: 2 instead of using a dummy function to cause link errors when
+// incompatible build configurations are used, make the namespace name
+// depend on the configuration, and have a using declaration in the headers
+// to pull it into libtorrent.
 #if TORRENT_USE_IPV6
 #define TORRENT_CFG_IPV6 ipv6_
 #else

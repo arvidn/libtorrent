@@ -70,8 +70,7 @@ namespace libtorrent
 			io_service& ios
 			, tracker_manager& man
 			, tracker_request const& req
-			, boost::weak_ptr<request_callback> c
-			);
+			, boost::weak_ptr<request_callback> c);
 
 		void start();
 		void close();
