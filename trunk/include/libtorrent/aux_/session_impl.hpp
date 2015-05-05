@@ -590,7 +590,7 @@ namespace libtorrent
 
 			// uncork all peers added to the delayed uncork queue
 			// implements uncork_interface
-			void do_delayed_uncork();
+			virtual void do_delayed_uncork() TORRENT_OVERRIDE;
 
 			void post_socket_job(socket_job& j);
 

@@ -49,6 +49,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
+
+#ifdef __GNUC__
+// this is to suppress the warnings for using std::auto_ptr
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace libtorrent
 {
 
@@ -2297,6 +2303,11 @@ namespace libtorrent
 
 	enum { num_alert_types = 84 };
 }
+
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #endif
 

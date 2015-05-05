@@ -80,19 +80,20 @@ namespace libtorrent
 		http_seed_connection(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual int type() const { return peer_connection::http_seed_connection; }
+		virtual int type() const TORRENT_OVERRIDE
+		{ return peer_connection::http_seed_connection; }
 
 		// called from the main loop when this connection has any
 		// work to do.
-		void on_receive(error_code const& error
-			, std::size_t bytes_transferred);
+		virtual void on_receive(error_code const& error
+			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
 			
 		std::string const& url() const { return m_url; }
 		
-		virtual void get_specific_peer_info(peer_info& p) const;
-		virtual void disconnect(error_code const& ec, operation_t op, int error = 0);
+		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
+		virtual void disconnect(error_code const& ec, operation_t op, int error = 0) TORRENT_OVERRIDE;
 
-		void write_request(peer_request const& r);
+		virtual void write_request(peer_request const& r) TORRENT_OVERRIDE;
 
 	private:
 
