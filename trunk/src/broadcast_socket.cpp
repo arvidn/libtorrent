@@ -158,30 +158,6 @@ namespace libtorrent
 #endif
 	}
 
-	address guess_local_address(io_service& ios)
-	{
-		// make a best guess of the interface we're using and its IP
-		error_code ec;
-		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
-		address ret = address_v4::any();
-		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
-			, end(interfaces.end()); i != end; ++i)
-		{
-			address const& a = i->interface_address;
-			if (is_loopback(a)
-				|| is_multicast(a)
-				|| is_any(a)) continue;
-
-			// prefer a v4 address, but return a v6 if
-			// there are no v4
-			if (a.is_v4()) return a;
-
-			if (ret != address_v4::any())
-				ret = a;
-		}
-		return ret;
-	}
-
 	// count the length of the common bit prefix
 	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n)

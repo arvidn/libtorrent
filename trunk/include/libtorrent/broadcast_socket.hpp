@@ -63,8 +63,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n);
 
-	TORRENT_EXTRA_EXPORT address guess_local_address(io_service&);
-
 	typedef boost::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
 

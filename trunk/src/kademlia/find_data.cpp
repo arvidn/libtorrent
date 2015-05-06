@@ -31,8 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/kademlia/find_data.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
-#include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>

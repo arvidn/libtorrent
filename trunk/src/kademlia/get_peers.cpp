@@ -203,8 +203,8 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 {
 	if (!m_obfuscated) return get_peers::invoke(o);
 
-	node_id id = o->id();
-	int shared_prefix = 160 - distance_exp(id, m_target);
+	const node_id id = o->id();
+	const int shared_prefix = 160 - distance_exp(id, m_target);
 
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
@@ -219,12 +219,12 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 		for (std::vector<observer_ptr>::iterator i = m_results.begin()
 			, end(m_results.end()); i != end; ++i)
 		{
-			observer* o = i->get();
+			observer* const node = i->get();
 			// don't re-request from nodes that didn't respond
-			if (o->flags & observer::flag_failed) continue;
+			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight
-			if ((o->flags & observer::flag_alive) == 0) continue;
-			o->flags &= ~(observer::flag_queried | observer::flag_alive);
+			if ((node->flags & observer::flag_alive) == 0) continue;
+			node->flags &= ~(observer::flag_queried | observer::flag_alive);
 		}
 		return get_peers::invoke(o);
 	}

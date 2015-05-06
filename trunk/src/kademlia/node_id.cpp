@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
-#include <ctime>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"

@@ -2423,10 +2423,10 @@ namespace libtorrent
 						need_picker();
 
 						const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
-						if ((int)bitmask.size() != num_bitmask_bytes) continue;
+						if (int(bitmask.size()) != num_bitmask_bytes) continue;
 						for (int k = 0; k < num_bitmask_bytes; ++k)
 						{
-							unsigned char bits = bitmask[k];
+							const unsigned char bits = (unsigned char)bitmask[k];
 							int num_bits = (std::min)(num_blocks_per_piece - k*8, 8);
 							for (int b = 0; b < num_bits; ++b)
 							{
