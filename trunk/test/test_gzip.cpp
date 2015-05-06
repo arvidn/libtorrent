@@ -55,7 +55,7 @@ int test_main()
 	}
 	TEST_CHECK(!ec);
 	TEST_CHECK(inflated.size() > 0);
-	for (int i = 0; i < inflated.size(); ++i)
+	for (int i = 0; i < int(inflated.size()); ++i)
 		TEST_EQUAL(inflated[i], 0);
 
 	return 0;

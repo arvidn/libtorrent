@@ -89,7 +89,7 @@ address rand_v4()
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
-	for (int i = 0; i < bytes.size(); ++i) bytes[i] = rand();
+	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = rand();
 	return address_v6(bytes);
 }
 #endif
@@ -138,7 +138,7 @@ std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
 	if (!sa) return ret;
 
 	static std::vector<stats_metric> metrics = session_stats_metrics();
-	for (int i = 0; i < metrics.size(); ++i)
+	for (int i = 0; i < int(metrics.size()); ++i)
 		ret[metrics[i].name] = sa->values[metrics[i].value_index];
 	return ret;
 }

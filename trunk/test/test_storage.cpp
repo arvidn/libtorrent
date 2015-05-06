@@ -811,7 +811,7 @@ void fill_pattern(file::iovec_t* iov, int num_bufs)
 	for (int i = 0; i < num_bufs; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < iov[i].iov_len; ++k)
+		for (int k = 0; k < int(iov[i].iov_len); ++k)
 		{
 			buf[k] = counter & 0xff;
 			++counter;
@@ -824,7 +824,7 @@ void fill_pattern2(file::iovec_t* iov, int num_bufs)
 	for (int i = 0; i < num_bufs; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		memset(buf, 0xfe, iov[i].iov_len);
+		memset(buf, 0xfe, int(iov[i].iov_len));
 	}
 }
 
@@ -858,7 +858,7 @@ void test_iovec_copy_bufs()
 	for (int i = 0; i < num_bufs; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov2[i].iov_base;
-		for (int k = 0; k < iov2[i].iov_len; ++k)
+		for (int k = 0; k < int(iov2[i].iov_len); ++k)
 		{
 			TEST_EQUAL(int(buf[k]), (counter & 0xff));
 			++counter;
@@ -879,7 +879,7 @@ void test_iovec_clear_bufs()
 	for (int i = 0; i < 10; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < iov[i].iov_len; ++k)
+		for (int k = 0; k < int(iov[i].iov_len); ++k)
 		{
 			TEST_EQUAL(int(buf[k]), 0);
 		}
@@ -924,7 +924,7 @@ void test_iovec_advance_bufs()
 	for (int i = 0; i < end - iov; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < iov[i].iov_len; ++k)
+		for (int k = 0; k < int(iov[i].iov_len); ++k)
 		{
 			TEST_EQUAL(int(buf[k]), (counter & 0xff));
 			++counter;
