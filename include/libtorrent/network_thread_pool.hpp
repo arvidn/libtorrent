@@ -45,7 +45,7 @@ namespace libtorrent
 
 	struct socket_job
 	{
-		socket_job() : vec(NULL), recv_buf(NULL), buf_size(0), type(none) {}
+		socket_job() : type(none), vec(NULL), recv_buf(NULL), buf_size(0) {}
 
 		enum job_type_t
 		{

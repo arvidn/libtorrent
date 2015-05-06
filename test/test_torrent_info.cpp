@@ -352,7 +352,7 @@ int test_torrent_parse()
 	TEST_CHECK(test == "filename____");
 
 	std::string root_dir = parent_path(current_working_directory());
-	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
+	for (int i = 0; i < int(sizeof(test_torrents)/sizeof(test_torrents[0])); ++i)
 	{
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
@@ -495,7 +495,7 @@ int test_torrent_parse()
 
 	}
 
-	for (int i = 0; i < sizeof(test_error_torrents)/sizeof(test_error_torrents[0]); ++i)
+	for (int i = 0; i < int(sizeof(test_error_torrents)/sizeof(test_error_torrents[0])); ++i)
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);

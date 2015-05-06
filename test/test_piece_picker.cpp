@@ -1810,7 +1810,7 @@ int test_main()
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::rarest_first | piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// reverse rarest-first
@@ -1818,14 +1818,14 @@ int test_main()
 		, piece_picker::reverse | piece_picker::rarest_first
 		| piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// sequential
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::sequential | piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// reverse sequential
@@ -1833,21 +1833,21 @@ int test_main()
 		, piece_picker::reverse | piece_picker::sequential
 		| piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// just critical
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// prioritize_partials
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::prioritize_partials | piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// even when a non-critical piece is suggested should we ignore it
@@ -1855,7 +1855,7 @@ int test_main()
 		, piece_picker::rarest_first | piece_picker::time_critical_mode
 		, suggested_pieces);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
-	for (int i = 0; i < picked.size(); ++i)
+	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	return 0;

@@ -86,7 +86,7 @@ int test_main()
 	// test with a more realistic input
 	{
 		sliding_average<10> avg;
-		for (int i = 0; i < sizeof(samples)/sizeof(samples[0]); ++i)
+		for (int i = 0; i < int(sizeof(samples)/sizeof(samples[0])); ++i)
 			avg.add_sample(samples[i]);
 		TEST_CHECK(abs(avg.mean() - 60) <= 3);
 	}

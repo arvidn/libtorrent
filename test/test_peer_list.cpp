@@ -905,6 +905,7 @@ int test_main()
 		TEST_CHECK(peer5);
 		TEST_EQUAL(p.num_peers(), 5);
 		torrent_peer* peer6 = p.add_peer(ep("10.0.0.6", 8080), 0, 0, &st);
+		TEST_CHECK(peer6 == NULL);
 		TEST_EQUAL(p.num_peers(), 5);
 
 		// one of the connection should have been removed
