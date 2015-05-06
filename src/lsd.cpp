@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/ref.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
@@ -61,14 +60,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// defined in broadcast_socket.cpp
-	address guess_local_address(io_service&);
-
 namespace {
 
 int render_lsd_packet(char* dst, int len, int listen_port
 	, char const* info_hash_hex, int m_cookie, char const* host)
 {
+	TORRENT_ASSERT(len > 0);
 	return snprintf(dst, len,
 		"BT-SEARCH * HTTP/1.1\r\n"
 		"Host: %s:6771\r\n"
@@ -216,7 +213,7 @@ void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	announce_impl(info_hash, listen_port, false, retry_count);
 }
 
-void lsd::on_announce(udp::endpoint const& from, char* buffer
+void lsd::on_announce(udp::endpoint const& from, char* buf
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
@@ -224,7 +221,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buffer
 	http_parser p;
 
 	bool error = false;
-	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred)
+	p.incoming(buffer::const_interval(buf, buf + bytes_transferred)
 		, error);
 
 	if (!p.header_finished() || error)

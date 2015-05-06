@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
@@ -193,7 +194,9 @@ const char* const job_action_name[] =
 	"rename_file",
 	"stop_torrent",
 	"cache_piece",
+#ifndef TORRENT_NO_DEPRECATE
 	"finalize_file",
+#endif
 	"flush_piece",
 	"flush_hashed",
 	"flush_storage",

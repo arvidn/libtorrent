@@ -49,7 +49,7 @@ void get_item::got_data(bdecode_node const& v,
 {
 	// we received data!
 
-	std::pair<char const*, int> salt(m_salt.c_str(), m_salt.size());
+	std::pair<char const*, int> salt(m_salt.c_str(), int(m_salt.size()));
 
 	sha1_hash incoming_target;
 	if (pk)
