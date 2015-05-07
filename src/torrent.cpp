@@ -8138,7 +8138,7 @@ namespace libtorrent
 		int num_downloaded_pieces = (std::max)(m_picker->num_have()
 			, pieces_in_torrent - m_picker->num_filtered());
 
-		if (num_downloaded_pieces * m_torrent_file->piece_length()
+		if (boost::int64_t(num_downloaded_pieces) * m_torrent_file->piece_length()
 			* settings().share_mode_target > m_total_uploaded
 			&& num_downloaded_pieces > 0)
 			return;
