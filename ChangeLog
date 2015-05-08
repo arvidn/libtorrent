@@ -70,6 +70,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* improve ip_voter to avoid flapping
 	* fixed bug when max_peerlist_size was set to 0
 	* fix issues with missing exported symbols when building dll
 	* fix division by zero bug in edge case while connecting peers
