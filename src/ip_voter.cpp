@@ -58,17 +58,35 @@ namespace libtorrent
 		// this is the inverse condition, since this is the case
 		// were we exit, without rotating
 		if (m_total_votes < 50
-			&& (now - m_last_rotate < minutes(5) || m_total_votes == 0))
+			&& (now - m_last_rotate < minutes(5) || m_total_votes == 0)
+			&& m_valid_external)
 			return false;
 
 		// this shouldn't really happen if we have at least one
 		// vote.
 		if (m_external_addresses.empty()) return false;
 
-		// rotate
-		std::vector<external_ip_t>::iterator i = std::max_element(
-			m_external_addresses.begin(), m_external_addresses.end());
-		TORRENT_ASSERT(i != m_external_addresses.end());
+		// if there's just one vote, go with that
+		std::vector<external_ip_t>::iterator i;
+		if (m_external_addresses.size() == 1)
+		{
+			// avoid flapping. We need more votes to change our mind on the
+			// external IP
+			if (m_external_addresses[0].num_votes < 2) return false;
+		}
+		else
+		{
+			// find the top two votes.
+			std::partial_sort(m_external_addresses.begin()
+				, m_external_addresses.begin() + 2, m_external_addresses.end());
+
+			// if we don't have enough of a majority voting for the winning
+			// IP, don't rotate. This avoids flapping
+			if (m_external_addresses[0].num_votes * 2 / 3 <= m_external_addresses[1].num_votes)
+				return false;
+		}
+
+		i = m_external_addresses.begin();
 
 		bool ret = m_external_address != i->addr;
 		m_external_address = i->addr;
@@ -119,12 +137,9 @@ namespace libtorrent
 				// is a sort of weighted LRU.
 				std::stable_sort(m_external_addresses.begin(), m_external_addresses.end());
 
-				// erase the first element, since this is the
-				// oldest entry and the one with lowst number
-				// of votes. This makes sense because the oldest
-				// entry has had the longest time to receive more
-				// votes to be bumped up
-				m_external_addresses.erase(m_external_addresses.begin());
+				// erase the last element, since it is one of the
+				// ones with the fewest votes
+				m_external_addresses.erase(m_external_addresses.end() - 1);
 			}
 			m_external_addresses.push_back(external_ip_t());
 			i = m_external_addresses.end() - 1;
@@ -136,10 +151,17 @@ namespace libtorrent
 		
 		if (m_valid_external) return maybe_rotate();
 
-		i = std::max_element(m_external_addresses.begin(), m_external_addresses.end());
+		i = std::min_element(m_external_addresses.begin(), m_external_addresses.end());
 		TORRENT_ASSERT(i != m_external_addresses.end());
 
 		if (i->addr == m_external_address) return maybe_rotate();
+
+		if (m_external_address != address_v4())
+		{
+			// we have a temporary external address. As soon as we have
+			// more than 25 votes, consider deciding which one to settle for
+			return (m_total_votes >= 25) ? maybe_rotate() : false;
+		}
 
 		m_external_address = i->addr;
 
