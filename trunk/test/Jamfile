@@ -102,6 +102,7 @@ test-suite libtorrent :
 	[ run test_resolve_links.cpp ]
 	[ run test_crc32.cpp ]
 	[ run test_heterogeneous_queue.cpp ]
+	[ run test_ip_voter.cpp ]
 	[ run test_resume.cpp ]
 	[ run test_sliding_average.cpp ]
 	[ run test_socket_io.cpp ]
