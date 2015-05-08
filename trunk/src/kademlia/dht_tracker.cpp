@@ -266,6 +266,11 @@ namespace libtorrent { namespace dht
 			TORRENT_LOG(dht_tracker) << " *** new write key";
 #endif
 		}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
+		m_dht.print_state(st);
+#endif
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags

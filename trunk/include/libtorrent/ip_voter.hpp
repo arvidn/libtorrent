@@ -48,7 +48,7 @@ namespace libtorrent
 
 		// returns true if a different IP is the top vote now
 		// i.e. we changed our idea of what our external IP is
-		bool cast_vote(address const& ip, int source_type, address const& sorce);
+		bool cast_vote(address const& ip, int source_type, address const& source);
 
 		address external_address() const { return m_external_address; }
 

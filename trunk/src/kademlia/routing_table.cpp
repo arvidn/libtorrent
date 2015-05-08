@@ -47,6 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/invariant_check.hpp"
 
+#if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
+#include "libtorrent/socket_io.hpp" // for print_endpoint
+#endif
+
 using boost::uint8_t;
 
 #if BOOST_VERSION <= 104700
@@ -195,36 +199,50 @@ int routing_table::depth() const
 
 void routing_table::print_state(std::ostream& os) const
 {
-	os << "kademlia routing table state\n"
-		<< "bucket_size: " << m_bucket_size << "\n"
-		<< "global node count: " << num_global_nodes() << "\n"
-		<< "node_id: " << m_id << "\n\n";
+	std::vector<char> buf(2048);
+	int cursor = 0;
 
-	os << "number of nodes per bucket:\n";
+	cursor += snprintf(&buf[cursor], buf.size() - cursor
+		, "kademlia routing table state\n"
+		"bucket_size: %d\n"
+		"global node count: %" PRId64 "\n"
+		"node_id: %s\n\n"
+		"number of nodes per bucket:\n"
+		, m_bucket_size
+		, num_global_nodes()
+		, to_hex(m_id.to_string()).c_str());
+	if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 
 	int idx = 0;
 
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++idx)
 	{
-		os << std::setw(2) << idx << ": ";
+		cursor += snprintf(&buf[cursor], buf.size() - cursor
+			, "%2d: ", idx);
 		for (int k = 0; k < int(i->live_nodes.size()); ++k)
-			os << "#";
+			cursor += snprintf(&buf[cursor], buf.size() - cursor, "#");
 		for (int k = 0; k < int(i->replacements.size()); ++k)
-			os << "-";
-		os << "\n";
+			cursor += snprintf(&buf[cursor], buf.size() - cursor, "-");
+		cursor += snprintf(&buf[cursor], buf.size() - cursor, "\n");
+
+		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 	}
 
 	time_point now = aux::time_now();
 
-	os << "\nnodes:";
+	cursor += snprintf(&buf[cursor], buf.size() - cursor
+		, "\nnodes:");
+
 	int bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
 	{
-		os << "\n=== BUCKET == " << bucket_index
-			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
-			<< " ===== \n";
+		cursor += snprintf(&buf[cursor], buf.size() - cursor
+			, "\n=== BUCKET == %d == %d|%d ==== \n"
+			, bucket_index, int(i->live_nodes.size())
+			, int(i->replacements.size()));
+		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 
 		int id_shift;
 		// the last bucket is special, since it hasn't been split yet, it
@@ -251,28 +269,47 @@ void routing_table::print_state(std::ostream& os) const
 			node_id id = j->id;
 			id <<= id_shift;
 
-			os << " prefx: " << std::setw(2) << std::hex << ((id[0] & top_mask) >> mask_shift) << std::dec
-				<< " id: " << j->id;
-			if (j->rtt == 0xffff)
-				os << " rtt:     ";
-			else
-				os << " rtt: " << std::setw(4) << j->rtt;
+			cursor += snprintf(&buf[cursor], buf.size() - cursor
+				, " prefix: %2x id: %s"
+				, ((id[0] & top_mask) >> mask_shift)
+				, to_hex(j->id.to_string()).c_str());
 
-			os << " fail: " << j->fail_count()
-				<< " ping: " << j->pinged()
-				<< " dist: " << std::setw(3) << distance_exp(m_id, j->id);
+			if (j->rtt == 0xffff)
+			{
+				cursor += snprintf(&buf[cursor], buf.size() - cursor
+					, " rtt:     ");
+			}
+			else
+			{
+				cursor += snprintf(&buf[cursor], buf.size() - cursor
+					, " rtt: %4d", j->rtt);
+			}
+
+			cursor += snprintf(&buf[cursor], buf.size() - cursor
+				, " fail: %4d ping: %d dist: %3d"
+				, j->fail_count()
+				, j->pinged()
+				, distance_exp(m_id, j->id));
 
 			if (j->last_queried == min_time())
-				os << " query:    ";
+			{
+				cursor += snprintf(&buf[cursor], buf.size() - cursor
+					, " query:    ");
+			}
 			else
-				os << " query: " << std::setw(3) << total_seconds(now - j->last_queried);
+			{
+				cursor += snprintf(&buf[cursor], buf.size() - cursor
+					, " query: %3d", int(total_seconds(now - j->last_queried)));
+			}
 
-			os << " ip: " << j->ep()
-				<< "\n";
+			cursor += snprintf(&buf[cursor], buf.size() - cursor
+				, " ip: %s\n", print_endpoint(j->ep()).c_str());
+			if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 		}
 	}
 
-	os << "\nnode spread per bucket:\n";
+	cursor += snprintf(&buf[cursor], buf.size() - cursor
+		, "\nnode spread per bucket:\n");
 	bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
@@ -316,12 +353,20 @@ void routing_table::print_state(std::ostream& os) const
 			sub_buckets[b] = true;
 		}
 
-		os << std::dec << std::setw(2) << bucket_index << " mask: " << std::setw(2)
-			<< std::hex << (top_mask >> mask_shift) << ": [";
+		cursor += snprintf(&buf[cursor], buf.size() - cursor
+			, "%2d mask: %2x: [", bucket_index, (top_mask >> mask_shift));
 
-		for (int i = 0; i < bucket_size_limit; ++i) os << (sub_buckets[i] ? "X" : " ");
-		os << "]\n";
+		for (int i = 0; i < bucket_size_limit; ++i)
+		{
+			cursor += snprintf(&buf[cursor], buf.size() - cursor
+				, (sub_buckets[i] ? "X" : " "));
+		}
+		cursor += snprintf(&buf[cursor], buf.size() - cursor
+			, "]\n");
+		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 	}
+	buf[cursor] = '\0';
+	os << &buf[0];
 }
 
 #endif
