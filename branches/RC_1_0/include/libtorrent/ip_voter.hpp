@@ -61,11 +61,13 @@ namespace libtorrent
 			external_ip_t(): sources(0), num_votes(0) {}
 
 			bool add_vote(sha1_hash const& k, int type);
+
+			// we want to sort decending
 			bool operator<(external_ip_t const& rhs) const
 			{
-				if (num_votes < rhs.num_votes) return true;
-				if (num_votes > rhs.num_votes) return false;
-				return sources < rhs.sources;
+				if (num_votes > rhs.num_votes) return true;
+				if (num_votes < rhs.num_votes) return false;
+				return sources > rhs.sources;
 			}
 
 			// this is a bloom filter of the IPs that have
