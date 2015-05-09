@@ -76,7 +76,7 @@ namespace libtorrent { namespace dht
 		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>
 	{
-		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
+		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
 			, dht_settings const& settings, counters& cnt, entry const* state = 0);
 		virtual ~dht_tracker();
 

@@ -96,14 +96,24 @@ void purge_peers(std::set<peer_entry>& peers)
 
 void nop() {}
 
+node_id calculate_node_id(node_id const& nid, dht_observer* observer)
+{
+	address external_address;
+	if (observer) external_address = observer->external_address();
+	if (nid == (node_id::min)() || !verify_id(nid, external_address))
+		return generate_id(external_address);
+  	
+	return nid;
+}
+
 } // anonymous namespace
 
 node_impl::node_impl(udp_socket_interface* sock
-	, dht_settings const& settings, node_id nid, address const& external_address
+	, dht_settings const& settings, node_id nid
 	, dht_observer* observer
 	, struct counters& cnt)
 	: m_settings(settings)
-	, m_id(nid == (node_id::min)() || !verify_id(nid, external_address) ? generate_id(external_address) : nid)
+	, m_id(calculate_node_id(nid, observer))
 	, m_table(m_id, 8, settings)
 	, m_rpc(m_id, m_table, sock)
 	, m_observer(observer)

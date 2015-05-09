@@ -818,6 +818,9 @@ namespace aux {
 		settings = e->dict_find_dict("dht state");
 		if (settings)
 		{
+			// TODO: 2 if the DHT is enabled, it should probably be restarted here.
+			// maybe it should even be deferred to not be started until the client
+			// has had a chance to pass in the dht state
 			m_dht_state = settings;
 		}
 #endif
@@ -5391,13 +5394,12 @@ retry:
 		}
 	}
 
-	// TODO: 3 use bdecode_node instead of entry.
 	void session_impl::start_dht(entry const& startup_state)
 	{
 		INVARIANT_CHECK;
 
 		stop_dht();
-		m_dht = boost::make_shared<dht::dht_tracker>(boost::ref(*this)
+		m_dht = boost::make_shared<dht::dht_tracker>((dht_observer*)this
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters), &startup_state);
 
@@ -6429,31 +6431,38 @@ retry:
 		m_upnp.reset();
 	}
 
-	external_ip const& session_impl::external_address() const
-	{ return m_external_ip; }
+	external_ip const& session_impl::external_address() const TORRENT_OVERRIDE
+	{
+		return m_external_ip;
+	}
 
 	// this is the DHT observer version. DHT is the implied source
 	void session_impl::set_external_address(address const& ip
-		, address const& source)
+		, address const& source) TORRENT_OVERRIDE
 	{
 		set_external_address(ip, source_dht, source);
 	}
 
-	void session_impl::get_peers(sha1_hash const& ih)
+	address session_impl::external_address() TORRENT_OVERRIDE
+	{
+		return m_external_ip.external_address(address_v4());
+	}
+
+	void session_impl::get_peers(sha1_hash const& ih) TORRENT_OVERRIDE
 	{
 		if (!m_alerts.should_post<dht_get_peers_alert>()) return;
 		m_alerts.emplace_alert<dht_get_peers_alert>(ih);
 	}
 
 	void session_impl::announce(sha1_hash const& ih, address const& addr
-		, int port)
+		, int port) TORRENT_OVERRIDE
 	{
 		if (!m_alerts.should_post<dht_announce_alert>()) return;
 		m_alerts.emplace_alert<dht_announce_alert>(addr, port, ih);
 	}
 
 	void session_impl::outgoing_get_peers(sha1_hash const& target
-		, sha1_hash const& sent_target, udp::endpoint const& ep)
+		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE
 	{
 		if (!m_alerts.should_post<dht_outgoing_get_peers_alert>()) return;
 		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);

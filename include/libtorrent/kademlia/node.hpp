@@ -206,7 +206,7 @@ typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
 
 public:
 	node_impl(udp_socket_interface* sock
-		, libtorrent::dht_settings const& settings, node_id nid, address const& external_address
+		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt);
 
 	virtual ~node_impl() {}
