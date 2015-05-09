@@ -69,7 +69,7 @@ namespace upnp_errors
 
 static error_code ec;
 
-// TODO: listen_interface is not used. It's meant to bind the broadcast socket
+// TODO: 3 listen_interface is not used. It's meant to bind the broadcast socket
 upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, log_callback_t const& lcb

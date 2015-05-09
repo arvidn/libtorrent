@@ -186,6 +186,9 @@ namespace libtorrent {
 			// peer_log_alert and low-level peer events and messages.
 			peer_log_notification = 0x8000,
 
+			// enables the incoming_request_alert.
+			incoming_request_notification = 0x10000,
+
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't

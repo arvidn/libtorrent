@@ -273,10 +273,6 @@ Build features:
 |                          |   filename.                                        |
 |                          | * ``system`` use the libc assert macro             |
 +--------------------------+----------------------------------------------------+
-| ``upnp-logging``         | * ``off`` - default. Does not log UPnP traffic.    |
-|                          | * ``on`` - creates "upnp.log" with the messages    |
-|                          |   sent to and received from UPnP devices.          |
-+--------------------------+----------------------------------------------------+
 | ``encryption``           | * ``on`` - encrypted bittorrent connections        |
 |                          |   enabled. (Message Stream encryption).            |
 |                          | * ``off`` - turns off support for encrypted        |
@@ -366,8 +362,6 @@ Build features:
 |                          |   is written with stack traces of blocking calls   |
 |                          |   ordered by the number of them.                   |
 +--------------------------+----------------------------------------------------+
-
-.. _MaxMind: http://www.maxmind.com/app/api
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -539,11 +533,6 @@ defines you can use to control the build.
 | ``TORRENT_STORAGE_DEBUG``              | This will enable extra expensive invariant      |
 |                                        | checks in the storage, including logging of     |
 |                                        | piece sorting.                                  |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_UPNP_LOGGING``               | Generates a "upnp.log" file with the UPnP       |
-|                                        | traffic. This is very useful when debugging     |
-|                                        | support for various UPnP routers.               |
-|                                        | support for various UPnP routers.               |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISK_STATS``                 | This will create a log of all disk activity     |
 |                                        | which later can parsed and graphed using        |

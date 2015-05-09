@@ -442,23 +442,6 @@ namespace aux {
 		m_ssl_udp_socket.subscribe(this);
 #endif
 
-		// TODO: 3 remove REQUESST_LOGGING build configuration. Make sure the
-		// same information can be logged via alerts
-#ifdef TORRENT_REQUEST_LOGGING
-		char log_filename[200];
-#ifdef TORRENT_WINDOWS
-		const int pid = GetCurrentProcessId();
-#else
-		const int pid = getpid();
-#endif
-		snprintf(log_filename, sizeof(log_filename), "requests-%d.log", pid);
-		m_request_log = fopen(log_filename, "w+");
-		if (m_request_log == 0)
-		{
-			fprintf(stderr, "failed to open request log file: (%d) %s\n", errno, strerror(errno));
-		}
-#endif
-
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address_v4::any(), 0);
 		TORRENT_ASSERT_VAL(!ec, ec);
@@ -5657,10 +5640,6 @@ retry:
 
 		TORRENT_ASSERT(m_torrents.empty());
 		TORRENT_ASSERT(m_connections.empty());
-
-#ifdef TORRENT_REQUEST_LOGGING
-		if (m_request_log) fclose(m_request_log);
-#endif
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");

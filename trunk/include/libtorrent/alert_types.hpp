@@ -98,11 +98,11 @@ namespace libtorrent
 
 	// The peer alert is a base class for alerts that refer to a specific peer. It includes all
 	// the information to identify the peer. i.e. ``ip`` and ``peer-id``.
-	struct TORRENT_EXPORT peer_alert: torrent_alert
+	struct TORRENT_EXPORT peer_alert : torrent_alert
 	{
 		// internal
 		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
-			tcp::endpoint const& i , peer_id const& pi);
+			tcp::endpoint const& i, peer_id const& pi);
 
 		static const int alert_type = 1;
 		static const int static_category = alert::peer_notification;
@@ -2295,13 +2295,32 @@ namespace libtorrent
 		std::vector<dht_routing_bucket> routing_table;
 	};
 
+	// posted every time an incoming request from a peer is accepted and queued
+	// up for being serviced. This alert is only posted if
+	// the alert::incoming_request_notification flag is enabled in the alert
+	// mask.
+	struct TORRENT_EXPORT incoming_request_alert : peer_alert
+	{
+		// internal
+		incoming_request_alert(aux::stack_allocator& alloc
+			, peer_request r, torrent_handle h
+			, tcp::endpoint const& ep, peer_id const& peer_id);
+	
+		static const int static_category = alert::incoming_request_notification;
+		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
+
+		virtual std::string message() const;
+
+		// the request this peer sent to us
+		peer_request req;
+	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 84 };
+	enum { num_alert_types = 85 };
 }
 
 
