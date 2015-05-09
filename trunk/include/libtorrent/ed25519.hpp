@@ -17,7 +17,7 @@ enum
 extern "C" {
 
 #ifndef ED25519_NO_SEED
-int TORRENT_EXPORT ed25519_create_seed(unsigned char *seed);
+void TORRENT_EXPORT ed25519_create_seed(unsigned char *seed);
 #endif
 
 void TORRENT_EXPORT ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed);
