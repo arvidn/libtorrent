@@ -82,9 +82,9 @@ observer_ptr traversal_algorithm::new_observer(void* ptr
 }
 
 traversal_algorithm::traversal_algorithm(
-	node_impl& node
+	node& dht_node
 	, node_id target)
-	: m_node(node)
+	: m_node(dht_node)
 	, m_target(target)
 	, m_ref_count(0)
 	, m_invoke_count(0)

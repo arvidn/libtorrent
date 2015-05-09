@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;
-using libtorrent::dht::node_impl;
+using libtorrent::dht::node;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;

@@ -55,7 +55,7 @@ TORRENT_DECLARE_LOG(traversal);
 #endif
 
 class rpc_manager;
-class node_impl;
+class node;
 
 // this class may not be instantiated as a stack object
 struct traversal_algorithm : boost::noncopyable
@@ -80,11 +80,11 @@ struct traversal_algorithm : boost::noncopyable
 	void resort_results();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
-	traversal_algorithm(node_impl& node, node_id target);
+	traversal_algorithm(node & node, node_id target);
 	int invoke_count() const { return m_invoke_count; }
 	int branch_factor() const { return m_branch_factor; }
 
-	node_impl& node() const { return m_node; }
+	node& get_node() const { return m_node; }
 
 protected:
 
@@ -114,7 +114,7 @@ protected:
 			delete p;
 	}
 
-	node_impl& m_node;
+	node & m_node;
 	std::vector<observer_ptr> m_results;
 	node_id const m_target;
 	boost::uint16_t m_ref_count;

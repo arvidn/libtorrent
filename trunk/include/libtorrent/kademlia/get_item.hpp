@@ -51,12 +51,12 @@ public:
 		char const* sig);
 
 	// for immutable itms
-	get_item(node_impl& node
+	get_item(node& dht_node
 		, node_id target
 		, data_callback const& dcallback);
 
 	// for mutable items
-	get_item(node_impl& node
+	get_item(node& dht_node
 		, char const* pk
 		, std::string const& salt
 		, data_callback const& dcallback);

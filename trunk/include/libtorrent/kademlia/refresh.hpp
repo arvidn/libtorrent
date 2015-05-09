@@ -48,7 +48,7 @@ class bootstrap : public get_peers
 public:
 	typedef get_peers::nodes_callback done_callback;
 
-	bootstrap(node_impl& node, node_id target
+	bootstrap(node& dht_node, node_id target
 		, done_callback const& callback);
 	virtual char const* name() const;
 

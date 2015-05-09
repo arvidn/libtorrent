@@ -70,10 +70,10 @@ bool bootstrap::invoke(observer_ptr o)
 }
 
 bootstrap::bootstrap(
-	node_impl& node
+	node& dht_node
 	, node_id target
 	, done_callback const& callback)
-	: get_peers(node, target, get_peers::data_callback(), callback, false)
+	: get_peers(dht_node, target, get_peers::data_callback(), callback, false)
 {
 }
 

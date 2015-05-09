@@ -136,7 +136,7 @@ void lazy_from_entry(entry const& e, bdecode_node& l)
 	TEST_CHECK(ret == 0);
 }
 
-void send_dht_request(node_impl& node, char const* msg, udp::endpoint const& ep
+void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	, bdecode_node* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
 	, char const* target = 0, entry const* value = 0
@@ -216,7 +216,7 @@ void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers
 	}
 }
 
-void send_dht_response(node_impl& node, bdecode_node const& request, udp::endpoint const& ep
+void send_dht_response(node& node, bdecode_node const& request, udp::endpoint const& ep
 	, nodes_t const& nodes = nodes_t()
 	, std::string const token = std::string(), int port = 0
 	, std::set<tcp::endpoint> const& peers = std::set<tcp::endpoint>()
@@ -280,7 +280,7 @@ struct announce_item
 	}
 };
 
-void announce_immutable_items(node_impl& node, udp::endpoint const* eps
+void announce_immutable_items(node& node, udp::endpoint const* eps
 	, announce_item const* items, int num_items)
 {
 	std::string token;
@@ -445,7 +445,7 @@ int test_main()
 	mock_socket s;
 	obs observer;
 	counters cnt;
-	dht::node_impl node(&s, sett, node_id(0), &observer, cnt);
+	dht::node node(&s, sett, node_id(0), &observer, cnt);
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
@@ -1462,7 +1462,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1534,7 +1534,7 @@ int test_main()
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1627,7 +1627,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1673,7 +1673,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1749,7 +1749,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
@@ -1831,7 +1831,7 @@ int test_main()
 	g_sent_packets.clear();
 	do
 	{
-		dht::node_impl node(&s, sett, (node_id::min)(), &observer, cnt);
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
 		enum { num_test_nodes = 2 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
