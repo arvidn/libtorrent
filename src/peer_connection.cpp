@@ -106,36 +106,6 @@ namespace libtorrent
 
 	}
 
-#if defined TORRENT_REQUEST_LOGGING
-	void write_request_log(FILE* f, sha1_hash const& ih
-		, peer_connection* p, peer_request const& r)
-	{
-		// the event format in the log is:
-		// uint64_t timestamp (microseconds)
-		// uint64_t info-hash prefix
-		// uint32_t peer identifier
-		// uint32_t piece
-		// uint32_t start offset
-		// uint32_t length
-		char event[32];
-		char* ptr = event;
-		detail::write_uint64(clock_type::now().time_since_epoch().count(), ptr);
-		memcpy(ptr, &ih[0], 8);
-		ptr += 8;
-		detail::write_uint32(uintptr_t(p) & 0xffffffff, ptr);
-		detail::write_uint32(r.piece, ptr);
-		detail::write_uint32(r.start, ptr);
-		detail::write_uint32(r.length, ptr);
-
-		int ret = fwrite(event, 1, sizeof(event), f);
-		if (ret != sizeof(event))
-		{
-			fprintf(stderr, "ERROR writing to request log: (%d) %s\n"
-				, errno, strerror(errno));
-		}
-	}
-#endif
-
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const
 	{
@@ -2428,11 +2398,13 @@ namespace libtorrent
 				m_counters.inc_stats_counter(counters::num_peers_up_requests);
 
 			m_requests.push_back(r);
-#ifdef TORRENT_REQUEST_LOGGING
-			FILE* log = m_ses.get_request_log();
-			if (log)
-				write_request_log(log, t->info_hash(), this, r);
-#endif
+
+			if (t->alerts().should_post<incoming_request_alert>())
+			{
+				t->alerts().emplace_alert<incoming_request_alert>(r, t->get_handle()
+					, m_remote, m_peer_id);
+			}
+
 			m_last_incoming_request = aux::time_now();
 			fill_send_buffer();
 		}

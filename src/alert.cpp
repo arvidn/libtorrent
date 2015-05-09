@@ -1694,6 +1694,21 @@ namespace libtorrent {
 			+ (operation?operation:"") + " (" + filename()
 			+ ") error: " + convert_from_native(error.message());
 	}
+	
+	incoming_request_alert::incoming_request_alert(aux::stack_allocator& alloc
+		, peer_request r, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id)
+		: peer_alert(alloc, h, ep, peer_id)
+		, req(r)
+	{}
+
+	std::string incoming_request_alert::message() const
+	{
+		char msg[1024];
+		snprintf(msg, sizeof(msg), "%s: incoming request [ piece: %d start: %d length: %d ]"
+			, peer_alert::message().c_str(), req.piece, req.start, req.length);
+		return msg;
+	}
 
 } // namespace libtorrent
 

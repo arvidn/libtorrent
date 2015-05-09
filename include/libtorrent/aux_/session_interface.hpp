@@ -341,10 +341,6 @@ namespace libtorrent { namespace aux
 		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
 #endif
 
-#ifdef TORRENT_REQUEST_LOGGING
-		virtual FILE* get_request_log() = 0;
-#endif
-
 		virtual counters& stats_counters() = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;

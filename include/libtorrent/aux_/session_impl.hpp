@@ -1106,12 +1106,6 @@ namespace libtorrent
 			void check_invariant() const;
 #endif
 
-#ifdef TORRENT_REQUEST_LOGGING
-			// used to log all requests from peers
-			FILE* m_request_log;
-			FILE* get_request_log() { return m_request_log; }
-#endif
-
 			counters& stats_counters() { return m_stats_counters; }
 
 			void received_buffer(int size);
@@ -1143,9 +1137,6 @@ namespace libtorrent
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
-#endif
-#ifdef TORRENT_REQUEST_LOGGING
-			FILE* m_request_logger;
 #endif
 
 		private:
