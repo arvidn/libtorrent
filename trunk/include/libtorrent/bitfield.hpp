@@ -69,7 +69,7 @@ namespace libtorrent
 		bitfield(char const* b, int bits): m_buf(NULL)
 		{ assign(b, bits); }
 		bitfield(bitfield const& rhs): m_buf(NULL)
-		{ assign(rhs.bytes(), rhs.size()); }
+		{ assign(rhs.data(), rhs.size()); }
 #if __cplusplus > 199711L
 		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
 		{ rhs.m_buf = NULL; }
@@ -157,13 +157,12 @@ namespace libtorrent
 		bool empty() const { return m_buf == NULL ? true : m_buf[-1] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
-		// TODO: rename to data() ?
-		char const* bytes() const { return reinterpret_cast<char const*>(m_buf); }
+		char const* data() const { return reinterpret_cast<char const*>(m_buf); }
 
 		// copy operator
 		bitfield& operator=(bitfield const& rhs)
 		{
-			assign(rhs.bytes(), rhs.size());
+			assign(rhs.data(), rhs.size());
 			return *this;
 		}
 
