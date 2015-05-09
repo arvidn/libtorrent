@@ -36,6 +36,7 @@ mkdir test-coverage
 rm test-coverage/coverage_all
 set -e
 
+run_test test_ip_voter "*ip_voter.*"
 run_test test_alert_manager "*alert_manager.*"
 run_test test_dht "*/kademlia/*"
 run_test test_bdecode "*/bdecode.*"
