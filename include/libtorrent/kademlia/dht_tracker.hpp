@@ -144,7 +144,7 @@ namespace libtorrent { namespace dht
 		bdecode_node m_msg;
 
 		counters& m_counters;
-		node_impl m_dht;
+		node m_dht;
 		rate_limited_udp_socket& m_sock;
 
 		std::vector<char> m_send_buf;

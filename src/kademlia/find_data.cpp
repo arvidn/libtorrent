@@ -91,10 +91,10 @@ void add_entry_fun(void* userdata, node_entry const& e)
 } // anonymous namespace
 
 find_data::find_data(
-	node_impl& node
+	node& dht_node
 	, node_id target
 	, nodes_callback const& ncallback)
-	: traversal_algorithm(node, target)
+	: traversal_algorithm(dht_node, target)
 	, m_nodes_callback(ncallback)
 	, m_done(false)
 {

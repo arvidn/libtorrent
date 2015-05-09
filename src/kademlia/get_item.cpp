@@ -105,20 +105,20 @@ void get_item::got_data(bdecode_node const& v,
 }
 
 get_item::get_item(
-	node_impl& node
+	node& dht_node
 	, node_id target
 	, data_callback const& dcallback)
-	: find_data(node, target, nodes_callback())
+	: find_data(dht_node, target, nodes_callback())
 	, m_data_callback(dcallback)
 {
 }
 
 get_item::get_item(
-	node_impl& node
+	node& dht_node
 	, char const* pk
 	, std::string const& salt
 	, data_callback const& dcallback)
-	: find_data(node, item_target_id(
+	: find_data(dht_node, item_target_id(
 		std::make_pair(salt.c_str(), int(salt.size())), pk)
 		, nodes_callback())
 	, m_data_callback(dcallback)

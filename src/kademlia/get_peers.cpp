@@ -115,12 +115,12 @@ void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 }
 
 get_peers::get_peers(
-	node_impl& node
+	node& dht_node
 	, node_id target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
-	: find_data(node, target, ncallback)
+	: find_data(dht_node, target, ncallback)
 	, m_data_callback(dcallback)
 	, m_noseeds(noseeds)
 {
@@ -165,12 +165,12 @@ observer_ptr get_peers::new_observer(void* ptr
 }
 
 obfuscated_get_peers::obfuscated_get_peers(
-	node_impl& node
+	node& dht_node
 	, node_id info_hash
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
-	: get_peers(node, info_hash, dcallback, ncallback, noseeds)
+	: get_peers(dht_node, info_hash, dcallback, ncallback, noseeds)
 	, m_obfuscated(true)
 {
 }

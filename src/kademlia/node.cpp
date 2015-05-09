@@ -108,7 +108,7 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer)
 
 } // anonymous namespace
 
-node_impl::node_impl(udp_socket_interface* sock
+node::node(udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid
 	, dht_observer* observer
 	, struct counters& cnt)
@@ -126,7 +126,7 @@ node_impl::node_impl(udp_socket_interface* sock
 	m_secret[1] = random();
 }
 
-bool node_impl::verify_token(std::string const& token, char const* info_hash
+bool node::verify_token(std::string const& token, char const* info_hash
 	, udp::endpoint const& addr)
 {
 	if (token.length() != 4)
@@ -159,7 +159,7 @@ bool node_impl::verify_token(std::string const& token, char const* info_hash
 	return false;
 }
 
-std::string node_impl::generate_token(udp::endpoint const& addr, char const* info_hash)
+std::string node::generate_token(udp::endpoint const& addr, char const* info_hash)
 {
 	std::string token;
 	token.resize(4);
@@ -177,7 +177,7 @@ std::string node_impl::generate_token(udp::endpoint const& addr, char const* inf
 	return token;
 }
 
-void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
+void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	, find_data::nodes_callback const& f)
 {
 	node_id target = m_id;
@@ -208,23 +208,23 @@ void node_impl::bootstrap(std::vector<udp::endpoint> const& nodes
 	r->start();
 }
 
-int node_impl::bucket_size(int bucket)
+int node::bucket_size(int bucket)
 {
 	return m_table.bucket_size(bucket);
 }
 
-void node_impl::new_write_key()
+void node::new_write_key()
 {
 	m_secret[1] = m_secret[0];
 	m_secret[0] = random();
 }
 
-void node_impl::unreachable(udp::endpoint const& ep)
+void node::unreachable(udp::endpoint const& ep)
 {
 	m_rpc.unreachable(ep);
 }
 
-void node_impl::incoming(msg const& m)
+void node::incoming(msg const& m)
 {
 	// is this a reply?
 	bdecode_node y_ent = m.message.dict_find_string("y");
@@ -305,7 +305,7 @@ void node_impl::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
-		, node_impl& node, int listen_port, sha1_hash const& ih, int flags)
+		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
@@ -338,15 +338,15 @@ namespace
 			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
 			a["token"] = i->second;
-			a["seed"] = (flags & node_impl::flag_seed) ? 1 : 0;
-			if (flags & node_impl::flag_implied_port) a["implied_port"] = 1;
+			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
+			if (flags & node::flag_implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
 			node.m_rpc.invoke(e, i->first.ep(), o);
 		}
 	}
 }
 
-void node_impl::add_router_node(udp::endpoint router)
+void node::add_router_node(udp::endpoint router)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	TORRENT_LOG(node) << "adding router node: " << router;
@@ -354,14 +354,14 @@ void node_impl::add_router_node(udp::endpoint router)
 	m_table.add_router_node(router);
 }
 
-void node_impl::add_node(udp::endpoint node)
+void node::add_node(udp::endpoint node)
 {
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
 	send_single_refresh(node, m_table.num_active_buckets());
 }
 
-void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
+void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -375,19 +375,19 @@ void node_impl::announce(sha1_hash const& info_hash, int listen_port, int flags
 	{
 		ta.reset(new obfuscated_get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
+			, listen_port, info_hash, flags), flags & node::flag_seed));
 	}
 	else
 	{
 		ta.reset(new get_peers(*this, info_hash, f
 			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, flags), flags & node_impl::flag_seed));
+			, listen_port, info_hash, flags), flags & node::flag_seed));
 	}
 
 	ta->start();
 }
 
-void node_impl::get_item(sha1_hash const& target
+void node::get_item(sha1_hash const& target
 	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -399,7 +399,7 @@ void node_impl::get_item(sha1_hash const& target
 	ta->start();
 }
 
-void node_impl::get_item(char const* pk, std::string const& salt
+void node::get_item(char const* pk, std::string const& salt
 	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
@@ -447,7 +447,7 @@ struct ping_observer : observer
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());
 				nodes += 20;
-				m_algorithm.get()->node().m_table.heard_about(id
+				m_algorithm.get()->get_node().m_table.heard_about(id
 					, detail::read_v4_endpoint<udp::endpoint>(nodes));
 			}
 		}
@@ -455,7 +455,7 @@ struct ping_observer : observer
 };
 
 
-void node_impl::tick()
+void node::tick()
 {
 	// every now and then we refresh our own ID, just to keep
 	// expanding the routing table buckets closer to us.
@@ -483,7 +483,7 @@ void node_impl::tick()
 	send_single_refresh(ne->ep(), bucket, ne->id);
 }
 
-void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
+void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	, node_id const& id)
 {
 	TORRENT_ASSERT(id != m_id);
@@ -524,7 +524,7 @@ void node_impl::send_single_refresh(udp::endpoint const& ep, int bucket
 	m_rpc.invoke(e, ep, o);
 }
 
-time_duration node_impl::connection_timeout()
+time_duration node::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
 	time_point now(aux::time_now());
@@ -567,7 +567,7 @@ time_duration node_impl::connection_timeout()
 	return d;
 }
 
-void node_impl::status(std::vector<dht_routing_bucket>& table
+void node::status(std::vector<dht_routing_bucket>& table
 	, std::vector<dht_lookup>& requests)
 {
 	mutex_t::scoped_lock l(m_mutex);
@@ -585,7 +585,7 @@ void node_impl::status(std::vector<dht_routing_bucket>& table
 
 #ifndef TORRENT_NO_DEPRECATE
 // TODO: 2 use the non deprecated function instead of this one
-void node_impl::status(session_status& s)
+void node::status(session_status& s)
 {
 	mutex_t::scoped_lock l(m_mutex);
 
@@ -603,7 +603,7 @@ void node_impl::status(session_status& s)
 }
 #endif
 
-void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
+void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
 	if (m_observer)
@@ -803,7 +803,7 @@ private:
 };
 
 // build response
-void node_impl::incoming_request(msg const& m, entry& e)
+void node::incoming_request(msg const& m, entry& e)
 {
 	if (!m_sock->has_quota())
 		return;
