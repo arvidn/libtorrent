@@ -1,6 +1,8 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
 #include "libtorrent/ed25519.hpp"
 
 #ifndef ED25519_NO_SEED
@@ -12,17 +14,19 @@
 #include <stdio.h>
 #endif
 
-int ed25519_create_seed(unsigned char *seed) {
+void ed25519_create_seed(unsigned char *seed) {
 #ifdef _WIN32
     HCRYPTPROV prov;
 
     if (!CryptAcquireContext(&prov, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))  {
-        return 1;
+        throw boost::system::system_error(boost::system::error_code(GetLastError()
+            , boost::system::system_category()));
     }
 
     if (!CryptGenRandom(prov, 32, seed))  {
         CryptReleaseContext(prov, 0);
-        return 1;
+        throw boost::system::system_error(boost::system::error_code(GetLastError()
+            , boost::system::system_category()));
     }
 
     CryptReleaseContext(prov, 0);
@@ -30,14 +34,17 @@ int ed25519_create_seed(unsigned char *seed) {
     FILE *f = fopen("/dev/urandom", "rb");
 
     if (f == NULL) {
-        return 1;
+        throw boost::system::system_error(boost::system::error_code(errno, boost::system::generic_category()));
     }
 
-    fread(seed, 1, 32, f);
+    int read = fread(seed, 1, 32, f);
+    if (read != 32) {
+        fclose(f);
+        throw boost::system::system_error(boost::system::error_code(errno, boost::system::generic_category()));
+    }
+
     fclose(f);
 #endif
-
-    return 0;
 }
 
 #endif
