@@ -217,7 +217,11 @@ public:
 		TORRENT_ASSERT(n > 0);
 		TORRENT_ASSERT(n < 0xffffffffu);
 
-		m_begin = static_cast<char*>(std::realloc(m_begin, n));
+		char* tmp = static_cast<char*>(std::realloc(m_begin, n));
+#ifndef BOOST_NO_EXCEPTIONS
+		if (tmp == NULL) throw std::bad_alloc();
+#endif
+		m_begin = tmp;
 		m_capacity = boost::uint32_t(n);
 	}
 
