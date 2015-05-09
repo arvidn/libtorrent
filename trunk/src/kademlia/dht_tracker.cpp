@@ -41,13 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
-// TODO: it would be nice to not have a dependency on session here
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
 using boost::ref;
@@ -139,16 +138,15 @@ namespace libtorrent { namespace dht
 
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	// TODO: 3 don't pass in session here. pass in dht_observer and maybe add
-	// a way to ask it for the external IP. use bdecode_node instead of entry
-	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses
+	dht_tracker::dht_tracker(dht_observer* observer
 		, rate_limited_udp_socket& sock
-		, dht_settings const& settings, counters& cnt, entry const* state)
+		, dht_settings const& settings
+		, counters& cnt
+		, entry const* state)
 		: m_counters(cnt)
-		, m_dht(this, settings, extract_node_id(state)
-			, ses.external_address().external_address(address_v4()), &ses, cnt)
+		, m_dht(this, settings, extract_node_id(state), observer, cnt)
 		, m_sock(sock)
-		, m_last_new_key(aux::time_now() - minutes(int(key_refresh)))
+		, m_last_new_key(clock_type::now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -257,7 +255,7 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(minutes(tick_period), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		time_point now = aux::time_now();
+		time_point now = clock_type::now();
 		if (now - minutes(int(key_refresh)) > m_last_new_key)
 		{
 			m_last_new_key = now;
@@ -399,7 +397,7 @@ namespace libtorrent { namespace dht
 				return true;
 		}
 
-		if (!m_blocker.incoming(ep.address(), aux::time_now()))
+		if (!m_blocker.incoming(ep.address(), clock_type::now()))
 			return true;
 
 		using libtorrent::entry;

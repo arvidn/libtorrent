@@ -569,15 +569,16 @@ namespace libtorrent
 
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
-				, address const& source);
-			virtual void get_peers(sha1_hash const& ih);
-			virtual void announce(sha1_hash const& ih, address const& addr, int port);
+				, address const& source) TORRENT_OVERRIDE;
+			virtual address external_address() TORRENT_OVERRIDE;
+			virtual void get_peers(sha1_hash const& ih) TORRENT_OVERRIDE;
+			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE;
 			virtual void outgoing_get_peers(sha1_hash const& target
-				, sha1_hash const& sent_target, udp::endpoint const& ep);
+				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
-			virtual external_ip const& external_address() const;
+			virtual external_ip const& external_address() const TORRENT_OVERRIDE;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
