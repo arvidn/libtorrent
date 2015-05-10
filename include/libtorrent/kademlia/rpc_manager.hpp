@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
 #include "libtorrent/time.hpp"
