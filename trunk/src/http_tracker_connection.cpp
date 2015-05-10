@@ -376,6 +376,8 @@ namespace libtorrent
 		close();
 	}
 
+	// TODO: 2 returning a bool here is redundant. Instead this function should
+	// return the peer_entry
 	bool extract_peer_info(bdecode_node const& info, peer_entry& ret, error_code& ec)
 	{
 		// extract peer id (if any)

@@ -698,7 +698,6 @@ KADEMLIA_SOURCES =
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
 	dos_blocker
 	get_peers
 	item
