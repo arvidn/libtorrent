@@ -101,9 +101,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
-#if defined __GNUC__ || defined __clang__
-__attribute__((format(printf, 2, 3)))
-#endif
+TORRENT_FORMAT(2,3)
 void lsd::debug_log(char const* fmt, ...) const
 {
 	va_list v;

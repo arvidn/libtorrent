@@ -4276,9 +4276,7 @@ retry:
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-#if defined __GNUC__ || defined __clang__
-	__attribute__((format(printf, 2, 3)))
-#endif
+	TORRENT_FORMAT(2,3)
 	void session_impl::session_log(char const* fmt, ...) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
@@ -4289,9 +4287,7 @@ retry:
 		va_end(v);
 	}
 	
-#if defined __GNUC__ || defined __clang__
-	__attribute__((format(printf, 2, 0)))
-#endif
+	TORRENT_FORMAT(2, 0)
 	void session_impl::session_vlog(char const* fmt, va_list& v) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;

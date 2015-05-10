@@ -548,11 +548,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt = "", ...) const
-#if defined __GNUC__ || defined __clang__
-			__attribute__((format(printf, 4, 5)))
-#endif
-			;
+			, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING

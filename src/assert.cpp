@@ -221,9 +221,7 @@ char const* libtorrent_assert_log = "asserts.log";
 boost::atomic<int> assert_counter(0);
 #endif
 
-#if defined __GNUC__ || defined __clang__
-__attribute__((format(printf, 1, 2)))
-#endif
+TORRENT_FORMAT(1,2)
 TORRENT_EXPORT void assert_print(char const* fmt, ...)
 {
 #ifdef TORRENT_PRODUCTION_ASSERTS
@@ -299,9 +297,7 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 
 #else
 
-#if defined __GNUC__ || defined __clang__
-__attribute__((format(printf, 1, 2)))
-#endif
+TORRENT_FORMAT(1,2)
 TORRENT_EXPORT void assert_print(char const*, ...) {}
 TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}

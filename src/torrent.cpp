@@ -11659,9 +11659,7 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-#if defined __GNUC__ || defined __clang__
-	__attribute__((format(printf, 2, 3)))
-#endif
+	TORRENT_FORMAT(2,3)
 	void torrent::debug_log(char const* fmt, ...) const
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;

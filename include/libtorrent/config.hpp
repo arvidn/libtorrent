@@ -431,6 +431,12 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_ICONV_ARG (char**)
 #endif
 
+#if defined __GNUC__ || defined __clang__
+#define TORRENT_FORMAT(fmt, ellipsis) __attribute__((format(printf, fmt, ellipsis)))
+#else
+#define TORRENT_FORMAT(fmt, ellipsis)
+#endif
+
 #ifndef TORRENT_USE_INTERLOCKED_ATOMIC
 #define TORRENT_USE_INTERLOCKED_ATOMIC 0
 #endif
