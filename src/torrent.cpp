@@ -7306,9 +7306,9 @@ namespace libtorrent
 		// downloaded may be 0 if the torrent is 0-sized
 		size_type downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (finished_time < s.seed_time_limit
-			&& (download_time > 1 && finished_time / download_time < s.seed_time_ratio_limit)
+			&& (download_time > 1 && finished_time / float(download_time) < s.seed_time_ratio_limit)
 			&& downloaded > 0
-			&& m_total_uploaded / downloaded < s.share_ratio_limit)
+			&& m_total_uploaded / float(downloaded) < s.share_ratio_limit)
 			ret |= seed_ratio_not_met;
 
 		// if this torrent is running, and it was started less
