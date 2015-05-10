@@ -9076,8 +9076,7 @@ namespace libtorrent
 			return;
 		}
 
-		// storage may be NULL during shutdown
-		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
+		if ((flags & torrent_handle::flush_disk_cache))
 			m_ses.disk_thread().async_release_files(m_storage.get());
 
 		m_ses.queue_async_resume_data(shared_from_this());
