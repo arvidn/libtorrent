@@ -65,10 +65,7 @@ namespace libtorrent { struct dht_settings; }
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(rpc);
-#endif
-
+struct dht_logger;
 struct udp_socket_interface;
 
 struct null_observer : public observer
@@ -85,7 +82,9 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 public:
 
 	rpc_manager(node_id const& our_id
-		, routing_table& table, udp_socket_interface* sock);
+		, routing_table& table
+		, udp_socket_interface* sock
+		, dht_logger* log);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -126,6 +125,7 @@ private:
 	transactions_t m_transactions;
 	
 	udp_socket_interface* m_sock;
+	dht_logger* m_log;
 	routing_table& m_table;
 	time_point m_timer;
 	node_id m_our_id;

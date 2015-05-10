@@ -189,6 +189,9 @@ namespace libtorrent {
 			// enables the incoming_request_alert.
 			incoming_request_notification = 0x10000,
 
+			// enables dht_log_alert, debug logging for the DHT
+			dht_log_notification = 0x20000,
+
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't

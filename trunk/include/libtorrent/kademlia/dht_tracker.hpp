@@ -64,11 +64,6 @@ namespace libtorrent
 
 namespace libtorrent { namespace dht
 {
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(dht_tracker);
-#endif
-
 	struct dht_tracker;
 
 	struct dht_tracker
@@ -146,6 +141,7 @@ namespace libtorrent { namespace dht
 		counters& m_counters;
 		node m_dht;
 		rate_limited_udp_socket& m_sock;
+		dht_logger* m_log;
 
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;

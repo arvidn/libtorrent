@@ -64,12 +64,8 @@ namespace libtorrent
 
 namespace libtorrent { namespace dht
 {
+struct dht_logger;
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(table);
-#endif
-
-	
 typedef std::vector<node_entry> bucket_t;
 
 struct routing_table_node
@@ -94,7 +90,8 @@ public:
 	typedef std::vector<routing_table_node> table_t;
 
 	routing_table(node_id const& id, int bucket_size
-		, dht_settings const& settings);
+		, dht_settings const& settings
+		, dht_logger* log);
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(session_status& s) const;
@@ -192,6 +189,8 @@ public:
 #endif
 
 private:
+
+	dht_logger* m_log;
 
 	table_t::iterator find_bucket(node_id const& id);
 

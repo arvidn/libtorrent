@@ -50,9 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { struct dht_lookup; }
 namespace libtorrent { namespace dht
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(traversal);
-#endif
 
 class rpc_manager;
 class node;

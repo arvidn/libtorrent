@@ -1710,5 +1710,34 @@ namespace libtorrent {
 		return msg;
 	}
 
+	dht_log_alert::dht_log_alert(aux::stack_allocator& alloc
+		, dht_log_alert::dht_module_t m, const char* msg)
+		: module(m)
+		, m_alloc(alloc)
+		, m_msg_idx(alloc.copy_string(msg))
+	{}
+
+	char const* dht_log_alert::log_message() const
+	{
+		return m_alloc.ptr(m_msg_idx);
+	}
+
+	std::string dht_log_alert::message() const
+	{
+		const static char const* dht_modules[] =
+		{
+			"tracker",
+			"node",
+			"routing_table",
+			"rpc_manager",
+			"traversal"
+		};
+
+		char ret[900];
+		snprintf(ret, sizeof(ret), "%s: %s", dht_modules[module]
+			, log_message());
+		return ret;
+	}
+
 } // namespace libtorrent
 

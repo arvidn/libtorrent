@@ -33,16 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
 #include <libtorrent/io.hpp>
 
 namespace libtorrent { namespace dht
 {
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(traversal);
-#endif
 
 observer_ptr bootstrap::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
@@ -91,8 +88,8 @@ void bootstrap::trim_seed_nodes()
 void bootstrap::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(traversal) << "[" << this << "]"
-		<< " bootstrap done, pinging remaining nodes";
+	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
+		, this);
 #endif
 
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()

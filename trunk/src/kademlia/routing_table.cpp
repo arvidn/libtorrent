@@ -42,14 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
+#include "libtorrent/socket_io.hpp" // for print_endpoint
 
 #include "libtorrent/invariant_check.hpp"
-
-#if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
-#include "libtorrent/socket_io.hpp" // for print_endpoint
-#endif
 
 using boost::uint8_t;
 
@@ -65,10 +63,6 @@ size_t hash_value(libtorrent::address_v4::bytes_type ip)
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DEFINE_LOG(table)
-#endif
-
 template <typename T, typename K>
 void erase_one(T& container, K const& key)
 {
@@ -78,8 +72,10 @@ void erase_one(T& container, K const& key)
 }
 
 routing_table::routing_table(node_id const& id, int bucket_size
-	, dht_settings const& settings)
-	: m_settings(settings)
+	, dht_settings const& settings
+	, dht_logger* log)
+	: m_log(log)
+	, m_settings(settings)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
@@ -584,8 +580,10 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_settings.restrict_routing_ips)
 			{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				TORRENT_LOG(table) << "ignoring node (duplicate IP): "
-					<< e.id << " " << e.addr();
+				char hex_id[41];
+				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
+				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
+					, hex_id, print_address(e.addr()).c_str());
 #endif
 				return failed_to_add;
 			}
@@ -632,7 +630,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		TORRENT_ASSERT(j->id == e.id && j->ep() == e.ep());
 		j->timeout_count = 0;
 		j->update_rtt(e.rtt);
-//		TORRENT_LOG(table) << "updating node: " << i->id << " " << i->addr();
 		return node_added;
 	}
 
@@ -666,9 +663,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// close to this one. We know that it's not the same, because
 			// it claims a different node-ID. Ignore this to avoid attacks
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(table) << "ignoring node: " << e.id << " " << e.addr()
-				<< " existing node: "
-				<< j->id << " " << j->addr();
+				char hex_id1[41];
+				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
+				char hex_id2[41];
+				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
+				m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
+					, hex_id1, print_address(e.addr()).c_str()
+					, hex_id2, print_address(j->addr()).c_str());
 #endif
 			return failed_to_add;
 		}
@@ -678,9 +679,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		{
 			// same thing but for the replacement bucket
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(table) << "ignoring (replacement) node: " << e.id << " " << e.addr()
-				<< " existing node: "
-				<< j->id << " " << j->addr();
+				char hex_id1[41];
+				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
+				char hex_id2[41];
+				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
+				m_log->log(dht_logger::routing_table, "ignoring (replacement) node: %s %s existing node: %s %s"
+					, hex_id1, print_address(e.addr()).c_str()
+					, hex_id2, print_address(j->addr()).c_str());
 #endif
 			return failed_to_add;
 		}
@@ -692,7 +697,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
 		m_ips.insert(e.addr().to_v4().to_bytes());
-//		TORRENT_LOG(table) << "inserting node: " << e.id << " " << e.addr();
 		return node_added;
 	}
 
@@ -726,7 +730,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			erase_one(m_ips, j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
-//			TORRENT_LOG(table) << "replacing unpinged node: " << e.id << " " << e.addr();
 			return node_added;
 		}
 
@@ -748,7 +751,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			erase_one(m_ips, j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
-//			TORRENT_LOG(table) << "replacing stale node: " << e.id << " " << e.addr();
 			return node_added;
 		}
 		
@@ -857,8 +859,10 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id
-				<< " " << e.addr();
+			char hex_id[41];
+			to_hex(reinterpret_cast<char const*>(&e.id[0]), sha1_hash::size, hex_id);
+			m_log->log(dht_logger::routing_table, "replaving node with higher RTT: %s %s"
+				, hex_id, print_address(e.addr()).c_str());
 #endif
 			return node_added;
 		}
@@ -902,7 +906,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (rb.empty()) rb.reserve(m_bucket_size);
 		rb.push_back(e);
 		m_ips.insert(e.addr().to_v4().to_bytes());
-//		TORRENT_LOG(table) << "inserting node in replacement cache: " << e.id << " " << e.addr();
 		return node_added;
 	}
 
@@ -1029,12 +1032,13 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(table) << " NODE FAILED"
-			" id: " << nid <<
-			" ip: " << j->ep() <<
-			" fails: " << j->fail_count() <<
-			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
+		char hex_id[41];
+		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
+		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+			, hex_id, print_endpoint(j->ep()).c_str()
+			, int(j->fail_count())
+			, int(j->pinged())
+			, int(total_seconds(aux::time_now() - j->first_seen)));
 #endif
 		return;
 	}
@@ -1049,12 +1053,13 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(table) << " NODE FAILED"
-			" id: " << nid <<
-			" ip: " << j->ep() <<
-			" fails: " << j->fail_count() <<
-			" pinged: " << j->pinged() <<
-			" up-time: " << total_seconds(aux::time_now() - j->first_seen);
+		char hex_id[41];
+		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
+		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+			, hex_id, print_endpoint(j->ep()).c_str()
+			, int(j->fail_count())
+			, int(j->pinged())
+			, int(total_seconds(aux::time_now() - j->first_seen)));
 #endif
 
 		// if this node has failed too many times, or if this node

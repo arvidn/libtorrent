@@ -67,10 +67,6 @@ namespace libtorrent {
 namespace libtorrent { namespace dht
 {
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DECLARE_LOG(node);
-#endif
-
 struct traversal_algorithm;
 struct dht_observer;
 

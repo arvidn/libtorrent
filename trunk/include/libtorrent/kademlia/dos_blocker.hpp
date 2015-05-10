@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
+	struct dht_logger;
+
 	// this is a class that maintains a list of abusive DHT nodes,
 	// blocking their access to our DHT node.
 	struct TORRENT_EXTRA_EXPORT dos_blocker
@@ -50,7 +52,7 @@ namespace libtorrent { namespace dht
 		// called every time we receive an incoming packet. Returns
 		// true if we should let the packet through, and false if
 		// it's blocked
-		bool incoming(address addr, time_point now);
+		bool incoming(address addr, time_point now, dht_logger* logger);
 
 		void set_rate_limit(int l)
 		{
