@@ -7353,7 +7353,8 @@ namespace libtorrent
 			return;
 		}
 
-		if (!m_owning_storage.get())
+		// storage may be NULL during shutdown
+		if (!m_owning_storage.get() || !m_storage)
 		{
 			alerts().post_alert(save_resume_data_failed_alert(get_handle()
 				, errors::destructing_torrent));
@@ -7377,8 +7378,7 @@ namespace libtorrent
 			return;
 		}
 
-		// storage may be NULL during shutdown
-		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
+		if ((flags & torrent_handle::flush_disk_cache))
 			m_storage->async_release_files();
 
 		m_storage->async_save_resume_data(
