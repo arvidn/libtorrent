@@ -193,7 +193,6 @@ protected:
 	~udp_socket_interface() {}
 };
 
-// TODO: 3 rename this to just node
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 typedef std::map<node_id, torrent_entry> table_t;
