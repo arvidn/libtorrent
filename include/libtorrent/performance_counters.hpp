@@ -309,12 +309,14 @@ namespace libtorrent
 			socket_recv_size20,
 
 			num_stats_counters,
+		};
 
-			// == ALL FOLLOWING ARE GAUGES ==
+		// == ALL FOLLOWING ARE GAUGES ==
 
-			// it is important that all gauges have a higher index than counters.
-			// This assumption is relied upon in other parts of the code
-
+		// it is important that all gauges have a higher index than counters.
+		// This assumption is relied upon in other parts of the code
+		enum stats_gauge_t
+		{
 			num_checking_torrents = num_stats_counters,
 			num_stopped_torrents,
 			// upload_only means finished
@@ -429,7 +431,7 @@ namespace libtorrent
 			num_utp_deleted,
 
 			num_counters,
-			num_gauge_counters = num_counters - num_stats_counters
+			num_gauges_counters = num_counters - num_stats_counters
 		};
 
 		counters();
