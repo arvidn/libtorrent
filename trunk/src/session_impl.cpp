@@ -6464,6 +6464,7 @@ retry:
 		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
 	}
 
+	TORRENT_FORMAT(3,4)
 	void session_impl::log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...)
 	{
 		if (!m_alerts.should_post<dht_log_alert>()) return;

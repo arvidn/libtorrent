@@ -30,11 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <utility>
 #include <boost/bind.hpp>
 #include <boost/function/function1.hpp>
+
+#ifdef TORRENT_USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -45,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_lookup
+#include "libtorrent/performance_counters.hpp" // for counters
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/rpc_manager.hpp"
@@ -55,11 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
 #include "libtorrent/kademlia/get_item.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
-
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
 
 namespace libtorrent { namespace dht
 {

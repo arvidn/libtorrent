@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm> // std::copy, std::remove_copy_if
 #include <functional>
 #include <numeric>
-#include <boost/cstdint.hpp>
-#include <boost/bind.hpp>
+
+#include "libtorrent/config.hpp"
 
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
@@ -46,8 +46,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-
 #include "libtorrent/invariant_check.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/cstdint.hpp>
+#include <boost/bind.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using boost::uint8_t;
 

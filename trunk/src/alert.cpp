@@ -1724,7 +1724,7 @@ namespace libtorrent {
 
 	std::string dht_log_alert::message() const
 	{
-		const static char const* dht_modules[] =
+		static char const* const dht_modules[] =
 		{
 			"tracker",
 			"node",

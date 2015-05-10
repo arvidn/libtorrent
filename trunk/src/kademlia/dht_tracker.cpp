@@ -32,9 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <set>
 #include <numeric>
-#include <boost/bind.hpp>
-#include <boost/function/function0.hpp>
-#include <boost/ref.hpp>
+
+#include "libtorrent/config.hpp"
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -50,6 +49,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/bind.hpp>
+#include <boost/function/function0.hpp>
+#include <boost/ref.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using boost::ref;
 using libtorrent::dht::node;

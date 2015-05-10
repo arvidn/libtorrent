@@ -575,7 +575,8 @@ namespace libtorrent
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE;
 			virtual void outgoing_get_peers(sha1_hash const& target
 				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
-			virtual void log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...) TORRENT_OVERRIDE;
+			virtual void log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...)
+				TORRENT_OVERRIDE TORRENT_FORMAT(3,4);
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
