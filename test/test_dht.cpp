@@ -433,6 +433,7 @@ struct obs : dht::dht_observer
 	virtual void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
 	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
+	virtual void log(dht_logger::dht_module_t l, char const* fmt, ...) TORRENT_OVERRIDE {}
 };
 
 // TODO: test obfuscated_get_peers
@@ -1052,7 +1053,7 @@ int test_main()
 		node_id id = to_hash("1234876923549721020394873245098347598635");
 		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
-		routing_table tbl(id, 8, sett);
+		routing_table tbl(id, 8, sett, &observer);
    
 		// insert 256 nodes evenly distributed across the ID space.
 		// we expect to fill the top 5 buckets
@@ -1076,7 +1077,7 @@ int test_main()
 		node_id id = to_hash("1234876923549721020394873245098347598635");
 		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
-		routing_table tbl(id, 8, sett);
+		routing_table tbl(id, 8, sett, &observer);
 		for (int i = 0; i < 256; ++i)
 		{
 			add_and_replace(id, diff);
@@ -1234,7 +1235,7 @@ int test_main()
 		//	s.restrict_routing_ips = false;
 		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 		const int bucket_size = 10;
-		dht::routing_table table(id, bucket_size, s);
+		dht::routing_table table(id, bucket_size, s, &observer);
 		std::vector<node_entry> nodes;
 		TEST_EQUAL(table.size().get<0>(), 0);
 
