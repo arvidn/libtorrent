@@ -95,11 +95,7 @@ private:
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 	log_callback_t m_log_cb;
-	void debug_log(char const* fmt, ...) const
-#if defined __GNUC__ || defined __clang__
-		__attribute__((format(printf, 2, 3)))
-#endif
-		;
+	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
 #endif
 
 	// used to resend udp packets in case

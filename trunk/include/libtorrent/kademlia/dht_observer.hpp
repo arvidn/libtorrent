@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef DHT_OBSERVER_HPP
 #define DHT_OBSERVER_HPP
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
@@ -49,12 +50,7 @@ namespace libtorrent { namespace dht
 			traversal
 		};
 
-		// TODO: 3 instead of these format attributes, make a macro for it
-		virtual void log(dht_module_t m, char const* fmt, ...)
-#if defined __GNUC__ || defined __clang__
-			__attribute__((format(printf, 3, 4)))
-#endif
-			= 0;
+		virtual void log(dht_module_t m, char const* fmt, ...) TORRENT_FORMAT(3,4) = 0;
 
 	protected:
 		~dht_logger() {}
