@@ -102,7 +102,6 @@ namespace libtorrent
 		char const* data, int size, error_code& ec
 		, bool scrape_request, sha1_hash scrape_ih);
 
-	// TODO: 3 add a unit test for this function
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
 }

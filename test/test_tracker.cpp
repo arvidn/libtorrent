@@ -181,8 +181,62 @@ void test_parse_external_ip6()
 }
 #endif
 
+peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
+{
+	error_code ec;
+	peer_entry result;
+	bdecode_node n;
+	bdecode(peer_field, peer_field + strlen(peer_field)
+		, n, ec, NULL, 1000, 1000);
+	TEST_CHECK(!ec);
+	bool ret = extract_peer_info(n, result, ec);
+	TEST_EQUAL(expected_ret, ret);
+	TEST_EQUAL(expected_ec, ec);
+	return result;
+}
+
+void test_extract_peer()
+{
+	{
+		peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcd4:porti1337ee"
+			, error_code(), true);
+		TEST_EQUAL(result.hostname, "abcd");
+		TEST_EQUAL(result.pid, peer_id("abababababababababab"));
+		TEST_EQUAL(result.port, 1337);
+
+	}
+
+	{
+		peer_entry result = extract_peer("d2:ip11:example.com4:porti1ee"
+			, error_code(), true);
+		TEST_EQUAL(result.hostname, "example.com");
+		TEST_EQUAL(result.pid, (peer_id::min)());
+		TEST_EQUAL(result.port, 1);
+
+	}
+
+	{
+		// not a dictionary
+		peer_entry result = extract_peer("2:ip11:example.com"
+			, error_code(errors::invalid_peer_dict, get_libtorrent_category()), false);
+	}
+
+	{
+		// missing IP
+		peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
+			, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
+	}
+
+	{
+		// missing port
+		peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
+			, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
+	}
+}
+
 int test_main()
 {
+	test_extract_peer();
 	test_parse_hostname_peers();
 	test_parse_peers4();
 	test_parse_interval();
