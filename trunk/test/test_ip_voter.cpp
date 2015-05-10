@@ -68,7 +68,6 @@ void test_two_ips()
 	TEST_CHECK(new_ip);
 	for (int i = 0; i < 1000; ++i)
 	{
-		fprintf(stderr, "%d\n", i);
 		new_ip = ipv.cast_vote(addr2, 1, rand_v4());
 		TEST_CHECK(!new_ip);
 		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
