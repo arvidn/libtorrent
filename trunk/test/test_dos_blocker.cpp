@@ -35,6 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/dos_blocker.hpp"
+#include "libtorrent/kademlia/dht_observer.hpp"
+
+struct log_t : libtorrent::dht::dht_logger
+{
+	virtual void log(dht_logger::dht_module_t m, char const* fmt, ...)
+	{
+		va_list v;	
+		va_start(v, fmt);
+		vfprintf(stderr, fmt, v);
+		va_end(v);
+	}
+};
 
 int test_main()
 {
@@ -42,6 +54,7 @@ int test_main()
 	using namespace libtorrent;
 	using namespace libtorrent::dht;
 
+	log_t l;
 	dos_blocker b;
 
 	address spammer = address_v4::from_string("10.10.10.10");
@@ -49,15 +62,15 @@ int test_main()
 	time_point now = clock_type::now();
 	for (int i = 0; i < 1000; ++i)
 	{
-		b.incoming(spammer, now);
+		b.incoming(spammer, now, &l);
 		now += milliseconds(1);
-		TEST_EQUAL(b.incoming(rand_v4(), now), true);
+		TEST_EQUAL(b.incoming(rand_v4(), now, &l), true);
 		now += milliseconds(1);
 	}
 
 	now += milliseconds(1);
 
-	TEST_EQUAL(b.incoming(spammer, now), false);
+	TEST_EQUAL(b.incoming(spammer, now, &l), false);
 #endif
 
 	return 0;
