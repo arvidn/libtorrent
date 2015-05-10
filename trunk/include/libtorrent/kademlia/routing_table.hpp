@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
