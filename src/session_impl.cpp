@@ -6431,41 +6431,53 @@ retry:
 		m_upnp.reset();
 	}
 
-	external_ip const& session_impl::external_address() const TORRENT_OVERRIDE
+	external_ip const& session_impl::external_address() const
 	{
 		return m_external_ip;
 	}
 
 	// this is the DHT observer version. DHT is the implied source
 	void session_impl::set_external_address(address const& ip
-		, address const& source) TORRENT_OVERRIDE
+		, address const& source)
 	{
 		set_external_address(ip, source_dht, source);
 	}
 
-	address session_impl::external_address() TORRENT_OVERRIDE
+	address session_impl::external_address()
 	{
 		return m_external_ip.external_address(address_v4());
 	}
 
-	void session_impl::get_peers(sha1_hash const& ih) TORRENT_OVERRIDE
+	void session_impl::get_peers(sha1_hash const& ih)
 	{
 		if (!m_alerts.should_post<dht_get_peers_alert>()) return;
 		m_alerts.emplace_alert<dht_get_peers_alert>(ih);
 	}
 
 	void session_impl::announce(sha1_hash const& ih, address const& addr
-		, int port) TORRENT_OVERRIDE
+		, int port)
 	{
 		if (!m_alerts.should_post<dht_announce_alert>()) return;
 		m_alerts.emplace_alert<dht_announce_alert>(addr, port, ih);
 	}
 
 	void session_impl::outgoing_get_peers(sha1_hash const& target
-		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE
+		, sha1_hash const& sent_target, udp::endpoint const& ep)
 	{
 		if (!m_alerts.should_post<dht_outgoing_get_peers_alert>()) return;
 		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
+	}
+
+	void session_impl::log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...)
+	{
+		if (!m_alerts.should_post<dht_log_alert>()) return;
+
+		va_list v;
+		va_start(v, fmt);
+		char buf[1024];
+		vsnprintf(buf, sizeof(buf), fmt, v);
+		va_end(v);
+		m_alerts.emplace_alert<dht_log_alert>((dht_log_alert::dht_module_t)m, buf);
 	}
 
 	void session_impl::set_external_address(address const& ip

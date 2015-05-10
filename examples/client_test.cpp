@@ -1324,6 +1324,7 @@ int main(int argc, char* argv[])
 			+ alert::session_log_notification
 			+ alert::torrent_log_notification
 			+ alert::peer_log_notification
+			+ alert::dht_log_notification
 			));
 
 	ses.set_load_function(&load_torrent);

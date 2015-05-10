@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+/*
 #ifndef TORRENT_LOGGING_HPP
 #define TORRENT_LOGGING_HPP
 
@@ -137,4 +138,7 @@ public:
 #endif // TORRENT_USE_IOSTREAM
 
 #endif
+
+*/
+
 

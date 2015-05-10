@@ -32,8 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/hasher.hpp>
+#include <libtorrent/bdecode.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/dht_observer.hpp>
 
 #if TORRENT_USE_ASSERTS
 #include <libtorrent/bencode.hpp>
@@ -197,9 +199,12 @@ void get_item::done()
 void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "sending put [ v: \"" << m_data.value()
-		<< "\" seq: " << (m_data.is_mutable() ? m_data.seq() : -1)
-		<< " nodes: " << v.size() << " ]" ;
+	// TODO: 3 it would be nice to not have to spend so much time rendering
+	// the bencoded dict if logging is disabled
+	get_node().observer()->log(dht_logger::traversal, "[%p] sending put [ v: \"%s\" seq: %" PRId64 " nodes: %d ]"
+		, this, m_data.value().to_string().c_str()
+		, (m_data.is_mutable() ? m_data.seq() : -1)
+		, int(v.size()));
 #endif
 
 	// create a dummy traversal_algorithm
@@ -211,7 +216,8 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 		, end(v.end()); i != end; ++i)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "  put-distance: " << (160 - distance_exp(m_target, i->first.id));
+		get_node().observer()->log(dht_logger::traversal, "[%p] put-distance: %d"
+			, this, 160 - distance_exp(m_target, i->first.id));
 #endif
 
 		void* ptr = m_node.m_rpc.allocate_observer();
@@ -252,7 +258,8 @@ void get_item_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
+		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, m_algorithm.get());
 #endif
 		return;
 	}

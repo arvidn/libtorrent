@@ -38,7 +38,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht
 {
-	struct dht_observer
+	struct dht_logger
+	{
+		enum dht_module_t
+		{
+			tracker,
+			node,
+			routing_table,
+			rpc_manager,
+			traversal
+		};
+
+		// TODO: 3 instead of these format attributes, make a macro for it
+		virtual void log(dht_module_t m, char const* fmt, ...)
+#if defined __GNUC__ || defined __clang__
+			__attribute__((format(printf, 3, 4)))
+#endif
+			= 0;
+
+	protected:
+		~dht_logger() {}
+	};
+
+	struct dht_observer : dht_logger
 	{
 		virtual void set_external_address(address const& addr
 			, address const& source) = 0;
@@ -47,6 +69,7 @@ namespace libtorrent { namespace dht
 		virtual void outgoing_get_peers(sha1_hash const& target
 			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;
 		virtual void announce(sha1_hash const& ih, address const& addr, int port) = 0;
+
 	protected:
 		~dht_observer() {}
 	};

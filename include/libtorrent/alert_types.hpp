@@ -2315,12 +2315,42 @@ namespace libtorrent
 		peer_request req;
 	};
 
+	struct TORRENT_EXPORT dht_log_alert : alert
+	{
+		enum dht_module_t
+		{
+			tracker,
+			node,
+			routing_table,
+			rpc_manager,
+			traversal
+		};
+
+		dht_log_alert(aux::stack_allocator& alloc
+			, dht_module_t m, char const* msg);
+
+		static const int static_category = alert::dht_log_notification;
+		TORRENT_DEFINE_ALERT(dht_log_alert, 85)
+
+		virtual std::string message() const;
+
+		// the log message
+		char const* log_message() const;
+
+		// the module, or part, of the DHT that produced this log message.
+		dht_module_t module;
+
+	private:
+		aux::stack_allocator& m_alloc;
+		int m_msg_idx;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 85 };
+	enum { num_alert_types = 86 };
 }
 
 

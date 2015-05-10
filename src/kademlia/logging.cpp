@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/logging.hpp"
 #include "libtorrent/time.hpp"
-
+/*
 namespace libtorrent { namespace dht
 {
 	// TODO: 3 replace this logging with alerts
@@ -58,4 +58,5 @@ namespace libtorrent { namespace dht
 	}
 
 }}
+*/
 

@@ -69,10 +69,6 @@ using detail::write_endpoint;
 // TODO: 2 make this configurable in dht_settings
 enum { announce_interval = 30 };
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-TORRENT_DEFINE_LOG(node)
-#endif
-
 namespace {
 
 // remove peers that have timed out
@@ -83,12 +79,7 @@ void purge_peers(std::set<peer_entry>& peers)
 	{
 		// the peer has timed out
 		if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
-		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "peer timed out at: " << i->addr;
-#endif
 			peers.erase(i++);
-		}
 		else
 			++i;
 	}
@@ -114,8 +105,8 @@ node::node(udp_socket_interface* sock
 	, struct counters& cnt)
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, observer))
-	, m_table(m_id, 8, settings)
-	, m_rpc(m_id, m_table, sock)
+	, m_table(m_id, 8, settings, observer)
+	, m_rpc(m_id, m_table, sock, observer)
 	, m_observer(observer)
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
@@ -132,7 +123,8 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	if (token.length() != 4)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "token of incorrect length: " << token.length();
+		m_observer->log(dht_logger::node, "token of incorrect length: %d"
+			, token.length());
 #endif
 		return false;
 	}
@@ -203,7 +195,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	r->trim_seed_nodes();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "bootstrapping with " << count << " nodes";
+	m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);
 #endif
 	r->start();
 }
@@ -292,7 +284,8 @@ void node::incoming(msg const& m)
 			bdecode_node err = m.message.dict_find_list("e");
 			if (err && err.list_size() >= 2)
 			{
-				TORRENT_LOG(node) << "INCOMING ERROR: " << err.list_string_value_at(1);
+				m_observer->log(dht_logger::node, "INCOMING ERROR: %s"
+					, err.list_string_value_at(1).c_str());
 			}
 #endif
 			node_id id;
@@ -308,9 +301,10 @@ namespace
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		TORRENT_LOG(node) << "sending announce_peer [ ih: " << ih
-			<< " p: " << listen_port
-			<< " nodes: " << v.size() << " ]" ;
+		char hex_ih[41];
+		to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
+		node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
+			" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
 #endif
 
 		// create a dummy traversal_algorithm		
@@ -322,7 +316,8 @@ namespace
 			, end(v.end()); i != end; ++i)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(node) << "  announce-distance: " << (160 - distance_exp(ih, i->first.id));
+			node.observer()->log(dht_logger::node, "announce-distance: %d"
+				, (160 - distance_exp(ih, i->first.id)));
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
@@ -349,7 +344,8 @@ namespace
 void node::add_router_node(udp::endpoint router)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "adding router node: " << router;
+	m_observer->log(dht_logger::node, "adding router node: %s"
+		, print_endpoint(router).c_str());
 #endif
 	m_table.add_router_node(router);
 }
@@ -365,7 +361,10 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "announcing [ ih: " << info_hash << " p: " << listen_port << " ]" ;
+	char hex_ih[41];
+	to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
+	m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
+		, hex_ih, listen_port);
 #endif
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
@@ -391,7 +390,10 @@ void node::get_item(sha1_hash const& target
 	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "starting get for [ hash: " << target << " ]" ;
+	char hex_target[41];
+	to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+	m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
+		, hex_target);
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
@@ -403,8 +405,9 @@ void node::get_item(char const* pk, std::string const& salt
 	, boost::function<bool(item&)> f)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_LOG(node) << "starting get for [ key: "
-		<< to_hex(std::string(pk, 32)) << " ]" ;
+	char hex_key[65];
+	to_hex(pk, 32, hex_key);
+	m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
@@ -429,8 +432,9 @@ struct ping_observer : observer
 		if (!r)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			TORRENT_LOG(traversal) << "[" << m_algorithm.get()
-				<< "] missing response dict";
+			m_algorithm->get_node().observer()->log(dht_logger::node
+				, "[%p] missing response dict"
+				, m_algorithm.get());
 #endif
 			return;
 		}
@@ -896,7 +900,8 @@ void node::incoming_request(msg const& m, entry& e)
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 		if (reply.find_key("values"))
 		{
-			TORRENT_LOG(node) << " values: " << reply["values"].list().size();
+			m_observer->log(dht_logger::node, "values: %d"
+				, int(reply["values"].list().size()));
 		}
 #endif
 	}

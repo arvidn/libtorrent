@@ -130,6 +130,7 @@ struct observer : boost::noncopyable
 	};
 
 #ifndef TORRENT_DHT_VERBOSE_LOGGING
+	// TODO: 2 make this private and unconditional
 protected:
 #endif
 

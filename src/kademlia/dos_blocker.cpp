@@ -33,16 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dos_blocker.hpp"
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-#include "libtorrent/kademlia/logging.hpp"
+#include "libtorrent/socket_io.hpp" // for print_address
+#include "libtorrent/kademlia/dht_observer.hpp" // for dht_logger
 #endif
 
 namespace libtorrent { namespace dht
 {
-
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	TORRENT_DECLARE_LOG(dht_tracker);
-#endif
-
 	dos_blocker::dos_blocker()
 		: m_message_rate_limit(5)
 		, m_block_timeout(5 * 60)
@@ -54,7 +50,7 @@ namespace libtorrent { namespace dht
 		}
 	}
 
-	bool dos_blocker::incoming(address addr, time_point now)
+	bool dos_blocker::incoming(address addr, time_point now, dht_logger* logger)
 	{
 		node_ban_entry* match = 0;
 		node_ban_entry* min = m_ban_nodes;
@@ -81,9 +77,10 @@ namespace libtorrent { namespace dht
 					if (match->count == m_message_rate_limit * 10)
 					{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-						TORRENT_LOG(dht_tracker) << " BANNING PEER [ ip: "
-							<< addr << " time: " << total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
-							<< " count: " << match->count << " ]";
+						logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %f count: %d ]"
+							, print_address(addr).c_str()
+							, total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
+							, int(match->count));
 #endif
 						// we've received too many messages in less than 10 seconds
 						// from this node. Ignore it until it's silent for 5 minutes
