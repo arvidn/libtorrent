@@ -337,9 +337,9 @@ void get_item_observer::reply(msg const&amp; m)
 			else
 				new_replacement_bucket.push_back(*j);
 		}
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(6)">../src/file_storage.cpp:452</a></td><td>it would be nice if file_entry::filehash could be taken into account as well, and if the file_storage object could actually hold copies of filehash</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice if file_entry::filehash could be taken into
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(6)">../src/file_storage.cpp:485</a></td><td>it would be nice if file_entry::filehash could be taken into account as well, and if the file_storage object could actually hold copies of filehash</td></tr><tr id="6" style="display: none;" colspan="3"><td colspan="3"><h2>it would be nice if file_entry::filehash could be taken into
 account as well, and if the file_storage object could actually hold
-copies of filehash</h2><h4>../src/file_storage.cpp:452</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		e.executable_attribute = (flags &amp; attribute_executable) != 0;
+copies of filehash</h2><h4>../src/file_storage.cpp:485</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		e.executable_attribute = (flags &amp; attribute_executable) != 0;
 		if ((flags &amp; attribute_symlink) &amp;&amp; m_symlinks.size() &lt; internal_file_entry::not_a_symlink - 1)
 		{
 			e.symlink_attribute = 1;
@@ -1277,7 +1277,7 @@ this check can be removed as well</h2><h4>../src/torrent_info.cpp:424</h4><pre s
 	{
 		TORRENT_ASSERT(leafs &gt; 0);
 		return (leafs &lt;&lt; 1) - 1;
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(24)">../include/libtorrent/ip_voter.hpp:122</a></td><td>instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.</td></tr><tr id="24" style="display: none;" colspan="3"><td colspan="3"><h2>instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.</h2><h4>../include/libtorrent/ip_voter.hpp:122</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// away all the votes and started from scratch, in case
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(24)">../include/libtorrent/ip_voter.hpp:124</a></td><td>instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.</td></tr><tr id="24" style="display: none;" colspan="3"><td colspan="3"><h2>instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.</h2><h4>../include/libtorrent/ip_voter.hpp:124</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		// away all the votes and started from scratch, in case
 		// our IP has changed
 		ptime m_last_rotate;
 	};
@@ -1408,7 +1408,7 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 // 		}
 
         // no complete sync
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(27)">../src/bt_peer_connection.cpp:2117</a></td><td>if we're finished, send upload_only message</td></tr><tr id="27" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>../src/bt_peer_connection.cpp:2117</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(27)">../src/bt_peer_connection.cpp:2123</a></td><td>if we're finished, send upload_only message</td></tr><tr id="27" style="display: none;" colspan="3"><td colspan="3"><h2>if we're finished, send upload_only message</h2><h4>../src/bt_peer_connection.cpp:2123</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (msg[5 + k / 8] &amp; (0x80 &gt;&gt; (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
 		peer_log("==&gt; BITFIELD [ %s ]", bitfield_string.c_str());
@@ -1459,8 +1459,8 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 				? m_ses.settings().user_agent : m_ses.settings().handshake_client_version;
 		}
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(28)">../src/bt_peer_connection.cpp:3357</a></td><td>move the erasing into the loop above remove all payload ranges that has been sent</td></tr><tr id="28" style="display: none;" colspan="3"><td colspan="3"><h2>move the erasing into the loop above
-remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.cpp:3357</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			for (std::vector&lt;range&gt;::iterator i = m_payloads.begin();
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(28)">../src/bt_peer_connection.cpp:3363</a></td><td>move the erasing into the loop above remove all payload ranges that has been sent</td></tr><tr id="28" style="display: none;" colspan="3"><td colspan="3"><h2>move the erasing into the loop above
+remove all payload ranges that has been sent</h2><h4>../src/bt_peer_connection.cpp:3363</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			for (std::vector&lt;range&gt;::iterator i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
 				i-&gt;start -= bytes_transferred;
@@ -1870,8 +1870,8 @@ we can construct a full bitfield</h2><h4>../src/peer_connection.cpp:2774</h4><pr
 		TORRENT_ASSERT(t-&gt;has_picker());
 		TORRENT_ASSERT(t-&gt;picker().is_requested(block));
 #endif
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(36)">../src/peer_connection.cpp:4580</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="36" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
-all completed disk operations</h2><h4>../src/peer_connection.cpp:4580</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(36)">../src/peer_connection.cpp:4606</a></td><td>peers should really be corked/uncorked outside of all completed disk operations</td></tr><tr id="36" style="display: none;" colspan="3"><td colspan="3"><h2>peers should really be corked/uncorked outside of
+all completed disk operations</h2><h4>../src/peer_connection.cpp:4606</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				t-&gt;filesystem().async_read_and_hash(r, boost::bind(&amp;peer_connection::on_disk_read_complete
 					, self(), _1, _2, r), cache.second);
@@ -2178,9 +2178,10 @@ connections</h2><h4>../src/session_impl.cpp:4532</h4><pre style="background: #f6
 					// more to downloading torrents with less than
 					// average number of connections
 					int num_attempts = 1;
-					if (!t.is_finished())
+					if (!t.is_finished() &amp;&amp; m_num_active_downloading &gt; 0)
 					{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(42)">../src/session_impl.cpp:4566</a></td><td>make this bias configurable</td></tr><tr id="42" style="display: none;" colspan="3"><td colspan="3"><h2>make this bias configurable</h2><h4>../src/session_impl.cpp:4566</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;"></pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(43)">../src/session_impl.cpp:4567</a></td><td>also take average_peers into account, to create a bias for downloading torrents with < average peers</td></tr><tr id="43" style="display: none;" colspan="3"><td colspan="3"><h2>also take average_peers into account, to create a bias for downloading torrents with < average peers</h2><h4>../src/session_impl.cpp:4567</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">//				average_peers = num_downloads_peers / num_downloads;
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(42)">../src/session_impl.cpp:4566</a></td><td>make this bias configurable</td></tr><tr id="42" style="display: none;" colspan="3"><td colspan="3"><h2>make this bias configurable</h2><h4>../src/session_impl.cpp:4566</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;"></pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(43)">../src/session_impl.cpp:4567</a></td><td>also take average_peers into account, to create a bias for downloading torrents with < average peers</td></tr><tr id="43" style="display: none;" colspan="3"><td colspan="3"><h2>also take average_peers into account, to create a
+bias for downloading torrents with < average peers</h2><h4>../src/session_impl.cpp:4567</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">//				average_peers = num_downloads_peers / num_downloads;
 
 			if (m_next_connect_torrent == m_torrents.end())
 				m_next_connect_torrent = m_torrents.begin();
@@ -2198,11 +2199,10 @@ connections</h2><h4>../src/session_impl.cpp:4532</h4><pre style="background: #f6
 					// more to downloading torrents with less than
 					// average number of connections
 					int num_attempts = 1;
-					if (!t.is_finished())
+					if (!t.is_finished() &amp;&amp; m_num_active_downloading &gt; 0)
 					{
-<div style="background: #ffff00" width="100%">						TORRENT_ASSERT(m_num_active_downloading &gt; 0);
-</div>						num_attempts += m_num_active_finished / m_num_active_downloading;
-					}
+<div style="background: #ffff00" width="100%">						num_attempts += m_num_active_finished / m_num_active_downloading;
+</div>					}
 					while (m_current_connect_attempts &lt; num_attempts)
 					{
 						TORRENT_TRY
@@ -2231,6 +2231,7 @@ connections</h2><h4>../src/session_impl.cpp:4532</h4><pre style="background: #f6
 						if (max_connections == 0) return;
 						if (num_connections() &gt;= m_settings.connections_limit) return;
 					}
+				}
 </pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(44)">../src/session_impl.cpp:4677</a></td><td>post a message to have this happen immediately instead of waiting for the next tick</td></tr><tr id="44" style="display: none;" colspan="3"><td colspan="3"><h2>post a message to have this happen
 immediately instead of waiting for the next tick</h2><h4>../src/session_impl.cpp:4677</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">					{
 						// we've unchoked this peer, and it hasn't reciprocated
@@ -3160,7 +3161,7 @@ put completes</h2><h4>../src/kademlia/dht_tracker.cpp:433</h4><pre style="backgr
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash target = item_target_id(
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(62)">../include/libtorrent/config.hpp:289</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="62" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:289</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_SYSCTL 1
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(62)">../include/libtorrent/config.hpp:286</a></td><td>Make this count Unicode characters instead of bytes on windows</td></tr><tr id="62" style="display: none;" colspan="3"><td colspan="3"><h2>Make this count Unicode characters instead of bytes on windows</h2><h4>../include/libtorrent/config.hpp:286</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_MLOCK 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_ICONV_ARG (const char**)
@@ -3211,7 +3212,7 @@ put completes</h2><h4>../src/kademlia/dht_tracker.cpp:433</h4><pre style="backgr
 
 #endif
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(63)">../include/libtorrent/peer_connection.hpp:725</a></td><td>make this private</td></tr><tr id="63" style="display: none;" colspan="3"><td colspan="3"><h2>make this private</h2><h4>../include/libtorrent/peer_connection.hpp:725</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(63)">../include/libtorrent/peer_connection.hpp:723</a></td><td>make this private</td></tr><tr id="63" style="display: none;" colspan="3"><td colspan="3"><h2>make this private</h2><h4>../include/libtorrent/peer_connection.hpp:723</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		void set_soft_packet_size(int size) { m_soft_packet_size = size; }
 
 		// if allow_encrypted is false, and the torrent 'ih' turns out
 		// to be an encrypted torrent (AES-256 encrypted) the peer will
@@ -3262,7 +3263,7 @@ put completes</h2><h4>../src/kademlia/dht_tracker.cpp:433</h4><pre style="backgr
 		// we have choked the upload to the peer
 		bool m_choked:1;
 
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(64)">../include/libtorrent/peer_connection.hpp:806</a></td><td>make these private as well</td></tr><tr id="64" style="display: none;" colspan="3"><td colspan="3"><h2>make these private as well</h2><h4>../include/libtorrent/peer_connection.hpp:806</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(64)">../include/libtorrent/peer_connection.hpp:804</a></td><td>make these private as well</td></tr><tr id="64" style="display: none;" colspan="3"><td colspan="3"><h2>make these private as well</h2><h4>../include/libtorrent/peer_connection.hpp:804</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		// when this is set, the peer_connection socket is
 		// corked, similar to the linux TCP feature TCP_CORK.
 		// we won't send anything to the actual socket, just

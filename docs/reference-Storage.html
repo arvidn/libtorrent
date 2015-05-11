@@ -41,7 +41,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.4</td></tr>
+<td>1.0.5</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -303,7 +303,10 @@ peer_request <strong>map_file</strong> (int file, size_type offset, int size) co
 </pre>
 <p>returns a <a class="reference external" href="reference-Core.html#peer_request">peer_request</a> representing the piece index, byte offset
 and size the specified file range overlaps. This is the inverse
-mapping ove <a class="reference external" href="reference-Core.html#map_block()">map_block()</a>.</p>
+mapping ove <a class="reference external" href="reference-Core.html#map_block()">map_block()</a>. Note that the <tt class="docutils literal">peer_request</tt> return type
+is meant to hold bittorrent block requests, which may not be larger
+than 16 kiB. Mapping a range larger than that may return an overflown
+integer.</p>
 <a name="num_files()"></a></div>
 <div class="section" id="num-files">
 <h2>num_files()</h2>
@@ -629,7 +632,7 @@ will be used. This is the recommended, and default mode.</td>
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>
