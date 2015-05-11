@@ -179,7 +179,6 @@ bool show_dht_status = false;
 bool sequential_download = false;
 
 bool print_ip = true;
-bool print_as = false;
 bool print_timers = false;
 bool print_block = false;
 bool print_peer_rate = false;
@@ -1910,7 +1909,6 @@ int main(int argc, char* argv[])
 				if (c == 'x') print_disk_stats = !print_disk_stats;
 				// toggle columns
 				if (c == '1') print_ip = !print_ip;
-				if (c == '2') print_as = !print_as;
 				if (c == '3') print_timers = !print_timers;
 				if (c == '4') print_block = !print_block;
 				if (c == '5') print_peer_rate = !print_peer_rate;
@@ -1944,7 +1942,7 @@ int main(int argc, char* argv[])
 						"[P] show pad files (in file list)\n"
 						"\n"
 						"COLUMN OPTIONS\n"
-						"[1] toggle IP column                            [2] toggle AS column\n"
+						"[1] toggle IP column                            [2]\n"
 						"[3] toggle timers column                        [4] toggle block progress column\n"
 						"[5] toggle peer rate column                     [6] toggle failures column\n"
 						"[7] toggle send buffers column\n"

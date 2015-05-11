@@ -153,25 +153,6 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
-# check for gethostbyname and gethostbyname_r (used in src/GeoIP.c)
-AC_CHECK_FUNCS([gethostbyname], [],
-  [AC_CHECK_LIB([nsl], [gethostbyname], [],
-    [AC_CHECK_LIB([resolv], [gethostbyname], [],
-      [AC_CHECK_LIB([socket], [gethostbyname], [],
-        [AC_CHECK_LIB([ws2_32], [main],
-          [AC_CHECK_LIB([wsock32], [main],
-            [LIBS="-lws2_32 -lwsock32 $LIBS"],
-            [AC_MSG_ERROR([wsock32 function not found.])])],
-          [AC_MSG_ERROR([gethostbyname function not found.])])])])])]
-)
-
-AC_CHECK_FUNCS(gethostbyname_r, [
-  # We look for the one that returns `int'.
-  # Hopefully this check is robust enough.
-  AC_EGREP_HEADER(int.*gethostbyname_r, netdb.h, [
-    AC_DEFINE(GETHOSTBYNAME_R_RETURNS_INT)])
-])
-
 AC_CHECK_FUNCS([clock_gettime], [],
     [AC_CHECK_LIB([rt], [clock_gettime], [],
       [AC_CHECK_LIB([posix4], [clock_gettime], [],

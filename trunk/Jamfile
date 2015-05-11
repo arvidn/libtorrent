@@ -568,9 +568,6 @@ lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
 
 lib tcmalloc : : <name>tcmalloc <link>shared ;
 
-# GeoIP shared library
-lib GeoIP : : <name>GeoIP <link>shared ;
-
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
 lib ws2_32 : : <name>ws2_32 <link>shared ;
