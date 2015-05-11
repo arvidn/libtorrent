@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title></title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.1.0</td></tr>
+</tbody>
+</table>
+<div id="librarySidebar"><ul class="simple">
+<li><a class="reference external" href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></li>
+<li><a class="reference external" href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">download python binding</a></li>
+<li><a class="reference external" href="features.html">features</a></li>
+<li><a class="reference external" href="contributing.html">contributing</a></li>
+<li><a class="reference external" href="building.html">building libtorrent</a></li>
+<li><a class="reference external" href="examples.html">examples</a></li>
+<li><a class="reference external" href="manual-ref.html">library overview</a></li>
+<li><a class="reference external" href="reference.html">reference documentation</a></li>
+<li><a class="reference external" href="troubleshooting.html">troubleshooting issues</a></li>
+<li><a class="reference external" href="tuning.html">tuning</a></li>
+<li><a class="reference external" href="client_test.png">screenshot</a></li>
+<li><a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a> (<a class="reference external" href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">archive</a>)</li>
+<li><a class="reference external" href="projects.html">who's using libtorrent?</a></li>
+<li><a class="reference external" href="http://code.google.com/p/libtorrent/issues/entry">report bugs</a></li>
+<li><a class="reference external" href="http://www.sourceforge.net/projects/libtorrent">sourceforge page</a></li>
+<li><a class="reference external" href="http://blog.libtorrent.org">blog</a></li>
+<li><a class="reference external" href="http://code.google.com/p/libtorrent/wiki/index">wiki</a></li>
+</ul>
+<hr class="docutils" />
+<p>Extensions</p>
+<ul class="simple">
+<li><a class="reference external" href="utp.html">uTP</a></li>
+<li><a class="reference external" href="extension_protocol.html">extensions protocol</a></li>
+<li><a class="reference external" href="reference-Plugins.html">plugin interface</a></li>
+<li><a class="reference external" href="streaming.html">streaming</a></li>
+<li><a class="reference external" href="dht_extensions.html">DHT extensions</a></li>
+<li><a class="reference external" href="dht_sec.html">DHT security extension</a></li>
+<li><a class="reference external" href="dht_store.html">DHT store extension</a></li>
+<li><a class="reference external" href="udp_tracker_protocol.html">UDP tracker protocol</a></li>
+<li><a class="reference external" href="http://www.getright.com/seedtorrent.html">HTTP seed</a></li>
+<li><a class="reference external" href="http://bittorrent.org/beps/bep_0012.html">multitracker</a></li>
+</ul>
+<hr class="docutils" />
+<p>Bindings</p>
+<ul class="simple">
+<li><a class="reference external" href="http://libtorrent-ruby.rubyforge.org/">ruby bindings</a></li>
+<li><a class="reference external" href="python_binding.html">python bindings</a></li>
+</ul>
+<hr class="docutils" />
+<ul class="simple">
+<li><a class="reference external" href="bittorrent.pdf">Introduction, slides</a></li>
+</ul>
+</div>
+<div id="libraryBody"><div class="section" id="libtorrent">
+<h1>libtorrent</h1>
+<p>libtorrent is a feature complete C++ bittorrent implementation focusing
+on efficiency and scalability. It runs on embedded devices as well as
+desktops. It boasts a well documented library interface that is easy to
+use. It comes with a <a class="reference external" href="client_test.html">simple bittorrent client</a> demonstrating the use of
+the library.</p>
+<p>The main goals of libtorrent are:</p>
+<ul class="simple">
+<li>to be cpu efficient</li>
+<li>to be memory efficient</li>
+<li>to be very easy to use</li>
+</ul>
+<div class="section" id="donate">
+<h2>Donate</h2>
+<p>Support the development of libtorrent</p>
+<a class="FlattrButton" style="display:none;" href="http://libtorrent.org"></a>
+<noscript><a href="http://flattr.com/thing/95662/libtorrent" target="_blank">
+<img src="http://api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a></noscript></div>
+<div class="section" id="feedback">
+<h2>Feedback</h2>
+<p>There's a <a class="reference external" href="http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss">mailing list</a>, general libtorrent discussion.</p>
+<p>You can usually find me as hydri in <tt class="docutils literal">#libtorrent</tt> on <tt class="docutils literal">irc.freenode.net</tt>.</p>
+</div>
+<div class="section" id="license">
+<h2>license</h2>
+<p>libtorrent is released under the <a class="reference external" href="http://www.opensource.org/licenses/bsd-license.php">BSD-license</a>.</p>
+<p>This means that you can use the library in your project without having to
+release its source code. The only requirement is that you give credit
+to the author of the library by including the libtorrent license in your
+software or documentation.</p>
+<p>It is however greatly appreciated if additional features are contributed
+back to the open source project. Patches can be emailed to the mailing
+list or posted to the <a class="reference external" href="https://code.google.com/p/libtorrent/issues/list">bug tracker</a>.</p>
+</div>
+<div class="section" id="acknowledgements">
+<h2>Acknowledgements</h2>
+<p>Written by Arvid Norberg. Copyright © 2003-2014</p>
+<p>Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson</p>
+<p>Thanks to Reimond Retz for bugfixes, suggestions and testing</p>
+<p>Thanks to <a class="reference external" href="http://www.cs.umu.se">Umeå University</a> for providing development and test hardware.</p>
+<p>Project is hosted by sourceforge.</p>
+<p><a class="reference external" href="http://sourceforge.net"><img alt="sf_logo" src="http://sourceforge.net/sflogo.php?group_id=7994" /></a></p>
+</div></div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div></div>
+
+</div>
+</body>
+</html>
