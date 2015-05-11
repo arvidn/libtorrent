@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
+#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
 #include <iostream>
@@ -116,7 +117,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	test_config_t const& test = test_config[test_idx];
 
-	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", aux::time_now_string(), test.name, use_utp ? "uTP": "TCP");
+	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -206,7 +207,7 @@ void test_ssl(int test_idx, bool use_utp)
 		port = ses2.listen_port();
 
 	fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
-		, aux::time_now_string(), port);
+		, time_now_string(), port);
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 		, port));
 
@@ -225,7 +226,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 		if (i % 10 == 0)
 		{
-			std::cerr << aux::time_now_string() << " "
+			std::cerr << time_now_string() << " "
 				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
 				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
 				<< "\033[0m" << int(st1.progress * 100) << "% "
@@ -270,8 +271,8 @@ void test_ssl(int test_idx, bool use_utp)
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
 
-	fprintf(stderr, "%s: EXPECT: %s\n", aux::time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
-	fprintf(stderr, "%s: RESULT: %s\n", aux::time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
+	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel
