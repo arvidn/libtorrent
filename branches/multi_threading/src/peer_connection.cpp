@@ -117,10 +117,9 @@ namespace libtorrent
 
 	// outbound connection
 	peer_connection::peer_connection(peer_connection_args const& pack)
-		: peer_connection_hot_members(pack.tor, pack.stats_counters, *pack.container, *pack.sett)
+		: peer_connection_hot_members(pack.tor, *pack.stats_counters, *pack.container, *pack.sett)
 		, m_socket(pack.socket)
 		, m_peer_info(pack.peerinfo)
-		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
 		, m_recv_buffer(*pack.allocator)
 		, m_max_out_request_queue(settings().get_int(
