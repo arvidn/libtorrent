@@ -201,6 +201,7 @@ namespace libtorrent
 
 		// a back reference to the session
 		// this torrent belongs to.
+		// TODO: 3 make this a torrent_container
 		aux::session_interface& m_ses;
 
 		// this vector is sorted at all times, by the pointer value.

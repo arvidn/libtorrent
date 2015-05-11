@@ -6372,14 +6372,14 @@ namespace libtorrent
 
 		boost::shared_ptr<peer_connection> c;
 		peer_connection_args pack;
-		pack.ses = &m_ses;
+		pack.container = &m_ses;
 		pack.sett = &m_ses.settings();
 		pack.stats_counters = &m_ses.stats_counters();
 		pack.allocator = &m_ses;
 		pack.disk_thread = &m_ses.disk_thread();
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
-		pack.s = s;
+		pack.socket = s;
 		pack.endp = a;
 		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
@@ -7413,14 +7413,14 @@ namespace libtorrent
 		m_ses.setup_socket_buffers(*s);
 
 		peer_connection_args pack;
-		pack.ses = &m_ses;
+		pack.container = &m_ses;
 		pack.sett = &m_ses.settings();
 		pack.stats_counters = &m_ses.stats_counters();
 		pack.allocator = &m_ses;
 		pack.disk_thread = &m_ses.disk_thread();
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
-		pack.s = s;
+		pack.socket = s;
 		pack.endp = a;
 		pack.peerinfo = peerinfo;
 
