@@ -2174,7 +2174,7 @@ namespace libtorrent
 			outgoing_message,
 			incoming,
 			outgoing,
-			info,
+			info
 		};
 
 		// internal

@@ -2561,14 +2561,14 @@ retry:
 		setup_socket_buffers(*s);
 
 		peer_connection_args pack;
-		pack.ses = this;
+		pack.container = this;
 		pack.sett = &m_settings;
 		pack.stats_counters = &m_stats_counters;
 		pack.allocator = this;
 		pack.disk_thread = &m_disk_thread;
 		pack.ios = &m_io_service;
 		pack.tor = boost::weak_ptr<torrent>();
-		pack.s = s;
+		pack.socket = s;
 		pack.endp = endp;
 		pack.peerinfo = 0;
 
@@ -3237,6 +3237,7 @@ retry:
 
 	} // anonymous namespace
 
+	// TODO: 2 see if we can remove these two functions
 	void session_impl::received_buffer(int s)
 	{
 		int index = (std::min)(log2(s >> 3), 17);
@@ -4501,7 +4502,8 @@ retry:
 		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
 		{
 			std::string filename = resolve_file_url(params.url);
-			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
+			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(
+				filename, boost::ref(ec), 0);
 			if (ec) return torrent_handle();
 			params.url.clear();
 			params.ti = t;

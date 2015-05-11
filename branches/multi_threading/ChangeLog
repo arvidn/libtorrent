@@ -1,3 +1,4 @@
+	* remove libgeoip support
 	* removed deprecated handle_alert template
 	* enable logging build config by default (but alert mask disabled by default)
 	* deprecated RSS API

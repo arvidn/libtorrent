@@ -126,11 +126,25 @@ namespace libtorrent { namespace aux
 	};
 #endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 
-	// TOOD: 2 make this interface a lot smaller. It could be split up into
+	// this is the view of the session that peers see
+	struct torrent_container
+	{
+		// peer-classes
+		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
+		virtual peer_class_pool const& peer_classes() const = 0;
+		virtual peer_class_pool& peer_classes() = 0;
+
+		virtual session_settings const& settings() const = 0;
+	protected:
+		~torrent_container() {}
+	};
+
+	// TODO: 2 make this interface a lot smaller. It could be split up into
 	// several smaller interfaces. Each subsystem could then limit the size
 	// of the mock object to test it.
 	struct session_interface
 		: buffer_allocator_interface
+		, torrent_container
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, session_logger
 #endif
@@ -160,7 +174,7 @@ namespace libtorrent { namespace aux
 		typedef boost::function<void(error_code const&, std::vector<address> const&)>
 			callback_t;
 
-		// TODO: 2 remove this. There's already get_resolver()
+		// TODO: 3 remove this. There's already get_resolver()
 		virtual void async_resolve(std::string const& host, int flags
 			, callback_t const& h) = 0;
 
@@ -255,15 +269,11 @@ namespace libtorrent { namespace aux
 		virtual void trigger_auto_manage() = 0;
 
 		virtual void apply_settings_pack(settings_pack* pack) = 0;
-		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
 			, boost::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
-		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
-		virtual peer_class_pool const& peer_classes() const = 0;
-		virtual peer_class_pool& peer_classes() = 0;
 		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
 		virtual int copy_pertinent_channels(peer_class_set const& set
 			, int channel, bandwidth_channel** dst, int max) = 0;

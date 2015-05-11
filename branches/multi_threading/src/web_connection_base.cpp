@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/socket_type.hpp"
 
 using boost::shared_ptr;
 
@@ -100,7 +101,7 @@ namespace libtorrent
 	{
 		// since this is a web seed, change the timeout
 		// according to the settings.
-		return m_settings.get_int(settings_pack::urlseed_timeout);
+		return settings().get_int(settings_pack::urlseed_timeout);
 	}
 
 	void web_connection_base::start()
@@ -132,9 +133,9 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
+		if (m_first_request || settings().get_bool(settings_pack::always_send_user_agent)) {
 			request += "\r\nUser-Agent: ";
-			request += m_settings.get_str(settings_pack::user_agent);
+			request += settings().get_str(settings_pack::user_agent);
 		}
 		if (!m_external_auth.empty()) {
 			request += "\r\nAuthorization: ";

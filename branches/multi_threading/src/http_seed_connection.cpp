@@ -64,7 +64,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
+		if (!settings().get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
 		shared_ptr<torrent> tor = pack.tor.lock();
@@ -73,7 +73,7 @@ namespace libtorrent
 
 		// multiply with the blocks per piece since that many requests are
 		// merged into one http request
-		max_out_request_queue(m_settings.get_int(settings_pack::urlseed_pipeline_size)
+		max_out_request_queue(settings().get_int(settings_pack::urlseed_pipeline_size)
 			* blocks_per_piece);
 
 		prefer_contiguous_blocks(blocks_per_piece);
@@ -167,7 +167,7 @@ namespace libtorrent
 			size -= pr.length;
 		}
 
-		int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+		int proxy_type = settings().get_int(settings_pack::proxy_type);
 		bool using_proxy = (proxy_type == settings_pack::http
 			|| proxy_type == settings_pack::http_pw) && !m_ssl;
 

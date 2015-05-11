@@ -63,11 +63,6 @@ namespace libtorrent
 	class torrent;
 	struct peer_request;
 
-	namespace detail
-	{
-		struct session_impl;
-	}
-
 	class TORRENT_EXTRA_EXPORT http_seed_connection
 		: public web_connection_base
 	{

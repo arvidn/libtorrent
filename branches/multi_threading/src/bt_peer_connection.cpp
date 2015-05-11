@@ -186,7 +186,7 @@ namespace libtorrent
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		
-		boost::uint8_t out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		boost::uint8_t out_enc_policy = t->settings().get_int(settings_pack::out_enc_policy);
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -276,8 +276,8 @@ namespace libtorrent
 		write_bitfield();
 		TORRENT_ASSERT(m_sent_bitfield);
 #ifndef TORRENT_DISABLE_DHT
-		if (m_supports_dht_port && m_ses.has_dht())
-			write_dht_port(m_ses.external_udp_port());
+		if (m_supports_dht_port && ses().has_dht())
+			write_dht_port(ses().external_udp_port());
 #endif
 	}
 
@@ -850,8 +850,8 @@ namespace libtorrent
 		{
 			write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			if (m_supports_dht_port && ses().has_dht())
+				write_dht_port(ses().external_udp_port());
 #endif
 
 			// if we don't have any pieces, don't do any preemptive
@@ -1378,8 +1378,8 @@ namespace libtorrent
 		{
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			if (m_supports_dht_port && ses().has_dht())
+				write_dht_port(ses().external_udp_port());
 #endif
 		}
 	}
@@ -1877,7 +1877,7 @@ namespace libtorrent
 			{
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
-				m_ses.set_external_address(address_v4(bytes)
+				ses().set_external_address(address_v4(bytes)
 					, aux::session_interface::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
@@ -1887,10 +1887,10 @@ namespace libtorrent
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
-					m_ses.set_external_address(ipv6_address.to_v4()
+					ses().set_external_address(ipv6_address.to_v4()
 						, aux::session_interface::source_peer, remote().address());
 				else
-					m_ses.set_external_address(ipv6_address
+					ses().set_external_address(ipv6_address
 						, aux::session_interface::source_peer, remote().address());
 			}
 #endif
@@ -2262,8 +2262,11 @@ namespace libtorrent
 
 		// if we're using a proxy, our listen port won't be useful
 		// anyway.
+		// TODO: 2 ask which interface this socket is bound to, then when
+		// asking the session for the listen port, include which interface we're
+		// asking for
 		if (!m_settings.get_bool(settings_pack::force_proxy) && is_outgoing())
-			handshake["p"] = m_ses.listen_port();
+			handshake["p"] = ses().listen_port();
 
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
@@ -2784,7 +2787,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!is_disconnecting());
 
 			sha1_hash ih(recv_buffer.begin);
-			torrent const* ti = m_ses.find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
+			torrent const* ti = ses().find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
 
 			if (ti)
 			{
@@ -2932,12 +2935,12 @@ namespace libtorrent
 			if (!is_outgoing())
 			{
 				// select a crypto method
-				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
+				int allowed_encryption = t->settings().get_int(settings_pack::allowed_enc_level);
 				boost::uint32_t crypto_select = crypto_field & allowed_encryption;
 	
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
-				if (m_settings.get_bool(settings_pack::prefer_rc4))
+				if (t->settings().get_bool(settings_pack::prefer_rc4))
 				{
 					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
 					while (crypto_select & (mask << 1))
@@ -3110,8 +3113,8 @@ namespace libtorrent
 			{
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
+				if (m_supports_dht_port && ses().has_dht())
+					write_dht_port(ses().external_udp_port());
 #endif
 
 				// if we don't have any pieces, don't do any preemptive
@@ -3146,7 +3149,7 @@ namespace libtorrent
 			// encrypted portion of handshake completed, toggle
 			// peer_info pe_support flag back to true
 			if (is_outgoing() &&
-				m_settings.get_int(settings_pack::out_enc_policy)
+				t->settings().get_int(settings_pack::out_enc_policy)
 					== settings_pack::pe_enabled)
 			{
 				torrent_peer* pi = peer_info_struct();
@@ -3192,7 +3195,7 @@ namespace libtorrent
 #endif // TORRENT_USE_OPENSSL
 
 				if (!is_outgoing()
-					&& m_settings.get_int(settings_pack::in_enc_policy)
+					&& t->settings().get_int(settings_pack::in_enc_policy)
 						== settings_pack::pe_disabled)
 				{
 					disconnect(errors::no_incoming_encrypted, op_bittorrent);
@@ -3227,7 +3230,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_state != read_pe_dhkey);
 
 				if (!is_outgoing()
-					&& m_settings.get_int(settings_pack::in_enc_policy)
+					&& t->settings().get_int(settings_pack::in_enc_policy)
 						== settings_pack::pe_forced
 					&& !m_encrypted
 					&& !is_ssl(*get_socket()))
@@ -3443,7 +3446,7 @@ namespace libtorrent
 			// Toggle pe_support back to false if this is a
 			// standard successful connection
 			if (is_outgoing() && !m_encrypted &&
-				m_settings.get_int(settings_pack::out_enc_policy)
+				t->settings().get_int(settings_pack::out_enc_policy)
 					== settings_pack::pe_enabled)
 			{
 				torrent_peer* pi = peer_info_struct();

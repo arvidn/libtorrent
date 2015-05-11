@@ -76,7 +76,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 {
 	INVARIANT_CHECK;
 
-	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
+	if (!settings().get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
 	shared_ptr<torrent> tor = pack.tor.lock();
@@ -311,7 +311,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+	int proxy_type = settings().get_int(settings_pack::proxy_type);
 	bool using_proxy = (proxy_type == settings_pack::http
 		|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
@@ -633,7 +633,7 @@ void web_peer_connection::on_receive(error_code const& error
 				// associated with the file we just requested. Only
 				// when it doesn't have any of the file do the following
 				int retry_time = atoi(m_parser.header("retry-after").c_str());
-				if (retry_time <= 0) retry_time = m_settings.get_int(settings_pack::urlseed_wait_retry);
+				if (retry_time <= 0) retry_time = settings().get_int(settings_pack::urlseed_wait_retry);
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
 				std::string error_msg = to_string(m_parser.status_code()).elems
