@@ -863,7 +863,7 @@ libtorrent reference documentation
 
 .. raw:: html
 
-	<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4">
+	<div style="column-count: 4; -webkit-column-count: 4; -moz-column-count: 4; column-width: 13em; -webkit-column-width: 13em; -moz-column-width: 13em">
 
 ''')
 

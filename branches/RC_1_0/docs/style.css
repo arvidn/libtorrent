@@ -85,9 +85,10 @@ div.section p, div.section ul, div.section dl {
 
 #container {
     text-align: left;
-    width: 65em;
+    max-width: 65em;
     margin: 0 auto;
     position: relative;
+    padding: 3px ;
 }
 
 #header {
