@@ -42,7 +42,7 @@
 <tbody valign="top">
 <tr class="field"><th class="field-name">Author:</th><td class="field-body">Arvid Norberg, <a class="reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body">1.0.4</td>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body">1.0.5</td>
 </tr>
 </tbody>
 </table>
@@ -509,8 +509,13 @@ virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*ms
 <p>called when an extended message is received. If returning true,
 the message is not processed by any other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> and if false
 is returned the next <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> in the chain will receive it to
-be able to handle it
-this is not called for web seeds</p>
+be able to handle it. This is not called for web seeds.
+thus function may be called more than once per incoming message, but
+only the last of the calls will the <tt class="docutils literal">body</tt> size equal the <tt class="docutils literal">length</tt>.
+i.e. Every time another fragment of the message is received, this
+function will be called, until finally the whole message has been
+received. The purpose of this is to allow early disconnects for invalid
+messages and for reporting progress of receiving large messages.</p>
 <a name="on_unknown_message()"></a></div>
 <div class="section" id="on-unknown-message">
 <h3>on_unknown_message()</h3>
@@ -633,7 +638,7 @@ via <a class="reference external" href="reference-Core.html#add_extension()">tor
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>

@@ -150,7 +150,7 @@ ses.listen_on(6881, 6891)
 e = lt.bdecode(open(&quot;test.torrent&quot;, 'rb').read())
 info = lt.torrent_info(e)
 
-params = { save_path: './', \
+params = { save_path: '.', \
         storage_mode: lt.storage_mode_t.storage_mode_sparse, \
         ti: info }
 h = ses.add_torrent(params)
@@ -200,7 +200,7 @@ while (not h.is_seed()):
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>
