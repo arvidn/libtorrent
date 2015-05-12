@@ -41,7 +41,7 @@ a:hover {
 
 ul, ol { line-height: 1.8em; }
 ul { list-style: square; }
-li { margin-left: 2.8em; font-size: 92%; }
+li { margin-left: 2.8em; }
 
 p, ul, ol, img {margin-bottom: 1em;}
 
@@ -86,7 +86,7 @@ div.section p, div.section ul, div.section dl {
 #container {
     text-align: left;
     max-width: 65em;
-    margin: 0 auto;
+    margin: 5px auto;
     position: relative;
     padding: 3px ;
 }
