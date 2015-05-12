@@ -1361,13 +1361,16 @@ namespace libtorrent
 
 		// counts the amount of bytes send and received this session, but only
 		// the actual payload data (i.e the interesting data), these counters
-		// ignore any protocol overhead.
+		// ignore any protocol overhead. The session is considered to restart
+		// when a torrent is paused and restarted again. When a torrent is
+		// paused, these counters are reset to 0.
 		boost::int64_t total_payload_download;
 		boost::int64_t total_payload_upload;
 
 		// the number of bytes that has been downloaded and that has failed the
 		// piece hash test. In other words, this is just how much crap that has
-		// been downloaded.
+		// been downloaded since the torrent was last started. If a torrent is
+		// paused and then restarted again, this counter will be reset.
 		boost::int64_t total_failed_bytes;
 
 		// the number of bytes that has been downloaded even though that data
@@ -1378,7 +1381,9 @@ namespace libtorrent
 		// situation when libtorrent may re-request blocks is when the requests
 		// it sends out are not replied in FIFO-order (it will re-request blocks
 		// that are skipped by an out of order block). This is supposed to be as
-		// low as possible.
+		// low as possible. This only counts bytes since the torrent was last
+		// started. If a torrent is paused and then restarted again, this counter
+		// will be reset.
 		boost::int64_t total_redundant_bytes;
 
 		// a bitmask that represents which pieces we have (set to true) and the
