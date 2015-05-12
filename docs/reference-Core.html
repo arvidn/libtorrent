@@ -47,16 +47,16 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id189">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#hasher" id="id190">hasher</a></li>
-<li><a class="reference internal" href="#peer-info" id="id191">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id192">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id193">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id194">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id195">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id196">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id197">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id198">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id190">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id191">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id192">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id193">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id194">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id195">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id196">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id197">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id198">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id199">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -2525,13 +2525,16 @@ counters are reset to 0. If you want complete, persistent, stats, see
 <dt>total_payload_download  total_payload_upload</dt>
 <dd>counts the amount of bytes send and received this <a class="reference external" href="reference-Session.html#session">session</a>, but only
 the actual payload data (i.e the interesting data), these counters
-ignore any protocol overhead.</dd>
+ignore any protocol overhead. The <a class="reference external" href="reference-Session.html#session">session</a> is considered to restart
+when a torrent is paused and restarted again. When a torrent is
+paused, these counters are reset to 0.</dd>
 </dl>
 <a name="total_failed_bytes"></a><dl class="docutils">
 <dt>total_failed_bytes</dt>
 <dd>the number of bytes that has been downloaded and that has failed the
 piece hash test. In other words, this is just how much crap that has
-been downloaded.</dd>
+been downloaded since the torrent was last started. If a torrent is
+paused and then restarted again, this counter will be reset.</dd>
 </dl>
 <a name="total_redundant_bytes"></a><dl class="docutils">
 <dt>total_redundant_bytes</dt>
@@ -2543,7 +2546,9 @@ certain timeout, libtorrent will re-request that block. Another
 situation when libtorrent may re-request blocks is when the requests
 it sends out are not replied in FIFO-order (it will re-request blocks
 that are skipped by an out of order block). This is supposed to be as
-low as possible.</dd>
+low as possible. This only counts bytes since the torrent was last
+started. If a torrent is paused and then restarted again, this counter
+will be reset.</dd>
 </dl>
 <a name="pieces"></a><dl class="docutils">
 <dt>pieces</dt>
@@ -2948,7 +2953,7 @@ allowed to force another tracker update with this tracker.</p>
 <p>If the last time this tracker was contacted failed, <tt class="docutils literal">last_error</tt> is the error
 code describing what error occurred.</p>
 <a name="reset()"></a></div>
-<div class="section" id="id145">
+<div class="section" id="id146">
 <h2>reset()</h2>
 <pre class="literal-block">
 void <strong>reset</strong> ();
@@ -3164,7 +3169,7 @@ class torrent_info : public intrusive_ptr_base&lt;torrent_info&gt;
    bool <strong>is_merkle_torrent</strong> () const;
 };
 </pre>
-<a name="torrent_info()"></a><div class="section" id="id149">
+<a name="torrent_info()"></a><div class="section" id="id150">
 <h2>torrent_info()</h2>
 <pre class="literal-block">
 <strong>torrent_info</strong> (std::string const&amp; filename, int flags = 0);
@@ -3202,7 +3207,7 @@ an error occurs. These overloads are not available when building
 without exception support.</p>
 <p>The <tt class="docutils literal">flags</tt> argument is currently unused.</p>
 <a name="~torrent_info()"></a></div>
-<div class="section" id="id157">
+<div class="section" id="id158">
 <h2>~torrent_info()</h2>
 <pre class="literal-block">
 <strong>~torrent_info</strong> ();
@@ -3227,7 +3232,7 @@ names. Filename may be chaged using <tt class="docutils literal"><span class="pr
 <p>For more information on the <a class="reference external" href="reference-Storage.html#file_storage">file_storage</a> object, see the separate document on how
 to create torrents.</p>
 <a name="rename_file()"></a></div>
-<div class="section" id="id163">
+<div class="section" id="id164">
 <h2>rename_file()</h2>
 <pre class="literal-block">
 void <strong>rename_file</strong> (int index, std::string const&amp; new_filename);
@@ -3312,7 +3317,7 @@ the piece index as argument and gives you the exact size of that piece. It will 
 be the same as <tt class="docutils literal">piece_length()</tt> except in the case of the last piece, which may
 be smaller.</p>
 <a name="info_hash()"></a></div>
-<div class="section" id="id170">
+<div class="section" id="id171">
 <h2>info_hash()</h2>
 <pre class="literal-block">
 const sha1_hash&amp; <strong>info_hash</strong> () const;
@@ -3359,7 +3364,7 @@ std::string <strong>ssl_cert</strong> () const;
 torrent. Otherwise returns an empty string. The certificate is
 the the public certificate in x509 format.</p>
 <a name="is_valid()"></a></div>
-<div class="section" id="id173">
+<div class="section" id="id174">
 <h2>is_valid()</h2>
 <pre class="literal-block">
 bool <strong>is_valid</strong> () const;
@@ -3472,7 +3477,7 @@ lazy_entry const* <strong>info</strong> (char const* key) const;
 It can be used to access extension values put in the .torrent file. If the specified
 key cannot be found, it returns NULL.</p>
 <a name="swap()"></a></div>
-<div class="section" id="id178">
+<div class="section" id="id179">
 <h2>swap()</h2>
 <pre class="literal-block">
 void <strong>swap</strong> (torrent_info&amp; ti);
