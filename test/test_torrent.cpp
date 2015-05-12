@@ -37,24 +37,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
-#include "libtorrent/torrent.hpp"
 #include <boost/tuple/tuple.hpp>
-#include <boost/make_shared.hpp>
 #include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
-void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t file_size)
+void test_running_torrent(boost::intrusive_ptr<torrent_info> info, size_type file_size)
 {
-	settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
-	pack.set_int(settings_pack::max_retry_port_bind, 10);
-	lt::session ses(pack);
+	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
+	ses.set_alert_mask(alert::storage_notification);
 
 	std::vector<boost::uint8_t> zeroes;
 	zeroes.resize(1000, 0);
@@ -68,56 +62,43 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 
 	error_code ec;
 	torrent_handle h = ses.add_torrent(p, ec);
-	if (ec)
-	{
-		fprintf(stderr, "add_torrent: %s\n", ec.message().c_str());
-		return;
-	}
 
 	std::vector<int> ones(info->num_files(), 1);
 	h.prioritize_files(ones);
 
-//	test_sleep(500);
+	test_sleep(500);
 	torrent_status st = h.status();
 
-	TEST_EQUAL(st.total_wanted, file_size * 3);
-	TEST_EQUAL(st.total_wanted_done, 0);
+	std::cout << "total_wanted: " << st.total_wanted << " : " << file_size * 3 << std::endl;
+	TEST_CHECK(st.total_wanted == file_size * 3);
+	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
+	TEST_CHECK(st.total_wanted_done == 0);
 
-	std::vector<int> prio(info->num_files(), 1);
+	std::vector<int> prio(3, 1);
 	prio[0] = 0;
 	h.prioritize_files(prio);
+	std::cout << "prio: " << prio.size() << std::endl;
+	std::cout << "ret prio: " << h.file_priorities().size() << std::endl;
+	TEST_CHECK(h.file_priorities().size() == info->num_files());
+
+	test_sleep(500);
 	st = h.status();
 
-	TEST_EQUAL(st.total_wanted, file_size * 2);
-	TEST_EQUAL(st.total_wanted_done, 0);
-	TEST_EQUAL(h.file_priorities().size(), info->num_files());
-	if (!st.is_seeding)
-	{
-		TEST_EQUAL(h.file_priorities()[0], 0);
-		if (info->num_files() > 1)
-			TEST_EQUAL(h.file_priorities()[1], 1);
-		if (info->num_files() > 2)
-			TEST_EQUAL(h.file_priorities()[2], 1);
-	}
+	std::cout << "total_wanted: " << st.total_wanted << " : " << file_size * 2 << std::endl;
+	TEST_CHECK(st.total_wanted == file_size * 2);
+	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
+	TEST_CHECK(st.total_wanted_done == 0);
 
-	if (info->num_files() > 1)
-	{
-		prio[1] = 0;
-		h.prioritize_files(prio);
-		st = h.status();
+	prio[1] = 0;
+	h.prioritize_files(prio);
 
-		TEST_EQUAL(st.total_wanted, file_size);
-		TEST_EQUAL(st.total_wanted_done, 0);
-		if (!st.is_seeding)
-		{
-			TEST_EQUAL(h.file_priorities().size(), info->num_files());
-			TEST_EQUAL(h.file_priorities()[0], 0);
-			if (info->num_files() > 1)
-				TEST_EQUAL(h.file_priorities()[1], 0);
-			if (info->num_files() > 2)
-				TEST_EQUAL(h.file_priorities()[2], 1);
-		}
-	}
+	test_sleep(500);
+	st = h.status();
+
+	std::cout << "total_wanted: " << st.total_wanted << " : " << file_size << std::endl;
+	TEST_CHECK(st.total_wanted == file_size);
+	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
+	TEST_CHECK(st.total_wanted_done == 0);
 
 	if (info->num_pieces() > 0)
 	{
@@ -128,38 +109,43 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
 		h.add_piece(0, &piece[0]);
-
-		// wait until the piece is done writing and hashing
-		// TODO: wait for an alert rather than just waiting 10 seconds. This is kind of silly
-		test_sleep(2000);
+		test_sleep(10000);
 		st = h.status();
 		TEST_CHECK(st.pieces.size() > 0 && st.pieces[0] == true);
 
 		std::cout << "reading piece 0" << std::endl;
 		h.read_piece(0);
-		alert const* a = wait_for_alert(ses, read_piece_alert::alert_type, "read_piece");
-		TEST_CHECK(a);
-		read_piece_alert const* rpa = alert_cast<read_piece_alert>(a);
-		TEST_CHECK(rpa);
-		if (rpa)
+		alert const* a = ses.wait_for_alert(seconds(10));
+		bool passed = false;
+		while (a)
 		{
-			std::cout << "SUCCEEDED!" << std::endl;
-			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
-			TEST_CHECK(rpa->size == info->piece_size(0));
-			TEST_CHECK(rpa->piece == 0);
-			TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
+			std::auto_ptr<alert> al = ses.pop_alert();
+			assert(al.get());
+			std::cout << "  " << al->message() << std::endl;
+			if (read_piece_alert* rpa = alert_cast<read_piece_alert>(al.get()))
+			{
+				std::cout << "SUCCEEDED!" << std::endl;
+				passed = true;
+				TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
+				TEST_CHECK(rpa->size == info->piece_size(0));
+				TEST_CHECK(rpa->piece == 0);
+				break;
+			}
+			a = ses.wait_for_alert(seconds(10));
+			TEST_CHECK(a);
 		}
+		TEST_CHECK(passed);
 	}
 }
 
 int test_main()
 {
-/*	{
+	{
 		remove("test_torrent_dir2/tmp1");
 		remove("test_torrent_dir2/tmp2");
 		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
-		boost::int64_t file_size = 256 * 1024;
+		size_type file_size = 256 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
 		fs.add_file("test_torrent_dir2/tmp2", file_size);
 		fs.add_file("test_torrent_dir2/tmp3", file_size);
@@ -181,12 +167,12 @@ int test_main()
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
 		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
 	}
-*/
+
 	{
 		file_storage fs;
 
@@ -198,71 +184,8 @@ int test_main()
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
+		boost::intrusive_ptr<torrent_info> info(new torrent_info(&tmp[0], tmp.size(), ec));
 		test_running_torrent(info, 0);
-	}
-
-	{
-		// test the initialize_file_progress function to make sure it assigns
-		// the correct number of bytes across the files
-		const int piece_size = 256;
-
-		file_storage fs;
-		fs.add_file("torrent/1", 0);
-		fs.add_file("torrent/2", 10);
-		fs.add_file("torrent/3", 20);
-		fs.add_file("torrent/4", 30);
-		fs.add_file("torrent/5", 40);
-		fs.add_file("torrent/6", 100000);
-		fs.add_file("torrent/7", 30);
-		fs.set_piece_length(piece_size);
-		fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
-
-		for (int idx = 0; idx < fs.num_pieces(); ++idx)
-		{
-			piece_picker picker;
-			picker.init(4, fs.total_size() % 4, fs.num_pieces());
-			picker.we_have(idx);
-
-			std::vector<boost::uint64_t> fp;
-
-			initialize_file_progress(fp, picker, fs);
-
-			boost::uint64_t sum = 0;
-			for (int i = 0; i < fp.size(); ++i)
-				sum += fp[i];
-
-			TEST_EQUAL(sum, fs.piece_size(idx));
-		}
-	}
-
-	{
-		// test the initialize_file_progress function to make sure it assigns
-		// the correct number of bytes across the files
-		const int piece_size = 256;
-
-		file_storage fs;
-		fs.add_file("torrent/1", 100000);
-		fs.add_file("torrent/2", 10);
-		fs.set_piece_length(piece_size);
-		fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
-
-		for (int idx = 0; idx < fs.num_pieces(); ++idx)
-		{
-			piece_picker picker;
-			picker.init(4, fs.total_size() % 4, fs.num_pieces());
-			picker.we_have(idx);
-
-			std::vector<boost::uint64_t> fp;
-
-			initialize_file_progress(fp, picker, fs);
-
-			boost::uint64_t sum = 0;
-			for (int i = 0; i < fp.size(); ++i)
-				sum += fp[i];
-
-			TEST_EQUAL(sum, fs.piece_size(idx));
-		}
 	}
 
 	return 0;

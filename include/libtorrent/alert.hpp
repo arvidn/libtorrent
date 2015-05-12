@@ -36,9 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <deque>
 #include <string>
-#include <vector>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/preprocessor/repetition/enum_params_with_a_default.hpp>
 #include <boost/preprocessor/repetition/enum.hpp>
@@ -46,35 +47,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #include <boost/preprocessor/repetition/enum_shifted_binary_params.hpp>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 // OVERVIEW
 //
 // The pop_alerts() function on session is the main interface for retrieving
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
-// been posted by libtorrent pop_alerts() will return an empty list.
+// been posted by libtorrent pop_alert() will return an empty list.
 // 
 // By default, only errors are reported. set_alert_mask() can be used to
 // specify which kinds of events should be reported. The alert mask is
 // comprised by bits from the category_t enum.
 // 
-// Every alert belongs to one or more category. There is a cost associated with
-// posting alerts. Only alerts that belong to an enabled category are
+// Every alert belongs to one or more category. There is a small cost involved
+// in posting alerts. Only alerts that belong to an enabled category are
 // posted. Setting the alert bitmask to 0 will disable all alerts (except those
-// that are non-discardable). Alerts that are responses to API calls such as
-// save_resume_data() and post_session_stats() are non-discardable and will be
-// posted even if their category is disabled.
+// that are non-discardable).
 // 
 // There are other alert base classes that some alerts derive from, all the
 // alerts that are generated for a specific torrent are derived from
 // torrent_alert, and tracker events derive from tracker_alert.
 //
-// Alerts returned by pop_alerts() are only valid until the next call to
-// pop_alerts(). You may not copy an alert object to access it after the next
-// call to pop_alerts(). Internal members of alerts also become invalid once
-// pop_alerts() is called again.
 
-#include "libtorrent/time.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#include "libtorrent/ptime.hpp"
 #include "libtorrent/config.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -85,12 +82,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_MAX_ALERT_TYPES
 #define TORRENT_MAX_ALERT_TYPES 15
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_TYPEID
-#include <typeinfo>
-#endif
 #endif
 
 namespace libtorrent {
@@ -162,35 +153,10 @@ namespace libtorrent {
 			// the lasts stats alert.
 			stats_notification = 0x800,
 
-#ifndef TORRENT_NO_DEPRECATE
 			// Alerts on RSS related events, like feeds being updated, feed error 
 			// conditions and successful RSS feed updates. Enabling this categoty 
 			// will make you receive rss_alert alerts.
 			rss_notification = 0x1000,
-#endif
-
-			// Enables debug logging alerts. These are available unless libtorrent
-			// was built with logging disabled (``TORRENT_DISABLE_LOGGING``). The
-			// alerts being posted are log_alert and are session wide.
-			session_log_notification = 0x2000,
-
-			// Enables debug logging alerts for torrents. These are available
-			// unless libtorrent was built with logging disabled
-			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
-			// torrent_log_alert and are torrent wide debug events.
-			torrent_log_notification = 0x4000,
-
-			// Enables debug logging alerts for peers. These are available unless
-			// libtorrent was built with logging disabled
-			// (``TORRENT_DISABLE_LOGGING``). The alerts being posted are
-			// peer_log_alert and low-level peer events and messages.
-			peer_log_notification = 0x8000,
-
-			// enables the incoming_request_alert.
-			incoming_request_notification = 0x10000,
-
-			// enables dht_log_alert, debug logging for the DHT
-			dht_log_notification = 0x20000,
 
 			// The full bitmask, representing all available categories.
 			//
@@ -207,7 +173,7 @@ namespace libtorrent {
 		virtual ~alert();
 
 		// a timestamp is automatically created in the constructor
-		time_point timestamp() const;
+		ptime timestamp() const;
 
 		// returns an integer that is unique to this alert type. It can be
 		// compared against a specific alert by querying a static constant called ``alert_type``
@@ -218,25 +184,22 @@ namespace libtorrent {
 		//
 		// .. code:: c++
 		//
-		//	std::vector<alert*> alerts;
-		//	ses.pop_alerts(&alerts);
-		//	for (alert* i : alerts) {
-		//		switch (a->type()) {
-		// 
-		//			case read_piece_alert::alert_type:
-		//			{
-		//				read_piece_alert* p = (read_piece_alert*)a;
-		//				if (p->ec) {
-		//					// read_piece failed
-		//					break;
-		//				}
-		//				// use p
+		//	std::auto_ptr<alert> a = ses.pop_alert();
+		//	switch (a->type())
+		//	{
+		//		case read_piece_alert::alert_type:
+		//		{
+		//			read_piece_alert* p = (read_piece_alert*)a.get();
+		//			if (p->ec) {
+		//				// read_piece failed
 		//				break;
 		//			}
-		//			case file_renamed_alert::alert_type:
-		//			{
-		//				// etc...
-		//			}
+		//			// use p
+		//			break;
+		//		}
+		//		case file_renamed_alert::alert_type:
+		//		{
+		//			// etc...
 		//		}
 		//	}
 		virtual int type() const = 0;
@@ -255,26 +218,83 @@ namespace libtorrent {
 		// returns a bitmask specifying which categories this alert belong to.
 		virtual int category() const = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
-		TORRENT_DEPRECATED
 		virtual bool discardable() const { return true; }
 
-		TORRENT_DEPRECATED
-		severity_t severity() const { return warning; }
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED_PREFIX
+		severity_t severity() const TORRENT_DEPRECATED { return warning; }
+#endif
 
 		// returns a pointer to a copy of the alert.
 		virtual std::auto_ptr<alert> clone() const = 0;
-#endif
 
 	private:
-		// explicitly disallow assignment, to silence msvc warning
-		alert& operator=(alert const&);
-
-		time_point m_timestamp;
+		ptime m_timestamp;
 	};
+
+#ifndef BOOST_NO_EXCEPTIONS
+#ifndef TORRENT_NO_DEPRECATE
+	struct TORRENT_EXPORT unhandled_alert : std::exception
+	{
+		unhandled_alert() {}
+	};
+
+#ifndef BOOST_NO_TYPEID
+
+	namespace detail {
+
+		struct void_;
+
+		template<class Handler
+			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, class T)>
+		void handle_alert_dispatch(
+			const std::auto_ptr<alert>& alert_, const Handler& handler
+			, const std::type_info& typeid_
+			, T0*, BOOST_PP_ENUM_SHIFTED_BINARY_PARAMS(TORRENT_MAX_ALERT_TYPES, T, *p))
+		{
+			if (typeid_ == typeid(T0))
+				handler(*static_cast<T0*>(alert_.get()));
+			else
+				handle_alert_dispatch(alert_, handler, typeid_
+					, BOOST_PP_ENUM_SHIFTED_PARAMS(
+					TORRENT_MAX_ALERT_TYPES, p), (void_*)0);
+		}
+
+		template<class Handler>
+		void handle_alert_dispatch(
+			const std::auto_ptr<alert>&
+			, const Handler&
+			, const std::type_info&
+			, BOOST_PP_ENUM_PARAMS(TORRENT_MAX_ALERT_TYPES, void_* BOOST_PP_INTERCEPT))
+		{
+			throw unhandled_alert();
+		}
+
+	} // namespace detail
+
+	template<BOOST_PP_ENUM_PARAMS_WITH_A_DEFAULT(
+		TORRENT_MAX_ALERT_TYPES, class T, detail::void_)>
+	struct TORRENT_EXPORT handle_alert
+	{
+		template<class Handler>
+		handle_alert(const std::auto_ptr<alert>& alert_
+			, const Handler& handler)
+		{
+			#define ALERT_POINTER_TYPE(z, n, text) (BOOST_PP_CAT(T, n)*)0
+
+			detail::handle_alert_dispatch(alert_, handler, typeid(*alert_)
+				, BOOST_PP_ENUM(TORRENT_MAX_ALERT_TYPES, ALERT_POINTER_TYPE, _));
+
+			#undef ALERT_POINTER_TYPE
+		}
+	};
+
+#endif // BOOST_NO_TYPEID
+#endif // TORRENT_NO_DEPRECATE
+#endif // BOOST_NO_EXCEPTIONS
 
 // When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
 // more specific alert type, in order to query it for more information.

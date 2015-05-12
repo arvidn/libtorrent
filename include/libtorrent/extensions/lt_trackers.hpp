@@ -35,12 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/shared_ptr.hpp>
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace libtorrent
 {

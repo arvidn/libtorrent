@@ -45,18 +45,18 @@ class get_item : public find_data
 public:
 	typedef boost::function<bool(item&)> data_callback;
 
-	void got_data(bdecode_node const& v,
+	void got_data(lazy_entry const* v,
 		char const* pk,
 		boost::uint64_t seq,
 		char const* sig);
 
 	// for immutable itms
-	get_item(node& dht_node
+	get_item(node_impl& node
 		, node_id target
 		, data_callback const& dcallback);
 
 	// for mutable items
-	get_item(node& dht_node
+	get_item(node_impl& node
 		, char const* pk
 		, std::string const& salt
 		, data_callback const& dcallback);

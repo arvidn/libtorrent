@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>RSS</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="rss">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">RSS</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.5</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#feed-item" id="id25">feed_item</a></li>
+<li><a class="reference internal" href="#feed-settings" id="id26">feed_settings</a></li>
+<li><a class="reference internal" href="#feed-status" id="id27">feed_status</a></li>
+<li><a class="reference internal" href="#feed-handle" id="id28">feed_handle</a></li>
+</ul>
+</div>
+<a name="feed_item"></a><div class="section" id="feed-item">
+<h1>feed_item</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<p>represents one item from an RSS feed. Specifically
+a feed of torrents.</p>
+<pre class="literal-block">
+struct feed_item
+{
+   <strong>feed_item</strong> ();
+   <strong>~feed_item</strong> ();
+
+   std::string url;
+   std::string uuid;
+   std::string title;
+   std::string description;
+   std::string comment;
+   std::string category;
+   size_type size;
+   torrent_handle handle;
+   sha1_hash info_hash;
+};
+</pre>
+<a name="url"></a>
+<a name="uuid"></a>
+<a name="title"></a>
+<a name="description"></a>
+<a name="comment"></a>
+<a name="category"></a><dl class="docutils">
+<dt>url  uuid  title  description  comment  category</dt>
+<dd>these are self explanatory and may be empty if the feed does not specify
+those fields.</dd>
+</dl>
+<a name="size"></a><dl class="docutils">
+<dt>size</dt>
+<dd>the total size of the content the torrent refers to, or -1
+if no size was specified by the feed.</dd>
+</dl>
+<a name="handle"></a><dl class="docutils">
+<dt>handle</dt>
+<dd>the handle to the torrent, if the <a class="reference external" href="reference-Session.html#session">session</a> is already downloading
+this torrent.</dd>
+</dl>
+<a name="info_hash"></a><dl class="docutils">
+<dt>info_hash</dt>
+<dd>the info-hash of the torrent, or cleared (i.e. all zeroes) if
+the feed does not specify the info-hash.</dd>
+</dl>
+<a name="feed_settings"></a></div>
+<div class="section" id="feed-settings">
+<h1>feed_settings</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<p>the <a class="reference external" href="reference-RSS.html#feed_settings">feed_settings</a> object is all the information
+and configuration for a specific feed. All of
+these settings can be changed by the user
+after adding the feed</p>
+<pre class="literal-block">
+struct feed_settings
+{
+   <strong>feed_settings</strong> ();
+
+   std::string url;
+   bool auto_download;
+   bool auto_map_handles;
+   int default_ttl;
+   add_torrent_params add_args;
+};
+</pre>
+<a name="auto_download"></a><dl class="docutils">
+<dt>auto_download</dt>
+<dd>By default <tt class="docutils literal">auto_download</tt> is true, which means all torrents in
+the feed will be downloaded. Set this to false in order to manually
+add torrents to the <a class="reference external" href="reference-Session.html#session">session</a>. You may react to the <a class="reference external" href="reference-Alerts.html#rss_alert">rss_alert</a> when
+a feed has been updated to poll it for the new items in the feed
+when adding torrents manually. When torrents are added automatically,
+an <a class="reference external" href="reference-Alerts.html#add_torrent_alert">add_torrent_alert</a> is posted which includes the torrent handle
+as well as the error code if it failed to be added. You may also call
+<tt class="docutils literal"><span class="pre">session::get_torrents()</span></tt> to get the handles to the new torrents.</dd>
+</dl>
+<a name="auto_map_handles"></a><dl class="docutils">
+<dt>auto_map_handles</dt>
+<dd><tt class="docutils literal">auto_map_handles</tt> defaults to true and determines whether or
+not to set the <tt class="docutils literal">handle</tt> field in the <a class="reference external" href="reference-RSS.html#feed_item">feed_item</a>, returned
+as the feed status. If auto-download is enabled, this setting
+is ignored. If auto-download is not set, setting this to false
+will save one pass through all the feed items trying to find
+corresponding torrents in the <a class="reference external" href="reference-Session.html#session">session</a>.</dd>
+</dl>
+<a name="default_ttl"></a><dl class="docutils">
+<dt>default_ttl</dt>
+<dd>The <tt class="docutils literal">default_ttl</tt> is the default interval for refreshing a feed.
+This may be overridden by the feed itself (by specifying the <tt class="docutils literal">&lt;ttl&gt;</tt>
+tag) and defaults to 30 minutes. The field specifies the number of
+minutes between refreshes.</dd>
+</dl>
+<a name="add_args"></a><dl class="docutils">
+<dt>add_args</dt>
+<dd>If torrents are added automatically, you may want to set the
+<tt class="docutils literal">add_args</tt> to appropriate values for download directory etc.
+This object is used as a template for adding torrents from feeds,
+but some torrent specific fields will be overridden by the
+individual torrent being added. For more information on the
+<a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>, see <a class="reference external" href="reference-Session.html#async_add_torrent()">async_add_torrent()</a> and <a class="reference external" href="reference-Session.html#add_torrent()">add_torrent()</a>.</dd>
+</dl>
+<a name="feed_status"></a></div>
+<div class="section" id="feed-status">
+<h1>feed_status</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<p>holds information about the status of an RSS feed. Retrieved by
+calling <a class="reference external" href="reference-RSS.html#get_feed_status()">get_feed_status()</a> on <a class="reference external" href="reference-RSS.html#feed_handle">feed_handle</a>.</p>
+<pre class="literal-block">
+struct feed_status
+{
+   <strong>feed_status</strong> ();
+
+   std::string url;
+   std::string title;
+   std::string description;
+   time_t last_update;
+   int next_update;
+   bool updating;
+   std::vector&lt;feed_item&gt; items;
+   error_code error;
+   int ttl;
+};
+</pre>
+<a name="url"></a><dl class="docutils">
+<dt>url</dt>
+<dd>the URL of the feed.</dd>
+</dl>
+<a name="title"></a><dl class="docutils">
+<dt>title</dt>
+<dd>the name of the feed (as specified by the feed itself). This
+may be empty if we have not recevied a response from the RSS server yet,
+or if the feed does not specify a title.</dd>
+</dl>
+<a name="description"></a><dl class="docutils">
+<dt>description</dt>
+<dd>the feed description (as specified by the feed itself).
+This may be empty if we have not received a response from the RSS server
+yet, or if the feed does not specify a description.</dd>
+</dl>
+<a name="last_update"></a><dl class="docutils">
+<dt>last_update</dt>
+<dd>the posix time of the last successful response from the feed.</dd>
+</dl>
+<a name="next_update"></a><dl class="docutils">
+<dt>next_update</dt>
+<dd>the number of seconds, from now, when the feed will be
+updated again.</dd>
+</dl>
+<a name="updating"></a><dl class="docutils">
+<dt>updating</dt>
+<dd>true if the feed is currently being updated (i.e. waiting for
+DNS resolution, connecting to the server or waiting for the response to the
+HTTP request, or receiving the response).</dd>
+</dl>
+<a name="items"></a><dl class="docutils">
+<dt>items</dt>
+<dd>a vector of all items that we have received from the feed. See
+<a class="reference external" href="reference-RSS.html#feed_item">feed_item</a> for more information.</dd>
+</dl>
+<a name="error"></a><dl class="docutils">
+<dt>error</dt>
+<dd>set to the appropriate error code if the feed encountered an
+error. See error_code for more info.</dd>
+</dl>
+<a name="ttl"></a><dl class="docutils">
+<dt>ttl</dt>
+<dd>the current refresh time (in minutes). It's either the configured
+default ttl, or the ttl specified by the feed.</dd>
+</dl>
+<a name="feed_handle"></a></div>
+<div class="section" id="feed-handle">
+<h1>feed_handle</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<p>The <tt class="docutils literal">feed_handle</tt> refers to a specific RSS feed that is watched by the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
+<pre class="literal-block">
+struct feed_handle
+{
+   <strong>feed_handle</strong> ();
+   void <strong>update_feed</strong> ();
+   feed_status <strong>get_feed_status</strong> () const;
+   void <strong>set_settings</strong> (feed_settings const&amp; s);
+   feed_settings <strong>settings</strong> () const;
+};
+</pre>
+<a name="update_feed()"></a><div class="section" id="update-feed">
+<h2>update_feed()</h2>
+<pre class="literal-block">
+void <strong>update_feed</strong> ();
+</pre>
+<p>Forces an update/refresh of the feed. Regular updates of the feed is managed
+by libtorrent, be careful to not call this too frequently since it may
+overload the RSS server.</p>
+<a name="get_feed_status()"></a></div>
+<div class="section" id="get-feed-status">
+<h2>get_feed_status()</h2>
+<pre class="literal-block">
+feed_status <strong>get_feed_status</strong> () const;
+</pre>
+<p>Queries the RSS feed for information, including all the items in the feed.
+see <a class="reference external" href="reference-RSS.html#feed_status">feed_status</a>.</p>
+<a name="settings()"></a>
+<a name="set_settings()"></a></div>
+<div class="section" id="settings-set-settings">
+<h2>settings() set_settings()</h2>
+<pre class="literal-block">
+void <strong>set_settings</strong> (feed_settings const&amp; s);
+feed_settings <strong>settings</strong> () const;
+</pre>
+<p>Sets and gets settings for this feed. For more information on the
+available settings, see <a class="reference external" href="reference-Session.html#add_feed()">add_feed()</a>.</p>
+<a name="add_feed_item()"></a></div>
+<div class="section" id="add-feed-item">
+<h2>add_feed_item()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<pre class="literal-block">
+torrent_handle <strong>add_feed_item</strong> (session&amp; s, feed_item const&amp; fi
+   , add_torrent_params const&amp; p);
+torrent_handle <strong>add_feed_item</strong> (session&amp; s, feed_item const&amp; fi
+   , add_torrent_params const&amp; p, error_code&amp; ec);
+</pre>
+<p>given a <a class="reference external" href="reference-RSS.html#feed_item">feed_item</a> <tt class="docutils literal">f</tt>, add the torrent it refers to to <a class="reference external" href="reference-Session.html#session">session</a> <tt class="docutils literal">s</tt>.</p>
+<a name="new_feed()"></a></div>
+<div class="section" id="new-feed">
+<h2>new_feed()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/rss.hpp">libtorrent/rss.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;feed&gt; <strong>new_feed</strong> (aux::session_impl&amp; ses, feed_settings const&amp; sett);
+</pre>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>

@@ -202,11 +202,6 @@ namespace libtorrent
 
 		void open(protocol_type const& p, error_code& ec);
 		void close(error_code& ec);
-		
-		// this is only relevant for uTP connections
-		void set_close_reason(boost::uint16_t code);
-		boost::uint16_t get_close_reason();
-
 		endpoint_type local_endpoint(error_code& ec) const;
 		endpoint_type remote_endpoint(error_code& ec) const;
 		void bind(endpoint_type const& endpoint, error_code& ec);
@@ -268,10 +263,10 @@ namespace libtorrent
 		error_code get_option(GettableSocketOption& opt, error_code& ec)
 		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
 
+
 		template <class S>
 		void instantiate(io_service& ios, void* userdata = 0)
 		{
-			TORRENT_UNUSED(ios);
 			TORRENT_ASSERT(&ios == &m_io_service);
 			construct(socket_type_int_impl<S>::value, userdata);
 		}
@@ -289,8 +284,6 @@ namespace libtorrent
 		}
 
 	private:
-		// explicitly disallow assignment, to silence msvc warning
-		socket_type& operator=(socket_type const&);
 
 		void destruct();
 		void construct(int type, void* userdata);
@@ -318,10 +311,7 @@ namespace libtorrent
 			>::value
 		};
 
-		// TODO: 2 it would be nice to use aligned_storage here when
-		// building on c++11
-		boost::int64_t m_data[(storage_size + sizeof(boost::int64_t) - 1)
-			/ sizeof(boost::int64_t)];
+		size_type m_data[(storage_size + sizeof(size_type) - 1) / sizeof(size_type)];
 	};
 
 	// returns true if this socket is an SSL socket

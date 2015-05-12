@@ -5,7 +5,7 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([libtorrent-rasterbar],[1.1.0],[arvid@libtorrent.org],
+AC_INIT([libtorrent-rasterbar],[1.0.5],[arvid@libtorrent.org],
         [libtorrent-rasterbar],[http://www.libtorrent.org])
 AC_CONFIG_SRCDIR([src/torrent.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -41,7 +41,7 @@ dnl  increment AGE, Otherwise AGE is reset to 0. If CURRENT has changed,
 dnl  REVISION is set to 0, otherwise REVISION is incremented.
 dnl ---------------------------------------------------------------------------
 
-m4_define([VERSION_INFO_CURRENT],[9])
+m4_define([VERSION_INFO_CURRENT],[8])
 m4_define([VERSION_INFO_REVISION],[0])
 m4_define([VERSION_INFO_AGE],[0])
 INTERFACE_VERSION_INFO=VERSION_INFO_CURRENT:VERSION_INFO_REVISION:VERSION_INFO_AGE
@@ -117,19 +117,11 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
 AS_ECHO
 AS_ECHO "Checking for boost libraries:"
 
-AX_BOOST_BASE([1.47])
+AX_BOOST_BASE([1.36])
 
 AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
-
-AX_BOOST_CHRONO()
-AS_IF([test -z "$BOOST_CHRONO_LIB"],
-      [AC_MSG_ERROR(Boost.Chrono library not found. Try using --with-boost-chrono=lib)])
-
-AX_BOOST_RANDOM()
-AS_IF([test -z "$BOOST_RANDOM_LIB"],
-      [AC_MSG_ERROR(Boost.Random library not found. Try using --with-boost-random=lib)])
 
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
@@ -152,6 +144,25 @@ AC_SYS_LARGEFILE
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+
+# check for gethostbyname and gethostbyname_r (used in src/GeoIP.c)
+AC_CHECK_FUNCS([gethostbyname], [],
+  [AC_CHECK_LIB([nsl], [gethostbyname], [],
+    [AC_CHECK_LIB([resolv], [gethostbyname], [],
+      [AC_CHECK_LIB([socket], [gethostbyname], [],
+        [AC_CHECK_LIB([ws2_32], [main],
+          [AC_CHECK_LIB([wsock32], [main],
+            [LIBS="-lws2_32 -lwsock32 $LIBS"],
+            [AC_MSG_ERROR([wsock32 function not found.])])],
+          [AC_MSG_ERROR([gethostbyname function not found.])])])])])]
+)
+
+AC_CHECK_FUNCS(gethostbyname_r, [
+  # We look for the one that returns `int'.
+  # Hopefully this check is robust enough.
+  AC_EGREP_HEADER(int.*gethostbyname_r, netdb.h, [
+    AC_DEFINE(GETHOSTBYNAME_R_RETURNS_INT)])
+])
 
 AC_CHECK_FUNCS([clock_gettime], [],
     [AC_CHECK_LIB([rt], [clock_gettime], [],
@@ -251,12 +262,36 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
+  [statistics],
+  [AS_HELP_STRING(
+    [--enable-statistics],
+    [enable statistics logging feature [default=no]])],
+  [[ARG_ENABLE_STATS=$enableval]],
+  [[ARG_ENABLE_STATS=no]]
+)
+
+AC_ARG_ENABLE(
   [disk-stats],
   [AS_HELP_STRING(
     [--enable-disk-stats],
     [enable disk activity logging feature [default=no]])],
   [[ARG_ENABLE_DISK_STATS=$enableval]],
   [[ARG_ENABLE_DISK_STATS=no]]
+)
+
+AC_ARG_ENABLE(
+  [geoip],
+  [AS_HELP_STRING(
+    [--enable-geoip],
+    [enable geoip support (if enabled, you can use --with-libgeoip to choose whether to link against shipped or system library) [default=yes]])],
+  [
+   ARG_ENABLE_GEOIP=$enableval
+   ac_arg_enable_geoip=$enableval
+  ],
+  [
+   ARG_ENABLE_GEOIP=yes
+   ac_arg_enable_geoip=yes
+  ]
 )
 
 AC_ARG_ENABLE(
@@ -284,6 +319,15 @@ AC_ARG_ENABLE(
     [build python bindings [default=no]])],
   [[ARG_ENABLE_PYTHON_BINDING=$enableval]],
   [[ARG_ENABLE_PYTHON_BINDING=no]]
+)
+
+AC_ARG_WITH(
+  [libgeoip],
+  [AS_HELP_STRING(
+    [--with-libgeoip],
+    [enable linking against system libgeoip [default=shipped]])],
+  [[ARG_WITH_LIBGEOIP=$withval]],
+  [[ARG_WITH_LIBGEOIP=no]]
 )
 
 AC_ARG_WITH(
@@ -360,14 +404,37 @@ AC_MSG_CHECKING([whether logging to disk should be enabled])
 AS_CASE(["$ARG_ENABLE_LOGGING"],
   ["yes"|"default"], [
       AC_MSG_RESULT([yes])
+      AC_DEFINE([TORRENT_LOGGING],[1],[Define to enable logging of the session events.])
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LOGGING "
     ],
   ["no"|"none"], [
       AC_MSG_RESULT([no])
-      AC_DEFINE([TORRENT_DISABLE_LOGGING],[1],[Define to enable support for logging alerts])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_LOGGING "
+    ],
+  ["verbose"], [
+      AC_MSG_RESULT([verbose])
+      AC_DEFINE([TORRENT_VERBOSE_LOGGING],[1],[Define to enable logging of the session events and every peer connection.])
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_VERBOSE_LOGGING "
+    ],
+  ["errors"], [
+      AC_MSG_RESULT([errors])
+      AC_DEFINE([TORRENT_ERROR_LOGGING],[1],[Define to enable logging of the session events and every peer connection limited to errors.])
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_ERROR_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_LOGGING])
-   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_LOGGING". Use either "yes" or "no"])]
+   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_LOGGING". Use either "yes", "no", "verbose" or "errors".])]
+)
+
+AC_MSG_CHECKING([whether statistics logging should be enabled])
+AS_CASE(["$ARG_ENABLE_STATS"],
+  ["yes"|"on"], [
+      AC_MSG_RESULT([yes])
+      AC_DEFINE([TORRENT_STATS],[1],[Define to generate a log with statistics.])
+    ],
+  ["no"|"off"], [
+      AC_MSG_RESULT([no])
+    ],
+  [AC_MSG_RESULT([$ARG_ENABLE_STATS])
+   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_STATS". Use either "yes" or "no".])]
 )
 
 AC_MSG_CHECKING([whether disk activity logging should be enabled])
@@ -406,6 +473,20 @@ AS_CASE(["$ARG_ENABLE_ENCRYPTION"],
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_ENCRYPTION])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_ENCRYPTION". Use either "yes" or "no".])]
+)
+
+AC_MSG_CHECKING([whether geoip support should be enabled])
+AS_CASE(["$ARG_ENABLE_GEOIP"],
+  ["yes"], [
+    AC_MSG_RESULT([yes])
+   ],
+  ["no"], [
+    AC_MSG_RESULT([no])
+    AC_DEFINE([TORRENT_DISABLE_GEO_IP],[1],[Define to disable the GeoIP support and avoid linking against LGPLed code.])
+    COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_GEO_IP "
+   ],
+  [AC_MSG_RESULT([$ARG_ENABLE_GEOIP])
+   AC_MSG_ERROR([Unknown option "$ARG_ENABLE_GEOIP". Use either "yes" or "no".])]
 )
 
 AC_MSG_CHECKING([whether dht support should be enabled])
@@ -493,6 +574,50 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
 AS_ECHO
 AS_ECHO "Checking for external libraries:"
 
+AC_MSG_CHECKING([for FIEMAP support])
+AC_CHECK_HEADERS([linux/types.h])
+AC_CHECK_HEADERS([linux/fiemap.h], [], [],
+[#ifdef HAVE_LINUX_TYPES_H
+# include <linux/types.h>
+#endif
+])
+
+
+AC_MSG_CHECKING([whether to link against system libgeoip]) #depends: $ac_arg_enable_geoip
+AS_CASE(["$ARG_WITH_LIBGEOIP"],
+  ["yes"|"system"], [
+      AC_MSG_RESULT([yes])
+
+      AS_IF([test "x$ac_arg_enable_geoip" = "xno"],
+            [AC_MSG_ERROR([GeoIP support is disabled with this build configuration. Try using --enable-geoip.])])
+
+      AC_MSG_NOTICE([libgeoip: now checking for the libgeoip library...])
+
+      AC_CHECK_GEOIP([
+        LIBS="$GEOIP_LIBS $LIBS"
+        CFLAGS="$GEOIP_CFLAGS $CFLAGS"
+       ],[
+        AC_MSG_ERROR([GeoIP library not found. Try using --without-libgeoip to link against the shipped copy.])
+      ])
+   ],
+  ["no"|"shipped"], [
+      AS_IF([test "x$ac_arg_enable_geoip" = "xno"], [
+            # redundant check: session_impl.hpp just won't check for any
+            # GeoIP.h, so any value would be ok (ie. this AS_IF could be
+            # removed)
+            AC_MSG_RESULT([disabled])
+            ARG_WITH_LIBGEOIP="disabled"
+       ], [
+            AC_MSG_RESULT([no])
+            ARG_WITH_LIBGEOIP="no"
+            AC_DEFINE([WITH_SHIPPED_GEOIP_H],[1],[Define to use shipped copy of GeoIP.h])
+            COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DWITH_SHIPPED_GEOIP_H "
+      ])
+   ],
+  [AC_MSG_RESULT([$ARG_WITH_LIBGEOIP])
+   AC_MSG_ERROR([Unknown option "$ARG_WITH_LIBGEOIP". Use either "yes" or "no".])]
+)
+
 AC_MSG_CHECKING([whether to link against system libiconv])
 AS_CASE(["$ARG_WITH_LIBICONV"],
   ["yes"], [
@@ -522,6 +647,7 @@ AM_CONDITIONAL([ENABLE_EXAMPLES], [test "x$ARG_ENABLE_EXAMPLES" = "xyes"])
 AM_CONDITIONAL([ENABLE_TESTS], [test "x$ARG_ENABLE_TESTS" = "xyes"])
 AM_CONDITIONAL([ENABLE_PYTHON_BINDING], [test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"])
 
+AM_CONDITIONAL([WITH_SHIPPED_GEOIP], [test "x$ARG_WITH_LIBGEOIP" = "xno" ])
 AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$ARG_ENABLE_ENCRYPTION" = "xon" ])
 
 
@@ -533,8 +659,6 @@ AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$AR
 # see: https://svn.boost.org/trac/boost/ticket/3095
 AC_DEFINE([BOOST_ASIO_HASH_MAP_BUCKETS],[1021],[Define to fix a wrong behavior in boost 1.39.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
-
-COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -msse4.2 "
 
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
@@ -626,10 +750,12 @@ Build options:
   debug build:          ${ARG_ENABLE_DEBUG:-no}
   invariant checks:     ${ARG_ENABLE_INVARIANT:-no}
   logging support:      ${ARG_ENABLE_LOGGING:-no}
+  statistics:           ${ARG_ENABLE_STATS:-no}
   disk statistics:      ${ARG_ENABLE_DISK_STATS:-no}
 
 Features:
   encryption support:   ${ARG_ENABLE_ENCRYPTION:-yes}
+  geoip support:        ${ARG_ENABLE_GEOIP:-yes}
   dht support:          ${ARG_ENABLE_DHT:-yes}
   pool allocators:      ${ARG_ENABLE_POOL_ALLOC:-yes}
 
@@ -647,8 +773,6 @@ Boost libraries:
   CPPFlags:             ${BOOST_CPPFLAGS}
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
-  boost.chrono:         ${BOOST_CHRONO_LIB}
-  boost.random:         ${BOOST_RANDOM_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
@@ -678,8 +802,18 @@ END
 cat >> config.report << END
 
 External libraries:
+  system libgeoip:      ${ARG_WITH_LIBGEOIP:-no}
   system libiconv:      ${ARG_WITH_LIBICONV:-no}
 END
+
+AS_IF([test "x$ARG_WITH_LIBGEOIP" = "xyes"], [
+cat >> config.report << END
+
+GeoIP library:
+  GeoIP CFlags:         ${GEOIP_CFLAGS}
+  GeoIP Libs:           ${GEOIP_LIBS}
+END
+])
 
 AS_IF([test "x$ARG_WITH_LIBICONV" = "xyes"], [
 cat >> config.report << END

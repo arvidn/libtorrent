@@ -301,15 +301,12 @@ bittorrent client.</p>
 <div class="section" id="metadata-from-peers">
 <h2>metadata from peers</h2>
 <p>Extension name: &quot;LT_metadata&quot;</p>
-<div class="note">
-<p class="first admonition-title">Note</p>
-<p class="last">This extension is deprecated in favor of the more widely supported
-<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>.</p>
-</div>
-<p>The point with this extension is that you don't have to distribute the
-metadata (.torrent-file) separately. The metadata can be distributed
-through the bittorrent swarm. The only thing you need to download such
-a torrent is the tracker url and the info-hash of the torrent.</p>
+<p>This extension is deprecated in favor of the more widely supported
+<tt class="docutils literal">ut_metadata</tt> extension, see <a class="reference external" href="http://bittorrent.org/beps/bep_0009.html">BEP 9</a>. The point with this extension is that
+you don't have to distribute the metadata (.torrent-file) separately. The
+metadata can be distributed through the bittorrent swarm. The only thing you
+need to download such a torrent is the tracker url and the info-hash of the
+torrent.</p>
 <p>It works by assuming that the initial seeder has the metadata and that the
 metadata will propagate through the network as more peers join.</p>
 <p>There are three kinds of messages in the metadata extension. These packets are
@@ -490,7 +487,7 @@ message wrapping.</p>
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>

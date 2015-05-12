@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef RPC_MANAGER_HPP
 #define RPC_MANAGER_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <deque>
 #include <map>
@@ -42,20 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include <boost/function/function3.hpp>
 
-#if TORRENT_HAS_BOOST_UNORDERED
-#include <boost/unordered_map.hpp>
-#else
-#include <multimap>
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <libtorrent/socket.hpp>
 #include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-#include "libtorrent/time.hpp"
+#include "libtorrent/ptime.hpp"
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 
@@ -64,7 +55,10 @@ namespace libtorrent { struct dht_settings; }
 namespace libtorrent { namespace dht
 {
 
-struct dht_logger;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DECLARE_LOG(rpc);
+#endif
+
 struct udp_socket_interface;
 
 struct null_observer : public observer
@@ -81,9 +75,7 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 public:
 
 	rpc_manager(node_id const& our_id
-		, routing_table& table
-		, udp_socket_interface* sock
-		, dht_logger* log);
+		, routing_table& table, udp_socket_interface* sock);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -116,20 +108,15 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-#if TORRENT_HAS_BOOST_UNORDERED
-	typedef boost::unordered_multimap<int, observer_ptr> transactions_t;
-#else
-	typedef std::multimap<int, observer_ptr> transactions_t;
-#endif
+	typedef std::deque<observer_ptr> transactions_t;
 	transactions_t m_transactions;
 	
 	udp_socket_interface* m_sock;
-	dht_logger* m_log;
 	routing_table& m_table;
-	time_point m_timer;
+	ptime m_timer;
 	node_id m_our_id;
-	boost::uint32_t m_allocated_observers:31;
-	boost::uint32_t m_destructing:1;
+	int m_allocated_observers;
+	bool m_destructing;
 };
 
 } } // namespace libtorrent::dht

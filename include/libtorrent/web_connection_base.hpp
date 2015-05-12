@@ -33,15 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
-#include "libtorrent/debug.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
+
+#include "libtorrent/debug.hpp"
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -50,7 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
@@ -72,6 +76,11 @@ namespace libtorrent
 {
 	class torrent;
 
+	namespace detail
+	{
+		struct session_impl;
+	}
+
 	class TORRENT_EXTRA_EXPORT web_connection_base
 		: public peer_connection
 	{
@@ -81,10 +90,12 @@ namespace libtorrent
 		// this is the constructor where the we are the active part.
 		// The peer_conenction should handshake and verify that the
 		// other end has the correct id
-		web_connection_base(peer_connection_args const& pack
-			, web_seed_t& web);
-
-		virtual int timeout() const;
+		web_connection_base(
+			aux::session_impl& ses
+			, boost::weak_ptr<torrent> t
+			, boost::shared_ptr<socket_type> s
+			, tcp::endpoint const& remote
+			, web_seed_entry& web);
 		void start();
 
 		~web_connection_base();
@@ -104,18 +115,15 @@ namespace libtorrent
 		void write_unchoke() {}
 		void write_interested() {}
 		void write_not_interested() {}
-		virtual void write_request(peer_request const&) = 0;
-		void write_cancel(peer_request const&) {}
-		void write_have(int) {}
-		void write_dont_have(int) {}
-		void write_piece(peer_request const&, disk_buffer_holder&)
-		{ TORRENT_ASSERT(false); }
+		virtual void write_request(peer_request const& r) = 0;
+		void write_cancel(peer_request const& r) {}
+		void write_have(int index) {}
+		void write_piece(peer_request const& r, disk_buffer_holder& buffer) { TORRENT_ASSERT(false); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}
-		void write_suggest(int) {}
-		void write_bitfield() {}
+		void write_suggest(int piece) {}
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
@@ -126,8 +134,21 @@ namespace libtorrent
 	protected:
 
 		virtual void add_headers(std::string& request
-			, aux::session_settings const& sett, bool using_proxy) const;
+			, proxy_settings const& ps, bool using_proxy) const;
 
+		// this has one entry per bittorrent request
+		std::deque<peer_request> m_requests;
+
+		std::string m_server_string;
+		http_parser m_parser;
+		std::string m_basic_auth;
+		std::string m_host;
+		int m_port;
+		std::string m_path;
+
+		std::string m_external_auth;
+		web_seed_entry::headers_t m_extra_headers;
+			
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left
 		// out to save bandwidth.
@@ -136,21 +157,6 @@ namespace libtorrent
 		// true if we're using ssl
 		bool m_ssl;
 				
-		// this has one entry per bittorrent request
-		std::deque<peer_request> m_requests;
-
-		std::string m_server_string;
-		std::string m_basic_auth;
-		std::string m_host;
-		std::string m_path;
-
-		std::string m_external_auth;
-		web_seed_entry::headers_t m_extra_headers;
-			
-		http_parser m_parser;
-
-		int m_port;
-
 		// the number of bytes into the receive buffer where
 		// current read cursor is.
 		int m_body_start;

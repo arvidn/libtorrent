@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
-#include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
 #include <iostream>
@@ -61,7 +60,6 @@ struct test_config_t
 	bool use_ssl_ports;
 	bool seed_has_cert;
 	bool downloader_has_cert;
-	bool downloader_has_ssl_listen_port;
 	bool expected_to_complete;
 	int peer_errors;
 	int ssl_disconnects;
@@ -69,34 +67,25 @@ struct test_config_t
 
 test_config_t test_config[] =
 {
-	// name                                                              sslport sd-cert dl-cert dl-port expect peer-error ssl-disconn
-	{"nobody has a cert (connect to regular port)",                      false,  false,  false,  true,   false, 0, 1},
-	{"nobody has a cert (connect to ssl port)",                          true,   false,  false,  true,   false, 1, 1},
-	{"seed has a cert, but not downloader (connect to regular port)",    false,  true,   false,  true,   false, 0, 1},
-	{"seed has a cert, but not downloader (connect to ssl port)",        true,   true,   false,  true,   false, 1, 1},
-	{"downloader has a cert, but not seed (connect to regular port)",    false,  false,  true,   true,   false, 0, 1},
-	{"downloader has a cert, but not seed (connect to ssl port)",        true,   false,  true,   true,   false, 1, 1},
-	{"both downloader and seed has a cert (connect to regular port)",    false,  true,   true,   true,   false, 0, 1},
-	{"both downloader and seed has a cert (connect to ssl port)",        true,   true,   true,   true,   true,  0, 0},
-	// there is a disconnect (or failed connection attempt), that's not a peer
-	// error though, so both counters stay 0
-	{"both downloader and seed has a cert (downloader has no SSL port)", true,   true,   true,   false,  false, 0, 0},
+	{"nobody has a cert (connect to regular port)", false, false, false, false, 0, 0},
+	{"nobody has a cert (connect to ssl port)", true, false, false, false, 1, 1},
+	{"seed has a cert, but not downloader (connect to regular port)", false, true, false, false, 0, 0},
+	{"seed has a cert, but not downloader (connect to ssl port)", true, true, false, false, 1, 1},
+	{"downloader has a cert, but not seed (connect to regular port)", false, false, true, false, 0, 0},
+	{"downloader has a cert, but not seed (connect to ssl port)", true, false, true, false, 1, 1},
+	{"both downloader and seed has a cert (connect to regular port)", false, true, true, false, 0, 0},
+	{"both downloader and seed has a cert (connect to ssl port)", true, true, true, true, 0, 0},
 };
 
 int peer_disconnects = 0;
 int peer_errors = 0;
 int ssl_peer_disconnects = 0;
 
-bool on_alert(alert const* a)
+bool on_alert(alert* a)
 {
-	if (peer_disconnected_alert const* e = alert_cast<peer_disconnected_alert>(a))
-	{
+	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
-		if (e->error.category() == boost::asio::error::get_ssl_category())
-			++ssl_peer_disconnects;
-	}
-
-	if (peer_error_alert const* e = alert_cast<peer_error_alert>(a))
+	if (peer_error_alert* e = alert_cast<peer_error_alert>(a))
 	{
 		++peer_disconnects;
 		++peer_errors;
@@ -124,41 +113,31 @@ void test_ssl(int test_idx, bool use_utp)
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
 
-	int ssl_port = 1024 + rand() % 50000;
-	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-	sett.set_int(settings_pack::max_retry_port_bind, 100);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_bool(settings_pack::enable_incoming_utp, use_utp);
-	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
-	sett.set_bool(settings_pack::enable_incoming_tcp, !use_utp);
-	sett.set_bool(settings_pack::enable_outgoing_tcp, !use_utp);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-	// if a pwer fails once, don't try it again
-	sett.set_int(settings_pack::max_failcount, 1);
-	sett.set_int(settings_pack::ssl_listen, ssl_port);
-
-	libtorrent::session ses1(sett, 0);
-
-	if (test.downloader_has_ssl_listen_port)
-		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
-	else
-		sett.set_int(settings_pack::ssl_listen, 0);
-
-	libtorrent::session ses2(sett, 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, alert_mask);
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
+
+	session_settings sett;
+
+	sett.enable_incoming_utp = use_utp;
+	sett.enable_outgoing_utp = use_utp;
+	sett.enable_incoming_tcp = !use_utp;
+	sett.enable_outgoing_tcp = !use_utp;
+
+	sett.ssl_listen = 1024 + rand() % 50000;
+
+	ses1.set_settings(sett);
+	sett.ssl_listen += 10;
+	ses2.set_settings(sett);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
@@ -167,12 +146,15 @@ void test_ssl(int test_idx, bool use_utp)
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses2");
+
 	peer_disconnects = 0;
 	ssl_peer_disconnects = 0;
 	peer_errors = 0;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, false, "_ssl", 16 * 1024, &t, false, &addp, true);
+		, true, false, true, "_ssl", 16 * 1024, &t, false, &addp, true, test.use_ssl_ports);
 
 	if (test.seed_has_cert)
 	{
@@ -191,25 +173,6 @@ void test_ssl(int test_idx, bool use_utp)
 			, combine_path("..", combine_path("ssl", "dhparams.pem"))
 			, "test");
 	}
-
-	// make sure they've taken effect
-	if (test.downloader_has_cert || test.seed_has_cert)
-		test_sleep(500);
-
-	// connect the peers after setting the certificates
-	int port = 0;
-	if (test.use_ssl_ports)
-		if (test.downloader_has_ssl_listen_port)
-			port = ses2.ssl_listen_port();
-		else
-			port = 13512;
-	else
-		port = ses2.listen_port();
-
-	fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
-		, time_now_string(), port);
-	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-		, port));
 
 #ifdef TORRENT_USE_VALGRIND
 	const int timeout = 100;
@@ -264,16 +227,13 @@ void test_ssl(int test_idx, bool use_utp)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d expected_errors: %d\n"
-		, peer_errors, test.peer_errors);
-	TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
-
+	fprintf(stderr, "peer_errors: %d  expected: %d\n", peer_errors, test.peer_errors);
+	TEST_EQUAL(peer_errors, test.peer_errors);
 	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
-	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
-
+	TEST_EQUAL(ssl_peer_disconnects, test.ssl_disconnects);
 	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
 	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
-	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
+	TEST_CHECK(tor2.status().is_seeding == test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
@@ -323,8 +283,8 @@ attack_t attacks[] =
 
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
-bool try_connect(libtorrent::session& ses1, int port
-	, boost::shared_ptr<torrent_info> const& t, boost::uint32_t flags)
+bool try_connect(session& ses1, int port
+	, boost::intrusive_ptr<torrent_info> const& t, boost::uint32_t flags)
 {
 	using boost::asio::ssl::context;
 
@@ -340,7 +300,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	if (flags & valid_bittorrent_hash) fprintf(stderr, "valid-bittorrent-hash ");
 	else fprintf(stderr, "invalid-bittorrent-hash ");
 
-	fprintf(stderr, " port: %d\n", port);
+	fprintf(stderr, "\n");
 
 	error_code ec;
 	boost::asio::io_service ios;
@@ -483,7 +443,6 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	fprintf(stderr, "bittorrent handshake\n");
 	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
 		fprintf(stderr, "failed to write bittorrent handshake: %s\n"
@@ -494,7 +453,6 @@ bool try_connect(libtorrent::session& ses1, int port
 	char buf[68];
 	fprintf(stderr, "read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
 		fprintf(stderr, "failed to read bittorrent handshake: %s\n"
@@ -525,24 +483,17 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-	int ssl_port = 1024 + rand() % 50000;
-	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, alert_mask);
-	sett.set_int(settings_pack::max_retry_port_bind, 100);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::ssl_listen, ssl_port);
-	sett.set_bool(settings_pack::enable_dht, false);
-	sett.set_bool(settings_pack::enable_lsd, false);
-	sett.set_bool(settings_pack::enable_upnp, false);
-	sett.set_bool(settings_pack::enable_natpmp, false);
-
-	libtorrent::session ses1(sett, 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48075, 49000), "0.0.0.0", 0, alert_mask);
 	wait_for_listen(ses1, "ses1");
+	session_settings sett;
+	sett.ssl_listen = 1024 + rand() % 50000;
+	ses1.set_settings(sett);
 
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
@@ -562,18 +513,13 @@ void test_malicious_peer()
 		, combine_path("..", combine_path("ssl", "dhparams.pem"))
 		, "test");
 
-	alert const* a = wait_for_alert(ses1
-		, torrent_finished_alert::alert_type, "ses1");
-	TEST_CHECK(a);
-	if (a)
-	{
-		TEST_EQUAL(a->type(), torrent_finished_alert::alert_type);
-	}
+	wait_for_listen(ses1, "ses1");
+	wait_for_alert(ses1, torrent_finished_alert::alert_type);
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
-		bool success = try_connect(ses1, ssl_port, t, attacks[i].flags);
-		TEST_EQUAL(success, attacks[i].expect);
+		bool success = try_connect(ses1, sett.ssl_listen, t, attacks[i].flags);
+		TEST_EQUAL(attacks[i].expect, success);
 	}
 }
 #endif // TORRENT_USE_OPENSSL
@@ -585,11 +531,9 @@ int test_main()
 #ifdef TORRENT_USE_OPENSSL
 	test_malicious_peer();
 
-	for (int utp = 0; utp < 2; ++utp)
-	{
-		for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-			test_ssl(i, utp);
-	}
+	// No support for SSL/uTP yet, so always pass in false
+	for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
+		test_ssl(i, false);
 	
 	error_code ec;
 	remove_all("tmp1_ssl", ec);

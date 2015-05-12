@@ -34,59 +34,38 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
-	|| defined TORRENT_ASIO_DEBUGGING \
-	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
-	|| defined TORRENT_DEBUG_BUFFERS
-
+#if defined TORRENT_DEBUG || defined TORRENT_ASIO_DEBUGGING \
+	|| TORRENT_RELEASE_ASSERTS || defined TORRENT_DEBUG_BUFFERS
 #include <string>
 std::string demangle(char const* name);
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 #endif
 
-// this is to disable the warning of conditional expressions
-// being constant in msvc
-#ifdef _MSC_VER
-#define TORRENT_WHILE_0  \
-	__pragma( warning(push) ) \
-	__pragma( warning(disable:4127) ) \
-	while (0) \
-	__pragma( warning(pop) )
-#else
-#define TORRENT_WHILE_0 while (0)
-#endif
-
 #if TORRENT_USE_ASSERTS
 
-#ifdef TORRENT_PRODUCTION_ASSERTS
+#if TORRENT_PRODUCTION_ASSERTS
 extern char const* libtorrent_assert_log;
 #endif
 
-#ifndef TORRENT_USE_SYSTEM_ASSERTS
+#if (defined __linux__ || defined __MACH__) && defined __GNUC__ && !TORRENT_USE_SYSTEM_ASSERT
 
 #if TORRENT_USE_IOSTREAM
 #include <sstream>
 #endif
 
-TORRENT_EXPORT void assert_print(char const* fmt, ...) TORRENT_FORMAT(1,2);
-
-#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
-TORRENT_NO_RETURN
-#endif
-TORRENT_EXPORT void assert_fail(const char* expr, int line
-	, char const* file, char const* function, char const* val, int kind = 0);
+TORRENT_EXPORT void assert_fail(const char* expr, int line, char const* file
+	, char const* function, char const* val, int kind = 0);
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 1); } while (false)
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, "", 0); } while (false)
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
+	assert_fail(#x, __LINE__, __FILE__, __PRETTY_FUNCTION__, __s__.str().c_str(), 0); } } while (false)
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
 #endif
@@ -100,9 +79,9 @@ TORRENT_EXPORT void assert_fail(const char* expr, int line
 
 #else // TORRENT_USE_ASSERTS
 
-#define TORRENT_ASSERT_PRECOND(a) do {} TORRENT_WHILE_0
-#define TORRENT_ASSERT(a) do {} TORRENT_WHILE_0
-#define TORRENT_ASSERT_VAL(a, b) do {} TORRENT_WHILE_0
+#define TORRENT_ASSERT_PRECOND(a) do {} while(false)
+#define TORRENT_ASSERT(a) do {} while(false)
+#define TORRENT_ASSERT_VAL(a, b) do {} while(false)
 
 #endif // TORRENT_USE_ASSERTS
 

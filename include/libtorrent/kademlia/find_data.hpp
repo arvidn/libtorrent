@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef FIND_DATA_050323_HPP
 #define FIND_DATA_050323_HPP
 
+#include <vector>
+#include <map>
+
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -40,16 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <vector>
-#include <map>
-
 #include <boost/optional.hpp>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -57,7 +53,7 @@ namespace libtorrent { namespace dht
 typedef std::vector<char> packet_t;
 
 class rpc_manager;
-class node;
+class node_impl;
 
 // -------- find data -----------
 
@@ -65,7 +61,7 @@ struct find_data : traversal_algorithm
 {
 	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
-	find_data(node & node, node_id target
+	find_data(node_impl& node, node_id target
 		, nodes_callback const& ncallback);
 
 	void got_write_token(node_id const& n, std::string const& write_token);

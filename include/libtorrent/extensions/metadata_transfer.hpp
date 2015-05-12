@@ -35,15 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/shared_ptr.hpp>
+#include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifndef TORRENT_NO_DEPRECATE
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace libtorrent
 {
@@ -56,12 +57,11 @@ namespace libtorrent
 	// is deprecated. It can be either be passed in the
 	// add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_DEPRECATED
+	TORRENT_DEPRECATED_PREFIX
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent*, void*);
+	create_metadata_plugin(torrent*, void*) TORRENT_DEPRECATED;
 #endif
 }
-#endif
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 

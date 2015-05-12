@@ -32,10 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/hasher.hpp>
-#include <libtorrent/bdecode.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/dht_observer.hpp>
 
 #if TORRENT_USE_ASSERTS
 #include <libtorrent/bencode.hpp>
@@ -44,20 +42,20 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-void get_item::got_data(bdecode_node const& v,
+void get_item::got_data(lazy_entry const* v,
 	char const* pk,
 	boost::uint64_t seq,
 	char const* sig)
 {
 	// we received data!
 
-	std::pair<char const*, int> salt(m_salt.c_str(), int(m_salt.size()));
+	std::pair<char const*, int> salt(m_salt.c_str(), m_salt.size());
 
 	sha1_hash incoming_target;
 	if (pk)
 		incoming_target = item_target_id(salt, pk);
 	else
-		incoming_target = item_target_id(v.data_section());
+		incoming_target = item_target_id(v->data_section());
 
 	if (incoming_target != m_target) return;
 
@@ -107,20 +105,20 @@ void get_item::got_data(bdecode_node const& v,
 }
 
 get_item::get_item(
-	node& dht_node
+	node_impl& node
 	, node_id target
 	, data_callback const& dcallback)
-	: find_data(dht_node, target, nodes_callback())
+	: find_data(node, target, nodes_callback())
 	, m_data_callback(dcallback)
 {
 }
 
 get_item::get_item(
-	node& dht_node
+	node_impl& node
 	, char const* pk
 	, std::string const& salt
 	, data_callback const& dcallback)
-	: find_data(dht_node, item_target_id(
+	: find_data(node, item_target_id(
 		std::make_pair(salt.c_str(), int(salt.size())), pk)
 		, nodes_callback())
 	, m_data_callback(dcallback)
@@ -199,12 +197,9 @@ void get_item::done()
 void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	// TODO: 3 it would be nice to not have to spend so much time rendering
-	// the bencoded dict if logging is disabled
-	get_node().observer()->log(dht_logger::traversal, "[%p] sending put [ v: \"%s\" seq: %" PRId64 " nodes: %d ]"
-		, this, m_data.value().to_string().c_str()
-		, (m_data.is_mutable() ? m_data.seq() : -1)
-		, int(v.size()));
+	TORRENT_LOG(node) << "sending put [ v: \"" << m_data.value()
+		<< "\" seq: " << (m_data.is_mutable() ? m_data.seq() : -1)
+		<< " nodes: " << v.size() << " ]" ;
 #endif
 
 	// create a dummy traversal_algorithm
@@ -216,8 +211,7 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 		, end(v.end()); i != end; ++i)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		get_node().observer()->log(dht_logger::traversal, "[%p] put-distance: %d"
-			, this, 160 - distance_exp(m_target, i->first.id));
+		TORRENT_LOG(node) << "  put-distance: " << (160 - distance_exp(m_target, i->first.id));
 #endif
 
 		void* ptr = m_node.m_rpc.allocate_observer();
@@ -254,31 +248,30 @@ void get_item_observer::reply(msg const& m)
 	char const* sig = NULL;
 	boost::uint64_t seq = 0;
 
-	bdecode_node r = m.message.dict_find_dict("r");
+	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
 #endif
 		return;
 	}
 
-	bdecode_node k = r.dict_find_string("k");
-	if (k && k.string_length() == item_pk_len)
-		pk = k.string_ptr();
+	lazy_entry const* k = r->dict_find_string("k");
+	if (k && k->string_length() == item_pk_len)
+		pk = k->string_ptr();
 
-	bdecode_node s = r.dict_find_string("sig");
-	if (s && s.string_length() == item_sig_len)
-		sig = s.string_ptr();
+	lazy_entry const* s = r->dict_find_string("sig");
+	if (s && s->string_length() == item_sig_len)
+		sig = s->string_ptr();
 
-	bdecode_node q = r.dict_find_int("seq");
+	lazy_entry const* q = r->dict_find_int("seq");
 	if (q)
-		seq = q.int_value();
+		seq = q->int_value();
 	else if (pk && sig)
 		return;
 
-	bdecode_node v = r.dict_find("v");
+	lazy_entry const* v = r->dict_find("v");
 	if (v)
 	{
 		static_cast<get_item*>(m_algorithm.get())->got_data(v, pk, seq, sig);

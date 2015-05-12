@@ -33,12 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
+#include "libtorrent/connection_queue.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/smart_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include <iostream>
 
 using namespace libtorrent;
@@ -144,17 +145,16 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 	xml.write(soap_add_response, sizeof(soap_add_response)-1);
 	xml.close();
 
-	sock = new broadcast_socket(udp::endpoint(address_v4::from_string("239.255.255.250")
-		, 1900));
+	sock = new broadcast_socket(udp::endpoint(address_v4::from_string("239.255.255.250"), 1900)
+		, &incoming_msearch);
 
-	sock->open(&incoming_msearch, ios, ec);
+	sock->open(ios, ec);
 
 	std::string user_agent = "test agent";
 
-	boost::shared_ptr<upnp> upnp_handler = boost::make_shared<upnp>(boost::ref(ios)
-		, address_v4::from_string("127.0.0.1")
+	connection_queue cc(ios);
+	boost::intrusive_ptr<upnp> upnp_handler = new upnp(ios, cc, address_v4::from_string("127.0.0.1")
 		, user_agent, &callback, &log_callback, false);
-	upnp_handler->start();
 	upnp_handler->discover_device();
 
 	for (int i = 0; i < 20; ++i)

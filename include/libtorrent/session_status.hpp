@@ -34,20 +34,72 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_STATUS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/size_type.hpp"
 #include <vector>
-
-#ifndef TORRENT_NO_DEPRECATE
-// for dht_lookup and dht_routing_bucket
-#include "libtorrent/alert_types.hpp"
-#endif
 
 namespace libtorrent
 {
 
+	// holds statistics about a current dht_lookup operation.
+	// a DHT lookup is the travesal of nodes, looking up a
+	// set of target nodes in the DHT for retrieving and possibly
+	// storing information in the DHT
+	struct TORRENT_EXPORT dht_lookup
+	{
+		// string literal indicating which kind of lookup this is
+		char const* type;
+
+		// the number of outstanding request to individual nodes
+		// this lookup has right now
+		int outstanding_requests;
+
+		// the total number of requests that have timed out so far
+		// for this lookup
+		int timeouts;
+
+		// the total number of responses we have received for this
+		// lookup so far for this lookup
+		int responses;
+
+		// the branch factor for this lookup. This is the number of
+		// nodes we keep outstanding requests to in parallel by default.
+		// when nodes time out we may increase this.
+		int branch_factor;
+
+		// the number of nodes left that could be queries for this
+		// lookup. Many of these are likely to be part of the trail
+		// while performing the lookup and would never end up actually
+		// being queried.
+		int nodes_left;
+
+		// the number of seconds ago the
+		// last message was sent that's still
+		// outstanding
+		int last_sent;
+
+		// the number of outstanding requests
+		// that have exceeded the short timeout
+		// and are considered timed out in the
+		// sense that they increased the branch
+		// factor
+		int first_timeout;
+	};
+
+	// holds dht routing table stats
+	struct TORRENT_EXPORT dht_routing_bucket
+	{
+		// the total number of nodes and replacement nodes
+		// in the routing table
+		int num_nodes;
+		int num_replacements;
+
 #ifndef TORRENT_NO_DEPRECATE
+		// number of seconds since last activity
+		int last_active;
+#endif
+	};
+
 	// holds counters and gauges for the uTP sockets
-	// deprecated in 1.1 in favor of session_stats counters, which is a more
-	// flexible, extensible and perfromant mechanism for stats.
 	struct TORRENT_EXPORT utp_status
 	{
 		// gauges. These are snapshots of the number of
@@ -58,7 +110,7 @@ namespace libtorrent
 		int num_fin_sent;
 		int num_close_wait;
 
-		// These are monotonically increasing
+		// counters. These are monotonically increasing
 		// and cumulative counters for their respective event.
 		boost::uint64_t packet_loss;
 		boost::uint64_t timeout;
@@ -75,8 +127,6 @@ namespace libtorrent
 	};
 
 	// contains session wide state and counters
-	// deprecated in 1.1 in favor of session_stats counters, which is a more
-	// flexible, extensible and perfromant mechanism for stats.
 	struct TORRENT_EXPORT session_status
 	{
 		// false as long as no incoming connections have been
@@ -92,8 +142,8 @@ namespace libtorrent
 
 		// the total number of bytes downloaded and
 		// uploaded to and from all torrents. This also includes all the protocol overhead.
-		boost::int64_t total_download;
-		boost::int64_t total_upload;
+		size_type total_download;
+		size_type total_upload;
 
 		// the rate of the payload
 		// down- and upload only.
@@ -103,38 +153,38 @@ namespace libtorrent
 		// the total transfers of payload
 		// only. The payload does not include the bittorrent protocol overhead, but only parts of the
 		// actual files to be downloaded.
-		boost::int64_t total_payload_download;
-		boost::int64_t total_payload_upload;
+		size_type total_payload_download;
+		size_type total_payload_upload;
 
 		// the estimated TCP/IP overhead in each direction.
 		int ip_overhead_upload_rate;
 		int ip_overhead_download_rate;
-		boost::int64_t total_ip_overhead_download;
-		boost::int64_t total_ip_overhead_upload;
+		size_type total_ip_overhead_download;
+		size_type total_ip_overhead_upload;
 
 		// the upload and download rate used by DHT traffic. Also the total number
 		// of bytes sent and received to and from the DHT.
 		int dht_upload_rate;
 		int dht_download_rate;
-		boost::int64_t total_dht_download;
-		boost::int64_t total_dht_upload;
+		size_type total_dht_download;
+		size_type total_dht_upload;
 
 		// the upload and download rate used by tracker traffic. Also the total number
 		// of bytes sent and received to and from trackers.
 		int tracker_upload_rate;
 		int tracker_download_rate;
-		boost::int64_t total_tracker_download;
-		boost::int64_t total_tracker_upload;
+		size_type total_tracker_download;
+		size_type total_tracker_upload;
 
 		// the number of bytes that has been received more than once.
 		// This can happen if a request from a peer times out and is requested from a different
 		// peer, and then received again from the first one. To make this lower, increase the
 		// ``request_timeout`` and the ``piece_timeout`` in the session settings.
-		boost::int64_t total_redundant_bytes;
+		size_type total_redundant_bytes;
 
 		// the number of bytes that was downloaded which later failed
 		// the hash-check.
-		boost::int64_t total_failed_bytes;
+		size_type total_failed_bytes;
 
 		// the total number of peer connections this session has. This includes
 		// incoming connections that still hasn't sent their handshake or outgoing connections
@@ -142,8 +192,6 @@ namespace libtorrent
 		// than the sum of all peers of all torrents because the incoming connections may not
 		// be assigned a torrent yet.
 		int num_peers;
-
-		int num_dead_peers;
 
 		// the current number of unchoked peers.
 		int num_unchoked;
@@ -189,7 +237,7 @@ namespace libtorrent
 
 		// an estimation of the total number of nodes in the DHT
 		// network.
-		boost::int64_t dht_global_nodes;
+		size_type dht_global_nodes;
 
 		// a vector of the currently running DHT lookups.
 		std::vector<dht_lookup> active_requests;
@@ -209,13 +257,7 @@ namespace libtorrent
 		// the number of known peers across all torrents. These are not necessarily
 		// connected peers, just peers we know of.
 		int peerlist_size;
-
-		// the number of torrents in the
-		// session and the number of them that are currently paused, respectively.
-		int num_torrents;
-		int num_paused_torrents;
 	};
-#endif // TORRENT_NO_DEPRECATE
 
 }
 

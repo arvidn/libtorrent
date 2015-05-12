@@ -33,41 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef DHT_OBSERVER_HPP
 #define DHT_OBSERVER_HPP
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/kademlia/msg.hpp"
 
 namespace libtorrent { namespace dht
 {
-	struct dht_logger
-	{
-		enum dht_module_t
-		{
-			tracker,
-			node,
-			routing_table,
-			rpc_manager,
-			traversal
-		};
-
-		virtual void log(dht_module_t m, char const* fmt, ...) TORRENT_FORMAT(3,4) = 0;
-
-	protected:
-		~dht_logger() {}
-	};
-
-	struct dht_observer : dht_logger
+	struct dht_observer
 	{
 		virtual void set_external_address(address const& addr
 			, address const& source) = 0;
-		virtual address external_address() = 0;
-		virtual void get_peers(sha1_hash const& ih) = 0;
-		virtual void outgoing_get_peers(sha1_hash const& target
-			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;
-		virtual void announce(sha1_hash const& ih, address const& addr, int port) = 0;
-
-	protected:
-		~dht_observer() {}
 	};
 }}
 

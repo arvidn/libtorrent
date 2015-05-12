@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>Time</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="time">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">Time</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.5</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#time-duration" id="id18">time_duration</a></li>
+<li><a class="reference internal" href="#ptime" id="id19">ptime</a></li>
+</ul>
+</div>
+<p>This section contains fundamental time types used internally by
+libtorrent and exposed through various places in the API. The two
+basic types are <tt class="docutils literal">ptime</tt> and <tt class="docutils literal">time_duration</tt>. The first represents
+a point in time and the second the difference between two points
+in time.</p>
+<p>The internal representation of these types is implementation defined
+and they can only be constructed via one of the construction functions
+that take a well defined time unit (seconds, minutes, etc.). They can
+only be turned into well defined time units by the accessor functions
+(<a class="reference external" href="reference-Time.html#total_microseconds()">total_microseconds()</a>, etc.).</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In a future version of libtorrent, these types will be replaced
+by the standard timer types from <tt class="docutils literal"><span class="pre">std::chrono</span></tt>.</p>
+</div>
+<a name="time_duration"></a><div class="section" id="time-duration">
+<h1>time_duration</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
+<p>libtorrent <a class="reference external" href="reference-Time.html#time_duration">time_duration</a> type</p>
+<pre class="literal-block">
+struct time_duration
+{
+   time_duration&amp; <strong>operator-=</strong> (time_duration const&amp; c);
+   time_duration <strong>operator+</strong> (time_duration const&amp; c);
+   time_duration&amp; <strong>operator+=</strong> (time_duration const&amp; c);
+   time_duration <strong>operator/</strong> (int rhs) const;
+   explicit <strong>time_duration</strong> (boost::int64_t d);
+   time_duration <strong>operator-</strong> (time_duration const&amp; c);
+   time_duration&amp; <strong>operator*=</strong> (int v);
+};
+</pre>
+<a name="operator+=()"></a>
+<a name="time_duration()"></a>
+<a name="operator*=()"></a>
+<a name="operator-=()"></a>
+<a name="operator+()"></a>
+<a name="operator/()"></a>
+<a name="operator-()"></a><div class="section" id="operator-time-duration-operator-operator-operator-operator-operator">
+<h2>operator+=() time_duration() operator*=() operator-=() operator+() operator/() operator-()</h2>
+<pre class="literal-block">
+time_duration&amp; <strong>operator-=</strong> (time_duration const&amp; c);
+time_duration <strong>operator+</strong> (time_duration const&amp; c);
+time_duration&amp; <strong>operator+=</strong> (time_duration const&amp; c);
+time_duration <strong>operator/</strong> (int rhs) const;
+explicit <strong>time_duration</strong> (boost::int64_t d);
+time_duration <strong>operator-</strong> (time_duration const&amp; c);
+time_duration&amp; <strong>operator*=</strong> (int v);
+</pre>
+<p>all operators have the same semantics as a 64 bit signed integer</p>
+<a name="ptime"></a></div>
+</div>
+<div class="section" id="ptime">
+<h1>ptime</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
+<p>This type represents a point in time.</p>
+<pre class="literal-block">
+struct ptime
+{
+   ptime&amp; <strong>operator-=</strong> (time_duration rhs);
+   ptime&amp; <strong>operator+=</strong> (time_duration rhs);
+};
+</pre>
+<a name="operator+=()"></a>
+<a name="operator-=()"></a><div class="section" id="operator-operator">
+<h2>operator+=() operator-=()</h2>
+<pre class="literal-block">
+ptime&amp; <strong>operator-=</strong> (time_duration rhs);
+ptime&amp; <strong>operator+=</strong> (time_duration rhs);
+</pre>
+<p>these operators have the same semantics as signed 64 bit integers</p>
+<a name="is_negative()"></a></div>
+<div class="section" id="is-negative">
+<h2>is_negative()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
+<pre class="literal-block">
+inline bool <strong>is_negative</strong> (time_duration dt);
+</pre>
+<p>returns true of the time duration is less than 0</p>
+<a name="operator*()"></a>
+<a name="operator>=()"></a>
+<a name="operator!=()"></a>
+<a name="operator>()"></a>
+<a name="operator<()"></a>
+<a name="operator==()"></a>
+<a name="operator+()"></a>
+<a name="operator<=()"></a>
+<a name="operator-()"></a></div>
+<div class="section" id="operator-operator-operator-operator-operator-operator-operator-operator-operator">
+<h2>operator*() operator&gt;=() operator!=() operator&gt;() operator&lt;() operator==() operator+() operator&lt;=() operator-()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ptime.hpp">libtorrent/ptime.hpp</a>&quot;</p>
+<pre class="literal-block">
+inline time_duration <strong>operator*</strong> (int lhs, time_duration rhs);
+inline bool <strong>operator==</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&lt;=</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator==</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&gt;=</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&lt;</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&gt;</strong> (time_duration lhs, time_duration rhs);
+inline bool <strong>operator&gt;</strong> (ptime lhs, ptime rhs);
+inline ptime <strong>operator+</strong> (time_duration lhs, ptime rhs);
+inline ptime <strong>operator+</strong> (ptime lhs, time_duration rhs);
+inline time_duration <strong>operator*</strong> (time_duration lhs, int rhs);
+inline time_duration <strong>operator-</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&lt;=</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator!=</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&lt;</strong> (ptime lhs, ptime rhs);
+inline bool <strong>operator&gt;=</strong> (ptime lhs, ptime rhs);
+inline ptime <strong>operator-</strong> (ptime lhs, time_duration rhs);
+</pre>
+<p>all operators have the same semantics as signed 64 bit integers</p>
+<a name="time_now()"></a></div>
+<div class="section" id="time-now">
+<h2>time_now()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/time.hpp">libtorrent/time.hpp</a>&quot;</p>
+<pre class="literal-block">
+ptime const&amp; <strong>time_now</strong> ();
+</pre>
+<p>returns the current time, as represented by <a class="reference external" href="reference-Time.html#ptime">ptime</a>. The
+resolution of this timer is about 100 ms.</p>
+<a name="time_now_hires()"></a></div>
+<div class="section" id="time-now-hires">
+<h2>time_now_hires()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/time.hpp">libtorrent/time.hpp</a>&quot;</p>
+<pre class="literal-block">
+ptime <strong>time_now_hires</strong> ();
+</pre>
+<p>returns the current time as represented by <a class="reference external" href="reference-Time.html#ptime">ptime</a>. This is
+more expensive than <a class="reference external" href="reference-Time.html#time_now()">time_now()</a>, but provides as high resolution
+as the operating system can provide.</p>
+<a name="min_time()"></a>
+<a name="max_time()"></a></div>
+<div class="section" id="min-time-max-time">
+<h2>min_time() max_time()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/time.hpp">libtorrent/time.hpp</a>&quot;</p>
+<pre class="literal-block">
+ptime <strong>max_time</strong> ();
+ptime <strong>min_time</strong> ();
+</pre>
+<p>the earliest and latest possible time points
+representable by <a class="reference external" href="reference-Time.html#ptime">ptime</a>.</p>
+<a name="microsec()"></a>
+<a name="minutes()"></a>
+<a name="hours()"></a>
+<a name="milliseconds()"></a>
+<a name="seconds()"></a></div>
+<div class="section" id="microsec-minutes-hours-milliseconds-seconds">
+<h2>microsec() minutes() hours() milliseconds() seconds()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/time.hpp">libtorrent/time.hpp</a>&quot;</p>
+<pre class="literal-block">
+time_duration <strong>microsec</strong> (boost::int64_t s);
+time_duration <strong>seconds</strong> (boost::int64_t s);
+time_duration <strong>milliseconds</strong> (boost::int64_t s);
+time_duration <strong>minutes</strong> (boost::int64_t s);
+time_duration <strong>hours</strong> (boost::int64_t s);
+</pre>
+<p>returns a <a class="reference external" href="reference-Time.html#time_duration">time_duration</a> representing the specified number of seconds, milliseconds
+microseconds, minutes and hours.</p>
+<a name="total_seconds()"></a>
+<a name="total_microseconds()"></a>
+<a name="total_milliseconds()"></a></div>
+<div class="section" id="total-seconds-total-microseconds-total-milliseconds">
+<h2>total_seconds() total_microseconds() total_milliseconds()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/time.hpp">libtorrent/time.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::int64_t <strong>total_seconds</strong> (time_duration td);
+boost::int64_t <strong>total_milliseconds</strong> (time_duration td);
+boost::int64_t <strong>total_microseconds</strong> (time_duration td);
+</pre>
+<p>returns the number of seconds, milliseconds and microseconds
+a <a class="reference external" href="reference-Time.html#time_duration">time_duration</a> represents.</p>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>

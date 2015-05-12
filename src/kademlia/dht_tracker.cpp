@@ -30,36 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#include <fstream>
+#endif
+
 #include <set>
 #include <numeric>
-
-#include "libtorrent/config.hpp"
+#include <boost/bind.hpp>
+#include <boost/ref.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/msg.hpp"
-#include "libtorrent/kademlia/dht_observer.hpp"
 
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
-#include <boost/function/function0.hpp>
-#include <boost/ref.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/escape_string.hpp"
 
 using boost::ref;
-using libtorrent::dht::node;
+using libtorrent::dht::node_impl;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
@@ -77,57 +72,96 @@ namespace
 
 namespace libtorrent { namespace dht
 {
+
 	void incoming_error(entry& e, char const* msg);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	std::string parse_dht_client(bdecode_node const& e)
+	int g_az_message_input = 0;
+	int g_ut_message_input = 0;
+	int g_lt_message_input = 0;
+	int g_mp_message_input = 0;
+	int g_gr_message_input = 0;
+	int g_mo_message_input = 0;
+	int g_unknown_message_input = 0;
+
+	int g_announces = 0;
+	int g_failed_announces = 0;
+#endif
+		
+	void intrusive_ptr_add_ref(dht_tracker const* c)
 	{
-		bdecode_node ver = e.dict_find_string("v");
+		TORRENT_ASSERT(c != 0);
+		TORRENT_ASSERT(c->m_refs >= 0);
+		++c->m_refs;
+	}
+
+	void intrusive_ptr_release(dht_tracker const* c)
+	{
+		TORRENT_ASSERT(c != 0);
+		TORRENT_ASSERT(c->m_refs > 0);
+		if (--c->m_refs == 0)
+			delete c;
+	}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	std::string parse_dht_client(lazy_entry const& e)
+	{
+		lazy_entry const* ver = e.dict_find_string("v");
 		if (!ver) return "generic";
-		std::string const& client = ver.string_value();
+		std::string const& client = ver->string_value();
 		if (client.size() < 2)
 		{
+			++g_unknown_message_input;
 			return client;
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "Az"))
 		{
+			++g_az_message_input;
 			return "Azureus";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "UT"))
 		{
+			++g_ut_message_input;
 			return "uTorrent";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "LT"))
 		{
+			++g_lt_message_input;
 			return "libtorrent";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "MP"))
 		{
+			++g_mp_message_input;
 			return "MooPolice";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "GR"))
 		{
+			++g_gr_message_input;
 			return "GetRight";
 		}
 		else if (std::equal(client.begin(), client.begin() + 2, "MO"))
 		{
+			++g_mo_message_input;
 			return "Mono Torrent";
 		}
 		else
 		{
+			++g_unknown_message_input;
 			return client;
 		}
 	}
 #endif
 
-	namespace {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DEFINE_LOG(dht_tracker)
+#endif
 
-	node_id extract_node_id(bdecode_node e)
+	node_id extract_node_id(lazy_entry const* e)
 	{
-		if (!e || e.type() != bdecode_node::dict_t) return (node_id::min)();
-		bdecode_node nid = e.dict_find_string("node-id");
-		if (!nid || nid.string_length() != 20) return (node_id::min)();
-		return node_id(node_id(nid.string_ptr()));
+		if (e == 0 || e->type() != lazy_entry::dict_t) return (node_id::min)();
+		lazy_entry const* nid = e->dict_find_string("node-id");
+		if (nid == 0 || nid->string_length() != 20) return (node_id::min)();
+		return node_id(node_id(nid->string_ptr()));
 	}
 
 	node_id extract_node_id(entry const* e)
@@ -139,20 +173,14 @@ namespace libtorrent { namespace dht
 		return node_id(node_id(nid->string().c_str()));
 	}
 
-	} // anonymous namespace
-
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
-	dht_tracker::dht_tracker(dht_observer* observer
-		, rate_limited_udp_socket& sock
-		, dht_settings const& settings
-		, counters& cnt
-		, entry const* state)
-		: m_counters(cnt)
-		, m_dht(this, settings, extract_node_id(state), observer, cnt)
+	dht_tracker::dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
+		, dht_settings const& settings, entry const* state)
+		: m_dht(&ses, this, settings, extract_node_id(state)
+			, ses.external_address().external_address(address_v4()), &ses)
 		, m_sock(sock)
-		, m_log(observer)
-		, m_last_new_key(clock_type::now() - minutes(int(key_refresh)))
+		, m_last_new_key(time_now() - minutes(key_refresh))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -160,11 +188,37 @@ namespace libtorrent { namespace dht
 		, m_refresh_bucket(160)
 		, m_abort(false)
 		, m_host_resolver(sock.get_io_service())
+		, m_sent_bytes(0)
+		, m_received_bytes(0)
+		, m_refs(0)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_log->log(dht_logger::tracker, "starting DHT tracker with node id: %s"
-			, to_hex(m_dht.nid().to_string()).c_str());
+		m_counter = 0;
+		std::fill_n(m_replies_bytes_sent, 5, 0);
+		std::fill_n(m_queries_bytes_received, 5, 0);
+		std::fill_n(m_replies_sent, 5, 0);
+		std::fill_n(m_queries_received, 5, 0);
+		g_announces = 0;
+		g_failed_announces = 0;
+		m_total_message_input = 0;
+		m_total_in_bytes = 0;
+		m_total_out_bytes = 0;
+		m_queries_out_bytes = 0;
+		
+		// turns on and off individual components' logging
+
+//		rpc_log().enable(false);
+//		node_log().enable(false);
+//		traversal_log().enable(false);
+//		dht_tracker_log.enable(false);
+
+		TORRENT_LOG(dht_tracker) << "starting DHT tracker with node id: " << m_dht.nid();
 #endif
+		for (int i = 0; i < num_ban_nodes; ++i)
+		{
+			m_ban_nodes[i].count = 0;
+			m_ban_nodes[i].limit = min_time();
+		}
 	}
 
 	dht_tracker::~dht_tracker() {}
@@ -208,17 +262,17 @@ namespace libtorrent { namespace dht
 		m_host_resolver.cancel();
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	void dht_tracker::dht_status(session_status& s)
 	{
 		m_dht.status(s);
 	}
-#endif
 
-	void dht_tracker::dht_status(std::vector<dht_routing_bucket>& table
-		, std::vector<dht_lookup>& requests)
+	void dht_tracker::network_stats(int& sent, int& received)
 	{
-		m_dht.status(table, requests);
+		sent = m_sent_bytes;
+		received = m_received_bytes;
+		m_sent_bytes = 0;
+		m_received_bytes = 0;
 	}
 
 	void dht_tracker::connection_timeout(error_code const& e)
@@ -236,11 +290,6 @@ namespace libtorrent { namespace dht
 		if (e || m_abort) return;
 
 		m_dht.tick();
-
-		// periodically update the DOS blocker's settings from the dht_settings
-		m_blocker.set_block_timer(m_settings.block_timeout);
-		m_blocker.set_rate_limit(m_settings.block_ratelimit);
-
 		error_code ec;
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(
@@ -255,19 +304,98 @@ namespace libtorrent { namespace dht
 		m_timer.expires_from_now(minutes(tick_period), ec);
 		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
 
-		time_point now = clock_type::now();
-		if (now - minutes(int(key_refresh)) > m_last_new_key)
+		ptime now = time_now();
+		if (now - m_last_new_key > minutes(key_refresh))
 		{
 			m_last_new_key = now;
 			m_dht.new_write_key();
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "*** new write key***");
+			TORRENT_LOG(dht_tracker) << " *** new write key";
 #endif
 		}
-
+		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
+		static bool first = true;
+
 		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
 		m_dht.print_state(st);
+		
+		// count torrents
+		int torrents = m_dht.num_torrents();
+		
+		// count peers
+		int peers = m_dht.num_peers();
+
+		std::ofstream pc("dht_stats.log", first ? std::ios_base::trunc : std::ios_base::app);
+		if (first)
+		{
+			first = false;
+			pc << "\n\n *****   starting log at " << time_now_string() << "   *****\n\n"
+				<< "minute:active nodes:passive nodes:confirmed nodes"
+				":ping replies sent:ping queries recvd"
+				":ping replies bytes sent:ping queries bytes recvd"
+				":find_node replies sent:find_node queries recv"
+				":find_node replies bytes sent:find_node queries bytes recv"
+				":get_peers replies sent:get_peers queries recvd"
+				":get_peers replies bytes sent:get_peers queries bytes recv"
+				":announce_peer replies sent:announce_peer queries recvd"
+				":announce_peer replies bytes sent:announce_peer queries bytes recv"
+				":error replies sent:error queries recvd"
+				":error replies bytes sent:error queries bytes recv"
+				":num torrents:num peers:announces per min"
+				":failed announces per min:total msgs per min"
+				":az msgs per min:ut msgs per min:lt msgs per min:mp msgs per min"
+				":gr msgs per min:mo msgs per min:bytes in per sec:bytes out per sec"
+				":queries out bytes per sec\n\n";
+		}
+
+		int active;
+		int passive;
+		int confirmed;
+		boost::tie(active, passive, confirmed) = m_dht.size();
+		pc << (m_counter * tick_period)
+			<< "\t" << active
+			<< "\t" << passive
+			<< "\t" << confirmed;
+		for (int i = 0; i < 5; ++i)
+			pc << "\t" << (m_replies_sent[i] / float(tick_period))
+				<< "\t" << (m_queries_received[i] / float(tick_period))
+				<< "\t" << (m_replies_bytes_sent[i] / float(tick_period*60))
+				<< "\t" << (m_queries_bytes_received[i] / float(tick_period*60));
+		
+		pc << "\t" << torrents
+			<< "\t" << peers
+			<< "\t" << g_announces / float(tick_period)
+			<< "\t" << g_failed_announces / float(tick_period)
+			<< "\t" << (m_total_message_input / float(tick_period))
+			<< "\t" << (g_az_message_input / float(tick_period))
+			<< "\t" << (g_ut_message_input / float(tick_period))
+			<< "\t" << (g_lt_message_input / float(tick_period))
+			<< "\t" << (g_mp_message_input / float(tick_period))
+			<< "\t" << (g_gr_message_input / float(tick_period))
+			<< "\t" << (g_mo_message_input / float(tick_period))
+			<< "\t" << (m_total_in_bytes / float(tick_period*60))
+			<< "\t" << (m_total_out_bytes / float(tick_period*60))
+			<< "\t" << (m_queries_out_bytes / float(tick_period*60))
+			<< std::endl;
+		++m_counter;
+		std::fill_n(m_replies_bytes_sent, 5, 0);
+		std::fill_n(m_queries_bytes_received, 5, 0);
+		std::fill_n(m_replies_sent, 5, 0);
+		std::fill_n(m_queries_received, 5, 0);
+		g_announces = 0;
+		g_failed_announces = 0;
+		m_total_message_input = 0;
+		g_az_message_input = 0;
+		g_ut_message_input = 0;
+		g_lt_message_input = 0;
+		g_mp_message_input = 0;
+		g_gr_message_input = 0;
+		g_mo_message_input = 0;
+		g_unknown_message_input = 0;
+		m_total_in_bytes = 0;
+		m_total_out_bytes = 0;
+		m_queries_out_bytes = 0;
 #endif
 	}
 
@@ -276,8 +404,6 @@ namespace libtorrent { namespace dht
 	{
 		m_dht.announce(ih, listen_port, flags, f);
 	}
-
-	namespace {
 
 	// these functions provide a slightly higher level
 	// interface to the get/put functionality in the DHT
@@ -315,8 +441,6 @@ namespace libtorrent { namespace dht
 		cb(it);
 		return true;
 	}
-
-	} // anonymous namespace
 
 	void dht_tracker::get_item(sha1_hash const& target
 		, boost::function<void(item const&)> cb)
@@ -363,10 +487,10 @@ namespace libtorrent { namespace dht
 				|| ec == asio::error::connection_reset
 				|| ec == asio::error::connection_aborted
 #ifdef WIN32
-				|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
-				|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
-				|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())
-				|| ec == error_code(ERROR_CONNECTION_ABORTED, system_category())
+				|| ec == error_code(ERROR_HOST_UNREACHABLE, get_system_category())
+				|| ec == error_code(ERROR_PORT_UNREACHABLE, get_system_category())
+				|| ec == error_code(ERROR_CONNECTION_REFUSED, get_system_category())
+				|| ec == error_code(ERROR_CONNECTION_ABORTED, get_system_category())
 #endif
 				)
 			{
@@ -377,12 +501,9 @@ namespace libtorrent { namespace dht
 
 		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
 
-		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
 		// account for IP and UDP overhead
-		m_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
-			, ep.address().is_v6() ? 48 : 28);
-		m_counters.inc_stats_counter(counters::dht_messages_in);
-
+		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
+	
 		if (m_settings.ignore_dark_internet && ep.address().is_v4())
 		{
 			address_v4::bytes_type b = ep.address().to_v4().to_bytes();
@@ -397,31 +518,86 @@ namespace libtorrent { namespace dht
 				return true;
 		}
 
-		if (!m_blocker.incoming(ep.address(), clock_type::now(), m_log))
-			return true;
+		node_ban_entry* match = 0;
+		node_ban_entry* min = m_ban_nodes;
+		ptime now = time_now();
+		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
+		{
+			if (i->src == ep.address())
+			{
+				match = i;
+				break;
+			}
+			if (i->count < min->count) min = i;
+			else if (i->count == min->count
+				&& i->limit < min->limit) min = i;
+		}
+
+		if (match)
+		{
+			++match->count;
+			if (match->count >= 50)
+			{
+				if (now < match->limit)
+				{
+					// the first time we exceed the limit, ban it for 5 minutes
+					if (match->count == 50)
+					{
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+						TORRENT_LOG(dht_tracker) << " BANNING NODE [ ip: "
+							<< ep << " time: " << total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
+							<< " count: " << match->count << " ]";
+#endif
+						match->limit = now + minutes(5);
+					}
+					// we've received 50 messages in less than 10 seconds from
+					// this node. Ignore it until it's silent for 5 minutes
+					return true;
+				}
+
+				// we got 50 messages from this peer, but it was in
+				// more than 10 seconds. Reset the counter and the timer
+				match->count = 0;
+				match->limit = now + seconds(10);
+			}
+		}
+		else
+		{
+			min->count = 1;
+			min->limit = now + seconds(10);
+			min->src = ep.address();
+		}
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		++m_total_message_input;
+		m_total_in_bytes += size;
+#endif
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
 			
 		TORRENT_ASSERT(size > 0);
 
+		lazy_entry e;
 		int pos;
 		error_code err;
-		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
+		int ret = lazy_bdecode(buf, buf + size, e, err, &pos, 10, 500);
 		if (ret != 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "<== %s ERROR: %s pos: %d"
-				, print_endpoint(ep).c_str(), err.message().c_str(), int(pos));
+			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: "
+				<< err.message() << " pos: " << pos;
 #endif
 			return false;
 		}
 
-		if (m_msg.type() != bdecode_node::dict_t)
+		libtorrent::dht::msg m(e, ep);
+
+		if (e.type() != lazy_entry::dict_t)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "<== %s ERROR: not a dictionary %s"
-				, print_endpoint(ep).c_str(), print_entry(m_msg, true).c_str());
+			TORRENT_LOG(dht_tracker) << "<== " << ep << " ERROR: not a dictionary: "
+				<< print_entry(e, true);
 #endif
 			// it's not a good idea to send invalid messages
 			// especially not in response to an invalid message
@@ -431,12 +607,29 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
-		libtorrent::dht::msg m(m_msg, ep);
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		parse_dht_client(e);
+		TORRENT_LOG(dht_tracker) << "<== " << ep << " " << print_entry(e, true);
+
+		if (e.dict_find_string_value("y") == "q")
+		{
+			std::string cmd = e.dict_find_string_value("q");
+			int cmd_idx = -1;
+			if (cmd == "ping") cmd_idx = 0;
+			else if (cmd == "find_node") cmd_idx = 1;
+			else if (cmd == "get_peers") cmd_idx = 2;
+			else if (cmd == "announce_peeer") cmd_idx = 3;
+			if (cmd_idx >= 0)
+			{
+				++m_queries_received[cmd_idx];
+				m_queries_bytes_received[cmd_idx] += size;
+			}
+		}
+#endif
+
 		m_dht.incoming(m);
 		return true;
 	}
-
-	namespace {
 
 	void add_node_fun(void* userdata, node_entry const& e)
 	{
@@ -446,8 +639,6 @@ namespace libtorrent { namespace dht
 		write_endpoint(e.ep(), out);
 		n->list().push_back(entry(node));
 	}
-
-	} // anonymous namespace
 	
 	entry dht_tracker::state() const
 	{
@@ -499,11 +690,6 @@ namespace libtorrent { namespace dht
 		m_dht.add_router_node(node);
 	}
 
-	bool dht_tracker::has_quota()
-	{
-		return m_sock.has_quota();
-	}
-
 	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr, int send_flags)
 	{
 		using libtorrent::bencode;
@@ -518,48 +704,59 @@ namespace libtorrent { namespace dht
 		error_code ec;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		// TODO: 3 it would be nice to not have to decode this if logging
-		// is not enabled. Maybe there could be a separate log function for
-		// incoming and outgoing packets.
-		bdecode_node print;
-		int ret = bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
+		std::stringstream log_line;
+		lazy_entry print;
+		int ret = lazy_bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
 		TORRENT_ASSERT(ret == 0);
-		std::string outgoing_message = print_entry(print, true);
+		log_line << print_entry(print, true);
 #endif
 
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
 			if (ec)
 			{
-				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				m_log->log(dht_logger::tracker, "==> %s DROPPED (%s) %s"
-					, print_endpoint(addr).c_str(), ec.message().c_str()
-					, outgoing_message.c_str());
+				TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED (" << ec.message() << ") " << log_line.str();
 #endif
 				return false;
 			}
 
-			m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
 			// account for IP and UDP overhead
-			m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-				, addr.address().is_v6() ? 48 : 28);
-			m_counters.inc_stats_counter(counters::dht_messages_out);
+			m_sent_bytes += m_send_buf.size() + (addr.address().is_v6() ? 48 : 28);
+
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "==> %s %s"
-				, print_endpoint(addr).c_str()
-				, outgoing_message.c_str());
+			m_total_out_bytes += m_send_buf.size();
+		
+			if (e["y"].string() == "r")
+			{
+/*
+				// This doesn't work. r is a dictionary with return
+				// values. The query type isn't part of the response
+				std::string cmd = e["r"].string();
+				int cmd_idx = -1;
+				if (cmd == "ping") cmd_idx = 0;
+				else if (cmd == "find_node") cmd_idx = 1;
+				else if (cmd == "get_peers") cmd_idx = 2;
+				else if (cmd == "announce_peeer") cmd_idx = 3;
+				if (cmd_idx >= 0)
+				{
+					++m_replies_sent[cmd_idx];
+					m_replies_bytes_sent[cmd_idx] += int(m_send_buf.size());
+				}
+*/
+			}
+			else if (e["y"].string() == "q")
+			{
+				m_queries_out_bytes += m_send_buf.size();
+			}
+			TORRENT_LOG(dht_tracker) << "==> " << addr << " " << log_line.str();
 #endif
 			return true;
 		}
 		else
 		{
-			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
-
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "==> %s DROPPED %s"
-				, print_endpoint(addr).c_str()
-				, outgoing_message.c_str());
+			TORRENT_LOG(dht_tracker) << "==> " << addr << " DROPPED " << log_line.str();
 #endif
 			return false;
 		}

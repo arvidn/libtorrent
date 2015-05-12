@@ -33,15 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SSL_STREAM_HPP_INCLUDED
 #define TORRENT_SSL_STREAM_HPP_INCLUDED
 
-#ifdef TORRENT_USE_OPENSSL
-
 #include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/io_service.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
 #include <boost/bind.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ssl.hpp>
@@ -51,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // openssl seems to believe it owns
 // this name in every single scope
 #undef set_key
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
@@ -122,8 +112,6 @@ public:
 	template <class Handler>
 	void async_shutdown(Handler const& handler)
 	{
-		error_code ec;
-		m_sock.next_layer().cancel(ec);
 		m_sock.async_shutdown(handler);
 	}
 
@@ -204,16 +192,13 @@ public:
 		return m_sock.write_some(buffers, ec);
 	}
 
-	// the SSL stream may cache 17 kiB internally, and there's no way of
-	// asking how large its buffer is. 17 kiB isn't very much though, so it
-	// seems fine to potentially over-estimate the number of bytes available.
 #ifndef BOOST_NO_EXCEPTIONS
 	std::size_t available() const
-	{ return 17 * 1024 + const_cast<sock_type&>(m_sock).next_layer().available(); }
+	{ return const_cast<sock_type&>(m_sock).next_layer().available(); }
 #endif
 
 	std::size_t available(error_code& ec) const
-	{ return 17 * 1024 + const_cast<sock_type&>(m_sock).next_layer().available(ec); }
+	{ return const_cast<sock_type&>(m_sock).next_layer().available(ec); }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
@@ -318,8 +303,6 @@ private:
 };
 
 }
-
-#endif // TORRENT_USE_OPENSSL
 
 #endif
 

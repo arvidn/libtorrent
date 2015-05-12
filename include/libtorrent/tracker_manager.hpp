@@ -33,36 +33,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_TRACKER_MANAGER_HPP_INCLUDED
 #define TORRENT_TRACKER_MANAGER_HPP_INCLUDED
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
-#include <list>
 #include <utility>
 #include <ctime>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/cstdint.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/tuple/tuple.hpp>
-#include <boost/unordered_map.hpp>
-
-#ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
+#ifdef _MSC_VER
+#pragma warning(push, 1)
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <boost/shared_ptr.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/weak_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
+#include <boost/tuple/tuple.hpp>
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/peer.hpp" // peer_entry
+#include "libtorrent/session_settings.hpp" // proxy_settings
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/connection_queue.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
+#include "libtorrent/size_type.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/udp_socket.hpp" // for udp_socket_observer
+#ifdef TORRENT_USE_OPENSSL
+#include <boost/asio/ssl/context.hpp>
+#endif
 
 namespace libtorrent
 {
@@ -70,15 +74,7 @@ namespace libtorrent
 	class tracker_manager;
 	struct timeout_handler;
 	struct tracker_connection;
-	class udp_tracker_connection;
-	class http_tracker_connection;
-	class  udp_socket;
-	struct resolver_interface;
-	struct counters;
-#if TORRENT_USE_I2P
-	class i2p_connection;
-#endif
-	namespace aux { struct session_logger; struct session_settings; }
+	namespace aux { struct session_impl; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXTRA_EXPORT int gzip_header(const char* buf, int size);
@@ -86,14 +82,14 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT tracker_request
 	{
 		tracker_request()
-			: downloaded(-1)
+			: kind(announce_request)
+			, downloaded(-1)
 			, uploaded(-1)
 			, left(-1)
 			, corrupt(0)
 			, redundant(0)
 			, listen_port(0)
 			, event(none)
-			, kind(announce_request)
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
@@ -101,10 +97,13 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
-#if TORRENT_USE_I2P
-			, i2pconn(0)
-#endif
 		{}
+
+		enum
+		{
+			announce_request,
+			scrape_request
+		} kind;
 
 		enum event_t
 		{
@@ -115,101 +114,31 @@ namespace libtorrent
 			paused
 		};
 
-		enum kind_t
-		{
-			announce_request,
-			scrape_request
-		};
-
-		std::string url;
-		std::string trackerid;
-		std::string auth;
-
-		boost::int64_t downloaded;
-		boost::int64_t uploaded;
-		boost::int64_t left;
-		boost::int64_t corrupt;
-		boost::int64_t redundant;
-		boost::uint16_t listen_port;
-
-		// values from event_t
-		boost::uint8_t event;
-
-		// values from kind_t
-		boost::uint8_t kind;
-
-		boost::uint32_t key;
-		int num_want;
 		sha1_hash info_hash;
 		peer_id pid;
+		size_type downloaded;
+		size_type uploaded;
+		size_type left;
+		size_type corrupt;
+		size_type redundant;
+		unsigned short listen_port;
+		event_t event;
+		std::string url;
+		std::string trackerid;
+		boost::uint32_t key;
+		int num_want;
 		address bind_ip;
-
 		bool send_stats;
 		bool apply_ip_filter;
 #ifdef TORRENT_USE_OPENSSL
 		boost::asio::ssl::context* ssl_ctx;
 #endif
-#if TORRENT_USE_I2P
-		i2p_connection* i2pconn;
-#endif
-	};
-
-	struct tracker_response
-	{
-		tracker_response()
-			: interval(1800)
-			, min_interval(120)
-			, complete(-1)
-			, incomplete(-1)
-			, downloaders(-1)
-			, downloaded(-1)
-		{}
-
-		// peers from the tracker, in various forms
-		std::vector<peer_entry> peers;
-		std::vector<ipv4_peer_entry> peers4;
-#if TORRENT_USE_IPV6
-		std::vector<ipv6_peer_entry> peers6;
-#endif
-		// our external IP address (if the tracker responded with ti, otherwise
-		// INADDR_ANY)
-		address external_ip;
-
-		// the tracker id, if it was included in the response, otherwise
-		// an empty string
-		std::string trackerid;
-
-		// if the tracker returned an error, this is set to that error
-		std::string failure_reason;
-
-		// contains a warning message from the tracker, if included in
-		// the response
-		std::string warning_message;
-
-		// re-announce interval, in seconds
-		int interval;
-
-		// the lowest force-announce interval
-		int min_interval;
-
-		// the number of seeds in the swarm
-		int complete;
-
-		// the number of downloaders in the swarm
-		int incomplete;
-
-		// if supported by the tracker, the number of actively downloading peers.
-		// i.e. partial seeds. If not suppored, -1
-		int downloaders;
-
-		// the number of times the torrent has been downloaded
-		int downloaded;
 	};
 
 	struct TORRENT_EXTRA_EXPORT request_callback
 	{
 		friend class tracker_manager;
-		request_callback() {}
+		request_callback(): m_manager(0) {}
 		virtual ~request_callback() {}
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) = 0;
@@ -220,7 +149,14 @@ namespace libtorrent
 			tracker_request const& req
 			, address const& tracker_ip
 			, std::list<address> const& ip_list
-			, struct tracker_response const& response) = 0;
+			, std::vector<peer_entry>& peers
+			, int interval
+			, int min_interval
+			, int complete
+			, int incomplete
+			, int downloaded
+			, address const& external_ip
+			, std::string const& trackerid) = 0;
 		virtual void tracker_request_error(
 			tracker_request const& req
 			, int response_code
@@ -228,13 +164,18 @@ namespace libtorrent
 			, const std::string& msg
 			, int retry_interval) = 0;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		virtual void debug_log(const char* fmt, ...) const TORRENT_FORMAT(2,3) = 0;
+		union_endpoint m_tracker_address;
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+		virtual void debug_log(const char* fmt, ...) const = 0;
+#else
+	private:
 #endif
+		tracker_manager* m_manager;
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler
-		: boost::enable_shared_from_this<timeout_handler>
+		: intrusive_ptr_base<timeout_handler>
 		, boost::noncopyable
 	{
 		timeout_handler(io_service& str);
@@ -253,27 +194,25 @@ namespace libtorrent
 	
 		void timeout_callback(error_code const&);
 
-		int m_completion_timeout;
-
-		typedef mutex mutex_t;
-		mutable mutex_t m_mutex;
+		boost::intrusive_ptr<timeout_handler> self()
+		{ return boost::intrusive_ptr<timeout_handler>(this); }
 
 		// used for timeouts
 		// this is set when the request has been sent
-		time_point m_start_time;
-
+		ptime m_start_time;
 		// this is set every time something is received
-		time_point m_read_time;
-
+		ptime m_read_time;
 		// the asio async operation
 		deadline_timer m_timeout;
 		
+		int m_completion_timeout;
 		int m_read_timeout;
 
+		typedef mutex mutex_t;
+		mutable mutex_t m_mutex;
 		bool m_abort;
 	};
 
-	// TODO: 2 this class probably doesn't need to have virtual functions.
 	struct TORRENT_EXTRA_EXPORT tracker_connection
 		: timeout_handler
 	{
@@ -281,9 +220,6 @@ namespace libtorrent
 			, tracker_request const& req
 			, io_service& ios
 			, boost::weak_ptr<request_callback> r);
-
-		void update_transaction_id(boost::shared_ptr<udp_tracker_connection> c
-			, boost::uint64_t tid);
 
 		boost::shared_ptr<request_callback> requester() const;
 		virtual ~tracker_connection() {}
@@ -297,21 +233,13 @@ namespace libtorrent
 		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
-		virtual bool on_receive(error_code const&, udp::endpoint const&
-			, char const* /* buf */, int /* size */) { return false; }
-		virtual bool on_receive_hostname(error_code const&
-			, char const* /* hostname */
-			, char const* /* buf */, int /* size */) { return false; }
+		virtual bool on_receive(error_code const& ec, udp::endpoint const& ep
+			, char const* buf, int size) { return false; }
+		virtual bool on_receive_hostname(error_code const& ec, char const* hostname
+			, char const* buf, int size) { return false; }
 
-		boost::shared_ptr<tracker_connection> shared_from_this()
-		{
-			return boost::static_pointer_cast<tracker_connection>(
-				timeout_handler::shared_from_this());
-		}
-
-	private:
-
-		const tracker_request m_req;
+		boost::intrusive_ptr<tracker_connection> self()
+		{ return boost::intrusive_ptr<tracker_connection>(this); }
 
 	protected:
 
@@ -321,28 +249,27 @@ namespace libtorrent
 		boost::weak_ptr<request_callback> m_requester;
 
 		tracker_manager& m_man;
+
+	private:
+
+		const tracker_request m_req;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager TORRENT_FINAL
-		: public udp_socket_observer
-		, boost::noncopyable
+	class TORRENT_EXTRA_EXPORT tracker_manager: public udp_socket_observer, boost::noncopyable
 	{
 	public:
 
-		tracker_manager(udp_socket& sock
-			, counters& stats_counters
-			, resolver_interface& resolver
-			, struct ip_filter& ipf
-			, aux::session_settings const& sett
-#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
-			, aux::session_logger& ses
-#endif
-			);
+		tracker_manager(aux::session_impl& ses, proxy_settings const& ps)
+			: m_ses(ses)
+			, m_proxy(ps)
+			, m_abort(false) {}
 		~tracker_manager();
 
 		void queue_request(
 			io_service& ios
+			, connection_queue& cc
 			, tracker_request r
+			, std::string const& auth
 			, boost::weak_ptr<request_callback> c
 				= boost::weak_ptr<request_callback>());
 		void abort_all_requests(bool all = false);
@@ -362,38 +289,16 @@ namespace libtorrent
 		virtual bool incoming_packet(error_code const& e, char const* hostname
 			, char const* buf, int size);
 		
-		void update_transaction_id(
-			boost::shared_ptr<udp_tracker_connection> c
-			, boost::uint64_t tid);
-
-		aux::session_settings const& settings() const { return m_settings; }
-		udp_socket& get_udp_socket() { return m_udp_socket; }
-		struct ip_filter const& ip_filter() const { return m_ip_filter; }
-		resolver_interface& host_resolver() { return m_host_resolver; }
-
 	private:
 
 		typedef mutex mutex_t;
 		mutable mutex_t m_mutex;
 
-		// maps transactionid to the udp_tracker_connection
-		// TODO: this should be unique_ptr in the future
-		typedef boost::unordered_map<boost::uint32_t
-			, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
-		udp_conns_t m_udp_conns;
-
-		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
-		http_conns_t m_http_conns;
-
-		struct ip_filter const& m_ip_filter;
-		class udp_socket& m_udp_socket;
-		resolver_interface& m_host_resolver;
-		aux::session_settings const& m_settings;
-		counters& m_stats_counters;
-#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
-		aux::session_logger& m_ses;
-#endif
-
+		typedef std::list<boost::intrusive_ptr<tracker_connection> >
+			tracker_connections_t;
+		tracker_connections_t m_connections;
+		aux::session_impl& m_ses;
+		proxy_settings const& m_proxy;
 		bool m_abort;
 	};
 }

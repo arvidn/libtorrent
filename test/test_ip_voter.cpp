@@ -35,15 +35,26 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
-#include "setup_transfer.hpp" // for rand_v4
 
 using namespace libtorrent;
+
+address rand_v4()
+{
+	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+}
+
+udp::endpoint rand_ep()
+{
+	return udp::endpoint(rand_v4(), rand());
+}
 
 // test the case where every time we get a new IP. Make sure
 // we don't flap
 void test_random()
 {
 	ip_voter ipv;
+
+	random_seed(100);
 
 	bool new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
 	TEST_CHECK(new_ip);
@@ -58,6 +69,8 @@ void test_two_ips()
 {
 	ip_voter ipv;
 
+	random_seed(100);
+
 	address_v4 addr1(address_v4::from_string("51.1.1.1"));
 	address_v4 addr2(address_v4::from_string("53.3.3.3"));
 
@@ -68,6 +81,7 @@ void test_two_ips()
 	TEST_CHECK(new_ip);
 	for (int i = 0; i < 1000; ++i)
 	{
+		fprintf(stderr, "%d\n", i);
 		new_ip = ipv.cast_vote(addr2, 1, rand_v4());
 		TEST_CHECK(!new_ip);
 		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
@@ -82,6 +96,8 @@ void test_two_ips()
 void test_one_ip()
 {
 	ip_voter ipv;
+
+	random_seed(100);
 
 	address_v4 addr1(address_v4::from_string("51.1.1.1"));
 	address_v4 addr2(address_v4::from_string("53.3.3.3"));

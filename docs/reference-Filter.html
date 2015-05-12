@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>Filter</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="filter">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">Filter</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.5</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#ip-filter" id="id10">ip_filter</a></li>
+<li><a class="reference internal" href="#port-filter" id="id11">port_filter</a></li>
+</ul>
+</div>
+<a name="ip_filter"></a><div class="section" id="ip-filter">
+<h1>ip_filter</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ip_filter.hpp">libtorrent/ip_filter.hpp</a>&quot;</p>
+<p>The <tt class="docutils literal">ip_filter</tt> class is a set of rules that uniquely categorizes all
+ip addresses as allowed or disallowed. The default constructor creates
+a single rule that allows all addresses (0.0.0.0 - 255.255.255.255 for
+the IPv4 range, and the equivalent range covering all addresses for the
+IPv6 range).</p>
+<p>A default constructed <a class="reference external" href="reference-Filter.html#ip_filter">ip_filter</a> does not filter any address.</p>
+<pre class="literal-block">
+struct ip_filter
+{
+   void <strong>add_rule</strong> (address first, address last, int flags);
+   int <strong>access</strong> (address const&amp; addr) const;
+   filter_tuple_t <strong>export_filter</strong> () const;
+
+   enum access_flags
+   {
+      blocked,
+   };
+};
+</pre>
+<a name="add_rule()"></a><div class="section" id="add-rule">
+<h2>add_rule()</h2>
+<pre class="literal-block">
+void <strong>add_rule</strong> (address first, address last, int flags);
+</pre>
+<p>Adds a rule to the filter. <tt class="docutils literal">first</tt> and <tt class="docutils literal">last</tt> defines a range of
+ip addresses that will be marked with the given flags. The <tt class="docutils literal">flags</tt>
+can currently be 0, which means allowed, or <tt class="docutils literal"><span class="pre">ip_filter::blocked</span></tt>, which
+means disallowed.</p>
+<p>precondition:
+<tt class="docutils literal">first.is_v4() == last.is_v4() &amp;&amp; first.is_v6() == last.is_v6()</tt></p>
+<p>postcondition:
+<tt class="docutils literal">access(x) == flags</tt> for every <tt class="docutils literal">x</tt> in the range [<tt class="docutils literal">first</tt>, <tt class="docutils literal">last</tt>]</p>
+<p>This means that in a case of overlapping ranges, the last one applied takes
+precedence.</p>
+<a name="access()"></a></div>
+<div class="section" id="access">
+<h2>access()</h2>
+<pre class="literal-block">
+int <strong>access</strong> (address const&amp; addr) const;
+</pre>
+<p>Returns the access permissions for the given address (<tt class="docutils literal">addr</tt>). The permission
+can currently be 0 or <tt class="docutils literal"><span class="pre">ip_filter::blocked</span></tt>. The complexity of this operation
+is O(<tt class="docutils literal">log</tt> n), where n is the minimum number of non-overlapping ranges to describe
+the current filter.</p>
+<a name="export_filter()"></a></div>
+<div class="section" id="export-filter">
+<h2>export_filter()</h2>
+<pre class="literal-block">
+filter_tuple_t <strong>export_filter</strong> () const;
+</pre>
+<p>This function will return the current state of the filter in the minimum number of
+ranges possible. They are sorted from ranges in low addresses to high addresses. Each
+<a class="reference external" href="reference-Bencoding.html#entry">entry</a> in the returned vector is a range with the access control specified in its
+<tt class="docutils literal">flags</tt> field.</p>
+<p>The return value is a tuple containing two range-lists. One for IPv4 addresses
+and one for IPv6 addresses.</p>
+<a name="access_flags"></a></div>
+<div class="section" id="enum-access-flags">
+<h2>enum access_flags</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ip_filter.hpp">libtorrent/ip_filter.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="12%" />
+<col width="9%" />
+<col width="78%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>blocked</td>
+<td>1</td>
+<td>indicates that IPs in this range should not be connected
+to nor accepted as incoming connections</td>
+</tr>
+</tbody>
+</table>
+<a name="port_filter"></a></div>
+</div>
+<div class="section" id="port-filter">
+<h1>port_filter</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ip_filter.hpp">libtorrent/ip_filter.hpp</a>&quot;</p>
+<p>the port filter maps non-overlapping port ranges to flags. This
+is primarily used to indicate whether a range of ports should
+be connected to or not. The default is to have the full port
+range (0-65535) set to flag 0.</p>
+<pre class="literal-block">
+class port_filter
+{
+   void <strong>add_rule</strong> (boost::uint16_t first, boost::uint16_t last, int flags);
+   int <strong>access</strong> (boost::uint16_t port) const;
+
+   enum access_flags
+   {
+      blocked,
+   };
+};
+</pre>
+<a name="add_rule()"></a><div class="section" id="id6">
+<h2>add_rule()</h2>
+<pre class="literal-block">
+void <strong>add_rule</strong> (boost::uint16_t first, boost::uint16_t last, int flags);
+</pre>
+<p>set the flags for the specified port range (<tt class="docutils literal">first</tt>, <tt class="docutils literal">last</tt>) to
+<tt class="docutils literal">flags</tt> overwriting any existing rule for those ports. The range
+is inclusive, i.e. the port <tt class="docutils literal">last</tt> also has the flag set on it.</p>
+<a name="access()"></a></div>
+<div class="section" id="id7">
+<h2>access()</h2>
+<pre class="literal-block">
+int <strong>access</strong> (boost::uint16_t port) const;
+</pre>
+<p>test the specified port (<tt class="docutils literal">port</tt>) for whether it is blocked
+or not. The returned value is the flags set for this port.
+see acces_flags.</p>
+<a name="access_flags"></a></div>
+<div class="section" id="id8">
+<h2>enum access_flags</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/ip_filter.hpp">libtorrent/ip_filter.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="10%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>blocked</td>
+<td>1</td>
+<td>this flag indicates that destination ports in the
+range should not be connected to</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>

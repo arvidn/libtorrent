@@ -44,105 +44,110 @@ namespace libtorrent
 	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
-		, m_num_queued_resume(0)
-		, m_generation(0)
 	{}
 
-	alert_manager::~alert_manager() {}
-
-	int alert_manager::num_queued_resume() const
+	alert_manager::~alert_manager()
 	{
-		mutex::scoped_lock lock(m_mutex);
-		return m_num_queued_resume;
+		while (!m_alerts.empty())
+		{
+			TORRENT_ASSERT(alert_cast<save_resume_data_alert>(m_alerts.front()) == 0
+				&& "shutting down session with remaining resume data alerts in the alert queue. "
+				"You proabably wany to make sure you always wait for all resume data "
+				"alerts before shutting down");
+			delete m_alerts.front();
+			m_alerts.pop_front();
+		}
 	}
 
-	alert* alert_manager::wait_for_alert(time_duration max_wait)
+	alert const* alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+		if (!m_alerts.empty()) return m_alerts.front();
 		
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+		if (!m_alerts.empty()) return m_alerts.front();
 
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
-	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			(*i)->on_alert(a);
-		}
-#endif
-		if (a->type() == save_resume_data_failed_alert::alert_type
-			|| a->type() == save_resume_data_alert::alert_type)
-			++m_num_queued_resume;
-
-		if (m_alerts[m_generation].size() == 1)
-		{
-			lock.unlock();
-
-			// we just posted to an empty queue. If anyone is waiting for
-			// alerts, we need to notify them. Also (potentially) call the
-			// user supplied m_notify callback to let the client wake up its
-			// message loop to poll for alerts.
-			if (m_notify) m_notify();
-
-			// TODO: 2 keep a count of the number of threads waiting. Only if it's
-			// > 0 notify them
-			m_condition.notify_all();
-		}
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
-
-	bool alert_manager::maybe_dispatch(alert const& a)
-	{
-		if (m_dispatch)
-		{
-			m_dispatch(a.clone());
-			return true;
-		}
-		return false;
-	}
-
-	void alert_manager::set_dispatch_function(
-		boost::function<void(std::auto_ptr<alert>)> const& fun)
+	void alert_manager::set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
 		mutex::scoped_lock lock(m_mutex);
 
 		m_dispatch = fun;
 
-		heterogeneous_queue<alert> storage;
-		m_alerts[m_generation].swap(storage);
+		std::deque<alert*> alerts;
+		m_alerts.swap(alerts);
 		lock.unlock();
 
-		std::vector<alert*> alerts;
-		storage.get_pointers(alerts);
-
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		while (!alerts.empty())
 		{
-			m_dispatch((*i)->clone());
+			TORRENT_TRY {
+				m_dispatch(std::auto_ptr<alert>(alerts.front()));
+			} TORRENT_CATCH(std::exception&) {}
+			alerts.pop_front();
 		}
 	}
+
+	void dispatch_alert(boost::function<void(alert const&)> dispatcher
+		, alert* alert_)
+	{
+		std::auto_ptr<alert> holder(alert_);
+		dispatcher(*alert_);
+	}
+
+	void alert_manager::post_alert_ptr(alert* alert_)
+	{
+		std::auto_ptr<alert> a(alert_);
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			TORRENT_TRY {
+				(*i)->on_alert(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
 #endif
 
-	void alert_manager::set_notify_function(boost::function<void()> const& fun)
-	{
 		mutex::scoped_lock lock(m_mutex);
-		m_notify = fun;
-		if (!m_alerts[m_generation].empty())
+		post_impl(a, lock);
+	}
+
+	void alert_manager::post_alert(const alert& alert_)
+	{
+		std::auto_ptr<alert> a(alert_.clone());
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-			// never call a callback with the lock held!
-			lock.unlock();
-			m_notify();
+			TORRENT_TRY {
+				(*i)->on_alert(&alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+#endif
+
+		mutex::scoped_lock lock(m_mutex);
+		post_impl(a, lock);
+	}
+		
+	void alert_manager::post_impl(std::auto_ptr<alert>& alert_, mutex::scoped_lock& l)
+	{
+		if (m_dispatch)
+		{
+			TORRENT_ASSERT(m_alerts.empty());
+			TORRENT_TRY {
+				m_dispatch(alert_);
+			} TORRENT_CATCH(std::exception&) {}
+		}
+		else if (m_alerts.size() < m_queue_size_limit || !alert_->discardable())
+		{
+			m_alerts.push_back(alert_.release());
+			if (m_alerts.size() == 1)
+				m_condition.notify_all();
 		}
 	}
 
@@ -153,32 +158,33 @@ namespace libtorrent
 	}
 #endif
 
-	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
+	std::auto_ptr<alert> alert_manager::get()
 	{
 		mutex::scoped_lock lock(m_mutex);
-		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
+		
+		if (m_alerts.empty())
+			return std::auto_ptr<alert>(0);
 
-		alerts.clear();
-		if (m_alerts[m_generation].empty()) return;
+		alert* result = m_alerts.front();
+		m_alerts.pop_front();
+		return std::auto_ptr<alert>(result);
+	}
 
-		m_alerts[m_generation].get_pointers(alerts);
-		num_resume = m_num_queued_resume;
-		m_num_queued_resume = 0;
-
-		// swap buffers
-		m_generation = (m_generation + 1) & 1;
-		// clear the one we will start writing to now
-		m_alerts[m_generation].clear();
-		m_allocations[m_generation].reset();
+	void alert_manager::get_all(std::deque<alert*>* alerts)
+	{
+		mutex::scoped_lock lock(m_mutex);
+		if (m_alerts.empty()) return;
+		m_alerts.swap(*alerts);
 	}
 
 	bool alert_manager::pending() const
 	{
 		mutex::scoped_lock lock(m_mutex);
-		return !m_alerts[m_generation].empty();
+		
+		return !m_alerts.empty();
 	}
 
-	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
+	size_t alert_manager::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
 		mutex::scoped_lock lock(m_mutex);
 

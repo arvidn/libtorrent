@@ -35,39 +35,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm> // std::copy, std::remove_copy_if
 #include <functional>
 #include <numeric>
-
-#include "libtorrent/config.hpp"
+#include <boost/cstdint.hpp>
+#include <boost/bind.hpp>
 
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/alert_types.hpp" // for dht_routing_bucket
-#include "libtorrent/socket_io.hpp" // for print_endpoint
+
 #include "libtorrent/invariant_check.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/cstdint.hpp>
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using boost::uint8_t;
 
-#if BOOST_VERSION <= 104700
-namespace boost {
-size_t hash_value(libtorrent::address_v4::bytes_type ip)
-{
-	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
-}
-}
-#endif
-
 namespace libtorrent { namespace dht
 {
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DEFINE_LOG(table)
+#endif
 
 template <typename T, typename K>
 void erase_one(T& container, K const& key)
@@ -78,14 +64,12 @@ void erase_one(T& container, K const& key)
 }
 
 routing_table::routing_table(node_id const& id, int bucket_size
-	, dht_settings const& settings
-	, dht_logger* log)
-	: m_log(log)
-	, m_settings(settings)
+	, dht_settings const& settings)
+	: m_settings(settings)
+	, m_bucket_size(bucket_size)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
-	, m_bucket_size(bucket_size)
 {
 	m_buckets.reserve(30);
 }
@@ -94,26 +78,12 @@ int routing_table::bucket_limit(int bucket) const
 {
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
-	static const int size_exceptions[] = {16, 8, 4, 2};
+	const static int size_exceptions[] = {16, 8, 4, 2};
 	if (bucket < int(sizeof(size_exceptions)/sizeof(size_exceptions[0])))
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;
 }
 
-void routing_table::status(std::vector<dht_routing_bucket>& s) const
-{
-	for (table_t::const_iterator i = m_buckets.begin()
-		, end(m_buckets.end()); i != end; ++i)
-	{
-		dht_routing_bucket b;
-		b.num_nodes = i->live_nodes.size();
-		b.num_replacements = i->replacements.size();
-		s.push_back(b);
-	}
-}
-
-#ifndef TORRENT_NO_DEPRECATE
-// TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
 	int ignore;
@@ -132,7 +102,6 @@ void routing_table::status(session_status& s) const
 		s.dht_routing_table.push_back(b);
 	}
 }
-#endif
 
 boost::tuple<int, int, int> routing_table::size() const
 {
@@ -154,7 +123,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
-boost::int64_t routing_table::num_global_nodes() const
+size_type routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
@@ -169,8 +138,8 @@ boost::int64_t routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (boost::int64_t(1) << deepest_bucket) * m_bucket_size;
-	else return (boost::int64_t(2) << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (size_type(1) << deepest_bucket) * m_bucket_size;
+	else return (size_type(2) << deepest_bucket) * deepest_size;
 }
 
 int routing_table::depth() const
@@ -201,50 +170,36 @@ int routing_table::depth() const
 
 void routing_table::print_state(std::ostream& os) const
 {
-	std::vector<char> buf(2048);
-	int cursor = 0;
+	os << "kademlia routing table state\n"
+		<< "bucket_size: " << m_bucket_size << "\n"
+		<< "global node count: " << num_global_nodes() << "\n"
+		<< "node_id: " << m_id << "\n\n";
 
-	cursor += snprintf(&buf[cursor], buf.size() - cursor
-		, "kademlia routing table state\n"
-		"bucket_size: %d\n"
-		"global node count: %" PRId64 "\n"
-		"node_id: %s\n\n"
-		"number of nodes per bucket:\n"
-		, m_bucket_size
-		, num_global_nodes()
-		, to_hex(m_id.to_string()).c_str());
-	if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
+	os << "number of nodes per bucket:\n";
 
 	int idx = 0;
 
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++idx)
 	{
-		cursor += snprintf(&buf[cursor], buf.size() - cursor
-			, "%2d: ", idx);
+		os << std::setw(2) << idx << ": ";
 		for (int k = 0; k < int(i->live_nodes.size()); ++k)
-			cursor += snprintf(&buf[cursor], buf.size() - cursor, "#");
+			os << "#";
 		for (int k = 0; k < int(i->replacements.size()); ++k)
-			cursor += snprintf(&buf[cursor], buf.size() - cursor, "-");
-		cursor += snprintf(&buf[cursor], buf.size() - cursor, "\n");
-
-		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
+			os << "-";
+		os << "\n";
 	}
 
-	time_point now = aux::time_now();
+	ptime now = time_now();
 
-	cursor += snprintf(&buf[cursor], buf.size() - cursor
-		, "\nnodes:");
-
+	os << "\nnodes:";
 	int bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
 	{
-		cursor += snprintf(&buf[cursor], buf.size() - cursor
-			, "\n=== BUCKET == %d == %d|%d ==== \n"
-			, bucket_index, int(i->live_nodes.size())
-			, int(i->replacements.size()));
-		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
+		os << "\n=== BUCKET == " << bucket_index
+			<< " == " << i->live_nodes.size() << "|" << i->replacements.size()
+			<< " ===== \n";
 
 		int id_shift;
 		// the last bucket is special, since it hasn't been split yet, it
@@ -271,47 +226,28 @@ void routing_table::print_state(std::ostream& os) const
 			node_id id = j->id;
 			id <<= id_shift;
 
-			cursor += snprintf(&buf[cursor], buf.size() - cursor
-				, " prefix: %2x id: %s"
-				, ((id[0] & top_mask) >> mask_shift)
-				, to_hex(j->id.to_string()).c_str());
-
+			os << " prefx: " << std::setw(2) << std::hex << ((id[0] & top_mask) >> mask_shift) << std::dec
+				<< " id: " << j->id;
 			if (j->rtt == 0xffff)
-			{
-				cursor += snprintf(&buf[cursor], buf.size() - cursor
-					, " rtt:     ");
-			}
+				os << " rtt:     ";
 			else
-			{
-				cursor += snprintf(&buf[cursor], buf.size() - cursor
-					, " rtt: %4d", j->rtt);
-			}
+				os << " rtt: " << std::setw(4) << j->rtt;
 
-			cursor += snprintf(&buf[cursor], buf.size() - cursor
-				, " fail: %4d ping: %d dist: %3d"
-				, j->fail_count()
-				, j->pinged()
-				, distance_exp(m_id, j->id));
+			os << " fail: " << j->fail_count()
+				<< " ping: " << j->pinged()
+				<< " dist: " << std::setw(3) << distance_exp(m_id, j->id);
 
 			if (j->last_queried == min_time())
-			{
-				cursor += snprintf(&buf[cursor], buf.size() - cursor
-					, " query:    ");
-			}
+				os << " query:    ";
 			else
-			{
-				cursor += snprintf(&buf[cursor], buf.size() - cursor
-					, " query: %3d", int(total_seconds(now - j->last_queried)));
-			}
+				os << " query: " << std::setw(3) << total_seconds(now - j->last_queried);
 
-			cursor += snprintf(&buf[cursor], buf.size() - cursor
-				, " ip: %s\n", print_endpoint(j->ep()).c_str());
-			if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
+			os << " ip: " << j->ep()
+				<< "\n";
 		}
 	}
 
-	cursor += snprintf(&buf[cursor], buf.size() - cursor
-		, "\nnode spread per bucket:\n");
+	os << "\nnode spread per bucket:\n";
 	bucket_index = 0;
 	for (table_t::const_iterator i = m_buckets.begin(), end(m_buckets.end());
 		i != end; ++i, ++bucket_index)
@@ -355,20 +291,12 @@ void routing_table::print_state(std::ostream& os) const
 			sub_buckets[b] = true;
 		}
 
-		cursor += snprintf(&buf[cursor], buf.size() - cursor
-			, "%2d mask: %2x: [", bucket_index, (top_mask >> mask_shift));
+		os << std::dec << std::setw(2) << bucket_index << " mask: " << std::setw(2)
+			<< std::hex << (top_mask >> mask_shift) << ": [";
 
-		for (int i = 0; i < bucket_size_limit; ++i)
-		{
-			cursor += snprintf(&buf[cursor], buf.size() - cursor
-				, (sub_buckets[i] ? "X" : " "));
-		}
-		cursor += snprintf(&buf[cursor], buf.size() - cursor
-			, "]\n");
-		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
+		for (int i = 0; i < bucket_size_limit; ++i) os << (sub_buckets[i] ? "X" : " ");
+		os << "]\n";
 	}
-	buf[cursor] = '\0';
-	os << &buf[0];
 }
 
 #endif
@@ -380,6 +308,7 @@ node_entry const* routing_table::next_refresh()
 	// a missing prefix for that bucket
 
 	node_entry* candidate = NULL;
+	int bucket_idx = -1;
 
 	// this will have a bias towards pinging nodes close to us first.
 	int idx = m_buckets.size() - 1;
@@ -395,6 +324,7 @@ node_entry const* routing_table::next_refresh()
 
 			if (j->last_queried == min_time())
 			{
+				bucket_idx = idx;
 				candidate = &*j;
 				goto out;
 			}
@@ -402,6 +332,7 @@ node_entry const* routing_table::next_refresh()
 			if (candidate == NULL || j->last_queried < candidate->last_queried)
 			{
 				candidate = &*j;
+				bucket_idx = idx;
 			}
 		}
 	}
@@ -410,7 +341,7 @@ out:
 	// make sure we don't pick the same node again next time we want to refresh
 	// the routing table
 	if (candidate)
-		candidate->last_queried = aux::time_now();
+		candidate->last_queried = time_now();
 
 	return candidate;
 }
@@ -445,8 +376,6 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	return i;
 }
 
-namespace {
-
 bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 {
 	TORRENT_ASSERT(lhs.addr().is_v4() == rhs.addr().is_v4());
@@ -458,8 +387,6 @@ bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 	int dist = cidr_distance(lhs.addr(), rhs.addr());
 	return dist <= cutoff;
 }
-
-} // anonymous namespace
 
 node_entry* routing_table::find_node(udp::endpoint const& ep
 	, routing_table::table_t::iterator* bucket) 
@@ -528,7 +455,7 @@ bool routing_table::add_node(node_entry e)
 		// harden our resistence towards this attack. Perhaps by never
 		// splitting a bucket (and discard nodes) if the two buckets above it
 		// are empty or close to empty
-//		TORRENT_ASSERT(m_buckets.size() <= 50);
+		TORRENT_ASSERT(m_buckets.size() <= 50);
 		if (m_buckets.size() > 50)
 		{
 			// this is a sanity check. In the wild, we shouldn't see routing
@@ -554,9 +481,7 @@ bool routing_table::add_node(node_entry e)
 
 routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 {
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
-#endif
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())
@@ -586,10 +511,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_settings.restrict_routing_ips)
 			{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				char hex_id[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
-				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-					, hex_id, print_address(e.addr()).c_str());
+				TORRENT_LOG(table) << "ignoring node (duplicate IP): "
+					<< e.id << " " << e.addr();
 #endif
 				return failed_to_add;
 			}
@@ -636,6 +559,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		TORRENT_ASSERT(j->id == e.id && j->ep() == e.ep());
 		j->timeout_count = 0;
 		j->update_rtt(e.rtt);
+//		TORRENT_LOG(table) << "updating node: " << i->id << " " << i->addr();
 		return node_added;
 	}
 
@@ -669,13 +593,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// close to this one. We know that it's not the same, because
 			// it claims a different node-ID. Ignore this to avoid attacks
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				char hex_id1[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
-				char hex_id2[41];
-				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
-				m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-					, hex_id1, print_address(e.addr()).c_str()
-					, hex_id2, print_address(j->addr()).c_str());
+			TORRENT_LOG(table) << "ignoring node: " << e.id << " " << e.addr()
+				<< " existing node: "
+				<< j->id << " " << j->addr();
 #endif
 			return failed_to_add;
 		}
@@ -685,13 +605,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		{
 			// same thing but for the replacement bucket
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-				char hex_id1[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
-				char hex_id2[41];
-				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
-				m_log->log(dht_logger::routing_table, "ignoring (replacement) node: %s %s existing node: %s %s"
-					, hex_id1, print_address(e.addr()).c_str()
-					, hex_id2, print_address(j->addr()).c_str());
+			TORRENT_LOG(table) << "ignoring (replacement) node: " << e.id << " " << e.addr()
+				<< " existing node: "
+				<< j->id << " " << j->addr();
 #endif
 			return failed_to_add;
 		}
@@ -703,6 +619,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
 		m_ips.insert(e.addr().to_v4().to_bytes());
+//		TORRENT_LOG(table) << "inserting node: " << e.id << " " << e.addr();
 		return node_added;
 	}
 
@@ -736,6 +653,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			erase_one(m_ips, j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
+//			TORRENT_LOG(table) << "replacing unpinged node: " << e.id << " " << e.addr();
 			return node_added;
 		}
 
@@ -757,6 +675,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			erase_one(m_ips, j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
+//			TORRENT_LOG(table) << "replacing stale node: " << e.id << " " << e.addr();
 			return node_added;
 		}
 		
@@ -865,10 +784,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&e.id[0]), sha1_hash::size, hex_id);
-			m_log->log(dht_logger::routing_table, "replaving node with higher RTT: %s %s"
-				, hex_id, print_address(e.addr()).c_str());
+			TORRENT_LOG(table) << "replacing node with higher RTT: " << e.id
+				<< " " << e.addr();
 #endif
 			return node_added;
 		}
@@ -912,6 +829,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (rb.empty()) rb.reserve(m_bucket_size);
 		rb.push_back(e);
 		m_ips.insert(e.addr().to_v4().to_bytes());
+//		TORRENT_LOG(table) << "inserting node in replacement cache: " << e.id << " " << e.addr();
 		return node_added;
 	}
 
@@ -952,7 +870,7 @@ void routing_table::split_bucket()
 
 	if (b.size() > bucket_size_limit)
 	{
-		// TODO: 2 move the lowest priority nodes to the replacement bucket
+		// TODO: 3 move the lowest priority nodes to the replacement bucket
 		for (bucket_t::iterator i = b.begin() + bucket_size_limit
 			, end(b.end()); i != end; ++i)
 		{
@@ -1013,9 +931,7 @@ void routing_table::for_each_node(
 
 void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 {
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
-#endif
 
 	// if messages to ourself fails, ignore it
 	if (nid == m_id) return;
@@ -1038,13 +954,12 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		char hex_id[41];
-		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		TORRENT_LOG(table) << " NODE FAILED"
+			" id: " << nid <<
+			" ip: " << j->ep() <<
+			" fails: " << j->fail_count() <<
+			" pinged: " << j->pinged() <<
+			" up-time: " << total_seconds(time_now() - j->first_seen);
 #endif
 		return;
 	}
@@ -1059,13 +974,12 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		char hex_id[41];
-		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		TORRENT_LOG(table) << " NODE FAILED"
+			" id: " << nid <<
+			" ip: " << j->ep() <<
+			" fails: " << j->fail_count() <<
+			" pinged: " << j->pinged() <<
+			" up-time: " << total_seconds(time_now() - j->first_seen);
 #endif
 
 		// if this node has failed too many times, or if this node
@@ -1207,7 +1121,7 @@ void routing_table::find_node(node_id const& target
 #if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	boost::unordered_multiset<address_v4::bytes_type> all_ips;
+	std::multiset<address_v4::bytes_type> all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

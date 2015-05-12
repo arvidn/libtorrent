@@ -58,32 +58,25 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  */
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <map>
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <boost/cstdint.hpp>
-#include <boost/config.hpp>
-#if TORRENT_USE_IOSTREAM
-#include <iosfwd>
-#endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include "libtorrent/size_type.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/max.hpp"
 
+#if TORRENT_USE_IOSTREAM
+#include <iosfwd>
+#endif
+
 namespace libtorrent
 {
-#ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
-#endif
-	struct bdecode_node;
 
 	// thrown by any accessor function of entry if the accessor
 	// function requires a type different than the actual type
@@ -107,7 +100,7 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
-		typedef boost::int64_t integer_type;
+		typedef size_type integer_type;
 
 		// the types an entry can have
 		enum data_type
@@ -149,10 +142,7 @@ namespace libtorrent
 		
 		// copies the structure of the right hand side into this
 		// entry.
-#ifndef TORRENT_NO_DEPRECATE
 		void operator=(lazy_entry const&);
-#endif
-		void operator=(bdecode_node const&);
 		void operator=(entry const&);
 		void operator=(dictionary_type const&);
 		void operator=(string_type const&);
@@ -296,12 +286,6 @@ namespace libtorrent
 		mutable boost::uint8_t m_type_queried:1;
 	};
 
-	namespace detail
-	{
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
-			, entry::integer_type val);
-	}
-
 #if TORRENT_USE_IOSTREAM
 	// prints the bencoded structure to the ostream as a JSON-style structure.
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
@@ -313,7 +297,7 @@ namespace libtorrent
 
 #ifndef BOOST_NO_EXCEPTIONS
 	// internal
-	TORRENT_NO_RETURN inline void throw_type_error()
+	inline void throw_type_error()
 	{
 		throw libtorrent_exception(error_code(errors::invalid_entry_type
 			, get_libtorrent_category()));

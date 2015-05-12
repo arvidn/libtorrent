@@ -34,53 +34,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include "libtorrent/alert_types.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 int test_main()
 {
-	settings_pack p;
-	p.set_int(settings_pack::alert_mask, ~0);
-	lt::session ses(p);
+	session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 48140), "0.0.0.0", 0);
+	ses.set_alert_mask(~0);
 
-	settings_pack sett;
-	sett.set_int(settings_pack::cache_size, 100);
-	sett.set_int(settings_pack::max_queued_disk_bytes, 1000 * 16 * 1024);
-
-	ses.apply_settings(sett);
-
-	// verify that we get the appropriate performance warning because
-	// we're allowing a larger queue than we have cache.
-
-
-	alert const* a;
-	for (;;)
-	{
-		a = wait_for_alert(ses, performance_alert::alert_type, "ses1");
-
-		if (a == NULL) break;
-		TEST_EQUAL(a->type(), performance_alert::alert_type);
-
-		if (alert_cast<performance_alert>(a)->warning_code
-			== performance_alert::too_high_disk_queue_limit)
-			break;
-	}
-
-	TEST_CHECK(a);
-
-	sett.set_int(settings_pack::unchoke_slots_limit, 0);
-	ses.apply_settings(sett);
-	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
-
-	sett.set_int(settings_pack::unchoke_slots_limit, -1);
-	ses.apply_settings(sett);
-	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == -1);
-
-	sett.set_int(settings_pack::unchoke_slots_limit, 8);
-	ses.apply_settings(sett);
-	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
+	session_settings sett;
+	sett.unchoke_slots_limit = 0;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == 0);
+	sett.unchoke_slots_limit = -1;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == -1);
+	sett.unchoke_slots_limit = 8;
+	ses.set_settings(sett);
+	TEST_CHECK(ses.settings().unchoke_slots_limit == 8);
 
 	// make sure the destructor waits properly
 	// for the asynchronous call to set the alert

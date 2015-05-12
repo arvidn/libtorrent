@@ -3,11 +3,9 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
 #include <libtorrent/torrent_info.hpp>
+#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/socket_io.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -39,7 +37,7 @@ namespace
 
         for (list_type::const_iterator i = ti.nodes().begin(); i != ti.nodes().end(); ++i)
         {
-            result.append(boost::python::make_tuple(i->first, i->second));
+            result.append(make_tuple(i->first, i->second));
         }
 
         return result;
@@ -57,6 +55,11 @@ namespace
             d["type"] = i->type;
             d["auth"] = i->auth;
             d["extra_headers"] = i->extra_headers;
+            d["retry"] = total_seconds(i->retry - min_time());
+            d["resolving"] = i->resolving;
+            d["removed"] = i->removed;
+            d["endpoint"] = make_tuple(
+                boost::lexical_cast<std::string>(i->endpoint.address()), i->endpoint.port());
             ret.append(d);
         }
 
@@ -96,18 +99,45 @@ namespace
     }
 #endif
 
+    void remap_files(torrent_info& ti, list files) {
+        file_storage st;
+        for (int i = 0, e = len(files); i < e; ++i)
+            st.add_file(extract<file_entry>(files[i]));
+
+        ti.remap_files(st);
+    }
+
+    list files(torrent_info const& ti, bool storage) {
+        list result;
+
+        for (int i = 0; i < ti.num_files(); ++i)
+            result.append(ti.files().at(i));
+
+        return result;
+    }
+
+    list orig_files(torrent_info const& ti, bool storage) {
+        list result;
+
+        file_storage const& st = ti.orig_files();
+
+        for (int i = 0; i < st.num_files(); ++i)
+            result.append(st.at(i));
+
+        return result;
+    }
+
     std::string hash_for_piece(torrent_info const& ti, int i)
     {
         return ti.hash_for_piece(i).to_string();
     }
 
-    std::string metadata(torrent_info const& ti)
-    {
+    std::string metadata(torrent_info const& ti) {
         std::string result(ti.metadata().get(), ti.metadata_size());
         return result;
     }
 
-    list map_block(torrent_info& ti, int piece, boost::int64_t offset, int size)
+    list map_block(torrent_info& ti, int piece, size_type offset, int size)
     {
        std::vector<file_slice> p = ti.map_block(piece, offset, size);
        list result;
@@ -130,33 +160,32 @@ namespace
     bool get_complete_sent(announce_entry const& ae) { return ae.complete_sent; }
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
 
-#if !defined TORRENT_NO_DEPRECATE
-    boost::int64_t get_size(file_entry const& fe) { return fe.size; }
-    boost::int64_t get_offset(file_entry const& fe) { return fe.offset; }
-    boost::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
+
+    size_type get_size(file_entry const& fe) { return fe.size; }
+    size_type get_offset(file_entry const& fe) { return fe.offset; }
+    size_type get_file_base(file_entry const& fe) { return fe.file_base; }
     void set_file_base(file_entry& fe, int b) { fe.file_base = b; }
     bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
     bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }
     bool get_hidden_attribute(file_entry const& fe) { return fe.hidden_attribute; }
     bool get_symlink_attribute(file_entry const& fe) { return fe.symlink_attribute; }
-#endif
 
 } // namespace unnamed
 
-boost::shared_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
 }
 
-boost::shared_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
+   boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
@@ -178,7 +207,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_EXCEPTIONS
         .def(init<entry const&>(arg("e")))
@@ -188,12 +217,13 @@ void bind_torrent_info()
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def("__init__", make_constructor(&buffer_constructor))
         .def("__init__", make_constructor(&file_constructor))
-        .def(init<torrent_info const&>((arg("ti"))))
+        .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def(init<std::wstring, int>((arg("file"), arg("flags") = 0)))
 #endif
 
+        .def("remap_files", &remap_files)
         .def("add_tracker", &torrent_info::add_tracker, arg("url"))
         .def("add_url_seed", &torrent_info::add_url_seed)
         .def("add_http_seed", &torrent_info::add_http_seed)
@@ -206,23 +236,22 @@ void bind_torrent_info()
         .def("piece_length", &torrent_info::piece_length)
         .def("num_pieces", &torrent_info::num_pieces)
         .def("info_hash", &torrent_info::info_hash, copy)
+#ifndef TORRENT_NO_DEPRECATE
+        .def("file_at_offset", &torrent_info::file_at_offset)
+#endif
         .def("hash_for_piece", &hash_for_piece)
         .def("merkle_tree", get_merkle_tree)
         .def("set_merkle_tree", set_merkle_tree)
         .def("piece_size", &torrent_info::piece_size)
 
-        .def("num_files", &torrent_info::num_files)
-        .def("rename_file", rename_file0)
-        .def("remap_files", &torrent_info::remap_files)
-        .def("files", &torrent_info::files, return_internal_reference<>())
-        .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
-#if !defined TORRENT_NO_DEPRECATE
+        .def("num_files", &torrent_info::num_files, (arg("storage")=false))
         .def("file_at", &torrent_info::file_at)
-        .def("file_at_offset", &torrent_info::file_at_offset)
-#if TORRENT_USE_WSTRING
+        .def("files", &files, (arg("storage")=false))
+        .def("orig_files", &orig_files, (arg("storage")=false))
+        .def("rename_file", rename_file0)
+#if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def("rename_file", rename_file1)
-#endif // TORRENT_USE_WSTRING
-#endif // TORRENT_NO_DEPRECATE
+#endif
 
         .def("priv", &torrent_info::priv)
         .def("trackers", range(begin_trackers, end_trackers))
@@ -237,7 +266,6 @@ void bind_torrent_info()
         .def("map_file", &torrent_info::map_file)
         ;
 
-#if !defined TORRENT_NO_DEPRECATE
     class_<file_entry>("file_entry")
         .def_readwrite("path", &file_entry::path)
         .def_readwrite("symlink_path", &file_entry::symlink_path)
@@ -251,7 +279,6 @@ void bind_torrent_info()
         .add_property("size", &get_size)
         .add_property("file_base", &get_file_base, &set_file_base)
         ;
-#endif
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
@@ -266,6 +293,7 @@ void bind_torrent_info()
         .add_property("send_stats", &get_send_stats)
 
         .def("reset", &announce_entry::reset)
+        .def("failed", &announce_entry::failed, arg("retry_interval") = 0)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
@@ -279,8 +307,8 @@ void bind_torrent_info()
     ;
 
 #if BOOST_VERSION > 104200
-    implicitly_convertible<boost::shared_ptr<torrent_info>, boost::shared_ptr<const torrent_info> >();
-    boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
+    implicitly_convertible<boost::intrusive_ptr<torrent_info>, boost::intrusive_ptr<const torrent_info> >();
+    boost::python::register_ptr_to_python<boost::intrusive_ptr<const torrent_info> >();
 #endif
 }
 

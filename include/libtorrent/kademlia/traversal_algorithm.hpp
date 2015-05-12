@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
+#include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/address.hpp>
 
@@ -49,9 +50,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { struct dht_lookup; }
 namespace libtorrent { namespace dht
 {
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DECLARE_LOG(traversal);
+#endif
 
 class rpc_manager;
-class node;
+class node_impl;
 
 // this class may not be instantiated as a stack object
 struct traversal_algorithm : boost::noncopyable
@@ -76,11 +80,11 @@ struct traversal_algorithm : boost::noncopyable
 	void resort_results();
 	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
 
-	traversal_algorithm(node & node, node_id target);
+	traversal_algorithm(node_impl& node, node_id target);
 	int invoke_count() const { return m_invoke_count; }
 	int branch_factor() const { return m_branch_factor; }
 
-	node& get_node() const { return m_node; }
+	node_impl& node() const { return m_node; }
 
 protected:
 
@@ -96,11 +100,10 @@ protected:
 	virtual observer_ptr new_observer(void* ptr
 		, udp::endpoint const& ep, node_id const& id);
 
-	virtual bool invoke(observer_ptr) { return false; }
+	virtual bool invoke(observer_ptr o) { return false; }
 
 	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
 	{
-		TORRENT_ASSERT(p->m_ref_count < 0xffff);
 		p->m_ref_count++;
 	}
 
@@ -110,19 +113,16 @@ protected:
 			delete p;
 	}
 
-	node & m_node;
-	std::vector<observer_ptr> m_results;
-	node_id const m_target;
-	boost::uint16_t m_ref_count;
-	boost::uint16_t m_invoke_count;
-	boost::uint16_t m_branch_factor;
-	boost::uint16_t m_responses;
-	boost::uint16_t m_timeouts;
+	int m_ref_count;
 
-	// the IP addresses of the nodes in m_results
-	std::set<boost::uint32_t> m_peer4_prefixes;
-// no IPv6 support yet anyway
-//	std::set<boost::uint64_t> m_peer6_prefixes;
+	node_impl& m_node;
+	node_id const m_target;
+	std::vector<observer_ptr> m_results;
+	int m_invoke_count;
+	int m_branch_factor;
+	int m_responses;
+	int m_timeouts;
+	int m_num_target_nodes;
 };
 
 struct traversal_observer : observer

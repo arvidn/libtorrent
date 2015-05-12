@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/session.hpp"
-#include "libtorrent/hex.hpp" // for from_hex
+#include "libtorrent/escape_string.hpp" // for from_hex
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 #ifdef TORRENT_DISABLE_DHT
 
@@ -73,17 +72,17 @@ void usage()
 	exit(1);
 }
 
-alert* wait_for_alert(lt::session& s, int alert_type)
+std::auto_ptr<alert> wait_for_alert(session& s, int alert_type)
 {
-	alert* ret = NULL;
+	std::auto_ptr<alert> ret;
 	bool found = false;
 	while (!found)
 	{
 		s.wait_for_alert(seconds(5));
 
-		std::vector<alert*> alerts;
+		std::deque<alert*> alerts;
 		s.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
+		for (std::deque<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
 			if ((*i)->type() != alert_type)
@@ -94,9 +93,10 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 				fflush(stdout);
 				spinner = (spinner + 1) & 3;
 				//print some alerts?
+				delete *i;
 				continue;
 			}
-			ret = *i;
+			ret = std::auto_ptr<alert>(*i);
 			found = true;
 		}
 	}
@@ -122,7 +122,7 @@ void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq
 		, sig.data());
 }
 
-void bootstrap(lt::session& s)
+void bootstrap(session& s)
 {
 	printf("bootstrapping\n");
 	wait_for_alert(s, dht_bootstrap_alert::alert_type);
@@ -158,11 +158,10 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	settings_pack sett;
-	sett.set_int(settings_pack::alert_mask, 0xffffffff);
-	lt::session s(sett);
+	session s;
+	s.set_alert_mask(0xffffffff);
 
-	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
+	s.add_dht_router(std::pair<std::string, int>("54.205.98.145", 10000));
 
 	FILE* f = fopen(".dht", "rb");
 	if (f != NULL)
@@ -176,9 +175,9 @@ int main(int argc, char* argv[])
 			state.resize(size);
 			fread(&state[0], 1, state.size(), f);
 
-			bdecode_node e;
+			lazy_entry e;
 			error_code ec;
-			bdecode(&state[0], &state[0] + state.size(), e, ec);
+			lazy_bdecode(&state[0], &state[0] + state.size(), e, ec);
 			if (ec)
 				fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 					, ec.value(), ec.message().c_str());
@@ -213,9 +212,9 @@ int main(int argc, char* argv[])
 
 		printf("GET %s\n", to_hex(target.to_string()).c_str());
 
-		alert* a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
+		std::auto_ptr<alert> a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
 
-		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a);
+		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a.get());
 		entry data;
 		if (item)
 			data.swap(item->item);
@@ -297,9 +296,9 @@ int main(int argc, char* argv[])
 		bootstrap(s);
 		s.dht_get_item(public_key);
 
-		alert* a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
+		std::auto_ptr<alert> a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
 
-		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a);
+		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a.get());
 		entry data;
 		if (item)
 			data.swap(item->item);
@@ -312,7 +311,7 @@ int main(int argc, char* argv[])
 	}
 
 	entry e;
-	s.save_state(e, lt::session::save_dht_state);
+	s.save_state(e, session::save_dht_state);
 	std::vector<char> state;
 	bencode(std::back_inserter(state), e);
 	f = fopen(".dht", "wb+");

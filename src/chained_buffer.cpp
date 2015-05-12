@@ -37,7 +37,6 @@ namespace libtorrent
 {
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{
-		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(bytes_to_pop <= m_bytes);
 		while (bytes_to_pop > 0 && !m_vec.empty())
 		{
@@ -53,7 +52,7 @@ namespace libtorrent
 				break;
 			}
 
-			b.free_fun(b.buf, b.userdata, b.ref);
+			b.free(b.buf);
 			m_bytes -= b.used_size;
 			m_capacity -= b.size;
 			bytes_to_pop -= b.used_size;
@@ -65,40 +64,16 @@ namespace libtorrent
 	}
 
 	void chained_buffer::append_buffer(char* buffer, int s, int used_size
-		, free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, boost::function<void(char*)> const& destructor)
 	{
-		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(s >= used_size);
 		buffer_t b;
 		b.buf = buffer;
 		b.size = s;
 		b.start = buffer;
 		b.used_size = used_size;
-		b.free_fun = destructor;
-		b.userdata = userdata;
-		b.ref = ref;
+		b.free = destructor;
 		m_vec.push_back(b);
-
-		m_bytes += used_size;
-		m_capacity += s;
-		TORRENT_ASSERT(m_bytes <= m_capacity);
-	}
-
-	void chained_buffer::prepend_buffer(char* buffer, int s, int used_size
-		, free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
-	{
-		TORRENT_ASSERT(s >= used_size);
-		buffer_t b;
-		b.buf = buffer;
-		b.size = s;
-		b.start = buffer;
-		b.used_size = used_size;
-		b.free_fun = destructor;
-		b.userdata = userdata;
-		b.ref = ref;
-		m_vec.push_front(b);
 
 		m_bytes += used_size;
 		m_capacity += s;
@@ -109,7 +84,6 @@ namespace libtorrent
 	// end of the last chained buffer.
 	int chained_buffer::space_in_last_buffer()
 	{
-		TORRENT_ASSERT(is_single_thread());
 		if (m_vec.empty()) return 0;
 		buffer_t& b = m_vec.back();
 		return b.size - b.used_size - (b.start - b.buf);
@@ -120,7 +94,6 @@ namespace libtorrent
 	// it returns false
 	char* chained_buffer::append(char const* buf, int s)
 	{
-		TORRENT_ASSERT(is_single_thread());
 		char* insert = allocate_appendix(s);
 		if (insert == 0) return 0;
 		memcpy(insert, buf, s);
@@ -132,7 +105,6 @@ namespace libtorrent
 	// enough room, returns 0
 	char* chained_buffer::allocate_appendix(int s)
 	{
-		TORRENT_ASSERT(is_single_thread());
 		if (m_vec.empty()) return 0;
 		buffer_t& b = m_vec.back();
 		char* insert = b.start + b.used_size;
@@ -143,47 +115,24 @@ namespace libtorrent
 		return insert;
 	}
 
-	std::vector<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
+	std::list<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
 	{
-		TORRENT_ASSERT(is_single_thread());
 		m_tmp_vec.clear();
-		build_vec(to_send, m_tmp_vec);
-		return m_tmp_vec;
-	}
 
-	void chained_buffer::build_mutable_iovec(int bytes, std::vector<asio::mutable_buffer> &vec)
-	{
-		build_vec(bytes, vec);
-	}
-
-	template <typename Buffer>
-	void chained_buffer::build_vec(int bytes, std::vector<Buffer> &vec)
-	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); bytes > 0 && i != end; ++i)
+		for (std::list<buffer_t>::iterator i = m_vec.begin()
+			, end(m_vec.end()); to_send > 0 && i != end; ++i)
 		{
-			if (i->used_size > bytes)
+			if (i->used_size > to_send)
 			{
-				TORRENT_ASSERT(bytes > 0);
-				vec.push_back(Buffer(i->start, bytes));
+				TORRENT_ASSERT(to_send > 0);
+				m_tmp_vec.push_back(asio::const_buffer(i->start, to_send));
 				break;
 			}
 			TORRENT_ASSERT(i->used_size > 0);
-			vec.push_back(Buffer(i->start, i->used_size));
-			bytes -= i->used_size;
+			m_tmp_vec.push_back(asio::const_buffer(i->start, i->used_size));
+			to_send -= i->used_size;
 		}
-	}
-
-	void chained_buffer::clear()
-	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); i != end; ++i)
-		{
-			i->free_fun(i->buf, i->userdata, i->ref);
-		}
-		m_bytes = 0;
-		m_capacity = 0;
-		m_vec.clear();
+		return m_tmp_vec;
 	}
 
 	chained_buffer::~chained_buffer()
@@ -192,10 +141,18 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_destructed);
 		m_destructed = true;
 #endif
-		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_bytes >= 0);
 		TORRENT_ASSERT(m_capacity >= 0);
-		clear();
+		for (std::list<buffer_t>::iterator i = m_vec.begin()
+			, end(m_vec.end()); i != end; ++i)
+		{
+			i->free(i->buf);
+		}
+#ifdef TORRENT_DEBUG
+		m_bytes = -1;
+		m_capacity = -1;
+		m_vec.clear();
+#endif
 	}
 
 }

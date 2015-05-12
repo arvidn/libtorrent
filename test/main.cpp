@@ -35,10 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h> // for exit()
-#include "libtorrent/address.hpp"
-#include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for tests_failure
-#include "test.hpp"
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
 #include "udp_tracker.hpp" // for stop_udp_tracker
@@ -52,8 +49,6 @@ int test_main();
 #ifdef WIN32
 #include <windows.h> // fot SetErrorMode
 #endif
-
-using namespace libtorrent;
 
 void sig_handler(int sig)
 {
@@ -86,6 +81,8 @@ void sig_handler(int sig)
 	exit(138);
 }
 
+using namespace libtorrent;
+
 int main()
 {
 #ifdef WIN32
@@ -95,7 +92,7 @@ int main()
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
-	srand(total_microseconds(clock_type::now().time_since_epoch()) & 0x7fffffff);
+	srand((total_microseconds(time_now_hires() - min_time())) & 0x7fffffff);
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just
@@ -165,7 +162,7 @@ int main()
 	fflush(stderr);
 
 	int ret = print_failures();
-#if !defined TORRENT_LOGGING
+#if !defined TORRENT_LOGGING && !defined TORRENT_VERBOSE_LOGGING
 	if (ret == 0)
 	{
 		remove_all(test_dir, ec);

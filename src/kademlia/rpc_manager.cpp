@@ -30,32 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/io.hpp>
 #include <libtorrent/random.hpp>
 #include <libtorrent/invariant_check.hpp>
 #include <libtorrent/kademlia/node_id.hpp> // for generate_random_id
 #include <libtorrent/kademlia/rpc_manager.hpp>
+#include <libtorrent/kademlia/logging.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
-#include <libtorrent/kademlia/dht_observer.hpp>
-
-#include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/time.hpp>
-#include <libtorrent/aux_/time.hpp> // for aux::time_now
+#include <time.h> // time()
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 #include <fstream>
@@ -66,10 +59,14 @@ namespace libtorrent { namespace dht
 
 namespace io = libtorrent::detail;
 
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+TORRENT_DEFINE_LOG(rpc)
+#endif
+
 void intrusive_ptr_add_ref(observer const* o)
 {
 	TORRENT_ASSERT(o != 0);
-	TORRENT_ASSERT(o->m_refs < 0xffff);
+	TORRENT_ASSERT(o->m_refs >= 0);
 	++o->m_refs;
 }
 
@@ -87,7 +84,12 @@ void intrusive_ptr_release(observer const* o)
 
 void observer::set_target(udp::endpoint const& ep)
 {
-	m_sent = clock_type::now();
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	// use high resolution timers for logging
+	m_sent = time_now_hires();
+#else
+	m_sent = time_now();
+#endif
 
 	m_port = ep.port();
 #if TORRENT_USE_IPV6
@@ -163,27 +165,53 @@ enum { observer_size = max3<
 };
 
 rpc_manager::rpc_manager(node_id const& our_id
-	, routing_table& table, udp_socket_interface* sock
-	, dht_logger* log)
+	, routing_table& table, udp_socket_interface* sock)
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
-	, m_log(log)
 	, m_table(table)
-	, m_timer(aux::time_now())
+	, m_timer(time_now())
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
-{}
+{
+	std::srand((unsigned int)time(0));
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(rpc) << "Constructing";
+
+#define PRINT_OFFSETOF(x, y) TORRENT_LOG(rpc) << "  +" << offsetof(x, y) << ": " #y
+
+	TORRENT_LOG(rpc) << " observer: " << sizeof(observer);
+	PRINT_OFFSETOF(dht::observer, m_sent);
+	PRINT_OFFSETOF(dht::observer, m_refs);
+	PRINT_OFFSETOF(dht::observer, m_algorithm);
+	PRINT_OFFSETOF(dht::observer, m_id);
+	PRINT_OFFSETOF(dht::observer, m_addr);
+	PRINT_OFFSETOF(dht::observer, m_port);
+	PRINT_OFFSETOF(dht::observer, m_transaction_id);
+	PRINT_OFFSETOF(dht::observer, flags);
+
+	TORRENT_LOG(rpc) << " announce_observer: " << sizeof(announce_observer);
+	TORRENT_LOG(rpc) << " null_observer: " << sizeof(null_observer);
+	TORRENT_LOG(rpc) << " find_data_observer: " << sizeof(find_data_observer);
+
+#undef PRINT_OFFSETOF
+#endif
+
+}
 
 rpc_manager::~rpc_manager()
 {
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_LOG(rpc) << "Destructing";
+#endif
 	
 	for (transactions_t::iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
-		i->second->abort();
+		(*i)->abort();
 	}
 }
 
@@ -215,7 +243,7 @@ void rpc_manager::check_invariant() const
 	for (transactions_t::const_iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
-		TORRENT_ASSERT(i->second);
+		TORRENT_ASSERT(*i);
 	}
 }
 #endif
@@ -223,29 +251,29 @@ void rpc_manager::check_invariant() const
 void rpc_manager::unreachable(udp::endpoint const& ep)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "PORT_UNREACHABLE [ ip: %s ]"
-		, print_endpoint(ep).c_str());
+	TORRENT_LOG(rpc) << time_now_string() << " PORT_UNREACHABLE [ ip: " << ep << " ]";
 #endif
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
-		TORRENT_ASSERT(i->second);
-		observer_ptr const& o = i->second;
+		TORRENT_ASSERT(*i);
+		observer_ptr const& o = *i;
 		if (o->target_ep() != ep) { ++i; continue; }
-		observer_ptr ptr = i->second;
+		observer_ptr ptr = *i;
 		i = m_transactions.erase(i);
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_log->log(dht_logger::rpc_manager, "found transaction [ tid: %d ]"
-			, int(ptr->transaction_id()));
+		TORRENT_LOG(rpc) << "  found transaction [ tid: " << ptr->transaction_id() << " ]";
 #endif
 		ptr->timeout();
 		break;
 	}
 }
 
-bool rpc_manager::incoming(msg const& m, node_id* id
-	, libtorrent::dht_settings const& settings)
+// defined in node.cpp
+void incoming_error(entry& e, char const* msg, int error_code = 203);
+
+bool rpc_manager::incoming(msg const& m, node_id* id, libtorrent::dht_settings const& settings)
 {
 	INVARIANT_CHECK;
 
@@ -265,11 +293,18 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(i);
 
 	observer_ptr o;
-	std::pair<transactions_t::iterator, transactions_t::iterator> range = m_transactions.equal_range(tid);
-	for (transactions_t::iterator i = range.first; i != range.second; ++i)
+
+	for (transactions_t::iterator i = m_transactions.begin()
+		, end(m_transactions.end()); i != end;)
 	{
-		if (m.addr.address() != i->second->target_addr()) continue;
-		o = i->second;
+		TORRENT_ASSERT(*i);
+		if ((*i)->transaction_id() != tid
+			|| m.addr.address() != (*i)->target_addr())
+		{
+			++i;
+			continue;
+		}
+		o = *i;
 		i = m_transactions.erase(i);
 		break;
 	}
@@ -277,8 +312,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	if (!o)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
-			, transaction_id.size(), print_endpoint(m.addr).c_str());
+		TORRENT_LOG(rpc) << "Reply with unknown transaction id size: " 
+			<< transaction_id.size() << " from " << m.addr;
 #endif
 		// this isn't necessarily because the other end is doing
 		// something wrong. This can also happen when we restart
@@ -291,7 +326,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		return false;
 	}
 
-	time_point now = clock_type::now();
+	ptime now = time_now_hires();
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
 	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
@@ -299,13 +334,13 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		<< std::endl;
 #endif
 
-	bdecode_node ret_ent = m.message.dict_find_dict("r");
-	if (!ret_ent)
+	lazy_entry const* ret_ent = m.message.dict_find_dict("r");
+	if (ret_ent == 0)
 	{
 		// it may be an error
 		ret_ent = m.message.dict_find("e");
 		o->timeout();
-		if (!ret_ent)
+		if (ret_ent == NULL)
 		{
 			entry e;
 			incoming_error(e, "missing 'r' key");
@@ -314,8 +349,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		return false;
 	}
 
-	bdecode_node node_id_ent = ret_ent.dict_find_string("id");
-	if (!node_id_ent || node_id_ent.string_length() != 20)
+	lazy_entry const* node_id_ent = ret_ent->dict_find_string("id");
+	if (node_id_ent == 0 || node_id_ent->string_length() != 20)
 	{
 		o->timeout();
 		entry e;
@@ -324,7 +359,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		return false;
 	}
 
-	node_id nid = node_id(node_id_ent.string_ptr());
+	node_id nid = node_id(node_id_ent->string_ptr());
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();
@@ -335,9 +370,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	}
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-		, o->m_algorithm.get(), transaction_id.size()
-		, print_endpoint(m.addr).c_str());
+	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Reply with transaction id: " 
+		<< tid << " from " << m.addr;
 #endif
 	o->reply(m);
 	*id = nid;
@@ -353,58 +387,77 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	static const int short_timeout = 1;
-	static const int timeout = 15;
+	const static int short_timeout = 1;
+	const static int timeout = 15;
 
 	//	look for observers that have timed out
 
 	if (m_transactions.empty()) return seconds(short_timeout);
 
-	std::vector<observer_ptr> timeouts;
-	std::vector<observer_ptr> short_timeouts;
+	std::list<observer_ptr> timeouts;
 
 	time_duration ret = seconds(short_timeout);
-	time_point now = aux::time_now();
+	ptime now = time_now();
+
+#if TORRENT_USE_ASSERTS
+	ptime last = min_time();
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end(); ++i)
+	{
+		TORRENT_ASSERT((*i)->sent() >= last);
+		last = (*i)->sent();
+	}
+#endif
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
-		observer_ptr o = i->second;
+		observer_ptr o = *i;
 
+		// if we reach an observer that hasn't timed out
+		// break, because every observer after this one will
+		// also not have timed out yet
 		time_duration diff = now - o->sent();
-		if (diff >= seconds(timeout))
+		if (diff < seconds(timeout))
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
-				, o->m_algorithm.get(), o->transaction_id()
-				, print_endpoint(o->target_ep()).c_str());
-#endif
-			m_transactions.erase(i++);
-			timeouts.push_back(o);
-			continue;
+			ret = seconds(timeout) - diff;
+			break;
 		}
-
-		// don't call short_timeout() again if we've
-		// already called it once
-		if (diff >= seconds(short_timeout) && !o->has_short_timeout())
-		{
+		
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
-				, o->m_algorithm.get(), o->transaction_id()
-				, print_endpoint(o->target_ep()).c_str());
+		TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] Timing out transaction id: " 
+			<< (*i)->transaction_id() << " from " << o->target_ep();
 #endif
-			++i;
-
-			short_timeouts.push_back(o);
-			continue;
-		}
-
-		ret = std::min(seconds(timeout) - diff, ret);
-		++i;
+		i = m_transactions.erase(i);
+		timeouts.push_back(o);
 	}
 	
 	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
-	std::for_each(short_timeouts.begin(), short_timeouts.end(), boost::bind(&observer::short_timeout, _1));
+	timeouts.clear();
+
+	for (transactions_t::iterator i = m_transactions.begin();
+		i != m_transactions.end(); ++i)
+	{
+		observer_ptr o = *i;
+
+		// if we reach an observer that hasn't timed out
+		// break, because every observer after this one will
+		// also not have timed out yet
+		time_duration diff = now - o->sent();
+		if (diff < seconds(short_timeout))
+		{
+			ret = seconds(short_timeout) - diff;
+			break;
+		}
+		
+		// don't call short_timeout() again if we've
+		// already called it once
+		if (o->has_short_timeout()) continue;
+
+		timeouts.push_back(o);
+	}
+
+	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::short_timeout, _1));
 	
 	return ret;
 }
@@ -436,14 +489,13 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	o->set_transaction_id(tid);
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
-		, o->m_algorithm.get(), e["q"].string().c_str()
-		, print_endpoint(target_addr).c_str());
+	TORRENT_LOG(rpc) << "[" << o->m_algorithm.get() << "] invoking "
+		<< e["q"].string() << " -> " << target_addr;
 #endif
 
 	if (m_sock->send_packet(e, target_addr, 1))
 	{
-		m_transactions.insert(std::make_pair(tid,o));
+		m_transactions.push_back(o);
 #if TORRENT_USE_ASSERTS
 		o->m_was_sent = true;
 #endif

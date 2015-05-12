@@ -30,42 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp"
-#include "setup_transfer.hpp"
-#include "test_utils.hpp"
-#include "test_utils.hpp"
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/thread.hpp"
+#include <boost/tuple/tuple.hpp>
+
+#include "test.hpp"
+#include "setup_transfer.hpp"
 #include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
-
-#include <boost/tuple/tuple.hpp>
+#include <iostream>
 
 using boost::tuples::ignore;
 
 enum flags_t
 {
 	clear_files = 1,
-
-	// disconnect immediately after receiving the metadata (to test that
-	// edge case, it caused a crash once)
 	disconnect = 2,
-
-	// force encryption (to make sure the plugin uses the peer_connection
-	// API in a compatible way)
 	full_encryption = 4,
-
-	// have the downloader connect to the seeder
-	// (instead of the other way around)
-	reverse = 8,
-
-	// only use uTP
-	utp = 16,
-
-	// upload-only mode
-	upload_only = 32
+	reverse = 8
 };
 
 void test_transfer(int flags
@@ -73,16 +56,13 @@ void test_transfer(int flags
 	, int timeout)
 {
 	using namespace libtorrent;
-	namespace lt = libtorrent;
 
-	fprintf(stderr, "\n==== test transfer: timeout=%d %s%s%s%s%s%s ====\n\n"
+	fprintf(stderr, "test transfer: timeout=%d %s%s%s%s\n"
 		, timeout
 		, (flags & clear_files) ? "clear-files " : ""
 		, (flags & disconnect) ? "disconnect " : ""
 		, (flags & full_encryption) ? "encryption " : ""
-		, (flags & reverse) ? "reverse " : ""
-		, (flags & utp) ? "utp " : ""
-		, (flags & upload_only) ? "upload_only " : "");
+		, (flags & reverse) ? "reverse " : "");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -92,47 +72,26 @@ void test_transfer(int flags
 
 	// TODO: it would be nice to test reversing
 	// which session is making the connection as well
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
+	session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
+	session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
 	ses1.add_extension(constructor);
 	ses2.add_extension(constructor);
 	torrent_handle tor1;
 	torrent_handle tor2;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+	pe_settings pes;
+	pes.prefer_rc4 = (flags & full_encryption);
+	pes.out_enc_policy = pe_settings::forced;
+	pes.in_enc_policy = pe_settings::forced;
+	ses1.set_pe_settings(pes);
+	ses2.set_pe_settings(pes);
+#endif
 
-	settings_pack pack;
-	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
-	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
-	pack.set_bool(settings_pack::prefer_rc4, flags & full_encryption);
-
-	if (flags & utp)
-	{
-		pack.set_bool(settings_pack::utp_dynamic_sock_buf, true);
-		pack.set_bool(settings_pack::enable_incoming_utp, true);
-		pack.set_bool(settings_pack::enable_outgoing_utp, true);
-		pack.set_bool(settings_pack::enable_incoming_tcp, false);
-		pack.set_bool(settings_pack::enable_outgoing_tcp, false);
-	}
-	else
-	{
-		pack.set_bool(settings_pack::enable_incoming_utp, false);
-		pack.set_bool(settings_pack::enable_outgoing_utp, false);
-		pack.set_bool(settings_pack::enable_incoming_tcp, true);
-		pack.set_bool(settings_pack::enable_outgoing_tcp, true);
-	}
-
-	ses1.apply_settings(pack);
-	ses2.apply_settings(pack);
-
-	lt::session* downloader = &ses2;
-	lt::session* seed = &ses1;
+	session* downloader = &ses2;
+	session* seed = &ses1;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL
 		, flags & clear_files, true, false, "_meta");	
-
-	if (flags & upload_only)
-	{
-		tor2.set_upload_mode(true);
-	}
 
 	if (flags & reverse)
 	{
@@ -170,10 +129,7 @@ void test_transfer(int flags
 	if (flags & disconnect) goto done;
 
 	TEST_CHECK(tor2.status().has_metadata);
-
-	if (flags & upload_only) goto done;
-
-	fprintf(stderr, "waiting for transfer to complete\n");
+	std::cerr << "waiting for transfer to complete\n";
 
 	for (int i = 0; i < timeout * 10; ++i)
 	{
@@ -189,7 +145,7 @@ void test_transfer(int flags
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
-	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
+	if (tor2.status().is_seeding) std::cerr << "done\n";
 
 done:
 
@@ -215,14 +171,11 @@ int test_main()
 #endif
 
 	test_transfer(full_encryption | reverse, &create_ut_metadata_plugin, timeout);
-	test_transfer(full_encryption | utp, &create_ut_metadata_plugin, timeout);
 	test_transfer(reverse, &create_ut_metadata_plugin, timeout);
-	test_transfer(upload_only, &create_ut_metadata_plugin, timeout);
 
-#ifndef TORRENT_NO_DEPRECATE
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_metadata_plugin, timeout * 2);
-#endif
+
 
 	for (int f = 0; f <= (clear_files | disconnect | full_encryption); ++f)
 		test_transfer(f, &create_ut_metadata_plugin, timeout);

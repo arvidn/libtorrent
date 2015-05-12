@@ -35,10 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
-#include <stdlib.h> // free
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
@@ -51,17 +47,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
+#include <stdlib.h> // free
+
+#ifndef BOOST_SYSTEM_NOEXCEPT
+#define BOOST_SYSTEM_NOEXCEPT throw()
+#endif
 
 namespace libtorrent
 {
 
 	namespace errors
 	{
-		// libtorrent uses boost.system's ``error_code`` class to represent
-		// errors. libtorrent has its own error category
-		// get_libtorrent_category() whith the error codes defined by
-		// error_code_enum.
+		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
+		// its own error category get_libtorrent_category() whith the error codes defined by error_code_enum.
 		enum error_code_enum
 		{
 			// Not an error
@@ -330,9 +329,6 @@ namespace libtorrent
 			// the torrent is not an SSL torrent, and the operation requires
 			// an SSL torrent
 			not_an_ssl_torrent,
-			// peer was banned because its listen port is within a banned port
-			// range, as specified by the port_filter.
-			banned_by_port_filter,
 
 
 			// The NAT-PMP router responded with an unsupported protocol version
@@ -381,10 +377,6 @@ namespace libtorrent
 			// and the files on disk are using compact storage. The pieces needs
 			// to be moved to their right position
 			pieces_need_reorder,
-			// this error is returned when asking to save resume data and
-			// specifying the flag to only save when there's anything new to save
-			// (torrent_handle::only_if_modified) and there wasn't anything changed.
-			resume_data_not_modified,
 
 
 
@@ -478,10 +470,10 @@ namespace libtorrent
 #if BOOST_VERSION < 103500
 	typedef asio::error_code error_code;
 	// hidden
-	inline asio::error::error_category posix_category()
+	inline asio::error::error_category get_posix_category()
 	{ return asio::error::system_category; }
 	// hidden
-	inline asio::error::error_category system_category()
+	inline asio::error::error_category get_system_category()
 	{ return asio::error::system_category; }
 
 	// hidden
@@ -510,7 +502,7 @@ namespace libtorrent
 	using boost::system::error_code;
 
 	// hidden
-	inline boost::system::error_category const& system_category()
+	inline boost::system::error_category const& get_system_category()
 #if BOOST_VERSION < 104400
 	{ return boost::system::get_system_category(); }
 #else
@@ -536,70 +528,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT libtorrent_exception: std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;
-		virtual ~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER;
+		virtual const char* what() const throw();
+		virtual ~libtorrent_exception() throw();
 		error_code error() const { return m_error; }
 	private:
 		error_code m_error;
 		mutable char* m_msg;
 	};
 #endif
-
-	// used by storage to return errors
-	// also includes which underlying file the
-	// error happened on
-	struct TORRENT_EXPORT storage_error
-	{
-		storage_error(): file(-1), operation(0) {}
-		storage_error(error_code e): ec(e), file(-1), operation(0) {}
-
-		operator bool() const { return ec.value() != 0; }
-
-		// the error that occurred
-		error_code ec;
-
-		// the file the error occurred on
-		boost::int32_t file:24;
-
-		// A code from file_operation_t enum, indicating what
-		// kind of operation failed.
-		boost::uint32_t operation:8;
-
-		enum file_operation_t {
-			none,
-			stat,
-			mkdir,
-			open,
-			rename,
-			remove,
-			copy,
-			read,
-			write,
-			fallocate,
-			alloc_cache_piece,
-			partfile_move,
-			partfile_read,
-			partfile_write,
-			check_resume,
-			hard_link
-		};
-
-		// Returns a string literal representing the file operation
-		// that failed. If there were no failure, it returns
-		// an empty string.
-		char const* operation_str() const
-		{
-			char const* ops[] =
-			{
-				"", "stat", "mkdir", "open", "rename", "remove", "copy"
-				, "read", "write", "fallocate", "allocate cache piece"
-				, "partfile move", "partfile read", "partfile write"
-				, "check resume", "hard_link"
-			};
-			return ops[operation];
-		}
-	};
-
 }
 
 #if BOOST_VERSION >= 103500
@@ -621,9 +557,6 @@ namespace boost { namespace system {
 
 #endif // BOOST_VERSION
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #endif
 

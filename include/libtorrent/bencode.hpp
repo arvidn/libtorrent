@@ -38,54 +38,65 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // OVERVIEW
 // 
-// Bencoding is a common representation in bittorrent used for for dictionary,
-// list, int and string hierarchies. It's used to encode .torrent files and
-// some messages in the network protocol. libtorrent also uses it to store
-// settings, resume data and other state between sessions.
+// Bencoding is a common representation in bittorrent used for
+// for dictionary, list, int and string hierarchies. It's used
+// to encode .torrent files and some messages in the network
+// protocol. libtorrent also uses it to store settings, resume
+// data and other state between sessions.
 //
-// Strings in bencoded structures are not necessarily representing text.
-// Strings are raw byte buffers of a certain length. If a string is meant to be
-// interpreted as text, it is required to be UTF-8 encoded. See `BEP 3`_.
+// Strings in bencoded structures are not necessarily representing
+// text. Strings are raw byte buffers of a certain length. If a
+// string is meant to be interpreted as text, it is required to
+// be UTF-8 encoded. See `BEP 3`_.
 //
 // There are two mechanims to *decode* bencoded buffers in libtorrent.
 //
-// The most flexible one is `bdecode() bencode()`_, which returns a structure
-// represented by entry. Oncea buffer has been decoded with this function, it
-// can be discarded. The entry does not contain any references back to it. This
-// means that bdecode() copies all the data out of the buffer and into its own
-// hierarchy. This makes this function expensive, which might matter if you're
-// parsing large amounts of data.
+// The most flexible one is bdecode(), which returns a structure
+// represented by entry. When a buffer is decoded with this function,
+// it can be discarded. The entry does not contain any references back
+// to it. This means that bdecode() actually copies all the data out
+// of the buffer and into its own hierarchy. This makes this
+// function potentially expensive, if you're parsing large amounts
+// of data.
 //
-// Another consideration is that `bdecode() bencode()`_ is a recursive parser.
-// For this reason, in order to avoid DoS attacks by triggering a stack
-// overflow, there is a recursion limit. This limit is a sanity check to make
-// sure it doesn't run the risk of busting the stack.
+// Another consideration is that bdecode() is a recursive parser.
+// For this reason, in order to avoid DoS attacks by triggering
+// a stack overflow, there is a recursion limit. This limit is
+// a sanity check to make sure it doesn't run the risk of
+// busting the stack.
 //
-// The second mechanism is the decode function for bdecode_node. This function
-// builds a tree that points back into the original buffer. The returned
-// bdecode_node will not be valid once the buffer it was parsed out of is
-// discarded.
+// The second mechanism is lazy_bdecode(), which returns a
+// bencoded structure represented by lazy_entry. This function
+// builds a tree that points back into the original buffer.
+// The returned lazy_entry will not be valid once the buffer
+// it was parsed out of is discarded.
 //
-// Not only is this function more efficient because of less memory allocation
-// and data copy, the parser is also not recursive, which means it probably
-// performs a little bit better and can have a higher recursion limit on the
-// structures it's parsing.
+// Not only is this function more efficient because of less
+// memory allocation and data copy, the parser is also not
+// recursive, which means it probably performs a little bit
+// better and can have a higher recursion limit on the structures
+// it's parsing.
 
 #include <stdlib.h>
 #include <string>
 #include <exception>
 #include <iterator> // for distance
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/static_assert.hpp>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/assert.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/io.hpp" // for write_string
 
 namespace libtorrent
@@ -103,6 +114,10 @@ namespace libtorrent
 
 	namespace detail
 	{
+		// this is used in the template, so it must be available to the client
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
+			, entry::integer_type val);
+
 		template <class OutIt>
 		int write_integer(OutIt& out, entry::integer_type val)
 		{
@@ -210,7 +225,7 @@ namespace libtorrent
 				break;
 			default:
 				// trying to encode a structure with uninitialized values!
-//				TORRENT_ASSERT_VAL(false, e.type());
+				TORRENT_ASSERT_VAL(false, e.type());
 				// do nothing
 				break;
 			}
@@ -376,10 +391,9 @@ namespace libtorrent
 		}
 	}
 	
-	// These functions will encode data to bencoded or decode bencoded data.
+	// These functions will encode data to bencoded_ or decode bencoded_ data.
 	// 
-	// If possible, ``bdecode()`` producing a bdecode_node should be preferred
-	// over this function.
+	// If possible, lazy_bdecode() should be preferred over ``bdecode()``.
 	// 
 	// The entry_ class is the internal representation of the bencoded data
 	// and it can be used to retrieve information, an entry_ can also be build by

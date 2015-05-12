@@ -33,45 +33,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/parse_url.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/tuple/tuple.hpp>
-
-#include <cstdlib> // for malloc
-#include <cstring> // for memmov/strcpy/strlen
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <stdlib.h> // for malloc/free
+#include <string.h> // for strcpy/strlen
 
 namespace libtorrent
 {
 
-	// lexical_cast's result depends on the locale. We need
-	// a well defined result
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n)
-	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
-		char *p = &ret.back();
-		*p = '\0';
-		boost::uint64_t un = n;
-		// TODO: warning C4146: unary minus operator applied to unsigned type,
-		// result still unsigned
-		if (n < 0)  un = -un;
-		do {
-			*--p = '0' + un % 10;
-			un /= 10;
-		} while (un);
-		if (n < 0) *--p = '-';
-		std::memmove(&ret[0], p, &ret.back() - p + 1);
-		return ret;
-	}
-
 	bool is_alpha(char c)
 	{
 		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+	}
+
+	bool is_digit(char c)
+	{
+		return c >= '0' && c <= '9';
 	}
 
 	bool is_print(char c)
@@ -81,7 +57,7 @@ namespace libtorrent
 
 	bool is_space(char c)
 	{
-		static const char* ws = " \t\n\r\f\v";
+		const static char* ws = " \t\n\r\f\v";
 		return strchr(ws, c) != 0;
 	}
 
@@ -148,9 +124,9 @@ namespace libtorrent
 	char* allocate_string_copy(char const* str)
 	{
 		if (str == 0) return 0;
-		char* tmp = (char*)std::malloc(std::strlen(str) + 1);
+		char* tmp = (char*)malloc(strlen(str) + 1);
 		if (tmp == 0) return 0;
-		std::strcpy(tmp, str);
+		strcpy(tmp, str);
 		return tmp;
 	}
 
@@ -166,79 +142,6 @@ namespace libtorrent
 		// one. Since aligned addresses are 8 bytes apart, add
 		// 8 - offset.
 		return static_cast<char*>(p) + (8 - offset);
-	}
-
-	// this parses the string that's used as the liste_interfaces setting.
-	// it is a comma-separated list of IP or device names with ports. For
-	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
-	void parse_comma_separated_string_port(std::string const& in
-		, std::vector<std::pair<std::string, int> >& out)
-	{
-		out.clear();
-
-		std::string::size_type start = 0;
-		std::string::size_type end = 0;
-
-		while (start < in.size())
-		{
-			// skip leading spaces
-			while (start < in.size()
-				&& is_space(in[start]))
-				++start;
-
-			end = in.find_first_of(',', start);
-			if (end == std::string::npos) end = in.size();
-
-			std::string::size_type colon = in.find_last_of(':', end);
-
-			if (colon != std::string::npos && colon > start)
-			{
-				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
-
-				// skip trailing spaces
-				std::string::size_type soft_end = colon;
-				while (soft_end > start
-					&& is_space(in[soft_end-1]))
-					--soft_end;
-
-				// in case this is an IPv6 address, strip off the square brackets
-				// to make it more easily parseable into an ip::address
-				if (in[start] == '[') ++start;
-				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
-
-				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
-			}
-
-			start = end + 1;
-		}
-	}
-
-	void parse_comma_separated_string(std::string const& in, std::vector<std::string>& out)
-	{
-		out.clear();
-
-		std::string::size_type start = 0;
-		std::string::size_type end = 0;
-
-		while (start < in.size())
-		{
-			// skip leading spaces
-			while (start < in.size()
-				&& is_space(in[start]))
-				++start;
-
-			end = in.find_first_of(',', start);
-			if (end == std::string::npos) end = in.size();
-
-			// skip trailing spaces
-			std::string::size_type soft_end = end;
-			while (soft_end > start
-				&& is_space(in[soft_end-1]))
-				--soft_end;
-
-			out.push_back(in.substr(start, soft_end - start));
-			start = end + 1;
-		}
 	}
 
 	char* string_tokenize(char* last, char sep, char** next)
@@ -261,21 +164,6 @@ namespace libtorrent
 		while (**next == sep && **next) ++(*next);
 		return last;
 	}
-
-#if TORRENT_USE_I2P
-
-	bool is_i2p_url(std::string const& url)
-	{
-		using boost::tuples::ignore;
-		std::string hostname;
-		error_code ec;
-		boost::tie(ignore, ignore, hostname, ignore, ignore)
-			= parse_url_components(url, ec);
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		return top_domain && strcmp(top_domain, ".i2p") == 0;
-	}
-
-#endif
 
 }
 

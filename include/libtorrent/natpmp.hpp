@@ -38,15 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/deadline_timer.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function4.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -57,13 +53,14 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-class natpmp : public boost::enable_shared_from_this<natpmp>
+class natpmp : public intrusive_ptr_base<natpmp>
 {
 public:
-	natpmp(io_service& ios, portmap_callback_t const& cb
+	natpmp(io_service& ios, address const& listen_interface
+		, portmap_callback_t const& cb
 		, log_callback_t const& lcb);
 
-	void start();
+	void rebind(address const& listen_interface);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
@@ -76,8 +73,6 @@ public:
 
 private:
 	
-	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
-
 	void update_mapping(int i, mutex::scoped_lock& l);
 	void send_map_request(int i, mutex::scoped_lock& l);
 	void send_get_ip_address_request(mutex::scoped_lock& l);
@@ -109,7 +104,7 @@ private:
 		int action;
 
 		// the time the port mapping will expire
-		time_point expires;
+		ptime expires;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use

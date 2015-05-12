@@ -158,6 +158,30 @@ namespace libtorrent
 #endif
 	}
 
+	address guess_local_address(io_service& ios)
+	{
+		// make a best guess of the interface we're using and its IP
+		error_code ec;
+		std::vector<ip_interface> const& interfaces = enum_net_interfaces(ios, ec);
+		address ret = address_v4::any();
+		for (std::vector<ip_interface>::const_iterator i = interfaces.begin()
+			, end(interfaces.end()); i != end; ++i)
+		{
+			address const& a = i->interface_address;
+			if (is_loopback(a)
+				|| is_multicast(a)
+				|| is_any(a)) continue;
+
+			// prefer a v4 address, but return a v6 if
+			// there are no v4
+			if (a.is_v4()) return a;
+
+			if (ret != address_v4::any())
+				ret = a;
+		}
+		return ret;
+	}
+
 	// count the length of the common bit prefix
 	int common_bits(unsigned char const* b1
 		, unsigned char const* b2, int n)
@@ -202,8 +226,10 @@ namespace libtorrent
 	}
 
 	broadcast_socket::broadcast_socket(
-		udp::endpoint const& multicast_endpoint)
+		udp::endpoint const& multicast_endpoint
+		, receive_handler_t const& handler)
 		: m_multicast_endpoint(multicast_endpoint)
+		, m_on_receive(handler)
 		, m_outstanding_operations(0)
 		, m_abort(false)
 	{
@@ -212,11 +238,8 @@ namespace libtorrent
 		using namespace asio::ip::multicast;
 	}
 
-	void broadcast_socket::open(receive_handler_t const& handler
-		, io_service& ios, error_code& ec, bool loopback)
+	void broadcast_socket::open(io_service& ios, error_code& ec, bool loopback)
 	{
-		m_on_receive = handler;
-
 		std::vector<ip_interface> interfaces = enum_net_interfaces(ios, ec);
 
 #if TORRENT_USE_IPV6
@@ -256,11 +279,11 @@ namespace libtorrent
 #endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifdef TORRENT_DEBUG
-			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
-				, i->interface_address.to_string().c_str()
-				, m_multicast_endpoint.address().to_string().c_str()
-				, i->netmask.to_string().c_str()
-				, ec.message().c_str());
+//			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
+//				, i->interface_address.to_string().c_str()
+//				, m_multicast_endpoint.address().to_string().c_str()
+//				, i->netmask.to_string().c_str()
+//				, ec.message().c_str());
 #endif
 			open_unicast_socket(ios, i->interface_address
 				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());

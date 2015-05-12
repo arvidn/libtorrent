@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>Utility</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="utility">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">Utility</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.5</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#bitfield" id="id39">bitfield</a></li>
+<li><a class="reference internal" href="#sha1-hash" id="id40">sha1_hash</a></li>
+</ul>
+</div>
+<a name="bitfield"></a><div class="section" id="bitfield">
+<h1>bitfield</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/bitfield.hpp">libtorrent/bitfield.hpp</a>&quot;</p>
+<p>The bitfiled type stores any number of bits as a <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>
+in a heap allocated or borrowed array.</p>
+<pre class="literal-block">
+struct bitfield
+{
+   <strong>bitfield</strong> (int bits);
+   <strong>bitfield</strong> (bitfield const&amp; rhs);
+   <strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+   <strong>bitfield</strong> (int bits, bool val);
+   <strong>bitfield</strong> ();
+   <strong>bitfield</strong> (char const* b, int bits);
+   void <strong>borrow_bytes</strong> (char* b, int bits);
+   void <strong>assign</strong> (char const* b, int bits);
+   bool <strong>get_bit</strong> (int index) const;
+   bool <strong>operator[]</strong> (int index) const;
+   void <strong>clear_bit</strong> (int index);
+   void <strong>set_bit</strong> (int index);
+   bool <strong>all_set</strong> () const;
+   int <strong>size</strong> () const;
+   bool <strong>empty</strong> () const;
+   char const* <strong>bytes</strong> () const;
+   bitfield&amp; <strong>operator=</strong> (bitfield const&amp; rhs);
+   int <strong>count</strong> () const;
+};
+</pre>
+<a name="bitfield()"></a><div class="section" id="id3">
+<h2>bitfield()</h2>
+<pre class="literal-block">
+<strong>bitfield</strong> (int bits);
+<strong>bitfield</strong> (bitfield const&amp; rhs);
+<strong>bitfield</strong> (bitfield&amp;&amp; rhs);
+<strong>bitfield</strong> (int bits, bool val);
+<strong>bitfield</strong> ();
+<strong>bitfield</strong> (char const* b, int bits);
+</pre>
+<p>constructs a new <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. The default constructor creates an empty
+<a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>. <tt class="docutils literal">bits</tt> is the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> (specified in bits).
+<tt class="docutils literal">val</tt> is the value to initialize the bits to. If not specified
+all bits are initialized to 0.</p>
+<p>The constructor taking a pointer <tt class="docutils literal">b</tt> and <tt class="docutils literal">bits</tt> copies a <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>
+from the specified buffer, and <tt class="docutils literal">bits</tt> number of bits (rounded up to
+the nearest byte boundry).</p>
+<a name="borrow_bytes()"></a></div>
+<div class="section" id="borrow-bytes">
+<h2>borrow_bytes()</h2>
+<pre class="literal-block">
+void <strong>borrow_bytes</strong> (char* b, int bits);
+</pre>
+<p>assigns a <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> pointed to <tt class="docutils literal">b</tt> of <tt class="docutils literal">bits</tt> number of bits, without
+taking ownership of the buffer. This is a way to avoid copying data and
+yet provide a raw buffer to functions that may operate on the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>
+type. It is the user's responsibility to make sure the passed-in buffer's
+life time exceeds all uses of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>.</p>
+<a name="assign()"></a></div>
+<div class="section" id="assign">
+<h2>assign()</h2>
+<pre class="literal-block">
+void <strong>assign</strong> (char const* b, int bits);
+</pre>
+<p>copy <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> from buffer <tt class="docutils literal">b</tt> of <tt class="docutils literal">bits</tt> number of bits, rounded up to
+the nearest byte boundary.</p>
+<a name="operator[]()"></a>
+<a name="get_bit()"></a></div>
+<div class="section" id="operator-get-bit">
+<h2>operator[]() get_bit()</h2>
+<pre class="literal-block">
+bool <strong>get_bit</strong> (int index) const;
+bool <strong>operator[]</strong> (int index) const;
+</pre>
+<p>query bit at <tt class="docutils literal">index</tt>. Returns true if bit is 1, otherwise false.</p>
+<a name="set_bit()"></a>
+<a name="clear_bit()"></a></div>
+<div class="section" id="set-bit-clear-bit">
+<h2>set_bit() clear_bit()</h2>
+<pre class="literal-block">
+void <strong>clear_bit</strong> (int index);
+void <strong>set_bit</strong> (int index);
+</pre>
+<p>set bit at <tt class="docutils literal">index</tt> to 0 (clear_bit) or 1 (set_bit).</p>
+<a name="all_set()"></a></div>
+<div class="section" id="all-set">
+<h2>all_set()</h2>
+<pre class="literal-block">
+bool <strong>all_set</strong> () const;
+</pre>
+<p>returns true if all bits in the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> are set</p>
+<a name="size()"></a></div>
+<div class="section" id="size">
+<h2>size()</h2>
+<pre class="literal-block">
+int <strong>size</strong> () const;
+</pre>
+<p>returns the size of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> in bits.</p>
+<a name="empty()"></a></div>
+<div class="section" id="empty">
+<h2>empty()</h2>
+<pre class="literal-block">
+bool <strong>empty</strong> () const;
+</pre>
+<p>returns true if the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> has zero size.</p>
+<a name="bytes()"></a></div>
+<div class="section" id="bytes">
+<h2>bytes()</h2>
+<pre class="literal-block">
+char const* <strong>bytes</strong> () const;
+</pre>
+<p>returns a pointer to the internal buffer of the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a>.</p>
+<a name="operator=()"></a></div>
+<div class="section" id="operator">
+<h2>operator=()</h2>
+<pre class="literal-block">
+bitfield&amp; <strong>operator=</strong> (bitfield const&amp; rhs);
+</pre>
+<p>copy operator</p>
+<a name="count()"></a></div>
+<div class="section" id="count">
+<h2>count()</h2>
+<pre class="literal-block">
+int <strong>count</strong> () const;
+</pre>
+<p>count the number of bits in the <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> that are set to 1.</p>
+<a name="sha1_hash"></a></div>
+</div>
+<div class="section" id="sha1-hash">
+<h1>sha1_hash</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/sha1_hash.hpp">libtorrent/sha1_hash.hpp</a>&quot;</p>
+<p>This type holds a SHA-1 digest or any other kind of 20 byte
+sequence. It implements a number of convenience functions, such
+as bit operations, comparison operators etc.</p>
+<p>In libtorrent it is primarily used to hold info-hashes, piece-hashes,
+peer IDs, node IDs etc.</p>
+<pre class="literal-block">
+class sha1_hash
+{
+   <strong>sha1_hash</strong> ();
+   static sha1_hash <strong>max</strong> ();
+   static sha1_hash <strong>min</strong> ();
+   explicit <strong>sha1_hash</strong> (char const* s);
+   void <strong>assign</strong> (char const* str);
+   explicit <strong>sha1_hash</strong> (std::string const&amp; s);
+   void <strong>assign</strong> (std::string const&amp; s);
+   void <strong>clear</strong> ();
+   bool <strong>is_all_zeros</strong> () const;
+   sha1_hash&amp; <strong>operator&lt;&lt;=</strong> (int n);
+   sha1_hash&amp; <strong>operator&gt;&gt;=</strong> (int n);
+   bool <strong>operator!=</strong> (sha1_hash const&amp; n) const;
+   bool <strong>operator&lt;</strong> (sha1_hash const&amp; n) const;
+   bool <strong>operator==</strong> (sha1_hash const&amp; n) const;
+   sha1_hash <strong>operator~</strong> ();
+   sha1_hash <strong>operator^</strong> (sha1_hash const&amp; n) const;
+   sha1_hash&amp; <strong>operator^=</strong> (sha1_hash const&amp; n);
+   sha1_hash <strong>operator&amp;</strong> (sha1_hash const&amp; n) const;
+   sha1_hash&amp; <strong>operator&amp;=</strong> (sha1_hash const&amp; n);
+   sha1_hash&amp; <strong>operator|=</strong> (sha1_hash const&amp; n);
+   unsigned char&amp; <strong>operator[]</strong> (int i);
+   unsigned char const&amp; <strong>operator[]</strong> (int i) const;
+   const_iterator <strong>begin</strong> () const;
+   iterator <strong>begin</strong> ();
+   iterator <strong>end</strong> ();
+   const_iterator <strong>end</strong> () const;
+   std::string <strong>to_string</strong> () const;
+
+   static const int size = number_size;
+};
+</pre>
+<a name="sha1_hash()"></a><div class="section" id="id18">
+<h2>sha1_hash()</h2>
+<pre class="literal-block">
+<strong>sha1_hash</strong> ();
+</pre>
+<p>constructs an all-sero sha1-hash</p>
+<a name="max()"></a></div>
+<div class="section" id="max">
+<h2>max()</h2>
+<pre class="literal-block">
+static sha1_hash <strong>max</strong> ();
+</pre>
+<p>returns an all-F sha1-hash. i.e. the maximum value
+representable by a 160 bit number (20 bytes). This is
+a static member function.</p>
+<a name="min()"></a></div>
+<div class="section" id="min">
+<h2>min()</h2>
+<pre class="literal-block">
+static sha1_hash <strong>min</strong> ();
+</pre>
+<p>returns an all-zero sha1-hash. i.e. the minimum value
+representable by a 160 bit number (20 bytes). This is
+a static member function.</p>
+<a name="assign()"></a>
+<a name="sha1_hash()"></a></div>
+<div class="section" id="assign-sha1-hash">
+<h2>assign() sha1_hash()</h2>
+<pre class="literal-block">
+explicit <strong>sha1_hash</strong> (char const* s);
+void <strong>assign</strong> (char const* str);
+explicit <strong>sha1_hash</strong> (std::string const&amp; s);
+void <strong>assign</strong> (std::string const&amp; s);
+</pre>
+<p>copies 20 bytes from the pointer provided, into the sha1-hash.
+The passed in string MUST be at least 20 bytes. NULL terminators
+are ignored, <tt class="docutils literal">s</tt> is treated like a raw memory buffer.</p>
+<a name="clear()"></a></div>
+<div class="section" id="clear">
+<h2>clear()</h2>
+<pre class="literal-block">
+void <strong>clear</strong> ();
+</pre>
+<p>set the sha1-hash to all zeroes.</p>
+<a name="is_all_zeros()"></a></div>
+<div class="section" id="is-all-zeros">
+<h2>is_all_zeros()</h2>
+<pre class="literal-block">
+bool <strong>is_all_zeros</strong> () const;
+</pre>
+<p>return true if the sha1-hash is all zero.</p>
+<a name="operator<<=()"></a></div>
+<div class="section" id="id19">
+<h2>operator&lt;&lt;=()</h2>
+<pre class="literal-block">
+sha1_hash&amp; <strong>operator&lt;&lt;=</strong> (int n);
+</pre>
+<p>shift left <tt class="docutils literal">n</tt> bits.</p>
+<a name="operator>>=()"></a></div>
+<div class="section" id="id20">
+<h2>operator&gt;&gt;=()</h2>
+<pre class="literal-block">
+sha1_hash&amp; <strong>operator&gt;&gt;=</strong> (int n);
+</pre>
+<p>shift r <tt class="docutils literal">n</tt> bits.</p>
+<a name="operator!=()"></a>
+<a name="operator<()"></a>
+<a name="operator==()"></a></div>
+<div class="section" id="operator-operator-operator">
+<h2>operator!=() operator&lt;() operator==()</h2>
+<pre class="literal-block">
+bool <strong>operator!=</strong> (sha1_hash const&amp; n) const;
+bool <strong>operator&lt;</strong> (sha1_hash const&amp; n) const;
+bool <strong>operator==</strong> (sha1_hash const&amp; n) const;
+</pre>
+<p>standard comparison operators</p>
+<a name="operator~()"></a></div>
+<div class="section" id="id21">
+<h2>operator~()</h2>
+<pre class="literal-block">
+sha1_hash <strong>operator~</strong> ();
+</pre>
+<p>returns a bit-wise negated copy of the sha1-hash</p>
+<a name="operator^()"></a></div>
+<div class="section" id="id22">
+<h2>operator^()</h2>
+<pre class="literal-block">
+sha1_hash <strong>operator^</strong> (sha1_hash const&amp; n) const;
+</pre>
+<p>returns the bit-wise XOR of the two sha1-hashes.</p>
+<a name="operator^=()"></a></div>
+<div class="section" id="id23">
+<h2>operator^=()</h2>
+<pre class="literal-block">
+sha1_hash&amp; <strong>operator^=</strong> (sha1_hash const&amp; n);
+</pre>
+<p>in-place bit-wise XOR with the passed in <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a>.</p>
+<a name="operator&()"></a></div>
+<div class="section" id="id25">
+<h2>operator&amp;()</h2>
+<pre class="literal-block">
+sha1_hash <strong>operator&amp;</strong> (sha1_hash const&amp; n) const;
+</pre>
+<p>returns the bit-wise AND of the two sha1-hashes.</p>
+<a name="operator&=()"></a></div>
+<div class="section" id="id26">
+<h2>operator&amp;=()</h2>
+<pre class="literal-block">
+sha1_hash&amp; <strong>operator&amp;=</strong> (sha1_hash const&amp; n);
+</pre>
+<p>in-place bit-wise AND of the passed in <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a></p>
+<a name="operator|=()"></a></div>
+<div class="section" id="id28">
+<h2>operator|=()</h2>
+<pre class="literal-block">
+sha1_hash&amp; <strong>operator|=</strong> (sha1_hash const&amp; n);
+</pre>
+<p>in-place bit-wise OR of the two sha1-hash.</p>
+<a name="operator[]()"></a></div>
+<div class="section" id="id29">
+<h2>operator[]()</h2>
+<pre class="literal-block">
+unsigned char&amp; <strong>operator[]</strong> (int i);
+unsigned char const&amp; <strong>operator[]</strong> (int i) const;
+</pre>
+<p>accessors for specific bytes</p>
+<a name="begin()"></a>
+<a name="end()"></a></div>
+<div class="section" id="begin-end">
+<h2>begin() end()</h2>
+<pre class="literal-block">
+const_iterator <strong>begin</strong> () const;
+iterator <strong>begin</strong> ();
+iterator <strong>end</strong> ();
+const_iterator <strong>end</strong> () const;
+</pre>
+<p>start and end iterators for the hash. The value type
+of these iterators is <tt class="docutils literal">unsigned char</tt>.</p>
+<a name="to_string()"></a></div>
+<div class="section" id="to-string">
+<h2>to_string()</h2>
+<pre class="literal-block">
+std::string <strong>to_string</strong> () const;
+</pre>
+<p>return a copy of the 20 bytes representing the sha1-hash as a std::string.
+It's still a binary string with 20 binary characters.</p>
+<a name="number_size"></a><dl class="docutils">
+<dt>number_size</dt>
+<dd>the number of bytes of the number</dd>
+</dl>
+<a name="identify_client()"></a></div>
+<div class="section" id="identify-client">
+<h2>identify_client()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/identify_client.hpp">libtorrent/identify_client.hpp</a>&quot;</p>
+<pre class="literal-block">
+std::string <strong>identify_client</strong> (const peer_id&amp; p);
+</pre>
+<p>This function can can be used to extract a string describing a client
+version from its peer-id. It will recognize most clients that have this
+kind of identification in the peer-id.</p>
+<a name="client_fingerprint()"></a></div>
+<div class="section" id="client-fingerprint">
+<h2>client_fingerprint()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/identify_client.hpp">libtorrent/identify_client.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::optional&lt;fingerprint&gt; <strong>client_fingerprint</strong> (peer_id const&amp; p);
+</pre>
+<p>Returns an optional fingerprint if any can be identified from the peer
+id. This can be used to automate the identification of clients. It will
+not be able to identify peers with non- standard encodings. Only Azureus
+style, Shadow's style and Mainline style.</p>
+<a name="operator<<()"></a></div>
+<div class="section" id="id32">
+<h2>operator&lt;&lt;()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/sha1_hash.hpp">libtorrent/sha1_hash.hpp</a>&quot;</p>
+<pre class="literal-block">
+inline std::ostream&amp; <strong>operator&lt;&lt;</strong> (std::ostream&amp; os, sha1_hash const&amp; peer);
+</pre>
+<p>print a <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a> object to an ostream as 40 hexadecimal digits</p>
+<a name="operator>>()"></a></div>
+<div class="section" id="id35">
+<h2>operator&gt;&gt;()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/sha1_hash.hpp">libtorrent/sha1_hash.hpp</a>&quot;</p>
+<pre class="literal-block">
+inline std::istream&amp; <strong>operator&gt;&gt;</strong> (std::istream&amp; is, sha1_hash&amp; peer);
+</pre>
+<p>read 40 hexadecimal digits from an istream into a <a class="reference external" href="reference-Utility.html#sha1_hash">sha1_hash</a></p>
+<a name="sleep()"></a></div>
+<div class="section" id="sleep">
+<h2>sleep()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/thread.hpp">libtorrent/thread.hpp</a>&quot;</p>
+<pre class="literal-block">
+void <strong>sleep</strong> (int milliseconds);
+</pre>
+<p>pauses the calling thread at least for the specified
+number of milliseconds</p>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>

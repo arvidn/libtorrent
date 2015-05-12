@@ -38,24 +38,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/size_type.hpp"
 
 namespace libtorrent
 {
 	
 	// return true if the status code is 200, 206, or in the 300-400 range
-	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
+	bool is_ok_status(int http_status);
 
 	// return true if the status code is a redirect
-	TORRENT_EXTRA_EXPORT bool is_redirect(int http_status);
+	bool is_redirect(int http_status);
 
 	TORRENT_EXTRA_EXPORT std::string resolve_redirect_location(std::string referrer
 		, std::string location);
@@ -86,8 +91,8 @@ namespace libtorrent
 		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
 			, bool& error);
 		int body_start() const { return m_body_start_pos; }
-		boost::int64_t content_length() const { return m_content_length; }
-		std::pair<boost::int64_t, boost::int64_t> content_range() const
+		size_type content_length() const { return m_content_length; }
+		std::pair<size_type, size_type> content_range() const
 		{ return std::make_pair(m_range_start, m_range_end); }
 
 		// returns true if this response is using chunked encoding.
@@ -117,7 +122,7 @@ namespace libtorrent
 		// size may still have been modified, but their values are
 		// undefined
 		bool parse_chunk_header(buffer::const_interval buf
-			, boost::int64_t* chunk_size, int* header_size);
+			, size_type* chunk_size, int* header_size);
 
 		// reset the whole state and start over
 		void reset();
@@ -125,31 +130,40 @@ namespace libtorrent
 		bool connection_close() const { return m_connection_close; }
 
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& chunks() const { return m_chunked_ranges; }
+		std::vector<std::pair<size_type, size_type> > const& chunks() const { return m_chunked_ranges; }
 		
 	private:
-		boost::int64_t m_recv_pos;
+		size_type m_recv_pos;
+		int m_status_code;
 		std::string m_method;
 		std::string m_path;
 		std::string m_protocol;
 		std::string m_server_message;
 
-		boost::int64_t m_content_length;
-		boost::int64_t m_range_start;
-		boost::int64_t m_range_end;
+		size_type m_content_length;
+		size_type m_range_start;
+		size_type m_range_end;
+
+		enum { read_status, read_header, read_body, error_state } m_state;
 
 		std::multimap<std::string, std::string> m_header;
 		buffer::const_interval m_recv_buffer;
+		int m_body_start_pos;
+
+		// this is true if the server is HTTP/1.0 or
+		// if it sent "connection: close"
+		bool m_connection_close;
+		bool m_chunked_encoding;
+		bool m_finished;
+
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
-		std::vector<std::pair<boost::int64_t, boost::int64_t> > m_chunked_ranges;
+		std::vector<std::pair<size_type, size_type> > m_chunked_ranges;
 
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
 		// in the chunk tail header or the next chunk header)
-		boost::int64_t m_cur_chunk_end;
-
-		int m_status_code;
+		size_type m_cur_chunk_end;
 
 		// the sum of all chunk headers read so far
 		int m_chunk_header_size;
@@ -158,16 +172,6 @@ namespace libtorrent
 
 		// controls some behaviors of the parser
 		int m_flags;
-
-		int m_body_start_pos;
-
-		enum { read_status, read_header, read_body, error_state } m_state;
-
-		// this is true if the server is HTTP/1.0 or
-		// if it sent "connection: close"
-		bool m_connection_close;
-		bool m_chunked_encoding;
-		bool m_finished;
 	};
 
 }

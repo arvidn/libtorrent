@@ -36,15 +36,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/bind.hpp>
+#include <boost/ref.hpp>
 #if BOOST_VERSION < 103500
 #include <asio/ip/host_name.hpp>
 #include <asio/ip/multicast.hpp>
@@ -54,42 +54,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include <cstdlib>
 #include <boost/config.hpp>
-#include <cstdarg>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+using namespace libtorrent;
 
 namespace libtorrent
 {
-namespace {
-
-int render_lsd_packet(char* dst, int len, int listen_port
-	, char const* info_hash_hex, int m_cookie, char const* host)
-{
-	TORRENT_ASSERT(len > 0);
-	return snprintf(dst, len,
-		"BT-SEARCH * HTTP/1.1\r\n"
-		"Host: %s:6771\r\n"
-		"Port: %d\r\n"
-		"Infohash: %s\r\n"
-		"cookie: %x\r\n"
-		"\r\n\r\n", host, listen_port, info_hash_hex, m_cookie);
+	// defined in broadcast_socket.cpp
+	address guess_local_address(io_service&);
 }
-} // anonymous namespace
 
 static error_code ec;
 
-lsd::lsd(io_service& ios, peer_callback_t const& cb
-#ifndef TORRENT_DISABLE_LOGGING
-	, log_callback_t const& log
-#endif
-	)
+lsd::lsd(io_service& ios, address const& listen_interface
+	, peer_callback_t const& cb)
 	: m_callback(cb)
-	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771))
+	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771)
+		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))
 #if TORRENT_USE_IPV6
-	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771))
-#endif
-#ifndef TORRENT_DISABLE_LOGGING
-	, m_log_cb(log)
+	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771)
+		, boost::bind(&lsd::on_announce, self(), _1, _2, _3))
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie(random())
@@ -98,35 +81,56 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 	, m_disabled6(false)
 #endif
 {
-}
-
-#ifndef TORRENT_DISABLE_LOGGING
-TORRENT_FORMAT(2,3)
-void lsd::debug_log(char const* fmt, ...) const
-{
-	va_list v;
-	va_start(v, fmt);
-
-	char buf[1024];
-	vsnprintf(buf, sizeof(buf), fmt, v);
-	va_end(v);
-	m_log_cb(buf);
-}
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	m_log = fopen("lsd.log", "w+");
+	if (m_log == NULL)
+	{
+		fprintf(stderr, "failed to open 'lsd.log': (%d) %s"
+			, errno, strerror(errno));
+	}
 #endif
 
-void lsd::start(error_code& ec)
-{
-	m_socket.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
-		, m_broadcast_timer.get_io_service(), ec);
-	if (ec) return;
+	error_code ec;
+	m_socket.open(ios, ec);
+
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	if (ec)
+	{
+		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET: (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+	}
+#endif
 
 #if TORRENT_USE_IPV6
-	m_socket6.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
-		, m_broadcast_timer.get_io_service(), ec);
+	m_socket6.open(ios, ec);
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	if (ec)
+	{
+		if (m_log) fprintf(m_log, "FAILED TO OPEN SOCKET6: (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+	}
+#endif
 #endif
 }
 
-lsd::~lsd() {}
+lsd::~lsd()
+{
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	if (m_log) fclose(m_log);
+#endif
+}
+
+int render_lsd_packet(char* dst, int len, int listen_port
+	, char const* info_hash_hex, int m_cookie, char const* host)
+{
+	return snprintf(dst, len,
+		"BT-SEARCH * HTTP/1.1\r\n"
+		"Host: %s:6771\r\n"
+		"Port: %d\r\n"
+		"Infohash: %s\r\n"
+		"cookie: %x\r\n"
+		"\r\n\r\n", host, listen_port, info_hash_hex, m_cookie);
+}
 
 void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 {
@@ -146,8 +150,9 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	to_hex((char const*)&ih[0], 20, ih_hex);
 	char msg[200];
 
-#ifndef TORRENT_DISABLE_LOGGING
-	debug_log("==> LSD: ih: %s port: %u\n", ih_hex, listen_port);
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+	if (m_log) fprintf(m_log, "%s ==> announce: ih: %s port: %u\n"
+		, time_now_string(), ih_hex, listen_port);
 #endif
 
 	error_code ec;
@@ -159,9 +164,9 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled = true;
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** LSD: failed to send message: (%d) %s", ec.value()
-				, ec.message().c_str());
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s failed to send message: (%d) %s"
+				, time_now_string(), ec.value(), ec.message().c_str());
 #endif
 		}
 	}
@@ -175,9 +180,9 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 		if (ec)
 		{
 			m_disabled6 = true;
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** LSD: failed to send message6: (%d) %s", ec.value()
-				, ec.message().c_str());
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s failed to send message6: (%d) %s"
+				, time_now_string(), ec.value(), ec.message().c_str());
 #endif
 		}
 	}
@@ -211,7 +216,7 @@ void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	announce_impl(info_hash, listen_port, false, retry_count);
 }
 
-void lsd::on_announce(udp::endpoint const& from, char* buf
+void lsd::on_announce(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
 {
 	using namespace libtorrent::detail;
@@ -219,21 +224,22 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	http_parser p;
 
 	bool error = false;
-	p.incoming(buffer::const_interval(buf, buf + bytes_transferred)
+	p.incoming(buffer::const_interval(buffer, buffer + bytes_transferred)
 		, error);
 
 	if (!p.header_finished() || error)
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("<== LSD: incomplete HTTP message");
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (m_log) fprintf(m_log, "%s <== announce: incomplete HTTP message\n", time_now_string());
 #endif
 		return;
 	}
 
 	if (p.method() != "bt-search")
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("<== LSD: invalid HTTP method: %s", p.method().c_str());
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (m_log) fprintf(m_log, "%s <== announce: invalid HTTP method: %s\n"
+			, time_now_string(), p.method().c_str());
 #endif
 		return;
 	}
@@ -241,8 +247,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	std::string const& port_str = p.header("port");
 	if (port_str.empty())
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("<== LSD: invalid BT-SEARCH, missing port");
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+		if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, missing port\n"
+			, time_now_string());
 #endif
 		return;
 	}
@@ -260,9 +267,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		boost::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
 		if (cookie == m_cookie)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("<== LSD: ignoring packet (cookie matched our own): %x == %x"
-				, cookie, m_cookie);
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s <== announce: ignoring packet (cookie matched our own): %x == %x\n"
+				, time_now_string(), cookie, m_cookie);
 #endif
 			return;
 		}
@@ -276,9 +283,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		std::string const& ih_str = i->second;
 		if (ih_str.size() != 40)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("<== LSD: invalid BT-SEARCH, invalid infohash: %s"
-				, ih_str.c_str());
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s <== announce: invalid BT-SEARCH, invalid infohash: %s\n"
+				, time_now_string(), ih_str.c_str());
 #endif
 			continue;
 		}
@@ -288,9 +295,9 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 
 		if (!ih.is_all_zeros() && port != 0)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("<== LSD: %s:%d ih: %s"
-				, print_address(from.address()).c_str()
+#if defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)
+			if (m_log) fprintf(m_log, "%s *** incoming local announce %s:%d ih: %s\n"
+				, time_now_string(), print_address(from.address()).c_str()
 				, port, ih_str.c_str());
 #endif
 			// we got an announce, pass it on through the callback
@@ -315,7 +322,4 @@ void lsd::close()
 #endif
 	m_callback.clear();
 }
-
-} // libtorrent namespace
-
 

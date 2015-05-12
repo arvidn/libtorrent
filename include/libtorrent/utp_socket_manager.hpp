@@ -38,33 +38,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent
 {
 	class udp_socket;
 	class utp_stream;
 	struct utp_socket_impl;
-	struct counters;
 
 	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
 
-	struct utp_socket_manager TORRENT_FINAL : udp_socket_observer
+	struct utp_socket_manager : udp_socket_observer
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s
-			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
+		utp_socket_manager(session_settings const& sett, udp_socket& s, incoming_utp_callback_t cb);
 		~utp_socket_manager();
+
+		void get_status(utp_status& s) const;
 
 		// return false if this is not a uTP packet
 		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size) TORRENT_OVERRIDE;
-		virtual bool incoming_packet(error_code const&, char const*, char const*, int) TORRENT_OVERRIDE
+			, char const* p, int size);
+		virtual bool incoming_packet(error_code const& ec, char const* host, char const* p, int size)
 		{ return false; }
-		virtual void writable() TORRENT_OVERRIDE;
+		virtual void writable();
 
-		virtual void socket_drained() TORRENT_OVERRIDE;
+		virtual void socket_drained();
 
-		void tick(time_point now);
+		void tick(ptime now);
 
 		tcp::endpoint local_endpoint(address const& remote, error_code& ec) const;
 		int local_port(error_code& ec) const;
@@ -79,15 +78,15 @@ namespace libtorrent
 		void remove_socket(boost::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
-		int gain_factor() const { return m_sett.get_int(settings_pack::utp_gain_factor); }
-		int target_delay() const { return m_sett.get_int(settings_pack::utp_target_delay) * 1000; }
-		int syn_resends() const { return m_sett.get_int(settings_pack::utp_syn_resends); }
-		int fin_resends() const { return m_sett.get_int(settings_pack::utp_fin_resends); }
-		int num_resends() const { return m_sett.get_int(settings_pack::utp_num_resends); }
-		int connect_timeout() const { return m_sett.get_int(settings_pack::utp_connect_timeout); }
-		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
-		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
-		bool allow_dynamic_sock_buf() const { return m_sett.get_bool(settings_pack::utp_dynamic_sock_buf); }
+		int gain_factor() const { return m_sett.utp_gain_factor; }
+		int target_delay() const { return m_sett.utp_target_delay * 1000; }
+		int syn_resends() const { return m_sett.utp_syn_resends; }
+		int fin_resends() const { return m_sett.utp_fin_resends; }
+		int num_resends() const { return m_sett.utp_num_resends; }
+		int connect_timeout() const { return m_sett.utp_connect_timeout; }
+		int min_timeout() const { return m_sett.utp_min_timeout; }
+		int loss_multiplier() const { return m_sett.utp_loss_multiplier; }
+		bool allow_dynamic_sock_buf() const { return m_sett.utp_dynamic_sock_buf; }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
@@ -96,14 +95,28 @@ namespace libtorrent
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
+		enum counter_t
+		{
+			packet_loss = 0,
+			timeout,
+			packets_in,
+			packets_out,
+			fast_retransmit,
+			packet_resend,
+			samples_above_target,
+			samples_below_target,
+			payload_pkts_in,
+			payload_pkts_out,
+			invalid_pkts_in,
+			redundant_pkts_in,
+
+			num_counters
+		};
+
 		// used to keep stats of uTP events
-		// the counter is the enum from ``counters``.
-		void inc_stats_counter(int counter, int delta = 1);
+		void inc_stats_counter(int counter);
 
 	private:
-		// explicitly disallow assignment, to silence msvc warning
-		utp_socket_manager& operator=(utp_socket_manager const&);
-
 		udp_socket& m_sock;
 		incoming_utp_callback_t m_cb;
 
@@ -134,7 +147,7 @@ namespace libtorrent
 
 		int m_new_connection;
 
-		aux::session_settings const& m_sett;
+		session_settings const& m_sett;
 
 		// this is a copy of the routing table, used
 		// to initialize MTU sizes of uTP sockets
@@ -142,22 +155,18 @@ namespace libtorrent
 
 		// the timestamp for the last time we updated
 		// the routing table
-		mutable time_point m_last_route_update;
+		mutable ptime m_last_route_update;
 
 		// cache of interfaces
 		mutable std::vector<ip_interface> m_interfaces;
-		mutable time_point m_last_if_update;
+		mutable ptime m_last_if_update;
 
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
 		int m_sock_buf_size;
 
 		// stats counters
-		counters& m_counters;
-
-		// this is  passed on to the instantiate connection
-		// if this is non-null it will create SSL connections over uTP
-		void* m_ssl_context;
+		boost::uint64_t m_counters[num_counters];
 	};
 }
 

@@ -33,17 +33,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <utility>
 #include <ctime>
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
+
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/entry.hpp"
@@ -55,6 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace aux { struct session_impl; }
+
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -62,14 +68,15 @@ namespace libtorrent
 
 		udp_tracker_connection(
 			io_service& ios
+			, connection_queue& cc
 			, tracker_manager& man
 			, tracker_request const& req
-			, boost::weak_ptr<request_callback> c);
+			, boost::weak_ptr<request_callback> c
+			, aux::session_impl& ses
+			, proxy_settings const& ps);
 
 		void start();
 		void close();
-
-		boost::uint32_t transaction_id() const { return m_transaction_id; }
 
 	private:
 
@@ -81,16 +88,10 @@ namespace libtorrent
 			action_error
 		};
 
-		boost::shared_ptr<udp_tracker_connection> shared_from_this()
-		{
-			return boost::static_pointer_cast<udp_tracker_connection>(
-				tracker_connection::shared_from_this());
-		}
+		boost::intrusive_ptr<udp_tracker_connection> self()
+		{ return boost::intrusive_ptr<udp_tracker_connection>(this); }
 
-		void update_transaction_id();
-
-		void name_lookup(error_code const& error
-			, std::vector<address> const& addresses, int port);
+		void name_lookup(error_code const& error, tcp::resolver::iterator i);
 		void timeout(error_code const& error);
 		void start_announce();
 
@@ -114,27 +115,27 @@ namespace libtorrent
 
 		udp::endpoint pick_target_endpoint() const;
 
+		bool m_abort;
 		std::string m_hostname;
-		std::vector<tcp::endpoint> m_endpoints;
+		udp::endpoint m_target;
+		std::list<tcp::endpoint> m_endpoints;
+
+		int m_transaction_id;
+		aux::session_impl& m_ses;
+		int m_attempts;
 
 		struct connection_cache_entry
 		{
 			boost::int64_t connection_id;
-			time_point expires;
+			ptime expires;
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
 		static mutex m_cache_mutex;
 
-		udp::endpoint m_target;
+		action_t m_state;
 
-		boost::uint32_t m_transaction_id;
-		int m_attempts;
-
-		// action_t
-		boost::uint8_t m_state;
-
-		bool m_abort;
+		proxy_settings m_proxy;
 	};
 
 }

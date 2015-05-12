@@ -1,9 +1,9 @@
 example_programs =  \
   client_test       \
-  stats_counters    \
   dump_torrent      \
   make_torrent      \
   simple_client     \
+  rss_reader        \
   upnp_test         \
   connection_tester
 
@@ -14,11 +14,8 @@ endif
 EXTRA_PROGRAMS = $(example_programs)
 EXTRA_DIST = Jamfile CMakeLists.txt run_cmake.sh.in cmake/FindLibtorrentRasterbar.cmake
 
-client_test_SOURCES = client_test.cpp print.cpp session_view.cpp torrent_view.cpp
+client_test_SOURCES = client_test.cpp
 #client_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
-stats_counters_SOURCES = stats_counters.cpp
-#stats_counters_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 dump_torrent_SOURCES = dump_torrent.cpp
 #dump_torrent_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
@@ -31,6 +28,9 @@ simple_client_SOURCES = simple_client.cpp
 
 connection_tester_SOURCES = connection_tester.cpp
 #connection_tester_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+
+rss_reader_SOURCES = rss_reader.cpp
+#rss_reader_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 upnp_test_SOURCES = upnp_test.cpp
 #upnp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la

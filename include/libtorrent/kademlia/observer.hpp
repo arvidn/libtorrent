@@ -33,17 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef OBSERVER_HPP
 #define OBSERVER_HPP
 
-#include <libtorrent/time.hpp>
-#include <libtorrent/address.hpp>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/pool/pool.hpp>
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/cstdint.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <libtorrent/ptime.hpp>
+#include <libtorrent/address.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -56,6 +51,17 @@ struct traversal_algorithm;
 TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
 TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
 
+// intended struct layout (on 32 bit architectures)
+// offset size  alignment field
+// 0      8     8         sent
+// 8      8     4         m_refs
+// 16     4     4         pool_allocator
+// 20     16    4         m_addr
+// 36     2     2         m_port
+// 38     1     1         flags
+// 39     1     1         <padding>
+// 40
+
 struct observer : boost::noncopyable
 {
 	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
@@ -64,9 +70,9 @@ struct observer : boost::noncopyable
 	observer(boost::intrusive_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)
 		: m_sent()
+		, m_refs(0)
 		, m_algorithm(a)
 		, m_id(id)
-		, m_refs(0)
 		, m_port(0)
 		, m_transaction_id()
 		, flags(0)
@@ -103,7 +109,7 @@ struct observer : boost::noncopyable
 	// is being destructed
 	void abort();
 
-	time_point sent() const { return m_sent; }
+	ptime sent() const { return m_sent; }
 
 	void set_target(udp::endpoint const& ep);
 	address target_addr() const;
@@ -130,13 +136,15 @@ struct observer : boost::noncopyable
 	};
 
 #ifndef TORRENT_DHT_VERBOSE_LOGGING
-	// TODO: 2 make this private and unconditional
 protected:
 #endif
 
 	void done();
 
-	time_point m_sent;
+	ptime m_sent;
+
+	// reference counter for intrusive_ptr
+	mutable boost::detail::atomic_count m_refs;
 
 	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
 
@@ -149,9 +157,6 @@ protected:
 #endif
 		address_v4::bytes_type v4;
 	} m_addr;
-
-	// reference counter for intrusive_ptr
-	mutable boost::uint16_t m_refs;
 
 	boost::uint16_t m_port;
 

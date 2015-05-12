@@ -1,6 +1,3 @@
-// ignore warnings in this file
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include "libtorrent/ed25519.hpp"
 #include "sha512.h"
 #include "ge.h"

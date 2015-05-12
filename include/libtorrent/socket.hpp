@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_HPP_INCLUDED
 #define TORRENT_SOCKET_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 // if building as Objective C++, asio's template
 // parameters Protocol has to be renamed to avoid
@@ -66,7 +68,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef Protocol
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace libtorrent
 {

@@ -50,7 +50,7 @@ struct sliding_average
 	{
 		// fixed point
 		s *= 64;
-		int deviation = 0;
+		int deviation;
 
 		if (m_num_samples > 0)
 			deviation = std::abs(m_mean - s);
@@ -71,7 +71,6 @@ struct sliding_average
 
 	int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
 	int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
-	int num_samples() const { return m_num_samples; }
 
 private:
 	// both of these are fixed point values (* 64)
@@ -100,11 +99,8 @@ struct average_accumulator
 		int ret;
 		if (m_num_samples == 0) ret = 0;
 		else ret = int(m_sample_sum / m_num_samples);
-		// in case we don't get any more samples, at least
-		// let the average roll over, but only be worth a
-		// single sample
-		m_num_samples = 1;
-		m_sample_sum = ret;
+		m_num_samples = 0;
+		m_sample_sum = 0;
 		return ret;
 	}
 

@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/bitfield.hpp"
-#include <stdlib.h>
 
 using namespace libtorrent;
 
@@ -51,7 +50,7 @@ void test_iterators(bitfield& test1)
 	test1.set_all();
 	int num = 0;
 
-	printf("expecting %d ones\n", test1.size());
+	printf("expecting %d ones\n", int(test1.size()));
 	for (bitfield::const_iterator i = test1.begin(); i != test1.end(); ++i)
 	{
 		printf("%d", *i);
@@ -82,7 +81,7 @@ int test_main()
 	test1.clear_bit(2);
 	TEST_EQUAL(test1.count(), 2);
 	int distance = std::distance(test1.begin(), test1.end());
-	printf("distance: %d\n", distance);
+	fprintf(stderr, "%d\n", distance);
 	TEST_CHECK(distance == 10);
 	
 	print_bitfield(test1);
@@ -172,7 +171,7 @@ int test_main()
 	for (int i = 0; i < 4; ++i)
 	{
 		b[i] = 0xc0;
-		test1.assign(b + i, 2);
+		test1.borrow_bytes(b + i, 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 2);
 		TEST_EQUAL(test1.all_set(), true);
@@ -182,7 +181,7 @@ int test_main()
 	{
 		memset(b + i, 0xff, 5);
 		b[i + 5] = 0xc0;
-		test1.assign(b + i, 32 + 8 + 2);
+		test1.borrow_bytes(b + i, 32 + 8 + 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);
 		TEST_EQUAL(test1.all_set(), true);

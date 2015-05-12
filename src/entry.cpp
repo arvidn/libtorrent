@@ -30,25 +30,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
+#include <algorithm>
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
-#include <algorithm>
 #include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/entry.hpp"
-#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/config.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/escape_string.hpp"
+
+#if defined(_MSC_VER)
+#define for if (false) {} else for
 #endif
-#include "libtorrent/bdecode.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/hex.hpp"
 
 namespace
 {
@@ -64,8 +59,7 @@ namespace libtorrent
 {
 	namespace detail
 	{
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
-			, entry::integer_type val)
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size, entry::integer_type val)
 		{
 			int sign = 0;
 			if (val < 0)
@@ -134,15 +128,15 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	const entry& entry::operator[](char const* key) const
 	{
-		return (*this)[std::string(key)];
-	}
-
-	const entry& entry::operator[](std::string const& key) const
-	{
 		dictionary_type::const_iterator i = dict().find(key);
 		if (i == dict().end()) throw type_error(
 			(std::string("key not found: ") + key).c_str());
 		return i->second;
+	}
+
+	const entry& entry::operator[](std::string const& key) const
+	{
+		return (*this)[key.c_str()];
 	}
 #endif
 
@@ -320,44 +314,6 @@ namespace libtorrent
 		m_type = int_t;
 	}
 
-	// convert a bdecode_node into an old skool entry
-	void entry::operator=(bdecode_node const& e)
-	{
-		switch (e.type())
-		{
-			case bdecode_node::string_t:
-				this->string() = e.string_value();
-				break;
-			case bdecode_node::int_t:
-				this->integer() = e.int_value();
-				break;
-			case bdecode_node::dict_t:
-			{
-				dictionary_type& d = this->dict();
-				for (int i = 0; i < e.dict_size(); ++i)
-				{
-					std::pair<std::string, bdecode_node> elem = e.dict_at(i);
-					d[elem.first] = elem.second;
-				}
-				break;
-			}
-			case bdecode_node::list_t:
-			{
-				list_type& l = this->list();
-				for (int i = 0; i < e.list_size(); ++i)
-				{
-					l.push_back(entry());
-					l.back() = e.list_at(i);
-				}
-				break;
-			}
-			case bdecode_node::none_t:
-				destruct();
-				break;
-		}
-	}
-
-#ifndef TORRENT_NO_DEPRECATE
 	// convert a lazy_entry into an old skool entry
 	void entry::operator=(lazy_entry const& e)
 	{
@@ -394,7 +350,6 @@ namespace libtorrent
 				break;
 		}
 	}
-#endif
 
 	void entry::operator=(dictionary_type const& v)
 	{

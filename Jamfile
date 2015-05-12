@@ -23,19 +23,19 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.1.0 ;
+VERSION = 1.0.5 ;
 
 rule coverage ( properties * )
 {
 	local result ;
-	if <test-coverage>on in $(properties)
-		&& ( <toolset>gcc in $(properties)
+	if <toolset>gcc in $(properties)
 		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties) )
+		|| <toolset>clang in $(properties)
 	{
 		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
 
 		if <toolset>gcc in $(properties)
+			|| <toolset>darwin in $(properties)
 		{
 			result += <linkflags>-lgcov ;
 		}
@@ -54,7 +54,7 @@ rule linking ( properties * )
 	local result ;
 
 	# openssl libraries, if enabled
-	if <crypto>openssl in $(properties)
+	if <encryption>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -94,7 +94,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <crypto>gcrypt in $(properties)
+	if <encryption>gcrypt in $(properties)
 	{
 		# on mac os x, adding the /opt/local/include path
 		# would include openssl headers incompatible with
@@ -102,6 +102,11 @@ rule linking ( properties * )
 		# if we're not using openssl (which we're most
 		# likely not if we're using libgcrypt)
 		result += <library>gcrypt <include>/opt/local/include ;
+	}
+
+	if <geoip>shared in $(properties)
+	{
+		result += <library>GeoIP ;
 	}
 
 	# socket functions on windows require winsock libraries
@@ -136,7 +141,7 @@ rule linking ( properties * )
 	}
 
 	# clock_gettime on linux requires librt
-	if <target-os>linux in $(properties)
+	if <need-librt>yes in $(properties)
 	{
 		result += <library>librt ;
 	}
@@ -177,14 +182,10 @@ rule linking ( properties * )
 				# library, so that it properly exports its symbols
 				result += <define>BOOST_ALL_DYN_LINK ;
 				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
-				result += <library>/boost/random//boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
 			}
 			else
 			{
 				result += <library>/boost/system//boost_system/<link>static ;
-				result += <library>/boost/chrono//boost_chrono/<link>static ;
-				result += <library>/boost/random//boost_random/<link>static ;
 			}
 
 			if <toolset>gcc in $(properties)
@@ -198,8 +199,14 @@ rule linking ( properties * )
 		else
 		{
 			result += <library>/boost/system//boost_system/<link>shared ;
-			result += <library>/boost/chrono//boost_chrono/<link>shared ;
-			result += <library>/boost/random//boost_random/<link>shared ;
+
+			# when building a shared library with openssl, for some reason we really need
+			# boost date time (at least on windows). Hopefully a future version of asio
+			# will allow disabling this dependency
+			if <encryption>openssl in $(properties)
+			{
+				result += <library>/boost/date_time//boost_date_time/<link>shared ;
+			}
 		}
 		result += <include>$(BOOST_ROOT)
 			<define>BOOST_ALL_NO_LIB
@@ -210,8 +217,11 @@ rule linking ( properties * )
 	else
 	{
 		result += <library>boost_system ;
-		result += <library>boost_chrono ;
-		result += <library>boost_random ;
+
+		if <boost-link>shared in $(properties) && <encryption>openssl in $(properties)
+		{
+			result += <library>boost_date_time ;
+		}
 
 		# on mac the boost headers are installed in
 		# a directory that isn't automatically accessable
@@ -220,63 +230,6 @@ rule linking ( properties * )
 			<include>/opt/local/include
 			<include>/usr/g++/include
 			;
-	}
-
-	return $(result) ;
-}
-
-rule warnings ( properties * )
-{
-	local result ;
-
-	if <warnings>off in $(properties)
-	{
-		return $(result) ;
-	}
-
-	if <toolset>clang in $(properties)
-		|| <toolset>darwin in $(properties)
-	{
-		result += <cflags>-Weverything ;
-		result += <cflags>-Wno-documentation ;
-		result += <cflags>-Wno-c++98-compat-pedantic ;
-		result += <cflags>-Wno-padded ;
-		result += <cflags>-Wno-global-constructors ;
-		result += <cflags>-Wno-c++98-compat ;
-		result += <cflags>-Wno-exit-time-destructors ;
-		result += <cflags>-Wno-documentation-unknown-command ;
-		result += <cflags>-Wno-disabled-macro-expansion ;
-
-# enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-weak-vtables ;
-		result += <cflags>-Wno-sign-compare ;
-		result += <cflags>-Wno-sign-conversion ;
-	}
-
-	if <toolset>gcc in $(properties)
-	{
-		result += <cflags>-Wall ;
-		result += <cflags>-Wextra ;
-		result += <cflags>-Wno-format-zero-length ;
-
-# enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-sign-compare ;
-	}
-
-	if <toolset>msvc in $(properties)
-	{
-# disable warning C4503: decorated name length exceeded, name was truncated
-		result += <cflags>/wd4503 ;
-		result += <warnings>all ;
-
-# enable these warnings again, once the other ones are dealt with
-
-# disable warning C4389: signed/unsigned mismatch
-		result += <cflags>/wd4389 ;
-		result += <cflags>/wd4245 ;
-		result += <cflags>/wd4018 ;
-# disable warning C4244: 'argument' : conversion from 'int' to 'unsigned short', possible loss of data
-		result += <cflags>/wd4244 ;
 	}
 
 	return $(result) ;
@@ -311,20 +264,30 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
-	if <crypto>openssl in $(properties)
+	if <encryption>openssl in $(properties)
 	{
 		result += <source>src/asio_ssl.cpp ;
 	}
 
-	if <encryption>on in $(properties)
+	if <encryption>tommath in $(properties)
 	{
 		result += <source>src/mpi.c ;
-		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypo>built-in in $(properties)
+	if <geoip>static in $(properties)
+	{
+		result += <source>src/GeoIP.c ;
+	}
+
+	if <encryption>off in $(properties)
+		|| <encryption>tommath in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
+	}
+
+	if ! <encryption>off in $(properties)
+	{
+		result += <source>src/pe_crypto.cpp ;
 	}
 
 	if ( <toolset>darwin in $(properties)
@@ -369,23 +332,29 @@ rule tag ( name : type  ? : property-set )
 
 feature tcmalloc : no yes : composite propagated link-incompatible ;
 
+feature timer : auto boost absolute performance clock system_time
+	: composite propagated link-incompatible ;
+feature.compose <timer>boost : <define>TORRENT_USE_BOOST_DATE_TIME=1 ;
+feature.compose <timer>absolute : <define>TORRENT_USE_ABSOLUTE_TIME=1 ;
+feature.compose <timer>performance : <define>TORRENT_USE_PERFORMANCE_TIMER=1 ;
+feature.compose <timer>clock : <define>TORRENT_USE_CLOCK_GETTIME=1 ;
+feature.compose <timer>system_time : <define>TORRENT_USE_SYSTEM_TIME=1 ;
+
 feature ipv6 : on off : composite propagated link-incompatible ;
 feature.compose <ipv6>off : <define>TORRENT_USE_IPV6=0 ;
 
-feature sanitize : off address bounds undefined thread rtc : composite propagated link-incompatible ;
+feature sanitize : off address undefined thread rtc : composite propagated link-incompatible ;
 # sanitize is a clang and GCC feature
-feature.compose <sanitize>bounds : <cflags>-fsanitize=bounds <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=bounds <linkflags>-fsanitize-undefined-trap-on-error ;
+feature.compose <sanitize>address : <cflags>-fsanitize=address <cflags>-fsanitize-undefined-trap-on-error <linkflags>-fsanitize=address ;
 feature.compose <sanitize>undefined : <cflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;
 feature.compose <sanitize>thread : <cflags>-fsanitize=thread <linkflags>-fsanitize=thread ;
-feature.compose <sanitize>address : <cflags>-fsanitize=address <linkflags>-fsanitize=address ;
 # RTC (runtime check) is an msvc feature
 feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
+feature need-librt : no yes : composite propagated link-incompatible ;
+
 feature fiemap : off on : composite propagated ;
 feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
-
-feature file-leak-logging : off on : composite propagated ;
-feature.compose <file-leak-logging>on : <define>TORRENT_DEBUG_FILE_LEAKS=1 ;
 
 feature i2p : on off : composite propagated ;
 feature.compose <i2p>on : <define>TORRENT_USE_I2P=1 ;
@@ -398,8 +367,8 @@ feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 feature use-valgrind : off on : composite propagated link-incompatible ;
 feature.compose <use-valgrind>on : <define>TORRENT_USE_VALGRIND=1 ;
 
-feature memory-optimization : off on : composite propagated link-incompatible ;
-feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
+feature full-stats : on off : composite propagated link-incompatible ;
+feature.compose <full-stats>off : <define>TORRENT_DISABLE_FULL_STATS ;
 
 feature asserts : auto on off production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
@@ -418,13 +387,9 @@ feature.compose <extensions>off : <define>TORRENT_DISABLE_EXTENSIONS ;
 feature asio-debugging : off on : composite propagated link-incompatible ;
 feature.compose <asio-debugging>on : <define>TORRENT_ASIO_DEBUGGING ;
 
-feature picker-debugging : off on : composite propagated link-incompatible ;
-feature.compose <picker-debugging>on : <define>TORRENT_DEBUG_REFCOUNTS ;
-
 # deprecated use allocator=pool instead
-feature pool-allocators : on off debug : composite propagated link-incompatible ;
+feature pool-allocators : on off : composite propagated link-incompatible ;
 feature.compose <pool-allocators>off : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
-feature.compose <pool-allocators>debug : <define>TORRENT_DISABLE_POOL_ALLOCATOR <define>TORRENT_DEBUG_BUFFERS ;
 
 feature allocator : pool system debug : composite propagated ;
 feature.compose <allocator>system : <define>TORRENT_DISABLE_POOL_ALLOCATOR ;
@@ -434,6 +399,9 @@ feature piece-allocator : valloc memalign posix_memalign : composite propagated 
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
+feature geoip : off static shared : composite propagated link-incompatible ;
+feature.compose <geoip>off : <define>TORRENT_DISABLE_GEO_IP ;
+
 feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
 feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;
 
@@ -441,28 +409,29 @@ feature invariant-checks : on off full : composite propagated link-incompatible 
 feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
 feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
 
+feature request-log : off on : composite propagated link-incompatible ;
+feature.compose <request-log>on : <define>TORRENT_REQUEST_LOGGING ;
+
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 
-feature logging : on off : composite propagated link-incompatible ;
-feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
+feature logging : none default errors verbose : composite propagated link-incompatible ;
+feature.compose <logging>default : <define>TORRENT_LOGGING ;
+feature.compose <logging>errors : <define>TORRENT_ERROR_LOGGING ;
+feature.compose <logging>verbose : <define>TORRENT_VERBOSE_LOGGING ;
 
 feature dht : on off logging : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
 feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
-feature encryption : on off : composite propagated link-incompatible ;
+feature encryption : tommath off openssl gcrypt : composite propagated link-incompatible ;
+feature.compose <encryption>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <encryption>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature.compose <encryption>tommath : <define>TORRENT_USE_TOMMATH ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
-
-feature mutable-torrents : on off : composite propagated link-incompatible ;
-feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
-
-feature crypto : built-in openssl gcrypt : composite propagated ;
-feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
-feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
 feature resolve-countries : on off : composite propagated link-incompatible ;
 feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
@@ -473,6 +442,9 @@ feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 feature deprecated-functions : on off : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 
+feature statistics : off on : composite propagated link-incompatible ;
+feature.compose <statistics>on : <define>TORRENT_STATS ;
+
 feature upnp-logging : off on : composite propagated link-incompatible ;
 feature.compose <upnp-logging>on : <define>TORRENT_UPNP_LOGGING ;
 
@@ -482,14 +454,12 @@ feature boost-link : static shared : propagated composite ;
 feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
-feature test-coverage : off on : composite propagated link-incompatible ;
+feature test-coverage : off on : composite propagated ;
+feature.compose <test-coverage>on : <conditional>@coverage ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
-
-feature profile-calls : off on : composite propagated link-incompatible ;
-feature.compose <profile-calls>on : <define>TORRENT_PROFILE_CALLS=1 ;
 
 # controls whether or not to export some internal
 # libtorrent functions. Used for unit testing
@@ -504,13 +474,13 @@ variant test_release
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_debug : debug
-	: <crypto>openssl <logging>on <disk-stats>on
-	  <dht>logging <allocator>debug <debug-iterators>on
+	: <encryption>openssl <statistics>on <logging>verbose <disk-stats>on
+	  <dht>logging <request-log>on <allocator>debug <debug-iterators>on
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
 variant test_barebones : debug
-	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
+	: <ipv6>off <dht>off <extensions>off <logging>none <boost-link>shared
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
@@ -544,21 +514,16 @@ lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-library-sea
 lib boost_system : : <target-os>solaris <name>boost_system $(boost-library-search-path) ;
 lib boost_system : : <name>boost_system ;
 
-lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-library-search-path) ;
-lib boost_chrono : : <target-os>solaris <name>boost_chrono $(boost-library-search-path) ;
-lib boost_chrono : : <name>boost_chrono ;
-
-lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-library-search-path) ;
-lib boost_random : : <target-os>solaris <name>boost_random $(boost-library-search-path) ;
-lib boost_random : : <name>boost_random ;
+lib boost_date_time : : <target-os>darwin <name>boost_date_time-mt $(boost-library-search-path) ;
+lib boost_date_time : : <target-os>solaris <name>boost_date_time $(boost-library-search-path) ;
+lib boost_date_time : : <name>boost_date_time ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/opt/local/lib ;
 lib z : : <link>shared <name>z <search>/usr/lib ;
-lib crypto : : <name>crypto <link>shared <search>/usr/lib <use>z ;
+lib crypto : : <name>crypto <search>/usr/lib <use>z ;
 lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib ;
 lib dl : : <link>shared <name>dl ;
-lib aio : : <link>shared <name>aio ;
 
 # time functions used on linux require librt
 lib librt : : <name>rt <link>shared ;
@@ -567,6 +532,9 @@ lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <li
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
 
 lib tcmalloc : : <name>tcmalloc <link>shared ;
+
+# GeoIP shared library
+lib GeoIP : : <name>GeoIP <link>shared ;
 
 # socket libraries on windows
 lib wsock32 : : <name>wsock32 <link>shared ;
@@ -582,19 +550,11 @@ SOURCES =
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
-	bdecode
-	block_cache
 	bloom_filter
 	chained_buffer
-	choker
-	close_reason
-	cpuid
-	crc32c
+	connection_queue
 	create_torrent
 	disk_buffer_holder
-	disk_buffer_pool
-	disk_io_job
-	disk_job_pool
 	entry
 	error_code
 	file_storage
@@ -604,16 +564,13 @@ SOURCES =
 	file
 	gzip
 	hasher
-	hex
 	http_connection
 	http_stream
 	http_parser
 	identify_client
 	ip_filter
 	ip_voter
-	merkle
 	peer_connection
-	platform_util
 	bt_peer_connection
 	web_connection_base
 	web_peer_connection
@@ -623,17 +580,13 @@ SOURCES =
 	natpmp
 	packet_buffer
 	piece_picker
-	peer_list
-	proxy_base
+	policy
 	puff
 	random
-	receive_buffer
-	resolve_links
 	rss
 	session
 	session_impl
-	session_call
-	settings_pack
+	settings
 	socket_io
 	socket_type
 	socks5_stream
@@ -642,20 +595,18 @@ SOURCES =
 	torrent
 	torrent_handle
 	torrent_info
-	torrent_peer
-	torrent_peer_allocator
 	time
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
-	tailqueue
 	timestamp_history
 	udp_socket
 	upnp
 	utf8
 	utp_socket_manager
 	utp_stream
+	logger
 	file_pool
 	lsd
 	disk_buffer_pool
@@ -667,15 +618,6 @@ SOURCES =
 	ConvertUTF
 	thread
 	xml_parse
-	peer_class
-	peer_class_set
-	part_file
-	stat_cache
-	request_blocks
-	session_stats
-	performance_counters
-	resolver
-	session_settings
 
 # -- extensions --
 	metadata_transfer
@@ -688,14 +630,13 @@ SOURCES =
 KADEMLIA_SOURCES =
 	dht_tracker
 	node
-	node_entry
 	refresh
 	rpc_manager
 	find_data
 	node_id
 	routing_table
 	traversal_algorithm
-	dos_blocker
+	logging
 	get_peers
 	item
 	get_item
@@ -728,14 +669,28 @@ local usage-requirements =
 # enable cancel support in asio
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 	<conditional>@linking
-	<conditional>@coverage
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
+# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
-
+# disable warning C4503: decorated name length exceeded, name was truncated
+	<toolset>msvc:<cxxflags>/wd4503
+# disable warning C4275: non-dll interface class 'x' used as base for dll-interface struct 'y'
+	<toolset>msvc:<cxxflags>/wd4275
+# disable warning C4251: 'x' needs to have dll-interface to be used by clients of class 'y'
+	<toolset>msvc:<cxxflags>/wd4251
+# disable some warnings for gcc
+	<toolset>gcc:<cflags>-fno-strict-aliasing
+	<toolset>gcc:<cflags>-Wno-missing-braces
+# suppress warnings caused by boost using c++11 features even when not
+# in c++11 mode
+	<toolset>darwin:<cxxflags>-Wno-c++11-extensions
+# assert on integer overflow
 	<boost>system:<cxxflags>$(CXXFLAGS)
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
@@ -757,9 +712,7 @@ lib torrent
 	: # requirements
 	<include>./ed25519/src
 	<threading>multi
-	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
-	<define>BOOST_NO_DEPRECATED
 
 	# on windows, when linking statically against asio
 	# but producing a DLL, everything inside the DLL needs
@@ -774,12 +727,7 @@ lib torrent
 	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
-	<conditional>@warnings
 	<boost>system:<cxxflags>$(CXXFLAGS)
-
-	# disable bogus deprecation warnings on msvc8
-	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
-	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 
 	$(usage-requirements)
 

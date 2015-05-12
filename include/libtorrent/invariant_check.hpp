@@ -48,9 +48,6 @@ namespace libtorrent
 			}
 		}
 
-		invariant_checker_impl(invariant_checker_impl const& rhs)
-			: self(rhs.self) {}
-
 		~invariant_checker_impl()
 		{
 			TORRENT_TRY
@@ -64,9 +61,6 @@ namespace libtorrent
 		}
 
 		T const& self;
-
-	private:
-		invariant_checker_impl& operator=(invariant_checker_impl const&);
 	};
 
 	template<class T>
@@ -78,9 +72,10 @@ namespace libtorrent
 
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \
-	(void)_invariant_check
+	(void)_invariant_check; \
+	do {} while (false)
 #else
-#define INVARIANT_CHECK do {} TORRENT_WHILE_0
+#define INVARIANT_CHECK do {} while (false)
 #endif
 
 #endif // TORRENT_INVARIANT_ACCESS_HPP_INCLUDED

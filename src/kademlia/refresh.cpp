@@ -33,13 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/dht_observer.hpp>
-#include <libtorrent/performance_counters.hpp>
 
 #include <libtorrent/io.hpp>
 
 namespace libtorrent { namespace dht
 {
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DECLARE_LOG(traversal);
+#endif
 
 observer_ptr bootstrap::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
@@ -62,16 +64,18 @@ bool bootstrap::invoke(observer_ptr o)
 
 //	e["q"] = "find_node";
 //	a["target"] = target().to_string();
-	m_node.stats_counters().inc_stats_counter(counters::dht_find_node_out);
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
 bootstrap::bootstrap(
-	node& dht_node
+	node_impl& node
 	, node_id target
 	, done_callback const& callback)
-	: get_peers(dht_node, target, get_peers::data_callback(), callback, false)
+	: get_peers(node, target, get_peers::data_callback(), callback, false)
 {
+	// make it more resilient to nodes not responding.
+	// we don't want to terminate early when we're bootstrapping
+	m_num_target_nodes *= 2;
 }
 
 char const* bootstrap::name() const { return "bootstrap"; }
@@ -88,8 +92,8 @@ void bootstrap::trim_seed_nodes()
 void bootstrap::done()
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
-		, this);
+	TORRENT_LOG(traversal) << "[" << this << "]"
+		<< " bootstrap done, pinging remaining nodes";
 #endif
 
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()

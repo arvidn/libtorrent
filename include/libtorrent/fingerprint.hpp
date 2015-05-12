@@ -97,7 +97,7 @@ namespace libtorrent
 		{
 			char s[100];
 			snprintf(s, 100, "-%c%c%c%c%c%c-"
-				, name[0], name[1]
+				,  name[0], name[1]
 				, version_to_char(major_version)
 				, version_to_char(minor_version)
 				, version_to_char(revision_version)
@@ -115,8 +115,8 @@ namespace libtorrent
 
 		char version_to_char(int v) const
 		{
-			if (v >= 0 && v < 10) return char('0' + v);
-			else if (v >= 10) return char('A' + (v - 10));
+			if (v >= 0 && v < 10) return '0' + v;
+			else if (v >= 10) return 'A' + (v - 10);
 			TORRENT_ASSERT(false);
 			return '0';
 		}

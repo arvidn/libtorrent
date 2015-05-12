@@ -40,14 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <boost/intrusive_ptr.hpp>
+#include <boost/detail/atomic_count.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/traversal_algorithm.hpp"
-#include "libtorrent/kademlia/dos_blocker.hpp"
-
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/session_status.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/thread.hpp"
@@ -56,23 +56,28 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	namespace aux { struct session_impl; }
-	struct counters;
-#ifndef TORRENT_NO_DEPRECATE
-	struct session_status;
-#endif
+	struct lazy_entry;
 }
 
 namespace libtorrent { namespace dht
 {
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DECLARE_LOG(dht_tracker);
+#endif
+
 	struct dht_tracker;
 
-	struct dht_tracker
-		: udp_socket_interface
-		, udp_socket_observer
-		, boost::enable_shared_from_this<dht_tracker>
+	TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(dht_tracker const*);
+	TORRENT_EXTRA_EXPORT void intrusive_ptr_release(dht_tracker const*);	
+
+	struct dht_tracker : udp_socket_interface, udp_socket_observer
 	{
-		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
-			, dht_settings const& settings, counters& cnt, entry const* state = 0);
+		friend void intrusive_ptr_add_ref(dht_tracker const*);
+		friend void intrusive_ptr_release(dht_tracker const*);
+
+		dht_tracker(libtorrent::aux::session_impl& ses, rate_limited_udp_socket& sock
+			, dht_settings const& settings, entry const* state = 0);
 		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap
@@ -104,11 +109,8 @@ namespace libtorrent { namespace dht
 		void put_item(char const* key
 			, boost::function<void(item&)> cb, std::string salt = std::string());
 
-#ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);
-#endif
-		void dht_status(std::vector<dht_routing_bucket>& table
-			, std::vector<dht_lookup>& requests);
+		void network_stats(int& sent, int& received);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
@@ -117,8 +119,8 @@ namespace libtorrent { namespace dht
 
 	private:
 	
-		boost::shared_ptr<dht_tracker> self()
-		{ return shared_from_this(); }
+		boost::intrusive_ptr<dht_tracker> self()
+		{ return boost::intrusive_ptr<dht_tracker>(this); }
 
 		void on_name_lookup(error_code const& e
 			, udp::resolver::iterator host);
@@ -129,24 +131,15 @@ namespace libtorrent { namespace dht
 		void tick(error_code const& e);
 
 		// implements udp_socket_interface
-		virtual bool has_quota();
 		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
 			, int send_flags);
 
-		// this is the bdecode_node DHT messages are parsed into. It's a member
-		// in order to avoid having to deallocate and re-allocate it for every
-		// message.
-		bdecode_node m_msg;
-
-		counters& m_counters;
-		node m_dht;
+		node_impl m_dht;
 		rate_limited_udp_socket& m_sock;
-		dht_logger* m_log;
 
 		std::vector<char> m_send_buf;
-		dos_blocker m_blocker;
 
-		time_point m_last_new_key;
+		ptime m_last_new_key;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;
@@ -157,6 +150,40 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+
+		// sent and received bytes since queried last time
+		int m_sent_bytes;
+		int m_received_bytes;
+
+		// used to ignore abusive dht nodes
+		struct node_ban_entry
+		{
+			node_ban_entry(): count(0) {}
+			address src;
+			ptime limit;
+			int count;
+		};
+
+		enum { num_ban_nodes = 20 };
+
+		node_ban_entry m_ban_nodes[num_ban_nodes];
+
+		// reference counter for intrusive_ptr
+		mutable boost::detail::atomic_count m_refs;
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+		int m_replies_sent[5];
+		int m_queries_received[5];
+		int m_replies_bytes_sent[5];
+		int m_queries_bytes_received[5];
+		int m_counter;
+
+		int m_total_message_input;
+		int m_total_in_bytes;
+		int m_total_out_bytes;
+		
+		int m_queries_out_bytes;
+#endif
 	};
 }}
 

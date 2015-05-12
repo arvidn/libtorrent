@@ -1,0 +1,1235 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title>Error Codes</title>
+<meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document" id="error-codes">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+<h1 class="title">Error Codes</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr><th class="docinfo-name">Author:</th>
+<td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
+<tr><th class="docinfo-name">Version:</th>
+<td>1.0.5</td></tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#libtorrent-exception" id="id41">libtorrent_exception</a></li>
+</ul>
+</div>
+<a name="libtorrent_exception"></a><div class="section" id="libtorrent-exception">
+<h1>libtorrent_exception</h1>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
+<pre class="literal-block">
+struct libtorrent_exception: std::exception
+{
+   error_code <strong>error</strong> () const;
+   virtual <strong>~libtorrent_exception</strong> () throw();
+   <strong>libtorrent_exception</strong> (error_code const&amp; s);
+   virtual const char* <strong>what</strong> () const throw();
+};
+</pre>
+<a name="get_libtorrent_category()"></a><div class="section" id="get-libtorrent-category">
+<h2>get_libtorrent_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_libtorrent_category</strong> ();
+</pre>
+<p>return the instance of the libtorrent_error_category which
+maps libtorrent error codes to human readable error messages.</p>
+<a name="get_http_category()"></a></div>
+<div class="section" id="get-http-category">
+<h2>get_http_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_http_category</strong> ();
+</pre>
+<p>returns the error_category for HTTP errors</p>
+<a name="get_gzip_category()"></a></div>
+<div class="section" id="get-gzip-category">
+<h2>get_gzip_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/gzip.hpp">libtorrent/gzip.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_gzip_category</strong> ();
+</pre>
+<p>get the <tt class="docutils literal">error_category</tt> for zip errors</p>
+<a name="get_i2p_category()"></a></div>
+<div class="section" id="get-i2p-category">
+<h2>get_i2p_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/i2p_stream.hpp">libtorrent/i2p_stream.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_i2p_category</strong> ();
+</pre>
+<p>returns the error category for I2P errors</p>
+<a name="get_bdecode_category()"></a></div>
+<div class="section" id="get-bdecode-category">
+<h2>get_bdecode_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_bdecode_category</strong> ();
+</pre>
+<p>get the <tt class="docutils literal">error_category</tt> for bdecode errors</p>
+<a name="get_socks_category()"></a></div>
+<div class="section" id="get-socks-category">
+<h2>get_socks_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/socks5_stream.hpp">libtorrent/socks5_stream.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_socks_category</strong> ();
+</pre>
+<p>returns the error_category for SOCKS5 errors</p>
+<a name="get_upnp_category()"></a></div>
+<div class="section" id="get-upnp-category">
+<h2>get_upnp_category()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::system::error_category&amp; <strong>get_upnp_category</strong> ();
+</pre>
+<p>the boost.system error category for UPnP errors</p>
+<a name="error_code_enum"></a></div>
+<div class="section" id="enum-error-code-enum">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="6%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>Not an error</td>
+</tr>
+<tr><td>file_collision</td>
+<td>1</td>
+<td>Two torrents has files which end up overwriting each other</td>
+</tr>
+<tr><td>failed_hash_check</td>
+<td>2</td>
+<td>A piece did not match its piece hash</td>
+</tr>
+<tr><td>torrent_is_no_dict</td>
+<td>3</td>
+<td>The .torrent file does not contain a bencoded dictionary at
+its top level</td>
+</tr>
+<tr><td>torrent_missing_info</td>
+<td>4</td>
+<td>The .torrent file does not have an <tt class="docutils literal">info</tt> dictionary</td>
+</tr>
+<tr><td>torrent_info_no_dict</td>
+<td>5</td>
+<td>The .torrent file's <tt class="docutils literal">info</tt> <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is not a dictionary</td>
+</tr>
+<tr><td>torrent_missing_piece_length</td>
+<td>6</td>
+<td>The .torrent file does not have a <tt class="docutils literal">piece length</tt> <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>torrent_missing_name</td>
+<td>7</td>
+<td>The .torrent file does not have a <tt class="docutils literal">name</tt> <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>torrent_invalid_name</td>
+<td>8</td>
+<td>The .torrent file's name <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is invalid</td>
+</tr>
+<tr><td>torrent_invalid_length</td>
+<td>9</td>
+<td>The length of a file, or of the whole .torrent file is invalid.
+Either negative or not an integer</td>
+</tr>
+<tr><td>torrent_file_parse_failed</td>
+<td>10</td>
+<td>Failed to parse a file <a class="reference external" href="reference-Bencoding.html#entry">entry</a> in the .torrent</td>
+</tr>
+<tr><td>torrent_missing_pieces</td>
+<td>11</td>
+<td>The <tt class="docutils literal">pieces</tt> field is missing or invalid in the .torrent file</td>
+</tr>
+<tr><td>torrent_invalid_hashes</td>
+<td>12</td>
+<td>The <tt class="docutils literal">pieces</tt> string has incorrect length</td>
+</tr>
+<tr><td>too_many_pieces_in_torrent</td>
+<td>13</td>
+<td>The .torrent file has more pieces than is supported by libtorrent</td>
+</tr>
+<tr><td>invalid_swarm_metadata</td>
+<td>14</td>
+<td>The metadata (.torrent file) that was received from the swarm
+matched the info-hash, but failed to be parsed</td>
+</tr>
+<tr><td>invalid_bencoding</td>
+<td>15</td>
+<td>The file or buffer is not correctly bencoded</td>
+</tr>
+<tr><td>no_files_in_torrent</td>
+<td>16</td>
+<td>The .torrent file does not contain any files</td>
+</tr>
+<tr><td>invalid_escaped_string</td>
+<td>17</td>
+<td>The string was not properly url-encoded as expected</td>
+</tr>
+<tr><td>session_is_closing</td>
+<td>18</td>
+<td>Operation is not permitted since the <a class="reference external" href="reference-Session.html#session">session</a> is shutting down</td>
+</tr>
+<tr><td>duplicate_torrent</td>
+<td>19</td>
+<td>There's already a torrent with that info-hash added to the
+<a class="reference external" href="reference-Session.html#session">session</a></td>
+</tr>
+<tr><td>invalid_torrent_handle</td>
+<td>20</td>
+<td>The supplied <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> is not referring to a valid torrent</td>
+</tr>
+<tr><td>invalid_entry_type</td>
+<td>21</td>
+<td>The type requested from the <a class="reference external" href="reference-Bencoding.html#entry">entry</a> did not match its type</td>
+</tr>
+<tr><td>missing_info_hash_in_uri</td>
+<td>22</td>
+<td>The specified URI does not contain a valid info-hash</td>
+</tr>
+<tr><td>file_too_short</td>
+<td>23</td>
+<td>One of the files in the torrent was unexpectadly small. This
+might be caused by files being changed by an external process</td>
+</tr>
+<tr><td>unsupported_url_protocol</td>
+<td>24</td>
+<td>The URL used an unknown protocol. Currently <tt class="docutils literal">http</tt> and
+<tt class="docutils literal">https</tt> (if built with openssl support) are recognized. For
+trackers <tt class="docutils literal">udp</tt> is recognized as well.</td>
+</tr>
+<tr><td>url_parse_error</td>
+<td>25</td>
+<td>The URL did not conform to URL syntax and failed to be parsed</td>
+</tr>
+<tr><td>peer_sent_empty_piece</td>
+<td>26</td>
+<td>The peer sent a 'piece' message of length 0</td>
+</tr>
+<tr><td>parse_failed</td>
+<td>27</td>
+<td>A bencoded structure was currupt and failed to be parsed</td>
+</tr>
+<tr><td>invalid_file_tag</td>
+<td>28</td>
+<td>The fast resume file was missing or had an invalid file version
+tag</td>
+</tr>
+<tr><td>missing_info_hash</td>
+<td>29</td>
+<td>The fast resume file was missing or had an invalid info-hash</td>
+</tr>
+<tr><td>mismatching_info_hash</td>
+<td>30</td>
+<td>The info-hash did not match the torrent</td>
+</tr>
+<tr><td>invalid_hostname</td>
+<td>31</td>
+<td>The URL contained an invalid hostname</td>
+</tr>
+<tr><td>invalid_port</td>
+<td>32</td>
+<td>The URL had an invalid port</td>
+</tr>
+<tr><td>port_blocked</td>
+<td>33</td>
+<td>The port is blocked by the port-filter, and prevented the
+connection</td>
+</tr>
+<tr><td>expected_close_bracket_in_address</td>
+<td>34</td>
+<td>The IPv6 address was expected to end with ']'</td>
+</tr>
+<tr><td>destructing_torrent</td>
+<td>35</td>
+<td>The torrent is being destructed, preventing the operation to
+succeed</td>
+</tr>
+<tr><td>timed_out</td>
+<td>36</td>
+<td>The connection timed out</td>
+</tr>
+<tr><td>upload_upload_connection</td>
+<td>37</td>
+<td>The peer is upload only, and we are upload only. There's no point
+in keeping the connection</td>
+</tr>
+<tr><td>uninteresting_upload_peer</td>
+<td>38</td>
+<td>The peer is upload only, and we're not interested in it. There's
+no point in keeping the connection</td>
+</tr>
+<tr><td>invalid_info_hash</td>
+<td>39</td>
+<td>The peer sent an unknown info-hash</td>
+</tr>
+<tr><td>torrent_paused</td>
+<td>40</td>
+<td>The torrent is paused, preventing the operation from succeeding</td>
+</tr>
+<tr><td>invalid_have</td>
+<td>41</td>
+<td>The peer sent an invalid have message, either wrong size or
+referring to a piece that doesn't exist in the torrent</td>
+</tr>
+<tr><td>invalid_bitfield_size</td>
+<td>42</td>
+<td>The <a class="reference external" href="reference-Utility.html#bitfield">bitfield</a> message had the incorrect size</td>
+</tr>
+<tr><td>too_many_requests_when_choked</td>
+<td>43</td>
+<td>The peer kept requesting pieces after it was choked, possible
+abuse attempt.</td>
+</tr>
+<tr><td>invalid_piece</td>
+<td>44</td>
+<td>The peer sent a piece message that does not correspond to a
+piece request sent by the client</td>
+</tr>
+<tr><td>no_memory</td>
+<td>45</td>
+<td>memory allocation failed</td>
+</tr>
+<tr><td>torrent_aborted</td>
+<td>46</td>
+<td>The torrent is aborted, preventing the operation to succeed</td>
+</tr>
+<tr><td>self_connection</td>
+<td>47</td>
+<td>The peer is a connection to ourself, no point in keeping it</td>
+</tr>
+<tr><td>invalid_piece_size</td>
+<td>48</td>
+<td>The peer sent a piece message with invalid size, either negative
+or greater than one block</td>
+</tr>
+<tr><td>timed_out_no_interest</td>
+<td>49</td>
+<td>The peer has not been interesting or interested in us for too
+long, no point in keeping it around</td>
+</tr>
+<tr><td>timed_out_inactivity</td>
+<td>50</td>
+<td>The peer has not said anything in a long time, possibly dead</td>
+</tr>
+<tr><td>timed_out_no_handshake</td>
+<td>51</td>
+<td>The peer did not send a handshake within a reasonable amount of
+time, it might not be a bittorrent peer</td>
+</tr>
+<tr><td>timed_out_no_request</td>
+<td>52</td>
+<td>The peer has been unchoked for too long without requesting any
+data. It might be lying about its interest in us</td>
+</tr>
+<tr><td>invalid_choke</td>
+<td>53</td>
+<td>The peer sent an invalid choke message</td>
+</tr>
+<tr><td>invalid_unchoke</td>
+<td>54</td>
+<td>The peer send an invalid unchoke message</td>
+</tr>
+<tr><td>invalid_interested</td>
+<td>55</td>
+<td>The peer sent an invalid interested message</td>
+</tr>
+<tr><td>invalid_not_interested</td>
+<td>56</td>
+<td>The peer sent an invalid not-interested message</td>
+</tr>
+<tr><td>invalid_request</td>
+<td>57</td>
+<td>The peer sent an invalid piece request message</td>
+</tr>
+<tr><td>invalid_hash_list</td>
+<td>58</td>
+<td>The peer sent an invalid hash-list message (this is part of the
+merkle-torrent extension)</td>
+</tr>
+<tr><td>invalid_hash_piece</td>
+<td>59</td>
+<td>The peer sent an invalid hash-piece message (this is part of the
+merkle-torrent extension)</td>
+</tr>
+<tr><td>invalid_cancel</td>
+<td>60</td>
+<td>The peer sent an invalid cancel message</td>
+</tr>
+<tr><td>invalid_dht_port</td>
+<td>61</td>
+<td>The peer sent an invalid DHT port-message</td>
+</tr>
+<tr><td>invalid_suggest</td>
+<td>62</td>
+<td>The peer sent an invalid suggest piece-message</td>
+</tr>
+<tr><td>invalid_have_all</td>
+<td>63</td>
+<td>The peer sent an invalid have all-message</td>
+</tr>
+<tr><td>invalid_have_none</td>
+<td>64</td>
+<td>The peer sent an invalid have none-message</td>
+</tr>
+<tr><td>invalid_reject</td>
+<td>65</td>
+<td>The peer sent an invalid reject message</td>
+</tr>
+<tr><td>invalid_allow_fast</td>
+<td>66</td>
+<td>The peer sent an invalid allow fast-message</td>
+</tr>
+<tr><td>invalid_extended</td>
+<td>67</td>
+<td>The peer sent an invalid extesion message ID</td>
+</tr>
+<tr><td>invalid_message</td>
+<td>68</td>
+<td>The peer sent an invalid message ID</td>
+</tr>
+<tr><td>sync_hash_not_found</td>
+<td>69</td>
+<td>The synchronization hash was not found in the encrypted handshake</td>
+</tr>
+<tr><td>invalid_encryption_constant</td>
+<td>70</td>
+<td>The encryption constant in the handshake is invalid</td>
+</tr>
+<tr><td>no_plaintext_mode</td>
+<td>71</td>
+<td>The peer does not support plaintext, which is the selected mode</td>
+</tr>
+<tr><td>no_rc4_mode</td>
+<td>72</td>
+<td>The peer does not support rc4, which is the selected mode</td>
+</tr>
+<tr><td>unsupported_encryption_mode</td>
+<td>73</td>
+<td>The peer does not support any of the encryption modes that the
+client supports</td>
+</tr>
+<tr><td>unsupported_encryption_mode_selected</td>
+<td>74</td>
+<td>The peer selected an encryption mode that the client did not
+advertise and does not support</td>
+</tr>
+<tr><td>invalid_pad_size</td>
+<td>75</td>
+<td>The pad size used in the encryption handshake is of invalid size</td>
+</tr>
+<tr><td>invalid_encrypt_handshake</td>
+<td>76</td>
+<td>The encryption handshake is invalid</td>
+</tr>
+<tr><td>no_incoming_encrypted</td>
+<td>77</td>
+<td>The client is set to not support incoming encrypted connections
+and this is an encrypted connection</td>
+</tr>
+<tr><td>no_incoming_regular</td>
+<td>78</td>
+<td>The client is set to not support incoming regular bittorrent
+connections, and this is a regular connection</td>
+</tr>
+<tr><td>duplicate_peer_id</td>
+<td>79</td>
+<td>The client is already connected to this peer-ID</td>
+</tr>
+<tr><td>torrent_removed</td>
+<td>80</td>
+<td>Torrent was removed</td>
+</tr>
+<tr><td>packet_too_large</td>
+<td>81</td>
+<td>The packet size exceeded the upper sanity check-limit</td>
+</tr>
+<tr><td>reserved</td>
+<td>82</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>http_error</td>
+<td>83</td>
+<td>The web server responded with an error</td>
+</tr>
+<tr><td>missing_location</td>
+<td>84</td>
+<td>The web server response is missing a location header</td>
+</tr>
+<tr><td>invalid_redirection</td>
+<td>85</td>
+<td>The web seed redirected to a path that no longer matches the
+.torrent directory structure</td>
+</tr>
+<tr><td>redirecting</td>
+<td>86</td>
+<td>The connection was closed becaused it redirected to a different
+URL</td>
+</tr>
+<tr><td>invalid_range</td>
+<td>87</td>
+<td>The HTTP range header is invalid</td>
+</tr>
+<tr><td>no_content_length</td>
+<td>88</td>
+<td>The HTTP response did not have a content length</td>
+</tr>
+<tr><td>banned_by_ip_filter</td>
+<td>89</td>
+<td>The IP is blocked by the IP filter</td>
+</tr>
+<tr><td>too_many_connections</td>
+<td>90</td>
+<td>At the connection limit</td>
+</tr>
+<tr><td>peer_banned</td>
+<td>91</td>
+<td>The peer is marked as banned</td>
+</tr>
+<tr><td>stopping_torrent</td>
+<td>92</td>
+<td>The torrent is stopping, causing the operation to fail</td>
+</tr>
+<tr><td>too_many_corrupt_pieces</td>
+<td>93</td>
+<td>The peer has sent too many corrupt pieces and is banned</td>
+</tr>
+<tr><td>torrent_not_ready</td>
+<td>94</td>
+<td>The torrent is not ready to receive peers</td>
+</tr>
+<tr><td>peer_not_constructed</td>
+<td>95</td>
+<td>The peer is not completely constructed yet</td>
+</tr>
+<tr><td>session_closing</td>
+<td>96</td>
+<td>The <a class="reference external" href="reference-Session.html#session">session</a> is closing, causing the operation to fail</td>
+</tr>
+<tr><td>optimistic_disconnect</td>
+<td>97</td>
+<td>The peer was disconnected in order to leave room for a
+potentially better peer</td>
+</tr>
+<tr><td>torrent_finished</td>
+<td>98</td>
+<td>The torrent is finished</td>
+</tr>
+<tr><td>no_router</td>
+<td>99</td>
+<td>No UPnP router found</td>
+</tr>
+<tr><td>metadata_too_large</td>
+<td>100</td>
+<td>The metadata message says the metadata exceeds the limit</td>
+</tr>
+<tr><td>invalid_metadata_request</td>
+<td>101</td>
+<td>The peer sent an invalid metadata request message</td>
+</tr>
+<tr><td>invalid_metadata_size</td>
+<td>102</td>
+<td>The peer advertised an invalid metadata size</td>
+</tr>
+<tr><td>invalid_metadata_offset</td>
+<td>103</td>
+<td>The peer sent a message with an invalid metadata offset</td>
+</tr>
+<tr><td>invalid_metadata_message</td>
+<td>104</td>
+<td>The peer sent an invalid metadata message</td>
+</tr>
+<tr><td>pex_message_too_large</td>
+<td>105</td>
+<td>The peer sent a peer exchange message that was too large</td>
+</tr>
+<tr><td>invalid_pex_message</td>
+<td>106</td>
+<td>The peer sent an invalid peer exchange message</td>
+</tr>
+<tr><td>invalid_lt_tracker_message</td>
+<td>107</td>
+<td>The peer sent an invalid tracker exchange message</td>
+</tr>
+<tr><td>too_frequent_pex</td>
+<td>108</td>
+<td>The peer sent an pex messages too often. This is a possible
+attempt of and attack</td>
+</tr>
+<tr><td>no_metadata</td>
+<td>109</td>
+<td>The operation failed because it requires the torrent to have
+the metadata (.torrent file) and it doesn't have it yet.
+This happens for magnet links before they have downloaded the
+metadata, and also torrents added by URL.</td>
+</tr>
+<tr><td>invalid_dont_have</td>
+<td>110</td>
+<td>The peer sent an invalid <tt class="docutils literal">dont_have</tt> message. The dont have
+message is an extension to allow peers to advertise that the
+no longer has a piece they previously had.</td>
+</tr>
+<tr><td>requires_ssl_connection</td>
+<td>111</td>
+<td>The peer tried to connect to an SSL torrent without connecting
+over SSL.</td>
+</tr>
+<tr><td>invalid_ssl_cert</td>
+<td>112</td>
+<td>The peer tried to connect to a torrent with a certificate
+for a different torrent.</td>
+</tr>
+<tr><td>not_an_ssl_torrent</td>
+<td>113</td>
+<td>the torrent is not an SSL torrent, and the operation requires
+an SSL torrent</td>
+</tr>
+<tr><td>unsupported_protocol_version</td>
+<td>120</td>
+<td>The NAT-PMP router responded with an unsupported protocol version</td>
+</tr>
+<tr><td>natpmp_not_authorized</td>
+<td>121</td>
+<td>You are not authorized to map ports on this NAT-PMP router</td>
+</tr>
+<tr><td>network_failure</td>
+<td>122</td>
+<td>The NAT-PMP router failed because of a network failure</td>
+</tr>
+<tr><td>no_resources</td>
+<td>123</td>
+<td>The NAT-PMP router failed because of lack of resources</td>
+</tr>
+<tr><td>unsupported_opcode</td>
+<td>124</td>
+<td>The NAT-PMP router failed because an unsupported opcode was sent</td>
+</tr>
+<tr><td>missing_file_sizes</td>
+<td>130</td>
+<td>The resume data file is missing the 'file sizes' <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>no_files_in_resume_data</td>
+<td>131</td>
+<td>The resume data file 'file sizes' <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is empty</td>
+</tr>
+<tr><td>missing_pieces</td>
+<td>132</td>
+<td>The resume data file is missing the 'pieces' and 'slots' <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>mismatching_number_of_files</td>
+<td>133</td>
+<td>The number of files in the resume data does not match the number
+of files in the torrent</td>
+</tr>
+<tr><td>mismatching_file_size</td>
+<td>134</td>
+<td>One of the files on disk has a different size than in the fast
+resume file</td>
+</tr>
+<tr><td>mismatching_file_timestamp</td>
+<td>135</td>
+<td>One of the files on disk has a different timestamp than in the
+fast resume file</td>
+</tr>
+<tr><td>not_a_dictionary</td>
+<td>136</td>
+<td>The resume data file is not a dictionary</td>
+</tr>
+<tr><td>invalid_blocks_per_piece</td>
+<td>137</td>
+<td>The 'blocks per piece' <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is invalid in the resume data file</td>
+</tr>
+<tr><td>missing_slots</td>
+<td>138</td>
+<td>The resume file is missing the 'slots' <a class="reference external" href="reference-Bencoding.html#entry">entry</a>, which is required
+for torrents with compact allocation</td>
+</tr>
+<tr><td>too_many_slots</td>
+<td>139</td>
+<td>The resume file contains more slots than the torrent</td>
+</tr>
+<tr><td>invalid_slot_list</td>
+<td>140</td>
+<td>The 'slot' <a class="reference external" href="reference-Bencoding.html#entry">entry</a> is invalid in the resume data</td>
+</tr>
+<tr><td>invalid_piece_index</td>
+<td>141</td>
+<td>One index in the 'slot' list is invalid</td>
+</tr>
+<tr><td>pieces_need_reorder</td>
+<td>142</td>
+<td>The pieces on disk needs to be re-ordered for the specified
+allocation mode. This happens if you specify sparse allocation
+and the files on disk are using compact storage. The pieces needs
+to be moved to their right position</td>
+</tr>
+<tr><td>http_parse_error</td>
+<td>150</td>
+<td>The HTTP header was not correctly formatted</td>
+</tr>
+<tr><td>http_missing_location</td>
+<td>151</td>
+<td>The HTTP response was in the 300-399 range but lacked a location
+header</td>
+</tr>
+<tr><td>http_failed_decompress</td>
+<td>152</td>
+<td>The HTTP response was encoded with gzip or deflate but
+decompressing it failed</td>
+</tr>
+<tr><td>no_i2p_router</td>
+<td>160</td>
+<td>The URL specified an i2p address, but no i2p router is configured</td>
+</tr>
+<tr><td>scrape_not_available</td>
+<td>170</td>
+<td>The tracker URL doesn't support transforming it into a scrape
+URL. i.e. it doesn't contain &quot;announce.</td>
+</tr>
+<tr><td>invalid_tracker_response</td>
+<td>171</td>
+<td>invalid tracker response</td>
+</tr>
+<tr><td>invalid_peer_dict</td>
+<td>172</td>
+<td>invalid peer dictionary <a class="reference external" href="reference-Bencoding.html#entry">entry</a>. Not a dictionary</td>
+</tr>
+<tr><td>tracker_failure</td>
+<td>173</td>
+<td>tracker sent a failure message</td>
+</tr>
+<tr><td>invalid_files_entry</td>
+<td>174</td>
+<td>missing or invalid 'files' <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>invalid_hash_entry</td>
+<td>175</td>
+<td>missing or invalid 'hash' <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>invalid_peers_entry</td>
+<td>176</td>
+<td>missing or invalid 'peers' and 'peers6' <a class="reference external" href="reference-Bencoding.html#entry">entry</a></td>
+</tr>
+<tr><td>invalid_tracker_response_length</td>
+<td>177</td>
+<td>udp tracker response packet has invalid size</td>
+</tr>
+<tr><td>invalid_tracker_transaction_id</td>
+<td>178</td>
+<td>invalid transaction id in udp tracker response</td>
+</tr>
+<tr><td>invalid_tracker_action</td>
+<td>179</td>
+<td>invalid action field in udp tracker response</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>180</td>
+<td>the number of error codes</td>
+</tr>
+</tbody>
+</table>
+<a name="http_errors"></a></div>
+<div class="section" id="enum-http-errors">
+<h2>enum http_errors</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/error_code.hpp">libtorrent/error_code.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="53%" />
+<col width="16%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>cont</td>
+<td>100</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>ok</td>
+<td>200</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>created</td>
+<td>201</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>accepted</td>
+<td>202</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>no_content</td>
+<td>204</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>multiple_choices</td>
+<td>300</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>moved_permanently</td>
+<td>301</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>moved_temporarily</td>
+<td>302</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>not_modified</td>
+<td>304</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>bad_request</td>
+<td>400</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>unauthorized</td>
+<td>401</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>forbidden</td>
+<td>403</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>not_found</td>
+<td>404</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>internal_server_error</td>
+<td>500</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>not_implemented</td>
+<td>501</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>bad_gateway</td>
+<td>502</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>service_unavailable</td>
+<td>503</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<a name="error_code_enum"></a></div>
+<div class="section" id="id32">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/gzip.hpp">libtorrent/gzip.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="6%" />
+<col width="61%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>Not an error</td>
+</tr>
+<tr><td>invalid_gzip_header</td>
+<td>1</td>
+<td>the supplied gzip buffer has invalid header</td>
+</tr>
+<tr><td>inflated_data_too_large</td>
+<td>2</td>
+<td>the gzip buffer would inflate to more bytes than the specified
+maximum size, and was rejected.</td>
+</tr>
+<tr><td>data_did_not_terminate</td>
+<td>3</td>
+<td>available inflate data did not terminate</td>
+</tr>
+<tr><td>space_exhausted</td>
+<td>4</td>
+<td>output space exhausted before completing inflate</td>
+</tr>
+<tr><td>invalid_block_type</td>
+<td>5</td>
+<td>invalid block type (type == 3)</td>
+</tr>
+<tr><td>invalid_stored_block_length</td>
+<td>6</td>
+<td>stored block length did not match one's complement</td>
+</tr>
+<tr><td>too_many_length_or_distance_codes</td>
+<td>7</td>
+<td>dynamic block code description: too many length or distance codes</td>
+</tr>
+<tr><td>code_lengths_codes_incomplete</td>
+<td>8</td>
+<td>dynamic block code description: code lengths codes incomplete</td>
+</tr>
+<tr><td>repeat_lengths_with_no_first_length</td>
+<td>9</td>
+<td>dynamic block code description: repeat lengths with no first length</td>
+</tr>
+<tr><td>repeat_more_than_specified_lengths</td>
+<td>10</td>
+<td>dynamic block code description: repeat more than specified lengths</td>
+</tr>
+<tr><td>invalid_literal_length_code_lengths</td>
+<td>11</td>
+<td>dynamic block code description: invalid literal/length code lengths</td>
+</tr>
+<tr><td>invalid_distance_code_lengths</td>
+<td>12</td>
+<td>dynamic block code description: invalid distance code lengths</td>
+</tr>
+<tr><td>invalid_literal_code_in_block</td>
+<td>13</td>
+<td>invalid literal/length or distance code in fixed or dynamic block</td>
+</tr>
+<tr><td>distance_too_far_back_in_block</td>
+<td>14</td>
+<td>distance is too far back in fixed or dynamic block</td>
+</tr>
+<tr><td>unknown_gzip_error</td>
+<td>15</td>
+<td>an unknown error occurred during gzip inflation</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>16</td>
+<td>the number of error codes</td>
+</tr>
+</tbody>
+</table>
+<a name="i2p_error_code"></a></div>
+<div class="section" id="enum-i2p-error-code">
+<h2>enum i2p_error_code</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/i2p_stream.hpp">libtorrent/i2p_stream.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="46%" />
+<col width="19%" />
+<col width="35%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>parse_failed</td>
+<td>1</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>cant_reach_peer</td>
+<td>2</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>i2p_error</td>
+<td>3</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>invalid_key</td>
+<td>4</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>invalid_id</td>
+<td>5</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>timeout</td>
+<td>6</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>key_not_found</td>
+<td>7</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>duplicated_id</td>
+<td>8</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>num_errors</td>
+<td>9</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<a name="error_code_enum"></a></div>
+<div class="section" id="id35">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/lazy_entry.hpp">libtorrent/lazy_entry.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="8%" />
+<col width="72%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>Not an error</td>
+</tr>
+<tr><td>expected_string</td>
+<td>1</td>
+<td>expected string in bencoded string</td>
+</tr>
+<tr><td>expected_colon</td>
+<td>2</td>
+<td>expected colon in bencoded string</td>
+</tr>
+<tr><td>unexpected_eof</td>
+<td>3</td>
+<td>unexpected end of file in bencoded string</td>
+</tr>
+<tr><td>expected_value</td>
+<td>4</td>
+<td>expected value (list, dict, int or string) in bencoded string</td>
+</tr>
+<tr><td>depth_exceeded</td>
+<td>5</td>
+<td>bencoded recursion depth limit exceeded</td>
+</tr>
+<tr><td>limit_exceeded</td>
+<td>6</td>
+<td>bencoded item count limit exceeded</td>
+</tr>
+<tr><td>overflow</td>
+<td>7</td>
+<td>integer overflow</td>
+</tr>
+<tr><td>error_code_max</td>
+<td>8</td>
+<td>the number of error codes</td>
+</tr>
+</tbody>
+</table>
+<a name="socks_error_code"></a></div>
+<div class="section" id="enum-socks-error-code">
+<h2>enum socks_error_code</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/socks5_stream.hpp">libtorrent/socks5_stream.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="64%" />
+<col width="13%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>unsupported_version</td>
+<td>1</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>unsupported_authentication_method</td>
+<td>2</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>unsupported_authentication_version</td>
+<td>3</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>authentication_error</td>
+<td>4</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>username_required</td>
+<td>5</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>general_failure</td>
+<td>6</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>command_not_supported</td>
+<td>7</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>no_identd</td>
+<td>8</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>identd_error</td>
+<td>9</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>num_errors</td>
+<td>10</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<a name="error_code_enum"></a></div>
+<div class="section" id="id38">
+<h2>enum error_code_enum</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/upnp.hpp">libtorrent/upnp.hpp</a>&quot;</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="7%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">name</th>
+<th class="head">value</th>
+<th class="head">description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>no_error</td>
+<td>0</td>
+<td>No error</td>
+</tr>
+<tr><td>invalid_argument</td>
+<td>402</td>
+<td>One of the arguments in the request is invalid</td>
+</tr>
+<tr><td>action_failed</td>
+<td>501</td>
+<td>The request failed</td>
+</tr>
+<tr><td>value_not_in_array</td>
+<td>714</td>
+<td>The specified value does not exist in the array</td>
+</tr>
+<tr><td>source_ip_cannot_be_wildcarded</td>
+<td>715</td>
+<td>The source IP address cannot be wild-carded, but
+must be fully specified</td>
+</tr>
+<tr><td>external_port_cannot_be_wildcarded</td>
+<td>716</td>
+<td>The external port cannot be wildcarded, but must
+be specified</td>
+</tr>
+<tr><td>port_mapping_conflict</td>
+<td>718</td>
+<td>The port mapping <a class="reference external" href="reference-Bencoding.html#entry">entry</a> specified conflicts with a
+mapping assigned previously to another client</td>
+</tr>
+<tr><td>internal_port_must_match_external</td>
+<td>724</td>
+<td>Internal and external port value must be the same</td>
+</tr>
+<tr><td>only_permanent_leases_supported</td>
+<td>725</td>
+<td>The NAT implementation only supports permanent
+lease times on port mappings</td>
+</tr>
+<tr><td>remote_host_must_be_wildcard</td>
+<td>726</td>
+<td>RemoteHost must be a wildcard and cannot be a
+specific IP addres or DNS name</td>
+</tr>
+<tr><td>external_port_must_be_wildcard</td>
+<td>727</td>
+<td>ExternalPort must be a wildcard and cannot be a
+specific port</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>

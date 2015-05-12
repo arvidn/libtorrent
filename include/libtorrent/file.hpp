@@ -36,13 +36,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string>
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/noncopyable.hpp>
-#include <boost/smart_ptr.hpp>
-#include <boost/function.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/size_type.hpp"
+#include "libtorrent/config.hpp"
+#include "libtorrent/intrusive_ptr_base.hpp"
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -74,23 +81,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/error_code.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/time.hpp"
-
 namespace libtorrent
 {
-#ifdef TORRENT_WINDOWS
-	typedef HANDLE handle_type;
-#else
-	typedef int handle_type;
-#endif
-
 	struct file_status
 	{
-		boost::int64_t file_size;
+		size_type file_size;
 		boost::uint64_t atime;
 		boost::uint64_t mtime;
 		boost::uint64_t ctime;
@@ -115,7 +110,7 @@ namespace libtorrent
 
 	// internal flags for stat_file
 	enum { dont_follow_links = 1 };
-	TORRENT_EXTRA_EXPORT void stat_file(std::string const& f, file_status* s
+	TORRENT_EXTRA_EXPORT void stat_file(std::string f, file_status* s
 		, error_code& ec, int flags = 0);
 	TORRENT_EXTRA_EXPORT void rename(std::string const& f
 		, std::string const& newf, error_code& ec);
@@ -126,20 +121,14 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void remove_all(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT boost::int64_t file_size(std::string const& f);
+	TORRENT_EXTRA_EXPORT size_type file_size(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path
 		, std::string const& new_path, error_code& ec);
 	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
 		, std::string const& newf, error_code& ec);
-
-	// file is expected to exist, link will be created to point to it. If hard
-	// links are not supported by the filesystem or OS, the file will be copied.
-	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file
-		, std::string const& link, error_code& ec);
 
 	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
@@ -150,27 +139,20 @@ namespace libtorrent
 
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXTRA_EXPORT std::string parent_path(std::string const& f);
+	TORRENT_EXPORT std::string parent_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool has_parent_path(std::string const& f);
-	TORRENT_EXTRA_EXPORT char const* filename_cstr(char const* f);
-
 	// internal used by create_torrent.hpp
-	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
+	TORRENT_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
 		, std::string const& rhs);
-	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
-		, std::string const& leaf);
-	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
-		, char const* str, int len);
 	// internal used by create_torrent.hpp
-	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
+	TORRENT_EXPORT std::string complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
 #endif
 
-	// TODO: move this into a separate header file, TU pair
 	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
 	{
 	public:
@@ -200,35 +182,7 @@ namespace libtorrent
 		bool m_done;
 	};
 
-	struct file;
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-	struct file_handle
-	{
-		file_handle();
-		file_handle(file* f);
-		file_handle(file_handle const& fh);
-		~file_handle();
-		file* operator->();
-		file const* operator->() const;
-		file& operator*();
-		file const& operator*() const;
-		file* get();
-		file const* get() const;
-		operator bool() const;
-		file_handle& reset(file* f = NULL);
-
-		char stack[2048];
-	private:
-		boost::shared_ptr<file> m_file;
-	};
-
-	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
-#else
-	typedef boost::shared_ptr<file> file_handle;
-#endif
-
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable, intrusive_ptr_base<file>
 	{
 		// the open mode for files. Used for the file constructor or
 		// file::open().
@@ -246,43 +200,39 @@ namespace libtorrent
 			// the mask for the bits determining read or write mode
 			rw_mask = read_only | write_only | read_write,
 
+			// indicate that the file should be opened in
+			// *direct io* mode, i.e. bypassing the operating
+			// system's disk cache, or as much as possible of it
+			// depending on the system.
+			// when a file is opened with no_buffer,
+			// file offsets have to be aligned to
+			// pos_alignment() and buffer addresses
+			// to buf_alignment() and read/write sizes
+			// to size_alignment()
+			no_buffer = 4,
+
 			// open the file in sparse mode (if supported by the
 			// filesystem).
-			sparse = 0x4,
+			sparse = 8,
 
 			// don't update the access timestamps on the file (if
 			// supported by the operating system and filesystem).
 			// this generally improves disk performance.
-			no_atime = 0x8,
-
+			no_atime = 16,
+			
 			// open the file for random acces. This disables read-ahead
 			// logic
-			random_access = 0x10,
+			random_access = 32,
 
 			// prevent the file from being opened by another process
 			// while it's still being held open by this handle
-			lock_file = 0x20,
-
-			// don't put any pressure on the OS disk cache
-			// because of access to this file. We expect our
-			// files to be fairly large, and there is already
-			// a cache at the bittorrent block level. This
-			// may improve overall system performance by
-			// leaving running applications in the page cache
-			no_cache = 0x40,
-
-			// this corresponds to Linux' O_DIRECT flag
-			// and may impose alignment restrictions
-			direct_io = 0x80,
-
-			// this is only used for readv/writev flags
-			coalesce_buffers = 0x100,
+			lock_file = 64,
 
 			// when creating a file, set the hidden attribute (windows only)
-			attribute_hidden = 0x200,
+			attribute_hidden = 0x1000,
 
 			// when creating a file, set the executable attribute
-			attribute_executable = 0x400,
+			attribute_executable = 0x2000,
 
 			// the mask of all attribute bits
 			attribute_mask = attribute_hidden | attribute_executable
@@ -313,44 +263,59 @@ namespace libtorrent
 		bool open(std::string const& p, int m, error_code& ec);
 		bool is_open() const;
 		void close();
-		bool set_size(boost::int64_t size, error_code& ec);
+		bool set_size(size_type size, error_code& ec);
 
 		int open_mode() const { return m_open_mode; }
 
-		boost::int64_t writev(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
-			, error_code& ec, int flags = 0);
-		boost::int64_t readv(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
-			, error_code& ec, int flags = 0);
+		// when opened in unbuffered mode, this is the
+		// required alignment of file_offsets. i.e.
+		// any (file_offset & (pos_alignment()-1)) == 0
+		// is a precondition to read and write operations
+		int pos_alignment() const;
 
-		boost::int64_t get_size(error_code& ec) const;
+		// when opened in unbuffered mode, this is the
+		// required alignment of buffer addresses
+		int buf_alignment() const;
+
+		// read/write buffer sizes needs to be aligned to
+		// this when in unbuffered mode
+		int size_alignment() const;
+
+		size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, error_code& ec);
+		void hint_read(size_type file_offset, int len);
+
+		size_type get_size(error_code& ec) const;
 
 		// return the offset of the first byte that
 		// belongs to a data-region
-		boost::int64_t sparse_end(boost::int64_t start) const;
+		size_type sparse_end(size_type start) const;
 
-		handle_type native_handle() const { return m_file_handle; }
+		size_type phys_offset(size_type offset);
 
-#ifdef TORRENT_DISK_STATS
-		boost::uint32_t file_id() const { return m_file_id; }
-#endif
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-		void print_info(FILE* out) const;
+#ifdef TORRENT_WINDOWS
+		HANDLE native_handle() const { return m_file_handle; }
+#else
+		int native_handle() const { return m_fd; }
 #endif
 
 	private:
 
-		handle_type m_file_handle;
-#ifdef TORRENT_DISK_STATS
-		boost::uint32_t m_file_id;
-#endif
-
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+#ifdef TORRENT_WINDOWS
+		HANDLE m_file_handle;
+#if TORRENT_USE_WSTRING
 		std::wstring m_path;
-#elif defined TORRENT_WINDOWS
+#else
 		std::string m_path;
+#endif // TORRENT_USE_WSTRING
+#else // TORRENT_WINDOWS
+		int m_fd;
 #endif // TORRENT_WINDOWS
 
+#if defined TORRENT_WINDOWS || defined TORRENT_LINUX || defined TORRENT_DEBUG
+		static void init_file();
+		static int m_page_size;
+#endif
 		int m_open_mode;
 #if defined TORRENT_WINDOWS || defined TORRENT_LINUX
 		mutable int m_sector_size;
@@ -359,10 +324,6 @@ namespace libtorrent
 		mutable int m_cluster_size;
 
 		static bool has_manage_volume_privs;
-#endif
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-		std::string m_file_path;
 #endif
 	};
 

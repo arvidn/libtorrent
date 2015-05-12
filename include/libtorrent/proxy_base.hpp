@@ -37,11 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/function/function1.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
@@ -49,15 +46,16 @@ class proxy_base : boost::noncopyable
 {
 public:
 
-	typedef boost::function<void(error_code const&)> handler_type;
-
 	typedef stream_socket next_layer_type;
 	typedef stream_socket::lowest_layer_type lowest_layer_type;
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
-	explicit proxy_base(io_service& io_service);
-	~proxy_base();
+	explicit proxy_base(io_service& io_service)
+		: m_sock(io_service)
+		, m_port(0)
+		, m_resolver(io_service)
+	{}
 
 	void set_proxy(std::string hostname, int port)
 	{
@@ -150,18 +148,13 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void bind(endpoint_type const& /* endpoint */)
+	void bind(endpoint_type const& endpoint)
 	{
 //		m_sock.bind(endpoint);
 	}
 #endif
 
-	error_code cancel(error_code& ec)
-	{
-		return m_sock.cancel(ec);
-	}
-
-	void bind(endpoint_type const& /* endpoint */, error_code& /* ec */)
+	void bind(endpoint_type const& endpoint, error_code& ec)
 	{
 		// the reason why we ignore binds here is because we don't
 		// (necessarily) yet know what address family the proxy
@@ -175,13 +168,13 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void open(protocol_type const&)
+	void open(protocol_type const& p)
 	{
 //		m_sock.open(p);
 	}
 #endif
 
-	void open(protocol_type const&, error_code&)
+	void open(protocol_type const& p, error_code& ec)
 	{
 		// we need to ignore this for the same reason as stated
 		// for ignoring bind()
@@ -248,15 +241,12 @@ public:
 	
 protected:
 
-	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
-
 	stream_socket m_sock;
 	std::string m_hostname;
 	int m_port;
 
 	endpoint_type m_remote_endpoint;
 
-	// TODO: 2 use the resolver interface that has a built-in cache
 	tcp::resolver m_resolver;
 };
 

@@ -32,14 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp" // for print_backtrace
-#include <boost/cstdint.hpp>
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_BEOS
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
 #elif !defined TORRENT_WINDOWS
-#include <stdlib.h> // posix_memalign/free
+#include <stdlib.h> // valloc/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
@@ -62,10 +61,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WINDOWS
 #include <sys/mman.h>
 #endif
+#include "libtorrent/size_type.hpp"
 
 struct alloc_header
 {
-	boost::int64_t size;
+	libtorrent::size_type size;
 	int magic;
 	char stack[3072];
 };
@@ -87,7 +87,7 @@ namespace libtorrent
 #elif defined TORRENT_BEOS
 		s = B_PAGE_SIZE;
 #else
-		s = int(sysconf(_SC_PAGESIZE));
+		s = sysconf(_SC_PAGESIZE);
 #endif
 		// assume the page size is 4 kiB if we
 		// fail to query it
@@ -95,7 +95,7 @@ namespace libtorrent
 		return s;
 	}
 
-	char* page_aligned_allocator::malloc(page_aligned_allocator::size_type bytes)
+	char* page_aligned_allocator::malloc(size_type bytes)
 	{
 		TORRENT_ASSERT(bytes > 0);
 		// just sanity check (this needs to be pretty high
@@ -104,27 +104,26 @@ namespace libtorrent
 
 		TORRENT_ASSERT(int(bytes) >= page_size());
 #ifdef TORRENT_DEBUG_BUFFERS
-		const int page = page_size();
-		const int num_pages = (bytes + (page-1)) / page + 2;
-		const int orig_bytes = bytes;
+		int page = page_size();
+		int num_pages = (bytes + (page-1)) / page + 2;
+		int orig_bytes = bytes;
 		bytes = num_pages * page;
 #endif
 
 		char* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign(reinterpret_cast<void**>(&ret), page_size(), bytes)
-			!= 0) ret = NULL;
+		if (posix_memalign((void**)&ret, page_size(), bytes) != 0) ret = NULL;
 #elif TORRENT_USE_MEMALIGN
-		ret = static_cast<char*>(memalign(page_size(), bytes));
+		ret = (char*)memalign(page_size(), bytes);
 #elif defined TORRENT_WINDOWS
-		ret = static_cast<char*>(_aligned_malloc(bytes, page_size()));
+		ret = (char*)_aligned_malloc(bytes, page_size());
 #elif defined TORRENT_BEOS
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
 			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
 		if (id < B_OK) return NULL;
-		ret = static_cast<char*>(ret);
+		ret = (char*)ret;
 #else
-		ret = static_cast<char*>(valloc(size_t(bytes)));
+		ret = (char*)valloc(bytes);
 #endif
 		if (ret == NULL) return NULL;
 
@@ -165,11 +164,11 @@ namespace libtorrent
 #define PROT_READ PAGE_READONLY
 #define PROT_WRITE PAGE_READWRITE
 #endif
-		const int page = page_size();
+		int page = page_size();
 		// make the two surrounding pages non-readable and -writable
 		mprotect(block - page, page, PROT_READ | PROT_WRITE);
 		alloc_header* h = (alloc_header*)(block - page);
-		const int num_pages = (h->size + (page-1)) / page + 2;
+		int num_pages = (h->size + (page-1)) / page + 2;
 		TORRENT_ASSERT(h->magic == 0x1337);
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
 //		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
@@ -197,14 +196,6 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 	}
 
-#ifdef TORRENT_DEBUG_BUFFERS
-	bool page_aligned_allocator::in_use(char const* block)
-	{
-		const int page = page_size();
-		alloc_header* h = (alloc_header*)(block - page);
-		return h->magic == 0x1337;
-	}
-#endif
 
 }
 

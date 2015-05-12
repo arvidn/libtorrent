@@ -52,7 +52,7 @@ namespace libtorrent
 		// PARSE URL
 		std::string::iterator start = url.begin();
 		// remove white spaces in front of the url
-		while (start != url.end() && is_space(*start))
+		while (start != url.end() && (*start == ' ' || *start == '\t'))
 			++start;
 		std::string::iterator end
 			= std::find(url.begin(), url.end(), ':');

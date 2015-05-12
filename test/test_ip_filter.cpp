@@ -81,6 +81,7 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 	}
 	
 	iterator i = r.begin();
+	iterator j = boost::next(i);
 	for (iterator i(r.begin()), j(boost::next(r.begin()))
 		, end(r.end()); j != end; ++j, ++i)
 	{

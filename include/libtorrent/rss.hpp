@@ -35,11 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/size_type.hpp"
 
 #include <boost/enable_shared_from_this.hpp>
 #include <string>
 
-#ifndef TORRENT_NO_DEPRECATE
 namespace libtorrent
 {
 	namespace aux
@@ -64,7 +64,7 @@ namespace libtorrent
 
 		// the total size of the content the torrent refers to, or -1
 		// if no size was specified by the feed.
-		boost::int64_t size;
+		size_type size;
 
 		// the handle to the torrent, if the session is already downloading
 		// this torrent.
@@ -230,15 +230,11 @@ namespace libtorrent
 
 		int next_update(time_t now) const;
 
-		void load_state(bdecode_node const& rd);
+		void load_state(lazy_entry const& rd);
 		void save_state(entry& rd) const;
 	
-	private:
-		friend struct aux::session_impl;
+//	private:
 	
-		// explicitly disallow assignment, to silence msvc warning
-		feed& operator=(feed const&);
-
 		void add_item(feed_item const& item);
 
 		feed_handle my_handle();
@@ -261,9 +257,9 @@ namespace libtorrent
 		std::map<std::string, time_t> m_added;
 
 		std::string m_title;
-		std::string m_description;
+   	std::string m_description;
 		time_t m_last_attempt;
-		time_t m_last_update;
+   	time_t m_last_update;
 		// refresh rate of this feed in minutes
 		int m_ttl;
 		// the number of update failures in a row
@@ -276,7 +272,6 @@ namespace libtorrent
 	};
 	
 }
-#endif // TORRENT_NO_DEPRECATE
 	
 #endif
 

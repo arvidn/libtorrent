@@ -50,21 +50,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/alert_types.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/broadcast_socket.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/socket_type.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 #endif
 
 using boost::shared_ptr;
+using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
@@ -95,38 +94,44 @@ namespace libtorrent
 	};
 
 
-	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
-		, peer_id const& pid)
-		: peer_connection(pack)
+	bt_peer_connection::bt_peer_connection(
+		session_impl& ses
+		, shared_ptr<socket_type> s
+		, tcp::endpoint const& remote
+		, policy::peer* peerinfo
+		, peer_id const& pid
+		, boost::weak_ptr<torrent> tor
+		, bool outgoing)
+		: peer_connection(ses, tor, s, remote
+			, peerinfo, outgoing)
 		, m_state(read_protocol_identifier)
 		, m_supports_extensions(false)
 		, m_supports_dht_port(false)
 		, m_supports_fast(false)
+#if TORRENT_USE_ASSERTS
 		, m_sent_bitfield(false)
+		, m_in_constructor(true)
 		, m_sent_handshake(false)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#endif
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
-		, m_recv_buffer(peer_connection::m_recv_buffer)
-#endif
-		, m_our_peer_id(pid)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		, m_sync_bytes_read(0)
 #endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_upload_only_id(0)
 		, m_holepunch_id(0)
 #endif
+		, m_our_peer_id(pid)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		, m_sync_bytes_read(0)
+#endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		, m_dont_have_id(0)
 		, m_share_mode_id(0)
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
-		, m_in_constructor(true)
-#endif
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "CONSTRUCT", "bt_peer_connection");
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** bt_peer_connection");
 #endif
 
 #if TORRENT_USE_ASSERTS
@@ -143,26 +148,14 @@ namespace libtorrent
 		
 		// start in the state where we are trying to read the
 		// handshake from the other side
-		m_recv_buffer.reset(20);
+		reset_recv_buffer(20);
 		setup_receive();
 	}
 
 	bt_peer_connection::~bt_peer_connection()
 	{
+		TORRENT_ASSERT(m_ses.is_network_thread());
 	}
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	void bt_peer_connection::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto)
-	{
-		if (m_enc_handler.switch_send_crypto(crypto, send_buffer_size() - get_send_barrier()))
-			set_send_barrier(send_buffer_size());
-	}
-
-	void bt_peer_connection::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto)
-	{
-		m_enc_handler.switch_recv_crypto(crypto, m_recv_buffer);
-	}
-#endif
 
 	void bt_peer_connection::on_connected()
 	{
@@ -173,46 +166,41 @@ namespace libtorrent
 
 		if (t->graceful_pause())
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ON_CONNECTED", "graceful-paused");
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** ON_CONNECTED [ graceful-paused ]");
 #endif
-			disconnect(error_code(errors::torrent_paused), op_bittorrent);
+			disconnect(error_code(errors::torrent_paused), 0);
 			return;
 		}
 
-		// make sure are much as possible of the response ends up in the same
-		// packet, or at least back-to-back packets
-		cork c_(*this);
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		
-		boost::uint8_t out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		boost::uint8_t out_enc_policy = m_ses.get_pe_settings().out_enc_policy;
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(*get_socket()))
-			out_enc_policy = settings_pack::pe_disabled;
+			out_enc_policy = pe_settings::disabled;
 #endif
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 		char const* policy_name[] = {"forced", "enabled", "disabled"};
-		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "outgoing encryption policy: %s", policy_name[out_enc_policy]);
+		peer_log("*** outgoing encryption policy: %s", policy_name[out_enc_policy]);
 #endif
 
-		if (out_enc_policy == settings_pack::pe_forced)
+		if (out_enc_policy == pe_settings::forced)
 		{
 			write_pe1_2_dhkey();
 			if (is_disconnecting()) return;
 
 			m_state = read_pe_dhkey;
-			m_recv_buffer.reset(dh_key_len);
+			reset_recv_buffer(dh_key_len);
 			setup_receive();
 		}
-		else if (out_enc_policy == settings_pack::pe_enabled)
+		else if (out_enc_policy == pe_settings::enabled)
 		{
 			TORRENT_ASSERT(peer_info_struct());
 
-			torrent_peer* pi = peer_info_struct();
+			policy::peer* pi = peer_info_struct();
 			if (pi->pe_support == true)
 			{
 				// toggle encryption support flag, toggled back to
@@ -227,7 +215,7 @@ namespace libtorrent
 				write_pe1_2_dhkey();
 				if (is_disconnecting()) return;
 				m_state = read_pe_dhkey;
-				m_recv_buffer.reset(dh_key_len);
+				reset_recv_buffer(dh_key_len);
 				setup_receive();
 			}
 			else // pi->pe_support == false
@@ -237,47 +225,37 @@ namespace libtorrent
 				pi->pe_support = true;
 
 				write_handshake();
-				m_recv_buffer.reset(20);
+				reset_recv_buffer(20);
 				setup_receive();
 			}
 		}
-		else if (out_enc_policy == settings_pack::pe_disabled)
+		else if (out_enc_policy == pe_settings::disabled)
 #endif
 		{
 			write_handshake();
 			
 			// start in the state where we are trying to read the
 			// handshake from the other side
-			m_recv_buffer.reset(20);
+			reset_recv_buffer(20);
 			setup_receive();
 		}
 	}
 	
 	void bt_peer_connection::on_metadata()
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ON_METADATA");
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("*** ON_METADATA");
 #endif
-
-		disconnect_if_redundant();
-		if (m_disconnecting) return;
-
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		write_upload_only();
-#endif
-
-		if (!m_sent_handshake) return;
-		if (m_sent_bitfield) return;
+		if (m_state < read_packet_size) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		write_bitfield();
-		TORRENT_ASSERT(m_sent_bitfield);
 #ifndef TORRENT_DISABLE_DHT
-		if (m_supports_dht_port && m_ses.has_dht())
-			write_dht_port(m_ses.external_udp_port());
+		if (m_supports_dht_port && m_ses.m_dht)
+			write_dht_port(m_ses.m_external_udp_port);
 #endif
 	}
 
@@ -287,56 +265,56 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "DHT_PORT", "%d", listen_port);
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> DHT_PORT [ %d ]", listen_port);
 #endif
 		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
 		char* ptr = msg + 5;
 		detail::write_uint16(listen_port, ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+#if TORRENT_USE_ASSERTS
 		m_sent_bitfield = true;
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
+#endif
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> HAVE_ALL");
 #endif
 		char msg[] = {0,0,0,1, msg_have_all};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have_all);
 	}
 
 	void bt_peer_connection::write_have_none()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+#if TORRENT_USE_ASSERTS
 		m_sent_bitfield = true;
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
+#endif
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> HAVE_NONE");
 #endif
 		char msg[] = {0,0,0,1, msg_have_none};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have_none);
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
 	{
 		INVARIANT_CHECK;
 
-		stats_counters().inc_stats_counter(counters::piece_rejects);
+#ifdef TORRENT_STATS
+		++m_ses.m_piece_rejects;
+#endif
 
 		if (!m_supports_fast) return;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
-			, "piece: %d | s: %d | l: %d", r.piece, r.start, r.length);
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
+			, r.piece, r.start, r.length);
 #endif
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
@@ -347,8 +325,6 @@ namespace libtorrent
 		detail::write_int32(r.start, ptr); // begin
 		detail::write_int32(r.length, ptr); // length
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_reject);
 	}
 
 	void bt_peer_connection::write_allow_fast(int piece)
@@ -364,8 +340,6 @@ namespace libtorrent
 		char* ptr = msg + 5;
 		detail::write_int32(piece, ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_allowed_fast);
 	}
 
 	void bt_peer_connection::write_suggest(int piece)
@@ -375,29 +349,25 @@ namespace libtorrent
 		if (!m_supports_fast) return;
 
 		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->valid_metadata());
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "SUGGEST"
-			, "piece: %d num_peers: %d", piece
-			, t->has_picker() ? t->picker().get_availability(piece) : -1);
-#endif
+		if (m_sent_suggested_pieces.empty())
+			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
+
+		if (m_sent_suggested_pieces[piece]) return;
+		m_sent_suggested_pieces.set_bit(piece);
 
 		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
 		char* ptr = msg + 5;
 		detail::write_int32(piece, ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_suggest);
 	}
 
-	namespace {
-		char random_byte()
-		{ return random() & 0xff; }
-	}
+	char random_byte()
+	{ return random() & 0xff; }
 
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
@@ -415,7 +385,7 @@ namespace libtorrent
 		if (is_utp(*get_socket())) p.flags |= peer_info::utp_socket;
 		if (is_ssl(*get_socket())) p.flags |= peer_info::ssl_socket;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
 		{
 			p.flags |= m_rc4_encrypted
@@ -426,7 +396,8 @@ namespace libtorrent
 
 		if (!is_connecting() && in_handshake())
 			p.flags |= peer_info::handshake;
-		if (is_connecting()) p.flags |= peer_info::connecting;
+		if (is_connecting() && !is_queued()) p.flags |= peer_info::connecting;
+		if (is_queued()) p.flags |= peer_info::queued;
 
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
@@ -437,7 +408,7 @@ namespace libtorrent
 		return m_state < read_packet_size;
 	}
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 
 	void bt_peer_connection::write_pe1_2_dhkey()
 	{
@@ -448,22 +419,22 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_dh_key_exchange.get());
 		TORRENT_ASSERT(!m_sent_handshake);
 
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 		if (is_outgoing())
-			peer_log(peer_log_alert::info, "ENCRYPTION", "initiating encrypted handshake");
+			peer_log("*** initiating encrypted handshake");
 #endif
 
 		m_dh_key_exchange.reset(new (std::nothrow) dh_key_exchange);
 		if (!m_dh_key_exchange || !m_dh_key_exchange->good())
 		{
-			disconnect(errors::no_memory, op_encryption);
+			disconnect(errors::no_memory);
 			return;
 		}
 
 		int pad_size = random() % 512;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(" pad size: %d", pad_size);
 #endif
 
 		char msg[dh_key_len + 512];
@@ -476,8 +447,8 @@ namespace libtorrent
 		std::generate(ptr, ptr + pad_size, random_byte);
 		send_buffer(msg, buf_size);
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "sent DH key");
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(" sent DH key");
 #endif
 	}
 
@@ -534,22 +505,19 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		boost::uint8_t crypto_provide = m_settings.get_int(settings_pack::allowed_enc_level);
+		boost::uint8_t crypto_provide = m_ses.get_pe_settings().allowed_enc_level;
 
 		// this is an invalid setting, but let's just make the best of the situation
-		if ((crypto_provide & settings_pack::pe_both) == 0)
-			crypto_provide = settings_pack::pe_both;
+		if ((crypto_provide & pe_settings::both) == 0) crypto_provide = pe_settings::both;
 
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
-		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "%s", level[crypto_provide-1]);
+		peer_log(" crypto provide : [ %s ]"
+			, level[crypto_provide-1]);
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(ptr, encrypt_size));
-		m_rc4->encrypt(vec);
+		m_enc_handler->encrypt(ptr, encrypt_size);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
 
@@ -569,19 +537,17 @@ namespace libtorrent
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(msg, buf_size));
-		m_rc4->encrypt(vec);
+		m_enc_handler->encrypt(msg, buf_size);
 		send_buffer(msg, buf_size);
 
 		// encryption method has been negotiated
-		if (crypto_select == 0x02)
+		if (crypto_select == 0x02) 
 			m_rc4_encrypted = true;
 		else // 0x01
 			m_rc4_encrypted = false;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", " crypto select: %s"
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(" crypto select : [ %s ]"
 			, (crypto_select == 0x01) ? "plaintext" : "rc4");
 #endif
 	}
@@ -646,20 +612,19 @@ namespace libtorrent
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
 		
-		TORRENT_ASSERT(!m_rc4.get());
-		m_rc4 = boost::make_shared<rc4_handler>();
+		TORRENT_ASSERT(!m_enc_handler.get());
+		m_enc_handler.reset(new (std::nothrow) rc4_handler);
+		m_enc_handler->set_incoming_key(&remote_key[0], 20);
+		m_enc_handler->set_outgoing_key(&local_key[0], 20);
 
-		if (!m_rc4)
+		if (!m_enc_handler)
 		{
-			disconnect(errors::no_memory, op_encryption);
+			disconnect(errors::no_memory);
 			return;
 		}
 
-		m_rc4->set_incoming_key(&remote_key[0], 20);
-		m_rc4->set_outgoing_key(&local_key[0], 20);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log(" computed RC4 keys");
 #endif
 	}
 
@@ -707,54 +672,63 @@ namespace libtorrent
         // no complete sync
 		return -1;
 	}
-
-	void bt_peer_connection::rc4_decrypt(char* pos, int len)
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
+	
+	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size)
 	{
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(pos, len));
-		int consume = 0;
-		int produce = len;
-		int packet_size = 0;
-		m_rc4->decrypt(vec, consume, produce, packet_size);
-	}
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-
-	namespace {
-		void regular_c_free(char* buf, void* /* userdata */
-			, block_cache_reference /* ref */)
-		{
-			::free(buf);
-		}
-	}
-
-	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
-		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
-	{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		if (!m_enc_handler.is_send_plaintext())
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_encrypted && m_rc4_encrypted)
 		{
 			// if we're encrypting this buffer, we need to make a copy
 			// since we'll mutate it
 			char* buf = (char*)malloc(size);
 			memcpy(buf, buffer, size);
-			append_send_buffer(buf, size, &regular_c_free, NULL);
-			destructor((char*)buffer, userdata, ref);
+			bt_append_send_buffer(buf, size, boost::bind(&::free, _1));
 		}
 		else
 #endif
 		{
-			peer_connection::append_const_send_buffer(buffer, size, destructor
-				, userdata, ref);
+			peer_connection::append_const_send_buffer(buffer, size);
 		}
 	}
 
-	void bt_peer_connection::write_handshake(bool plain_handshake)
+#ifndef TORRENT_DISABLE_ENCRYPTION
+	void encrypt(char* buf, int len, void* userdata)
+	{
+		rc4_handler* rc4 = (rc4_handler*)userdata;
+		rc4->encrypt(buf, len);
+	}
+#endif
+
+	void bt_peer_connection::send_buffer(char const* buf, int size, int flags
+			, void (*f)(char*, int, void*), void* ud)
+	{
+		TORRENT_ASSERT(f == 0);
+		TORRENT_ASSERT(ud == 0);
+		TORRENT_ASSERT(buf);
+		TORRENT_ASSERT(size > 0);
+		
+		void* userdata = 0;
+		void (*fun)(char*, int, void*) = 0;
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		if (m_encrypted && m_rc4_encrypted)
+		{
+			fun = encrypt;
+			userdata = m_enc_handler.get();
+		}
+#endif
+		
+		peer_connection::send_buffer(buf, size, flags, fun, userdata);
+	}
+
+	void bt_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(!m_sent_handshake);
+#if TORRENT_USE_ASSERTS
 		m_sent_handshake = true;
+#endif
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -783,7 +757,7 @@ namespace libtorrent
 		*(ptr + 5) |= 0x10;
 #endif
 
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents))
+		if (m_ses.m_settings.support_merkle_torrents)
 		{
 			// we support merkle torrents
 			*(ptr + 5) |= 0x08;
@@ -792,7 +766,7 @@ namespace libtorrent
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
 
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifdef TORRENT_VERBOSE_LOGGING	
 		std::string bitmask;
 		for (int k = 0; k < 8; ++k)
 		{
@@ -802,8 +776,7 @@ namespace libtorrent
 				else bitmask += '0';
 			}
 		}
-		peer_log(peer_log_alert::outgoing_message, "EXTENSIONS"
-			, "%s", bitmask.c_str());
+		peer_log("==> EXTENSION [ %s ]", bitmask.c_str());
 #endif
 		ptr += 8;
 
@@ -813,7 +786,7 @@ namespace libtorrent
 		ptr += 20;
 
 		// peer id
-		if (m_settings.get_bool(settings_pack::anonymous_mode))
+		if (m_ses.m_settings.anonymous_mode)
 		{
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
@@ -824,46 +797,17 @@ namespace libtorrent
 		memcpy(ptr, &m_our_peer_id[0], 20);
 		ptr += 20;
 
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 		{
 			char hex_pid[41];
 			to_hex((char const*)&m_our_peer_id[0], 20, hex_pid);
 			hex_pid[40] = 0;
-			peer_log(peer_log_alert::outgoing, "HANDSHAKE"
-				, "sent peer_id: %s client: %s"
+			peer_log(">>> sent peer_id: %s client: %s"
 				, hex_pid, identify_client(m_our_peer_id).c_str());
 		}
-		peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
-			, "ih: %s", to_hex(ih.to_string()).c_str());
+		peer_log("==> HANDSHAKE [ ih: %s ]", to_hex(ih.to_string()).c_str());
 #endif
 		send_buffer(handshake, sizeof(handshake));
-
-		// for encrypted peers, just send a plain handshake. We
-		// don't know at this point if the rest should be
-		// obfuscated or not, we have to wait for the other end's
-		// response first.
-		if (plain_handshake) return;
-
-		// we don't know how many pieces there are until we
-		// have the metadata
-		if (t->ready_for_connections())
-		{
-			write_bitfield();
-#ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
-#endif
-
-			// if we don't have any pieces, don't do any preemptive
-			// unchoking at all.
-			if (t->num_have() > 0)
-			{
-				// if the peer is ignoring unchoke slots, or if we have enough
-				// unused slots, unchoke this peer right away, to save a round-trip
-				// in case it's interested.
-				maybe_unchoke_this_peer();
-			}
-		}
 	}
 
 	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
@@ -871,7 +815,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 		// are we currently receiving a 'piece' message?
 		if (m_state != read_packet
 			|| recv_buffer.left() <= 9
@@ -882,7 +826,7 @@ namespace libtorrent
 		peer_request r;
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
-		r.length = m_recv_buffer.packet_size() - 9;
+		r.length = packet_size() - 9;
 
 		// is any of the piece message header data invalid?
 		if (!verify_piece(r))
@@ -909,8 +853,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "KEEPALIVE");
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<== KEEPALIVE");
 #endif
 		incoming_keepalive();
 	}
@@ -923,14 +867,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 1)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 1)
 		{
-			disconnect(errors::invalid_choke, op_bittorrent, 2);
+			disconnect(errors::invalid_choke, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		incoming_choke();
 		if (is_disconnecting()) return;
@@ -973,14 +917,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 1)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 1)
 		{
-			disconnect(errors::invalid_unchoke, op_bittorrent, 2);
+			disconnect(errors::invalid_unchoke, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		incoming_unchoke();
 	}
@@ -993,14 +937,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 1)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 1)
 		{
-			disconnect(errors::invalid_interested, op_bittorrent, 2);
+			disconnect(errors::invalid_interested, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		incoming_interested();
 	}
@@ -1013,14 +957,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 1)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 1)
 		{
-			disconnect(errors::invalid_not_interested, op_bittorrent, 2);
+			disconnect(errors::invalid_not_interested, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		incoming_not_interested();
 	}
@@ -1033,16 +977,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 5)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 5)
 		{
-			disconnect(errors::invalid_have, op_bittorrent, 2);
+			disconnect(errors::invalid_have, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		const char* ptr = recv_buffer.begin + 1;
 		int index = detail::read_int32(ptr);
@@ -1058,28 +1002,28 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
+		TORRENT_ASSERT(received > 0);
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
+			&& packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
 		{
-			disconnect(errors::invalid_bitfield_size, op_bittorrent, 2);
+			disconnect(errors::invalid_bitfield_size, 2);
 			return;
 		}
 
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		bitfield bits;
-		bits.assign((char*)recv_buffer.begin + 1
-			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*8);
+		bits.borrow_bytes((char*)recv_buffer.begin + 1
+			, t->valid_metadata()?get_bitfield().size():(packet_size()-1)*8);
 		
 		incoming_bitfield(bits);
 	}
@@ -1092,16 +1036,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 13)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 13)
 		{
-			disconnect(errors::invalid_request, op_bittorrent, 2);
+			disconnect(errors::invalid_request, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		peer_request r;
 		const char* ptr = recv_buffer.begin + 1;
@@ -1120,10 +1064,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
+		TORRENT_ASSERT(received > 0);
 		
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
-		int recv_pos = m_recv_buffer.pos(); // recv_buffer.end - recv_buffer.begin;
+		buffer::const_interval recv_buffer = receive_buffer();
+		int recv_pos = receive_pos(); // recv_buffer.end - recv_buffer.begin;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -1132,13 +1076,13 @@ namespace libtorrent
 		{
 			if (recv_pos == 1)
 			{
-				m_recv_buffer.set_soft_packet_size(13);
-				received_bytes(0, received);
+				set_soft_packet_size(13);
+				m_statistics.received_bytes(0, received);
 				return;
 			}
 			if (recv_pos < 13)
 			{
-				received_bytes(0, received);
+				m_statistics.received_bytes(0, received);
 				return;
 			}
 			if (recv_pos == 13)
@@ -1149,27 +1093,23 @@ namespace libtorrent
 				// and we can allocate the disk buffer and receive
 				// into it
 
-				if (list_size > m_recv_buffer.packet_size() - 13)
+				if (list_size > packet_size() - 13)
 				{
-					disconnect(errors::invalid_hash_list, op_bittorrent, 2);
+					disconnect(errors::invalid_hash_list, 2);
 					return;
 				}
 
-				if (m_recv_buffer.packet_size() - 13 - list_size > t->block_size())
+				if (packet_size() - 13 - list_size > t->block_size())
 				{
-					disconnect(errors::packet_too_large, op_bittorrent, 2);
+					disconnect(errors::packet_too_large, 2);
 					return;
 				}
 
-				m_recv_buffer.assert_no_disk_buffer();
-				if (!m_settings.get_bool(settings_pack::contiguous_recv_buffer) &&
-					m_recv_buffer.can_recv_contiguous(m_recv_buffer.packet_size() - 13 - list_size))
+				TORRENT_ASSERT(!has_disk_receive_buffer());
+				if (!allocate_disk_receive_buffer(packet_size() - 13 - list_size))
 				{
-					if (!allocate_disk_receive_buffer(m_recv_buffer.packet_size() - 13 - list_size))
-					{
-						received_bytes(0, received);
-						return;
-					}
+					m_statistics.received_bytes(0, received);
+					return;
 				}
 			}
 		}
@@ -1177,26 +1117,22 @@ namespace libtorrent
 		{
 			if (recv_pos == 1)
 			{
-				m_recv_buffer.assert_no_disk_buffer();
+				TORRENT_ASSERT(!has_disk_receive_buffer());
 
-				if (m_recv_buffer.packet_size() - 9 > t->block_size())
+				if (packet_size() - 9 > t->block_size())
 				{
-					disconnect(errors::packet_too_large, op_bittorrent, 2);
+					disconnect(errors::packet_too_large, 2);
 					return;
 				}
 
-				if (!m_settings.get_bool(settings_pack::contiguous_recv_buffer) &&
-					m_recv_buffer.can_recv_contiguous(m_recv_buffer.packet_size() - 9))
+				if (!allocate_disk_receive_buffer(packet_size() - 9))
 				{
-					if (!allocate_disk_receive_buffer(m_recv_buffer.packet_size() - 9))
-					{
-						received_bytes(0, received);
-						return;
-					}
+					m_statistics.received_bytes(0, received);
+					return;
 				}
 			}
 		}
-		TORRENT_ASSERT(m_settings.get_bool(settings_pack::contiguous_recv_buffer) || m_recv_buffer.has_disk_buffer() || m_recv_buffer.packet_size() == 9);
+		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == 9);
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		int piece_bytes = 0;
@@ -1215,24 +1151,24 @@ namespace libtorrent
 			if (merkle)
 			{
 				list_size = detail::read_int32(ptr);
-				p.length = m_recv_buffer.packet_size() - list_size - header_size;
+				p.length = packet_size() - list_size - header_size;
 				header_size += list_size;
 			}
 			else
 			{
-				p.length = m_recv_buffer.packet_size() - header_size;
+				p.length = packet_size() - header_size;
 			}
 		}
 
 		if (recv_pos <= header_size)
 		{
 			// only received protocol data
-			received_bytes(0, received);
+			m_statistics.received_bytes(0, received);
 		}
 		else if (recv_pos - received >= header_size)
 		{
 			// only received payload data
-			received_bytes(received, 0);
+			m_statistics.received_bytes(received, 0);
 			piece_bytes = received;
 		}
 		else
@@ -1241,7 +1177,7 @@ namespace libtorrent
 			TORRENT_ASSERT(recv_pos - received < header_size);
 			TORRENT_ASSERT(recv_pos > header_size);
 			TORRENT_ASSERT(header_size - (recv_pos - received) <= header_size);
-			received_bytes(
+			m_statistics.received_bytes(
 				recv_pos - header_size
 				, header_size - (recv_pos - received));
 			piece_bytes = recv_pos - header_size;
@@ -1249,8 +1185,8 @@ namespace libtorrent
 
 		if (recv_pos < header_size) return;
 
-#ifndef TORRENT_DISABLE_LOGGING
-//			peer_log(peer_log_alert::incoming_message, "PIECE_FRAGMENT", "p: %d start: %d length: %d"
+#ifdef TORRENT_VERBOSE_LOGGING
+//			peer_log("<== PIECE_FRAGMENT p: %d start: %d length: %d"
 //				, p.piece, p.start, p.length);
 #endif
 
@@ -1262,64 +1198,55 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 		}
 
-		TORRENT_ASSERT(m_settings.get_bool(settings_pack::contiguous_recv_buffer) || m_recv_buffer.has_disk_buffer() || m_recv_buffer.packet_size() == header_size);
+		TORRENT_ASSERT(has_disk_receive_buffer() || packet_size() == header_size);
 
 		incoming_piece_fragment(piece_bytes);
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		if (merkle && list_size > 0)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HASHPIECE"
-				, "piece: %d list: %d", p.piece, list_size);
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== HASHPIECE [ piece: %d list: %d ]", p.piece, list_size);
 #endif
-			bdecode_node hash_list;
+			lazy_entry hash_list;
 			error_code ec;
-			if (bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
+			if (lazy_bdecode(recv_buffer.begin + 13, recv_buffer.begin+ 13 + list_size
 				, hash_list, ec) != 0)
 			{
-				disconnect(errors::invalid_hash_piece, op_bittorrent, 2);
+				disconnect(errors::invalid_hash_piece, 2);
 				return;
 			}
 
 			// the list has this format:
 			// [ [node-index, hash], [node-index, hash], ... ]
-			if (hash_list.type() != bdecode_node::list_t)
+			if (hash_list.type() != lazy_entry::list_t)
 			{
-				disconnect(errors::invalid_hash_list, op_bittorrent, 2);
+				disconnect(errors::invalid_hash_list, 2);
 				return;
 			}
 
 			std::map<int, sha1_hash> nodes;
 			for (int i = 0; i < hash_list.list_size(); ++i)
 			{
-				bdecode_node e = hash_list.list_at(i);
-				if (e.type() != bdecode_node::list_t
-					|| e.list_size() != 2
-					|| e.list_at(0).type() != bdecode_node::int_t
-					|| e.list_at(1).type() != bdecode_node::string_t
-					|| e.list_at(1).string_length() != 20) continue;
+				lazy_entry const* e = hash_list.list_at(i);
+				if (e->type() != lazy_entry::list_t
+					|| e->list_size() != 2
+					|| e->list_at(0)->type() != lazy_entry::int_t
+					|| e->list_at(1)->type() != lazy_entry::string_t
+					|| e->list_at(1)->string_length() != 20) continue;
 
-				nodes.insert(std::make_pair(int(e.list_int_value_at(0))
-					, sha1_hash(e.list_at(1).string_ptr())));
+				nodes.insert(std::make_pair(int(e->list_int_value_at(0))
+					, sha1_hash(e->list_at(1)->string_ptr())));
 			}
 			if (!nodes.empty() && !t->add_merkle_nodes(nodes, p.piece))
 			{
-				disconnect(errors::invalid_hash_piece, op_bittorrent, 2);
+				disconnect(errors::invalid_hash_piece, 2);
 				return;
 			}
 		}
 
-		char* disk_buffer = m_recv_buffer.release_disk_buffer();
-		if (disk_buffer)
-		{
-			disk_buffer_holder holder(m_allocator, disk_buffer);
-			incoming_piece(p, holder);
-		}
-		else
-		{
-			incoming_piece(p, recv_buffer.begin + header_size);
-		}
+		disk_buffer_holder holder(m_ses, release_disk_receive_buffer());
+		incoming_piece(p, holder);
 	}
 
 	// -----------------------------
@@ -1330,16 +1257,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 13)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 13)
 		{
-			disconnect(errors::invalid_cancel, op_bittorrent, 2);
+			disconnect(errors::invalid_cancel, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		peer_request r;
 		const char* ptr = recv_buffer.begin + 1;
@@ -1358,16 +1285,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() != 3)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() != 3)
 		{
-			disconnect(errors::invalid_dht_port, op_bittorrent, 2);
+			disconnect(errors::invalid_dht_port, 2);
 			return;
 		}
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		const char* ptr = recv_buffer.begin + 1;
 		int listen_port = detail::read_uint16(ptr);
@@ -1378,8 +1305,8 @@ namespace libtorrent
 		{
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
-			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			if (m_supports_dht_port && m_ses.m_dht)
+				write_dht_port(m_ses.m_external_udp_port);
 #endif
 		}
 	}
@@ -1388,16 +1315,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
-			disconnect(errors::invalid_suggest, op_bittorrent, 2);
+			disconnect(errors::invalid_suggest, 2);
 			return;
 		}
 
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		const char* ptr = recv_buffer.begin + 1;
 		int piece = detail::read_uint32(ptr);
@@ -1408,10 +1335,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
-			disconnect(errors::invalid_have_all, op_bittorrent, 2);
+			disconnect(errors::invalid_have_all, 2);
 			return;
 		}
 		incoming_have_all();
@@ -1421,10 +1348,10 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
-			disconnect(errors::invalid_have_none, op_bittorrent, 2);
+			disconnect(errors::invalid_have_none, 2);
 			return;
 		}
 		incoming_have_none();
@@ -1434,16 +1361,16 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
-			disconnect(errors::invalid_reject, op_bittorrent, 2);
+			disconnect(errors::invalid_reject, 2);
 			return;
 		}
 
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		peer_request r;
 		const char* ptr = recv_buffer.begin + 1;
@@ -1458,15 +1385,15 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		received_bytes(0, received);
+		m_statistics.received_bytes(0, received);
 		if (!m_supports_fast)
 		{
-			disconnect(errors::invalid_allow_fast, op_bittorrent, 2);
+			disconnect(errors::invalid_allow_fast, 2);
 			return;
 		}
 
-		if (!m_recv_buffer.packet_finished()) return;
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		if (!packet_finished()) return;
+		buffer::const_interval recv_buffer = receive_buffer();
 		const char* ptr = recv_buffer.begin + 1;
 		int index = detail::read_int32(ptr);
 		
@@ -1482,14 +1409,14 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		// we can't accept holepunch messages from peers
 		// that don't support the holepunch extension
 		// because we wouldn't be able to respond
 		if (m_holepunch_id == 0) return;
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 		TORRENT_ASSERT(*recv_buffer.begin == msg_extended);
 		++recv_buffer.begin;
 		TORRENT_ASSERT(*recv_buffer.begin == holepunch_msg);
@@ -1521,11 +1448,10 @@ namespace libtorrent
 #endif
 		else
 		{
-#ifndef TORRENT_DISABLE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 			error_code ec;
 			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
-			peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-				, "msg: %s from %s to: unknown address type"
+			peer_log("<== HOLEPUNCH [ msg: %s from %s to: unknown address type ]"
 				, (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
 				, print_address(remote().address()).c_str());
 #endif
@@ -1540,9 +1466,9 @@ namespace libtorrent
 		{
 			case hp_rendezvous: // rendezvous
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg: rendezvous to: %s", print_address(ep.address()).c_str());
+#if defined TORRENT_VERBOSE_LOGGING
+				peer_log("<== HOLEPUNCH [ msg: rendezvous to: %s ]"
+					, print_address(ep.address()).c_str());
 #endif
 				// this peer is asking us to introduce it to
 				// the peer at 'ep'. We need to find which of
@@ -1571,12 +1497,11 @@ namespace libtorrent
 			case hp_connect:
 			{
 				// add or find the peer with this endpoint
-				torrent_peer* p = t->add_peer(ep, peer_info::pex);
+				policy::peer* p = t->get_policy().add_peer(ep, peer_id(0), peer_info::pex, 0);
 				if (p == 0 || p->connection)
 				{
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:connect to: %s error: failed to add peer"
+#if defined TORRENT_VERBOSE_LOGGING
+					peer_log("<== HOLEPUNCH [ msg:connect to: %s error: failed to add peer ]"
 						, print_address(ep.address()).c_str());
 #endif
 					// we either couldn't add this peer, or it's
@@ -1585,12 +1510,13 @@ namespace libtorrent
 				}
 				if (p->banned)
 				{
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:connect to: %s error: peer banned", print_address(ep.address()).c_str());
+#if defined TORRENT_VERBOSE_LOGGING
+					peer_log("<== HOLEPUNCH [ msg:connect to: %s error: peer banned ]"
+						, print_address(ep.address()).c_str());
 #endif
 					// this peer is banned, don't connect to it
 					break;
+				
 				}
 				// to make sure we use the uTP protocol
 				p->supports_utp = true;
@@ -1600,34 +1526,30 @@ namespace libtorrent
 				// mark this connection to be in holepunch mode
 				// so that it will retry faster and stick to uTP while it's
 				// retrying
-				t->update_want_peers();
 				if (p->connection)
 					p->connection->set_holepunch_mode();
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:connect to: %s"
+#if defined TORRENT_VERBOSE_LOGGING
+					peer_log("<== HOLEPUNCH [ msg:connect to: %s ]"
 						, print_address(ep.address()).c_str());
 #endif
 			} break;
 			case hp_failed:
 			{
 				boost::uint32_t error = detail::read_uint32(ptr);
-#ifndef TORRENT_DISABLE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 				error_code ec;
 				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg:failed error: %d msg: %s", error
+				peer_log("<== HOLEPUNCH [ msg:failed error: %d msg: %s ]", error
 					, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 #endif
 				// #error deal with holepunch errors
 				(void)error;
 			} break;
-#ifndef TORRENT_DISABLE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 			default:
 			{
 				error_code ec;
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg: unknown message type (%d) to: %s"
+				peer_log("<== HOLEPUNCH [ msg: unknown message type (%d) to: %s ]"
 					, msg_type, print_address(ep.address()).c_str());
 			}
 #endif
@@ -1643,12 +1565,11 @@ namespace libtorrent
 		else detail::write_uint8(1, ptr);
 		detail::write_endpoint(ep, ptr);
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if defined TORRENT_VERBOSE_LOGGING
 		error_code ec;
 		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
-		peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
-			, "msg: %s to: %s error: %s"
+		peer_log("==> HOLEPUNCH [ msg: %s to: %s error: %s ]"
 			, (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
 			, print_address(ep.address()).c_str()
 			, hp_error_string[error]);
@@ -1667,8 +1588,6 @@ namespace libtorrent
 		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
 		send_buffer(buf, ptr - buf);
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
@@ -1681,21 +1600,21 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
-		received_bytes(0, received);
-		if (m_recv_buffer.packet_size() < 2)
+		TORRENT_ASSERT(received > 0);
+		m_statistics.received_bytes(0, received);
+		if (packet_size() < 2)
 		{
-			disconnect(errors::invalid_extended, op_bittorrent, 2);
+			disconnect(errors::invalid_extended, 2);
 			return;
 		}
 
 		if (associated_torrent().expired())
 		{
-			disconnect(errors::invalid_extended, op_bittorrent, 2);
+			disconnect(errors::invalid_extended, 2);
 			return;
 		}
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 		if (recv_buffer.left() < 2) return;
 
 		TORRENT_ASSERT(*recv_buffer.begin == msg_extended);
@@ -1712,19 +1631,17 @@ namespace libtorrent
 
 		if (extended_id == upload_only_msg)
 		{
-			if (!m_recv_buffer.packet_finished()) return;
-			if (m_recv_buffer.packet_size() != 3)
+			if (!packet_finished()) return;
+			if (packet_size() != 3)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
-					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== UPLOAD_ONLY [ ERROR: unexpected packet size: %d ]", packet_size());
 #endif
 				return;
 			}
 			bool ul = detail::read_uint8(recv_buffer.begin) != 0;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
-				, "%s", (ul?"true":"false"));
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== UPLOAD_ONLY [ %s ]", (ul?"true":"false"));
 #endif
 			set_upload_only(ul);
 			return;
@@ -1732,19 +1649,17 @@ namespace libtorrent
 
 		if (extended_id == share_mode_msg)
 		{
-			if (!m_recv_buffer.packet_finished()) return;
-			if (m_recv_buffer.packet_size() != 3)
+			if (!packet_finished()) return;
+			if (packet_size() != 3)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "SHARE_MODE"
-					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== SHARE_MODE [ ERROR: unexpected packet size: %d ]", packet_size());
 #endif
 				return;
 			}
 			bool sm = detail::read_uint8(recv_buffer.begin) != 0;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "SHARE_MODE"
-				, "%s", (sm?"true":"false"));
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== SHARE_MODE [ %s ]", (sm?"true":"false"));
 #endif
 			set_share_mode(sm);
 			return;
@@ -1752,9 +1667,9 @@ namespace libtorrent
 
 		if (extended_id == holepunch_msg)
 		{
-			if (!m_recv_buffer.packet_finished()) return;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HOLEPUNCH");
+			if (!packet_finished()) return;
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== HOLEPUNCH");
 #endif
 			on_holepunch();
 			return;
@@ -1762,12 +1677,11 @@ namespace libtorrent
 
 		if (extended_id == dont_have_msg)
 		{
-			if (!m_recv_buffer.packet_finished()) return;
-			if (m_recv_buffer.packet_size() != 6)
+			if (!packet_finished()) return;
+			if (packet_size() != 6)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "DONT_HAVE"
-					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== DONT_HAVE [ ERROR: unexpected packet size: %d ]", packet_size());
 #endif
 				return;
 			}
@@ -1776,50 +1690,48 @@ namespace libtorrent
 			return;
 		}
 
-#ifndef TORRENT_DISABLE_LOGGING
-		if (m_recv_buffer.packet_finished())
-			peer_log(peer_log_alert::incoming_message, "EXTENSION_MESSAGE"
-				, "msg: %d size: %d", extended_id, m_recv_buffer.packet_size());
+#ifdef TORRENT_VERBOSE_LOGGING
+		if (packet_finished())
+			peer_log("<== EXTENSION MESSAGE [ msg: %d size: %d ]"
+				, extended_id, packet_size());
 #endif
 
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			if ((*i)->on_extended(m_recv_buffer.packet_size() - 2, extended_id
+			if ((*i)->on_extended(packet_size() - 2, extended_id
 				, recv_buffer))
 				return;
 		}
 
-		disconnect(errors::invalid_message, op_bittorrent, 2);
+		disconnect(errors::invalid_message, 2);
 		return;
 	}
 
 	void bt_peer_connection::on_extended_handshake()
 	{
-		if (!m_recv_buffer.packet_finished()) return;
+		if (!packet_finished()) return;
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
-		bdecode_node root;
+		lazy_entry root;
 		error_code ec;
 		int pos;
-		int ret = bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
-		if (ret != 0 || ec || root.type() != bdecode_node::dict_t)
+		int ret = lazy_bdecode(recv_buffer.begin + 2, recv_buffer.end, root, ec, &pos);
+		if (ret != 0 || ec || root.type() != lazy_entry::dict_t)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "EXTENSION_MESSAGE"
-				, "invalid extended handshake: %s pos: %d"
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** invalid extended handshake: %s pos: %d"
 				, ec.message().c_str(), pos);
 #endif
 			return;
 		}
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
-			, "%s", print_entry(root).c_str());
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("<== EXTENDED HANDSHAKE: %s", print_entry(root).c_str());
 #endif
 
 		for (extension_list_t::iterator i = m_extensions.begin();
@@ -1835,18 +1747,19 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 		// upload_only
-		if (bdecode_node m = root.dict_find_dict("m"))
+		if (lazy_entry const* m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = boost::uint8_t(m.dict_find_int_value("upload_only", 0));
-			m_holepunch_id = boost::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
-			m_dont_have_id = boost::uint8_t(m.dict_find_int_value("lt_donthave", 0));
+			m_upload_only_id = boost::uint8_t(m->dict_find_int_value("upload_only", 0));
+			m_holepunch_id = boost::uint8_t(m->dict_find_int_value("ut_holepunch", 0));
+			m_dont_have_id = boost::uint8_t(m->dict_find_int_value("lt_donthave", 0));
 		}
 
 		// there is supposed to be a remote listen port
 		int listen_port = int(root.dict_find_int_value("p"));
 		if (listen_port > 0 && peer_info_struct() != 0)
 		{
-			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
+			t->get_policy().update_peer_port(listen_port
+				, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}
@@ -1861,12 +1774,18 @@ namespace libtorrent
 		if (!client_info.empty()) m_client_version = client_info;
 
 		int reqq = int(root.dict_find_int_value("reqq"));
-		if (reqq > 0) max_out_request_queue(reqq);
+		if (reqq > 0)
+		{
+			max_out_request_queue(reqq);
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** MAX OUT REQUEST QUEUE [ %d ]", reqq);
+#endif
+		}
 
 		if (root.dict_find_int_value("upload_only", 0))
 			set_upload_only(true);
 
-		if (m_settings.get_bool(settings_pack::support_share_mode)
+		if (m_ses.m_settings.support_share_mode
 			&& root.dict_find_int_value("share_mode", 0))
 			set_share_mode(true);
 
@@ -1878,7 +1797,7 @@ namespace libtorrent
 				address_v4::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				m_ses.set_external_address(address_v4(bytes)
-					, aux::session_interface::source_peer, remote().address());
+					, aux::session_impl::source_peer, remote().address());
 			}
 #if TORRENT_USE_IPV6
 			else if (myip.size() == address_v6::bytes_type().size())
@@ -1888,10 +1807,10 @@ namespace libtorrent
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
 					m_ses.set_external_address(ipv6_address.to_v4()
-						, aux::session_interface::source_peer, remote().address());
+						, aux::session_impl::source_peer, remote().address());
 				else
 					m_ses.set_external_address(ipv6_address
-						, aux::session_interface::source_peer, remote().address());
+						, aux::session_impl::source_peer, remote().address());
 			}
 #endif
 		}
@@ -1899,11 +1818,9 @@ namespace libtorrent
 		// if we're finished and this peer is uploading only
 		// disconnect it
 		if (t->is_finished() && upload_only()
-			&& m_settings.get_bool(settings_pack::close_redundant_connections)
+			&& t->settings().close_redundant_connections
 			&& !t->share_mode())
-			disconnect(errors::upload_upload_connection, op_bittorrent);
-
-		stats_counters().inc_stats_counter(counters::num_incoming_ext_handshake);
+			disconnect(errors::upload_upload_connection);
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
@@ -1911,21 +1828,21 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(received >= 0);
+		TORRENT_ASSERT(received > 0);
 
 		// this means the connection has been closed already
 		if (associated_torrent().expired())
 		{
-			received_bytes(0, received);
+			m_statistics.received_bytes(0, received);
 			return false;
 		}
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
 		int packet_type = (unsigned char)recv_buffer[0];
 
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents)
+		if (m_ses.m_settings.support_merkle_torrents
 			&& packet_type == 250) packet_type = msg_piece;
 
 		if (packet_type < 0
@@ -1936,57 +1853,38 @@ namespace libtorrent
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
-				if ((*i)->on_unknown_message(m_recv_buffer.packet_size(), packet_type
+				if ((*i)->on_unknown_message(packet_size(), packet_type
 					, buffer::const_interval(recv_buffer.begin+1
 					, recv_buffer.end)))
-					return m_recv_buffer.packet_finished();
+					return packet_finished();
 			}
 #endif
 
-			received_bytes(0, received);
+			m_statistics.received_bytes(0, received);
 			// What's going on here?!
 			// break in debug builds to allow investigation
 //			TORRENT_ASSERT(false);
-			disconnect(errors::invalid_message, op_bittorrent);
-			return m_recv_buffer.packet_finished();
+			disconnect(errors::invalid_message);
+			return packet_finished();
 		}
 
 		TORRENT_ASSERT(m_message_handler[packet_type] != 0);
 
 #ifdef TORRENT_DEBUG
-		boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
-		boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
+		size_type cur_payload_dl = m_statistics.last_payload_downloaded();
+		size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
-
 		// call the correct handler for this packet type
 		(this->*m_message_handler[packet_type])(received);
 #ifdef TORRENT_DEBUG
-		TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
-		TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-		boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
-			statistics().last_protocol_downloaded() - cur_protocol_dl;
+		TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
+		TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
+		size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+			m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 		TORRENT_ASSERT(stats_diff == received);
 #endif
 
-		bool finished = m_recv_buffer.packet_finished();
-
-		if (finished)
-		{
-			// count this packet in the session stats counters
-			int counter = counters::num_incoming_extended;
-			if (packet_type <= msg_dht_port)
-				counter = counters::num_incoming_choke + packet_type;
-			else if (packet_type <= msg_allowed_fast)
-				counter = counters::num_incoming_suggest + packet_type;
-			else if (packet_type <= msg_extended)
-				counter = counters::num_incoming_extended;
-			else
-				TORRENT_ASSERT(false);
-
-			stats_counters().inc_stats_counter(counter);
-		}
-
-		return finished;
+		return packet_finished();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2001,10 +1899,10 @@ namespace libtorrent
 		// if we send upload-only, the other end is very likely to disconnect
 		// us, at least if it's a seed. If we don't want to close redundant
 		// connections, don't sent upload-only
-		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+		if (!m_ses.settings().close_redundant_connections) return;
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"
+#ifdef TORRENT_VERBOSE_LOGGING
+		peer_log("==> UPLOAD_ONLY [ %d ]"
 			, int(t->is_upload_only() && !t->super_seeding()));
 #endif
 
@@ -2018,8 +1916,6 @@ namespace libtorrent
 		// make another piece available
 		detail::write_uint8(t->is_upload_only() && !t->super_seeding(), ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
 
 	void bt_peer_connection::write_share_mode()
@@ -2034,8 +1930,6 @@ namespace libtorrent
 		detail::write_uint8(m_share_mode_id, ptr);
 		detail::write_uint8(t->share_mode(), ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
 #endif
 
@@ -2069,8 +1963,6 @@ namespace libtorrent
 		detail::write_int32(r.length, ptr); // length
 		send_buffer(msg, sizeof(msg));
 
-		stats_counters().inc_stats_counter(counters::num_outgoing_cancel);
-
 		if (!m_supports_fast)
 			incoming_reject_request(r);
 	}
@@ -2089,8 +1981,6 @@ namespace libtorrent
 		detail::write_int32(r.start, ptr); // begin
 		detail::write_int32(r.length, ptr); // length
 		send_buffer(msg, sizeof(msg), message_type_request);
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_request);
 	}
 
 	void bt_peer_connection::write_bitfield()
@@ -2099,19 +1989,21 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
 		TORRENT_ASSERT(t->valid_metadata());
+
+		// in this case, have_all or have_none should be sent instead
+		TORRENT_ASSERT(!m_supports_fast || !t->is_seed() || t->num_have() != 0);
 
 		if (t->super_seeding())
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, super seeding");
-#endif
 			if (m_supports_fast) write_have_none();
 
 			// if we are super seeding, pretend to not have any piece
 			// and don't send a bitfield
+#if TORRENT_USE_ASSERTS
 			m_sent_bitfield = true;
+#endif
 
 			// bootstrap superseeding by sending two have message
 			int piece = t->get_piece_to_super_seed(get_bitfield());
@@ -2120,7 +2012,7 @@ namespace libtorrent
 			if (piece >= 0) superseed_piece(-1, piece);
 			return;
 		}
-		else if (m_supports_fast && t->is_seed() && !m_settings.get_bool(settings_pack::lazy_bitfields))
+		else if (m_supports_fast && t->is_seed() && !m_ses.settings().lazy_bitfields)
 		{
 			write_have_all();
 			send_allowed_set();
@@ -2135,29 +2027,23 @@ namespace libtorrent
 		else if (t->num_have() == 0)
 		{
 			// don't send a bitfield if we don't have any pieces
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, have none");
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log(" *** NOT SENDING BITFIELD");
 #endif
+#if TORRENT_USE_ASSERTS
 			m_sent_bitfield = true;
+#endif
 			return;
 		}
 	
-		const int num_pieces = t->torrent_file().num_pieces();
-		TORRENT_ASSERT(num_pieces > 0);
-		if (num_pieces <= 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, num_pieces == 0");
-#endif
-			return;
-		}
+		int num_pieces = t->torrent_file().num_pieces();
 
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
 		int lazy_piece = 0;
 
-		if (t->is_seed() && m_settings.get_bool(settings_pack::lazy_bitfields)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+		if (t->is_seed() && m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
 			&& !m_encrypted
 #endif
 			)
@@ -2208,13 +2094,7 @@ namespace libtorrent
 		for (int c = 0; c < num_lazy_pieces; ++c)
 			msg[5 + lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 
-		// add predictive pieces to the bitfield as well, since we won't
-		// announce them again
-		for (std::vector<int>::const_iterator i = t->predictive_pieces().begin()
-			, end(t->predictive_pieces().end()); i != end; ++i)
-			msg[5 + *i / 8] |= (0x80 >> (*i & 7));
-
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 
 		std::string bitfield_string;
 		bitfield_string.resize(num_pieces);
@@ -2223,22 +2103,20 @@ namespace libtorrent
 			if (msg[5 + k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
 			else bitfield_string[k] = '0';
 		}
-		peer_log(peer_log_alert::outgoing_message, "BITFIELD"
-			, "%s", bitfield_string.c_str());
+		peer_log("==> BITFIELD [ %s ]", bitfield_string.c_str());
 #endif
+#if TORRENT_USE_ASSERTS
 		m_sent_bitfield = true;
+#endif
 
 		send_buffer(msg, packet_size);
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
 
 		if (num_lazy_pieces > 0)
 		{
 			for (int i = 0; i < num_lazy_pieces; ++i)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::outgoing_message, "HAVE"
-					, "piece: %d", lazy_pieces[i]);
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("==> HAVE    [ piece: %d ]", lazy_pieces[i]);
 #endif
 				write_have(lazy_pieces[i]);
 			}
@@ -2262,30 +2140,29 @@ namespace libtorrent
 
 		// if we're using a proxy, our listen port won't be useful
 		// anyway.
-		if (!m_settings.get_bool(settings_pack::force_proxy) && is_outgoing())
+		if (!m_ses.settings().force_proxy && is_outgoing())
 			handshake["p"] = m_ses.listen_port();
 
 		// only send the port in case we bade the connection
 		// on incoming connections the other end already knows
 		// our listen port
-		if (!m_settings.get_bool(settings_pack::anonymous_mode))
+		if (!m_ses.m_settings.anonymous_mode)
 		{
-			handshake["v"] = m_settings.get_str(settings_pack::handshake_client_version).empty()
-				? m_settings.get_str(settings_pack::user_agent)
-				: m_settings.get_str(settings_pack::handshake_client_version);
+			handshake["v"] = m_ses.settings().handshake_client_version.empty()
+				? m_ses.settings().user_agent : m_ses.settings().handshake_client_version;
 		}
 
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
 		handshake["yourip"] = remote_address;
-		handshake["reqq"] = m_settings.get_int(settings_pack::max_allowed_in_request_queue);
+		handshake["reqq"] = m_ses.settings().max_allowed_in_request_queue;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		m["upload_only"] = upload_only_msg;
 		m["ut_holepunch"] = holepunch_msg;
-		if (m_settings.get_bool(settings_pack::support_share_mode))
+		if (m_ses.m_settings.support_share_mode)
 			m["share_mode"] = share_mode_msg;
 		m["lt_donthave"] = dont_have_msg;
 
@@ -2294,28 +2171,25 @@ namespace libtorrent
 		handshake["complete_ago"] = complete_ago;
 
 		// if we're using lazy bitfields or if we're super seeding, don't say
-		// we're upload only, since it might make peers disconnect. don't tell
-		// anyone we're upload only when in share mode, we want to stay connected
-		// to seeds. if we're super seeding, we don't want to make peers think
-		// that we only have a single piece and is upload only, since they might
-		// disconnect immediately when they have downloaded a single piece,
-		// although we'll make another piece available. If we don't have
-		// metadata, we also need to suppress saying we're upload-only. If we do,
-		// we may be disconnected before we receive the metadata.
+		// we're upload only, since it might make peers disconnect
+		// don't tell anyone we're upload only when in share mode
+		// we want to stay connected to seeds
+		// if we're super seeding, we don't want to make peers
+		// think that we only have a single piece and is upload
+		// only, since they might disconnect immediately when
+		// they have downloaded a single piece, although we'll
+		// make another piece available
 		if (t->is_upload_only()
 			&& !t->share_mode()
-			&& t->valid_metadata()
 			&& !t->super_seeding()
-			&& (!m_settings.get_bool(settings_pack::lazy_bitfields)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+			&& (!m_ses.settings().lazy_bitfields
+#ifndef TORRENT_DISABLE_ENCRYPTION
 			|| m_encrypted
 #endif
 			))
-		{
 			handshake["upload_only"] = 1;
-		}
 
-		if (m_settings.get_bool(settings_pack::support_share_mode)
+		if (m_ses.m_settings.support_share_mode
 			&& t->share_mode())
 			handshake["share_mode"] = 1;
 
@@ -2354,11 +2228,8 @@ namespace libtorrent
 		send_buffer(msg, sizeof(msg));
 		send_buffer(&dict_msg[0], dict_msg.size());
 
-		stats_counters().inc_stats_counter(counters::num_outgoing_ext_handshake);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
-			, "%s", handshake.to_string().c_str());
+#if defined TORRENT_VERBOSE_LOGGING
+		peer_log("==> EXTENDED HANDSHAKE: %s", handshake.to_string().c_str());
 #endif
 	}
 #endif
@@ -2372,8 +2243,6 @@ namespace libtorrent
 		if (is_choked()) return;
 		char msg[] = {0,0,0,1,msg_choke};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_choke);
 	}
 
 	void bt_peer_connection::write_unchoke()
@@ -2384,8 +2253,6 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2404,8 +2271,6 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,1,msg_interested};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_interested);
 	}
 
 	void bt_peer_connection::write_not_interested()
@@ -2416,8 +2281,6 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,1,msg_not_interested};
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_not_interested);
 	}
 
 	void bt_peer_connection::write_have(int index)
@@ -2432,52 +2295,7 @@ namespace libtorrent
 		char* ptr = msg + 5;
 		detail::write_int32(index, ptr);
 		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have);
 	}
-
-	void bt_peer_connection::write_dont_have(int index)
-	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().num_pieces());
-
-		if (in_handshake()) return;
-
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
-
-		if (!m_supports_extensions || m_dont_have_id == 0) return;
-
-		char msg[] = {0,0,0,6,msg_extended,char(m_dont_have_id),0,0,0,0};
-		char* ptr = msg + 6;
-		detail::write_int32(index, ptr);
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
-#else
-		TORRENT_UNUSED(index);
-#endif
-	}
-
-	namespace {
-
-	void buffer_reclaim_block(char* /* buffer */, void* userdata
-		, block_cache_reference ref)
-	{
-		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
-		buf->reclaim_block(ref);
-	}
-
-	void buffer_free_disk_buf(char* buffer, void* userdata
-		, block_cache_reference /* ref */)
-	{
-		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
-		buf->free_disk_buffer(buffer);
-	}
-
-	} // anonymous namespace
 
 	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder& buffer)
 	{
@@ -2500,7 +2318,7 @@ namespace libtorrent
 		char* ptr = msg;
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 		detail::write_int32(r.length + 1 + 4 + 4, ptr);
-		if (m_settings.get_bool(settings_pack::support_merkle_torrents) && merkle)
+		if (m_ses.m_settings.support_merkle_torrents && merkle)
 			detail::write_uint8(250, ptr);
 		else
 			detail::write_uint8(msg_piece, ptr);
@@ -2536,22 +2354,35 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		if (buffer.ref().storage == 0)
-		{
-			append_send_buffer(buffer.get(), r.length
-				, &buffer_free_disk_buf, &m_allocator);
-		}
-		else
-		{
-			append_const_send_buffer(buffer.get(), r.length
-				, &buffer_reclaim_block, &m_allocator, buffer.ref());
-		}
+		bt_append_send_buffer(buffer.get(), r.length
+			, boost::bind(&session_impl::free_disk_buffer
+			, boost::ref(m_ses), _1));
 		buffer.release();
 
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
+	}
 
-		stats_counters().inc_stats_counter(counters::num_outgoing_piece);
+	namespace
+	{
+		struct match_peer_id
+		{
+			match_peer_id(peer_id const& id, peer_connection const* pc)
+				: m_id(id), m_pc(pc)
+			{ TORRENT_ASSERT(pc); }
+
+			bool operator()(policy::peer const* p) const
+			{
+				return p->connection != m_pc
+					&& p->connection
+					&& p->connection->pid() == m_id
+					&& !p->connection->pid().is_all_zeros()
+					&& p->address() == m_pc->remote().address();
+			}
+
+			peer_id const& m_id;
+			peer_connection const* m_pc;
+		};
 	}
 
 	// --------------------------
@@ -2565,78 +2396,38 @@ namespace libtorrent
 
 		if (error)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			return;
 		}
 
-		// make sure are much as possible of the response ends up in the same
-		// packet, or at least back-to-back packets
-		cork c_(*this);
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		if (!m_enc_handler.is_recv_plaintext())
-		{
-			int consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
-	#ifndef TORRENT_DISABLE_LOGGING
-			if (consumed + bytes_transferred > 0)
-				peer_log(peer_log_alert::incoming_message, "ENCRYPTION"
-					, "decrypted block s = %d", int(consumed + bytes_transferred));
-	#endif
-			if (bytes_transferred == SIZE_MAX)
-			{
-				disconnect(errors::parse_failed, op_encryption);
-				return;
-			}
-			received_bytes(0, consumed);
-
-			int sub_transferred = 0;
-			while (bytes_transferred > 0 &&
-				((sub_transferred = m_recv_buffer.advance_pos(bytes_transferred)) > 0))
-			{
-	#if TORRENT_USE_ASSERTS
-				boost::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
-				boost::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
-	#endif
-				on_receive_impl(sub_transferred);
-				bytes_transferred -= sub_transferred;
-				TORRENT_ASSERT(sub_transferred > 0);
-
-	#if TORRENT_USE_ASSERTS
-				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				boost::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-				TORRENT_ASSERT(stats_diff == int(sub_transferred));
-	#endif
-
-				if (m_disconnecting) return;
-			}
-		}
-		else
-#endif
-			on_receive_impl(bytes_transferred);
-	}
-
-	void bt_peer_connection::on_receive_impl(std::size_t bytes_transferred)
-	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
+	
+#ifndef TORRENT_DISABLE_ENCRYPTION
+		TORRENT_ASSERT(in_handshake() || !m_rc4_encrypted || m_encrypted);
+		if (m_rc4_encrypted && m_encrypted)
+		{
+			std::pair<buffer::interval, buffer::interval> wr_buf = wr_recv_buffers(bytes_transferred);
+			m_enc_handler->decrypt(wr_buf.first.begin, wr_buf.first.left());
+			if (wr_buf.second.left()) m_enc_handler->decrypt(wr_buf.second.begin, wr_buf.second.left());
+		}
+#endif
 
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
+		buffer::const_interval recv_buffer = receive_buffer();
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		// m_state is set to read_pe_dhkey in initial state
 		// (read_protocol_identifier) for incoming, or in constructor
 		// for outgoing
 		if (m_state == read_pe_dhkey)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == dh_key_len);
-			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
+			TORRENT_ASSERT(packet_size() == dh_key_len);
+			TORRENT_ASSERT(recv_buffer == receive_buffer());
 
-			if (!m_recv_buffer.packet_finished()) return;
+			if (!packet_finished()) return;
 			
 			// write our dh public key. m_dh_key_exchange is
 			// initialized in write_pe1_2_dhkey()
@@ -2646,14 +2437,14 @@ namespace libtorrent
 			// read dh key, generate shared secret
 			if (m_dh_key_exchange->compute_secret(recv_buffer.begin) != 0)
 			{
-				disconnect(errors::no_memory, op_encryption);
+				disconnect(errors::no_memory);
 				return;
 			}
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** received DH key");
 #endif
-
+						
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
 			// the sync hash (if incoming), or 8 bytes more for the
 			// encrypted verification constant (if outgoing). Instead
@@ -2669,22 +2460,24 @@ namespace libtorrent
 				// initial payload is the standard handshake, this is
 				// always rc4 if sent here. m_rc4_encrypted is flagged
 				// again according to peer selection.
-				switch_send_crypto(m_rc4);
-				write_handshake(true);
-				switch_send_crypto(boost::shared_ptr<crypto_plugin>());
+				m_rc4_encrypted = true;
+				m_encrypted = true;
+				write_handshake();
+				m_rc4_encrypted = false;
+				m_encrypted = false;
 
 				// vc,crypto_select,len(pad),pad, encrypt(handshake)
 				// 8+4+2+0+handshake_len
-				m_recv_buffer.reset(8+4+2+0+handshake_len);
+				reset_recv_buffer(8+4+2+0+handshake_len);
 			}
 			else
 			{
 				// already written dh key
 				m_state = read_pe_synchash;
 				// synchash,skeyhash,vc,crypto_provide,len(pad),pad,encrypt(handshake)
-				m_recv_buffer.reset(20+20+8+4+2+0+handshake_len);
+				reset_recv_buffer(20+20+8+4+2+0+handshake_len);
 			}
-			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+			TORRENT_ASSERT(!packet_finished());
 			return;
 		}
 
@@ -2694,14 +2487,14 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(!is_outgoing());
-			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
-
-			if (recv_buffer.left() < 20)
+			TORRENT_ASSERT(recv_buffer == receive_buffer());
+		   
+ 			if (recv_buffer.left() < 20)
 			{
-				received_bytes(0, bytes_transferred);
+				m_statistics.received_bytes(0, bytes_transferred);
 
-				if (m_recv_buffer.packet_finished())
-					disconnect(errors::sync_hash_not_found, op_bittorrent, 1);
+				if (packet_finished())
+					disconnect(errors::sync_hash_not_found, 1);
 				return;
 			}
 
@@ -2717,8 +2510,8 @@ namespace libtorrent
 				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
 				if (!m_sync_hash)
 				{
-					received_bytes(0, bytes_transferred);
-					disconnect(errors::no_memory, op_encryption);
+					m_statistics.received_bytes(0, bytes_transferred);
+					disconnect(errors::no_memory);
 					return;
 				}
 			}
@@ -2729,104 +2522,108 @@ namespace libtorrent
 			// No sync 
 			if (syncoffset == -1)
 			{
-				received_bytes(0, bytes_transferred);
+				m_statistics.received_bytes(0, bytes_transferred);
 
 				std::size_t bytes_processed = recv_buffer.left() - 20;
 				m_sync_bytes_read += bytes_processed;
 				if (m_sync_bytes_read >= 512)
 				{
-					disconnect(errors::sync_hash_not_found, op_encryption, 1);
+					disconnect(errors::sync_hash_not_found, 1);
 					return;
 				}
 
-				m_recv_buffer.cut(bytes_processed, (std::min)(m_recv_buffer.packet_size()
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size()
 					, (512+20) - m_sync_bytes_read));
 
-				TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+				TORRENT_ASSERT(!packet_finished());
 				return;
 			}
 			// found complete sync
 			else
 			{
 				std::size_t bytes_processed = syncoffset + 20;
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "sync point (hash) found at offset %d"
-					, int(m_sync_bytes_read + bytes_processed - 20));
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** sync point (hash) found at offset %d"
+					, m_sync_bytes_read + bytes_processed - 20);
 #endif
 				m_state = read_pe_skey_vc;
 				// skey,vc - 28 bytes
 				m_sync_hash.reset();
 				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
-				received_bytes(0, transferred_used);
+				m_statistics.received_bytes(0, transferred_used);
 				bytes_transferred -= transferred_used;
-				m_recv_buffer.cut(bytes_processed, 28);
+				cut_receive_buffer(bytes_processed, 28);
 			}
 		}
 
 		if (m_state == read_pe_skey_vc)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
 
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(!is_outgoing());
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 28);
+			TORRENT_ASSERT(packet_size() == 28);
 
-			if (!m_recv_buffer.packet_finished()) return;
-			if (is_disconnecting()) return;
-			TORRENT_ASSERT(!is_disconnecting());
+			if (!packet_finished()) return;
 
-			recv_buffer = m_recv_buffer.get();
+			recv_buffer = receive_buffer();
 
-			TORRENT_ASSERT(!is_disconnecting());
+			aux::session_impl::torrent_map::const_iterator i;
 
-			sha1_hash ih(recv_buffer.begin);
-			torrent const* ti = m_ses.find_encrypted_torrent(ih, m_dh_key_exchange->get_hash_xor_mask());
-
-			if (ti)
+			for (i = m_ses.m_torrents.begin(); i != m_ses.m_torrents.end(); ++i)
 			{
-				if (!t)
-				{
-					attach_to_torrent(ti->info_hash());
-					if (is_disconnecting()) return;
-					TORRENT_ASSERT(!is_disconnecting());
+				torrent const& ti = *i->second;
 
-					t = associated_torrent().lock();
-					TORRENT_ASSERT(t);
-				}
-			
-				init_pe_rc4_handler(m_dh_key_exchange->get_secret(), ti->info_hash());
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
+				sha1_hash const& skey_hash = ti.obfuscated_hash();
+				sha1_hash obfs_hash = m_dh_key_exchange->get_hash_xor_mask();
+				obfs_hash ^= skey_hash;
+
+				if (std::equal(recv_buffer.begin, recv_buffer.begin + 20,
+					(char*)&obfs_hash[0]))
+				{
+					if (!t)
+					{
+						attach_to_torrent(ti.info_hash(), false);
+						if (is_disconnecting()) return;
+
+						t = associated_torrent().lock();
+						TORRENT_ASSERT(t);
+					}
+
+					init_pe_rc4_handler(m_dh_key_exchange->get_secret(), ti.info_hash());
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** stream key found, torrent located");
 #endif
+					break;
+				}
 			}
 
-			if (!m_rc4.get())
+			if (!m_enc_handler.get())
 			{
-				disconnect(errors::invalid_info_hash, op_bittorrent, 1);
+				disconnect(errors::invalid_info_hash, 1);
 				return;
 			}
 
 			// verify constant
-			buffer::interval wr_recv_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_recv_buf.begin + 20, 8);
+			buffer::interval wr_recv_buf = wr_recv_buffer();
+			m_enc_handler->decrypt(wr_recv_buf.begin + 20, 8);
 			wr_recv_buf.begin += 28;
 
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
 			if (!std::equal(sh_vc, sh_vc+8, recv_buffer.begin + 20))
 			{
-				disconnect(errors::invalid_encryption_constant, op_encryption, 2);
+				disconnect(errors::invalid_encryption_constant, 2);
 				return;
 			}
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "verification constant found");
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** verification constant found");
 #endif
 			m_state = read_pe_cryptofield;
-			m_recv_buffer.reset(4 + 2);
+			reset_recv_buffer(4 + 2);
 		}
 
 		// cannot fall through into
@@ -2835,13 +2632,13 @@ namespace libtorrent
 			TORRENT_ASSERT(is_outgoing());
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
+ 			TORRENT_ASSERT(recv_buffer == receive_buffer());
 			
 			if (recv_buffer.left() < 8)
 			{
-				received_bytes(0, bytes_transferred);
-				if (m_recv_buffer.packet_finished())
-					disconnect(errors::invalid_encryption_constant, op_encryption, 2);
+				m_statistics.received_bytes(0, bytes_transferred);
+				if (packet_finished())
+					disconnect(errors::invalid_encryption_constant, 2);
 				return;
 			}
 
@@ -2853,11 +2650,11 @@ namespace libtorrent
 				m_sync_vc.reset(new (std::nothrow) char[8]);
 				if (!m_sync_vc)
 				{
-					disconnect(errors::no_memory, op_encryption);
+					disconnect(errors::no_memory);
 					return;
 				}
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
-				rc4_decrypt(m_sync_vc.get(), 8);
+				m_enc_handler->decrypt(m_sync_vc.get(), 8);
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
@@ -2869,34 +2666,33 @@ namespace libtorrent
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 8;
 				m_sync_bytes_read += bytes_processed;
-				received_bytes(0, bytes_transferred);
+				m_statistics.received_bytes(0, bytes_transferred);
 
 				if (m_sync_bytes_read >= 512)
 				{
-					disconnect(errors::invalid_encryption_constant, op_encryption, 2);
+					disconnect(errors::invalid_encryption_constant, 2);
 					return;
 				}
 
-				m_recv_buffer.cut(bytes_processed, (std::min)(m_recv_buffer.packet_size()
+				cut_receive_buffer(bytes_processed, (std::min)(packet_size()
 					, (512+8) - m_sync_bytes_read));
 
-				TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+				TORRENT_ASSERT(!packet_finished());
 			}
 			// found complete sync
 			else
 			{
 				std::size_t bytes_processed = syncoffset + 8;
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "sync point (verification constant) found at offset %d"
-					, int(m_sync_bytes_read + bytes_processed - 8));
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** sync point (verification constant) found at offset %d"
+					, m_sync_bytes_read + bytes_processed - 8);
 #endif
 				int transferred_used = bytes_processed - recv_buffer.left() + bytes_transferred;
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
-				received_bytes(0, transferred_used);
+				m_statistics.received_bytes(0, transferred_used);
 				bytes_transferred -= transferred_used;
 
-				m_recv_buffer.cut(bytes_processed, 4 + 2);
+				cut_receive_buffer(bytes_processed, 4 + 2);
 
 				// delete verification constant
 				m_sync_vc.reset();
@@ -2909,21 +2705,21 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 4+2);
-			received_bytes(0, bytes_transferred);
+			TORRENT_ASSERT(packet_size() == 4+2);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
 			
-			if (!m_recv_buffer.packet_finished()) return;
+			if (!packet_finished()) return;
 
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
-			recv_buffer = m_recv_buffer.get();
+			recv_buffer = receive_buffer();
 			
 			boost::uint32_t crypto_field = detail::read_uint32(recv_buffer.begin);
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "crypto %s : [%s%s ]"
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** crypto %s : [%s%s ]"
 				, is_outgoing() ? "select" : "provide"
 				, (crypto_field & 1) ? " plaintext" : ""
 				, (crypto_field & 2) ? " rc4" : "");
@@ -2932,12 +2728,12 @@ namespace libtorrent
 			if (!is_outgoing())
 			{
 				// select a crypto method
-				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
+				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
 				boost::uint32_t crypto_select = crypto_field & allowed_encryption;
 	
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
-				if (m_settings.get_bool(settings_pack::prefer_rc4))
+				if (m_ses.get_pe_settings().prefer_rc4)
 				{
 					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
 					while (crypto_select & (mask << 1))
@@ -2958,7 +2754,7 @@ namespace libtorrent
 
 				if (crypto_select == 0)
 				{
-					disconnect(errors::unsupported_encryption_mode, op_encryption, 1);
+					disconnect(errors::unsupported_encryption_mode, 1);
 					return;
 				}
 
@@ -2968,63 +2764,58 @@ namespace libtorrent
 			else // is_outgoing()
 			{
 				// check if crypto select is valid
-				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
+				int allowed_encryption = m_ses.get_pe_settings().allowed_enc_level;
 
 				crypto_field &= allowed_encryption; 
 				if (crypto_field == 0)
 				{
 					// we don't allow any of the offered encryption levels
-					disconnect(errors::unsupported_encryption_mode_selected, op_encryption, 2);
+					disconnect(errors::unsupported_encryption_mode_selected, 2);
 					return;
 				}
 
-				if (crypto_field == settings_pack::pe_plaintext)
+				if (crypto_field == pe_settings::plaintext)
 					m_rc4_encrypted = false;
-				else if (crypto_field == settings_pack::pe_rc4)
+				else if (crypto_field == pe_settings::rc4)
 					m_rc4_encrypted = true;
 			}
 
 			int len_pad = detail::read_int16(recv_buffer.begin);
 			if (len_pad < 0 || len_pad > 512)
 			{
-				disconnect(errors::invalid_pad_size, op_encryption, 2);
+				disconnect(errors::invalid_pad_size, 2);
 				return;
 			}
 			
 			m_state = read_pe_pad;
 			if (!is_outgoing())
-				m_recv_buffer.reset(len_pad + 2); // len(IA) at the end of pad
+				reset_recv_buffer(len_pad + 2); // len(IA) at the end of pad
 			else
 			{
 				if (len_pad == 0)
 				{
 					m_encrypted = true;
-					if (m_rc4_encrypted)
-					{
-						switch_send_crypto(m_rc4);
-						switch_recv_crypto(m_rc4);
-					}
 					m_state = init_bt_handshake;
 				}
 				else
-					m_recv_buffer.reset(len_pad);
+					reset_recv_buffer(len_pad);
 			}
 		}
 
 		if (m_state == read_pe_pad)
 		{
 			TORRENT_ASSERT(!m_encrypted);
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
-			if (!m_recv_buffer.packet_finished()) return;
+			if (!packet_finished()) return;
 
-			int pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
+			int pad_size = is_outgoing() ? packet_size() : packet_size() - 2;
 
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
-			recv_buffer = m_recv_buffer.get();
-
+			recv_buffer = receive_buffer();
+				
 			if (!is_outgoing())
 			{
 				recv_buffer.begin += pad_size;
@@ -3032,140 +2823,115 @@ namespace libtorrent
 				
 				if (len_ia < 0) 
 				{
-					disconnect(errors::invalid_encrypt_handshake, op_encryption, 2);
+					disconnect(errors::invalid_encrypt_handshake, 2);
 					return;
 				}
 
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "len(IA) : %d", len_ia);
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** len(IA) : %d", len_ia);
 #endif
 				if (len_ia == 0)
 				{
 					// everything after this is Encrypt2
 					m_encrypted = true;
-					if (m_rc4_encrypted)
-					{
-						switch_send_crypto(m_rc4);
-						switch_recv_crypto(m_rc4);
-					}
 					m_state = init_bt_handshake;
 				}
 				else
 				{
 					m_state = read_pe_ia;
-					m_recv_buffer.reset(len_ia);
+					reset_recv_buffer(len_ia);
 				}
 			}
 			else // is_outgoing()
 			{
 				// everything that arrives after this is Encrypt2
 				m_encrypted = true;
-				if (m_rc4_encrypted)
-				{
-					switch_send_crypto(m_rc4);
-					switch_recv_crypto(m_rc4);
-				}
 				m_state = init_bt_handshake;
 			}
 		}
 
 		if (m_state == read_pe_ia)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
 			TORRENT_ASSERT(!is_outgoing());
 			TORRENT_ASSERT(!m_encrypted);
 
-			if (!m_recv_buffer.packet_finished()) return;
+			if (!packet_finished()) return;
 
 			// ia is always rc4, so decrypt it
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			buffer::interval wr_buf = wr_recv_buffer();
+			m_enc_handler->decrypt(wr_buf.begin, packet_size());
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION"
-				, "decrypted ia : %d bytes", m_recv_buffer.packet_size());
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("*** decrypted ia : %d bytes", packet_size());
 #endif
+
+			if (!m_rc4_encrypted)
+			{
+				m_enc_handler.reset();
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** destroyed rc4 keys");
+#endif
+			}
 
 			// everything that arrives after this is encrypted
 			m_encrypted = true;
-			if (m_rc4_encrypted)
-			{
-				switch_send_crypto(m_rc4);
-				switch_recv_crypto(m_rc4);
-			}
-			m_rc4.reset();
 
 			m_state = read_protocol_identifier;
-			m_recv_buffer.cut(0, 20);
+			cut_receive_buffer(0, 20);
 		}
 
 		if (m_state == init_bt_handshake)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
 			TORRENT_ASSERT(m_encrypted);
-
-			if (is_outgoing() && t->ready_for_connections())
-			{
-				write_bitfield();
-#ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
-#endif
-
-				// if we don't have any pieces, don't do any preemptive
-				// unchoking at all.
-				if (t->num_have() > 0)
-				{
-					// if the peer is ignoring unchoke slots, or if we have enough
-					// unused slots, unchoke this peer right away, to save a round-trip
-					// in case it's interested.
-					maybe_unchoke_this_peer();
-				}
-			}
 
 			// decrypt remaining received bytes
 			if (m_rc4_encrypted)
 			{
-				buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-				wr_buf.begin += m_recv_buffer.packet_size();
-				rc4_decrypt(wr_buf.begin, wr_buf.left());
-
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "decrypted remaining %d bytes", wr_buf.left());
+				buffer::interval wr_buf = wr_recv_buffer();
+				wr_buf.begin += packet_size();
+				m_enc_handler->decrypt(wr_buf.begin, wr_buf.left());
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** decrypted remaining %d bytes", wr_buf.left());
 #endif
 			}
-			m_rc4.reset();
+			else // !m_rc4_encrypted
+			{
+				m_enc_handler.reset();
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** destroyed encryption handler");
+#endif
+			}
 
 			// payload stream, start with 20 handshake bytes
 			m_state = read_protocol_identifier;
-			m_recv_buffer.reset(20);
+			reset_recv_buffer(20);
 
 			// encrypted portion of handshake completed, toggle
 			// peer_info pe_support flag back to true
 			if (is_outgoing() &&
-				m_settings.get_int(settings_pack::out_enc_policy)
-					== settings_pack::pe_enabled)
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
-				torrent_peer* pi = peer_info_struct();
+				policy::peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
 				
 				pi->pe_support = true;
 			}
 		}
 
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#endif // #ifndef TORRENT_DISABLE_ENCRYPTION
 		
 		if (m_state == read_protocol_identifier)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 20);
+			TORRENT_ASSERT(packet_size() == 20);
 
-			if (!m_recv_buffer.packet_finished()) return;
-			recv_buffer = m_recv_buffer.get();
+			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
 
 			int packet_size = recv_buffer[0];
 			const char protocol_string[] = "\x13" "BitTorrent protocol";
@@ -3173,29 +2939,26 @@ namespace libtorrent
 			if (packet_size != 19 ||
 				memcmp(recv_buffer.begin, protocol_string, 20) != 0)
 			{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "unrecognized protocol header");
+#ifndef TORRENT_DISABLE_ENCRYPTION
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** unrecognized protocol header");
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
 				if (is_ssl(*get_socket()))
 				{
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "ENCRYPTION"
-						, "SSL peers are not allowed to use any other encryption");
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** SSL peers are not allowed to use any other encryption");
 #endif
-					disconnect(errors::invalid_info_hash, op_bittorrent, 1);
+					disconnect(errors::invalid_info_hash, 1);
 					return;
 				}
 #endif // TORRENT_USE_OPENSSL
 
 				if (!is_outgoing()
-					&& m_settings.get_int(settings_pack::in_enc_policy)
-						== settings_pack::pe_disabled)
+					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::disabled)
 				{
-					disconnect(errors::no_incoming_encrypted, op_bittorrent);
+					disconnect(errors::no_incoming_encrypted);
 					return;
 				}
 
@@ -3205,59 +2968,58 @@ namespace libtorrent
 				// handshake by this point
 				if (m_encrypted || is_outgoing())
 				{
-					disconnect(errors::invalid_info_hash, op_bittorrent, 1);
+					disconnect(errors::invalid_info_hash, 1);
 					return;
 				}
 
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "attempting encrypted connection");
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("*** attempting encrypted connection");
 #endif
 				m_state = read_pe_dhkey;
-				m_recv_buffer.cut(0, dh_key_len);
-				TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+				cut_receive_buffer(0, dh_key_len);
+				TORRENT_ASSERT(!packet_finished());
 				return;
 #else
-				disconnect(errors::invalid_info_hash, op_bittorrent, 1);
+				disconnect(errors::invalid_info_hash, 1);
 				return;
 #endif // TORRENT_DISABLE_ENCRYPTION
 			}
 			else
 			{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 				TORRENT_ASSERT(m_state != read_pe_dhkey);
 
 				if (!is_outgoing()
-					&& m_settings.get_int(settings_pack::in_enc_policy)
-						== settings_pack::pe_forced
+					&& m_ses.get_pe_settings().in_enc_policy == pe_settings::forced
 					&& !m_encrypted
 					&& !is_ssl(*get_socket()))
 				{
-					disconnect(errors::no_incoming_regular, op_bittorrent);
+					disconnect(errors::no_incoming_regular);
 					return;
 				}
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "HANDSHAKE", "BitTorrent protocol");
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<== BitTorrent protocol");
 #endif
 			}
 
 			m_state = read_info_hash;
-			m_recv_buffer.reset(28);
+			reset_recv_buffer(28);
 		}
 
 		// fall through
 		if (m_state == read_info_hash)
 		{
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 28);
+			TORRENT_ASSERT(packet_size() == 28);
 
-			if (!m_recv_buffer.packet_finished()) return;
-			recv_buffer = m_recv_buffer.get();
+			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
 
 
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifdef TORRENT_VERBOSE_LOGGING	
 			std::string extensions;
 			extensions.resize(8 * 8);
 			for (int i=0; i < 8; ++i)
@@ -3268,7 +3030,7 @@ namespace libtorrent
 					else extensions[i*8+j] = '0';
 				}
 			}
-			peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s"
+			peer_log("<== EXTENSIONS [ %s ext: %s%s%s]"
 				, extensions.c_str()
 				, (recv_buffer[7] & 0x01) ? "DHT " : ""
 				, (recv_buffer[7] & 0x04) ? "FAST " : ""
@@ -3286,8 +3048,6 @@ namespace libtorrent
 			if (recv_buffer[7] & 0x04)
 				m_supports_fast = true;
 
-			t = associated_torrent().lock();
-
 			// ok, now we have got enough of the handshake. Is this connection
 			// attached to a torrent?
 			if (!t)
@@ -3298,7 +3058,13 @@ namespace libtorrent
 				std::copy(recv_buffer.begin + 8, recv_buffer.begin + 28
 					, (char*)info_hash.begin());
 
-				attach_to_torrent(info_hash);
+#ifndef TORRENT_DISABLE_ENCRYPTION
+				bool allow_encrypted = m_encrypted && m_rc4_encrypted;
+#else
+				bool allow_encrypted = true;
+#endif
+
+				attach_to_torrent(info_hash, allow_encrypted);
 				if (is_disconnecting()) return;
 			}
 			else
@@ -3307,15 +3073,15 @@ namespace libtorrent
 				if (!std::equal(recv_buffer.begin + 8, recv_buffer.begin + 28
 					, (const char*)t->torrent_file().info_hash().begin()))
 				{
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "ERROR", "received invalid info_hash");
+#ifdef TORRENT_VERBOSE_LOGGING
+					peer_log("*** received invalid info_hash");
 #endif
-					disconnect(errors::invalid_info_hash, op_bittorrent, 1);
+					disconnect(errors::invalid_info_hash, 1);
 					return;
 				}
 
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming, "HANDSHAKE", "info_hash received");
+#ifdef TORRENT_VERBOSE_LOGGING
+				peer_log("<<< info_hash received");
 #endif
 			}
 
@@ -3325,32 +3091,35 @@ namespace libtorrent
 			// if this is a local connection, we have already
 			// sent the handshake
 			if (!is_outgoing()) write_handshake();
+//			if (t->valid_metadata())
+//				write_bitfield();
 			TORRENT_ASSERT(m_sent_handshake);
 
 			if (is_disconnecting()) return;
 
+			TORRENT_ASSERT(t->get_policy().has_connection(this));
+
 			m_state = read_peer_id;
-			m_recv_buffer.reset(20);
+ 			reset_recv_buffer(20);
 		}
 
 		// fall through
 		if (m_state == read_peer_id)
 		{
 			TORRENT_ASSERT(m_sent_handshake);
-			received_bytes(0, bytes_transferred);
+			m_statistics.received_bytes(0, bytes_transferred);
 //			bytes_transferred = 0;
-			t = associated_torrent().lock();
-			if (!t)
+  			if (!t)
 			{
-				TORRENT_ASSERT(!m_recv_buffer.packet_finished()); // TODO
+				TORRENT_ASSERT(!packet_finished()); // TODO
 				return;
 			}
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 20);
+			TORRENT_ASSERT(packet_size() == 20);
 			
-			if (!m_recv_buffer.packet_finished()) return;
-			recv_buffer = m_recv_buffer.get();
+ 			if (!packet_finished()) return;
+			recv_buffer = receive_buffer();
 
-#ifndef TORRENT_DISABLE_LOGGING
+#ifdef TORRENT_VERBOSE_LOGGING
 			{
 				char hex_pid[41];
 				to_hex(recv_buffer.begin, 20, hex_pid);
@@ -3362,20 +3131,23 @@ namespace libtorrent
 					if (is_print(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
 					else ascii_pid[i] = '.';
 				}
-				peer_log(peer_log_alert::incoming, "HANDSHAKE", "received peer_id: %s client: %s ascii: \"%s\""
+				peer_log("<<< received peer_id: %s client: %s ascii: \"%s\""
 					, hex_pid, identify_client(peer_id(recv_buffer.begin)).c_str(), ascii_pid);
 			}
 #endif
 			peer_id pid;
 			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
-
-			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
+			set_pid(pid);
+ 
+			if (t->settings().allow_multiple_connections_per_ip)
 			{
 				// now, let's see if this connection should be closed
-				peer_connection* p = t->find_peer(pid);
-				if (p)
+				policy& p = t->get_policy();
+				policy::iterator i = std::find_if(p.begin_peer(), p.end_peer()
+					, match_peer_id(pid, this));
+				if (i != p.end_peer())
 				{
-					TORRENT_ASSERT(p->pid() == pid);
+					TORRENT_ASSERT((*i)->connection->pid() == pid);
 					// we found another connection with the same peer-id
 					// which connection should be closed in order to be
 					// sure that the other end closes the same connection?
@@ -3385,24 +3157,22 @@ namespace libtorrent
 					// if not, we should close the outgoing one.
 					if (pid < m_our_peer_id && is_outgoing())
 					{
-						p->disconnect(errors::duplicate_peer_id, op_bittorrent);
+						(*i)->connection->disconnect(errors::duplicate_peer_id);
 					}
 					else
 					{
-						disconnect(errors::duplicate_peer_id, op_bittorrent);
+						disconnect(errors::duplicate_peer_id);
 						return;
 					}
 				}
 			}
 
-			set_pid(pid);
-
 			// disconnect if the peer has the same peer-id as ourself
 			// since it most likely is ourself then
 			if (pid == m_our_peer_id)
 			{
-				if (peer_info_struct()) t->ban_peer(peer_info_struct());
-				disconnect(errors::self_connection, op_bittorrent, 1);
+				if (peer_info_struct()) t->get_policy().ban_peer(peer_info_struct());
+				disconnect(errors::self_connection, 1);
 				return;
 			}
  
@@ -3432,21 +3202,19 @@ namespace libtorrent
 			if (m_supports_extensions) write_extensions();
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HANDSHAKE");
+#ifdef TORRENT_VERBOSE_LOGGING
+			peer_log("<== HANDSHAKE");
 #endif
 			// consider this a successful connection, reset the failcount
-			if (peer_info_struct())
-				t->clear_failcount(peer_info_struct());
+			if (peer_info_struct()) t->get_policy().set_failcount(peer_info_struct(), 0);
 			
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 			// Toggle pe_support back to false if this is a
 			// standard successful connection
 			if (is_outgoing() && !m_encrypted &&
-				m_settings.get_int(settings_pack::out_enc_policy)
-					== settings_pack::pe_enabled)
+				m_ses.get_pe_settings().out_enc_policy == pe_settings::enabled)
 			{
-				torrent_peer* pi = peer_info_struct();
+				policy::peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
 
 				pi->pe_support = false;
@@ -3454,9 +3222,17 @@ namespace libtorrent
 #endif
 
 			m_state = read_packet_size;
-			m_recv_buffer.reset(5);
+			reset_recv_buffer(5);
+			if (t->ready_for_connections())
+			{
+				write_bitfield();
+#ifndef TORRENT_DISABLE_DHT
+				if (m_supports_dht_port && m_ses.m_dht)
+					write_dht_port(m_ses.m_external_udp_port);
+#endif
+			}
 
-			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+			TORRENT_ASSERT(!packet_finished());
 			return;
 		}
 
@@ -3464,21 +3240,20 @@ namespace libtorrent
 		if (m_state == read_packet_size)
 		{
 			// Make sure this is not fallen though into
-			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
-			TORRENT_ASSERT(m_recv_buffer.packet_size() == 5);
+			TORRENT_ASSERT(recv_buffer == receive_buffer());
+			TORRENT_ASSERT(packet_size() == 5);
 
 			if (!t) return;
 
-			// the 5th byte (if one) should not count as protocol
-			// byte here, instead it's counted in the message
-			// handler itself, for the specific message
-			TORRENT_ASSERT(bytes_transferred <= 5);
-			int used_bytes = recv_buffer.left() > 4 ? bytes_transferred - 1: bytes_transferred;
-			received_bytes(0, used_bytes);
-			bytes_transferred -= used_bytes;
-			if (recv_buffer.left() < 4) return;
-
-			TORRENT_ASSERT(bytes_transferred <= 1);
+			if (recv_buffer.left() < 4)
+			{
+				m_statistics.received_bytes(0, bytes_transferred);
+				return;
+			}
+			int transferred_used = 4 - recv_buffer.left() + bytes_transferred;
+			TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
+			m_statistics.received_bytes(0, transferred_used);
+			bytes_transferred -= transferred_used;
 
 			const char* ptr = recv_buffer.begin;
 			int packet_size = detail::read_int32(ptr);
@@ -3486,76 +3261,65 @@ namespace libtorrent
 			// don't accept packets larger than 1 MB
 			if (packet_size > 1024*1024 || packet_size < 0)
 			{
+				m_statistics.received_bytes(0, bytes_transferred);
 				// packet too large
-				received_bytes(0, bytes_transferred);
-				disconnect(errors::packet_too_large, op_bittorrent, 2);
+				disconnect(errors::packet_too_large, 2);
 				return;
 			}
-
+					
 			if (packet_size == 0)
 			{
-				TORRENT_ASSERT(bytes_transferred <= 1);
-				received_bytes(0, bytes_transferred);
+				m_statistics.received_bytes(0, bytes_transferred);
 				incoming_keepalive();
 				if (is_disconnecting()) return;
 				// keepalive message
 				m_state = read_packet_size;
-				m_recv_buffer.cut(4, 5);
+				cut_receive_buffer(4, 5);
 				return;
 			}
-			if (recv_buffer.left() < 5) return;
+			else
+			{
+				if (recv_buffer.left() < 5) return;
 
-			m_state = read_packet;
-			m_recv_buffer.cut(4, packet_size);
-			recv_buffer = m_recv_buffer.get();
-			TORRENT_ASSERT(recv_buffer.left() == 1);
-			TORRENT_ASSERT(bytes_transferred == 1);
+				m_state = read_packet;
+				cut_receive_buffer(4, packet_size);
+				TORRENT_ASSERT(bytes_transferred == 1);
+				recv_buffer = receive_buffer();
+				TORRENT_ASSERT(recv_buffer.left() == 1);
+			}
 		}
 
 		if (m_state == read_packet)
 		{
-			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
+			TORRENT_ASSERT(recv_buffer == receive_buffer());
 			if (!t)
 			{
-				received_bytes(0, bytes_transferred);
-				disconnect(errors::torrent_removed, op_bittorrent, 1);
+				m_statistics.received_bytes(0, bytes_transferred);
+				disconnect(errors::torrent_removed, 1);
 				return;
 			}
 #ifdef TORRENT_DEBUG
-			boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
-			boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
+			size_type cur_payload_dl = m_statistics.last_payload_downloaded();
+			size_type cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
 			if (dispatch_message(bytes_transferred))
 			{
 				m_state = read_packet_size;
-				m_recv_buffer.reset(5);
+				reset_recv_buffer(5);
 			}
 #ifdef TORRENT_DEBUG
-			TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
-			TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-			boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
-				statistics().last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == boost::int64_t(bytes_transferred));
+			TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
+			TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
+			size_type stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				m_statistics.last_protocol_downloaded() - cur_protocol_dl;
+			TORRENT_ASSERT(stats_diff == size_type(bytes_transferred));
 #endif
-			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+			TORRENT_ASSERT(!packet_finished());
 			return;
 		}
-
-		TORRENT_ASSERT(!m_recv_buffer.packet_finished());
-	}
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	int bt_peer_connection::hit_send_barrier(std::vector<asio::mutable_buffer>& iovec)
-	{
-		int next_barrier = m_enc_handler.encrypt(iovec);
-#ifndef TORRENT_DISABLE_LOGGING
-		if (next_barrier != 0)
-			peer_log(peer_log_alert::outgoing_message, "SEND_BARRIER"
-				, "encrypted block s = %d", next_barrier);
-#endif
-		return next_barrier;
-	}
-#endif
+		
+		TORRENT_ASSERT(!packet_finished());
+	}	
 
 	// --------------------------
 	// SEND DATA
@@ -3568,7 +3332,7 @@ namespace libtorrent
 
 		if (error)
 		{
-			sent_bytes(0, bytes_transferred);
+			m_statistics.sent_bytes(0, bytes_transferred);
 			return;
 		}
 
@@ -3576,11 +3340,6 @@ namespace libtorrent
 		int amount_payload = 0;
 		if (!m_payloads.empty())
 		{
-			// this points to the first entry to not erase. i.e.
-			// [begin, first_to_keep) will be erased because
-			// the payload ranges they represent have been sent
-			std::vector<range>::iterator first_to_keep = m_payloads.begin();
-
 			for (std::vector<range>::iterator i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
@@ -3590,8 +3349,6 @@ namespace libtorrent
 					if (i->start + i->length <= 0)
 					{
 						amount_payload += i->length;
-						TORRENT_ASSERT(first_to_keep == i);
-						++first_to_keep;
 					}
 					else
 					{
@@ -3601,13 +3358,16 @@ namespace libtorrent
 					}
 				}
 			}
-
-			// remove all payload ranges that have been sent
-			m_payloads.erase(m_payloads.begin(), first_to_keep);
 		}
 
+		// TODO: move the erasing into the loop above
+		// remove all payload ranges that has been sent
+		m_payloads.erase(
+			std::remove_if(m_payloads.begin(), m_payloads.end(), range_below_zero)
+			, m_payloads.end());
+
 		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
-		sent_bytes(amount_payload, bytes_transferred - amount_payload);
+		m_statistics.sent_bytes(amount_payload, bytes_transferred - amount_payload);
 		
 		if (amount_payload > 0)
 		{
@@ -3622,11 +3382,11 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+#ifndef TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_outgoing());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4) || (m_encrypted && !m_enc_handler.is_send_plaintext()));
+		TORRENT_ASSERT(!m_rc4_encrypted || m_enc_handler.get());
 #endif
 		if (!in_handshake())
 		{

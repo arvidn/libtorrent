@@ -41,71 +41,48 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
-#include "libtorrent/add_torrent_params.hpp"
-#ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp" // for feed_handle
-#endif
-#include "libtorrent/operations.hpp" // for operation_t enum
-#include "libtorrent/close_reason.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
+
+// lines reserved for future includes
+// the type-ids of the alert types
+// are derived from the line on which
+// they are declared
 
 
-#ifdef __GNUC__
-// this is to suppress the warnings for using std::auto_ptr
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+
 
 namespace libtorrent
 {
 
-	namespace aux {
-		struct stack_allocator;
-	}
-
-	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
-	// to its name. See peer_connection for the constants
-	TORRENT_EXPORT char const* operation_name(int op);
-
 	// user defined alerts should use IDs greater than this
-	static const int user_alert_id = 10000;
+	const static int user_alert_id = 10000;
 
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
 	struct TORRENT_EXPORT torrent_alert: alert
 	{
 		// internal
-		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_alert(torrent_handle const& h);
 		
 		// internal
-		static const int alert_type = 0;
+		const static int alert_type = 1;
 		virtual std::string message() const;
 
 		// The torrent_handle pointing to the torrent this
 		// alert is associated with.
 		torrent_handle handle;
-
-		char const* torrent_name() const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		std::string name;
-#endif
-
-	protected:
-		aux::stack_allocator const& m_alloc;
-	private:
-		int m_name_idx;
 	};
 
 	// The peer alert is a base class for alerts that refer to a specific peer. It includes all
 	// the information to identify the peer. i.e. ``ip`` and ``peer-id``.
-	struct TORRENT_EXPORT peer_alert : torrent_alert
+	struct TORRENT_EXPORT peer_alert: torrent_alert
 	{
 		// internal
-		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
-			tcp::endpoint const& i, peer_id const& pi);
+		peer_alert(torrent_handle const& h, tcp::endpoint const& i
+			, peer_id const& pi);
 
-		static const int alert_type = 1;
-		static const int static_category = alert::peer_notification;
+		const static int alert_type = 2;
+		const static int static_category = alert::peer_notification;
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
 
@@ -122,46 +99,25 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_alert: torrent_alert
 	{
 		// internal
-		tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		tracker_alert(torrent_handle const& h
 			, std::string const& u);
 
-		static const int alert_type = 2;
-		static const int static_category = alert::tracker_notification;
+		const static int alert_type = 3;
+		const static int static_category = alert::tracker_notification;
 		virtual int category() const { return static_category; }
 		virtual std::string message() const;
 
-		// returns a null-terminated string of the tracker's URL
-		char const* tracker_url() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		// The tracker URL
 		std::string url;
-#endif
-	private:
-		int m_url_idx;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
-	#define TORRENT_CLONE(name) \
-		virtual std::auto_ptr<alert> clone() const \
-		{ return std::auto_ptr<alert>(new name(*this)); }
-#else
-	#define TORRENT_CLONE(name)
-#endif
-
-#define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
-	static const int priority = prio; \
-	static const int alert_type = seq; \
+#define TORRENT_DEFINE_ALERT(name) \
+	const static int alert_type = __LINE__; \
 	virtual int type() const { return alert_type; } \
-	TORRENT_CLONE(name) \
+	virtual std::auto_ptr<alert> clone() const \
+	{ return std::auto_ptr<alert>(new name(*this)); } \
 	virtual int category() const { return static_category; } \
 	virtual char const* what() const { return #name; }
-
-#define TORRENT_DEFINE_ALERT(name, seq) \
-	TORRENT_DEFINE_ALERT_IMPL(name, seq, 0)
-
-#define TORRENT_DEFINE_ALERT_PRIO(name, seq) \
-	TORRENT_DEFINE_ALERT_IMPL(name, seq, 1)
 
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
@@ -170,10 +126,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_added_alert: torrent_alert
 	{
 		// internal
-		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_added_alert(torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_added_alert, 3)
-		static const int static_category = alert::status_notification;
+		TORRENT_DEFINE_ALERT(torrent_added_alert);
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -192,15 +148,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_removed_alert: torrent_alert
 	{
 		// internal
-		torrent_removed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+		torrent_removed_alert(torrent_handle const& h, sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4)
-		static const int static_category = alert::status_notification;
+		TORRENT_DEFINE_ALERT(torrent_removed_alert);
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
 		sha1_hash info_hash;
 	};
 
@@ -215,17 +167,15 @@ namespace libtorrent
  	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
 		// internal
-		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		read_piece_alert(torrent_handle const& h
 			, int p, boost::shared_array<char> d, int s);
-		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h, int p, error_code e);
+		read_piece_alert(torrent_handle h, int p, error_code e);
 
-		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5)
+		TORRENT_DEFINE_ALERT(read_piece_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		error_code ec;
 		boost::shared_array<char> buffer;
@@ -238,12 +188,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_completed_alert: torrent_alert
 	{
 		// internal
-		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		file_completed_alert(torrent_handle const& h
 			, int idx);
 
-		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
+		TORRENT_DEFINE_ALERT(file_completed_alert);
 
-		static const int static_category = alert::progress_notification;
+		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
 		// refers to the index of the file that completed.
@@ -255,26 +205,21 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
 	{
 		// internal
-		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		file_renamed_alert(torrent_handle const& h
 			, std::string const& n
 			, int idx);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7)
+		TORRENT_DEFINE_ALERT(file_renamed_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
 
 		std::string name;
-#endif
-
-		char const* new_name() const;
 
 		// refers to the index of the file that was renamed,
+		// ``name`` is the new name of the file.
 		int index;
-	private:
-		int m_name_idx;
 	};
 
 	// This is posted as a response to a torrent_handle::rename_file() call, if the rename
@@ -282,18 +227,16 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_rename_failed_alert: torrent_alert
 	{
 		// internal
-		file_rename_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int idx
+		file_rename_failed_alert(torrent_handle const& h
+			, int idx
 			, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8)
+		TORRENT_DEFINE_ALERT(file_rename_failed_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// refers to the index of the file that was supposed to be renamed,
 		// ``error`` is the error code returned from the filesystem.
@@ -309,7 +252,7 @@ namespace libtorrent
 		{
 
 			// This warning means that the number of bytes queued to be written to disk
-			// exceeds the max disk byte queue setting (``settings_pack::max_queued_disk_bytes``).
+			// exceeds the max disk byte queue setting (``session_settings::max_queued_disk_bytes``).
 			// This might restrict the download rate, by not queuing up enough write jobs
 			// to the disk I/O thread. When this alert is posted, peer connections are
 			// temporarily stopped from downloading, until the queued disk bytes have fallen
@@ -318,9 +261,9 @@ namespace libtorrent
 			outstanding_disk_buffer_limit_reached,
 
 			// This is posted when libtorrent would like to send more requests to a peer,
-			// but it's limited by ``settings_pack::max_out_request_queue``. The queue length
+			// but it's limited by ``session_settings::max_out_request_queue``. The queue length
 			// libtorrent is trying to achieve is determined by the download rate and the
-			// assumed round-trip-time (``settings_pack::request_queue_time``). The assumed
+			// assumed round-trip-time (``session_settings::request_queue_time``). The assumed
 			// rount-trip-time is not limited to just the network RTT, but also the remote disk
 			// access time and message handling time. It defaults to 3 seconds. The target number
 			// of outstanding requests is set to fill the bandwidth-delay product (assumed RTT
@@ -372,11 +315,10 @@ namespace libtorrent
 			// queue. Either lower ``max_queued_disk_bytes`` or increase ``cache_size``.
 			too_high_disk_queue_limit,
 
-			aio_limit_reached,
 			bittyrant_with_no_uplimit,
 
 			// This is generated if outgoing peer connections are failing because of *address in use*
-			// errors, indicating that ``settings_pack::outgoing_ports`` is set and is too small of
+			// errors, indicating that ``session_settings::outgoing_ports`` is set and is too small of
 			// a range. Consider not using the ``outgoing_ports`` setting at all, or widen the range to
 			// include more ports.
 			too_few_outgoing_ports,
@@ -387,12 +329,12 @@ namespace libtorrent
 		};
 
 		// internal
-		performance_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		performance_alert(torrent_handle const& h
 			, performance_warning_t w);
 
-		TORRENT_DEFINE_ALERT(performance_alert, 9)
+		TORRENT_DEFINE_ALERT(performance_alert);
 
-		static const int static_category = alert::performance_warning;
+		const static int static_category = alert::performance_warning;
 
 		virtual std::string message() const;
 
@@ -403,13 +345,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT state_changed_alert: torrent_alert
 	{
 		// internal
-		state_changed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		state_changed_alert(torrent_handle const& h
 			, torrent_status::state_t st
 			, torrent_status::state_t prev_st);
 
-		TORRENT_DEFINE_ALERT(state_changed_alert, 10)
+		TORRENT_DEFINE_ALERT(state_changed_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 
 		virtual std::string message() const;
 
@@ -431,31 +373,22 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
 	{
 		// internal
-		tracker_error_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		tracker_error_alert(torrent_handle const& h
 			, int times
 			, int status
 			, std::string const& u
 			, error_code const& e
 			, std::string const& m);
 
-		TORRENT_DEFINE_ALERT(tracker_error_alert, 11)
+		TORRENT_DEFINE_ALERT(tracker_error_alert);
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		const static int static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const;
 
 		int times_in_row;
 		int status_code;
 		error_code error;
-#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
-#endif
-
-		// the message associated with this error
-		char const* error_message() const;
-
-	private:
-		int m_msg_idx;
 	};
 
 	// This alert is triggered if the tracker reply contains a warning field.
@@ -464,39 +397,29 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
 	{
 		// internal
-		tracker_warning_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		tracker_warning_alert(torrent_handle const& h
 			, std::string const& u
 			, std::string const& m);
 
-		TORRENT_DEFINE_ALERT(tracker_warning_alert, 12)
+		TORRENT_DEFINE_ALERT(tracker_warning_alert);
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		const static int static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// contains the warning message from the tracker.
 		std::string msg;
-#endif
-
-		// the message associated with this warning
-		char const* warning_message() const;
-
-	private:
-		int m_msg_idx;
 	};
 
 	// This alert is generated when a scrape request succeeds.
 	struct TORRENT_EXPORT scrape_reply_alert: tracker_alert
 	{
 		// internal
-		scrape_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		scrape_reply_alert(torrent_handle const& h
 			, int incomp
 			, int comp
 			, std::string const& u);
 
-		TORRENT_DEFINE_ALERT(scrape_reply_alert, 13)
+		TORRENT_DEFINE_ALERT(scrape_reply_alert);
 
 		virtual std::string message() const;
 
@@ -512,36 +435,21 @@ namespace libtorrent
 	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
 	{
 		// internal
-		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		scrape_failed_alert(torrent_handle const& h
 			, std::string const& u
 			, error_code const& e);
-		scrape_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+
+		scrape_failed_alert(torrent_handle const& h
 			, std::string const& u
 			, std::string const& m);
 
-		TORRENT_DEFINE_ALERT(scrape_failed_alert, 14)
+		TORRENT_DEFINE_ALERT(scrape_failed_alert);
 
-		static const int static_category = alert::tracker_notification | alert::error_notification;
+		const static int static_category = alert::tracker_notification | alert::error_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// contains a message describing the error.
 		std::string msg;
-#endif
-
-		// the error itself. This may indicate that the tracker sent an error
-		// message (``error::tracker_failure``), in which case it can be
-		// retrieved by calling ``error_message()``.
-		error_code error;
-
-		// if the error indicates there is an associated message, this returns
-		// that message. Otherwise and empty string.
-		char const* error_message() const;
-
-	private:
-		int m_msg_idx;
 	};
 
 	// This alert is only for informational purpose. It is generated when a tracker announce
@@ -550,12 +458,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_reply_alert: tracker_alert
 	{
 		// internal
-		tracker_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		tracker_reply_alert(torrent_handle const& h
 			, int np
 			, std::string const& u);
 
-		TORRENT_DEFINE_ALERT(tracker_reply_alert, 15)
+		TORRENT_DEFINE_ALERT(tracker_reply_alert);
 
 		virtual std::string message() const;
 
@@ -572,11 +479,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_reply_alert: tracker_alert
 	{
 		// internal
-		dht_reply_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		dht_reply_alert(torrent_handle const& h
 			, int np);
 
-		TORRENT_DEFINE_ALERT(dht_reply_alert, 16)
+		TORRENT_DEFINE_ALERT(dht_reply_alert);
 
 		virtual std::string message() const;
 
@@ -589,11 +495,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT tracker_announce_alert: tracker_alert
 	{
 		// internal
-		tracker_announce_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
+		tracker_announce_alert(torrent_handle const& h
 			, std::string const& u, int e);
 
-		TORRENT_DEFINE_ALERT(tracker_announce_alert, 17)
+		TORRENT_DEFINE_ALERT(tracker_announce_alert);
 
 		virtual std::string message() const;
 
@@ -611,12 +516,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT hash_failed_alert: torrent_alert
 	{
 		// internal
-		hash_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		hash_failed_alert(
+			torrent_handle const& h
 			, int index);
 
-		TORRENT_DEFINE_ALERT(hash_failed_alert, 18)
+		TORRENT_DEFINE_ALERT(hash_failed_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 
 		int piece_index;
@@ -627,10 +533,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_ban_alert: peer_alert
 	{
 		// internal
-		peer_ban_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+		peer_ban_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id);
 
-		TORRENT_DEFINE_ALERT(peer_ban_alert, 19)
+		TORRENT_DEFINE_ALERT(peer_ban_alert);
 
 		virtual std::string message() const;
 	};
@@ -640,10 +546,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
 	{
 		// internal
-		peer_unsnubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+		peer_unsnubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id);
 
-		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert, 20)
+		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert);
 
 		virtual std::string message() const;
 	};
@@ -653,10 +559,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
 	{
 		// internal
-		peer_snubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+		peer_snubbed_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id);
 
-		TORRENT_DEFINE_ALERT(peer_snubbed_alert, 21)
+		TORRENT_DEFINE_ALERT(peer_snubbed_alert);
 
 		virtual std::string message() const;
 	};
@@ -666,18 +572,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_error_alert: peer_alert
 	{
 		// internal
-		peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int op
-			, error_code const& e);
+		peer_error_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(peer_error_alert, 22)
+		TORRENT_DEFINE_ALERT(peer_error_alert);
 
-		static const int static_category = alert::peer_notification;
+		const static int static_category = alert::peer_notification;
 		virtual std::string message() const;
-
-		// a NULL-terminated string of the low-level operation that failed, or NULL if
-		// there was no low level disk operation.
-		int operation;
 
 		// tells you what error caused this alert.
 		error_code error;
@@ -691,12 +592,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_connect_alert: peer_alert
 	{
 		// internal
-		peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int type);
+		peer_connect_alert(torrent_handle h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int type);
 
-		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
+		TORRENT_DEFINE_ALERT(peer_connect_alert);
 
-		static const int static_category = alert::debug_notification;
+		const static int static_category = alert::debug_notification;
 		virtual std::string message() const;
 
 		int socket_type;
@@ -707,28 +608,16 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
 	{
 		// internal
-		peer_disconnected_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, operation_t op, int type, error_code const& e
-			, close_reason_t r);
+		peer_disconnected_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(peer_disconnected_alert, 24)
+		TORRENT_DEFINE_ALERT(peer_disconnected_alert);
 
-		static const int static_category = alert::debug_notification;
+		const static int static_category = alert::debug_notification;
 		virtual std::string message() const;
-
-		// the kind of socket this peer was connected over
-		int socket_type;
-
-		// the operation or level where the error occurred. Specified as an
-		// value from the operation_t enum. Defined in operations.hpp.
-		operation_t operation;
 
 		// tells you what error caused peer to disconnect.
 		error_code error;
-
-		// the reason the peer disconnected (if specified)
-		close_reason_t reason;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
@@ -741,28 +630,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT invalid_request_alert: peer_alert
 	{
 		// internal
-		invalid_request_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, tcp::endpoint const& ep
-			, peer_id const& peer_id, peer_request const& r
-			, bool we_have, bool peer_interested, bool withheld);
+		invalid_request_alert(torrent_handle const& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, peer_request const& r);
 
-		TORRENT_DEFINE_ALERT(invalid_request_alert, 25)
+		TORRENT_DEFINE_ALERT(invalid_request_alert);
 
 		virtual std::string message() const;
 
-		// the request we received from the peer
 		peer_request request;
-
-		// true if we have this piece
-		bool we_have;
-
-		// true if the peer indicated that it was interested to download before
-		// sending the request
-		bool peer_interested;
-
-		// if this is true, the peer is not allowed to download this piece because
-		// of superseeding rules.
-		bool withheld;
 	};
 
 	// This alert is generated when a torrent switches from being a downloader to a seed.
@@ -771,12 +646,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_finished_alert: torrent_alert
 	{
 		// internal
-		torrent_finished_alert(aux::stack_allocator& alloc, 
-			torrent_handle h);
+		torrent_finished_alert(const torrent_handle& h);
 
-		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
+		TORRENT_DEFINE_ALERT(torrent_finished_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -786,12 +660,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
 	{
 		// internal
-		piece_finished_alert(aux::stack_allocator& alloc, 
-			torrent_handle const& h, int piece_num);
+		piece_finished_alert(
+			const torrent_handle& h
+			, int piece_num);
 
-		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
+		TORRENT_DEFINE_ALERT(piece_finished_alert);
 
-		static const int static_category = alert::progress_notification;
+		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
 		// the index of the piece that finished
@@ -802,13 +677,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT request_dropped_alert: peer_alert
 	{
 		// internal
-		request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+		request_dropped_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num);
 
-		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
+		TORRENT_DEFINE_ALERT(request_dropped_alert);
 
-		static const int static_category = alert::progress_notification
+		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
 		virtual std::string message() const;
 
@@ -820,13 +694,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT block_timeout_alert: peer_alert
 	{
 		// internal
-		block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+		block_timeout_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num);
 
-		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
+		TORRENT_DEFINE_ALERT(block_timeout_alert);
 
-		static const int static_category = alert::progress_notification
+		const static int static_category = alert::progress_notification
 			| alert::peer_notification;
 		virtual std::string message() const;
 
@@ -838,13 +711,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT block_finished_alert: peer_alert
 	{
 		// internal
-		block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+		block_finished_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, int block_num, int piece_num);
 
-		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
+		TORRENT_DEFINE_ALERT(block_finished_alert);
 
-		static const int static_category = alert::progress_notification;
+		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
 		int block_index;
@@ -855,18 +727,15 @@ namespace libtorrent
 	struct TORRENT_EXPORT block_downloading_alert: peer_alert
 	{
 		// internal
-		block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
-			, peer_id const& peer_id, int block_num, int piece_num);
+		block_downloading_alert(const torrent_handle& h, tcp::endpoint const& ep
+			, peer_id const& peer_id, char const* speedmsg, int block_num, int piece_num);
 
-		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
+		TORRENT_DEFINE_ALERT(block_downloading_alert);
 
-		static const int static_category = alert::progress_notification;
+		const static int static_category = alert::progress_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		char const* peer_speedmsg;
-#endif
 		int block_index;
 		int piece_index;
 	};
@@ -876,11 +745,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
 	{
 		// internal
-		unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
+		unwanted_block_alert(const torrent_handle& h, tcp::endpoint const& ep
 			, peer_id const& peer_id, int block_num, int piece_num);
 
-		TORRENT_DEFINE_ALERT(unwanted_block_alert, 32)
+		TORRENT_DEFINE_ALERT(unwanted_block_alert);
 
 		virtual std::string message() const;
 
@@ -895,23 +763,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
 	{
 		// internal
-		storage_moved_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, std::string const& p);
+		storage_moved_alert(torrent_handle const& h, std::string const& p);
 	
-		TORRENT_DEFINE_ALERT(storage_moved_alert, 33)
+		TORRENT_DEFINE_ALERT(storage_moved_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		std::string path;
-#endif
-
-		// the path the torrent was moved to
-		char const* storage_path() const;
-
-	private:
-		int m_path_idx;
 	};
 
 	// The ``storage_moved_failed_alert`` is generated when an attempt to move the storage,
@@ -919,32 +778,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT storage_moved_failed_alert: torrent_alert
 	{
 		// internal
-		storage_moved_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
-			, error_code const& e
-			, std::string const& file
-			, char const* op);
+		storage_moved_failed_alert(torrent_handle const& h, error_code const& e);
 	
-		TORRENT_DEFINE_ALERT(storage_moved_failed_alert, 34)
+		TORRENT_DEFINE_ALERT(storage_moved_failed_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
 
 		error_code error;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// If the error happened for a speific file, ``file`` is its path.
-		std::string file;
-#endif
-
-		// If the error happened for a speific file, this returns its path.
-		char const* file_path() const;
-
-		// If the error happened in a specific disk operation this is a NULL
-		// terminated string naming which one, otherwise it's NULL.
-		char const* operation;
-	private:
-		int m_file_idx;
 	};
 
 	// This alert is generated when a request to delete the files of a torrent complete.
@@ -959,17 +800,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
 	{
 		// internal
-		torrent_deleted_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, sha1_hash const& ih);
+		torrent_deleted_alert(torrent_handle const& h, sha1_hash const& ih);
 	
-		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35)
+		TORRENT_DEFINE_ALERT(torrent_deleted_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		sha1_hash info_hash;
 	};
@@ -979,18 +816,15 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
 	{
 		// internal
-		torrent_delete_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
+		torrent_delete_failed_alert(torrent_handle const& h, error_code const& e
+			, sha1_hash const& ih);
 	
-		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36)
+		TORRENT_DEFINE_ALERT(torrent_delete_failed_alert);
 
-		static const int static_category = alert::storage_notification
+		const static int static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// tells you why it failed.
 		error_code error;
@@ -1008,18 +842,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT save_resume_data_alert: torrent_alert
 	{
 		// internal
-		save_resume_data_alert(aux::stack_allocator& alloc
-			, boost::shared_ptr<entry> const& rd
+		save_resume_data_alert(boost::shared_ptr<entry> const& rd
 			, torrent_handle const& h);
 	
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37)
+		TORRENT_DEFINE_ALERT(save_resume_data_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 		virtual std::string message() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// points to the resume data.
 		boost::shared_ptr<entry> resume_data;
@@ -1030,20 +860,16 @@ namespace libtorrent
 	struct TORRENT_EXPORT save_resume_data_failed_alert: torrent_alert
 	{
 		// internal
-		save_resume_data_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& e);
+		save_resume_data_failed_alert(torrent_handle const& h
+			, error_code const& e);
 	
-		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38)
+		TORRENT_DEFINE_ALERT(save_resume_data_failed_alert);
 
-		static const int static_category = alert::storage_notification
+		const static int static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const;
-
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
-		// the error code from the resume_data failure
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1057,11 +883,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
 	{
 		// internal
-		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_paused_alert(torrent_handle const& h);
 	
-		TORRENT_DEFINE_ALERT(torrent_paused_alert, 39)
+		TORRENT_DEFINE_ALERT(torrent_paused_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -1070,11 +896,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_resumed_alert: torrent_alert
 	{
 		// internal
-		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_resumed_alert(torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_resumed_alert, 40)
+		TORRENT_DEFINE_ALERT(torrent_resumed_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -1083,11 +909,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
 	{
 		// internal
-		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_checked_alert(torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(torrent_checked_alert, 41)
+		TORRENT_DEFINE_ALERT(torrent_checked_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -1095,38 +921,25 @@ namespace libtorrent
 	struct TORRENT_EXPORT url_seed_alert: torrent_alert
 	{
 		// internal
-		url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, std::string const& u, error_code const& e);
-		url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, std::string const& u, std::string const& m);
+		url_seed_alert(
+			torrent_handle const& h
+			, std::string const& u
+			, error_code const& e);
+		url_seed_alert(
+			torrent_handle const& h
+			, std::string const& u
+			, std::string const& m);
 
-		TORRENT_DEFINE_ALERT(url_seed_alert, 42)
+		TORRENT_DEFINE_ALERT(url_seed_alert);
 
-		static const int static_category = alert::peer_notification | alert::error_notification;
-		std::string message() const;
+		const static int static_category = alert::peer_notification | alert::error_notification;
+		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the HTTP seed that failed
 		std::string url;
 
 		// the error message, potentially from the server
 		std::string msg;
-#endif
-
-		// the error the web seed encountered. If this is not set, the server
-		// sent an error message, call ``error_message()``.
-		error_code error;
-
-		// the URL the error is associated with
-		char const* server_url() const;
-
-		// in case the web server sent an error message, this function returns
-		// it.
-		char const* error_message() const;
-
-	private:
-		int m_url_idx;
-		int m_msg_idx;
 	};
 
 	// If the storage fails to read or write files that it needs access to, this alert is
@@ -1134,36 +947,27 @@ namespace libtorrent
 	struct TORRENT_EXPORT file_error_alert: torrent_alert
 	{
 		// internal
-		file_error_alert(aux::stack_allocator& alloc
-			, error_code const& ec
-			, std::string const& file
-			, char const* op
-			, torrent_handle const& h);
+		file_error_alert(
+			std::string const& f
+			, torrent_handle const& h
+			, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(file_error_alert, 43)
+		TORRENT_DEFINE_ALERT(file_error_alert);
 
-		static const int static_category = alert::status_notification
+		const static int static_category = alert::status_notification
 			| alert::error_notification
 			| alert::storage_notification;
 		virtual std::string message() const;
 		
-#ifndef TORRENT_NO_DEPRECATE
 		// the path to the file that was accessed when the error occurred.
 		std::string file;
-#endif
 
 		// the error code describing the error.
 		error_code error;
-		char const* operation;
-
-		// the file that experienced the error
-		char const* filename() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
 #endif
-	private:
-		int m_file_idx;
 	};
 
 	// This alert is generated when the metadata has been completely received and the info-hash
@@ -1173,16 +977,14 @@ namespace libtorrent
 	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
 	{
 		// internal
-		metadata_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, error_code const& ec);
+		metadata_failed_alert(const torrent_handle& h, error_code e);
 
-		TORRENT_DEFINE_ALERT(metadata_failed_alert, 44)
+		TORRENT_DEFINE_ALERT(metadata_failed_alert);
 
-		static const int static_category = alert::error_notification;
+		const static int static_category = alert::error_notification;
 		virtual std::string message() const;
 
-		// indicates what failed when parsing the metadata. This error is
-		// what's returned from lazy_bdecode().
+		// the error that occurred
 		error_code error;
 	};
 	
@@ -1198,7 +1000,7 @@ namespace libtorrent
 	// 
 	//	torrent_handle h = alert->handle();
 	//	if (h.is_valid()) {
-	//		boost::shared_ptr<torrent_info const> ti = h.torrent_file();
+	//		boost::intrusive_ptr<torrent_info const> ti = h.torrent_file();
 	//		create_torrent ct(*ti);
 	//		entry te = ct.generate();
 	//		std::vector<char> buffer;
@@ -1213,12 +1015,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT metadata_received_alert: torrent_alert
 	{
 		// internal
-		metadata_received_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h);
+		metadata_received_alert(
+			const torrent_handle& h);
 
-		TORRENT_DEFINE_ALERT(metadata_received_alert, 45)
+		TORRENT_DEFINE_ALERT(metadata_received_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 	};
 
@@ -1229,13 +1031,12 @@ namespace libtorrent
 	{
 		// internal
 		udp_error_alert(
-			aux::stack_allocator& alloc
-			, udp::endpoint const& ep
+			udp::endpoint const& ep
 			, error_code const& ec);
 
-		TORRENT_DEFINE_ALERT(udp_error_alert, 46)
+		TORRENT_DEFINE_ALERT(udp_error_alert);
 
-		static const int static_category = alert::error_notification;
+		const static int static_category = alert::error_notification;
 		virtual std::string message() const;
 
 		// the source address associated with the error (if any)
@@ -1252,11 +1053,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT external_ip_alert: alert
 	{
 		// internal
-		external_ip_alert(aux::stack_allocator& alloc, address const& ip);
+		external_ip_alert(address const& ip);
 
-		TORRENT_DEFINE_ALERT(external_ip_alert, 47)
+		TORRENT_DEFINE_ALERT(external_ip_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 
 		// the IP address that is believed to be our external IP
@@ -1274,29 +1075,23 @@ namespace libtorrent
 	// listen on it.
 	struct TORRENT_EXPORT listen_failed_alert: alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
+		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5 };
 
 		// internal
 		listen_failed_alert(
-			aux::stack_allocator& alloc
-			, std::string iface
+			tcp::endpoint const& ep
 			, int op
 			, error_code const& ec
 			, socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_failed_alert, 48)
+		TORRENT_DEFINE_ALERT(listen_failed_alert);
 
-		static const int static_category = alert::status_notification | alert::error_notification;
+		const static int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
 
-		// the interface libtorrent attempted to listen on
-		std::string interface;
-#endif
-
-		// the interface libtorrent attempted to listen on that failed.
-		char const* listen_interface() const;
+		// the endpoint libtorrent attempted to listen on
+		tcp::endpoint endpoint;
 
 		// the error the system returned
 		error_code error;
@@ -1311,9 +1106,6 @@ namespace libtorrent
 
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
-	private:
-		aux::stack_allocator const& m_alloc;
-		int m_interface_idx;
 	};
 
 	// This alert is posted when the listen port succeeds to be opened on a
@@ -1321,19 +1113,16 @@ namespace libtorrent
 	// was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert: alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, utp_ssl };
+		enum socket_type_t { tcp, tcp_ssl, udp };
 
 		// internal
-		listen_succeeded_alert(aux::stack_allocator& alloc, tcp::endpoint const& ep
-			, socket_type_t t);
+		listen_succeeded_alert(tcp::endpoint const& ep, socket_type_t t);
 
-		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49)
+		TORRENT_DEFINE_ALERT(listen_succeeded_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
@@ -1352,12 +1141,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT portmap_error_alert: alert
 	{
 		// internal
-		portmap_error_alert(aux::stack_allocator& alloc, int i, int t
-			, error_code const& e);
+		portmap_error_alert(int i, int t, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(portmap_error_alert, 50)
+		TORRENT_DEFINE_ALERT(portmap_error_alert);
 
-		static const int static_category = alert::port_mapping_notification
+		const static int static_category = alert::port_mapping_notification
 			| alert::error_notification;
 		virtual std::string message() const;
 
@@ -1382,11 +1170,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT portmap_alert: alert
 	{
 		// internal
-		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t);
+		portmap_alert(int i, int port, int t);
 
-		TORRENT_DEFINE_ALERT(portmap_alert, 51)
+		TORRENT_DEFINE_ALERT(portmap_alert);
 
-		static const int static_category = alert::port_mapping_notification;
+		const static int static_category = alert::port_mapping_notification;
 		virtual std::string message() const;
 
 		// refers to the mapping index of the port map that failed, i.e.
@@ -1407,67 +1195,37 @@ namespace libtorrent
 	struct TORRENT_EXPORT portmap_log_alert: alert
 	{
 		// internal
-		portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m);
+		portmap_log_alert(int t, std::string const& m);
 
-		TORRENT_DEFINE_ALERT(portmap_log_alert, 52)
+		TORRENT_DEFINE_ALERT(portmap_log_alert);
 
-		static const int static_category = alert::port_mapping_notification;
+		const static int static_category = alert::port_mapping_notification;
 		virtual std::string message() const;
 
 		int map_type;
-
-#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
-#endif
-
-		// the message associated with this log line
-		char const* log_message() const;
-
-	private:
-
-		// TODO: 2 should the alert baseclass have this object instead?
-		aux::stack_allocator const& m_alloc;
-
-		int m_log_idx;
 	};
 
-	// This alert is generated when a fastresume file has been passed to
-	// add_torrent() but the files on disk did not match the fastresume file.
-	// The error_code explains the reason why the resume file was rejected.
+	// This alert is generated when a fastresume file has been passed to add_torrent() but the
+	// files on disk did not match the fastresume file. The error_code explains the reason why the
+	// resume file was rejected.
 	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
 	{
 		// internal
-		fastresume_rejected_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h
-			, error_code const& ec
-			, std::string const& file
-			, char const* op);
+		fastresume_rejected_alert(torrent_handle const& h
+			, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(fastresume_rejected_alert, 53)
+		TORRENT_DEFINE_ALERT(fastresume_rejected_alert);
 
-		static const int static_category = alert::status_notification
+		const static int static_category = alert::status_notification
 			| alert::error_notification;
 		virtual std::string message() const;
 
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// If the error happend to a specific file, ``file`` is the path to it.
-		std::string file;
-#endif
-
-		// If the error happend to a specific file, this returns the path to it.
-		char const* file_path() const;
-
-		// If the error happened in a disk operation. a NULL-terminated string of
-		// the name of that operation. ``operation`` is NULL otherwise.
-		char const* operation;
-
-#ifndef TORRENT_NO_DEPRECATE
 		std::string msg;
 #endif
-	private:
-		int m_path_idx;
 	};
 
 	// This alert is posted when an incoming peer connection, or a peer that's about to be added
@@ -1481,12 +1239,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
 	{
 		// internal
-		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, address const& i, int r);
+		peer_blocked_alert(torrent_handle const& h, address const& i
+			, int r);
 		
-		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
+		TORRENT_DEFINE_ALERT(peer_blocked_alert);
 
-		static const int static_category = alert::ip_block_notification;
+		const static int static_category = alert::ip_block_notification;
 		virtual std::string message() const;
 
 		// the address that was blocked.
@@ -1499,8 +1257,7 @@ namespace libtorrent
 			i2p_mixed,
 			privileged_ports,
 			utp_disabled,
-			tcp_disabled,
-			invalid_local_interface
+			tcp_disabled
 		};
 
 		int reason;
@@ -1511,12 +1268,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_announce_alert: alert
 	{
 		// internal
-		dht_announce_alert(aux::stack_allocator& alloc, address const& i, int p
+		dht_announce_alert(address const& i, int p
 			, sha1_hash const& ih);
 		
-		TORRENT_DEFINE_ALERT(dht_announce_alert, 55)
+		TORRENT_DEFINE_ALERT(dht_announce_alert);
 
-		static const int static_category = alert::dht_notification;
+		const static int static_category = alert::dht_notification;
 		virtual std::string message() const;
 
 		address ip;
@@ -1529,11 +1286,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_get_peers_alert: alert
 	{
 		// internal
-		dht_get_peers_alert(aux::stack_allocator& alloc, sha1_hash const& ih);
+		dht_get_peers_alert(sha1_hash const& ih);
 
-		TORRENT_DEFINE_ALERT(dht_get_peers_alert, 56)
+		TORRENT_DEFINE_ALERT(dht_get_peers_alert);
 
-		static const int static_category = alert::dht_notification;
+		const static int static_category = alert::dht_notification;
 		virtual std::string message() const;
 
 		sha1_hash info_hash;
@@ -1545,12 +1302,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT stats_alert: torrent_alert
 	{
 		// internal
-		stats_alert(aux::stack_allocator& alloc, torrent_handle const& h, int interval
+		stats_alert(torrent_handle const& h, int interval
 			, stat const& s);
 
-		TORRENT_DEFINE_ALERT(stats_alert, 57)
+		TORRENT_DEFINE_ALERT(stats_alert);
 
-		static const int static_category = alert::stats_notification;
+		const static int static_category = alert::stats_notification;
 		virtual std::string message() const;
 
 		enum stats_channel
@@ -1559,21 +1316,13 @@ namespace libtorrent
 			upload_protocol,
 			download_payload,
 			download_protocol,
+#ifndef TORRENT_DISABLE_FULL_STATS
 			upload_ip_protocol,
-#ifndef TORRENT_NO_DEPRECATE
 			upload_dht_protocol,
 			upload_tracker_protocol,
-#else
-			deprecated1,
-			deprecated2,
-#endif
 			download_ip_protocol,
-#ifndef TORRENT_NO_DEPRECATE
 			download_dht_protocol,
 			download_tracker_protocol,
-#else
-			deprecated3,
-			deprecated4,
 #endif
 			num_channels
 		};
@@ -1597,11 +1346,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
 	{
 		// internal
-		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		cache_flushed_alert(torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT(cache_flushed_alert, 58)
+		TORRENT_DEFINE_ALERT(cache_flushed_alert);
 
-		static const int static_category = alert::storage_notification;
+		const static int static_category = alert::storage_notification;
 	};
 
 	// This alert is posted when a bittorrent feature is blocked because of the
@@ -1611,12 +1360,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT anonymous_mode_alert: torrent_alert
 	{
 		// internal
-		anonymous_mode_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		anonymous_mode_alert(torrent_handle const& h
 			, int k, std::string const& s);
 
-		TORRENT_DEFINE_ALERT(anonymous_mode_alert, 59)
+		TORRENT_DEFINE_ALERT(anonymous_mode_alert);
 
-		static const int static_category = alert::error_notification;
+		const static int static_category = alert::error_notification;
 		virtual std::string message() const;
 
 		enum kind_t
@@ -1637,12 +1386,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT lsd_peer_alert: peer_alert
 	{
 		// internal
-		lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		lsd_peer_alert(torrent_handle const& h
 			, tcp::endpoint const& i);
 
-		TORRENT_DEFINE_ALERT(lsd_peer_alert, 60)
+		TORRENT_DEFINE_ALERT(lsd_peer_alert);
 
-		static const int static_category = alert::peer_notification;
+		const static int static_category = alert::peer_notification;
 		virtual std::string message() const;
 	};
 
@@ -1652,54 +1401,44 @@ namespace libtorrent
 	struct TORRENT_EXPORT trackerid_alert: tracker_alert
 	{
 		// internal
-		trackerid_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		trackerid_alert(torrent_handle const& h
 			, std::string const& u
 			, const std::string& id);
 
-		TORRENT_DEFINE_ALERT(trackerid_alert, 61)
+		TORRENT_DEFINE_ALERT(trackerid_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// The tracker ID returned by the tracker
 		std::string trackerid;
-#endif
-
-		// The tracker ID returned by the tracker
-		char const* tracker_id() const;
-
-	private:
-		int m_tracker_idx;
 	};
 
 	// This alert is posted when the initial DHT bootstrap is done.
 	struct TORRENT_EXPORT dht_bootstrap_alert: alert
 	{
 		// internal
-		dht_bootstrap_alert(aux::stack_allocator& alloc);
+		dht_bootstrap_alert();
 		
-		TORRENT_DEFINE_ALERT(dht_bootstrap_alert, 62)
+		TORRENT_DEFINE_ALERT(dht_bootstrap_alert);
 
-		static const int static_category = alert::dht_notification;
+		const static int static_category = alert::dht_notification;
 		virtual std::string message() const;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted on RSS feed events such as start of RSS feed updates,
 	// successful completed updates and errors during updates.
 	// 
 	// This alert is only posted if the ``rss_notifications`` category is enabled
 	// in the alert_mask.
-	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert: alert
+	struct TORRENT_EXPORT rss_alert: alert
 	{
 		// internal
-		rss_alert(aux::stack_allocator& alloc, feed_handle h
-			, std::string const& u, int s, error_code const& ec);
+		rss_alert(feed_handle h, std::string const& u, int s, error_code const& ec);
 
-		TORRENT_DEFINE_ALERT(rss_alert, 63)
+		TORRENT_DEFINE_ALERT(rss_alert);
 
-		static const int static_category = alert::rss_notification;
+		const static int static_category = alert::rss_notification;
 		virtual std::string message() const;
 
 		enum state_t
@@ -1731,33 +1470,21 @@ namespace libtorrent
 		// an error code used for when an error occurs on the feed.
 		error_code error;
 	};
-#endif // TORRENT_NO_DEPRECATE
 
 	// This is posted whenever a torrent is transitioned into the error state.
 	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
 	{
 		// internal
-		torrent_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, error_code const& e, std::string const& f);
+		torrent_error_alert(torrent_handle const& h
+			, error_code const& e);
 
-		TORRENT_DEFINE_ALERT(torrent_error_alert, 64)
+		TORRENT_DEFINE_ALERT(torrent_error_alert);
 
-		static const int static_category = alert::error_notification | alert::status_notification;
+		const static int static_category = alert::error_notification | alert::status_notification;
 		virtual std::string message() const;
 
 		// specifies which error the torrent encountered.
 		error_code error;
-		
-#ifndef TORRENT_NO_DEPRECATE
-		// the filename (or object) the error occurred on.
-		std::string error_file;
-#endif
-
-		// the filename (or object) the error occurred on.
-		char const* filename() const;
-
-	private:
-		int m_file_idx;
 	};
 
 	// This is always posted for SSL torrents. This is a reminder to the client that
@@ -1767,16 +1494,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_need_cert_alert: torrent_alert
 	{
 		// internal
-		torrent_need_cert_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h);
+		torrent_need_cert_alert(torrent_handle const& h);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_need_cert_alert, 65)
+		TORRENT_DEFINE_ALERT(torrent_need_cert_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		error_code error;
 	};
@@ -1790,12 +1514,11 @@ namespace libtorrent
 	struct TORRENT_EXPORT incoming_connection_alert: alert
 	{
 		// internal
-		incoming_connection_alert(aux::stack_allocator& alloc, int t
-			, tcp::endpoint const& i);
+		incoming_connection_alert(int t, tcp::endpoint const& i);
 
-		TORRENT_DEFINE_ALERT(incoming_connection_alert, 66)
+		TORRENT_DEFINE_ALERT(incoming_connection_alert);
 
-		static const int static_category = alert::peer_notification;
+		const static int static_category = alert::peer_notification;
 		virtual std::string message() const;
 
 		// tells you what kind of socket the connection was accepted
@@ -1825,16 +1548,13 @@ namespace libtorrent
 	struct TORRENT_EXPORT add_torrent_alert : torrent_alert
 	{
 		// internal
-		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
-			, add_torrent_params const& p, error_code ec);
+		add_torrent_alert(torrent_handle h, add_torrent_params const& p, error_code ec);
 
-		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67)
+		TORRENT_DEFINE_ALERT(add_torrent_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// a copy of the parameters used when adding the torrent, it can be used
 		// to identify which invocation to ``async_add_torrent()`` caused this alert.
@@ -1844,98 +1564,47 @@ namespace libtorrent
 		error_code error;
 	};
 
-	// This alert is only posted when requested by the user, by calling
-	// session::post_torrent_updates() on the session. It contains the torrent
-	// status of all torrents that changed since last time this message was
-	// posted. Its category is ``status_notification``, but it's not subject to
-	// filtering, since it's only manually posted anyway.
+	// This alert is only posted when requested by the user, by calling session::post_torrent_updates()
+	// on the session. It contains the torrent status of all torrents that changed
+	// since last time this message was posted. Its category is ``status_notification``, but
+	// it's not subject to filtering, since it's only manually posted anyway.
 	struct TORRENT_EXPORT state_update_alert : alert
 	{
-		state_update_alert(aux::stack_allocator& alloc
-			, std::vector<torrent_status> st);
+		TORRENT_DEFINE_ALERT(state_update_alert);
 
-		TORRENT_DEFINE_ALERT_PRIO(state_update_alert, 68)
-
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
-		// contains the torrent status of all torrents that changed since last
-		// time this message was posted. Note that you can map a torrent status
-		// to a specific torrent via its ``handle`` member. The receiving end is
-		// suggested to have all torrents sorted by the torrent_handle or hashed
-		// by it, for efficient updates.
+		// contains the torrent status of all torrents that changed since last time
+		// this message was posted. Note that you can map a torrent status to a specific torrent
+		// via its ``handle`` member. The receiving end is suggested to have all torrents sorted
+		// by the torrent_handle or hashed by it, for efficient updates.
 		std::vector<torrent_status> status;
 	};
-	
-	struct TORRENT_EXPORT mmap_cache_alert : alert
-	{
-		mmap_cache_alert(aux::stack_allocator& alloc
-			, error_code const& ec);
-		TORRENT_DEFINE_ALERT(mmap_cache_alert, 69)
 
-		static const int static_category = alert::error_notification;
-		virtual std::string message() const;
-
-		error_code error;
-	};
-
-	// The session_stats_alert is posted when the user requests session statistics by
-	// calling post_session_stats() on the session object. Its category is
-	// ``status_notification``, but it is not subject to filtering, since it's only
-	// manually posted anyway.
-	struct TORRENT_EXPORT session_stats_alert : alert
-	{
-		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
-		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70)
-
-		static const int static_category = alert::stats_notification;
-		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
-
-		// An array are a mix of *counters* and *gauges*, which meanings can be
-		// queries via the session_stats_metrics() function on the session. The
-		// mapping from a specific metric to an index into this array is constant
-		// for a specific version of libtorrent, but may differ for other
-		// versions. The intended usage is to request the mapping, i.e. call
-		// session_stats_metrics(), once on startup, and then use that mapping to
-		// interpret these values throughout the process' runtime.
-		//
-		// For more information, see the session-statistics_ section.
-		boost::uint64_t values[counters::num_counters];
-	};
-
-	// When a torrent changes its info-hash, this alert is posted. This only
-	// happens in very specific cases. For instance, when a torrent is
-	// downloaded from a URL, the true info hash is not known immediately. First
-	// the .torrent file must be downloaded and parsed.
+	// When a torrent changes its info-hash, this alert is posted. This only happens in very
+	// specific cases. For instance, when a torrent is downloaded from a URL, the true info
+	// hash is not known immediately. First the .torrent file must be downloaded and parsed.
 	// 
-	// Once this download completes, the ``torrent_update_alert`` is posted to
-	// notify the client of the info-hash changing.
+	// Once this download completes, the ``torrent_update_alert`` is posted to notify the client
+	// of the info-hash changing.
 	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
 	{
 		// internal
-		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
-			, sha1_hash const& old_hash, sha1_hash const& new_hash);
+		torrent_update_alert(torrent_handle h, sha1_hash const& old_hash, sha1_hash const& new_hash);
 
-		TORRENT_DEFINE_ALERT_PRIO(torrent_update_alert, 71)
+		TORRENT_DEFINE_ALERT(torrent_update_alert);
 
-		static const int static_category = alert::status_notification;
+		const static int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 		sha1_hash old_ih;
 		sha1_hash new_ih;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted every time a new RSS item (i.e. torrent) is received
 	// from an RSS feed.
 	// 
@@ -1944,29 +1613,27 @@ namespace libtorrent
 	struct TORRENT_EXPORT rss_item_alert : alert
 	{
 		// internal
-		rss_item_alert(aux::stack_allocator& alloc, feed_handle h
-			, feed_item const& item);
+		rss_item_alert(feed_handle h, feed_item const& item);
 
-		TORRENT_DEFINE_ALERT(rss_item_alert, 72)
+		TORRENT_DEFINE_ALERT(rss_item_alert);
 
-		static const int static_category = alert::rss_notification;
+		const static int static_category = alert::rss_notification;
 		virtual std::string message() const;
 
 		feed_handle handle;
 		feed_item item;
 	};
-#endif
 
 	// posted when something fails in the DHT. This is not necessarily a fatal
 	// error, but it could prevent proper operation
 	struct TORRENT_EXPORT dht_error_alert: alert
 	{
 		// internal
-		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec);
+		dht_error_alert(int op, error_code const& ec);
 		
-		TORRENT_DEFINE_ALERT(dht_error_alert, 73)
+		TORRENT_DEFINE_ALERT(dht_error_alert);
 
-		static const int static_category = alert::error_notification
+		const static int static_category = alert::error_notification
 			| alert::dht_notification;
 		virtual std::string message() const;
 
@@ -1987,18 +1654,14 @@ namespace libtorrent
 	// specifically the overload for looking up immutable items in the DHT.
 	struct TORRENT_EXPORT dht_immutable_item_alert: alert
 	{
-		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
-			, entry const& i);
+		dht_immutable_item_alert(sha1_hash const& t, entry const& i);
 		
-		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74)
+		TORRENT_DEFINE_ALERT(dht_immutable_item_alert);
 
-		static const int static_category = alert::error_notification
+		const static int static_category = alert::error_notification
 			| alert::dht_notification;
-
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// the target hash of the immutable item. This must
 		// match the sha-1 hash of the bencoded form of ``item``.
@@ -2012,21 +1675,18 @@ namespace libtorrent
 	// specifically the overload for looking up mutable items in the DHT.
 	struct TORRENT_EXPORT dht_mutable_item_alert: alert
 	{
-		dht_mutable_item_alert(aux::stack_allocator& alloc
-			, boost::array<char, 32> k
+		dht_mutable_item_alert(boost::array<char, 32> k
 			, boost::array<char, 64> sig
 			, boost::uint64_t sequence
 			, std::string const& s
 			, entry const& i);
 		
-		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
+		TORRENT_DEFINE_ALERT(dht_mutable_item_alert);
 
-		static const int static_category = alert::error_notification
+		const static int static_category = alert::error_notification
 			| alert::dht_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
 		virtual bool discardable() const { return false; }
-#endif
 
 		// the public key that was looked up
 		boost::array<char, 32> key;
@@ -2054,15 +1714,15 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_put_alert: alert
 	{
 		// internal
-		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t);
-		dht_put_alert(aux::stack_allocator& alloc, boost::array<char, 32> key
+		dht_put_alert(sha1_hash const& t);
+		dht_put_alert(boost::array<char, 32> key
 			, boost::array<char, 64> sig
 			, std::string s
 			, boost::uint64_t sequence_number);
 
-		TORRENT_DEFINE_ALERT(dht_put_alert, 76)
+		TORRENT_DEFINE_ALERT(dht_put_alert);
 
-		static const int static_category = alert::dht_notification;
+		const static int static_category = alert::dht_notification;
 		virtual std::string message() const;
 
 		// the target hash the item was stored under if this was an *immutable*
@@ -2080,283 +1740,20 @@ namespace libtorrent
 	// this alert is used to report errors in the i2p SAM connection
 	struct TORRENT_EXPORT i2p_alert : alert
 	{
-		i2p_alert(aux::stack_allocator& alloc, error_code const& ec);
+		i2p_alert(error_code const& ec);
 
-		TORRENT_DEFINE_ALERT(i2p_alert, 77)
+		TORRENT_DEFINE_ALERT(i2p_alert);
 
-		static const int static_category = alert::error_notification;
+		const static int static_category = alert::error_notification;
 		virtual std::string message() const;
 
 		// the error that occurred in the i2p SAM connection
 		error_code error;
 	};
 
-	// This alert is generated when we send a get_peers request
-	// It belongs to the ``dht_notification`` category.
-	struct TORRENT_EXPORT dht_outgoing_get_peers_alert: alert
-	{
-		// internal
-		dht_outgoing_get_peers_alert(aux::stack_allocator& alloc
-			, sha1_hash const& ih, sha1_hash const& obfih
-			, udp::endpoint ep);
-
-		TORRENT_DEFINE_ALERT(dht_outgoing_get_peers_alert, 78)
-
-		static const int static_category = alert::dht_notification;
-		virtual std::string message() const;
-
-		// the info_hash of the torrent we're looking for peers for.
-		sha1_hash info_hash;
-
-		// if this was an obfuscated lookup, this is the info-hash target
-		// actually sent to the node.
-		sha1_hash obfuscated_info_hash;
-
-		// the endpoint we're sending this query to
-		udp::endpoint ip;
-	};
-
-	// This alert is posted by some session wide event. Its main purpose is
-	// trouble shooting and debugging. It's not enabled by the default alert
-	// mask and is enabled by the ``alert::session_log_notification`` bit.
-	// Furhtermore, it's by default disabled as a build configuration.
-	struct TORRENT_EXPORT log_alert : alert
-	{
-		// internal
-		log_alert(aux::stack_allocator& alloc, char const* log);
-	
-		TORRENT_DEFINE_ALERT(log_alert, 79)
-
-		static const int static_category = alert::session_log_notification;
-		virtual std::string message() const;
-
-		// returns the log message
-		char const* msg() const;
-
-	private:
-		aux::stack_allocator const& m_alloc;
-		int m_str_idx;
-	};
-
-	// This alert is posted by torrent wide events. It's meant to be used for
-	// trouble shooting and debugging. It's not enabled by the default alert
-	// mask and is enabled by the ``alert::torrent_log_notification`` bit. By
-	// default it is disabled as a build configuration.
-	struct TORRENT_EXPORT torrent_log_alert : torrent_alert
-	{
-		// internal
-		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
-			, char const* log);
-	
-		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
-
-		static const int static_category = alert::torrent_log_notification;
-		virtual std::string message() const;
-
-		// returns the log message
-		char const* msg() const;
-
-	private:
-		int m_str_idx;
-	};
-
-	// This alert is posted by events specific to a peer. It's meant to be used
-	// for trouble shooting and debugging. It's not enabled by the default alert
-	// mask and is enabled by the ``alert::peer_log_notification`` bit. By
-	// default it is disabled as a build configuration.
-	struct TORRENT_EXPORT peer_log_alert : peer_alert
-	{
-		// describes whether this log refers to in-flow or out-flow of the
-		// peer. The exception is ``info`` which is neither incoming or outgoing.
-		enum direction_t
-		{
-			incoming_message,
-			outgoing_message,
-			incoming,
-			outgoing,
-			info,
-		};
-
-		// internal
-		peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i, peer_id const& pi
-			, peer_log_alert::direction_t dir
-			, char const* event, char const* log);
-	
-		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
-
-		static const int static_category = alert::peer_log_notification;
-		virtual std::string message() const;
-
-		// string literal indicating the kind of event. For messages, this is the
-		// message name.
-		char const* event_type;
-
-		direction_t direction;
-
-		// returns the log message
-		char const* msg() const;
-
-	private:
-		int m_str_idx;
-	};
-
-	// posted if the local service discovery socket fails to start properly.
-	// it's categorized as ``error_notification``.
-	struct TORRENT_EXPORT lsd_error_alert : alert
-	{
-		// internal
-		lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec);
-	
-		TORRENT_DEFINE_ALERT(lsd_error_alert, 82)
-
-		static const int static_category = alert::error_notification;
-		virtual std::string message() const;
-
-		// The error code
-		error_code error;
-	};
-
-	// holds statistics about a current dht_lookup operation.
-	// a DHT lookup is the travesal of nodes, looking up a
-	// set of target nodes in the DHT for retrieving and possibly
-	// storing information in the DHT
-	struct TORRENT_EXPORT dht_lookup
-	{
-		// string literal indicating which kind of lookup this is
-		char const* type;
-
-		// the number of outstanding request to individual nodes
-		// this lookup has right now
-		int outstanding_requests;
-
-		// the total number of requests that have timed out so far
-		// for this lookup
-		int timeouts;
-
-		// the total number of responses we have received for this
-		// lookup so far for this lookup
-		int responses;
-
-		// the branch factor for this lookup. This is the number of
-		// nodes we keep outstanding requests to in parallel by default.
-		// when nodes time out we may increase this.
-		int branch_factor;
-
-		// the number of nodes left that could be queries for this
-		// lookup. Many of these are likely to be part of the trail
-		// while performing the lookup and would never end up actually
-		// being queried.
-		int nodes_left;
-
-		// the number of seconds ago the
-		// last message was sent that's still
-		// outstanding
-		int last_sent;
-
-		// the number of outstanding requests
-		// that have exceeded the short timeout
-		// and are considered timed out in the
-		// sense that they increased the branch
-		// factor
-		int first_timeout;
-	};
-
-	// struct to hold information about a single DHT routing table bucket
-	struct TORRENT_EXPORT dht_routing_bucket
-	{
-		// the total number of nodes and replacement nodes
-		// in the routing table
-		int num_nodes;
-		int num_replacements;
-
-		// number of seconds since last activity
-		int last_active;
-	};
-
-	// contains current DHT state. Posted in response to session::post_dht_stats().
-	struct TORRENT_EXPORT dht_stats_alert : alert
-	{
-		// internal
-		dht_stats_alert(aux::stack_allocator& alloc
-			, std::vector<dht_routing_bucket> const& table
-			, std::vector<dht_lookup> const& requests);
-	
-		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
-
-		static const int static_category = alert::stats_notification;
-		virtual std::string message() const;
-
-		// a vector of the currently running DHT lookups.
-		std::vector<dht_lookup> active_requests;
-
-		// contains information about every bucket in the DHT routing
-		// table.
-		std::vector<dht_routing_bucket> routing_table;
-	};
-
-	// posted every time an incoming request from a peer is accepted and queued
-	// up for being serviced. This alert is only posted if
-	// the alert::incoming_request_notification flag is enabled in the alert
-	// mask.
-	struct TORRENT_EXPORT incoming_request_alert : peer_alert
-	{
-		// internal
-		incoming_request_alert(aux::stack_allocator& alloc
-			, peer_request r, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
-	
-		static const int static_category = alert::incoming_request_notification;
-		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
-
-		virtual std::string message() const;
-
-		// the request this peer sent to us
-		peer_request req;
-	};
-
-	struct TORRENT_EXPORT dht_log_alert : alert
-	{
-		enum dht_module_t
-		{
-			tracker,
-			node,
-			routing_table,
-			rpc_manager,
-			traversal
-		};
-
-		dht_log_alert(aux::stack_allocator& alloc
-			, dht_module_t m, char const* msg);
-
-		static const int static_category = alert::dht_log_notification;
-		TORRENT_DEFINE_ALERT(dht_log_alert, 85)
-
-		virtual std::string message() const;
-
-		// the log message
-		char const* log_message() const;
-
-		// the module, or part, of the DHT that produced this log message.
-		dht_module_t module;
-
-	private:
-		aux::stack_allocator& m_alloc;
-		int m_msg_idx;
-	};
-
-#undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
-#undef TORRENT_DEFINE_ALERT_PRIO
-#undef TORRENT_CLONE
 
-	enum { num_alert_types = 86 };
 }
-
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #endif
 

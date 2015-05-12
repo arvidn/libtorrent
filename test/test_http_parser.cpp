@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/size_type.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -63,14 +64,10 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			ret.get<1>() += protocol;
 			ret.get<2>() |= error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
-			TORRENT_ASSERT(payload + protocol == chunk_size || ret.get<2>());
+			TORRENT_ASSERT(payload + protocol == chunk_size);
 		}
-		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev || ret.get<2>());
-		if (!ret.get<2>())
-		{
-			TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
-		}
-
+		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+		TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
 		prev = ret;
 	}
 	return ret;
@@ -235,7 +232,7 @@ int test_main()
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
 	TEST_CHECK(parser.chunked_encoding());
-	typedef std::pair<boost::int64_t, boost::int64_t> chunk_range;
+	typedef std::pair<size_type, size_type> chunk_range;
 	std::vector<chunk_range> cmp;
 	cmp.push_back(chunk_range(96, 100));
 	cmp.push_back(chunk_range(106, 122));
@@ -268,50 +265,8 @@ int test_main()
 	received = feed_bytes(parser, web_seed_response);
 
 	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
-	TEST_CHECK(parser.content_range() == (std::pair<boost::int64_t, boost::int64_t>(0, 4)));
+	TEST_CHECK(parser.content_range() == (std::pair<size_type, size_type>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
-
-	parser.reset();
-
-	// test invalid content range
-	char const* invalid_range_response =
-		"HTTP/1.1 206 OK\n"
-		"content-range: bytes 4-0\n"
-		"content-type: test/plain\n"
-		"\n"
-		"\ntest";
-
-	received = feed_bytes(parser, invalid_range_response);
-
-	TEST_CHECK(received.get<2>() == true);
-
-	parser.reset();
-
-	// test invalid status line
-	char const* invalid_status_response =
-		"HTTP/1.1 206\n"
-		"content-range: bytes 4-0\n"
-		"content-type: test/plain\n"
-		"\n"
-		"\ntest";
-
-	received = feed_bytes(parser, invalid_status_response);
-
-	TEST_CHECK(received.get<2>() == true);
-
-	parser.reset();
-
-	// test invalid status line 2
-	char const* invalid_status_response2 =
-		"HTTP/1.1\n"
-		"content-range: bytes 4-0\n"
-		"content-type: test/plain\n"
-		"\n"
-		"\ntest";
-
-	received = feed_bytes(parser, invalid_status_response2);
-
-	TEST_CHECK(received.get<2>() == true);
 
 	parser.reset();
 
@@ -334,7 +289,7 @@ int test_main()
 	{
 		// test chunked encoding parser
 		char const chunk_header1[] = "f;this is a comment\r\n";
-		boost::int64_t chunk_size;
+		size_type chunk_size;
 		int header_size;
 		bool ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + 10)
 			, &chunk_size, &header_size);
@@ -436,44 +391,6 @@ int test_main()
 
 	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
-
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "http://test.com/d")
-		, "http://test.com/d");
-
-	TEST_EQUAL(resolve_redirect_location("http://example.com", "/d")
-		, "http://example.com/d");
-
-	TEST_EQUAL(resolve_redirect_location("http://example.com", "d")
-		, "http://example.com/d");
-
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "/d")
-		, "my-custom-scheme://example.com/d");
-
-	TEST_EQUAL(resolve_redirect_location("my-custom-scheme://example.com/a/b", "c/d")
-		, "my-custom-scheme://example.com/a/c/d");
-
-	// if the referrer is invalid, just respond the verbatim location
-
-	TEST_EQUAL(resolve_redirect_location("example.com/a/b", "/c/d")
-		, "/c/d");
-
-	// is_ok_status
-
-	TEST_EQUAL(is_ok_status(200), true);
-	TEST_EQUAL(is_ok_status(206), true);
-	TEST_EQUAL(is_ok_status(299), false);
-	TEST_EQUAL(is_ok_status(300), true);
-	TEST_EQUAL(is_ok_status(399), true);
-	TEST_EQUAL(is_ok_status(400), false);
-	TEST_EQUAL(is_ok_status(299), false);
-
-	// is_redirect
-
-	TEST_EQUAL(is_redirect(299), false);
-	TEST_EQUAL(is_redirect(100), false);
-	TEST_EQUAL(is_redirect(300), true);
-	TEST_EQUAL(is_redirect(399), true);
-	TEST_EQUAL(is_redirect(400), false);
 
 	return 0;
 }

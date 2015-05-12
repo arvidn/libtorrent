@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/python.hpp>
 #include <libtorrent/error_code.hpp>
-#include <libtorrent/bdecode.hpp>
+#include <libtorrent/lazy_entry.hpp>
 #include <libtorrent/upnp.hpp>
 #include <libtorrent/socks5_stream.hpp>
 

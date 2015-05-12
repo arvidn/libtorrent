@@ -40,14 +40,12 @@ void bind_torrent_status()
                 &torrent_status::next_announce, return_value_policy<return_by_value>()
             )
         )
-#ifndef TORRENT_NO_DEPRECATE
         .add_property(
             "announce_interval"
           , make_getter(
                 &torrent_status::announce_interval, return_value_policy<return_by_value>()
             )
         )
-#endif
         .def_readonly("current_tracker", &torrent_status::current_tracker)
         .def_readonly("total_download", &torrent_status::total_download)
         .def_readonly("total_upload", &torrent_status::total_upload)
@@ -109,9 +107,7 @@ void bind_torrent_status()
         ;
 
     enum_<torrent_status::state_t>("states")
-#ifndef TORRENT_NO_DEPRECATE
         .value("queued_for_checking", torrent_status::queued_for_checking)
-#endif
         .value("checking_files", torrent_status::checking_files)
         .value("downloading_metadata", torrent_status::downloading_metadata)
         .value("downloading", torrent_status::downloading)

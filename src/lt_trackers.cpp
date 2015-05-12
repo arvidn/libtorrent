@@ -32,17 +32,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#endif
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include <vector>
 #include <utility>
 #include <numeric>
 #include <cstdio>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
@@ -52,8 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/io.hpp"
+#include "libtorrent/escape_string.hpp"
 #include "libtorrent/parse_url.hpp"
+#ifdef TORRENT_STATS
+#include "libtorrent/aux_/session_impl.hpp"
+#endif
 
 namespace libtorrent { namespace
 {
@@ -162,14 +168,14 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h)
+		virtual bool on_extension_handshake(lazy_entry const& h)
 		{
 			m_message_index = 0;
-			if (h.type() != bdecode_node::dict_t) return false;
-			bdecode_node messages = h.dict_find("m");
-			if (!messages || messages.type() != bdecode_node::dict_t) return false;
+			if (h.type() != lazy_entry::dict_t) return false;
+			lazy_entry const* messages = h.dict_find("m");
+			if (!messages || messages->type() != lazy_entry::dict_t) return false;
 
-			int index = int(messages.dict_find_int_value("lt_tex", -1));
+			int index = int(messages->dict_find_int_value("lt_tex", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 
@@ -184,51 +190,55 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int /* length */
+		virtual bool on_extended(int length
 			, int extended_msg, buffer::const_interval body)
 		{
 			if (extended_msg != 19) return false;
 			if (m_message_index == 0) return false;
 			if (!m_pc.packet_finished()) return true;
 
-			bdecode_node msg;
+			lazy_entry msg;
 			error_code ec;
-			int ret = bdecode(body.begin, body.end, msg, ec);
-			if (ret != 0 || msg.type() != bdecode_node::dict_t)
+			int ret = lazy_bdecode(body.begin, body.end, msg, ec);
+			if (ret != 0 || msg.type() != lazy_entry::dict_t)
 			{
-				m_pc.disconnect(errors::invalid_lt_tracker_message, op_bittorrent, 2);
+				m_pc.disconnect(errors::invalid_lt_tracker_message, 2);
 				return true;
 			}
 
-			bdecode_node added = msg.dict_find_list("added");
+			lazy_entry const* added = msg.dict_find_list("added");
 
 			// invalid tex message
 			if (added == 0)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX"
-					, "NOT A DICTIONARY");
+#ifdef TORRENT_VERBOSE_LOGGING
+				(*m_pc.m_logger) << time_now_string() << " <== LT_TEX [ NOT A DICTIONARY ]\n";
 #endif
 				return true;
 			}
 
+#ifdef TORRENT_VERBOSE_LOGGING
+			std::stringstream log_line;
+#endif
 			if (m_tp.num_tex_trackers() >= 50)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX"
-					, "we already have %d trackers from tex, don't add any more"
-					, m_tp.num_tex_trackers());
+#ifdef TORRENT_VERBOSE_LOGGING
+				log_line << time_now_string() << " <== LT_TEX [ "
+				"we already have " << m_tp.num_tex_trackers() << " trackers "
+				"from tex, don't add any more";
+				(*m_pc.m_logger) << log_line.str();
 #endif
 				return true;
 			}
 
-#ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log(peer_log_alert::incoming_message, "LT_TEX");
+#ifdef TORRENT_VERBOSE_LOGGING
+			log_line << time_now_string() << " <== LT_TEX [ "
+				"added: ";
 #endif
 
-			for (int i = 0; i < added.list_size(); ++i)
+			for (int i = 0; i < added->list_size(); ++i)
 			{
-				announce_entry e(added.list_string_value_at(i));
+				announce_entry e(added->list_string_value_at(i));
 				if (e.url.empty()) continue;
 
 				// ignore urls with binary data in them
@@ -254,7 +264,12 @@ namespace libtorrent { namespace
 					continue;
 
 				if (m_tp.num_tex_trackers() >= 50)
+				{
+#ifdef TORRENT_VERBOSE_LOGGING
+					log_line << "**reached-limit** ";
+#endif
 					break;
+				}
 
 				e.fail_limit = 1;
 				e.send_stats = false;
@@ -262,10 +277,14 @@ namespace libtorrent { namespace
 				if (m_torrent.add_tracker(e))
 					m_tp.increment_tracker_counter();
 
-#ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::info, "LT_TEX", "added: %s", e.url.c_str());
+#ifdef TORRENT_VERBOSE_LOGGING
+				log_line << e.url << " ";
 #endif
 			}
+#ifdef TORRENT_VERBOSE_LOGGING
+			log_line << "]\n";
+			(*m_pc.m_logger) << log_line.str();
+#endif
 			return true;
 		}
 
@@ -316,8 +335,10 @@ namespace libtorrent { namespace
 			if (!m_torrent.valid_metadata() || m_torrent.torrent_file().priv())
 				return false;
 
-#ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log(peer_log_alert::outgoing_message, "LT_TEX");
+#ifdef TORRENT_VERBOSE_LOGGING
+			std::stringstream log_line;
+			log_line << time_now_string() << " ==> LT_TEX [ "
+				"added: ";
 #endif
 			entry tex;
 			entry::list_type& added = tex["added"].list();
@@ -326,13 +347,17 @@ namespace libtorrent { namespace
 			{
 				if (!send_tracker(*i)) continue;
 				added.push_back(i->url);
-#ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::info, "LT_TEX"
-					, "sending: %s", i->url.c_str());
+#ifdef TORRENT_VERBOSE_LOGGING
+				log_line << i->url << " ";
 #endif
 			}
 			std::vector<char> tex_msg;
 			bencode(std::back_inserter(tex_msg), tex);
+
+#ifdef TORRENT_VERBOSE_LOGGING
+			log_line << "]\n";
+			(*m_pc.m_logger) << log_line.str();
+#endif
 
 			char msg[6];
 			char* ptr = msg;

@@ -109,8 +109,6 @@ namespace libtorrent
 		}
 	}
 
-	namespace
-	{
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
@@ -184,7 +182,6 @@ namespace libtorrent
 
 		return total_size - size;
 	}
-	} // anonymous namespace
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
 		char const* in
@@ -214,13 +211,12 @@ namespace libtorrent
 		{
 			TORRENT_TRY {
 				buffer.resize(destlen);
-			} TORRENT_CATCH(std::exception&) {
+			} TORRENT_CATCH(std::exception& e) {
 				ec = errors::no_memory;
 				return;
 			}
 
-			ret = puff(reinterpret_cast<unsigned char*>(&buffer[0]), &destlen
-				, reinterpret_cast<const unsigned char*>(in), &srclen);
+			ret = puff((unsigned char*)&buffer[0], &destlen, (unsigned char*)in, &srclen);
 
 			// if the destination buffer wasn't large enough, double its
 			// size and try again. Unless it's already at its max, in which
@@ -234,7 +230,7 @@ namespace libtorrent
 				}
 
 				destlen *= 2;
-				if (destlen > boost::uint32_t(maximum_size))
+				if (destlen > (unsigned int)maximum_size)
 					destlen = maximum_size;
 			}
 		} while (ret == 1);

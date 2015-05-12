@@ -41,7 +41,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.1.0</td></tr>
+<td>1.0.5</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -66,7 +66,6 @@ instructions for how to use it <a class="reference external" href="client_test.h
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="code c++ literal-block">
 <span class="comment preproc">#include &lt;stdlib.h&gt;
-#include &lt;boost/make_shared.hpp&gt;
 #include &quot;libtorrent/entry.hpp&quot;
 #include &quot;libtorrent/bencode.hpp&quot;
 #include &quot;libtorrent/session.hpp&quot;
@@ -74,7 +73,6 @@ instructions for how to use it <a class="reference external" href="client_test.h
 <span class="keyword type">int</span> <span class="name function">main</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">argc</span><span class="punctuation">,</span> <span class="keyword type">char</span><span class="operator">*</span> <span class="name">argv</span><span class="punctuation">[])</span>
 <span class="punctuation">{</span>
   <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="name">libtorrent</span><span class="punctuation">;</span>
-  <span class="keyword">namespace</span> <span class="name">lt</span> <span class="operator">=</span> <span class="name">libtorrent</span><span class="punctuation">;</span>
 
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">argc</span> <span class="operator">!=</span> <span class="literal number integer">2</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
@@ -83,10 +81,9 @@ instructions for how to use it <a class="reference external" href="client_test.h
     <span class="keyword">return</span> <span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
 
-  <span class="name">settings_pack</span> <span class="name">sett</span><span class="punctuation">;</span>
-  <span class="name">sett</span><span class="punctuation">.</span><span class="name">set_str</span><span class="punctuation">(</span><span class="name">settings_pack</span><span class="operator">::</span><span class="name">listen_interfaces</span><span class="punctuation">,</span> <span class="literal string">&quot;0.0.0.0:6881&quot;</span><span class="punctuation">);</span>
-  <span class="name">lt</span><span class="operator">::</span><span class="name">session</span> <span class="name">s</span><span class="punctuation">(</span><span class="name">sett</span><span class="punctuation">);</span>
+  <span class="name">session</span> <span class="name">s</span><span class="punctuation">;</span>
   <span class="name">error_code</span> <span class="name">ec</span><span class="punctuation">;</span>
+  <span class="name">s</span><span class="punctuation">.</span><span class="name">listen_on</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">make_pair</span><span class="punctuation">(</span><span class="literal number integer">6881</span><span class="punctuation">,</span> <span class="literal number integer">6889</span><span class="punctuation">),</span> <span class="name">ec</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">ec</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
     <span class="name">fprintf</span><span class="punctuation">(</span><span class="name">stderr</span><span class="punctuation">,</span> <span class="literal string">&quot;failed to open listen socket: %s</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span><span class="punctuation">,</span> <span class="name">ec</span><span class="punctuation">.</span><span class="name">message</span><span class="punctuation">().</span><span class="name">c_str</span><span class="punctuation">());</span>
@@ -94,7 +91,7 @@ instructions for how to use it <a class="reference external" href="client_test.h
   <span class="punctuation">}</span>
   <span class="name">add_torrent_params</span> <span class="name">p</span><span class="punctuation">;</span>
   <span class="name">p</span><span class="punctuation">.</span><span class="name">save_path</span> <span class="operator">=</span> <span class="literal string">&quot;./&quot;</span><span class="punctuation">;</span>
-  <span class="name">p</span><span class="punctuation">.</span><span class="name">ti</span> <span class="operator">=</span> <span class="name">boost</span><span class="operator">::</span><span class="name">make_shared</span><span class="operator">&lt;</span><span class="name">torrent_info</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">string</span><span class="punctuation">(</span><span class="name">argv</span><span class="punctuation">[</span><span class="literal number integer">1</span><span class="punctuation">]),</span> <span class="name">boost</span><span class="operator">::</span><span class="name">ref</span><span class="punctuation">(</span><span class="name">ec</span><span class="punctuation">),</span> <span class="literal number integer">0</span><span class="punctuation">);</span>
+  <span class="name">p</span><span class="punctuation">.</span><span class="name">ti</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="name">torrent_info</span><span class="punctuation">(</span><span class="name">argv</span><span class="punctuation">[</span><span class="literal number integer">1</span><span class="punctuation">],</span> <span class="name">ec</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">ec</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
     <span class="name">fprintf</span><span class="punctuation">(</span><span class="name">stderr</span><span class="punctuation">,</span> <span class="literal string">&quot;%s</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span><span class="punctuation">,</span> <span class="name">ec</span><span class="punctuation">.</span><span class="name">message</span><span class="punctuation">().</span><span class="name">c_str</span><span class="punctuation">());</span>
@@ -138,21 +135,21 @@ instructions for how to use it <a class="reference external" href="client_test.h
   <span class="keyword type">FILE</span><span class="operator">*</span> <span class="name">f</span> <span class="operator">=</span> <span class="name">fopen</span><span class="punctuation">(</span><span class="name">filename</span><span class="punctuation">.</span><span class="name">c_str</span><span class="punctuation">(),</span> <span class="literal string">&quot;rb&quot;</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">f</span> <span class="operator">==</span> <span class="name builtin">NULL</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
 
   <span class="keyword type">int</span> <span class="name">r</span> <span class="operator">=</span> <span class="name">fseek</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">,</span> <span class="name">SEEK_END</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">!=</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
   <span class="keyword type">long</span> <span class="name">s</span> <span class="operator">=</span> <span class="name">ftell</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">s</span> <span class="operator">&lt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -166,7 +163,7 @@ instructions for how to use it <a class="reference external" href="client_test.h
   <span class="name">r</span> <span class="operator">=</span> <span class="name">fseek</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">,</span> <span class="name">SEEK_SET</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">!=</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -181,7 +178,7 @@ instructions for how to use it <a class="reference external" href="client_test.h
   <span class="name">r</span> <span class="operator">=</span> <span class="name">fread</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">v</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span> <span class="literal number integer">1</span><span class="punctuation">,</span> <span class="name">v</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">(),</span> <span class="name">f</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">&lt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -218,6 +215,9 @@ instructions for how to use it <a class="reference external" href="client_test.h
     <span class="literal string">&quot;            merkle torrents require client support</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
     <span class="literal string">&quot;            the resulting full merkle tree is written to</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
     <span class="literal string">&quot;            the specified file</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
+    <span class="literal string">&quot;-f          include sha-1 file hashes in the torrent</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
+    <span class="literal string">&quot;            this helps supporting mixing sources from</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
+    <span class="literal string">&quot;            other networks</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
     <span class="literal string">&quot;-w url      adds a web seed to the torrent with</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
     <span class="literal string">&quot;            the specified url</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
     <span class="literal string">&quot;-t url      adds the specified tracker to the</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
@@ -307,6 +307,9 @@ instructions for how to use it <a class="reference external" href="client_test.h
         <span class="keyword">case</span> <span class="literal string char">'o'</span><span class="operator">:</span>
           <span class="operator">++</span><span class="name">i</span><span class="punctuation">;</span>
           <span class="name">outfile</span> <span class="operator">=</span> <span class="name">argv</span><span class="punctuation">[</span><span class="name">i</span><span class="punctuation">];</span>
+          <span class="keyword">break</span><span class="punctuation">;</span>
+        <span class="keyword">case</span> <span class="literal string char">'f'</span><span class="operator">:</span>
+          <span class="name">flags</span> <span class="operator">|=</span> <span class="name">create_torrent</span><span class="operator">::</span><span class="name">calculate_file_hashes</span><span class="punctuation">;</span>
           <span class="keyword">break</span><span class="punctuation">;</span>
         <span class="keyword">case</span> <span class="literal string char">'l'</span><span class="operator">:</span>
           <span class="name">flags</span> <span class="operator">|=</span> <span class="name">create_torrent</span><span class="operator">::</span><span class="name">symlinks</span><span class="punctuation">;</span>
@@ -441,21 +444,21 @@ print information about it to std out:</p>
   <span class="keyword type">FILE</span><span class="operator">*</span> <span class="name">f</span> <span class="operator">=</span> <span class="name">fopen</span><span class="punctuation">(</span><span class="name">filename</span><span class="punctuation">.</span><span class="name">c_str</span><span class="punctuation">(),</span> <span class="literal string">&quot;rb&quot;</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">f</span> <span class="operator">==</span> <span class="name builtin">NULL</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
 
   <span class="keyword type">int</span> <span class="name">r</span> <span class="operator">=</span> <span class="name">fseek</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">,</span> <span class="name">SEEK_END</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">!=</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
   <span class="keyword type">long</span> <span class="name">s</span> <span class="operator">=</span> <span class="name">ftell</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">s</span> <span class="operator">&lt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -469,7 +472,7 @@ print information about it to std out:</p>
   <span class="name">r</span> <span class="operator">=</span> <span class="name">fseek</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">,</span> <span class="name">SEEK_SET</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">!=</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -484,7 +487,7 @@ print information about it to std out:</p>
   <span class="name">r</span> <span class="operator">=</span> <span class="name">fread</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">v</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span> <span class="literal number integer">1</span><span class="punctuation">,</span> <span class="name">v</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">(),</span> <span class="name">f</span><span class="punctuation">);</span>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">&lt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
-    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">generic_category</span><span class="punctuation">());</span>
+    <span class="name">ec</span><span class="punctuation">.</span><span class="name">assign</span><span class="punctuation">(</span><span class="name">errno</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="name">system</span><span class="operator">::</span><span class="name">get_generic_category</span><span class="punctuation">());</span>
     <span class="name">fclose</span><span class="punctuation">(</span><span class="name">f</span><span class="punctuation">);</span>
     <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
   <span class="punctuation">}</span>
@@ -494,58 +497,6 @@ print information about it to std out:</p>
   <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">r</span> <span class="operator">!=</span> <span class="name">s</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">3</span><span class="punctuation">;</span>
 
   <span class="keyword">return</span> <span class="literal number integer">0</span><span class="punctuation">;</span>
-<span class="punctuation">}</span>
-
-<span class="keyword type">int</span> <span class="name function">line_longer_than</span><span class="punctuation">(</span><span class="name">libtorrent</span><span class="operator">::</span><span class="name">lazy_entry</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">e</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">limit</span><span class="punctuation">)</span>
-<span class="punctuation">{</span>
-  <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="name">libtorrent</span><span class="punctuation">;</span>
-
-  <span class="keyword type">int</span> <span class="name">line_len</span> <span class="operator">=</span> <span class="literal number integer">0</span><span class="punctuation">;</span>
-  <span class="keyword">switch</span> <span class="punctuation">(</span><span class="name">e</span><span class="punctuation">.</span><span class="name">type</span><span class="punctuation">())</span>
-  <span class="punctuation">{</span>
-  <span class="keyword">case</span> <span class="name">lazy_entry</span><span class="operator">::</span><span class="keyword type">list_t</span><span class="operator">:</span>
-    <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">4</span><span class="punctuation">;</span>
-    <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">line_len</span> <span class="operator">&gt;</span> <span class="name">limit</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-    <span class="keyword">for</span> <span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">i</span> <span class="operator">=</span> <span class="literal number integer">0</span><span class="punctuation">;</span> <span class="name">i</span> <span class="operator">&lt;</span> <span class="name">e</span><span class="punctuation">.</span><span class="name">list_size</span><span class="punctuation">();</span> <span class="operator">++</span><span class="name">i</span><span class="punctuation">)</span>
-    <span class="punctuation">{</span>
-      <span class="keyword type">int</span> <span class="name">ret</span> <span class="operator">=</span> <span class="name">line_longer_than</span><span class="punctuation">(</span><span class="operator">*</span><span class="name">e</span><span class="punctuation">.</span><span class="name">list_at</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">),</span> <span class="name">limit</span> <span class="operator">-</span> <span class="name">line_len</span><span class="punctuation">);</span>
-      <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">ret</span> <span class="operator">==</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-      <span class="name">line_len</span> <span class="operator">+=</span> <span class="name">ret</span> <span class="operator">+</span> <span class="literal number integer">2</span><span class="punctuation">;</span>
-    <span class="punctuation">}</span>
-    <span class="keyword">break</span><span class="punctuation">;</span>
-  <span class="keyword">case</span> <span class="name">lazy_entry</span><span class="operator">::</span><span class="keyword type">dict_t</span><span class="operator">:</span>
-    <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">4</span><span class="punctuation">;</span>
-    <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">line_len</span> <span class="operator">&gt;</span> <span class="name">limit</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-    <span class="keyword">for</span> <span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">i</span> <span class="operator">=</span> <span class="literal number integer">0</span><span class="punctuation">;</span> <span class="name">i</span> <span class="operator">&lt;</span> <span class="name">e</span><span class="punctuation">.</span><span class="name">dict_size</span><span class="punctuation">();</span> <span class="operator">++</span><span class="name">i</span><span class="punctuation">)</span>
-    <span class="punctuation">{</span>
-      <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">4</span> <span class="operator">+</span> <span class="name">e</span><span class="punctuation">.</span><span class="name">dict_at</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">).</span><span class="name">first</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">();</span>
-      <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">line_len</span> <span class="operator">&gt;</span> <span class="name">limit</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-      <span class="keyword type">int</span> <span class="name">ret</span> <span class="operator">=</span> <span class="name">line_longer_than</span><span class="punctuation">(</span><span class="operator">*</span><span class="name">e</span><span class="punctuation">.</span><span class="name">dict_at</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">).</span><span class="name">second</span><span class="punctuation">,</span> <span class="name">limit</span> <span class="operator">-</span> <span class="name">line_len</span><span class="punctuation">);</span>
-      <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">ret</span> <span class="operator">==</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-      <span class="name">line_len</span> <span class="operator">+=</span> <span class="name">ret</span> <span class="operator">+</span> <span class="literal number integer">1</span><span class="punctuation">;</span>
-    <span class="punctuation">}</span>
-    <span class="keyword">break</span><span class="punctuation">;</span>
-  <span class="keyword">case</span> <span class="name">lazy_entry</span><span class="operator">::</span><span class="keyword type">string_t</span><span class="operator">:</span>
-    <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">3</span> <span class="operator">+</span> <span class="name">e</span><span class="punctuation">.</span><span class="name">string_length</span><span class="punctuation">();</span>
-    <span class="keyword">break</span><span class="punctuation">;</span>
-  <span class="keyword">case</span> <span class="name">lazy_entry</span><span class="operator">::</span><span class="keyword type">int_t</span><span class="operator">:</span>
-  <span class="punctuation">{</span>
-    <span class="name">boost</span><span class="operator">::</span><span class="keyword type">int64_t</span> <span class="name">val</span> <span class="operator">=</span> <span class="name">e</span><span class="punctuation">.</span><span class="name">int_value</span><span class="punctuation">();</span>
-    <span class="keyword">while</span> <span class="punctuation">(</span><span class="name">val</span> <span class="operator">&gt;</span> <span class="literal number integer">0</span><span class="punctuation">)</span>
-    <span class="punctuation">{</span>
-      <span class="operator">++</span><span class="name">line_len</span><span class="punctuation">;</span>
-      <span class="name">val</span> <span class="operator">/=</span> <span class="literal number integer">10</span><span class="punctuation">;</span>
-    <span class="punctuation">}</span>
-    <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">2</span><span class="punctuation">;</span>
-  <span class="punctuation">}</span>
-  <span class="keyword">break</span><span class="punctuation">;</span>
-  <span class="keyword">case</span> <span class="name">lazy_entry</span><span class="operator">::</span><span class="keyword type">none_t</span><span class="operator">:</span>
-    <span class="name">line_len</span> <span class="operator">+=</span> <span class="literal number integer">4</span><span class="punctuation">;</span>
-    <span class="keyword">break</span><span class="punctuation">;</span>
-  <span class="punctuation">}</span>
-
-  <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">line_len</span> <span class="operator">&gt;</span> <span class="name">limit</span><span class="punctuation">)</span> <span class="keyword">return</span> <span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">;</span>
-  <span class="keyword">return</span> <span class="name">line_len</span><span class="punctuation">;</span>
 <span class="punctuation">}</span>
 
 <span class="keyword type">int</span> <span class="name function">main</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">argc</span><span class="punctuation">,</span> <span class="keyword type">char</span><span class="operator">*</span> <span class="name">argv</span><span class="punctuation">[])</span>
@@ -643,7 +594,7 @@ print information about it to std out:</p>
   <span class="keyword">for</span> <span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">i</span> <span class="operator">=</span> <span class="literal number integer">0</span><span class="punctuation">;</span> <span class="name">i</span> <span class="operator">&lt;</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">num_files</span><span class="punctuation">();</span> <span class="operator">++</span><span class="name">i</span><span class="punctuation">)</span>
   <span class="punctuation">{</span>
     <span class="keyword type">int</span> <span class="name">first</span> <span class="operator">=</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">map_file</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">).</span><span class="name">piece</span><span class="punctuation">;</span>
-    <span class="keyword type">int</span> <span class="name">last</span> <span class="operator">=</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">map_file</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">,</span> <span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">max</span><span class="punctuation">)(</span><span class="name">boost</span><span class="operator">::</span><span class="keyword type">int64_t</span><span class="punctuation">(</span><span class="name">st</span><span class="punctuation">.</span><span class="name">file_size</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">))</span><span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">,</span> <span class="name">boost</span><span class="operator">::</span><span class="keyword type">int64_t</span><span class="punctuation">(</span><span class="literal number integer">0</span><span class="punctuation">)),</span> <span class="literal number integer">0</span><span class="punctuation">).</span><span class="name">piece</span><span class="punctuation">;</span>
+    <span class="keyword type">int</span> <span class="name">last</span> <span class="operator">=</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">map_file</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">,</span> <span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">max</span><span class="punctuation">)(</span><span class="name">size_type</span><span class="punctuation">(</span><span class="name">st</span><span class="punctuation">.</span><span class="name">file_size</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">))</span><span class="operator">-</span><span class="literal number integer">1</span><span class="punctuation">,</span> <span class="name">size_type</span><span class="punctuation">(</span><span class="literal number integer">0</span><span class="punctuation">)),</span> <span class="literal number integer">0</span><span class="punctuation">).</span><span class="name">piece</span><span class="punctuation">;</span>
     <span class="keyword type">int</span> <span class="name">flags</span> <span class="operator">=</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">file_flags</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">);</span>
     <span class="name">printf</span><span class="punctuation">(</span><span class="literal string">&quot; %8&quot;</span> <span class="name">PRIx64</span> <span class="literal string">&quot; %11&quot;</span> <span class="name">PRId64</span> <span class="literal string">&quot; %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s</span><span class="literal string escape">\n</span><span class="literal string">&quot;</span>
       <span class="punctuation">,</span> <span class="name">st</span><span class="punctuation">.</span><span class="name">file_offset</span><span class="punctuation">(</span><span class="name">i</span><span class="punctuation">)</span>
@@ -698,7 +649,7 @@ print information about it to std out:</p>
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>

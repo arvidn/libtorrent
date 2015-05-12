@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/string_util.hpp" // for to_string()
-#include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
+#include "libtorrent/escape_string.hpp" // for to_string()
 
 namespace libtorrent
 {
@@ -51,7 +50,7 @@ namespace libtorrent
 
 	const char* libtorrent_error_category::name() const BOOST_SYSTEM_NOEXCEPT
 	{
-		return "libtorrent";
+		return "libtorrent error";
 	}
 
 	std::string libtorrent_error_category::message(int ev) const BOOST_SYSTEM_NOEXCEPT
@@ -172,7 +171,7 @@ namespace libtorrent
 			"SSL connection required",
 			"invalid SSL certificate",
 			"not an SSL torrent",
-			"banned by port filter",
+			"",
 			"",
 			"",
 			"",
@@ -205,7 +204,7 @@ namespace libtorrent
 			"invalid entry type in slot list",
 			"invalid piece index in slot list",
 			"pieces needs to be reordered",
-			"fastresume not modified since last save",
+			"",
 			"",
 			"",
 			"",
@@ -326,7 +325,7 @@ namespace libtorrent
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
-	const char* libtorrent_exception::what() const TORRENT_EXCEPTION_THROW_SPECIFIER
+	const char* libtorrent_exception::what() const throw()
 	{
 		if (!m_msg)
 		{
@@ -337,7 +336,7 @@ namespace libtorrent
 		return m_msg;
 	}
 
-	libtorrent_exception::~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER
+	libtorrent_exception::~libtorrent_exception() throw()
 	{
 		free(m_msg);
 	}

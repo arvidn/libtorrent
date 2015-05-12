@@ -36,230 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/http_tracker_connection.hpp" // for parse_tracker_response
 
 #include <fstream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
-
-void test_parse_hostname_peers()
-{
-	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa2:ip13:test_hostname4:porti1000eed7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 2);
-	if (resp.peers.size() == 2)
-	{
-		peer_entry const& e0 = resp.peers[0];
-		peer_entry const& e1 = resp.peers[1];
-		TEST_EQUAL(e0.hostname, "test_hostname");
-		TEST_EQUAL(e0.port, 1000);
-		TEST_EQUAL(e0.pid, peer_id("aaaaaaaaaaaaaaaaaaaa"));
-
-		TEST_EQUAL(e1.hostname, "another_host");
-		TEST_EQUAL(e1.port, 1001);
-		TEST_EQUAL(e1.pid, peer_id("bbbbabaababababababa"));
-	}
-}
-
-void test_parse_peers4()
-{
-	char const response[] = "d5:peers12:\x01\x02\x03\x04\x30\x10"
-		"\x09\x08\x07\x06\x20\x10" "e";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers4.size(), 2);
-	if (resp.peers.size() == 2)
-	{
-		ipv4_peer_entry const& e0 = resp.peers4[0];
-		ipv4_peer_entry const& e1 = resp.peers4[1];
-		TEST_CHECK(e0.ip == address_v4::from_string("1.2.3.4").to_bytes());
-		TEST_EQUAL(e0.port, 0x3010);
-
-		TEST_CHECK(e1.ip == address_v4::from_string("9.8.7.6").to_bytes());
-		TEST_EQUAL(e1.port, 0x2010);
-	}
-}
-
-void test_parse_interval()
-{
-	char const response[] = "d8:intervali1042e12:min intervali10e5:peers0:e";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.peers4.size(), 0);
-	TEST_EQUAL(resp.interval, 1042);
-	TEST_EQUAL(resp.min_interval, 10);
-}
-
-void test_parse_warning()
-{
-	char const response[] = "d5:peers0:15:warning message12:test messagee";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.warning_message, "test message");
-}
-
-void test_parse_failure_reason()
-{
-	char const response[] = "d5:peers0:14:failure reason12:test messagee";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code(errors::tracker_failure));
-	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.failure_reason, "test message");
-}
-
-void test_parse_scrape_response()
-{
-	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, true, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.complete, 1);
-	TEST_EQUAL(resp.incomplete, 2);
-	TEST_EQUAL(resp.downloaded, 3);
-	TEST_EQUAL(resp.downloaders, 6);
-}
-
-void test_parse_scrape_response_with_zero()
-{
-	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad8:completei4e10:incompletei5e10:downloadedi6eeee";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, true, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.complete, 4);
-	TEST_EQUAL(resp.incomplete, 5);
-	TEST_EQUAL(resp.downloaded, 6);
-	TEST_EQUAL(resp.downloaders, -1);
-}
-
-void test_parse_external_ip()
-{
-	char const response[] = "d5:peers0:11:external ip4:\x01\x02\x03\x04" "e";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.external_ip, address_v4::from_string("1.2.3.4"));
-}
-
-#if TORRENT_USE_IPV6
-void test_parse_external_ip6()
-{
-	char const response[] = "d5:peers0:11:external ip16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
-	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
-		, ec, false, sha1_hash());
-
-	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.external_ip, address_v6::from_string("f102:0304::ffff"));
-}
-#endif
-
-peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool expected_ret)
-{
-	error_code ec;
-	peer_entry result;
-	bdecode_node n;
-	bdecode(peer_field, peer_field + strlen(peer_field)
-		, n, ec, NULL, 1000, 1000);
-	TEST_CHECK(!ec);
-	bool ret = extract_peer_info(n, result, ec);
-	TEST_EQUAL(expected_ret, ret);
-	TEST_EQUAL(expected_ec, ec);
-	return result;
-}
-
-void test_extract_peer()
-{
-	{
-		peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcd4:porti1337ee"
-			, error_code(), true);
-		TEST_EQUAL(result.hostname, "abcd");
-		TEST_EQUAL(result.pid, peer_id("abababababababababab"));
-		TEST_EQUAL(result.port, 1337);
-
-	}
-
-	{
-		peer_entry result = extract_peer("d2:ip11:example.com4:porti1ee"
-			, error_code(), true);
-		TEST_EQUAL(result.hostname, "example.com");
-		TEST_EQUAL(result.pid, (peer_id::min)());
-		TEST_EQUAL(result.port, 1);
-
-	}
-
-	{
-		// not a dictionary
-		peer_entry result = extract_peer("2:ip11:example.com"
-			, error_code(errors::invalid_peer_dict, get_libtorrent_category()), false);
-	}
-
-	{
-		// missing IP
-		peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
-			, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
-	}
-
-	{
-		// missing port
-		peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
-			, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
-	}
-}
 
 int test_main()
 {
-	test_extract_peer();
-	test_parse_hostname_peers();
-	test_parse_peers4();
-	test_parse_interval();
-	test_parse_warning();
-	test_parse_failure_reason();
-	test_parse_scrape_response();
-	test_parse_scrape_response_with_zero();
-	test_parse_external_ip();
-#if TORRENT_USE_IPV6
-	test_parse_external_ip6();
-#endif
-
-	// TODO: test parse peers6
-	// TODO: test parse tracker-id
-	// TODO: test parse failure-reason
-	// TODO: test all failure paths, including
-	//   invalid bencoding
-	//   not a dictionary
-	//   no files entry in scrape response
-	//   no info-hash entry in scrape response
-	//   malformed peers in peer list of dictionaries
-	//   uneven number of bytes in peers and peers6 string responses
-
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 
@@ -269,21 +52,19 @@ int test_main()
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
+	session* s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
 
-	settings_pack pack;
-#ifndef TORRENT_NO_DEPRECATE
-	pack.set_int(settings_pack::half_open_limit, 1);
-#endif
-	pack.set_bool(settings_pack::announce_to_all_trackers, true);
-	pack.set_bool(settings_pack::announce_to_all_tiers, true);
-	s->apply_settings(pack);
+	session_settings sett;
+	sett.half_open_limit = 1;
+	sett.announce_to_all_trackers = true;
+	sett.announce_to_all_tiers = true;
+	s->set_settings(sett);
 
 	error_code ec;
 	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	std::ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::intrusive_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
 	char tracker_url[200];
@@ -326,17 +107,14 @@ int test_main()
 	// test that we move on to try the next tier if the first one fails
 	// ========================================
 
-	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+	s = new libtorrent::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
 
-	pack.clear();
-#ifndef TORRENT_NO_DEPRECATE
-	pack.set_int(settings_pack::half_open_limit, 1);
-#endif
-	pack.set_bool(settings_pack::announce_to_all_trackers, true);
-	pack.set_bool(settings_pack::announce_to_all_tiers, false);
-	pack.set_int(settings_pack::tracker_completion_timeout, 2);
-	pack.set_int(settings_pack::tracker_receive_timeout, 1);
-	s->apply_settings(pack);
+	sett.half_open_limit = 1;
+	sett.announce_to_all_trackers = true;
+	sett.announce_to_all_tiers = false;
+	sett.tracker_completion_timeout = 2;
+	sett.tracker_receive_timeout = 1;
+	s->set_settings(sett);
 
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);

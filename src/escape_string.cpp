@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <string>
 #include <cctype>
 #include <algorithm>
@@ -44,6 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/array.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
+#include "libtorrent/escape_string.hpp"
+#include "libtorrent/parse_url.hpp"
+#include "libtorrent/random.hpp"
+
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -51,27 +53,34 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h>
 #endif
 
+#include "libtorrent/utf8.hpp"
+#include "libtorrent/thread.hpp"
+
 #if TORRENT_USE_ICONV
 #include <iconv.h>
 #include <locale.h>
 #endif 
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/assert.hpp"
-#include "libtorrent/parse_url.hpp"
-#include "libtorrent/random.hpp"
-
-#include "libtorrent/utf8.hpp"
-#include "libtorrent/thread.hpp"
-
-#include "libtorrent/aux_/escape_string.hpp"
-#include "libtorrent/string_util.hpp" // for to_string
-
 namespace libtorrent
 {
-	// defined in hex.cpp
-	extern const char hex_chars[];
+
+	// lexical_cast's result depends on the locale. We need
+	// a well defined result
+	boost::array<char, 4 + std::numeric_limits<size_type>::digits10> to_string(size_type n)
+	{
+		boost::array<char, 4 + std::numeric_limits<size_type>::digits10> ret;
+		char *p = &ret.back();
+		*p = '\0';
+		unsigned_size_type un = n;
+		if (n < 0)  un = -un; // TODO: warning C4146: unary minus operator applied to unsigned type, result still unsigned
+		do {
+			*--p = '0' + un % 10;
+			un /= 10;
+		} while (un);
+		if (n < 0) *--p = '-';
+		std::memmove(&ret[0], p, &ret.back() - p + 1);
+		return ret;
+	}
 
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
@@ -143,6 +152,8 @@ namespace libtorrent
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
 
+	static const char hex_chars[] = "0123456789abcdef";
+
 	// the offset is used to ignore the first characters in the unreserved_chars table.
 	static std::string escape_string_impl(const char* str, int len, int offset)
 	{
@@ -197,16 +208,6 @@ namespace libtorrent
 			if (*i == '\\') *i = '/';
 	}
 
-#ifdef TORRENT_WINDOWS
-	void convert_path_to_windows(std::string& path)
-	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '/') *i = '\\';
-	}
-#endif
-
-	// TODO: 2 this should probably be moved into string_util.cpp
 	std::string read_until(char const*& str, char delim, char const* end)
 	{
 		TORRENT_ASSERT(str <= end);
@@ -241,32 +242,6 @@ namespace libtorrent
 			, port == -1 ? "" : to_string(port).elems
 			, escape_path(path.c_str(), path.size()).c_str());
 		return msg;
-	}
-
-	std::string resolve_file_url(std::string const& url)
-	{
-		TORRENT_ASSERT(url.substr(0, 7) == "file://");
-		// first, strip the file:// part.
-		// On windows, we have
-		// to strip the first / as well
-		int num_to_strip = 7;
-#ifdef TORRENT_WINDOWS
-		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
-#endif
-		std::string ret = url.substr(num_to_strip);
-
-		// we also need to URL-decode it
-		error_code ec;
-		std::string unescaped = unescape_string(ret, ec);
-		if (ec) unescaped = ret;
-
-		// on windows, we need to convert forward slashes
-		// to backslashes
-#ifdef TORRENT_WINDOWS
-		convert_path_to_windows(unescaped);
-#endif
-
-		return unescaped;
 	}
 
 	std::string base64encode(const std::string& s)
@@ -452,6 +427,60 @@ namespace libtorrent
 		size_t pos = i + argument.size();
 		if (out_pos) *out_pos = pos;
 		return url.substr(pos, url.find('&', pos) - pos);
+	}
+
+	TORRENT_EXTRA_EXPORT std::string to_hex(std::string const& s)
+	{
+		std::string ret;
+		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		{
+			ret += hex_chars[((unsigned char)*i) >> 4];
+			ret += hex_chars[((unsigned char)*i) & 0xf];
+		}
+		return ret;
+	}
+
+	TORRENT_EXTRA_EXPORT void to_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			*out++ = hex_chars[((unsigned char)*in) >> 4];
+			*out++ = hex_chars[((unsigned char)*in) & 0xf];
+		}
+		*out = '\0';
+	}
+
+	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
+	{
+		if (in >= '0' && in <= '9') return int(in) - '0';
+		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
+		if (in >= 'a' && in <= 'f') return int(in) - 'a' + 10;
+		return -1;
+	}
+
+	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
+	{
+		for (char const* end = in + len; in < end; ++in)
+		{
+			int t = hex_to_int(*in);
+			if (t == -1) return false;
+		}
+		return true;
+	}
+
+	TORRENT_EXTRA_EXPORT bool from_hex(char const *in, int len, char* out)
+	{
+		for (char const* end = in + len; in < end; ++in, ++out)
+		{
+			int t = hex_to_int(*in);
+			if (t == -1) return false;
+			*out = t << 4;
+			++in;
+			t = hex_to_int(*in);
+			if (t == -1) return false;
+			*out |= t & 15;
+		}
+		return true;
 	}
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING

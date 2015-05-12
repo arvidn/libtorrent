@@ -16,7 +16,8 @@ build_features:
  - ipv6=off
  - deprecated-functions=off 
  - exception-handling=off
- - logging=on
+ - logging=verbose
+ - statistics=on
  - asserts=off
  - asserts=production debug
  - asserts=on release
@@ -25,7 +26,7 @@ build_features:
 
 project: libtorrent
 
-branch: trunk
+branch: 1.0
 
 clean:
  - test_tmp_*

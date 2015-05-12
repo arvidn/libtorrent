@@ -51,16 +51,13 @@ typedef std::vector<tcp::endpoint> peers_t;
 
 struct msg
 {
-	msg(bdecode_node const& m, udp::endpoint const& ep): message(m), addr(ep) {}
+	msg(lazy_entry const& m, udp::endpoint const& ep): message(m), addr(ep) {}
 	// the message
-	bdecode_node const& message;
+	lazy_entry const& message;
 
 	// the address of the process sending or receiving
 	// the message.
 	udp::endpoint addr;
-private:
-	// explicitly disallow assignment, to silence msvc warning
-	msg& operator=(msg const&);
 };
 
 } }

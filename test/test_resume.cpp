@@ -36,14 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/create_torrent.hpp"
 
-#include <boost/make_shared.hpp>
-
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
 
-boost::shared_ptr<torrent_info> generate_torrent()
+boost::intrusive_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 10);
@@ -62,7 +60,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	return boost::make_shared<torrent_info>(&buf[0], buf.size());
+	return boost::intrusive_ptr<torrent_info>(new torrent_info(&buf[0], buf.size()));
 }
 
 std::vector<char> generate_resume_data(torrent_info* ti)
@@ -123,9 +121,9 @@ std::vector<char> generate_resume_data(torrent_info* ti)
 
 torrent_status test_resume_flags(int flags)
 {
-	libtorrent::session ses;
+	session ses;
 
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
 
 	add_torrent_params p;
 	
@@ -156,19 +154,10 @@ torrent_status test_resume_flags(int flags)
 
 void default_tests(torrent_status const& s)
 {
-	// allow some slack in the time stamps since they are reported as
-	// relative times. If the computer is busy while running the unit test
-	// or running under valgrind it may take several seconds
-	TEST_CHECK(s.last_scrape >= 1349);
-	TEST_CHECK(s.time_since_download >= 1350);
-	TEST_CHECK(s.time_since_upload >= 1351);
-	TEST_CHECK(s.active_time >= 1339);
-
-	TEST_CHECK(s.last_scrape < 1349 + 10);
-	TEST_CHECK(s.time_since_download < 1350 + 10);
-	TEST_CHECK(s.time_since_upload < 1351 + 10);
-	TEST_CHECK(s.active_time < 1339 + 10);
-
+	TEST_EQUAL(s.last_scrape, 1349);
+	TEST_EQUAL(s.time_since_download, 1350);
+	TEST_EQUAL(s.time_since_upload, 1351);
+	TEST_EQUAL(s.active_time, 1339);
 	TEST_EQUAL(s.finished_time, 1352);
 	TEST_EQUAL(s.seeding_time, 1340);
 	TEST_EQUAL(s.added_time, 1347);
@@ -337,7 +326,7 @@ int test_main()
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 
-	// TODO: test all other resume flags here too. This would require returning
+	// TODO: 2 test all other resume flags here too. This would require returning
 	// more than just the torrent_status from test_resume_flags. Also http seeds
 	// and trackers for instance
 	return 0;

@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UTP_STREAM_HPP_INCLUDED
 #define TORRENT_UTP_STREAM_HPP_INCLUDED
 
+#include "libtorrent/connection_queue.hpp"
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/io.hpp"
@@ -121,11 +122,6 @@ namespace libtorrent
 enum utp_socket_state_t
 { ST_DATA, ST_FIN, ST_STATE, ST_RESET, ST_SYN, NUM_TYPES };
 
-// internal: extension headers. 2 is skipped because there is a deprecated
-// extension with that number in the wild
-enum utp_extensions_t
-{ utp_no_extension = 0, utp_sack = 1, utp_close_reason = 3 };
-
 struct utp_header
 {
 	unsigned char type_ver;
@@ -149,10 +145,10 @@ utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
-void tick_utp_impl(utp_socket_impl* s, time_point now);
+void tick_utp_impl(utp_socket_impl* s, ptime const& now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, char const* p
-	, int size, udp::endpoint const& ep, time_point receive_time);
+	, int size, udp::endpoint const& ep, ptime receive_time);
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
 boost::uint16_t utp_receive_id(utp_socket_impl* s);
@@ -160,6 +156,10 @@ int utp_socket_state(utp_socket_impl const* s);
 void utp_send_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
 void utp_writable(utp_socket_impl* s);
+
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+int socket_impl_size();
+#endif
 
 // this is the user-level stream interface to utp sockets.
 // the reason why it's split up in a utp_stream class and
@@ -190,67 +190,57 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command&) {}
+	void io_control(IO_Control_Command& ioc) {}
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command&, error_code&) {}
+	void io_control(IO_Control_Command& ioc, error_code& ec) {}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& /*endpoint*/) {}
 #endif
 
-	void bind(endpoint_type const&, error_code&);
+	void bind(endpoint_type const& endpoint, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class SettableSocketOption>
-	void set_option(SettableSocketOption const&) {}
+	void set_option(SettableSocketOption const& opt) {}
 #endif
 
 	template <class SettableSocketOption>
-	error_code set_option(SettableSocketOption const&, error_code& ec) { return ec; }
+	error_code set_option(SettableSocketOption const& opt, error_code& ec) { return ec; }
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class GettableSocketOption>
-	void get_option(GettableSocketOption&) {}
+	void get_option(GettableSocketOption& opt) {}
 #endif
 
 	template <class GettableSocketOption>
-	error_code get_option(GettableSocketOption&, error_code& ec)
-	{ return ec; }
+	error_code get_option(GettableSocketOption& opt, error_code& ec) { return ec; }
 
-	error_code cancel(error_code&)
-	{
-		cancel_handlers(asio::error::operation_aborted);
-		return error_code();
-	}
 
 	void close();
 	void close(error_code const& /*ec*/) { close(); }
-
-	void set_close_reason(boost::uint16_t code);
-	boost::uint16_t get_close_reason();
-
 	bool is_open() const { return m_open; }
 
 	int read_buffer_size() const;
-	static void on_read(void* self, size_t bytes_transferred
-		, error_code const& ec, bool kill);
-	static void on_write(void* self, size_t bytes_transferred
-		, error_code const& ec, bool kill);
+	static void on_read(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
+	static void on_write(void* self, size_t bytes_transferred, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
-	static void on_close_reason(void* self, boost::uint16_t reason);
+
+	typedef void(*handler_t)(void*, size_t, error_code const&, bool);
+	typedef void(*connect_handler_t)(void*, error_code const&, bool);
 
 	void add_read_buffer(void* buf, size_t len);
-	void issue_read();
+	void set_read_handler(handler_t h);
 	void add_write_buffer(void const* buf, size_t len);
-	void issue_write();
+	void set_write_handler(handler_t h);
 	size_t read_some(bool clear_buffers);
 	
 	int send_delay() const;
 	int recv_delay() const;
 
-	void do_connect(tcp::endpoint const& ep);
+	void do_connect(tcp::endpoint const& ep, connect_handler_t h);
 
 	endpoint_type local_endpoint() const
 	{
@@ -289,9 +279,15 @@ public:
 		}
 
 		m_connect_handler = handler;
-		do_connect(endpoint);
+		do_connect(endpoint, &utp_stream::on_connect);
 	}
 	
+	template <class Handler>
+	void async_read_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
+
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -326,38 +322,18 @@ public:
 		}
 
 		m_read_handler = handler;
-		issue_read();
-	}
-
-	template <class Handler>
-	void async_read_some(boost::asio::null_buffers const&, Handler const& handler)
-	{
-		if (m_impl == 0)
-		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
-			return;
-		}
-
-		TORRENT_ASSERT(!m_read_handler);
-		if (m_read_handler)
-		{
-			TORRENT_ASSERT(false); // we should never do this!
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
-			return;
-		}
-		m_read_handler = handler;
-		issue_read();
+		set_read_handler(&utp_stream::on_read);
 	}
 
 	void do_async_connect(endpoint_type const& ep
 		, boost::function<void(error_code const&)> const& handler);
 
 	template <class Protocol>
-	void open(Protocol const&, error_code&)
+	void open(Protocol const& p, error_code& ec)
 	{ m_open = true; }
 
 	template <class Protocol>
-	void open(Protocol const&)
+	void open(Protocol const& p)
 	{ m_open = true; }
 
 	template <class Mutable_Buffers>
@@ -396,7 +372,7 @@ public:
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const& /* buffers */, error_code& /* ec */)
+	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
 		TORRENT_ASSERT(false && "not implemented!");
 		// TODO: implement blocking write. Low priority since it's not used (yet)
@@ -425,21 +401,25 @@ public:
 	}
 #endif
 
+	template <class Handler>
+	void async_write_some(boost::asio::null_buffers const& buffers, Handler const& handler)
+	{
+		TORRENT_ASSERT(false);
+	}
+
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler
-				, asio::error::not_connected, 0));
+			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_write_handler);
 		if (m_write_handler)
 		{
-			m_io_service.post(boost::bind<void>(handler
-				, asio::error::operation_not_supported, 0));
+			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
 			return;
 		}
 
@@ -461,12 +441,10 @@ public:
 			return;
 		}
 		m_write_handler = handler;
-		issue_write();
+		set_write_handler(&utp_stream::on_write);
 	}
 
-private:
-	// explicitly disallow assignment, to silence msvc warning
-	utp_stream& operator=(utp_stream const&);
+//private:
 
 	void cancel_handlers(error_code const&);
 
@@ -476,8 +454,6 @@ private:
 
 	asio::io_service& m_io_service;
 	utp_socket_impl* m_impl;
-
-	boost::uint16_t m_incoming_close_reason;
 
 	// this field requires another 8 bytes (including padding)
 	bool m_open;

@@ -31,8 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/routing_table.hpp>
+#include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/socket_io.hpp>
@@ -40,6 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht
 {
+
+#ifdef TORRENT_DHT_VERBOSE_LOGGING
+	TORRENT_DECLARE_LOG(traversal);
+#endif
 
 using detail::read_endpoint_list;
 using detail::read_v4_endpoint;
@@ -49,37 +54,33 @@ using detail::read_v6_endpoint;
 
 void find_data_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	lazy_entry const* r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] missing response dict";
 #endif
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
-	if (!id || id.string_length() != 20)
+	lazy_entry const* id = r->dict_find_string("id");
+	if (!id || id->string_length() != 20)
 	{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get());
+		TORRENT_LOG(traversal) << "[" << m_algorithm.get() << "] invalid id in response";
 #endif
 		return;
 	}
-	bdecode_node token = r.dict_find_string("token");
+	lazy_entry const* token = r->dict_find_string("token");
 	if (token)
 	{
 		static_cast<find_data*>(m_algorithm.get())->got_write_token(
-			node_id(id.string_ptr()), token.string_value());
+			node_id(id->string_ptr()), token->string_value());
 	}
 
 	traversal_observer::reply(m);
 	done();
 }
-
-namespace {
 
 void add_entry_fun(void* userdata, node_entry const& e)
 {
@@ -87,13 +88,11 @@ void add_entry_fun(void* userdata, node_entry const& e)
 	f->add_entry(e.id, e.ep(), observer::flag_initial);
 }
 
-} // anonymous namespace
-
 find_data::find_data(
-	node& dht_node
+	node_impl& node
 	, node_id target
 	, nodes_callback const& ncallback)
-	: traversal_algorithm(dht_node, target)
+	: traversal_algorithm(node, target)
 	, m_nodes_callback(ncallback)
 	, m_done(false)
 {
@@ -112,8 +111,8 @@ void find_data::start()
 void find_data::got_write_token(node_id const& n, std::string const& write_token)
 {
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] adding write token '%s' under id '%s'"
-		, this, to_hex(write_token).c_str(), to_hex(n.to_string()).c_str());
+	TORRENT_LOG(traversal) << "[" << this << "] adding write "
+		"token '" << to_hex(write_token) << "' under id '" << to_hex(n.to_string()) << "'";
 #endif
 	m_write_tokens[n] = write_token;
 }
@@ -137,8 +136,7 @@ void find_data::done()
 	m_done = true;
 
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE"
-		, this, name());
+	TORRENT_LOG(traversal) << "[" << this << "] " << name() << " DONE";
 #endif
 
 	std::vector<std::pair<node_entry, std::string> > results;
@@ -150,8 +148,8 @@ void find_data::done()
 		if ((o->flags & observer::flag_alive) == 0)
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] not alive: %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+			TORRENT_LOG(traversal) << "[" << this << "]     not alive: "
+				<< o->target_ep();
 #endif
 			continue;
 		}
@@ -159,15 +157,15 @@ void find_data::done()
 		if (j == m_write_tokens.end())
 		{
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] no write token: %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+			TORRENT_LOG(traversal) << "[" << this << "]     no write token: "
+				<< o->target_ep();
 #endif
 			continue;
 		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 #ifdef TORRENT_DHT_VERBOSE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+			TORRENT_LOG(traversal) << "[" << this << "]     "
+				<< o->target_ep();
 #endif
 		--num_results;
 	}
