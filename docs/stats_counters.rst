@@ -344,53 +344,53 @@ disconnect peers.
 	<a name="peer.num_peers_up_disk"></a>
 	<a name="peer.num_peers_down_disk"></a>
 
-+---------------------------------------+-------+
-| name                                  | type  |
-+=======================================+=======+
-| peer.num_tcp_peers                    | gauge |
-+---------------------------------------+-------+
-| peer.num_socks5_peers                 | gauge |
-+---------------------------------------+-------+
-| peer.num_http_proxy_peers             | gauge |
-+---------------------------------------+-------+
-| peer.num_utp_peers                    | gauge |
-+---------------------------------------+-------+
-| peer.num_i2p_peers                    | gauge |
-+---------------------------------------+-------+
-| peer.num_ssl_peers                    | gauge |
-+---------------------------------------+-------+
-| peer.num_ssl_socks5_peers             | gauge |
-+---------------------------------------+-------+
-| peer.num_ssl_http_proxy_peers         | gauge |
-+---------------------------------------+-------+
-| peer.num_ssl_utp_peers                | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_half_open              | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_connected              | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_interested          | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_down_interested        | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_unchoked_all        | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_unchoked_optimistic | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_unchoked            | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_down_unchoked          | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_requests            | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_down_requests          | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_end_game               | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_up_disk                | gauge |
-+---------------------------------------+-------+
-| peer.num_peers_down_disk              | gauge |
-+---------------------------------------+-------+
++---------------------------------------+---------+
+| name                                  | type    |
++=======================================+=========+
+| peer.num_tcp_peers                    | counter |
++---------------------------------------+---------+
+| peer.num_socks5_peers                 | counter |
++---------------------------------------+---------+
+| peer.num_http_proxy_peers             | counter |
++---------------------------------------+---------+
+| peer.num_utp_peers                    | counter |
++---------------------------------------+---------+
+| peer.num_i2p_peers                    | counter |
++---------------------------------------+---------+
+| peer.num_ssl_peers                    | counter |
++---------------------------------------+---------+
+| peer.num_ssl_socks5_peers             | counter |
++---------------------------------------+---------+
+| peer.num_ssl_http_proxy_peers         | counter |
++---------------------------------------+---------+
+| peer.num_ssl_utp_peers                | counter |
++---------------------------------------+---------+
+| peer.num_peers_half_open              | counter |
++---------------------------------------+---------+
+| peer.num_peers_connected              | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_interested          | counter |
++---------------------------------------+---------+
+| peer.num_peers_down_interested        | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_unchoked_all        | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_unchoked_optimistic | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_unchoked            | counter |
++---------------------------------------+---------+
+| peer.num_peers_down_unchoked          | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_requests            | counter |
++---------------------------------------+---------+
+| peer.num_peers_down_requests          | counter |
++---------------------------------------+---------+
+| peer.num_peers_end_game               | counter |
++---------------------------------------+---------+
+| peer.num_peers_up_disk                | counter |
++---------------------------------------+---------+
+| peer.num_peers_down_disk              | counter |
++---------------------------------------+---------+
 
 
 the number of peer connections for each kind of socket.
@@ -517,13 +517,13 @@ total number of bytes sent and received by the session
 	<a name="net.limiter_up_queue"></a>
 	<a name="net.limiter_down_queue"></a>
 
-+------------------------+-------+
-| name                   | type  |
-+========================+=======+
-| net.limiter_up_queue   | gauge |
-+------------------------+-------+
-| net.limiter_down_queue | gauge |
-+------------------------+-------+
++------------------------+---------+
+| name                   | type    |
++========================+=========+
+| net.limiter_up_queue   | counter |
++------------------------+---------+
+| net.limiter_down_queue | counter |
++------------------------+---------+
 
 
 the number of sockets currently waiting for upload and download
@@ -538,13 +538,13 @@ bandwidht from the rate limiter.
 	<a name="net.limiter_up_bytes"></a>
 	<a name="net.limiter_down_bytes"></a>
 
-+------------------------+-------+
-| name                   | type  |
-+========================+=======+
-| net.limiter_up_bytes   | gauge |
-+------------------------+-------+
-| net.limiter_down_bytes | gauge |
-+------------------------+-------+
++------------------------+---------+
+| name                   | type    |
++========================+=========+
+| net.limiter_up_bytes   | counter |
++------------------------+---------+
+| net.limiter_down_bytes | counter |
++------------------------+---------+
 
 
 the number of upload and download bytes waiting to be handed out from
@@ -588,11 +588,11 @@ were downloaded multiple times (from different peers)
 
 	<a name="net.has_incoming_connections"></a>
 
-+------------------------------+-------+
-| name                         | type  |
-+==============================+=======+
-| net.has_incoming_connections | gauge |
-+------------------------------+-------+
++------------------------------+---------+
+| name                         | type    |
++==============================+=========+
+| net.has_incoming_connections | counter |
++------------------------------+---------+
 
 
 is false by default and set to true when
@@ -627,25 +627,25 @@ NAT or not.
 	<a name="ses.num_queued_download_torrents"></a>
 	<a name="ses.num_error_torrents"></a>
 
-+----------------------------------+-------+
-| name                             | type  |
-+==================================+=======+
-| ses.num_checking_torrents        | gauge |
-+----------------------------------+-------+
-| ses.num_stopped_torrents         | gauge |
-+----------------------------------+-------+
-| ses.num_upload_only_torrents     | gauge |
-+----------------------------------+-------+
-| ses.num_downloading_torrents     | gauge |
-+----------------------------------+-------+
-| ses.num_seeding_torrents         | gauge |
-+----------------------------------+-------+
-| ses.num_queued_seeding_torrents  | gauge |
-+----------------------------------+-------+
-| ses.num_queued_download_torrents | gauge |
-+----------------------------------+-------+
-| ses.num_error_torrents           | gauge |
-+----------------------------------+-------+
++----------------------------------+---------+
+| name                             | type    |
++==================================+=========+
+| ses.num_checking_torrents        | counter |
++----------------------------------+---------+
+| ses.num_stopped_torrents         | counter |
++----------------------------------+---------+
+| ses.num_upload_only_torrents     | counter |
++----------------------------------+---------+
+| ses.num_downloading_torrents     | counter |
++----------------------------------+---------+
+| ses.num_seeding_torrents         | counter |
++----------------------------------+---------+
+| ses.num_queued_seeding_torrents  | counter |
++----------------------------------+---------+
+| ses.num_queued_download_torrents | counter |
++----------------------------------+---------+
+| ses.num_error_torrents           | counter |
++----------------------------------+---------+
 
 
 these gauges count the number of torrents in
@@ -665,13 +665,13 @@ state.
 	<a name="ses.num_loaded_torrents"></a>
 	<a name="ses.num_pinned_torrents"></a>
 
-+-------------------------+-------+
-| name                    | type  |
-+=========================+=======+
-| ses.num_loaded_torrents | gauge |
-+-------------------------+-------+
-| ses.num_pinned_torrents | gauge |
-+-------------------------+-------+
++-------------------------+---------+
+| name                    | type    |
++=========================+=========+
+| ses.num_loaded_torrents | counter |
++-------------------------+---------+
+| ses.num_pinned_torrents | counter |
++-------------------------+---------+
 
 
 the number of torrents that are currently loaded
@@ -733,11 +733,11 @@ is enabled).
 
 	<a name="ses.num_unchoke_slots"></a>
 
-+-----------------------+-------+
-| name                  | type  |
-+=======================+=======+
-| ses.num_unchoke_slots | gauge |
-+-----------------------+-------+
++-----------------------+---------+
+| name                  | type    |
++=======================+=========+
+| ses.num_unchoke_slots | counter |
++-----------------------+---------+
 
 
 the number of allowed unchoked peers
@@ -1087,9 +1087,9 @@ the number of pieces considered while picking pieces
 +---------------------------------------+---------+
 | picker.hash_fail_piece_picks          | counter |
 +---------------------------------------+---------+
-| disk.write_cache_blocks               | gauge   |
+| disk.write_cache_blocks               | counter |
 +---------------------------------------+---------+
-| disk.read_cache_blocks                | gauge   |
+| disk.read_cache_blocks                | counter |
 +---------------------------------------+---------+
 
 
@@ -1132,31 +1132,31 @@ triggered it
 	<a name="disk.num_running_threads"></a>
 	<a name="disk.blocked_disk_jobs"></a>
 
-+----------------------------+-------+
-| name                       | type  |
-+============================+=======+
-| disk.request_latency       | gauge |
-+----------------------------+-------+
-| disk.pinned_blocks         | gauge |
-+----------------------------+-------+
-| disk.disk_blocks_in_use    | gauge |
-+----------------------------+-------+
-| disk.queued_disk_jobs      | gauge |
-+----------------------------+-------+
-| disk.num_running_disk_jobs | gauge |
-+----------------------------+-------+
-| disk.num_read_jobs         | gauge |
-+----------------------------+-------+
-| disk.num_write_jobs        | gauge |
-+----------------------------+-------+
-| disk.num_jobs              | gauge |
-+----------------------------+-------+
-| disk.num_writing_threads   | gauge |
-+----------------------------+-------+
-| disk.num_running_threads   | gauge |
-+----------------------------+-------+
-| disk.blocked_disk_jobs     | gauge |
-+----------------------------+-------+
++----------------------------+---------+
+| name                       | type    |
++============================+=========+
+| disk.request_latency       | counter |
++----------------------------+---------+
+| disk.pinned_blocks         | counter |
++----------------------------+---------+
+| disk.disk_blocks_in_use    | counter |
++----------------------------+---------+
+| disk.queued_disk_jobs      | counter |
++----------------------------+---------+
+| disk.num_running_disk_jobs | counter |
++----------------------------+---------+
+| disk.num_read_jobs         | counter |
++----------------------------+---------+
+| disk.num_write_jobs        | counter |
++----------------------------+---------+
+| disk.num_jobs              | counter |
++----------------------------+---------+
+| disk.num_writing_threads   | counter |
++----------------------------+---------+
+| disk.num_running_threads   | counter |
++----------------------------+---------+
+| disk.blocked_disk_jobs     | counter |
++----------------------------+---------+
 
 
 the number of microseconds it takes from receiving a request from a
@@ -1186,23 +1186,23 @@ peer until we're sending the response back on the socket.
 	<a name="disk.arc_write_size"></a>
 	<a name="disk.arc_volatile_size"></a>
 
-+-------------------------+-------+
-| name                    | type  |
-+=========================+=======+
-| disk.queued_write_bytes | gauge |
-+-------------------------+-------+
-| disk.arc_mru_size       | gauge |
-+-------------------------+-------+
-| disk.arc_mru_ghost_size | gauge |
-+-------------------------+-------+
-| disk.arc_mfu_size       | gauge |
-+-------------------------+-------+
-| disk.arc_mfu_ghost_size | gauge |
-+-------------------------+-------+
-| disk.arc_write_size     | gauge |
-+-------------------------+-------+
-| disk.arc_volatile_size  | gauge |
-+-------------------------+-------+
++-------------------------+---------+
+| name                    | type    |
++=========================+=========+
+| disk.queued_write_bytes | counter |
++-------------------------+---------+
+| disk.arc_mru_size       | counter |
++-------------------------+---------+
+| disk.arc_mru_ghost_size | counter |
++-------------------------+---------+
+| disk.arc_mfu_size       | counter |
++-------------------------+---------+
+| disk.arc_mfu_ghost_size | counter |
++-------------------------+---------+
+| disk.arc_write_size     | counter |
++-------------------------+---------+
+| disk.arc_volatile_size  | counter |
++-------------------------+---------+
 
 
 the number of bytes we have sent to the disk I/O
@@ -1391,47 +1391,47 @@ as total for all disk jobs. Measured in microseconds
 	<a name="disk.num_fenced_clear_piece"></a>
 	<a name="disk.num_fenced_tick_storage"></a>
 
-+----------------------------------+-------+
-| name                             | type  |
-+==================================+=======+
-| disk.num_fenced_read             | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_write            | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_hash             | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_move_storage     | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_release_files    | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_delete_files     | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_check_fastresume | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_save_resume_data | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_rename_file      | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_stop_torrent     | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_cache_piece      | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_flush_piece      | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_flush_hashed     | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_flush_storage    | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_trim_cache       | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_file_priority    | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_load_torrent     | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_clear_piece      | gauge |
-+----------------------------------+-------+
-| disk.num_fenced_tick_storage     | gauge |
-+----------------------------------+-------+
++----------------------------------+---------+
+| name                             | type    |
++==================================+=========+
+| disk.num_fenced_read             | counter |
++----------------------------------+---------+
+| disk.num_fenced_write            | counter |
++----------------------------------+---------+
+| disk.num_fenced_hash             | counter |
++----------------------------------+---------+
+| disk.num_fenced_move_storage     | counter |
++----------------------------------+---------+
+| disk.num_fenced_release_files    | counter |
++----------------------------------+---------+
+| disk.num_fenced_delete_files     | counter |
++----------------------------------+---------+
+| disk.num_fenced_check_fastresume | counter |
++----------------------------------+---------+
+| disk.num_fenced_save_resume_data | counter |
++----------------------------------+---------+
+| disk.num_fenced_rename_file      | counter |
++----------------------------------+---------+
+| disk.num_fenced_stop_torrent     | counter |
++----------------------------------+---------+
+| disk.num_fenced_cache_piece      | counter |
++----------------------------------+---------+
+| disk.num_fenced_flush_piece      | counter |
++----------------------------------+---------+
+| disk.num_fenced_flush_hashed     | counter |
++----------------------------------+---------+
+| disk.num_fenced_flush_storage    | counter |
++----------------------------------+---------+
+| disk.num_fenced_trim_cache       | counter |
++----------------------------------+---------+
+| disk.num_fenced_file_priority    | counter |
++----------------------------------+---------+
+| disk.num_fenced_load_torrent     | counter |
++----------------------------------+---------+
+| disk.num_fenced_clear_piece      | counter |
++----------------------------------+---------+
+| disk.num_fenced_tick_storage     | counter |
++----------------------------------+---------+
 
 
 for each kind of disk job, a counter of how many jobs of that kind
@@ -1443,11 +1443,11 @@ are currently blocked by a disk fence
 
 	<a name="dht.dht_nodes"></a>
 
-+---------------+-------+
-| name          | type  |
-+===============+=======+
-| dht.dht_nodes | gauge |
-+---------------+-------+
++---------------+---------+
+| name          | type    |
++===============+=========+
+| dht.dht_nodes | counter |
++---------------+---------+
 
 
 The number of nodes in the DHT routing table
@@ -1458,11 +1458,11 @@ The number of nodes in the DHT routing table
 
 	<a name="dht.dht_node_cache"></a>
 
-+--------------------+-------+
-| name               | type  |
-+====================+=======+
-| dht.dht_node_cache | gauge |
-+--------------------+-------+
++--------------------+---------+
+| name               | type    |
++====================+=========+
+| dht.dht_node_cache | counter |
++--------------------+---------+
 
 
 The number of replacement nodes in the DHT routing table
@@ -1473,11 +1473,11 @@ The number of replacement nodes in the DHT routing table
 
 	<a name="dht.dht_torrents"></a>
 
-+------------------+-------+
-| name             | type  |
-+==================+=======+
-| dht.dht_torrents | gauge |
-+------------------+-------+
++------------------+---------+
+| name             | type    |
++==================+=========+
+| dht.dht_torrents | counter |
++------------------+---------+
 
 
 the number of torrents currently tracked by our DHT node
@@ -1488,11 +1488,11 @@ the number of torrents currently tracked by our DHT node
 
 	<a name="dht.dht_peers"></a>
 
-+---------------+-------+
-| name          | type  |
-+===============+=======+
-| dht.dht_peers | gauge |
-+---------------+-------+
++---------------+---------+
+| name          | type    |
++===============+=========+
+| dht.dht_peers | counter |
++---------------+---------+
 
 
 the number of peers currently tracked by our DHT node
@@ -1503,11 +1503,11 @@ the number of peers currently tracked by our DHT node
 
 	<a name="dht.dht_immutable_data"></a>
 
-+------------------------+-------+
-| name                   | type  |
-+========================+=======+
-| dht.dht_immutable_data | gauge |
-+------------------------+-------+
++------------------------+---------+
+| name                   | type    |
++========================+=========+
+| dht.dht_immutable_data | counter |
++------------------------+---------+
 
 
 the number of immutable data items tracked by our DHT node
@@ -1518,11 +1518,11 @@ the number of immutable data items tracked by our DHT node
 
 	<a name="dht.dht_mutable_data"></a>
 
-+----------------------+-------+
-| name                 | type  |
-+======================+=======+
-| dht.dht_mutable_data | gauge |
-+----------------------+-------+
++----------------------+---------+
+| name                 | type    |
++======================+=========+
+| dht.dht_mutable_data | counter |
++----------------------+---------+
 
 
 the number of mutable data items tracked by our DHT node
@@ -1533,11 +1533,11 @@ the number of mutable data items tracked by our DHT node
 
 	<a name="dht.dht_allocated_observers"></a>
 
-+-----------------------------+-------+
-| name                        | type  |
-+=============================+=======+
-| dht.dht_allocated_observers | gauge |
-+-----------------------------+-------+
++-----------------------------+---------+
+| name                        | type    |
++=============================+=========+
+| dht.dht_allocated_observers | counter |
++-----------------------------+---------+
 
 
 the number of RPC observers currently allocated
@@ -1788,19 +1788,19 @@ has occurred.
 	<a name="utp.num_utp_fin_sent"></a>
 	<a name="utp.num_utp_close_wait"></a>
 
-+------------------------+-------+
-| name                   | type  |
-+========================+=======+
-| utp.num_utp_idle       | gauge |
-+------------------------+-------+
-| utp.num_utp_syn_sent   | gauge |
-+------------------------+-------+
-| utp.num_utp_connected  | gauge |
-+------------------------+-------+
-| utp.num_utp_fin_sent   | gauge |
-+------------------------+-------+
-| utp.num_utp_close_wait | gauge |
-+------------------------+-------+
++------------------------+---------+
+| name                   | type    |
++========================+=========+
+| utp.num_utp_idle       | counter |
++------------------------+---------+
+| utp.num_utp_syn_sent   | counter |
++------------------------+---------+
+| utp.num_utp_connected  | counter |
++------------------------+---------+
+| utp.num_utp_fin_sent   | counter |
++------------------------+---------+
+| utp.num_utp_close_wait | counter |
++------------------------+---------+
 
 
 the number of uTP sockets in each respective state

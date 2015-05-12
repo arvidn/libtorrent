@@ -1,8 +1,3 @@
-.document {
-    margin-left: 10px;
-    margin-right: 10px;
-}
-
 .document a {
     border: none;
     color: black;
@@ -37,6 +32,9 @@ div.main-toc {
 	column-count: 4;
 	-webkit-column-count: 4;
 	-moz-column-count: 4;
+	column-width: 13em;
+	-webkit-column-width: 13em;
+	-moz-column-width: 13em;
 	border: 1px solid #999;
 	padding: 5px;
 	margin-bottom: 10px;

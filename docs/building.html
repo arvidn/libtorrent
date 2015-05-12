@@ -6,7 +6,7 @@
 <meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
 <title>libtorrent manual</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
-<link rel="stylesheet" type="text/css" href="rst.css" />
+<meta name=viewport content="width=device-width, initial-scale=1">
 <script type="text/javascript">
 /* <![CDATA[ */
     (function() {
@@ -19,6 +19,7 @@
 /* ]]> */
 </script>
 <link rel="stylesheet" href="style.css" type="text/css" />
+<link rel="stylesheet" type="text/css" href="rst.css" />
 <style type="text/css">
 /* Hides from IE-mac \*/
 * html pre { height: 1%; }
@@ -276,10 +277,10 @@ libraries.</li>
 </tr>
 <tr><td><tt class="docutils literal">logging</tt></td>
 <td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - default. logging disabled.</li>
-<li><tt class="docutils literal">on</tt> - logging alerts available, still need to
-be enabled by the alert mask. The reason logging
-is disabled by default is to keep the binary
+<li><tt class="docutils literal">off</tt> - logging alerts disabled.</li>
+<li><tt class="docutils literal">on</tt> - default. logging alerts available,
+still need to be enabled by the alert mask. The
+reason to disable logging is to keep the binary
 size down.</li>
 </ul>
 </td>
@@ -291,16 +292,6 @@ torrents and DHT support.</li>
 <li><tt class="docutils literal">logging</tt> - build with DHT support and verbose
 logging of the DHT protocol traffic.</li>
 <li><tt class="docutils literal">off</tt> - build without DHT support.</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">need-librt</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">no</tt> - this platform does not need to link
-against librt to have POSIX time functions.</li>
-<li><tt class="docutils literal">yes</tt> - specify this if your linux system
-requires you to link against librt.a. This is
-typically the case on x86 64 bit systems.</li>
 </ul>
 </td>
 </tr>
@@ -320,14 +311,6 @@ filename.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">upnp-logging</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - default. Does not log UPnP traffic.</li>
-<li><tt class="docutils literal">on</tt> - creates &quot;upnp.log&quot; with the messages
-sent to and received from UPnP devices.</li>
-</ul>
-</td>
-</tr>
 <tr><td><tt class="docutils literal">encryption</tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">on</tt> - encrypted bittorrent connections
@@ -335,6 +318,14 @@ enabled. (Message Stream encryption).</li>
 <li><tt class="docutils literal">off</tt> - turns off support for encrypted
 connections. The shipped public domain SHA-1
 implementation is used.</li>
+</ul>
+</td>
+</tr>
+<tr><td><tt class="docutils literal"><span class="pre">mutable-torrents</span></tt></td>
+<td><ul class="first last simple">
+<li><tt class="docutils literal">on</tt> - mutable torrents are supported
+(<a class="reference external" href="http://www.bittorrent.org/beps/bep_0038.html">BEP 38</a>) (default).</li>
+<li><tt class="docutils literal">off</tt> - mutable torrents are not supported.</li>
 </ul>
 </td>
 </tr>
@@ -435,16 +426,6 @@ functions are used.</li>
 </ul>
 </td>
 </tr>
-<tr><td><tt class="docutils literal"><span class="pre">full-stats</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">on</tt> - default, collects stats for IP overhead
-and DHT and trackers. This uses a little bit
-extra memory for each peer and torrent.</li>
-<li><tt class="docutils literal">off</tt> - only collects the standard stats for
-upload and download rate.</li>
-</ul>
-</td>
-</tr>
 <tr><td><tt class="docutils literal">iconv</tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">auto</tt> - use iconv for string conversions for
@@ -459,28 +440,6 @@ awareness except on windows).</li>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">on</tt> - build with I2P support</li>
 <li><tt class="docutils literal">off</tt> - build without I2P support</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal"><span class="pre">boost-date-time</span></tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - don't build asio types that depend
-on boost.date_time. libtorrent doesn't use them
-but if the client does, you need these to be
-built.</li>
-<li><tt class="docutils literal">on</tt> - build asio types that depend on
-boost.date_time.</li>
-</ul>
-</td>
-</tr>
-<tr><td><tt class="docutils literal">statistics</tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">off</tt> - default. No logging of additional
-stats.</li>
-<li><tt class="docutils literal">on</tt> - log session statistics in current
-working directory session_stats&lt;pid&gt;. The log
-is rotated every hour. It can be parsed by the
-parse_session_stats.py script (requires gnuplot)</li>
 </ul>
 </td>
 </tr>
@@ -647,22 +606,16 @@ files. Potential problems is different
 compilation units having different views of
 structs and class layouts and sizes.</td>
 </tr>
-<tr><td><tt class="docutils literal">TORRENT_LOGGING</tt></td>
-<td>This macro will enable support for logging
+<tr><td><tt class="docutils literal">TORRENT_DISABLE_LOGGING</tt></td>
+<td>This macro will disable support for logging
 alerts, like log_alert, torrent_log_alert and
-peer_log_alert. Without this build flag, you
+peer_log_alert. With this build flag, you
 cannot enable those alerts.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_STORAGE_DEBUG</tt></td>
 <td>This will enable extra expensive invariant
 checks in the storage, including logging of
 piece sorting.</td>
-</tr>
-<tr><td><tt class="docutils literal">TORRENT_UPNP_LOGGING</tt></td>
-<td>Generates a &quot;upnp.log&quot; file with the UPnP
-traffic. This is very useful when debugging
-support for various UPnP routers.
-support for various UPnP routers.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_DISK_STATS</tt></td>
 <td>This will create a log of all disk activity
@@ -677,6 +630,9 @@ operations.</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_DISABLE_POOL_ALLOCATOR</tt></td>
 <td>Disables use of <tt class="docutils literal"><span class="pre">boost::pool&lt;&gt;</span></tt>.</td>
+</tr>
+<tr><td><tt class="docutils literal">TORRENT_DISABLE_MUTABLE_TORRENTS</tt></td>
+<td>Disables mutable torrent support (<a class="reference external" href="http://www.bittorrent.org/beps/bep_0038.html">BEP 38</a>)</td>
 </tr>
 <tr><td><tt class="docutils literal">TORRENT_LINKING_SHARED</tt></td>
 <td>If this is defined when including the
@@ -813,7 +769,7 @@ be picked up by libtorrent.</p>
     </tr>
     </table>
     </div>
-    <div id="filler"></div></div>
+    <div id="filler"></div>
 
 </div>
 </body>
