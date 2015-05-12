@@ -1,0 +1,35 @@
+# all features are built in these directories
+test_dirs:
+ - test
+
+features:
+ - variant=test_release
+ - variant=test_debug
+
+# all build_features are built in these directories
+build_dirs:
+ - tools
+ - examples
+ - bindings/python
+
+build_features:
+ - ipv6=off
+ - deprecated-functions=off 
+ - exception-handling=off
+ - logging=verbose
+ - statistics=on
+ - asserts=off
+ - asserts=production debug
+ - asserts=on release
+ - variant=test_barebones
+ - link=shared boost-link=shared deprecated-functions=off
+
+project: libtorrent
+
+branch: 1.0
+
+clean:
+ - test_tmp_*
+
+time_limit: 600
+

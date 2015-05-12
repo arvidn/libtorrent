@@ -1,0 +1,645 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<title></title>
+<link rel="stylesheet" type="text/css" href="rst.css" />
+<script type="text/javascript">
+/* <![CDATA[ */
+    (function() {
+        var s = document.createElement('script'), t = document.getElementsByTagName('script')[0];
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = 'http://api.flattr.com/js/0.6/load.js?mode=auto';
+        t.parentNode.insertBefore(s, t);
+    })();
+/* ]]> */
+</script>
+<link rel="stylesheet" href="style.css" type="text/css" />
+<style type="text/css">
+/* Hides from IE-mac \*/
+* html pre { height: 1%; }
+/* End hide from IE-mac */
+</style>
+</head>
+<body>
+<div class="document">
+    <div id="container">
+    <table id="header">
+    <tr><td id="orange"></td>
+    <td id="logo">libtorrent</td></tr>
+    </table>
+    <div id="main">
+
+
+<div class="section" id="plugins">
+<h1>Plugins</h1>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Author:</th><td class="field-body">Arvid Norberg, <a class="reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td>
+</tr>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body">1.0.5</td>
+</tr>
+</tbody>
+</table>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title first">Table of contents</p>
+<ul class="simple">
+<li><a class="reference internal" href="#plugins" id="id68">Plugins</a></li>
+<li><a class="reference internal" href="#plugin-interface" id="id69">plugin-interface</a></li>
+<li><a class="reference internal" href="#custom-alerts" id="id70">custom alerts</a></li>
+</ul>
+</div>
+<p>libtorrent has a <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> interface for implementing extensions to the protocol.
+These can be general extensions for transferring metadata or peer exchange
+extensions, or it could be used to provide a way to customize the protocol
+to fit a particular (closed) network.</p>
+<p>In short, the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> interface makes it possible to:</p>
+<ul class="simple">
+<li>register extension messages (sent in the extension handshake), see
+<a class="reference external" href="extension_protocol.html">extensions</a>.</li>
+<li>add data and parse data from the extension handshake.</li>
+<li>send extension messages and standard bittorrent messages.</li>
+<li>override or block the handling of standard bittorrent messages.</li>
+<li>save and restore state via the <a class="reference external" href="reference-Session.html#session">session</a> state</li>
+<li>see all alerts that are posted</li>
+</ul>
+<div class="section" id="a-word-of-caution">
+<h2>a word of caution</h2>
+<p>Writing your own <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> is a very easy way to introduce serious bugs such as
+dead locks and race conditions. Since a <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> has access to internal
+structures it is also quite easy to sabotage libtorrent's operation.</p>
+<p>All the callbacks in this interface are called with the main libtorrent thread
+mutex locked. And they are always called from the libtorrent network thread. In
+case portions of your <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> are called from other threads, typically the main
+thread, you cannot use any of the member functions on the internal structures
+in libtorrent, since those require the mutex to be locked. Futhermore, you would
+also need to have a mutex on your own shared data within the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a>, to make
+sure it is not accessed at the same time from the libtorrent thread (through a
+callback). See <a class="reference external" href="http://www.boost.org/doc/html/mutex.html">boost thread's mutex</a>. If you need to send out a message from
+another thread, it is advised to use an internal queue, and do the actual
+sending in <tt class="docutils literal">tick()</tt>.</p>
+<p>Since the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> interface gives you easy access to internal structures, it
+is not supported as a stable API. Plugins should be considered spcific to a
+specific version of libtorrent. Although, in practice the internals mostly
+don't change that dramatically.</p>
+</div>
+</div>
+<div class="section" id="plugin-interface">
+<h1>plugin-interface</h1>
+<p>The <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> interface consists of three base classes that the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> may
+implement. These are called <a class="reference external" href="reference-Plugins.html#plugin">plugin</a>, <a class="reference external" href="reference-Plugins.html#torrent_plugin">torrent_plugin</a> and <a class="reference external" href="reference-Plugins.html#peer_plugin">peer_plugin</a>.
+They are found in the <tt class="docutils literal">&lt;libtorrent/extensions.hpp&gt;</tt> header.</p>
+<p>These plugins are instantiated for each <a class="reference external" href="reference-Session.html#session">session</a>, torrent and possibly each peer,
+respectively.</p>
+<p>For plugins that only need per torrent state, it is enough to only implement
+<tt class="docutils literal">torrent_plugin</tt> and pass a constructor function or function object to
+<tt class="docutils literal"><span class="pre">session::add_extension()</span></tt> or <tt class="docutils literal"><span class="pre">torrent_handle::add_extension()</span></tt> (if the
+torrent has already been started and you want to hook in the extension at
+run-time).</p>
+<p>The signature of the function is:</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent_plugin&gt; (*)(torrent*, void*);
+</pre>
+<p>The first argument is the internal torrent object, the second argument
+is the userdata passed to <tt class="docutils literal"><span class="pre">session::add_torrent()</span></tt> or
+<tt class="docutils literal"><span class="pre">torrent_handle::add_extension()</span></tt>.</p>
+<p>The function should return a <tt class="docutils literal"><span class="pre">boost::shared_ptr&lt;torrent_plugin&gt;</span></tt> which
+may or may not be 0. If it is a null pointer, the extension is simply ignored
+for this torrent. If it is a valid pointer (to a class inheriting
+<tt class="docutils literal">torrent_plugin</tt>), it will be associated with this torrent and callbacks
+will be made on torrent events.</p>
+<p>For more elaborate plugins which require <a class="reference external" href="reference-Session.html#session">session</a> wide state, you would
+implement <tt class="docutils literal">plugin</tt>, construct an object (in a <tt class="docutils literal"><span class="pre">boost::shared_ptr</span></tt>) and pass
+it in to <tt class="docutils literal"><span class="pre">session::add_extension()</span></tt>.</p>
+</div>
+<div class="section" id="custom-alerts">
+<h1>custom alerts</h1>
+<p>Since plugins are running within internal libtorrent threads, one convenient
+way to communicate with the client is to post custom alerts.</p>
+<p>The expected interface of any <a class="reference external" href="reference-Alerts.html#alert">alert</a>, apart from deriving from the <a class="reference external" href="reference-Alerts.html#alert">alert</a>
+base class, looks like this:</p>
+<pre class="literal-block">
+const static int alert_type = <em>&lt;unique alert ID&gt;</em>;
+virtual int type() const { return alert_type; }
+
+virtual std::string message() const;
+
+virtual std::auto_ptr&lt;alert&gt; clone() const
+{ return std::auto_ptr&lt;alert&gt;(new name(*this)); }
+
+const static int static_category = <em>&lt;bitmask of alert::category_t flags&gt;</em>;
+virtual int category() const { return static_category; }
+
+virtual char const* what() const { return <em>&lt;string literal of the name of this alert&gt;</em>; }
+</pre>
+<p>The <tt class="docutils literal">alert_type</tt> is used for the type-checking in <tt class="docutils literal">alert_cast</tt>. It must
+not collide with any other <a class="reference external" href="reference-Alerts.html#alert">alert</a>. The built-in alerts in libtorrent will
+not use <a class="reference external" href="reference-Alerts.html#alert">alert</a> type IDs greater than <tt class="docutils literal">user_alert_id</tt>. When defining your
+own <a class="reference external" href="reference-Alerts.html#alert">alert</a>, make sure it's greater than this constant.</p>
+<p><tt class="docutils literal">type()</tt> is the run-time equivalence of the <tt class="docutils literal">alert_type</tt>.</p>
+<p>The <tt class="docutils literal">message()</tt> virtual function is expected to construct a useful
+string representation of the <a class="reference external" href="reference-Alerts.html#alert">alert</a> and the event or data it represents.
+Something convenient to put in a log file for instance.</p>
+<p><tt class="docutils literal">clone()</tt> is used internally to copy alerts. The suggested implementation
+of simply allocating a new instance as a copy of <tt class="docutils literal">*this</tt> is all that's
+expected.</p>
+<p>The static category is required for checking wether or not the category
+for a specific <a class="reference external" href="reference-Alerts.html#alert">alert</a> is enabled or not, without instantiating the <a class="reference external" href="reference-Alerts.html#alert">alert</a>.
+The <tt class="docutils literal">category</tt> virtual function is the run-time equivalence.</p>
+<p>The <tt class="docutils literal">what()</tt> virtual function may simply be a string literal of the class
+name of your <a class="reference external" href="reference-Alerts.html#alert">alert</a>.</p>
+<p>For more information, see the <a class="reference external" href="reference-Alerts.html">alert section</a>.</p>
+<a name="plugin"></a><div class="section" id="plugin">
+<h2>plugin</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions.hpp">libtorrent/extensions.hpp</a>&quot;</p>
+<p>this is the base class for a <a class="reference external" href="reference-Session.html#session">session</a> <a class="reference external" href="reference-Plugins.html#plugin">plugin</a>. One primary feature
+is that it is notified of all torrents that are added to the <a class="reference external" href="reference-Session.html#session">session</a>,
+and can add its own torrent_plugins.</p>
+<pre class="literal-block">
+struct plugin
+{
+   virtual boost::shared_ptr&lt;torrent_plugin&gt; <strong>new_torrent</strong> (torrent*, void*);
+   virtual void <strong>added</strong> (aux::session_impl*);
+   virtual void <strong>on_alert</strong> (alert const*);
+   virtual void <strong>on_tick</strong> ();
+   virtual bool <strong>on_optimistic_unchoke</strong> (std::vector&lt;policy::peer*&gt;&amp; <em>/* peers */</em>);
+   virtual void <strong>save_state</strong> (entry&amp;) const;
+   virtual void <strong>load_state</strong> (lazy_entry const&amp;);
+};
+</pre>
+<a name="new_torrent()"></a><div class="section" id="new-torrent">
+<h3>new_torrent()</h3>
+<pre class="literal-block">
+virtual boost::shared_ptr&lt;torrent_plugin&gt; <strong>new_torrent</strong> (torrent*, void*);
+</pre>
+<p>this is called by the <a class="reference external" href="reference-Session.html#session">session</a> every time a new torrent is added.
+The <tt class="docutils literal">torrent*</tt> points to the internal torrent object created
+for the new torrent. The <tt class="docutils literal">void*</tt> is the userdata pointer as
+passed in via <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.</p>
+<p>If the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns a <a class="reference external" href="reference-Plugins.html#torrent_plugin">torrent_plugin</a> instance, it will be added
+to the new torrent. Otherwise, return an empty shared_ptr to a
+<a class="reference external" href="reference-Plugins.html#torrent_plugin">torrent_plugin</a> (the default).</p>
+<a name="added()"></a></div>
+<div class="section" id="added">
+<h3>added()</h3>
+<pre class="literal-block">
+virtual void <strong>added</strong> (aux::session_impl*);
+</pre>
+<p>called when <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> is added to a <a class="reference external" href="reference-Session.html#session">session</a></p>
+<a name="on_alert()"></a></div>
+<div class="section" id="on-alert">
+<h3>on_alert()</h3>
+<pre class="literal-block">
+virtual void <strong>on_alert</strong> (alert const*);
+</pre>
+<p>called when an <a class="reference external" href="reference-Alerts.html#alert">alert</a> is posted
+alerts that are filtered are not
+posted</p>
+<a name="on_tick()"></a></div>
+<div class="section" id="on-tick">
+<h3>on_tick()</h3>
+<pre class="literal-block">
+virtual void <strong>on_tick</strong> ();
+</pre>
+<p>called once per second</p>
+<a name="on_optimistic_unchoke()"></a></div>
+<div class="section" id="on-optimistic-unchoke">
+<h3>on_optimistic_unchoke()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_optimistic_unchoke</strong> (std::vector&lt;policy::peer*&gt;&amp; <em>/* peers */</em>);
+</pre>
+<p>called when choosing peers to optimisticly unchoke
+peer's will be unchoked in the order they appear in the given
+vector which is initiallity sorted by when they were last
+optimistically unchoked.
+if the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns true then the ordering provided will be
+used and no other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> will be allowed to change it.</p>
+<a name="save_state()"></a></div>
+<div class="section" id="save-state">
+<h3>save_state()</h3>
+<pre class="literal-block">
+virtual void <strong>save_state</strong> (entry&amp;) const;
+</pre>
+<p>called when saving settings state</p>
+<a name="load_state()"></a></div>
+<div class="section" id="load-state">
+<h3>load_state()</h3>
+<pre class="literal-block">
+virtual void <strong>load_state</strong> (lazy_entry const&amp;);
+</pre>
+<p>called when loading settings state</p>
+<a name="torrent_plugin"></a></div>
+</div>
+<div class="section" id="torrent-plugin">
+<h2>torrent_plugin</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions.hpp">libtorrent/extensions.hpp</a>&quot;</p>
+<p>Torrent plugins are associated with a single torrent and have a number
+of functions called at certain events. Many of its functions have the
+ability to change or override the default libtorrent behavior.</p>
+<pre class="literal-block">
+struct torrent_plugin
+{
+   virtual boost::shared_ptr&lt;peer_plugin&gt; <strong>new_connection</strong> (peer_connection*);
+   virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+   virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
+   virtual void <strong>tick</strong> ();
+   virtual bool <strong>on_resume</strong> ();
+   virtual bool <strong>on_pause</strong> ();
+   virtual void <strong>on_files_checked</strong> ();
+   virtual void <strong>on_state</strong> (int <em>/*s*/</em>);
+   virtual void <strong>on_add_peer</strong> (<a class="reference external" href="tcp::endpoint">tcp::endpoint</a> const&amp;,
+      int <em>/*src*/</em>, int <em>/*flags*/</em>);
+};
+</pre>
+<a name="new_connection()"></a><div class="section" id="new-connection">
+<h3>new_connection()</h3>
+<pre class="literal-block">
+virtual boost::shared_ptr&lt;peer_plugin&gt; <strong>new_connection</strong> (peer_connection*);
+</pre>
+<p>This function is called each time a new peer is connected to the torrent. You
+may choose to ignore this by just returning a default constructed
+<tt class="docutils literal">shared_ptr</tt> (in which case you don't need to override this member
+function).</p>
+<p>If you need an extension to the peer connection (which most plugins do) you
+are supposed to return an instance of your <a class="reference external" href="reference-Plugins.html#peer_plugin">peer_plugin</a> class. Which in
+turn will have its hook functions called on event specific to that peer.</p>
+<p>The <tt class="docutils literal">peer_connection</tt> will be valid as long as the <tt class="docutils literal">shared_ptr</tt> is being
+held by the torrent object. So, it is generally a good idea to not keep a
+<tt class="docutils literal">shared_ptr</tt> to your own <a class="reference external" href="reference-Plugins.html#peer_plugin">peer_plugin</a>. If you want to keep references to it,
+use <tt class="docutils literal">weak_ptr</tt>.</p>
+<p>If this function throws an exception, the connection will be closed.</p>
+<a name="on_piece_failed()"></a>
+<a name="on_piece_pass()"></a></div>
+<div class="section" id="on-piece-failed-on-piece-pass">
+<h3>on_piece_failed() on_piece_pass()</h3>
+<pre class="literal-block">
+virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
+</pre>
+<p>These hooks are called when a piece passes the hash check or fails the hash
+check, respectively. The <tt class="docutils literal">index</tt> is the piece index that was downloaded.
+It is possible to access the list of peers that participated in sending the
+piece through the <tt class="docutils literal">torrent</tt> and the <tt class="docutils literal">piece_picker</tt>.</p>
+<a name="tick()"></a></div>
+<div class="section" id="tick">
+<h3>tick()</h3>
+<pre class="literal-block">
+virtual void <strong>tick</strong> ();
+</pre>
+<p>This hook is called approximately once per second. It is a way of making it
+easy for plugins to do timed events, for sending messages or whatever.</p>
+<a name="on_resume()"></a>
+<a name="on_pause()"></a></div>
+<div class="section" id="on-resume-on-pause">
+<h3>on_resume() on_pause()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_resume</strong> ();
+virtual bool <strong>on_pause</strong> ();
+</pre>
+<p>These hooks are called when the torrent is paused and unpaused respectively.
+The return value indicates if the event was handled. A return value of
+<tt class="docutils literal">true</tt> indicates that it was handled, and no other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> after this one
+will have this hook function called, and the standard handler will also not be
+invoked. So, returning true effectively overrides the standard behavior of
+pause or unpause.</p>
+<p>Note that if you call <tt class="docutils literal">pause()</tt> or <tt class="docutils literal">resume()</tt> on the torrent from your
+handler it will recurse back into your handler, so in order to invoke the
+standard handler, you have to keep your own state on whether you want standard
+behavior or overridden behavior.</p>
+<a name="on_files_checked()"></a></div>
+<div class="section" id="on-files-checked">
+<h3>on_files_checked()</h3>
+<pre class="literal-block">
+virtual void <strong>on_files_checked</strong> ();
+</pre>
+<p>This function is called when the initial files of the torrent have been
+checked. If there are no files to check, this function is called immediately.</p>
+<p>i.e. This function is always called when the torrent is in a state where it
+can start downloading.</p>
+<a name="on_state()"></a></div>
+<div class="section" id="on-state">
+<h3>on_state()</h3>
+<pre class="literal-block">
+virtual void <strong>on_state</strong> (int <em>/*s*/</em>);
+</pre>
+<p>called when the torrent changes state
+the state is one of <a class="reference external" href="reference-Core.html#state_t">torrent_status::state_t</a>
+enum members</p>
+<a name="on_add_peer()"></a></div>
+<div class="section" id="on-add-peer">
+<h3>on_add_peer()</h3>
+<pre class="literal-block">
+virtual void <strong>on_add_peer</strong> (<a class="reference external" href="tcp::endpoint">tcp::endpoint</a> const&amp;,
+      int <em>/*src*/</em>, int <em>/*flags*/</em>);
+</pre>
+<p>called every time a new peer is added to the peer list.
+This is before the peer is connected to. For <tt class="docutils literal">flags</tt>, see
+torrent_plugin::flags_t. The <tt class="docutils literal">source</tt> argument refers to
+the source where we learned about this peer from. It's a
+bitmask, because many sources may have told us about the same
+peer. For peer source flags, see <a class="reference external" href="reference-Core.html#peer_source_flags">peer_info::peer_source_flags</a>.</p>
+<a name="peer_plugin"></a></div>
+</div>
+<div class="section" id="peer-plugin">
+<h2>peer_plugin</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions.hpp">libtorrent/extensions.hpp</a>&quot;</p>
+<p>peer plugins are associated with a specific peer. A peer could be
+both a regular bittorrent peer (<tt class="docutils literal">bt_peer_connection</tt>) or one of the
+web seed connections (<tt class="docutils literal">web_peer_connection</tt> or <tt class="docutils literal">http_seed_connection</tt>).
+In order to only attach to certain peers, make your
+torrent_plugin::new_connection only return a <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> for certain peer
+connection types</p>
+<pre class="literal-block">
+struct peer_plugin
+{
+   virtual char const* <strong>type</strong> () const;
+   virtual void <strong>add_handshake</strong> (entry&amp;);
+   virtual void <strong>on_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
+   virtual void <strong>on_connected</strong> ();
+   virtual bool <strong>on_handshake</strong> (char const* <em>/*reserved_bits*/</em>);
+   virtual bool <strong>on_extension_handshake</strong> (lazy_entry const&amp;);
+   virtual bool <strong>on_have</strong> (int <em>/*index*/</em>);
+   virtual bool <strong>on_bitfield</strong> (bitfield const&amp; <em>/*bitfield*/</em>);
+   virtual bool <strong>on_have_all</strong> ();
+   virtual bool <strong>on_reject</strong> (peer_request const&amp;);
+   virtual bool <strong>on_request</strong> (peer_request const&amp;);
+   virtual bool <strong>on_unchoke</strong> ();
+   virtual bool <strong>on_interested</strong> ();
+   virtual bool <strong>on_allowed_fast</strong> (int <em>/*index*/</em>);
+   virtual bool <strong>on_have_none</strong> ();
+   virtual bool <strong>on_choke</strong> ();
+   virtual bool <strong>on_not_interested</strong> ();
+   virtual bool <strong>on_piece</strong> (peer_request const&amp; <em>/*piece*/</em>
+      , disk_buffer_holder&amp; <em>/*data*/</em>);
+   virtual bool <strong>on_suggest</strong> (int <em>/*index*/</em>);
+   virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
+   virtual bool <strong>on_dont_have</strong> (int <em>/*index*/</em>);
+   virtual void <strong>sent_unchoke</strong> ();
+   virtual bool <strong>can_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
+   virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+   virtual bool <strong>on_unknown_message</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+   virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+   virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
+   virtual void <strong>tick</strong> ();
+   virtual bool <strong>write_request</strong> (peer_request const&amp;);
+};
+</pre>
+<a name="type()"></a><div class="section" id="type">
+<h3>type()</h3>
+<pre class="literal-block">
+virtual char const* <strong>type</strong> () const;
+</pre>
+<p>This function is expected to return the name of
+the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a>.</p>
+<a name="add_handshake()"></a></div>
+<div class="section" id="add-handshake">
+<h3>add_handshake()</h3>
+<pre class="literal-block">
+virtual void <strong>add_handshake</strong> (entry&amp;);
+</pre>
+<p>can add entries to the extension handshake
+this is not called for web seeds</p>
+<a name="on_disconnect()"></a></div>
+<div class="section" id="on-disconnect">
+<h3>on_disconnect()</h3>
+<pre class="literal-block">
+virtual void <strong>on_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
+</pre>
+<p>called when the peer is being disconnected.</p>
+<a name="on_connected()"></a></div>
+<div class="section" id="on-connected">
+<h3>on_connected()</h3>
+<pre class="literal-block">
+virtual void <strong>on_connected</strong> ();
+</pre>
+<p>called when the peer is successfully connected. Note that
+incoming connections will have been connected by the time
+the peer <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> is attached to it, and won't have this hook
+called.</p>
+<a name="on_handshake()"></a></div>
+<div class="section" id="on-handshake">
+<h3>on_handshake()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_handshake</strong> (char const* <em>/*reserved_bits*/</em>);
+</pre>
+<p>this is called when the initial BT handshake is received. Returning false
+means that the other end doesn't support this extension and will remove
+it from the list of plugins.
+this is not called for web seeds</p>
+<a name="on_extension_handshake()"></a></div>
+<div class="section" id="on-extension-handshake">
+<h3>on_extension_handshake()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_extension_handshake</strong> (lazy_entry const&amp;);
+</pre>
+<p>called when the extension handshake from the other end is received
+if this returns false, it means that this extension isn't
+supported by this peer. It will result in this <a class="reference external" href="reference-Plugins.html#peer_plugin">peer_plugin</a>
+being removed from the peer_connection and destructed.
+this is not called for web seeds</p>
+<a name="on_bitfield()"></a>
+<a name="on_have_none()"></a>
+<a name="on_suggest()"></a>
+<a name="on_unchoke()"></a>
+<a name="on_cancel()"></a>
+<a name="on_have()"></a>
+<a name="on_choke()"></a>
+<a name="on_piece()"></a>
+<a name="on_request()"></a>
+<a name="on_reject()"></a>
+<a name="on_not_interested()"></a>
+<a name="on_interested()"></a>
+<a name="on_allowed_fast()"></a>
+<a name="on_have_all()"></a>
+<a name="on_dont_have()"></a></div>
+<div class="section" id="on-bitfield-on-have-none-on-suggest-on-unchoke-on-cancel-on-have-on-choke-on-piece-on-request-on-reject-on-not-interested-on-interested-on-allowed-fast-on-have-all-on-dont-have">
+<h3>on_bitfield() on_have_none() on_suggest() on_unchoke() on_cancel() on_have() on_choke() on_piece() on_request() on_reject() on_not_interested() on_interested() on_allowed_fast() on_have_all() on_dont_have()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_have</strong> (int <em>/*index*/</em>);
+virtual bool <strong>on_bitfield</strong> (bitfield const&amp; <em>/*bitfield*/</em>);
+virtual bool <strong>on_have_all</strong> ();
+virtual bool <strong>on_reject</strong> (peer_request const&amp;);
+virtual bool <strong>on_request</strong> (peer_request const&amp;);
+virtual bool <strong>on_unchoke</strong> ();
+virtual bool <strong>on_interested</strong> ();
+virtual bool <strong>on_allowed_fast</strong> (int <em>/*index*/</em>);
+virtual bool <strong>on_have_none</strong> ();
+virtual bool <strong>on_choke</strong> ();
+virtual bool <strong>on_not_interested</strong> ();
+virtual bool <strong>on_piece</strong> (peer_request const&amp; <em>/*piece*/</em>
+      , disk_buffer_holder&amp; <em>/*data*/</em>);
+virtual bool <strong>on_suggest</strong> (int <em>/*index*/</em>);
+virtual bool <strong>on_cancel</strong> (peer_request const&amp;);
+virtual bool <strong>on_dont_have</strong> (int <em>/*index*/</em>);
+</pre>
+<p>returning true from any of the message handlers
+indicates that the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> has handeled the message.
+it will break the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> chain traversing and not let
+anyone else handle the message, including the default
+handler.</p>
+<a name="sent_unchoke()"></a></div>
+<div class="section" id="sent-unchoke">
+<h3>sent_unchoke()</h3>
+<pre class="literal-block">
+virtual void <strong>sent_unchoke</strong> ();
+</pre>
+<p>called after a choke message has been sent to the peer</p>
+<a name="can_disconnect()"></a></div>
+<div class="section" id="can-disconnect">
+<h3>can_disconnect()</h3>
+<pre class="literal-block">
+virtual bool <strong>can_disconnect</strong> (error_code const&amp; <em>/*ec*/</em>);
+</pre>
+<p>called when libtorrent think this peer should be disconnected.
+if the <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> returns false, the peer will not be disconnected.</p>
+<a name="on_extended()"></a></div>
+<div class="section" id="on-extended">
+<h3>on_extended()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_extended</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+</pre>
+<p>called when an extended message is received. If returning true,
+the message is not processed by any other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> and if false
+is returned the next <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> in the chain will receive it to
+be able to handle it. This is not called for web seeds.
+thus function may be called more than once per incoming message, but
+only the last of the calls will the <tt class="docutils literal">body</tt> size equal the <tt class="docutils literal">length</tt>.
+i.e. Every time another fragment of the message is received, this
+function will be called, until finally the whole message has been
+received. The purpose of this is to allow early disconnects for invalid
+messages and for reporting progress of receiving large messages.</p>
+<a name="on_unknown_message()"></a></div>
+<div class="section" id="on-unknown-message">
+<h3>on_unknown_message()</h3>
+<pre class="literal-block">
+virtual bool <strong>on_unknown_message</strong> (int <em>/*length*/</em>, int <em>/*msg*/</em>,
+      buffer::const_interval <em>/*body*/</em>);
+</pre>
+<p>this is not called for web seeds</p>
+<a name="on_piece_failed()"></a>
+<a name="on_piece_pass()"></a></div>
+<div class="section" id="id55">
+<h3>on_piece_failed() on_piece_pass()</h3>
+<pre class="literal-block">
+virtual void <strong>on_piece_pass</strong> (int <em>/*index*/</em>);
+virtual void <strong>on_piece_failed</strong> (int <em>/*index*/</em>);
+</pre>
+<p>called when a piece that this peer participated in either
+fails or passes the hash_check</p>
+<a name="tick()"></a></div>
+<div class="section" id="id56">
+<h3>tick()</h3>
+<pre class="literal-block">
+virtual void <strong>tick</strong> ();
+</pre>
+<p>called aproximately once every second</p>
+<a name="write_request()"></a></div>
+<div class="section" id="write-request">
+<h3>write_request()</h3>
+<pre class="literal-block">
+virtual bool <strong>write_request</strong> (peer_request const&amp;);
+</pre>
+<p>called each time a request message is to be sent. If true
+is returned, the original request message won't be sent and
+no other <a class="reference external" href="reference-Plugins.html#plugin">plugin</a> will have this function called.</p>
+<a name="create_lt_trackers_plugin()"></a></div>
+<div class="section" id="create-lt-trackers-plugin">
+<h3>create_lt_trackers_plugin()</h3>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions/lt_trackers.hpp">libtorrent/extensions/lt_trackers.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent_plugin&gt; <strong>create_lt_trackers_plugin</strong> (torrent*, void*);
+</pre>
+<p>constructor function for the trackers exchange extension. This can
+either be passed in the add_torrent_params::extensions field, or
+via <a class="reference external" href="reference-Core.html#add_extension()">torrent_handle::add_extension()</a>.</p>
+<a name="create_smart_ban_plugin()"></a></div>
+<div class="section" id="create-smart-ban-plugin">
+<h3>create_smart_ban_plugin()</h3>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions/smart_ban.hpp">libtorrent/extensions/smart_ban.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent_plugin&gt; <strong>create_smart_ban_plugin</strong> (torrent*, void*);
+</pre>
+<p>constructor function for the smart ban extension. The extension keeps
+track of the data peers have sent us for failing pieces and once the
+piece completes and passes the hash check bans the peers that turned
+out to have sent corrupt data.
+This function can either be passed in the add_torrent_params::extensions
+field, or via <a class="reference external" href="reference-Core.html#add_extension()">torrent_handle::add_extension()</a>.</p>
+<a name="create_ut_metadata_plugin()"></a></div>
+<div class="section" id="create-ut-metadata-plugin">
+<h3>create_ut_metadata_plugin()</h3>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions/ut_metadata.hpp">libtorrent/extensions/ut_metadata.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent_plugin&gt; <strong>create_ut_metadata_plugin</strong> (torrent*, void*);
+</pre>
+<p>constructor function for the ut_metadata extension. The ut_metadata
+extension allows peers to request the .torrent file (or more
+specifically the 'info'-dictionary of the .torrent file) from each
+other. This is the main building block in making magnet links work.
+This extension is enabled by default unless explicitly disabled in
+the <a class="reference external" href="reference-Session.html#session">session</a> constructor.</p>
+<p>This can either be passed in the add_torrent_params::extensions field, or
+via <a class="reference external" href="reference-Core.html#add_extension()">torrent_handle::add_extension()</a>.</p>
+<a name="create_ut_pex_plugin()"></a></div>
+<div class="section" id="create-ut-pex-plugin">
+<h3>create_ut_pex_plugin()</h3>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/extensions/ut_pex.hpp">libtorrent/extensions/ut_pex.hpp</a>&quot;</p>
+<pre class="literal-block">
+boost::shared_ptr&lt;torrent_plugin&gt; <strong>create_ut_pex_plugin</strong> (torrent*, void*);
+</pre>
+<p>constructor function for the ut_pex extension. The ut_pex
+extension allows peers to gossip about their connections, allowing
+the swarm stay well connected and peers aware of more peers in the
+swarm. This extension is enabled by default unless explicitly disabled in
+the <a class="reference external" href="reference-Session.html#session">session</a> constructor.</p>
+<p>This can either be passed in the add_torrent_params::extensions field, or
+via <a class="reference external" href="reference-Core.html#add_extension()">torrent_handle::add_extension()</a>.</p>
+</div>
+</div>
+</div>
+
+    </div>
+    </div>
+    <div id="gradient"></div>
+    <div id="footer">
+    <table>
+    <tr>
+      <td><a href="index.html">home</a></td>
+      <td><a href="http://blog.libtorrent.org">blog</a></td>
+      <td><a href="utp.html">uTP</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/libtorrent/">download</a></td>
+      <td><a href="reference.html">documentation</a></td>
+      <td><a href="dht_store.html">DHT put extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="https://sourceforge.net/projects/libtorrent/files/py-libtorrent/">python bindings</a></td>
+      <td><a href="features.html">features</a></td>
+      <td><a href="dht_sec.html">DHT security extension</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://dir.gmane.org/gmane.network.bit-torrent.libtorrent">mailing list archive</a></td>
+      <td><a href="contributing.html">contributing</a></td>
+      <td><a href="streaming.html">streaming</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://code.google.com/p/libtorrent/issues/entry">report a bug</a></td>
+      <td><a href="building.html">building</a></td>
+      <td><a href="bittorrent.pdf">bittorrent slides</a></td>
+    </tr>
+    </table>
+    </div>
+    <div id="filler"></div>
+
+</div>
+</body>
+</html>
