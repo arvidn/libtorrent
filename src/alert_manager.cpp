@@ -73,13 +73,6 @@ namespace libtorrent
 
 	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
 	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			(*i)->on_alert(a);
-		}
-#endif
 		if (a->type() == save_resume_data_failed_alert::alert_type
 			|| a->type() == save_resume_data_alert::alert_type)
 			++m_num_queued_resume;
@@ -98,6 +91,18 @@ namespace libtorrent
 			// > 0 notify them
 			m_condition.notify_all();
 		}
+		else
+		{
+			lock.unlock();
+		}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+			, end(m_ses_extensions.end()); i != end; ++i)
+		{
+			(*i)->on_alert(a);
+		}
+#endif
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
