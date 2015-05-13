@@ -1021,7 +1021,7 @@ namespace libtorrent
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return milliseconds((m_outstanding_bytes
+		return milliseconds((m_outstanding_bytes + extra_bytes
 			+ m_queued_time_critical * t->block_size() * 1000) / rate);
 	}
 
