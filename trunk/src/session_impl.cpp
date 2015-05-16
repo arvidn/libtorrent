@@ -2703,18 +2703,6 @@ retry:
 		return port;
 	}
 
-	// used to cache the current time
-	// every 100 ms. This is cheaper
-	// than a system call and can be
-	// used where more accurate time
-	// is not necessary
-	extern time_point g_current_time;
-
-	initialize_timer::initialize_timer()
-	{
-		g_current_time = clock_type::now();
-	}
-
 	int session_impl::rate_limit(peer_class_t c, int channel) const
 	{
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
@@ -2824,8 +2812,9 @@ retry:
 		// submit all disk jobs when we leave this function
 		deferred_submit_jobs();
 
-		time_point now = clock_type::now();
-		aux::g_current_time = now;
+		aux::update_time_now();
+		time_point now = aux::time_now();
+
 // too expensive
 //		INVARIANT_CHECK;
 

@@ -94,7 +94,7 @@ namespace libtorrent
 	enum
 	{
 		// the limits of the download queue size
-		min_request_queue = 2,
+		min_request_queue = 2
 	};
 
 	namespace {
