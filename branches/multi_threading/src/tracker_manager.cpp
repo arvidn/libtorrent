@@ -202,14 +202,12 @@ namespace libtorrent
 	tracker_manager::tracker_manager(class udp_socket& sock
 		, counters& stats_counters
 		, resolver_interface& resolver
-		, struct ip_filter& ipf
 		, aux::session_settings const& sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, aux::session_logger& ses
 #endif
 		)
-		: m_ip_filter(ipf)
-		, m_udp_socket(sock)
+		: m_udp_socket(sock)
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)

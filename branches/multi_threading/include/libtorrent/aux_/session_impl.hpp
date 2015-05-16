@@ -361,11 +361,12 @@ namespace libtorrent
 			void pause();
 			void resume();
 
-			void set_ip_filter(ip_filter const& f);
-			ip_filter& get_ip_filter();
+			void set_ip_filter(boost::shared_ptr<ip_filter> const& f);
+			ip_filter const& get_ip_filter();
 			
 			void set_port_filter(port_filter const& f);
-			port_filter const& get_port_filter() const;
+			port_filter const& get_port_filter() const TORRENT_OVERRIDE;
+			void ban_ip(address addr) TORRENT_OVERRIDE;
 
 			void queue_tracker_request(tracker_request& req
 				, boost::weak_ptr<request_callback> c);
@@ -808,7 +809,7 @@ namespace libtorrent
 			peer_class_type_filter m_peer_class_type_filter;
 
 			// filters incoming connections
-			ip_filter m_ip_filter;
+			boost::shared_ptr<ip_filter> m_ip_filter;
 
 			// filters outgoing connections
 			port_filter m_port_filter;

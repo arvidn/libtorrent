@@ -208,13 +208,13 @@ namespace libtorrent
 			, end(addresses.end()); i != end; ++i)
 			m_endpoints.push_back(tcp::endpoint(*i, port));
 
-		if (tracker_req().apply_ip_filter)
+		if (tracker_req().filter)
 		{
 			// remove endpoints that are filtered by the IP filter
 			for (std::vector<tcp::endpoint>::iterator k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
-				if (m_man.ip_filter().access(k->address()) == ip_filter::blocked) 
+				if (tracker_req().filter->access(k->address()) == ip_filter::blocked) 
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"

@@ -1021,7 +1021,7 @@ namespace libtorrent
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return milliseconds((m_outstanding_bytes
+		return milliseconds((m_outstanding_bytes + extra_bytes
 			+ m_queued_time_critical * t->block_size() * 1000) / rate);
 	}
 
@@ -1204,7 +1204,7 @@ namespace libtorrent
 				// as part of DHT traffic. The fact that we got an incoming
 				// connection on this info-hash, means the other end, making this
 				// connection fished it out of the DHT chatter. That's suspicious.
-				ses().get_ip_filter().add_rule(m_remote.address(), m_remote.address(), 0);
+				ses().ban_ip(m_remote.address());
 			}
 #endif
 			disconnect(errors::invalid_info_hash, op_bittorrent, 1);
@@ -4997,7 +4997,7 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing, "SEND_BUFFER_WATERMARK"
 			, "%d max: %d min: %d factor: %d"
 			, buffer_size_watermark, ses().settings().send_buffer_watermark
-			, ses().settings().send_buffer_low_watermark, m_ses.settings().send_buffer_watermark_factor);
+			, ses().settings().send_buffer_low_watermark, ses().settings().send_buffer_watermark_factor);
 #endif
 
 		// don't just pop the front element here, since in seed mode one request may
