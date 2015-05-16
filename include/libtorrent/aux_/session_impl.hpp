@@ -152,13 +152,6 @@ namespace libtorrent
 		struct tracker_logger;
 #endif
 
-		// used to initialize the g_current_time before
-		// anything else
-		struct initialize_timer
-		{
-			initialize_timer();
-		};
-
 		TORRENT_EXPORT std::pair<bencode_map_entry*, int> settings_map();
 
 		// this is the link between the main thread and the
@@ -167,7 +160,6 @@ namespace libtorrent
 			: session_interface
 			, dht::dht_observer
 			, boost::noncopyable
-			, initialize_timer
 			, udp_socket_observer
 			, uncork_interface
 			, single_threaded

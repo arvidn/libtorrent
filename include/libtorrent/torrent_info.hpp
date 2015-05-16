@@ -59,9 +59,12 @@ namespace libtorrent
 	class peer_connection;
 
 	namespace aux { struct session_settings; }
-	// exposed for the unit test
+
+	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
 		, char const* element, int element_len);
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target
+		, bool fix_paths = false);
 
 	enum
 	{

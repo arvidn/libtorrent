@@ -247,7 +247,11 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-documentation-unknown-command ;
 		result += <cflags>-Wno-disabled-macro-expansion ;
 
-# enable these warnings again, once the other ones are dealt with
+# in C++98 mode there's no way to silence this warning
+# in the code (without final)
+		result += <cflags>-Wno-non-virtual-dtor ;
+
+# enable these warnings again, once the other ones are delt with
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-compare ;
 		result += <cflags>-Wno-sign-conversion ;

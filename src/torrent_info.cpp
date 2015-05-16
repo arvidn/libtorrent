@@ -94,7 +94,8 @@ namespace libtorrent
 	// fixes invalid UTF-8 sequences and
 	// replaces characters that are invalid
 	// in paths
-	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target, bool fix_paths = false)
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target
+		, bool fix_paths)
 	{
 		if (target.empty()) return true;
 
