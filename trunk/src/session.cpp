@@ -534,7 +534,8 @@ namespace libtorrent
 
 	void session::set_ip_filter(ip_filter const& f)
 	{
-		TORRENT_ASYNC_CALL1(set_ip_filter, f);
+		boost::shared_ptr<ip_filter> copy = boost::make_shared<ip_filter>(f);
+		TORRENT_ASYNC_CALL1(set_ip_filter, copy);
 	}
 	
 	ip_filter session::get_ip_filter() const

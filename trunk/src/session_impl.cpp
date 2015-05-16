@@ -361,7 +361,7 @@ namespace aux {
 		, m_tcp_peer_class(0)
 		, m_local_peer_class(0)
 		, m_tracker_manager(m_udp_socket, m_stats_counters, m_host_resolver
-			, m_ip_filter, m_settings
+			, m_settings
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, *this
 #endif
@@ -509,7 +509,7 @@ namespace aux {
 		session_log("config: %s\n"
 			"version: %s\n"
 			"revision: %s\n\n"
-		  	, TORRENT_CFG_STRING
+			, TORRENT_CFG_STRING
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);
 
@@ -1085,7 +1085,7 @@ namespace aux {
 		TORRENT_ASSERT(!c->m_in_constructor);
 		m_connections.insert(c);
 	}
-		
+
 	void session_impl::set_port_filter(port_filter const& f)
 	{
 		m_port_filter = f;
@@ -1095,10 +1095,10 @@ namespace aux {
 		// by the new ip-filter
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
-			i->second->ip_filter_updated();
+			i->second->port_filter_updated();
 	}
 
-	void session_impl::set_ip_filter(ip_filter const& f)
+	void session_impl::set_ip_filter(boost::shared_ptr<ip_filter> const& f)
 	{
 		INVARIANT_CHECK;
 
@@ -1108,21 +1108,33 @@ namespace aux {
 		// by the new ip-filter
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
-			i->second->port_filter_updated();
+			i->second->set_ip_filter(m_ip_filter);
 	}
 
-	ip_filter& session_impl::get_ip_filter()
+	void session_impl::ban_ip(address addr)
 	{
-		return m_ip_filter;
+		TORRENT_ASSERT(is_single_thread());
+		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
+		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
+	}
+
+	ip_filter const& session_impl::get_ip_filter()
+	{
+		TORRENT_ASSERT(is_single_thread());
+		return *m_ip_filter;
 	}
 
 	port_filter const& session_impl::get_port_filter() const
 	{
+		TORRENT_ASSERT(is_single_thread());
 		return m_port_filter;
 	}
 
+	namespace
+	{
+
 	template <class Socket>
-	void static set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
+	void set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
 	{
 		int snd_size = sett.get_int(settings_pack::send_socket_buffer_size);
 		if (snd_size)
@@ -1160,13 +1172,17 @@ namespace aux {
 		}
 	}
 
+	} // anonymous namespace
+
 	int session_impl::create_peer_class(char const* name)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		return m_classes.new_peer_class(name);
 	}
 
 	void session_impl::delete_peer_class(int cid)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
 		TORRENT_ASSERT(m_classes.at(cid));
 		if (m_classes.at(cid) == 0) return;
@@ -1314,7 +1330,7 @@ namespace aux {
 			while (i != NULL && i != t) i = (torrent*)i->next;
 			TORRENT_ASSERT(i == t);
 #endif
-	
+
 			// this torrent is in the list already.
 			// first remove it
 			m_torrent_lru.erase(t);
@@ -1354,7 +1370,7 @@ namespace aux {
 		while (i != NULL && i != t) i = (torrent*)i->next;
 		TORRENT_ASSERT(i == t);
 #endif
-		
+
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
 		// 0 means unlimited, never evict enything
@@ -1369,7 +1385,7 @@ namespace aux {
 			m_torrent_lru.erase(t);
 			return;
 		}
-	
+
 		// move this torrent to be the first to be evicted whenever
 		// another torrent need its slot
 		bump_torrent(t, false);
@@ -1696,7 +1712,7 @@ namespace aux {
 #endif
 		return ret;
 	}
-	
+
 	void session_impl::open_listen_port()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1706,7 +1722,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(!m_abort);
-		int flags = m_settings.get_bool(settings_pack::listen_system_port_fallback) ? 0 : listen_no_system_port;
+		int flags = m_settings.get_bool(settings_pack::listen_system_port_fallback)
+			? 0 : listen_no_system_port;
 		error_code ec;
 
 		// reset the retry counter
@@ -1735,7 +1752,7 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-		
+
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
 				, m_listen_port_retries, flags, ec);
@@ -2468,7 +2485,8 @@ retry:
 		// is set to ignore the filter, since this peer might be
 		// for that torrent
 		if (m_stats_counters[counters::non_filter_torrents] == 0
-			&& (m_ip_filter.access(endp.address()) & ip_filter::blocked))
+			&& m_ip_filter
+			&& (m_ip_filter->access(endp.address()) & ip_filter::blocked))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("filtered blocked ip");
@@ -3373,7 +3391,7 @@ retry:
 			boost::shared_ptr<torrent> t;
 			do
 			{
-		  		t = m_dht_torrents.front().lock();
+				t = m_dht_torrents.front().lock();
 				m_dht_torrents.pop_front();
 			} while (!t && !m_dht_torrents.empty());
 
@@ -3393,7 +3411,7 @@ retry:
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
-  	}
+	}
 #endif
 
 	void session_impl::on_lsd_announce(error_code const& e)
@@ -4264,8 +4282,8 @@ retry:
 
 	} // anonymous namespace
 
- 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
- 	{
+	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
+	{
 		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
 			, boost::bind(&compare_disconnect_torrent, _1, _2));
 
@@ -4513,7 +4531,7 @@ retry:
 			return torrent_handle();
 		}
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 		// add p.dht_nodes to the DHT, if enabled
 		if (m_dht && !p.dht_nodes.empty())
 		{
@@ -4649,8 +4667,8 @@ retry:
 
 		int queue_pos = ++m_max_queue_pos;
 
-		torrent_ptr.reset(new torrent(*this
-			, 16 * 1024, queue_pos, params, *ih));
+		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
+			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -5016,7 +5034,7 @@ retry:
 			// by the new ip-filter
 			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
-				i->second->ip_filter_updated();
+				i->second->port_filter_updated();
 		}
 		else
 		{
