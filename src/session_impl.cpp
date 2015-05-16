@@ -187,6 +187,7 @@ socket_job::~socket_job() {}
 
 void network_thread_pool::process_job(socket_job const& j, bool post)
 {
+	TORRENT_UNUSED(post);
 	if (j.type == socket_job::write_job)
 	{
 		TORRENT_ASSERT(j.peer->m_socket_is_writing);
