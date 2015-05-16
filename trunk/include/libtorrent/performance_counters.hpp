@@ -308,7 +308,7 @@ namespace libtorrent
 			socket_recv_size19,
 			socket_recv_size20,
 
-			num_stats_counters,
+			num_stats_counters
 		};
 
 		// == ALL FOLLOWING ARE GAUGES ==

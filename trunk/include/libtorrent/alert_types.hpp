@@ -75,7 +75,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
-		
+
 		// internal
 		static const int alert_type = 0;
 		virtual std::string message() const;
@@ -605,7 +605,7 @@ namespace libtorrent
 		// 3. Stopped
 		int event;
 	};
-	
+
 	// This alert is generated when a finished piece fails its hash check. You can get the handle
 	// to the torrent which got the failed piece and the index of the piece itself from the alert.
 	struct TORRENT_EXPORT hash_failed_alert: torrent_alert
@@ -897,7 +897,7 @@ namespace libtorrent
 		// internal
 		storage_moved_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, std::string const& p);
-	
+
 		TORRENT_DEFINE_ALERT(storage_moved_alert, 33)
 
 		static const int static_category = alert::storage_notification;
@@ -924,7 +924,7 @@ namespace libtorrent
 			, error_code const& e
 			, std::string const& file
 			, char const* op);
-	
+
 		TORRENT_DEFINE_ALERT(storage_moved_failed_alert, 34)
 
 		static const int static_category = alert::storage_notification;
@@ -961,7 +961,7 @@ namespace libtorrent
 		// internal
 		torrent_deleted_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, sha1_hash const& ih);
-	
+
 		TORRENT_DEFINE_ALERT_PRIO(torrent_deleted_alert, 35)
 
 		static const int static_category = alert::storage_notification;
@@ -981,7 +981,7 @@ namespace libtorrent
 		// internal
 		torrent_delete_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e, sha1_hash const& ih);
-	
+
 		TORRENT_DEFINE_ALERT_PRIO(torrent_delete_failed_alert, 36)
 
 		static const int static_category = alert::storage_notification
@@ -1011,7 +1011,7 @@ namespace libtorrent
 		save_resume_data_alert(aux::stack_allocator& alloc
 			, boost::shared_ptr<entry> const& rd
 			, torrent_handle const& h);
-	
+
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37)
 
 		static const int static_category = alert::storage_notification;
@@ -1032,7 +1032,7 @@ namespace libtorrent
 		// internal
 		save_resume_data_failed_alert(aux::stack_allocator& alloc
 			, torrent_handle const& h, error_code const& e);
-	
+
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_failed_alert, 38)
 
 		static const int static_category = alert::storage_notification
@@ -1058,7 +1058,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
-	
+
 		TORRENT_DEFINE_ALERT(torrent_paused_alert, 39)
 
 		static const int static_category = alert::status_notification;
@@ -1146,7 +1146,7 @@ namespace libtorrent
 			| alert::error_notification
 			| alert::storage_notification;
 		virtual std::string message() const;
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 		// the path to the file that was accessed when the error occurred.
 		std::string file;
@@ -1185,7 +1185,7 @@ namespace libtorrent
 		// what's returned from lazy_bdecode().
 		error_code error;
 	};
-	
+
 	// This alert is generated when the metadata has been completely received and the torrent
 	// can start downloading. It is not generated on torrents that are started with metadata, but
 	// only those that needs to download it from peers (when utilizing the libtorrent extension).
@@ -1483,7 +1483,7 @@ namespace libtorrent
 		// internal
 		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, address const& i, int r);
-		
+
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
 
 		static const int static_category = alert::ip_block_notification;
@@ -1513,7 +1513,7 @@ namespace libtorrent
 		// internal
 		dht_announce_alert(aux::stack_allocator& alloc, address const& i, int p
 			, sha1_hash const& ih);
-		
+
 		TORRENT_DEFINE_ALERT(dht_announce_alert, 55)
 
 		static const int static_category = alert::dht_notification;
@@ -1678,7 +1678,7 @@ namespace libtorrent
 	{
 		// internal
 		dht_bootstrap_alert(aux::stack_allocator& alloc);
-		
+
 		TORRENT_DEFINE_ALERT(dht_bootstrap_alert, 62)
 
 		static const int static_category = alert::dht_notification;
@@ -1747,7 +1747,7 @@ namespace libtorrent
 
 		// specifies which error the torrent encountered.
 		error_code error;
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 		// the filename (or object) the error occurred on.
 		std::string error_file;
@@ -1869,7 +1869,7 @@ namespace libtorrent
 		// by it, for efficient updates.
 		std::vector<torrent_status> status;
 	};
-	
+
 	struct TORRENT_EXPORT mmap_cache_alert : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
@@ -1963,7 +1963,7 @@ namespace libtorrent
 	{
 		// internal
 		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec);
-		
+
 		TORRENT_DEFINE_ALERT(dht_error_alert, 73)
 
 		static const int static_category = alert::error_notification
@@ -1989,7 +1989,7 @@ namespace libtorrent
 	{
 		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
 			, entry const& i);
-		
+
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74)
 
 		static const int static_category = alert::error_notification
@@ -2018,7 +2018,7 @@ namespace libtorrent
 			, boost::uint64_t sequence
 			, std::string const& s
 			, entry const& i);
-		
+
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
 
 		static const int static_category = alert::error_notification
@@ -2124,7 +2124,7 @@ namespace libtorrent
 	{
 		// internal
 		log_alert(aux::stack_allocator& alloc, char const* log);
-	
+
 		TORRENT_DEFINE_ALERT(log_alert, 79)
 
 		static const int static_category = alert::session_log_notification;
@@ -2147,7 +2147,7 @@ namespace libtorrent
 		// internal
 		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
 			, char const* log);
-	
+
 		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
 
 		static const int static_category = alert::torrent_log_notification;
@@ -2174,7 +2174,7 @@ namespace libtorrent
 			outgoing_message,
 			incoming,
 			outgoing,
-			info,
+			info
 		};
 
 		// internal
@@ -2182,7 +2182,7 @@ namespace libtorrent
 			, tcp::endpoint const& i, peer_id const& pi
 			, peer_log_alert::direction_t dir
 			, char const* event, char const* log);
-	
+
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
 		static const int static_category = alert::peer_log_notification;
@@ -2207,7 +2207,7 @@ namespace libtorrent
 	{
 		// internal
 		lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec);
-	
+
 		TORRENT_DEFINE_ALERT(lsd_error_alert, 82)
 
 		static const int static_category = alert::error_notification;
@@ -2281,7 +2281,7 @@ namespace libtorrent
 		dht_stats_alert(aux::stack_allocator& alloc
 			, std::vector<dht_routing_bucket> const& table
 			, std::vector<dht_lookup> const& requests);
-	
+
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 
 		static const int static_category = alert::stats_notification;
@@ -2305,7 +2305,7 @@ namespace libtorrent
 		incoming_request_alert(aux::stack_allocator& alloc
 			, peer_request r, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id);
-	
+
 		static const int static_category = alert::incoming_request_notification;
 		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
 
