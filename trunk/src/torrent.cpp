@@ -1233,7 +1233,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::memcpy(rp->piece_data.get() + r.start, j->buffer, r.length);
+			std::memcpy(rp->piece_data.get() + r.start, j->buffer.disk_block, r.length);
 		}
 
 		if (rp->blocks_left == 0)
@@ -4916,7 +4916,7 @@ namespace libtorrent
 		dec_refcount("save_resume");
 		m_ses.done_async_resume();
 
-		if (!j->buffer)
+		if (!j->buffer.resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), j->error.ec);
 			return;
@@ -4924,10 +4924,10 @@ namespace libtorrent
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = m_ses.session_time();
-		write_resume_data(*((entry*)j->buffer));
+		write_resume_data(*j->buffer.resume_data);
 		alerts().emplace_alert<save_resume_data_alert>(
-			boost::shared_ptr<entry>((entry*)j->buffer), get_handle());
-		const_cast<disk_io_job*>(j)->buffer = 0;
+			boost::shared_ptr<entry>(j->buffer.resume_data), get_handle());
+		const_cast<disk_io_job*>(j)->buffer.resume_data = 0;
 		state_updated();
 	}
 
@@ -4939,8 +4939,9 @@ namespace libtorrent
 		if (j->ret == 0)
 		{
 			if (alerts().should_post<file_renamed_alert>())
-				alerts().emplace_alert<file_renamed_alert>(get_handle(), j->buffer, j->piece);
-			m_torrent_file->rename_file(j->piece, j->buffer);
+				alerts().emplace_alert<file_renamed_alert>(get_handle()
+					, j->buffer.string, j->piece);
+			m_torrent_file->rename_file(j->piece, j->buffer.string);
 		}
 		else
 		{
@@ -8421,8 +8422,8 @@ namespace libtorrent
 		if (j->ret == piece_manager::no_error || j->ret == piece_manager::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), j->buffer);
-			m_save_path = j->buffer;
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), j->buffer.string);
+			m_save_path = j->buffer.string;
 			m_need_save_resume_data = true;
 			if (j->ret == piece_manager::need_full_check)
 				force_recheck();

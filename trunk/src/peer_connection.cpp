@@ -5168,7 +5168,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 			, "ret: %d piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
-			, j->ret, r.piece, r.start, r.length, j->buffer
+			, j->ret, r.piece, r.start, r.length, j->buffer.disk_block
 			, (j->flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
 			, j->error.ec.message().c_str(), disk_rtt);
 #endif
@@ -5187,7 +5187,7 @@ namespace libtorrent
 				return;
 			}
 		
-			TORRENT_ASSERT(j->buffer == 0);
+			TORRENT_ASSERT(j->buffer.disk_block == 0);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())

@@ -242,7 +242,7 @@ namespace
 			if (j->ret != j->d.io.buffer_size) return;
 
 			hasher h;
-			h.update(j->buffer, j->d.io.buffer_size);
+			h.update(j->buffer.disk_block, j->d.io.buffer_size);
 			h.update((char const*)&m_salt, sizeof(m_salt));
 
 			std::pair<peer_list::iterator, peer_list::iterator> range
@@ -256,7 +256,7 @@ namespace
 
 #ifdef TORRENT_LOG_HASH_FAILURES
 			log_hash_block(&m_log_file, m_torrent, b.piece_index
-				, b.block_index, p->address(), j->buffer, j->buffer_size, true);
+				, b.block_index, p->address(), j->buffer.disk_block, j->buffer_size, true);
 #endif
 
 			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
@@ -323,7 +323,7 @@ namespace
 			if (j->ret != j->d.io.buffer_size) return;
 
 			hasher h;
-			h.update(j->buffer, j->d.io.buffer_size);
+			h.update(j->buffer.disk_block, j->d.io.buffer_size);
 			h.update((char const*)&m_salt, sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 
@@ -331,7 +331,7 @@ namespace
 
 #ifdef TORRENT_LOG_HASH_FAILURES
 			log_hash_block(&m_log_file, m_torrent, b.first.piece_index
-				, b.first.block_index, a, j->buffer, j->buffer_size, false);
+				, b.first.block_index, a, j->buffer.disk_block, j->buffer_size, false);
 #endif
 
 			// find the peer

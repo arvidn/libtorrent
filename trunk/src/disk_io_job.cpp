@@ -39,7 +39,6 @@ namespace libtorrent
 {
 	disk_io_job::disk_io_job()
 		: requester(0)
-		, buffer(0)
 		, piece(0)
 		, action(read)
 		, ret(0)
@@ -51,6 +50,7 @@ namespace libtorrent
 		, blocked(false)
 #endif
 	{
+		buffer.disk_block = 0;
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
 		d.io.ref.storage = 0;
@@ -61,9 +61,9 @@ namespace libtorrent
 	disk_io_job::~disk_io_job()
 	{
 		if (action == rename_file || action == move_storage)
-			free(buffer);
-		if (action == save_resume_data)
-			delete (entry*)buffer;
+			free(buffer.string);
+		else if (action == save_resume_data)
+			delete (entry*)buffer.resume_data;
 	}
 
 	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)
@@ -74,7 +74,7 @@ namespace libtorrent
 		int size = d.io.buffer_size;
 		int start = d.io.offset / block_size;
 		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
-		
+
 		for (int i = start; i < end; ++i)
 			if (pe->blocks[i].dirty || pe->blocks[i].pending) return false;
 
