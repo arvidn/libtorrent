@@ -129,8 +129,8 @@ struct observer : boost::noncopyable
 		flag_done = 128
 	};
 
-#ifndef TORRENT_DHT_VERBOSE_LOGGING
-	// TODO: 2 make this private and unconditional
+#ifdef TORRENT_DISABLE_LOGGING
+	// TODO: 3 make this private and unconditional
 protected:
 #endif
 

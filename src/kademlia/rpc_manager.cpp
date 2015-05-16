@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include <fstream>
 #endif
 
@@ -222,7 +222,7 @@ void rpc_manager::check_invariant() const
 
 void rpc_manager::unreachable(udp::endpoint const& ep)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "PORT_UNREACHABLE [ ip: %s ]"
 		, print_endpoint(ep).c_str());
 #endif
@@ -235,7 +235,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		if (o->target_ep() != ep) { ++i; continue; }
 		observer_ptr ptr = i->second;
 		i = m_transactions.erase(i);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "found transaction [ tid: %d ]"
 			, int(ptr->transaction_id()));
 #endif
@@ -276,7 +276,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 	if (!o)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
 			, transaction_id.size(), print_endpoint(m.addr).c_str());
 #endif
@@ -293,7 +293,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 	time_point now = clock_type::now();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
 	reply_stats << m.addr << "\t" << total_milliseconds(now - o->sent())
 		<< std::endl;
@@ -334,7 +334,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		return false;
 	}
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
 		, o->m_algorithm.get(), transaction_id.size()
 		, print_endpoint(m.addr).c_str());
@@ -374,7 +374,7 @@ time_duration rpc_manager::tick()
 		time_duration diff = now - o->sent();
 		if (diff >= seconds(timeout))
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
 				, o->m_algorithm.get(), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
@@ -388,7 +388,7 @@ time_duration rpc_manager::tick()
 		// already called it once
 		if (diff >= seconds(short_timeout) && !o->has_short_timeout())
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
 				, o->m_algorithm.get(), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
@@ -435,7 +435,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	o->set_target(target_addr);
 	o->set_transaction_id(tid);
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
 		, o->m_algorithm.get(), e["q"].string().c_str()
 		, print_endpoint(target_addr).c_str());

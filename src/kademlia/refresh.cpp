@@ -87,7 +87,7 @@ void bootstrap::trim_seed_nodes()
 
 void bootstrap::done()
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
 		, this);
 #endif

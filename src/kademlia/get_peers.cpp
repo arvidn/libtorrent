@@ -50,7 +50,7 @@ void get_peers_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, m_algorithm.get());
 #endif
@@ -68,7 +68,7 @@ void get_peers_observer::reply(msg const& m)
 			char const* peers = n.list_at(0).string_ptr();
 			char const* end = peers + n.list_at(0).string_length();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
@@ -90,7 +90,7 @@ void get_peers_observer::reply(msg const& m)
 		{
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
@@ -276,7 +276,7 @@ void obfuscated_get_peers::done()
 	m_data_callback.clear();
 	m_nodes_callback.clear();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "
 			"phase 1 done, spawning get_peers [ %p ]"
 			, this, ta.get());
@@ -307,7 +307,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, m_algorithm.get());
 #endif
@@ -317,7 +317,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	bdecode_node id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
 			, m_algorithm.get());
 #endif

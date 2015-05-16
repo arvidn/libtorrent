@@ -52,7 +52,7 @@ void find_data_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, m_algorithm.get());
 #endif
@@ -62,7 +62,7 @@ void find_data_observer::reply(msg const& m)
 	bdecode_node id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
 			, m_algorithm.get());
 #endif
@@ -111,7 +111,7 @@ void find_data::start()
 
 void find_data::got_write_token(node_id const& n, std::string const& write_token)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] adding write token '%s' under id '%s'"
 		, this, to_hex(write_token).c_str(), to_hex(n.to_string()).c_str());
 #endif
@@ -136,7 +136,7 @@ void find_data::done()
 
 	m_done = true;
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE"
 		, this, name());
 #endif
@@ -149,7 +149,7 @@ void find_data::done()
 		observer_ptr const& o = *i;
 		if ((o->flags & observer::flag_alive) == 0)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] not alive: %s"
 				, this, print_endpoint(o->target_ep()).c_str());
 #endif
@@ -158,14 +158,14 @@ void find_data::done()
 		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
 		if (j == m_write_tokens.end())
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] no write token: %s"
 				, this, print_endpoint(o->target_ep()).c_str());
 #endif
 			continue;
 		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] %s"
 				, this, print_endpoint(o->target_ep()).c_str());
 #endif

@@ -124,7 +124,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 {
 	if (token.length() != 4)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_observer->log(dht_logger::node, "token of incorrect length: %d"
 			, token.length());
 #endif
@@ -180,14 +180,14 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
 	m_last_self_refresh = aux::time_now();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	int count = 0;
 #endif
 
 	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
 		, end(nodes.end()); i != end; ++i)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
 		r->add_entry(node_id(0), *i, observer::flag_initial);
@@ -196,7 +196,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	// make us start as far away from our node ID as possible
 	r->trim_seed_nodes();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);
 #endif
 	r->start();
@@ -282,7 +282,7 @@ void node::incoming(msg const& m)
 		}
 		case 'e':
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node err = m.message.dict_find_list("e");
 			if (err && err.list_size() >= 2)
 			{
@@ -302,7 +302,7 @@ namespace
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		char hex_ih[41];
 		to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
 		node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
@@ -317,7 +317,7 @@ namespace
 		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			node.observer()->log(dht_logger::node, "announce-distance: %d"
 				, (160 - distance_exp(ih, i->first.id)));
 #endif
@@ -345,7 +345,7 @@ namespace
 
 void node::add_router_node(udp::endpoint router)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	m_observer->log(dht_logger::node, "adding router node: %s"
 		, print_endpoint(router).c_str());
 #endif
@@ -362,7 +362,7 @@ void node::add_node(udp::endpoint node)
 void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	char hex_ih[41];
 	to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
 	m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
@@ -391,7 +391,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 void node::get_item(sha1_hash const& target
 	, boost::function<bool(item&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	char hex_target[41];
 	to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
 	m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
@@ -406,7 +406,7 @@ void node::get_item(sha1_hash const& target
 void node::get_item(char const* pk, std::string const& salt
 	, boost::function<bool(item&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	char hex_key[65];
 	to_hex(pk, 32, hex_key);
 	m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
@@ -433,7 +433,7 @@ struct ping_observer : observer
 		bdecode_node r = m.message.dict_find_dict("r");
 		if (!r)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_algorithm->get_node().observer()->log(dht_logger::node
 				, "[%p] missing response dict"
 				, m_algorithm.get());
@@ -899,7 +899,7 @@ void node::incoming_request(msg const& m, entry& e)
 		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
 		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
 		lookup_peers(info_hash, reply, noseed, scrape);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		if (reply.find_key("values"))
 		{
 			m_observer->log(dht_logger::node, "values: %d"

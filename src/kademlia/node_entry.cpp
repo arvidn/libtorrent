@@ -46,7 +46,7 @@ namespace libtorrent { namespace dht
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		first_seen = aux::time_now();
 #endif
 	}
@@ -59,7 +59,7 @@ namespace libtorrent { namespace dht
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		first_seen = aux::time_now();
 #endif
 	}
@@ -71,7 +71,7 @@ namespace libtorrent { namespace dht
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		first_seen = aux::time_now();
 #endif
 	}

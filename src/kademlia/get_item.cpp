@@ -198,7 +198,7 @@ void get_item::done()
 // as the v argument
 void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	// TODO: 3 it would be nice to not have to spend so much time rendering
 	// the bencoded dict if logging is disabled
 	get_node().observer()->log(dht_logger::traversal, "[%p] sending put [ v: \"%s\" seq: %" PRId64 " nodes: %d ]"
@@ -215,7 +215,7 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 		, end(v.end()); i != end; ++i)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] put-distance: %d"
 			, this, 160 - distance_exp(m_target, i->first.id));
 #endif
@@ -257,7 +257,7 @@ void get_item_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, m_algorithm.get());
 #endif
