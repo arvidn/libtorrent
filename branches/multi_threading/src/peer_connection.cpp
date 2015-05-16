@@ -786,7 +786,7 @@ namespace libtorrent
 		m_connected = false;
 		if (!m_download_queue.empty())
 			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
-		
+
 		// defensive
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		// if t is NULL, we better not be connecting, since
@@ -824,7 +824,7 @@ namespace libtorrent
 	int peer_connection::picker_options() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		int ret = m_picker_options; 
+		int ret = m_picker_options;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -1435,7 +1435,7 @@ namespace libtorrent
 			m_download_queue.begin(), m_download_queue.end()
 			, boost::bind(match_request, boost::cref(r), boost::bind(&pending_block::block, _1)
 			, t->block_size()));
-	
+
 		if (i != m_download_queue.end())
 		{
 			pending_block b = *i;
@@ -1447,7 +1447,7 @@ namespace libtorrent
 
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
-			
+
 			// if the peer is in parole mode, keep the request
 			if (peer_info_struct() && peer_info_struct()->on_parole)
 			{
@@ -1495,7 +1495,7 @@ namespace libtorrent
 			send_block_requests();
 		}
 	}
-	
+
 	// -----------------------------
 	// ------- SUGGEST PIECE -------
 	// -----------------------------
@@ -1529,7 +1529,7 @@ namespace libtorrent
 #endif
 			return;
 		}
-		
+
 		if (t->valid_metadata())
 		{
 			if (index >= int(m_have_piece.size()))
