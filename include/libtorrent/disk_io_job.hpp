@@ -52,6 +52,8 @@ namespace libtorrent
 	class entry;
 	class piece_manager;
 	struct cached_piece_entry;
+	struct bdecode_node;
+	struct torrent_info;
 
 	struct block_cache_reference
 	{
@@ -152,7 +154,15 @@ namespace libtorrent
 		// for aiocb_complete this points to the aiocb that completed
 		// for get_cache_info this points to a cache_status object which
 		// is filled in
-		char* buffer;
+		union
+		{
+			char* disk_block;
+			char* string;
+			entry* resume_data;
+			bdecode_node const* check_resume_data;
+			std::vector<boost::uint8_t>* priorities;
+			torrent_info* torrent_file;
+		} buffer;
 
 		// the disk storage this job applies to (if applicable)
 		boost::shared_ptr<piece_manager> storage;
@@ -218,7 +228,7 @@ namespace libtorrent
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		bool in_use:1;
-		
+
 		// set to true when the job is added to the completion queue.
 		// to make sure we don't add it twice
 		mutable bool job_posted:1;

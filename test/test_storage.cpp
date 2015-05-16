@@ -71,7 +71,7 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
 	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
-	if (ret > 0) TEST_CHECK(std::equal(j.buffer, j.buffer + ret, data));
+	if (ret > 0) TEST_CHECK(std::equal(j.buffer.disk_block, j.buffer.disk_block + ret, data));
 }
 
 void on_check_resume_data(disk_io_job const* j, bool* done)
