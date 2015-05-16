@@ -75,6 +75,7 @@ namespace libtorrent
 	class  udp_socket;
 	struct resolver_interface;
 	struct counters;
+	struct ip_filter;
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
@@ -97,7 +98,6 @@ namespace libtorrent
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
-			, apply_ip_filter(true)
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
@@ -125,6 +125,8 @@ namespace libtorrent
 		std::string trackerid;
 		std::string auth;
 
+		boost::shared_ptr<const ip_filter> filter;
+
 		boost::int64_t downloaded;
 		boost::int64_t uploaded;
 		boost::int64_t left;
@@ -145,7 +147,6 @@ namespace libtorrent
 		address bind_ip;
 
 		bool send_stats;
-		bool apply_ip_filter;
 #ifdef TORRENT_USE_OPENSSL
 		boost::asio::ssl::context* ssl_ctx;
 #endif
@@ -332,7 +333,6 @@ namespace libtorrent
 		tracker_manager(udp_socket& sock
 			, counters& stats_counters
 			, resolver_interface& resolver
-			, struct ip_filter& ipf
 			, aux::session_settings const& sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, aux::session_logger& ses
@@ -368,7 +368,6 @@ namespace libtorrent
 
 		aux::session_settings const& settings() const { return m_settings; }
 		udp_socket& get_udp_socket() { return m_udp_socket; }
-		struct ip_filter const& ip_filter() const { return m_ip_filter; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
 
 	private:
@@ -385,7 +384,6 @@ namespace libtorrent
 		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
 		http_conns_t m_http_conns;
 
-		struct ip_filter const& m_ip_filter;
 		class udp_socket& m_udp_socket;
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;

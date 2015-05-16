@@ -273,8 +273,8 @@ namespace libtorrent
 	// for a specific download. It updates itself against
 	// the tracker
 	class TORRENT_EXTRA_EXPORT torrent
-		: public single_threaded
-		, public torrent_hot_members
+		: private single_threaded
+		, private torrent_hot_members
 		, public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
@@ -450,8 +450,9 @@ namespace libtorrent
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 
-		void ip_filter_updated();
+		void set_ip_filter(boost::shared_ptr<const ip_filter> ipf);
 		void port_filter_updated();
+		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
 		std::string resolve_filename(int file) const;
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
@@ -1148,6 +1149,8 @@ namespace libtorrent
 
 	private:
 
+		void ip_filter_updated();
+
 		void inc_stats_counter(int c, int value = 1);
 
 		// initialize the torrent_state structure passed to peer_list
@@ -1198,6 +1201,8 @@ namespace libtorrent
 		void request_time_critical_pieces();
 
 		void need_policy();
+
+		boost::shared_ptr<const ip_filter> m_ip_filter;
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
