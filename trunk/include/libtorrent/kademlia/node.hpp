@@ -232,7 +232,7 @@ public:
 
 	int data_size() const { return int(m_map.size()); }
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }
 #endif

@@ -60,7 +60,7 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	address addr() const { return address_v4(a); }
 	int port() const { return p; }
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	time_point first_seen;
 #endif
 

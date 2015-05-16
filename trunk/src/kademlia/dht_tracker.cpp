@@ -79,7 +79,7 @@ namespace libtorrent { namespace dht
 {
 	void incoming_error(entry& e, char const* msg);
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	std::string parse_dht_client(bdecode_node const& e)
 	{
 		bdecode_node ver = e.dict_find_string("v");
@@ -161,7 +161,7 @@ namespace libtorrent { namespace dht
 		, m_abort(false)
 		, m_host_resolver(sock.get_io_service())
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "starting DHT tracker with node id: %s"
 			, to_hex(m_dht.nid().to_string()).c_str());
 #endif
@@ -260,12 +260,12 @@ namespace libtorrent { namespace dht
 		{
 			m_last_new_key = now;
 			m_dht.new_write_key();
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::tracker, "*** new write key***");
 #endif
 		}
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
 		m_dht.print_state(st);
 #endif
@@ -410,18 +410,21 @@ namespace libtorrent { namespace dht
 		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "<== %s ERROR: %s pos: %d"
-				, print_endpoint(ep).c_str(), err.message().c_str(), int(pos));
+#ifndef TORRENT_DISABLE_LOGGING
+			m_log->log_message(dht_logger::incoming_message_error, buf
+				, size, "%s ERROR: %s pos: %d"
+				, print_endpoint(ep).c_str(), err.message().c_str()
+				, int(pos));
 #endif
 			return false;
 		}
 
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "<== %s ERROR: not a dictionary %s"
-				, print_endpoint(ep).c_str(), print_entry(m_msg, true).c_str());
+#ifndef TORRENT_DISABLE_LOGGING
+			m_log->log_message(dht_logger::incoming_message_error, buf
+				, size, "%s ERROR: not a dictionary"
+				, print_endpoint(ep).c_str());
 #endif
 			// it's not a good idea to send invalid messages
 			// especially not in response to an invalid message
@@ -430,6 +433,11 @@ namespace libtorrent { namespace dht
 //			send_packet(r, ep, 0);
 			return false;
 		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		m_log->log_message(dht_logger::incoming_message, buf
+			, size, "%s", print_endpoint(ep).c_str());
+#endif
 
 		libtorrent::dht::msg m(m_msg, ep);
 		m_dht.incoming(m);
@@ -517,25 +525,15 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(m_send_buf), e);
 		error_code ec;
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		// TODO: 3 it would be nice to not have to decode this if logging
-		// is not enabled. Maybe there could be a separate log function for
-		// incoming and outgoing packets.
-		bdecode_node print;
-		int ret = bdecode(&m_send_buf[0], &m_send_buf[0] + m_send_buf.size(), print, ec);
-		TORRENT_ASSERT(ret == 0);
-		std::string outgoing_message = print_entry(print, true);
-#endif
-
 		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
 		{
 			if (ec)
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-				m_log->log(dht_logger::tracker, "==> %s DROPPED (%s) %s"
-					, print_endpoint(addr).c_str(), ec.message().c_str()
-					, outgoing_message.c_str());
+#ifndef TORRENT_DISABLE_LOGGING
+				m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
+					, m_send_buf.size(), "%s DROPPED (%s)"
+					, print_endpoint(addr).c_str(), ec.message().c_str());
 #endif
 				return false;
 			}
@@ -545,10 +543,10 @@ namespace libtorrent { namespace dht
 			m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
 				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "==> %s %s"
-				, print_endpoint(addr).c_str()
-				, outgoing_message.c_str());
+#ifndef TORRENT_DISABLE_LOGGING
+			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), "%s"
+				, print_endpoint(addr).c_str());
 #endif
 			return true;
 		}
@@ -556,10 +554,10 @@ namespace libtorrent { namespace dht
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_log->log(dht_logger::tracker, "==> %s DROPPED %s"
-				, print_endpoint(addr).c_str()
-				, outgoing_message.c_str());
+#ifndef TORRENT_DISABLE_LOGGING
+			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), "%s"
+				, print_endpoint(addr).c_str());
 #endif
 			return false;
 		}

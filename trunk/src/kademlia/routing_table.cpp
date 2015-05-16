@@ -197,7 +197,7 @@ int routing_table::depth() const
 	return m_depth;
 }
 
-#if (defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG) && TORRENT_USE_IOSTREAM
+#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 
 void routing_table::print_state(std::ostream& os) const
 {
@@ -585,7 +585,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// routing table
 			if (m_settings.restrict_routing_ips)
 			{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				char hex_id[41];
 				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
 				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
@@ -668,7 +668,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// we already have a node in this bucket with an IP very
 			// close to this one. We know that it's not the same, because
 			// it claims a different node-ID. Ignore this to avoid attacks
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				char hex_id1[41];
 				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
 				char hex_id2[41];
@@ -684,7 +684,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (j != rb.end())
 		{
 			// same thing but for the replacement bucket
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 				char hex_id1[41];
 				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
 				char hex_id2[41];
@@ -864,7 +864,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			erase_one(m_ips, j->addr().to_v4().to_bytes());
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			char hex_id[41];
 			to_hex(reinterpret_cast<char const*>(&e.id[0]), sha1_hash::size, hex_id);
 			m_log->log(dht_logger::routing_table, "replaving node with higher RTT: %s %s"
@@ -1037,7 +1037,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 		j->timed_out();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
 		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
@@ -1058,7 +1058,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	{
 		j->timed_out();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
 		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"

@@ -6473,7 +6473,7 @@ retry:
 	}
 
 	TORRENT_FORMAT(3,4)
-	void session_impl::log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...)
+	void session_impl::log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 	{
 		if (!m_alerts.should_post<dht_log_alert>()) return;
 
@@ -6483,6 +6483,34 @@ retry:
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 		m_alerts.emplace_alert<dht_log_alert>((dht_log_alert::dht_module_t)m, buf);
+	}
+
+	TORRENT_FORMAT(5, 6)
+	void session_impl::log_message(message_direction_t dir, char const* pkt, int len
+		, char const* fmt, ...)
+	{
+		if (!m_alerts.should_post<dht_log_alert>()) return;
+
+		char buf[1024];
+		int offset = 0;
+		char const* prefix[] =
+		{ "<== ", "<== ERROR ", "==> ", "==> ERROR " };
+		offset += snprintf(&buf[offset], sizeof(buf) - offset, prefix[dir]);
+
+		va_list v;
+		va_start(v, fmt);
+		offset += vsnprintf(&buf[offset], sizeof(buf) - offset, fmt, v);
+		va_end(v);
+
+		bdecode_node print;
+		error_code ec;
+		int ret = bdecode(buf, buf + len, print, ec, NULL, 100, 100);
+
+		std::string msg = print_entry(print, true);
+
+		strncpy(&buf[offset], msg.c_str(), sizeof(buf) - offset);
+
+		m_alerts.emplace_alert<dht_log_alert>(dht_log_alert::tracker, buf);
 	}
 
 	void session_impl::set_external_address(address const& ip

@@ -36,15 +36,37 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/kademlia/dos_blocker.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/error_code.hpp"
 
 struct log_t : libtorrent::dht::dht_logger
 {
-	virtual void log(dht_logger::dht_module_t m, char const* fmt, ...)
+	virtual void log(dht_logger::module_t m, char const* fmt, ...)
+		TORRENT_OVERRIDE TORRENT_FORMAT(3, 4)
 	{
 		va_list v;	
 		va_start(v, fmt);
 		vfprintf(stderr, fmt, v);
 		va_end(v);
+	}
+
+	virtual void log_message(message_direction_t dir, char const* pkt, int len
+		, char const* fmt, ...) TORRENT_OVERRIDE TORRENT_FORMAT(5, 6)
+	{
+		char const* prefix[] =
+		{ "<== ", "<== ERROR ", "==> ", "==> ERROR " };
+		printf(prefix[dir]);
+
+		va_list v;
+		va_start(v, fmt);
+		vprintf(fmt, v);
+		va_end(v);
+
+		libtorrent::bdecode_node print;
+		libtorrent::error_code ec;
+		int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
+
+		std::string msg = print_entry(print, true);
+		printf("%s", msg.c_str());
 	}
 };
 
