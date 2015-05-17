@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	
+
 	namespace {
 
 	bool valid_path_character(char c)
@@ -109,7 +109,7 @@ namespace libtorrent
 		{
 			UTF32 codepoint;
 			UTF32* cp = &codepoint;
-			
+
 			// decode a single utf-8 character
 			ConversionResult res = ConvertUTF8toUTF32(&ptr, end, &cp, cp + 1
 				, lenientConversion);
@@ -241,7 +241,7 @@ namespace libtorrent
 				continue;
 
 			if (element[i] == '.') ++num_dots;
-		
+
 			int last_len = 0;
 
 			if ((element[i] & 0x80) == 0)
@@ -518,7 +518,7 @@ namespace libtorrent
 			char c1, c2;
 			char const* s1 = lhs.c_str();
 			char const* s2 = rhs.c_str();
-	
+
 			while (*s1 != 0 && *s2 != 0)
 			{
 				c1 = to_lower(*s1);
@@ -539,7 +539,7 @@ namespace libtorrent
 			char c1, c2;
 			char const* s1 = lhs.c_str();
 			char const* s2 = rhs.c_str();
-	
+
 			while (*s1 != 0 || *s2 != 0)
 			{
 				c1 = to_lower(*s1);
@@ -1165,7 +1165,7 @@ namespace libtorrent
 	}
 
 #define SWAP(a, b) \
-	  	tmp = a; \
+		tmp = a; \
 		a = b; \
 		b = tmp;
 
@@ -1296,7 +1296,7 @@ namespace libtorrent
 			ec = errors::torrent_missing_pieces;
 			return false;
 		}
-		
+
 		if (pieces)
 		{
 			if (pieces.string_length() != files.num_pieces() * 20)
