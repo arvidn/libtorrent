@@ -122,12 +122,12 @@ int print_failures()
 	return tests_failure;
 }
 
-std::map<std::string, boost::uint64_t> get_counters(libtorrent::session& s)
+std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 {
 	using namespace libtorrent;
 	s.post_session_stats();
 
-	std::map<std::string, boost::uint64_t> ret;
+	std::map<std::string, boost::int64_t> ret;
 	alert const* a = wait_for_alert(s, session_stats_alert::alert_type
 		, "get_counters()");
 

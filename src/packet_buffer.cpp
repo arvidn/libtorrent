@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h> // free and calloc
+#include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/invariant_check.hpp"
