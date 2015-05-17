@@ -440,8 +440,8 @@ bool traversal_algorithm::add_requests()
 			, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
 			"invoke-count: %d branch-factor: %d "
 			"distance: %d id: %s addr: %s type: %s"
-			, this, m_results.end() - i, outstanding, m_invoke_count
-			, m_branch_factor, distance_exp(m_target, o->id()), hex_id
+			, this, int(m_results.end() - i), outstanding, int(m_invoke_count)
+			, int(m_branch_factor), distance_exp(m_target, o->id()), hex_id
 			, print_address(o->target_addr()).c_str(), name());
 #endif
 
@@ -561,7 +561,7 @@ void traversal_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get(), m_algorithm->name());
+			, m_algorithm.get());
 #endif
 		return;
 	}

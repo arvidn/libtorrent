@@ -6502,18 +6502,21 @@ retry:
 		offset += vsnprintf(&buf[offset], sizeof(buf) - offset, fmt, v);
 		va_end(v);
 
-		bdecode_node print;
-		error_code ec;
-		int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
+		if (offset < sizeof(buf) - 1)
+		{
+			buf[offset++] = ' ';
 
-		// TODO: 3 there should be a separate dht_log_alert for messages that
-		// contains the raw packet separately. This printing should be moved
-		// down to the ::message() function of that alert
-		std::string msg = print_entry(print, true);
+			bdecode_node print;
+			error_code ec;
+			int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
 
-		if (offset < sizeof(buf)) buf[offset++] = ' ';
+			// TODO: 3 there should be a separate dht_log_alert for messages that
+			// contains the raw packet separately. This printing should be moved
+			// down to the ::message() function of that alert
+			std::string msg = print_entry(print, true);
 
-		strncpy(&buf[offset], msg.c_str(), sizeof(buf) - offset);
+			strncpy(&buf[offset], msg.c_str(), sizeof(buf) - offset);
+		}
 
 		m_alerts.emplace_alert<dht_log_alert>(dht_log_alert::tracker, buf);
 	}

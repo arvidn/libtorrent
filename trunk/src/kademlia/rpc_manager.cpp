@@ -278,7 +278,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
-			, transaction_id.size(), print_endpoint(m.addr).c_str());
+			, int(transaction_id.size()), print_endpoint(m.addr).c_str());
 #endif
 		// this isn't necessarily because the other end is doing
 		// something wrong. This can also happen when we restart
@@ -336,7 +336,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 #ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-		, o->m_algorithm.get(), transaction_id.size()
+		, o->m_algorithm.get(), int(transaction_id.size())
 		, print_endpoint(m.addr).c_str());
 #endif
 	o->reply(m);
