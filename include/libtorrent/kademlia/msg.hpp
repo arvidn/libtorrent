@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <libtorrent/kademlia/node_id.hpp>
-#include "libtorrent/lazy_entry.hpp"
 #if BOOST_VERSION < 103500
 #include <asio/ip/udp.hpp>
 #else
@@ -43,6 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent {
+
+struct bdecode_node;
+
 namespace dht {
 
 typedef std::vector<char> packet_t;
