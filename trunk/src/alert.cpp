@@ -1176,7 +1176,7 @@ namespace libtorrent {
 		snprintf(msg, sizeof(msg), " ERROR: %s", convert_from_native(error.message()).c_str());
 		return torrent_alert::message() + msg;
 	}
-	
+
 	torrent_added_alert::torrent_added_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
@@ -1213,7 +1213,7 @@ namespace libtorrent {
 		: socket_type(t)
 		, ip(i)
 	{}
-		
+
 	std::string incoming_connection_alert::message() const
 	{
 		char msg[600];
@@ -1244,7 +1244,7 @@ namespace libtorrent {
 		, params(p)
 		, error(ec)
 	{}
-		
+
 	std::string add_torrent_alert::message() const
 	{
 		char msg[600];
@@ -1348,7 +1348,7 @@ namespace libtorrent {
 		, old_ih(old_hash)
 		, new_ih(new_hash)
 	{}
-	
+
 	std::string torrent_update_alert::message() const
 	{
 		char msg[200];
@@ -1364,7 +1364,7 @@ namespace libtorrent {
 		: handle(h)
 		, item(item)
 	{}
-	
+
 	std::string rss_item_alert::message() const
 	{
 		char msg[500];
@@ -1406,7 +1406,7 @@ namespace libtorrent {
 		, error_code const& ec)
 		: error(ec), operation(op_t(op))
 	{}
-		
+
 	std::string dht_error_alert::message() const
 	{
 		static const char* const operation_names[] =
@@ -1431,7 +1431,7 @@ namespace libtorrent {
 		, sha1_hash const& t, entry const& i)
 		: target(t), item(i)
 	{}
-		
+
 	std::string dht_immutable_item_alert::message() const
 	{
 		char msg[1050];
@@ -1694,7 +1694,7 @@ namespace libtorrent {
 			+ (operation?operation:"") + " (" + filename()
 			+ ") error: " + convert_from_native(error.message());
 	}
-	
+
 	incoming_request_alert::incoming_request_alert(aux::stack_allocator& alloc
 		, peer_request r, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id)
@@ -1734,7 +1734,7 @@ namespace libtorrent {
 		};
 
 		char ret[900];
-		snprintf(ret, sizeof(ret), "%s: %s", dht_modules[module]
+		snprintf(ret, sizeof(ret), "DHT %s: %s", dht_modules[module]
 			, log_message());
 		return ret;
 	}
