@@ -1,7 +1,10 @@
 #!/bin/bash
 
-OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/deprecated-functions-off/export-extra-on/invariant-checks-off/link-static/logging-on/test-coverage-on/threading-multi/src
+OBJECT_PATH=bin/gcc-4.8/debug/asserts-off/boost-source/deprecated-functions-off/export-extra-on/invariant-checks-off/link-static/test-coverage-on/threading-multi/src
 
+# $1 = test_name
+# $2 = filename pattern for tested source files
+# $3 = optional bjam arguments
 function run_test {
 	set +e
 	rm $OBJECT_PATH/*.gcda
@@ -36,8 +39,10 @@ mkdir test-coverage
 rm test-coverage/coverage_all
 set -e
 
-run_test test_ip_voter "*ip_voter.*"
-run_test test_alert_manager "*alert_manager.*"
+run_test test_packet_buffer "*/packet_buffer.*" -a
+run_test test_ip_voter "*/ip_voter.*"
+run_test test_bitfield "*/bitfield.*"
+run_test test_alert_manager "*/alert_manager.*"
 run_test test_dht "*/kademlia/*"
 run_test test_bdecode "*/bdecode.*"
 run_test test_piece_picker "*/piece_picker.*"
