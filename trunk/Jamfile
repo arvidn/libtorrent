@@ -717,7 +717,7 @@ ED25519_SOURCES =
 	verify
 	;
 
-local usage-requirements = 
+local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
@@ -795,10 +795,10 @@ lib torrent
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
 package.install install
- : <install-source-root>libtorrent
-   <install-no-version-symlinks>on
- :
- : torrent
- : $(headers)
- ;
+	: <install-source-root>libtorrent
+	<install-no-version-symlinks>on
+	:
+	: torrent
+	: $(headers)
+	;
 

@@ -105,7 +105,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		, keepalive ? "yes" : "no");
 
 	int proxy_port = 0;
-	
+
 	if (proxy)
 	{
 		proxy_port = start_proxy(proxy);
@@ -160,7 +160,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	}
 
 	peer_disconnects = 0;
-	std::map<std::string, boost::uint64_t> cnt = get_counters(ses);
+	std::map<std::string, boost::int64_t> cnt = get_counters(ses);
 
 	for (int i = 0; i < 40; ++i)
 	{
@@ -395,7 +395,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
 			, chunked_encoding, test_ban, keepalive);
-		
+
 		if (test_url_seed && test_rename)
 		{
 			torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));

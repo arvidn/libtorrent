@@ -531,7 +531,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	node_id target = generate_secret_id() & ~mask;
 	target |= m_id & mask;
 
-	// create a dummy traversal_algorithm		
+	// create a dummy traversal_algorithm
 	// this is unfortunately necessary for the observer
 	// to free itself from the pool when it's being released
 	boost::intrusive_ptr<traversal_algorithm> algo(

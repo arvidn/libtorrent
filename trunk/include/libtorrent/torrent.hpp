@@ -418,11 +418,11 @@ namespace libtorrent
 
 		aux::session_settings const& settings() const;
 		aux::session_interface& session() { return m_ses; }
-	
+
 		void set_sequential_download(bool sd);
 		bool is_sequential_download() const
 		{ return m_sequential_download || m_auto_sequential; }
-	
+
 		void queue_up();
 		void queue_down();
 		void set_queue_position(int p);
