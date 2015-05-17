@@ -80,7 +80,7 @@ void get_peers_observer::reply(msg const& m)
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
 					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
-					, (end - peers) / 6);
+					, int((end - peers) / 6));
 			}
 #endif
 			while (end - peers >= 6)
@@ -102,7 +102,7 @@ void get_peers_observer::reply(msg const& m)
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
 					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
-					, n.list_size());
+					, int(n.list_size()));
 			}
 #endif
 		}
