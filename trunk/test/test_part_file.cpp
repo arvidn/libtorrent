@@ -118,8 +118,7 @@ int test_main()
 		pf.export_file(output, 10 * piece_size, 1024, ec);
 		if (ec) fprintf(stderr, "export_file: %s\n", ec.message().c_str());
 
-		pf.free_piece(10, ec);
-		if (ec) fprintf(stderr, "free_piece: %s\n", ec.message().c_str());
+		pf.free_piece(10);
 
 		pf.flush_metadata(ec);
 		if (ec) fprintf(stderr, "flush_metadata: %s\n", ec.message().c_str());

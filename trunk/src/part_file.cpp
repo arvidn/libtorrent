@@ -102,20 +102,20 @@ namespace libtorrent
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
 			int n = m_file.readv(0, &b, 1, ec);
 			if (ec) return;
-   
+
 			// we don't have a full header. consider the file empty
 			if (n < m_header_size) return;
 			using namespace libtorrent::detail;
-   
+
 			char* ptr = (char*)header.get();
 			// we have a header. Parse it
 			int num_pieces_ = read_uint32(ptr);
 			int piece_size_ = read_uint32(ptr);
-   
+
 			// if there is a mismatch in number of pieces or piece size
 			// consider the file empty and overwrite anything in there
 			if (num_pieces != num_pieces_ || m_piece_size != piece_size_) return;
-			
+
 			// this is used to determine which slots are free, and how many
 			// slots are allocated
 			std::vector<bool> free_slots;
@@ -125,14 +125,14 @@ namespace libtorrent
 			{
 				int slot = read_uint32(ptr);
 				if (slot == 0xffffffff) continue;
-   
+
 				// invalid part-file
 				TORRENT_ASSERT(slot < num_pieces);
 				if (slot >= num_pieces) continue;
-   
+
 				if (slot >= m_num_allocated)
 					m_num_allocated = slot + 1;
-   
+
 				free_slots[slot] = false;
 				m_piece_map[i] = slot;
 			}
@@ -152,7 +152,7 @@ namespace libtorrent
 		error_code ec;
 		flush_metadata_impl(ec);
 	}
-	
+
 	int part_file::allocate_slot(int piece)
 	{
 		// the mutex is assumed to be held here, since this is a private function
@@ -242,7 +242,7 @@ namespace libtorrent
 		}
 	}
 
-	void part_file::free_piece(int piece, error_code& ec)
+	void part_file::free_piece(int piece)
 	{
 		mutex::scoped_lock l(m_mutex);
 
@@ -316,16 +316,19 @@ namespace libtorrent
 			{
 				open_file(file::read_only, ec);
 				if (ec) return;
-				
+
 				if (!buf) buf.reset(new char[m_piece_size]);
 
 				boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(i->second) * m_piece_size;
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
 				int ret = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
-				if (ec) return;
+				TORRENT_ASSERT(ec || ret == block_to_copy);
+				if (ec || ret != block_to_copy) return;
+
 
 				ret = f.writev(file_offset, &v, 1, ec);
-				if (ec) return;
+				TORRENT_ASSERT(ec || ret == block_to_copy);
+				if (ec || ret != block_to_copy) return;
 
 				if (block_to_copy == m_piece_size)
 				{
