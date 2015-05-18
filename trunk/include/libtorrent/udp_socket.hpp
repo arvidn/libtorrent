@@ -185,7 +185,7 @@ namespace libtorrent
 
 		void setup_read(udp::socket* s);
 		void on_read(error_code const& ec, udp::socket* s);
-		void on_read_impl(udp::socket* sock, udp::endpoint const& ep
+		void on_read_impl(udp::endpoint const& ep
 			, error_code const& e, std::size_t bytes_transferred);
 		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 		void on_connect_timeout(error_code const& ec);

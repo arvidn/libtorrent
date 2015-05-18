@@ -401,12 +401,12 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		}
 		log(msg, l);
 		return;
-	} 
+	}
 
 	bool non_router = false;
 	if (m_ignore_non_routers)
 	{
-		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
+		std::vector<ip_route> routes = enum_routes(ec);
 		if (std::find_if(routes.begin(), routes.end()
 			, boost::bind(&ip_route::gateway, _1) == from.address()) == routes.end())
 		{

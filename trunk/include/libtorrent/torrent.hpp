@@ -756,8 +756,6 @@ namespace libtorrent
 
 		void recalc_share_mode();
 
-		void update_sparse_piece_prio(int piece, int cursor, int reverse_cursor);
-
 		struct suggest_piece_t
 		{
 			int piece_index;
@@ -773,7 +771,7 @@ namespace libtorrent
 			// we're not super seeding if we're not a seed
 			return m_super_seeding && is_seed();
 		}
-		
+
 		void super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
 
@@ -870,7 +868,7 @@ namespace libtorrent
 		void on_name_lookup(error_code const& e
 			, std::vector<address> const& addrs
 			, int port
-			, std::list<web_seed_t>::iterator web, tcp::endpoint proxy);
+			, std::list<web_seed_t>::iterator web);
 
 		void connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a);
 
@@ -1148,6 +1146,8 @@ namespace libtorrent
 		{ return m_time_critical_pieces.size(); }
 
 	private:
+
+		void update_sparse_piece_prio(int piece, int start, int end);
 
 		void ip_filter_updated();
 

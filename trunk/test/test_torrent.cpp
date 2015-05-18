@@ -169,7 +169,7 @@ int test_main()
 		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
-		
+
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], piece.size()).final();
 		int num = t.num_pieces();
@@ -229,7 +229,7 @@ int test_main()
 			initialize_file_progress(fp, picker, fs);
 
 			boost::uint64_t sum = 0;
-			for (int i = 0; i < fp.size(); ++i)
+			for (int i = 0; i < int(fp.size()); ++i)
 				sum += fp[i];
 
 			TEST_EQUAL(sum, fs.piece_size(idx));

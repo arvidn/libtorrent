@@ -88,7 +88,7 @@ void natpmp::start()
 	mutex::scoped_lock l(m_mutex);
 
 	error_code ec;
-	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
+	address gateway = get_default_gateway(ec);
 	if (ec)
 	{
 		char msg[200];

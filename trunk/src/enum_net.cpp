@@ -280,7 +280,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 
 #if TORRENT_USE_IFADDRS
-	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv, error_code& ec)
+	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
 		int family = ifa->ifa_addr->sa_family;
 
@@ -311,7 +311,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 namespace libtorrent
 {
-	
+
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)
 	{
@@ -403,9 +403,10 @@ namespace libtorrent
 		}
 	}
 #endif
-	
+
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)
 	{
+		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
 #if TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -436,7 +437,7 @@ namespace libtorrent
 				)
 			{
 				ip_interface iface;
-				if (iface_from_ifaddrs(ifa, iface, ec))
+				if (iface_from_ifaddrs(ifa, iface))
 				{
 					ifreq req;
 					memset(&req, 0, sizeof(req));
@@ -618,7 +619,7 @@ namespace libtorrent
 
 		INTERFACE_INFO buffer[30];
 		DWORD size;
-	
+
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
@@ -667,9 +668,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	address get_default_gateway(io_service& ios, error_code& ec)
+	address get_default_gateway(error_code& ec)
 	{
-		std::vector<ip_route> ret = enum_routes(ios, ec);
+		std::vector<ip_route> ret = enum_routes(ec);
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
 			, boost::bind(&is_loopback, boost::bind(&ip_route::destination, _1)));
@@ -681,10 +682,10 @@ namespace libtorrent
 		return i->gateway;
 	}
 
-	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
+	std::vector<ip_route> enum_routes(error_code& ec)
 	{
 		std::vector<ip_route> ret;
-	
+
 #if TORRENT_USE_SYSCTL
 /*
 		struct rt_msg
@@ -835,12 +836,12 @@ namespace libtorrent
 		rtm = (rt_msghdr*)next;
 		if (rtm->rtm_version != RTM_VERSION)
 			continue;
-		
+
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
 	close(s);
-	
+
 #elif TORRENT_USE_GETIPFORWARDTABLE
 /*
 	move this to enum_net_interfaces
@@ -925,7 +926,7 @@ namespace libtorrent
 		typedef DWORD (WINAPI *GetIpForwardTable2_t)(
 			ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
 		typedef void (WINAPI *FreeMibTable_t)(PVOID Memory);
-			
+
 		GetIpForwardTable2_t GetIpForwardTable2 = (GetIpForwardTable2_t)GetProcAddress(
 			iphlp, "GetIpForwardTable2");
 		FreeMibTable_t FreeMibTable = (FreeMibTable_t)GetProcAddress(
@@ -962,7 +963,7 @@ namespace libtorrent
 
 		// Get GetIpForwardTable() pointer
 		typedef DWORD (WINAPI *GetIpForwardTable_t)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);
-			
+
 		GetIpForwardTable_t GetIpForwardTable = (GetIpForwardTable_t)GetProcAddress(
 			iphlp, "GetIpForwardTable");
 		if (!GetIpForwardTable)
