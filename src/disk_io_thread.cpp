@@ -346,7 +346,7 @@ namespace libtorrent
 			DLOG("try_flush_hashed: (%d) blocks_in_piece: %d end: %d\n"
 				, int(p->piece), int(p->blocks_in_piece), end);
 
-			return flush_range(p, 0, end, 0, completed_jobs, l);
+			return flush_range(p, 0, end, completed_jobs, l);
 		}
 
 		// piece range
@@ -713,7 +713,7 @@ namespace libtorrent
 	// issues write operations for blocks in the given
 	// range on the given piece.
 	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
-		, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l)
+		, tailqueue& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
@@ -722,7 +722,7 @@ namespace libtorrent
 			, int(pe->piece), start, end);
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
-		
+
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
 		int* flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
@@ -791,7 +791,7 @@ namespace libtorrent
 		else if ((flags & flush_write_cache) && pe->num_dirty > 0)
 		{
 			// issue write commands
-			flush_range(pe, 0, INT_MAX, 0, completed_jobs, l);
+			flush_range(pe, 0, INT_MAX, completed_jobs, l);
 
 			// if we're also flushing the read cache, this piece
 			// should be removed as soon as all write jobs finishes
@@ -943,7 +943,7 @@ namespace libtorrent
 #endif
 			++pe->piece_refcount;
 
-			num -= flush_range(pe, 0, INT_MAX, 0, completed_jobs, l);
+			num -= flush_range(pe, 0, INT_MAX, completed_jobs, l);
 			--pe->piece_refcount;
 
 			m_disk_cache.maybe_free_piece(pe);
@@ -991,7 +991,7 @@ namespace libtorrent
 
 		for (int i = 0; i < num_flush; ++i)
 		{
-			flush_range(to_flush[i], 0, INT_MAX, 0, completed_jobs, l);
+			flush_range(to_flush[i], 0, INT_MAX, completed_jobs, l);
 			TORRENT_ASSERT(to_flush[i]->piece_refcount > 0);
 			--to_flush[i]->piece_refcount;
 			m_disk_cache.maybe_free_piece(to_flush[i]);

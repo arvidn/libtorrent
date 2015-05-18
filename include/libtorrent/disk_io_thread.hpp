@@ -97,7 +97,7 @@ namespace libtorrent
 
 		bool need_readback;
 	};
-	
+
 	// this struct holds a number of statistics counters
 	// relevant for the disk io thread and disk cache.
 	struct TORRENT_EXPORT cache_status
@@ -461,7 +461,7 @@ namespace libtorrent
 		// writes out the blocks [start, end) (releases the lock
 		// during the file operation)
 		int flush_range(cached_piece_entry* p, int start, int end
-			, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
+			, tailqueue& completed_jobs, mutex::scoped_lock& l);
 
 		// low level flush operations, used by flush_range
 		int build_iovec(cached_piece_entry* pe, int start, int end
