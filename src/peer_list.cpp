@@ -159,7 +159,7 @@ namespace libtorrent
 				++i;
 				continue;
 			}
-		
+
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
 			TORRENT_ASSERT(m_peers.size() > 0);
@@ -171,7 +171,7 @@ namespace libtorrent
 				// peer_info_struct. If that is the case, just continue
 				size_t count = m_peers.size();
 				peer_connection_interface* p = (*i)->connection;
-				
+
 				banned.push_back(p->remote().address());
 
 				p->disconnect(errors::banned_by_ip_filter
@@ -221,7 +221,7 @@ namespace libtorrent
 				++i;
 				continue;
 			}
-		
+
 			int current = i - m_peers.begin();
 			TORRENT_ASSERT(current >= 0);
 			TORRENT_ASSERT(m_peers.size() > 0);
@@ -233,7 +233,7 @@ namespace libtorrent
 				// peer_info_struct. If that is the case, just continue
 				int count = m_peers.size();
 				peer_connection_interface* p = (*i)->connection;
-				
+
 				banned.push_back(p->remote().address());
 
 				p->disconnect(errors::banned_by_port_filter, op_bittorrent);
@@ -389,7 +389,7 @@ namespace libtorrent
 
 			++round_robin;
 		}
-		
+
 		if (erase_candidate > -1)
 		{
 			TORRENT_ASSERT(erase_candidate >= 0 && erase_candidate < int(m_peers.size()));
@@ -467,7 +467,7 @@ namespace libtorrent
 			|| (p.seed && m_finished)
 			|| int(p.failcount) >= m_max_failcount)
 			return false;
-		
+
 		return true;
 	}
 
@@ -554,7 +554,7 @@ namespace libtorrent
 
 			peers.insert(i, &pe);
 		}
-		
+
 		if (erase_candidate > -1)
 		{
 			erase_peer(m_peers.begin() + erase_candidate, state);
@@ -581,7 +581,7 @@ namespace libtorrent
 			tcp::endpoint remote = c.remote();
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iter = std::find_if(range.first, range.second, match_peer_endpoint(remote));
-	
+
 			if (iter != range.second)
 			{
 				TORRENT_ASSERT((*iter)->in_use);
@@ -766,10 +766,10 @@ namespace libtorrent
 			if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
 
 			i = *iter;
-	
+
 			i->source = peer_info::incoming;
 		}
-	
+
 		TORRENT_ASSERT(i);
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == 0);

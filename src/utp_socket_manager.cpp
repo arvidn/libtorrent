@@ -94,7 +94,7 @@ namespace libtorrent
 		{
 			m_last_route_update = aux::time_now();
 			error_code ec;
-			m_routes = enum_routes(m_sock.get_io_service(), ec);
+			m_routes = enum_routes(ec);
 		}
 
 		int mtu = 0;
@@ -206,7 +206,7 @@ namespace libtorrent
 		{
 			m_last_route_update = aux::time_now();
 			error_code ec;
-			m_routes = enum_routes(m_sock.get_io_service(), ec);
+			m_routes = enum_routes(ec);
 			if (ec) return socket_ep;
 		}
 

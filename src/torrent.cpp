@@ -4027,8 +4027,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_picker);
 		if (m_picker->have_piece(i) || m_picker->piece_priority(i) == 0)
 			return;
-		bool have_before = i == 0 || m_picker->have_piece(i - 1);
-		bool have_after = i == end - 1 || m_picker->have_piece(i + 1);
+		bool have_before = i < start || m_picker->have_piece(i - 1);
+		bool have_after = i >= end || m_picker->have_piece(i + 1);
 		if (have_after && have_before)
 			m_picker->set_piece_priority(i, 7);
 		else if (have_after || have_before)
@@ -4281,7 +4281,7 @@ namespace libtorrent
 		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (i != m_predictive_pieces.end() && *i == index) return;
-		
+
 		for (peer_iterator p = m_connections.begin()
 			, end(m_connections.end()); p != end; ++p)
 		{
@@ -4307,7 +4307,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
-	  	TORRENT_ASSERT(index < m_torrent_file->num_pieces());
+		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
 		inc_stats_counter(counters::num_piece_failed);
 
@@ -6145,7 +6145,7 @@ namespace libtorrent
 			web->resolving = true;
 			m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
 				, boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2
-				, port, web, tcp::endpoint()));
+				, port, web));
 		}
 	}
 
@@ -6228,14 +6228,13 @@ namespace libtorrent
 		web->resolving = true;
 		m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
 			, boost::bind(&torrent::on_name_lookup, shared_from_this(), _1, _2
-			, port, web, a));
+			, port, web));
 	}
 
 	void torrent::on_name_lookup(error_code const& e
 		, std::vector<address> const& addrs
 		, int port
-		, std::list<web_seed_t>::iterator web
-		, tcp::endpoint proxy)
+		, std::list<web_seed_t>::iterator web)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -6303,7 +6302,7 @@ namespace libtorrent
 					, a.address(), peer_blocked_alert::ip_filter);
 			return;
 		}
-		
+
 		TORRENT_ASSERT(web->resolving == false);
 		TORRENT_ASSERT(web->peer_info.connection == 0);
 
@@ -6319,7 +6318,7 @@ namespace libtorrent
 		boost::shared_ptr<socket_type> s
 			= boost::make_shared<socket_type>(boost::ref(m_ses.get_io_service()));
 		if (!s) return;
-	
+
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
 		bool ssl = string_begins_no_case("https://", web->url.c_str());
@@ -9962,7 +9961,6 @@ namespace libtorrent
 
 		int num_pieces = m_torrent_file->num_pieces();
 		int rarest_rarity = INT_MAX;
-		bool prio_updated = false;
 		for (int i = 0; i < num_pieces; ++i)
 		{
 			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
@@ -9970,7 +9968,6 @@ namespace libtorrent
 			if (ps.priority == 0 && (ps.have || ps.downloading))
 			{
 				m_picker->set_piece_priority(i, 1);
-				prio_updated = true;
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
@@ -10859,7 +10856,7 @@ namespace libtorrent
 
 		need_policy();
 		torrent_state st = get_policy_state();
-		torrent_peer* p = m_peer_list->add_peer(adr, source, 0, &st);
+		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
 		if (p)
 		{
@@ -11123,7 +11120,7 @@ namespace libtorrent
 			fp.resize(m_torrent_file->num_files(), 0);
 			return;
 		}
-		
+
 		int num_files = m_torrent_file->num_files();
 		if (m_file_progress.empty())
 		{

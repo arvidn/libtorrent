@@ -302,7 +302,7 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 #endif
 
 		if (ec == asio::error::would_block || ec == asio::error::try_again) break;
-		on_read_impl(s, ep, ec, bytes_transferred);
+		on_read_impl(ep, ec, bytes_transferred);
 	}
 	call_drained_handler();
 	setup_read(s);
@@ -419,7 +419,7 @@ void udp_socket::unsubscribe(udp_socket_observer* o)
 		m_observers.erase(i);
 }
 
-void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
+void udp_socket::on_read_impl(udp::endpoint const& ep
 	, error_code const& e, std::size_t bytes_transferred)
 {
 	TORRENT_ASSERT(m_magic == 0x1337);
