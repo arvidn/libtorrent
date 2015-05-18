@@ -122,14 +122,6 @@ namespace libtorrent { namespace dht
 
 	namespace {
 
-	node_id extract_node_id(bdecode_node e)
-	{
-		if (!e || e.type() != bdecode_node::dict_t) return (node_id::min)();
-		bdecode_node nid = e.dict_find_string("node-id");
-		if (!nid || nid.string_length() != 20) return (node_id::min)();
-		return node_id(node_id(nid.string_ptr()));
-	}
-
 	node_id extract_node_id(entry const* e)
 	{
 		if (e == 0 || e->type() != entry::dictionary_t) return (node_id::min)();

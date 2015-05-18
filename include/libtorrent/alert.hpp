@@ -260,13 +260,20 @@ namespace libtorrent {
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
 		TORRENT_DEPRECATED
-		virtual bool discardable() const { return true; }
+		bool discardable() const { return discardable_impl(); }
 
 		TORRENT_DEPRECATED
 		severity_t severity() const { return warning; }
 
 		// returns a pointer to a copy of the alert.
-		virtual std::auto_ptr<alert> clone() const = 0;
+		TORRENT_DEPRECATED
+		std::auto_ptr<alert> clone() const { return clone_impl(); }
+
+	protected:
+
+		virtual bool discardable_impl() const { return true; }
+
+		virtual std::auto_ptr<alert> clone_impl() const = 0;
 #endif
 
 	private:

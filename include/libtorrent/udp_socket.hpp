@@ -151,7 +151,7 @@ namespace libtorrent
 		{
 			return m_v4_outstanding
 #if TORRENT_USE_IPV6
-			  	+ m_v6_outstanding
+				+ m_v6_outstanding
 #endif
 				;
 		}

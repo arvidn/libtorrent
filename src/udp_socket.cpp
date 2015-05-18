@@ -248,6 +248,8 @@ void udp_socket::on_writable(error_code const& ec, udp::socket* s)
 #endif
 		m_v4_write_subscribed = false;
 
+	if (ec == asio::error::operation_aborted) return;
+
 	call_writable_handler();
 }
 

@@ -143,10 +143,13 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	#define TORRENT_CLONE(name) \
-		virtual std::auto_ptr<alert> clone() const \
+		virtual std::auto_ptr<alert> clone_impl() const TORRENT_OVERRIDE \
 		{ return std::auto_ptr<alert>(new name(*this)); }
+	#define TORRENT_NOT_DISCARDABLE \
+		virtual bool discardable_impl() TORRENT_OVERRIDE { return false; }
 #else
 	#define TORRENT_CLONE(name)
+	#define TORRENT_NOT_DISCARDABLE
 #endif
 
 #define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
@@ -198,9 +201,7 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4)
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 		sha1_hash info_hash;
 	};
 
@@ -212,7 +213,7 @@ namespace libtorrent
 	// number of bytes that was read.
 	// 
 	// If the operation fails, ec will indicat what went wrong.
- 	struct TORRENT_EXPORT read_piece_alert: torrent_alert
+	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
 		// internal
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -223,9 +224,7 @@ namespace libtorrent
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		error_code ec;
 		boost::shared_array<char> buffer;
@@ -263,9 +262,8 @@ namespace libtorrent
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
+		TORRENT_NOT_DISCARDABLE
 #ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-
 		std::string name;
 #endif
 
@@ -291,9 +289,7 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// refers to the index of the file that was supposed to be renamed,
 		// ``error`` is the error code returned from the filesystem.
@@ -328,7 +324,7 @@ namespace libtorrent
 			// is posted, there is a risk that the number of outstanding requests is too low
 			// and limits the download rate. You might want to increase the ``max_out_request_queue``
 			// setting.
-	 		outstanding_request_limit_reached,
+			outstanding_request_limit_reached,
 
 			// This warning is posted when the amount of TCP/IP overhead is greater than the
 			// upload rate limit. When this happens, the TCP/IP overhead is caused by a much
@@ -354,7 +350,7 @@ namespace libtorrent
 			// send it all before the disk gets back to us.
 			// The number of bytes that we keep outstanding, requested from the disk, is calculated
 			// as follows::
-   		// 
+			// 
 			//   min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
 			// 
 			// If you receive this alert, you migth want to either increase your ``send_buffer_watermark``
@@ -967,9 +963,7 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		sha1_hash info_hash;
 	};
@@ -988,9 +982,7 @@ namespace libtorrent
 			| alert::error_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// tells you why it failed.
 		error_code error;
@@ -1017,9 +1009,7 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// points to the resume data.
 		boost::shared_ptr<entry> resume_data;
@@ -1039,9 +1029,7 @@ namespace libtorrent
 			| alert::error_notification;
 		virtual std::string message() const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// the error code from the resume_data failure
 		error_code error;
@@ -1288,9 +1276,9 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
+		TORRENT_NOT_DISCARDABLE
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the interface libtorrent attempted to listen on
 		std::string interface;
 #endif
@@ -1331,9 +1319,7 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
@@ -1774,9 +1760,7 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		error_code error;
 	};
@@ -1832,9 +1816,7 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// a copy of the parameters used when adding the torrent, it can be used
 		// to identify which invocation to ``async_add_torrent()`` caused this alert.
@@ -1858,9 +1840,7 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// contains the torrent status of all torrents that changed since last
 		// time this message was posted. Note that you can map a torrent status
@@ -1893,9 +1873,8 @@ namespace libtorrent
 
 		static const int static_category = alert::stats_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+
+		TORRENT_NOT_DISCARDABLE
 
 		// An array are a mix of *counters* and *gauges*, which meanings can be
 		// queries via the session_stats_metrics() function on the session. The
@@ -1926,9 +1905,7 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 		sha1_hash old_ih;
@@ -1996,9 +1973,7 @@ namespace libtorrent
 			| alert::dht_notification;
 
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+		TORRENT_NOT_DISCARDABLE
 
 		// the target hash of the immutable item. This must
 		// match the sha-1 hash of the bencoded form of ``item``.
@@ -2024,9 +1999,8 @@ namespace libtorrent
 		static const int static_category = alert::error_notification
 			| alert::dht_notification;
 		virtual std::string message() const;
-#ifndef TORRENT_NO_DEPRECATE
-		virtual bool discardable() const { return false; }
-#endif
+
+		TORRENT_NOT_DISCARDABLE
 
 		// the public key that was looked up
 		boost::array<char, 32> key;

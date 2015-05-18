@@ -166,6 +166,9 @@ namespace libtorrent
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
 		, int len, error_code& ec, int flags)
 	{
+#if !defined TORRENT_HAS_DONT_FRAGMENT && !defined TORRENT_DEBUG_MTU
+		TORRENT_UNUSED(flags);
+#endif
 		if (!m_sock.is_open())
 		{
 			ec = asio::error::operation_aborted;
@@ -253,6 +256,9 @@ namespace libtorrent
 	bool utp_socket_manager::incoming_packet(error_code const& ec, udp::endpoint const& ep
 			, char const* p, int size)
 	{
+		// TODO: 2 we may want to take ec into account here. possibly close
+		// connections quicker
+		TORRENT_UNUSED(ec);
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
 		if (size < int(sizeof(utp_header))) return false;
@@ -264,7 +270,7 @@ namespace libtorrent
 		if (ph->get_version() != 1) return false;
 
 		const time_point receive_time = clock_type::now();
-		
+
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
 		boost::uint16_t id = ph->connection_id;
@@ -363,7 +369,7 @@ namespace libtorrent
 	void utp_socket_manager::socket_drained()
 	{
 		// flush all deferred acks
-		
+
 		std::vector<utp_socket_impl*> deferred_acks;
 		m_deferred_acks.swap(deferred_acks);
 		for (std::vector<utp_socket_impl*>::iterator i = deferred_acks.begin()
@@ -405,7 +411,7 @@ namespace libtorrent
 		if (m_last_socket == i->second) m_last_socket = 0;
 		m_utp_sockets.erase(i);
 	}
-	
+
 	void utp_socket_manager::set_sock_buf(int size)
 	{
 		if (size < m_sock_buf_size) return;

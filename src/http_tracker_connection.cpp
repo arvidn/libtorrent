@@ -96,7 +96,7 @@ namespace libtorrent
 			}
 			url.replace(pos, 8, "scrape");
 		}
-		
+
 #if TORRENT_USE_I2P
 		bool i2p = is_i2p_url(url);
 #else
@@ -113,7 +113,7 @@ namespace libtorrent
 			url += "&";
 		else
 			url += "?";
-		
+
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			const char* event_string[] = {"completed", "started", "stopped", "paused"};
@@ -251,15 +251,18 @@ namespace libtorrent
 		tracker_connection::close();
 	}
 
-	void http_tracker_connection::on_filter(http_connection& c, std::vector<tcp::endpoint>& endpoints)
+	// endpoints is an in-out parameter
+	void http_tracker_connection::on_filter(http_connection& c
+		, std::vector<tcp::endpoint>& endpoints)
 	{
+		TORRENT_UNUSED(c);
 		if (!tracker_req().filter) return;
 
 		// remove endpoints that are filtered by the IP filter
 		for (std::vector<tcp::endpoint>::iterator i = endpoints.begin();
 			i != endpoints.end();)
 		{
-			if (tracker_req().filter->access(i->address()) == ip_filter::blocked) 
+			if (tracker_req().filter->access(i->address()) == ip_filter::blocked)
 				i = endpoints.erase(i);
 			else
 				++i;
@@ -295,7 +298,7 @@ namespace libtorrent
 			fail(ec);
 			return;
 		}
-		
+
 		if (!parser.header_finished())
 		{
 			fail(asio::error::eof);
@@ -308,13 +311,13 @@ namespace libtorrent
 				, parser.status_code(), parser.message().c_str());
 			return;
 		}
-	
+
 		if (ec && ec != asio::error::eof)
 		{
 			fail(ec, parser.status_code());
 			return;
 		}
-		
+
 		received_bytes(size + parser.body_start());
 
 		// handle tracker response
@@ -576,7 +579,7 @@ namespace libtorrent
 				resp.external_ip = detail::read_v6_address(p);
 #endif
 		}
-		
+
 		return resp;
 	}
 }

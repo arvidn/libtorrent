@@ -3438,7 +3438,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	}
 }
 
-void utp_stream::bind(endpoint_type const& ep, error_code& ec) { }
+void utp_stream::bind(endpoint_type const&, error_code&) { }
 
 void utp_stream::cancel_handlers(error_code const& ec)
 {

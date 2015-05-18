@@ -72,7 +72,7 @@ namespace libtorrent
 		char const* get_secret() const { return m_dh_shared_secret; }
 
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
-		
+
 	private:
 
 		int get_local_key_size() const
@@ -126,7 +126,7 @@ namespace libtorrent
 		// Input keys must be 20 bytes
 		void set_incoming_key(unsigned char const* key, int len) TORRENT_OVERRIDE;
 		void set_outgoing_key(unsigned char const* key, int len) TORRENT_OVERRIDE;
-		
+
 		int encrypt(std::vector<boost::asio::mutable_buffer>& buf) TORRENT_OVERRIDE;
 		void decrypt(std::vector<boost::asio::mutable_buffer>& buf
 			, int& consume
