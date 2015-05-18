@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// The bitfiled type stores any number of bits as a bitfield 
+	// The bitfiled type stores any number of bits as a bitfield
 	// in a heap allocated array.
 	struct TORRENT_EXPORT bitfield
 	{
@@ -348,7 +348,7 @@ namespace libtorrent
 		{
 			std::memset(m_buf, 0x00, size_t(num_words() * 4));
 		}
-	
+
 		// make the bitfield empty, of zero size.
 		void clear() { dealloc(); }
 
