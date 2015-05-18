@@ -504,7 +504,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		if (fields.count("pieces"))
 		{
 			std::string encoded_pieces = base64encode(
-				std::string(ts.pieces.bytes(), (ts.pieces.size() + 7) / 8));
+				std::string(ts.pieces.data(), (ts.pieces.size() + 7) / 8));
 			appendf(buf, ", \"pieces\": \"%s\"" + (count?0:2)
 				, encoded_pieces.c_str());
 			++count;
