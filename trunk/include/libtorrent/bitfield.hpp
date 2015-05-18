@@ -100,7 +100,7 @@ namespace libtorrent
 			TORRENT_ASSERT(index < size());
 			return (m_buf[index / 32] & htonl((0x80000000 >> (index & 31)))) != 0;
 		}
-		
+
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
 		void clear_bit(int index)
 		{
@@ -158,6 +158,11 @@ namespace libtorrent
 
 		// returns a pointer to the internal buffer of the bitfield.
 		char const* data() const { return reinterpret_cast<char const*>(m_buf); }
+
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
+		char const* bytes() const { return data(); }
+#endif
 
 		// copy operator
 		bitfield& operator=(bitfield const& rhs)

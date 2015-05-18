@@ -326,6 +326,7 @@ namespace libtorrent
 	bool udp_tracker_connection::on_receive_hostname(error_code const& e
 		, char const* hostname, char const* buf, int size)
 	{
+		TORRENT_UNUSED(hostname);
 		// just ignore the hostname this came from, pretend that
 		// it's from the same endpoint we sent it to (i.e. the same
 		// port). We have so many other ways of confirming this packet
@@ -371,7 +372,7 @@ namespace libtorrent
 #endif
 			return false;
 		}
-		
+
 		if (e) fail(e);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -449,7 +450,7 @@ namespace libtorrent
 			m_man.update_transaction_id(shared_from_this(), new_tid);
 		m_transaction_id = new_tid;
 	}
-	
+
 	bool udp_tracker_connection::on_connect_response(char const* buf, int size)
 	{
 		// ignore packets smaller than 16 bytes
