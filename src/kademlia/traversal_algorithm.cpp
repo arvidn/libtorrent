@@ -90,10 +90,13 @@ traversal_algorithm::traversal_algorithm(
 	, m_timeouts(0)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	char hex_target[41];
-	to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
-	get_node().observer()->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
-		, this, hex_target, int(m_node.m_table.bucket_size()));
+	if (get_node().observer())
+	{
+		char hex_target[41];
+		to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		get_node().observer()->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
+			, this, hex_target, int(m_node.m_table.bucket_size()));
+	}
 #endif
 }
 
@@ -118,8 +121,11 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	if (ptr == 0)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_node().observer()->log(dht_logger::traversal, "[%p] failed to allocate memory or observer. aborting!"
-			, this);
+		if (get_node().observer())
+		{
+			get_node().observer()->log(dht_logger::traversal, "[%p] failed to allocate memory or observer. aborting!"
+				, this);
+		}
 #endif
 		done();
 		return;
@@ -168,11 +174,14 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 				// close to this one. We know that it's not the same, because
 				// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-				char hex_id[41];
-				to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
-				get_node().observer()->log(dht_logger::traversal
-					, "[%p] IGNORING result id: %s addr: %s type: %s"
-					, this, hex_id, print_address(o->target_addr()).c_str(), name());
+				if (get_node().observer())
+				{
+					char hex_id[41];
+					to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+					get_node().observer()->log(dht_logger::traversal
+						, "[%p] IGNORING result id: %s addr: %s type: %s"
+						, this, hex_id, print_address(o->target_addr()).c_str(), name());
+				}
 #endif
 				return;
 			}
@@ -182,13 +191,17 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 
 		TORRENT_ASSERT((o->flags & observer::flag_no_id) || std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
+
 #ifndef TORRENT_DISABLE_LOGGING
+		if (get_node().observer())
+		{
 			char hex_id[41];
 			to_hex(reinterpret_cast<char const*>(&id[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
 				, this, hex_id, print_endpoint(addr).c_str()
 				, distance_exp(m_target, id), m_invoke_count, name());
+		}
 #endif
 		i = m_results.insert(i, o);
 
@@ -239,7 +252,7 @@ char const* traversal_algorithm::name() const
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (id.is_all_zeros())
+	if (id.is_all_zeros() && get_node().observer())
 	{
 		get_node().observer()->log(dht_logger::traversal
 			, "[%p] WARNING node returned a list which included a node with id 0"
@@ -305,6 +318,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
+		if (get_node().observer())
+		{
 			char hex_id[41];
 			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
@@ -313,6 +328,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 				, this, hex_id, distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
+		}
 #endif
 	}
 	else
@@ -324,6 +340,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (get_node().observer())
+		{
 			char hex_id[41];
 			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
@@ -332,6 +350,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 				, this, hex_id, distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
+		}
 #endif
 
 		++m_timeouts;
@@ -360,7 +379,7 @@ void traversal_algorithm::done()
 		, end(m_results.end()); i != end && results_target > 0; ++i)
 	{
 		boost::intrusive_ptr<observer> o = *i;
-		if (o->flags & observer::flag_alive)
+		if ((o->flags & observer::flag_alive) && get_node().observer())
 		{
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			char hex_id[41];
@@ -376,9 +395,12 @@ void traversal_algorithm::done()
 		}
 	}
 
-	get_node().observer()->log(dht_logger::traversal
-		, "[%p] COMPLETED distance: %d type: %s"
-		, this, closest_target, name());
+	if (get_node().observer())
+	{
+		get_node().observer()->log(dht_logger::traversal
+			, "[%p] COMPLETED distance: %d type: %s"
+			, this, closest_target, name());
+	}
 #endif
 	// delete all our references to the observer objects so
 	// they will in turn release the traversal algorithm
@@ -434,15 +456,18 @@ bool traversal_algorithm::add_requests()
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id[41];
-		to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
-		get_node().observer()->log(dht_logger::traversal
-			, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
-			"invoke-count: %d branch-factor: %d "
-			"distance: %d id: %s addr: %s type: %s"
-			, this, int(m_results.end() - i), outstanding, int(m_invoke_count)
-			, int(m_branch_factor), distance_exp(m_target, o->id()), hex_id
-			, print_address(o->target_addr()).c_str(), name());
+		if (get_node().observer())
+		{
+			char hex_id[41];
+			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+			get_node().observer()->log(dht_logger::traversal
+				, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
+				"invoke-count: %d branch-factor: %d "
+				"distance: %d id: %s addr: %s type: %s"
+				, this, int(m_results.end() - i), outstanding, int(m_invoke_count)
+				, int(m_branch_factor), distance_exp(m_target, o->id()), hex_id
+				, print_address(o->target_addr()).c_str(), name());
+		}
 #endif
 
 		o->flags |= observer::flag_queried;
@@ -469,9 +494,12 @@ bool traversal_algorithm::add_requests()
 void traversal_algorithm::add_router_entries()
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal
-		, "[%p] using router nodes to initiate traversal algorithm %d routers"
-		, this, int(std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end())));
+	if (get_node().observer())
+	{
+		get_node().observer()->log(dht_logger::traversal
+			, "[%p] using router nodes to initiate traversal algorithm %d routers"
+			, this, int(std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end())));
+	}
 #endif
 	for (routing_table::router_iterator i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
@@ -524,21 +552,27 @@ void traversal_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal
-			, "[%p] missing response dict"
-			, m_algorithm.get());
+		if (m_algorithm->get_node().observer())
+		{
+			m_algorithm->get_node().observer()->log(dht_logger::traversal
+				, "[%p] missing response dict"
+				, m_algorithm.get());
+		}
 #endif
 		return;
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	bdecode_node nid = r.dict_find_string("id");
-	char hex_id[41];
-	to_hex(nid.string_ptr(), 20, hex_id);
-	m_algorithm->get_node().observer()->log(dht_logger::traversal
-		, "[%p] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
-		, m_algorithm.get(), hex_id, m_algorithm->invoke_count()
-		, print_endpoint(target_ep()).c_str(), m_algorithm->name());
+	if (m_algorithm->get_node().observer())
+	{
+		bdecode_node nid = r.dict_find_string("id");
+		char hex_id[41];
+		to_hex(nid.string_ptr(), 20, hex_id);
+		m_algorithm->get_node().observer()->log(dht_logger::traversal
+			, "[%p] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
+			, m_algorithm.get(), hex_id, m_algorithm->invoke_count()
+			, print_endpoint(target_ep()).c_str(), m_algorithm->name());
+	}
 #endif
 	// look for nodes
 	bdecode_node n = r.dict_find_string("nodes");
@@ -560,8 +594,11 @@ void traversal_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get());
+		if (m_algorithm->get_node().observer())
+		{
+			m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
+				, m_algorithm.get());
+		}
 #endif
 		return;
 	}
@@ -582,8 +619,11 @@ void traversal_algorithm::abort()
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] ABORTED type: %s"
-		, this, name());
+	if (get_node().observer())
+	{
+		get_node().observer()->log(dht_logger::traversal, "[%p] ABORTED type: %s"
+			, this, name());
+	}
 #endif
 
 	done();
