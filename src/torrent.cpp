@@ -3122,7 +3122,9 @@ namespace libtorrent
 					:req.event==tracker_request::started?"started":"")
 				, m_abort);
 
-			if (m_abort)
+			// if we're not logging session logs, don't bother creating an
+			// observer object just for logging
+			if (m_abort && alerts().should_post<log_alert>())
 			{
 				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 				m_ses.queue_tracker_request(req, tl);
@@ -3161,7 +3163,7 @@ namespace libtorrent
 
 		int i = m_last_working_tracker;
 		if (i == -1) i = 0;
-		
+
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
 			&& m_apply_ip_filter)
@@ -3251,6 +3253,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
 
+		// TODO: 2 this looks suspicious. Figure out why it makes sense to use the
+		// first IP in this list and leave a comment here
 		if (resp.external_ip != address() && !tracker_ips.empty())
 			m_ses.set_external_address(resp.external_ip
 				, aux::session_interface::source_tracker
