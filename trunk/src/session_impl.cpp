@@ -2025,6 +2025,9 @@ retry:
 
 	void session_impl::remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port)
 	{
+#ifndef TORRENT_USE_OPENSSL
+		TORRENT_UNUSED(ssl_port);
+#endif
 		if ((mask & 1) && m_natpmp)
 		{
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
@@ -2062,6 +2065,7 @@ retry:
 		bool ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket);
 		TORRENT_ASSERT_VAL(ret, ret);
+		TORRENT_UNUSED(ret);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_socks_accept");
@@ -2133,6 +2137,7 @@ retry:
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket);
 		TORRENT_ASSERT_VAL(ret, ret);
+		TORRENT_UNUSED(ret);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_i2p_accept");
@@ -2169,7 +2174,7 @@ retry:
 #endif
 
 	bool session_impl::incoming_packet(error_code const& ec
-		, udp::endpoint const& ep, char const* buf, int size)
+		, udp::endpoint const& ep, char const*, int)
 	{
 		m_stats_counters.inc_stats_counter(counters::on_udp_counter);
 
@@ -4073,6 +4078,8 @@ retry:
 			tmp->next = NULL;
 			tmp->prev= NULL;
 		}
+#else
+		TORRENT_UNUSED(i);
 #endif
 		m_torrents.clear();
 
@@ -4817,6 +4824,8 @@ retry:
 	bool session_impl::verify_bound_address(address const& addr, bool utp
 		, error_code& ec)
 	{
+		TORRENT_UNUSED(utp);
+
 		// we have specific outgoing interfaces specified. Make sure the
 		// local endpoint for this socket is bound to one of the allowed
 		// interfaces. the list can be a mixture of interfaces and IP
@@ -6509,7 +6518,10 @@ retry:
 
 			bdecode_node print;
 			error_code ec;
-			int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
+
+			// ignore errors here. This is best-effort. It may be a broken encoding
+			// but at least we'll print the valid parts
+			bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
 
 			// TODO: 3 there should be a separate dht_log_alert for messages that
 			// contains the raw packet separately. This printing should be moved
@@ -6801,11 +6813,11 @@ retry:
 			TORRENT_ASSERT(boost::get_pointer(j->second));
 		}
 	}
-#endif
+#endif // TORRENT_USE_INVARIANT_CHECKS
 
 #ifndef TORRENT_DISABLE_LOGGING
 		tracker_logger::tracker_logger(session_interface& ses): m_ses(ses) {}
-		void tracker_logger::tracker_warning(tracker_request const& req
+		void tracker_logger::tracker_warning(tracker_request const&
 			, std::string const& str)
 		{
 			debug_log("*** tracker warning: %s", str.c_str());
@@ -6813,10 +6825,10 @@ retry:
 
 		void tracker_logger::tracker_response(tracker_request const&
 			, libtorrent::address const& tracker_ip
-			, std::list<address> const& ip_list
+			, std::list<address> const& tracker_ips
 			, struct tracker_response const& resp)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
+			TORRENT_UNUSED(tracker_ips);
 			debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
 				"external ip: %s\n"
@@ -6845,7 +6857,6 @@ retry:
 				debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
 			}
 #endif
-#endif
 		}
 
 		void tracker_logger::tracker_request_timed_out(
@@ -6854,10 +6865,11 @@ retry:
 			debug_log("*** tracker timed out");
 		}
 
-		void tracker_logger::tracker_request_error(tracker_request const& r
+		void tracker_logger::tracker_request_error(tracker_request const&
 			, int response_code, error_code const& ec, const std::string& str
 			, int retry_interval)
 		{
+			TORRENT_UNUSED(retry_interval);
 			debug_log("*** tracker error: %d: %s %s"
 				, response_code, ec.message().c_str(), str.c_str());
 		}
@@ -6872,6 +6884,6 @@ retry:
 			va_end(v);
 			m_ses.session_log("%s", usr);
 		}
-#endif
+#endif // TORRENT_DISABLE_LOGGING
 }}
 
