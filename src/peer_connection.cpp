@@ -5789,6 +5789,10 @@ namespace libtorrent
 		if (free_space > 0)
 		{
 			char* dst = m_send_buffer.append(buf, free_space);
+
+			// this should always succeed, because we checked how much space
+			// there was up-front
+			TORRENT_UNUSED(dst);
 			TORRENT_ASSERT(dst != 0);
 			size -= free_space;
 			buf += free_space;

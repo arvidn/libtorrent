@@ -580,6 +580,8 @@ namespace libtorrent
 			// it should always suceed, since it's a dirty block, and
 			// should never have been marked as volatile
 			TORRENT_ASSERT(locked);
+			TORRENT_ASSERT(pe->cache_state != cached_piece_entry::volatile_read_lru);
+			TORRENT_UNUSED(locked);
 
 			flushing[num_flushing++] = i + block_base_index;
 			iov[iov_len].iov_base = pe->blocks[i].buf;
@@ -1315,7 +1317,11 @@ namespace libtorrent
 		TORRENT_ASSERT(pe->blocks[block].buf);
 
 		int tmp = m_disk_cache.try_read(j, true);
+
+		// This should always succeed because we just checked to see there is a
+		// buffer for this block
 		TORRENT_ASSERT(tmp >= 0);
+		TORRENT_UNUSED(tmp);
 
 		maybe_issue_queued_read_jobs(pe, completed_jobs);
 
@@ -1679,9 +1685,7 @@ namespace libtorrent
 		if (m_settings.get_int(settings_pack::cache_size) > 0
 			&& m_settings.get_bool(settings_pack::use_write_cache))
 		{
-			int block_size = m_disk_cache.block_size();
-
-			TORRENT_ASSERT((r.start % block_size) == 0);
+			TORRENT_ASSERT((r.start % m_disk_cache.block_size()) == 0);
 
 			if (storage->is_blocked(j))
 			{
@@ -2103,6 +2107,7 @@ namespace libtorrent
 		tailqueue jobs;
 		bool ok = m_disk_cache.evict_piece(pe, jobs);
 		TORRENT_PIECE_ASSERT(ok, pe);
+		TORRENT_UNUSED(ok);
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 	}
 

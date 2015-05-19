@@ -511,7 +511,7 @@ void web_peer_connection::on_receive(error_code const& error
 {
 	INVARIANT_CHECK;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(statistics().last_payload_downloaded()
 		+ statistics().last_protocol_downloaded() + bytes_transferred < size_t(INT_MAX));
 	int dl_target = statistics().last_payload_downloaded()
@@ -525,11 +525,9 @@ void web_peer_connection::on_receive(error_code const& error
 		peer_log(peer_log_alert::info, "ERROR"
 			, "web_peer_connection error: %s", error.message().c_str());
 #endif
-#ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(statistics().last_payload_downloaded()
 			+ statistics().last_protocol_downloaded()
 			== dl_target);
-#endif
 		return;
 	}
 
@@ -538,11 +536,9 @@ void web_peer_connection::on_receive(error_code const& error
 
 	for (;;)
 	{
-#ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(statistics().last_payload_downloaded()
 			+ statistics().last_protocol_downloaded() + int(bytes_transferred)
 			== dl_target);
-#endif
 
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
@@ -565,28 +561,24 @@ void web_peer_connection::on_receive(error_code const& error
 					, "%s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
-#ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(statistics().last_payload_downloaded()
 					+ statistics().last_protocol_downloaded()
 					== dl_target);
-#endif
 				return;
 			}
 
 			TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
-		
+
 			TORRENT_ASSERT(recv_buffer.left() <= m_recv_buffer.packet_size());
-			
+
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
 			{
 				TORRENT_ASSERT(payload == 0);
 				TORRENT_ASSERT(bytes_transferred == 0);
-#ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(statistics().last_payload_downloaded()
 					+ statistics().last_protocol_downloaded() + int(bytes_transferred)
 					== dl_target);
-#endif
 				break;
 			}
 
@@ -594,11 +586,9 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				TORRENT_ASSERT(payload == 0);
 				TORRENT_ASSERT(bytes_transferred == 0);
-#ifdef TORRENT_DEBUG
 				TORRENT_ASSERT(statistics().last_payload_downloaded()
 					+ statistics().last_protocol_downloaded() + int(bytes_transferred)
 					== dl_target);
-#endif
 				break;
 			}
 

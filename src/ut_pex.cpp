@@ -501,6 +501,7 @@ namespace libtorrent { namespace
 			int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
 			TORRENT_ASSERT(ret == 0);
 			TORRENT_ASSERT(!ec);
+			TORRENT_UNUSED(ret);
 			int num_dropped = 0;
 			int num_added = 0;
 			bdecode_node e = m.dict_find_string("added");

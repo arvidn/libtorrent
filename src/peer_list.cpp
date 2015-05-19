@@ -834,7 +834,7 @@ namespace libtorrent
 				erase_peer(i, state);
 			}
 		}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		else
 		{
 #if TORRENT_USE_I2P

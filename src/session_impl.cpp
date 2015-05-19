@@ -622,7 +622,7 @@ namespace aux {
 
 	// this is called when one or all save resume alerts are
 	// popped off the alert queue
-	void session_impl::async_resume_dispatched(int num_popped_resume)
+	void session_impl::async_resume_dispatched()
 	{
 		INVARIANT_CHECK;
 
@@ -1495,7 +1495,7 @@ namespace aux {
 		return num_copied;
 	}
 
-	bool session_impl::use_quota_overhead(bandwidth_channel* ch, int channel, int amount)
+	bool session_impl::use_quota_overhead(bandwidth_channel* ch, int amount)
 	{
 		ch->use_quota(amount);
 		return (ch->throttle() > 0 && ch->throttle() < amount);
@@ -1509,11 +1509,12 @@ namespace aux {
 		{
 			peer_class* p = m_classes.at(set.class_at(i));
 			if (p == 0) continue;
+
 			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
-			if (use_quota_overhead(ch, peer_connection::download_channel, amount_down))
+			if (use_quota_overhead(ch, amount_down))
 				ret |= 1 << peer_connection::download_channel;
 			ch = &p->channel[peer_connection::upload_channel];
-			if (use_quota_overhead(ch, peer_connection::upload_channel, amount_up))
+			if (use_quota_overhead(ch, amount_up))
 				ret |= 1 << peer_connection::upload_channel;
 		}
 		return ret;
@@ -6177,7 +6178,7 @@ retry:
 			// we can only issue more resume data jobs from
 			// the network thread
 			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-				, this, num_resume));
+				, this));
 		}
 	}
 

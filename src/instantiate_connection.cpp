@@ -46,6 +46,10 @@ namespace libtorrent
 		, utp_socket_manager* sm
 		, bool peer_connection)
 	{
+#ifndef TORRENT_USE_OPENSSL
+		TORRENT_UNUSED(ssl_context);
+#endif
+
 		if (sm)
 		{
 			utp_stream* str;
