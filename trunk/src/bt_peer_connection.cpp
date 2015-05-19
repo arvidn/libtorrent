@@ -586,10 +586,13 @@ namespace libtorrent
 #endif
 	}
 
- 	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf, int len
+	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf, int len
 		, int crypto_field, int pad_size)
- 	{
+	{
 		INVARIANT_CHECK;
+#if !TORRENT_USE_ASSERTS
+		TORRENT_UNUSED(len);
+#endif
 
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
 		// vc,crypto_field,len(pad),pad, (len(ia))
@@ -599,7 +602,7 @@ namespace libtorrent
 
 		// encrypt(vc, crypto_provide/select, len(Pad), len(IA))
 		// len(pad) is zero for now, len(IA) only for outgoing connections
-		
+
 		// vc
 		memset(write_buf, 0, 8);
 		write_buf += 8;
@@ -614,14 +617,14 @@ namespace libtorrent
 		// append len(ia) if we are initiating
 		if (is_outgoing())
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
- 	}
+	}
 
 	void bt_peer_connection::init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key)
 	{
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(secret);
-		
+
 		hasher h;
 		static const char keyA[] = "keyA";
 		static const char keyB[] = "keyB";
@@ -629,7 +632,7 @@ namespace libtorrent
 		// encryption rc4 longkeys
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
-		
+
 		if (is_outgoing()) h.update(keyA, 4); else h.update(keyB, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
@@ -640,12 +643,12 @@ namespace libtorrent
 		// decryption rc4 longkeys
 		// outgoing connection : hash ('keyB',S,SKEY)
 		// incoming connection : hash ('keyA',S,SKEY)
-		
+
 		if (is_outgoing()) h.update(keyB, 4); else h.update(keyA, 4);
 		h.update(secret, dh_key_len);
 		h.update((char const*)stream_key.begin(), 20);
 		const sha1_hash remote_key = h.final();
-		
+
 		TORRENT_ASSERT(!m_rc4.get());
 		m_rc4 = boost::make_shared<rc4_handler>();
 
@@ -1953,14 +1956,15 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_message_handler[packet_type] != 0);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
 		boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 
 		// call the correct handler for this packet type
 		(this->*m_message_handler[packet_type])(received);
-#ifdef TORRENT_DEBUG
+
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 		TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
 		boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
@@ -1993,7 +1997,7 @@ namespace libtorrent
 	void bt_peer_connection::write_upload_only()
 	{
 		INVARIANT_CHECK;
-		
+
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		if (m_upload_only_id == 0) return;
 		if (t->share_mode()) return;
@@ -3521,7 +3525,7 @@ namespace libtorrent
 				disconnect(errors::torrent_removed, op_bittorrent, 1);
 				return;
 			}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
 			boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
@@ -3530,14 +3534,15 @@ namespace libtorrent
 				m_state = read_packet_size;
 				m_recv_buffer.reset(5);
 			}
-#ifdef TORRENT_DEBUG
+
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
 			boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
 				statistics().last_protocol_downloaded() - cur_protocol_dl;
 			TORRENT_ASSERT(stats_diff == boost::int64_t(bytes_transferred));
-#endif
 			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
+#endif
 			return;
 		}
 

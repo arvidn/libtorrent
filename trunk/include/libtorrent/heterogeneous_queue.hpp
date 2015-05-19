@@ -133,9 +133,8 @@ namespace libtorrent {
 
 			TORRENT_ASSERT(m_size > 1);
 			uintptr_t* ptr = m_storage;
-			header_t* hdr = reinterpret_cast<header_t*>(ptr);
+			TORRENT_ASSERT(reinterpret_cast<header_t*>(ptr)->len <= m_size);
 			ptr += header_size;
-			TORRENT_ASSERT(hdr->len <= m_size);
 			return reinterpret_cast<T*>(ptr);
 		}
 

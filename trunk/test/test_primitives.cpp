@@ -314,6 +314,7 @@ int test_main()
 
 	// test identify_client
 
+	// TODO: 3 move testing of identify_client out to its own test
 	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
 	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");
 	TEST_EQUAL(identify_client(peer_id("S123--..............")), "Shadow 1.2.3");
@@ -337,7 +338,7 @@ int test_main()
 #endif
 	TEST_CHECK(is_any(address_v4::any()));
 	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
-	
+
 	TEST_CHECK(match_addr_mask(
 		address::from_string("10.0.1.176", ec),
 		address::from_string("10.0.1.176", ec),

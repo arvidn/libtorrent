@@ -71,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 		accessor, the piece is promoted into LRU2. which holds pieces that are
 		more frequently used, and more important to keep around as this LRU list
 		takes churn.
-	
+
 	read_lru1_ghost
 		This is a list of pieces that were least recently evicted from read_lru1.
 		These pieces don't hold any actual blocks in the cache, they are just
@@ -1240,6 +1240,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			if (flags & blocks_inc_refcount)
 			{
 				bool ret = inc_block_refcount(pe, block, ref_reading);
+				TORRENT_UNUSED(ret); // suppress warning
 				TORRENT_ASSERT(ret);
 			}
 			else
@@ -1710,7 +1711,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
 	const int start_block = block;
 
-#ifdef TORRENT_DEBUG	
+#if TORRENT_USE_ASSERTS
 	int piece_size = j->storage->files()->piece_size(j->piece);
 	int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
@@ -1810,6 +1811,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 
 	tailqueue jobs;
 	bool removed = evict_piece(pe, jobs);
+	TORRENT_UNUSED(removed); // suppress warning
 	TORRENT_PIECE_ASSERT(removed, pe);
 	TORRENT_PIECE_ASSERT(jobs.empty(), pe);
 

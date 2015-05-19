@@ -7304,13 +7304,14 @@ namespace libtorrent
 			pi.piece_index = i->index;
 			queue->push_back(pi);
 		}
-	
+
 	}
-	
+
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool ignore_limit)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
+		TORRENT_UNUSED(ignore_limit);
 
 		TORRENT_ASSERT(peerinfo);
 		TORRENT_ASSERT(peerinfo->connection == 0);
@@ -7318,7 +7319,7 @@ namespace libtorrent
 		if (m_abort) return false;
 
 		peerinfo->last_connected = m_ses.session_time();
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		if (!settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 		{
 			// this asserts that we don't have duplicates in the peer_list's peer list
@@ -7333,7 +7334,7 @@ namespace libtorrent
 				|| (*i_)->type() != peer_connection::bittorrent_connection);
 #endif
 		}
-#endif
+#endif // TORRENT_USE_ASSERTS
 
 		TORRENT_ASSERT(want_peers() || ignore_limit);
 		TORRENT_ASSERT(m_ses.num_connections()
