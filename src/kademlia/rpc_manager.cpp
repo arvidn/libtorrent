@@ -79,10 +79,16 @@ void intrusive_ptr_release(observer const* o)
 	TORRENT_ASSERT(o->m_refs > 0);
 	if (--o->m_refs == 0)
 	{
-		boost::intrusive_ptr<traversal_algorithm> ta = o->m_algorithm;
+		boost::intrusive_ptr<traversal_algorithm> ta = o->algorithm();
 		(const_cast<observer*>(o))->~observer();
 		ta->free_observer(const_cast<observer*>(o));
 	}
+}
+
+// TODO: 3 move this into it's own .cpp file
+dht_observer* observer::get_observer() const
+{
+	return m_algorithm->get_node().observer();
 }
 
 void observer::set_target(udp::endpoint const& ep)
@@ -336,7 +342,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 #ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-		, o->m_algorithm.get(), int(transaction_id.size())
+		, o->algorithm(), int(transaction_id.size())
 		, print_endpoint(m.addr).c_str());
 #endif
 	o->reply(m);
@@ -376,7 +382,7 @@ time_duration rpc_manager::tick()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
-				, o->m_algorithm.get(), o->transaction_id()
+				, o->algorithm(), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
 #endif
 			m_transactions.erase(i++);
@@ -390,7 +396,7 @@ time_duration rpc_manager::tick()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
-				, o->m_algorithm.get(), o->transaction_id()
+				, o->algorithm(), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
 #endif
 			++i;
@@ -402,10 +408,10 @@ time_duration rpc_manager::tick()
 		ret = std::min(seconds(timeout) - diff, ret);
 		++i;
 	}
-	
+
 	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
 	std::for_each(short_timeouts.begin(), short_timeouts.end(), boost::bind(&observer::short_timeout, _1));
-	
+
 	return ret;
 }
 
@@ -431,13 +437,13 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	int tid = (random() ^ (random() << 5)) & 0xffff;
 	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
-		
+
 	o->set_target(target_addr);
 	o->set_transaction_id(tid);
 
 #ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
-		, o->m_algorithm.get(), e["q"].string().c_str()
+		, o->algorithm(), e["q"].string().c_str()
 		, print_endpoint(target_addr).c_str());
 #endif
 

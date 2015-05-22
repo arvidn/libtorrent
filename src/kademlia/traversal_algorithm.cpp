@@ -552,26 +552,26 @@ void traversal_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_algorithm->get_node().observer())
+		if (get_observer())
 		{
-			m_algorithm->get_node().observer()->log(dht_logger::traversal
+			get_observer()->log(dht_logger::traversal
 				, "[%p] missing response dict"
-				, m_algorithm.get());
+				, algorithm());
 		}
 #endif
 		return;
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_algorithm->get_node().observer())
+	if (get_observer())
 	{
 		bdecode_node nid = r.dict_find_string("id");
 		char hex_id[41];
 		to_hex(nid.string_ptr(), 20, hex_id);
-		m_algorithm->get_node().observer()->log(dht_logger::traversal
+		get_observer()->log(dht_logger::traversal
 			, "[%p] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
-			, m_algorithm.get(), hex_id, m_algorithm->invoke_count()
-			, print_endpoint(target_ep()).c_str(), m_algorithm->name());
+			, algorithm(), hex_id, algorithm()->invoke_count()
+			, print_endpoint(target_ep()).c_str(), algorithm()->name());
 	}
 #endif
 	// look for nodes
@@ -586,7 +586,7 @@ void traversal_observer::reply(msg const& m)
 			node_id id;
 			std::copy(nodes, nodes + 20, id.begin());
 			nodes += 20;
-			m_algorithm->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
+			algorithm()->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
 		}
 	}
 
@@ -594,10 +594,10 @@ void traversal_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_algorithm->get_node().observer())
+		if (get_observer())
 		{
-			m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-				, m_algorithm.get());
+			get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
+				, algorithm());
 		}
 #endif
 		return;

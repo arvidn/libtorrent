@@ -53,8 +53,8 @@ void find_data_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -63,15 +63,15 @@ void find_data_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
+			, algorithm());
 #endif
 		return;
 	}
 	bdecode_node token = r.dict_find_string("token");
 	if (token)
 	{
-		static_cast<find_data*>(m_algorithm.get())->got_write_token(
+		static_cast<find_data*>(algorithm())->got_write_token(
 			node_id(id.string_ptr()), token.string_value());
 	}
 

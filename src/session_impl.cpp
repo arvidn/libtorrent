@@ -2344,7 +2344,7 @@ retry:
 	}
 
 	// to test SSL connections, one can use this openssl command template:
-	// 
+	//
 	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem
 	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
@@ -2851,7 +2851,7 @@ retry:
 #endif
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
-		m_timer.async_wait(bind(&session_impl::on_tick, this, _1));
+		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);
