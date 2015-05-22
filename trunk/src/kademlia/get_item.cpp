@@ -258,8 +258,8 @@ void get_item_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -281,7 +281,7 @@ void get_item_observer::reply(msg const& m)
 	bdecode_node v = r.dict_find("v");
 	if (v)
 	{
-		static_cast<get_item*>(m_algorithm.get())->got_data(v, pk, seq, sig);
+		static_cast<get_item*>(algorithm())->got_data(v, pk, seq, sig);
 	}
 
 	find_data_observer::reply(m);

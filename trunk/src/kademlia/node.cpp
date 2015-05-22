@@ -456,11 +456,11 @@ struct ping_observer : observer
 		if (!r)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (m_algorithm->get_node().observer())
+			if (get_observer())
 			{
-				m_algorithm->get_node().observer()->log(dht_logger::node
+				get_observer()->log(dht_logger::node
 					, "[%p] missing response dict"
-					, m_algorithm.get());
+					, algorithm());
 			}
 #endif
 			return;
@@ -478,7 +478,7 @@ struct ping_observer : observer
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());
 				nodes += 20;
-				m_algorithm.get()->get_node().m_table.heard_about(id
+				algorithm()->get_node().m_table.heard_about(id
 					, detail::read_v4_endpoint<udp::endpoint>(nodes));
 			}
 		}

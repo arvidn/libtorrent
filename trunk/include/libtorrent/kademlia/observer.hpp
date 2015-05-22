@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace dht {
 
+struct dht_observer;
 struct observer;
 struct msg;
 struct traversal_algorithm;
@@ -96,12 +97,16 @@ struct observer : boost::noncopyable
 	// this is called when no reply has been received within
 	// some timeout
 	void timeout();
-	
+
 	// if this is called the destructor should
 	// not invoke any new messages, and should
 	// only clean up. It means the rpc-manager
 	// is being destructed
 	void abort();
+
+	dht_observer* get_observer() const;
+
+	traversal_algorithm* algorithm() const { return m_algorithm.get(); }
 
 	time_point sent() const { return m_sent; }
 
@@ -129,12 +134,11 @@ struct observer : boost::noncopyable
 		flag_done = 128
 	};
 
-#ifdef TORRENT_DISABLE_LOGGING
-	// TODO: 3 make this private and unconditional
 protected:
-#endif
 
 	void done();
+
+private:
 
 	time_point m_sent;
 

@@ -51,8 +51,8 @@ void get_peers_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -72,14 +72,14 @@ void get_peers_observer::reply(msg const& m)
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
-				m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] PEERS "
+				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, m_algorithm.get()
-					, m_algorithm->invoke_count()
-					, m_algorithm->branch_factor()
+					, algorithm()
+					, algorithm()->invoke_count()
+					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
-					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
+					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int((end - peers) / 6));
 			}
 #endif
@@ -94,19 +94,19 @@ void get_peers_observer::reply(msg const& m)
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
-				m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] PEERS "
+				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, m_algorithm.get()
-					, m_algorithm->invoke_count()
-					, m_algorithm->branch_factor()
+					, algorithm()
+					, algorithm()->invoke_count()
+					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
-					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
+					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int(n.list_size()));
 			}
 #endif
 		}
-		static_cast<get_peers*>(m_algorithm.get())->got_peers(peer_list);
+		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
 	}
 
 	find_data_observer::reply(m);
@@ -308,8 +308,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -318,8 +318,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get());
+		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
+			, algorithm());
 #endif
 		return;
 	}
