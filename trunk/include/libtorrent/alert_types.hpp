@@ -146,7 +146,7 @@ namespace libtorrent
 		virtual std::auto_ptr<alert> clone_impl() const TORRENT_OVERRIDE \
 		{ return std::auto_ptr<alert>(new name(*this)); }
 	#define TORRENT_NOT_DISCARDABLE \
-		virtual bool discardable_impl() TORRENT_OVERRIDE { return false; }
+		virtual bool discardable_impl() const TORRENT_OVERRIDE { return false; }
 #else
 	#define TORRENT_CLONE(name)
 	#define TORRENT_NOT_DISCARDABLE
