@@ -318,8 +318,8 @@ int test_main()
 		address::from_string("255.255.0.0", ec)));
 
 	// CIDR distance test
-	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
+	sha1_hash h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
 	h2 = to_hash("0120456789abcdef01232456789abcdef0123456");
 	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
