@@ -81,11 +81,11 @@ explicit libtorrent_test ;
 lib advapi32 : : <name>Advapi32 ;
 
 project
-   : requirements
+	: requirements
 	<source>main.cpp
 	<conditional>@link_test
 	<conditional>@link_libtorrent
-   : default-build
+	: default-build
 	<threading>multi
 	<invariant-checks>full
 	<debug-iterators>on
@@ -97,6 +97,9 @@ feature launcher : none valgrind : composite ;
 feature.compose <launcher>valgrind : <testing.launcher>"valgrind --tool=memcheck -v --num-callers=20 --read-var-info=yes --track-origins=yes --error-exitcode=222 --suppressions=valgrind_suppressions.txt" <use-valgrind>on ;
 
 test-suite libtorrent : 	
+	[ run test_sha1_hash.cpp ]
+	[ run test_bloom_filter.cpp ]
+	[ run test_identify_client.cpp ]
 	[ run test_merkle.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_resolve_links.cpp ]

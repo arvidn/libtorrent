@@ -84,7 +84,7 @@ int test_main()
 	int distance = std::distance(test1.begin(), test1.end());
 	printf("distance: %d\n", distance);
 	TEST_CHECK(distance == 10);
-	
+
 	print_bitfield(test1);
 
 	test1.set_all();

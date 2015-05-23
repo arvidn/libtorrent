@@ -431,7 +431,7 @@ namespace libtorrent
 		p.client = m_client_version;
 		p.connection_type = peer_info::standard_bittorrent;
 	}
-	
+
 	bool bt_peer_connection::in_handshake() const
 	{
 		return m_state < read_packet_size;
@@ -1859,7 +1859,7 @@ namespace libtorrent
 
 		int last_seen_complete = boost::uint8_t(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
-		
+
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
 
@@ -3342,7 +3342,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_sent_handshake);
 			received_bytes(0, bytes_transferred);
-//			bytes_transferred = 0;
+
 			t = associated_torrent().lock();
 			if (!t)
 			{
@@ -3350,7 +3350,7 @@ namespace libtorrent
 				return;
 			}
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 20);
-			
+
 			if (!m_recv_buffer.packet_finished()) return;
 			recv_buffer = m_recv_buffer.get();
 
@@ -3409,7 +3409,7 @@ namespace libtorrent
 				disconnect(errors::self_connection, op_bittorrent, 1);
 				return;
 			}
- 
+
 			m_client_version = identify_client(pid);
 			boost::optional<fingerprint> f = client_fingerprint(pid);
 			if (f && std::equal(f->name, f->name + 2, "BC"))
