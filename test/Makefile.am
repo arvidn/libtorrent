@@ -1,6 +1,9 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
+  test_sha1_hash.cpp         \
+  test_bloom_filter          \
+  test_identify_client       \
   test_alert_manager         \
   test_bitfield              \
   test_crc32                 \

@@ -39,7 +39,10 @@ mkdir test-coverage
 rm test-coverage/coverage_all
 set -e
 
-run_test test_packet_buffer "*/packet_buffer.*" -a
+run_test test_bloom_filter "*/bloom_filter.*" -a
+run_test test_sha1_hash "*/sha1_hash.*"
+run_test test_identify_client "*/identify_client.*"
+run_test test_packet_buffer "*/packet_buffer.*"
 run_test test_ip_voter "*/ip_voter.*"
 run_test test_bitfield "*/bitfield.*"
 run_test test_alert_manager "*/alert_manager.*"

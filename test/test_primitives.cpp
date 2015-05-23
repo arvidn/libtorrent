@@ -37,15 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/identify_client.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/timestamp_history.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/ip_voter.hpp"
+#include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
 #include <boost/bind.hpp>
 #include <iostream>
@@ -169,29 +164,7 @@ int test_main()
 		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
 #endif
 
-	// test bloom_filter
-	bloom_filter<32> filter;
-	sha1_hash k1 = hasher("test1", 5).final();
-	sha1_hash k2 = hasher("test2", 5).final();
-	sha1_hash k3 = hasher("test3", 5).final();
-	sha1_hash k4 = hasher("test4", 5).final();
-	TEST_CHECK(!filter.find(k1));
-	TEST_CHECK(!filter.find(k2));
-	TEST_CHECK(!filter.find(k3));
-	TEST_CHECK(!filter.find(k4));
-
-	filter.set(k1);
-	TEST_CHECK(filter.find(k1));
-	TEST_CHECK(!filter.find(k2));
-	TEST_CHECK(!filter.find(k3));
-	TEST_CHECK(!filter.find(k4));
-
-	filter.set(k4);
-	TEST_CHECK(filter.find(k1));
-	TEST_CHECK(!filter.find(k2));
-	TEST_CHECK(!filter.find(k3));
-	TEST_CHECK(filter.find(k4));
-
+	// TODO: 3 move this out to its own test
 	// test timestamp_history
 	{
 		timestamp_history h;
@@ -312,19 +285,9 @@ int test_main()
 		}
 	}
 
-	// test identify_client
-
-	// TODO: 3 move testing of identify_client out to its own test
-	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
-	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("S123--..............")), "Shadow 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("S\x1\x2\x3....\0...........")), "Shadow 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("M1-2-3--............")), "Mainline 1.2.3");
-	TEST_EQUAL(identify_client(peer_id("\0\0\0\0\0\0\0\0\0\0\0\0........")), "Generic");
-	TEST_EQUAL(identify_client(peer_id("-xx1230-............")), "xx 1.2.3");
-
 	// test network functions
 
+	// TODO: 3 move this out to a test_enum_net test
 	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
 	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
 	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
@@ -354,106 +317,6 @@ int test_main()
 		address::from_string("10.1.3.3", ec),
 		address::from_string("255.255.0.0", ec)));
 
-	// test peer_id/sha1_hash type
-
-	sha1_hash h1(0);
-	sha1_hash h2(0);
-	TEST_CHECK(h1 == h2);
-	TEST_CHECK(!(h1 != h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(h1.is_all_zeros());
-
-	h1 = to_hash("0123456789012345678901234567890123456789");
-	h2 = to_hash("0113456789012345678901234567890123456789");
-
-	TEST_CHECK(h2 < h1);
-	TEST_CHECK(h2 == h2);
-	TEST_CHECK(h1 == h1);
-	h2.clear();
-	TEST_CHECK(h2.is_all_zeros());
-	
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
-	h1 &= h2;
-	TEST_CHECK(h1 == to_hash("fffff000000000000000fffff000000000000000"));
-
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
-	h1 |= h2;
-	TEST_CHECK(h1 == to_hash("fffffffffffffff00000fffffffffffffff00000"));
-	
-	h2 = to_hash("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
-	h1 ^= h2;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
-	TEST_CHECK(h1 != h2);
-
-	h2 = sha1_hash("                    ");
-	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
-
-	h1 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	h1 <<= 12;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("fffffff0000000000ffffffffff0000000000000"));
-	h1 >>= 12;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 <<= 1;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("e000000000000000000000000000000000000000"));
-
-	h1 = to_hash("0000000000000000000000000000000000000007");
-	h1 <<= 1;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("000000000000000000000000000000000000000e"));
-
-	h1 = to_hash("0000000000000000000000000000000000000007");
-	h1 >>= 1;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("0000000000000000000000000000000000000003"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 >>= 1;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("3800000000000000000000000000000000000000"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 >>= 32;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
-	h1 >>= 33;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("0000000000000000380000000000000000000000"));
-	h1 <<= 33;
-#if TORRENT_USE_IOSTREAM
-	std::cerr << h1 << std::endl;
-#endif
-	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
-	
 	// CIDR distance test
 	h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
 	h2 = to_hash("0123456789abcdef01232456789abcdef0123456");

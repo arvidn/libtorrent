@@ -381,12 +381,11 @@ namespace libtorrent
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
 			return "Bits on Wheels " + std::string((char const*)PID + 4, (char const*)PID + 7);
-		
 
 		if (find_string(PID, "eX"))
 		{
 			std::string user((char const*)PID + 2, (char const*)PID + 14);
-			return std::string("eXeem ('") + user.c_str() + "')"; 
+			return std::string("eXeem ('") + user.c_str() + "')";
 		}
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
@@ -394,7 +393,6 @@ namespace libtorrent
 
 		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
 			return "Experimental 3.1";
-
 
 		// look for azureus style id
 		f = parse_az_style(p);
@@ -420,5 +418,5 @@ namespace libtorrent
 		unknown += "]";
 		return unknown;
 	}
-
 }
+

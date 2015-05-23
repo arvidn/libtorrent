@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
-#define TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
+#include "test.hpp"
+#include "libtorrent/identify_client.hpp"
 
-#include "libtorrent/config.hpp"
+using namespace libtorrent;
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/optional.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/fingerprint.hpp"
-
-namespace libtorrent
+int test_main()
 {
-
-	// these functions don't really need to be public. This mechanism of
-	// advertising client software and version is also out-dated.
-
-	// This function can can be used to extract a string describing a client
-	// version from its peer-id. It will recognize most clients that have this
-	// kind of identification in the peer-id.
-	TORRENT_DEPRECATED_EXPORT std::string identify_client(const peer_id& p)
-		TORRENT_DEPRECATED;
-
-	// Returns an optional fingerprint if any can be identified from the peer
-	// id. This can be used to automate the identification of clients. It will
-	// not be able to identify peers with non- standard encodings. Only Azureus
-	// style, Shadow's style and Mainline style.
-	TORRENT_DEPRECATED_EXPORT boost::optional<fingerprint>
-		client_fingerprint(peer_id const& p) TORRENT_DEPRECATED;
-
+	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
+	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("S123--..............")), "Shadow 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("S\x1\x2\x3....\0...........")), "Shadow 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("M1-2-3--............")), "Mainline 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("\0\0\0\0\0\0\0\0\0\0\0\0........")), "Generic");
+	TEST_EQUAL(identify_client(peer_id("-xx1230-............")), "xx 1.2.3");
 }
-
-#endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 
