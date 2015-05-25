@@ -270,7 +270,7 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
-		, m_last_active_change(0)
+		, m_pending_active_change(false)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
 		if (m_pinned)
@@ -346,6 +346,7 @@ namespace libtorrent
 		update_want_peers();
 		update_want_scrape();
 		update_want_tick();
+		update_state_list();
 
 		INVARIANT_CHECK;
 
@@ -4815,7 +4816,7 @@ namespace libtorrent
 			if (alerts().should_post<cache_flushed_alert>())
 				alerts().emplace_alert<cache_flushed_alert>(get_handle());
 		}
-		
+
 		m_storage.reset();
 
 		// TODO: 2 abort lookups this torrent has made via the
@@ -4860,7 +4861,7 @@ namespace libtorrent
 		// the bitfield and that is not currently being super
 		// seeded by any peer
 		TORRENT_ASSERT(m_super_seeding);
-		
+
 		// do a linear search from the first piece
 		int min_availability = 9999;
 		std::vector<int> avail_vec;
@@ -6659,7 +6660,12 @@ namespace libtorrent
 			if (super_seeding_ != -1) super_seeding(super_seeding_);
 
 			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-			if (auto_managed_ != -1) m_auto_managed = auto_managed_;
+			if (auto_managed_ != -1)
+			{
+				m_auto_managed = auto_managed_;
+
+				update_state_list();
+			}
 
 			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
 			if (sequential_ != -1) set_sequential_download(sequential_);
@@ -6675,6 +6681,7 @@ namespace libtorrent
 				update_gauge();
 				update_want_peers();
 				update_want_scrape();
+				update_state_list();
 			}
 			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
 			if (dht_ != -1) m_announce_to_dht = dht_;
@@ -7872,6 +7879,41 @@ namespace libtorrent
 		update_list(aux::session_interface::torrent_want_tick, want_tick());
 	}
 
+	// this function adjusts which lists this torrent is part of (checking,
+	// seeding or downloading)
+	void torrent::update_state_list()
+	{
+		bool is_checking = false;
+		bool is_downloading = false;
+		bool is_seeding = false;
+
+		if (m_state == torrent_status::checking_files
+			&& (is_auto_managed() || allows_peers()))
+		{
+			is_checking = true;
+		}
+		else if (is_auto_managed() && !has_error()
+			&& (is_paused()
+				|| !is_inactive()
+				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
+		{
+			// torrents that are started (not paused) and
+			// inactive are not part of any list. They will not be touched because
+			// they are inactive
+			if (is_finished())
+				is_seeding = true;
+			else
+				is_downloading = true;
+		}
+
+		update_list(aux::session_interface::torrent_downloading_auto_managed
+			, is_downloading);
+		update_list(aux::session_interface::torrent_seeding_auto_managed
+			, is_seeding);
+		update_list(aux::session_interface::torrent_checking_auto_managed
+			, is_checking);
+	}
+
 	// returns true if this torrent is interested in connecting to more peers
 	bool torrent::want_peers() const
 	{
@@ -8045,6 +8087,8 @@ namespace libtorrent
 	// pieces have been downloaded)
 	void torrent::finished()
 	{
+		update_state_list();
+
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(is_finished());
@@ -8060,7 +8104,6 @@ namespace libtorrent
 		if (is_seed()) completed();
 
 		send_upload_only();
-
 		state_updated();
 
 		if (m_completed_time == 0)
@@ -8139,6 +8182,7 @@ namespace libtorrent
 #endif
 		send_upload_only();
 		update_want_tick();
+		update_state_list();
 	}
 
 	void torrent::maybe_done_flushing()
@@ -8515,6 +8559,34 @@ namespace libtorrent
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_interface::torrent_want_tick].in_list());
 		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_interface::torrent_want_scrape].in_list());
 
+		bool is_checking = false;
+		bool is_downloading = false;
+		bool is_seeding = false;
+
+		if (m_state == torrent_status::checking_files
+			&& (is_auto_managed() || allows_peers()))
+		{
+			is_checking = true;
+		}
+		else if (is_auto_managed() && !has_error()
+			&& (is_paused()
+				|| !is_inactive()
+				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
+		{
+			if (is_finished())
+				is_seeding = true;
+			else
+				is_downloading = true;
+		}
+
+		TORRENT_ASSERT(m_links[aux::session_interface::torrent_checking_auto_managed].in_list()
+			== is_checking);
+		TORRENT_ASSERT(m_links[aux::session_interface::torrent_downloading_auto_managed].in_list()
+			== is_downloading);
+		TORRENT_ASSERT(m_links[aux::session_interface::torrent_seeding_auto_managed].in_list()
+			== is_seeding);
+
+
 		TORRENT_ASSERT(is_single_thread());
 		// this fires during disconnecting peers
 //		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
@@ -8838,6 +8910,8 @@ namespace libtorrent
 
 		update_gauge();
 		state_updated();
+		update_want_peers();
+		update_state_list();
 
 		// if we haven't downloaded the metadata from m_url, try again
 		if (!m_url.empty() && !m_torrent_file->is_valid())
@@ -8891,6 +8965,7 @@ namespace libtorrent
 #endif
 
 		state_updated();
+		update_state_list();
 	}
 
 	void torrent::auto_managed(bool a)
@@ -8903,6 +8978,7 @@ namespace libtorrent
 		m_auto_managed = a;
 		update_gauge();
 		update_want_scrape();
+		update_state_list();
 
 		state_updated();
 
@@ -9361,6 +9437,7 @@ namespace libtorrent
 
 		update_gauge();
 		update_want_scrape();
+		update_state_list();
 
 		if (!b)
 		{
@@ -9804,14 +9881,22 @@ namespace libtorrent
 		// filter in order to avoid flapping (auto_manage_startup).
 		bool is_inactive = is_inactive_internal();
 
-		if (is_inactive != m_inactive
-			&& settings().get_bool(settings_pack::dont_count_slow_torrents))
+		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
-			m_last_active_change = m_ses.session_time();
-			int delay = settings().get_int(settings_pack::auto_manage_startup);
-			m_inactivity_timer.expires_from_now(seconds(delay));
-			m_inactivity_timer.async_wait(boost::bind(&torrent::on_inactivity_tick
-				, shared_from_this(), _1));
+			if (is_inactive != m_inactive
+				&& !m_pending_active_change)
+			{
+				int delay = settings().get_int(settings_pack::auto_manage_startup);
+				m_inactivity_timer.expires_from_now(seconds(delay));
+				m_inactivity_timer.async_wait(boost::bind(&torrent::on_inactivity_tick
+					, shared_from_this(), _1));
+				m_pending_active_change = true;
+			}
+			else if (is_inactive == m_inactive
+				&& m_pending_active_change)
+			{
+				m_inactivity_timer.cancel();
+			}
 		}
 
 		update_want_tick();
@@ -9829,16 +9914,19 @@ namespace libtorrent
 
 	void torrent::on_inactivity_tick(error_code const& ec)
 	{
+		m_pending_active_change = false;
+
 		if (ec) return;
 
 		int now = m_ses.session_time();
 		int delay = settings().get_int(settings_pack::auto_manage_startup);
-		if (now - m_last_active_change < delay) return;
 
 		bool is_inactive = is_inactive_internal();
 		if (is_inactive == m_inactive) return;
 
 		m_inactive = is_inactive;
+
+		update_state_list();
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 			m_ses.trigger_auto_manage();
@@ -11240,7 +11328,7 @@ namespace libtorrent
 			}
 		}
 	}
-	
+
 	void torrent::new_external_ip()
 	{
 		if (m_peer_list) m_peer_list->clear_peer_prio();
@@ -11288,6 +11376,7 @@ namespace libtorrent
 #endif
 
 		update_want_peers();
+		update_state_list();
 		update_gauge();
 
 		state_updated();
@@ -11319,7 +11408,7 @@ namespace libtorrent
 
 	void torrent::state_updated()
 	{
-		// if this fails, this function is probably called 
+		// if this fails, this function is probably called
 		// from within the torrent constructor, which it
 		// shouldn't be. Whichever function ends up calling
 		// this should probably be moved to torrent::start()

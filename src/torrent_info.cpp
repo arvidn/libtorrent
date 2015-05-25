@@ -880,8 +880,9 @@ namespace libtorrent
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw invalid_torrent_file(ec);
-#endif
+#else
 			return;
+#endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))
@@ -911,8 +912,9 @@ namespace libtorrent
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw invalid_torrent_file(ec);
-#endif
+#else
 			return;
+#endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))

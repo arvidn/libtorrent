@@ -39,12 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/socket.hpp"
 #endif
 
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -297,6 +296,15 @@ namespace libtorrent { namespace aux
 
 			// torrents that want auto-scrape (only paused auto-managed ones)
 			torrent_want_scrape,
+
+			// auto-managed torrents by state. Only these torrents are considered
+			// when recalculating auto-managed torrents. started auto managed
+			// torrents that are inactive are not part of these lists, because they
+			// are not considered for auto managing (they are left started
+			// unconditionallty)
+			torrent_downloading_auto_managed,
+			torrent_seeding_auto_managed,
+			torrent_checking_auto_managed,
 
 			// all torrents that have resume data to save
 //			torrent_want_save_resume,

@@ -3470,14 +3470,6 @@ retry:
 			t->set_announce_to_trackers(tracker_limit >= 0);
 			t->set_announce_to_lsd(lsd_limit >= 0);
 
-			if (!t->is_paused() && t->is_inactive()
-				&& hard_limit > 0)
-			{
-				// the hard limit takes inactive torrents into account, but the
-				// download and seed limits don't.
-				continue;
-			}
-
 			if (type_limit > 0 && hard_limit > 0)
 			{
 				--hard_limit;
@@ -3509,22 +3501,14 @@ retry:
 
 		if (is_paused()) return;
 
-		// these vectors are filled with auto managed torrents
-
-		// TODO: these vectors could be copied from m_torrent_lists,
-		// if we would maintain them. That way the first pass over
-		// all torrents could be avoided. It would be especially
-		// efficient if most torrents are not auto-managed
-		// whenever we receive a scrape response (or anything
-		// that may change the rank of a torrent) that one torrent
-		// could re-sort itself in a list that's kept sorted at all
-		// times. That way, this pass over all torrents could be
-		// avoided alltogether.
-		std::vector<torrent*> checking;
-		std::vector<torrent*> downloaders;
-		downloaders.reserve(m_torrents.size());
-		std::vector<torrent*> seeds;
-		seeds.reserve(m_torrents.size());
+		// make copies of the lists of torrents that we want to consider for auto
+		// management. We need copies because they will be sorted.
+		std::vector<torrent*> checking
+			= torrent_list(session_interface::torrent_checking_auto_managed);
+		std::vector<torrent*> downloaders
+			= torrent_list(session_interface::torrent_downloading_auto_managed);
+		std::vector<torrent*> seeds
+			= torrent_list(session_interface::torrent_seeding_auto_managed);
 
 		// these counters are set to the number of torrents
 		// of each kind we're allowed to have active
@@ -3549,60 +3533,20 @@ retry:
 		if (tracker_limit == -1)
 			tracker_limit = (std::numeric_limits<int>::max)();
 
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-		{
-			torrent* t = i->second.get();
-			TORRENT_ASSERT(t);
+		// TODO: 3 deduct "force started" torrents from the hard_limit
+		// also deduct force started checking torrents from checking_limit
+		// also deduct started inactive torrents from hard_limit
 
-			if (t->state() == torrent_status::checking_files
-				&& !t->has_error()
-				&& (t->is_auto_managed() || t->allows_peers()))
-			{
-				checking.push_back(t);
-				continue;
-			}
+		// TODO: 3 use partial_sort of "type limit" prefix of the list
+		std::sort(checking.begin(), checking.end()
+			, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
-			if (t->is_auto_managed() && !t->has_error())
-			{
-				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
-				// this torrent is auto managed, add it to
-				// the list (depending on if it's a seed or not)
-				if (t->is_finished())
-					seeds.push_back(t);
-				else
-					downloaders.push_back(t);
-			}
-			else if (!t->is_paused())
-			{
-				if (t->state() == torrent_status::checking_files)
-				{
-					if (checking_limit > 0) --checking_limit;
-					continue;
-				}
-				TORRENT_ASSERT(t->m_resume_data_loaded || !t->valid_metadata());
-				--hard_limit;
-			}
-		}
+		std::sort(downloaders.begin(), downloaders.end()
+			, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
-		bool handled_by_extension = false;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		// TODO: 0 allow extensions to sort torrents for queuing
-#endif
-
-		if (!handled_by_extension)
-		{
-			std::sort(checking.begin(), checking.end()
-				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
-
-			std::sort(downloaders.begin(), downloaders.end()
-				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
-
-			std::sort(seeds.begin(), seeds.end()
-				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
-		}
+		std::sort(seeds.begin(), seeds.end()
+			, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+			> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
 
 		auto_manage_torrents(checking, checking_limit, dht_limit, tracker_limit, lsd_limit
 			, hard_limit, num_downloaders);
