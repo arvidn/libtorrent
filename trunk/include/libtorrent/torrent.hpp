@@ -289,7 +289,7 @@ namespace libtorrent
 
 		// This may be called from multiple threads
 		sha1_hash const& info_hash() const { return m_info_hash; }
-	
+
 		bool is_deleted() const { return m_deleted; }
 
 		// starts the announce timer
@@ -644,6 +644,7 @@ namespace libtorrent
 
 		bool want_tick() const;
 		void update_want_tick();
+		void update_state_list();
 
 		bool want_peers() const;
 		bool want_peers_download() const;
@@ -1368,6 +1369,9 @@ namespace libtorrent
 		// efficient to enumerate only torrents belonging to a specific
 		// group. Such as torrents that want peer connections or want
 		// to be ticked etc.
+
+		// TODO: 3 factor out the links (as well as update_list() to a separate
+		// class that torrent can inherit)
 		link m_links[aux::session_interface::num_torrent_lists];
 
 	private:
@@ -1708,10 +1712,12 @@ namespace libtorrent
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
 
-		// this is a timestamp of the last time this torrent changed its
-		// m_inactive state. The inactive state is set when transfer rates are
-		// below the active threshold. It's specified in session time unit.
-		boost::int16_t m_last_active_change;
+		// this is true when our effective inactive state is different from our
+		// actual inactive state. Whenever this state changes, there is a
+		// quarantine period until we change the effective state. This is to avoid
+		// flapping. If the state changes back during this period, we cancel the
+		// quarantine
+		bool m_pending_active_change:1;
 
 		// if this is set, accept the save path saved in the resume data, if
 		// present

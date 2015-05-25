@@ -601,13 +601,14 @@ namespace libtorrent
 			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
 			void inc_boost_connections() { ++m_boost_connections; }
 
-//		private:
+		private:
 
 			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
 
 			peer_class_pool m_classes;
 
-//		private:
+			// TODO: 2 fix this
+		public:
 
 			void submit_disk_jobs();
 
@@ -1170,7 +1171,7 @@ namespace libtorrent
 
 			// is true if the session is paused
 			bool m_paused;
-			
+
 #ifndef TORRENT_NO_DEPRECATE
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 #endif
@@ -1190,7 +1191,7 @@ namespace libtorrent
 			pthread_t m_network_thread;
 #endif
 		};
-		
+
 #ifndef TORRENT_DISABLE_LOGGING
 		struct tracker_logger : request_callback
 		{
