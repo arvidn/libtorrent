@@ -135,9 +135,6 @@ struct set_keypress
 
 bool sleep_and_input(int* c, int sleep)
 {
-	// sets the terminal to single-character mode
-	// and resets when destructed
-	set_keypress s;
 	libtorrent::time_point start = libtorrent::clock_type::now();
 	int ret = 0;
 retry:
@@ -1204,6 +1201,12 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 int main(int argc, char* argv[])
 {
+#ifndef _WIN32
+	// sets the terminal to single-character mode
+	// and resets when destructed
+	set_keypress s;
+#endif
+
 	if (argc == 1)
 	{
 		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"

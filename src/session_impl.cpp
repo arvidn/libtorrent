@@ -3442,8 +3442,30 @@ retry:
 			m_next_lsd_torrent = m_torrents.begin();
 	}
 
+	void session_impl::auto_manage_checking_torrents(std::vector<torrent*>& list
+		, int& limit)
+	{
+		for (std::vector<torrent*>::iterator i = list.begin()
+			, end(list.end()); i != end; ++i)
+		{
+			torrent* t = *i;
+
+			TORRENT_ASSERT(t->state() == torrent_status::checking_files);
+				if (limit <= 0)
+				{
+					t->pause();
+				}
+				else
+				{
+					t->resume();
+					t->start_checking();
+					--limit;
+				}
+			}
+	}
+
 	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
-		, int& checking_limit, int& dht_limit, int& tracker_limit
+		, int& dht_limit, int& tracker_limit
 		, int& lsd_limit, int& hard_limit, int type_limit)
 	{
 		for (std::vector<torrent*>::iterator i = list.begin()
@@ -3451,17 +3473,7 @@ retry:
 		{
 			torrent* t = *i;
 
-			if (t->state() == torrent_status::checking_files)
-			{
-				if (checking_limit <= 0) t->pause();
-				else
-				{
-					t->resume();
-					t->start_checking();
-					--checking_limit;
-				}
-				continue;
-			}
+			TORRENT_ASSERT(t->state() != torrent_status::checking_files);
 
 			--dht_limit;
 			--lsd_limit;
@@ -3533,36 +3545,56 @@ retry:
 		if (tracker_limit == -1)
 			tracker_limit = (std::numeric_limits<int>::max)();
 
-		// TODO: 3 deduct "force started" torrents from the hard_limit
-		// also deduct force started checking torrents from checking_limit
+		// deduct "force started" torrents from the hard_limit
+		// we don't have explicit access to the number of force started torrents,
+		// but we know how many started downloading and seeding torrents we have.
+		// if we subtract all non-force started torrents from the total, we get
+		// the number of force started.
+		hard_limit -= m_stats_counters[counters::num_downloading_torrents] -
+			downloaders.size();
+		hard_limit -= m_stats_counters[counters::num_seeding_torrents]
+			+ m_stats_counters[counters::num_upload_only_torrents] -
+			seeds.size();
+
+		// TODO: 3 also deduct force started checking torrents from checking_limit
 		// also deduct started inactive torrents from hard_limit
 
-		// TODO: 3 use partial_sort of "type limit" prefix of the list
-		std::sort(checking.begin(), checking.end()
-			, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
+		// if hard_limit is <= 0, all torrents in these lists should be paused.
+		// The order is not relevant
+		if (hard_limit > 0)
+		{
+			// we only need to sort the first n torrents here, where n is the number
+			// of checking torrents we allow. The rest of the list is still used to
+			// make sure the remaining torrents are paused, but their order is not
+			// relevant
+			std::partial_sort(checking.begin(), checking.begin() +
+				(std::min)(checking_limit, int(checking.size())), checking.end()
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
-		std::sort(downloaders.begin(), downloaders.end()
-			, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
+			std::partial_sort(downloaders.begin(), downloaders.begin() +
+				(std::min)(hard_limit, int(downloaders.size())), downloaders.end()
+				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
 
-		std::sort(seeds.begin(), seeds.end()
-			, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-			> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+			std::partial_sort(seeds.begin(), seeds.begin() +
+				(std::min)(hard_limit, int(seeds.size())), seeds.end()
+				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
+				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+		}
 
-		auto_manage_torrents(checking, checking_limit, dht_limit, tracker_limit, lsd_limit
-			, hard_limit, num_downloaders);
+		auto_manage_checking_torrents(checking, checking_limit);
 
 		if (settings().get_bool(settings_pack::auto_manage_prefer_seeds))
 		{
-			auto_manage_torrents(seeds, checking_limit, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_seeds);
-			auto_manage_torrents(downloaders, checking_limit, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_downloaders);
 		}
 		else
 		{
-			auto_manage_torrents(downloaders, checking_limit, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_downloaders);
-			auto_manage_torrents(seeds, checking_limit, dht_limit, tracker_limit, lsd_limit
+			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
 				, hard_limit, num_seeds);
 		}
 	}
