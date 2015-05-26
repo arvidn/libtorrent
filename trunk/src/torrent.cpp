@@ -7871,6 +7871,9 @@ namespace libtorrent
 		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 			return true;
 
+		// if we don't get ticks we won't become inactive
+		if (!m_inactive) return true;
+
 		return false;
 	}
 
@@ -9193,7 +9196,7 @@ namespace libtorrent
 			, boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1));
 		return true;
 	}
-	
+
 	bool torrent::should_check_files() const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -9287,6 +9290,9 @@ namespace libtorrent
 
 		m_need_connect_boost = true;
 		m_inactive = false;
+
+		update_state_list();
+		update_want_tick();
 
 		m_active_time += m_ses.session_time() - m_started;
 
@@ -9692,6 +9698,7 @@ namespace libtorrent
 			: m_ses.session_time() - m_became_seed);
 	}
 
+	// TODO: 2 if residual is not used, remove it
 	void torrent::second_tick(int tick_interval_ms, int /* residual */)
 	{
 		TORRENT_ASSERT(want_tick());
@@ -9737,7 +9744,7 @@ namespace libtorrent
 		if (is_paused() && !m_graceful_pause_mode)
 		{
 			// let the stats fade out to 0
- 			m_stat.second_tick(tick_interval_ms);
+			m_stat.second_tick(tick_interval_ms);
 			// if the rate is 0, there's no update because of network transfers
 			if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
 				state_updated();
@@ -9825,7 +9832,7 @@ namespace libtorrent
 		// ---- WEB SEEDS ----
 
 		maybe_connect_web_seeds();
-		
+
 		m_swarm_last_seen_complete = m_last_seen_complete;
 		int idx = 0;
 		for (peer_iterator i = m_connections.begin();
@@ -9918,15 +9925,13 @@ namespace libtorrent
 
 		if (ec) return;
 
-		int now = m_ses.session_time();
-		int delay = settings().get_int(settings_pack::auto_manage_startup);
-
 		bool is_inactive = is_inactive_internal();
 		if (is_inactive == m_inactive) return;
 
 		m_inactive = is_inactive;
 
 		update_state_list();
+		update_want_tick();
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 			m_ses.trigger_auto_manage();
@@ -10024,7 +10029,7 @@ namespace libtorrent
 		missing_pieces -= 2 * num_seeds;
 
 		if (missing_pieces <= 0) return;
-		
+
 		// missing_pieces represents our opportunity to download pieces
 		// and share them more than once each
 

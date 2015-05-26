@@ -74,6 +74,7 @@ std::string add_suffix(float val, char const* suffix)
 std::string color(std::string const& s, color_code c)
 {
 	if (c == col_none) return s;
+	if (std::count(s.begin(), s.end(), ' ') == s.size()) return s;
 
 	char buf[1024];
 	snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
