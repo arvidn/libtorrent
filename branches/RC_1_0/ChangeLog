@@ -1,3 +1,6 @@
+	* fix bug in 'dont_count_slow_torrents' feature, which would start too many
+	  torrents
+
 1.0.5 release
 
 	* improve ip_voter to avoid flapping

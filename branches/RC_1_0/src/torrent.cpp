@@ -5397,7 +5397,7 @@ namespace libtorrent
 		// copy the torrent_info object
 		return boost::intrusive_ptr<torrent_info>(new torrent_info(*m_torrent_file));
 	}
-	
+
 	void torrent::write_resume_data(entry& ret) const
 	{
 		using namespace libtorrent::detail; // for write_*_endpoint()
@@ -7460,6 +7460,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (!is_paused()) return;
 
+		m_inactive_counter = 0;
+		m_inactive = false;
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
@@ -7635,6 +7638,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) return;
+
+		m_inactive_counter = 0;
+		m_inactive = false;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -8009,7 +8015,7 @@ namespace libtorrent
 			{
 				++m_inactive_counter;
 
-				// if this torrent was just considered inactive, we may want 
+				// if this torrent was just considered inactive, we may want
 				// to dequeue some other torrent
 				if (m_inactive == false
 					&& m_inactive_counter >= m_ses.m_settings.auto_manage_startup)
@@ -8027,7 +8033,7 @@ namespace libtorrent
 			{
 				--m_inactive_counter;
 
-				// if this torrent was just considered active, we may want 
+				// if this torrent was just considered active, we may want
 				// to queue some other torrent
 				if (m_inactive == true
 					&& m_inactive_counter <= -m_ses.m_settings.auto_manage_startup)
