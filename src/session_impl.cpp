@@ -5909,7 +5909,7 @@ retry:
 	{
 		if (m_pending_auto_manage || m_abort) return;
 
-		// we we recalculated auto-managed torrents less than a second ago,
+		// we recalculated auto-managed torrents less than a second ago,
 		// put it off one second.
 		if (time_now() - m_last_auto_manage < seconds(1))
 		{

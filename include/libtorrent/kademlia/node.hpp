@@ -232,7 +232,7 @@ public:
 
 	int data_size() const { return int(m_map.size()); }
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if defined TORRENT_DEBUG
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }
 #endif
@@ -248,7 +248,7 @@ public:
 		, udp::endpoint const& addr);
 
 	std::string generate_token(udp::endpoint const& addr, char const* info_hash);
-	
+
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time
 	time_duration connection_timeout();

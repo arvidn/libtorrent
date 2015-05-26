@@ -170,9 +170,9 @@ public:
 	// i.e. essentially the number of full buckets
 	// we have
 	int depth() const;
-	
+
 	int num_active_buckets() const { return m_buckets.size(); }
-	
+
 	void replacement_cache(bucket_t& nodes) const;
 
 #if defined TORRENT_DEBUG
