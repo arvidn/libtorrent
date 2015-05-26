@@ -124,7 +124,8 @@ struct set_keypress
 		tcgetattr(0,&stored_settings);
 		new_settings = stored_settings;
 		// Disable canonical mode, and set buffer size to 1 byte
-		new_settings.c_lflag &= (~ICANON);
+		// and disable echo
+		new_settings.c_lflag &= ~(ICANON | ECHO);
 		new_settings.c_cc[VTIME] = 0;
 		new_settings.c_cc[VMIN] = 1;
 		tcsetattr(0,TCSANOW,&new_settings);

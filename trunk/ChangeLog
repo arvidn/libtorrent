@@ -70,6 +70,9 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix bug in 'dont_count_slow_torrents' feature, which would start too many
+	  torrents
+
 1.0.5 release
 
 	* improve ip_voter to avoid flapping
