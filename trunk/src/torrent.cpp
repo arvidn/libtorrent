@@ -7872,7 +7872,7 @@ namespace libtorrent
 			return true;
 
 		// if we don't get ticks we won't become inactive
-		if (!m_inactive) return true;
+		if (m_allow_peers && !m_inactive) return true;
 
 		return false;
 	}
