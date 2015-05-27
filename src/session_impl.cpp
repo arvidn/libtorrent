@@ -4541,6 +4541,8 @@ retry:
 
 		// we don't have a torrent file. If the user provided
 		// resume data, there may be some metadata in there
+		// TODO: this logic could probably be less spaghetti looking by being
+		// moved to a function with early exits
 		if ((!params.ti || !params.ti->is_valid())
 			&& !params.resume_data.empty())
 		{
@@ -4729,7 +4731,27 @@ retry:
 		// a boat load of torrents, we postpone the recalculation until
 		// we're done adding them all (since it's kind of an expensive operation)
 		if (params.flags & add_torrent_params::flag_auto_managed)
-			trigger_auto_manage();
+		{
+			const int max_downloading = settings().get_int(settings_pack::active_downloads);
+			const int max_seeds = settings().get_int(settings_pack::active_seeds);
+			const int max_active = settings().get_int(settings_pack::active_limit);
+
+			const int num_downloading
+			= int(torrent_list(session_interface::torrent_downloading_auto_managed).size());
+			const int num_seeds
+			= int(torrent_list(session_interface::torrent_seeding_auto_managed).size());
+			const int num_active = num_downloading + num_seeds;
+
+			// there's no point in triggering the auto manage logic early if we
+			// don't have a reason to believe anything will change. It's kind of
+			// expensive.
+			if ((num_downloading < max_downloading
+				|| num_seeds < max_seeds)
+				&& num_active < max_active)
+			{
+				trigger_auto_manage();
+			}
+		}
 
 		return torrent_handle(torrent_ptr);
 	}
