@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/timestamp_history.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -164,28 +163,6 @@ int test_main()
 		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
 #endif
 
-	// TODO: 3 move this out to its own test
-	// test timestamp_history
-	{
-		timestamp_history h;
-		TEST_EQUAL(h.add_sample(0x32, false), 0);
-		TEST_EQUAL(h.base(), 0x32);
-		TEST_EQUAL(h.add_sample(0x33, false), 0x1);
-		TEST_EQUAL(h.base(), 0x32);
-		TEST_EQUAL(h.add_sample(0x3433, false), 0x3401);
-		TEST_EQUAL(h.base(), 0x32);
-		TEST_EQUAL(h.add_sample(0x30, false), 0);
-		TEST_EQUAL(h.base(), 0x30);
-
-		// test that wrapping of the timestamp is properly handled
-		h.add_sample(0xfffffff3, false);
-		TEST_EQUAL(h.base(), 0xfffffff3);
-
-
-		// TODO: test the case where we have > 120 samples (and have the base delay actually be updated)
-		// TODO: test the case where a sample is lower than the history entry but not lower than the base
-	}
-
 	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
 	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
@@ -202,71 +179,6 @@ int test_main()
 	char msg[10];
 	snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
-
-	std::string path;
-	sanitize_append_path_element(path, "a...", 4);
-	TEST_EQUAL(path, "a");
-
-	path.clear();
-	sanitize_append_path_element(path, "a   ", 4);
-	TEST_EQUAL(path, "a");
-
-	path.clear();
-	sanitize_append_path_element(path, "a...b", 5);
-	TEST_EQUAL(path, "a...b");
-
-	path.clear();
-	sanitize_append_path_element(path, "a", 1);
-	sanitize_append_path_element(path, "..", 2);
-	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "a\\c");
-#else
-	TEST_EQUAL(path, "a/c");
-#endif
-
-	path.clear();
-	sanitize_append_path_element(path, "/..", 3);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
-	TEST_EQUAL(path, "c");
-
-	path.clear();
-	sanitize_append_path_element(path, "dev:", 4);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "dev");
-#else
-	TEST_EQUAL(path, "dev:");
-#endif
-
-	path.clear();
-	sanitize_append_path_element(path, "c:", 2);
-	sanitize_append_path_element(path, "b", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\b");
-#else
-	TEST_EQUAL(path, "c:/b");
-#endif
-
-	path.clear();
-	sanitize_append_path_element(path, "c:", 2);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\c");
-#else
-	TEST_EQUAL(path, "c:/c");
-#endif
-
-	path.clear();
-	sanitize_append_path_element(path, "\\c", 2);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\c");
-#else
-	TEST_EQUAL(path, "c/c");
-#endif
 
 	if (supports_ipv6())
 	{

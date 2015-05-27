@@ -176,10 +176,8 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 
-int test_torrent_parse()
+void test_sanitize_path()
 {
-	error_code ec;
-
 	// test sanitize_append_path_element
 
 	std::string path;
@@ -220,6 +218,77 @@ int test_torrent_parse()
 #else
 	TEST_EQUAL(path, "a/b/c");
 #endif
+
+	path.clear();
+	sanitize_append_path_element(path, "a...", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a   ", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a...b", 5);
+	TEST_EQUAL(path, "a...b");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "..", 2);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a\\c");
+#else
+	TEST_EQUAL(path, "a/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "/..", 3);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+	TEST_EQUAL(path, "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "dev:", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "dev");
+#else
+	TEST_EQUAL(path, "dev:");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, "b", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\b");
+#else
+	TEST_EQUAL(path, "c:/b");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c:/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\\c", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c/c");
+#endif
+
+}
+
+void test_torrent_parse()
+{
+	error_code ec;
 
 	// test torrent parsing
 
@@ -644,7 +713,6 @@ void test_copy()
 
 		TEST_EQUAL(b->files().hash(i), file_hashes[i]);
 	}
-	
 }
 
 int test_main()
@@ -657,6 +725,7 @@ int test_main()
 	test_mutable_torrents();
 #endif
 	test_torrent_parse();
+	test_sanitize_path();
 
 	return 0;
 }
