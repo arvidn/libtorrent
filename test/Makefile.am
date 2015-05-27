@@ -1,7 +1,8 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
-  test_sha1_hash.cpp         \
+  test_timestamp_history     \
+  test_sha1_hash             \
   test_bloom_filter          \
   test_identify_client       \
   test_alert_manager         \
@@ -145,6 +146,10 @@ libtest_la_SOURCES = main.cpp \
   swarm_suite.cpp \
   test_utils.cpp
 
+test_timestamp_history_SOURCES = test_timestamp_history.cpp
+test_sha1_hash_SOURCES = test_sha1_hash.cpp
+test_bloom_filter_SOURCES = test_bloom_filter.cpp
+test_identify_client_SOURCES = test_identify_client.cpp
 test_alert_manager_SOURCES = test_alert_manager.cpp
 test_bitfield_SOURCES = test_bitfield.cpp
 test_crc32_SOURCES = test_crc32.cpp
