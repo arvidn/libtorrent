@@ -657,6 +657,7 @@ void bind_session()
         )
         .def("is_dht_running", allow_threads(&session::is_dht_running))
         .def("set_dht_settings", allow_threads(&session::set_dht_settings))
+        .def("get_dht_settings", allow_threads(&session::get_dht_settings))
         .def("start_dht", allow_threads(start_dht0))
         .def("stop_dht", allow_threads(&session::stop_dht))
 #ifndef TORRENT_NO_DEPRECATE
