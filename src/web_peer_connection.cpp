@@ -662,7 +662,7 @@ void web_peer_connection::on_receive(error_code const& error
 #endif
 					return;
 				}
-				
+
 				bool single_file_request = false;
 				if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
 					single_file_request = true;

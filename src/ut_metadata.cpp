@@ -125,7 +125,7 @@ namespace libtorrent { namespace
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection* pc);
-		
+
 		int get_metadata_size() const
 		{
 			TORRENT_ASSERT(m_metadata_size > 0);
