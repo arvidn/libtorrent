@@ -53,14 +53,12 @@ namespace libtorrent { namespace dht
 		enum message_direction_t
 		{
 			incoming_message,
-			outgoing_message,
-			incoming_message_error,
-			outgoing_message_error
+			outgoing_message
 		};
 
 		virtual void log(module_t m, char const* fmt, ...) TORRENT_FORMAT(3,4) = 0;
-		virtual void log_message(message_direction_t dir, char const* pkt, int len
-			, char const* fmt, ...) TORRENT_FORMAT(5, 6) = 0;
+		virtual void log_packet(message_direction_t dir, char const* pkt, int len
+			, udp::endpoint node) = 0;
 
 	protected:
 		~dht_logger() {}

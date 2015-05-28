@@ -6493,43 +6493,15 @@ retry:
 		m_alerts.emplace_alert<dht_log_alert>((dht_log_alert::dht_module_t)m, buf);
 	}
 
-	TORRENT_FORMAT(5, 6)
-	void session_impl::log_message(message_direction_t dir, char const* pkt, int len
-		, char const* fmt, ...)
+	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
+		, udp::endpoint node)
 	{
-		if (!m_alerts.should_post<dht_log_alert>()) return;
+		if (!m_alerts.should_post<dht_pkt_alert>()) return;
 
-		char buf[1024];
-		int offset = 0;
-		char const* prefix[] =
-		{ "<== ", "==> ", "<== ERROR ", "==> ERROR " };
-		offset += snprintf(&buf[offset], sizeof(buf) - offset, prefix[dir]);
+		dht_pkt_alert::direction_t d = dir == dht_logger::incoming_message
+			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
-		va_list v;
-		va_start(v, fmt);
-		offset += vsnprintf(&buf[offset], sizeof(buf) - offset, fmt, v);
-		va_end(v);
-
-		if (offset < sizeof(buf) - 1)
-		{
-			buf[offset++] = ' ';
-
-			bdecode_node print;
-			error_code ec;
-
-			// ignore errors here. This is best-effort. It may be a broken encoding
-			// but at least we'll print the valid parts
-			bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
-
-			// TODO: 3 there should be a separate dht_log_alert for messages that
-			// contains the raw packet separately. This printing should be moved
-			// down to the ::message() function of that alert
-			std::string msg = print_entry(print, true);
-
-			strncpy(&buf[offset], msg.c_str(), sizeof(buf) - offset);
-		}
-
-		m_alerts.emplace_alert<dht_log_alert>(dht_log_alert::tracker, buf);
+		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
 	}
 
 	void session_impl::set_external_address(address const& ip

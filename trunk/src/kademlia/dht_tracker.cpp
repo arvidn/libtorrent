@@ -394,7 +394,7 @@ namespace libtorrent { namespace dht
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
-			
+
 		TORRENT_ASSERT(size > 0);
 
 		int pos;
@@ -403,10 +403,7 @@ namespace libtorrent { namespace dht
 		if (ret != 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::incoming_message_error, buf
-				, size, "%s ERROR: %s pos: %d"
-				, print_endpoint(ep).c_str(), err.message().c_str()
-				, int(pos));
+			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
 			return false;
 		}
@@ -414,9 +411,7 @@ namespace libtorrent { namespace dht
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::incoming_message_error, buf
-				, size, "%s ERROR: not a dictionary"
-				, print_endpoint(ep).c_str());
+			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
 			// it's not a good idea to send invalid messages
 			// especially not in response to an invalid message
@@ -427,8 +422,8 @@ namespace libtorrent { namespace dht
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log_message(dht_logger::incoming_message, buf
-			, size, "%s", print_endpoint(ep).c_str());
+		m_log->log_packet(dht_logger::incoming_message, buf
+			, size, ep);
 #endif
 
 		libtorrent::dht::msg m(m_msg, ep);
@@ -448,7 +443,7 @@ namespace libtorrent { namespace dht
 	}
 
 	} // anonymous namespace
-	
+
 	entry dht_tracker::state() const
 	{
 		entry ret(entry::dictionary_t);
@@ -523,9 +518,8 @@ namespace libtorrent { namespace dht
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
-				m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-					, m_send_buf.size(), "%s DROPPED (%s)"
-					, print_endpoint(addr).c_str(), ec.message().c_str());
+				m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+					, m_send_buf.size(), addr);
 #endif
 				return false;
 			}
@@ -536,9 +530,8 @@ namespace libtorrent { namespace dht
 				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), "%s"
-				, print_endpoint(addr).c_str());
+			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), addr);
 #endif
 			return true;
 		}
@@ -547,9 +540,8 @@ namespace libtorrent { namespace dht
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), "%s"
-				, print_endpoint(addr).c_str());
+			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), addr);
 #endif
 			return false;
 		}
