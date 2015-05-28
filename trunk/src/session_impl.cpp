@@ -886,7 +886,7 @@ namespace aux {
 		m_alerts.add_extension(ext);
 		ext->added(this);
 	}
-#endif
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 #ifndef TORRENT_NO_DEPRECATE
 	feed_handle session_impl::add_feed(feed_settings const& sett)

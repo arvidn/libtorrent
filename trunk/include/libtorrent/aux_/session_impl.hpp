@@ -778,8 +778,6 @@ namespace libtorrent
 			// to clear the undead peers
 			boost::optional<io_service::work> m_work;
 
-			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
-
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -1140,6 +1138,7 @@ namespace libtorrent
 			external_ip m_external_ip;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			// this is a list to allow extensions to potentially remove themselves.
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 #endif
