@@ -2319,12 +2319,48 @@ namespace libtorrent
 		int m_msg_idx;
 	};
 
+	// This alert is posted every time a DHT message is sent or received. It is
+	// only posted if the ``alert::dht_log_notification`` alert category is
+	// enabled. It contains a verbatim copy of the message.
+	struct TORRENT_EXPORT dht_pkt_alert : alert
+	{
+		enum direction_t
+		{ incoming, outgoing };
+
+		dht_pkt_alert(aux::stack_allocator& alloc, char const* buf, int size
+			, dht_pkt_alert::direction_t d, udp::endpoint ep);
+
+		static const int static_category = alert::dht_log_notification;
+		TORRENT_DEFINE_ALERT(dht_pkt_alert, 86)
+
+		virtual std::string message() const;
+
+		// returns a pointer to the packet buffer and size of the packet,
+		// respectively. This buffer is only valid for as long as the alert itself
+		// is valid, which is owned by libtorrent and reclaimed whenever
+		// pop_alerts() is called on the session.
+		char const* pkt_buf() const;
+		int pkt_size() const;
+
+		// whether this is an incoming or outgoing packet.
+		direction_t dir;
+
+		// the DHT node we received this packet from, or sent this packet to
+		// (depending on ``dir``).
+		udp::endpoint node;
+
+	private:
+		aux::stack_allocator& m_alloc;
+		int m_msg_idx;
+		int m_size;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 86 };
+	enum { num_alert_types = 87 };
 }
 
 

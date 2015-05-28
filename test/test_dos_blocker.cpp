@@ -37,43 +37,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dos_blocker.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/socket_io.hpp" // for print_endpoint
+
+using namespace libtorrent;
 
 struct log_t : libtorrent::dht::dht_logger
 {
 	virtual void log(dht_logger::module_t m, char const* fmt, ...)
 		TORRENT_OVERRIDE TORRENT_FORMAT(3, 4)
 	{
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
 		vfprintf(stderr, fmt, v);
 		va_end(v);
 	}
 
-	virtual void log_message(message_direction_t dir, char const* pkt, int len
-		, char const* fmt, ...) TORRENT_OVERRIDE TORRENT_FORMAT(5, 6)
+	virtual void log_packet(message_direction_t dir, char const* pkt, int len
+		, udp::endpoint node) TORRENT_OVERRIDE
 	{
-		char const* prefix[] =
-		{ "<== ", "<== ERROR ", "==> ", "==> ERROR " };
-		printf(prefix[dir]);
-
-		va_list v;
-		va_start(v, fmt);
-		vprintf(fmt, v);
-		va_end(v);
-
 		libtorrent::bdecode_node print;
 		libtorrent::error_code ec;
 		int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
 
 		std::string msg = print_entry(print, true);
 		printf("%s", msg.c_str());
+
+		char const* prefix[2] = { "<==", "==>"};
+		printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
+			, msg.c_str());
 	}
 };
 
 int test_main()
 {
 #ifndef TORRENT_DISABLE_DHT
-	using namespace libtorrent;
 	using namespace libtorrent::dht;
 
 	log_t l;

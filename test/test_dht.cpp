@@ -434,8 +434,8 @@ struct obs : dht::dht_observer
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
 	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
 	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE {}
-	virtual void log_message(message_direction_t dir, char const* pkt, int len
-		, char const* fmt, ...) TORRENT_OVERRIDE {}
+	virtual void log_packet(message_direction_t dir, char const* pkt, int len
+		, udp::endpoint node) TORRENT_OVERRIDE {}
 };
 
 // TODO: test obfuscated_get_peers

@@ -566,8 +566,8 @@ namespace libtorrent
 				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
 			virtual void log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 				TORRENT_OVERRIDE TORRENT_FORMAT(3,4);
-			virtual void log_message(message_direction_t dir, char const* pkt, int len
-				, char const* fmt, ...) TORRENT_OVERRIDE TORRENT_FORMAT(5, 6);
+			virtual void log_packet(message_direction_t dir, char const* pkt, int len
+				, udp::endpoint node) TORRENT_OVERRIDE;
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
