@@ -47,14 +47,14 @@ class buffer
 public:
 	struct interval
 	{
-	   interval()
-		  : begin(0)
-		  , end(0)
+	interval()
+		: begin(0)
+		, end(0)
 		{}
 
-	   interval(char* b, char* e)
-		  : begin(b)
-		  , end(e)
+	interval(char* b, char* e)
+		: begin(b)
+		, end(e)
 		{}
 
 		char operator[](int index) const
@@ -62,7 +62,7 @@ public:
 			TORRENT_ASSERT(begin + index < end);
 			return begin[index];
 		}
-		  
+
 		int left() const
 		{
 			TORRENT_ASSERT(end >= begin);
@@ -76,14 +76,14 @@ public:
 
 	struct const_interval
 	{
-	   const_interval(interval const& i)
-		  : begin(i.begin)
-		  , end(i.end)
+	const_interval(interval const& i)
+		: begin(i.begin)
+		, end(i.end)
 		{}
 
-	   const_interval(char const* b, char const* e)
-		  : begin(b)
-		  , end(e)
+	const_interval(char const* b, char const* e)
+		: begin(b)
+		, end(e)
 		{}
 
 		char operator[](int index) const
@@ -168,7 +168,7 @@ public:
 	{ return interval(m_begin, m_begin + m_size); }
 	buffer::const_interval data() const
 	{ return const_interval(m_begin, m_begin + m_size); }
-	
+
 	void resize(std::size_t n)
 	{
 		TORRENT_ASSERT(n < 0xffffffffu);
@@ -185,7 +185,7 @@ public:
 			std::memcpy(m_begin + p, first, last - first);
 			return;
 		}
-		
+
 		resize(size() + last - first);
 		std::memmove(m_begin + p + (last - first), m_begin + p, last - first);
 		std::memcpy(m_begin + p, first, last - first);
@@ -196,7 +196,7 @@ public:
 		TORRENT_ASSERT(e <= m_begin + m_size);
 		TORRENT_ASSERT(b >= m_begin);
 		TORRENT_ASSERT(b <= e);
-	 	if (e == m_begin + m_size)
+		if (e == m_begin + m_size)
 		{
 			resize(b - m_begin);
 			return;
@@ -206,7 +206,7 @@ public:
 		TORRENT_ASSERT(e - b <= std::numeric_limits<boost::uint32_t>::max());
 		TORRENT_ASSERT(boost::uint32_t(e - b) <= m_size);
 		m_size -= e - b;
-	 }
+	}
 
 	void clear() { m_size = 0; }
 	std::size_t size() const { return m_size; }

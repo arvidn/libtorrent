@@ -223,7 +223,7 @@ namespace libtorrent
 
 		// the number of dirty blocks in this piece
 		boost::uint64_t num_dirty:14;
-		
+
 		// the number of blocks in the cache for this piece
 		boost::uint64_t num_blocks:14;
 
@@ -430,7 +430,7 @@ namespace libtorrent
 		// associates the job with it. When the block is
 		// flushed, the callback is posted
 		cached_piece_entry* add_dirty_block(disk_io_job* j);
-	
+
 		enum { blocks_inc_refcount = 1 };
 		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 			, int iov_len, disk_io_job* j, int flags = 0);
@@ -438,7 +438,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
-		
+
 		// try to remove num number of read cache blocks from the cache
 		// pick the least recently used ones first
 		// return the number of blocks that was requested to be evicted

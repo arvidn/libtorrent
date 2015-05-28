@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2008-2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,23 +30,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_AUX_TIME_HPP
-#define TORRENT_AUX_TIME_HPP
+#include "test.hpp"
+#include "libtorrent/timestamp_history.hpp"
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
-#include <string>
-#include <boost/cstdint.hpp>
-
-namespace libtorrent { namespace aux
+int test_main()
 {
-	// returns the current time, as represented by time_point. The
-	// resolution of this timer is about 100 ms.
-	time_point const& time_now();
+	using namespace libtorrent;
 
-	void update_time_now();
+	timestamp_history h;
+	TEST_EQUAL(h.add_sample(0x32, false), 0);
+	TEST_EQUAL(h.base(), 0x32);
+	TEST_EQUAL(h.add_sample(0x33, false), 0x1);
+	TEST_EQUAL(h.base(), 0x32);
+	TEST_EQUAL(h.add_sample(0x3433, false), 0x3401);
+	TEST_EQUAL(h.base(), 0x32);
+	TEST_EQUAL(h.add_sample(0x30, false), 0);
+	TEST_EQUAL(h.base(), 0x30);
 
-} }
+	// test that wrapping of the timestamp is properly handled
+	h.add_sample(0xfffffff3, false);
+	TEST_EQUAL(h.base(), 0xfffffff3);
 
-#endif
+	// TODO: test the case where we have > 120 samples (and have the base delay actually be updated)
+	// TODO: test the case where a sample is lower than the history entry but not lower than the base
+}
 

@@ -77,7 +77,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::vector<ip_interface> enum_net_interfaces(io_service& ios
 		, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(io_service& ios, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::vector<ip_route> enum_routes(error_code& ec);
 
 	// return (a1 & mask) == (a2 & mask)
 	TORRENT_EXTRA_EXPORT bool match_addr_mask(address const& a1
@@ -90,8 +90,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
 		, address const& addr);
 	
-	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios
-		, error_code& ec);
+	TORRENT_EXTRA_EXPORT address get_default_gateway(error_code& ec);
 
 #ifdef SO_BINDTODEVICE
 	struct bind_to_device_opt

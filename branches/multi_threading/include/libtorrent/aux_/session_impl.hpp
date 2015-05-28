@@ -152,13 +152,6 @@ namespace libtorrent
 		struct tracker_logger;
 #endif
 
-		// used to initialize the g_current_time before
-		// anything else
-		struct initialize_timer
-		{
-			initialize_timer();
-		};
-
 		TORRENT_EXPORT std::pair<bencode_map_entry*, int> settings_map();
 
 		// this is the link between the main thread and the
@@ -167,7 +160,6 @@ namespace libtorrent
 			: session_interface
 			, dht::dht_observer
 			, boost::noncopyable
-			, initialize_timer
 			, udp_socket_observer
 			, uncork_interface
 			, single_threaded
@@ -196,10 +188,6 @@ namespace libtorrent
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }
 
-			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
-			void done_async_resume();
-			void async_resume_dispatched(int num_popped_resume);
-
 			void init_peer_class_filter(bool unlimited_local);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -221,7 +209,7 @@ namespace libtorrent
 
 			void open_listen_port();
 			void init_settings();
-			
+
 			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
 
 			io_service& get_io_service() { return m_io_service; }
@@ -255,7 +243,7 @@ namespace libtorrent
 				, error_code const& e);
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 			feed_handle add_feed(feed_settings const& feed);
 			void remove_feed(feed_handle h);
@@ -291,7 +279,7 @@ namespace libtorrent
 			void apply_settings_pack(settings_pack* pack);
 			session_settings const& settings() const { return m_settings; }
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 			dht::dht_tracker* dht() { return m_dht.get(); }
 			bool announce_dht() const { return !m_listen_sockets.empty(); }
 
@@ -363,7 +351,7 @@ namespace libtorrent
 
 			void set_ip_filter(boost::shared_ptr<ip_filter> const& f);
 			ip_filter const& get_ip_filter();
-			
+
 			void set_port_filter(port_filter const& f);
 			port_filter const& get_port_filter() const TORRENT_OVERRIDE;
 			void ban_ip(address addr) TORRENT_OVERRIDE;
@@ -381,13 +369,13 @@ namespace libtorrent
 			int copy_pertinent_channels(peer_class_set const& set
 				, int channel, bandwidth_channel** dst, int max);
 			int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up);
-			bool use_quota_overhead(bandwidth_channel* ch, int channel, int amount);
+			bool use_quota_overhead(bandwidth_channel* ch, int amount);
 
 			int create_peer_class(char const* name);
 			void delete_peer_class(int cid);
 			void set_peer_class_filter(ip_filter const& f);
 			ip_filter const& get_peer_class_filter() const;
-			
+
 			void set_peer_class_type_filter(peer_class_type_filter f);
 			peer_class_type_filter get_peer_class_type_filter();
 
@@ -419,7 +407,7 @@ namespace libtorrent
 			void post_dht_stats();
 
 			std::vector<torrent_handle> get_torrents() const;
-			
+
 			void pop_alerts(std::vector<alert*>* alerts);
 			alert* wait_for_alert(time_duration max_wait);
 
@@ -482,12 +470,12 @@ namespace libtorrent
 			address listen_address() const;
 			boost::uint16_t listen_port() const;
 			boost::uint16_t ssl_listen_port() const;
-			
+
 			alert_manager& alerts() { return m_alerts; }
 			disk_interface& disk_thread() { return m_disk_thread; }
 
 			void abort();
-			
+
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false);
@@ -564,7 +552,7 @@ namespace libtorrent
 			char* async_allocate_disk_buffer(char const* category
 				, boost::function<void(char*)> const& handler);
 			void reclaim_block(block_cache_reference ref);
-	
+
 			bool exceeded_cache_use() const
 			{ return m_disk_thread.exceeded_cache_use(); }
 
@@ -576,8 +564,10 @@ namespace libtorrent
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE;
 			virtual void outgoing_get_peers(sha1_hash const& target
 				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
-			virtual void log(libtorrent::dht::dht_logger::dht_module_t m, char const* fmt, ...)
+			virtual void log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 				TORRENT_OVERRIDE TORRENT_FORMAT(3,4);
+			virtual void log_message(message_direction_t dir, char const* pkt, int len
+				, char const* fmt, ...) TORRENT_OVERRIDE TORRENT_FORMAT(5, 6);
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
@@ -611,13 +601,14 @@ namespace libtorrent
 			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
 			void inc_boost_connections() { ++m_boost_connections; }
 
-//		private:
+		private:
 
 			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
 
 			peer_class_pool m_classes;
 
-//		private:
+			// TODO: 2 fix this
+		public:
 
 			void submit_disk_jobs();
 
@@ -649,7 +640,7 @@ namespace libtorrent
 			void update_peer_fingerprint();
 
 			void on_trigger_auto_manage();
-			
+
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
 			void update_anonymous_mode();
@@ -762,7 +753,7 @@ namespace libtorrent
 			// shouldn't. Each torrent that's loaded is part of this
 			// list.
 			linked_list m_torrent_lru;
-	
+
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
 
 			// when saving resume data for many torrents, torrents are
@@ -787,8 +778,6 @@ namespace libtorrent
 			// to clear the undead peers
 			boost::optional<io_service::work> m_work;
 
-			typedef std::list<boost::shared_ptr<torrent> > check_queue_t;
-
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
 			// peers.
@@ -799,7 +788,7 @@ namespace libtorrent
 			// the session, all of these are disconnected, otherwise
 			// they would linger and stall or hang session shutdown
 			std::set<boost::shared_ptr<socket_type> > m_incoming_sockets;
-			
+
 			// maps IP ranges to bitfields representing peer class IDs
 			// to assign peers matching a specific IP range based on its
 			// remote endpoint
@@ -813,7 +802,7 @@ namespace libtorrent
 
 			// filters outgoing connections
 			port_filter m_port_filter;
-			
+
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
 
@@ -857,7 +846,7 @@ namespace libtorrent
 			// on this machine
 			tcp::endpoint m_ipv6_interface;
 			tcp::endpoint m_ipv4_interface;
-			
+
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
@@ -891,7 +880,7 @@ namespace libtorrent
 			listen_socket_t setup_listener(std::string const& device
 				, bool ipv4, int port, int& retries, int flags, error_code& ec);
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 			entry m_dht_state;
 #endif
 
@@ -959,8 +948,10 @@ namespace libtorrent
 			void on_tick(error_code const& e);
 
 			void try_connect_more_peers();
+			void auto_manage_checking_torrents(std::vector<torrent*>& list
+				, int& limit);
 			void auto_manage_torrents(std::vector<torrent*>& list
-				, int& checking_limit, int& dht_limit, int& tracker_limit
+				, int& dht_limit, int& tracker_limit
 				, int& lsd_limit, int& hard_limit, int type_limit);
 			void recalculate_auto_managed_torrents();
 			void recalculate_unchoke_slots();
@@ -996,7 +987,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
-			
+
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
 			std::list<udp::endpoint> m_dht_router_nodes;
@@ -1137,10 +1128,17 @@ namespace libtorrent
 
 		private:
 
+			// TODO: 2 the throttling of saving resume data could probably be
+			// factored out into a separate class
+			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
+			void done_async_resume();
+			void async_resume_dispatched();
+
 			// state for keeping track of external IPs
 			external_ip m_external_ip;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			// this is a list to allow extensions to potentially remove themselves.
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 #endif
@@ -1152,14 +1150,14 @@ namespace libtorrent
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one
 			bool m_deferred_submit_disk_jobs;
-			
+
 			// this is set to true when a torrent auto-manage
 			// event is triggered, and reset whenever the message
 			// is delivered and the auto-manage is executed.
 			// there should never be more than a single pending auto-manage
 			// message in-flight at any given time.
 			bool m_pending_auto_manage;
-			
+
 			// this is also set to true when triggering an auto-manage
 			// of the torrents. However, if the normal auto-manage
 			// timer comes along and executes the auto-management,
@@ -1174,7 +1172,7 @@ namespace libtorrent
 
 			// is true if the session is paused
 			bool m_paused;
-			
+
 #ifndef TORRENT_NO_DEPRECATE
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 #endif
@@ -1194,7 +1192,7 @@ namespace libtorrent
 			pthread_t m_network_thread;
 #endif
 		};
-		
+
 #ifndef TORRENT_DISABLE_LOGGING
 		struct tracker_logger : request_callback
 		{

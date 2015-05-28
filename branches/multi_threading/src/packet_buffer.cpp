@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h> // free and calloc
+#include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -157,6 +158,9 @@ namespace libtorrent {
 			new_size <<= 1;
 
 		void** new_storage = (void**)malloc(sizeof(void*) * new_size);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (new_storage == NULL) throw std::bad_alloc();
+#endif
 
 		for (index_type i = 0; i < new_size; ++i)
 			new_storage[i] = 0;

@@ -69,7 +69,6 @@ namespace upnp_errors
 
 static error_code ec;
 
-// TODO: 3 listen_interface is not used. It's meant to bind the broadcast socket
 upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
 	, portmap_callback_t const& cb, log_callback_t const& lcb
@@ -90,6 +89,12 @@ upnp::upnp(io_service& ios
 	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
+
+// TODO: 3 listen_interface is not used. It's meant to bind the broadcast
+// socket. it would probably have to be changed to a vector of interfaces to
+// bind to though, since the broadcast socket opens one socket per local
+// interface by default
+	TORRENT_UNUSED(listen_interface);
 }
 
 void upnp::start(void* state)
@@ -396,12 +401,12 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		}
 		log(msg, l);
 		return;
-	} 
+	}
 
 	bool non_router = false;
 	if (m_ignore_non_routers)
 	{
-		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
+		std::vector<ip_route> routes = enum_routes(ec);
 		if (std::find_if(routes.begin(), routes.end()
 			, boost::bind(&ip_route::gateway, _1) == from.address()) == routes.end())
 		{

@@ -324,7 +324,10 @@ namespace libtorrent
 		, int& produce
 		, int& packet_size)
 	{
+		// these are out-parameters that are not set
 		TORRENT_UNUSED(consume);
+		TORRENT_UNUSED(packet_size);
+
 		if (!m_decrypt) return;
 
 		int bytes_processed = 0;
@@ -338,7 +341,7 @@ namespace libtorrent
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt((unsigned char*)pos, len, &m_rc4_incoming);
+			rc4_encrypt(reinterpret_cast<unsigned char*>(pos), len, &m_rc4_incoming);
 		}
 		buf.clear();
 		produce = bytes_processed;

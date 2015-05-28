@@ -127,8 +127,8 @@ namespace libtorrent {
 			// Enables alerts for port mapping events. For NAT-PMP and UPnP.
 			port_mapping_notification = 0x4,
 
-			// Enables alerts for events related to the storage. File errors and  
-			// synchronization events for moving the storage, renaming files etc. 
+			// Enables alerts for events related to the storage. File errors and
+			// synchronization events for moving the storage, renaming files etc.
 			storage_notification = 0x8,
 
 			// Enables all tracker events. Includes announcing to trackers,
@@ -145,10 +145,10 @@ namespace libtorrent {
 			// pieces are completed.
 			progress_notification = 0x80,
 
-			// Alerts when a peer is blocked by the ip blocker or port blocker.   
+			// Alerts when a peer is blocked by the ip blocker or port blocker.
 			ip_block_notification = 0x100,
 
-			// Alerts when some limit is reached that might limit the download    
+			// Alerts when some limit is reached that might limit the download
 			// or upload rate.
 			performance_warning = 0x200,
 
@@ -163,8 +163,8 @@ namespace libtorrent {
 			stats_notification = 0x800,
 
 #ifndef TORRENT_NO_DEPRECATE
-			// Alerts on RSS related events, like feeds being updated, feed error 
-			// conditions and successful RSS feed updates. Enabling this categoty 
+			// Alerts on RSS related events, like feeds being updated, feed error
+			// conditions and successful RSS feed updates. Enabling this categoty
 			// will make you receive rss_alert alerts.
 			rss_notification = 0x1000,
 #endif
@@ -260,13 +260,20 @@ namespace libtorrent {
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
 		TORRENT_DEPRECATED
-		virtual bool discardable() const { return true; }
+		bool discardable() const { return discardable_impl(); }
 
 		TORRENT_DEPRECATED
 		severity_t severity() const { return warning; }
 
 		// returns a pointer to a copy of the alert.
-		virtual std::auto_ptr<alert> clone() const = 0;
+		TORRENT_DEPRECATED
+		std::auto_ptr<alert> clone() const { return clone_impl(); }
+
+	protected:
+
+		virtual bool discardable_impl() const { return true; }
+
+		virtual std::auto_ptr<alert> clone_impl() const = 0;
 #endif
 
 	private:

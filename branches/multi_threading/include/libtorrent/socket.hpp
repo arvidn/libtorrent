@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/read.hpp>
 #endif
 
-#ifdef __OBJC__ 
+#ifdef __OBJC__
 #undef Protocol
 #endif
 
@@ -110,7 +110,7 @@ namespace libtorrent
 	};
 #endif
 #endif
-	
+
 #ifdef TORRENT_WINDOWS
 
 #ifndef IPV6_PROTECTION_LEVEL

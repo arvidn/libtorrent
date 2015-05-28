@@ -90,7 +90,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 
 	TEST_EQUAL(st.total_wanted, file_size * 2);
 	TEST_EQUAL(st.total_wanted_done, 0);
-	TEST_EQUAL(h.file_priorities().size(), info->num_files());
+	TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
 	if (!st.is_seeding)
 	{
 		TEST_EQUAL(h.file_priorities()[0], 0);
@@ -169,7 +169,7 @@ int test_main()
 		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
-		
+
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], piece.size()).final();
 		int num = t.num_pieces();
@@ -229,7 +229,7 @@ int test_main()
 			initialize_file_progress(fp, picker, fs);
 
 			boost::uint64_t sum = 0;
-			for (int i = 0; i < fp.size(); ++i)
+			for (int i = 0; i < int(fp.size()); ++i)
 				sum += fp[i];
 
 			TEST_EQUAL(sum, fs.piece_size(idx));
@@ -261,7 +261,7 @@ int test_main()
 			for (int i = 0; i < fp.size(); ++i)
 				sum += fp[i];
 
-			TEST_EQUAL(sum, fs.piece_size(idx));
+			TEST_EQUAL(int(sum), fs.piece_size(idx));
 		}
 	}
 

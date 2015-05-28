@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dos_blocker.hpp"
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/kademlia/dht_observer.hpp" // for dht_logger
 #endif
@@ -76,7 +76,7 @@ namespace libtorrent { namespace dht
 				{
 					if (match->count == m_message_rate_limit * 10)
 					{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 						logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %f count: %d ]"
 							, print_address(addr).c_str()
 							, total_milliseconds((now - match->limit) + seconds(10)) / 1000.f

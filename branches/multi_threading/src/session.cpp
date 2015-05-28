@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/lazy_entry.hpp"
 
 #ifdef TORRENT_PROFILE_CALLS
 #include <boost/unordered_map.hpp>
@@ -876,7 +877,7 @@ namespace libtorrent
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), data);
 		sha1_hash ret = hasher(&buf[0], buf.size()).final();
-	
+
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL2(dht_put_item, data, ret);
 #endif
@@ -1046,7 +1047,7 @@ namespace libtorrent
 
 		apply_settings(pack);
 	}
-	
+
 	proxy_settings session::i2p_proxy() const
 	{
 		proxy_settings ret;

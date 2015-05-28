@@ -1,17 +1,14 @@
 // builds all boost.asio source as a separate compilation unit
 #include <boost/version.hpp>
 
-#ifndef BOOST_ASIO_SOURCE
-#define BOOST_ASIO_SOURCE
-#endif
-
 #include "libtorrent/config.hpp"
-
-#define TORRENT_HAS_ASIO_DECL x ## BOOST_ASIO_DECL
 
 // only define BOOST_ASIO_DECL if it hasn't already been defined
 // or if it has been defined to an empty string
-#if TORRENT_HAS_ASIO_DECL == x
+#define TORRENT_IS_EMPTY_IMPL(VAL)  VAL ## 1
+#define TORRENT_IS_EMPTY(VAL) TORRENT_IS_EMPTY_IMPL(VAL)
+
+#if !defined BOOST_ASIO_DECL || TORRENT_IS_EMPTY(BOOST_ASIO_DECL) == 1
 #ifdef BOOST_ASIO_DECL
 #undef BOOST_ASIO_DECL
 #endif
@@ -21,6 +18,7 @@
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if BOOST_VERSION >= 104500
+
 #include <boost/asio/impl/src.hpp>
 #elif BOOST_VERSION >= 104400
 #include <boost/asio/impl/src.cpp>

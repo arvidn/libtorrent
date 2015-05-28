@@ -71,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 		accessor, the piece is promoted into LRU2. which holds pieces that are
 		more frequently used, and more important to keep around as this LRU list
 		takes churn.
-	
+
 	read_lru1_ghost
 		This is a list of pieces that were least recently evicted from read_lru1.
 		These pieces don't hold any actual blocks in the cache, they are just
@@ -358,7 +358,7 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(j->buffer == 0);
+	TORRENT_ASSERT(j->buffer.disk_block == 0);
 
 #if TORRENT_USE_ASSERTS
 	// we're not allowed to add dirty blocks
@@ -650,7 +650,7 @@ void block_cache::mark_deleted(file_storage const& fs)
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR
-	TORRENT_ASSERT(is_disk_buffer(j->buffer));
+	TORRENT_ASSERT(is_disk_buffer(j->buffer.disk_block));
 #endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -664,7 +664,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 		== m_deleted_storages.end());
 #endif
 
-	TORRENT_ASSERT(j->buffer);
+	TORRENT_ASSERT(j->buffer.disk_block);
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size + 1 <= in_use());
 
 	cached_piece_entry* pe = allocate_piece(j, cached_piece_entry::write_lru);
@@ -694,26 +694,26 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	cached_block_entry& b = pe->blocks[block];
 
-	TORRENT_PIECE_ASSERT(b.buf != j->buffer, pe);
+	TORRENT_PIECE_ASSERT(b.buf != j->buffer.disk_block, pe);
 
 	// we might have a left-over read block from
 	// hash checking
 	// we might also have a previous dirty block which
 	// we're still waiting for to be written
-	if (b.buf != 0 && b.buf != j->buffer)
+	if (b.buf != 0 && b.buf != j->buffer.disk_block)
 	{
 		TORRENT_PIECE_ASSERT(b.refcount == 0 && !b.pending, pe);
 		free_block(pe, block);
 		TORRENT_PIECE_ASSERT(b.dirty == 0, pe);
 	}
 
-	b.buf = j->buffer;
+	b.buf = j->buffer.disk_block;
 
 	b.dirty = true;
 	++pe->num_blocks;
 	++pe->num_dirty;
 	++m_write_cache_size;
-	j->buffer = 0;
+	j->buffer.disk_block = 0;
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	TORRENT_PIECE_ASSERT(j->flags & disk_io_job::in_progress, pe);
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
@@ -1240,6 +1240,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			if (flags & blocks_inc_refcount)
 			{
 				bool ret = inc_block_refcount(pe, block, ref_reading);
+				TORRENT_UNUSED(ret); // suppress warning
 				TORRENT_ASSERT(ret);
 			}
 			else
@@ -1698,7 +1699,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	INVARIANT_CHECK;
 	TORRENT_UNUSED(expect_no_fail);
 
-	TORRENT_PIECE_ASSERT(j->buffer == 0, pe);
+	TORRENT_PIECE_ASSERT(j->buffer.disk_block == 0, pe);
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 	// copy from the cache and update the last use timestamp
@@ -1710,7 +1711,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
 	const int start_block = block;
 
-#ifdef TORRENT_DEBUG	
+#if TORRENT_USE_ASSERTS
 	int piece_size = j->storage->files()->piece_size(j->piece);
 	int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
@@ -1741,7 +1742,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 		j->d.io.ref.storage = j->storage.get();
 		j->d.io.ref.piece = pe->piece;
 		j->d.io.ref.block = start_block;
-		j->buffer = bl.buf + (j->d.io.offset & (block_size()-1));
+		j->buffer.disk_block = bl.buf + (j->d.io.offset & (block_size()-1));
 		++m_send_buffer_blocks;
 		return j->d.io.buffer_size;
 	}
@@ -1754,15 +1755,15 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 		return -1;
 	}
 
-	j->buffer = allocate_buffer("send buffer");
-	if (j->buffer == 0) return -2;
+	j->buffer.disk_block = allocate_buffer("send buffer");
+	if (j->buffer.disk_block == 0) return -2;
 
 	while (size > 0)
 	{
 		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
 		int to_copy = (std::min)(block_size()
 			- block_offset, size);
-		std::memcpy(j->buffer + buffer_offset
+		std::memcpy(j->buffer.disk_block + buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, to_copy);
 		size -= to_copy;
@@ -1810,6 +1811,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 
 	tailqueue jobs;
 	bool removed = evict_piece(pe, jobs);
+	TORRENT_UNUSED(removed); // suppress warning
 	TORRENT_PIECE_ASSERT(removed, pe);
 	TORRENT_PIECE_ASSERT(jobs.empty(), pe);
 

@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 char const* pe_policy(boost::uint8_t policy)
 {
 	using namespace libtorrent;
-	
+
 	if (policy == settings_pack::pe_disabled) return "disabled";
 	else if (policy == settings_pack::pe_enabled) return "enabled";
 	else if (policy == settings_pack::pe_forced) return "forced";
@@ -56,11 +56,11 @@ char const* pe_policy(boost::uint8_t policy)
 void display_settings(libtorrent::settings_pack const& s)
 {
 	using namespace libtorrent;
-	
+
 	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
 		, pe_policy(s.get_int(settings_pack::out_enc_policy))
 		, pe_policy(s.get_int(settings_pack::in_enc_policy)));
-	
+
 	fprintf(stderr, "enc_level - %s\t\tprefer_rc4 - %s\n"
 		, s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_plaintext ? "plaintext"
 		: s.get_int(settings_pack::allowed_enc_level) == settings_pack::pe_rc4 ? "rc4"
@@ -85,7 +85,7 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
 	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	settings_pack s;
-	
+
 	s.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);
 	s.set_int(settings_pack::in_enc_policy, settings_pack::pe_enabled);
 	s.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
@@ -108,7 +108,7 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 
 	using boost::tuples::ignore;
 	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, true
-		, "_pe", 16 * 1024, 0, false, 0, true);	
+		, "_pe", 16 * 1024, 0, false, 0, true);
 
 	fprintf(stderr, "waiting for transfer to complete\n");
 
@@ -123,7 +123,7 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);
- 	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
+	if (tor2.status().is_seeding) fprintf(stderr, "done\n");
 	ses1.remove_torrent(tor1);
 	ses2.remove_torrent(tor2);
 
@@ -146,13 +146,13 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 #endif
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		std::size_t buf_len = rand() % (512 * 1024);
+		int buf_len = rand() % (512 * 1024);
 		char* buf = new char[buf_len];
 		char* cmp_buf = new char[buf_len];
-		
+
 		std::generate(buf, buf + buf_len, &std::rand);
 		std::memcpy(cmp_buf, buf, buf_len);
-		
+
 		using namespace boost::asio;
 		std::vector<mutable_buffer> iovec;
 		iovec.push_back(mutable_buffer(buf, buf_len));
@@ -169,7 +169,7 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 		TEST_EQUAL(consume, 0);
 		TEST_EQUAL(produce, buf_len);
 		TEST_EQUAL(packet_size, 0);
-		
+
 		iovec.push_back(mutable_buffer(buf, buf_len));
 		b->encrypt(iovec);
 		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
@@ -184,7 +184,7 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 		TEST_EQUAL(consume, 0);
 		TEST_EQUAL(produce, buf_len);
 		TEST_EQUAL(packet_size, 0);
-		
+
 		delete[] buf;
 		delete[] cmp_buf;
 	}
@@ -207,10 +207,10 @@ int test_main()
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		dh_key_exchange DH1, DH2;
-		
+
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
-		
+
 		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
 	}
 
@@ -231,7 +231,7 @@ int test_main()
 	rc42.set_incoming_key(&test1_key[0], 20);
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
-	
+
 #ifdef TORRENT_USE_VALGRIND
 	const int timeout = 10;
 #else

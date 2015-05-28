@@ -94,7 +94,7 @@ void test_swarm()
 
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
-	std::map<std::string, boost::uint64_t> cnt = get_counters(ses1);
+	std::map<std::string, boost::int64_t> cnt = get_counters(ses1);
 
 	fprintf(stderr, "allowed_upload_slots: %d\n", int(cnt["ses.num_unchoke_slots"]));
 	TEST_EQUAL(cnt["ses.num_unchoke_slots"], 1);

@@ -2354,7 +2354,7 @@ get_out:
 			= TORRENT_ALLOCA(downloading_piece const*, partials_size);
 		int c = 0;
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		// if we get here, we're about to pick a busy block. First, make sure
 		// we really exhausted the available blocks
 		for (std::vector<downloading_piece>::const_iterator i
@@ -2402,7 +2402,7 @@ get_out:
 			i != end; ++i)
 		{
 			if (c == partials_size) break;
-		
+
 			downloading_piece const& dp = *i;
 			TORRENT_ASSERT(dp.requested > 0);
 			// this peer doesn't have this piece, try again
@@ -2895,7 +2895,7 @@ get_out:
 		if (int(i->finished) + int(i->writing) < max_blocks) return false;
 		TORRENT_ASSERT(int(i->finished) + int(i->writing) == max_blocks);
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 		block_info const* info = blocks_for_piece(*i);
 		for (int k = 0; k < max_blocks; ++k)
 		{

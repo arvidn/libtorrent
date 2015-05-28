@@ -226,7 +226,7 @@ namespace libtorrent
 			}
 			return false;
 		}
-		
+
 		// returns a bit-wise negated copy of the sha1-hash
 		sha1_hash operator~()
 		{
@@ -235,7 +235,7 @@ namespace libtorrent
 				ret.m_number[i] = ~m_number[i];
 			return ret;
 		}
-		
+
 		// returns the bit-wise XOR of the two sha1-hashes.
 		sha1_hash operator^(sha1_hash const& n) const
 		{

@@ -46,9 +46,14 @@ namespace libtorrent { namespace aux
 	// than a system call and can be
 	// used where more accurate time
 	// is not necessary
-	time_point g_current_time;
+	namespace {
+		time_point g_current_time = clock_type::now();
+	}
 
 	time_point const& time_now() { return aux::g_current_time; }
+
+	void update_time_now() { g_current_time = clock_type::now(); }
+
 
 } }
 

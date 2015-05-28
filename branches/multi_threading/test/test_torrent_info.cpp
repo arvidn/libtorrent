@@ -150,13 +150,6 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
 };
 
-namespace libtorrent
-{
-	// defined in torrent_info.cpp
-	TORRENT_EXPORT bool verify_encoding(std::string& target, bool path = true);
-	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& p, char const* element, int len);
-}
-
 // TODO: test remap_files
 // TODO: merkle torrents. specifically torrent_info::add_merkle_nodes and torrent with "root hash"
 // TODO: torrent with 'p' (padfile) attribute
@@ -183,10 +176,8 @@ namespace libtorrent
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 
-int test_torrent_parse()
+void test_sanitize_path()
 {
-	error_code ec;
-
 	// test sanitize_append_path_element
 
 	std::string path;
@@ -227,6 +218,77 @@ int test_torrent_parse()
 #else
 	TEST_EQUAL(path, "a/b/c");
 #endif
+
+	path.clear();
+	sanitize_append_path_element(path, "a...", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a   ", 4);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
+	sanitize_append_path_element(path, "a...b", 5);
+	TEST_EQUAL(path, "a...b");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "..", 2);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a\\c");
+#else
+	TEST_EQUAL(path, "a/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "/..", 3);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+	TEST_EQUAL(path, "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "dev:", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "dev");
+#else
+	TEST_EQUAL(path, "dev:");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, "b", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\b");
+#else
+	TEST_EQUAL(path, "c:/b");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c:/c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\\c", 2);
+	sanitize_append_path_element(path, ".", 1);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c\\c");
+#else
+	TEST_EQUAL(path, "c/c");
+#endif
+
+}
+
+void test_torrent_parse()
+{
+	error_code ec;
 
 	// test torrent parsing
 
@@ -271,7 +333,7 @@ int test_torrent_parse()
 
 	// verify_encoding
 	std::string test = "\b?filename=4";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 #ifdef TORRENT_WINDOWS
 	TEST_CHECK(test == "__filename=4");
 #else
@@ -279,75 +341,75 @@ int test_torrent_parse()
 #endif
 
 	test = "filename=4";
-	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(verify_encoding(test, true));
 	TEST_CHECK(test == "filename=4");
 
 	// valid 2-byte sequence
 	test = "filename\xc2\xa1";
-	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename\xc2\xa1");
 
 	// truncated 2-byte sequence
 	test = "filename\xc2";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_");
 
 	// valid 3-byte sequence
 	test = "filename\xe2\x9f\xb9";
-	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename\xe2\x9f\xb9");
 
 	// truncated 3-byte sequence
 	test = "filename\xe2\x9f";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_");
 
 	// truncated 3-byte sequence
 	test = "filename\xe2";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_");
 
 	// valid 4-byte sequence
 	test = "filename\xf0\x9f\x92\x88";
-	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
 
 	// truncated 4-byte sequence
 	test = "filename\xf0\x9f\x92";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_");
 
 	// 5-byte utf-8 sequence (not allowed)
 	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename_____foobar");
 
 	// redundant (overlong) 2-byte sequence
 	// ascii code 0x2e encoded with a leading 0
 	test = "filename\xc0\xae";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename__");
 
 	// redundant (overlong) 3-byte sequence
 	// ascii code 0x2e encoded with two leading 0s
 	test = "filename\xe0\x80\xae";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename___");
 
 	// redundant (overlong) 4-byte sequence
 	// ascii code 0x2e encoded with three leading 0s
 	test = "filename\xf0\x80\x80\xae";
-	TEST_CHECK(!verify_encoding(test));
+	TEST_CHECK(!verify_encoding(test, true));
 	fprintf(stderr, "%s\n", test.c_str());
 	TEST_CHECK(test == "filename____");
 
@@ -499,8 +561,10 @@ int test_torrent_parse()
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::shared_ptr<torrent_info> ti(new torrent_info(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
-		fprintf(stderr, "E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str(), test_error_torrents[i].error.message().c_str());
+		boost::shared_ptr<torrent_info> ti(new torrent_info(combine_path(
+			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
+		fprintf(stderr, "E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
+			, test_error_torrents[i].error.message().c_str());
 		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
 	}
 
@@ -649,7 +713,6 @@ void test_copy()
 
 		TEST_EQUAL(b->files().hash(i), file_hashes[i]);
 	}
-	
 }
 
 int test_main()
@@ -662,6 +725,7 @@ int test_main()
 	test_mutable_torrents();
 #endif
 	test_torrent_parse();
+	test_sanitize_path();
 
 	return 0;
 }

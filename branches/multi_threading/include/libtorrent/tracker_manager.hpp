@@ -251,7 +251,7 @@ namespace libtorrent
 		io_service& get_io_service() { return m_timeout.get_io_service(); }
 
 	private:
-	
+
 		void timeout_callback(error_code const&);
 
 		int m_completion_timeout;
@@ -268,7 +268,7 @@ namespace libtorrent
 
 		// the asio async operation
 		deadline_timer m_timeout;
-		
+
 		int m_read_timeout;
 
 		bool m_abort;
@@ -338,7 +338,7 @@ namespace libtorrent
 			, aux::session_logger& ses
 #endif
 			);
-		~tracker_manager();
+		virtual ~tracker_manager();
 
 		void queue_request(
 			io_service& ios
@@ -355,13 +355,13 @@ namespace libtorrent
 		void received_bytes(int bytes);
 
 		virtual bool incoming_packet(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size);
+			, char const* buf, int size) TORRENT_OVERRIDE;
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
 		virtual bool incoming_packet(error_code const& e, char const* hostname
-			, char const* buf, int size);
-		
+			, char const* buf, int size) TORRENT_OVERRIDE;
+
 		void update_transaction_id(
 			boost::shared_ptr<udp_tracker_connection> c
 			, boost::uint64_t tid);

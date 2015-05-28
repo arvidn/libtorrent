@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 #define TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/optional.hpp>
@@ -41,21 +43,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/config.hpp"
 
 namespace libtorrent
 {
 
+	// these functions don't really need to be public. This mechanism of
+	// advertising client software and version is also out-dated.
+
 	// This function can can be used to extract a string describing a client
 	// version from its peer-id. It will recognize most clients that have this
 	// kind of identification in the peer-id.
-	TORRENT_EXPORT std::string identify_client(const peer_id& p);
+	TORRENT_DEPRECATED_EXPORT std::string identify_client(const peer_id& p)
+		TORRENT_DEPRECATED;
 
 	// Returns an optional fingerprint if any can be identified from the peer
 	// id. This can be used to automate the identification of clients. It will
 	// not be able to identify peers with non- standard encodings. Only Azureus
 	// style, Shadow's style and Mainline style.
-	TORRENT_EXPORT boost::optional<fingerprint> client_fingerprint(peer_id const& p);
+	TORRENT_DEPRECATED_EXPORT boost::optional<fingerprint>
+		client_fingerprint(peer_id const& p) TORRENT_DEPRECATED;
 
 }
 

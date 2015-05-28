@@ -123,7 +123,7 @@ void nop() {}
 	wj.d.io.offset = b * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
 	wj.piece = p; \
-	wj.buffer = bc.allocate_buffer("write-test"); \
+	wj.buffer.disk_block = bc.allocate_buffer("write-test"); \
 	pe = bc.add_dirty_block(&wj)
 
 #define READ_BLOCK(p, b, r) \
@@ -133,12 +133,12 @@ void nop() {}
 	rj.piece = p; \
 	rj.storage = pm; \
 	rj.requester = (void*)r; \
-	rj.buffer = 0; \
+	rj.buffer.disk_block = 0; \
 	ret = bc.try_read(&rj)
 
 #define RETURN_BUFFER \
 	if (rj.d.io.ref.storage) bc.reclaim_block(rj.d.io.ref); \
-	else if (rj.buffer) bc.free_buffer(rj.buffer); \
+	else if (rj.buffer.disk_block) bc.free_buffer(rj.buffer.disk_block); \
 	rj.d.io.ref.storage = 0
 
 #define FLUSH(flushing) \
@@ -436,7 +436,7 @@ void test_unaligned_read()
 	rj.piece = 0;
 	rj.storage = pm;
 	rj.requester = (void*)1;
-	rj.buffer = 0;
+	rj.buffer.disk_block = 0;
 	ret = bc.try_read(&rj);
 
 	// unaligned reads copies the data into a new buffer

@@ -1308,7 +1308,7 @@ namespace libtorrent
 			// large number of torrents at once, they will queue up.
 			checking_resume_data
 		};
-		
+
 		// may be set to an error message describing why the torrent
 		// was paused, in case it was paused by an error. If the torrent
 		// is not paused or if it's paused but not because of an error,

@@ -50,9 +50,9 @@ void get_peers_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+#ifndef TORRENT_DISABLE_LOGGING
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -68,19 +68,19 @@ void get_peers_observer::reply(msg const& m)
 			char const* peers = n.list_at(0).string_ptr();
 			char const* end = peers + n.list_at(0).string_length();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
-				m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] PEERS "
+				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, m_algorithm.get()
-					, m_algorithm->invoke_count()
-					, m_algorithm->branch_factor()
+					, algorithm()
+					, algorithm()->invoke_count()
+					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
-					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
-					, (end - peers) / 6);
+					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+					, int((end - peers) / 6));
 			}
 #endif
 			while (end - peers >= 6)
@@ -90,23 +90,23 @@ void get_peers_observer::reply(msg const& m)
 		{
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
-				m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] PEERS "
+				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, m_algorithm.get()
-					, m_algorithm->invoke_count()
-					, m_algorithm->branch_factor()
+					, algorithm()
+					, algorithm()->invoke_count()
+					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
 					, to_hex(id.string_value()).c_str()
-					, distance_exp(m_algorithm->target(), node_id(id.string_ptr()))
-					, n.list_size());
+					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+					, int(n.list_size()));
 			}
 #endif
 		}
-		static_cast<get_peers*>(m_algorithm.get())->got_peers(peer_list);
+		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
 	}
 
 	find_data_observer::reply(m);
@@ -276,7 +276,7 @@ void obfuscated_get_peers::done()
 	m_data_callback.clear();
 	m_nodes_callback.clear();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "
 			"phase 1 done, spawning get_peers [ %p ]"
 			, this, ta.get());
@@ -307,9 +307,9 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, m_algorithm.get());
+#ifndef TORRENT_DISABLE_LOGGING
+		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
+			, algorithm());
 #endif
 		return;
 	}
@@ -317,9 +317,9 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	bdecode_node id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_algorithm->get_node().observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, m_algorithm.get());
+#ifndef TORRENT_DISABLE_LOGGING
+		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
+			, algorithm());
 #endif
 		return;
 	}

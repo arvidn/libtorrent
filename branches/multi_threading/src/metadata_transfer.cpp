@@ -81,14 +81,14 @@ namespace libtorrent { namespace
 		int size = (offset.first + offset.second) * 256 / total_size - start;
 
 		std::pair<int, int> ret(start, size);
-	
+
 		TORRENT_ASSERT(start >= 0);
 		TORRENT_ASSERT(size > 0);
 		TORRENT_ASSERT(start <= 256);
 		TORRENT_ASSERT(start + size <= 256);
 
 		// assert the identity of this function
-#ifndef NDEBUG
+#if TORRENT_USE_ASSERTS
 		std::pair<int, int> identity = req_to_offset(ret, total_size);
 		TORRENT_ASSERT(offset == identity);
 #endif

@@ -30,23 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_AUX_TIME_HPP
-#define TORRENT_AUX_TIME_HPP
+#include "test.hpp"
+#include "libtorrent/identify_client.hpp"
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp"
-#include <string>
-#include <boost/cstdint.hpp>
+using namespace libtorrent;
 
-namespace libtorrent { namespace aux
+int test_main()
 {
-	// returns the current time, as represented by time_point. The
-	// resolution of this timer is about 100 ms.
-	time_point const& time_now();
-
-	void update_time_now();
-
-} }
-
-#endif
+	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
+	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("S123--..............")), "Shadow 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("S\x1\x2\x3....\0...........")), "Shadow 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("M1-2-3--............")), "Mainline 1.2.3");
+	TEST_EQUAL(identify_client(peer_id("\0\0\0\0\0\0\0\0\0\0\0\0........")), "Generic");
+	TEST_EQUAL(identify_client(peer_id("-xx1230-............")), "xx 1.2.3");
+}
 

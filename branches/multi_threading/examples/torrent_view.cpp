@@ -314,7 +314,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		progress_bar_color = col_green;
 
 	pos += snprintf(str + pos, sizeof(str) - pos, "%s%c%-3s %-50s %s%s %s (%s) "
-		"%s (%s) %5d:%-5d %s %s %c%s"
+		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
 		, s.is_loaded ? 'L' : ' '
 		, queue_pos
@@ -328,16 +328,13 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		, s.num_peers - s.num_seeds, s.num_seeds
 		, color(add_suffix(s.all_time_download), col_green).c_str()
 		, color(add_suffix(s.all_time_upload), col_red).c_str()
-		, s.need_save_resume?'S':' ', esc("0"));
+		, s.need_save_resume?'S':' ');
 
 	// if this is the selected torrent, restore the background color
 	if (selected)
 		pos += snprintf(str + pos, sizeof(str) - pos, "%s", esc("0"));
 
 	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
-
-	if (m_width + 1 < int(sizeof(str)))
-		str[m_width + 1] = '\0';
 
 	print(str);
 }

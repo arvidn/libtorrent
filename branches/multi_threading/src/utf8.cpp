@@ -50,6 +50,9 @@ namespace libtorrent
 				, UTF8 const* src_end
 				, std::wstring& wide)
 			{
+				TORRENT_UNUSED(src_start);
+				TORRENT_UNUSED(src_end);
+				TORRENT_UNUSED(wide);
 				return source_illegal;
 			}
 		};
@@ -62,13 +65,15 @@ namespace libtorrent
 				, char const* src_end
 				, std::wstring& wide)
 			{
-				wchar_t const* dst_start = wide.c_str();
-				int ret = ConvertUTF8toUTF32((UTF8 const**)src_start
-					, (UTF8 const*)src_end
-					, (UTF32**)&dst_start, (UTF32*)dst_start + wide.size()
+				wchar_t* dst_start = &wide[0];
+				int ret = ConvertUTF8toUTF32(
+					reinterpret_cast<UTF8 const**>(src_start)
+					, reinterpret_cast<UTF8 const*>(src_end)
+					, reinterpret_cast<UTF32**>(&dst_start)
+					, reinterpret_cast<UTF32*>(dst_start + wide.size())
 					, lenientConversion);
 				wide.resize(dst_start - wide.c_str());
-				return (utf8_conv_result_t)ret;
+				return static_cast<utf8_conv_result_t>(ret);
 			}
 		};
 
@@ -80,13 +85,15 @@ namespace libtorrent
 				, char const* src_end
 				, std::wstring& wide)
 			{
-				wchar_t const* dst_start = wide.c_str();
-				int ret = ConvertUTF8toUTF16((UTF8 const**)src_start
-					, (UTF8 const*)src_end
-					, (UTF16**)&dst_start, (UTF16*)dst_start + wide.size()
+				wchar_t* dst_start = &wide[0];
+				int ret = ConvertUTF8toUTF16(
+					reinterpret_cast<UTF8 const**>(src_start)
+					, reinterpret_cast<UTF8 const*>(src_end)
+					, reinterpret_cast<UTF16**>(&dst_start)
+					, reinterpret_cast<UTF16*>(dst_start + wide.size())
 					, lenientConversion);
 				wide.resize(dst_start - wide.c_str());
-				return (utf8_conv_result_t)ret;
+				return static_cast<utf8_conv_result_t>(ret);
 			}
 		};
 
@@ -98,6 +105,9 @@ namespace libtorrent
 				, wchar_t const* src_end
 				, std::string& utf8)
 			{
+				TORRENT_UNUSED(src_start);
+				TORRENT_UNUSED(src_end);
+				TORRENT_UNUSED(utf8);
 				return source_illegal;
 			}
 		};
@@ -110,13 +120,15 @@ namespace libtorrent
 				, wchar_t const* src_end
 				, std::string& utf8)
 			{
-				char const* dst_start = utf8.c_str();
-				int ret = ConvertUTF32toUTF8((UTF32 const**)src_start
-					, (UTF32 const*)src_end, (UTF8**)&dst_start
-					, (UTF8*)dst_start + utf8.size()
+				char* dst_start = &utf8[0];
+				int ret = ConvertUTF32toUTF8(
+					reinterpret_cast<UTF32 const**>(src_start)
+					, reinterpret_cast<UTF32 const*>(src_end)
+					, reinterpret_cast<UTF8**>(&dst_start)
+					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
 					, lenientConversion);
 				utf8.resize(dst_start - &utf8[0]);
-				return (utf8_conv_result_t)ret;
+				return static_cast<utf8_conv_result_t>(ret);
 			}
 		};
 
@@ -128,13 +140,15 @@ namespace libtorrent
 				, wchar_t const* src_end
 				, std::string& utf8)
 			{
-				char const* dst_start = utf8.c_str();
-				int ret = ConvertUTF16toUTF8((UTF16 const**)src_start
-					, (UTF16 const*)src_end, (UTF8**)&dst_start
-					, (UTF8*)dst_start + utf8.size()
+				char* dst_start = &utf8[0];
+				int ret = ConvertUTF16toUTF8(
+					reinterpret_cast<UTF16 const**>(src_start)
+					, reinterpret_cast<UTF16 const*>(src_end)
+					, reinterpret_cast<UTF8**>(&dst_start)
+					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
 					, lenientConversion);
 				utf8.resize(dst_start - &utf8[0]);
-				return (utf8_conv_result_t)ret;
+				return static_cast<utf8_conv_result_t>(ret);
 			}
 		};
 	} // anonymous namespace
@@ -143,7 +157,6 @@ namespace libtorrent
 	{
 		// allocate space for worst-case
 		wide.resize(utf8.size());
-		wchar_t const* dst_start = wide.c_str();
 		char const* src_start = utf8.c_str();
 		return convert_to_wide<sizeof(wchar_t)>::convert(
 			&src_start, src_start + utf8.size(), wide);
@@ -154,7 +167,6 @@ namespace libtorrent
 		// allocate space for worst-case
 		utf8.resize(wide.size() * 6);
 		if (wide.empty()) return conversion_ok;
-		char* dst_start = &utf8[0];
 		wchar_t const* src_start = wide.c_str();
 		return convert_from_wide<sizeof(wchar_t)>::convert(
 			&src_start, src_start + wide.size(), utf8);

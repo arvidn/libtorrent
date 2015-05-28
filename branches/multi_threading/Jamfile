@@ -247,7 +247,11 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-documentation-unknown-command ;
 		result += <cflags>-Wno-disabled-macro-expansion ;
 
-# enable these warnings again, once the other ones are dealt with
+# in C++98 mode there's no way to silence this warning
+# in the code (without final)
+		result += <cflags>-Wno-non-virtual-dtor ;
+
+# enable these warnings again, once the other ones are delt with
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-compare ;
 		result += <cflags>-Wno-sign-conversion ;
@@ -450,9 +454,8 @@ feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
 feature logging : on off : composite propagated link-incompatible ;
 feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
 
-feature dht : on off logging : composite propagated link-incompatible ;
+feature dht : on off : composite propagated link-incompatible ;
 feature.compose <dht>off : <define>TORRENT_DISABLE_DHT ;
-feature.compose <dht>logging : <define>TORRENT_DHT_VERBOSE_LOGGING ;
 
 feature encryption : on off : composite propagated link-incompatible ;
 feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
@@ -505,7 +508,7 @@ variant test_release
 	;
 variant test_debug : debug
 	: <crypto>openssl <logging>on <disk-stats>on
-	  <dht>logging <allocator>debug <debug-iterators>on
+	  <allocator>debug <debug-iterators>on
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <boost>source <threading>multi
 	;
@@ -714,7 +717,7 @@ ED25519_SOURCES =
 	verify
 	;
 
-local usage-requirements = 
+local usage-requirements =
 	<include>./include
 	<include>./include/libtorrent
 	<include>/usr/sfw/include
@@ -768,10 +771,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>logging:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
-	<dht>logging:<source>ed25519/src/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
 	<conditional>@warnings
@@ -795,10 +795,10 @@ lib torrent
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
 package.install install
- : <install-source-root>libtorrent
-   <install-no-version-symlinks>on
- :
- : torrent
- : $(headers)
- ;
+	: <install-source-root>libtorrent
+	<install-no-version-symlinks>on
+	:
+	: torrent
+	: $(headers)
+	;
 

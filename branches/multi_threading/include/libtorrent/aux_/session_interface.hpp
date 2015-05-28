@@ -39,12 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
-#ifndef TORRENT_DISABLE_DHT	
+#ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/socket.hpp"
 #endif
 
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -286,7 +285,7 @@ namespace libtorrent { namespace aux
 		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
 		virtual void sent_syn(bool ipv6) = 0;
 		virtual void received_synack(bool ipv6) = 0;
-		
+
 		virtual int peak_up_rate() const = 0;
 
 		enum torrent_list_index
@@ -308,6 +307,15 @@ namespace libtorrent { namespace aux
 			// torrents that want auto-scrape (only paused auto-managed ones)
 			torrent_want_scrape,
 
+			// auto-managed torrents by state. Only these torrents are considered
+			// when recalculating auto-managed torrents. started auto managed
+			// torrents that are inactive are not part of these lists, because they
+			// are not considered for auto managing (they are left started
+			// unconditionallty)
+			torrent_downloading_auto_managed,
+			torrent_seeding_auto_managed,
+			torrent_checking_auto_managed,
+
 			// all torrents that have resume data to save
 //			torrent_want_save_resume,
 
@@ -326,7 +334,7 @@ namespace libtorrent { namespace aux
 #ifdef TORRENT_USE_OPENSSL
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
-	
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;

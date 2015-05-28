@@ -62,7 +62,7 @@ namespace libtorrent
 
 		if (!m_alerts[m_generation].empty())
 			return m_alerts[m_generation].front();
-		
+
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
 		if (!m_alerts[m_generation].empty())

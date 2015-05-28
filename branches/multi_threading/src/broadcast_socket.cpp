@@ -242,13 +242,14 @@ namespace libtorrent
 		&& !defined TORRENT_MINGW
 
 			if (i->interface_address.is_v6() &&
-			    i->interface_address.to_v6().is_link_local()) {
+				i->interface_address.to_v6().is_link_local())
+			{
 				address_v6 addr6 = i->interface_address.to_v6();
 				addr6.scope_id(if_nametoindex(i->name));
 				open_multicast_socket(ios, addr6, loopback, ec);
 
-				address_v4 const& mask = i->netmask.is_v4() ?
-				    i->netmask.to_v4() : address_v4();
+				address_v4 const& mask = i->netmask.is_v4()
+					? i->netmask.to_v4() : address_v4();
 				open_unicast_socket(ios, addr6, mask);
 				continue;
 			}
@@ -324,11 +325,13 @@ namespace libtorrent
 
 	void broadcast_socket::send(char const* buffer, int size, error_code& ec, int flags)
 	{
+		bool all_fail = true;
+		error_code e;
+
 		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
 			, end(m_unicast_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
@@ -337,17 +340,14 @@ namespace libtorrent
 				i->socket->send_to(asio::buffer(buffer, size)
 					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
-#ifdef TORRENT_DEBUG
-//			fprintf(stderr, " sending on unicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
-//				, print_endpoint(m_multicast_endpoint).c_str());
-#endif
 			if (e)
 			{
-#ifdef TORRENT_DEBUG
-//				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
-#endif
 				i->socket->close(e);
 				i->socket.reset();
+			}
+			else
+			{
+				all_fail = false;
 			}
 		}
 
@@ -355,23 +355,19 @@ namespace libtorrent
 			, end(m_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			error_code e;
 			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
-#ifdef TORRENT_DEBUG
-//			extern std::string print_address(address const& addr);
-//			extern std::string print_endpoint(udp::endpoint const& ep);
-//			fprintf(stderr, " sending on multicast %s to: %s\n", print_address(i->socket->local_endpoint().address()).c_str()
-//				, print_endpoint(m_multicast_endpoint).c_str());
-#endif
 			if (e)
 			{
-#ifdef TORRENT_DEBUG
-//				fprintf(stderr, " ERROR: %s\n", e.message().c_str());
-#endif
 				i->socket->close(e);
 				i->socket.reset();
 			}
+			else
+			{
+				all_fail = false;
+			}
 		}
+
+		if (all_fail) ec = e;
 	}
 
 	void broadcast_socket::on_receive(socket_entry* s, error_code const& ec

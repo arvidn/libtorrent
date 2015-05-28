@@ -124,7 +124,8 @@ struct set_keypress
 		tcgetattr(0,&stored_settings);
 		new_settings = stored_settings;
 		// Disable canonical mode, and set buffer size to 1 byte
-		new_settings.c_lflag &= (~ICANON);
+		// and disable echo
+		new_settings.c_lflag &= ~(ICANON | ECHO);
 		new_settings.c_cc[VTIME] = 0;
 		new_settings.c_cc[VMIN] = 1;
 		tcsetattr(0,TCSANOW,&new_settings);
@@ -135,9 +136,6 @@ struct set_keypress
 
 bool sleep_and_input(int* c, int sleep)
 {
-	// sets the terminal to single-character mode
-	// and resets when destructed
-	set_keypress s;
 	libtorrent::time_point start = libtorrent::clock_type::now();
 	int ret = 0;
 retry:
@@ -1204,6 +1202,12 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 int main(int argc, char* argv[])
 {
+#ifndef _WIN32
+	// sets the terminal to single-character mode
+	// and resets when destructed
+	set_keypress s;
+#endif
+
 	if (argc == 1)
 	{
 		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"

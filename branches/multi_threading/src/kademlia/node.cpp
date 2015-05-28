@@ -124,9 +124,12 @@ bool node::verify_token(std::string const& token, char const* info_hash
 {
 	if (token.length() != 4)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		m_observer->log(dht_logger::node, "token of incorrect length: %d"
-			, token.length());
+#ifndef TORRENT_DISABLE_LOGGING
+		if (m_observer)
+		{
+			m_observer->log(dht_logger::node, "token of incorrect length: %d"
+				, int(token.length()));
+		}
 #endif
 		return false;
 	}
@@ -138,11 +141,11 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	h1.update(&address[0], address.length());
 	h1.update((char*)&m_secret[0], sizeof(m_secret[0]));
 	h1.update((char*)info_hash, sha1_hash::size);
-	
+
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), (char*)&h[0]))
 		return true;
-		
+
 	hasher h2;
 	h2.update(&address[0], address.length());
 	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
@@ -180,24 +183,25 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
 	m_last_self_refresh = aux::time_now();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	int count = 0;
 #endif
 
 	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
 		, end(nodes.end()); i != end; ++i)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
 		r->add_entry(node_id(0), *i, observer::flag_initial);
 	}
-	
+
 	// make us start as far away from our node ID as possible
 	r->trim_seed_nodes();
 
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+		m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);
 #endif
 	r->start();
 }
@@ -282,9 +286,9 @@ void node::incoming(msg const& m)
 		}
 		case 'e':
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 			bdecode_node err = m.message.dict_find_list("e");
-			if (err && err.list_size() >= 2)
+			if (err && err.list_size() >= 2 && m_observer)
 			{
 				m_observer->log(dht_logger::node, "INCOMING ERROR: %s"
 					, err.list_string_value_at(1).c_str());
@@ -302,14 +306,17 @@ namespace
 	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		char hex_ih[41];
-		to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
-		node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
-			" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
+#ifndef TORRENT_DISABLE_LOGGING
+		if (node.observer())
+		{
+			char hex_ih[41];
+			to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
+			node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
+				" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
+		}
 #endif
 
-		// create a dummy traversal_algorithm		
+		// create a dummy traversal_algorithm
 		boost::intrusive_ptr<traversal_algorithm> algo(
 			new traversal_algorithm(node, (node_id::min)()));
 
@@ -317,9 +324,12 @@ namespace
 		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			node.observer()->log(dht_logger::node, "announce-distance: %d"
-				, (160 - distance_exp(ih, i->first.id)));
+#ifndef TORRENT_DISABLE_LOGGING
+			if (node.observer())
+			{
+				node.observer()->log(dht_logger::node, "announce-distance: %d"
+					, (160 - distance_exp(ih, i->first.id)));
+			}
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
@@ -345,9 +355,12 @@ namespace
 
 void node::add_router_node(udp::endpoint router)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	m_observer->log(dht_logger::node, "adding router node: %s"
-		, print_endpoint(router).c_str());
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		m_observer->log(dht_logger::node, "adding router node: %s"
+			, print_endpoint(router).c_str());
+	}
 #endif
 	m_table.add_router_node(router);
 }
@@ -362,11 +375,14 @@ void node::add_node(udp::endpoint node)
 void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	char hex_ih[41];
-	to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
-	m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
-		, hex_ih, listen_port);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		char hex_ih[41];
+		to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
+		m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
+			, hex_ih, listen_port);
+	}
 #endif
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
@@ -391,11 +407,14 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 void node::get_item(sha1_hash const& target
 	, boost::function<bool(item&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	char hex_target[41];
-	to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
-	m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
-		, hex_target);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		char hex_target[41];
+		to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
+			, hex_target);
+	}
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
@@ -406,10 +425,13 @@ void node::get_item(sha1_hash const& target
 void node::get_item(char const* pk, std::string const& salt
 	, boost::function<bool(item&)> f)
 {
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-	char hex_key[65];
-	to_hex(pk, 32, hex_key);
-	m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		char hex_key[65];
+		to_hex(pk, 32, hex_key);
+		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+	}
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
@@ -433,10 +455,13 @@ struct ping_observer : observer
 		bdecode_node r = m.message.dict_find_dict("r");
 		if (!r)
 		{
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-			m_algorithm->get_node().observer()->log(dht_logger::node
-				, "[%p] missing response dict"
-				, m_algorithm.get());
+#ifndef TORRENT_DISABLE_LOGGING
+			if (get_observer())
+			{
+				get_observer()->log(dht_logger::node
+					, "[%p] missing response dict"
+					, algorithm());
+			}
 #endif
 			return;
 		}
@@ -453,7 +478,7 @@ struct ping_observer : observer
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());
 				nodes += 20;
-				m_algorithm.get()->get_node().m_table.heard_about(id
+				algorithm()->get_node().m_table.heard_about(id
 					, detail::read_v4_endpoint<udp::endpoint>(nodes));
 			}
 		}
@@ -506,7 +531,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	node_id target = generate_secret_id() & ~mask;
 	target |= m_id & mask;
 
-	// create a dummy traversal_algorithm		
+	// create a dummy traversal_algorithm
 	// this is unfortunately necessary for the observer
 	// to free itself from the pool when it's being released
 	boost::intrusive_ptr<traversal_algorithm> algo(
@@ -899,8 +924,8 @@ void node::incoming_request(msg const& m, entry& e)
 		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
 		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
 		lookup_peers(info_hash, reply, noseed, scrape);
-#ifdef TORRENT_DHT_VERBOSE_LOGGING
-		if (reply.find_key("values"))
+#ifndef TORRENT_DISABLE_LOGGING
+		if (reply.find_key("values") && m_observer)
 		{
 			m_observer->log(dht_logger::node, "values: %d"
 				, int(reply["values"].list().size()));
