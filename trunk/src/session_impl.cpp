@@ -425,9 +425,6 @@ namespace aux {
 		, m_need_auto_manage(false)
 		, m_abort(false)
 		, m_paused(false)
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-		, m_network_thread(0)
-#endif
 	{
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
@@ -448,6 +445,10 @@ namespace aux {
 		TORRENT_ASSERT_VAL(!ec, ec);
 	}
 
+	// This function is called by the creating thread, not in the message loop's
+	// / io_service thread.
+	// TODO: 2 is there a reason not to move all of this into init()? and just
+	// post it to the io_service?
 	void session_impl::start_session(settings_pack const& pack)
 	{
 		m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
@@ -546,7 +547,7 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		settings_pack* copy = new settings_pack(pack);
+		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(pack);
 		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
 		// call update_* after settings set initialized
 		m_io_service.post(boost::bind(&session_impl::init_settings, this));
@@ -806,7 +807,7 @@ namespace aux {
 		settings = e->dict_find_dict("settings");
 		if (settings)
 		{
-			settings_pack* pack = load_pack_from_dict(settings);
+			boost::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
 			apply_settings_pack(pack);
 		}
 
@@ -1520,22 +1521,24 @@ namespace aux {
 		return ret;
 	}
 
-	// session_impl is responsible for deleting 'pack', but it
-	// will pass it on to the disk io thread, which will take
-	// over ownership of it
-	void session_impl::apply_settings_pack(settings_pack* pack)
+	// session_impl is responsible for deleting 'pack'
+	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
+	{
+		apply_settings_pack_impl(*pack);
+	}
+
+	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool reopen_listen_port =
-			(pack->has_val(settings_pack::ssl_listen)
-				&& pack->get_int(settings_pack::ssl_listen)
+			(pack.has_val(settings_pack::ssl_listen)
+				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
-			|| (pack->has_val(settings_pack::listen_interfaces)
-				&& pack->get_str(settings_pack::listen_interfaces)
+			|| (pack.has_val(settings_pack::listen_interfaces)
+				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
-		apply_pack(pack, m_settings, this);
-		m_disk_thread.set_settings(pack, m_alerts);
-		delete pack;
+		apply_pack(&pack, m_settings, this);
+		m_disk_thread.set_settings(&pack, m_alerts);
 
 		if (reopen_listen_port)
 		{
@@ -1549,7 +1552,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
-		settings_pack* p = load_pack_from_struct(m_settings, s);
+		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
 		apply_settings_pack(p);
 	}
 
@@ -5696,44 +5699,44 @@ retry:
 
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::local_download_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::local_download_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::download_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::download_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::upload_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::upload_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_max_connections(int limit)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::connections_limit, limit);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::connections_limit, limit);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_max_uploads(int limit)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::unchoke_slots_limit, limit);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::unchoke_slots_limit, limit);
+		apply_settings_pack_impl(p);
 	}
 
 	int session_impl::local_upload_rate_limit() const

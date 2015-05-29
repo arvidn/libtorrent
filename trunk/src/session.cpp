@@ -968,7 +968,7 @@ namespace libtorrent
 
 	void session::apply_settings(settings_pack const& s)
 	{
-		settings_pack* copy = new settings_pack(s);
+		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(s);
 		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
 	}
 
@@ -1209,14 +1209,14 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_lsd, true);
 		apply_settings(p);
 	}
-	
+
 	void session::start_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, true);
 		apply_settings(p);
 	}
-	
+
 	void session::start_upnp()
 	{
 		settings_pack p;
@@ -1230,22 +1230,22 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_lsd, false);
 		apply_settings(p);
 	}
-	
+
 	void session::stop_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, false);
 		apply_settings(p);
 	}
-	
+
 	void session::stop_upnp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_upnp, false);
 		apply_settings(p);
 	}
-#endif
-	
+#endif // TORRENT_NO_DEPRECATED
+
 	int session::add_port_mapping(protocol_type t, int external_port, int local_port)
 	{
 		return TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
@@ -1255,7 +1255,7 @@ namespace libtorrent
 	{
 		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
 	}
-	
+
 #ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
 	{

@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include <vector>
 
+#ifndef TORRENT_NO_DEPRECATE
+#include <boost/smart_ptr.hpp>
+#endif
+
 // OVERVIEW
 // 
 // You have some control over session configuration through the session::apply_settings()
@@ -53,7 +57,7 @@ namespace libtorrent
 	struct settings_pack;
 	struct bdecode_node;
 
-	TORRENT_EXTRA_EXPORT settings_pack* load_pack_from_dict(bdecode_node const& settings);
+	TORRENT_EXTRA_EXPORT boost::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings);
 	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
 
@@ -62,7 +66,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
-	settings_pack* load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
+	boost::shared_ptr<settings_pack> load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
 	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
 #endif
 
@@ -183,7 +187,7 @@ namespace libtorrent
 			// when using a poxy, this is the hostname where the proxy is running
 			// see proxy_type.
 			proxy_hostname,
-			
+
 			// when using a proxy, these are the credentials (if any) to use whne
 			// connecting to it. see proxy_type
 			proxy_username,
