@@ -261,6 +261,12 @@ void bind_session_settings()
         .def_readwrite("max_dht_items", &dht_settings::max_dht_items)
         .def_readwrite("restrict_routing_ips", &dht_settings::restrict_routing_ips)
         .def_readwrite("restrict_search_ips", &dht_settings::restrict_search_ips)
+        .def_readwrite("max_torrent_search_reply", &dht_settings::max_torrent_search_reply)
+        .def_readwrite("extended_routing_table", &dht_settings::extended_routing_table)
+        .def_readwrite("aggressive_lookups", &dht_settings::aggressive_lookups)
+        .def_readwrite("privacy_lookups", &dht_settings::privacy_lookups)
+        .def_readwrite("enforce_node_id", &dht_settings::enforce_node_id)
+        .def_readwrite("ignore_dark_internet", &dht_settings::ignore_dark_internet)
     ;
 #endif
 
