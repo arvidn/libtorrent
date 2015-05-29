@@ -1,3 +1,4 @@
+	* expose missing dht_settings fields to python
 	* add function to query the DHT settings
 	* fix bug in 'dont_count_slow_torrents' feature, which would start too many
 	  torrents
