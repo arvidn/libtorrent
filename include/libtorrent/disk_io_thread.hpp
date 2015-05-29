@@ -290,7 +290,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(settings_pack* sett, alert_manager& alerts);
+		void set_settings(settings_pack const* sett, alert_manager& alerts);
 		void set_num_threads(int i, bool wait = true);
 
 		void async_read(piece_manager* storage, peer_request const& r
@@ -586,7 +586,7 @@ namespace libtorrent
 		// dedicated to do hashing
 		condition_variable m_hash_job_cond;
 		tailqueue m_queued_hash_jobs;
-		
+
 		// used to rate limit disk performance warnings
 		time_point m_last_disk_aio_performance_warning;
 

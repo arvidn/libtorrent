@@ -39,9 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/limits.hpp>
-#ifdef _MSC_VER
-#	include <eh.h>
-#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -50,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/fingerprint.hpp"
-#include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/disk_io_thread.hpp" // for cached_piece_info
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/add_torrent_params.hpp"
@@ -389,7 +386,7 @@ namespace libtorrent
 #endif
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
 		void async_add_torrent(add_torrent_params const& params);
-		
+
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.14

@@ -276,7 +276,8 @@ namespace libtorrent
 			libtorrent::session_settings deprecated_settings() const;
 #endif
 
-			void apply_settings_pack(settings_pack* pack);
+			void apply_settings_pack(boost::shared_ptr<settings_pack> pack);
+			void apply_settings_pack_impl(settings_pack const& pack);
 			session_settings const& settings() const { return m_settings; }
 
 #ifndef TORRENT_DISABLE_DHT
