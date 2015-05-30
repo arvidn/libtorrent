@@ -234,7 +234,7 @@ namespace libtorrent
 			}
 			start(flags, pack);
 		}
-			
+
 		// The destructor of session will notify all trackers that our torrents
 		// have been shut down. If some trackers are down, they will time out.
 		// All this before the destructor of session returns. So, it's advised
@@ -534,8 +534,11 @@ namespace libtorrent
 		// ``is_dht_running()`` returns true if the DHT support has been started
 		// and false
 		// otherwise.
+		// 
+		// ``get_dht_settings()`` returns the current settings
 		void set_dht_settings(dht_settings const& settings);
 		bool is_dht_running() const;
+		dht_settings get_dht_settings() const;
 
 		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
 		// pinged, and if a valid DHT reply is received, the node will be added to
