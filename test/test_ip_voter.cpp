@@ -35,26 +35,41 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/socket_io.hpp"
 #include "setup_transfer.hpp" // for rand_v4
 
 using namespace libtorrent;
 
+bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
+{
+	bool new_ip = ipv.cast_vote(ext_ip, 1, voter);
+	fprintf(stderr, "%15s -> %-15s\n"
+		, print_address(voter).c_str()
+		, print_address(ext_ip).c_str());
+	if (new_ip)
+	{
+		fprintf(stderr, "   \x1b[1mnew external IP: %s\x1b[0m\n"
+			, print_address(ipv.external_address()).c_str());
+	}
+	return new_ip;
+}
+
 // test the case where every time we get a new IP. Make sure
 // we don't flap
-void test_random()
+TORRENT_TEST(ip_voter_test_random)
 {
 	ip_voter ipv;
 
-	bool new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
+	bool new_ip = cast_vote(ipv, rand_v4(), rand_v4());
 	TEST_CHECK(new_ip);
 	for (int i = 0; i < 1000; ++i)
 	{
-		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
+		new_ip = cast_vote(ipv, rand_v4(), rand_v4());
 		TEST_CHECK(!new_ip);
 	}
 }
 
-void test_two_ips()
+TORRENT_TEST(ip_voter_two_ips)
 {
 	ip_voter ipv;
 
@@ -64,58 +79,58 @@ void test_two_ips()
 	// addr1 is the first address we see, which is the one we pick. Even though
 	// we'll have as many votes for addr2, we shouldn't flap, since addr2 never
 	// gets an overwhelming majority.
-	bool new_ip = ipv.cast_vote(addr1, 1, rand_v4());
+	bool new_ip = cast_vote(ipv, addr1, rand_v4());
 	TEST_CHECK(new_ip);
 	for (int i = 0; i < 1000; ++i)
 	{
-		new_ip = ipv.cast_vote(addr2, 1, rand_v4());
+		new_ip = cast_vote(ipv, addr2, rand_v4());
 		TEST_CHECK(!new_ip);
-		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
+		new_ip = cast_vote(ipv, rand_v4(), rand_v4());
 		TEST_CHECK(!new_ip);
-		new_ip = ipv.cast_vote(addr1, 1, rand_v4());
+		new_ip = cast_vote(ipv, addr1, rand_v4());
 		TEST_CHECK(!new_ip);
 
 		TEST_CHECK(ipv.external_address() == addr1);
 	}
 }
 
-void test_one_ip()
+TORRENT_TEST(ip_voter_one_ip)
 {
 	ip_voter ipv;
 
 	address_v4 addr1(address_v4::from_string("51.1.1.1"));
 	address_v4 addr2(address_v4::from_string("53.3.3.3"));
 
-	bool new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
+	bool new_ip = cast_vote(ipv, rand_v4(), rand_v4());
 	TEST_CHECK(new_ip);
-	bool switched_ip = false;
-	for (int i = 0; i < 1000; ++i)
+	TEST_CHECK(ipv.external_address() != addr1);
+	for (int i = 0; i < 30; ++i)
 	{
-		new_ip = ipv.cast_vote(addr2, 1, rand_v4());
-		if (new_ip)
-			fprintf(stderr, "unexpected new IP at iteration: %d\n", i);
-		TEST_CHECK(!new_ip);
-		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
-		TEST_CHECK(!new_ip);
-		new_ip = ipv.cast_vote(addr1, 1, rand_v4());
-		if (new_ip) switched_ip = true;
-		new_ip = ipv.cast_vote(addr1, 1, rand_v4());
-		if (new_ip) switched_ip = true;
+		new_ip = cast_vote(ipv, addr2, rand_v4());
+		if (new_ip) break;
+		new_ip = cast_vote(ipv, rand_v4(), rand_v4());
+		if (new_ip) break;
+		new_ip = cast_vote(ipv, addr1, rand_v4());
+		if (new_ip) break;
+		new_ip = cast_vote(ipv, addr1, rand_v4());
+		if (new_ip) break;
 
-		if (switched_ip)
-		{
-			TEST_CHECK(ipv.external_address() == addr1);
-		}
 	}
-	TEST_CHECK(switched_ip);
-	TEST_CHECK(ipv.external_address() == addr1);
-}
 
-TORRENT_TEST(ip_voter)
-{
-	test_random();
-	test_two_ips();
-	test_one_ip();
-	return 0;
+	TEST_CHECK(ipv.external_address() == addr1);
+
+	for (int i = 0; i < 500; ++i)
+	{
+		new_ip = cast_vote(ipv, addr2, rand_v4());
+		TEST_CHECK(!new_ip);
+		new_ip = cast_vote(ipv, rand_v4(), rand_v4());
+		TEST_CHECK(!new_ip);
+		new_ip = cast_vote(ipv, addr1, rand_v4());
+		TEST_CHECK(!new_ip);
+		new_ip = cast_vote(ipv, addr1, rand_v4());
+		TEST_CHECK(!new_ip);
+	}
+
+	TEST_CHECK(ipv.external_address() == addr1);
 }
 
