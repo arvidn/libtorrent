@@ -1180,12 +1180,14 @@ void print_piece(libtorrent::partial_piece_info* pp
 			else { color = esc("0"); chr = ' '; }
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
+		{
 			snprintf(str, sizeof(str), "%s%c", color, chr);
+			out += str;
+		}
 		else
 			out += chr;
 
 		last_color = color;
-		out += str;
 	}
 	out += esc("0");
 	out += "]";
