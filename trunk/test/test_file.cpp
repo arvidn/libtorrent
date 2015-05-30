@@ -59,7 +59,7 @@ int touch_file(std::string const& filename, int size)
 	return 0;
 }
 
-void test_create_directory()
+TORRENT_TEST(create_directory)
 {
 	error_code ec;
 	create_directory("__foobar__", ec);
@@ -75,7 +75,7 @@ void test_create_directory()
 	TEST_CHECK(!ec);
 }
 
-void test_stat()
+TORRENT_TEST(file_status)
 {
 	error_code ec;
 
@@ -103,11 +103,8 @@ void test_stat()
 	TEST_CHECK(diff >= 2 && diff <= 4);
 }
 
-TORRENT_TEST(file)
+TORRENT_TEST(directory)
 {
-	test_create_directory();
-	test_stat();
-
 	error_code ec;
 
 	create_directory("file_test_dir", ec);
@@ -150,8 +147,11 @@ TORRENT_TEST(file)
 	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
 	remove_all("file_test_dir2", ec);
 	if (ec) fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+}
 
-	// test path functions
+// test path functions
+TORRENT_TEST(paths)
+{
 	TEST_EQUAL(combine_path("test1/", "test2"), "test1/test2");
 	TEST_EQUAL(combine_path("test1", "."), "test1");
 	TEST_EQUAL(combine_path(".", "test1"), "test1");
@@ -242,9 +242,11 @@ TORRENT_TEST(file)
 #endif
 
 	TEST_EQUAL(complete("."), current_working_directory());
+}
 
-	// test split_string
-
+// test split_string
+TORRENT_TEST(split_string)
+{
 	char const* tags[10];
 	char tags_str[] = "  this  is\ta test\t string\x01to be split  and it cannot "
 		"extend over the limit of elements \t";
@@ -274,11 +276,13 @@ TORRENT_TEST(file)
 	test = "1.2.3/_";
 	replace_extension(test, "txt");
 	TEST_EQUAL(test, "1.2.3/_.txt");
+}
 
-
-	// file class
+// file class
+TORRENT_TEST(file)
+{
+	error_code ec;
 	file f;
-	ec.clear();
 #if TORRENT_USE_UNC_PATHS || !defined WIN32
 	TEST_CHECK(f.open("con", file::read_write, ec));
 #else
@@ -302,7 +306,5 @@ TORRENT_TEST(file)
 	TEST_CHECK(!ec);
 	TEST_CHECK(strcmp(test_buf, "test") == 0);
 	f.close();
-
-	return 0;
 }
 

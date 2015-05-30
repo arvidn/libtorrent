@@ -263,11 +263,11 @@ int main(int argc, char const* argv[])
 
 	if (!tests_to_run.empty())
 	{
-		fprintf(stderr, "UNKONWN tests:\n");
+		fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
 		for (std::set<std::string>::iterator i = tests_to_run.begin()
 			, end(tests_to_run.end()); i != end; ++i)
 		{
-			fprintf(stderr, "%s\n", i->c_str());
+			fprintf(stderr, "  %s\n", i->c_str());
 		}
 	}
 

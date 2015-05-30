@@ -224,8 +224,6 @@ int num_udp_announces()
 
 void stop_udp_tracker()
 {
-	fprintf(stderr, "%s: UDP stop_udp_tracker()\n", time_now_string());
 	g_udp_tracker.reset();
-	fprintf(stderr, "%s: UDP stop_udp_tracker() done\n", time_now_string());
 }
 

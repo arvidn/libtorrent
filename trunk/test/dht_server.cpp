@@ -172,8 +172,6 @@ int num_dht_hits()
 
 void stop_dht()
 {
-	fprintf(stderr, "%s: stop_dht()\n", time_now_string());
 	g_dht.reset();
-	fprintf(stderr, "%s: stop_dht() done\n", time_now_string());
 }
 
