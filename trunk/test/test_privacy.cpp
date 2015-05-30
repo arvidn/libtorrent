@@ -268,6 +268,5 @@ TORRENT_TEST(privacy)
 	pr[11] = test_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
 	pr[12] = test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
 	pr[13] = test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
-	return 0;
 }
 

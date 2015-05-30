@@ -129,11 +129,9 @@ TORRENT_TEST(trackers_extension)
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
-
-	return 0;
 }
 
 #else
-TORRENT_TEST(trackers_extension) { return 0; }
+TORRENT_TEST(trackers_extension) { }
 #endif // TORRENT_DISABLE_EXTENSIONS
 

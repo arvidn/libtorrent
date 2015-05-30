@@ -424,8 +424,6 @@ TORRENT_TEST(priority)
 	// we have to clear them, session doesn't really support being destructed
 	// as a global destructor (for silly reasons)
 	sp.clear();
-
-	return 0;
 }
 
 

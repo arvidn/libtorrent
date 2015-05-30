@@ -112,6 +112,5 @@ TORRENT_TEST(peer_class)
 	pool.decref(id1);
 	TEST_CHECK(pool.at(id2) == NULL);
 	TEST_CHECK(pool.at(id1) == NULL);
-	return 0;
 }
 

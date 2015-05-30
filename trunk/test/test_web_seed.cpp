@@ -44,6 +44,5 @@ TORRENT_TEST(web_seed)
 	run_http_suite(proxy, "https", false);
 #endif
 	run_http_suite(proxy, "http", false);
-	return 0;
 }
 

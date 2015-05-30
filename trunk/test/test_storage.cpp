@@ -838,7 +838,7 @@ void free_iov(file::iovec_t* iov, int num_bufs)
 	}
 }
 
-void test_iovec_copy_bufs()
+TORRENT_TEST(iovec_copy_bufs)
 {
 	file::iovec_t iov1[10];
 	file::iovec_t iov2[10];
@@ -869,7 +869,7 @@ void test_iovec_copy_bufs()
 	free_iov(iov1, 10);
 }
 
-void test_iovec_clear_bufs()
+TORRENT_TEST(iovec_clear_bufs)
 {
 	file::iovec_t iov[10];
 	alloc_iov(iov, 10);
@@ -887,7 +887,7 @@ void test_iovec_clear_bufs()
 	free_iov(iov, 10);
 }
 
-void test_iovec_bufs_size()
+TORRENT_TEST(iovec_bufs_size)
 {
 	file::iovec_t iov[10];
 
@@ -903,7 +903,7 @@ void test_iovec_bufs_size()
 	}
 }
 
-void test_iovec_advance_bufs()
+TORRENT_TEST(iovec_advance_bufs)
 {
 	file::iovec_t iov1[10];
 	file::iovec_t iov2[10];
@@ -936,13 +936,6 @@ void test_iovec_advance_bufs()
 
 TORRENT_TEST(storage)
 {
-	test_iovec_copy_bufs();
-	test_iovec_clear_bufs();
-	test_iovec_advance_bufs();
-	test_iovec_bufs_size();
-
-	return 0;
-
 	// initialize test pieces
 	for (char* p = piece0, *end(piece0 + piece_size); p < end; ++p)
 		*p = random_byte();
@@ -974,7 +967,5 @@ TORRENT_TEST(storage)
 
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
 	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
-
-	return 0;
 }
 

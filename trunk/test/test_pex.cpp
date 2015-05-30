@@ -160,11 +160,9 @@ TORRENT_TEST(pex)
 	remove_all("tmp1_pex", ec);
 	remove_all("tmp2_pex", ec);
 	remove_all("tmp3_pex", ec);
-
-	return 0;
 }
 
 #else
-TORRENT_TEST(pex) { return 0; }
+TORRENT_TEST(pex) {}
 #endif // TORRENT_DISABLE_EXTENSIONS
 

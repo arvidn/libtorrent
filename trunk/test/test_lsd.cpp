@@ -109,8 +109,6 @@ TORRENT_TEST(lsd)
 	remove_all("./tmp1_lsd", ec);
 	remove_all("./tmp2_lsd", ec);
 	remove_all("./tmp3_lsd", ec);
-
-	return 0;
 }
 
 

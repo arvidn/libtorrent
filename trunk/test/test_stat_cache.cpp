@@ -76,6 +76,5 @@ TORRENT_TEST(stat_cache)
 	TEST_CHECK(sc.get_filesize(14) == stat_cache::not_in_cache);
 	TEST_CHECK(sc.get_filesize(15) == 1000);
 	TEST_CHECK(sc.get_filetime(15) == 3000);
-	return 0;
 }
 

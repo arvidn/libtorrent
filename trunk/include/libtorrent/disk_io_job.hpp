@@ -53,7 +53,7 @@ namespace libtorrent
 	class piece_manager;
 	struct cached_piece_entry;
 	struct bdecode_node;
-	struct torrent_info;
+	class torrent_info;
 
 	struct block_cache_reference
 	{

@@ -282,7 +282,5 @@ TORRENT_TEST(checking)
 	test_checking(read_only_files);
 	test_checking(incomplete_files);
 	test_checking(corrupt_files);
-
-	return 0;
 }
 

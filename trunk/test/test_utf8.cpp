@@ -251,6 +251,5 @@ TORRENT_TEST(utf8)
 	TEST_EQUAL(ret, conversion_ok);
 
 	TEST_EQUAL(utf8, identity);
-	return 0;
 }
 

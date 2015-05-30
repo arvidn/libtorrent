@@ -39,8 +39,6 @@ TORRENT_TEST(super_seeding)
 
 	// with strict super seeding
 	test_swarm(super_seeding | strict_super_seeding);
-
-	return 0;
 }
 
 

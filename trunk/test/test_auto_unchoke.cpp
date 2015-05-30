@@ -149,7 +149,5 @@ TORRENT_TEST(auto_unchoke)
 	remove_all("./tmp1_unchoke", ec);
 	remove_all("./tmp2_unchoke", ec);
 	remove_all("./tmp3_unchoke", ec);
-
-	return 0;
 }
 

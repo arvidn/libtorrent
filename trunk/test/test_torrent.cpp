@@ -264,8 +264,6 @@ TORRENT_TEST(torrent)
 			TEST_EQUAL(int(sum), fs.piece_size(idx));
 		}
 	}
-
-	return 0;
 }
 
 
