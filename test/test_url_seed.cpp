@@ -48,7 +48,6 @@ TORRENT_TEST(url_seed)
 		run_http_suite(proxy, "http", 1, 0, 0, keepalive);
 	}
 	run_http_suite(proxy, "http", 1, 0, 0, 1, 1);
-	return 0;
 }
 
 

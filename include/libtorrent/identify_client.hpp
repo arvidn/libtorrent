@@ -53,15 +53,16 @@ namespace libtorrent
 	// This function can can be used to extract a string describing a client
 	// version from its peer-id. It will recognize most clients that have this
 	// kind of identification in the peer-id.
-	TORRENT_DEPRECATED_EXPORT std::string identify_client(const peer_id& p)
-		TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
+	std::string identify_client(const peer_id& p);
 
 	// Returns an optional fingerprint if any can be identified from the peer
 	// id. This can be used to automate the identification of clients. It will
 	// not be able to identify peers with non- standard encodings. Only Azureus
 	// style, Shadow's style and Mainline style.
-	TORRENT_DEPRECATED_EXPORT boost::optional<fingerprint>
-		client_fingerprint(peer_id const& p) TORRENT_DEPRECATED;
+	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
+	boost::optional<fingerprint>
+		client_fingerprint(peer_id const& p);
 
 }
 

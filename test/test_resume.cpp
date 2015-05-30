@@ -340,7 +340,6 @@ TORRENT_TEST(resume)
 	// TODO: test all other resume flags here too. This would require returning
 	// more than just the torrent_status from test_resume_flags. Also http seeds
 	// and trackers for instance
-	return 0;
 }
 
 

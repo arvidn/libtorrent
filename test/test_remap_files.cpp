@@ -520,7 +520,5 @@ TORRENT_TEST(remap_files)
 	remove_all("tmp2_remap2", ec);
 	remove_all("tmp1_remap3", ec);
 	remove_all("tmp2_remap3", ec);
-
-	return 0;
 }
 

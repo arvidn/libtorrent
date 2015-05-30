@@ -252,7 +252,5 @@ TORRENT_TEST(test_pe_crypto)
 #else
 	fprintf(stderr, "PE test not run because it's disabled\n");
 #endif
-
-	return 0;
 }
 

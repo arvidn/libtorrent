@@ -232,7 +232,5 @@ TORRENT_TEST(metadata_extension)
 	remove_all("tmp2", ec);
 
 #endif // TORRENT_NO_DEPRECATE
-
-	return 0;
 }
 

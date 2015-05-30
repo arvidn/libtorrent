@@ -49,6 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 #include <windows.h> // fot SetErrorMode
+#include <io.h> // for _dup and _dup2
+
+#define dup _dup
+#define dup2 _dup2
+
 #endif
 
 using namespace libtorrent;

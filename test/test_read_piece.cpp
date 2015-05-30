@@ -138,6 +138,5 @@ TORRENT_TEST(read_piece)
 	test_read_piece(0);
 	test_read_piece(seed_mode);
 	test_read_piece(time_critical);
-	return 0;
 }
 

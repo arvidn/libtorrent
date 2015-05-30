@@ -394,7 +394,5 @@ TORRENT_TEST(traccker)
 	fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
 	fprintf(stderr, "done\n");
-
-	return 0;
 }
 

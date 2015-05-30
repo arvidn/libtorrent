@@ -596,7 +596,6 @@ TORRENT_TEST(ssl)
 	remove_all("tmp2_ssl", ec);
 
 #endif // TORRENT_USE_OPENSSL
-	return 0;
 }
 
 

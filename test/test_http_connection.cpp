@@ -244,6 +244,5 @@ TORRENT_TEST(http_parser)
 
 	stop_web_server();
 	std::remove("test_file");
-	return 0;
 }
 

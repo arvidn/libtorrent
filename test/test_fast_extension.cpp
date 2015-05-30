@@ -795,7 +795,5 @@ TORRENT_TEST(fast_extension)
 	test_multiple_have_all();
 	test_dont_have();
 	test_invalid_metadata_requests();
-
-	return 0;
 }
 

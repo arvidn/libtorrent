@@ -40,7 +40,6 @@ const int proxy = libtorrent::settings_pack::http;
 
 TORRENT_TEST(web_seed_http)
 {
-	int ret = 0;
 	for (int url_seed = 0; url_seed < 2; ++url_seed)
 	{
 #ifdef TORRENT_USE_OPENSSL
@@ -48,6 +47,5 @@ TORRENT_TEST(web_seed_http)
 #endif
 		run_http_suite(proxy, "http", url_seed);
 	}
-	return ret;
 }
 

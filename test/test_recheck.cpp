@@ -63,7 +63,7 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 		if (st.progress_ppm == 1000000) return;
 		test_sleep(500);
 	}
-	TEST_CHECK(false);
+	TEST_ERROR("torrent did not finish");
 }
 
 TORRENT_TEST(recheck)
@@ -98,6 +98,4 @@ TORRENT_TEST(recheck)
 	st1 = tor1.status();
 	TEST_CHECK(st1.progress_ppm <= 1000000);
 	wait_for_complete(ses1, tor1);
-
-	return 0;
 }

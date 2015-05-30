@@ -44,7 +44,5 @@ TORRENT_TEST(swarm)
 
 	// test explicit cache
 	test_swarm(suggest | explicit_cache);
-
-	return 0;
 }
 
