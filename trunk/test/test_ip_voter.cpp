@@ -60,13 +60,17 @@ TORRENT_TEST(ip_voter_test_random)
 {
 	ip_voter ipv;
 
-	bool new_ip = cast_vote(ipv, rand_v4(), rand_v4());
+	address_v4 addr1(address_v4::from_string("51.41.61.132"));
+
+	bool new_ip = cast_vote(ipv, addr1, rand_v4());
 	TEST_CHECK(new_ip);
+	TEST_CHECK(ipv.external_address() == addr1);
 	for (int i = 0; i < 1000; ++i)
 	{
 		new_ip = cast_vote(ipv, rand_v4(), rand_v4());
 		TEST_CHECK(!new_ip);
 	}
+	TEST_CHECK(ipv.external_address() == addr1);
 }
 
 TORRENT_TEST(ip_voter_two_ips)

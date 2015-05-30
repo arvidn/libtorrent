@@ -137,154 +137,163 @@ private:
 	F& operator=(F const& f);
 };
 
-TORRENT_TEST(heterogeneuous_queue)
+// test push_back of heterogeneous types
+// and retrieval of their pointers
+TORRENT_TEST(heterogeneuous_queue_push_back)
 {
 	using namespace libtorrent;
 
-	// test push_back of heterogeneous types
-	// and retrieval of their pointers
-	{
-		heterogeneous_queue<A> q;
-		q.push_back(B(0, 1));
-		TEST_EQUAL(q.size(), 1);
-		q.push_back(B(2, 3));
-		TEST_EQUAL(q.size(), 2);
-		q.push_back(B(4, 5));
-		TEST_EQUAL(q.size(), 3);
-		q.push_back(C(6, 7));
-		TEST_EQUAL(q.size(), 4);
-		q.push_back(C(8, 9));
-		TEST_EQUAL(q.size(), 5);
-		q.push_back(C(10, 11));
-		TEST_EQUAL(q.size(), 6);
+	heterogeneous_queue<A> q;
+	q.push_back(B(0, 1));
+	TEST_EQUAL(q.size(), 1);
+	q.push_back(B(2, 3));
+	TEST_EQUAL(q.size(), 2);
+	q.push_back(B(4, 5));
+	TEST_EQUAL(q.size(), 3);
+	q.push_back(C(6, 7));
+	TEST_EQUAL(q.size(), 4);
+	q.push_back(C(8, 9));
+	TEST_EQUAL(q.size(), 5);
+	q.push_back(C(10, 11));
+	TEST_EQUAL(q.size(), 6);
 
-		std::vector<A*> ptrs;
-		q.get_pointers(ptrs);
+	std::vector<A*> ptrs;
+	q.get_pointers(ptrs);
 
-		TEST_EQUAL(ptrs.size(), q.size());
-		TEST_EQUAL(ptrs[0]->type(), 1);
-		TEST_EQUAL(ptrs[1]->type(), 1);
-		TEST_EQUAL(ptrs[2]->type(), 1);
-		TEST_EQUAL(ptrs[3]->type(), 2);
-		TEST_EQUAL(ptrs[4]->type(), 2);
-		TEST_EQUAL(ptrs[5]->type(), 2);
+	TEST_EQUAL(ptrs.size(), q.size());
+	TEST_EQUAL(ptrs[0]->type(), 1);
+	TEST_EQUAL(ptrs[1]->type(), 1);
+	TEST_EQUAL(ptrs[2]->type(), 1);
+	TEST_EQUAL(ptrs[3]->type(), 2);
+	TEST_EQUAL(ptrs[4]->type(), 2);
+	TEST_EQUAL(ptrs[5]->type(), 2);
 
-		TEST_EQUAL(static_cast<B*>(ptrs[0])->a, 0);
-		TEST_EQUAL(static_cast<B*>(ptrs[0])->b, 1);
+	TEST_EQUAL(static_cast<B*>(ptrs[0])->a, 0);
+	TEST_EQUAL(static_cast<B*>(ptrs[0])->b, 1);
 
-		TEST_EQUAL(static_cast<B*>(ptrs[1])->a, 2);
-		TEST_EQUAL(static_cast<B*>(ptrs[1])->b, 3);
+	TEST_EQUAL(static_cast<B*>(ptrs[1])->a, 2);
+	TEST_EQUAL(static_cast<B*>(ptrs[1])->b, 3);
 
-		TEST_EQUAL(static_cast<B*>(ptrs[2])->a, 4);
-		TEST_EQUAL(static_cast<B*>(ptrs[2])->b, 5);
+	TEST_EQUAL(static_cast<B*>(ptrs[2])->a, 4);
+	TEST_EQUAL(static_cast<B*>(ptrs[2])->b, 5);
 
-		TEST_EQUAL(static_cast<C*>(ptrs[3])->a, 6);
-		TEST_EQUAL(static_cast<C*>(ptrs[3])->c[0], 7);
+	TEST_EQUAL(static_cast<C*>(ptrs[3])->a, 6);
+	TEST_EQUAL(static_cast<C*>(ptrs[3])->c[0], 7);
 
-		TEST_EQUAL(static_cast<C*>(ptrs[4])->a, 8);
-		TEST_EQUAL(static_cast<C*>(ptrs[4])->c[0], 9);
+	TEST_EQUAL(static_cast<C*>(ptrs[4])->a, 8);
+	TEST_EQUAL(static_cast<C*>(ptrs[4])->c[0], 9);
 
-		TEST_EQUAL(static_cast<C*>(ptrs[5])->a, 10);
-		TEST_EQUAL(static_cast<C*>(ptrs[5])->c[0], 11);
-	}
-
-	// test swap
-	{
-		heterogeneous_queue<A> q1;
-		heterogeneous_queue<A> q2;
-
-		q1.push_back(B(0, 1));
-		q1.push_back(B(2, 3));
-		q1.push_back(B(4, 5));
-		TEST_EQUAL(q1.size(), 3);
-
-		q2.push_back(C(6, 7));
-		q2.push_back(C(8, 9));
-		TEST_EQUAL(q2.size(), 2);
-	
-		std::vector<A*> ptrs;
-		q1.get_pointers(ptrs);
-		TEST_EQUAL(ptrs.size(), q1.size());
-
-		TEST_EQUAL(ptrs[0]->type(), 1);
-		TEST_EQUAL(ptrs[1]->type(), 1);
-		TEST_EQUAL(ptrs[2]->type(), 1);
-
-		q2.get_pointers(ptrs);
-		TEST_EQUAL(ptrs.size(), q2.size());
-
-		TEST_EQUAL(ptrs[0]->type(), 2);
-		TEST_EQUAL(ptrs[1]->type(), 2);
-
-		q1.swap(q2);
-
-		q1.get_pointers(ptrs);
-		TEST_EQUAL(q1.size(), 2);
-		TEST_EQUAL(ptrs.size(), q1.size());
-
-		TEST_EQUAL(ptrs[0]->type(), 2);
-		TEST_EQUAL(ptrs[1]->type(), 2);
-
-		q2.get_pointers(ptrs);
-		TEST_EQUAL(q2.size(), 3);
-		TEST_EQUAL(ptrs.size(), q2.size());
-
-		TEST_EQUAL(ptrs[0]->type(), 1);
-		TEST_EQUAL(ptrs[1]->type(), 1);
-		TEST_EQUAL(ptrs[2]->type(), 1);
-	}
-
-	// test destruction
-	{
-		heterogeneous_queue<D> q;
-		TEST_EQUAL(D::instances, 0);
-
-		q.push_back(D());
-		TEST_EQUAL(D::instances, 1);
-		q.push_back(D());
-		TEST_EQUAL(D::instances, 2);
-		q.push_back(D());
-		TEST_EQUAL(D::instances, 3);
-		q.push_back(D());
-		TEST_EQUAL(D::instances, 4);
-
-		q.clear();
-
-		TEST_EQUAL(D::instances, 0);
-	}
-
-	// test copy/move
-	{
-		heterogeneous_queue<F> q;
-
-		// make sure the queue has to grow at some point, to exercise its
-		// copy/move of elements
-		for (int i = 0; i < 1000; ++i)
-			q.push_back(F(i));
-
-		std::vector<F*> ptrs;
-		q.get_pointers(ptrs);
-
-		TEST_EQUAL(ptrs.size(), 1000);
-
-		for (int i = 0; i < ptrs.size(); ++i)
-		{
-			ptrs[i]->check_invariant();
-			TEST_EQUAL(ptrs[i]->f, i);
-		}
-
-		// destroy all objects, asserting that their invariant still holds
-		q.clear();
-	}
-
-	{
-		heterogeneous_queue<E> q;
-		for (int i = 0; i < 10000; ++i)
-		{
-			q.push_back(E("testing to allocate non-trivial objects"));
-		}
-	}
-
-	return 0;
+	TEST_EQUAL(static_cast<C*>(ptrs[5])->a, 10);
+	TEST_EQUAL(static_cast<C*>(ptrs[5])->c[0], 11);
 }
+
+// test swap
+TORRENT_TEST(heterogeneuous_queue_swap)
+{
+	using namespace libtorrent;
+
+	heterogeneous_queue<A> q1;
+	heterogeneous_queue<A> q2;
+
+	q1.push_back(B(0, 1));
+	q1.push_back(B(2, 3));
+	q1.push_back(B(4, 5));
+	TEST_EQUAL(q1.size(), 3);
+
+	q2.push_back(C(6, 7));
+	q2.push_back(C(8, 9));
+	TEST_EQUAL(q2.size(), 2);
+
+	std::vector<A*> ptrs;
+	q1.get_pointers(ptrs);
+	TEST_EQUAL(ptrs.size(), q1.size());
+
+	TEST_EQUAL(ptrs[0]->type(), 1);
+	TEST_EQUAL(ptrs[1]->type(), 1);
+	TEST_EQUAL(ptrs[2]->type(), 1);
+
+	q2.get_pointers(ptrs);
+	TEST_EQUAL(ptrs.size(), q2.size());
+
+	TEST_EQUAL(ptrs[0]->type(), 2);
+	TEST_EQUAL(ptrs[1]->type(), 2);
+
+	q1.swap(q2);
+
+	q1.get_pointers(ptrs);
+	TEST_EQUAL(q1.size(), 2);
+	TEST_EQUAL(ptrs.size(), q1.size());
+
+	TEST_EQUAL(ptrs[0]->type(), 2);
+	TEST_EQUAL(ptrs[1]->type(), 2);
+
+	q2.get_pointers(ptrs);
+	TEST_EQUAL(q2.size(), 3);
+	TEST_EQUAL(ptrs.size(), q2.size());
+
+	TEST_EQUAL(ptrs[0]->type(), 1);
+	TEST_EQUAL(ptrs[1]->type(), 1);
+	TEST_EQUAL(ptrs[2]->type(), 1);
+}
+
+// test destruction
+TORRENT_TEST(heterogeneuous_queue_destruction)
+{
+	using namespace libtorrent;
+
+	heterogeneous_queue<D> q;
+	TEST_EQUAL(D::instances, 0);
+
+	q.push_back(D());
+	TEST_EQUAL(D::instances, 1);
+	q.push_back(D());
+	TEST_EQUAL(D::instances, 2);
+	q.push_back(D());
+	TEST_EQUAL(D::instances, 3);
+	q.push_back(D());
+	TEST_EQUAL(D::instances, 4);
+
+	q.clear();
+
+	TEST_EQUAL(D::instances, 0);
+}
+
+// test copy/move
+TORRENT_TEST(heterogeneuous_queue_copy_move)
+{
+	using namespace libtorrent;
+
+	heterogeneous_queue<F> q;
+
+	// make sure the queue has to grow at some point, to exercise its
+	// copy/move of elements
+	for (int i = 0; i < 1000; ++i)
+		q.push_back(F(i));
+
+	std::vector<F*> ptrs;
+	q.get_pointers(ptrs);
+
+	TEST_EQUAL(ptrs.size(), 1000);
+
+	for (int i = 0; i < ptrs.size(); ++i)
+	{
+		ptrs[i]->check_invariant();
+		TEST_EQUAL(ptrs[i]->f, i);
+	}
+
+	// destroy all objects, asserting that their invariant still holds
+	q.clear();
+}
+
+TORRENT_TEST(heterogeneuous_queue_nontrivial)
+{
+	using namespace libtorrent;
+
+	heterogeneous_queue<E> q;
+	for (int i = 0; i < 10000; ++i)
+	{
+		q.push_back(E("testing to allocate non-trivial objects"));
+	}
+}
+
 
