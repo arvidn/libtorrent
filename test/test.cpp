@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2008-2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,58 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CPUID_HPP_INCLUDED
-#define TORRENT_CPUID_HPP_INCLUDED
+#include <vector>
+#include <stdio.h> // for tmpfile()
+#include "test.hpp"
 
-#include "libtorrent/config.hpp"
+unit_test_t _g_unit_tests[1024];
+int _g_num_unit_tests = 0;
+int _g_test_failures = 0;
 
-namespace libtorrent { namespace aux
+static std::vector<std::string> failure_strings;
+
+void report_failure(char const* err, char const* file, int line)
 {
-	// initialized by static initializers (in cpuid.cpp)
-	TORRENT_EXTRA_EXPORT extern bool sse42_support;
-	TORRENT_EXTRA_EXPORT extern bool mmx_support;
-} }
+	char buf[500];
+	snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
+	fprintf(stderr, "\n%s\n", buf);
+	failure_strings.push_back(buf);
+	++_g_test_failures;
+}
 
-#endif // TORRENT_CPUID_HPP_INCLUDED
+int print_failures()
+{
+	int longest_name = 0;
+	for (int i = 0; i < _g_num_unit_tests; ++i)
+	{
+		int len = strlen(_g_unit_tests[i].name);
+		if (len > longest_name) longest_name = len;
+	}
+
+	fprintf(stderr, "\n\n");
+
+	for (int i = 0; i < _g_num_unit_tests; ++i)
+	{
+		if (_g_unit_tests[i].run == false) continue;
+
+		if (_g_unit_tests[i].num_failures == 0)
+		{
+			fprintf(stderr, "\x1b[32m[%*s] ***PASS***\n"
+				, longest_name, _g_unit_tests[i].name);
+		}
+		else
+		{
+			fprintf(stderr, "\x1b[31m[%*s] %d FAILURES\n"
+				, longest_name
+				, _g_unit_tests[i].name
+				, _g_unit_tests[i].num_failures);
+		}
+	}
+
+	fprintf(stderr, "\x1b[0m");
+
+	if (_g_test_failures > 0)
+		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
+	return _g_test_failures;
+}
 

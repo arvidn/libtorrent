@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(stat_cache)
 {
 	error_code ec;
 

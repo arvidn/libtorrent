@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::detail;
 
-int test_main()
+TORRENT_TEST(socket_io)
 {
 	// test address_to_bytes
 	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");

@@ -76,7 +76,7 @@ struct test_storage_impl : storage_interface
 	virtual void finalize_file(int, storage_error&) {}
 };
 
-void nop() {}
+static void nop() {}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #define INITIALIZE_JOB(j) j.in_use = true;
@@ -455,7 +455,7 @@ void test_unaligned_read()
 	bc.clear(jobs);
 }
 
-int test_main()
+TORRENT_TEST(block_cache)
 {
 	test_write();
 	test_flush();
@@ -472,6 +472,5 @@ int test_main()
 	// TODO: test free_piece
 	// TODO: test abort_dirty
 	// TODO: test unaligned reads
-	return 0;
 }
 

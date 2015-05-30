@@ -45,7 +45,7 @@ int samples[] =  {
 63, 57, 61, 62, 64, 62, 61, 52, 67, 64, 59, 61, 69, 60, 54, 69 };
 
 
-int test_main()
+TORRENT_TEST(sliding_average)
 {
 	using namespace libtorrent;
 

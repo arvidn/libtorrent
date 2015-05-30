@@ -38,7 +38,7 @@ using namespace libtorrent;
 
 const int proxy = libtorrent::settings_pack::socks5;
 
-int test_main()
+TORRENT_TEST(web_seed_socks5)
 {
 	int ret = 0;
 	for (int url_seed = 0; url_seed < 2; ++url_seed)

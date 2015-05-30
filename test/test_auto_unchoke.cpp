@@ -130,7 +130,7 @@ void test_swarm()
 	p3 = ses3.abort();
 }
 
-int test_main()
+TORRENT_TEST(auto_unchoke)
 {
 	using namespace libtorrent;
 
@@ -141,7 +141,7 @@ int test_main()
 	remove_all("./tmp3_unchoke", ec);
 
 	test_swarm();
-	
+
 	TEST_CHECK(!exists("./tmp1_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp2_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp3_unchoke/temporary"));

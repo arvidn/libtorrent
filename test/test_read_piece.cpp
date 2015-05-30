@@ -133,7 +133,7 @@ void test_read_piece(int flags)
 		, ec.value(), ec.message().c_str());
 }
 
-int test_main()
+TORRENT_TEST(read_piece)
 {
 	test_read_piece(0);
 	test_read_piece(seed_mode);

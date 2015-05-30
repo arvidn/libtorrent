@@ -146,7 +146,7 @@ void do_change_peer_rate(connections_t& v, int limit)
 		i->get()->throttle(limit + limit / 2 * ((c & 1)?-1:1));
 }
 
-void nop() {}
+static void nop() {}
 
 void run_test(connections_t& v
 	, bandwidth_manager& manager
@@ -457,7 +457,7 @@ void test_no_starvation(int limit)
 	TEST_CHECK(close_to(p->m_quota / sample_time, limit / 200 / num_peers, 5));
 }
 
-int test_main()
+TORRENT_TEST(bandwidth_limiter)
 {
 	using namespace libtorrent;
 

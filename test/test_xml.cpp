@@ -289,7 +289,7 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 	}
 }
 
-int test_main()
+TORRENT_TEST(xml)
 {
 	// test upnp xml parser
 

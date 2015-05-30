@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/crc32c.hpp"
 #include "test.hpp"
 
-int test_main()
+TORRENT_TEST(crc32)
 {
 	using namespace libtorrent;
 

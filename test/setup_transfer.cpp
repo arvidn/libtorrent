@@ -73,9 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-static int tests_failure = 0;
-static std::vector<std::string> failure_strings;
-
 #if defined TORRENT_WINDOWS
 #include <conio.h>
 #endif
@@ -102,24 +99,6 @@ tcp::endpoint rand_tcp_ep()
 udp::endpoint rand_udp_ep()
 {
 	return udp::endpoint(rand_v4(), rand() + 1024);
-}
-
-void report_failure(char const* err, char const* file, int line)
-{
-	char buf[500];
-	snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
-	fprintf(stderr, "\n%s\n", buf);
-	failure_strings.push_back(buf);
-	++tests_failure;
-}
-
-int print_failures()
-{
-	if (tests_failure == 0)
-		fprintf(stderr, "\n\n\x1b[42;30m   == %d ALL TESTS PASSED ==\x1b[0m\n\n\n", tests_failure);
-	else
-		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", tests_failure);
-	return tests_failure;
 }
 
 std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)

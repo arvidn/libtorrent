@@ -314,7 +314,7 @@ void test_alert_mask()
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
 
-int test_main()
+TORRENT_TEST(alert_manager)
 {
 	test_limit();
 	test_priority_limit();

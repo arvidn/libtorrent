@@ -347,7 +347,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	if (proxy_type) stop_proxy(proxy_port);
 }
 
-int test_main()
+TORRENT_TEST(transfer)
 {
 	using namespace libtorrent;
 

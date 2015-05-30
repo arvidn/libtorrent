@@ -94,7 +94,7 @@ void test_lsd()
 	p2 = ses2.abort();
 }
 
-int test_main()
+TORRENT_TEST(lsd)
 {
 	using namespace libtorrent;
 
@@ -105,7 +105,7 @@ int test_main()
 	remove_all("./tmp3_lsd", ec);
 
 	test_lsd();
-	
+
 	remove_all("./tmp1_lsd", ec);
 	remove_all("./tmp2_lsd", ec);
 	remove_all("./tmp3_lsd", ec);

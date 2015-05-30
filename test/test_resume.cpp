@@ -128,7 +128,7 @@ torrent_status test_resume_flags(int flags)
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 
 	add_torrent_params p;
-	
+
 	p.ti = ti;
 	p.flags = flags;
 #ifdef TORRENT_WINDOWS
@@ -175,7 +175,7 @@ void default_tests(torrent_status const& s)
 	TEST_EQUAL(s.completed_time, 1348);
 }
 
-int test_main()
+TORRENT_TEST(resume)
 {
 	torrent_status s;
 

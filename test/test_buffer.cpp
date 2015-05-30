@@ -118,7 +118,7 @@ void test_speed()
 
 // -- test buffer --
 
-void test_buffer()
+TORRENT_TEST(buffer)
 {
 	char data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -127,16 +127,16 @@ void test_buffer()
 	TEST_CHECK(b.size() == 0);
 	TEST_CHECK(b.capacity() == 0);
 	TEST_CHECK(b.empty());
-	
+
 	b.resize(10);
 	TEST_CHECK(b.size() == 10);
 	TEST_CHECK(b.capacity() == 10);
-	
+
 	std::memcpy(b.begin(), data, 10);
 	b.reserve(50);
 	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
 	TEST_CHECK(b.capacity() == 50);
-	
+
 	b.erase(b.begin() + 6, b.end());
 	TEST_CHECK(std::memcmp(b.begin(), data, 6) == 0);
 	TEST_CHECK(b.capacity() == 50);
@@ -154,7 +154,7 @@ void test_buffer()
 	b.insert(b.end(), data, data + 10);
 	TEST_CHECK(b.size() == 10);
 	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
-	
+
 	b.erase(b.begin(), b.end());
 	TEST_CHECK(b.capacity() == 50);
 	TEST_CHECK(b.size() == 0);
@@ -209,12 +209,12 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 	return std::memcmp(&flat[0], mem, size) == 0;
 }
 
-void test_chained_buffer()
+TORRENT_TEST(chained_buffer)
 {
 	char data[] = "foobar";
 	{
 		chained_buffer b;
-		
+
 		TEST_CHECK(b.empty());
 		TEST_EQUAL(b.capacity(), 0);
 		TEST_EQUAL(b.size(), 0);
@@ -308,7 +308,7 @@ void test_chained_buffer()
 		TEST_CHECK(ret == true);
 		TEST_CHECK(b.space_in_last_buffer() == 0);
 		std::cout << b.space_in_last_buffer() << std::endl;
-		
+
 		char* b5 = allocate_buffer(20);
 		std::memcpy(b4, data, 6);
 		b.append_buffer(b5, 20, 6, &free_buffer, (void*)0x1337);
@@ -317,12 +317,5 @@ void test_chained_buffer()
 		TEST_CHECK(b.size() == 5);
 	}
 	TEST_CHECK(buffer_list.empty());
-}
-
-int test_main()
-{
-	test_buffer();
-	test_chained_buffer();
-	return 0;
 }
 

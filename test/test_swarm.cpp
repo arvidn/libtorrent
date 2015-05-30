@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "swarm_suite.hpp"
 
-int test_main()
+TORRENT_TEST(swarm)
 {
 	// with seed mode
 	test_swarm(seed_mode);

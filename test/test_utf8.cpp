@@ -167,7 +167,7 @@ void expect_error(char const* utf8, ConversionResult expect)
 	}
 }
 
-int test_main()
+TORRENT_TEST(utf8)
 {
 	std::vector<char> utf8_source;
 	error_code ec;

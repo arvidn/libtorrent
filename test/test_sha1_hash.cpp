@@ -35,14 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-sha1_hash to_hash(char const* s)
+static sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
 	from_hex(s, 40, (char*)&ret[0]);
 	return ret;
 }
 
-int test_main()
+TORRENT_TEST(sha1_hash)
 {
 	sha1_hash h1(0);
 	sha1_hash h2(0);

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
-int test_main()
+TORRENT_TEST(settings_pack)
 {
 	settings_pack sp;
 

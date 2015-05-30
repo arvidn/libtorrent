@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(web_seed_redirect)
 {
 	using namespace libtorrent;
 

@@ -275,7 +275,7 @@ void test_checking(int flags = read_only_files)
 		, ec.value(), ec.message().c_str());
 }
 
-int test_main()
+TORRENT_TEST(checking)
 {
 	test_checking();
 	test_checking(read_only_files | corrupt_files);

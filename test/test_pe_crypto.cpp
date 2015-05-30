@@ -192,7 +192,7 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 
 #endif
 
-int test_main()
+TORRENT_TEST(test_pe_crypto)
 {
 	using namespace libtorrent;
 

@@ -202,7 +202,7 @@ done:
 	remove_all("tmp2_meta", ec);
 }
 
-int test_main()
+TORRENT_TEST(metadata_extension)
 {
 	using namespace libtorrent;
 

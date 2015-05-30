@@ -128,7 +128,7 @@ void test_transfer()
 	p2 = ses2.abort();
 }
 
-int test_main()
+TORRENT_TEST(utp)
 {
 	using namespace libtorrent;
 

@@ -90,7 +90,7 @@ struct test_torrent_t
 
 using namespace libtorrent;
 
-test_torrent_t test_torrents[] =
+static test_torrent_t test_torrents[] =
 {
 	{ "base.torrent" },
 	{ "empty_path.torrent" },
@@ -715,7 +715,7 @@ void test_copy()
 	}
 }
 
-int test_main()
+TORRENT_TEST(torrent_info)
 {
 	for (int i = 0; i < 4; ++i)
 		test_resolve_duplicates(i);

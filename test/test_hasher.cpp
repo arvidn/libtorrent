@@ -60,7 +60,7 @@ char const* result_array[4] =
 };
 
 
-int test_main()
+TORRENT_TEST(hasher)
 {
 	using namespace libtorrent;
 

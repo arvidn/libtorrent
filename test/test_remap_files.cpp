@@ -487,7 +487,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	p2 = ses2.abort();
 }
 
-int test_main()
+TORRENT_TEST(remap_files)
 {
 	using namespace libtorrent;
 
@@ -497,7 +497,7 @@ int test_main()
 	remove_all("tmp2_remap", ec);
 
 	test_remap_files_gather();
-	
+
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 	remove_all("tmp1_remap2", ec);
@@ -513,7 +513,7 @@ int test_main()
 	remove_all("tmp2_remap3", ec);
 
 	test_remap_files_prio();
-	
+
 	remove_all("tmp1_remap", ec);
 	remove_all("tmp2_remap", ec);
 	remove_all("tmp1_remap2", ec);

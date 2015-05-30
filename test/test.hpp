@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <exception>
 #include <sstream>
+#include <vector>
+#include <boost/preprocessor/cat.hpp>
 
 #include "libtorrent/config.hpp"
 
@@ -53,18 +55,35 @@ POSSIBILITY OF SUCH DAMAGE.
 void EXPORT report_failure(char const* err, char const* file, int line);
 int EXPORT print_failures();
 
-#if defined(_MSC_VER)
-#define COUNTER_GUARD(x)
-#else
-#define COUNTER_GUARD(type) \
-    struct BOOST_PP_CAT(type, _counter_guard) \
-    { \
-        ~BOOST_PP_CAT(type, _counter_guard()) \
-        { \
-            TEST_CHECK(counted_type<type>::count == 0); \
-        } \
-    } BOOST_PP_CAT(type, _guard)
-#endif
+typedef void (*unit_test_fun_t)();
+
+struct unit_test_t
+{
+	unit_test_fun_t fun;
+	char const* name;
+	int num_failures;
+	bool run;
+	FILE* output;
+};
+
+extern unit_test_t _g_unit_tests[1024];
+extern int _g_num_unit_tests;
+extern int _g_test_failures;
+
+#define TORRENT_TEST(test_name) \
+	void BOOST_PP_CAT(unit_test_, test_name)(); \
+	static struct BOOST_PP_CAT(register_class, __LINE__) { \
+		BOOST_PP_CAT(register_class, __LINE__) () { \
+			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \
+			t.fun = &BOOST_PP_CAT(unit_test_, test_name); \
+			t.name = #test_name; \
+			t.num_failures = 0; \
+			t.run = false; \
+			t.output = NULL; \
+			_g_num_unit_tests++; \
+		} \
+	} BOOST_PP_CAT(_static_registrar, __LINE__); \
+	void BOOST_PP_CAT(unit_test_, test_name)()
 
 #define TEST_REPORT_AUX(x, line, file) \
 	report_failure(x, line, file)

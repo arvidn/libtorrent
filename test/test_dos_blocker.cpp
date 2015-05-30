@@ -68,7 +68,7 @@ struct log_t : libtorrent::dht::dht_logger
 	}
 };
 
-int test_main()
+TORRENT_TEST(dos_blocker)
 {
 #ifndef TORRENT_DISABLE_DHT
 	using namespace libtorrent::dht;

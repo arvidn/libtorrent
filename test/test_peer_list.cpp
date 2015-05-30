@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-tcp::endpoint ep(char const* ip, int port)
+static tcp::endpoint ep(char const* ip, int port)
 {
 	return tcp::endpoint(address_v4::from_string(ip), port);
 }
@@ -203,7 +203,7 @@ void connect_peer(peer_list& p, mock_torrent& t, torrent_state& st)
 	TEST_CHECK(tp->connection);
 }
 
-int test_main()
+TORRENT_TEST(peer_list)
 {
 	torrent_peer_allocator allocator;
 	external_ip ext_ip;

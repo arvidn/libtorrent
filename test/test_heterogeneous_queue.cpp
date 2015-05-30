@@ -137,7 +137,7 @@ private:
 	F& operator=(F const& f);
 };
 
-int test_main()
+TORRENT_TEST(heterogeneuous_queue)
 {
 	using namespace libtorrent;
 

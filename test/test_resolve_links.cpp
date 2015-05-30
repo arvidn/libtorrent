@@ -46,7 +46,7 @@ struct test_torrent_t
 	int expected_matches;
 };
 
-test_torrent_t test_torrents[] = {
+static test_torrent_t test_torrents[] = {
 	// no match because shared file in test2 and test3 is not padded/aligned
 	{ "test2", "test1_pad_files", 0},
 	{ "test3", "test1_pad_files", 0},
@@ -83,7 +83,7 @@ test_torrent_t test_torrents[] = {
 // TODO: it would be nice to test resolving of more than just 2 files as well.
 // like 3 single file torrents merged into one, resolving all 3 files.
 
-int test_main()
+TORRENT_TEST(resolve_links)
 {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS

@@ -242,7 +242,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	return pr;
 }
 
-int test_main()
+TORRENT_TEST(privacy)
 {
 	session_proxy pr[20];
 	// not using anonymous mode

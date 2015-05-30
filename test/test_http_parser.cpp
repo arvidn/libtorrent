@@ -76,7 +76,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 	return ret;
 }
 
-int test_main()
+TORRENT_TEST(http_parser)
 {
 	// HTTP request parser
 	http_parser parser;
