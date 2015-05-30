@@ -190,7 +190,7 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 		stop_proxy(ps.port);
 }
 
-int test_main()
+TORRENT_TEST(http_parser)
 {
 	std::srand(std::time(0));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
@@ -203,14 +203,14 @@ int test_main()
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
 	test_file.close();
-	
+
 	proxy_settings ps;
 	ps.hostname = "127.0.0.1";
 	ps.port = 8034;
 	ps.username = "testuser";
 	ps.password = "testpass";
 	int port = 0;
-	
+
 	port = start_web_server();
 
 	for (int i = 0; i < 5; ++i)

@@ -934,7 +934,7 @@ void test_iovec_advance_bufs()
 	free_iov(iov1, 10);
 }
 
-int test_main()
+TORRENT_TEST(storage)
 {
 	test_iovec_copy_bufs();
 	test_iovec_clear_bufs();

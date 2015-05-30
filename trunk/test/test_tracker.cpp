@@ -234,7 +234,7 @@ void test_extract_peer()
 	}
 }
 
-int test_main()
+TORRENT_TEST(traccker)
 {
 	test_extract_peer();
 	test_parse_hostname_peers();

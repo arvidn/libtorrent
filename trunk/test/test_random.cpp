@@ -32,11 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include "random.hpp"
+#include "libtorrent/random.hpp"
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(random)
 {
 
 	const int repetitions = 200000;
@@ -45,7 +45,7 @@ int test_main()
 	{
 		int buckets[256];
 		memset(buckets, 0, sizeof(buckets));
-	
+
 		for (int i = 0; i < repetitions; ++i)
 		{
 			boost::uint32_t val = libtorrent::random();

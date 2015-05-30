@@ -55,7 +55,7 @@ void test_remove_url(std::string url)
 	TEST_EQUAL(handles.size(), 0);
 }
 
-int test_main()
+TORRENT_TEST(magnet)
 {
 	session_proxy p1;
 	session_proxy p2;

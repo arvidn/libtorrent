@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(gzip)
 {
 	std::vector<char> zipped;
 	error_code ec;

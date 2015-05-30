@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/timestamp_history.hpp"
 
-int test_main()
+TORRENT_TEST(timestamp_history)
 {
 	using namespace libtorrent;
 

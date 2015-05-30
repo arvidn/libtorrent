@@ -43,14 +43,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 
-#include "aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <cstdarg>
 
-#include "aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -787,7 +787,7 @@ void test_invalid_metadata_requests()
 	print_session_log(*ses);
 }
 
-int test_main()
+TORRENT_TEST(fast_extension)
 {
 	test_reject_fast();
 	test_respect_suggest();

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 
-int test_main()
+TORRENT_TEST(merkle)
 {
 	using namespace libtorrent;
 

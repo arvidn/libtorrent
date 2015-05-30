@@ -394,7 +394,7 @@ done:
 	sp.push_back(ses2.abort());
 }
 
-int test_main()
+TORRENT_TEST(priority)
 {
 	using namespace libtorrent;
 

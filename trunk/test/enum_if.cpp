@@ -41,10 +41,8 @@ int main()
 {
 	io_service ios;
 	error_code ec;
-	address local = guess_local_address(ios);
-	printf("Local address: %s\n", local.to_string(ec).c_str());
 
-	address def_gw = get_default_gateway(ios, ec);
+	address def_gw = get_default_gateway(ec);
 	if (ec)
 	{
 		fprintf(stderr, "%s\n", ec.message().c_str());
@@ -54,7 +52,7 @@ int main()
 	printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
 
 	printf("=========== Routes ===========\n");
-	std::vector<ip_route> routes = enum_routes(ios, ec);
+	std::vector<ip_route> routes = enum_routes(ec);
 	if (ec)
 	{
 		printf("%s\n", ec.message().c_str());

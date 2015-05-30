@@ -274,7 +274,7 @@ int test_pick(boost::shared_ptr<piece_picker> const& p
 	return picked[0].piece_index;
 }
 
-int test_main()
+TORRENT_TEST(piece_picker)
 {
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;

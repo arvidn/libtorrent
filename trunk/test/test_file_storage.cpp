@@ -75,13 +75,13 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
-int test_main()
+TORRENT_TEST(file_storage)
 {
 	{
 		// test rename_file
 		file_storage st;
 		setup_test_storage(st);
-		
+
 		st.rename_file(0, combine_path("test", combine_path("c", "d")));
 		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test"
 			, combine_path("c", "d"))));

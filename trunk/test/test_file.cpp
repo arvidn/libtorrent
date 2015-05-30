@@ -103,7 +103,7 @@ void test_stat()
 	TEST_CHECK(diff >= 2 && diff <= 4);
 }
 
-int test_main()
+TORRENT_TEST(file)
 {
 	test_create_directory();
 	test_stat();

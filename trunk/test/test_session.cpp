@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-int test_main()
+TORRENT_TEST(session)
 {
 	settings_pack p;
 	p.set_int(settings_pack::alert_mask, ~0);

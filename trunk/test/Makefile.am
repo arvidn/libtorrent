@@ -1,49 +1,21 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
-  test_timestamp_history     \
-  test_sha1_hash             \
-  test_bloom_filter          \
-  test_identify_client       \
-  test_alert_manager         \
-  test_bitfield              \
-  test_crc32                 \
-  test_torrent_info          \
+  test_primitives            \
   test_recheck               \
   test_stat_cache            \
-  test_part_file             \
   test_file                  \
-  test_file_storage          \
   test_privacy               \
+  test_priority              \
   test_auto_unchoke          \
-  test_bandwidth_limiter     \
   test_bdecode_performance   \
-  test_bencoding             \
-  test_buffer                \
-  test_block_cache           \
   test_checking              \
   test_fast_extension        \
-  test_hasher                \
-  test_heterogeneous_queue   \
   test_http_connection       \
-  test_ip_filter             \
-  test_ip_voter              \
-  test_dht                   \
   test_lsd                   \
   test_metadata_extension    \
   test_pe_crypto             \
-  test_peer_classes          \
-  test_peer_list             \
-  test_peer_priority         \
   test_pex                   \
-  test_piece_picker          \
-  test_xml                   \
-  test_string                \
-  test_primitives            \
-  test_http_parser           \
-  test_magnet                \
-  test_packet_buffer         \
-  test_settings_pack         \
   test_read_piece            \
   test_resume                \
   test_ssl                   \
@@ -51,24 +23,16 @@ test_programs = \
   test_time_critical         \
   test_super_seeding         \
   test_swarm                 \
-  test_tailqueue             \
-  test_threads               \
   test_torrent               \
   test_tracker               \
   test_trackers_extension    \
   test_transfer              \
-  test_upnp                  \
   enum_if                    \
   test_utp                   \
   test_session               \
   test_web_seed              \
   test_url_seed              \
-  test_remap_files           \
-  test_gzip                  \
-  test_utf8                  \
-  test_socket_io             \
-  test_sliding_average       \
-  test_merkle
+  test_remap_files
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -134,10 +98,11 @@ EXTRA_DIST = Jamfile \
 EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
-	peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
-	test_utils.hpp
+  peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
+  test_utils.hpp
 
 libtest_la_SOURCES = main.cpp \
+  test.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
@@ -146,79 +111,89 @@ libtest_la_SOURCES = main.cpp \
   swarm_suite.cpp \
   test_utils.cpp
 
-test_timestamp_history_SOURCES = test_timestamp_history.cpp
-test_sha1_hash_SOURCES = test_sha1_hash.cpp
-test_bloom_filter_SOURCES = test_bloom_filter.cpp
-test_identify_client_SOURCES = test_identify_client.cpp
-test_alert_manager_SOURCES = test_alert_manager.cpp
-test_bitfield_SOURCES = test_bitfield.cpp
-test_crc32_SOURCES = test_crc32.cpp
-test_torrent_info_SOURCES = test_torrent_info.cpp
+test_primitives_SOURCES = \
+  test_primitives.cpp \
+  test_packet_buffer.cpp \
+  test_timestamp_history.cpp \
+  test_sha1_hash.cpp \
+  test_bloom_filter.cpp \
+  test_identify_client.cpp \
+  test_merkle.cpp \
+  test_alert_manager.cpp \
+  test_resolve_links.cpp \
+  test_crc32.cpp \
+  test_heterogeneous_queue.cpp \
+  test_ip_voter.cpp \
+  test_sliding_average.cpp \
+  test_socket_io.cpp \
+  test_random.cpp \
+  test_utf8.cpp \
+  test_gzip.cpp \
+  test_bitfield.cpp \
+  test_part_file.cpp \
+  test_peer_list.cpp \
+  test_torrent_info.cpp \
+  test_time.cpp \
+  test_file_storage.cpp \
+  test_peer_priority.cpp \
+  test_threads.cpp \
+  test_tailqueue.cpp \
+  test_bandwidth_limiter.cpp \
+  test_buffer.cpp \
+  test_piece_picker.cpp \
+  test_bencoding.cpp \
+  test_bdecode.cpp \
+  test_http_parser.cpp \
+  test_string.cpp \
+  test_magnet.cpp \
+  test_xml.cpp \
+  test_ip_filter.cpp \
+  test_hasher.cpp \
+  test_dht.cpp \
+  test_block_cache.cpp \
+  test_peer_classes.cpp \
+  test_settings_pack.cpp \
+  test_fence.cpp \
+  test_dos_blocker.cpp \
+  test_upnp.cpp
+
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
-test_part_file_SOURCES = test_part_file.cpp
 test_file_SOURCES = test_file.cpp
-test_file_storage_SOURCES = test_file_storage.cpp
 test_privacy_SOURCES = test_privacy.cpp
+test_priority_SOURCES = test_priority.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
-test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
-test_dht_SOURCES = test_dht.cpp
-test_bencoding_SOURCES = test_bencoding.cpp
-test_buffer_SOURCES = test_buffer.cpp
-test_block_cache_SOURCES = test_block_cache.cpp
 test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
-test_hasher_SOURCES = test_hasher.cpp
-test_heterogeneous_queue_SOURCES = test_heterogeneous_queue.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
-test_ip_filter_SOURCES = test_ip_filter.cpp
-test_ip_voter_SOURCES = test_ip_voter.cpp
 test_lsd_SOURCES = test_lsd.cpp
 test_metadata_extension_SOURCES = test_metadata_extension.cpp
-test_peer_priority_SOURCES = test_peer_priority.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
-test_peer_classes_SOURCES = test_peer_classes.cpp
-test_peer_list_SOURCES = test_peer_list.cpp
 test_pex_SOURCES = test_pex.cpp
-test_piece_picker_SOURCES = test_piece_picker.cpp
-test_xml_SOURCES = test_xml.cpp
-test_string_SOURCES = test_string.cpp
-test_primitives_SOURCES = test_primitives.cpp
-test_http_parser_SOURCES = test_http_parser.cpp
-test_magnet_SOURCES = test_magnet.cpp
-test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
-test_settings_pack_SOURCES = test_settings_pack.cpp
 test_time_critical_SOURCES = test_time_critical.cpp
 test_super_seeding_SOURCES = test_super_seeding.cpp
 test_swarm_SOURCES = test_swarm.cpp
-test_tailqueue_SOURCES = test_tailqueue.cpp
 test_resume_SOURCES = test_resume.cpp
 test_ssl_SOURCES = test_ssl.cpp
-test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
-test_upnp_SOURCES = test_upnp.cpp
 enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
-test_gzip_SOURCES = test_gzip.cpp
-test_utf8_SOURCES = test_utf8.cpp
-test_socket_io_SOURCES = test_socket_io.cpp
-test_sliding_average_SOURCES = test_sliding_average.cpp
-test_merkle_SOURCES = test_merkle.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
+AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@ \
+	@BOOST_CHRONO_LIB@
 

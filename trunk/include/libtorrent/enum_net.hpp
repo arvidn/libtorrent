@@ -89,7 +89,7 @@ namespace libtorrent
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool in_local_network(std::vector<ip_interface> const& net
 		, address const& addr);
-	
+
 	TORRENT_EXTRA_EXPORT address get_default_gateway(error_code& ec);
 
 #ifdef SO_BINDTODEVICE

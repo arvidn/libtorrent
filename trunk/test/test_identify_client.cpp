@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(identify_client)
 {
 	TEST_EQUAL(identify_client(peer_id("-AZ123B-............")), "Azureus 1.2.3.11");
 	TEST_EQUAL(identify_client(peer_id("-AZ1230-............")), "Azureus 1.2.3");

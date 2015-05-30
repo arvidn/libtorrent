@@ -119,7 +119,7 @@ void test_to_from_string()
 	TEST_EQUAL(memcmp(compare, bits_out.c_str(), 4), 0);
 }
 
-int test_main()
+TORRENT_TEST(bloom_filter)
 {
 	test_set_and_get();
 	test_set_bits();

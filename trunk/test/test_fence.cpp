@@ -203,7 +203,7 @@ void test_disk_job_double_fence()
 	fence.job_complete(&test_job[9], jobs);
 }
 
-int test_main()
+TORRENT_TEST(fence)
 {
 	test_disk_job_fence();
 	test_disk_job_double_fence();

@@ -38,7 +38,7 @@ using namespace libtorrent;
 
 const int proxy = libtorrent::settings_pack::none;
 
-int test_main()
+TORRENT_TEST(web_seed)
 {
 #ifdef TORRENT_USE_OPENSSL
 	run_http_suite(proxy, "https", false);

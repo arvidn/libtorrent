@@ -65,7 +65,7 @@ using namespace libtorrent::dht;
 
 void nop() {}
 
-sha1_hash to_hash(char const* s)
+static sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
 	from_hex(s, 40, (char*)&ret[0]);
@@ -90,7 +90,7 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 	nv->push_back(n);
 }
 
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
@@ -439,7 +439,7 @@ struct obs : dht::dht_observer
 };
 
 // TODO: test obfuscated_get_peers
-int test_main()
+TORRENT_TEST(dht)
 {
 	dht_settings sett;
 	sett.max_torrents = 4;
@@ -1960,7 +1960,7 @@ int test_main()
 
 #else
 
-int test_main()
+TORRENT_TEST(dht)
 {
 	return 0;
 }

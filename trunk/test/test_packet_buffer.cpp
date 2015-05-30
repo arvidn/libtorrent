@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::packet_buffer;
 
-int test_main()
+TORRENT_TEST(packet_buffer)
 {
 	// test packet_buffer
 	{

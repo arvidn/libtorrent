@@ -111,7 +111,7 @@ void test_one_ip()
 	TEST_CHECK(ipv.external_address() == addr1);
 }
 
-int test_main()
+TORRENT_TEST(ip_voter)
 {
 	test_random();
 	test_two_ips();
