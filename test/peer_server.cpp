@@ -160,8 +160,6 @@ int num_peer_hits()
 
 void stop_peer()
 {
-	fprintf(stderr, "%s: PEER stop_peer()\n", time_now_string());
 	g_peer.reset();
-	fprintf(stderr, "%s: PEER stop_peer() done\n", time_now_string());
 }
 
