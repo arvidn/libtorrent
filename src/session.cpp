@@ -816,6 +816,16 @@ namespace libtorrent
 #endif
 	}
 
+	dht_settings session::get_dht_settings() const
+	{
+#ifndef TORRENT_DISABLE_DHT
+		return TORRENT_SYNC_CALL_RET(dht_settings, get_dht_settings);
+#else
+		return dht_settings();
+#endif
+	}
+
+
 #ifndef TORRENT_NO_DEPRECATE
 	void session::start_dht(entry const& startup_state)
 	{
@@ -833,7 +843,7 @@ namespace libtorrent
 #endif
 	}
 #endif // TORRENT_NO_DEPRECATE
-	
+
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT

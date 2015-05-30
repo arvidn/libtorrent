@@ -664,6 +664,7 @@ void bind_session()
         )
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
+        .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
 #endif
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
