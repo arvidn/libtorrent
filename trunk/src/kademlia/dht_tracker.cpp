@@ -79,47 +79,6 @@ namespace libtorrent { namespace dht
 {
 	void incoming_error(entry& e, char const* msg);
 
-#ifndef TORRENT_DISABLE_LOGGING
-	std::string parse_dht_client(bdecode_node const& e)
-	{
-		bdecode_node ver = e.dict_find_string("v");
-		if (!ver) return "generic";
-		std::string const& client = ver.string_value();
-		if (client.size() < 2)
-		{
-			return client;
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "Az"))
-		{
-			return "Azureus";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "UT"))
-		{
-			return "uTorrent";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "LT"))
-		{
-			return "libtorrent";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "MP"))
-		{
-			return "MooPolice";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "GR"))
-		{
-			return "GetRight";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "MO"))
-		{
-			return "Mono Torrent";
-		}
-		else
-		{
-			return client;
-		}
-	}
-#endif
-
 	namespace {
 
 	node_id extract_node_id(entry const* e)
@@ -413,11 +372,7 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
-			// it's not a good idea to send invalid messages
-			// especially not in response to an invalid message
-//			entry r;
-//			libtorrent::dht::incoming_error(r, "message is not a dictionary");
-//			send_packet(r, ep, 0);
+			// it's not a good idea to send a response to an invalid messages
 			return false;
 		}
 
