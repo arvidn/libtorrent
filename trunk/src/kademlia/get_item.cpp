@@ -201,9 +201,9 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 #ifndef TORRENT_DISABLE_LOGGING
 	// TODO: 3 it would be nice to not have to spend so much time rendering
 	// the bencoded dict if logging is disabled
-	get_node().observer()->log(dht_logger::traversal, "[%p] sending put [ v: \"%s\" seq: %" PRId64 " nodes: %d ]"
-		, this, m_data.value().to_string().c_str()
-		, (m_data.is_mutable() ? m_data.seq() : -1)
+	get_node().observer()->log(dht_logger::traversal, "[%p] sending put "
+		"[ seq: %" PRId64 " nodes: %d ]"
+		, this, (m_data.is_mutable() ? m_data.seq() : -1)
 		, int(v.size()));
 #endif
 
