@@ -74,7 +74,5 @@ TORRENT_TEST(hasher)
 		from_hex(result_array[test], 40, (char*)&result[0]);
 		TEST_CHECK(result == h.final());
 	}
-
-	return 0;
 }
 

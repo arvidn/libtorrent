@@ -187,6 +187,4 @@ TORRENT_TEST(bitfield)
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);
 		TEST_EQUAL(test1.all_set(), true);
 	}
-
-	return 0;
 }

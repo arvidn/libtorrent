@@ -128,6 +128,5 @@ TORRENT_TEST(resolve_links)
 
 	}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
-	return 0;
 }
 

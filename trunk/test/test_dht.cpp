@@ -1954,16 +1954,12 @@ TORRENT_TEST(dht)
 
 	target_id = item_target_id(test_content);
 	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
-
-	return 0;
 }
 
 #else
 
 TORRENT_TEST(dht)
-{
-	return 0;
-}
+{}
 
 #endif
 

@@ -157,6 +157,5 @@ TORRENT_TEST(tailqueue)
 
 	free_chain(t1);
 	free_chain(t2);
-	return 0;
 }
 

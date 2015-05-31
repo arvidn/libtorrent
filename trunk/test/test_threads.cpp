@@ -125,7 +125,5 @@ TORRENT_TEST(threads)
 	}
 
 	TEST_CHECK(c == 0);
-
-	return 0;
 }
 

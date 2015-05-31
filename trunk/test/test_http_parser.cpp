@@ -474,7 +474,5 @@ TORRENT_TEST(http_parser)
 	TEST_EQUAL(is_redirect(300), true);
 	TEST_EQUAL(is_redirect(399), true);
 	TEST_EQUAL(is_redirect(400), false);
-
-	return 0;
 }
 

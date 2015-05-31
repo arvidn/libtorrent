@@ -303,7 +303,5 @@ TORRENT_TEST(string)
 
 	TEST_EQUAL(convert_to_native("foobar")
 		, convert_to_native("foo") + convert_to_native("bar"));
-
-	return 0;
 }
 

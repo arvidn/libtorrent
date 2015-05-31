@@ -460,7 +460,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	TORRENT_DEPRECATED
-	void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+	void set_piece_hashes(create_torrent& t
 		, std::wstring const& p, Fun f)
 	{
 		error_code ec;
@@ -469,7 +469,7 @@ namespace libtorrent
 	}
 
 	TORRENT_DEPRECATED
-	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+	inline void set_piece_hashes(create_torrent& t
 		, std::wstring const& p)
 	{
 		error_code ec;
@@ -479,7 +479,7 @@ namespace libtorrent
 #endif
 
 	TORRENT_DEPRECATED
-	inline void TORRENT_DEPRECATED set_piece_hashes(create_torrent& t
+	inline void set_piece_hashes(create_torrent& t
 		, std::wstring const& p, error_code& ec)
 	{
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);

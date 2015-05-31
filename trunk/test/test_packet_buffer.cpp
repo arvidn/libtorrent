@@ -35,129 +35,127 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::packet_buffer;
 
+// test packet_buffer
 TORRENT_TEST(packet_buffer)
 {
-	// test packet_buffer
+	packet_buffer pb;
+
+	TEST_EQUAL(pb.capacity(), 0);
+	TEST_EQUAL(pb.size(), 0);
+	TEST_EQUAL(pb.span(), 0);
+
+	pb.insert(123, (void*)123);
+	TEST_EQUAL(pb.at(123 + 16), 0);
+
+	TEST_CHECK(pb.at(123) == (void*)123);
+	TEST_CHECK(pb.capacity() > 0);
+	TEST_EQUAL(pb.size(), 1);
+	TEST_EQUAL(pb.span(), 1);
+	TEST_EQUAL(pb.cursor(), 123);
+
+	pb.insert(125, (void*)125);
+
+	TEST_CHECK(pb.at(125) == (void*)125);
+	TEST_EQUAL(pb.size(), 2);
+	TEST_EQUAL(pb.span(), 3);
+	TEST_EQUAL(pb.cursor(), 123);
+
+	pb.insert(500, (void*)500);
+	TEST_EQUAL(pb.size(), 3);
+	TEST_EQUAL(pb.span(), 501 - 123);
+	TEST_EQUAL(pb.capacity(), 512);
+
+	pb.insert(500, (void*)501);
+	TEST_EQUAL(pb.size(), 3);
+	pb.insert(500, (void*)500);
+	TEST_EQUAL(pb.size(), 3);
+
+	TEST_CHECK(pb.remove(123) == (void*)123);
+	TEST_EQUAL(pb.size(), 2);
+	TEST_EQUAL(pb.span(), 501 - 125);
+	TEST_EQUAL(pb.cursor(), 125);
+	TEST_CHECK(pb.remove(125) == (void*)125);
+	TEST_EQUAL(pb.size(), 1);
+	TEST_EQUAL(pb.span(), 1);
+	TEST_EQUAL(pb.cursor(), 500);
+
+	TEST_CHECK(pb.remove(500) == (void*)500);
+	TEST_EQUAL(pb.size(), 0);
+	TEST_EQUAL(pb.span(), 0);
+
+	for (int i = 0; i < 0xff; ++i)
 	{
-		packet_buffer pb;
-
-		TEST_EQUAL(pb.capacity(), 0);
-		TEST_EQUAL(pb.size(), 0);
-		TEST_EQUAL(pb.span(), 0);
-
-		pb.insert(123, (void*)123);
-		TEST_EQUAL(pb.at(123 + 16), 0);
-
-		TEST_CHECK(pb.at(123) == (void*)123);
-		TEST_CHECK(pb.capacity() > 0);
-		TEST_EQUAL(pb.size(), 1);
-		TEST_EQUAL(pb.span(), 1);
-		TEST_EQUAL(pb.cursor(), 123);
-
-		pb.insert(125, (void*)125);
-
-		TEST_CHECK(pb.at(125) == (void*)125);
-		TEST_EQUAL(pb.size(), 2);
-		TEST_EQUAL(pb.span(), 3);
-		TEST_EQUAL(pb.cursor(), 123);
-
-		pb.insert(500, (void*)500);
-		TEST_EQUAL(pb.size(), 3);
-		TEST_EQUAL(pb.span(), 501 - 123);
+		int index = (i + 0xfff0) & 0xffff;
+		pb.insert(index, (void*)(index + 1));
+		fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
 		TEST_EQUAL(pb.capacity(), 512);
-
-		pb.insert(500, (void*)501);
-		TEST_EQUAL(pb.size(), 3);
-		pb.insert(500, (void*)500);
-		TEST_EQUAL(pb.size(), 3);
-
-		TEST_CHECK(pb.remove(123) == (void*)123);
-		TEST_EQUAL(pb.size(), 2);
-		TEST_EQUAL(pb.span(), 501 - 125);
-		TEST_EQUAL(pb.cursor(), 125);
-		TEST_CHECK(pb.remove(125) == (void*)125);
-		TEST_EQUAL(pb.size(), 1);
-		TEST_EQUAL(pb.span(), 1);
-		TEST_EQUAL(pb.cursor(), 500);
-
-		TEST_CHECK(pb.remove(500) == (void*)500);
-		TEST_EQUAL(pb.size(), 0);
-		TEST_EQUAL(pb.span(), 0);
-
-		for (int i = 0; i < 0xff; ++i)
+		if (i >= 14)
 		{
-			int index = (i + 0xfff0) & 0xffff;
-			pb.insert(index, (void*)(index + 1));
-			fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
-			TEST_EQUAL(pb.capacity(), 512);
-			if (i >= 14)
-			{
-				index = (index - 14) & 0xffff;
-				fprintf(stderr, "remove: %u\n", index);
-				TEST_CHECK(pb.remove(index) == (void*)(index + 1));
-				TEST_EQUAL(pb.size(), 14);
-			}
+			index = (index - 14) & 0xffff;
+			fprintf(stderr, "remove: %u\n", index);
+			TEST_CHECK(pb.remove(index) == (void*)(index + 1));
+			TEST_EQUAL(pb.size(), 14);
 		}
 	}
+}
 
-	{
-		// test wrapping the indices
-		packet_buffer pb;
+TORRENT_TEST(packet_buffer_wrap)
+{
+	// test wrapping the indices
+	packet_buffer pb;
 
-		TEST_EQUAL(pb.size(), 0);
+	TEST_EQUAL(pb.size(), 0);
 
-		pb.insert(0xfffe, (void*)1);
-		TEST_CHECK(pb.at(0xfffe) == (void*)1);
+	pb.insert(0xfffe, (void*)1);
+	TEST_CHECK(pb.at(0xfffe) == (void*)1);
 
-		pb.insert(2, (void*)2);
-		TEST_CHECK(pb.at(2) == (void*)2);
+	pb.insert(2, (void*)2);
+	TEST_CHECK(pb.at(2) == (void*)2);
 
-		pb.remove(0xfffe);
-		TEST_CHECK(pb.at(0xfffe) == (void*)0);
-		TEST_CHECK(pb.at(2) == (void*)2);
-	}
+	pb.remove(0xfffe);
+	TEST_CHECK(pb.at(0xfffe) == (void*)0);
+	TEST_CHECK(pb.at(2) == (void*)2);
+}
 
-	{
-		// test wrapping the indices
-		packet_buffer pb;
+TORRENT_TEST(packet_buffer_wrap2)
+{
+	// test wrapping the indices
+	packet_buffer pb;
 
-		TEST_EQUAL(pb.size(), 0);
+	TEST_EQUAL(pb.size(), 0);
 
-		pb.insert(0xfff3, (void*)1);
-		TEST_CHECK(pb.at(0xfff3) == (void*)1);
+	pb.insert(0xfff3, (void*)1);
+	TEST_CHECK(pb.at(0xfff3) == (void*)1);
 
-		int new_index = (0xfff3 + pb.capacity()) & 0xffff;
-		pb.insert(new_index, (void*)2);
-		TEST_CHECK(pb.at(new_index) == (void*)2);
+	int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+	pb.insert(new_index, (void*)2);
+	TEST_CHECK(pb.at(new_index) == (void*)2);
 
-		void* old = pb.remove(0xfff3);
-		TEST_CHECK(old == (void*)1);
-		TEST_CHECK(pb.at(0xfff3) == (void*)0);
-		TEST_CHECK(pb.at(new_index) == (void*)2);
-	}
+	void* old = pb.remove(0xfff3);
+	TEST_CHECK(old == (void*)1);
+	TEST_CHECK(pb.at(0xfff3) == (void*)0);
+	TEST_CHECK(pb.at(new_index) == (void*)2);
+}
 
-	{
-		// test wrapping the indices backwards
-		packet_buffer pb;
+TORRENT_TEST(packet_buffer_reverse_wrap)
+{
+	// test wrapping the indices backwards
+	packet_buffer pb;
 
-		TEST_EQUAL(pb.size(), 0);
+	TEST_EQUAL(pb.size(), 0);
 
-		pb.insert(0xfff3, (void*)1);
-		TEST_CHECK(pb.at(0xfff3) == (void*)1);
+	pb.insert(0xfff3, (void*)1);
+	TEST_CHECK(pb.at(0xfff3) == (void*)1);
 
-		int new_index = (0xfff3 + pb.capacity()) & 0xffff;
-		pb.insert(new_index, (void*)2);
-		TEST_CHECK(pb.at(new_index) == (void*)2);
+	int new_index = (0xfff3 + pb.capacity()) & 0xffff;
+	pb.insert(new_index, (void*)2);
+	TEST_CHECK(pb.at(new_index) == (void*)2);
 
-		void* old = pb.remove(0xfff3);
-		TEST_CHECK(old == (void*)1);
-		TEST_CHECK(pb.at(0xfff3) == (void*)0);
-		TEST_CHECK(pb.at(new_index) == (void*)2);
+	void* old = pb.remove(0xfff3);
+	TEST_CHECK(old == (void*)1);
+	TEST_CHECK(pb.at(0xfff3) == (void*)0);
+	TEST_CHECK(pb.at(new_index) == (void*)2);
 
-		pb.insert(0xffff, (void*)0xffff);
-	}
-
-
-	return 0;
+	pb.insert(0xffff, (void*)0xffff);
 }
 

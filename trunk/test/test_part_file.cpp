@@ -143,7 +143,5 @@ TORRENT_TEST(part_file)
 		for (int i = 0; i < 1024; ++i)
 			TEST_CHECK(buf[i] == char(i));
 	}
-
-	return 0;
 }
 

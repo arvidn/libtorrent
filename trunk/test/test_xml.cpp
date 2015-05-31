@@ -424,7 +424,5 @@ TORRENT_TEST(xml)
 		std::cerr << out << std::endl;
 		TEST_CHECK(out == "Punexpected end of file");
 	}
-
-	return 0;
 }
 

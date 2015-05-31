@@ -57,7 +57,5 @@ TORRENT_TEST(gzip)
 	TEST_CHECK(inflated.size() > 0);
 	for (int i = 0; i < int(inflated.size()); ++i)
 		TEST_EQUAL(inflated[i], 0);
-
-	return 0;
 }
 

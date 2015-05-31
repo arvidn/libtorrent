@@ -75,147 +75,148 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
-TORRENT_TEST(file_storage)
+TORRENT_TEST(rename_file)
 {
-	{
-		// test rename_file
-		file_storage st;
-		setup_test_storage(st);
+	// test rename_file
+	file_storage st;
+	setup_test_storage(st);
 
-		st.rename_file(0, combine_path("test", combine_path("c", "d")));
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test"
-			, combine_path("c", "d"))));
-		TEST_EQUAL(st.file_path(0, ""), combine_path("test"
-			, combine_path("c", "d")));
+	st.rename_file(0, combine_path("test", combine_path("c", "d")));
+	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test"
+		, combine_path("c", "d"))));
+	TEST_EQUAL(st.file_path(0, ""), combine_path("test"
+		, combine_path("c", "d")));
 
-		// files with absolute paths should ignore the save_path argument
-		// passed in to file_path()
+	// files with absolute paths should ignore the save_path argument
+	// passed in to file_path()
 #ifdef TORRENT_WINDOWS
-		st.rename_file(0, "c:\\tmp\\a");
-		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+	st.rename_file(0, "c:\\tmp\\a");
+	TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
 #else
-		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+	st.rename_file(0, "/tmp/a");
+	TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
 #endif
-	}
-
-	{
-		// test set_name. Make sure the name of the torrent is not encoded
-		// in the paths of each individual file. When changing the name of the
-		// torrent, the path of the files should change too
-		file_storage st;
-		setup_test_storage(st);
-		
-		st.set_name("test_2");
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test_2"
-			, "a")));
-	}
-
-	{
-		// test rename_file
-		file_storage st;
-		st.add_file("a", 10000);
-		TEST_EQUAL(st.file_path(0, ""), "a");
-
-		st.rename_file(0, combine_path("test", combine_path("c", "d")));
-		TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
-		TEST_EQUAL(st.file_path(0, ""), combine_path("test", combine_path("c", "d")));
-
-#ifdef TORRENT_WINDOWS
-		st.rename_file(0, "c:\\tmp\\a");
-		TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
-		TEST_EQUAL(st.file_path(0, "c:\\test-1\\test2"), "c:\\tmp\\a");
-#else
-		st.rename_file(0, "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
-		TEST_EQUAL(st.file_path(0, "/usr/local/temp"), "/tmp/a");
-#endif
-
-		st.rename_file(0, combine_path("tmp", "a"));
-		TEST_EQUAL(st.file_path(0, "."), combine_path("tmp", "a"));
-	}
-
-	{
-		// test applying pointer offset
-		file_storage st;
-		char const filename[] = "test1fooba";
-
-		st.add_file_borrow(filename, 5, combine_path("test-torrent-1", "test1")
-			, 10);
-
-		// test filename_ptr and filename_len
-		TEST_EQUAL(st.file_name_ptr(0), filename);
-		TEST_EQUAL(st.file_name_len(0), 5);
-
-		TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "test1"));
-		TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
-			, combine_path("test-torrent-1", "test1")));
-
-		// apply a pointer offset of 5 bytes. The name of the file should
-		// change to "fooba".
-
-		st.apply_pointer_offset(5);
-
-		TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "fooba"));
-		TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
-			, combine_path("test-torrent-1", "fooba")));
-
-		// test filename_ptr and filename_len
-		TEST_EQUAL(st.file_name_ptr(0), filename + 5);
-		TEST_EQUAL(st.file_name_len(0), 5);
-	}
-
-	{
-		// test map_file
-		file_storage fs;
-		fs.set_piece_length(512);
-		fs.add_file(combine_path("temp_storage", "test1.tmp"), 17);
-		fs.add_file(combine_path("temp_storage", "test2.tmp"), 612);
-		fs.add_file(combine_path("temp_storage", "test3.tmp"), 0);
-		fs.add_file(combine_path("temp_storage", "test4.tmp"), 0);
-		fs.add_file(combine_path("temp_storage", "test5.tmp"), 3253);
-		// size: 3882
-		fs.add_file(combine_path("temp_storage", "test6.tmp"), 841);
-		// size: 4723
-
-		peer_request rq = fs.map_file(0, 0, 10);
-		TEST_EQUAL(rq.piece, 0);
-		TEST_EQUAL(rq.start, 0);
-		TEST_EQUAL(rq.length, 10);
-		rq = fs.map_file(5, 0, 10);
-		TEST_EQUAL(rq.piece, 7);
-		TEST_EQUAL(rq.start, 298);
-		TEST_EQUAL(rq.length, 10);
-		rq = fs.map_file(5, 0, 1000);
-		TEST_EQUAL(rq.piece, 7);
-		TEST_EQUAL(rq.start, 298);
-		TEST_EQUAL(rq.length, 841);
-	}
-
-	{
-		// test file_path_hash and path_hash. Make sure we can detect a path
-		// whose name collides with
-		file_storage fs;
-		fs.set_piece_length(512);
-		fs.add_file(combine_path("temp_storage", "Foo"), 17);
-		fs.add_file(combine_path("temp_storage", "foo"), 612);
-
-		fprintf(stderr, "path: %s\n", fs.file_path(0).c_str());
-		fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
-		boost::uint32_t file_hash0 = fs.file_path_hash(0, "a");
-		boost::uint32_t file_hash1 = fs.file_path_hash(1, "a");
-		TEST_EQUAL(file_hash0, file_hash1);
-	}
-
-	// TODO: test file_storage::optimize too
-	// TODO: test map_block
-	// TODO: test piece_size(int piece)
-	// TODO: test file_index_at_offset
-	// TODO: test file attributes
-	// TODO: test symlinks
-	// TODO: test pad_files
-	// TODO: test reorder_file (make sure internal_file_entry::swap() is used)
-
-	return 0;
 }
+
+TORRENT_TEST(set_name)
+{
+	// test set_name. Make sure the name of the torrent is not encoded
+	// in the paths of each individual file. When changing the name of the
+	// torrent, the path of the files should change too
+	file_storage st;
+	setup_test_storage(st);
+	
+	st.set_name("test_2");
+	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test_2"
+		, "a")));
+}
+
+TORRENT_TEST(rename_file2)
+{
+	// test rename_file
+	file_storage st;
+	st.add_file("a", 10000);
+	TEST_EQUAL(st.file_path(0, ""), "a");
+
+	st.rename_file(0, combine_path("test", combine_path("c", "d")));
+	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
+	TEST_EQUAL(st.file_path(0, ""), combine_path("test", combine_path("c", "d")));
+
+#ifdef TORRENT_WINDOWS
+	st.rename_file(0, "c:\\tmp\\a");
+	TEST_EQUAL(st.file_path(0, "."), "c:\\tmp\\a");
+	TEST_EQUAL(st.file_path(0, "c:\\test-1\\test2"), "c:\\tmp\\a");
+#else
+	st.rename_file(0, "/tmp/a");
+	TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
+	TEST_EQUAL(st.file_path(0, "/usr/local/temp"), "/tmp/a");
+#endif
+
+	st.rename_file(0, combine_path("tmp", "a"));
+	TEST_EQUAL(st.file_path(0, "."), combine_path("tmp", "a"));
+}
+
+TORRENT_TEST(pointer_offset)
+{
+	// test applying pointer offset
+	file_storage st;
+	char const filename[] = "test1fooba";
+
+	st.add_file_borrow(filename, 5, combine_path("test-torrent-1", "test1")
+		, 10);
+
+	// test filename_ptr and filename_len
+	TEST_EQUAL(st.file_name_ptr(0), filename);
+	TEST_EQUAL(st.file_name_len(0), 5);
+
+	TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "test1"));
+	TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
+		, combine_path("test-torrent-1", "test1")));
+
+	// apply a pointer offset of 5 bytes. The name of the file should
+	// change to "fooba".
+
+	st.apply_pointer_offset(5);
+
+	TEST_EQUAL(st.file_path(0, ""), combine_path("test-torrent-1", "fooba"));
+	TEST_EQUAL(st.file_path(0, "tmp"), combine_path("tmp"
+		, combine_path("test-torrent-1", "fooba")));
+
+	// test filename_ptr and filename_len
+	TEST_EQUAL(st.file_name_ptr(0), filename + 5);
+	TEST_EQUAL(st.file_name_len(0), 5);
+}
+
+TORRENT_TEST(map_file)
+{
+	// test map_file
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file(combine_path("temp_storage", "test1.tmp"), 17);
+	fs.add_file(combine_path("temp_storage", "test2.tmp"), 612);
+	fs.add_file(combine_path("temp_storage", "test3.tmp"), 0);
+	fs.add_file(combine_path("temp_storage", "test4.tmp"), 0);
+	fs.add_file(combine_path("temp_storage", "test5.tmp"), 3253);
+	// size: 3882
+	fs.add_file(combine_path("temp_storage", "test6.tmp"), 841);
+	// size: 4723
+
+	peer_request rq = fs.map_file(0, 0, 10);
+	TEST_EQUAL(rq.piece, 0);
+	TEST_EQUAL(rq.start, 0);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 10);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 10);
+	rq = fs.map_file(5, 0, 1000);
+	TEST_EQUAL(rq.piece, 7);
+	TEST_EQUAL(rq.start, 298);
+	TEST_EQUAL(rq.length, 841);
+}
+
+TORRENT_TEST(file_path_hash)
+{
+	// test file_path_hash and path_hash. Make sure we can detect a path
+	// whose name collides with
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file(combine_path("temp_storage", "Foo"), 17);
+	fs.add_file(combine_path("temp_storage", "foo"), 612);
+
+	fprintf(stderr, "path: %s\n", fs.file_path(0).c_str());
+	fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
+	boost::uint32_t file_hash0 = fs.file_path_hash(0, "a");
+	boost::uint32_t file_hash1 = fs.file_path_hash(1, "a");
+	TEST_EQUAL(file_hash0, file_hash1);
+}
+
+// TODO: test file_storage::optimize
+// TODO: test map_block
+// TODO: test piece_size(int piece)
+// TODO: test file_index_at_offset
+// TODO: test file attributes
+// TODO: test symlinks
+// TODO: test pad_files
+// TODO: test reorder_file (make sure internal_file_entry::swap() is used)
 

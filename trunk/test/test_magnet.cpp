@@ -307,7 +307,5 @@ TORRENT_TEST(magnet)
 
 	test_remove_url("magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567");
 	test_remove_url("http://non-existent.com/test.torrent");
-
-	return 0;
 }
 

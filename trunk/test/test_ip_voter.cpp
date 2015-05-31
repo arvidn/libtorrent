@@ -56,7 +56,7 @@ bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 
 // test the case where every time we get a new IP. Make sure
 // we don't flap
-TORRENT_TEST(ip_voter_test_random)
+TORRENT_TEST(test_random)
 {
 	ip_voter ipv;
 
@@ -73,7 +73,7 @@ TORRENT_TEST(ip_voter_test_random)
 	TEST_CHECK(ipv.external_address() == addr1);
 }
 
-TORRENT_TEST(ip_voter_two_ips)
+TORRENT_TEST(two_ips)
 {
 	ip_voter ipv;
 
@@ -98,16 +98,18 @@ TORRENT_TEST(ip_voter_two_ips)
 	}
 }
 
-TORRENT_TEST(ip_voter_one_ip)
+TORRENT_TEST(one_ip)
 {
 	ip_voter ipv;
 
+	address_v4 start_addr(address_v4::from_string("93.12.63.174"));
 	address_v4 addr1(address_v4::from_string("51.1.1.1"));
 	address_v4 addr2(address_v4::from_string("53.3.3.3"));
 
-	bool new_ip = cast_vote(ipv, rand_v4(), rand_v4());
+	bool new_ip = cast_vote(ipv, start_addr, rand_v4());
 	TEST_CHECK(new_ip);
 	TEST_CHECK(ipv.external_address() != addr1);
+	TEST_CHECK(ipv.external_address() == start_addr);
 	for (int i = 0; i < 30; ++i)
 	{
 		new_ip = cast_vote(ipv, addr2, rand_v4());

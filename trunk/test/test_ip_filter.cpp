@@ -286,7 +286,5 @@ TORRENT_TEST(ip_filter)
 	TEST_CHECK(pf.access(301) == 0);
 	TEST_CHECK(pf.access(6881) == 0);
 	TEST_CHECK(pf.access(65535) == 0);
-
-	return 0;
 }
 

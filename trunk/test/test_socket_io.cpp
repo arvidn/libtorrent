@@ -112,7 +112,5 @@ TORRENT_TEST(socket_io)
 	TEST_EQUAL(list.size(), 1);
 #endif
 	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
-
-	return 0;
 }
 
