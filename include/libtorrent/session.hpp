@@ -153,18 +153,21 @@ namespace libtorrent
 	{
 	public:
 
-		// If the fingerprint in the first overload is omited, the client will
-		// get a default fingerprint stating the version of libtorrent. The
+		// If the fingerprint in the first overload is omited, the client will get
+		// a default fingerprint stating the version of libtorrent. The
 		// fingerprint is a short string that will be used in the peer-id to
 		// identify the client and the client's version. For more details see the
-		// fingerprint class. The constructor that only takes a fingerprint will
-		// not open a listen port for the session, to get it running you'll have
-		// to call ``session::listen_on()``. The other constructor, that takes a
-		// port range and an interface as well as the fingerprint will
-		// automatically try to listen on a port on the given interface. For more
-		// information about the parameters, see ``listen_on()`` function.
+		// fingerprint class. The first overload (that takes a fingerprint, flags
+		// and alert_mask) will listen on INADDR_ANY and let the OS pick a listen
+		// port. To listen on a specific interface or specific port, you'll have
+		// to call ``session::listen_on()``.
 		// 
-		// The flags paramater can be used to start default features (upnp &
+		// The second overload, that takes a port range and an interface as well
+		// as the fingerprint will automatically try to listen on a port on the
+		// given interface. For more information about the parameters, see
+		// ``listen_on()`` function.
+		// 
+		// The flags parameter can be used to start default features (upnp &
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those things. If you do not want them to start,
 		// pass 0 as the flags parameter.
