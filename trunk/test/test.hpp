@@ -71,7 +71,7 @@ extern int EXPORT _g_num_unit_tests;
 extern int EXPORT _g_test_failures;
 
 #define TORRENT_TEST(test_name) \
-	void BOOST_PP_CAT(unit_test_, test_name)(); \
+	static void BOOST_PP_CAT(unit_test_, test_name)(); \
 	static struct BOOST_PP_CAT(register_class, __LINE__) { \
 		BOOST_PP_CAT(register_class, __LINE__) () { \
 			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \

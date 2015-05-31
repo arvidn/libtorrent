@@ -38,11 +38,15 @@ using namespace libtorrent;
 
 const int proxy = libtorrent::settings_pack::none;
 
+#ifdef TORRENT_USE_OPENSSL
+TORRENT_TEST(web_seed_ssl)
+{
+	run_http_suite(proxy, "https", false);
+}
+#endif
+
 TORRENT_TEST(web_seed)
 {
-#ifdef TORRENT_USE_OPENSSL
-	run_http_suite(proxy, "https", false);
-#endif
 	run_http_suite(proxy, "http", false);
 }
 

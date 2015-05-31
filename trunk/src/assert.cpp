@@ -266,7 +266,7 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 			message = "A precondition of a libtorrent function has been violated.\n"
 				"This indicates a bug in the client application using libtorrent\n";
 	}
-	  
+
 	assert_print("%s\n"
 #ifdef TORRENT_PRODUCTION_ASSERTS
 		"#: %d\n"
@@ -288,10 +288,10 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS
- 	// send SIGINT to the current process
- 	// to break into the debugger
- 	raise(SIGINT);
- 	abort();
+	// send SIGINT to the current process
+	// to break into the debugger
+	raise(SIGINT);
+	abort();
 #endif
 }
 
