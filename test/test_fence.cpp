@@ -6,7 +6,7 @@
 
 using namespace libtorrent;
 
-void test_disk_job_empty_fence()
+TORRENT_TEST(empty_fence)
 {
 	libtorrent::disk_job_fence fence;
 	counters cnt;
@@ -42,7 +42,7 @@ void test_disk_job_empty_fence()
 	fence.job_complete(&test_job[8], jobs);
 }
 
-void test_disk_job_fence()
+TORRENT_TEST(job_fence)
 {
 	counters cnt;
 	libtorrent::disk_job_fence fence;
@@ -115,7 +115,7 @@ void test_disk_job_fence()
 	fence.job_complete(&test_job[8], jobs);
 }
 
-void test_disk_job_double_fence()
+TORRENT_TEST(double_fence)
 {
 	counters cnt;
 	libtorrent::disk_job_fence fence;
@@ -203,11 +203,3 @@ void test_disk_job_double_fence()
 	fence.job_complete(&test_job[9], jobs);
 }
 
-TORRENT_TEST(fence)
-{
-	test_disk_job_fence();
-	test_disk_job_double_fence();
-	test_disk_job_empty_fence();
-
-	return 0;
-}

@@ -139,7 +139,7 @@ private:
 
 // test push_back of heterogeneous types
 // and retrieval of their pointers
-TORRENT_TEST(heterogeneuous_queue_push_back)
+TORRENT_TEST(push_back)
 {
 	using namespace libtorrent;
 
@@ -188,7 +188,7 @@ TORRENT_TEST(heterogeneuous_queue_push_back)
 }
 
 // test swap
-TORRENT_TEST(heterogeneuous_queue_swap)
+TORRENT_TEST(swap)
 {
 	using namespace libtorrent;
 
@@ -237,7 +237,7 @@ TORRENT_TEST(heterogeneuous_queue_swap)
 }
 
 // test destruction
-TORRENT_TEST(heterogeneuous_queue_destruction)
+TORRENT_TEST(destruction)
 {
 	using namespace libtorrent;
 
@@ -259,7 +259,7 @@ TORRENT_TEST(heterogeneuous_queue_destruction)
 }
 
 // test copy/move
-TORRENT_TEST(heterogeneuous_queue_copy_move)
+TORRENT_TEST(copy_move)
 {
 	using namespace libtorrent;
 
@@ -285,7 +285,7 @@ TORRENT_TEST(heterogeneuous_queue_copy_move)
 	q.clear();
 }
 
-TORRENT_TEST(heterogeneuous_queue_nontrivial)
+TORRENT_TEST(nontrivial)
 {
 	using namespace libtorrent;
 

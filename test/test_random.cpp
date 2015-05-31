@@ -61,7 +61,5 @@ TORRENT_TEST(random)
 			TEST_CHECK(abs(buckets[i] - expected) < expected / 6);
 		}
 	}
-
-	return 0;
 }
 

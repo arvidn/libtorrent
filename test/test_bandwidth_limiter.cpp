@@ -457,10 +457,8 @@ void test_no_starvation(int limit)
 	TEST_CHECK(close_to(p->m_quota / sample_time, limit / 200 / num_peers, 5));
 }
 
-TORRENT_TEST(bandwidth_limiter)
+TORRENT_TEST(equal_connection)
 {
-	using namespace libtorrent;
-
 	test_equal_connections(2, 20);
 	test_equal_connections(2, 2000);
 	test_equal_connections(2, 20000);
@@ -470,11 +468,19 @@ TORRENT_TEST(bandwidth_limiter)
 	test_equal_connections(33, 60000);
 	test_equal_connections(33, 500000);
 	test_equal_connections(1, 100000000);
+}
+
+TORRENT_TEST(conn_var_rate)
+{
 	test_connections_variable_rate(2, 20, 0);
 	test_connections_variable_rate(5, 20000, 0);
 	test_connections_variable_rate(3, 2000, 6000);
 	test_connections_variable_rate(5, 2000, 30000);
 	test_connections_variable_rate(33, 500000, 0);
+}
+
+TORRENT_TEST(torrents)
+{
 	test_torrents(2, 400, 400, 0);
 	test_torrents(2, 100, 500, 0);
 	test_torrents(2, 3000, 3000, 6000);
@@ -483,15 +489,29 @@ TORRENT_TEST(bandwidth_limiter)
 	test_torrents(5, 6000, 6000, 3000);
 	test_torrents(5, 6000, 5000, 4000);
 	test_torrents(5, 20000, 20000, 30000);
+}
+
+TORRENT_TEST(torrent_var_rate)
+{
 	test_torrents_variable_rate(5, 6000, 3000);
 	test_torrents_variable_rate(5, 20000, 30000);
+}
+
+TORRENT_TEST(bandwidth_limiter)
+{
 	test_single_peer(40000, true);
 	test_single_peer(40000, false);
+}
+
+TORRENT_TEST(peer_priority)
+{
 	test_peer_priority(40000, false);
 	test_peer_priority(40000, true);
-	test_no_starvation(40000);
+}
 
-	return 0;
+TORRENT_TEST(no_starvation)
+{
+	test_no_starvation(40000);
 }
 
 

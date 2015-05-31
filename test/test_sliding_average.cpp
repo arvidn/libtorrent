@@ -44,52 +44,54 @@ int samples[] =  {
 67, 51, 66, 52, 48, 57, 30, 51, 72, 65, 78, 56, 74, 68, 49, 66,
 63, 57, 61, 62, 64, 62, 61, 52, 67, 64, 59, 61, 69, 60, 54, 69 };
 
+using namespace libtorrent;
 
-TORRENT_TEST(sliding_average)
+// make sure we react quickly for the first few samples
+TORRENT_TEST(reaction_time)
 {
-	using namespace libtorrent;
+	sliding_average<10> avg;
 
-	// make sure we react quickly for the first few samples
-	{
-		sliding_average<10> avg;
+	avg.add_sample(-10);
+	avg.add_sample(10);
 
+	TEST_EQUAL(avg.mean(), 0);
+}
+
+TORRENT_TEST(reaction_time2)
+{
+	sliding_average<10> avg;
+
+	avg.add_sample(10);
+	avg.add_sample(20);
+
+	TEST_EQUAL(avg.mean(), 15);
+}
+
+// make sure we converge
+TORRENT_TEST(converge)
+{
+	sliding_average<10> avg;
+	avg.add_sample(100);
+	for (int i = 0; i < 20; ++i)
+		avg.add_sample(10);
+	TEST_CHECK(abs(avg.mean() - 10) <= 3);
+}
+
+TORRENT_TEST(converge2)
+{
+	sliding_average<10> avg;
+	avg.add_sample(-100);
+	for (int i = 0; i < 20; ++i)
 		avg.add_sample(-10);
-		avg.add_sample(10);
+	TEST_CHECK(abs(avg.mean() + 10) <= 3);
+}
 
-		TEST_EQUAL(avg.mean(), 0);
-	}
-	{
-		sliding_average<10> avg;
-
-		avg.add_sample(10);
-		avg.add_sample(20);
-
-		TEST_EQUAL(avg.mean(), 15);
-	}
-
-	// make sure we converge
-	{
-		sliding_average<10> avg;
-		avg.add_sample(100);
-		for (int i = 0; i < 20; ++i)
-			avg.add_sample(10);
-		TEST_CHECK(abs(avg.mean() - 10) <= 3);
-	}
-	{
-		sliding_average<10> avg;
-		avg.add_sample(-100);
-		for (int i = 0; i < 20; ++i)
-			avg.add_sample(-10);
-		TEST_CHECK(abs(avg.mean() + 10) <= 3);
-	}
-
-	// test with a more realistic input
-	{
-		sliding_average<10> avg;
-		for (int i = 0; i < int(sizeof(samples)/sizeof(samples[0])); ++i)
-			avg.add_sample(samples[i]);
-		TEST_CHECK(abs(avg.mean() - 60) <= 3);
-	}
-	return 0;
+// test with a more realistic input
+TORRENT_TEST(random_converge)
+{
+	sliding_average<10> avg;
+	for (int i = 0; i < int(sizeof(samples)/sizeof(samples[0])); ++i)
+		avg.add_sample(samples[i]);
+	TEST_CHECK(abs(avg.mean() - 60) <= 3);
 }
 

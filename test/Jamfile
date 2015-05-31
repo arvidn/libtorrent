@@ -50,6 +50,7 @@ rule link_libtorrent ( properties * )
 
 lib libtorrent_test
 	: # sources
+	test.cpp
 	setup_transfer.cpp
 	dht_server.cpp
 	udp_tracker.cpp
@@ -83,7 +84,6 @@ lib advapi32 : : <name>Advapi32 ;
 project
 	: requirements
 	<source>main.cpp
-	<source>test.cpp
 	<conditional>@link_test
 	<conditional>@link_libtorrent
 	: default-build

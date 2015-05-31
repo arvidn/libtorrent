@@ -119,7 +119,7 @@ void callback(int mapping, address const& ip, int port, error_code const& err)
 		<< ", error: \"" << err.message() << "\"\n";
 }
 
-int run_upnp_test(char const* root_filename, char const* router_model, char const* control_name)
+void run_upnp_test(char const* root_filename, char const* router_model, char const* control_name)
 {
 	libtorrent::io_service ios;
 
@@ -135,7 +135,7 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 	{
 		fprintf(stderr, "failed to open file 'upnp.xml': %s\n", strerror(errno));
 		TEST_CHECK(false);
-		return 1;
+		return;
 	}
 	fprintf(xml_file, &buf[0], g_port);
 	fclose(xml_file);
@@ -225,13 +225,11 @@ int run_upnp_test(char const* root_filename, char const* router_model, char cons
 	callbacks.clear();
 
 	delete sock;
-	return 0;
 }
 
 TORRENT_TEST(upnp)
 {
 	run_upnp_test(combine_path("..", "root1.xml").c_str(), "Xtreme N GIGABIT Router", "wipconn");
 	run_upnp_test(combine_path("..", "root2.xml").c_str(), "D-Link Router", "WANIPConnection");
-	return 0;
 }
 

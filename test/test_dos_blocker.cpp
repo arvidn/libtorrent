@@ -91,7 +91,5 @@ TORRENT_TEST(dos_blocker)
 
 	TEST_EQUAL(b.incoming(spammer, now, &l), false);
 #endif
-
-	return 0;
 }
 

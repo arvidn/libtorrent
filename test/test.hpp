@@ -66,9 +66,9 @@ struct unit_test_t
 	FILE* output;
 };
 
-extern unit_test_t _g_unit_tests[1024];
-extern int _g_num_unit_tests;
-extern int _g_test_failures;
+extern unit_test_t EXPORT _g_unit_tests[1024];
+extern int EXPORT _g_num_unit_tests;
+extern int EXPORT _g_test_failures;
 
 #define TORRENT_TEST(test_name) \
 	void BOOST_PP_CAT(unit_test_, test_name)(); \
@@ -76,14 +76,14 @@ extern int _g_test_failures;
 		BOOST_PP_CAT(register_class, __LINE__) () { \
 			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \
 			t.fun = &BOOST_PP_CAT(unit_test_, test_name); \
-			t.name = #test_name; \
+			t.name = __FILE__ "." #test_name; \
 			t.num_failures = 0; \
 			t.run = false; \
 			t.output = NULL; \
 			_g_num_unit_tests++; \
 		} \
 	} BOOST_PP_CAT(_static_registrar, __LINE__); \
-	void BOOST_PP_CAT(unit_test_, test_name)()
+	static void BOOST_PP_CAT(unit_test_, test_name)()
 
 #define TEST_REPORT_AUX(x, line, file) \
 	report_failure(x, line, file)

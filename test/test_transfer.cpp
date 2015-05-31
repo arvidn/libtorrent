@@ -387,7 +387,5 @@ TORRENT_TEST(transfer)
 	remove_all("tmp2_transfer", ec);
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
-
-	return 0;
 }
 

@@ -43,7 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void test_mutable_torrents()
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+TORRENT_TEST(mutable_torrents)
 {
 	file_storage fs;
 
@@ -82,6 +83,7 @@ void test_mutable_torrents()
 	TEST_CHECK(similar == ti.similar_torrents());
 	TEST_CHECK(collections == ti.collections());
 }
+#endif
 
 struct test_torrent_t
 {
@@ -176,7 +178,7 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 
-void test_sanitize_path()
+TORRENT_TEST(sanitize_path)
 {
 	// test sanitize_append_path_element
 
@@ -286,7 +288,7 @@ void test_sanitize_path()
 
 }
 
-void test_torrent_parse()
+TORRENT_TEST(parse)
 {
 	error_code ec;
 
@@ -567,8 +569,6 @@ void test_torrent_parse()
 			, test_error_torrents[i].error.message().c_str());
 		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
 	}
-
-	return 0;
 }
 
 void test_resolve_duplicates(int test_case)
@@ -660,7 +660,13 @@ void test_resolve_duplicates(int test_case)
 	}
 }
 
-void test_copy()
+TORRENT_TEST(resolve_duplicates)
+{
+	for (int i = 0; i < 4; ++i)
+		test_resolve_duplicates(i);
+}
+
+TORRENT_TEST(copy)
 {
 	using namespace libtorrent;
 
@@ -715,18 +721,4 @@ void test_copy()
 	}
 }
 
-TORRENT_TEST(torrent_info)
-{
-	for (int i = 0; i < 4; ++i)
-		test_resolve_duplicates(i);
-
-	test_copy();
-#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	test_mutable_torrents();
-#endif
-	test_torrent_parse();
-	test_sanitize_path();
-
-	return 0;
-}
 

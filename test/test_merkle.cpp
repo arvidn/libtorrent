@@ -103,7 +103,5 @@ TORRENT_TEST(merkle)
 	TEST_EQUAL(merkle_num_nodes(4), 7);
 	TEST_EQUAL(merkle_num_nodes(8), 15);
 	TEST_EQUAL(merkle_num_nodes(16), 31);
-
-	return 0;
 }
 

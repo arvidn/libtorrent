@@ -586,7 +586,5 @@ TORRENT_TEST(bencoding)
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
 #endif // TORRENT_NO_DEPRECATE
-
-	return 0;
 }
 

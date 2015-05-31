@@ -86,7 +86,5 @@ TORRENT_TEST(settings_pack)
 	p.set_str(settings_pack::peer_fingerprint, "hij");
 
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
-
-	return 0;
 }
 
