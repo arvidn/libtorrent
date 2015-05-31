@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using libtorrent::packet_buffer;
 
 // test packet_buffer
-TORRENT_TEST(packet_buffer)
+TORRENT_TEST(insert)
 {
 	packet_buffer pb;
 
@@ -99,7 +99,7 @@ TORRENT_TEST(packet_buffer)
 	}
 }
 
-TORRENT_TEST(packet_buffer_wrap)
+TORRENT_TEST(wrap)
 {
 	// test wrapping the indices
 	packet_buffer pb;
@@ -117,7 +117,7 @@ TORRENT_TEST(packet_buffer_wrap)
 	TEST_CHECK(pb.at(2) == (void*)2);
 }
 
-TORRENT_TEST(packet_buffer_wrap2)
+TORRENT_TEST(wrap2)
 {
 	// test wrapping the indices
 	packet_buffer pb;
@@ -137,7 +137,7 @@ TORRENT_TEST(packet_buffer_wrap2)
 	TEST_CHECK(pb.at(new_index) == (void*)2);
 }
 
-TORRENT_TEST(packet_buffer_reverse_wrap)
+TORRENT_TEST(reverse_wrap)
 {
 	// test wrapping the indices backwards
 	packet_buffer pb;
