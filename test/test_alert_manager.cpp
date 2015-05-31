@@ -203,6 +203,7 @@ struct test_plugin : libtorrent::plugin
 TORRENT_TEST(extensions)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
+	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
 	mgr.add_extension(boost::make_shared<test_plugin>(0));
@@ -236,7 +237,7 @@ TORRENT_TEST(wait_for_alert)
 	alert_manager mgr(100, 0xffffffff);
 
 	time_point start = clock_type::now();
-	
+
 	alert* a = mgr.wait_for_alert(seconds(1));
 
 	time_point end = clock_type::now();
