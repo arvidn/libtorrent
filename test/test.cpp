@@ -66,12 +66,12 @@ int print_failures()
 
 		if (_g_unit_tests[i].num_failures == 0)
 		{
-			fprintf(stderr, "\x1b[32m[%*s] ***PASS***\n"
+			fprintf(stderr, "\x1b[32m[%-*s] ***PASS***\n"
 				, longest_name, _g_unit_tests[i].name);
 		}
 		else
 		{
-			fprintf(stderr, "\x1b[31m[%*s] %d FAILURES\n"
+			fprintf(stderr, "\x1b[31m[%-*s] %d FAILURES\n"
 				, longest_name
 				, _g_unit_tests[i].name
 				, _g_unit_tests[i].num_failures);

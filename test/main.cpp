@@ -58,6 +58,34 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+// these are global so we can restore them on abnormal exits and print stuff
+// out, such as the log
+int old_stdout = -1;
+int old_stderr = -1;
+
+// the current tests file descriptor
+unit_test_t* current_test = NULL;
+
+void output_test_log_to_terminal()
+{
+	if (current_test == NULL || old_stdout == -1 || old_stderr == -1)
+		return;
+
+	fflush(stdout);
+	fflush(stderr);
+	dup2(old_stdout, fileno(stdout));
+	dup2(old_stderr, fileno(stderr));
+
+	fseek(current_test->output, 0, SEEK_SET);
+	fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
+	char buf[4096];
+	int size = 0;
+	do {
+		size = fread(buf, 1, sizeof(buf), current_test->output);
+		if (size > 0) fwrite(buf, 1, size, stderr);
+	} while (size > 0);
+}
+
 void sig_handler(int sig)
 {
 	char stack_text[10000];
@@ -90,6 +118,9 @@ void sig_handler(int sig)
 #undef SIG
 	};
 	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+
+	output_test_log_to_terminal();
+
 	exit(138);
 }
 
@@ -159,6 +190,7 @@ int main(int argc, char const* argv[])
 	signal(SIGBUS, &sig_handler);
 #endif
 	signal(SIGILL, &sig_handler);
+	signal(SIGINT, &sig_handler);
 	signal(SIGABRT, &sig_handler);
 	signal(SIGFPE, &sig_handler);
 #ifdef SIGSYS
@@ -190,8 +222,8 @@ int main(int argc, char const* argv[])
 		return 1;
 	}
 
-	int old_stdout = dup(fileno(stdout));
-	int old_stderr = dup(fileno(stderr));
+	old_stdout = dup(fileno(stdout));
+	old_stderr = dup(fileno(stderr));
 
 	int num_run = 0;
 	for (int i = 0; i < _g_num_unit_tests; ++i)
@@ -214,6 +246,8 @@ int main(int argc, char const* argv[])
 				, errno, strerror(errno));
 			continue;
 		}
+
+		current_test = &t;
 
 #ifndef BOOST_NO_EXCEPTIONS
 		try
@@ -240,19 +274,7 @@ int main(int argc, char const* argv[])
 
 		if (_g_test_failures > 0)
 		{
-			fflush(stdout);
-			fflush(stderr);
-			dup2(old_stdout, fileno(stdout));
-			dup2(old_stderr, fileno(stderr));
-
-			fseek(t.output, 0, SEEK_SET);
-			fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", t.name);
-			char buf[4096];
-			int size = 0;
-			do {
-				size = fread(buf, 1, sizeof(buf), t.output);
-				if (size > 0) fwrite(buf, 1, size, stderr);
-			} while (size > 0);
+			output_test_log_to_terminal();
 		}
 
 		t.num_failures = _g_test_failures;
