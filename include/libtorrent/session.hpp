@@ -165,13 +165,13 @@ namespace libtorrent
 	{
 	public:
 
-		// If the fingerprint in the first overload is omited, the client will
-		// get a default fingerprint stating the version of libtorrent. The
+		// If the fingerprint in the first overload is omited, the client will get
+		// a default fingerprint stating the version of libtorrent. The
 		// fingerprint is a short string that will be used in the peer-id to
 		// identify the client and the client's version. For more details see the
 		// fingerprint class.
 		// 
-		// The flags paramater can be used to start default features (upnp &
+		// The flags parameter can be used to start default features (upnp &
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
