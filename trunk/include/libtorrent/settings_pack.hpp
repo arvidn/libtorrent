@@ -35,10 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include <vector>
-
-#ifndef TORRENT_NO_DEPRECATE
 #include <boost/smart_ptr.hpp>
-#endif
 
 // OVERVIEW
 // 
