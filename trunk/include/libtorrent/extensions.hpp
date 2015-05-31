@@ -357,7 +357,7 @@ namespace libtorrent
 		// can add entries to the extension handshake
 		// this is not called for web seeds
 		virtual void add_handshake(entry&) {}
-		
+
 		// called when the peer is being disconnected.
 		virtual void on_disconnect(error_code const& /*ec*/) {}
 
@@ -369,13 +369,13 @@ namespace libtorrent
 
 		// throwing an exception from any of the handlers (except add_handshake)
 		// closes the connection
-		
+
 		// this is called when the initial BT handshake is received. Returning false
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
 		virtual bool on_handshake(char const* /*reserved_bits*/) { return true; }
-		
+
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
 		// supported by this peer. It will result in this peer_plugin
