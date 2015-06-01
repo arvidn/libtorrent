@@ -181,7 +181,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false
 
 	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s allow-fast: %s\n\n\n"
 		, test_name[proxy_type], test_disk_full ? "true": "false", test_allowed_fast ? "true" : "false");
-	
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
@@ -352,7 +352,7 @@ void test_transfer(int proxy_type, bool test_disk_full = false
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -388,10 +388,10 @@ int test_main()
 	// test with all kinds of proxies
 	for (int i = 0; i < 6; ++i)
 		test_transfer(i);
-	
+
 	// test with a (simulated) full disk
 	test_transfer(0, true, true);
-	
+
 	// test allowed fast
 	test_transfer(0, false, true);
 
@@ -403,7 +403,7 @@ int test_main()
 	fprintf(stderr, "compact mode\n");
 	test_transfer(0, false, false, storage_mode_compact);
 #endif
-	
+
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);
