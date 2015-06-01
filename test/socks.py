@@ -10,10 +10,10 @@ import threading
 import sys
 
 def debug(s):
-	print >>sys.stderr, 'socks.py: ', s
+   print >>sys.stderr, 'socks.py: ', s
 
 def error(s):
-	print >>sys.stderr, 'socks.py, ERROR: ', s
+   print >>sys.stderr, 'socks.py, ERROR: ', s
 
 class MyTCPServer(ThreadingTCPServer):
     allow_reuse_address = True
@@ -27,6 +27,7 @@ VERSION = '\x05'
 NOAUTH = '\x00'
 USERPASS = '\x02'
 CONNECT = '\x01'
+UDP_ASSOCIATE = '\x03'
 IPV4 = '\x01'
 IPV6 = '\x04'
 DOMAIN_NAME = '\x03'
@@ -90,8 +91,8 @@ class SocksHandler(StreamRequestHandler):
 
         if allow_v4 and version == '\x04':
             cmd = self.read(1)
-            if cmd != CONNECT:
-                error('Only supports connect method not (%r) closing' % cmd)
+            if cmd != CONNECT and cmd != UDP_ASSOCIATE:
+                error('Only supports connect and udp-associate method not (%r) closing' % cmd)
                 self.close_request()
                 return
 
@@ -160,8 +161,8 @@ class SocksHandler(StreamRequestHandler):
         if version != '\x05':
             error('Wrong version number (%r) closing...' % version)
             self.close_request()
-        elif cmd != CONNECT:
-            error('Only supports connect method not (%r) closing' % cmd)
+        elif cmd != CONNECT and cmd != UDP_ASSOCIATE:
+            error('Only supports connect and udp-associate method not (%r) closing' % cmd)
             self.close_request()
         elif zero != '\x00':
             error('Mangled request. Reserved field (%r) is not null' % zero)
@@ -193,6 +194,11 @@ class SocksHandler(StreamRequestHandler):
         except Exception, e:
             print e
             return
+
+        if cmd == UDP_ASSOCIATE:
+           debug("no UDP support yet, closing")
+           return;
+
         debug("Creating forwarder connection to %s:%d" % (out_address[0], out_address[1]))
 
         try:
