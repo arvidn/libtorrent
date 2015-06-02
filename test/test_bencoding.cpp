@@ -585,6 +585,28 @@ TORRENT_TEST(bencoding)
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
+
+	{
+		char const* b[] = {
+			"d1:a1919191010:11111",
+			"d2143289344:a4:aaaae",
+			"d214328934114:a4:aaaae",
+			"d9205357638345293824:a4:aaaae",
+			"d1:a9205357638345293824:11111",
+		};
+
+		for (int i = 0; i < sizeof(b)/sizeof(b[0]); ++i)
+		{
+			lazy_entry e;
+			error_code ec;
+			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), e, ec, NULL);
+			TEST_EQUAL(ret, -1);
+			TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
+			printf("%s\n", print_entry(e).c_str());
+		}
+	}
+
+
 #endif // TORRENT_NO_DEPRECATE
 }
 

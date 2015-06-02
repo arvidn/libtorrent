@@ -102,6 +102,7 @@ struct F
 		, f(f_.f)
 		, constructed(f_.constructed)
 		, destructed(f_.destructed)
+		, gutted(f_.gutted)
 	{
 		TEST_EQUAL(f_.constructed, true);
 		TEST_EQUAL(f_.destructed, false);
