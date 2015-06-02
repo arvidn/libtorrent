@@ -142,7 +142,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s\n\n\n"
 		, test_name[proxy_type], test_disk_full ? "true": "false");
-	
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
@@ -381,7 +381,7 @@ TORRENT_TEST(transfer)
 	fprintf(stderr, "compact mode\n");
 	test_transfer(0, p, false, storage_mode_compact);
 #endif
-	
+
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);

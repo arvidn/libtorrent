@@ -188,7 +188,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 		{
 			// send udp packets through SOCKS5 server
 			wrap(ep, p, len, ec);
-			return;	
+			return;
 		}
 
 		if (m_queue_packets)
@@ -556,13 +556,11 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 	iovec[1] = asio::const_buffer(p, len);
 
 #if TORRENT_USE_IPV6
-	if (m_udp_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
+	if (m_udp_proxy_addr.address().is_v6() && m_ipv6_sock.is_open())
+		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
+	else
 #endif
 		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#if TORRENT_USE_IPV6
-	else
-		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#endif
 }
 
 // unwrap the UDP packet from the SOCKS5 header
@@ -767,7 +765,7 @@ void udp_socket::set_proxy_settings(proxy_settings const& ps)
 	error_code ec;
 	m_socks5_sock.close(ec);
 	m_tunnel_packets = false;
-	
+
 	m_proxy_settings = ps;
 
 	if (m_abort) return;
@@ -1269,7 +1267,7 @@ void udp_socket::connect2(error_code const& e)
 		drain_queue();
 		return;
 	}
-	
+
 	m_tunnel_packets = true;
 	drain_queue();
 
