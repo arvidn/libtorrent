@@ -256,11 +256,11 @@ namespace libtorrent
 			// integer
 			case 'i':
 				{
-				++in; // 'i' 
+				++in; // 'i'
 				std::string val = read_until(in, end, 'e', err);
 				if (err) return;
 				TORRENT_ASSERT(*in == 'e');
-				++in; // 'e' 
+				++in; // 'e'
 				ret = entry(entry::int_t);
 				char* end_pointer;
 				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
@@ -319,7 +319,7 @@ namespace libtorrent
 					entry key;
 					bdecode_recursive(in, end, key, err, depth + 1);
 					if (err || key.type() != entry::string_t)
-					{	
+					{
 #ifdef TORRENT_DEBUG
 						ret.m_type_queried = false;
 #endif
@@ -390,7 +390,7 @@ namespace libtorrent
 			}
 		}
 	}
-	
+
 	// These functions will encode data to bencoded_ or decode bencoded_ data.
 	// 
 	// If possible, lazy_bdecode() should be preferred over ``bdecode()``.
