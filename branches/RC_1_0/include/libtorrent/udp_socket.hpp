@@ -138,6 +138,11 @@ namespace libtorrent
 
 		struct queued_packet
 		{
+			queued_packet()
+				: hostname(NULL)
+				, flags(0)
+			{}
+
 			udp::endpoint ep;
 			char* hostname;
 			buffer buf;
@@ -150,7 +155,7 @@ namespace libtorrent
 		{
 			return m_v4_outstanding
 #if TORRENT_USE_IPV6
-			  	+ m_v6_outstanding
+				+ m_v6_outstanding
 #endif
 				;
 		}
