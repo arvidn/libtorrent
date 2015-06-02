@@ -558,13 +558,11 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 	iovec[1] = asio::const_buffer(p, len);
 
 #if TORRENT_USE_IPV6
-	if (m_udp_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
+	if (m_udp_proxy_addr.address().is_v6() && m_ipv6_sock.is_open())
+		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
+	else
 #endif
 		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#if TORRENT_USE_IPV6
-	else
-		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#endif
 }
 
 // unwrap the UDP packet from the SOCKS5 header
