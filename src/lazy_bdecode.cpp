@@ -160,7 +160,9 @@ namespace libtorrent
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
 
-					if (start + len + 1 > end)
+					// remaining buffer size excluding ':'
+					const ptrdiff_t buff_size = end - start - 1;
+					if (len > buff_size)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					if (len < 0)
@@ -226,15 +228,19 @@ namespace libtorrent
 					start = parse_int(start, end, ':', len, e);
 					if (e)
 						TORRENT_FAIL_BDECODE(e);
-					if (start + len + 1 > end)
+
+					// remaining buffer size excluding ':'
+					const ptrdiff_t buff_size = end - start - 1;
+					if (len > buff_size)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					if (len < 0)
 						TORRENT_FAIL_BDECODE(bdecode_errors::overflow);
 
 					++start;
+					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					top->construct_string(start, int(len));
-					stack.pop_back();
 					start += len;
+					stack.pop_back();
 					continue;
 				}
 			}
