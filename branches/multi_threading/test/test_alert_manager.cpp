@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void test_limit()
+TORRENT_TEST(limit)
 {
 	alert_manager mgr(500, 0xffffffff);
 
@@ -81,7 +81,7 @@ void test_limit()
 	TEST_EQUAL(alerts.size(), 200);
 }
 
-void test_priority_limit()
+TORRENT_TEST(priority_limit)
 {
 	alert_manager mgr(100, 0xffffffff);
 
@@ -109,7 +109,7 @@ void test_dispatch_fun(int& cnt, std::auto_ptr<alert> a)
 	++cnt;
 }
 
-void test_dispatch_function()
+TORRENT_TEST(dispatch_function)
 {
 #ifndef TORRENT_NO_DEPRECATE
 	int cnt = 0;
@@ -142,7 +142,7 @@ void test_notify_fun(int& cnt)
 	++cnt;
 }
 
-void test_notify_function()
+TORRENT_TEST(notify_function)
 {
 	int cnt = 0;
 	alert_manager mgr(100, 0xffffffff);
@@ -200,9 +200,10 @@ struct test_plugin : libtorrent::plugin
 
 #endif
 
-void test_extensions()
+TORRENT_TEST(extensions)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
+	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
 	mgr.add_extension(boost::make_shared<test_plugin>(0));
@@ -231,12 +232,12 @@ void post_torrent_added(alert_manager* mgr)
 	mgr->emplace_alert<torrent_added_alert>(torrent_handle());
 }
 
-void test_wait_for_alert()
+TORRENT_TEST(wait_for_alert)
 {
 	alert_manager mgr(100, 0xffffffff);
 
 	time_point start = clock_type::now();
-	
+
 	alert* a = mgr.wait_for_alert(seconds(1));
 
 	time_point end = clock_type::now();
@@ -267,7 +268,7 @@ void test_wait_for_alert()
 	posting_thread.join();
 }
 
-void test_queued_resume()
+TORRENT_TEST(queued_resume)
 {
 	alert_manager mgr(100, 0xffffffff);
 
@@ -301,7 +302,7 @@ void test_queued_resume()
 	TEST_EQUAL(mgr.num_queued_resume(), 0);
 }
 
-void test_alert_mask()
+TORRENT_TEST(alert_mask)
 {
 	alert_manager mgr(100, 0xffffffff);
 
@@ -312,19 +313,5 @@ void test_alert_mask()
 
 	TEST_CHECK(!mgr.should_post<torrent_added_alert>());
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
-}
-
-int test_main()
-{
-	test_limit();
-	test_priority_limit();
-	test_dispatch_function();
-	test_notify_function();
-	test_extensions();
-	test_wait_for_alert();
-	test_queued_resume();
-	test_alert_mask();
-
-	return 0;
 }
 

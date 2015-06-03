@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(web_seed_redirect)
 {
 	using namespace libtorrent;
 
@@ -53,7 +53,8 @@ int test_main()
 	{
 		fprintf(stderr, "failed to create file \"test_file\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
-		return 1;
+		TEST_ERROR("failed to create file");
+		return;
 	}
 	file::iovec_t b = { random_data, size_t(16000)};
 	f.writev(0, &b, 1, ec);
@@ -76,8 +77,8 @@ int test_main()
 	{
 		fprintf(stderr, "error creating hashes for test torrent: %s\n"
 			, ec.message().c_str());
-		TEST_CHECK(false);
-		return 0;
+		TEST_ERROR("failed to create hashes");
+		return;
 	}
 
 	std::vector<char> buf;
@@ -91,14 +92,13 @@ int test_main()
 		settings.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		settings.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
 		ses.apply_settings(settings);
-   
+
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)
 		test_transfer(ses, torrent_file, 0, 0, "http", true, false, false, false);
 	}
 
 	stop_web_server();
-	return 0;
 }
 
 

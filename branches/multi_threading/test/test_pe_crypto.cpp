@@ -192,7 +192,7 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 
 #endif
 
-int test_main()
+TORRENT_TEST(test_pe_crypto)
 {
 	using namespace libtorrent;
 
@@ -252,7 +252,5 @@ int test_main()
 #else
 	fprintf(stderr, "PE test not run because it's disabled\n");
 #endif
-
-	return 0;
 }
 

@@ -128,7 +128,7 @@ void test_transfer()
 	p2 = ses2.abort();
 }
 
-int test_main()
+TORRENT_TEST(utp)
 {
 	using namespace libtorrent;
 
@@ -137,7 +137,5 @@ int test_main()
 	error_code ec;
 	remove_all("./tmp1_utp", ec);
 	remove_all("./tmp2_utp", ec);
-
-	return 0;
 }
 

@@ -139,6 +139,11 @@ namespace libtorrent
 
 		struct queued_packet
 		{
+			queued_packet()
+				: hostname(NULL)
+				, flags(0)
+			{}
+
 			udp::endpoint ep;
 			char* hostname;
 			buffer buf;

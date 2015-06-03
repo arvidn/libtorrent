@@ -63,7 +63,7 @@ void test_iterators(bitfield& test1)
 	TEST_EQUAL(num, test1.count());
 }
 
-int test_main()
+TORRENT_TEST(bitfield)
 {
 	bitfield test1(10, false);
 	TEST_EQUAL(test1.size(), 10);
@@ -187,6 +187,4 @@ int test_main()
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);
 		TEST_EQUAL(test1.all_set(), true);
 	}
-
-	return 0;
 }

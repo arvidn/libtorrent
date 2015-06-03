@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/crc32c.hpp"
 #include "test.hpp"
 
-int test_main()
+TORRENT_TEST(crc32)
 {
 	using namespace libtorrent;
 
@@ -60,6 +60,5 @@ int test_main()
 		"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f", 32);
 	out = crc32c(buf, 4);
 	TEST_EQUAL(out, htonl(0x4e79dd46));
-	return 0;
 }
 

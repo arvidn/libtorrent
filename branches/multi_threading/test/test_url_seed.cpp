@@ -38,7 +38,7 @@ using namespace libtorrent;
 
 const int proxy = libtorrent::settings_pack::none;
 
-int test_main()
+TORRENT_TEST(url_seed)
 {
 	for (int keepalive = 0; keepalive < 2; ++keepalive)
 	{
@@ -48,7 +48,6 @@ int test_main()
 		run_http_suite(proxy, "http", 1, 0, 0, keepalive);
 	}
 	run_http_suite(proxy, "http", 1, 0, 0, 1, 1);
-	return 0;
 }
 
 

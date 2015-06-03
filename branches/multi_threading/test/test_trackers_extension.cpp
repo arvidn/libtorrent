@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::tuples::ignore;
 
-int test_main()
+TORRENT_TEST(trackers_extension)
 {
 	using namespace libtorrent;
 	namespace lt = libtorrent;
@@ -129,11 +129,9 @@ int test_main()
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
-
-	return 0;
 }
 
 #else
-int test_main() { return 0; }
+TORRENT_TEST(trackers_extension) { }
 #endif // TORRENT_DISABLE_EXTENSIONS
 

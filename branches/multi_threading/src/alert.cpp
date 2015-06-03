@@ -1739,5 +1739,43 @@ namespace libtorrent {
 		return ret;
 	}
 
+	dht_pkt_alert::dht_pkt_alert(aux::stack_allocator& alloc
+		, char const* buf, int size, dht_pkt_alert::direction_t d, udp::endpoint ep)
+		: dir(d)
+		, node(ep)
+		, m_alloc(alloc)
+		, m_msg_idx(alloc.copy_buffer(buf, size))
+		, m_size(size)
+	{}
+
+	char const* dht_pkt_alert::pkt_buf() const
+	{
+		return m_alloc.ptr(m_msg_idx);
+	}
+
+	int dht_pkt_alert::pkt_size() const
+	{
+		return m_size;
+	}
+
+	std::string dht_pkt_alert::message() const
+	{
+		bdecode_node print;
+		error_code ec;
+
+		// ignore errors here. This is best-effort. It may be a broken encoding
+		// but at least we'll print the valid parts
+		bdecode(pkt_buf(), pkt_buf() + pkt_size(), print, ec, NULL, 100, 100);
+
+		std::string msg = print_entry(print, true);
+
+		char const* prefix[2] = { "<==", "==>"};
+		char buf[1024];
+		snprintf(buf, sizeof(buf), "%s [%s] %s", prefix[dir]
+			, print_endpoint(node).c_str(), msg.c_str());
+
+		return buf;
+	}
+
 } // namespace libtorrent
 

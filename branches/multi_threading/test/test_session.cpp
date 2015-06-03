@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-int test_main()
+TORRENT_TEST(session)
 {
 	settings_pack p;
 	p.set_int(settings_pack::alert_mask, ~0);
@@ -86,6 +86,5 @@ int test_main()
 	// for the asynchronous call to set the alert
 	// mask completes, before it goes on to destruct
 	// the session object
-	return 0;
 }
 

@@ -2771,7 +2771,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	void torrent::use_interface(std::string net_interfaces)
 	{
-		settings_pack* p = new settings_pack;
+		boost::shared_ptr<settings_pack> p = boost::make_shared<settings_pack>();
 		p->set_str(settings_pack::outgoing_interfaces, net_interfaces);
 		m_ses.apply_settings_pack(p);
 	}
@@ -2792,7 +2792,7 @@ namespace libtorrent
 	void torrent::on_tracker_announce()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_waiting_tracker = false;	
+		m_waiting_tracker = false;
 		if (m_abort) return;
 		announce_with_tracker();
 	}

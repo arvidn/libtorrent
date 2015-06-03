@@ -76,7 +76,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 	return ret;
 }
 
-int test_main()
+TORRENT_TEST(http_parser)
 {
 	// HTTP request parser
 	http_parser parser;
@@ -474,7 +474,5 @@ int test_main()
 	TEST_EQUAL(is_redirect(300), true);
 	TEST_EQUAL(is_redirect(399), true);
 	TEST_EQUAL(is_redirect(400), false);
-
-	return 0;
 }
 

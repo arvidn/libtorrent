@@ -267,7 +267,7 @@ namespace libtorrent { namespace aux
 
 		virtual void trigger_auto_manage() = 0;
 
-		virtual void apply_settings_pack(settings_pack* pack) = 0;
+		virtual void apply_settings_pack(boost::shared_ptr<settings_pack> pack) = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
 			, boost::weak_ptr<request_callback> c) = 0;

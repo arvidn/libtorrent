@@ -78,7 +78,7 @@ void build_chain(tailqueue& q, char const* str)
 	check_chain(q, expected);
 }
 
-int test_main()
+TORRENT_TEST(tailqueue)
 {
 	tailqueue t1;
 	tailqueue t2;
@@ -157,6 +157,5 @@ int test_main()
 
 	free_chain(t1);
 	free_chain(t2);
-	return 0;
 }
 

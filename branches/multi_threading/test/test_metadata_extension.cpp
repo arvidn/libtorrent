@@ -202,7 +202,7 @@ done:
 	remove_all("tmp2_meta", ec);
 }
 
-int test_main()
+TORRENT_TEST(metadata_extension)
 {
 	using namespace libtorrent;
 
@@ -232,7 +232,5 @@ int test_main()
 	remove_all("tmp2", ec);
 
 #endif // TORRENT_NO_DEPRECATE
-
-	return 0;
 }
 

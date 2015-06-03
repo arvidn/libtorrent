@@ -145,7 +145,7 @@ void test_pex()
 	p3 = ses3.abort();
 }
 
-int test_main()
+TORRENT_TEST(pex)
 {
 	using namespace libtorrent;
 
@@ -156,15 +156,13 @@ int test_main()
 	remove_all("tmp3_pex", ec);
 
 	test_pex();
-	
+
 	remove_all("tmp1_pex", ec);
 	remove_all("tmp2_pex", ec);
 	remove_all("tmp3_pex", ec);
-
-	return 0;
 }
 
 #else
-int test_main() { return 0; }
+TORRENT_TEST(pex) {}
 #endif // TORRENT_DISABLE_EXTENSIONS
 

@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include <boost/cstdint.hpp>
 
 using namespace libtorrent;
 
@@ -100,7 +101,7 @@ void test_count_zeroes()
 
 void test_to_from_string()
 {
-	uint8_t bits[4] = { 0x10, 0xff, 0x55, 0xaa};
+	boost::uint8_t bits[4] = { 0x10, 0xff, 0x55, 0xaa};
 
 	bloom_filter<4> filter;
 	filter.from_string(reinterpret_cast<char*>(bits));
@@ -119,7 +120,7 @@ void test_to_from_string()
 	TEST_EQUAL(memcmp(compare, bits_out.c_str(), 4), 0);
 }
 
-int test_main()
+TORRENT_TEST(bloom_filter)
 {
 	test_set_and_get();
 	test_set_bits();

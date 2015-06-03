@@ -274,7 +274,8 @@ int test_pick(boost::shared_ptr<piece_picker> const& p
 	return picked[0].piece_index;
 }
 
-int test_main()
+// TODO: 2 split this up into smaller tests (where we print_title)
+TORRENT_TEST(piece_picker)
 {
 	tcp::endpoint endp;
 	piece_picker::downloading_piece st;
@@ -1857,7 +1858,5 @@ int test_main()
 	TEST_EQUAL(picked.size(), blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
-
-	return 0;
 }
 

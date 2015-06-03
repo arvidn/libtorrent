@@ -79,47 +79,6 @@ namespace libtorrent { namespace dht
 {
 	void incoming_error(entry& e, char const* msg);
 
-#ifndef TORRENT_DISABLE_LOGGING
-	std::string parse_dht_client(bdecode_node const& e)
-	{
-		bdecode_node ver = e.dict_find_string("v");
-		if (!ver) return "generic";
-		std::string const& client = ver.string_value();
-		if (client.size() < 2)
-		{
-			return client;
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "Az"))
-		{
-			return "Azureus";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "UT"))
-		{
-			return "uTorrent";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "LT"))
-		{
-			return "libtorrent";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "MP"))
-		{
-			return "MooPolice";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "GR"))
-		{
-			return "GetRight";
-		}
-		else if (std::equal(client.begin(), client.begin() + 2, "MO"))
-		{
-			return "Mono Torrent";
-		}
-		else
-		{
-			return client;
-		}
-	}
-#endif
-
 	namespace {
 
 	node_id extract_node_id(entry const* e)
@@ -394,7 +353,7 @@ namespace libtorrent { namespace dht
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
-			
+
 		TORRENT_ASSERT(size > 0);
 
 		int pos;
@@ -403,10 +362,7 @@ namespace libtorrent { namespace dht
 		if (ret != 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::incoming_message_error, buf
-				, size, "%s ERROR: %s pos: %d"
-				, print_endpoint(ep).c_str(), err.message().c_str()
-				, int(pos));
+			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
 			return false;
 		}
@@ -414,21 +370,15 @@ namespace libtorrent { namespace dht
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::incoming_message_error, buf
-				, size, "%s ERROR: not a dictionary"
-				, print_endpoint(ep).c_str());
+			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
-			// it's not a good idea to send invalid messages
-			// especially not in response to an invalid message
-//			entry r;
-//			libtorrent::dht::incoming_error(r, "message is not a dictionary");
-//			send_packet(r, ep, 0);
+			// it's not a good idea to send a response to an invalid messages
 			return false;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log_message(dht_logger::incoming_message, buf
-			, size, "%s", print_endpoint(ep).c_str());
+		m_log->log_packet(dht_logger::incoming_message, buf
+			, size, ep);
 #endif
 
 		libtorrent::dht::msg m(m_msg, ep);
@@ -448,7 +398,7 @@ namespace libtorrent { namespace dht
 	}
 
 	} // anonymous namespace
-	
+
 	entry dht_tracker::state() const
 	{
 		entry ret(entry::dictionary_t);
@@ -523,9 +473,8 @@ namespace libtorrent { namespace dht
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
-				m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-					, m_send_buf.size(), "%s DROPPED (%s)"
-					, print_endpoint(addr).c_str(), ec.message().c_str());
+				m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+					, m_send_buf.size(), addr);
 #endif
 				return false;
 			}
@@ -536,9 +485,8 @@ namespace libtorrent { namespace dht
 				, addr.address().is_v6() ? 48 : 28);
 			m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), "%s"
-				, print_endpoint(addr).c_str());
+			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), addr);
 #endif
 			return true;
 		}
@@ -547,9 +495,8 @@ namespace libtorrent { namespace dht
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_message(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), "%s"
-				, print_endpoint(addr).c_str());
+			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+				, m_send_buf.size(), addr);
 #endif
 			return false;
 		}

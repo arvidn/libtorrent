@@ -55,7 +55,7 @@ void check_timer_loop(mutex& m, time_point& last, condition_variable& cv)
 	}
 }
 
-int test_main()
+TORRENT_TEST(time)
 {
 
 	// make sure the time classes have correct semantics
@@ -96,7 +96,5 @@ int test_main()
 	t2.join();
 	t3.join();
 	t4.join();
-
-	return 0;
 }
 

@@ -32,15 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "swarm_suite.hpp"
 
-int test_main()
+TORRENT_TEST(super_seeding)
 {
 	// with super seeding
 	test_swarm(super_seeding);
-	
+
 	// with strict super seeding
 	test_swarm(super_seeding | strict_super_seeding);
-	
-	return 0;
 }
 
 

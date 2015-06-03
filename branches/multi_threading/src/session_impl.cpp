@@ -336,13 +336,13 @@ namespace aux {
 	}
 #endif
 
-	session_impl::session_impl()
+	session_impl::session_impl(io_service& ios)
 		:
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
 		,
 #endif
-		m_io_service()
+		m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
 #endif
@@ -425,9 +425,6 @@ namespace aux {
 		, m_need_auto_manage(false)
 		, m_abort(false)
 		, m_paused(false)
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-		, m_network_thread(0)
-#endif
 	{
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
@@ -448,6 +445,10 @@ namespace aux {
 		TORRENT_ASSERT_VAL(!ec, ec);
 	}
 
+	// This function is called by the creating thread, not in the message loop's
+	// / io_service thread.
+	// TODO: 2 is there a reason not to move all of this into init()? and just
+	// post it to the io_service?
 	void session_impl::start_session(settings_pack const& pack)
 	{
 		m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
@@ -546,19 +547,55 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		settings_pack* copy = new settings_pack(pack);
-		m_io_service.post(boost::bind(&session_impl::apply_settings_pack, this, copy));
-		// call update_* after settings set initialized
-		m_io_service.post(boost::bind(&session_impl::init_settings, this));
-
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" spawning network thread");
-#endif
-		m_thread.reset(new thread(boost::bind(&session_impl::main_thread, this)));
+		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(pack);
+		m_io_service.post(boost::bind(&session_impl::init, this, copy));
 	}
 
-	void session_impl::init_settings()
+	void session_impl::init(boost::shared_ptr<settings_pack> pack)
 	{
+		// this is a debug facility
+		// see single_threaded in debug.hpp
+		thread_started();
+
+		TORRENT_ASSERT(is_single_thread());
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log(" *** session thread init");
+#endif
+
+		// this is where we should set up all async operations. This
+		// is called from within the network thread as opposed to the
+		// constructor which is called from the main thread
+
+#if defined TORRENT_ASIO_DEBUGGING
+		async_inc_threads();
+		add_outstanding_async("session_impl::on_tick");
+#endif
+		error_code ec;
+		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_lsd_announce");
+#endif
+		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
+			/ (std::max)(int(m_torrents.size()), 1), 1);
+		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.async_wait(
+			boost::bind(&session_impl::on_lsd_announce, this, _1));
+		TORRENT_ASSERT(!ec);
+
+#ifndef TORRENT_DISABLE_DHT
+		update_dht_announce_interval();
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log(" done starting session");
+#endif
+
+		apply_settings_pack(pack);
+
+		// call update_* after settings set initialized
+
 #ifndef TORRENT_NO_DEPRECATE
 		update_local_download_rate();
 		update_local_upload_rate();
@@ -638,42 +675,6 @@ namespace aux {
 			if (t->do_async_save_resume_data())
 				++m_num_save_resume;
 		}
-	}
-
-	void session_impl::init()
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" *** session thread init");
-#endif
-
-		// this is where we should set up all async operations. This
-		// is called from within the network thread as opposed to the
-		// constructor which is called from the main thread
-
-#if defined TORRENT_ASIO_DEBUGGING
-		async_inc_threads();
-		add_outstanding_async("session_impl::on_tick");
-#endif
-		error_code ec;
-		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_lsd_announce");
-#endif
-		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
-			/ (std::max)(int(m_torrents.size()), 1), 1);
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
-		m_lsd_announce_timer.async_wait(
-			boost::bind(&session_impl::on_lsd_announce, this, _1));
-		TORRENT_ASSERT(!ec);
-
-#ifndef TORRENT_DISABLE_DHT
-		update_dht_announce_interval();
-#endif
-
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" done starting session");
-#endif
 	}
 
 	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
@@ -806,7 +807,7 @@ namespace aux {
 		settings = e->dict_find_dict("settings");
 		if (settings)
 		{
-			settings_pack* pack = load_pack_from_dict(settings);
+			boost::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
 			apply_settings_pack(pack);
 		}
 
@@ -1074,6 +1075,9 @@ namespace aux {
 		// has an internal counter and won't release the network
 		// thread until they're all dead (via m_work).
 		m_disk_thread.set_num_threads(0, false);
+
+		// now it's OK for the network thread to exit
+		m_work.reset();
 	}
 
 	bool session_impl::has_connection(peer_connection* p) const
@@ -1520,22 +1524,24 @@ namespace aux {
 		return ret;
 	}
 
-	// session_impl is responsible for deleting 'pack', but it
-	// will pass it on to the disk io thread, which will take
-	// over ownership of it
-	void session_impl::apply_settings_pack(settings_pack* pack)
+	// session_impl is responsible for deleting 'pack'
+	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
+	{
+		apply_settings_pack_impl(*pack);
+	}
+
+	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool reopen_listen_port =
-			(pack->has_val(settings_pack::ssl_listen)
-				&& pack->get_int(settings_pack::ssl_listen)
+			(pack.has_val(settings_pack::ssl_listen)
+				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
-			|| (pack->has_val(settings_pack::listen_interfaces)
-				&& pack->get_str(settings_pack::listen_interfaces)
+			|| (pack.has_val(settings_pack::listen_interfaces)
+				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
-		apply_pack(pack, m_settings, this);
-		m_disk_thread.set_settings(pack, m_alerts);
-		delete pack;
+		apply_pack(&pack, m_settings, this);
+		m_disk_thread.set_settings(&pack, m_alerts);
 
 		if (reopen_listen_port)
 		{
@@ -1549,7 +1555,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
-		settings_pack* p = load_pack_from_struct(m_settings, s);
+		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
 		apply_settings_pack(p);
 	}
 
@@ -3986,88 +3992,6 @@ retry:
 		m_delayed_uncorks.clear();
 	}
 
-#if defined _MSC_VER && defined TORRENT_DEBUG
-	static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
-	{ throw; }
-#endif
-
-	void session_impl::main_thread()
-	{
-#if defined _MSC_VER && defined TORRENT_DEBUG
-		// workaround for microsofts
-		// hardware exceptions that makes
-		// it hard to debug stuff
-		::_set_se_translator(straight_to_debugger);
-#endif
-		// this is a debug facility
-		// see single_threaded in debug.hpp
-		thread_started();
-
-		TORRENT_ASSERT(is_single_thread());
-
-		// initialize async operations
-		init();
-
-		bool stop_loop = false;
-		while (!stop_loop)
-		{
-			error_code ec;
-			m_io_service.run(ec);
-			if (ec)
-			{
-#ifdef TORRENT_DEBUG
-				fprintf(stderr, "%s\n", ec.message().c_str());
-				std::string err = ec.message();
-#endif
-				TORRENT_ASSERT(false);
-			}
-			m_io_service.reset();
-
-			stop_loop = m_abort;
-		}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" locking mutex");
-#endif
-
-/*
-#ifdef TORRENT_DEBUG
-		for (torrent_map::iterator i = m_torrents.begin();
-			i != m_torrents.end(); ++i)
-		{
-			TORRENT_ASSERT(i->second->num_peers() == 0);
-		}
-#endif
-*/
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" cleaning up torrents");
-#endif
-
-		// clear the torrent LRU (probably not strictly necessary)
-		list_node* i = m_torrent_lru.get_all();
-#if TORRENT_USE_ASSERTS
-		// clear the prev and next pointers in all torrents
-		// to avoid the assert when destructing them
-		while (i)
-		{
-			list_node* tmp = i;
-			i = i->next;
-			tmp->next = NULL;
-			tmp->prev= NULL;
-		}
-#else
-		TORRENT_UNUSED(i);
-#endif
-		m_torrents.clear();
-
-		TORRENT_ASSERT(m_torrents.empty());
-		TORRENT_ASSERT(m_connections.empty());
-
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-		m_network_thread = 0;
-#endif
-	}
-
 	boost::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
 		, peer_connection* pc)
 	{
@@ -5622,11 +5546,6 @@ retry:
 		// this is not allowed to be the network thread!
 		TORRENT_ASSERT(is_not_thread());
 
-		m_io_service.post(boost::bind(&session_impl::abort, this));
-
-		// now it's OK for the network thread to exit
-		m_work.reset();
-
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;
 		while (log_async())
@@ -5639,11 +5558,7 @@ retry:
 		async_dec_threads();
 
 		fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
-
-//		m_io_service.post(boost::bind(&io_service::stop, &m_io_service));
 #endif
-
-		if (m_thread) m_thread->join();
 
 		m_udp_socket.unsubscribe(this);
 		m_udp_socket.unsubscribe(&m_utp_socket_manager);
@@ -5683,6 +5598,22 @@ retry:
 			fclose(f);
 		}
 #endif
+
+		// clear the torrent LRU. We do this to avoid having the torrent
+		// destructor assert because it's still linked into the lru list
+#if TORRENT_USE_ASSERTS
+		list_node* i = m_torrent_lru.get_all();
+		// clear the prev and next pointers in all torrents
+		// to avoid the assert when destructing them
+		while (i)
+		{
+			list_node* tmp = i;
+			i = i->next;
+			tmp->next = NULL;
+			tmp->prev = NULL;
+		}
+#endif
+
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -5698,44 +5629,44 @@ retry:
 
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::local_download_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::local_download_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::download_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::download_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::upload_rate_limit, bytes_per_second);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::upload_rate_limit, bytes_per_second);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_max_connections(int limit)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::connections_limit, limit);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::connections_limit, limit);
+		apply_settings_pack_impl(p);
 	}
 
 	void session_impl::set_max_uploads(int limit)
 	{
-		settings_pack* p = new settings_pack;
-		p->set_int(settings_pack::unchoke_slots_limit, limit);
-		apply_settings_pack(p);
+		settings_pack p;
+		p.set_int(settings_pack::unchoke_slots_limit, limit);
+		apply_settings_pack_impl(p);
 	}
 
 	int session_impl::local_upload_rate_limit() const
@@ -5943,9 +5874,6 @@ retry:
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		// if we haven't started yet, don't actually trigger this
-		if (!m_thread) return;
-
 		m_io_service.post(boost::bind(&session_impl::on_trigger_auto_manage, this));
 	}
 
@@ -5997,15 +5925,6 @@ retry:
 
 		m_dht_interval_update_torrents = m_torrents.size();
 
-		// if we haven't started yet, don't actually trigger this
-		if (!m_thread)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("not starting DHT announce timer: thread not running yet");
-#endif
-			return;
-		}
-
 		if (m_abort)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6042,9 +5961,6 @@ retry:
 #endif
 
 		if (!m_settings.get_bool(settings_pack::force_proxy)) return;
-
-		// if we haven't started yet, don't actually trigger this
-		if (!m_thread) return;
 
 		// enable force_proxy mode. We don't want to accept any incoming
 		// connections, except through a proxy.
@@ -6495,43 +6411,15 @@ retry:
 		m_alerts.emplace_alert<dht_log_alert>((dht_log_alert::dht_module_t)m, buf);
 	}
 
-	TORRENT_FORMAT(5, 6)
-	void session_impl::log_message(message_direction_t dir, char const* pkt, int len
-		, char const* fmt, ...)
+	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
+		, udp::endpoint node)
 	{
-		if (!m_alerts.should_post<dht_log_alert>()) return;
+		if (!m_alerts.should_post<dht_pkt_alert>()) return;
 
-		char buf[1024];
-		int offset = 0;
-		char const* prefix[] =
-		{ "<== ", "==> ", "<== ERROR ", "==> ERROR " };
-		offset += snprintf(&buf[offset], sizeof(buf) - offset, prefix[dir]);
+		dht_pkt_alert::direction_t d = dir == dht_logger::incoming_message
+			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
-		va_list v;
-		va_start(v, fmt);
-		offset += vsnprintf(&buf[offset], sizeof(buf) - offset, fmt, v);
-		va_end(v);
-
-		if (offset < sizeof(buf) - 1)
-		{
-			buf[offset++] = ' ';
-
-			bdecode_node print;
-			error_code ec;
-
-			// ignore errors here. This is best-effort. It may be a broken encoding
-			// but at least we'll print the valid parts
-			bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
-
-			// TODO: 3 there should be a separate dht_log_alert for messages that
-			// contains the raw packet separately. This printing should be moved
-			// down to the ::message() function of that alert
-			std::string msg = print_entry(print, true);
-
-			strncpy(&buf[offset], msg.c_str(), sizeof(buf) - offset);
-		}
-
-		m_alerts.emplace_alert<dht_log_alert>(dht_log_alert::tracker, buf);
+		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
 	}
 
 	void session_impl::set_external_address(address const& ip

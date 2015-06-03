@@ -55,7 +55,7 @@ void test_remove_url(std::string url)
 	TEST_EQUAL(handles.size(), 0);
 }
 
-int test_main()
+TORRENT_TEST(magnet)
 {
 	session_proxy p1;
 	session_proxy p2;
@@ -307,7 +307,5 @@ int test_main()
 
 	test_remove_url("magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567");
 	test_remove_url("http://non-existent.com/test.torrent");
-
-	return 0;
 }
 

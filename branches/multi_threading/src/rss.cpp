@@ -348,9 +348,9 @@ void feed::on_feed(error_code const& ec
 	{
 		++m_failures;
 		m_error = ec;
-		if (m_ses.m_alerts.should_post<rss_alert>())
+		if (m_ses.alerts().should_post<rss_alert>())
 		{
-			m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+			m_ses.alerts().emplace_alert<rss_alert>(my_handle(), m_settings.url
 				, rss_alert::state_error, m_error);
 		}
 		return;
@@ -360,9 +360,9 @@ void feed::on_feed(error_code const& ec
 	{
 		++m_failures;
 		m_error = error_code(parser.status_code(), get_http_category());
-		if (m_ses.m_alerts.should_post<rss_alert>())
+		if (m_ses.alerts().should_post<rss_alert>())
 		{
-			m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+			m_ses.alerts().emplace_alert<rss_alert>(my_handle(), m_settings.url
 				, rss_alert::state_error, m_error);
 		}
 		return;
@@ -405,9 +405,9 @@ void feed::on_feed(error_code const& ec
 #endif
 
 	// report that we successfully updated the feed
-	if (m_ses.m_alerts.should_post<rss_alert>())
+	if (m_ses.alerts().should_post<rss_alert>())
 	{
-		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+		m_ses.alerts().emplace_alert<rss_alert>(my_handle(), m_settings.url
 			, rss_alert::state_updated, error_code());
 	}
 
@@ -435,7 +435,7 @@ void feed::load_state(bdecode_node const& rd)
 		{
 			bdecode_node entry = e.list_at(i);
 			if (entry.type() != bdecode_node::dict_t) continue;
-			
+
 			m_items.push_back(feed_item());
 			feed_item& item = m_items.back();
 			item.url = entry.dict_find_string_value("url");
@@ -560,8 +560,8 @@ void feed::add_item(feed_item const& item)
 	if (m_settings.auto_map_handles)
 		i.handle = torrent_handle(m_ses.find_torrent(i.uuid.empty() ? i.url : i.uuid));
 
-	if (m_ses.m_alerts.should_post<rss_item_alert>())
-		m_ses.m_alerts.emplace_alert<rss_item_alert>(my_handle(), i);
+	if (m_ses.alerts().should_post<rss_item_alert>())
+		m_ses.alerts().emplace_alert<rss_item_alert>(my_handle(), i);
 
 	if (m_settings.auto_download)
 	{
@@ -605,9 +605,9 @@ int feed::update_feed()
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-	if (m_ses.m_alerts.should_post<rss_alert>())
+	if (m_ses.alerts().should_post<rss_alert>())
 	{
-		m_ses.m_alerts.emplace_alert<rss_alert>(my_handle(), m_settings.url
+		m_ses.alerts().emplace_alert<rss_alert>(my_handle(), m_settings.url
 			, rss_alert::state_updating, error_code());
 	}
 
@@ -616,14 +616,14 @@ int feed::update_feed()
 #endif
 
 	boost::shared_ptr<http_connection> feed(
-		new http_connection(m_ses.m_io_service
-			, m_ses.m_host_resolver
+		new http_connection(m_ses.get_io_service()
+			, m_ses.get_resolver()
 			, boost::bind(&feed::on_feed, shared_from_this()
 			, _1, _2, _3, _4)));
 
 	m_updating = true;
 	feed->get(m_settings.url, seconds(30), 0, 0, 5
-		, m_ses.m_settings.get_str(settings_pack::user_agent));
+		, m_ses.settings().get_str(settings_pack::user_agent));
 
 	return 60 + m_failures * m_failures * 60;
 }
@@ -653,13 +653,13 @@ int feed::next_update(time_t now) const
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
 	if (!f) return; \
 	aux::session_impl& ses = f->session(); \
-	ses.m_io_service.post(boost::bind(&feed:: x, f))
+	ses.get_io_service().post(boost::bind(&feed:: x, f))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \
 	if (!f) return; \
 	aux::session_impl& ses = f->session(); \
-	ses.m_io_service.post(boost::bind(&feed:: x, f, a1))
+	ses.get_io_service().post(boost::bind(&feed:: x, f, a1))
 
 #define TORRENT_SYNC_CALL1(x, a1) \
 	boost::shared_ptr<feed> f = m_feed_ptr.lock(); \

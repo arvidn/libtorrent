@@ -176,12 +176,12 @@ public:
 
 struct count_peers
 {
-	int& count;
-	count_peers(int& c): count(c) {}
+	int* count;
+	count_peers(int* c): count(c) {}
 	void operator()(std::pair<libtorrent::dht::node_id
 		, libtorrent::dht::torrent_entry> const& t)
 	{
-		count += t.second.peers.size();
+		*count += t.second.peers.size();
 	}
 };
 
@@ -218,7 +218,7 @@ public:
 	int num_peers() const
 	{
 		int ret = 0;
-		std::for_each(m_map.begin(), m_map.end(), count_peers(ret));
+		std::for_each(m_map.begin(), m_map.end(), count_peers(&ret));
 		return ret;
 	}
 

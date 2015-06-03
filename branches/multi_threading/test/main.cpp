@@ -37,13 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h> // for exit()
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
-#include "setup_transfer.hpp" // for tests_failure
+#include "setup_transfer.hpp" // for _g_test_failures
 #include "test.hpp"
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
 #include "udp_tracker.hpp" // for stop_udp_tracker
-
-int test_main();
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
@@ -51,9 +49,42 @@ int test_main();
 
 #ifdef WIN32
 #include <windows.h> // fot SetErrorMode
+#include <io.h> // for _dup and _dup2
+
+#define dup _dup
+#define dup2 _dup2
+
 #endif
 
 using namespace libtorrent;
+
+// these are global so we can restore them on abnormal exits and print stuff
+// out, such as the log
+int old_stdout = -1;
+int old_stderr = -1;
+
+// the current tests file descriptor
+unit_test_t* current_test = NULL;
+
+void output_test_log_to_terminal()
+{
+	if (current_test == NULL || old_stdout == -1 || old_stderr == -1)
+		return;
+
+	fflush(stdout);
+	fflush(stderr);
+	dup2(old_stdout, fileno(stdout));
+	dup2(old_stderr, fileno(stderr));
+
+	fseek(current_test->output, 0, SEEK_SET);
+	fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
+	char buf[4096];
+	int size = 0;
+	do {
+		size = fread(buf, 1, sizeof(buf), current_test->output);
+		if (size > 0) fwrite(buf, 1, size, stderr);
+	} while (size > 0);
+}
 
 void sig_handler(int sig)
 {
@@ -87,11 +118,55 @@ void sig_handler(int sig)
 #undef SIG
 	};
 	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+
+	output_test_log_to_terminal();
+
 	exit(138);
 }
 
-int main()
+void print_usage(char const* argv[])
 {
+	printf("%s [options] [tests...]\n"
+		"\n"
+		"OPTIONS:\n"
+		"-h,--help           show this help\n"
+		"-l,--list           list the tests available to run\n"
+		"\n"
+		"for tests, specify one or more test names as printed\n"
+		"by -l. If no test is specified, all tests are run\n", argv[0]);
+}
+
+int main(int argc, char const* argv[])
+{
+	if (argc > 1
+		&& (strcmp(argv[1], "-h") == 0
+			|| strcmp(argv[1], "--help") == 0))
+	{
+		print_usage(argv);
+		return 0;
+	}
+
+	if (argc > 1
+		&& (strcmp(argv[1], "-l") == 0
+		|| strcmp(argv[1], "--list") == 0))
+	{
+		printf("TESTS:\n");
+		for (int i = 0; i < _g_num_unit_tests; ++i)
+		{
+			printf(" - %s\n", _g_unit_tests[i].name);
+		}
+		return 0;
+	}
+
+	std::set<std::string> tests_to_run;
+	bool filter = false;
+
+	for (int i = 1; i < argc; ++i)
+	{
+		tests_to_run.insert(argv[i]);
+		filter = true;
+	}
+
 #ifdef WIN32
 	// try to suppress hanging the process by windows displaying
 	// modal dialogs.
@@ -115,6 +190,7 @@ int main()
 	signal(SIGBUS, &sig_handler);
 #endif
 	signal(SIGILL, &sig_handler);
+	signal(SIGINT, &sig_handler);
 	signal(SIGABRT, &sig_handler);
 	signal(SIGFPE, &sig_handler);
 #ifdef SIGSYS
@@ -138,24 +214,95 @@ int main()
 #endif
 	fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
 
+	int total_failures = 0;
+
+	if (_g_num_unit_tests == 0)
+	{
+		fprintf(stderr, "\x1b[31mERROR: no unit tests registered\x1b[0m\n");
+		return 1;
+	}
+
+	old_stdout = dup(fileno(stdout));
+	old_stderr = dup(fileno(stderr));
+
+	int num_run = 0;
+	for (int i = 0; i < _g_num_unit_tests; ++i)
+	{
+		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
+			continue;
+
+		unit_test_t& t = _g_unit_tests[i];
+
+		// redirect test output to a temporary file
+		fflush(stdout);
+		fflush(stderr);
+
+		t.output = tmpfile();
+		int ret1 = dup2(fileno(t.output), fileno(stdout));
+		int ret2 = dup2(fileno(t.output), fileno(stderr));
+		if (ret1 < 0 /*|| ret2 < 0*/)
+		{
+			fprintf(stderr, "failed to redirect output: (%d) %s\n"
+				, errno, strerror(errno));
+			continue;
+		}
+
+		current_test = &t;
+
 #ifndef BOOST_NO_EXCEPTIONS
-	try
-	{
+		try
+		{
 #endif
-		test_main();
+
+			_g_test_failures = 0;
+			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
-	}
-	catch (std::exception const& e)
-	{
-		char buf[200];
-		snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
-		report_failure(buf, __FILE__, __LINE__);
-	}
-	catch (...)
-	{
-		report_failure("Terminated with unknown exception", __FILE__, __LINE__);
-	}
+		}
+		catch (std::exception const& e)
+		{
+			char buf[200];
+			snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+			report_failure(buf, __FILE__, __LINE__);
+		}
+		catch (...)
+		{
+			report_failure("Terminated with unknown exception", __FILE__, __LINE__);
+		}
 #endif
+
+		if (!tests_to_run.empty()) tests_to_run.erase(t.name);
+
+		if (_g_test_failures > 0)
+		{
+			output_test_log_to_terminal();
+		}
+
+		t.num_failures = _g_test_failures;
+		t.run = true;
+		total_failures += _g_test_failures;
+		++num_run;
+
+		fclose(t.output);
+	}
+
+	dup2(old_stdout, fileno(stdout));
+	dup2(old_stderr, fileno(stderr));
+
+	if (!tests_to_run.empty())
+	{
+		fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
+		for (std::set<std::string>::iterator i = tests_to_run.begin()
+			, end(tests_to_run.end()); i != end; ++i)
+		{
+			fprintf(stderr, "  %s\n", i->c_str());
+		}
+	}
+
+	if (num_run == 0)
+	{
+		fprintf(stderr, "\x1b[31mERROR: no unit tests run\x1b[0m\n");
+		return 1;
+	}
 
 	// just in case of premature exits
 	// make sure we try to clean up some
@@ -178,6 +325,6 @@ int main()
 	}
 #endif
 
-	return ret ? 333 : 0;
+	return total_failures ? 333 : 0;
 }
 

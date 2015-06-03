@@ -32,12 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "swarm_suite.hpp"
 
-int test_main()
+TORRENT_TEST(time_crititcal)
 {
 	// with time critical pieces
 	test_swarm(time_critical);
-
-	return 0;
 }
 
 

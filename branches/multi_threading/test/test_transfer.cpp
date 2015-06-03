@@ -142,7 +142,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s\n\n\n"
 		, test_name[proxy_type], test_disk_full ? "true": "false");
-	
+
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
@@ -347,7 +347,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	if (proxy_type) stop_proxy(proxy_port);
 }
 
-int test_main()
+TORRENT_TEST(transfer)
 {
 	using namespace libtorrent;
 
@@ -381,13 +381,11 @@ int test_main()
 	fprintf(stderr, "compact mode\n");
 	test_transfer(0, p, false, storage_mode_compact);
 #endif
-	
+
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
-
-	return 0;
 }
 

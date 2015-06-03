@@ -65,7 +65,7 @@ using namespace libtorrent::dht;
 
 void nop() {}
 
-sha1_hash to_hash(char const* s)
+static sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
 	from_hex(s, 40, (char*)&ret[0]);
@@ -90,7 +90,7 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 	nv->push_back(n);
 }
 
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
@@ -434,12 +434,12 @@ struct obs : dht::dht_observer
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
 	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
 	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE {}
-	virtual void log_message(message_direction_t dir, char const* pkt, int len
-		, char const* fmt, ...) TORRENT_OVERRIDE {}
+	virtual void log_packet(message_direction_t dir, char const* pkt, int len
+		, udp::endpoint node) TORRENT_OVERRIDE {}
 };
 
 // TODO: test obfuscated_get_peers
-int test_main()
+TORRENT_TEST(dht)
 {
 	dht_settings sett;
 	sett.max_torrents = 4;
@@ -1954,16 +1954,12 @@ int test_main()
 
 	target_id = item_target_id(test_content);
 	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
-
-	return 0;
 }
 
 #else
 
-int test_main()
-{
-	return 0;
-}
+TORRENT_TEST(dht)
+{}
 
 #endif
 

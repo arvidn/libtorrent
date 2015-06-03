@@ -1498,7 +1498,7 @@ namespace libtorrent
 			, block_timeout(5 * 60)
 			, block_ratelimit(5)
 		{}
-		
+
 		// the maximum number of peers to send in a reply to ``get_peers``
 		int max_peers_reply;
 
@@ -1506,13 +1506,13 @@ namespace libtorrent
 		// announcing and refreshing the routing table. This parameter is called
 		// alpha in the kademlia paper
 		int search_branching;
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 		// the listen port for the dht. This is a UDP port. zero means use the
 		// same as the tcp interface
 		int service_port;
 #endif
-		
+
 		// the maximum number of failed tries to contact a node before it is
 		// removed from the routing table. If there are known working nodes that
 		// are ready to replace a failing node, it will be replaced immediately,

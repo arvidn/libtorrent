@@ -289,7 +289,7 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 	}
 }
 
-int test_main()
+TORRENT_TEST(xml)
 {
 	// test upnp xml parser
 
@@ -424,7 +424,5 @@ int test_main()
 		std::cerr << out << std::endl;
 		TEST_CHECK(out == "Punexpected end of file");
 	}
-
-	return 0;
 }
 

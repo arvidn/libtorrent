@@ -60,7 +60,7 @@ char const* result_array[4] =
 };
 
 
-int test_main()
+TORRENT_TEST(hasher)
 {
 	using namespace libtorrent;
 
@@ -74,7 +74,5 @@ int test_main()
 		from_hex(result_array[test], 40, (char*)&result[0]);
 		TEST_CHECK(result == h.final());
 	}
-
-	return 0;
 }
 

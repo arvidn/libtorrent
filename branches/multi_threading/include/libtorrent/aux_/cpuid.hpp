@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux
 {
 	// initialized by static initializers (in cpuid.cpp)
-	extern bool sse42_support;
-	extern bool mmx_support;
+	TORRENT_EXTRA_EXPORT extern bool sse42_support;
+	TORRENT_EXTRA_EXPORT extern bool mmx_support;
 } }
 
 #endif // TORRENT_CPUID_HPP_INCLUDED

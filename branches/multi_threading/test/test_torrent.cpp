@@ -152,7 +152,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	}
 }
 
-int test_main()
+TORRENT_TEST(torrent)
 {
 /*	{
 		remove("test_torrent_dir2/tmp1");
@@ -264,8 +264,6 @@ int test_main()
 			TEST_EQUAL(int(sum), fs.piece_size(idx));
 		}
 	}
-
-	return 0;
 }
 
 

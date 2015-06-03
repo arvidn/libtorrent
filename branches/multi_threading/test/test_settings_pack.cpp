@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
-int test_main()
+TORRENT_TEST(settings_pack)
 {
 	settings_pack sp;
 
@@ -86,7 +86,5 @@ int test_main()
 	p.set_str(settings_pack::peer_fingerprint, "hij");
 
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
-
-	return 0;
 }
 

@@ -394,7 +394,7 @@ done:
 	sp.push_back(ses2.abort());
 }
 
-int test_main()
+TORRENT_TEST(priority)
 {
 	using namespace libtorrent;
 
@@ -424,8 +424,6 @@ int test_main()
 	// we have to clear them, session doesn't really support being destructed
 	// as a global destructor (for silly reasons)
 	sp.clear();
-
-	return 0;
 }
 
 

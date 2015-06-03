@@ -47,7 +47,7 @@ std::string class_name(peer_class_t id, peer_class_pool const& p)
 	return i.label;
 }
 
-int test_main()
+TORRENT_TEST(peer_class)
 {
 	peer_class_pool pool;
 
@@ -112,6 +112,5 @@ int test_main()
 	pool.decref(id1);
 	TEST_CHECK(pool.at(id2) == NULL);
 	TEST_CHECK(pool.at(id1) == NULL);
-	return 0;
 }
 

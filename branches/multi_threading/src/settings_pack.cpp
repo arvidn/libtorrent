@@ -390,9 +390,9 @@ namespace libtorrent
 		return "";
 	}
 
-	settings_pack* load_pack_from_dict(bdecode_node const& settings)
+	boost::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
 	{
-		settings_pack* pack = new settings_pack;
+		boost::shared_ptr<settings_pack> pack = boost::make_shared<settings_pack>();
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
@@ -462,9 +462,10 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	settings_pack* load_pack_from_struct(aux::session_settings const& current, session_settings const& s)
+	boost::shared_ptr<settings_pack> load_pack_from_struct(
+		aux::session_settings const& current, session_settings const& s)
 	{
-		settings_pack* p = new settings_pack;
+		boost::shared_ptr<settings_pack> p = boost::make_shared<settings_pack>();
 
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
@@ -474,7 +475,7 @@ namespace libtorrent
 			if (val == current.get_str(setting_name)) continue;
 			p->set_str(setting_name, val);
 		}
-	
+
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
 			if (int_settings[i].offset == 0) continue;
@@ -521,7 +522,7 @@ namespace libtorrent
 			std::string& val = *(std::string*)(((char*)&ret) + str_settings[i].offset);
 			val = current.get_str(settings_pack::string_type_base + i);
 		}
-	
+
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
 			if (int_settings[i].offset == 0) continue;

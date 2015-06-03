@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2008-2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,58 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <vector>
+#include <stdio.h> // for tmpfile()
 #include "test.hpp"
-#include "setup_transfer.hpp"
-#include "web_seed_suite.hpp"
 
-using namespace libtorrent;
+unit_test_t _g_unit_tests[1024];
+int _g_num_unit_tests = 0;
+int _g_test_failures = 0;
 
-const int proxy = libtorrent::settings_pack::none;
+static std::vector<std::string> failure_strings;
 
-TORRENT_TEST(web_seed_ban)
+void report_failure(char const* err, char const* file, int line)
 {
-	for (int url_seed = 0; url_seed < 2; ++url_seed)
+	char buf[500];
+	snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
+	fprintf(stderr, "\n%s\n", buf);
+	failure_strings.push_back(buf);
+	++_g_test_failures;
+}
+
+int print_failures()
+{
+	int longest_name = 0;
+	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
-#ifdef TORRENT_USE_OPENSSL
-		run_http_suite(proxy, "https", url_seed, 0, 1);
-#endif
-		run_http_suite(proxy, "http", url_seed, 0, 1);
+		int len = strlen(_g_unit_tests[i].name);
+		if (len > longest_name) longest_name = len;
 	}
+
+	fprintf(stderr, "\n\n");
+
+	for (int i = 0; i < _g_num_unit_tests; ++i)
+	{
+		if (_g_unit_tests[i].run == false) continue;
+
+		if (_g_unit_tests[i].num_failures == 0)
+		{
+			fprintf(stderr, "\x1b[32m[%-*s] ***PASS***\n"
+				, longest_name, _g_unit_tests[i].name);
+		}
+		else
+		{
+			fprintf(stderr, "\x1b[31m[%-*s] %d FAILURES\n"
+				, longest_name
+				, _g_unit_tests[i].name
+				, _g_unit_tests[i].num_failures);
+		}
+	}
+
+	fprintf(stderr, "\x1b[0m");
+
+	if (_g_test_failures > 0)
+		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
+	return _g_test_failures;
 }
 

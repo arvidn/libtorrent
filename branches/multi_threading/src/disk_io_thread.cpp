@@ -262,7 +262,7 @@ namespace libtorrent
 		m_blocks_to_reclaim.clear();
 	}
 
-	void disk_io_thread::set_settings(settings_pack* pack, alert_manager& alerts)
+	void disk_io_thread::set_settings(settings_pack const* pack, alert_manager& alerts)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		mutex::scoped_lock l(m_cache_mutex);

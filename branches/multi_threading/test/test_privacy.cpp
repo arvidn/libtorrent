@@ -242,7 +242,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	return pr;
 }
 
-int test_main()
+TORRENT_TEST(privacy)
 {
 	session_proxy pr[20];
 	// not using anonymous mode
@@ -268,6 +268,5 @@ int test_main()
 	pr[11] = test_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
 	pr[12] = test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
 	pr[13] = test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
-	return 0;
 }
 

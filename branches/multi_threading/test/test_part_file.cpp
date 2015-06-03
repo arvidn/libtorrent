@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-int test_main()
+TORRENT_TEST(part_file)
 {
 	error_code ec;
 	std::string cwd = complete(".");
@@ -143,7 +143,5 @@ int test_main()
 		for (int i = 0; i < 1024; ++i)
 			TEST_CHECK(buf[i] == char(i));
 	}
-
-	return 0;
 }
 

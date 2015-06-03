@@ -188,7 +188,7 @@ struct udp_tracker
 	void thread_fun()
 	{
 		char buffer[2000];
-	
+
 		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
@@ -224,8 +224,6 @@ int num_udp_announces()
 
 void stop_udp_tracker()
 {
-	fprintf(stderr, "%s: UDP stop_udp_tracker()\n", time_now_string());
 	g_udp_tracker.reset();
-	fprintf(stderr, "%s: UDP stop_udp_tracker() done\n", time_now_string());
 }
 

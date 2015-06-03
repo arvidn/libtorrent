@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifdef __OBJC__ 
+#ifdef __OBJC__
 #undef Protocol
 #endif
 

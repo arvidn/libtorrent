@@ -134,7 +134,6 @@ AS_IF([test -z "$BOOST_RANDOM_LIB"],
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
 
-
 ###############################################################################
 # Checking for functions and other stuffs
 ###############################################################################

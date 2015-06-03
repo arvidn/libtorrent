@@ -68,7 +68,7 @@ void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, boost:
 		--*c;
 }
 
-int test_main()
+TORRENT_TEST(threads)
 {
 	condition_variable cond;
 	libtorrent::mutex m;
@@ -125,7 +125,5 @@ int test_main()
 	}
 
 	TEST_CHECK(c == 0);
-
-	return 0;
 }
 

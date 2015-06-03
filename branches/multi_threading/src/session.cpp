@@ -336,16 +336,16 @@ namespace libtorrent
 #endif
 
 #define TORRENT_ASYNC_CALL(x) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get()))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get()))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1))
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
 
 #define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
 
 #define TORRENT_SYNC_CALL(x) \
 	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))
@@ -389,7 +389,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::start(int flags, settings_pack const& pack)
+	void session::start(int flags, settings_pack const& pack, io_service* ios)
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -398,7 +398,17 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		m_impl.reset(new session_impl());
+		bool internal_executor = ios == NULL;
+
+		if (internal_executor)
+		{
+			// the user did not provide an executor, we have to use our own
+			m_io_service = boost::make_shared<io_service>();
+			ios = m_io_service.get();
+		}
+
+		m_impl = boost::make_shared<session_impl>(boost::ref(*ios));
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
@@ -409,6 +419,13 @@ namespace libtorrent
 #endif
 
 		m_impl->start_session(pack);
+
+		if (internal_executor)
+		{
+			// start a thread for the message pump
+			m_thread = boost::make_shared<thread>(boost::bind(&io_service::run
+				, m_io_service.get()));
+		}
 	}
 
 	session::~session()
@@ -416,13 +433,10 @@ namespace libtorrent
 		aux::dump_call_profile();
 
 		TORRENT_ASSERT(m_impl);
-		// if there is at least one destruction-proxy
-		// abort the session and let the destructor
-		// of the proxy to syncronize
-		if (!m_impl.unique())
-		{
-			TORRENT_ASYNC_CALL(abort);
-		}
+		TORRENT_ASYNC_CALL(abort);
+
+		if (m_thread && m_thread.unique())
+			m_thread->join();
 	}
 
 	void session::save_state(entry& e, boost::uint32_t flags) const
@@ -538,7 +552,7 @@ namespace libtorrent
 		boost::shared_ptr<ip_filter> copy = boost::make_shared<ip_filter>(f);
 		TORRENT_ASYNC_CALL1(set_ip_filter, copy);
 	}
-	
+
 	ip_filter session::get_ip_filter() const
 	{
 		return TORRENT_SYNC_CALL_RET(ip_filter, get_ip_filter);
@@ -557,7 +571,7 @@ namespace libtorrent
 		apply_settings(p);
 	}
 #endif
-	
+
 	peer_id session::id() const
 	{
 		return TORRENT_SYNC_CALL_RET(peer_id, get_peer_id);
@@ -565,7 +579,7 @@ namespace libtorrent
 
 	io_service& session::get_io_service()
 	{
-		return m_impl->m_io_service;
+		return m_impl->get_io_service();
 	}
 
 	void session::set_key(int key)
@@ -790,7 +804,7 @@ namespace libtorrent
 			else
 				flags = session::disk_cache_no_pieces;
 		}
-		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
+		m_impl->disk_thread().get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -816,6 +830,16 @@ namespace libtorrent
 #endif
 	}
 
+	dht_settings session::get_dht_settings() const
+	{
+#ifndef TORRENT_DISABLE_DHT
+		return TORRENT_SYNC_CALL_RET(dht_settings, get_dht_settings);
+#else
+		return dht_settings();
+#endif
+	}
+
+
 #ifndef TORRENT_NO_DEPRECATE
 	void session::start_dht(entry const& startup_state)
 	{
@@ -833,7 +857,7 @@ namespace libtorrent
 #endif
 	}
 #endif // TORRENT_NO_DEPRECATE
-	
+
 	void session::add_dht_node(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -968,7 +992,7 @@ namespace libtorrent
 
 	void session::apply_settings(settings_pack const& s)
 	{
-		settings_pack* copy = new settings_pack(s);
+		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(s);
 		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
 	}
 
@@ -1132,7 +1156,7 @@ namespace libtorrent
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		m_impl->m_alerts.set_dispatch_function(fun);
+		m_impl->alerts().set_dispatch_function(fun);
 	}
 #endif // TORRENT_NO_DEPRECATE
 
@@ -1149,7 +1173,7 @@ namespace libtorrent
 
 	void session::set_alert_notify(boost::function<void()> const& fun)
 	{
-		m_impl->m_alerts.set_notify_function(fun);
+		m_impl->alerts().set_notify_function(fun);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1209,14 +1233,14 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_lsd, true);
 		apply_settings(p);
 	}
-	
+
 	void session::start_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, true);
 		apply_settings(p);
 	}
-	
+
 	void session::start_upnp()
 	{
 		settings_pack p;
@@ -1230,22 +1254,22 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_lsd, false);
 		apply_settings(p);
 	}
-	
+
 	void session::stop_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, false);
 		apply_settings(p);
 	}
-	
+
 	void session::stop_upnp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_upnp, false);
 		apply_settings(p);
 	}
-#endif
-	
+#endif // TORRENT_NO_DEPRECATED
+
 	int session::add_port_mapping(protocol_type t, int external_port, int local_port)
 	{
 		return TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
@@ -1255,7 +1279,7 @@ namespace libtorrent
 	{
 		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
 	}
-	
+
 #ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
 	{
@@ -1268,5 +1292,10 @@ namespace libtorrent
 	session_settings::~session_settings() {}
 #endif // TORRENT_NO_DEPRECATE
 
+	session_proxy::~session_proxy()
+	{
+		if (m_thread && m_thread.unique())
+			m_thread->join();
+	}
 }
 
