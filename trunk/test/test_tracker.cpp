@@ -44,7 +44,18 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-void test_parse_hostname_peers()
+// TODO: test parse peers6
+// TODO: test parse tracker-id
+// TODO: test parse failure-reason
+// TODO: test all failure paths, including
+//   invalid bencoding
+//   not a dictionary
+//   no files entry in scrape response
+//   no info-hash entry in scrape response
+//   malformed peers in peer list of dictionaries
+//   uneven number of bytes in peers and peers6 string responses
+
+TORRENT_TEST(parse_hostname_peers)
 {
 	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa2:ip13:test_hostname4:porti1000eed7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
 	error_code ec;
@@ -67,7 +78,7 @@ void test_parse_hostname_peers()
 	}
 }
 
-void test_parse_peers4()
+TORRENT_TEST(parse_peers4)
 {
 	char const response[] = "d5:peers12:\x01\x02\x03\x04\x30\x10"
 		"\x09\x08\x07\x06\x20\x10" "e";
@@ -89,7 +100,7 @@ void test_parse_peers4()
 	}
 }
 
-void test_parse_interval()
+TORRENT_TEST(parse_interval)
 {
 	char const response[] = "d8:intervali1042e12:min intervali10e5:peers0:e";
 	error_code ec;
@@ -103,7 +114,7 @@ void test_parse_interval()
 	TEST_EQUAL(resp.min_interval, 10);
 }
 
-void test_parse_warning()
+TORRENT_TEST(parse_warning)
 {
 	char const response[] = "d5:peers0:15:warning message12:test messagee";
 	error_code ec;
@@ -115,7 +126,7 @@ void test_parse_warning()
 	TEST_EQUAL(resp.warning_message, "test message");
 }
 
-void test_parse_failure_reason()
+TORRENT_TEST(parse_failure_reason)
 {
 	char const response[] = "d5:peers0:14:failure reason12:test messagee";
 	error_code ec;
@@ -127,7 +138,7 @@ void test_parse_failure_reason()
 	TEST_EQUAL(resp.failure_reason, "test message");
 }
 
-void test_parse_scrape_response()
+TORRENT_TEST(parse_scrape_response)
 {
 	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
 	error_code ec;
@@ -141,7 +152,7 @@ void test_parse_scrape_response()
 	TEST_EQUAL(resp.downloaders, 6);
 }
 
-void test_parse_scrape_response_with_zero()
+TORRENT_TEST(parse_scrape_response_with_zero)
 {
 	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad8:completei4e10:incompletei5e10:downloadedi6eeee";
 	error_code ec;
@@ -155,7 +166,7 @@ void test_parse_scrape_response_with_zero()
 	TEST_EQUAL(resp.downloaders, -1);
 }
 
-void test_parse_external_ip()
+TORRENT_TEST(parse_external_ip)
 {
 	char const response[] = "d5:peers0:11:external ip4:\x01\x02\x03\x04" "e";
 	error_code ec;
@@ -168,7 +179,7 @@ void test_parse_external_ip()
 }
 
 #if TORRENT_USE_IPV6
-void test_parse_external_ip6()
+TORRENT_TEST(parse_external_ip6)
 {
 	char const response[] = "d5:peers0:11:external ip16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
 	error_code ec;
@@ -195,7 +206,7 @@ peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool exp
 	return result;
 }
 
-void test_extract_peer()
+TORRENT_TEST(extract_peer)
 {
 	{
 		peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcd4:porti1337ee"
@@ -234,42 +245,20 @@ void test_extract_peer()
 	}
 }
 
-TORRENT_TEST(traccker)
+int const alert_mask = alert::all_categories
+	& ~alert::progress_notification
+	& ~alert::stats_notification;
+
+TORRENT_TEST(udp_tracker)
 {
-	test_extract_peer();
-	test_parse_hostname_peers();
-	test_parse_peers4();
-	test_parse_interval();
-	test_parse_warning();
-	test_parse_failure_reason();
-	test_parse_scrape_response();
-	test_parse_scrape_response_with_zero();
-	test_parse_external_ip();
-#if TORRENT_USE_IPV6
-	test_parse_external_ip6();
-#endif
-
-	// TODO: test parse peers6
-	// TODO: test parse tracker-id
-	// TODO: test parse failure-reason
-	// TODO: test all failure paths, including
-	//   invalid bencoding
-	//   not a dictionary
-	//   no files entry in scrape response
-	//   no info-hash entry in scrape response
-	//   malformed peers in peer list of dictionaries
-	//   uneven number of bytes in peers and peers6 string responses
-
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 
 	int prev_udp_announces = num_udp_announces();
 
-	int const alert_mask = alert::all_categories
-		& ~alert::progress_notification
-		& ~alert::stats_notification;
-
-	lt::session* s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask);
+	boost::scoped_ptr<lt::session> s(new lt::session(
+		fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask));
 
 	settings_pack pack;
 #ifndef TORRENT_NO_DEPRECATE
@@ -316,19 +305,28 @@ TORRENT_TEST(traccker)
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
-	delete s;
+	s.reset();
 	fprintf(stderr, "done\n");
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
+}
 
-	// ========================================
-	// test that we move on to try the next tier if the first one fails
-	// ========================================
+// ========================================
+// test that we move on to try the next tier if the first one fails
+// ========================================
 
-	s = new lt::session(fingerprint("LT", 0, 1, 0, 0), std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask);
+TORRENT_TEST(try_next)
+{
+	int http_port = start_web_server();
+	int udp_port = start_udp_tracker();
 
-	pack.clear();
+	int prev_udp_announces = num_udp_announces();
+	boost::scoped_ptr<lt::session> s(
+		new lt::session(fingerprint("LT", 0, 1, 0, 0)
+		, std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask));
+
+	settings_pack pack;
 #ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
@@ -338,13 +336,15 @@ TORRENT_TEST(traccker)
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	s->apply_settings(pack);
 
+	error_code ec;
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
-	file.open(combine_path("tmp2_tracker", "temporary").c_str());
-	t = ::create_torrent(&file, 16 * 1024, 13, false);
+	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
 
 	// this should fail
+	char tracker_url[200];
 	snprintf(tracker_url, sizeof(tracker_url), "udp://www1.non-existent.com:80/announce");
 	t->add_tracker(tracker_url, 0);
 
@@ -364,12 +364,13 @@ TORRENT_TEST(traccker)
 
 	prev_udp_announces = num_udp_announces();
 
+	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
 	addp.flags &= ~add_torrent_params::flag_auto_managed;
 	addp.flags |= add_torrent_params::flag_seed_mode;
 	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
-	h = s->add_torrent(addp);
+	torrent_handle h = s->add_torrent(addp);
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -386,7 +387,7 @@ TORRENT_TEST(traccker)
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
 	fprintf(stderr, "destructing session\n");
-	delete s;
+	s.reset();
 	fprintf(stderr, "done\n");
 
 	fprintf(stderr, "stop_tracker\n");
