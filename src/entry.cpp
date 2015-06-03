@@ -116,7 +116,7 @@ namespace libtorrent
 		if (i == dict().end()) return 0;
 		return &i->second;
 	}
-	
+
 	entry* entry::find_key(std::string const& key)
 	{
 		dictionary_type::iterator i = dict().find(key);
@@ -130,7 +130,7 @@ namespace libtorrent
 		if (i == dict().end()) return 0;
 		return &i->second;
 	}
-	
+
 #ifndef BOOST_NO_EXCEPTIONS
 	const entry& entry::operator[](char const* key) const
 	{
