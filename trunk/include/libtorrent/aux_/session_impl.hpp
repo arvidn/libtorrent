@@ -179,10 +179,9 @@ namespace libtorrent
 			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 #endif
 
-			session_impl();
+			session_impl(io_service& ios);
 			virtual ~session_impl();
 
-			void init();
 			void start_session(settings_pack const& pack);
 
 			void set_load_function(user_load_function_t fun)
@@ -205,10 +204,7 @@ namespace libtorrent
 			bool m_posting_torrent_updates;
 #endif
 
-			void main_thread();
-
 			void open_listen_port();
-			void init_settings();
 
 			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
 
@@ -608,7 +604,10 @@ namespace libtorrent
 
 			peer_class_pool m_classes;
 
-			// TODO: 2 fix this
+			void init(boost::shared_ptr<settings_pack> pack);
+
+			// TODO: 3 fix this. all this should not be public. start by making
+			// everything that doesn't have to be public private.
 		public:
 
 			void submit_disk_jobs();
@@ -679,10 +678,7 @@ namespace libtorrent
 			boost::pool<> m_send_buffers;
 #endif
 
-			// this is where all active sockets are stored.
-			// the selector can sleep while there's no activity on
-			// them
-			mutable io_service m_io_service;
+			io_service& m_io_service;
 
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to
@@ -1185,13 +1181,6 @@ namespace libtorrent
 			// into fewer network writes, saving CPU and possibly
 			// ending up sending larger network packets
 			std::vector<peer_connection*> m_delayed_uncorks;
-
-			// the main working thread
-			boost::scoped_ptr<thread> m_thread;
-
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-			pthread_t m_network_thread;
-#endif
 		};
 
 #ifndef TORRENT_DISABLE_LOGGING

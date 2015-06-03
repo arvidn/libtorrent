@@ -389,7 +389,7 @@ namespace libtorrent
 	{ throw; }
 #endif
 
-	void session::start(int flags, settings_pack const& pack)
+	void session::start(int flags, settings_pack const& pack, io_service* ios)
 	{
 #if defined _MSC_VER && defined TORRENT_DEBUG
 		// workaround for microsofts
@@ -398,7 +398,17 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		m_impl.reset(new session_impl());
+		bool internal_executor = ios == NULL;
+
+		if (internal_executor)
+		{
+			// the user did not provide an executor, we have to use our own
+			m_io_service = boost::make_shared<io_service>();
+			ios = m_io_service.get();
+		}
+
+		m_impl = boost::make_shared<session_impl>(boost::ref(*ios));
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (flags & add_default_plugins)
 		{
@@ -409,6 +419,13 @@ namespace libtorrent
 #endif
 
 		m_impl->start_session(pack);
+
+		if (internal_executor)
+		{
+			// start a thread for the message pump
+			m_thread = boost::make_shared<thread>(boost::bind(&io_service::run
+				, m_io_service.get()));
+		}
 	}
 
 	session::~session()
@@ -416,13 +433,10 @@ namespace libtorrent
 		aux::dump_call_profile();
 
 		TORRENT_ASSERT(m_impl);
-		// if there is at least one destruction-proxy
-		// abort the session and let the destructor
-		// of the proxy to syncronize
-		if (!m_impl.unique())
-		{
-			TORRENT_ASYNC_CALL(abort);
-		}
+		TORRENT_ASYNC_CALL(abort);
+
+		if (m_thread && m_thread.unique())
+			m_thread->join();
 	}
 
 	void session::save_state(entry& e, boost::uint32_t flags) const
@@ -1278,5 +1292,10 @@ namespace libtorrent
 	session_settings::~session_settings() {}
 #endif // TORRENT_NO_DEPRECATE
 
+	session_proxy::~session_proxy()
+	{
+		if (m_thread && m_thread.unique())
+			m_thread->join();
+	}
 }
 
