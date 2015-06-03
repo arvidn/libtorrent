@@ -188,7 +188,7 @@ struct udp_tracker
 	void thread_fun()
 	{
 		char buffer[2000];
-	
+
 		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
