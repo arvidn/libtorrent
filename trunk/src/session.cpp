@@ -336,16 +336,16 @@ namespace libtorrent
 #endif
 
 #define TORRENT_ASYNC_CALL(x) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get()))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get()))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1))
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2))
 
 #define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
-	m_impl->m_io_service.dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
+	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get(), a1, a2, a3))
 
 #define TORRENT_SYNC_CALL(x) \
 	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl.get())))
@@ -552,7 +552,7 @@ namespace libtorrent
 		boost::shared_ptr<ip_filter> copy = boost::make_shared<ip_filter>(f);
 		TORRENT_ASYNC_CALL1(set_ip_filter, copy);
 	}
-	
+
 	ip_filter session::get_ip_filter() const
 	{
 		return TORRENT_SYNC_CALL_RET(ip_filter, get_ip_filter);
@@ -571,7 +571,7 @@ namespace libtorrent
 		apply_settings(p);
 	}
 #endif
-	
+
 	peer_id session::id() const
 	{
 		return TORRENT_SYNC_CALL_RET(peer_id, get_peer_id);
@@ -579,7 +579,7 @@ namespace libtorrent
 
 	io_service& session::get_io_service()
 	{
-		return m_impl->m_io_service;
+		return m_impl->get_io_service();
 	}
 
 	void session::set_key(int key)
@@ -804,7 +804,7 @@ namespace libtorrent
 			else
 				flags = session::disk_cache_no_pieces;
 		}
-		m_impl->m_disk_thread.get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
+		m_impl->disk_thread().get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1156,7 +1156,7 @@ namespace libtorrent
 
 	void session::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		m_impl->m_alerts.set_dispatch_function(fun);
+		m_impl->alerts().set_dispatch_function(fun);
 	}
 #endif // TORRENT_NO_DEPRECATE
 
@@ -1173,7 +1173,7 @@ namespace libtorrent
 
 	void session::set_alert_notify(boost::function<void()> const& fun)
 	{
-		m_impl->m_alerts.set_notify_function(fun);
+		m_impl->alerts().set_notify_function(fun);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

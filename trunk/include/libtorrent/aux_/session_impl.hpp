@@ -168,10 +168,9 @@ namespace libtorrent
 			enum { send_buffer_size_impl = 128 };
 
 #ifdef TORRENT_DEBUG
-			friend class ::libtorrent::peer_connection;
+//			friend class ::libtorrent::peer_connection;
 #endif
-			friend struct checker_impl;
-			friend class invariant_access;
+			friend class libtorrent::invariant_access;
 			typedef std::set<boost::shared_ptr<peer_connection> > connection_map;
 #if TORRENT_HAS_BOOST_UNORDERED
 			typedef boost::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
@@ -598,19 +597,14 @@ namespace libtorrent
 			libtorrent::utp_socket_manager* utp_socket_manager() { return &m_utp_socket_manager; }
 			void inc_boost_connections() { ++m_boost_connections; }
 
-		private:
+#ifndef TORRENT_NO_DEPRECATE
+			// the time when the next rss feed needs updating
+			time_point m_next_rss_update;
 
-			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
-
-			peer_class_pool m_classes;
-
-			void init(boost::shared_ptr<settings_pack> pack);
-
-			// TODO: 3 fix this. all this should not be public. start by making
-			// everything that doesn't have to be public private.
-		public:
-
-			void submit_disk_jobs();
+			// update any rss feeds that need updating and
+			// recalculate m_next_rss_update
+			void update_rss_feeds();
+#endif
 
 			void update_proxy();
 			void update_i2p_bridge();
@@ -625,7 +619,6 @@ namespace libtorrent
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
-			void trigger_auto_manage();
 			void update_outgoing_interfaces();
 			void update_listen_interfaces();
 			void update_privileged_ports();
@@ -638,8 +631,6 @@ namespace libtorrent
 			void update_dht();
 			void update_count_slow();
 			void update_peer_fingerprint();
-
-			void on_trigger_auto_manage();
 
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
@@ -655,6 +646,20 @@ namespace libtorrent
 			void update_ignore_rate_limits_on_local_network();
 #endif
 			void update_alert_mask();
+
+			void trigger_auto_manage();
+
+		private:
+
+			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
+
+			peer_class_pool m_classes;
+
+			void init(boost::shared_ptr<settings_pack> pack);
+
+			void submit_disk_jobs();
+
+			void on_trigger_auto_manage();
 
 			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
 			void setup_socket_buffers(socket_type& s);
@@ -968,15 +973,6 @@ namespace libtorrent
 			// and stopped (only the auto managed ones)
 			time_point m_last_auto_manage;
 
-#ifndef TORRENT_NO_DEPRECATE
-			// the time when the next rss feed needs updating
-			time_point m_next_rss_update;
-
-			// update any rss feeds that need updating and
-			// recalculate m_next_rss_update
-			void update_rss_feeds();
-#endif
-
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
 			mutable int m_next_port;
@@ -1122,8 +1118,6 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 #endif
-
-		private:
 
 			// TODO: 2 the throttling of saving resume data could probably be
 			// factored out into a separate class

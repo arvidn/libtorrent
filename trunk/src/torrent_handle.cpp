@@ -146,31 +146,31 @@ namespace libtorrent
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	session_impl& ses = (session_impl&) t->session(); \
-	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t))
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t))
 
 #define TORRENT_ASYNC_CALL1(x, a1) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	session_impl& ses = (session_impl&) t->session(); \
-	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1))
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1))
 
 #define TORRENT_ASYNC_CALL2(x, a1, a2) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	session_impl& ses = (session_impl&) t->session(); \
-	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2))
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2))
 
 #define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	session_impl& ses = (session_impl&) t->session(); \
-	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2, a3))
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3))
 
 #define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
 	if (!t) return; \
 	session_impl& ses = (session_impl&) t->session(); \
-	ses.m_io_service.dispatch(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
 
 #define TORRENT_SYNC_CALL(x) \
 	boost::shared_ptr<torrent> t = m_torrent.lock(); \
@@ -719,7 +719,7 @@ namespace libtorrent
 			bool done = false;
 			session_impl& ses = (session_impl&) t->session();
 			storage_error ec;
-			ses.m_io_service.dispatch(boost::bind(&aux::fun_wrap, boost::ref(done), boost::ref(ses.cond)
+			ses.get_io_service().dispatch(boost::bind(&aux::fun_wrap, boost::ref(done), boost::ref(ses.cond)
 				, boost::ref(ses.mut), boost::function<void(void)>(boost::bind(
 					&piece_manager::write_resume_data, &t->storage(), boost::ref(ret), boost::ref(ec)))));
 			t.reset();
@@ -776,7 +776,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
 		session_impl& ses = (session_impl&) t->session();
-		ses.m_disk_thread.files().get_status(&status, &t->storage());
+		ses.disk_thread().files().get_status(&status, &t->storage());
 	}
 
 	void torrent_handle::scrape_tracker() const

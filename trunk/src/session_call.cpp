@@ -89,7 +89,7 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 void sync_call(aux::session_impl& ses, boost::function<void(void)> f)
 {
 	bool done = false;
-	ses.m_io_service.dispatch(boost::bind(&fun_wrap
+	ses.get_io_service().dispatch(boost::bind(&fun_wrap
 		, boost::ref(done)
 		, boost::ref(ses.cond)
 		, boost::ref(ses.mut)
