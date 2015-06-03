@@ -64,7 +64,7 @@ void sync_call_handle(Handle& h, boost::function<void(void)> f)
 {
 	bool done = false;
 	session_impl& ses = (session_impl&) h->session();
-	ses.m_io_service.dispatch(boost::bind(&aux::fun_wrap
+	ses.get_io_service().dispatch(boost::bind(&aux::fun_wrap
 		, boost::ref(done)
 		, boost::ref(ses.cond)
 		, boost::ref(ses.mut), f));
@@ -77,7 +77,7 @@ Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
 {
 	bool done = false;
 	Ret r;
-	ses.m_io_service.dispatch(boost::bind(&fun_ret<Ret>
+	ses.get_io_service().dispatch(boost::bind(&fun_ret<Ret>
 		, boost::ref(r)
 		, boost::ref(done)
 		, boost::ref(ses.cond)
@@ -92,7 +92,7 @@ void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
 {
 	bool done = false;
 	session_impl& ses = (session_impl&) h->session();
-	ses.m_io_service.dispatch(boost::bind(&aux::fun_ret<Ret>
+	ses.get_io_service().dispatch(boost::bind(&aux::fun_ret<Ret>
 		, boost::ref(r)
 		, boost::ref(done)
 		, boost::ref(ses.cond)
