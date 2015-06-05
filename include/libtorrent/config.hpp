@@ -405,7 +405,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_NO_RETURN
 #endif
 
-#ifdef  __GLIBC__
+#ifdef _GLIBCXX_USE_NOEXCEPT
 #define TORRENT_EXCEPTION_THROW_SPECIFIER _GLIBCXX_USE_NOEXCEPT
 #else
 #if __cplusplus <= 199711L || defined BOOST_NO_CXX11_NOEXCEPT
