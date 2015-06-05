@@ -1,7 +1,7 @@
 language: cpp
 
 before_script:
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository ppa:boost-latest/ppa; sudo apt-get update -qq; sudo apt-get install libboost1.54-dev; fi
+   - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; sudo apt-get install libboost1.54-dev; fi
    - if [ $TRAVIS_OS_NAME == osx ]; then sudo brew install boost boost-build; fi
 
 script:
