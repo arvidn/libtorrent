@@ -218,8 +218,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
-		session(fingerprint const& print = fingerprint("LT"
-			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
+		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
 			, boost::uint32_t alert_mask = alert::error_notification)
 		{
