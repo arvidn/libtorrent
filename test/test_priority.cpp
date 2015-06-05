@@ -86,10 +86,15 @@ void test_transfer(settings_pack const& sett)
 	remove_all("tmp1_priority_moved", ec);
 	remove_all("tmp2_priority_moved", ec);
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000), "0.0.0.0", 0, mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000), "0.0.0.0", 0, mask);
-
 	settings_pack pack = sett;
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_int(settings_pack::alert_mask, mask);
+
+	lt::session ses1(pack);
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	pack.set_int(settings_pack::alert_mask, mask);
+	lt::session ses2(pack);
 
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it

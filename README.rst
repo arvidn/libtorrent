@@ -1,3 +1,6 @@
+libtorrent
+----------
+
 libtorrent is an open source C++ library implementing the BitTorrent protocol,
 along with most popular extensions, making it suitable for real world
 deployment. It is configurable to be able to fit both servers and embedded
@@ -9,9 +12,12 @@ See `libtorrent.org`__ for more detailed build and usage instructions.
 
 .. __: http://libtorrent.org
 
-To build with boost-build, run:
+To build with boost-build, make sure boost and boost-build is installed and run:
 
    b2
+
+In the libtorrent root. To build the examples, run ``b2`` in the ``examples``
+directory.
 
 See `building.html`__ for more details on how to build and which configuration
 options are available. For python bindings, see `the python docs`__.

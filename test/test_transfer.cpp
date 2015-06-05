@@ -73,11 +73,11 @@ bool on_alert(alert const* a)
 }
 
 // simulate a full disk
-struct test_storage : default_storage 
+struct test_storage : default_storage
 {
 	test_storage(storage_params const& params)
 		: default_storage(params)
-  		, m_written(0)
+		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
 
@@ -156,10 +156,14 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(48075 + listen_port, 49000), "0.0.0.0", 0, mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(49075 + listen_port, 50000), "0.0.0.0", 0, mask);
+	settings_pack pack;
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_int(settings_pack::alert_mask, mask);
+
+	lt::session ses1(pack);
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	lt::session ses2(pack);
 	listen_port += 10;
 
 	int proxy_port = 0;
@@ -185,7 +189,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		ses2.apply_settings(pack);
 	}
 
-	settings_pack pack = sett;
+	pack = sett;
+
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
 	// immediately to complete the second half.

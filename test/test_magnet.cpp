@@ -41,7 +41,7 @@ namespace lt = libtorrent;
 
 void test_remove_url(std::string url)
 {
-	lt::session s(fingerprint("LT",0,0,0,0), 0);
+	lt::session s;
 	add_torrent_params p;
 	p.url = url;
 	p.save_path = ".";
@@ -61,8 +61,6 @@ TORRENT_TEST(magnet)
 	session_proxy p2;
 	{
 	// test session state load/restore
-	lt::session* s = new lt::session(fingerprint("LT",0,0,0,0), 0);
-
 	settings_pack pack;
 	pack.set_str(settings_pack::user_agent, "test");
 	pack.set_int(settings_pack::tracker_receive_timeout, 1234);
@@ -75,7 +73,7 @@ TORRENT_TEST(magnet)
 	pack.set_bool(settings_pack::close_redundant_connections, false);
 	pack.set_int(settings_pack::auto_scrape_interval, 235);
 	pack.set_int(settings_pack::auto_scrape_min_interval, 62);
-	s->apply_settings(pack);
+	lt::session* s = new lt::session(pack);
 
 	TEST_EQUAL(pack.get_str(settings_pack::user_agent), "test");
 	TEST_EQUAL(pack.get_int(settings_pack::tracker_receive_timeout), 1234);
@@ -114,7 +112,6 @@ TORRENT_TEST(magnet)
 	for (std::vector<announce_entry>::iterator i = trackers.begin()
 		, end(trackers.end()); i != end; ++i)
 		trackers_set.insert(i->url);
-	
 
 	TEST_CHECK(trackers_set.count("http://1") == 1);
 	TEST_CHECK(trackers_set.count("http://2") == 1);
@@ -165,7 +162,7 @@ TORRENT_TEST(magnet)
 
 	p1 = s->abort();
 	delete s;
-	s = new lt::session(fingerprint("LT",0,0,0,0), 0);
+	s = new lt::session();
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);

@@ -90,15 +90,6 @@ void test_transfer(int flags
 	session_proxy p1;
 	session_proxy p2;
 
-	// TODO: it would be nice to test reversing
-	// which session is making the connection as well
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48100, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49100, 50000), "0.0.0.0", 0);
-	ses1.add_extension(constructor);
-	ses2.add_extension(constructor);
-	torrent_handle tor1;
-	torrent_handle tor2;
-
 	settings_pack pack;
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
@@ -120,8 +111,16 @@ void test_transfer(int flags
 		pack.set_bool(settings_pack::enable_outgoing_tcp, true);
 	}
 
-	ses1.apply_settings(pack);
-	ses2.apply_settings(pack);
+	// TODO: it would be nice to test reversing
+	// which session is making the connection as well
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48100");
+	lt::session ses1(pack);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49100");
+	lt::session ses2(pack);
+	ses1.add_extension(constructor);
+	ses2.add_extension(constructor);
+	torrent_handle tor1;
+	torrent_handle tor2;
 
 	lt::session* downloader = &ses2;
 	lt::session* seed = &ses1;

@@ -389,9 +389,10 @@ boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
-	ses.reset(new lt::session(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(48900, 49000), "0.0.0.0", session::add_default_plugins
-		, alert::all_categories));
+	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
+	sett.set_int(settings_pack::alert_mask, alert::all_categories);
+	ses.reset(new lt::session(sett, session::add_default_plugins));
 
 	error_code ec;
 	add_torrent_params p;
@@ -434,7 +435,7 @@ void test_reject_fast()
 	print_session_log(*ses);
 	send_have_all(s);
 	print_session_log(*ses);
-	
+
 	std::vector<int> allowed_fast;
 	allowed_fast.push_back(0);
 	allowed_fast.push_back(1);

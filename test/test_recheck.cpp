@@ -69,7 +69,10 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 TORRENT_TEST(recheck)
 {
 	error_code ec;
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48675, 49000), "0.0.0.0", 0, mask);
+	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48675");
+	sett.set_int(settings_pack::alert_mask, mask);
+	lt::session ses1(sett);
 	create_directory("tmp1_recheck", ec);
 	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");

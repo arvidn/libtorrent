@@ -580,9 +580,9 @@ void test_malicious_peer()
 
 TORRENT_TEST(ssl)
 {
+#ifdef TORRENT_USE_OPENSSL
 	using namespace libtorrent;
 
-#ifdef TORRENT_USE_OPENSSL
 	test_malicious_peer();
 
 	for (int utp = 0; utp < 2; ++utp)
@@ -594,9 +594,7 @@ TORRENT_TEST(ssl)
 	error_code ec;
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
-
 #endif // TORRENT_USE_OPENSSL
 }
-
 
 

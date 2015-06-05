@@ -90,7 +90,7 @@ namespace libtorrent
 		std::string get_str(int name) const;
 		int get_int(int name) const;
 		bool get_bool(int name) const;
-	
+
 		// setting names (indices) are 16 bits. The two most significant
 		// bits indicate what type the setting has. (string, int, bool)
 		enum type_bases
@@ -269,7 +269,7 @@ namespace libtorrent
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
 			dont_flush_write_cache,
-			
+
 			// ``explicit_read_cache`` defaults to 0. If set to something greater
 			// than 0, the disk read cache will not be evicted by cache misses and
 			// will explicitly be controlled based on the rarity of pieces. Rare
@@ -466,7 +466,7 @@ namespace libtorrent
 			// If you're using I2P, it might make sense to enable anonymous mode
 			// as well.
 			anonymous_mode,
-	
+
 			// specifies whether downloads from web seeds is reported to the
 			// tracker or not. Defaults to on. Turning it off also excludes web
 			// seed traffic from other stats and download rate reporting via the
@@ -510,7 +510,7 @@ namespace libtorrent
 			// connections to peers whose port is < 1024. This is a safety
 			// precaution to avoid being part of a DDoS attack
 			no_connect_privileged_ports,
-	
+
 			// ``smooth_connects`` is true by default, which means the number of
 			// connection attempts per second may be limited to below the
 			// ``connection_speed``, in case we're close to bump up against the
@@ -1572,7 +1572,7 @@ namespace libtorrent
 			// and if an outgoing encrypted connection fails, a non- encrypted
 			// connection will be tried.
 			pe_enabled,
-			
+
 			// only non-encrypted connections are allowed.
 			pe_disabled
 		};

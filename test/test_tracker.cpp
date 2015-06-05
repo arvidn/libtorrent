@@ -256,17 +256,16 @@ TORRENT_TEST(udp_tracker)
 
 	int prev_udp_announces = num_udp_announces();
 
-	boost::scoped_ptr<lt::session> s(new lt::session(
-		fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(48875, 49800), "0.0.0.0", 0, alert_mask));
-
 	settings_pack pack;
 #ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
-	s->apply_settings(pack);
+	pack.set_int(settings_pack::alert_mask, alert_mask);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48875");
+
+	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp1_tracker", ec);
@@ -322,9 +321,6 @@ TORRENT_TEST(try_next)
 	int udp_port = start_udp_tracker();
 
 	int prev_udp_announces = num_udp_announces();
-	boost::scoped_ptr<lt::session> s(
-		new lt::session(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(39775, 39800), "0.0.0.0", 0, alert_mask));
 
 	settings_pack pack;
 #ifndef TORRENT_NO_DEPRECATE
@@ -334,7 +330,10 @@ TORRENT_TEST(try_next)
 	pack.set_bool(settings_pack::announce_to_all_tiers, false);
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
-	s->apply_settings(pack);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
+	pack.set_int(settings_pack::alert_mask, alert_mask);
+
+	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp2_tracker", ec);

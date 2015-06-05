@@ -124,6 +124,7 @@ EXTRA_DIST = \
   CMakeLists.txt \
   setup.py \
   LICENSE \
+  README.rst \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES) \
   $(ED25519_SOURCE)

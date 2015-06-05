@@ -95,6 +95,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/resolver.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -170,7 +171,9 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 //			friend class ::libtorrent::peer_connection;
 #endif
+#if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
+#endif
 			typedef std::set<boost::shared_ptr<peer_connection> > connection_map;
 #if TORRENT_HAS_BOOST_UNORDERED
 			typedef boost::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;

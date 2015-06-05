@@ -188,7 +188,7 @@ namespace libtorrent
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack const& pack
+		session(settings_pack const& pack = settings_pack()
 			, int flags = start_default_features | add_default_plugins)
 		{
 			TORRENT_CFG();

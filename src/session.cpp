@@ -619,7 +619,7 @@ namespace libtorrent
 	{
 		return TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);
 	}
-	
+
 	torrent_handle session::find_torrent(sha1_hash const& info_hash) const
 	{
 		return TORRENT_SYNC_CALL_RET1(torrent_handle, find_torrent_handle, info_hash);

@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/session.hpp"
@@ -40,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include <boost/tuple/tuple.hpp>
 
-#include "test.hpp"
 #include "setup_transfer.hpp"
 #include <iostream>
 
@@ -144,9 +145,11 @@ void test_pex()
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 }
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 TORRENT_TEST(pex)
 {
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	using namespace libtorrent;
 
 	// in case the previous run was terminated
@@ -160,9 +163,7 @@ TORRENT_TEST(pex)
 	remove_all("tmp1_pex", ec);
 	remove_all("tmp2_pex", ec);
 	remove_all("tmp3_pex", ec);
+#endif // TORRENT_DISABLE_EXTENSIONS
 }
 
-#else
-TORRENT_TEST(pex) {}
-#endif // TORRENT_DISABLE_EXTENSIONS
 

@@ -62,12 +62,12 @@ void test_read_piece(int flags)
 	create_directory(combine_path("tmp1_read_piece", "test_torrent"), ec);
 	if (ec) fprintf(stderr, "ERROR: creating directory test_torrent: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
-	
+
 	file_storage fs;
 	std::srand(10);
 	int piece_size = 0x4000;
 
-	static const int file_sizes[] ={ 100000, 10000 };
+	static const int file_sizes[] = { 100000, 10000 };
 
 	create_random_files(combine_path("tmp1_read_piece", "test_torrent")
 		, file_sizes, 2);
@@ -87,10 +87,10 @@ void test_read_piece(int flags)
 	fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
 
-	lt::session ses(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48000, 49000), "0.0.0.0", 0);
 	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
 	sett.set_int(settings_pack::alert_mask, alert::all_categories);
-	ses.apply_settings(sett);
+	lt::session ses(sett);
 
 	add_torrent_params p;
 	p.save_path = "tmp1_read_piece";

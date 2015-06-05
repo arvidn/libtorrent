@@ -71,10 +71,14 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+
+	lt::session ses1(sett);
+
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	lt::session ses2(sett);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -224,10 +228,15 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+
+	lt::session ses1(sett);
+
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	lt::session ses2(sett);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -357,10 +366,13 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48075, 49000)
-		, "0.0.0.0", 0, alert_mask);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49075, 50000)
-		, "0.0.0.0", 0, alert_mask);
+	settings_pack sett;
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	sett.set_int(settings_pack::alert_mask, alert_mask);
+	lt::session ses1(sett);
+
+	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	lt::session ses2(sett);
 
 	torrent_handle tor1;
 	torrent_handle tor2;

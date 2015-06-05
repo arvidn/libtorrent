@@ -87,11 +87,10 @@ TORRENT_TEST(web_seed_redirect)
 		, buf.size(), ec));
 
 	{
-		libtorrent::session ses(fingerprint("  ", 0,0,0,0), 0);
 		settings_pack settings;
 		settings.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		settings.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		ses.apply_settings(settings);
+		libtorrent::session ses(settings);
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)

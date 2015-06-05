@@ -1,17 +1,18 @@
 language: cpp
 
 before_script:
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; sudo apt-get install libboost1.54-all-dev; fi
+   - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; fi
+   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.54-all-dev; fi
    - if [ $TRAVIS_OS_NAME == osx ]; then sudo brew install boost boost-build; fi
    - echo "using gcc ;" >~/user-config.jam
    - echo "using clang ;" >>~/user-config.jam
 
 script:
    - cd test
-   - bjam -j2 $CC
-   - bjam -j2 variant=test_debug $CC
-   - bjam -j2 variant=test_release $CC
-   - bjam -j2 variant=test_barebones $CC
+   - bjam -j2 warnings=off $CC
+   - bjam -j2 variant=test_debug warnings=off -l600 $CC
+   - bjam -j2 variant=test_release warnings=off -l600 $CC
+   - bjam -j2 variant=test_barebones warnings=off -l600 $CC
 
 compiler:
    - gcc

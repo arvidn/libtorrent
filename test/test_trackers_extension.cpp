@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/thread.hpp"
@@ -49,6 +47,7 @@ using boost::tuples::ignore;
 
 TORRENT_TEST(trackers_extension)
 {
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
@@ -129,9 +128,7 @@ TORRENT_TEST(trackers_extension)
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
+#endif // TORRENT_DISABLE_EXTENSIONS
 }
 
-#else
-TORRENT_TEST(trackers_extension) { }
-#endif // TORRENT_DISABLE_EXTENSIONS
 

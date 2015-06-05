@@ -1956,10 +1956,5 @@ TORRENT_TEST(dht)
 	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
 }
 
-#else
-
-TORRENT_TEST(dht)
-{}
-
 #endif
 

@@ -63,9 +63,6 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48885, 49930), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49885, 50930), "0.0.0.0", 0);
-
 	settings_pack pack;
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
@@ -76,8 +73,11 @@ void test_transfer()
 	pack.set_bool(settings_pack::prefer_udp_trackers, false);
 	pack.set_bool(settings_pack::utp_dynamic_sock_buf, true);
 	pack.set_int(settings_pack::min_reconnect_time, 1);
-	ses1.apply_settings(pack);
-	ses2.apply_settings(pack);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48885");
+	lt::session ses1(pack);
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49885");
+	lt::session ses2(pack);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
