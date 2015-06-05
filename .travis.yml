@@ -1,7 +1,7 @@
 language: cpp
 
 before_script:
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost-dev boost-build boost-jam; fi
+   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.48-dev; fi
    - if [ $TRAVIS_OS_NAME == osx ]; then sudo port install boost boost-jam boost-build; fi
 
 script:
