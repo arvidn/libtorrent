@@ -9,10 +9,11 @@ before_script:
 
 script:
    - cd test
-   - bjam -j2 warnings=off $CC
-   - bjam -j2 variant=test_debug warnings=off -l600 $CC
-   - bjam -j2 variant=test_release warnings=off -l600 $CC
-   - bjam -j2 variant=test_barebones warnings=off -l600 $CC
+   - bjam -j2 warnings=off -l600 $CC
+   - bjam -j2 variant=test_barebones warnings=off $CC
+   - cd ..
+   - bjam -j2 variant=test_debug warnings=off $CC
+   - bjam -j2 variant=test_release warnings=off $CC
 
 compiler:
    - gcc
