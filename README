@@ -5,12 +5,20 @@ devices.
 
 The main goals of libtorrent are to be efficient and easy to use.
 
-See docs/index.html for more detailed build and usage instructions.
+See `libtorrent.org`__ for more detailed build and usage instructions.
+
+.. __: http://libtorrent.org
 
 To build with boost-build, run:
 
    b2
 
-See docs/building.html for more details on how to build and which configuration
-options are available.
+See `building.html`__ for more details on how to build and which configuration
+options are available. For python bindings, see `the python docs`__.
+
+.. __: docs/building.rst
+.. __: docs/python_binding.rst
+
+.. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
+    :target: https://travis-ci.org/arvidn/libtorrent
 

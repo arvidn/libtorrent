@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
+#include <stdarg.h>
 
 using namespace libtorrent;
 
