@@ -173,7 +173,7 @@ namespace libtorrent
 		// sent the request until it considers the tracker to have timed-out.
 		// Default value is 60 seconds.
 		int tracker_completion_timeout;
-		
+
 		// the number of seconds to wait to receive any data from the tracker. If
 		// no data is received for this number of seconds, the tracker will be
 		// considered as having timed out. If a tracker is down, this is the kind

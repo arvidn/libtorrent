@@ -107,7 +107,7 @@ namespace
     char const* filestorage_name(file_storage const& fs)
     { return fs.name().c_str(); }
 
-    bool call_python_object2(boost::python::object const& obj, std::string& i)
+    bool call_python_object2(boost::python::object& obj, std::string const& i)
     {
        return obj(i);
     }
@@ -123,11 +123,11 @@ namespace
 void bind_create_torrent()
 {
     void (file_storage::*add_file0)(std::string const&, boost::int64_t
-		 , int, std::time_t, std::string const&) = &file_storage::add_file;
+       , int, std::time_t, std::string const&) = &file_storage::add_file;
 #if !defined TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
     void (file_storage::*add_file1)(std::wstring const&, boost::int64_t
-		 , int, std::time_t, std::string const&) = &file_storage::add_file;
+       , int, std::time_t, std::string const&) = &file_storage::add_file;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
@@ -143,12 +143,12 @@ void bind_create_torrent()
 #endif
     void (*add_files0)(file_storage&, std::string const&, boost::uint32_t) = add_files;
 
-	 std::string const& (file_storage::*file_storage_symlink)(int) const = &file_storage::symlink;
+    std::string const& (file_storage::*file_storage_symlink)(int) const = &file_storage::symlink;
     sha1_hash (file_storage::*file_storage_hash)(int) const = &file_storage::hash;
-	 std::string (file_storage::*file_storage_file_path)(int, std::string const&) const = &file_storage::file_path;
-	 boost::int64_t (file_storage::*file_storage_file_size)(int) const = &file_storage::file_size;
-	 boost::int64_t (file_storage::*file_storage_file_offset)(int) const = &file_storage::file_offset;
-	 int (file_storage::*file_storage_file_flags)(int) const = &file_storage::file_flags;
+    std::string (file_storage::*file_storage_file_path)(int, std::string const&) const = &file_storage::file_path;
+    boost::int64_t (file_storage::*file_storage_file_size)(int) const = &file_storage::file_size;
+    boost::int64_t (file_storage::*file_storage_file_offset)(int) const = &file_storage::file_offset;
+    int (file_storage::*file_storage_file_flags)(int) const = &file_storage::file_flags;
 
 #if !defined TORRENT_NO_DEPRECATE
     file_entry (file_storage::*at)(int) const = &file_storage::at;

@@ -12,7 +12,7 @@ lib boost_python : : <name>boost_python ;
 feature visibility : default hidden : composite propagated link-incompatible ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
-feature libtorrent-link : static shared : ;
+feature libtorrent-link : shared static : ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
 feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
@@ -46,7 +46,6 @@ rule libtorrent_linking ( properties * )
 
     if <boost>source in $(properties)
     {
-
         if <boost-link>static in $(properties) && <target-os>linux in $(properties)
         {
             ECHO "WARNING: you cannot link statically against boost-python on linux, because it links against pthread statically in that case, which is not allowed" ;
@@ -137,7 +136,7 @@ my-python-extension libtorrent
     <conditional>@libtorrent_linking
   : # default build
     <boost-link>static
-    <libtorrent-link>static
+    <libtorrent-link>shared
     <suppress-import-lib>false
   ;
 
