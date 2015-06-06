@@ -11,13 +11,14 @@ def update_file(name):
 	subst = ''
 	f = open(name)
 	for l in f:
-		if l.startswith('Copyright (c) ') and 'Arvid Norberg' in l:
-			first_year = int(l[14:18])
+		if 'Copyright (c) ' in l and 'Arvid Norberg' in l:
+			year_idx = l.index('Copyright (c) ')
+			first_year = int(l[year_idx + 14: year_idx + 18])
 			if first_year != this_year:
-				if l[18] == '-':
-					l = l[:19] + str(this_year) + l[23:]
+				if l[year_idx + 18] == '-':
+					l = l[:year_idx + 19] + str(this_year) + l[year_idx + 23:]
 				else:
-					l = l[:18] + '-' + str(this_year) + l[18:]
+					l = l[:year_idx + 18] + '-' + str(this_year) + l[year_idx + 18:]
 
 		subst += l
 
@@ -29,6 +30,6 @@ for i in glob.glob('src/*.cpp') + \
 	glob.glob('include/libtorrent/extensions/*.hpp') + \
 	glob.glob('include/libtorrent/kademlia/*.hpp') + \
 	glob.glob('src/kademlia/*.cpp') + \
-	['COPYING', 'LICENSE']:
+	['COPYING', 'LICENSE', 'AUTHORS']:
 	update_file(i)
 

@@ -109,14 +109,14 @@ DOCS_PAGES = \
   docs/reference.html
 
 ED25519_SOURCE = \
-	ed25519/readme.md \
-	ed25519/test.c \
-	ed25519/src/fe.h \
-	ed25519/src/fixedint.h \
-	ed25519/src/ge.h \
-	ed25519/src/precomp_data.h \
-	ed25519/src/sc.h \
-	ed25519/src/sha512.h
+  ed25519/readme.md \
+  ed25519/test.c \
+  ed25519/src/fe.h \
+  ed25519/src/fixedint.h \
+  ed25519/src/ge.h \
+  ed25519/src/precomp_data.h \
+  ed25519/src/sc.h \
+  ed25519/src/sha512.h
 
 EXTRA_DIST = \
   Jamfile \
