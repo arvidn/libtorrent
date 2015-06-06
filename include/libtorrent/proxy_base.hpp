@@ -51,10 +51,10 @@ public:
 
 	typedef boost::function<void(error_code const&)> handler_type;
 
-	typedef stream_socket next_layer_type;
-	typedef stream_socket::lowest_layer_type lowest_layer_type;
-	typedef stream_socket::endpoint_type endpoint_type;
-	typedef stream_socket::protocol_type protocol_type;
+	typedef tcp::socket next_layer_type;
+	typedef tcp::socket::lowest_layer_type lowest_layer_type;
+	typedef tcp::socket::endpoint_type endpoint_type;
+	typedef tcp::socket::protocol_type protocol_type;
 
 	explicit proxy_base(io_service& io_service);
 	~proxy_base();
@@ -250,7 +250,7 @@ protected:
 
 	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);
 
-	stream_socket m_sock;
+	tcp::socket m_sock;
 	std::string m_hostname;
 	int m_port;
 

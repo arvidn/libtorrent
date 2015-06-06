@@ -417,7 +417,7 @@ bool try_connect(libtorrent::session& ses1, int port
 		}
 	}
 
-	boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_sock(ios, ctx);
+	boost::asio::ssl::stream<tcp::socket> ssl_sock(ios, ctx);
 
 	fprintf(stderr, "connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(

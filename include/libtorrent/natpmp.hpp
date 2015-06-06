@@ -156,7 +156,7 @@ private:
 	
 	// the udp socket used to communicate
 	// with the NAT router
-	datagram_socket m_socket;
+	udp::socket m_socket;
 
 	// used to resend udp packets in case
 	// they time out

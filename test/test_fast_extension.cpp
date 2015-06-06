@@ -73,7 +73,7 @@ void print_session_log(lt::session& ses)
 	print_alerts(ses, "ses", true, true);
 }
 
-int read_message(stream_socket& s, char* buffer, int max_size)
+int read_message(tcp::socket& s, char* buffer, int max_size)
 {
 	using namespace libtorrent::detail;
 	error_code ec;
@@ -151,7 +151,7 @@ void print_message(char const* buffer, int len)
 	log("<== %s %s", message, extra);
 }
 
-void send_allow_fast(stream_socket& s, int piece)
+void send_allow_fast(tcp::socket& s, int piece)
 {
 	log("==> allow fast: %d", piece);
 	using namespace libtorrent::detail;
@@ -164,7 +164,7 @@ void send_allow_fast(stream_socket& s, int piece)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_suggest_piece(stream_socket& s, int piece)
+void send_suggest_piece(tcp::socket& s, int piece)
 {
 	log("==> suggest piece: %d", piece);
 	using namespace libtorrent::detail;
@@ -177,7 +177,7 @@ void send_suggest_piece(stream_socket& s, int piece)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_keepalive(stream_socket& s)
+void send_keepalive(tcp::socket& s)
 {
 	log("==> keepalive");
 	char msg[] = "\0\0\0\0";
@@ -187,7 +187,7 @@ void send_keepalive(stream_socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_unchoke(stream_socket& s)
+void send_unchoke(tcp::socket& s)
 {
 	log("==> unchoke");
 	char msg[] = "\0\0\0\x01\x01";
@@ -197,7 +197,7 @@ void send_unchoke(stream_socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_have_all(stream_socket& s)
+void send_have_all(tcp::socket& s)
 {
 	log("==> have_all");
 	char msg[] = "\0\0\0\x01\x0e"; // have_all
@@ -207,7 +207,7 @@ void send_have_all(stream_socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_have_none(stream_socket& s)
+void send_have_none(tcp::socket& s)
 {
 	log("==> have_none");
 	char msg[] = "\0\0\0\x01\x0f"; // have_none
@@ -217,7 +217,7 @@ void send_have_none(stream_socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void send_bitfield(stream_socket& s, char const* bits)
+void send_bitfield(tcp::socket& s, char const* bits)
 {
 	using namespace libtorrent::detail;
 
@@ -239,7 +239,7 @@ void send_bitfield(stream_socket& s, char const* bits)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
+void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
 {
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
@@ -285,7 +285,7 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
 }
 
-void send_extension_handshake(stream_socket& s, entry const& e)
+void send_extension_handshake(tcp::socket& s, entry const& e)
 {
 	std::vector<char> buf;
 
@@ -310,7 +310,7 @@ void send_extension_handshake(stream_socket& s, entry const& e)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-entry read_extension_handshake(stream_socket& s, char* recv_buffer, int size)
+entry read_extension_handshake(tcp::socket& s, char* recv_buffer, int size)
 {
 	for (;;)
 	{
@@ -332,7 +332,7 @@ entry read_extension_handshake(stream_socket& s, char* recv_buffer, int size)
 	}
 }
 
-void send_ut_metadata_msg(stream_socket& s, int ut_metadata_msg, int type, int piece)
+void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int piece)
 {
 	std::vector<char> buf;
 
@@ -362,7 +362,7 @@ void send_ut_metadata_msg(stream_socket& s, int ut_metadata_msg, int type, int p
 	if (ec) TEST_ERROR(ec.message());
 }
 
-entry read_ut_metadata_msg(stream_socket& s, char* recv_buffer, int size)
+entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 {
 	for (;;)
 	{
@@ -384,7 +384,7 @@ entry read_ut_metadata_msg(stream_socket& s, char* recv_buffer, int size)
 	}
 }
 
-boost::shared_ptr<torrent_info> setup_peer(stream_socket& s, sha1_hash& ih
+boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, boost::shared_ptr<lt::session>& ses, torrent_handle* th = NULL)
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
@@ -427,7 +427,7 @@ void test_reject_fast()
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
@@ -495,7 +495,7 @@ void test_respect_suggest()
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
@@ -573,7 +573,7 @@ void test_multiple_bitfields()
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 	print_session_log(*ses);
 
@@ -607,7 +607,7 @@ void test_multiple_have_all()
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
@@ -641,7 +641,7 @@ void test_dont_have()
 	torrent_handle th;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, &th);
 
 	char recv_buffer[1000];
@@ -742,7 +742,7 @@ void test_invalid_metadata_requests()
 	sha1_hash ih;
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
-	stream_socket s(ios);
+	tcp::socket s(ios);
 	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];

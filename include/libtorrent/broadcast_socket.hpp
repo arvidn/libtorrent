@@ -86,11 +86,11 @@ namespace libtorrent
 
 		struct socket_entry
 		{
-			socket_entry(boost::shared_ptr<datagram_socket> const& s)
+			socket_entry(boost::shared_ptr<udp::socket> const& s)
 				: socket(s), broadcast(false) {}
-			socket_entry(boost::shared_ptr<datagram_socket> const& s
+			socket_entry(boost::shared_ptr<udp::socket> const& s
 				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false) {}
-			boost::shared_ptr<datagram_socket> socket;
+			boost::shared_ptr<udp::socket> socket;
 			char buffer[1500];
 			udp::endpoint remote;
 			address_v4 netmask;

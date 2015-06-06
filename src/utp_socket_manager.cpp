@@ -423,12 +423,12 @@ namespace libtorrent
 
 		// only update the buffer size if it's bigger than
 		// what we already have
-		datagram_socket::receive_buffer_size recv_buf_size_opt;
+		udp::socket::receive_buffer_size recv_buf_size_opt;
 		m_sock.get_option(recv_buf_size_opt, ec);
 		if (recv_buf_size_opt.value() < size * 10)
 		{
-			m_sock.set_option(datagram_socket::receive_buffer_size(size * 10), ec);
-			m_sock.set_option(datagram_socket::send_buffer_size(size * 3), ec);
+			m_sock.set_option(udp::socket::receive_buffer_size(size * 10), ec);
+			m_sock.set_option(udp::socket::send_buffer_size(size * 3), ec);
 		}
 		m_sock_buf_size = size;
 	}

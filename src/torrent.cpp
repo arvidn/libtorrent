@@ -7420,7 +7420,7 @@ namespace libtorrent
 
 				switch (s->type())
 				{
-					CASE(stream_socket)
+					CASE(tcp::socket)
 					CASE(socks5_stream)
 					CASE(http_stream)
 					CASE(utp_stream)
@@ -7625,7 +7625,7 @@ namespace libtorrent
 
 			switch (s->type())
 			{
-				case SSL(stream_socket)
+				case SSL(tcp::socket)
 				case SSL(socks5_stream)
 				case SSL(http_stream)
 				case SSL(utp_stream)

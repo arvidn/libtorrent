@@ -55,7 +55,7 @@ namespace libtorrent
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value:
 		switch (s.type())
 		{
-			CASE(stream_socket)
+			CASE(tcp::socket)
 			CASE(socks5_stream)
 			CASE(http_stream)
 			CASE(utp_stream)
@@ -104,7 +104,7 @@ namespace libtorrent
 
 		switch(s.type())
 		{
-			CASE(stream_socket)
+			CASE(tcp::socket)
 			CASE(socks5_stream)
 			CASE(http_stream)
 			CASE(utp_stream)
@@ -161,7 +161,7 @@ namespace libtorrent
 
 		switch (s.type())
 		{
-			CASE(stream_socket)
+			CASE(tcp::socket)
 			CASE(socks5_stream)
 			CASE(http_stream)
 			CASE(utp_stream)
@@ -176,11 +176,12 @@ namespace libtorrent
 
 	void socket_type::destruct()
 	{
+		typedef tcp::socket tcp_socket;
 		switch (m_type)
 		{
 			case 0: break;
-			case socket_type_int_impl<stream_socket>::value:
-				get<stream_socket>()->~stream_socket();
+			case socket_type_int_impl<tcp::socket>::value:
+				get<tcp::socket>()->~tcp_socket();
 				break;
 			case socket_type_int_impl<socks5_stream>::value:
 				get<socks5_stream>()->~socks5_stream();
@@ -189,16 +190,16 @@ namespace libtorrent
 				get<http_stream>()->~http_stream();
 				break;
 			case socket_type_int_impl<utp_stream>::value:
-					  get<utp_stream>()->~utp_stream();
-					  break;
+				get<utp_stream>()->~utp_stream();
+				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
 				get<i2p_stream>()->~i2p_stream();
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<stream_socket> >::value:
-				get<ssl_stream<stream_socket> >()->~ssl_stream();
+			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
+				get<ssl_stream<tcp::socket> >()->~ssl_stream();
 				break;
 			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
 				get<ssl_stream<socks5_stream> >()->~ssl_stream();
@@ -221,8 +222,8 @@ namespace libtorrent
 		switch (type)
 		{
 			case 0: break;
-			case socket_type_int_impl<stream_socket>::value:
-				new ((stream_socket*)m_data) stream_socket(m_io_service);
+			case socket_type_int_impl<tcp::socket>::value:
+				new ((tcp::socket*)m_data) tcp::socket(m_io_service);
 				break;
 			case socket_type_int_impl<socks5_stream>::value:
 				new ((socks5_stream*)m_data) socks5_stream(m_io_service);
@@ -239,9 +240,9 @@ namespace libtorrent
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<stream_socket> >::value:
+			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
 				TORRENT_ASSERT(userdata);
-				new ((ssl_stream<stream_socket>*)m_data) ssl_stream<stream_socket>(m_io_service
+				new ((ssl_stream<tcp::socket>*)m_data) ssl_stream<tcp::socket>(m_io_service
 					, *((boost::asio::ssl::context*)userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:

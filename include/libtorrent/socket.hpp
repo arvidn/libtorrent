@@ -69,10 +69,6 @@ namespace libtorrent
 	using boost::asio::async_write;
 	using boost::asio::async_read;
 
-	typedef boost::asio::ip::tcp::socket stream_socket;
-	typedef boost::asio::ip::udp::socket datagram_socket;
-	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
-
 #if TORRENT_USE_IPV6
 #ifdef IPV6_V6ONLY
 	struct v6only

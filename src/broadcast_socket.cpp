@@ -268,10 +268,10 @@ namespace libtorrent
 	{
 		using namespace boost::asio::ip::multicast;
 
-		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
+		boost::shared_ptr<udp::socket> s(new udp::socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
-		s->set_option(datagram_socket::reuse_address(true), ec);
+		s->set_option(udp::socket::reuse_address(true), ec);
 		if (ec) return;
 		s->bind(udp::endpoint(addr, m_multicast_endpoint.port()), ec);
 		if (ec) return;
@@ -296,7 +296,7 @@ namespace libtorrent
 	{
 		using namespace boost::asio::ip::multicast;
 		error_code ec;
-		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
+		boost::shared_ptr<udp::socket> s(new udp::socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
 		s->bind(udp::endpoint(addr, 0), ec);

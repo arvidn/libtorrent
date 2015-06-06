@@ -1583,7 +1583,7 @@ namespace libtorrent
 		{
 			// use only plaintext encryption
 			pe_plaintext = 1,
-			// use only rc4 encryption 
+			// use only rc4 encryption
 			pe_rc4 = 2,
 			// allow both
 			pe_both = 3

@@ -75,8 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD(x) \
-		case socket_type_int_impl<ssl_stream<stream_socket> >::value: \
-			get<ssl_stream<stream_socket> >()->x; break; \
+		case socket_type_int_impl<ssl_stream<tcp::socket> >::value: \
+			get<ssl_stream<tcp::socket> >()->x; break; \
 		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
 			get<ssl_stream<socks5_stream> >()->x; break; \
 		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
@@ -85,8 +85,8 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<ssl_stream<utp_stream> >()->x; break;
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
-		case socket_type_int_impl<ssl_stream<stream_socket> >::value: \
-			return get<ssl_stream<stream_socket> >()->x; \
+		case socket_type_int_impl<ssl_stream<tcp::socket> >::value: \
+			return get<ssl_stream<tcp::socket> >()->x; \
 		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
 			return get<ssl_stream<socks5_stream> >()->x; \
 		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
@@ -103,8 +103,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_SOCKTYPE_FORWARD(x) \
 	switch (m_type) { \
-		case socket_type_int_impl<stream_socket>::value: \
-			get<stream_socket>()->x; break; \
+		case socket_type_int_impl<tcp::socket>::value: \
+			get<tcp::socket>()->x; break; \
 		case socket_type_int_impl<socks5_stream>::value: \
 			get<socks5_stream>()->x; break; \
 		case socket_type_int_impl<http_stream>::value: \
@@ -118,8 +118,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_SOCKTYPE_FORWARD_RET(x, def) \
 	switch (m_type) { \
-		case socket_type_int_impl<stream_socket>::value: \
-			return get<stream_socket>()->x; \
+		case socket_type_int_impl<tcp::socket>::value: \
+			return get<tcp::socket>()->x; \
 		case socket_type_int_impl<socks5_stream>::value: \
 			return get<socks5_stream>()->x; \
 		case socket_type_int_impl<http_stream>::value: \
@@ -139,7 +139,7 @@ namespace libtorrent
 	{ enum { value = 0 }; };
 
 	template <>
-	struct socket_type_int_impl<stream_socket>
+	struct socket_type_int_impl<tcp::socket>
 	{ enum { value = 1 }; };
 
 	template <>
@@ -162,7 +162,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 	template <>
-	struct socket_type_int_impl<ssl_stream<stream_socket> >
+	struct socket_type_int_impl<ssl_stream<tcp::socket> >
 	{ enum { value = 6 }; };
 
 	template <>
@@ -180,8 +180,8 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT socket_type
 	{
-		typedef stream_socket::endpoint_type endpoint_type;
-		typedef stream_socket::protocol_type protocol_type;
+		typedef tcp::socket::endpoint_type endpoint_type;
+		typedef tcp::socket::protocol_type protocol_type;
 	
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
@@ -298,7 +298,7 @@ namespace libtorrent
 		io_service& m_io_service;
 		int m_type;
 		enum { storage_size = max9<
-			sizeof(stream_socket)
+			sizeof(tcp::socket)
 			, sizeof(socks5_stream)
 			, sizeof(http_stream)
 			, sizeof(utp_stream)
@@ -308,7 +308,7 @@ namespace libtorrent
 			, 0
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			, sizeof(ssl_stream<stream_socket>)
+			, sizeof(ssl_stream<tcp::socket>)
 			, sizeof(ssl_stream<socks5_stream>)
 			, sizeof(ssl_stream<http_stream>)
 			, sizeof(ssl_stream<utp_stream>)

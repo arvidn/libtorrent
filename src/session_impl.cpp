@@ -1144,11 +1144,11 @@ namespace aux {
 		int snd_size = sett.get_int(settings_pack::send_socket_buffer_size);
 		if (snd_size)
 		{
-			stream_socket::send_buffer_size prev_option;
+			tcp::socket::send_buffer_size prev_option;
 			s.get_option(prev_option, ec);
 			if (!ec && prev_option.value() != snd_size)
 			{
-				stream_socket::send_buffer_size option(snd_size);
+				tcp::socket::send_buffer_size option(snd_size);
 				s.set_option(option, ec);
 				if (ec)
 				{
@@ -1161,11 +1161,11 @@ namespace aux {
 		int recv_size = sett.get_int(settings_pack::recv_socket_buffer_size);
 		if (recv_size)
 		{
-			stream_socket::receive_buffer_size prev_option;
+			tcp::socket::receive_buffer_size prev_option;
 			s.get_option(prev_option, ec);
 			if (!ec && prev_option.value() != recv_size)
 			{
-				stream_socket::receive_buffer_size option(recv_size);
+				tcp::socket::receive_buffer_size option(recv_size);
 				s.set_option(option, ec);
 				if (ec)
 				{
@@ -1588,7 +1588,7 @@ namespace aux {
 		int last_op = 0;
 		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
 			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
-		ret.sock.reset(new socket_acceptor(m_io_service));
+		ret.sock.reset(new tcp::acceptor(m_io_service));
 		ret.sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
@@ -1609,7 +1609,7 @@ namespace aux {
 		// application. Don't do it!
 #ifndef TORRENT_WINDOWS
 		error_code err; // ignore errors here
-		ret.sock->set_option(socket_acceptor::reuse_address(true), err);
+		ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
 #endif
 
 #if TORRENT_USE_IPV6
@@ -2198,11 +2198,11 @@ retry:
 		return false;
 	}
 
-	void session_impl::async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl)
+	void session_impl::async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
-		stream_socket* str = 0;
+		tcp::socket* str = 0;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl)
@@ -2211,14 +2211,14 @@ retry:
 			// use the generic m_ssl_ctx context. However, since it has
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<stream_socket> >(m_io_service, &m_ssl_ctx);
-			str = &c->get<ssl_stream<stream_socket> >()->next_layer();
+			c->instantiate<ssl_stream<tcp::socket> >(m_io_service, &m_ssl_ctx);
+			str = &c->get<ssl_stream<tcp::socket> >()->next_layer();
 		}
 		else
 #endif
 		{
-			c->instantiate<stream_socket>(m_io_service);
-			str = c->get<stream_socket>();
+			c->instantiate<tcp::socket>(m_io_service);
+			str = c->get<tcp::socket>();
 		}
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -2231,18 +2231,18 @@ retry:
 
 		listener->async_accept(*str
 			, boost::bind(&session_impl::on_accept_connection, this, c
-			, boost::weak_ptr<socket_acceptor>(listener), _1, ssl));
+			, boost::weak_ptr<tcp::acceptor>(listener), _1, ssl));
 	}
 
 	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<socket_acceptor> listen_socket, error_code const& e, bool ssl)
+		, weak_ptr<tcp::acceptor> listen_socket, error_code const& e, bool ssl)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_accept_connection");
 #endif
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
 		TORRENT_ASSERT(is_single_thread());
-		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
+		boost::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
 		if (!listener) return;
 
 		if (e == boost::asio::error::operation_aborted) return;
@@ -2322,7 +2322,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("session_impl::ssl_handshake");
 #endif
-			s->get<ssl_stream<stream_socket> >()->async_accept_handshake(
+			s->get<ssl_stream<tcp::socket> >()->async_accept_handshake(
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
 			m_incoming_sockets.insert(s);
 		}
@@ -2439,7 +2439,7 @@ retry:
 		}
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_tcp)
-			&& s->get<stream_socket>())
+			&& s->get<tcp::socket>())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("    rejected TCP connection");
@@ -4695,7 +4695,7 @@ retry:
 		tcp::endpoint bind_ep(address_v4(), 0);
 		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
 		{
-			s.set_option(socket_acceptor::reuse_address(true), ec);
+			s.set_option(tcp::acceptor::reuse_address(true), ec);
 			// ignore errors because the underlying socket may not
 			// be opened yet. This happens when we're routing through
 			// a proxy. In that case, we don't yet know the address of

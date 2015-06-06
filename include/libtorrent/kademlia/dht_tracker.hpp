@@ -116,7 +116,7 @@ namespace libtorrent { namespace dht
 			, udp::endpoint const&, char const* buf, int size);
 
 	private:
-	
+
 		boost::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 

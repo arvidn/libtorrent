@@ -210,7 +210,7 @@ namespace libtorrent
 		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
 		void unwrap(error_code const& e, char const* buf, int size);
 
-		datagram_socket m_ipv4_sock;
+		udp::socket m_ipv4_sock;
 		deadline_timer m_timer;
 		int m_buf_size;
 
@@ -223,7 +223,7 @@ namespace libtorrent
 		char* m_buf;
 
 #if TORRENT_USE_IPV6
-		datagram_socket m_ipv6_sock;
+		udp::socket m_ipv6_sock;
 #endif
 
 		boost::uint16_t m_bind_port;
@@ -232,7 +232,7 @@ namespace libtorrent
 		boost::uint8_t m_v6_outstanding;
 #endif
 
-		stream_socket m_socks5_sock;
+		tcp::socket m_socks5_sock;
 		proxy_settings m_proxy_settings;
 		tcp::resolver m_resolver;
 		char m_tmp_buf[270];

@@ -203,7 +203,7 @@ struct peer_conn
 		s.async_connect(endpoint, boost::bind(&peer_conn::on_connect, this, _1));
 	}
 
-	stream_socket s;
+	tcp::socket s;
 	char write_buf_proto[100];
 	boost::uint32_t write_buffer[17*1024/4];
 	boost::uint32_t buffer[17*1024/4];

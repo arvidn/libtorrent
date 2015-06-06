@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/socket.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"

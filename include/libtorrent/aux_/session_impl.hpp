@@ -141,7 +141,7 @@ namespace libtorrent
 		bool ssl;
 
 		// the actual socket
-		boost::shared_ptr<socket_acceptor> sock;
+		boost::shared_ptr<tcp::acceptor> sock;
 	};
 
 	namespace aux
@@ -234,9 +234,9 @@ namespace libtorrent
 			tcp::endpoint get_ipv6_interface() const;
 			tcp::endpoint get_ipv4_interface() const;
 
-			void async_accept(boost::shared_ptr<socket_acceptor> const& listener, bool ssl);
+			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<socket_acceptor> listener, error_code const& e, bool ssl);
+				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 

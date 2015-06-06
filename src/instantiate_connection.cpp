@@ -82,12 +82,12 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<stream_socket> >(ios, ssl_context);
+				s.instantiate<ssl_stream<tcp::socket> >(ios, ssl_context);
 			}
 			else
 #endif
 			{
-				s.instantiate<stream_socket>(ios);
+				s.instantiate<tcp::socket>(ios);
 			}
 		}
 		else if (ps.type == settings_pack::http
