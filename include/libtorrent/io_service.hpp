@@ -46,11 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#if BOOST_VERSION < 103500
-#include <asio/io_service.hpp>
-#else
 #include <boost/asio/io_service.hpp>
-#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -60,12 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-#if BOOST_VERSION < 103500
-	typedef ::asio::io_service io_service;
-#else
 	typedef boost::asio::io_service io_service;
-#endif
 }
 
 #endif

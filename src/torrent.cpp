@@ -423,7 +423,7 @@ namespace libtorrent
 	{
 		if (m_abort) return;
 
-		if (ec && ec != asio::error::eof)
+		if (ec && ec != boost::asio::error::eof)
 		{
 			set_error(ec, error_file_url);
 			pause();
@@ -609,7 +609,7 @@ namespace libtorrent
 	{
 		if (m_abort) return;
 
-		if (ec && ec != asio::error::eof)
+		if (ec && ec != boost::asio::error::eof)
 		{
 			set_error(ec, error_file_url);
 			pause();
@@ -1106,7 +1106,7 @@ namespace libtorrent
 			// we failed to write j->piece to disk tell the piece picker
 			// this will block any other peer from issuing requests
 			// to this piece, until we've cleared it.
-			if (j->error.ec == asio::error::operation_aborted)
+			if (j->error.ec == boost::asio::error::operation_aborted)
 			{
 				if (has_picker())
 					picker().mark_as_canceled(block_finished, NULL);
@@ -1149,7 +1149,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (j->error.ec == asio::error::operation_aborted) return;
+		if (j->error.ec == boost::asio::error::operation_aborted) return;
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
@@ -1590,7 +1590,7 @@ namespace libtorrent
 		if (!ctx)
 		{
 			error_code ec(::ERR_get_error(),
-				asio::error::get_ssl_category());
+				boost::asio::error::get_ssl_category());
 			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
@@ -1628,7 +1628,7 @@ namespace libtorrent
 		if (!cert_store)
 		{
 			error_code ec(::ERR_get_error(),
-				asio::error::get_ssl_category());
+				boost::asio::error::get_ssl_category());
 			set_error(ec, error_file_ssl_ctx);
 			pause();
 			return;
@@ -1646,7 +1646,7 @@ namespace libtorrent
 		if (!certificate)
 		{
 			error_code ec(::ERR_get_error(),
-				asio::error::get_ssl_category());
+				boost::asio::error::get_ssl_category());
 			X509_STORE_free(cert_store);
 			set_error(ec, error_file_ssl_ctx);
 			pause();
@@ -1673,7 +1673,7 @@ namespace libtorrent
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
 #else
-		set_error(asio::error::operation_not_supported, error_file_ssl_ctx);
+		set_error(boost::asio::error::operation_not_supported, error_file_ssl_ctx);
 		pause();
 #endif
 	}
@@ -6486,7 +6486,7 @@ namespace libtorrent
 	{
 		return m_resolve_countries && !settings().get_bool(settings_pack::force_proxy);
 	}
-	
+
 	void torrent::resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -6497,7 +6497,7 @@ namespace libtorrent
 			|| p->in_handshake()
 			|| p->remote().address().is_v6()) return;
 
-		asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
+		boost::asio::ip::address_v4 reversed(swap_bytes(p->remote().address().to_v4().to_ulong()));
 		error_code ec;
 		std::string hostname = reversed.to_string(ec) + ".zz.countries.nerd.dk";
 		if (ec)
@@ -6526,7 +6526,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		
+
 		m_resolving_country = false;
 
 		if (m_abort) return;
@@ -7661,7 +7661,7 @@ namespace libtorrent
 #else // BOOST_VERSION
 		if (is_ssl_torrent())
 		{
-			p->disconnect(asio::error::operation_not_supported, op_bittorrent);
+			p->disconnect(boost::asio::error::operation_not_supported, op_bittorrent);
 			return false;
 		}
 #endif

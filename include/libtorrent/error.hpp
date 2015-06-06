@@ -41,21 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#if BOOST_VERSION < 103500
-#include <asio/error.hpp>
-#else
 #include <boost/asio/error.hpp>
-#endif
 
 namespace libtorrent
 {
-
-#if BOOST_VERSION < 103500
-	namespace error = asio::error;
-#else
 	namespace error = boost::asio::error;
-#endif
-
 }
 
 #endif

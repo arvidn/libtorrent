@@ -124,15 +124,15 @@ public:
 	// Attempts to add a port mapping for the specified protocol. Valid protocols are
 	// ``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
 	// ``natpmp::udp`` for the NAT-PMP class.
-	// 
+	//
 	// ``external_port`` is the port on the external address that will be mapped. This
 	// is a hint, you are not guaranteed that this port will be available, and it may
 	// end up being something else. In the portmap_alert_ notification, the actual
 	// external port is reported.
-	// 
+	//
 	// ``local_port`` is the port in the local machine that the mapping should forward
 	// to.
-	// 
+	//
 	// The return value is an index that identifies this port mapping. This is used
 	// to refer to mappings that fails or succeeds in the portmap_error_alert_ and
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
@@ -172,7 +172,7 @@ private:
 	// safer to always assume that we have to ask for
 	// permanent leases
 	enum { default_lease_time = 0 };
-	
+
 	void resend_request(error_code const& e);
 	void on_reply(udp::endpoint const& from, char* buffer
 		, std::size_t bytes_transferred);
@@ -181,7 +181,7 @@ private:
 	void next(rootdevice& d, int i, mutex::scoped_lock& l);
 	void update_map(rootdevice& d, int i, mutex::scoped_lock& l);
 
-	
+
 	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
 		, http_connection& c);
@@ -233,7 +233,7 @@ private:
 
 		// the time the port mapping will expire
 		time_point expires;
-		
+
 		int action;
 
 		// the local port for this mapping. If this is set
@@ -277,14 +277,14 @@ private:
 		// the interface url, through which the list of
 		// supported interfaces are fetched
 		std::string url;
-	
+
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
 		char const* service_namespace;
 
 		std::vector<mapping_t> mapping;
-		
+
 		// this is the hostname, port and path
 		// component of the url or the control_url
 		// if it has been found
@@ -297,7 +297,7 @@ private:
 		// true if the device supports specifying a
 		// specific external port, false if it doesn't
 		bool supports_specific_external;
-		
+
 		bool disabled;
 
 		// this is true if the IP of this device is not
@@ -319,11 +319,11 @@ private:
 			upnp_connection->close();
 			upnp_connection.reset();
 		}
-		
+
 		bool operator<(rootdevice const& rhs) const
 		{ return url < rhs.url; }
 	};
-	
+
 	struct upnp_state_t
 	{
 		std::vector<global_mapping_t> mappings;
@@ -333,10 +333,10 @@ private:
 	std::vector<global_mapping_t> m_mappings;
 
 	std::string const& m_user_agent;
-	
+
 	// the set of devices we've found
 	std::set<rootdevice> m_devices;
-	
+
 	portmap_callback_t m_callback;
 	log_callback_t m_log_callback;
 
@@ -364,7 +364,7 @@ private:
 	// response from a router UPnP device, we override the ignoring behavior and
 	// map them anyway.
 	deadline_timer m_map_timer;
-	
+
 	bool m_disabled;
 	bool m_closing;
 	bool m_ignore_non_routers;
@@ -380,8 +380,6 @@ private:
 
 }
 
-#if BOOST_VERSION >= 103500
-
 namespace boost { namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::upnp_errors::error_code_enum>
@@ -390,8 +388,6 @@ namespace boost { namespace system {
 	template<> struct is_error_condition_enum<libtorrent::upnp_errors::error_code_enum>
 	{ static const bool value = true; };
 } }
-
-#endif // BOOST_VERSION
 
 #endif
 

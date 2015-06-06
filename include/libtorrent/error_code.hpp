@@ -45,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#if BOOST_VERSION < 103500
-#include <asio/error_code.hpp>
-#else
 #include <boost/system/error_code.hpp>
-#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -255,7 +251,7 @@ namespace libtorrent
 			packet_too_large,
 
 			reserved,
-			
+
 			// The web server responded with an error
 			http_error,
 			// The web server response is missing a location header
@@ -319,7 +315,7 @@ namespace libtorrent
 			no_metadata,
 			// The peer sent an invalid ``dont_have`` message. The dont have
 			// message is an extension to allow peers to advertise that the
-			// no longer has a piece they previously had.                      
+			// no longer has a piece they previously had.
 			invalid_dont_have,
 			// The peer tried to connect to an SSL torrent without connecting
 			// over SSL.
@@ -402,7 +398,7 @@ namespace libtorrent
 			// The URL specified an i2p address, but no i2p router is configured
 			no_i2p_router = 160,
 
-			
+
 
 			// The tracker URL doesn't support transforming it into a scrape
 			// URL. i.e. it doesn't contain "announce.
@@ -475,31 +471,6 @@ namespace libtorrent
 
 	} // namespace errors
 
-#if BOOST_VERSION < 103500
-	typedef asio::error_code error_code;
-	// hidden
-	inline asio::error::error_category posix_category()
-	{ return asio::error::system_category; }
-	// hidden
-	inline asio::error::error_category system_category()
-	{ return asio::error::system_category; }
-
-	// hidden
-	boost::system::error_category const& get_libtorrent_category()
-	{
-		static ::asio::error::error_category libtorrent_category(20);
-		return libtorrent_category;
-	}
-
-	// hidden
-	boost::system::error_category const& get_http_category()
-	{
-		static ::asio::error::error_category http_category(21);
-		return http_category;
-	}
-
-#else
-
 	// return the instance of the libtorrent_error_category which
 	// maps libtorrent error codes to human readable error messages.
 	TORRENT_EXPORT boost::system::error_category& get_libtorrent_category();
@@ -526,7 +497,6 @@ namespace libtorrent
 #else
 	{ return boost::system::generic_category(); }
 #endif // BOOST_VERSION < 103600
-#endif // BOOST_VERSION < 103500
 
 	// internal
 	inline boost::system::error_category const& generic_category()
@@ -602,8 +572,6 @@ namespace libtorrent
 
 }
 
-#if BOOST_VERSION >= 103500
-
 namespace boost { namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::errors::error_code_enum>
@@ -618,12 +586,6 @@ namespace boost { namespace system {
 	template<> struct is_error_condition_enum<libtorrent::errors::http_errors>
 	{ static const bool value = true; };
 } }
-
-#endif // BOOST_VERSION
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #endif
 

@@ -199,7 +199,7 @@ void network_thread_pool::process_job(socket_job const& j, bool post)
 	{
 		if (j.recv_buf)
 		{
-			j.peer->get_socket()->async_read_some(asio::buffer(j.recv_buf, j.buf_size)
+			j.peer->get_socket()->async_read_some(boost::asio::buffer(j.recv_buf, j.buf_size)
 				, j.peer->make_read_handler(boost::bind(
 				&peer_connection::on_receive_data, j.peer, _1, _2)));
 		}
@@ -344,7 +344,7 @@ namespace aux {
 #endif
 		m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
-		, m_ssl_ctx(m_io_service, asio::ssl::context::sslv23)
+		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
 #ifndef TORRENT_NO_DEPRECATE
@@ -459,7 +459,7 @@ namespace aux {
 
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
-		m_ssl_ctx.set_verify_mode(asio::ssl::context::verify_none, ec);
+		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if BOOST_VERSION >= 104700
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
@@ -2162,7 +2162,7 @@ retry:
 		complete_async("session_impl::on_i2p_accept");
 #endif
 		m_i2p_listen_socket.reset();
-		if (e == asio::error::operation_aborted) return;
+		if (e == boost::asio::error::operation_aborted) return;
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -2187,7 +2187,7 @@ retry:
 		if (ec)
 		{
 			// don't bubble up operation aborted errors to the user
-			if (ec != asio::error::operation_aborted
+			if (ec != boost::asio::error::operation_aborted
 				&& m_alerts.should_post<udp_error_alert>())
 				m_alerts.emplace_alert<udp_error_alert>(ep, ec);
 
@@ -2245,7 +2245,7 @@ retry:
 		boost::shared_ptr<socket_acceptor> listener = listen_socket.lock();
 		if (!listener) return;
 
-		if (e == asio::error::operation_aborted) return;
+		if (e == boost::asio::error::operation_aborted) return;
 
 		if (m_abort) return;
 
@@ -2637,7 +2637,7 @@ retry:
 		complete_async("session_impl::on_socks_accept");
 #endif
 		m_socks_listen_socket.reset();
-		if (e == asio::error::operation_aborted) return;
+		if (e == boost::asio::error::operation_aborted) return;
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -2841,7 +2841,7 @@ retry:
 #endif
 		}
 
-		if (e == asio::error::operation_aborted) return;
+		if (e == boost::asio::error::operation_aborted) return;
 
 		if (e)
 		{

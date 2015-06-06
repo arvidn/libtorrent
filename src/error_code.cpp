@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#if BOOST_VERSION >= 103500
-
 	struct libtorrent_error_category : boost::system::error_category
 	{
 		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
@@ -323,7 +321,6 @@ namespace libtorrent
 		static http_error_category http_category;
 		return http_category;
 	}
-#endif
 
 #ifndef BOOST_NO_EXCEPTIONS
 	const char* libtorrent_exception::what() const TORRENT_EXCEPTION_THROW_SPECIFIER

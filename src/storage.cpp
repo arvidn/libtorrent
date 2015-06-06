@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/error_code.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <ctime>
@@ -41,9 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/version.hpp>
 #include <boost/scoped_array.hpp>
-#if BOOST_VERSION >= 103500
-#include <boost/system/system_error.hpp>
-#endif
+#include <boost/system/error_code.hpp>
 
 #if defined(__APPLE__)
 // for getattrlist()
@@ -66,7 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/hasher.hpp"
@@ -454,7 +454,7 @@ namespace libtorrent
 					return false;
 				}
 			}
-	
+
 			// if we didn't find the file, check the next one
 			if (m_stat_cache.get_filesize(i) == stat_cache::no_exist) continue;
 
@@ -555,7 +555,7 @@ namespace libtorrent
 	void default_storage::delete_one_file(std::string const& p, error_code& ec)
 	{
 		remove(p, ec);
-		
+
 		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", this, p.c_str(), ec.message().c_str());
 
 		if (ec == boost::system::errc::no_such_file_or_directory)
@@ -569,7 +569,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
 		// threads to hold any references to any files
-		// in this file storage. Assert that that's the 
+		// in this file storage. Assert that that's the
 		// case
 		if (!m_pool.assert_idle_files(this))
 		{
@@ -715,7 +715,7 @@ namespace libtorrent
 			++file_index;
 			TORRENT_ASSERT(file_index != files().num_files());
 		}
-	
+
 		error_code ec;
 		file_handle handle = open_file_impl(file_index, file::read_only, ec);
 		if (ec) return slot;
@@ -742,7 +742,7 @@ namespace libtorrent
 				m_mapped_files->rename_file(i, new_filename);
 			}
 		}
-		
+
 		bdecode_node file_priority = rd.dict_find_list("file_priority");
 		if (file_priority && file_priority.list_size()
 			== files().num_files())
@@ -760,13 +760,13 @@ namespace libtorrent
 			ec.operation = storage_error::check_resume;
 			return false;
 		}
-		
+
 		if (file_sizes_ent.list_size() == 0)
 		{
 			ec.ec = errors::no_files_in_resume_data;
 			return false;
 		}
-		
+
 		file_storage const& fs = files();
 		if (file_sizes_ent.list_size() != fs.num_files())
 		{
@@ -991,14 +991,14 @@ namespace libtorrent
 			{
 				ec.file = -1;
 				ec.operation = storage_error::mkdir;
-				return piece_manager::fatal_disk_error; 
+				return piece_manager::fatal_disk_error;
 			}
 		}
 		else if (ec)
 		{
 			ec.file = -1;
 			ec.operation = storage_error::mkdir;
-			return piece_manager::fatal_disk_error; 
+			return piece_manager::fatal_disk_error;
 		}
 
 		m_pool.release(this);
@@ -1067,7 +1067,7 @@ namespace libtorrent
 				{
 					ec.file = -1;
 					ec.operation = storage_error::partfile_move;
-					return piece_manager::fatal_disk_error; 
+					return piece_manager::fatal_disk_error;
 				}
 			}
 
@@ -1096,7 +1096,7 @@ namespace libtorrent
 		return readwritev(bufs, slot, offset, num_bufs, op, ec);
 	}
 
-	// much of what needs to be done when reading and writing 
+	// much of what needs to be done when reading and writing
 	// is buffer management and piece to file mapping. Most
 	// of that is the same for reading and writing. This function
 	// is a template, and the fileop decides what to do with the
@@ -1188,7 +1188,7 @@ namespace libtorrent
 				// we're writing to it
 				m_stat_cache.set_dirty(file_index);
 			}
-	
+
 			if ((file_index < int(m_file_priority.size())
 				&& m_file_priority[file_index] == 0)
 				|| files().pad_file_at(file_index))
@@ -1366,7 +1366,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		if (m_part_file) m_part_file->flush_metadata(ec);
-	
+
 		return false;
 	}
 
@@ -1489,7 +1489,7 @@ namespace libtorrent
 			if (se)
 			{
 				ec = se;
-				return fatal_disk_error; 
+				return fatal_disk_error;
 			}
 
 			if (has_files)
@@ -1502,7 +1502,7 @@ namespace libtorrent
 
 		return check_init_storage(ec);
 	}
-	
+
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
 		storage_error se;
@@ -1510,14 +1510,14 @@ namespace libtorrent
 		if (se)
 		{
 			ec = se;
-			return fatal_disk_error; 
+			return fatal_disk_error;
 		}
 
 		return no_error;
 	}
 
 	// check if the fastresume data is up to date
-	// if it is, use it and return true. If it 
+	// if it is, use it and return true. If it
 	// isn't return false and the full check
 	// will be run. If the links pointer is non-null, it has the same number
 	// of elements as there are files. Each element is either empty or contains
@@ -1530,7 +1530,7 @@ namespace libtorrent
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
-		
+
 		// if we don't have any resume data, return
 		if (rd.type() == bdecode_node::none_t) return check_no_fastresume(ec);
 
@@ -1669,7 +1669,7 @@ namespace libtorrent
 			++m_outstanding_jobs;
 			return false;
 		}
-		
+
 		m_blocked_jobs.push_back(j);
 
 #if TORRENT_USE_ASSERTS

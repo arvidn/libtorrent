@@ -103,13 +103,7 @@ struct test_storage : default_storage
 		{
 			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 			error_code ec;
-#if BOOST_VERSION == 103500
-			ec = error_code(boost::system::posix_error::no_space_on_device, get_posix_category());
-#elif BOOST_VERSION > 103500
 			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
-#else
-			ec = error_code(ENOSPC, get_posix_category());
-#endif
 			se.ec = ec;
 			return 0;
 		}

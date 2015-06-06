@@ -45,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
 #include <boost/system/system_error.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/read.hpp>
-#else
 #include <boost/asio/read.hpp>
-#endif
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"

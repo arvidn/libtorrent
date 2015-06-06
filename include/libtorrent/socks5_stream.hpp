@@ -198,8 +198,6 @@ private:
 
 }
 
-#if BOOST_VERSION >= 103500
-
 namespace boost { namespace system {
 
 	template<> struct is_error_code_enum<libtorrent::socks_error::socks_error_code>
@@ -208,8 +206,6 @@ namespace boost { namespace system {
 	template<> struct is_error_condition_enum<libtorrent::socks_error::socks_error_code>
 	{ static const bool value = true; };
 } }
-
-#endif // BOOST_VERSION
 
 #endif
 

@@ -143,7 +143,7 @@ namespace libtorrent
 		return insert;
 	}
 
-	std::vector<asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
+	std::vector<boost::asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_tmp_vec.clear();
@@ -151,7 +151,7 @@ namespace libtorrent
 		return m_tmp_vec;
 	}
 
-	void chained_buffer::build_mutable_iovec(int bytes, std::vector<asio::mutable_buffer> &vec)
+	void chained_buffer::build_mutable_iovec(int bytes, std::vector<boost::asio::mutable_buffer> &vec)
 	{
 		build_vec(bytes, vec);
 	}

@@ -47,13 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#include <asio/ip/multicast.hpp>
-#else
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#endif
 #include <cstdlib>
 
 namespace libtorrent {
@@ -838,7 +833,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		, d.mapping[i].external_port
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
 		, soap_action);
-	
+
 	post(d, soap, soap_action, l);
 }
 
@@ -1184,8 +1179,6 @@ namespace
 
 }
 
-#if BOOST_VERSION >= 103500
-
 struct upnp_error_category : boost::system::error_category
 {
 	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
@@ -1221,16 +1214,6 @@ boost::system::error_category& get_upnp_category()
 	static upnp_error_category cat;
 	return cat;
 }
-
-#else
-
-boost::system::error_category& get_upnp_category()
-{
-	static ::asio::error::error_category cat(21);
-	return cat;
-}
-
-#endif
 
 void upnp::on_upnp_get_ip_address_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d

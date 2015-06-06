@@ -745,19 +745,19 @@ namespace libtorrent
 		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
 		virtual void write_suggest(int piece) = 0;
 		virtual void write_bitfield() = 0;
-		
+
 		virtual void write_reject_request(peer_request const& r) = 0;
 		virtual void write_allow_fast(int piece) = 0;
 
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
-	
+
 		virtual void on_receive(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 		virtual void on_sent(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
-		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>&)
+		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>&)
 		{ return INT_MAX; }
 
 		bool allocate_disk_receive_buffer(int disk_buffer_size);

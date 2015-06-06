@@ -39,11 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#else
 #include <boost/asio/ip/host_name.hpp>
-#endif
 
 #if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>

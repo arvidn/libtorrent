@@ -45,13 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#include <asio/ip/multicast.hpp>
-#else
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#endif
 #include <cstdlib>
 #include <boost/config.hpp>
 #include <cstdarg>

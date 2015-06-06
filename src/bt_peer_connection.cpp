@@ -530,7 +530,7 @@ namespace libtorrent
 		// Discard DH key exchange data, setup RC4 keys
 		init_pe_rc4_handler(secret, info_hash);
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
-	
+
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
@@ -547,8 +547,8 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(ptr, encrypt_size));
+		std::vector<boost::asio::mutable_buffer> vec;
+		vec.push_back(boost::asio::mutable_buffer(ptr, encrypt_size));
 		m_rc4->encrypt(vec);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
@@ -569,8 +569,8 @@ namespace libtorrent
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(msg, buf_size));
+		std::vector<boost::asio::mutable_buffer> vec;
+		vec.push_back(boost::asio::mutable_buffer(msg, buf_size));
 		m_rc4->encrypt(vec);
 		send_buffer(msg, buf_size);
 
@@ -684,37 +684,37 @@ namespace libtorrent
 				return i;
 		}
 
-//	    // Partial sync
-// 		for (int i = 0; i < target_size; ++i)
-// 		{
-// 			// first is iterator in src[] at which mismatch occurs
-// 			// second is iterator in target[] at which mismatch occurs
-// 			std::pair<const char*, const char*> ret;
-// 			int src_sync_size;
-//  			if (i > traverse_limit) // partial sync test
-//  			{
-//  				ret = std::mismatch(src, src + src_size - (i - traverse_limit), &target[i]);
-//  				src_sync_size = ret.first - src;
-//  				if (src_sync_size == (src_size - (i - traverse_limit)))
-//  					return i;
-//  			}
-//  			else // complete sync test
-// 			{
-// 				ret = std::mismatch(src, src + src_size, &target[i]);
-// 				src_sync_size = ret.first - src;
-// 				if (src_sync_size == src_size)
-// 					return i;
-// 			}
-// 		}
+		// Partial sync
+//		for (int i = 0; i < target_size; ++i)
+//		{
+//			// first is iterator in src[] at which mismatch occurs
+//			// second is iterator in target[] at which mismatch occurs
+//			std::pair<const char*, const char*> ret;
+//			int src_sync_size;
+//			if (i > traverse_limit) // partial sync test
+//			{
+//				ret = std::mismatch(src, src + src_size - (i - traverse_limit), &target[i]);
+//				src_sync_size = ret.first - src;
+//				if (src_sync_size == (src_size - (i - traverse_limit)))
+//					return i;
+//			}
+//			else // complete sync test
+//			{
+//				ret = std::mismatch(src, src + src_size, &target[i]);
+//				src_sync_size = ret.first - src;
+//				if (src_sync_size == src_size)
+//					return i;
+//			}
+//		}
 
-        // no complete sync
+		// no complete sync
 		return -1;
 	}
 
 	void bt_peer_connection::rc4_decrypt(char* pos, int len)
 	{
-		std::vector<asio::mutable_buffer> vec;
-		vec.push_back(asio::mutable_buffer(pos, len));
+		std::vector<boost::asio::mutable_buffer> vec;
+		vec.push_back(boost::asio::mutable_buffer(pos, len));
 		int consume = 0;
 		int produce = len;
 		int packet_size = 0;
@@ -3550,7 +3550,7 @@ namespace libtorrent
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	int bt_peer_connection::hit_send_barrier(std::vector<asio::mutable_buffer>& iovec)
+	int bt_peer_connection::hit_send_barrier(std::vector<boost::asio::mutable_buffer>& iovec)
 	{
 		int next_barrier = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING

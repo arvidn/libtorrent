@@ -52,13 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-#if BOOST_VERSION < 103500
-#include <asio/ip/host_name.hpp>
-#include <asio/ip/multicast.hpp>
-#else
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#endif
 
 #ifdef TORRENT_WINDOWS
 #include <iphlpapi.h> // for if_nametoindex

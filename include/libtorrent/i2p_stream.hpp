@@ -226,7 +226,6 @@ private:
 
 }
 
-#if BOOST_VERSION >= 103500
 namespace boost { namespace system {
 
 template<>
@@ -238,7 +237,6 @@ struct is_error_condition_enum<libtorrent::i2p_error::i2p_error_code>
 { static const bool value = true; };
 
 } }
-#endif // BOOST_VERSION
 
 #endif // TORRENT_USE_I2P
 

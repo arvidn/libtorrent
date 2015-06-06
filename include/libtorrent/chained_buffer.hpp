@@ -40,11 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/version.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/buffer.hpp>
-#else
 #include <boost/asio/buffer.hpp>
-#endif
 #include <deque>
 #include <vector>
 #include <string.h> // for memcpy
@@ -53,9 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-#if BOOST_VERSION >= 103500
-	namespace asio = boost::asio;
-#endif
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
@@ -109,11 +102,11 @@ namespace libtorrent
 		// enough room, returns 0
 		char* allocate_appendix(int s);
 
-		std::vector<asio::const_buffer> const& build_iovec(int to_send);
+		std::vector<boost::asio::const_buffer> const& build_iovec(int to_send);
 
 		void clear();
 
-		void build_mutable_iovec(int bytes, std::vector<asio::mutable_buffer>& vec);
+		void build_mutable_iovec(int bytes, std::vector<boost::asio::mutable_buffer>& vec);
 
 		~chained_buffer();
 
@@ -136,12 +129,12 @@ namespace libtorrent
 
 		// this is the vector of buffers used when
 		// invoking the async write call
-		std::vector<asio::const_buffer> m_tmp_vec;
+		std::vector<boost::asio::const_buffer> m_tmp_vec;
 
 #if TORRENT_USE_ASSERTS
 		bool m_destructed;
 #endif
-	};	
+	};
 }
 
 #endif

@@ -159,9 +159,9 @@ namespace libtorrent
 		void on_receive_impl(std::size_t bytes_transferred);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		virtual int hit_send_barrier(std::vector<asio::mutable_buffer>& iovec) TORRENT_OVERRIDE;
+		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>& iovec) TORRENT_OVERRIDE;
 #endif
-		
+
 		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
 		virtual bool in_handshake() const TORRENT_OVERRIDE;
 		bool packet_finished() const { return m_recv_buffer.packet_finished(); }

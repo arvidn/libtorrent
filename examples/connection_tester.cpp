@@ -257,7 +257,7 @@ struct peer_conn
 		std::memcpy(h + 28, info_hash, 20);
 		std::generate(h + 48, h + 68, &rand);
 		// for seeds, don't send the interested message
-		boost::asio::async_write(s, libtorrent::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
+		boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
 			, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
 	}
 
@@ -271,7 +271,7 @@ struct peer_conn
 		}
 
 		// read handshake
-		boost::asio::async_read(s, libtorrent::asio::buffer((char*)buffer, 68)
+		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 68)
 			, boost::bind(&peer_conn::on_handshake2, this, _1, _2));
 	}
 
@@ -310,7 +310,7 @@ struct peer_conn
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
 			error_code ec;
-			boost::asio::async_write(s, libtorrent::asio::buffer(write_buf_proto, ptr - write_buf_proto)
+			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
 				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 		else
@@ -326,10 +326,9 @@ struct peer_conn
 			write_uint32(1, ptr);
 			write_uint8(1, ptr);
 			error_code ec;
-			boost::asio::async_write(s, libtorrent::asio::buffer((char*)buffer, len + 10)
+			boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
 				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
-	
 	}
 
 	void on_have_all_sent(error_code const& ec, size_t bytes_transferred)
@@ -341,7 +340,7 @@ struct peer_conn
 		}
 
 		// read message
-		boost::asio::async_read(s, asio::buffer((char*)buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
 			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
@@ -391,7 +390,7 @@ struct peer_conn
 		write_uint32(block * 16 * 1024, ptr);
 		write_uint32(16 * 1024, ptr);
 		error_code ec;
-		boost::asio::async_write(s, libtorrent::asio::buffer(m, sizeof(msg) - 1)
+		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
 			, boost::bind(&peer_conn::on_req_sent, this, m, _1, _2));
 
 		++outstanding_requests;
@@ -462,7 +461,7 @@ struct peer_conn
 		}
 
 		// read message
-		boost::asio::async_read(s, asio::buffer((char*)buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
 			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
@@ -488,7 +487,7 @@ struct peer_conn
 			close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 			return;
 		}
-		boost::asio::async_read(s, asio::buffer((char*)buffer, length)
+		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, length)
 			, boost::bind(&peer_conn::on_message, this, _1, _2));
 	}
 
@@ -540,7 +539,7 @@ struct peer_conn
 			else
 			{
 				// read another message
-				boost::asio::async_read(s, asio::buffer(buffer, 4)
+				boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
 					, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
 			}
 		}
@@ -697,9 +696,9 @@ struct peer_conn
 		write_uint8(7, ptr);
 		write_uint32(piece, ptr);
 		write_uint32(start, ptr);
-		boost::array<libtorrent::asio::const_buffer, 2> vec;
-		vec[0] = libtorrent::asio::buffer(write_buf_proto, ptr - write_buf_proto);
-		vec[1] = libtorrent::asio::buffer(write_buffer, length);
+		boost::array<boost::asio::const_buffer, 2> vec;
+		vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
+		vec[1] = boost::asio::buffer(write_buffer, length);
 		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		++blocks_sent;
 		if (churn && (blocks_sent % churn) == 0 && seed) {
@@ -715,7 +714,7 @@ struct peer_conn
 		write_uint32(5, ptr);
 		write_uint8(4, ptr);
 		write_uint32(piece, ptr);
-		boost::asio::async_write(s, asio::buffer(write_buf_proto, 9), boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 };
 

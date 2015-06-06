@@ -5402,15 +5402,15 @@ namespace libtorrent
 
 		if (m_send_barrier == 0)
 		{
-			std::vector<asio::mutable_buffer> vec;
+			std::vector<boost::asio::mutable_buffer> vec;
 			m_send_buffer.build_mutable_iovec(m_send_buffer.size(), vec);
 			int next_barrier = hit_send_barrier(vec);
-			for (std::vector<asio::mutable_buffer>::reverse_iterator i = vec.rbegin();
+			for (std::vector<boost::asio::mutable_buffer>::reverse_iterator i = vec.rbegin();
 				i != vec.rend(); ++i)
 			{
-				m_send_buffer.prepend_buffer(asio::buffer_cast<char*>(*i)
-					, asio::buffer_size(*i)
-					, asio::buffer_size(*i)
+				m_send_buffer.prepend_buffer(boost::asio::buffer_cast<char*>(*i)
+					, boost::asio::buffer_size(*i)
+					, boost::asio::buffer_size(*i)
 					, &nop
 					, NULL);
 			}
@@ -5513,7 +5513,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "ASYNC_WRITE", "bytes: %d", amount_to_send);
 #endif
-		std::vector<asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
+		std::vector<boost::asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("peer_connection::on_send_data");
 #endif
@@ -5546,7 +5546,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
 		boost::shared_ptr<peer_connection> me(self());
-	
+
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "DISK", "dropped below disk buffer watermark");
 #endif
@@ -5617,19 +5617,19 @@ namespace libtorrent
 
 		if (m_quota[download_channel] == 0)
 		{
-			ec = asio::error::would_block;
+			ec = boost::asio::error::would_block;
 			return 0;
 		}
-		
+
 		if (!can_read())
 		{
-			ec = asio::error::would_block;
+			ec = boost::asio::error::would_block;
 			return 0;
 		}
 
 		int max_receive = m_recv_buffer.max_receive();
 
-		boost::array<asio::mutable_buffer, 2> vec;
+		boost::array<boost::asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
 		// only apply the contiguous receive buffer when we don't have any
 		// outstanding requests. When we're likely to receive pieces, we'll
@@ -5639,7 +5639,7 @@ namespace libtorrent
 		{
 			if (s == read_sync)
 			{
-				ec = asio::error::would_block;
+				ec = boost::asio::error::would_block;
 				return 0;
 			}
 
@@ -5652,7 +5652,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("peer_connection::on_receive_data_nb");
 #endif
-			m_socket->async_read_some(asio::null_buffers(), make_read_handler(
+			m_socket->async_read_some(boost::asio::null_buffers(), make_read_handler(
 				boost::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
 			return 0;
 		}
@@ -5665,7 +5665,7 @@ namespace libtorrent
 
 		if (max_receive == 0)
 		{
-			ec = asio::error::would_block;
+			ec = boost::asio::error::would_block;
 			return 0;
 		}
 
@@ -5690,7 +5690,7 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					m_socket->async_read_some(
-						asio::mutable_buffers_1(vec[0]), make_read_handler(
+						boost::asio::mutable_buffers_1(vec[0]), make_read_handler(
 							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 				}
 				else
@@ -5710,8 +5710,8 @@ namespace libtorrent
 				if (num_bufs == 1)
 				{
 					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-					j.recv_buf = asio::buffer_cast<char*>(vec[0]);
-					j.buf_size = asio::buffer_size(vec[0]);
+					j.recv_buf = boost::asio::buffer_cast<char*>(vec[0]);
+					j.buf_size = boost::asio::buffer_size(vec[0]);
 				}
 				else
 				{
@@ -5727,14 +5727,14 @@ namespace libtorrent
 		size_t ret = 0;
 		if (num_bufs == 1)
 		{
-			ret = m_socket->read_some(asio::mutable_buffers_1(vec[0]), ec);
+			ret = m_socket->read_some(boost::asio::mutable_buffers_1(vec[0]), ec);
 		}
 		else
 		{
 			ret = m_socket->read_some(vec, ec);
 		}
 		// this is weird. You would imagine read_some() would do this
-		if (ret == 0 && !ec) ec = asio::error::eof;
+		if (ret == 0 && !ec) ec = boost::asio::error::eof;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming, "SYNC_READ", "max: %d ret: %d e: %s"
@@ -5904,13 +5904,13 @@ namespace libtorrent
 
 		if (buffer_size > 2097152) buffer_size = 2097152;
 
-		asio::mutable_buffer buffer = m_recv_buffer.reserve(buffer_size);
+		boost::asio::mutable_buffer buffer = m_recv_buffer.reserve(buffer_size);
 		TORRENT_ASSERT(m_recv_buffer.normalized());
 
 		// utp sockets aren't thread safe...
 		if (is_utp(*m_socket))
 		{
-			bytes_transferred = m_socket->read_some(asio::mutable_buffers_1(buffer), ec);
+			bytes_transferred = m_socket->read_some(boost::asio::mutable_buffers_1(buffer), ec);
 
 			if (ec)
 			{
@@ -5934,8 +5934,8 @@ namespace libtorrent
 #endif
 			socket_job j;
 			j.type = socket_job::read_job;
-			j.recv_buf = asio::buffer_cast<char*>(buffer);
-			j.buf_size = asio::buffer_size(buffer);
+			j.recv_buf = boost::asio::buffer_cast<char*>(buffer);
+			j.buf_size = boost::asio::buffer_size(buffer);
 			j.peer = self();
 			m_ses.post_socket_job(j);
 			return;
@@ -6086,7 +6086,7 @@ namespace libtorrent
 			error_code ec;
 			bytes_transferred = try_read(read_sync, ec);
 			TORRENT_ASSERT(bytes_transferred > 0 || ec);
-			if (ec == asio::error::would_block || ec == asio::error::try_again) break;
+			if (ec == boost::asio::error::would_block || ec == boost::asio::error::try_again) break;
 			if (ec)
 			{
 				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());

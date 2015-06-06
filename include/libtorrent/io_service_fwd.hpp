@@ -47,26 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef Protocol
 #endif
 
-#if BOOST_VERSION >= 103500
-namespace boost {
-#endif
-namespace asio {
-
-class io_service;
-
-}
-#if BOOST_VERSION >= 103500
-}
-#endif
+namespace boost { namespace asio {
+	class io_service;
+}}
 
 namespace libtorrent
 {
-
-#if BOOST_VERSION < 103500
-	typedef ::asio::io_service io_service;
-#else
 	typedef boost::asio::io_service io_service;
-#endif
 }
 
 #endif

@@ -47,33 +47,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#if BOOST_VERSION < 103500
-#include <asio/ip/address.hpp>
-#else
 #include <boost/asio/ip/address.hpp>
-#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifdef __OBJC__ 
+#ifdef __OBJC__
 #undef Protocol
 #endif
 
 namespace libtorrent
 {
 
-#if BOOST_VERSION < 103500
-	typedef ::asio::ip::address address;
-	typedef ::asio::ip::address_v4 address_v4;
-#if TORRENT_USE_IPV6
-	typedef ::asio::ip::address_v6 address_v6;
-#endif
-#else
 	typedef boost::asio::ip::address address;
 	typedef boost::asio::ip::address_v4 address_v4;
 #if TORRENT_USE_IPV6
 	typedef boost::asio::ip::address_v6 address_v6;
-#endif
 #endif
 }
 

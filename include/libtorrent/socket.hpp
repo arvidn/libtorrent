@@ -50,17 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
-#if BOOST_VERSION < 103500
-#include <asio/ip/tcp.hpp>
-#include <asio/ip/udp.hpp>
-#include <asio/write.hpp>
-#include <asio/read.hpp>
-#else
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
-#endif
 
 #ifdef __OBJC__
 #undef Protocol
@@ -71,16 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#if BOOST_VERSION < 103500
-	using ::asio::ip::tcp;
-	using ::asio::ip::udp;
-	using ::asio::async_write;
-	using ::asio::async_read;
-
-	typedef ::asio::ip::tcp::socket stream_socket;
-	typedef ::asio::ip::udp::socket datagram_socket;
-	typedef ::asio::ip::tcp::acceptor socket_acceptor;
-#else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
@@ -89,7 +72,6 @@ namespace libtorrent
 	typedef boost::asio::ip::tcp::socket stream_socket;
 	typedef boost::asio::ip::udp::socket datagram_socket;
 	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
-#endif
 
 #if TORRENT_USE_IPV6
 #ifdef IPV6_V6ONLY

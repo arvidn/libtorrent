@@ -35,11 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <libtorrent/kademlia/node_id.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/ip/udp.hpp>
-#else
 #include <boost/asio/ip/udp.hpp>
-#endif
 
 namespace libtorrent {
 

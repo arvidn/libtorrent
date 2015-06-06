@@ -43,11 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/function/function1.hpp>
 #include <boost/bind.hpp>
-#if BOOST_VERSION < 103500
-#include <asio/ssl.hpp>
-#else
 #include <boost/asio/ssl.hpp>
-#endif
+
 // openssl seems to believe it owns
 // this name in every single scope
 #undef set_key
