@@ -55,13 +55,9 @@ const int mask = alert::all_categories & ~(alert::performance_warning | alert::s
 
 int peer_disconnects = 0;
 
-int tracker_responses = 0;
-
 bool on_alert(alert const* a)
 {
-	if (alert_cast<tracker_reply_alert>(a))
-		++tracker_responses;
-	else if (alert_cast<peer_disconnected_alert>(a))
+	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
 	else if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
@@ -69,22 +65,23 @@ bool on_alert(alert const* a)
 	return false;
 }
 
-int udp_tracker_port;
-int tracker_port;
-
 // these are declared before the session objects
 // so that they are destructed last. This enables
 // the sessions to destruct in parallel
 std::vector<session_proxy> sp;
 
+void cleanup()
+{
+	error_code ec;
+	remove_all("tmp1_priorities", ec);
+	remove_all("tmp2_priorities", ec);
+	remove_all("tmp1_priorities_moved", ec);
+	remove_all("tmp2_priorities_moved", ec);
+}
+
 void test_transfer(settings_pack const& sett)
 {
-	// in case the previous run was terminated
-	error_code ec;
-	remove_all("tmp1_priority", ec);
-	remove_all("tmp2_priority", ec);
-	remove_all("tmp1_priority_moved", ec);
-	remove_all("tmp2_priority_moved", ec);
+	cleanup();
 
 	settings_pack pack = sett;
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
@@ -123,17 +120,11 @@ void test_transfer(settings_pack const& sett)
 	torrent_handle tor1;
 	torrent_handle tor2;
 
+	error_code ec;
 	create_directory("tmp1_priority", ec);
 	std::ofstream file("tmp1_priority/temporary");
 	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
 	file.close();
-
-	char tracker_url[200];
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", tracker_port);
-	t->add_tracker(tracker_url);
-
-	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_tracker_port);
-	t->add_tracker(tracker_url);
 
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
@@ -156,8 +147,6 @@ void test_transfer(settings_pack const& sett)
 	std::cerr << "setting priorities: ";
 	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
 	std::cerr << std::endl;
-
-	tracker_responses = 0;
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -195,9 +184,6 @@ void test_transfer(settings_pack const& sett)
 
 		test_sleep(100);
 	}
-
-	// 1 announce per tracker to start
-	TEST_CHECK(tracker_responses >= 2);
 
 	TEST_CHECK(!tor2.status().is_seeding);
 	TEST_CHECK(tor2.status().is_finished);
@@ -254,11 +240,6 @@ void test_transfer(settings_pack const& sett)
 	tor2.pause();
 	wait_for_alert(ses2, torrent_paused_alert::alert_type, "ses2");
 
-	std::vector<announce_entry> tr = tor2.trackers();
-	tr.push_back(announce_entry("http://test.com/announce"));
-	tor2.replace_trackers(tr);
-	tr.clear();
-
 	fprintf(stderr, "save resume data\n");
 	tor2.save_resume_data();
 
@@ -293,7 +274,7 @@ void test_transfer(settings_pack const& sett)
 		}
 	}
 done:
-	TEST_CHECK(resume_data.size());	
+	TEST_CHECK(resume_data.size());
 
 	if (resume_data.empty())
 		return;
@@ -317,10 +298,6 @@ done:
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
 	tor2.resume();
-
-	tr = tor2.trackers();
-	TEST_CHECK(std::find_if(tr.begin(), tr.end()
-		, boost::bind(&announce_entry::url, _1) == "http://test.com/announce") != tr.end());
 
 	// wait for torrent 2 to settle in back to finished state (it will
 	// start as checking)
@@ -402,33 +379,9 @@ done:
 TORRENT_TEST(priority)
 {
 	using namespace libtorrent;
-
-	udp_tracker_port = start_udp_tracker();
-	tracker_port = start_web_server();
-
-	// test with all kinds of proxies
 	settings_pack p;
-
-	// test no contiguous_recv_buffers
-	p = settings_pack();
-	p.set_bool(settings_pack::contiguous_recv_buffer, false);
 	test_transfer(p);
-
-	p.set_bool(settings_pack::lazy_bitfields, true);
-	test_transfer(p);
-
-	error_code ec;
-	remove_all("tmp1_priorities", ec);
-	remove_all("tmp2_priorities", ec);
-	remove_all("tmp1_priorities_moved", ec);
-	remove_all("tmp2_priorities_moved", ec);
-
-	stop_udp_tracker();
-	stop_web_server();
-
-	// we have to clear them, session doesn't really support being destructed
-	// as a global destructor (for silly reasons)
-	sp.clear();
+	cleanup();
 }
 
 
