@@ -32,16 +32,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "swarm_suite.hpp"
 
-TORRENT_TEST(swarm)
+TORRENT_TEST(seed_mode)
 {
 	// with seed mode
 	test_swarm(seed_mode);
+}
 
+TORRENT_TEST(plain)
+{
 	test_swarm();
+}
 
+TORRENT_TEST(suggest)
+{
 	// with suggest pieces
 	test_swarm(suggest);
+}
 
+TORRENT_TEST(explicit_cache)
+{
 	// test explicit cache
 	test_swarm(suggest | explicit_cache);
 }

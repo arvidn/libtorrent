@@ -535,7 +535,7 @@ int start_proxy(int proxy_type)
 	fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	fprintf(stderr, "%s\n", buf);
 	pid_type r = async_run(buf);
-	if (r == 0) exit(1);
+	if (r == 0) abort();
 	proxy_t t = { r, proxy_type };
 	running_proxies.insert(std::make_pair(port, t));
 	fprintf(stderr, "%s launched\n", time_now_string());
@@ -862,7 +862,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 
 	fprintf(stderr, "%s\n", buf);
 	pid_type r = async_run(buf);
-	if (r == 0) exit(1);
+	if (r == 0) abort();
 	web_server_pid = r;
 	fprintf(stderr, "%s launched\n", time_now_string());
 	test_sleep(500);

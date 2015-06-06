@@ -168,7 +168,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		settings_pack pack;
 		pack.set_str(settings_pack::proxy_username, "testuser");
 		pack.set_str(settings_pack::proxy_password, "testpass");
-		pack.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy_type);
+		pack.set_int(settings_pack::proxy_type, proxy_type);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
 
 		// test resetting the proxy in quick succession.
@@ -346,45 +346,115 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	if (proxy_type) stop_proxy(proxy_port);
 }
 
-TORRENT_TEST(transfer)
+void cleanup()
 {
-	using namespace libtorrent;
-
-	settings_pack p;
-
-	// test no contiguous_recv_buffers
-	p = settings_pack();
-	p.set_bool(settings_pack::contiguous_recv_buffer, false);
-	test_transfer(0, p);
-
-	// test with all kinds of proxies
-	p = settings_pack();
-	for (int i = 0; i < 6; ++i)
-		test_transfer(i, p);
-
-	// test with a (simulated) full disk
-	test_transfer(0, p, true);
-
-	// test allowed fast
-	p = settings_pack();
-	p.set_int(settings_pack::allowed_fast_set_size, 2000);
-	test_transfer(0, p, false);
-
-	test_transfer(0, p, false);
-
-	// test storage_mode_allocate
-	fprintf(stderr, "full allocation mode\n");
-	test_transfer(0, p, false, storage_mode_allocate);
-
-#ifndef TORRENT_NO_DEPRECATE
-	fprintf(stderr, "compact mode\n");
-	test_transfer(0, p, false, storage_mode_compact);
-#endif
-
 	error_code ec;
 	remove_all("tmp1_transfer", ec);
 	remove_all("tmp2_transfer", ec);
 	remove_all("tmp1_transfer_moved", ec);
 	remove_all("tmp2_transfer_moved", ec);
 }
+
+TORRENT_TEST(no_contiguous_buffers)
+{
+	using namespace libtorrent;
+
+	// test no contiguous_recv_buffers
+	settings_pack p;
+	p.set_bool(settings_pack::contiguous_recv_buffer, false);
+	test_transfer(0, p);
+
+	cleanup();
+}
+
+	// test with all kinds of proxies
+TORRENT_TEST(no_proxy)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::none, settings_pack());
+	cleanup();
+}
+
+TORRENT_TEST(socks4)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::socks4, settings_pack());
+	cleanup();
+}
+
+TORRENT_TEST(socks5)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::socks5, settings_pack());
+	cleanup();
+}
+
+TORRENT_TEST(socks5_pw)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::socks5_pw, settings_pack());
+	cleanup();
+}
+
+TORRENT_TEST(http)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::http, settings_pack());
+	cleanup();
+}
+
+TORRENT_TEST(http_pw)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::http_pw, settings_pack());
+	cleanup();
+}
+/*
+TORRENT_TEST(i2p)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::i2p_proxy, settings_pack());
+	cleanup();
+}
+*/
+TORRENT_TEST(disk_full)
+{
+	using namespace libtorrent;
+	// test with a (simulated) full disk
+	test_transfer(0, settings_pack(), true);
+
+	cleanup();
+}
+
+TORRENT_TEST(allow_fast)
+{
+	using namespace libtorrent;
+	// test allowed fast
+	settings_pack p;
+	p.set_int(settings_pack::allowed_fast_set_size, 2000);
+	test_transfer(0, p, false);
+
+	cleanup();
+}
+
+TORRENT_TEST(allocate)
+{
+	using namespace libtorrent;
+	// test storage_mode_allocate
+	fprintf(stderr, "full allocation mode\n");
+	test_transfer(0, settings_pack(), false, storage_mode_allocate);
+
+	cleanup();
+}
+
+#ifndef TORRENT_NO_DEPRECATE
+TORRENT_TEST(compact)
+{
+	using namespace libtorrent;
+	fprintf(stderr, "compact mode\n");
+	test_transfer(0, settings_pack(), false, storage_mode_compact);
+
+	cleanup();
+}
+#endif
 
