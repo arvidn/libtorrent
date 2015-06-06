@@ -152,7 +152,6 @@ test-suite libtorrent :
 	[ run test_stat_cache.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_privacy.cpp ]
-	[ run test_priority.cpp ]
 	[ run test_recheck.cpp ]
 	[ run test_resume.cpp ]
 	[ run test_ssl.cpp ]
@@ -183,5 +182,8 @@ test-suite libtorrent :
 	[ run test_swarm.cpp ]
 	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]
+
+# make this test more reliable
+#	[ run test_priority.cpp ]
 	;
 
