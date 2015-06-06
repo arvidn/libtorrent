@@ -965,7 +965,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->address() == remote.address());
 		p->port = remote.port();
 		p->source |= src;
-			
+
 		// if this peer has failed before, decrease the
 		// counter to allow it another try, since somebody
 		// else is appearantly able to connect to it
@@ -1013,7 +1013,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
-	
+
 		bool found = false;
 		iterator iter = std::lower_bound(
 			m_peers.begin(), m_peers.end()
@@ -1207,7 +1207,7 @@ namespace libtorrent
 				, match_peer_connection(c))
 				!= m_peers.end());
 #endif
-		
+
 		TORRENT_ASSERT(p->connection == &c);
 		TORRENT_ASSERT(!is_connect_candidate(*p));
 

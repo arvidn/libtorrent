@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/socket_io.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -75,7 +76,7 @@ struct mock_peer_connection : peer_connection_interface
 	virtual void peer_log(peer_log_alert::direction_t dir, char const* event
 		, char const* fmt, ...) const
 	{
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
 		vprintf(fmt, v);
 		va_end(v);
@@ -513,13 +514,15 @@ TORRENT_TEST(erase_peers)
 	for (int i = 0; i < 100; ++i)
 	{
 		TEST_EQUAL(st.erased.size(), 0);
-		torrent_peer* peer = add_peer(p, st, rand_tcp_ep());
+		tcp::endpoint ep = rand_tcp_ep();
+		torrent_peer* peer = add_peer(p, st, ep);
 		TEST_CHECK(peer);
 		if (peer == NULL || st.erased.size() > 0)
 		{
-			fprintf(stderr, "unexpected rejection of peer: %d in list. "
+			fprintf(stderr, "unexpected rejection of peer: %s | %d in list. "
 				"added peer %p, erased %d peers\n"
-				, p.num_peers(), peer, int(st.erased.size()));
+				, print_endpoint(ep).c_str(), p.num_peers(), peer
+				, int(st.erased.size()));
 		}
 	}
 	TEST_EQUAL(p.num_peers(), 100);
@@ -862,7 +865,7 @@ TORRENT_TEST(incoming_size_limit)
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
 	t.m_p = &p;
-	
+
 	torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 8080));
 	TEST_CHECK(peer1);
 	TEST_EQUAL(p.num_peers(), 1);
@@ -908,7 +911,7 @@ TORRENT_TEST(new_peer_size_limit)
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
 	t.m_p = &p;
-	
+
 	torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 8080));
 	TEST_CHECK(peer1);
 	TEST_EQUAL(p.num_peers(), 1);

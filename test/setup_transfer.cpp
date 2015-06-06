@@ -77,9 +77,13 @@ namespace lt = libtorrent;
 #include <conio.h>
 #endif
 
+boost::uint32_t g_addr = 0x92343023;
 address rand_v4()
 {
-	return address_v4(((boost::uint32_t(rand()) << 16) | rand()) & 0xffffffff);
+	do {
+		g_addr += 0x3080ca;
+	} while (g_addr == 0);
+	return address_v4(g_addr);
 }
 
 #if TORRENT_USE_IPV6
@@ -91,14 +95,19 @@ address rand_v6()
 }
 #endif
 
+static boost::uint16_t g_port = 0;
+
 tcp::endpoint rand_tcp_ep()
 {
-	return tcp::endpoint(rand_v4(), rand() + 1024);
+	// make sure we don't procude the same "random" port twice
+	g_port = (g_port + 1) % 14038;
+	return tcp::endpoint(rand_v4(), g_port + 1024);
 }
 
 udp::endpoint rand_udp_ep()
 {
-	return udp::endpoint(rand_v4(), rand() + 1024);
+	g_port = (g_port + 1) % 14037;
+	return udp::endpoint(rand_v4(), g_port + 1024);
 }
 
 std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
