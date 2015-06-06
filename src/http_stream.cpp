@@ -77,7 +77,7 @@ namespace libtorrent
 				m_user + ":" + m_password) + "\r\n", p);
 		}
 		write_string("\r\n", p);
-		async_write(m_sock, asio::buffer(m_buffer)
+		async_write(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&http_stream::handshake1, this, _1, h));
 	}
 
@@ -87,7 +87,7 @@ namespace libtorrent
 
 		// read one byte from the socket
 		m_buffer.resize(1);
-		async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&http_stream::handshake2, this, _1, h));
 	}
 
@@ -120,7 +120,7 @@ namespace libtorrent
 			char* status = std::strchr(&m_buffer[0], ' ');
 			if (status == 0)
 			{
-				(*h)(asio::error::operation_not_supported);
+				(*h)(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
@@ -130,7 +130,7 @@ namespace libtorrent
 			int code = std::atoi(status);
 			if (code != 200)
 			{
-				(*h)(asio::error::operation_not_supported);
+				(*h)(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
@@ -143,7 +143,7 @@ namespace libtorrent
 
 		// read another byte from the socket
 		m_buffer.resize(read_pos + 1);
-		async_read(m_sock, asio::buffer(&m_buffer[0] + read_pos, 1)
+		async_read(m_sock, boost::asio::buffer(&m_buffer[0] + read_pos, 1)
 			, boost::bind(&http_stream::handshake2, this, _1, h));
 	}
 

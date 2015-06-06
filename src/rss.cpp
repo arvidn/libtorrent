@@ -344,7 +344,7 @@ void feed::on_feed(error_code const& ec
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-	if (ec && ec != asio::error::eof)
+	if (ec && ec != boost::asio::error::eof)
 	{
 		++m_failures;
 		m_error = ec;

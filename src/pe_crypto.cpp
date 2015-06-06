@@ -137,7 +137,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	int encryption_handler::encrypt(std::vector<asio::mutable_buffer>& iovec)
+	int encryption_handler::encrypt(std::vector<boost::asio::mutable_buffer>& iovec)
 	{
 		TORRENT_ASSERT(!m_send_barriers.empty());
 		TORRENT_ASSERT(m_send_barriers.front().enc_handler);
@@ -146,7 +146,7 @@ namespace libtorrent
 
 		if (to_process != INT_MAX)
 		{
-			for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+			for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 				to_process >= 0; ++i)
 			{
 				if (to_process == 0)
@@ -154,23 +154,23 @@ namespace libtorrent
 					iovec.erase(i, iovec.end());
 					break;
 				}
-				else if (to_process < asio::buffer_size(*i))
+				else if (to_process < boost::asio::buffer_size(*i))
 				{
-					*i = asio::mutable_buffer(asio::buffer_cast<void*>(*i), to_process);
+					*i = boost::asio::mutable_buffer(boost::asio::buffer_cast<void*>(*i), to_process);
 					iovec.erase(++i, iovec.end());
 					to_process = 0;
 					break;
 				}
-				to_process -= asio::buffer_size(*i);
+				to_process -= boost::asio::buffer_size(*i);
 			}
 			TORRENT_ASSERT(to_process == 0);
 		}
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		to_process = 0;
-		for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+		for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 			i != iovec.end(); ++i)
-			to_process += asio::buffer_size(*i);
+			to_process += boost::asio::buffer_size(*i);
 #endif
 
 		int next_barrier = 0;
@@ -188,9 +188,9 @@ namespace libtorrent
 			if (next_barrier != INT_MAX)
 			{
 				int overhead = 0;
-				for (std::vector<asio::mutable_buffer>::iterator i = iovec.begin();
+				for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 					i != iovec.end(); ++i)
-					overhead += asio::buffer_size(*i);
+					overhead += boost::asio::buffer_size(*i);
 				TORRENT_ASSERT(overhead + to_process == next_barrier);
 			}
 #endif
@@ -208,7 +208,7 @@ namespace libtorrent
 		int consume = 0;
 		if (recv_buffer.crypto_packet_finished())
 		{
-			std::vector<asio::mutable_buffer> wr_buf;
+			std::vector<boost::asio::mutable_buffer> wr_buf;
 			recv_buffer.mutable_buffers(wr_buf, bytes_transferred);
 			int packet_size = 0;
 			int produce = bytes_transferred;
@@ -255,7 +255,7 @@ namespace libtorrent
 		{
 			int consume = 0;
 			int produce = 0;
-			std::vector<asio::mutable_buffer> wr_buf;
+			std::vector<boost::asio::mutable_buffer> wr_buf;
 			crypto->decrypt(wr_buf, consume, produce, packet_size);
 			TORRENT_ASSERT(wr_buf.empty());
 			TORRENT_ASSERT(consume == 0);

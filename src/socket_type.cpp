@@ -96,7 +96,7 @@ namespace libtorrent
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 		s.get<ssl_stream<t> >()->set_verify_callback( \
-			asio::ssl::rfc2818_verification(hostname), ec); \
+			boost::asio::ssl::rfc2818_verification(hostname), ec); \
 		ctx = SSL_get_SSL_CTX(s.get<ssl_stream<t> >()->native_handle()); \
 		break;
 

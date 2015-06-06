@@ -57,7 +57,7 @@ namespace libtorrent
 			h(ec, empty);
 			return;
 		}
-	
+
 		dns_cache_entry& ce = m_cache[hostname];
 		time_point now = aux::time_now();
 		ce.last_seen = now;
@@ -86,7 +86,6 @@ namespace libtorrent
 			m_cache.erase(oldest);
 		}
 	}
-	
 
 	void resolver::async_resolve(std::string const& host, int flags
 		, resolver_interface::callback_t const& h)
@@ -103,7 +102,7 @@ namespace libtorrent
 				return;
 			}
 		}
-	
+
 		// the port is ignored
 		tcp::resolver::query q(host, "80");
 

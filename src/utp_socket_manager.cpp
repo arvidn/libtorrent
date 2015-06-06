@@ -171,7 +171,7 @@ namespace libtorrent
 #endif
 		if (!m_sock.is_open())
 		{
-			ec = asio::error::operation_aborted;
+			ec = boost::asio::error::operation_aborted;
 			return;
 		}
 

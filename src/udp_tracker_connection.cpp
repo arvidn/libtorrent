@@ -181,7 +181,7 @@ namespace libtorrent
 		complete_async("udp_tracker_connection::name_lookup");
 #endif
 		if (m_abort) return;
-		if (error == asio::error::operation_aborted) return;
+		if (error == boost::asio::error::operation_aborted) return;
 		if (error || addresses.empty())
 		{
 			fail(error);
@@ -199,7 +199,7 @@ namespace libtorrent
 		}
 
 		restart_read_timeout();
-		
+
 		// look for an address that has the same kind as the one
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.

@@ -77,8 +77,8 @@ int read_message(stream_socket& s, char* buffer, int max_size)
 {
 	using namespace libtorrent::detail;
 	error_code ec;
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 4)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::read(s, boost::asio::buffer(buffer, 4)
+		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
 		if (ec) TEST_ERROR(ec.message());
@@ -93,8 +93,8 @@ int read_message(stream_socket& s, char* buffer, int max_size)
 		return -1;
 	}
 
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, length)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::read(s, boost::asio::buffer(buffer, length)
+		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
 		if (ec) TEST_ERROR(ec.message());
@@ -159,8 +159,8 @@ void send_allow_fast(stream_socket& s, int piece)
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 9)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -172,8 +172,8 @@ void send_suggest_piece(stream_socket& s, int piece)
 	char* ptr = msg + 5;
 	write_int32(piece, ptr);
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 9)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 9)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -182,8 +182,8 @@ void send_keepalive(stream_socket& s)
 	log("==> keepalive");
 	char msg[] = "\0\0\0\0";
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 4)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 4)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -192,8 +192,8 @@ void send_unchoke(stream_socket& s)
 	log("==> unchoke");
 	char msg[] = "\0\0\0\x01\x01";
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 5)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -202,8 +202,8 @@ void send_have_all(stream_socket& s)
 	log("==> have_all");
 	char msg[] = "\0\0\0\x01\x0e"; // have_all
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 5)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -212,8 +212,8 @@ void send_have_none(stream_socket& s)
 	log("==> have_none");
 	char msg[] = "\0\0\0\x01\x0f"; // have_none
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, 5)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, 5)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -234,8 +234,8 @@ void send_bitfield(stream_socket& s, char const* bits)
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
 	}
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(msg, packet_size)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(msg, packet_size)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -247,8 +247,8 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	log("==> handshake");
 	error_code ec;
 	std::memcpy(handshake + 28, ih.begin(), 20);
-	libtorrent::asio::write(s, libtorrent::asio::buffer(handshake, sizeof(handshake) - 1)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(handshake, sizeof(handshake) - 1)
+		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
 		TEST_ERROR(ec.message());
@@ -256,8 +256,8 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	}
 
 	// read handshake
-	libtorrent::asio::read(s, libtorrent::asio::buffer(buffer, 68)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::read(s, boost::asio::buffer(buffer, 68)
+		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
 		TEST_ERROR(ec.message());
@@ -271,17 +271,17 @@ void do_handshake(stream_socket& s, sha1_hash const& ih, char* buffer)
 	char* extensions = buffer + 20;
 	// check for fast extension support
 	TEST_CHECK(extensions[7] & 0x4);
-	
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	// check for extension protocol support
 	TEST_CHECK(extensions[5] & 0x10);
 #endif
-	
+
 #ifndef TORRENT_DISABLE_DHT
 	// check for DHT support
 	TEST_CHECK(extensions[7] & 0x1);
 #endif
-	
+
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
 }
 
@@ -305,8 +305,8 @@ void send_extension_handshake(stream_socket& s, entry const& e)
 	write_uint8(0, ptr);
 
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(&buf[0], buf.size())
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(&buf[0], buf.size())
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -357,8 +357,8 @@ void send_ut_metadata_msg(stream_socket& s, int ut_metadata_msg, int type, int p
 	log("==> ut_metadata [ type: %d piece: %d ]", type, piece);
 
 	error_code ec;
-	libtorrent::asio::write(s, libtorrent::asio::buffer(&buf[0], buf.size())
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(&buf[0], buf.size())
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
 
@@ -467,15 +467,15 @@ void test_reject_fast()
 		recv_buffer[0] = 0x10;
 		error_code ec;
 		log("==> reject");
-		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
-			, libtorrent::asio::transfer_all(), ec);
+		boost::asio::write(s, boost::asio::buffer("\0\0\0\x0d", 4)
+			, boost::asio::transfer_all(), ec);
 		if (ec)
 		{
 			TEST_ERROR(ec.message());
 			break;
 		}
-		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
-			, libtorrent::asio::transfer_all(), ec);
+		boost::asio::write(s, boost::asio::buffer(recv_buffer, 13)
+			, boost::asio::transfer_all(), ec);
 		if (ec)
 		{
 			TEST_ERROR(ec.message());
@@ -503,7 +503,7 @@ void test_respect_suggest()
 	print_session_log(*ses);
 	send_have_all(s);
 	print_session_log(*ses);
-	
+
 	std::vector<int> suggested;
 	suggested.push_back(0);
 	suggested.push_back(1);
@@ -520,7 +520,7 @@ void test_respect_suggest()
 	send_keepalive(s);
 	print_session_log(*ses);
 
-	int fail_counter = 100;	
+	int fail_counter = 100;
 	while (!suggested.empty() && fail_counter > 0)
 	{
 		print_session_log(*ses);
@@ -543,15 +543,15 @@ void test_respect_suggest()
 		recv_buffer[0] = 0x10;
 		error_code ec;
 		log("==> reject");
-		libtorrent::asio::write(s, libtorrent::asio::buffer("\0\0\0\x0d", 4)
-			, libtorrent::asio::transfer_all(), ec);
+		boost::asio::write(s, boost::asio::buffer("\0\0\0\x0d", 4)
+			, boost::asio::transfer_all(), ec);
 		if (ec)
 		{
 			TEST_ERROR(ec.message());
 			break;
 		}
-		libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 13)
-			, libtorrent::asio::transfer_all(), ec);
+		boost::asio::write(s, boost::asio::buffer(recv_buffer, 13)
+			, boost::asio::transfer_all(), ec);
 		if (ec)
 		{
 			TEST_ERROR(ec.message());
@@ -594,7 +594,7 @@ void test_multiple_bitfields()
 	bitfield[2] = '1';
 	send_bitfield(s, bitfield.c_str());
 	print_session_log(*ses);
-	
+
 	s.close();
 	test_sleep(500);
 	print_session_log(*ses);
@@ -623,7 +623,7 @@ void test_multiple_have_all()
 	print_session_log(*ses);
 	send_have_all(s);
 	print_session_log(*ses);
-	
+
 	s.close();
 	print_session_log(*ses);
 	test_sleep(500);
@@ -685,7 +685,7 @@ void test_dont_have()
 				, ec.message().c_str(), pos);
 		}
 		TEST_EQUAL(ret, 0);
-		
+
 		log("extension handshake: %s", print_entry(e).c_str());
 		bdecode_node m = e.dict_find_dict("m");
 		TEST_CHECK(m);
@@ -704,8 +704,8 @@ void test_dont_have()
 	write_uint8(lt_dont_have, ptr);
 	write_uint32(3, ptr);
 
-	libtorrent::asio::write(s, libtorrent::asio::buffer(recv_buffer, 10)
-		, libtorrent::asio::transfer_all(), ec);
+	boost::asio::write(s, boost::asio::buffer(recv_buffer, 10)
+		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 
 	print_session_log(*ses);

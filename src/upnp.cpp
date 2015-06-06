@@ -940,7 +940,7 @@ void upnp::on_upnp_xml(error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e && e != asio::error::eof)
+	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
 		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
@@ -1249,7 +1249,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 
 	if (m_closing) return;
 
-	if (e && e != asio::error::eof)
+	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
 		snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
@@ -1327,7 +1327,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e && e != asio::error::eof)
+	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
 		snprintf(msg, sizeof(msg), "error while adding port map: %s"
@@ -1495,7 +1495,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 		d.upnp_connection.reset();
 	}
 
-	if (e && e != asio::error::eof)
+	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
 		snprintf(msg, sizeof(msg), "error while deleting portmap: %s"

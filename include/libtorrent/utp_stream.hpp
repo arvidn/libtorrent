@@ -179,7 +179,7 @@ public:
 	typedef stream_socket::endpoint_type endpoint_type;
 	typedef stream_socket::protocol_type protocol_type;
 
-	explicit utp_stream(asio::io_service& io_service);
+	explicit utp_stream(io_service& io_service);
 	~utp_stream();
 
 	lowest_layer_type& lowest_layer() { return *this; }
@@ -221,7 +221,7 @@ public:
 
 	error_code cancel(error_code&)
 	{
-		cancel_handlers(asio::error::operation_aborted);
+		cancel_handlers(boost::asio::error::operation_aborted);
 		return error_code();
 	}
 
@@ -246,7 +246,7 @@ public:
 	void add_write_buffer(void const* buf, size_t len);
 	void issue_write();
 	size_t read_some(bool clear_buffers);
-	
+
 	int send_delay() const;
 	int recv_delay() const;
 
@@ -271,20 +271,20 @@ public:
 	std::size_t available() const;
 	std::size_t available(error_code& /*ec*/) const { return available(); }
 
-	asio::io_service& get_io_service() { return m_io_service; }
+	io_service& get_io_service() { return m_io_service; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
 	{
 		if (!endpoint.address().is_v4())
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
@@ -297,14 +297,14 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 		int bytes_added = 0;
@@ -312,8 +312,8 @@ public:
 			, end(buffers.end()); i != end; ++i)
 		{
 			if (buffer_size(*i) == 0) continue;
-			using asio::buffer_cast;
-			using asio::buffer_size;
+			using boost::asio::buffer_cast;
+			using boost::asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
 			bytes_added += buffer_size(*i);
 		}
@@ -334,7 +334,7 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, asio::error::not_connected, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
@@ -342,7 +342,7 @@ public:
 		if (m_read_handler)
 		{
 			TORRENT_ASSERT(false); // we should never do this!
-			m_io_service.post(boost::bind<void>(handler, asio::error::operation_not_supported, 0));
+			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 		m_read_handler = handler;
@@ -366,13 +366,13 @@ public:
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_impl == 0)
 		{
-			ec = asio::error::not_connected;
+			ec = boost::asio::error::not_connected;
 			return 0;
 		}
 
 		if (read_buffer_size() == 0)
 		{
-			ec = asio::error::would_block;
+			ec = boost::asio::error::would_block;
 			return 0;
 		}
 #if TORRENT_USE_ASSERTS
@@ -382,8 +382,8 @@ public:
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
-			using asio::buffer_cast;
-			using asio::buffer_size;
+			using boost::asio::buffer_cast;
+			using boost::asio::buffer_size;
 			add_read_buffer(buffer_cast<void*>(*i), buffer_size(*i));
 #if TORRENT_USE_ASSERTS
 			buf_size += buffer_size(*i);
@@ -431,7 +431,7 @@ public:
 		if (m_impl == 0)
 		{
 			m_io_service.post(boost::bind<void>(handler
-				, asio::error::not_connected, 0));
+				, boost::asio::error::not_connected, 0));
 			return;
 		}
 
@@ -439,7 +439,7 @@ public:
 		if (m_write_handler)
 		{
 			m_io_service.post(boost::bind<void>(handler
-				, asio::error::operation_not_supported, 0));
+				, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 
@@ -448,8 +448,8 @@ public:
 			, end(buffers.end()); i != end; ++i)
 		{
 			if (buffer_size(*i) == 0) continue;
-			using asio::buffer_cast;
-			using asio::buffer_size;
+			using boost::asio::buffer_cast;
+			using boost::asio::buffer_size;
 			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));
 			bytes_added += buffer_size(*i);
 		}
@@ -474,7 +474,7 @@ private:
 	boost::function2<void, error_code const&, std::size_t> m_read_handler;
 	boost::function2<void, error_code const&, std::size_t> m_write_handler;
 
-	asio::io_service& m_io_service;
+	io_service& m_io_service;
 	utp_socket_impl* m_impl;
 
 	boost::uint16_t m_incoming_close_reason;

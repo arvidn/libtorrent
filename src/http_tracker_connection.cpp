@@ -293,7 +293,7 @@ namespace libtorrent
 		// keep this alive
 		boost::shared_ptr<http_tracker_connection> me(shared_from_this());
 
-		if (ec && ec != asio::error::eof)
+		if (ec && ec != boost::asio::error::eof)
 		{
 			fail(ec);
 			return;
@@ -301,7 +301,7 @@ namespace libtorrent
 
 		if (!parser.header_finished())
 		{
-			fail(asio::error::eof);
+			fail(boost::asio::error::eof);
 			return;
 		}
 
@@ -312,7 +312,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (ec && ec != asio::error::eof)
+		if (ec && ec != boost::asio::error::eof)
 		{
 			fail(ec, parser.status_code());
 			return;

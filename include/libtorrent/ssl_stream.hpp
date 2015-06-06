@@ -61,12 +61,12 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(io_service& io_service, asio::ssl::context& ctx)
+	explicit ssl_stream(io_service& io_service, boost::asio::ssl::context& ctx)
 		: m_sock(io_service, ctx)
 	{
 	}
 
-	typedef typename asio::ssl::stream<Stream> sock_type;
+	typedef typename boost::asio::ssl::stream<Stream> sock_type;
 	typedef typename sock_type::next_layer_type next_layer_type;
 	typedef typename Stream::lowest_layer_type lowest_layer_type;
 	typedef typename Stream::endpoint_type endpoint_type;
@@ -109,14 +109,14 @@ public:
 	{
 		// this is used for accepting SSL connections
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
-		m_sock.async_handshake(asio::ssl::stream_base::server
+		m_sock.async_handshake(boost::asio::ssl::stream_base::server
 			, boost::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
 	void accept_handshake(error_code& ec)
 	{
 		// this is used for accepting SSL connections
-		m_sock.handshake(asio::ssl::stream_base::server, ec);
+		m_sock.handshake(boost::asio::ssl::stream_base::server, ec);
 	}
 
 	template <class Handler>
@@ -289,7 +289,7 @@ public:
 	{
 		return m_sock.lowest_layer();
 	}
-	
+
 	next_layer_type& next_layer()
 	{
 		return m_sock.next_layer();
@@ -305,7 +305,7 @@ private:
 			return;
 		}
 
-		m_sock.async_handshake(asio::ssl::stream_base::client
+		m_sock.async_handshake(boost::asio::ssl::stream_base::client
 			, boost::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
@@ -314,7 +314,7 @@ private:
 		(*h)(e);
 	}
 
-	asio::ssl::stream<Stream> m_sock;
+	boost::asio::ssl::stream<Stream> m_sock;
 };
 
 }

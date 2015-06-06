@@ -209,7 +209,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
 
-		using namespace asio::ip::multicast;
+		using namespace boost::asio::ip::multicast;
 	}
 
 	void broadcast_socket::open(receive_handler_t const& handler
@@ -271,7 +271,7 @@ namespace libtorrent
 	void broadcast_socket::open_multicast_socket(io_service& ios
 		, address const& addr, bool loopback, error_code& ec)
 	{
-		using namespace asio::ip::multicast;
+		using namespace boost::asio::ip::multicast;
 
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
@@ -291,7 +291,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("broadcast_socket::on_receive");
 #endif
-		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
+		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
@@ -299,7 +299,7 @@ namespace libtorrent
 	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
 		, address_v4 const& mask)
 	{
-		using namespace asio::ip::multicast;
+		using namespace boost::asio::ip::multicast;
 		error_code ec;
 		boost::shared_ptr<datagram_socket> s(new datagram_socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
@@ -311,14 +311,14 @@ namespace libtorrent
 		socket_entry& se = m_unicast_sockets.back();
 
 		// allow sending broadcast messages
-		asio::socket_base::broadcast option(true);
+		boost::asio::socket_base::broadcast option(true);
 		s->set_option(option, ec);
 		if (!ec) se.broadcast = true;
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("broadcast_socket::on_receive");
 #endif
-		s->async_receive_from(asio::buffer(se.buffer, sizeof(se.buffer))
+		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
 			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
@@ -332,12 +332,12 @@ namespace libtorrent
 			, end(m_unicast_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
 			if ((flags & broadcast_socket::broadcast) && i->can_broadcast())
-				i->socket->send_to(asio::buffer(buffer, size)
+				i->socket->send_to(boost::asio::buffer(buffer, size)
 					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
 			if (e)
@@ -355,7 +355,7 @@ namespace libtorrent
 			, end(m_sockets.end()); i != end; ++i)
 		{
 			if (!i->socket) continue;
-			i->socket->send_to(asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 			if (e)
 			{
 				i->socket->close(e);
@@ -391,7 +391,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("broadcast_socket::on_receive");
 #endif
-		s->socket->async_receive_from(asio::buffer(s->buffer, sizeof(s->buffer))
+		s->socket->async_receive_from(boost::asio::buffer(s->buffer, sizeof(s->buffer))
 			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 		++m_outstanding_operations;
 	}

@@ -57,11 +57,11 @@ namespace libtorrent
 		job_type_t type;
 
 		// used for write jobs
-		std::vector<asio::const_buffer> const* vec;
+		std::vector<boost::asio::const_buffer> const* vec;
 		// used for read jobs
 		char* recv_buf;
 		int buf_size;
-		boost::array<asio::mutable_buffer, 2> read_vec;
+		boost::array<boost::asio::mutable_buffer, 2> read_vec;
 
 		boost::shared_ptr<peer_connection> peer;
 		// defined in session_impl.cpp

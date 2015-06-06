@@ -213,7 +213,7 @@ public:
 
 	endpoint_type remote_endpoint(error_code& ec) const
 	{
-		if (!m_sock.is_open()) ec = asio::error::not_connected;
+		if (!m_sock.is_open()) ec = boost::asio::error::not_connected;
 		return m_remote_endpoint;
 	}
 
@@ -245,7 +245,7 @@ public:
 	}
 
 	bool is_open() const { return m_sock.is_open(); }
-	
+
 protected:
 
 	bool handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h);

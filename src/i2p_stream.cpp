@@ -269,7 +269,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("i2p_stream::start_read_line");
 #endif
-		async_write(m_sock, asio::buffer(cmd, sizeof(cmd) - 1)
+		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 //		fprintf(stderr, ">>> %s", cmd);
 	}
@@ -286,7 +286,7 @@ namespace libtorrent
 		add_outstanding_async("i2p_stream::read_line");
 #endif
 		m_buffer.resize(1);
-		async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&i2p_stream::read_line, this, _1, h));
 	}
 
@@ -308,7 +308,7 @@ namespace libtorrent
 #endif
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
-			async_read(m_sock, asio::buffer(&m_buffer[read_pos], 1)
+			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1)
 				, boost::bind(&i2p_stream::read_line, this, _1, h));
 			return;
 		}
@@ -456,7 +456,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("i2p_stream::read_line");
 #endif
-			async_read(m_sock, asio::buffer(m_buffer)
+			async_read(m_sock, boost::asio::buffer(m_buffer)
 				, boost::bind(&i2p_stream::read_line, this, _1, h));
 			break;
 		}
@@ -475,7 +475,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("i2p_stream::start_read_line");
 #endif
-		async_write(m_sock, asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
@@ -489,7 +489,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("i2p_stream::start_read_line");
 #endif
-		async_write(m_sock, asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
@@ -504,7 +504,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("i2p_stream::start_read_line");
 #endif
-		async_write(m_sock, asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
@@ -518,7 +518,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("i2p_stream::start_read_line");
 #endif
-		async_write(m_sock, asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 }

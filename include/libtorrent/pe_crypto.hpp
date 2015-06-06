@@ -86,7 +86,7 @@ namespace libtorrent
 
 	struct encryption_handler
 	{
-		int encrypt(std::vector<asio::mutable_buffer>& iovec);
+		int encrypt(std::vector<boost::asio::mutable_buffer>& iovec);
 		int decrypt(crypto_receive_buffer& recv_buffer, std::size_t& bytes_transferred);
 
 		bool switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto

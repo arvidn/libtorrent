@@ -691,7 +691,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to
 			// unauthenticated HTTPS servers
-			asio::ssl::context m_ssl_ctx;
+			boost::asio::ssl::context m_ssl_ctx;
 #endif
 
 			// handles delayed alerts

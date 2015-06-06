@@ -131,7 +131,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("socks5_stream::handshake1");
 #endif
-			async_write(m_sock, asio::buffer(m_buffer)
+			async_write(m_sock, boost::asio::buffer(m_buffer)
 				, boost::bind(&socks5_stream::handshake1, this, _1, h));
 		}
 		else if (m_version == 4)
@@ -157,7 +157,7 @@ namespace libtorrent
 		add_outstanding_async("socks5_stream::handshake2");
 #endif
 		m_buffer.resize(2);
-		async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::handshake2, this, _1, h));
 	}
 
@@ -208,7 +208,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("socks5_stream::handshake3");
 #endif
-			async_write(m_sock, asio::buffer(m_buffer)
+			async_write(m_sock, boost::asio::buffer(m_buffer)
 				, boost::bind(&socks5_stream::handshake3, this, _1, h));
 		}
 		else
@@ -232,7 +232,7 @@ namespace libtorrent
 		add_outstanding_async("socks5_stream::handshake4");
 #endif
 		m_buffer.resize(2);
-		async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::handshake4, this, _1, h));
 	}
 
@@ -334,7 +334,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::connect1");
 #endif
-		async_write(m_sock, asio::buffer(m_buffer)
+		async_write(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::connect1, this, _1, h));
 	}
 
@@ -353,7 +353,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::connect2");
 #endif
-		async_read(m_sock, asio::buffer(m_buffer)
+		async_read(m_sock, boost::asio::buffer(m_buffer)
 			, boost::bind(&socks5_stream::connect2, this, _1, h));
 	}
 
@@ -385,13 +385,13 @@ namespace libtorrent
 				error_code ec(socks_error::general_failure, get_socks_category());
 				switch (response)
 				{
-					case 2: ec = asio::error::no_permission; break;
-					case 3: ec = asio::error::network_unreachable; break;
-					case 4: ec = asio::error::host_unreachable; break;
-					case 5: ec = asio::error::connection_refused; break;
-					case 6: ec = asio::error::timed_out; break;
+					case 2: ec = boost::asio::error::no_permission; break;
+					case 3: ec = boost::asio::error::network_unreachable; break;
+					case 4: ec = boost::asio::error::host_unreachable; break;
+					case 5: ec = boost::asio::error::connection_refused; break;
+					case 6: ec = boost::asio::error::timed_out; break;
 					case 7: ec = socks_error::command_not_supported; break;
-					case 8: ec = asio::error::address_family_not_supported; break;
+					case 8: ec = boost::asio::error::address_family_not_supported; break;
 				}
 				(*h)(ec);
 				close(ec);
@@ -436,7 +436,7 @@ namespace libtorrent
 			}
 			else
 			{
-				(*h)(asio::error::address_family_not_supported);
+				(*h)(boost::asio::error::address_family_not_supported);
 				error_code ec;
 				close(ec);
 				return;
@@ -447,7 +447,7 @@ namespace libtorrent
 			add_outstanding_async("socks5_stream::connect3");
 #endif
 			TORRENT_ASSERT(extra_bytes > 0);
-			async_read(m_sock, asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
+			async_read(m_sock, boost::asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
 				, boost::bind(&socks5_stream::connect3, this, _1, h));
 		}
 		else if (m_version == 4)

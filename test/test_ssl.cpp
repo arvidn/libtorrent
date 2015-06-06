@@ -445,13 +445,13 @@ bool try_connect(libtorrent::session& ses1, int port
 		name.reserve(40);
 		for (int i = 0; i < 40; ++i)
 			name += hex_alphabet[rand() % 16];
-		
+
 		fprintf(stderr, "SNI: %s\n", name.c_str());
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
 
 	fprintf(stderr, "SSL handshake\n");
-	ssl_sock.handshake(asio::ssl::stream_base::client, ec);
+	ssl_sock.handshake(boost::asio::ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
@@ -465,7 +465,7 @@ bool try_connect(libtorrent::session& ses1, int port
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x02"; // interested
-	
+
 	// fill in the info-hash
 	if (flags & valid_bittorrent_hash)
 	{
@@ -482,7 +482,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	std::generate(handshake + 48, handshake + 68, &rand);
 
 	fprintf(stderr, "bittorrent handshake\n");
-	boost::asio::write(ssl_sock, libtorrent::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
+	boost::asio::write(ssl_sock, boost::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
@@ -490,10 +490,10 @@ bool try_connect(libtorrent::session& ses1, int port
 			, ec.message().c_str());
 		return false;
 	}
-	
+
 	char buf[68];
 	fprintf(stderr, "read bittorrent handshake\n");
-	boost::asio::read(ssl_sock, libtorrent::asio::buffer(buf, sizeof(buf)), ec);
+	boost::asio::read(ssl_sock, boost::asio::buffer(buf, sizeof(buf)), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{

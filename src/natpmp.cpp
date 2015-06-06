@@ -126,7 +126,7 @@ void natpmp::start()
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("natpmp::on_reply");
 #endif
-	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request(l);
 
@@ -152,7 +152,7 @@ void natpmp::send_get_ip_address_request(mutex::scoped_lock& l)
 	log("==> get public IP address", l);
 
 	error_code ec;
-	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
+	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 }
 
 bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
@@ -360,7 +360,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 	log(msg, l);
 
 	error_code ec;
-	m_socket.send_to(asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
+	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
 	m.map_sent = true;
 	m.outstanding_request = true;
 	if (m_abort)
@@ -434,7 +434,7 @@ void natpmp::on_reply(error_code const& e
 	char msg_buf[16];
 	memcpy(msg_buf, m_response_buffer, bytes_transferred);
 
-	m_socket.async_receive_from(asio::buffer(&m_response_buffer, 16)
+	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 
 	// simulate packet loss

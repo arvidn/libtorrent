@@ -68,7 +68,7 @@ struct http_connection;
 struct resolver_interface;
 
 const int default_max_bottled_buffer_size = 2*1024*1024;
-	
+
 typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
 
@@ -128,7 +128,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	socket_type const& socket() const { return m_sock; }
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
-	
+
 private:
 
 #if TORRENT_USE_I2P
@@ -158,7 +158,7 @@ private:
 	socket_type m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
-	asio::ssl::context* m_ssl_ctx;
+	boost::asio::ssl::context* m_ssl_ctx;
 	bool m_own_ssl_context;
 #endif
 
@@ -182,7 +182,7 @@ private:
 
 	time_point m_last_receive;
 	time_point m_start_time;
-	
+
 	// specifies whether or not the connection is
 	// configured to use a proxy
 	proxy_settings m_proxy;

@@ -98,7 +98,7 @@ namespace libtorrent { namespace
 
 	address inaddr_to_address(in_addr const* ina, int len = 4)
 	{
-		typedef asio::ip::address_v4::bytes_type bytes_t;
+		typedef boost::asio::ip::address_v4::bytes_type bytes_t;
 		bytes_t b;
 		std::memset(&b[0], 0, b.size());
 		if (len > 0) std::memcpy(&b[0], ina, (std::min)(len, int(b.size())));
@@ -108,7 +108,7 @@ namespace libtorrent { namespace
 #if TORRENT_USE_IPV6
 	address inaddr6_to_address(in6_addr const* ina6, int len = 16)
 	{
-		typedef asio::ip::address_v6::bytes_type bytes_t;
+		typedef boost::asio::ip::address_v6::bytes_type bytes_t;
 		bytes_t b;
 		std::memset(&b[0], 0, b.size());
 		if (len > 0) std::memcpy(&b[0], ina6, (std::min)(len, int(b.size())));
@@ -363,7 +363,7 @@ namespace libtorrent
 	{
 		if (family == AF_INET)
 		{
-			typedef asio::ip::address_v4::bytes_type bytes_t;
+			typedef boost::asio::ip::address_v4::bytes_type bytes_t;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
 			for (int i = sizeof(bytes_t)/8-1; i > 0; --i)
@@ -381,7 +381,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 		else if (family == AF_INET6)
 		{
-			typedef asio::ip::address_v6::bytes_type bytes_t;
+			typedef boost::asio::ip::address_v6::bytes_type bytes_t;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
 			for (int i = sizeof(bytes_t)/8-1; i > 0; --i)
@@ -412,14 +412,14 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			return ret;
 		}
 
 		ifaddrs *ifaddr;
 		if (getifaddrs(&ifaddr) == -1)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(s);
 			return ret;
 		}
@@ -459,7 +459,7 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			return ret;
 		}
 		ifconf ifc;
@@ -469,7 +469,7 @@ namespace libtorrent
 		ifc.ifc_buf = (char*)buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(s);
 			return ret;
 		}
@@ -507,7 +507,7 @@ namespace libtorrent
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFMTU, &req) < 0)
 				{
-					ec = error_code(errno, asio::error::system_category);
+					ec = error_code(errno, boost::asio::error::system_category);
 					close(s);
 					return ret;
 				}
@@ -530,7 +530,7 @@ namespace libtorrent
 					else
 #endif
 					{
-						ec = error_code(errno, asio::error::system_category);
+						ec = error_code(errno, boost::asio::error::system_category);
 						close(s);
 						return ret;
 					}
@@ -567,7 +567,7 @@ namespace libtorrent
 					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
 				{
 					FreeLibrary(iphlp);
-					ec = asio::error::operation_not_supported;
+					ec = boost::asio::error::operation_not_supported;
 					return std::vector<ip_interface>();
 				}
 
@@ -575,7 +575,7 @@ namespace libtorrent
 				if (!adapter_addresses)
 				{
 					FreeLibrary(iphlp);
-					ec = asio::error::no_memory;
+					ec = boost::asio::error::no_memory;
 					return std::vector<ip_interface>();
 				}
 
@@ -613,7 +613,7 @@ namespace libtorrent
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
 		{
-			ec = error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), boost::asio::error::system_category);
 			return ret;
 		}
 
@@ -623,7 +623,7 @@ namespace libtorrent
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
-			ec = error_code(WSAGetLastError(), asio::error::system_category);
+			ec = error_code(WSAGetLastError(), boost::asio::error::system_category);
 			closesocket(s);
 			return ret;
 		}
@@ -653,7 +653,7 @@ namespace libtorrent
 
 		// make a best guess of the interface we're using and its IP
 		udp::resolver r(ios);
-		udp::resolver::iterator i = r.resolve(udp::resolver::query(asio::ip::host_name(ec), "0"), ec);
+		udp::resolver::iterator i = r.resolve(udp::resolver::query(boost::asio::ip::host_name(ec), "0"), ec);
 		if (ec) return ret;
 		ip_interface iface;
 		for (;i != udp::resolver_iterator(); ++i)
@@ -707,20 +707,20 @@ namespace libtorrent
 		int s = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
 		if (s == -1)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			return std::vector<ip_route>();
 		}
 
 		int n = write(s, &m, len);
 		if (n == -1)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(s);
 			return std::vector<ip_route>();
 		}
 		else if (n != len)
 		{
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -729,7 +729,7 @@ namespace libtorrent
 		n = read(s, &m, len);
 		if (n == -1)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -740,31 +740,31 @@ namespace libtorrent
 			std::cout << " rtm_type: " << ptr->rtm_type << std::endl;
 			if (ptr->rtm_errno)
 			{
-				ec = error_code(ptr->rtm_errno, asio::error::system_category);
+				ec = error_code(ptr->rtm_errno, boost::asio::error::system_category);
 				return std::vector<ip_route>();
 			}
 			if (m.m_rtm.rtm_flags & RTF_UP == 0
 				|| m.m_rtm.rtm_flags & RTF_GATEWAY == 0)
 			{
-				ec = asio::error::operation_not_supported;
+				ec = boost::asio::error::operation_not_supported;
 				return address_v4::any();
 			}
 			if (ptr->rtm_addrs & RTA_DST == 0
 				|| ptr->rtm_addrs & RTA_GATEWAY == 0
 				|| ptr->rtm_addrs & RTA_NETMASK == 0)
 			{
-				ec = asio::error::operation_not_supported;
+				ec = boost::asio::error::operation_not_supported;
 				return std::vector<ip_route>();
 			}
 			if (ptr->rtm_msglen > len - ((char*)ptr - ((char*)&m.m_rtm)))
 			{
-				ec = asio::error::operation_not_supported;
+				ec = boost::asio::error::operation_not_supported;
 				return std::vector<ip_route>();
 			}
 			int min_len = sizeof(rt_msghdr) + 2 * sizeof(sockaddr_in);
 			if (m.m_rtm.rtm_msglen < min_len)
 			{
-				ec = asio::error::operation_not_supported;
+				ec = boost::asio::error::operation_not_supported;
 				return std::vector<ip_route>();
 			}
 
@@ -796,7 +796,7 @@ namespace libtorrent
 	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 #endif
 	{
-		ec = error_code(errno, asio::error::system_category);
+		ec = error_code(errno, boost::asio::error::system_category);
 		return std::vector<ip_route>();
 	}
 
@@ -808,7 +808,7 @@ namespace libtorrent
 	boost::scoped_array<char> buf(new (std::nothrow) char[needed]);
 	if (buf.get() == 0)
 	{
-		ec = asio::error::no_memory;
+		ec = boost::asio::error::no_memory;
 		return std::vector<ip_route>();
 	}
 
@@ -818,7 +818,7 @@ namespace libtorrent
 	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
 #endif
 	{
-		ec = error_code(errno, asio::error::system_category);
+		ec = error_code(errno, boost::asio::error::system_category);
 		return std::vector<ip_route>();
 	}
 
@@ -827,7 +827,7 @@ namespace libtorrent
 	int s = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 	{
-		ec = error_code(errno, asio::error::system_category);
+		ec = error_code(errno, boost::asio::error::system_category);
 		return std::vector<ip_route>();
 	}
 	rt_msghdr* rtm;
@@ -849,7 +849,7 @@ namespace libtorrent
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
 		{
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -859,7 +859,7 @@ namespace libtorrent
 		if (!GetAdaptersInfo)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -868,7 +868,7 @@ namespace libtorrent
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -876,7 +876,7 @@ namespace libtorrent
 		if (!adapter_info)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::no_memory;
+			ec = boost::asio::error::no_memory;
 			return std::vector<ip_route>();
 		}
 
@@ -910,7 +910,7 @@ namespace libtorrent
 		HMODULE iphlp = LoadLibraryA("Iphlpapi.dll");
 		if (!iphlp)
 		{
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -918,7 +918,7 @@ namespace libtorrent
 		GetIfEntry_t GetIfEntry = (GetIfEntry_t)GetProcAddress(iphlp, "GetIfEntry");
 		if (!GetIfEntry)
 		{
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -969,7 +969,7 @@ namespace libtorrent
 		if (!GetIpForwardTable)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -978,7 +978,7 @@ namespace libtorrent
 		if (GetIpForwardTable(routes, &out_buf_size, FALSE) != ERROR_INSUFFICIENT_BUFFER)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::operation_not_supported;
+			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
 
@@ -986,7 +986,7 @@ namespace libtorrent
 		if (!routes)
 		{
 			FreeLibrary(iphlp);
-			ec = asio::error::no_memory;
+			ec = boost::asio::error::no_memory;
 			return std::vector<ip_route>();
 		}
 
@@ -1019,7 +1019,7 @@ namespace libtorrent
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			return std::vector<ip_route>();
 		}
 
@@ -1037,7 +1037,7 @@ namespace libtorrent
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(sock);
 			return std::vector<ip_route>();
 		}
@@ -1045,7 +1045,7 @@ namespace libtorrent
 		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
 		if (len < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			close(sock);
 			return std::vector<ip_route>();
 		}
@@ -1053,7 +1053,7 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, asio::error::system_category);
+			ec = error_code(errno, boost::asio::error::system_category);
 			return std::vector<ip_route>();
 		}
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))

@@ -89,8 +89,6 @@ namespace libtorrent
 	typedef boost::asio::ip::tcp::socket stream_socket;
 	typedef boost::asio::ip::udp::socket datagram_socket;
 	typedef boost::asio::ip::tcp::acceptor socket_acceptor;
-
-	namespace asio = boost::asio;
 #endif
 
 #if TORRENT_USE_IPV6

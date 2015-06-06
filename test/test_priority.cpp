@@ -416,7 +416,7 @@ TORRENT_TEST(priority)
 
 	p.set_bool(settings_pack::lazy_bitfields, true);
 	test_transfer(p);
-	
+
 	error_code ec;
 	remove_all("tmp1_priorities", ec);
 	remove_all("tmp2_priorities", ec);

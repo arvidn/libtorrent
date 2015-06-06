@@ -1997,7 +1997,7 @@ namespace libtorrent
 
 		if (m_num_threads == 0)
 		{
-			j->error.ec = asio::error::operation_aborted;
+			j->error.ec = boost::asio::error::operation_aborted;
 			if (handler) handler(j);
 			free_job(j);
 			return;

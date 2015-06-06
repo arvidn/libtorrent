@@ -268,7 +268,7 @@ void http_connection::start(std::string const& hostname, int port
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("http_connection::on_write");
 #endif
-		async_write(m_sock, asio::buffer(m_sendbuffer)
+		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, me, _1));
 	}
 	else
@@ -331,12 +331,12 @@ void http_connection::start(std::string const& hostname, int port
 			if (m_ssl_ctx == 0)
 			{
 				m_ssl_ctx = new (std::nothrow) boost::asio::ssl::context(
-					m_timer.get_io_service(), asio::ssl::context::sslv23_client);
+					m_timer.get_io_service(), boost::asio::ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
 					error_code ec;
-					m_ssl_ctx->set_verify_mode(asio::ssl::context::verify_none, ec);
+					m_ssl_ctx->set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 					TORRENT_ASSERT(!ec);
 				}
 			}
@@ -411,7 +411,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 
-	if (e == asio::error::operation_aborted) return;
+	if (e == boost::asio::error::operation_aborted) return;
 
 	if (c->m_abort) return;
 
@@ -431,7 +431,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		}
 		else
 		{
-			c->callback(asio::error::timed_out);
+			c->callback(boost::asio::error::timed_out);
 			c->close(true);
 			return;
 		}
@@ -601,12 +601,12 @@ void http_connection::on_connect(error_code const& e)
 	m_last_receive = clock_type::now();
 	m_start_time = m_last_receive;
 	if (!e)
-	{ 
+	{
 		if (m_connect_handler) m_connect_handler(*this);
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("http_connection::on_write");
 #endif
-		async_write(m_sock, asio::buffer(m_sendbuffer)
+		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else if (!m_endpoints.empty() && !m_abort)
@@ -615,9 +615,9 @@ void http_connection::on_connect(error_code const& e)
 		error_code ec;
 		m_sock.close(ec);
 		connect();
-	} 
+	}
 	else
-	{ 
+	{
 		boost::shared_ptr<http_connection> me(shared_from_this());
 		callback(e);
 		close();
@@ -666,7 +666,7 @@ void http_connection::on_write(error_code const& e)
 	complete_async("http_connection::on_write");
 #endif
 
-	if (e == asio::error::operation_aborted) return;
+	if (e == boost::asio::error::operation_aborted) return;
 
 	if (e)
 	{
@@ -700,7 +700,7 @@ void http_connection::on_write(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_read");
 #endif
-	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
+	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
@@ -719,7 +719,7 @@ void http_connection::on_read(error_code const& e
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
 
-	if (e == asio::error::operation_aborted) return;
+	if (e == boost::asio::error::operation_aborted) return;
 
 	if (m_abort) return;
 
@@ -729,9 +729,9 @@ void http_connection::on_read(error_code const& e
 
 	// when using the asio SSL wrapper, it seems like
 	// we get the shut_down error instead of EOF
-	if (e == asio::error::eof || e == asio::error::shut_down)
+	if (e == boost::asio::error::eof || e == boost::asio::error::shut_down)
 	{
-		error_code ec = asio::error::eof;
+		error_code ec = boost::asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
 		char* data = 0;
 		std::size_t size = 0;
@@ -861,7 +861,7 @@ void http_connection::on_read(error_code const& e
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_read");
 #endif
-	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
+	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
 			, me, _1, _2));
@@ -872,11 +872,11 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	complete_async("http_connection::on_assign_bandwidth");
 #endif
-	if ((e == asio::error::operation_aborted
+	if ((e == boost::asio::error::operation_aborted
 		&& m_limiter_timer_active)
 		|| !m_sock.is_open())
 	{
-		callback(asio::error::eof);
+		callback(boost::asio::error::eof);
 		return;
 	}
 	m_limiter_timer_active = false;
@@ -895,7 +895,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_read");
 #endif
-	m_sock.async_read_some(asio::buffer(&m_recvbuffer[0] + m_read_pos
+	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));

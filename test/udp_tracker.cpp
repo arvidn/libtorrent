@@ -96,7 +96,7 @@ struct udp_tracker
 				detail::write_uint32(0, ptr); // action = connect
 				detail::write_uint32(transaction_id, ptr); // transaction_id
 				detail::write_uint64(10, ptr); // connection_id
-				m_socket.send_to(asio::buffer(buffer, 16), *from, 0, e);
+				m_socket.send_to(boost::asio::buffer(buffer, 16), *from, 0, e);
 				if (e) fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
 				else fprintf(stderr, "%s: UDP sent response to: %s\n"
@@ -115,7 +115,7 @@ struct udp_tracker
 				detail::write_uint32(1, ptr); // incomplete
 				detail::write_uint32(1, ptr); // complete
 				// 0 peers
-				m_socket.send_to(asio::buffer(buffer, 20), *from, 0, e);
+				m_socket.send_to(boost::asio::buffer(buffer, 20), *from, 0, e);
 				if (e) fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
 				else fprintf(stderr, "%s: UDP sent response to: %s\n"
@@ -132,7 +132,7 @@ struct udp_tracker
 		}
 
 		m_socket.async_receive_from(
-			asio::buffer(buffer, size), *from, 0
+			boost::asio::buffer(buffer, size), *from, 0
 			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, from, buffer, size));
 	}
 
@@ -192,7 +192,7 @@ struct udp_tracker
 		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
-			asio::buffer(buffer, sizeof(buffer)), from, 0
+			boost::asio::buffer(buffer, sizeof(buffer)), from, 0
 			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], sizeof(buffer)));
 
 		m_ios.run(ec);

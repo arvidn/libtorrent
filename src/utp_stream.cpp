@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/io_service.hpp"
 #include <boost/cstdint.hpp>
 #include <limits>
 
@@ -154,7 +155,7 @@ struct packet
 	// this is also used as a cursor to describe where the
 	// next payload that hasn't been consumed yet starts
 	boost::uint16_t header_size;
-	
+
 	// the number of times this packet has been sent
 	boost::uint8_t num_transmissions:6;
 
@@ -298,7 +299,7 @@ struct utp_socket_impl
 	tcp::endpoint remote_endpoint(error_code& ec) const
 	{
 		if (m_state == UTP_STATE_NONE)
-			ec = asio::error::not_connected;
+			ec = boost::asio::error::not_connected;
 		else
 			TORRENT_ASSERT(m_remote_address != address_v4::any());
 		return tcp::endpoint(m_remote_address, m_port);
@@ -790,7 +791,7 @@ int utp_stream::recv_delay() const
 	return m_impl ? m_impl->m_recv_delay : 0;
 }
 
-utp_stream::utp_stream(asio::io_service& io_service)
+utp_stream::utp_stream(io_service& io_service)
 	: m_io_service(io_service)
 	, m_impl(0)
 	, m_incoming_close_reason(0)
@@ -834,7 +835,7 @@ utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 {
 	if (!m_impl)
 	{
-		ec = asio::error::not_connected;
+		ec = boost::asio::error::not_connected;
 		return endpoint_type();
 	}
 	return m_impl->remote_endpoint(ec);
@@ -844,7 +845,7 @@ utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 {
 	if (m_impl == 0 || m_impl->m_sm == 0)
 	{
-		ec = asio::error::not_connected;
+		ec = boost::asio::error::not_connected;
 		return endpoint_type();
 	}
 	return tcp::endpoint(m_impl->m_local_address, m_impl->m_sm->local_port(ec));
@@ -1275,7 +1276,7 @@ bool utp_socket_impl::destroy()
 	if (m_state == UTP_STATE_CONNECTED)
 		send_fin();
 
-	bool cancelled = cancel_handlers(asio::error::operation_aborted, true);
+	bool cancelled = cancel_handlers(boost::asio::error::operation_aborted, true);
 
 	m_userdata = 0;
 
@@ -2801,7 +2802,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			return true;
 		}
 		UTP_LOGV("%8p: incoming packet type:RESET\n", this);
-		m_error = asio::error::connection_reset;
+		m_error = boost::asio::error::connection_reset;
 		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
 		return true;
@@ -3296,14 +3297,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 				if (!m_attached)
 				{
 					UTP_LOGV("%8p: close initiated here, delete socket\n", this);
-					m_error = asio::error::eof;
+					m_error = boost::asio::error::eof;
 					set_state(UTP_STATE_DELETE);
 					test_socket_state();
 				}
 				else
 				{
 					UTP_LOGV("%8p: closing socket\n", this);
-					m_error = asio::error::eof;
+					m_error = boost::asio::error::eof;
 					set_state(UTP_STATE_ERROR_WAIT);
 					test_socket_state();
 				}
@@ -3496,7 +3497,7 @@ void utp_socket_impl::tick(time_point now)
 		if (m_num_timeouts > m_sm->num_resends())
 		{
 			// the connection is dead
-			m_error = asio::error::timed_out;
+			m_error = boost::asio::error::timed_out;
 			set_state(UTP_STATE_ERROR_WAIT);
 			test_socket_state();
 			return;
@@ -3581,12 +3582,12 @@ void utp_socket_impl::tick(time_point now)
 #endif
 
 				// the connection is dead
-				m_error = asio::error::timed_out;
+				m_error = boost::asio::error::timed_out;
 				set_state(UTP_STATE_ERROR_WAIT);
 				test_socket_state();
 				return;
 			}
-	
+
 			// don't fast-resend this packet
 			if (m_fast_resend_seq_nr == ((m_acked_seq_nr + 1) & ACK_MASK))
 				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
@@ -3603,7 +3604,7 @@ void utp_socket_impl::tick(time_point now)
 		else if (m_state == UTP_STATE_FIN_SENT)
 		{
 			// the connection is dead
-			m_error = asio::error::eof;
+			m_error = boost::asio::error::eof;
 			set_state(UTP_STATE_ERROR_WAIT);
 			test_socket_state();
 			return;

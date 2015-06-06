@@ -113,7 +113,7 @@ struct dht_server
 	void thread_fun()
 	{
 		char buffer[2000];
-	
+
 		for (;;)
 		{
 			error_code ec;
@@ -121,7 +121,7 @@ struct dht_server
 			size_t bytes_transferred;
 			bool done = false;
 			m_socket.async_receive_from(
-				asio::buffer(buffer, sizeof(buffer)), from, 0
+				boost::asio::buffer(buffer, sizeof(buffer)), from, 0
 				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
 			while (!done)
 			{

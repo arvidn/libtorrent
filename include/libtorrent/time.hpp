@@ -100,7 +100,7 @@ namespace libtorrent {
 	TORRENT_DEPRECATED
 	time_point time_now_hires();
 
-	inline time_point time_now() 
+	inline time_point time_now()
 	{ return clock_type::now(); }
 
 	inline time_point time_now_hires()

@@ -203,9 +203,9 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 
 	char* piece = page_aligned_allocator::malloc(piece_size);
 
-	{ // avoid having two storages use the same files	
+	{ // avoid having two storages use the same files
 	file_pool fp;
-	libtorrent::asio::io_service ios;
+	boost::asio::io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	storage_params p;
 	p.path = test_path;
@@ -238,7 +238,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	if (ret != piece_size - 9) print_error("readv",ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1+3));
-	
+
 	// test unaligned read (where the bytes are not aligned)
 	iov.iov_base = piece;
 	iov.iov_len = piece_size - 9;
@@ -446,7 +446,7 @@ void test_check_files(std::string const& test_path
 
 	aux::session_settings set;
 	file_pool fp;
-	libtorrent::asio::io_service ios;
+	boost::asio::io_service ios;
 	counters cnt;
 	disk_io_thread io(ios, cnt, NULL);
 	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
