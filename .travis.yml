@@ -10,9 +10,14 @@ before_script:
 script:
    - cd test
    - bjam -j2 warnings=off -l600 $CC
-   - bjam -j2 variant=test_barebones warnings=off $CC
-   - cd ..
    - bjam -j2 variant=test_debug warnings=off $CC
+   - cd ../examples
+   - bjam -j2 variant=test_debug warnings=off $CC
+   - bjam -j2 variant=test_barebones warnings=off $CC
+   - bjam -j2 variant=test_release warnings=off $CC
+   - cd ../bindings/python
+   - bjam -j2 variant=test_debug warnings=off $CC
+   - bjam -j2 variant=test_barebones warnings=off $CC
    - bjam -j2 variant=test_release warnings=off $CC
 
 compiler:
