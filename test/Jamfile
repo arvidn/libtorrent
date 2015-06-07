@@ -178,12 +178,12 @@ test-suite libtorrent :
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
 	[ run test_time_critical.cpp ]
-	[ run test_super_seeding.cpp ]
-	[ run test_swarm.cpp ]
 	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]
 
-# make this test more reliable
+# make these test more reliable
 #	[ run test_priority.cpp ]
+#	[ run test_swarm.cpp ]
+#	[ run test_super_seeding.cpp ]
 	;
 
