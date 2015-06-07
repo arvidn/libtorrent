@@ -78,7 +78,6 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT settings_pack
 	{
-		friend struct disk_io_thread;
 		friend void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
 
 		void set_str(int name, std::string val);

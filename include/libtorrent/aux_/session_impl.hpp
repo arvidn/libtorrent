@@ -277,6 +277,7 @@ namespace libtorrent
 			void apply_settings_pack(boost::shared_ptr<settings_pack> pack);
 			void apply_settings_pack_impl(settings_pack const& pack);
 			session_settings const& settings() const { return m_settings; }
+			settings_pack get_settings() const;
 
 #ifndef TORRENT_DISABLE_DHT
 			dht::dht_tracker* dht() { return m_dht.get(); }

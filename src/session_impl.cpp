@@ -213,6 +213,18 @@ void network_thread_pool::process_job(socket_job const& j, bool post)
 }
 
 // TODO: 2 find a better place for this function
+proxy_settings::proxy_settings(settings_pack const& sett)
+{
+	hostname = sett.get_str(settings_pack::proxy_hostname);
+	username = sett.get_str(settings_pack::proxy_username);
+	password = sett.get_str(settings_pack::proxy_password);
+	type = sett.get_int(settings_pack::proxy_type);
+	port = sett.get_int(settings_pack::proxy_port);
+	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+	proxy_peer_connections = sett.get_bool(
+		settings_pack::proxy_peer_connections);
+}
+
 proxy_settings::proxy_settings(aux::session_settings const& sett)
 {
 	hostname = sett.get_str(settings_pack::proxy_hostname);
@@ -1528,6 +1540,28 @@ namespace aux {
 	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
 	{
 		apply_settings_pack_impl(*pack);
+	}
+
+	settings_pack session_impl::get_settings() const
+	{
+		settings_pack ret;
+		// TODO: it would be nice to reserve() these vectors up front
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
+		{
+			ret.set_str(i, m_settings.get_str(i));
+		}
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			ret.set_int(i, m_settings.get_int(i));
+		}
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			ret.set_bool(i, m_settings.get_bool(i));
+		}
+		return ret;
 	}
 
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)

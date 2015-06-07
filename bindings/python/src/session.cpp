@@ -46,9 +46,9 @@ namespace
     void outgoing_ports(lt::session& s, int _min, int _max)
     {
         allow_threading_guard guard;
-		  settings_pack p;
-		  p.set_int(settings_pack::outgoing_port, _min);
-		  p.set_int(settings_pack::num_outgoing_ports, _max - _min);
+        settings_pack p;
+        p.set_int(settings_pack::outgoing_port, _min);
+        p.set_int(settings_pack::num_outgoing_ports, _max - _min);
         s.apply_settings(p);
         return;
     }
@@ -126,7 +126,7 @@ namespace
 
 	dict session_get_settings(lt::session const& ses)
 	{
-		aux::session_settings sett;
+		settings_pack sett;
 		{
 			allow_threading_guard guard;
 			sett = ses.get_settings();

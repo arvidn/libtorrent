@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 #include <boost/cstdint.hpp>
 #include <string>
@@ -68,6 +69,7 @@ namespace libtorrent
 
 		// construct the proxy_settings object from the settings
 		// this constructor is implemented in session_impl.cpp
+		proxy_settings(settings_pack const& sett);
 		proxy_settings(aux::session_settings const& sett);
 
 		// the name or IP of the proxy server. ``port`` is the port number the

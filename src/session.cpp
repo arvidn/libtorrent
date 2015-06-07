@@ -932,7 +932,7 @@ namespace libtorrent
 
 	pe_settings session::get_pe_settings() const
 	{
-		aux::session_settings sett = get_settings();
+		settings_pack sett = get_settings();
 
 		pe_settings r;
 		r.prefer_rc4 = sett.get_bool(settings_pack::prefer_rc4);
@@ -996,9 +996,9 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
 	}
 
-	aux::session_settings session::get_settings() const
+	settings_pack session::get_settings() const
 	{
-		return TORRENT_SYNC_CALL_RET(aux::session_settings, settings);
+		return TORRENT_SYNC_CALL_RET(settings_pack, get_settings);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1019,7 +1019,7 @@ namespace libtorrent
 
 	proxy_settings session::proxy() const
 	{
-		aux::session_settings sett = get_settings();
+		settings_pack sett = get_settings();
 		return proxy_settings(sett);
 	}
 
@@ -1075,7 +1075,7 @@ namespace libtorrent
 	proxy_settings session::i2p_proxy() const
 	{
 		proxy_settings ret;
-		aux::session_settings sett = get_settings();
+		settings_pack sett = get_settings();
 		ret.hostname = sett.get_str(settings_pack::i2p_hostname);
 		ret.port = sett.get_int(settings_pack::i2p_port);
 		return ret;

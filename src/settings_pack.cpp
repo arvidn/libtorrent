@@ -59,6 +59,7 @@ namespace {
 	}
 }
 
+// TODO: 3 write a unit test for settings_pack
 namespace libtorrent
 {
 	struct str_setting_entry_t
@@ -680,6 +681,10 @@ namespace libtorrent
 		{
 			case string_type_base:
 			{
+				// this is an optimization. If the settings pack is complete,
+				// i.e. has every key, we don't need to search, it's just a lookup
+				if (m_strings.size() == settings_pack::num_string_settings)
+					return true;
 				std::pair<boost::uint16_t, std::string> v(name, std::string());
 				std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i =
 					std::lower_bound(m_strings.begin(), m_strings.end(), v
@@ -688,6 +693,10 @@ namespace libtorrent
 			}
 			case int_type_base:
 			{
+				// this is an optimization. If the settings pack is complete,
+				// i.e. has every key, we don't need to search, it's just a lookup
+				if (m_ints.size() == settings_pack::num_int_settings)
+					return true;
 				std::pair<boost::uint16_t, int> v(name, 0);
 				std::vector<std::pair<boost::uint16_t, int> >::const_iterator i =
 					std::lower_bound(m_ints.begin(), m_ints.end(), v
@@ -696,6 +705,10 @@ namespace libtorrent
 			}
 			case bool_type_base:
 			{
+				// this is an optimization. If the settings pack is complete,
+				// i.e. has every key, we don't need to search, it's just a lookup
+				if (m_bools.size() == settings_pack::num_bool_settings)
+					return true;
 				std::pair<boost::uint16_t, bool> v(name, false);
 				std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i =
 					std::lower_bound(m_bools.begin(), m_bools.end(), v
@@ -712,6 +725,13 @@ namespace libtorrent
 		TORRENT_ASSERT((name & type_mask) == string_type_base);
 		if ((name & type_mask) != string_type_base) return std::string();
 
+		// this is an optimization. If the settings pack is complete,
+		// i.e. has every key, we don't need to search, it's just a lookup
+		if (m_strings.size() == settings_pack::num_string_settings)
+		{
+			TORRENT_ASSERT(m_strings[name].first == name);
+			return m_strings[name].second;
+		}
 		std::pair<boost::uint16_t, std::string> v(name, std::string());
 		std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i
 			= std::lower_bound(m_strings.begin(), m_strings.end(), v
@@ -725,6 +745,13 @@ namespace libtorrent
 		TORRENT_ASSERT((name & type_mask) == int_type_base);
 		if ((name & type_mask) != int_type_base) return 0;
 
+		// this is an optimization. If the settings pack is complete,
+		// i.e. has every key, we don't need to search, it's just a lookup
+		if (m_ints.size() == settings_pack::num_int_settings)
+		{
+			TORRENT_ASSERT(m_ints[name].first == name);
+			return m_ints[name].second;
+		}
 		std::pair<boost::uint16_t, int> v(name, 0);
 		std::vector<std::pair<boost::uint16_t, int> >::const_iterator i
 			= std::lower_bound(m_ints.begin(), m_ints.end(), v
@@ -738,6 +765,13 @@ namespace libtorrent
 		TORRENT_ASSERT((name & type_mask) == bool_type_base);
 		if ((name & type_mask) != bool_type_base) return false;
 
+		// this is an optimization. If the settings pack is complete,
+		// i.e. has every key, we don't need to search, it's just a lookup
+		if (m_bools.size() == settings_pack::num_bool_settings)
+		{
+			TORRENT_ASSERT(m_bools[name].first == name);
+			return m_bools[name].second;
+		}
 		std::pair<boost::uint16_t, bool> v(name, false);
 		std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i
 			= std::lower_bound(m_bools.begin(), m_bools.end(), v

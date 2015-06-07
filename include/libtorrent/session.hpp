@@ -1011,7 +1011,7 @@ namespace libtorrent
 		// asynchronous operation that will return immediately and actually apply
 		// the settings to the main thread of libtorrent some time later.
 		void apply_settings(settings_pack const& s);
-		aux::session_settings get_settings() const;
+		settings_pack get_settings() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// ``set_i2p_proxy`` sets the i2p_ proxy, and tries to open a persistant

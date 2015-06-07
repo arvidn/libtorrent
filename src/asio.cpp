@@ -1,3 +1,5 @@
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 // builds all boost.asio source as a separate compilation unit
 #include <boost/version.hpp>
 #include <boost/preprocessor/facilities/is_empty.hpp>
@@ -13,8 +15,6 @@
 #endif
 #define BOOST_ASIO_DECL BOOST_SYMBOL_EXPORT
 #endif
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if BOOST_VERSION >= 104500
 
