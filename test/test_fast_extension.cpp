@@ -420,7 +420,7 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 
 // makes sure that pieces that are allowed and then
 // rejected aren't requested again
-void test_reject_fast()
+TORRENT_TEST(reject_fast)
 {
 	std::cerr << "\n === test reject ===\n" << std::endl;
 
@@ -488,7 +488,7 @@ void test_reject_fast()
 	print_session_log(*ses);
 }
 
-void test_respect_suggest()
+TORRENT_TEST(reject_suggest)
 {
 	std::cerr << "\n === test suggest ===\n" << std::endl;
 
@@ -566,7 +566,7 @@ void test_respect_suggest()
 	print_session_log(*ses);
 }
 
-void test_multiple_bitfields()
+TORRENT_TEST(multiple_bitfields)
 {
 	std::cerr << "\n === test multiple bitfields ===\n" << std::endl;
 
@@ -600,7 +600,7 @@ void test_multiple_bitfields()
 	print_session_log(*ses);
 }
 
-void test_multiple_have_all()
+TORRENT_TEST(multiple_have_all)
 {
 	std::cerr << "\n === test multiple have_all ===\n" << std::endl;
 
@@ -631,7 +631,7 @@ void test_multiple_have_all()
 }
 
 // makes sure that pieces that are lost are not requested
-void test_dont_have()
+TORRENT_TEST(dont_have)
 {
 	using namespace libtorrent::detail;
 
@@ -733,7 +733,7 @@ void test_dont_have()
 
 // this tests sending a request for a metadata piece that's too high. This is
 // pos
-void test_invalid_metadata_requests()
+TORRENT_TEST(invalid_metadata_request)
 {
 	using namespace libtorrent::detail;
 
@@ -786,15 +786,5 @@ void test_invalid_metadata_requests()
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
 
 	print_session_log(*ses);
-}
-
-TORRENT_TEST(fast_extension)
-{
-	test_reject_fast();
-	test_respect_suggest();
-	test_multiple_bitfields();
-	test_multiple_have_all();
-	test_dont_have();
-	test_invalid_metadata_requests();
 }
 
