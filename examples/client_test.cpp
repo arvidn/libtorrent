@@ -791,7 +791,7 @@ bool filter_fun(std::string const& p)
 
 void scan_dir(std::string const& dir_path
 	, libtorrent::session& ses
-	, handles_t& files 
+	, handles_t& files
 	, std::set<libtorrent::torrent_handle>& non_files
 	, int allocation_mode
 	, std::string const& save_path
@@ -919,7 +919,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
 		return true;
 	}
-	
+
 #ifndef TORRENT_DISABLE_DHT
 	if (dht_stats_alert* p = alert_cast<dht_stats_alert>(a))
 	{
@@ -1306,6 +1306,7 @@ int main(int argc, char* argv[])
 
 	int refresh_delay = 500;
 	bool start_dht = true;
+	bool rate_limit_locals = false;
 
 	std::deque<std::string> events;
 
@@ -1320,33 +1321,11 @@ int main(int argc, char* argv[])
 	// torrents that were not added via the monitor dir
 	std::set<torrent_handle> non_files;
 
-	libtorrent::session ses(fingerprint("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0)
-		, lt::session::add_default_plugins | lt::session::start_default_features
-		, alert::all_categories
-			& ~(alert::dht_notification
-			+ alert::progress_notification
-			+ alert::stats_notification
-			+ alert::session_log_notification
-			+ alert::torrent_log_notification
-			+ alert::peer_log_notification
-			+ alert::dht_log_notification
-			));
-
-	ses.set_load_function(&load_torrent);
-
-	std::vector<char> in;
-	error_code ec;
-	if (load_file(".ses_state", in, ec) == 0)
-	{
-		bdecode_node e;
-		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
-			ses.load_state(e);
-	}
-
 	// load the torrents given on the commandline
 
 	std::vector<add_torrent_params> magnet_links;
 	std::vector<std::string> torrents;
+	ip_filter loaded_ip_filter;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -1448,7 +1427,6 @@ int main(int argc, char* argv[])
 					FILE* filter = fopen(arg, "r");
 					if (filter)
 					{
-						ip_filter fil;
 						unsigned int a,b,c,d,e,f,g,h, flags;
 						while (fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n", &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
 						{
@@ -1456,9 +1434,8 @@ int main(int argc, char* argv[])
 							address_v4 last((e << 24) + (f << 16) + (g << 8) + h);
 							if (flags <= 127) flags = ip_filter::blocked;
 							else flags = 0;
-							fil.add_rule(start, last, flags);
+							loaded_ip_filter.add_rule(start, last, flags);
 						}
-						ses.set_ip_filter(fil);
 						fclose(filter);
 					}
 				}
@@ -1535,15 +1512,7 @@ int main(int argc, char* argv[])
 			case 'Y':
 				{
 					--i;
-					ip_filter pcf;
-					// 1 is the global peer class. This should be done properly in the future
-					pcf.add_rule(address_v4::from_string("0.0.0.0")
-						, address_v4::from_string("255.255.255.255"), 1);
-#if TORRENT_USE_IPV6
-					pcf.add_rule(address_v6::from_string("::")
-						, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
-#endif
-					ses.set_peer_class_filter(pcf);
+					rate_limit_locals = true;
 					break;
 				}
 			case 'X': settings.set_bool(settings_pack::enable_lsd, false); --i; break;
@@ -1579,6 +1548,34 @@ int main(int argc, char* argv[])
 		, listen_port);
 	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
+	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
+	settings.set_int(settings_pack::alert_mask, alert::all_categories
+		& ~(alert::dht_notification
+		+ alert::progress_notification
+		+ alert::stats_notification
+		+ alert::session_log_notification
+		+ alert::torrent_log_notification
+		+ alert::peer_log_notification
+		+ alert::dht_log_notification
+		));
+
+	libtorrent::session ses(settings);
+
+	if (rate_limit_locals)
+	{
+		ip_filter pcf;
+		// 1 is the global peer class. This should be done properly in the future
+		pcf.add_rule(address_v4::from_string("0.0.0.0")
+			, address_v4::from_string("255.255.255.255"), 1);
+#if TORRENT_USE_IPV6
+		pcf.add_rule(address_v6::from_string("::")
+			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
+#endif
+		ses.set_peer_class_filter(pcf);
+	}
+
+	ses.set_ip_filter(loaded_ip_filter);
+
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
 	dht.privacy_lookups = true;
@@ -1597,9 +1594,16 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
+	ses.set_load_function(&load_torrent);
 
-	ses.apply_settings(settings);
+	std::vector<char> in;
+	error_code ec;
+	if (load_file(".ses_state", in, ec) == 0)
+	{
+		bdecode_node e;
+		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
+			ses.load_state(e);
+	}
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
 		, end(magnet_links.end()); i != end; ++i)
