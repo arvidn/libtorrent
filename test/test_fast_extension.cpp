@@ -392,6 +392,10 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	settings_pack sett;
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
 	sett.set_int(settings_pack::alert_mask, alert::all_categories);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
 	ses.reset(new lt::session(sett, session::add_default_plugins));
 
 	error_code ec;

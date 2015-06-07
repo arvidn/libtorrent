@@ -154,6 +154,11 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	pack.set_int(settings_pack::alert_mask, mask);
 
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_dht, false);
+
 	lt::session ses1(pack);
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
