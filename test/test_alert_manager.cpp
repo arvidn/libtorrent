@@ -104,7 +104,7 @@ TORRENT_TEST(priority_limit)
 	TEST_EQUAL(alerts.size(), 200);
 }
 
-void test_dispatch_fun(int& cnt, std::auto_ptr<alert> a)
+void test_dispatch_fun(int& cnt, std::auto_ptr<alert> const& a)
 {
 	++cnt;
 }

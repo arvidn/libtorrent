@@ -554,7 +554,7 @@ namespace libtorrent
 			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
-	
+
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
 			s.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
@@ -729,8 +729,8 @@ namespace libtorrent
 		// i.e. has every key, we don't need to search, it's just a lookup
 		if (m_strings.size() == settings_pack::num_string_settings)
 		{
-			TORRENT_ASSERT(m_strings[name].first == name);
-			return m_strings[name].second;
+			TORRENT_ASSERT(m_strings[name & index_mask].first == name);
+			return m_strings[name & index_mask].second;
 		}
 		std::pair<boost::uint16_t, std::string> v(name, std::string());
 		std::vector<std::pair<boost::uint16_t, std::string> >::const_iterator i
@@ -749,8 +749,8 @@ namespace libtorrent
 		// i.e. has every key, we don't need to search, it's just a lookup
 		if (m_ints.size() == settings_pack::num_int_settings)
 		{
-			TORRENT_ASSERT(m_ints[name].first == name);
-			return m_ints[name].second;
+			TORRENT_ASSERT(m_ints[name & index_mask].first == name);
+			return m_ints[name & index_mask].second;
 		}
 		std::pair<boost::uint16_t, int> v(name, 0);
 		std::vector<std::pair<boost::uint16_t, int> >::const_iterator i
@@ -769,8 +769,8 @@ namespace libtorrent
 		// i.e. has every key, we don't need to search, it's just a lookup
 		if (m_bools.size() == settings_pack::num_bool_settings)
 		{
-			TORRENT_ASSERT(m_bools[name].first == name);
-			return m_bools[name].second;
+			TORRENT_ASSERT(m_bools[name & index_mask].first == name);
+			return m_bools[name & index_mask].second;
 		}
 		std::pair<boost::uint16_t, bool> v(name, false);
 		std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i
