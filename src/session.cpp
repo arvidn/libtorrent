@@ -835,7 +835,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_SYNC_CALL_RET(dht_settings, get_dht_settings);
 #else
-		dht_settings ret;
+		dht_settings r;
 #endif
 		return r;
 	}
