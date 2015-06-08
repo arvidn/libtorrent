@@ -2,8 +2,7 @@ language: cpp
 
 before_script:
    - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; fi
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.54-all-dev; fi
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get upgrade libpython2.7-dev ; fi
+   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.54-all-dev libpython2.7-dev; fi
    - if [ $TRAVIS_OS_NAME == osx ]; then sudo brew install boost boost-build libpython27-dev; fi
    - echo "using gcc ;" >~/user-config.jam
    - echo "using clang ;" >>~/user-config.jam
