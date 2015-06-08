@@ -83,7 +83,9 @@ void bind_utility()
     to_python_converter<bytes, bytes_to_python>();
     bytes_from_python();
 
+#ifndef TORRENT_NO_DEPRECATE
     def("identify_client", &libtorrent::identify_client);
+#endif
     def("client_fingerprint", &client_fingerprint_);
     def("bdecode", &bdecode_);
     def("bencode", &bencode_);
