@@ -7,7 +7,8 @@ before_script:
    - echo "using gcc ;" >~/user-config.jam
    - echo "using clang ;" >>~/user-config.jam
    - echo -n "using python " >>~/user-config.jam
-   - echo ": 2.7 ;" >>~/user-config.jam
+   - echo -n ":" >>~/user-config.jam
+   - echo " 2.7 ;" >>~/user-config.jam
 
 script:
    - cd test
