@@ -141,8 +141,9 @@ test-suite libtorrent :
 		test_peer_classes.cpp
 		test_settings_pack.cpp
 		test_fence.cpp
-		test_dos_blocker.cpp
-		test_upnp.cpp ]
+		test_dos_blocker.cpp ]
+
+	[ run test_upnp.cpp ]
 
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]
