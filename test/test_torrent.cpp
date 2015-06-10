@@ -59,6 +59,8 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	std::vector<boost::uint8_t> zeroes;
 	zeroes.resize(1000, 0);
 	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = info;
 	p.save_path = ".";
 

@@ -5770,7 +5770,7 @@ namespace libtorrent
 		state_updated();
 		return true;
 	}
-	
+
 	bool torrent::unchoke_peer(peer_connection& c, bool optimistic)
 	{
 		INVARIANT_CHECK;
@@ -8297,7 +8297,7 @@ namespace libtorrent
 			m_ses.alerts().emplace_alert<torrent_checked_alert>(
 				get_handle());
 		}
-		
+
 		// calling pause will also trigger the auto managed
 		// recalculation
 		// if we just got here by downloading the metadata,
@@ -9429,7 +9429,7 @@ namespace libtorrent
 		m_web_seeds.push_back(ent);
 		m_need_save_resume_data = true;
 	}
-	
+
 	void torrent::set_allow_peers(bool b, bool graceful)
 	{
 		TORRENT_ASSERT(is_single_thread());

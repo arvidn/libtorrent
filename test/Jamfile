@@ -143,8 +143,6 @@ test-suite libtorrent :
 		test_fence.cpp
 		test_dos_blocker.cpp ]
 
-	[ run test_upnp.cpp ]
-
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]
 	[ run test_read_piece.cpp ]
@@ -179,10 +177,11 @@ test-suite libtorrent :
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
 	[ run test_time_critical.cpp ]
-	[ run test_lsd.cpp ]
 	[ run test_pex.cpp ]
 
 # make these test more reliable
+#	[ run test_upnp.cpp ]
+#	[ run test_lsd.cpp ]
 #	[ run test_priority.cpp ]
 #	[ run test_swarm.cpp ]
 #	[ run test_super_seeding.cpp ]

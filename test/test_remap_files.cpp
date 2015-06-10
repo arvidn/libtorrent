@@ -72,6 +72,10 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p2;
 
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 
@@ -229,6 +233,10 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p2;
 
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 
@@ -367,6 +375,10 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	session_proxy p2;
 
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 	lt::session ses1(sett);

@@ -635,7 +635,7 @@ void test_fastresume(std::string const& test_path)
 		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
 		if (!exists(combine_path(p.save_path, "temporary")))
 			return;
-				
+
 		torrent_status s;
 		for (int i = 0; i < 50; ++i)
 		{
@@ -678,12 +678,14 @@ void test_fastresume(std::string const& test_path)
 		lt::session ses(pack);
 
 		add_torrent_params p;
+		p.flags &= ~add_torrent_params::flag_paused;
+		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
 		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
-	
+
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
 			, "ses");
 		// we expect the fast resume to be rejected because the files were removed

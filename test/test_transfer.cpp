@@ -245,6 +245,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	add_torrent_params params;
 	params.storage_mode = storage_mode;
+	params.flags &= ~add_torrent_params::flag_paused;
+	params.flags &= ~add_torrent_params::flag_auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");

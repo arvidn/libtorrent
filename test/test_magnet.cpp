@@ -43,6 +43,8 @@ void test_remove_url(std::string url)
 {
 	lt::session s;
 	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.url = url;
 	p.save_path = ".";
 	torrent_handle h = s.add_torrent(p);
@@ -94,6 +96,8 @@ TORRENT_TEST(magnet)
 
 	// test magnet link parsing
 	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.save_path = ".";
 	error_code ec;
 	p.url = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"

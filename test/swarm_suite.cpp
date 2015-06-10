@@ -123,6 +123,8 @@ void test_swarm(int flags)
 	torrent_handle tor3;
 
 	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true

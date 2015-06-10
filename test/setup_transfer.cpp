@@ -627,7 +627,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 	std::vector<char> piece(piece_size);
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
-	
+
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
 	sha1_hash ph = hasher(&piece[0], piece.size()).final();
@@ -642,7 +642,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 			total_size -= piece.size();
 		}
 	}
-	
+
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char> > out(tmp);
 
@@ -770,7 +770,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
 
-  	if (use_metadata_transfer)
+	if (use_metadata_transfer)
 	{
 		param.ti.reset();
 		param.info_hash = t->info_hash();

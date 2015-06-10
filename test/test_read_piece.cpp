@@ -93,6 +93,8 @@ void test_read_piece(int flags)
 	lt::session ses(sett);
 
 	add_torrent_params p;
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.save_path = "tmp1_read_piece";
 	p.ti = ti;
 	if (flags & seed_mode)

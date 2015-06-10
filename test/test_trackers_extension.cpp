@@ -63,6 +63,8 @@ TORRENT_TEST(trackers_extension)
 	ses2.add_extension(create_lt_trackers_plugin);
 
 	add_torrent_params atp;
+	atp.flags &= ~add_torrent_params::flag_paused;
+	atp.flags &= ~add_torrent_params::flag_auto_managed;
 	atp.info_hash = sha1_hash("12345678901234567890");
 	atp.save_path = "./";
 	error_code ec;
