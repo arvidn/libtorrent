@@ -28,3 +28,6 @@ options are available. For python bindings, see `the python docs`__.
 .. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
     :target: https://travis-ci.org/arvidn/libtorrent
 
+.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
+
