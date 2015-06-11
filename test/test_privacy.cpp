@@ -263,22 +263,22 @@ TORRENT_TEST(socks5)
 
 TORRENT_TEST(socks5_pw)
 {
-	prtest_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
 }
 
 TORRENT_TEST(http)
 {
-	prtest_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
 }
 
 TORRENT_TEST(http_pt)
 {
-	prtest_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
 }
 
 TORRENT_TEST(i2p)
 {
-	prtest_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
 }
 
 // using anonymous mode
@@ -289,36 +289,36 @@ TORRENT_TEST(i2p)
 
 TORRENT_TEST(anon_no_proxy)
 {
-	prtest_proxy(settings_pack::none, force_proxy_mode | expect_peer_connection);
+	test_proxy(settings_pack::none, force_proxy_mode | expect_peer_connection);
 }
 
 TORRENT_TEST(anon_socks4)
 {
-	prtest_proxy(settings_pack::socks4, force_proxy_mode | expect_udp_reject);
+	test_proxy(settings_pack::socks4, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_socks5)
 {
-	prtest_proxy(settings_pack::socks5, force_proxy_mode);
+	test_proxy(settings_pack::socks5, force_proxy_mode);
 }
 
 TORRENT_TEST(anon_socks5_pw)
 {
-	prtest_proxy(settings_pack::socks5_pw, force_proxy_mode);
+	test_proxy(settings_pack::socks5_pw, force_proxy_mode);
 }
 
 TORRENT_TEST(anon_http)
 {
-	prtest_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
+	test_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_http_pw)
 {
-	prtest_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
+	test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_i2p)
 {
-	prtest_proxy(settings_pack::i2p_proxy, force_proxy_mode);
+	test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
 }
 
