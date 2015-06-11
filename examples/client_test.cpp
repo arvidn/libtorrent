@@ -375,7 +375,7 @@ FILE* g_log_file = 0;
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
 	const int table_size = 18;
-	
+
 	double piece_per_char = p.size() / double(width);
 	static std::string bar;
 	bar.clear();

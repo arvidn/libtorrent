@@ -242,45 +242,43 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	return pr;
 }
 
-session_proxy pr[20];
-
 // not using anonymous mode
 // UDP fails open if we can't connect to the proxy
 // or if the proxy doesn't support UDP
 
 TORRENT_TEST(no_proxy)
 {
-	pr[0] = test_proxy(settings_pack::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
+	test_proxy(settings_pack::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
 }
 
 TORRENT_TEST(socks4)
 {
-	pr[1] = test_proxy(settings_pack::socks4, expect_udp_connection | expect_dht_msg);
+	test_proxy(settings_pack::socks4, expect_udp_connection | expect_dht_msg);
 }
 
 TORRENT_TEST(socks5)
 {
-	pr[2] = test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_possible_dht_msg);
 }
 
 TORRENT_TEST(socks5_pw)
 {
-	pr[3] = test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
+	prtest_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
 }
 
 TORRENT_TEST(http)
 {
-	pr[4] = test_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
+	prtest_proxy(settings_pack::http, expect_udp_connection | expect_dht_msg);
 }
 
 TORRENT_TEST(http_pt)
 {
-	pr[5] = test_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
+	prtest_proxy(settings_pack::http_pw, expect_udp_connection | expect_dht_msg);
 }
 
 TORRENT_TEST(i2p)
 {
-	pr[6] = test_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
+	prtest_proxy(settings_pack::i2p_proxy, expect_udp_connection | expect_dht_msg);
 }
 
 // using anonymous mode
@@ -291,36 +289,36 @@ TORRENT_TEST(i2p)
 
 TORRENT_TEST(anon_no_proxy)
 {
-	pr[7] = test_proxy(settings_pack::none, force_proxy_mode | expect_peer_connection);
+	prtest_proxy(settings_pack::none, force_proxy_mode | expect_peer_connection);
 }
 
 TORRENT_TEST(anon_socks4)
 {
-	pr[8] = test_proxy(settings_pack::socks4, force_proxy_mode | expect_udp_reject);
+	prtest_proxy(settings_pack::socks4, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_socks5)
 {
-	pr[9] = test_proxy(settings_pack::socks5, force_proxy_mode);
+	prtest_proxy(settings_pack::socks5, force_proxy_mode);
 }
 
 TORRENT_TEST(anon_socks5_pw)
 {
-	pr[10] = test_proxy(settings_pack::socks5_pw, force_proxy_mode);
+	prtest_proxy(settings_pack::socks5_pw, force_proxy_mode);
 }
 
 TORRENT_TEST(anon_http)
 {
-	pr[11] = test_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
+	prtest_proxy(settings_pack::http, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_http_pw)
 {
-	pr[12] = test_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
+	prtest_proxy(settings_pack::http_pw, force_proxy_mode | expect_udp_reject);
 }
 
 TORRENT_TEST(anon_i2p)
 {
-	pr[13] = test_proxy(settings_pack::i2p_proxy, force_proxy_mode);
+	prtest_proxy(settings_pack::i2p_proxy, force_proxy_mode);
 }
 
