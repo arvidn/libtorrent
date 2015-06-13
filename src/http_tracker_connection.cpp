@@ -168,10 +168,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			if (i2p && tracker_req().i2pconn)
 			{
-				url += "&ip=";
-				url += escape_string(tracker_req().i2pconn->local_endpoint().c_str()
-					, tracker_req().i2pconn->local_endpoint().size());
-				url += ".i2p";
+				url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
 			}
 			else
 #endif
