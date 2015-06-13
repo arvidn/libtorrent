@@ -62,13 +62,15 @@ using namespace libtorrent;
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
+bool redirect_output = true;
 
 // the current tests file descriptor
 unit_test_t* current_test = NULL;
 
 void output_test_log_to_terminal()
 {
-	if (current_test == NULL || old_stdout == -1 || old_stderr == -1)
+	if (current_test == NULL || old_stdout == -1 || old_stderr == -1
+		|| !redirect_output)
 		return;
 
 	fflush(stdout);
@@ -109,6 +111,8 @@ void sig_handler(int sig)
 #ifdef SIGBUS
 		SIG(SIGBUS);
 #endif
+		SIG(SIGINT);
+		SIG(SIGTERM);
 		SIG(SIGILL);
 		SIG(SIGABRT);
 		SIG(SIGFPE);
@@ -124,44 +128,59 @@ void sig_handler(int sig)
 	exit(138);
 }
 
-void print_usage(char const* argv[])
+void print_usage(char const* executable)
 {
 	printf("%s [options] [tests...]\n"
 		"\n"
 		"OPTIONS:\n"
 		"-h,--help           show this help\n"
 		"-l,--list           list the tests available to run\n"
+		"-n,--no-redirect    don't redirect test output to\n"
+		"                    temporary file, but let it go straight\n"
+		"                    to stdout\n"
 		"\n"
 		"for tests, specify one or more test names as printed\n"
-		"by -l. If no test is specified, all tests are run\n", argv[0]);
+		"by -l. If no test is specified, all tests are run\n", executable);
 }
 
 int main(int argc, char const* argv[])
 {
-	if (argc > 1
-		&& (strcmp(argv[1], "-h") == 0
-			|| strcmp(argv[1], "--help") == 0))
-	{
-		print_usage(argv);
-		return 0;
-	}
+	char const* executable = argv[0];
+	// skip executable name
+	++argv;
+	--argc;
 
-	if (argc > 1
-		&& (strcmp(argv[1], "-l") == 0
-		|| strcmp(argv[1], "--list") == 0))
+	// pick up options
+	while (argc > 0 && argv[0][0] == '-')
 	{
-		printf("TESTS:\n");
-		for (int i = 0; i < _g_num_unit_tests; ++i)
+		if (strcmp(argv[0], "-h") == 0 || strcmp(argv[0], "--help") == 0)
 		{
-			printf(" - %s\n", _g_unit_tests[i].name);
+			print_usage(executable);
+			return 0;
 		}
-		return 0;
+
+		if (strcmp(argv[0], "-l") == 0 || strcmp(argv[0], "--list") == 0)
+		{
+			printf("TESTS:\n");
+			for (int i = 0; i < _g_num_unit_tests; ++i)
+			{
+				printf(" - %s\n", _g_unit_tests[i].name);
+			}
+			return 0;
+		}
+
+		if (strcmp(argv[0], "-n") == 0 || strcmp(argv[0], "--no-redirect") == 0)
+		{
+			redirect_output = false;
+		}
+		++argv;
+		--argc;
 	}
 
 	std::set<std::string> tests_to_run;
 	bool filter = false;
 
-	for (int i = 1; i < argc; ++i)
+	for (int i = 0; i < argc; ++i)
 	{
 		tests_to_run.insert(argv[i]);
 		filter = true;
@@ -222,8 +241,11 @@ int main(int argc, char const* argv[])
 		return 1;
 	}
 
-	old_stdout = dup(fileno(stdout));
-	old_stderr = dup(fileno(stderr));
+	if (redirect_output)
+	{
+		old_stdout = dup(fileno(stdout));
+		old_stderr = dup(fileno(stderr));
+	}
 
 	int num_run = 0;
 	for (int i = 0; i < _g_num_unit_tests; ++i)
@@ -233,18 +255,21 @@ int main(int argc, char const* argv[])
 
 		unit_test_t& t = _g_unit_tests[i];
 
-		// redirect test output to a temporary file
-		fflush(stdout);
-		fflush(stderr);
-
-		t.output = tmpfile();
-		int ret1 = dup2(fileno(t.output), fileno(stdout));
-		int ret2 = dup2(fileno(t.output), fileno(stderr));
-		if (ret1 < 0 /*|| ret2 < 0*/)
+		if (redirect_output)
 		{
-			fprintf(stderr, "failed to redirect output: (%d) %s\n"
-				, errno, strerror(errno));
-			continue;
+			// redirect test output to a temporary file
+			fflush(stdout);
+			fflush(stderr);
+
+			t.output = tmpfile();
+			int ret1 = dup2(fileno(t.output), fileno(stdout));
+			int ret2 = dup2(fileno(t.output), fileno(stderr));
+			if (ret1 < 0 /*|| ret2 < 0*/)
+			{
+				fprintf(stderr, "failed to redirect output: (%d) %s\n"
+					, errno, strerror(errno));
+				continue;
+			}
 		}
 
 		current_test = &t;
@@ -282,11 +307,17 @@ int main(int argc, char const* argv[])
 		total_failures += _g_test_failures;
 		++num_run;
 
-		fclose(t.output);
+		if (redirect_output)
+		{
+			fclose(t.output);
+		}
 	}
 
-	dup2(old_stdout, fileno(stdout));
-	dup2(old_stderr, fileno(stderr));
+	if (redirect_output)
+	{
+		dup2(old_stdout, fileno(stdout));
+		dup2(old_stderr, fileno(stderr));
+	}
 
 	if (!tests_to_run.empty())
 	{
@@ -312,8 +343,11 @@ int main(int argc, char const* argv[])
 	stop_peer();
 	stop_dht();
 
-	fflush(stdout);
-	fflush(stderr);
+	if (redirect_output)
+	{
+		fflush(stdout);
+		fflush(stderr);
+	}
 
 	int ret = print_failures();
 #if !defined TORRENT_LOGGING
