@@ -184,7 +184,7 @@ namespace libtorrent
 			}
 			else
 			{
-				iothread->set_num_threads(0);
+				iothread->abort(true);
 			}
 			iothread->submit_jobs();
 		}
@@ -211,7 +211,7 @@ namespace libtorrent
 		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), default_pred, flags);
 	}
-	
+
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, boost::function<void(int)> f, error_code& ec)
 	{
@@ -264,6 +264,7 @@ namespace libtorrent
 		boost::shared_ptr<char> dummy;
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt, 0);
+		disk_thread.set_num_threads(1);
 
 		storage_params params;
 		params.files = &t.files();

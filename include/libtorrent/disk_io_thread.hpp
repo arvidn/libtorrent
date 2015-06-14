@@ -293,6 +293,8 @@ namespace libtorrent
 		void set_settings(settings_pack const* sett, alert_manager& alerts);
 		void set_num_threads(int i, bool wait = true);
 
+		void abort(bool wait);
+
 		void async_read(piece_manager* storage, peer_request const& r
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester
 			, int flags = 0);
@@ -382,7 +384,8 @@ namespace libtorrent
 			hasher_thread
 		};
 
-		void thread_fun(int thread_id, thread_type_t type);
+		void thread_fun(int thread_id, thread_type_t type
+			, boost::shared_ptr<io_service::work> w);
 
 		file_pool& files() { return m_file_pool; }
 
@@ -454,8 +457,9 @@ namespace libtorrent
 		void perform_job(disk_io_job* j, tailqueue& completed_jobs);
 
 		// this queues up another job to be submitted
-		void add_job(disk_io_job* j);
-		void add_fence_job(piece_manager* storage, disk_io_job* j);
+		void add_job(disk_io_job* j, bool user_add = true);
+		void add_fence_job(piece_manager* storage, disk_io_job* j
+			, bool user_add = true);
 
 		// assumes l is locked (cache mutex).
 		// writes out the blocks [start, end) (releases the lock
@@ -505,10 +509,18 @@ namespace libtorrent
 		// used to batch reclaiming of blocks to once per cycle
 		void commit_reclaimed_blocks();
 
+		void maybe_flush_write_blocks();
+		void execute_job(disk_io_job* j);
+		void immediate_execute();
+		void abort_jobs();
+
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
 		boost::atomic<int> m_num_threads;
+
+		// set to true once we start shutting down
+		boost::atomic<bool> m_abort;
 
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
@@ -558,18 +570,6 @@ namespace libtorrent
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
-
-		// this keeps the io_service::run() call blocked from
-		// returning. When shutting down, it's possible that
-		// the event queue is drained before the disk_io_thread
-		// has posted its last callback. When this happens, the
-		// io_service will have a pending callback from the
-		// disk_io_thread, but the event loop is not running.
-		// this means that the event is destructed after the
-		// disk_io_thread. If the event refers to a disk buffer
-		// it will try to free it, but the buffer pool won't
-		// exist anymore, and crash. This prevents that.
-		boost::optional<io_service::work> m_work;
 
 		// used to wake up the disk IO thread when there are new
 		// jobs on the job queue (m_queued_jobs)

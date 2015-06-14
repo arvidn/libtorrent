@@ -1083,10 +1083,17 @@ namespace aux {
 
 		m_undead_peers.clear();
 
+		// give all the sockets an opportunity to actually have their handlers
+		// called and cancelled before we continue the shutdown
+		m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+	}
+
+	void session_impl::abort_stage2()
+	{
 		// it's OK to detach the threads here. The disk_io_thread
 		// has an internal counter and won't release the network
 		// thread until they're all dead (via m_work).
-		m_disk_thread.set_num_threads(0, false);
+		m_disk_thread.abort(false);
 
 		// now it's OK for the network thread to exit
 		m_work.reset();
@@ -5819,8 +5826,8 @@ retry:
 
 	void session_impl::update_disk_threads()
 	{
-		if (m_settings.get_int(settings_pack::aio_threads) < 1)
-			m_settings.set_int(settings_pack::aio_threads, 1);
+		if (m_settings.get_int(settings_pack::aio_threads) < 0)
+			m_settings.set_int(settings_pack::aio_threads, 0);
 
 #if !TORRENT_USE_PREAD && !TORRENT_USE_PREADV
 		// if we don't have pread() nor preadv() there's no way

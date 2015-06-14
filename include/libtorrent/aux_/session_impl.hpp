@@ -475,6 +475,7 @@ namespace libtorrent
 			disk_interface& disk_thread() { return m_disk_thread; }
 
 			void abort();
+			void abort_stage2();
 
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
 

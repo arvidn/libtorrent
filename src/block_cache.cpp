@@ -1721,7 +1721,7 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	// the cache, and we're not currently reading it in either
 	// since it's not pending
 
-	if (inc_block_refcount(pe, start_block, ref_reading) == false) 
+	if (inc_block_refcount(pe, start_block, ref_reading) == false)
 	{
 		TORRENT_ASSERT(!expect_no_fail);
 		return -1;
@@ -1734,7 +1734,9 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	{
 		// special case for block aligned request
 		// don't actually copy the buffer, just reference
-		// the existing block
+		// the existing block. Which means we don't want to decrement the
+		// refcount, we're handing the ownership of the reference to the calling
+		// thread.
 		cached_block_entry& bl = pe->blocks[start_block];
 
 		// make sure it didn't wrap

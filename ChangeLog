@@ -1,3 +1,4 @@
+	* support using 0 disk threads (to perform disk I/O in network thread)
 	* removed deprecated handle_alert template
 	* enable logging build config by default (but alert mask disabled by default)
 	* deprecated RSS API
