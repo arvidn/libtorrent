@@ -12,8 +12,8 @@ before_script:
 
 script:
    - cd test
-   - bjam -j2 warnings=off -l600 $CC
-   - bjam -j2 variant=test_debug warnings=off -l600 $CC
+   - bjam -j2 warnings=off -l900 $CC
+   - bjam -j2 variant=test_debug warnings=off -l900 $CC
    - cd ../examples
    - bjam -j2 variant=test_debug warnings=off $CC
    - bjam -j2 variant=test_barebones warnings=off $CC
