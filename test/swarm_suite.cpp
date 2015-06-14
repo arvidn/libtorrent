@@ -111,11 +111,12 @@ void test_swarm(int flags)
 
 	lt::session ses1(pack);
 
-	ses1.apply_settings(pack);
-
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49000");
 	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
 	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
 	lt::session ses2(pack);
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:50000");
 	lt::session ses3(pack);
 
 	torrent_handle tor1;
