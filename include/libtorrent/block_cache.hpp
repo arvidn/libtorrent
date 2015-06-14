@@ -242,7 +242,7 @@ namespace libtorrent
 		// piece, and returned it. This is set to one
 		boost::uint32_t hashing_done:1;
 
-		// if this is true, whenever refcount hits 0, 
+		// if this is true, whenever refcount hits 0,
 		// this piece should be deleted
 		boost::uint32_t marked_for_deletion:1;
 
@@ -309,10 +309,10 @@ namespace libtorrent
 		// the number of blocks that have >= 1 refcount
 		boost::uint32_t pinned:16;
 
-		//	---- 32 bit boundary ---
+		// ---- 32 bit boundary ---
 
 		// the sum of all refcounts in all blocks
-		boost::uint32_t refcount;	
+		boost::uint32_t refcount;
 
 #if TORRENT_USE_ASSERTS
 		// the number of times this piece has finished hashing

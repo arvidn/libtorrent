@@ -171,8 +171,17 @@ void test_checking(int flags = read_only_files)
 		}
 	}
 
+	int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+
 	settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, alert::all_categories);
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 	lt::session ses1(pack);
@@ -184,7 +193,7 @@ void test_checking(int flags = read_only_files)
 	TEST_CHECK(!ec);
 
 	torrent_status st;
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 20; ++i)
 	{
 		print_alerts(ses1, "ses1");
 
@@ -201,7 +210,7 @@ void test_checking(int flags = read_only_files)
 			break;
 
 		if (!st.error.empty()) break;
-		test_sleep(1000);
+		test_sleep(500);
 	}
 	if (flags & incomplete_files)
 	{
@@ -227,7 +236,7 @@ void test_checking(int flags = read_only_files)
 
 			// wait a while to make sure libtorrent survived the error
 			test_sleep(1000);
-   
+
 			st = tor1.status();
 			TEST_CHECK(!st.is_seeding);
 			TEST_CHECK(!st.error.empty());
@@ -278,9 +287,25 @@ void test_checking(int flags = read_only_files)
 TORRENT_TEST(checking)
 {
 	test_checking();
+}
+
+TORRENT_TEST(read_only_corrupt)
+{
 	test_checking(read_only_files | corrupt_files);
+}
+
+TORRENT_TEST(read_only)
+{
 	test_checking(read_only_files);
+}
+
+TORRENT_TEST(incomplete)
+{
 	test_checking(incomplete_files);
+}
+
+TORRENT_TEST(corrupt)
+{
 	test_checking(corrupt_files);
 }
 

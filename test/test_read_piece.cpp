@@ -87,7 +87,17 @@ void test_read_piece(int flags)
 	fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
 
+	const int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_int(settings_pack::alert_mask, mask);
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48000");
 	sett.set_int(settings_pack::alert_mask, alert::all_categories);
 	lt::session ses(sett);
@@ -138,7 +148,15 @@ void test_read_piece(int flags)
 TORRENT_TEST(read_piece)
 {
 	test_read_piece(0);
+}
+
+TORRENT_TEST(seed_mode)
+{
 	test_read_piece(seed_mode);
+}
+
+TORRENT_TEST(time_critical)
+{
 	test_read_piece(time_critical);
 }
 

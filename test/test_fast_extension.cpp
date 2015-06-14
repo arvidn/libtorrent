@@ -81,8 +81,8 @@ int read_message(tcp::socket& s, char* buffer, int max_size)
 		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
-		if (ec) TEST_ERROR(ec.message());
-		return 0;
+		TEST_ERROR(ec.message());
+		return -1;
 	}
 	char* ptr = buffer;
 	int length = read_int32(ptr);
@@ -97,8 +97,8 @@ int read_message(tcp::socket& s, char* buffer, int max_size)
 		, boost::asio::transfer_all(), ec);
 	if (ec)
 	{
-		if (ec) TEST_ERROR(ec.message());
-		return 0;
+		TEST_ERROR(ec.message());
+		return -1;
 	}
 	return length;
 }
@@ -454,6 +454,7 @@ TORRENT_TEST(reject_fast)
 	{
 		print_session_log(*ses);
 		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		if (len == -1) break;
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
 		if (msg != 0x6) continue;
@@ -529,6 +530,7 @@ TORRENT_TEST(reject_suggest)
 	{
 		print_session_log(*ses);
 		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		if (len == -1) break;
 		print_message(recv_buffer, len);
 		int msg = recv_buffer[0];
 		fail_counter--;
@@ -673,6 +675,7 @@ TORRENT_TEST(dont_have)
 		print_session_log(*ses);
 
 		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		if (len == -1) break;
 		print_message(recv_buffer, len);
 		if (len == 0) continue;
 		int msg = recv_buffer[0];
@@ -791,4 +794,7 @@ TORRENT_TEST(invalid_metadata_request)
 
 	print_session_log(*ses);
 }
+
+// TODO: test sending invalid requests (out of bound piece index, offsets and
+// sizes)
 

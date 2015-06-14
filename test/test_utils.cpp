@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	char const* time_now_string()
 	{
 		static const time_point start = clock_type::now();

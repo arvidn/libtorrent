@@ -69,7 +69,7 @@ void test_swarm(int flags)
 	session_proxy p2;
 	session_proxy p3;
 
-	int mask = alert::all_categories
+	const int mask = alert::all_categories
 		& ~(alert::progress_notification
 			| alert::performance_warning
 			| alert::stats_notification);
