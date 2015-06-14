@@ -238,7 +238,7 @@ namespace libtorrent
 				// event refers to a disk buffer it will try to free it, but the
 				// buffer pool won't exist anymore, and crash. This prevents that.
 				boost::shared_ptr<io_service::work> work =
-					boost::make_shared<io_service::work>(m_ios);
+					boost::make_shared<io_service::work>(boost::ref(m_ios));
 
 				// the magic number 3 is also used in add_job()
 				// every 4:th thread is a hasher thread
