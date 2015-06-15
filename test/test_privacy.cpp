@@ -113,6 +113,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
