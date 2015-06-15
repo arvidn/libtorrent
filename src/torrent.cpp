@@ -1156,9 +1156,6 @@ namespace libtorrent
 			alerts().emplace_alert<file_error_alert>(j->error.ec
 				, resolve_filename(j->error.file), j->error.operation_str(), get_handle());
 
-		// put the torrent in an error-state
-		set_error(j->error.ec, j->error.file);
-
 		// if a write operation failed, and future writes are likely to
 		// fail, while reads may succeed, just set the torrent to upload mode
 		// if we make an incorrect assumption here, it's not the end of the
@@ -1181,6 +1178,9 @@ namespace libtorrent
 			set_upload_mode(true);
 			return;
 		}
+
+		// put the torrent in an error-state
+		set_error(j->error.ec, j->error.file);
 
 		// if the error appears to be more serious than a full disk, just pause the torrent
 		pause();

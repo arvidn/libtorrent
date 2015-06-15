@@ -311,6 +311,9 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			print_alerts(ses1, "ses1", true, true, true, &on_alert);
 			print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
+			std::string err = tor2.status().error;
+			fprintf(stderr, "error: \"%s\"\n", err.c_str());
+			TEST_CHECK(err.empty());
 			tor2.set_upload_mode(false);
 
 			// at this point we probably disconnected the seed
