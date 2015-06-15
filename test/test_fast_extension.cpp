@@ -636,6 +636,7 @@ TORRENT_TEST(multiple_have_all)
 	print_session_log(*ses);
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 // makes sure that pieces that are lost are not requested
 TORRENT_TEST(dont_have)
 {
@@ -794,6 +795,8 @@ TORRENT_TEST(invalid_metadata_request)
 
 	print_session_log(*ses);
 }
+
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 // TODO: test sending invalid requests (out of bound piece index, offsets and
 // sizes)
