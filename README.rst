@@ -1,6 +1,15 @@
 libtorrent
 ----------
 
+.. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
+    :target: https://travis-ci.org/arvidn/libtorrent
+
+.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
+
+.. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
+    :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample
+
 libtorrent is an open source C++ library implementing the BitTorrent protocol,
 along with most popular extensions, making it suitable for real world
 deployment. It is configurable to be able to fit both servers and embedded
@@ -24,10 +33,4 @@ options are available. For python bindings, see `the python docs`__.
 
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
-
-.. image:: https://travis-ci.org/arvidn/libtorrent.svg?branch=master
-    :target: https://travis-ci.org/arvidn/libtorrent
-
-.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
 
