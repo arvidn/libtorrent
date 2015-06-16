@@ -260,6 +260,10 @@ TORRENT_TEST(udp_tracker)
 #ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_int(settings_pack::alert_mask, alert_mask);
@@ -326,6 +330,10 @@ TORRENT_TEST(try_next)
 #ifndef TORRENT_NO_DEPRECATE
 	pack.set_int(settings_pack::half_open_limit, 1);
 #endif
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, false);
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
