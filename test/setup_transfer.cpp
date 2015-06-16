@@ -321,7 +321,7 @@ bool downloading_done = false;
 bool downloading_alert(libtorrent::alert const* a)
 {
 	state_changed_alert const* sc = alert_cast<state_changed_alert>(a);
-	if (sc && sc->state == torrent_status::downloading) 
+	if (sc && sc->state == torrent_status::downloading)
 		downloading_done = true;
 	return true;
 }
@@ -795,13 +795,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 	if (connect_peers)
 	{
-		std::auto_ptr<alert> a;
-/*		do
-		{
-			a = wait_for_alert(*ses2, state_changed_alert::alert_type, "ses2");
-		} while (static_cast<state_changed_alert*>(a.get())->state != torrent_status::downloading);
-*/
-//		wait_for_alert(*ses1, torrent_finished_alert::alert_type, "ses1");
+		wait_for_downloading(*ses2, "ses2");
 
 		error_code ec;
 		int port = 0;
@@ -820,6 +814,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		{
 			// give the other peers some time to get an initial
 			// set of pieces before they start sharing with each-other
+
+			wait_for_downloading(*ses3, "ses3");
 
 			port = 0;
 			int port2 = 0;
