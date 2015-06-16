@@ -140,7 +140,7 @@ namespace libtorrent
 	void bt_peer_connection::start()
 	{
 		peer_connection::start();
-		
+
 		// start in the state where we are trying to read the
 		// handshake from the other side
 		m_recv_buffer.reset(20);
@@ -185,7 +185,7 @@ namespace libtorrent
 		cork c_(*this);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		
+
 		boost::uint8_t out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
 
 #ifdef TORRENT_USE_OPENSSL
@@ -245,14 +245,14 @@ namespace libtorrent
 #endif
 		{
 			write_handshake();
-			
+
 			// start in the state where we are trying to read the
 			// handshake from the other side
 			m_recv_buffer.reset(20);
 			setup_receive();
 		}
 	}
-	
+
 	void bt_peer_connection::on_metadata()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -489,10 +489,10 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_rc4_encrypted);
 		TORRENT_ASSERT(is_outgoing());
 		TORRENT_ASSERT(!m_sent_handshake);
-		
+
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		
+
 		hasher h;
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		char const* const secret = m_dh_key_exchange->get_secret();
@@ -1083,7 +1083,7 @@ namespace libtorrent
 		bitfield bits;
 		bits.assign((char*)recv_buffer.begin + 1
 			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*8);
-		
+
 		incoming_bitfield(bits);
 	}
 
@@ -1124,7 +1124,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(received >= 0);
-		
+
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 		int recv_pos = m_recv_buffer.pos(); // recv_buffer.end - recv_buffer.begin;
 
@@ -1374,7 +1374,7 @@ namespace libtorrent
 
 		const char* ptr = recv_buffer.begin + 1;
 		int listen_port = detail::read_uint16(ptr);
-		
+
 		incoming_dht_port(listen_port);
 
 		if (!m_supports_dht_port)

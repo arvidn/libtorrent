@@ -1057,6 +1057,9 @@ namespace libtorrent
 				, end(m_connections.end()); i != end; ++i)
 			{
 				peer_connection* p = (*i);
+				// we may want to disconnect other upload-only peers
+				if (p->upload_only())
+					p->update_interest();
 				p->cancel_all_requests();
 			}
 			// this is used to try leaving upload only mode periodically
@@ -1076,6 +1079,8 @@ namespace libtorrent
 				, end(m_connections.end()); i != end; ++i)
 			{
 				peer_connection* p = (*i);
+				// we may be interested now, or no longer interested
+				p->update_interest();
 				p->send_block_requests();
 			}
 		}

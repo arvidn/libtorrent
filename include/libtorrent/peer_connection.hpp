@@ -389,7 +389,7 @@ namespace libtorrent
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
 		void announce_piece(int index);
-		
+
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
 		void superseed_piece(int replace_piece, int new_piece);
