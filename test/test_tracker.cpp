@@ -307,6 +307,19 @@ TORRENT_TEST(udp_tracker)
 	// we should have announced to the tracker by now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
+	s->remove_torrent(h);
+
+	for (int i = 0; i < 50; ++i)
+	{
+		print_alerts(*s, "s", true, true);
+		if (num_udp_announces() == prev_udp_announces + 2)
+			break;
+
+		test_sleep(100);
+		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+			, int(prev_udp_announces) + 1);
+	}
+
 	fprintf(stderr, "destructing session\n");
 	s.reset();
 	fprintf(stderr, "done\n");
