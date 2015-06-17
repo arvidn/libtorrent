@@ -38,14 +38,25 @@ using namespace libtorrent;
 
 const int proxy = libtorrent::settings_pack::socks4;
 
-TORRENT_TEST(web_seed_socks4)
-{
-	for (int url_seed = 0; url_seed < 2; ++url_seed)
-	{
 #ifdef TORRENT_USE_OPENSSL
-		run_http_suite(proxy, "https", url_seed);
+TORRENT_TEST(http_seed_ssl)
+{
+	run_http_suite(proxy, "https", 0);
+}
+
+TORRENT_TEST(url_seed_ssl)
+{
+	run_http_suite(proxy, "https", 1);
+}
 #endif
-		run_http_suite(proxy, "http", url_seed);
-	}
+
+TORRENT_TEST(http_seed)
+{
+	run_http_suite(proxy, "http", 0);
+}
+
+TORRENT_TEST(url_seed)
+{
+	run_http_suite(proxy, "http", 1);
 }
 
