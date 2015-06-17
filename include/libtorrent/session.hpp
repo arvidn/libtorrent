@@ -1218,7 +1218,7 @@ namespace libtorrent
 		// 
 		// deprecated. use settings_pack::enable_upnp instead
 		TORRENT_DEPRECATED
- 		void start_upnp();
+		void start_upnp();
 		TORRENT_DEPRECATED
 		void stop_upnp();
 

@@ -721,6 +721,8 @@ void bind_session()
         .def("is_paused", allow_threads(&lt::session::is_paused))
         .def("id", allow_threads(&lt::session::id))
         .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
+        .def("add_port_mapping", allow_threads(&session::add_port_mapping))
+        .def("delete_port_mapping", allow_threads(&session::delete_port_mapping))
 
 #ifndef TORRENT_NO_DEPRECATE
         .def(
@@ -772,6 +774,11 @@ void bind_session()
         .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
 #endif // TORRENT_NO_DEPRECATE
         ;
+
+    enum_<session::protocol_type>("protocol_type")
+        .value("udp", session::udp)
+        .value("tcp", session::tcp)
+    ;
 
     enum_<lt::session::save_state_flags_t>("save_state_flags_t")
         .value("save_settings", lt::session::save_settings)
