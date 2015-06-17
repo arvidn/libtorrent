@@ -1,3 +1,4 @@
+	* add missing port mapping functions to python binding
 	* fix bound-checking issue in bdecoder
 	* expose missing dht_settings fields to python
 	* add function to query the DHT settings

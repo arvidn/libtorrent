@@ -1026,7 +1026,7 @@ namespace libtorrent
 		// until ``stop_upnp()`` is called. See upnp-and-nat-pmp_.
 		// 
 		// It is off by default.
- 		void start_upnp();
+		void start_upnp();
 		void stop_upnp();
 
 		// protocols used by add_port_mapping()
@@ -1051,7 +1051,7 @@ namespace libtorrent
 		// It is off by default.
 		void start_natpmp();
 		void stop_natpmp();
-		
+
 	private:
 
 		void init(std::pair<int, int> listen_range, char const* listen_interface
