@@ -414,11 +414,17 @@ namespace libtorrent
 			}
 		}
 
-		if (result != i2p_error::no_error)
+		switch (result)
 		{
-			error_code ec(result, get_i2p_category());
-			handle_error(ec, h);
-			return;
+			case i2p_error::no_error:
+			case i2p_error::invalid_key:
+				break;
+			default:
+			{
+				error_code ec (result, get_i2p_category ());
+				handle_error (ec, h);
+				return;
+			}
 		}
 
 		switch (m_state)
