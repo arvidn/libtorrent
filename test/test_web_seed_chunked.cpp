@@ -50,12 +50,12 @@ TORRENT_TEST(url_seed_ssl)
 }
 #endif
 
-TORRENT_TEST(web_seed_ssl)
+TORRENT_TEST(web_seed)
 {
 	run_http_suite(proxy, "http", 0, 1, 0);
 }
 
-TORRENT_TEST(url_seed_ssl)
+TORRENT_TEST(url_seed)
 {
 	run_http_suite(proxy, "http", 1, 1, 0);
 }
