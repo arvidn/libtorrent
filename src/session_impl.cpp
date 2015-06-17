@@ -3042,8 +3042,11 @@ retry:
 			if (!p->associated_torrent().expired()) continue;
 
 			// TODO: have a separate list for these connections, instead of having to loop through all of them
-			if (m_last_tick - p->connected_time()
-				> seconds(m_settings.get_int(settings_pack::handshake_timeout)))
+			int timeout = m_settings.get_int(settings_pack::handshake_timeout);
+#if TORRENT_USE_I2P
+			timeout *= is_i2p(*p->get_socket()) ? 4 : 1;
+#endif
+			if (m_last_tick - p->connected_time () > seconds(timeout))
 				p->disconnect(errors::timed_out, op_bittorrent);
 		}
 
