@@ -321,15 +321,23 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string base32encode(std::string const& s)
+	std::string base32encode(std::string const& s, int flags)
 	{
-		static const char base32_table[] =
+		static const char base32_table_canonical[] =
 		{
 			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
 			'Y', 'Z', '2', '3', '4', '5', '6', '7'
 		};
+		static const char base32_table_lowercase[] =
+		{
+			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+			'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+			'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
+			'y', 'z', '2', '3', '4', '5', '6', '7'
+		};
+		const char *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
 		int input_output_mapping[] = {0, 2, 4, 5, 7, 8};
 		
@@ -365,10 +373,13 @@ namespace libtorrent
 				ret += base32_table[outbuf[j]];
 			}
 
-			// write pad
-			for (int j = 0; j < 8 - num_out; ++j)
+			if (0 == (flags & string::no_padding))
 			{
-				ret += '=';
+				// write pad
+				for (int j = 0; j < 8 - num_out; ++j)
+				{
+					ret += '=';
+				}
 			}
 		}
 		return ret;

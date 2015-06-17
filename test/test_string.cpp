@@ -118,6 +118,11 @@ TORRENT_TEST(string)
    TEST_CHECK(base32encode("fooba") == "MZXW6YTB");
    TEST_CHECK(base32encode("foobar") == "MZXW6YTBOI======");
 
+	// base32 for i2p
+	TEST_CHECK(base32encode("fo", string::no_padding) == "MZXQ");
+	TEST_CHECK(base32encode("foob", string::i2p) == "mzxw6yq");
+	TEST_CHECK(base32encode("foobar", string::lowercase) == "mzxw6ytboi======");
+
    TEST_CHECK(base32decode("") == "");
    TEST_CHECK(base32decode("MY======") == "f");
    TEST_CHECK(base32decode("MZXQ====") == "fo");
