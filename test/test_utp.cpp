@@ -63,7 +63,17 @@ void test_transfer()
 	session_proxy p1;
 	session_proxy p2;
 
+	const int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
+
 	settings_pack pack;
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	pack.set_bool(settings_pack::enable_outgoing_tcp, false);
@@ -98,9 +108,9 @@ void test_transfer()
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
 #ifdef TORRENT_USE_VALGRIND
-	const int timeout = 12;
+	const int timeout = 16;
 #else
-	const int timeout = 6;
+	const int timeout = 8;
 #endif
 
 	for (int i = 0; i < timeout; ++i)
