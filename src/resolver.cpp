@@ -103,6 +103,18 @@ namespace libtorrent
 			}
 		}
 
+		// special handling for raw IP addresses. There's no need to get in line
+		// behind actual lookups if we can just resolve it immediately.
+		error_code ec;
+		address ip = address::from_string(host.c_str(), ec);
+		if (!ec)
+		{
+			std::vector<address> addresses;
+			addresses.push_back(ip);
+			m_ios.post(boost::bind(h, ec, addresses));
+			return;
+		}
+
 		// the port is ignored
 		tcp::resolver::query q(host, "80");
 

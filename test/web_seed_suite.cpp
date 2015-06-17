@@ -105,7 +105,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		, keepalive ? "yes" : "no");
 
 	int proxy_port = 0;
-
 	if (proxy)
 	{
 		proxy_port = start_proxy(proxy);
@@ -382,11 +381,16 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	}
 */
 	{
+		const int mask = alert::all_categories
+			& ~(alert::progress_notification
+				| alert::performance_warning
+				| alert::stats_notification);
+
 		settings_pack pack;
 		pack.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:51000");
 		pack.set_int(settings_pack::max_retry_port_bind, 1000);
-		pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+		pack.set_int(settings_pack::alert_mask, mask);
 		pack.set_bool(settings_pack::enable_lsd, false);
 		pack.set_bool(settings_pack::enable_natpmp, false);
 		pack.set_bool(settings_pack::enable_upnp, false);

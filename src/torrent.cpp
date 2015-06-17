@@ -6122,10 +6122,6 @@ namespace libtorrent
 			return;
 		}
 
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("resolving web seed: %s", web->url.c_str());
-#endif
-
 		proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == settings_pack::http
 			|| ps.type == settings_pack::http_pw)
@@ -6149,7 +6145,7 @@ namespace libtorrent
 		else
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("resolving web seed: %s", web->url.c_str());
+			debug_log("resolving web seed: \"%s\" %s", hostname.c_str(), web->url.c_str());
 #endif
 
 			web->resolving = true;
