@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+// TODO: test scrape requests
+
 int test_main()
 {
 	int http_port = start_web_server();
