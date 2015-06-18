@@ -190,13 +190,18 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 	}
 }
 
-#endif
+void print_key(char const* key)
+{
+	for (int i = 0;i < 96; ++i)
+	{
+		printf("%02x ", unsigned(key[i]));
+	}
+	printf("\n");
+}
 
-TORRENT_TEST(test_pe_crypto)
+TORRENT_TEST(diffie_hellman)
 {
 	using namespace libtorrent;
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 #ifdef TORRENT_USE_VALGRIND
 	const int repcount = 10;
@@ -212,13 +217,26 @@ TORRENT_TEST(test_pe_crypto)
 		DH2.compute_secret(DH1.get_local_key());
 
 		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
+		if (!std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()))
+		{
+			printf("DH1 local: ");
+			print_key(DH1.get_local_key());
+
+			printf("DH2 local: ");
+			print_key(DH2.get_local_key());
+
+			printf("DH1 shared_secret: ");
+			print_key(DH1.get_secret());
+
+			printf("DH2 shared_secret: ");
+			print_key(DH2.get_secret());
+		}
 	}
+}
 
-	dh_key_exchange DH1, DH2;
-	DH1.compute_secret(DH2.get_local_key());
-	DH2.compute_secret(DH1.get_local_key());
-
-	TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
+TORRENT_TEST(rc4)
+{
+	using namespace libtorrent;
 
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
@@ -231,6 +249,7 @@ TORRENT_TEST(test_pe_crypto)
 	rc42.set_incoming_key(&test1_key[0], 20);
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
+}
 
 #ifdef TORRENT_USE_VALGRIND
 	const int timeout = 10;
@@ -238,19 +257,63 @@ TORRENT_TEST(test_pe_crypto)
 	const int timeout = 5;
 #endif
 
+TORRENT_TEST(pe_disabled)
+{
+	using namespace libtorrent;
 	test_transfer(settings_pack::pe_disabled, timeout);
-
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_plaintext);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_rc4);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, false);
-	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, true);
-
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_plaintext);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_rc4);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, false);
-	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, true);
-#else
-	fprintf(stderr, "PE test not run because it's disabled\n");
-#endif
 }
+
+TORRENT_TEST(forced_plaintext)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_plaintext);
+}
+
+TORRENT_TEST(forced_rc4)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_rc4);
+}
+
+TORRENT_TEST(forced_both)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, false);
+}
+
+TORRENT_TEST(forced_both_prefer_rc4)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_forced, timeout, settings_pack::pe_both, true);
+}
+
+TORRENT_TEST(enabled_plaintext)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_plaintext);
+}
+
+TORRENT_TEST(enabled_rc4)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_rc4);
+}
+
+TORRENT_TEST(enabled_both)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, false);
+}
+
+TORRENT_TEST(enabled_both_prefer_rc4)
+{
+	using namespace libtorrent;
+	test_transfer(settings_pack::pe_enabled, timeout, settings_pack::pe_both, true);
+}
+#else
+TORRENT_TEST(disabled)
+{
+	fprintf(stderr, "PE test not run because it's disabled\n");
+}
+#endif
 
