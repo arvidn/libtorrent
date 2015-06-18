@@ -272,7 +272,7 @@ void print(char const* buf)
 	bool reverse = false;
 	SetConsoleTextAttribute(out, current_attributes);
 
-	char* start = buf;
+	char const* start = buf;
 	DWORD written;
 	while (*buf != 0)
 	{
