@@ -125,7 +125,6 @@ set(kademlia_sources
 	node_id
 	routing_table
 	traversal_algorithm
-	logging
 	item
 	get_peers
 	get_item
