@@ -71,6 +71,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix http scrape
 	* add missing port mapping functions to python binding
 	* fix bound-checking issue in bdecoder
 	* expose missing dht_settings fields to python

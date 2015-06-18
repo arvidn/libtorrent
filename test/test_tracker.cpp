@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+// TODO: test scrape requests
 // TODO: test parse peers6
 // TODO: test parse tracker-id
 // TODO: test parse failure-reason

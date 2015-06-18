@@ -114,6 +114,9 @@ namespace libtorrent
 		else
 			url += "?";
 
+		url += "info_hash=";
+		url += escape_string((const char*)&tracker_req().info_hash[0], 20);
+
 		if (tracker_req().kind == tracker_request::announce_request)
 		{
 			const char* event_string[] = {"completed", "started", "stopped", "paused"};
@@ -121,8 +124,7 @@ namespace libtorrent
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
 			snprintf(str, sizeof(str)
-				, "info_hash=%s"
-				"&peer_id=%s"
+				, "&peer_id=%s"
 				"&port=%d"
 				"&uploaded=%" PRId64
 				"&downloaded=%" PRId64
@@ -133,7 +135,6 @@ namespace libtorrent
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, escape_string((const char*)&tracker_req().info_hash[0], 20).c_str()
 				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
