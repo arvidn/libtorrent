@@ -263,14 +263,10 @@ void apply_ansi_code(int* attributes, bool* reverse, int code)
 	}
 }
 #endif
-void print(char const* str)
+void print(char const* buf)
 {
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	char buffer[4096];
-	char* buf = buffer;
-	strcpy(buf, str);
 
 	int current_attributes = 7;
 	bool reverse = false;
@@ -282,10 +278,10 @@ void print(char const* str)
 	{
 		if (*buf == '\033' && buf[1] == '[')
 		{
-			*buf = 0;
 			WriteFile(out, start, buf - start, &written, NULL);
 			buf += 2; // skip escape and '['
 			start = buf;
+			if (*buf == 0) break;
 			if (*start == 'K')
 			{
 				// this means clear the rest of the line.
@@ -341,7 +337,7 @@ void print(char const* str)
 	WriteFile(out, start, buf - start, &written, NULL);
 
 #else
-	fputs(str, stdout);
+	fputs(buf, stdout);
 #endif
 }
 
