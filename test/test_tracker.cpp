@@ -308,6 +308,10 @@ TORRENT_TEST(udp_tracker)
 	// we should have announced to the tracker by now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
 
+	// if we remove the torrent before it has received the response from the
+	// tracker, it won't announce again to stop. So, wait a bit before removing.
+	test_sleep(1000);
+
 	s->remove_torrent(h);
 
 	for (int i = 0; i < 50; ++i)
