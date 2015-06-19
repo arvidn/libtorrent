@@ -58,8 +58,9 @@ namespace libtorrent
 		storage_mode_sparse,
 
 		// internal
-		internal_storage_mode_compact_deprecated,
+		internal_storage_mode_compact_deprecated
 #ifndef TORRENT_NO_DEPRECATE
+		, // comma here to avoid compiler warning
 		storage_mode_compact = internal_storage_mode_compact_deprecated
 #endif
 	};
