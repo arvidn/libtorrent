@@ -335,7 +335,7 @@ namespace libtorrent
 
 			// TODO: optimize this using partial_sort or something. We don't need
 			// to sort the entire list
-			
+
 			// TODO: make the comparison function a free function and move it
 			// into this cpp file
 			std::sort(peers.begin(), peers.end()
@@ -365,7 +365,7 @@ namespace libtorrent
 		// secondary by total upload. The reason for this is, if all torrents are
 		// being seeded, the download rate will be 0, and the peers we have sent
 		// the least to should be unchoked
-		
+
 		// we use partial sort here, because we only care about the top
 		// upload_slots peers.
 

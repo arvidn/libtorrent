@@ -60,6 +60,10 @@ void test_swarm()
 	float rate_limit = 50000;
 
 	settings_pack pack;
+	// run the choker once per second, to make it more likely to actually trigger
+	// during the test.
+	pack.set_int(settings_pack::unchoke_interval, 1);
+
 	pack.set_int(settings_pack::alert_mask, alert::all_categories);
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);

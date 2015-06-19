@@ -3912,7 +3912,10 @@ retry:
 
 			if (p->ignore_unchoke_slots() || t == 0 || pi == 0
 				|| pi->web_seed || t->is_paused())
+			{
+				p->reset_choke_counters();
 				continue;
+			}
 
 			if (!p->is_peer_interested()
 				|| p->is_disconnecting()
@@ -3920,7 +3923,11 @@ retry:
 			{
 				// this peer is not unchokable. So, if it's unchoked
 				// already, make sure to choke it.
-				if (p->is_choked()) continue;
+				if (p->is_choked())
+				{
+					p->reset_choke_counters();
+					continue;
+				}
 				if (pi && pi->optimistically_unchoked)
 				{
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
@@ -3931,6 +3938,7 @@ retry:
 					// immediately instead of waiting for the next tick
 				}
 				t->choke_peer(*p);
+				p->reset_choke_counters();
 				continue;
 			}
 
@@ -3958,6 +3966,16 @@ retry:
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, allowed_upload_slots);
 
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
+			"eligible-peers: %d"
+			" max_upload_rate: %d"
+			" allowed-slots: %d ]", int(m_connections.size())
+			, int(peers.size())
+			, max_upload_rate
+			, allowed_upload_slots);
+#endif
+
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
 
@@ -3974,7 +3992,6 @@ retry:
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 
 			// this will update the m_uploaded_at_last_unchoke
-			// TODO: this should be called for all peers!
 			p->reset_choke_counters();
 
 			torrent* t = p->associated_torrent().lock().get();
