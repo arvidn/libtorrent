@@ -273,6 +273,9 @@ namespace libtorrent
 		, m_pending_active_change(false)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 	{
+		// we cannot log in the constructor, because it relies on shared_from_this
+		// being initialized, which happens after the constructor returns.
+
 		if (m_pinned)
 			inc_stats_counter(counters::num_pinned_torrents);
 
@@ -348,99 +351,6 @@ namespace libtorrent
 		update_want_tick();
 		update_state_list();
 
-		INVARIANT_CHECK;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
-			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
-			"save-path: %s"
-			, torrent_file().name().c_str()
-			, p.max_uploads
-			, p.max_connections
-			, p.upload_limit
-			, p.download_limit
-			, (p.flags == add_torrent_params::flag_seed_mode)
-				? "seed-mode " : ""
-			, (p.flags == add_torrent_params::flag_override_resume_data)
-				? "override-resume-data " : ""
-			, (p.flags == add_torrent_params::flag_upload_mode)
-				? "upload-mode " : ""
-			, (p.flags == add_torrent_params::flag_share_mode)
-				? "share-mode " : ""
-			, (p.flags == add_torrent_params::flag_apply_ip_filter)
-				? "apply-ip-filter " : ""
-			, (p.flags == add_torrent_params::flag_paused)
-				? "paused " : ""
-			, (p.flags == add_torrent_params::flag_auto_managed)
-				? "auto-managed " : ""
-			, (p.flags == add_torrent_params::flag_merge_resume_trackers)
-				? "merge-resume-trackers " : ""
-			, (p.flags == add_torrent_params::flag_update_subscribe)
-				? "update-subscribe " : ""
-			, (p.flags == add_torrent_params::flag_super_seeding)
-				? "super-seeding " : ""
-			, (p.flags == add_torrent_params::flag_sequential_download)
-				? "sequential-download " : ""
-			, (p.flags == add_torrent_params::flag_use_resume_save_path)
-				? "resume-save-path " : ""
-			, p.save_path.c_str()
-			);
-#endif
-		if (p.flags & add_torrent_params::flag_sequential_download)
-			m_sequential_download = true;
-
-		if (p.flags & add_torrent_params::flag_super_seeding)
-		{
-			m_super_seeding = true;
-			m_need_save_resume_data = true;
-		}
-
-		set_max_uploads(p.max_uploads, false);
-		set_max_connections(p.max_connections, false);
-		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
-		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
-
-		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
-
-#ifndef TORRENT_NO_DEPRECATE
-		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
-		{
-			m_trackers.push_back(announce_entry(p.tracker_url));
-			m_trackers.back().fail_limit = 0;
-			m_trackers.back().source = announce_entry::source_magnet_link;
-			m_torrent_file->add_tracker(p.tracker_url);
-		}
-#endif
-
-		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
-			, end(p.trackers.end()); i != end; ++i)
-		{
-			m_trackers.push_back(announce_entry(*i));
-			m_trackers.back().fail_limit = 0;
-			m_trackers.back().source = announce_entry::source_magnet_link;
-			m_torrent_file->add_tracker(*i);
-		}
-
-		if (settings().get_bool(settings_pack::prefer_udp_trackers))
-			prioritize_udp_trackers();
-
-		// if we don't have metadata, make this torrent pinned. The
-		// client may unpin it once we have metadata and it has had
-		// a chance to save it on the metadata_received_alert
-		if (!valid_metadata())
-		{
-			if (!m_pinned && m_refcount == 0)
-				inc_stats_counter(counters::num_pinned_torrents);
-
-			m_pinned = true;
-		}
-		else
-		{
-			inc_stats_counter(counters::num_total_pieces_added
-				, m_torrent_file->num_pieces());
-		}
-
-		update_gauge();
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -795,12 +705,104 @@ namespace libtorrent
 		m_verified.set_bit(piece);
 	}
 
-	void torrent::start()
+	void torrent::start(add_torrent_params const& p)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		INVARIANT_CHECK;
+
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("starting torrent");
+		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
+			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
+			"save-path: %s"
+			, torrent_file().name().c_str()
+			, p.max_uploads
+			, p.max_connections
+			, p.upload_limit
+			, p.download_limit
+			, (p.flags == add_torrent_params::flag_seed_mode)
+				? "seed-mode " : ""
+			, (p.flags == add_torrent_params::flag_override_resume_data)
+				? "override-resume-data " : ""
+			, (p.flags == add_torrent_params::flag_upload_mode)
+				? "upload-mode " : ""
+			, (p.flags == add_torrent_params::flag_share_mode)
+				? "share-mode " : ""
+			, (p.flags == add_torrent_params::flag_apply_ip_filter)
+				? "apply-ip-filter " : ""
+			, (p.flags == add_torrent_params::flag_paused)
+				? "paused " : ""
+			, (p.flags == add_torrent_params::flag_auto_managed)
+				? "auto-managed " : ""
+			, (p.flags == add_torrent_params::flag_merge_resume_trackers)
+				? "merge-resume-trackers " : ""
+			, (p.flags == add_torrent_params::flag_update_subscribe)
+				? "update-subscribe " : ""
+			, (p.flags == add_torrent_params::flag_super_seeding)
+				? "super-seeding " : ""
+			, (p.flags == add_torrent_params::flag_sequential_download)
+				? "sequential-download " : ""
+			, (p.flags == add_torrent_params::flag_use_resume_save_path)
+				? "resume-save-path " : ""
+			, p.save_path.c_str()
+			);
 #endif
+		if (p.flags & add_torrent_params::flag_sequential_download)
+			m_sequential_download = true;
+
+		if (p.flags & add_torrent_params::flag_super_seeding)
+		{
+			m_super_seeding = true;
+			m_need_save_resume_data = true;
+		}
+
+		set_max_uploads(p.max_uploads, false);
+		set_max_connections(p.max_connections, false);
+		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
+		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
+
+		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
+
+#ifndef TORRENT_NO_DEPRECATE
+		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
+		{
+			m_trackers.push_back(announce_entry(p.tracker_url));
+			m_trackers.back().fail_limit = 0;
+			m_trackers.back().source = announce_entry::source_magnet_link;
+			m_torrent_file->add_tracker(p.tracker_url);
+		}
+#endif
+
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+		{
+			m_trackers.push_back(announce_entry(*i));
+			m_trackers.back().fail_limit = 0;
+			m_trackers.back().source = announce_entry::source_magnet_link;
+			m_torrent_file->add_tracker(*i);
+		}
+
+		if (settings().get_bool(settings_pack::prefer_udp_trackers))
+			prioritize_udp_trackers();
+
+		// if we don't have metadata, make this torrent pinned. The
+		// client may unpin it once we have metadata and it has had
+		// a chance to save it on the metadata_received_alert
+		if (!valid_metadata())
+		{
+			if (!m_pinned && m_refcount == 0)
+				inc_stats_counter(counters::num_pinned_torrents);
+
+			m_pinned = true;
+		}
+		else
+		{
+			inc_stats_counter(counters::num_total_pieces_added
+				, m_torrent_file->num_pieces());
+		}
+
+		update_gauge();
+
 		std::vector<boost::uint64_t>().swap(m_file_progress);
 
 		if (m_resume_data)

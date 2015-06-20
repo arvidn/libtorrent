@@ -4627,7 +4627,7 @@ retry:
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
 			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
-		torrent_ptr->start();
+		torrent_ptr->start(params);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::vector<boost::function<

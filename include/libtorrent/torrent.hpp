@@ -293,7 +293,7 @@ namespace libtorrent
 		bool is_deleted() const { return m_deleted; }
 
 		// starts the announce timer
-		void start();
+		void start(add_torrent_params const& p);
 
 		void start_download_url();
 
