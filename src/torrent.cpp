@@ -350,6 +350,42 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
+			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
+			"save-path: %s"
+			, torrent_file().name().c_str()
+			, p.max_uploads
+			, p.max_connections
+			, p.upload_limit
+			, p.download_limit
+			, (p.flags == add_torrent_params::flag_seed_mode)
+				? "seed-mode " : ""
+			, (p.flags == add_torrent_params::flag_override_resume_data)
+				? "override-resume-data " : ""
+			, (p.flags == add_torrent_params::flag_upload_mode)
+				? "upload-mode " : ""
+			, (p.flags == add_torrent_params::flag_share_mode)
+				? "share-mode " : ""
+			, (p.flags == add_torrent_params::flag_apply_ip_filter)
+				? "apply-ip-filter " : ""
+			, (p.flags == add_torrent_params::flag_paused)
+				? "paused " : ""
+			, (p.flags == add_torrent_params::flag_auto_managed)
+				? "auto-managed " : ""
+			, (p.flags == add_torrent_params::flag_merge_resume_trackers)
+				? "merge-resume-trackers " : ""
+			, (p.flags == add_torrent_params::flag_update_subscribe)
+				? "update-subscribe " : ""
+			, (p.flags == add_torrent_params::flag_super_seeding)
+				? "super-seeding " : ""
+			, (p.flags == add_torrent_params::flag_sequential_download)
+				? "sequential-download " : ""
+			, (p.flags == add_torrent_params::flag_use_resume_save_path)
+				? "resume-save-path " : ""
+			, p.save_path.c_str()
+			);
+#endif
 		if (p.flags & add_torrent_params::flag_sequential_download)
 			m_sequential_download = true;
 
@@ -1027,6 +1063,9 @@ namespace libtorrent
 		if (s == m_share_mode) return;
 
 		m_share_mode = s;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-share-mode: %d", s);
+#endif
 
 		// in share mode, all pieces have their priorities initialized to 0
 		if (m_share_mode && valid_metadata())
@@ -1045,6 +1084,9 @@ namespace libtorrent
 		if (b == m_upload_mode) return;
 
 		m_upload_mode = b;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-upload-mode: %d", b);
+#endif
 
 		update_gauge();
 		state_updated();
@@ -6690,6 +6732,14 @@ namespace libtorrent
 			if (lsd_ != -1) m_announce_to_lsd = lsd_;
 			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
 			if (track_ != -1) m_announce_to_trackers = track_;
+
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("loaded resume data: max-uploads: %d max-connections: %d "
+				"upload-limit: %d download-limit: %d paused: %d sequential-download: %d "
+				"super-seeding: %d auto-managed: %d"
+				, max_uploads_, max_connections_, up_limit_, down_limit_
+				, paused_, sequential_, super_seeding_, auto_managed_);
+#endif
 		}
 
 		if (m_seed_mode)
@@ -6706,7 +6756,13 @@ namespace libtorrent
 		if (m_use_resume_save_path)
 		{
 			std::string p = rd.dict_find_string_value("save_path");
-			if (!p.empty()) m_save_path = p;
+			if (!p.empty())
+			{
+				m_save_path = p;
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("loaded resume data: save-path: %s", m_save_path.c_str());
+#endif
+			}
 		}
 
 		m_url = rd.dict_find_string_value("url");
@@ -8735,7 +8791,7 @@ namespace libtorrent
 				TORRENT_ASSERT(complete);
 			}
 		}
-*/			
+*/
 		if (m_files_checked && valid_metadata())
 		{
 			TORRENT_ASSERT(block_size() > 0);
@@ -8758,6 +8814,9 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		if (m_sequential_download == sd) return;
 		m_sequential_download = sd;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-sequential-download: %d", sd);
+#endif
 
 		m_need_save_resume_data = true;
 
@@ -8798,6 +8857,9 @@ namespace libtorrent
 		if (limit <= 0) limit = (1<<24)-1;
 		if (m_max_uploads != limit && state_update) state_updated();
 		m_max_uploads = limit;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-max-uploads: %d", m_max_uploads);
+#endif
 
 		if (state_update)
 			m_need_save_resume_data = true;
@@ -8811,6 +8873,10 @@ namespace libtorrent
 		if (m_max_connections != limit && state_update) state_updated();
 		m_max_connections = limit;
 		update_want_peers();
+
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-max-connections: %d", m_max_connections);
+#endif
 
 		if (num_peers() > int(m_max_connections))
 		{
@@ -8826,12 +8892,18 @@ namespace libtorrent
 	{
 		set_limit_impl(limit, peer_connection::upload_channel);
 		m_need_save_resume_data = true;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-upload-limit: %d", limit);
+#endif
 	}
 
 	void torrent::set_download_limit(int limit)
 	{
 		set_limit_impl(limit, peer_connection::download_channel);
 		m_need_save_resume_data = true;
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** set-download-limit: %d", limit);
+#endif
 	}
 
 	void torrent::set_limit_impl(int limit, int channel, bool state_update)
