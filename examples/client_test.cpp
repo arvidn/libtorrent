@@ -1316,12 +1316,14 @@ void print_piece(libtorrent::partial_piece_info* pp
 #endif
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
+		{
 			snprintf(str, sizeof(str), "%s%c", color, chr);
+			out += str;
+		}
 		else
 			out += chr;
 
 		last_color = color;
-		out += str;
 	}
 #ifdef ANSI_TERMINAL_COLORS
 	out += esc("0");
