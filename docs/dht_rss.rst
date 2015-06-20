@@ -3,7 +3,7 @@ BitTorrent extension for DHT RSS feeds
 ======================================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.0.5
+:Version: 1.0.6
 
 .. contents:: Table of contents
   :depth: 2
