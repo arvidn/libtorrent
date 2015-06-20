@@ -7220,7 +7220,7 @@ namespace libtorrent
 
 			v.push_back(peer_info());
 			peer_info& p = v.back();
-			
+
 			peer->get_peer_info(p);
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			if (resolving_countries())

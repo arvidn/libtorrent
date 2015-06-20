@@ -103,7 +103,7 @@ std::string demangle(char const* name)
 #include "windows.h"
 #include "dbghelp.h"
 
-std::string demangle(char const* name) 
+std::string demangle(char const* name)
 {
 	char demangled_name[256];
 	if (UnDecorateSymbolName(name, demangled_name, sizeof(demangled_name), UNDNAME_NO_THROW_SIGNATURES) == 0)
@@ -209,7 +209,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 {
 	out[0] = 0;
-	strncat(out, "<not supported>", len)
+	strncat(out, "<not supported>", len);
 }
 
 #endif
