@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: hide these declarations when deprecaated functions are disabled, and
+	// expose them internally in a header under aux_.
 
 	// these functions don't really need to be public. This mechanism of
 	// advertising client software and version is also out-dated.
@@ -63,7 +65,6 @@ namespace libtorrent
 	TORRENT_DEPRECATED_EXPORT TORRENT_DEPRECATED
 	boost::optional<fingerprint>
 		client_fingerprint(peer_id const& p);
-
 }
 
 #endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
