@@ -233,7 +233,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 	print_backtrace(stack, sizeof(stack), 0);
 
 	char const* message = "assertion failed. Please file a bugreport at "
-		"http://code.google.com/p/libtorrent/issues\n"
+		"https://github.com/arvidn/libtorrent/issues\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
 		LIBTORRENT_REVISION "\n";
@@ -244,7 +244,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 			message = "A precondition of a libtorrent function has been violated.\n"
 				"This indicates a bug in the client application using libtorrent\n";
 	}
-	  
+
 	fprintf(out, "%s\n"
 		"file: '%s'\n"
 		"line: %d\n"
@@ -261,10 +261,10 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line, char const* file
 #if TORRENT_PRODUCTION_ASSERTS
 	if (out != stderr) fclose(out);
 #else
- 	// send SIGINT to the current process
- 	// to break into the debugger
- 	raise(SIGINT);
- 	abort();
+	// send SIGINT to the current process
+	// to break into the debugger
+	raise(SIGINT);
+	abort();
 #endif
 }
 

@@ -48,14 +48,14 @@
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id174">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id175">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id176">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id177">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id178">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id179">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id180">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id181">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id175">session_proxy</a></li>
+<li><a class="reference internal" href="#id38" id="id176">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id177">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id178">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id179">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id180">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -634,6 +634,7 @@ class session: public boost::noncopyable
    void <strong>remove_feed</strong> (feed_handle h);
    void <strong>get_feeds</strong> (std::vector&lt;feed_handle&gt;&amp; f) const;
    bool <strong>is_dht_running</strong> () const;
+   dht_settings <strong>get_dht_settings</strong> () const;
    void <strong>start_dht</strong> ();
    void <strong>stop_dht</strong> ();
    void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
@@ -739,24 +740,26 @@ class session: public boost::noncopyable
       , int alert_mask = alert::error_notification
       TORRENT_LOGPATH_ARG_DEFAULT);
 </pre>
-<p>If the fingerprint in the first overload is omited, the client will
-get a default fingerprint stating the version of libtorrent. The
+<p>If the fingerprint in the first overload is omited, the client will get
+a default fingerprint stating the version of libtorrent. The
 fingerprint is a short string that will be used in the peer-id to
 identify the client and the client's version. For more details see the
-fingerprint class. The constructor that only takes a fingerprint will
-not open a listen port for the <a class="reference external" href="reference-Session.html#session">session</a>, to get it running you'll have
-to call <tt class="docutils literal"><span class="pre">session::listen_on()</span></tt>. The other constructor, that takes a
-port range and an interface as well as the fingerprint will
-automatically try to listen on a port on the given interface. For more
-information about the parameters, see <tt class="docutils literal">listen_on()</tt> function.</p>
-<p>The flags paramater can be used to start default features (upnp &amp;
+fingerprint class. The first overload (that takes a fingerprint, flags
+and alert_mask) will listen on INADDR_ANY and let the OS pick a listen
+port. To listen on a specific interface or specific port, you'll have
+to call <tt class="docutils literal"><span class="pre">session::listen_on()</span></tt>.</p>
+<p>The second overload, that takes a port range and an interface as well
+as the fingerprint will automatically try to listen on a port on the
+given interface. For more information about the parameters, see
+<tt class="docutils literal">listen_on()</tt> function.</p>
+<p>The flags parameter can be used to start default features (upnp &amp;
 nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 default is to start those things. If you do not want them to start,
 pass 0 as the flags parameter.</p>
 <p>The <tt class="docutils literal">alert_mask</tt> is the same mask that you would send to
 <a class="reference external" href="reference-Session.html#set_alert_mask()">set_alert_mask()</a>.</p>
 <a name="~session()"></a></div>
-<div class="section" id="id45">
+<div class="section" id="id44">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -970,14 +973,16 @@ to any feed.</p>
 void <strong>get_feeds</strong> (std::vector&lt;feed_handle&gt;&amp; f) const;
 </pre>
 <p>Returns a list of all RSS feeds that are being watched by the <a class="reference external" href="reference-Session.html#session">session</a>.</p>
+<a name="get_dht_settings()"></a>
 <a name="is_dht_running()"></a>
 <a name="start_dht()"></a>
 <a name="set_dht_settings()"></a>
 <a name="stop_dht()"></a></div>
-<div class="section" id="is-dht-running-start-dht-set-dht-settings-stop-dht">
-<h2>is_dht_running() start_dht() set_dht_settings() stop_dht()</h2>
+<div class="section" id="get-dht-settings-is-dht-running-start-dht-set-dht-settings-stop-dht">
+<h2>get_dht_settings() is_dht_running() start_dht() set_dht_settings() stop_dht()</h2>
 <pre class="literal-block">
 bool <strong>is_dht_running</strong> () const;
+dht_settings <strong>get_dht_settings</strong> () const;
 void <strong>start_dht</strong> ();
 void <strong>stop_dht</strong> ();
 void <strong>set_dht_settings</strong> (dht_settings const&amp; settings);
@@ -1014,6 +1019,7 @@ See <a class="reference external" href="reference-Settings.html#dht_settings">dh
 <p><tt class="docutils literal">is_dht_running()</tt> returns true if the DHT support has been started
 and false
 otherwise.</p>
+<p><tt class="docutils literal">get_dht_settings()</tt> returns the current settings</p>
 <a name="add_dht_router()"></a>
 <a name="add_dht_node()"></a></div>
 <div class="section" id="add-dht-router-add-dht-node">
@@ -1041,7 +1047,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id100">
+<div class="section" id="id99">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1063,7 +1069,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id102">
+<div class="section" id="id101">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key

@@ -701,7 +701,7 @@ void make_id_secret(node_id&amp; in)
 	memcpy(&amp;in[20-4], &amp;secret_hash[0], 4);
 	memcpy(&amp;in[20-8], &amp;rand, 4);
 }
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(13)">../include/libtorrent/session.hpp:212</a></td><td>the ip filter should probably be saved here too</td></tr><tr id="13" style="display: none;" colspan="3"><td colspan="3"><h2>the ip filter should probably be saved here too</h2><h4>../include/libtorrent/session.hpp:212</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			TORRENT_LOGPATH_ARG_DEFAULT)
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(13)">../include/libtorrent/session.hpp:215</a></td><td>the ip filter should probably be saved here too</td></tr><tr id="13" style="display: none;" colspan="3"><td colspan="3"><h2>the ip filter should probably be saved here too</h2><h4>../include/libtorrent/session.hpp:215</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			TORRENT_LOGPATH_ARG_DEFAULT)
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first &gt; 0);
@@ -712,7 +712,7 @@ void make_id_secret(node_id&amp; in)
 #endif
 			start(flags);
 		}
-			
+
 		// The destructor of session will notify all trackers that our torrents
 		// have been shut down. If some trackers are down, they will time out.
 		// All this before the destructor of session returns. So, it's advised
@@ -2725,7 +2725,7 @@ no one uses merkle torrents</h2><h4>../src/torrent.cpp:5382</h4><pre style="back
 		// copy the torrent_info object
 		return boost::intrusive_ptr&lt;torrent_info&gt;(new torrent_info(*m_torrent_file));
 	}
-	
+
 	void torrent::write_resume_data(entry&amp; ret) const
 	{
 		using namespace libtorrent::detail; // for write_*_endpoint()
@@ -2797,10 +2797,10 @@ using file_base</h2><h4>../src/torrent.cpp:5569</h4><pre style="background: #f6f
 			error_code ec;
 			policy::peer const* p = *i;
 			address addr = p-&gt;address();
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/torrent.cpp:8199</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(55)">../src/torrent.cpp:8205</a></td><td>go through the pieces we have and count the total number of downloaders we have. Only count peers that are interested in us since some peers might not send have messages for pieces we have it num_interested == 0, we need to pick a new piece</td></tr><tr id="55" style="display: none;" colspan="3"><td colspan="3"><h2>go through the pieces we have and count the total number
 of downloaders we have. Only count peers that are interested in us
 since some peers might not send have messages for pieces we have
-it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8199</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
+it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8205</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			}
 
 			rarest_pieces.clear();
 			rarest_rarity = pp.peer_count;
@@ -2851,8 +2851,8 @@ it num_interested == 0, we need to pick a new piece</h2><h4>../src/torrent.cpp:8
 		{
 			m_picker-&gt;get_availability(avail_vec);
 		}
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(56)">../src/torrent.cpp:8848</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="56" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
-directly into the right place</h2><h4>../src/torrent.cpp:8848</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(56)">../src/torrent.cpp:8854</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="56" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
+directly into the right place</h2><h4>../src/torrent.cpp:8854</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}
