@@ -7699,7 +7699,7 @@ namespace libtorrent
 			p->disconnect(errors::torrent_not_ready, op_bittorrent);
 			return false;
 		}
-		
+
 		if (!m_ses.has_connection(p))
 		{
 			p->disconnect(errors::peer_not_constructed, op_bittorrent);
@@ -7749,7 +7749,7 @@ namespace libtorrent
 					return false;
 				}
 				(*i)->disconnect(errors::too_many_connections, op_bittorrent);
-            
+
 				// if this peer was let in via connections slack,
 				// it has done its duty of causing the disconnection
 				// of another peer
