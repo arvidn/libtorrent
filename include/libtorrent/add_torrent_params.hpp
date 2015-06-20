@@ -256,7 +256,7 @@ namespace libtorrent
 			, flag_ignore_flags = 0x80000000
 #endif
 		};
-	
+
 		// filled in by the constructor and should be left untouched. It
 		// is used for forward binary compatibility.
 		int version;
