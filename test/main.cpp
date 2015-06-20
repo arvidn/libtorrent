@@ -143,7 +143,7 @@ void print_usage(char const* executable)
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
 
-int main(int argc, char const* argv[])
+EXPORT int main(int argc, char const* argv[])
 {
 	char const* executable = argv[0];
 	// skip executable name
