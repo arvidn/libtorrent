@@ -15,8 +15,9 @@ install:
    - echo -n ":" >>~/user-config.jam
    - echo " 2.7 ;" >>~/user-config.jam
    - ccache --show-stats
-   - which $CC
-   - ls -la `which $CC`
+   - ccache -V
+   - which $CXX
+   - ls -la `which $CXX`
 
 cache:
    directories:
