@@ -226,7 +226,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_FDATASYNC 1
 #endif // ANDROID
 
-#if defined _GLIBC_ && ( defined __x86_64__ || defined __i386 \
+#if defined __GLIBC__ && ( defined __x86_64__ || defined __i386 \
 	|| defined _M_X64 || defined _M_IX86 )
 #define TORRENT_USE_EXECINFO 1
 #endif
