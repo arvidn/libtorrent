@@ -14,6 +14,13 @@ install:
    - echo -n "using python " >>~/user-config.jam
    - echo -n ":" >>~/user-config.jam
    - echo " 2.7 ;" >>~/user-config.jam
+   - ccache --show-stats
+   - which $CC
+   - ln -la `which $CC`
+
+cache:
+   directories:
+      - $HOME/.ccache
 
 script:
    - cd test
