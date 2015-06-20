@@ -578,23 +578,32 @@ void test_malicious_peer()
 }
 #endif // TORRENT_USE_OPENSSL
 
-TORRENT_TEST(ssl)
+TORRENT_TEST(malicious_peer)
 {
 #ifdef TORRENT_USE_OPENSSL
-	using namespace libtorrent;
-
 	test_malicious_peer();
-
-	for (int utp = 0; utp < 2; ++utp)
-	{
-		for (int i = 0; i < sizeof(test_config)/sizeof(test_config[0]); ++i)
-			test_ssl(i, utp);
-	}
-
-	error_code ec;
-	remove_all("tmp1_ssl", ec);
-	remove_all("tmp2_ssl", ec);
-#endif // TORRENT_USE_OPENSSL
+#endif
 }
 
+#ifdef TORRENT_USE_OPENSSL
+TORRENT_TEST(utp_config0) { test_ssl(0, true); }
+TORRENT_TEST(utp_config1) { test_ssl(1, true); }
+TORRENT_TEST(utp_config2) { test_ssl(2, true); }
+TORRENT_TEST(utp_config3) { test_ssl(3, true); }
+TORRENT_TEST(utp_config4) { test_ssl(4, true); }
+TORRENT_TEST(utp_config5) { test_ssl(5, true); }
+TORRENT_TEST(utp_config6) { test_ssl(6, true); }
+TORRENT_TEST(utp_config7) { test_ssl(7, true); }
+TORRENT_TEST(utp_config8) { test_ssl(8, true); }
+
+TORRENT_TEST(tcp_config0) { test_ssl(0, false); }
+TORRENT_TEST(tcp_config1) { test_ssl(1, false); }
+TORRENT_TEST(tcp_config2) { test_ssl(2, false); }
+TORRENT_TEST(tcp_config3) { test_ssl(3, false); }
+TORRENT_TEST(tcp_config4) { test_ssl(4, false); }
+TORRENT_TEST(tcp_config5) { test_ssl(5, false); }
+TORRENT_TEST(tcp_config6) { test_ssl(6, false); }
+TORRENT_TEST(tcp_config7) { test_ssl(7, false); }
+TORRENT_TEST(tcp_config8) { test_ssl(8, false); }
+#endif
 
