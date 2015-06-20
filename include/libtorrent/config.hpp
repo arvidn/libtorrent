@@ -226,7 +226,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_FDATASYNC 1
 #endif // ANDROID
 
-#if __amd64__ || __i386__
+#if defined _GLIBC_ && ( defined __x86_64__ || defined __i386 \
+	|| defined _M_X64 || defined _M_IX86 )
 #define TORRENT_USE_EXECINFO 1
 #endif
 
@@ -275,7 +276,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_PWRITEV 1
 
 // ==== SOLARIS ===
-#elif defined sun || defined __sun 
+#elif defined sun || defined __sun
 #define TORRENT_SOLARIS
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
 #define TORRENT_USE_IFCONF 1

@@ -207,7 +207,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 #else
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
-{ out[0] = 0; }
+{
+	out[0] = 0;
+	strncat(out, "<not supported>", len)
+}
 
 #endif
 

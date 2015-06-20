@@ -102,6 +102,7 @@ void sig_handler(int sig)
 	strcat(stack_text, __FUNCTION__);
 #else
 	stack_text[0] = 0;
+	strcat(stack_text, "<stack traces disabled>");
 #endif
 	char const* sig_name = 0;
 	switch (sig)
@@ -125,7 +126,7 @@ void sig_handler(int sig)
 
 	output_test_log_to_terminal();
 
-	exit(138);
+	exit(128 + sig);
 }
 
 void print_usage(char const* executable)

@@ -151,7 +151,8 @@ rule linking ( properties * )
 		result += <library>tcmalloc ;
 	}
 
-	if <toolset>gcc in $(properties)
+	if ( <toolset>gcc in $(properties)
+			|| <toolset>clang in $(properties) )
 		&& <target-os>linux in $(properties)
 		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
@@ -162,7 +163,7 @@ rule linking ( properties * )
 	{
 		# for backtraces in assertion failures
 		# which only works on ELF targets with gcc
-		result += <linkflags>-export-dynamic <cxxflags>-rdynamic ;
+		result += <linkflags>-export-dynamic <linkflags>-rdynamic ;
 	}
 
 	if <boost>source in $(properties)

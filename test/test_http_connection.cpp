@@ -135,7 +135,7 @@ void run_test(std::string const& url, int size, int status, int connected
 	std::cerr << time_now_string() << " expected-size: " << size << std::endl;
 	std::cerr << time_now_string() << " error_code: " << g_error_code.message() << std::endl;
 	TEST_CHECK(connect_handler_called == connected);
-	TEST_CHECK(handler_called == 1);	
+	TEST_CHECK(handler_called == 1);
 	TEST_CHECK(data_size == size || size == -1);
 	TEST_CHECK(!ec || g_error_code == *ec);
 	TEST_CHECK(http_status == status || status == -1);
