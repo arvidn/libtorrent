@@ -104,7 +104,7 @@ std::string demangle(char const* name)
 #include "dbghelp.h"
 
 std::string demangle(char const* name) 
-{ 
+{
 	char demangled_name[256];
 	if (UnDecorateSymbolName(name, demangled_name, sizeof(demangled_name), UNDNAME_NO_THROW_SIGNATURES) == 0)
 		demangled_name[0] = 0;
@@ -255,7 +255,7 @@ TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
 	print_backtrace(stack, sizeof(stack), 0);
 
 	char const* message = "assertion failed. Please file a bugreport at "
-		"http://code.google.com/p/libtorrent/issues\n"
+		"https://github.com/arvidn/libtorrent/issues\n"
 		"Please include the following information:\n\n"
 		"version: " LIBTORRENT_VERSION "\n"
 		LIBTORRENT_REVISION "\n";

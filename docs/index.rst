@@ -19,7 +19,7 @@
 * `mailing list`_ (archive_)
 * `who's using libtorrent?`_
 * `report bugs`_
-* `sourceforge page`_
+* `github page`_
 * `blog`_
 
 --------
@@ -82,7 +82,7 @@ libtorrent
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: http://code.google.com/p/libtorrent/issues/entry
-.. _sourceforge page: http://sourceforge.net/projects/libtorrent
+.. _`github page`: http:/github.com/arvidn/libtorrent
 .. _blog: http://blog.libtorrent.org
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
@@ -142,7 +142,7 @@ It is however greatly appreciated if additional features are contributed
 back to the open source project. Patches can be emailed to the mailing
 list or posted to the `bug tracker`_.
 
-.. _`bug tracker`: https://code.google.com/p/libtorrent/issues/list
+.. _`bug tracker`: https://github.com/arvidn/libtorrent/issues
 
 Acknowledgements
 ================
