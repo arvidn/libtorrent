@@ -28,6 +28,7 @@ script:
    - bjam -j2 variant=$variant warnings=off $CC
    - cd ../bindings/python
    - bjam -j2 variant=$variant warnings=off $CC
+   - ccache --show-stats
 
 compiler:
    - gcc
