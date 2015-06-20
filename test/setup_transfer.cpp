@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/random.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>
@@ -845,10 +846,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	unsigned int seed = total_microseconds(clock_type::now().time_since_epoch()) & 0xffffffff;
-	fprintf(stderr, "random seed: %u\n", seed);
-	std::srand(seed);
-	int port = 5000 + (rand() % 55000);
+	int port = 2000 + (lt::random() % 60000);
 
 	char buf[200];
 	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
