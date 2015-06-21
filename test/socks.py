@@ -60,7 +60,7 @@ def forward(source, dest, name):
             send(dest, CLOSE)
             debug('%s hung up' % name)
             return
-#        debug('Sending (%d) %r' % (len(data), data))
+#        debug('Forwarding (%d) %r' % (len(data), data))
         send(dest, data)
 
 def spawn_forwarder(source, dest, name):

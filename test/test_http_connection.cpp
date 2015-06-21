@@ -141,21 +141,39 @@ void run_test(std::string const& url, int size, int status, int connected
 	TEST_CHECK(http_status == status || status == -1);
 }
 
-void run_suite(std::string const& protocol, proxy_settings ps, int port)
+void write_test_file()
 {
-	if (ps.type != settings_pack::none)
-	{
-		ps.port = start_proxy(ps.type);
-	}
-	char const* test_name[] = {"no", "SOCKS4", "SOCKS5"
-		, "SOCKS5 password protected", "HTTP", "HTTP password protected"};
+	std::srand(std::time(0));
+	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+	error_code ec;
+	file test_file("test_file", file::write_only, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	file::iovec_t b = { data_buffer, 3216};
+	test_file.writev(0, &b, 1, ec);
+	TEST_CHECK(!ec);
+	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	test_file.close();
+}
 
-	printf("\n\n********************** using %s proxy **********************\n"
-		, test_name[ps.type]);
+void run_suite(std::string const& protocol, settings_pack::proxy_type_t proxy_type)
+{
+	write_test_file();
+
+	// starting the web server will also generate test_file.gz (from test_file)
+	// so it has to happen after we write test_file
+	int port = start_web_server();
+
+	proxy_settings ps;
+	ps.hostname = "127.0.0.1";
+	ps.username = "testuser";
+	ps.password = "testpass";
+	ps.type = proxy_type;
+
+	if (ps.type != settings_pack::none)
+		ps.port = start_proxy(ps.type);
 
 	typedef boost::optional<error_code> err;
-	// this requires the hosts file to be modified
-//	run_test(protocol + "://test.dns.ts:8001/test_file", 3216, 200, 1, error_code(), ps);
 
 	char url[256];
 	snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
@@ -188,61 +206,25 @@ void run_suite(std::string const& protocol, proxy_settings ps, int port)
 	}
 	if (ps.type != settings_pack::none)
 		stop_proxy(ps.port);
+	stop_web_server();
 }
 
-TORRENT_TEST(http_parser)
-{
-	std::srand(std::time(0));
-	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
-	error_code ec;
-	file test_file("test_file", file::write_only, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
-	file::iovec_t b = { data_buffer, 3216};
-	test_file.writev(0, &b, 1, ec);
-	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
-	test_file.close();
-
-	proxy_settings ps;
-	ps.hostname = "127.0.0.1";
-	ps.port = 8034;
-	ps.username = "testuser";
-	ps.password = "testpass";
-	int port = 0;
-
-	port = start_web_server();
-
-	for (int i = 0; i < 5; ++i)
-	{
-		ps.type = (settings_pack::proxy_type_t)i;
-		run_suite("http", ps, port);
-	}
-	stop_web_server();
+TORRENT_TEST(no_proxy) { run_suite("http", settings_pack::none); }
+TORRENT_TEST(socks4) { run_suite("http", settings_pack::socks4); }
+TORRENT_TEST(socks5) { run_suite("http", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw) { run_suite("http", settings_pack::socks5_pw); }
+TORRENT_TEST(http) { run_suite("http", settings_pack::http); }
+TORRENT_TEST(http_pw) { run_suite("http", settings_pack::http_pw); }
 
 #ifdef TORRENT_USE_OPENSSL
-	port = start_web_server(true);
-	for (int i = 0; i < 5; ++i)
-	{
-		ps.type = (settings_pack::proxy_type_t)i;
-		run_suite("https", ps, port);
-	}
-	stop_web_server();
-#endif
+TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
+TORRENT_TEST(socks4_ssl) { run_suite("https", settings_pack::socks4); }
+TORRENT_TEST(socks5_ssl) { run_suite("https", settings_pack::socks5); }
+TORRENT_TEST(socks5_pw_ssl) { run_suite("https", settings_pack::socks5_pw); }
+TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
+TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
+#endif // USE_OPENSSL
 
-	// test chunked encoding
-	fprintf(stderr, "\ntest chunked encoding\n\n");
-	port = start_web_server(false, true);
-	ps.type = settings_pack::none;
-	run_suite("http", ps, port);
-
-	// test no keep-alive
-	fprintf(stderr, "\ntest no keep-alive\n\n");
-	port = start_web_server(false, false, false);
-	ps.type = settings_pack::none;
-	run_suite("http", ps, port);
-
-	stop_web_server();
-	std::remove("test_file");
-}
+TORRENT_TEST(chunked_encoding) { run_suite("http", settings_pack::none); }
+TORRENT_TEST(no_keepalive) { run_suite("http", settings_pack::none); }
 

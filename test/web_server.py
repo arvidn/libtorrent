@@ -41,6 +41,8 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.path = s.path[s.path.find('/'):]
 
 		file_path = os.path.normpath(s.path)
+		print file_path
+		print s.path
 
 		if s.path == '/password_protected':
 			passed = False
@@ -148,7 +150,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 						print 'Failed to shutdown read-channel of socket: ', e
 
 				s.end_headers()
-   
+
 				f.seek(start_range)
 				length = end_range - start_range
 				while length > 0:

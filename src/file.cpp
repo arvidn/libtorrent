@@ -1949,10 +1949,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 #endif
 
-  	bool file::set_size(boost::int64_t s, error_code& ec)
-  	{
-  		TORRENT_ASSERT(is_open());
-  		TORRENT_ASSERT(s >= 0);
+	bool file::set_size(boost::int64_t s, error_code& ec)
+	{
+		TORRENT_ASSERT(is_open());
+		TORRENT_ASSERT(s >= 0);
 
 #ifdef TORRENT_WINDOWS
 
