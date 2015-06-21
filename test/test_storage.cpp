@@ -137,7 +137,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	char buf_[4] = {0, 0, 0, 0};
 	sha1_hash h = hasher(buf_, 4).final();
 	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
-	
+
 	bencode(std::back_inserter(buf), t.generate());
 	error_code ec;
 
@@ -254,7 +254,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1));
-	
+
 	// do the same with piece 0 and 2 (in slot 1 and 2)
 	iov.iov_base = piece0;
 	iov.iov_len = piece_size;
@@ -292,7 +292,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
 
 	file_storage fs;
 	std::vector<char> buf;
@@ -315,24 +315,24 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	// all required directories)
 	// files are created on first write
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
 
 	// this directory and file is created up-front because it's an empty file
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("folder2", "test3.tmp")))));	
+		, combine_path("folder2", "test3.tmp")))));
 
 	// this isn't
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("folder1", "test2.tmp")))));	
+		, combine_path("folder1", "test2.tmp")))));
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
 	s->writev(&b, 1, 2, 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("folder1", "test2.tmp")))));	
+		, combine_path("folder1", "test2.tmp")))));
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
 	file_status st;
 	stat_file(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp"))), &st, ec);
@@ -341,7 +341,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	s->writev(&b, 1, 4, 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
-		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));	
+		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
 	stat_file(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "test5.tmp"))), &st, ec);
 	TEST_EQUAL(st.file_size, 8);
@@ -355,7 +355,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		fprintf(stderr, "default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
 }
 
 void test_rename(std::string const& test_path)
@@ -365,7 +365,7 @@ void test_rename(std::string const& test_path)
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));	
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
 
 	file_storage fs;
 	std::vector<char> buf;
@@ -383,7 +383,7 @@ void test_rename(std::string const& test_path)
 	for (int i = 0; i < fs.num_files(); ++i)
 	{
 		TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
-			, fs.file_path(i)))));	
+			, fs.file_path(i)))));
 	}
 
 	storage_error se;
@@ -477,8 +477,9 @@ void test_check_files(std::string const& test_path
 #define storage_mode_compact storage_mode_sparse
 #endif
 
-void run_test(std::string const& test_path, bool unbuffered)
+void run_test(bool unbuffered)
 {
+	std::string test_path = current_working_directory();
 	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
 
 	boost::shared_ptr<torrent_info> info;
@@ -512,7 +513,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	t.set_hash(1, hasher(piece1, piece_size).final());
 	t.set_hash(2, hasher(piece2, piece_size).final());
 	t.set_hash(3, hasher(piece3, piece_size).final());
-	
+
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	info = boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec), 0);
@@ -526,7 +527,7 @@ void run_test(std::string const& test_path, bool unbuffered)
 	fprintf(stderr, "base = \"%s\"\n", base.c_str());
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
-	
+
 	// these files should have been allocated as 0 size
 	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
 	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
@@ -602,8 +603,9 @@ void run_test(std::string const& test_path, bool unbuffered)
 	test_rename(test_path);
 }
 
-void test_fastresume(std::string const& test_path)
+TORRENT_TEST(fastresume)
 {
+	std::string test_path = current_working_directory();
 	error_code ec;
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp1"), ec);
@@ -622,8 +624,17 @@ void test_fastresume(std::string const& test_path)
 
 	entry resume;
 	{
+		const int mask = alert::all_categories
+			& ~(alert::progress_notification
+				| alert::performance_warning
+				| alert::stats_notification);
+
 		settings_pack pack;
-		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
+		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		error_code ec;
@@ -674,8 +685,17 @@ void test_fastresume(std::string const& test_path)
 
 	// make sure the fast resume check fails! since we removed the file
 	{
+		const int mask = alert::all_categories
+			& ~(alert::progress_notification
+				| alert::performance_warning
+				| alert::stats_notification);
+
 		settings_pack pack;
-		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
+		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -704,8 +724,9 @@ bool got_file_rename_alert(alert const* a)
 		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
 }
 
-void test_rename_file_in_fastresume(std::string const& test_path)
+TORRENT_TEST(rename_file_fastresume)
 {
+	std::string test_path = current_working_directory();
 	error_code ec;
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp2"), ec);
@@ -721,8 +742,17 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 
 	entry resume;
 	{
+		const int mask = alert::all_categories
+			& ~(alert::progress_notification
+				| alert::performance_warning
+				| alert::stats_notification);
+
 		settings_pack pack;
-		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
+		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -761,8 +791,17 @@ void test_rename_file_in_fastresume(std::string const& test_path)
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
+		const int mask = alert::all_categories
+			& ~(alert::progress_notification
+				| alert::performance_warning
+				| alert::stats_notification);
+
 		settings_pack pack;
-		pack.set_int(settings_pack::alert_mask, alert::all_categories);
+		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_natpmp, false);
+		pack.set_bool(settings_pack::enable_upnp, false);
+		pack.set_bool(settings_pack::enable_dht, false);
+		pack.set_int(settings_pack::alert_mask, mask);
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -964,11 +1003,8 @@ TORRENT_TEST(storage)
 			p = std::strtok(0, ";");
 		}
 	}
-
-	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_fastresume, _1));
-	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&test_rename_file_in_fastresume, _1));
-
-	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, true));
-	std::for_each(test_paths.begin(), test_paths.end(), boost::bind(&run_test, _1, false));
 }
+
+TORRENT_TEST(unbuffered) { run_test(true); }
+TORRENT_TEST(buffered) { run_test(false); }
 
