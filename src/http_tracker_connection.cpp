@@ -168,7 +168,10 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			if (i2p && tracker_req().i2pconn)
 			{
-				url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
+				if (tracker_req().i2pconn->local_endpoint().empty())
+					fail(error_code(errors::no_i2p_endpoint), -1, "Waiting for i2p acceptor from SAM bridge", 5);
+				else
+					url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
 			}
 			else
 #endif
