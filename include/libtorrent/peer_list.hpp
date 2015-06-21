@@ -183,6 +183,10 @@ namespace libtorrent
 
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{
+#if TORRENT_USE_I2P
+			if (a == address())
+				return std::pair<iterator, iterator>(m_peers.end(), m_peers.end());
+#endif
 			return std::equal_range(
 				m_peers.begin(), m_peers.end(), a, peer_address_compare());
 		}
