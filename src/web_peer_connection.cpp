@@ -870,7 +870,7 @@ void web_peer_connection::on_receive(error_code const& error
 			TORRENT_ASSERT(m_block_pos >= 0);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "TRAMSFER"
+			peer_log(peer_log_alert::info, "TRANSFER"
 				, "payload_transferred: %d [ %d:%d = %d ]"
 				, payload_transferred, front_request.piece
 				, front_request.start, front_request.length);
