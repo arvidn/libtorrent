@@ -7835,8 +7835,11 @@ namespace libtorrent
 			{
 				peers_erased(st.erased);
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("CLOSING CONNECTION \"%s\" peer list full"
-					, print_endpoint(p->remote()).c_str());
+				debug_log("CLOSING CONNECTION \"%s\" peer list full "
+					"connections: %d limit: %d"
+					, print_endpoint(p->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
 #endif
 				p->disconnect(errors::too_many_connections, op_bittorrent);
 				return false;
@@ -7887,13 +7890,29 @@ namespace libtorrent
 			peer_connection* peer = find_lowest_ranking_peer();
 
 			// TODO: 2 if peer is a really good peer, maybe we shouldn't disconnect it
+			// perhaps this logic should be disabled if we have too many idle peers
+			// (with some definition of idle)
 			if (peer && peer->peer_rank() < p->peer_rank())
 			{
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+					"connections: %d limit: %d"
+					, print_endpoint(peer->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
+#endif
 				peer->disconnect(errors::too_many_connections, op_bittorrent);
 				p->peer_disconnected_other();
 			}
 			else
 			{
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+					"connections: %d limit: %d"
+					, print_endpoint(p->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
+#endif
 				p->disconnect(errors::too_many_connections, op_bittorrent);
 				// we have to do this here because from the peer's point of
 				// it wasn't really attached to the torrent, but we do need
@@ -7909,6 +7928,12 @@ namespace libtorrent
 
 		if (m_share_mode)
 			recalc_share_mode();
+
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
+			, print_endpoint(p->remote()).c_str(), int(m_connections.size())
+			, m_max_connections);
+#endif
 
 		return true;
 	}
@@ -8206,7 +8231,7 @@ namespace libtorrent
 		inc_refcount("release_files");
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
-		
+
 		// this torrent just completed downloads, which means it will fall
 		// under a different limit with the auto-manager. Make sure we
 		// update auto-manage torrents in that case
@@ -8221,7 +8246,7 @@ namespace libtorrent
 		// the invariant doesn't hold here, because it expects the torrent
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
-	
+
 		if (m_state == torrent_status::checking_resume_data
 			|| m_state == torrent_status::checking_files
 			|| m_state == torrent_status::allocating)
@@ -8581,7 +8606,7 @@ namespace libtorrent
 		switch (current_stats_state())
 		{
 			case counters::num_error_torrents: TORRENT_ASSERT(has_error()); break;
-			case counters::num_checking_torrents: 
+			case counters::num_checking_torrents:
 #ifdef TORRENT_NO_DEPRECATE
 				TORRENT_ASSERT(state() == torrent_status::checking_files);
 #else
