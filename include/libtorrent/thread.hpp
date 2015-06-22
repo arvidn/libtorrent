@@ -66,6 +66,66 @@ namespace libtorrent
 	// internal
 	void sleep(int milliseconds);
 
+	struct thread_id
+	{
+		thread_id()
+#if defined(BOOST_ASIO_WINDOWS)
+			: m_id(0)
+#elif defined(BOOST_ASIO_HAS_PTHREADS) && !defined(BOOST_ASIO_HAS_STD_THREAD)
+			: m_initialized(false)
+#endif
+		{}
+
+		bool operator==(thread_id o) const
+		{
+#if defined(BOOST_ASIO_WINDOWS) || defined(BOOST_ASIO_HAS_STD_THREAD)
+			return m_id == o.m_id;
+#elif defined(BOOST_ASIO_HAS_PTHREADS)
+			return m_initialized && o.m_initialized
+				&& ::pthread_equal(m_id, o.m_id) != 0;
+#endif
+		}
+
+		static thread_id self()
+		{
+#if defined(BOOST_ASIO_WINDOWS)
+			return ::GetCurrentThreadId();
+#elif defined(BOOST_ASIO_HAS_STD_THREAD)
+			return std::this_thread::get_id();
+#elif defined(BOOST_ASIO_HAS_PTHREADS)
+			return ::pthread_self();
+#endif
+		}
+
+	private:
+#if defined(BOOST_ASIO_WINDOWS)
+		typedef ::DWORD native_id;
+#elif defined(BOOST_ASIO_HAS_STD_THREAD)
+		typedef std::thread::id native_id;
+#elif defined(BOOST_ASIO_HAS_PTHREADS)
+		typedef ::pthread_t native_id;
+#else
+# error No known thread library found
+#endif
+
+		thread_id(native_id id)
+			: m_id(id)
+#if defined(BOOST_ASIO_HAS_PTHREADS) \
+	&& !defined(BOOST_ASIO_HAS_STD_THREAD) && !defined(BOOST_ASIO_WINDOWS)
+			, m_initialized(true)
+#endif
+		{}
+
+		native_id m_id;
+#if defined(BOOST_ASIO_HAS_PTHREADS) \
+	&& !defined(BOOST_ASIO_HAS_STD_THREAD) && !defined(BOOST_ASIO_WINDOWS)
+		// pthreads is a bit brain-damaged, pthread_t is an opaque type
+		// but no invalid value is defined so we can't initialize it in the ctor
+		// instead we must keep track of its initialization state separately
+		bool m_initialized;
+#endif
+	};
+
 	struct TORRENT_EXTRA_EXPORT condition_variable
 	{
 		condition_variable();
