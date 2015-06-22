@@ -1373,8 +1373,7 @@ namespace libtorrent
 			alert_queue_size,
 
 			// ``max_metadata_size`` is the maximum allowed size (in bytes) to be
-			// received by the metadata extension, i.e. magnet links. It defaults
-			// to 1 MiB.
+			// received by the metadata extension, i.e. magnet links.
 			max_metadata_size,
 
 			// ``hashing_threads`` is the number of threads to use for piece hash
