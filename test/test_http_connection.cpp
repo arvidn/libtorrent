@@ -156,13 +156,23 @@ void write_test_file()
 	test_file.close();
 }
 
-void run_suite(std::string const& protocol, settings_pack::proxy_type_t proxy_type)
+enum suite_flags_t
+{
+	flag_chunked_encoding = 1,
+	flag_keepalive = 2
+};
+
+void run_suite(std::string const& protocol
+	, settings_pack::proxy_type_t proxy_type
+	, int flags = flag_keepalive)
 {
 	write_test_file();
 
 	// starting the web server will also generate test_file.gz (from test_file)
 	// so it has to happen after we write test_file
-	int port = start_web_server();
+	int port = start_web_server(protocol == "https"
+		, flags & flag_chunked_encoding
+		, flags & flag_keepalive);
 
 	proxy_settings ps;
 	ps.hostname = "127.0.0.1";
@@ -225,6 +235,12 @@ TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
 #endif // USE_OPENSSL
 
-TORRENT_TEST(chunked_encoding) { run_suite("http", settings_pack::none); }
-TORRENT_TEST(no_keepalive) { run_suite("http", settings_pack::none); }
+TORRENT_TEST(chunked_encoding)
+{
+	run_suite("http", settings_pack::none, flag_chunked_encoding | flag_keepalive);
+}
+TORRENT_TEST(no_keepalive)
+{
+	run_suite("http", settings_pack::none, 0);
+}
 
