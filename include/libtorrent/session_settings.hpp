@@ -1288,7 +1288,7 @@ namespace libtorrent
 		int alert_queue_size;
 
 		// the maximum allowed size (in bytes) to be received
-		// by the metadata extension, i.e. magnet links. It defaults to 1 MiB.
+		// by the metadata extension, i.e. magnet links. It defaults to 3 MiB.
 		int max_metadata_size;
 
 		// true by default, which means the number of connection attempts per
