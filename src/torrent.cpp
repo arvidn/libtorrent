@@ -3236,15 +3236,15 @@ namespace libtorrent
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
 			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle(), req.url, msg);
 	}
-	
- 	void torrent::tracker_scrape_response(tracker_request const& req
- 		, int complete, int incomplete, int downloaded, int /* downloaders */)
- 	{
+
+	void torrent::tracker_scrape_response(tracker_request const& req
+		, int complete, int incomplete, int downloaded, int /* downloaders */)
+	{
 		TORRENT_ASSERT(is_single_thread());
- 
- 		INVARIANT_CHECK;
+
+		INVARIANT_CHECK;
 		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
- 
+
 		announce_entry* ae = find_tracker(req);
 		if (ae)
 		{
