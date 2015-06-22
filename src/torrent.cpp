@@ -4639,7 +4639,6 @@ namespace libtorrent
 			peer->set_peer_info(0);
 		}
 		if (has_picker()) picker().clear_peer(&web->peer_info);
-					
 
 		m_web_seeds.erase(web);
 	}
@@ -6210,7 +6209,7 @@ namespace libtorrent
 			p->disconnect(errors::torrent_not_ready);
 			return false;
 		}
-		
+
 		if (m_ses.m_connections.find(p) == m_ses.m_connections.end())
 		{
 			p->disconnect(errors::peer_not_constructed);
@@ -6249,7 +6248,7 @@ namespace libtorrent
 					return false;
 				}
 				(*i)->disconnect(errors::too_many_connections);
-            
+
 				// if this peer was let in via connections slack,
 				// it has done its duty of causing the disconnection
 				// of another peer
@@ -6274,8 +6273,11 @@ namespace libtorrent
 			if (!m_policy.new_connection(*p, m_ses.session_time()))
 			{
 #if defined TORRENT_LOGGING
-				debug_log("CLOSING CONNECTION \"%s\" peer list full"
-					, print_endpoint(p->remote()).c_str());
+				debug_log("CLOSING CONNECTION \"%s\" peer list full "
+					"connections: %d limit: %d"
+					, print_endpoint(p->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
 #endif
 				p->disconnect(errors::too_many_connections);
 				return false;
@@ -6311,13 +6313,29 @@ namespace libtorrent
 			peer_connection* peer = find_lowest_ranking_peer();
 
 			// TODO: 3 if peer is a really good peer, maybe we shouldn't disconnect it
+			// perhaps this logic should be disabled if we have too many idle peers
+			// (with some definition of idle)
 			if (peer && peer->peer_rank() < p->peer_rank())
 			{
+#if defined TORRENT_LOGGING
+				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+					"connections: %d limit: %d"
+					, print_endpoint(peer->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
+#endif
 				peer->disconnect(errors::too_many_connections);
 				p->peer_disconnected_other();
 			}
 			else
 			{
+#if defined TORRENT_LOGGING
+				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+					"connections: %d limit: %d"
+					, print_endpoint(p->remote()).c_str()
+					, int(m_connections.size())
+					, m_max_connections);
+#endif
 				p->disconnect(errors::too_many_connections);
 				// we have to do this here because from the peer's point of
 				// it wasn't really attached to the torrent, but we do need
@@ -6334,6 +6352,11 @@ namespace libtorrent
 		if (m_share_mode)
 			recalc_share_mode();
 
+#if defined TORRENT_LOGGING
+		debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
+			, print_endpoint(p->remote()).c_str(), int(m_connections.size())
+			, m_max_connections);
+#endif
 		return true;
 	}
 
