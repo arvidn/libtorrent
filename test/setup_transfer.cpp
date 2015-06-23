@@ -846,7 +846,18 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	int port = 2000 + (lt::random() % 60000);
+	int port = 2000 + (lt::random() % 6000);
+	error_code ec;
+	io_service ios;
+
+	// make sure the port we pick is free to use by the python web server
+	do {
+		++port;
+		tcp::socket s(ios);
+		s.open(tcp::v4(), ec);
+		if (ec) break;
+		s.bind(tcp::endpoint(address::from_string("127.0.0.1"), port), ec);
+	} while (ec);
 
 	char buf[200];
 	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
