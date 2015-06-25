@@ -6,7 +6,6 @@ env:
    - variant=test_barebones
 
 install:
-   - if [ $TRAVIS_OS_NAME == linux ]; then export cpus=`grep processor -c /proc/cpuinfo` ; else export cpus=2 ; fi
    - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; fi
    - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.54-all-dev python2.7-dev; fi
    - if [ $TRAVIS_OS_NAME == osx ]; then sudo brew install boost boost-build python27-dev; fi
@@ -22,11 +21,11 @@ cache: ccache
 
 script:
    - cd test
-   - bjam -j $cpus variant=$variant warnings=off -l900 $CC
+   - bjam -j 4 variant=$variant warnings=off -l900 $CC
    - cd ../examples
-   - bjam -j $cpus variant=$variant warnings=off $CC
+   - bjam -j 4 variant=$variant warnings=off $CC
    - cd ../bindings/python
-   - bjam -j $cpus variant=$variant warnings=off $CC
+   - bjam -j 4 variant=$variant warnings=off $CC
    - ccache --show-stats
 
 compiler:
