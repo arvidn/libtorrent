@@ -1446,7 +1446,7 @@ int main(int argc, char* argv[])
 			case 'i':
 				{
 					settings.set_str(settings_pack::i2p_hostname, arg);
-					settings.set_int(settings_pack::i2p_port, 7650);
+					settings.set_int(settings_pack::i2p_port, 7656);
 					settings.set_int(settings_pack::proxy_type, settings_pack::i2p_proxy);
 					break;
 				}

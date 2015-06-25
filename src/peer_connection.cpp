@@ -4706,10 +4706,14 @@ namespace libtorrent
 		}
 
 		// do not stall waiting for a handshake
+		int timeout = m_settings.get_int (settings_pack::handshake_timeout);
+#if TORRENT_USE_I2P
+		timeout *= is_i2p(*m_socket) ? 4 : 1;
+#endif
 		if (may_timeout
 			&& !m_connecting
 			&& in_handshake()
-			&& d > seconds(m_settings.get_int(settings_pack::handshake_timeout)))
+			&& d > seconds(timeout))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "NO_HANDSHAKE", "waited %d seconds"
