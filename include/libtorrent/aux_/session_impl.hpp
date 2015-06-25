@@ -311,8 +311,11 @@ namespace libtorrent
 
 			void dht_put_mutable_item(boost::array<char, 32> key
 				, boost::function<void(entry&, boost::array<char,64>&
-					, boost::uint64_t&, std::string const&)> cb
+				, boost::uint64_t&, std::string const&)> cb
 				, std::string salt = std::string());
+
+			void dht_get_peers(sha1_hash const& info_hash);
+			void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;

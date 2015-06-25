@@ -1777,5 +1777,20 @@ namespace libtorrent {
 		return buf;
 	}
 
+	dht_get_peers_reply_alert::dht_get_peers_reply_alert(aux::stack_allocator&
+		, sha1_hash const& ih
+		, std::vector<tcp::endpoint> const& v)
+		: info_hash(ih), peers(v)
+	{}
+
+	std::string dht_get_peers_reply_alert::message() const
+	{
+		char ih_hex[41];
+		to_hex((const char*)&info_hash[0], 20, ih_hex);
+		char msg[200];
+		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %ld", ih_hex, peers.size());
+		return msg;
+	}
+
 } // namespace libtorrent
 

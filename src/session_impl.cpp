@@ -5531,6 +5531,12 @@ retry:
 				alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq);
 		}
 
+		void on_dht_get_peers(alert_manager& alerts, sha1_hash info_hash, std::vector<tcp::endpoint> const& peers)
+		{
+			if (alerts.should_post<dht_get_peers_reply_alert>())
+				alerts.emplace_alert<dht_get_peers_reply_alert>(info_hash, peers);
+		}
+
 	} // anonymous namespace
 
 	void session_impl::dht_put_item(entry data, sha1_hash target)
@@ -5542,12 +5548,34 @@ retry:
 
 	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
 		, boost::function<void(entry&, boost::array<char,64>&
-			, boost::uint64_t&, std::string const&)> cb
+		, boost::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 		if (!m_dht) return;
 		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback
 			, boost::ref(m_alerts), _1, cb), salt);
+	}
+
+	void session_impl::dht_get_peers(sha1_hash const& info_hash)
+	{
+		if (!m_dht) return;
+		m_dht->get_peers(info_hash, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+	}
+
+	void session_impl::dht_announce(sha1_hash const& info_hash, int port, int flags)
+	{
+		if (!m_dht) return;
+
+		port = port <= 0 ? listen_port() : port;
+
+		// if incoming uTP connections are allowed, set the implied_port
+		// argument in the announce, this will make the DHT node use
+		// our source port in the packet as our listen port, which is
+		// likely more accurate when behind a NAT
+		if (settings().get_bool(settings_pack::enable_incoming_utp))
+			flags |= dht::dht_tracker::flag_implied_port;
+
+		m_dht->announce(info_hash, port, flags, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
 	}
 
 #endif

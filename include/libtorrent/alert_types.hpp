@@ -2356,12 +2356,27 @@ namespace libtorrent
 		int m_size;
 	};
 
+	struct TORRENT_EXPORT dht_get_peers_reply_alert: alert {
+
+		dht_get_peers_reply_alert(aux::stack_allocator& alloc
+			, sha1_hash const& ih
+			, std::vector<tcp::endpoint> const& v);
+
+		const static int static_category = alert::dht_notification;
+		TORRENT_DEFINE_ALERT(dht_get_peers_reply_alert, 87)
+
+		virtual std::string message() const;
+
+		sha1_hash info_hash;
+		std::vector<tcp::endpoint> peers;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 87 };
+	enum { num_alert_types = 88 };
 }
 
 

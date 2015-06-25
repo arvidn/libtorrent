@@ -86,6 +86,8 @@ namespace libtorrent { namespace dht
 		entry state() const;
 
 		enum flags_t { flag_seed = 1, flag_implied_port = 2 };
+		void get_peers(sha1_hash const& ih
+			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 		void announce(sha1_hash const& ih, int listen_port, int flags
 			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
