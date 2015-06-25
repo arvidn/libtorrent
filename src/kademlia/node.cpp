@@ -372,6 +372,27 @@ void node::add_node(udp::endpoint node)
 	send_single_refresh(node, m_table.num_active_buckets());
 }
 
+void node::get_peers(sha1_hash const& info_hash
+	, boost::function<void(std::vector<tcp::endpoint> const&)> dcallback
+	, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+	, bool noseeds)
+{
+	// search for nodes with ids close to id or with peers
+	// for info-hash id. then send announce_peer to them.
+
+	boost::intrusive_ptr<dht::get_peers> ta;
+	if (m_settings.privacy_lookups)
+	{
+		ta.reset(new dht::obfuscated_get_peers(*this, info_hash, dcallback, ncallback, noseeds));
+	}
+	else
+	{
+		ta.reset(new dht::get_peers(*this, info_hash, dcallback, ncallback, noseeds));
+	}
+
+	ta->start();
+}
+
 void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 {
@@ -384,24 +405,10 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 			, hex_ih, listen_port);
 	}
 #endif
-	// search for nodes with ids close to id or with peers
-	// for info-hash id. then send announce_peer to them.
 
-	boost::intrusive_ptr<get_peers> ta;
-	if (m_settings.privacy_lookups)
-	{
-		ta.reset(new obfuscated_get_peers(*this, info_hash, f
-			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, flags), flags & node::flag_seed));
-	}
-	else
-	{
-		ta.reset(new get_peers(*this, info_hash, f
-			, boost::bind(&announce_fun, _1, boost::ref(*this)
-			, listen_port, info_hash, flags), flags & node::flag_seed));
-	}
-
-	ta->start();
+	get_peers(info_hash, f
+		, boost::bind(&announce_fun, _1, boost::ref(*this)
+		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
 
 void node::get_item(sha1_hash const& target
