@@ -495,11 +495,20 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	unsigned int seed = total_microseconds(clock_type::now().time_since_epoch()) & 0xffffffff;
-	printf("random seed: %u\n", seed);
-	std::srand(seed);
+	int port = 2000 + (lt::random() % 6000);
+	error_code ec;
+	io_service ios;
 
-	int port = 5000 + (rand() % 55000);
+	// make sure the port we pick is free
+	do {
+		++port;
+		tcp::socket s(ios);
+		s.open(tcp::v4(), ec);
+		if (ec) break;
+		s.bind(tcp::endpoint(address::from_string("127.0.0.1"), port), ec);
+	} while (ec);
+
+
 	char const* type = "";
 	char const* auth = "";
 	char const* cmd = "";
@@ -850,7 +859,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	error_code ec;
 	io_service ios;
 
-	// make sure the port we pick is free to use by the python web server
+	// make sure the port we pick is free
 	do {
 		++port;
 		tcp::socket s(ios);
