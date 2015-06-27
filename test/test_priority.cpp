@@ -83,14 +83,6 @@ void test_transfer(settings_pack const& sett)
 	cleanup();
 
 	settings_pack pack = sett;
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	pack.set_int(settings_pack::alert_mask, mask);
-
-	lt::session ses1(pack);
-
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
-	pack.set_int(settings_pack::alert_mask, mask);
-	lt::session ses2(pack);
 
 	// we need a short reconnect time since we
 	// finish the torrent and then restart it
@@ -113,8 +105,14 @@ void test_transfer(settings_pack const& sett)
 	pack.set_bool(settings_pack::enable_lsd, false);
 	pack.set_bool(settings_pack::enable_dht, false);
 
-	ses1.apply_settings(pack);
-	ses2.apply_settings(pack);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+	pack.set_int(settings_pack::alert_mask, mask);
+
+	lt::session ses1(pack);
+
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
+	pack.set_int(settings_pack::alert_mask, mask);
+	lt::session ses2(pack);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
