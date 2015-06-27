@@ -3224,7 +3224,7 @@ namespace libtorrent
 			req.filter = m_ip_filter;
 
 		req.info_hash = m_torrent_file->info_hash();
-		req.kind = tracker_request::scrape_request;
+		req.kind |= tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
 		req.auth = tracker_login();
 		req.key = tracker_key();
@@ -3247,7 +3247,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
+		TORRENT_ASSERT(0 != (req.kind & tracker_request::scrape_request));
 
 		announce_entry* ae = find_tracker(req);
 		if (ae)
@@ -3305,7 +3305,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
+		TORRENT_ASSERT(0 == (r.kind & tracker_request::scrape_request));
 
 		// TODO: 2 this looks suspicious. Figure out why it makes sense to use the
 		// first IP in this list and leave a comment here
@@ -11680,7 +11680,7 @@ namespace libtorrent
 		debug_log("*** tracker error: (%d) %s %s", ec.value()
 			, ec.message().c_str(), msg.c_str());
 #endif
-		if (r.kind == tracker_request::announce_request)
+		if (0 == (r.kind & tracker_request::scrape_request))
 		{
 			announce_entry* ae = find_tracker(r);
 			if (ae)
@@ -11703,7 +11703,7 @@ namespace libtorrent
 					, ae?ae->fails:0, response_code, r.url, ec, msg);
 			}
 		}
-		else if (r.kind == tracker_request::scrape_request)
+		else if (0 != (r.kind & tracker_request::scrape_request))
 		{
 			if (response_code == 410)
 			{

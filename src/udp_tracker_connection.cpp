@@ -288,9 +288,9 @@ namespace libtorrent
 			// use if if it hasn't expired
 			if (aux::time_now() < cc->second.expires)
 			{
-				if (tracker_req().kind == tracker_request::announce_request)
+				if (0 == (tracker_req().kind & tracker_request::scrape_request))
 					send_udp_announce();
-				else if (tracker_req().kind == tracker_request::scrape_request)
+				else if (0 != (tracker_req().kind & tracker_request::scrape_request))
 					send_udp_scrape();
 				return;
 			}
@@ -468,9 +468,9 @@ namespace libtorrent
 		cce.connection_id = connection_id;
 		cce.expires = aux::time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
 
-		if (tracker_req().kind == tracker_request::announce_request)
+		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 			send_udp_announce();
-		else if (tracker_req().kind == tracker_request::scrape_request)
+		else if (0 != (tracker_req().kind & tracker_request::scrape_request))
 			send_udp_scrape();
 		return true;
 	}

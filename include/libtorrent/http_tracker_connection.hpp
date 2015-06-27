@@ -100,11 +100,7 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
 		char const* data, int size, error_code& ec
-		, bool scrape_request, sha1_hash scrape_ih
-#if TORRENT_USE_I2P
-		, bool is_i2p=false
-#endif
-	);
+		, int flags, sha1_hash scrape_ih);
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);

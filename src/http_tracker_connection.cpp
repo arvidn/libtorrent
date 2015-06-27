@@ -83,7 +83,7 @@ namespace libtorrent
 	{
 		std::string url = tracker_req().url;
 
-		if (tracker_req().kind == tracker_request::scrape_request)
+		if (0 != (tracker_req().kind & tracker_request::scrape_request))
 		{
 			// find and replace "announce" with "scrape"
 			// in request
@@ -117,7 +117,7 @@ namespace libtorrent
 		url += "info_hash=";
 		url += escape_string((const char*)&tracker_req().info_hash[0], 20);
 
-		if (tracker_req().kind == tracker_request::announce_request)
+		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 		{
 			const char* event_string[] = {"completed", "started", "stopped", "paused"};
 
@@ -332,12 +332,7 @@ namespace libtorrent
 		}
 
 		tracker_response resp = parse_tracker_response(data, size, ecode
-			, tracker_req().kind == tracker_request::scrape_request
-			, tracker_req().info_hash
-#if TORRENT_USE_I2P
-			, tracker_req().i2pconn != NULL
-#endif
-		);
+			, tracker_req().kind, tracker_req().info_hash);
 
 		if (!resp.warning_message.empty())
 			cb->tracker_warning(tracker_req(), resp.warning_message);
@@ -358,7 +353,7 @@ namespace libtorrent
 		}
 
 		// do slightly different things for scrape requests
-		if (tracker_req().kind == tracker_request::scrape_request)
+		if (0 != (tracker_req().kind & tracker_request::scrape_request))
 		{
 			cb->tracker_scrape_response(tracker_req(), resp.complete
 				, resp.incomplete, resp.downloaded, resp.downloaders);
@@ -427,11 +422,7 @@ namespace libtorrent
 	}
 
 	tracker_response parse_tracker_response(char const* data, int size, error_code& ec
-		, bool scrape_request, sha1_hash scrape_ih
-#if TORRENT_USE_I2P
-		, bool is_i2p
-#endif
-	)
+		, int flags, sha1_hash scrape_ih)
 	{
 		tracker_response resp;
 
@@ -471,7 +462,7 @@ namespace libtorrent
 		if (warning)
 			resp.warning_message = warning.string_value();
 
-		if (scrape_request)
+		if (0 != (flags & tracker_request::scrape_request))
 		{
 			bdecode_node files = e.dict_find_dict("files");
 			if (!files)
@@ -508,7 +499,8 @@ namespace libtorrent
 			char const* peers = peers_ent.string_ptr();
 			int len = peers_ent.string_length();
 #if TORRENT_USE_I2P
-			if (is_i2p) {
+			if (0 != (flags & tracker_request::i2p))
+			{
 				error_code parse_error;
 				for (int i = 0; i < len; i += 32)
 				{

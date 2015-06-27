@@ -1250,6 +1250,7 @@ namespace aux {
 #endif
 #if TORRENT_USE_I2P
 		req.i2pconn = &m_i2p_conn;
+		req.kind |= tracker_request::i2p;
 #endif
 
 		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();
