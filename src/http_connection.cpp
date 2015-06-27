@@ -370,11 +370,16 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 		if (is_i2p)
 		{
+			if (hostname.length() < 516) // Base64 encoded  destination with optional .i2p
+			{
 #if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_i2p_resolve");
+				add_outstanding_async("http_connection::on_i2p_resolve");
 #endif
-			i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
-				, me, _1, _2));
+				i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
+					, me, _1, _2));
+			}
+			else
+				connect_i2p_tracker(hostname.c_str());
 		}
 		else
 #endif
@@ -471,19 +476,8 @@ void http_connection::close(bool force)
 }
 
 #if TORRENT_USE_I2P
-void http_connection::on_i2p_resolve(error_code const& e
-	, char const* destination)
+void http_connection::connect_i2p_tracker(char const* destination)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_i2p_resolve");
-#endif
-	if (e)
-	{
-		callback(e);
-		close();
-		return;
-	}
-
 #ifdef TORRENT_USE_OPENSSL
 	TORRENT_ASSERT(m_ssl == false);
 	TORRENT_ASSERT(m_sock.get<socket_type>());
@@ -501,6 +495,21 @@ void http_connection::on_i2p_resolve(error_code const& e
 #endif
 	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
+}
+
+void http_connection::on_i2p_resolve(error_code const& e
+	, char const* destination)
+{
+#if defined TORRENT_ASIO_DEBUGGING
+	complete_async("http_connection::on_i2p_resolve");
+#endif
+	if (e)
+	{
+		callback(e);
+		close();
+		return;
+	}
+	connect_i2p_tracker(destination);
 }
 #endif
 

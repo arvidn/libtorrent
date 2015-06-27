@@ -132,6 +132,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 private:
 
 #if TORRENT_USE_I2P
+	void connect_i2p_tracker(char const* destination);
 	void on_i2p_resolve(error_code const& e
 		, char const* destination);
 #endif
