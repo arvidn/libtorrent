@@ -565,6 +565,8 @@ namespace aux {
 
 	void session_impl::init(boost::shared_ptr<settings_pack> pack)
 	{
+		m_thread_id = thread_id::self();
+
 		// this is a debug facility
 		// see single_threaded in debug.hpp
 		thread_started();

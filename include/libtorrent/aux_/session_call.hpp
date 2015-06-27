@@ -62,8 +62,15 @@ void sync_call(aux::session_impl& ses, boost::function<void(void)> f);
 template <typename Handle>
 void sync_call_handle(Handle& h, boost::function<void(void)> f)
 {
-	bool done = false;
 	session_impl& ses = (session_impl&) h->session();
+
+	if (ses.in_thread())
+	{
+		f();
+		return;
+	}
+
+	bool done = false;
 	ses.get_io_service().dispatch(boost::bind(&aux::fun_wrap
 		, boost::ref(done)
 		, boost::ref(ses.cond)
@@ -75,6 +82,9 @@ void sync_call_handle(Handle& h, boost::function<void(void)> f)
 template <typename Ret>
 Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
 {
+	if (ses.in_thread())
+		return f();
+
 	bool done = false;
 	Ret r;
 	ses.get_io_service().dispatch(boost::bind(&fun_ret<Ret>
@@ -90,8 +100,15 @@ Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
 template <typename Handle, typename Ret>
 void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
 {
-	bool done = false;
 	session_impl& ses = (session_impl&) h->session();
+
+	if (ses.in_thread())
+	{
+		r = f();
+		return;
+	}
+
+	bool done = false;
 	ses.get_io_service().dispatch(boost::bind(&aux::fun_ret<Ret>
 		, boost::ref(r)
 		, boost::ref(done)

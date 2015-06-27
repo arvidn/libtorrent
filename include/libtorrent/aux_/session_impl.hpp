@@ -579,6 +579,8 @@ namespace libtorrent
 			mutable libtorrent::mutex mut;
 			mutable libtorrent::condition_variable cond;
 
+			bool in_thread() const { return m_thread_id == thread_id::self(); }
+
 			// cork a peer and schedule a delayed uncork
 			// does nothing if the peer is already corked
 			void cork_burst(peer_connection* p);
@@ -709,6 +711,9 @@ namespace libtorrent
 			// it means we need to request new alerts from the main thread.
 			mutable int m_alert_pointer_pos;
 #endif
+
+			// the id of the thread the session is running in
+			thread_id m_thread_id;
 
 			// handles disk io requests asynchronously
 			// peers have pointers into the disk buffer
