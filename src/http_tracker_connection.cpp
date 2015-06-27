@@ -333,7 +333,11 @@ namespace libtorrent
 
 		tracker_response resp = parse_tracker_response(data, size, ecode
 			, tracker_req().kind == tracker_request::scrape_request
-			, tracker_req().info_hash);
+			, tracker_req().info_hash
+#if TORRENT_USE_I2P
+			, tracker_req().i2pconn != NULL
+#endif
+		);
 
 		if (!resp.warning_message.empty())
 			cb->tracker_warning(tracker_req(), resp.warning_message);
@@ -423,7 +427,11 @@ namespace libtorrent
 	}
 
 	tracker_response parse_tracker_response(char const* data, int size, error_code& ec
-		, bool scrape_request, sha1_hash scrape_ih)
+		, bool scrape_request, sha1_hash scrape_ih
+#if TORRENT_USE_I2P
+		, bool is_i2p
+#endif
+	)
 	{
 		tracker_response resp;
 
@@ -499,16 +507,33 @@ namespace libtorrent
 		{
 			char const* peers = peers_ent.string_ptr();
 			int len = peers_ent.string_length();
-			resp.peers4.reserve(len / 6);
-			for (int i = 0; i < len; i += 6)
+#if TORRENT_USE_I2P
+			if (is_i2p) {
+				error_code parse_error;
+				for (int i = 0; i < len; i += 32)
+				{
+					if (len - i < 32) break;
+					peer_entry p;
+					p.hostname = base32encode(std::string(peers + i, 32), string::i2p);
+					p.hostname += ".b32.i2p";
+					p.port = 6881;
+					resp.peers.push_back (p);
+				}
+			}
+			else
+#endif
 			{
-				if (len - i < 6) break;
+				resp.peers4.reserve(len / 6);
+				for (int i = 0; i < len; i += 6)
+				{
+					if (len - i < 6) break;
 
-				ipv4_peer_entry p;
-				error_code ec;
-				p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
-				p.port = detail::read_uint16(peers);
-				resp.peers4.push_back(p);
+					ipv4_peer_entry p;
+					error_code ec;
+					p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
+					p.port = detail::read_uint16(peers);
+					resp.peers4.push_back(p);
+				}
 			}
 		}
 		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
