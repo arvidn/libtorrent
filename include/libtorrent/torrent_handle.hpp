@@ -1230,11 +1230,8 @@ namespace libtorrent
 		}
 
 		// This function is intended only for use by plugins and the alert
-		// dispatch function. Any code that runs in libtorrent's network thread
-		// may not use the public API of torrent_handle. Doing so results in a
-		// dead-lock. For such routines, the ``native_handle`` gives access to
-		// the underlying type representing the torrent. This type does not have
-		// a stable API and should be relied on as little as possible.
+		// dispatch function. This type does not have a stable API and should
+		// be relied on as little as possible.
 		boost::shared_ptr<torrent> native_handle() const;
 
 	private:
