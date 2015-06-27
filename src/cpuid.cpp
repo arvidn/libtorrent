@@ -40,6 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <nmmintrin.h>
 #endif
 
+#if TORRENT_HAS_SSE && defined __GNUC__
+#include <cpuid.h>
+#endif
+
 namespace libtorrent { namespace aux
 {
 	namespace {
@@ -51,9 +55,7 @@ namespace libtorrent { namespace aux
 		__cpuid((int*)info, type);
 
 #elif TORRENT_HAS_SSE && defined __GNUC__
-		asm volatile
-			("cpuid" : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
-			 : "a" (type), "c" (0));
+		__get_cpuid(type, &info[0], &info[1], &info[2], &info[3]);
 #else
 		// for non-x86 and non-amd64, just return zeroes
 		std::memset(&info[0], 0, sizeof(unsigned int) * 4);
