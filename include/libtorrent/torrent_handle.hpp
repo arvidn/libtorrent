@@ -240,6 +240,7 @@ namespace libtorrent
 		friend class invariant_access;
 		friend struct aux::session_impl;
 		friend class session;
+		friend struct session_handle;
 		friend struct feed;
 		friend class torrent;
 		friend std::size_t hash_value(torrent_handle const& th);
