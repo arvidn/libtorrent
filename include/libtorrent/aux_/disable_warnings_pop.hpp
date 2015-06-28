@@ -30,11 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
 #ifdef _MSC_VER
 #pragma warning(pop)
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
