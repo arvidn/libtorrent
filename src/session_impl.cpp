@@ -1679,10 +1679,12 @@ namespace aux {
 
 		while (ec && retries > 0)
 		{
+			TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("failed to bind to interface [%s] \"%s\": %s"
-				, device.c_str(), bind_ip.to_string(ec).c_str()
-				, ec.message().c_str());
+			session_log("failed to bind to interface [%s %d] \"%s : %s\": %s "
+				"(retries: %d)"
+				, device.c_str(), port, bind_ip.to_string(ec).c_str()
+				, ec.category().name(), ec.message().c_str(), retries);
 #endif
 			ec.clear();
 			TORRENT_ASSERT_VAL(!ec, ec);
@@ -1694,8 +1696,7 @@ namespace aux {
 		}
 		if (ec && !(flags & listen_no_system_port))
 		{
-			// instead of giving up, trying
-			// let the OS pick a port
+			// instead of giving up, try let the OS pick a port
 			port = 0;
 			ec.clear();
 			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
@@ -1708,8 +1709,9 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("cannot bind to interface \"%s\": %s"
-				, device.c_str(), ec.message().c_str());
+			session_log("cannot to bind to interface [%s %d] \"%s : %s\": %s"
+				, device.c_str(), port, bind_ip.to_string(ec).c_str()
+				, ec.category().name(), ec.message().c_str());
 #endif
 			return ret;
 		}
