@@ -684,6 +684,7 @@ SOURCES =
 	performance_counters
 	resolver
 	session_settings
+	file_progress
 
 # -- extensions --
 	metadata_transfer

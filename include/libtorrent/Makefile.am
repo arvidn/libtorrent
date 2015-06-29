@@ -166,6 +166,7 @@ nobase_include_HEADERS = \
   aux_/session_settings.hpp         \
   aux_/session_interface.hpp        \
   aux_/time.hpp                     \
+  aux_/file_progress.hpp            \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

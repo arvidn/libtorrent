@@ -142,6 +142,7 @@ libtorrent_rasterbar_la_SOURCES = \
   utp_stream.cpp                  \
   web_peer_connection.cpp         \
   xml_parse.cpp                   \
+  file_progress.cpp               \
   \
   $(KADEMLIA_SOURCES)             \
   $(ASIO_OPENSSL_SOURCES)

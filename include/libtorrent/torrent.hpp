@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/vector_utils.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/file_progress.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -98,10 +99,6 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
-
-	TORRENT_EXTRA_EXPORT void initialize_file_progress(
-		std::vector<boost::uint64_t>& file_progress
-		, piece_picker const& picker, file_storage const& fs);
 
 	namespace aux
 	{
@@ -1269,12 +1266,8 @@ namespace libtorrent
 		// TODO: this wastes 5 bits per file
 		std::vector<boost::uint8_t> m_file_priority;
 
-		// this vector contains the number of bytes completely
-		// downloaded (as in passed-hash-check) in each file.
-		// this lets us trigger on individual files completing
-		// the vector is allocated lazily, when file progress
-		// is first queried by the client
-		std::vector<boost::uint64_t> m_file_progress;
+		// this object is used to track download progress of individual files
+		aux::file_progress m_file_progress;
 
 		// these are the pieces we're currently
 		// suggesting to peers.

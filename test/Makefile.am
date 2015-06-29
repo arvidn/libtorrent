@@ -32,7 +32,8 @@ test_programs = \
   test_session               \
   test_web_seed              \
   test_url_seed              \
-  test_remap_files
+  test_remap_files           \
+  test_file_progress
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)

@@ -204,68 +204,6 @@ TORRENT_TEST(torrent)
 		test_running_torrent(info, 0);
 	}
 
-	{
-		// test the initialize_file_progress function to make sure it assigns
-		// the correct number of bytes across the files
-		const int piece_size = 256;
-
-		file_storage fs;
-		fs.add_file("torrent/1", 0);
-		fs.add_file("torrent/2", 10);
-		fs.add_file("torrent/3", 20);
-		fs.add_file("torrent/4", 30);
-		fs.add_file("torrent/5", 40);
-		fs.add_file("torrent/6", 100000);
-		fs.add_file("torrent/7", 30);
-		fs.set_piece_length(piece_size);
-		fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
-
-		for (int idx = 0; idx < fs.num_pieces(); ++idx)
-		{
-			piece_picker picker;
-			picker.init(4, fs.total_size() % 4, fs.num_pieces());
-			picker.we_have(idx);
-
-			std::vector<boost::uint64_t> fp;
-
-			initialize_file_progress(fp, picker, fs);
-
-			boost::uint64_t sum = 0;
-			for (int i = 0; i < int(fp.size()); ++i)
-				sum += fp[i];
-
-			TEST_EQUAL(sum, fs.piece_size(idx));
-		}
-	}
-
-	{
-		// test the initialize_file_progress function to make sure it assigns
-		// the correct number of bytes across the files
-		const int piece_size = 256;
-
-		file_storage fs;
-		fs.add_file("torrent/1", 100000);
-		fs.add_file("torrent/2", 10);
-		fs.set_piece_length(piece_size);
-		fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
-
-		for (int idx = 0; idx < fs.num_pieces(); ++idx)
-		{
-			piece_picker picker;
-			picker.init(4, fs.total_size() % 4, fs.num_pieces());
-			picker.we_have(idx);
-
-			std::vector<boost::uint64_t> fp;
-
-			initialize_file_progress(fp, picker, fs);
-
-			boost::uint64_t sum = 0;
-			for (int i = 0; i < fp.size(); ++i)
-				sum += fp[i];
-
-			TEST_EQUAL(int(sum), fs.piece_size(idx));
-		}
-	}
 }
 
 
