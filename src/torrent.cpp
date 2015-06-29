@@ -1131,7 +1131,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::need_policy()
+	void torrent::need_peer_list()
 	{
 		if (m_peer_list) return;
 		m_peer_list.reset(new peer_list);
@@ -3404,8 +3404,8 @@ namespace libtorrent
 				// on the peers returned from the tracker, but just strip
 				// the .i2p and use it as a destination
 				std::string hostname = i->hostname.substr(i->hostname.size() - 4);
-				torrent_state st = get_policy_state();
-				need_policy();
+				torrent_state st = get_peer_list_state();
+				need_peer_list();
 				if (m_peer_list->add_i2p_peer(hostname.c_str(), peer_info::tracker, 0, &st))
 					state_updated();
 				peers_erased(st.erased);
@@ -3546,7 +3546,7 @@ namespace libtorrent
 		while (want_peers() && conns > 0)
 		{
 			--conns;
-			torrent_state st = get_policy_state();
+			torrent_state st = get_peer_list_state();
 			torrent_peer* p = m_peer_list->connect_one_peer(m_ses.session_time(), &st);
 			peers_erased(st.erased);
 			inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
@@ -3630,8 +3630,8 @@ namespace libtorrent
 #endif
 		if (ec || m_ses.is_aborted()) return;
 
-		need_policy();
-		torrent_state st = get_policy_state();
+		need_peer_list();
+		torrent_state st = get_peer_list_state();
 		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, 0, &st))
 			state_updated();
 		peers_erased(st.erased);
@@ -5988,7 +5988,7 @@ namespace libtorrent
 			}
 		}
 
-		torrent_state st = get_policy_state();
+		torrent_state st = get_peer_list_state();
 		if (m_peer_list) m_peer_list->connection_closed(*p, m_ses.session_time(), &st);
 		peers_erased(st.erased);
 
@@ -7500,7 +7500,7 @@ namespace libtorrent
 			// add the newly connected peer to this torrent's peer list
 			sorted_insert(m_connections, boost::get_pointer(c));
 			m_ses.insert_peer(c);
-			need_policy();
+			need_peer_list();
 			m_peer_list->set_connection(peerinfo, c.get());
 			if (peerinfo->seed)
 			{
@@ -7797,8 +7797,8 @@ namespace libtorrent
 				if (pp) p->add_extension(pp);
 			}
 #endif
-			torrent_state st = get_policy_state();
-			need_policy();
+			torrent_state st = get_peer_list_state();
+			need_peer_list();
 			if (!m_peer_list->new_connection(*p, m_ses.session_time(), &st))
 			{
 				peers_erased(st.erased);
@@ -10899,7 +10899,7 @@ namespace libtorrent
 		i->retry = aux::time_now() + seconds(retry);
 	}
 
-	torrent_state torrent::get_policy_state()
+	torrent_state torrent::get_peer_list_state()
 	{
 		torrent_state ret;
 		ret.is_paused = is_paused();
@@ -10922,8 +10922,8 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(want_peers());
 
-		torrent_state st = get_policy_state();
-		need_policy();
+		torrent_state st = get_peer_list_state();
+		need_peer_list();
 		torrent_peer* p = m_peer_list->connect_one_peer(m_ses.session_time(), &st);
 		peers_erased(st.erased);
 		inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
@@ -11013,8 +11013,8 @@ namespace libtorrent
 			return NULL;
 		}
 
-		need_policy();
-		torrent_state st = get_policy_state();
+		need_peer_list();
+		torrent_state st = get_peer_list_state();
 		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
 		if (p)
@@ -11040,7 +11040,7 @@ namespace libtorrent
 		if (!settings().get_bool(settings_pack::ban_web_seeds) && tp->web_seed)
 			return false;
 
-		need_policy();
+		need_peer_list();
 		if (!m_peer_list->ban_peer(tp)) return false;
 		update_want_peers();
 
@@ -11064,28 +11064,28 @@ namespace libtorrent
 			}
 		}
 
-		need_policy();
+		need_peer_list();
 		m_peer_list->set_seed(p, s);
 		update_auto_sequential();
 	}
 
 	void torrent::clear_failcount(torrent_peer* p)
 	{
-		need_policy();
+		need_peer_list();
 		m_peer_list->set_failcount(p, 0);
 		update_want_peers();
 	}
 
 	std::pair<peer_list::iterator, peer_list::iterator> torrent::find_peers(address const& a)
 	{
-		need_policy();
+		need_peer_list();
 		return m_peer_list->find_peers(a);
 	}
 
 	void torrent::update_peer_port(int port, torrent_peer* p, int src)
 	{
-		need_policy();
-		torrent_state st = get_policy_state();
+		need_peer_list();
+		torrent_state st = get_peer_list_state();
 		m_peer_list->update_peer_port(port, p, src, &st);
 		peers_erased(st.erased);
 		update_want_peers();
@@ -11117,7 +11117,7 @@ namespace libtorrent
 		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
 
-		torrent_state st = get_policy_state();
+		torrent_state st = get_peer_list_state();
 		std::vector<address> banned;
 		m_peer_list->apply_ip_filter(*m_ip_filter, &st, banned);
    
@@ -11137,7 +11137,7 @@ namespace libtorrent
 		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
 
-		torrent_state st = get_policy_state();
+		torrent_state st = get_peer_list_state();
 		std::vector<address> banned;
 		m_peer_list->apply_port_filter(m_ses.get_port_filter(), &st, banned);
 

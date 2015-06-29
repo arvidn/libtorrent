@@ -979,7 +979,7 @@ namespace libtorrent
 		void update_max_failcount()
 		{
 			if (!m_peer_list) return;
-			torrent_state st = get_policy_state();
+			torrent_state st = get_peer_list_state();
 			m_peer_list->set_max_failcount(&st);
 		}
 		int num_known_peers() const { return m_peer_list ? m_peer_list->num_peers() : 0; }
@@ -1154,7 +1154,7 @@ namespace libtorrent
 		// initialize the torrent_state structure passed to peer_list
 		// member functions. Don't forget to also call peers_erased()
 		// on the erased member after the peer_list call
-		torrent_state get_policy_state();
+		torrent_state get_peer_list_state();
 
 		void construct_storage();
 		void update_list(int list, bool in);
@@ -1198,7 +1198,7 @@ namespace libtorrent
 		void remove_time_critical_pieces(std::vector<int> const& priority);
 		void request_time_critical_pieces();
 
-		void need_policy();
+		void need_peer_list();
 
 		boost::shared_ptr<const ip_filter> m_ip_filter;
 
