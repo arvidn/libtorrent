@@ -2362,7 +2362,7 @@ namespace libtorrent
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);
 
-		const static int static_category = alert::dht_notification;
+		const static int static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_get_peers_reply_alert, 87)
 
 		virtual std::string message() const;
