@@ -383,7 +383,6 @@ namespace aux {
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
 		, m_key(0)
-		, m_listen_port_retries(10)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -1622,8 +1621,10 @@ namespace aux {
 	enum { listen_no_system_port = 0x02 };
 
 	listen_socket_t session_impl::setup_listener(std::string const& device
-		, bool ipv4, int port, int& retries, int flags, error_code& ec)
+		, bool ipv4, int port, int flags, error_code& ec)
 	{
+		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+
 		listen_socket_t ret;
 		ret.ssl = flags & open_ssl_socket;
 		int last_op = 0;
@@ -1677,14 +1678,14 @@ namespace aux {
 		if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
 			return ret;
 
-		while (ec && retries > 0)
+		while (bool(ec) && retries > 0)
 		{
 			TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("failed to bind to interface [%s %d] \"%s : %s\": %s "
+			session_log("failed to bind to interface [%s %d] \"%s\" : %s (%d) : %s "
 				"(retries: %d)"
 				, device.c_str(), port, bind_ip.to_string(ec).c_str()
-				, ec.category().name(), ec.message().c_str(), retries);
+				, ec.category().name(), ec.value(), ec.message().c_str(), retries);
 #endif
 			ec.clear();
 			TORRENT_ASSERT_VAL(!ec, ec);
@@ -1694,7 +1695,7 @@ namespace aux {
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
-		if (ec && !(flags & listen_no_system_port))
+		if (bool(ec) && !(flags & listen_no_system_port))
 		{
 			// instead of giving up, try let the OS pick a port
 			port = 0;
@@ -1777,8 +1778,7 @@ namespace aux {
 			? 0 : listen_no_system_port;
 		error_code ec;
 
-		// reset the retry counter
-		m_listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+		int listen_port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 retry:
 
@@ -1803,10 +1803,11 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
+			int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
-				, m_listen_port_retries, flags, ec);
+				, flags, ec);
 
 			if (s.sock)
 			{
@@ -1822,10 +1823,10 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				int retries = 10;
+				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 				listen_socket_t s = setup_listener("0.0.0.0", true
 					, m_settings.get_int(settings_pack::ssl_listen)
-					, retries, flags | open_ssl_socket, ec);
+					, flags | open_ssl_socket, ec);
 
 				if (s.sock)
 				{
@@ -1840,7 +1841,7 @@ retry:
 			if (supports_ipv6())
 			{
 				listen_socket_t s = setup_listener("::1", false, m_listen_interface.port()
-					, m_listen_port_retries, flags, ec);
+					, flags, ec);
 
 				if (s.sock)
 				{
@@ -1852,10 +1853,9 @@ retry:
 				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
 					s.ssl = true;
-					int retries = 10;
 					listen_socket_t s = setup_listener("::1", false
 						, m_settings.get_int(settings_pack::ssl_listen)
-						, retries, flags | open_ssl_socket, ec);
+						, flags | open_ssl_socket, ec);
 
 					if (s.sock)
 					{
@@ -1906,7 +1906,7 @@ retry:
 						continue;
 
 					listen_socket_t s = setup_listener(device, address_family, port
-						, m_listen_port_retries, flags, ec);
+						, flags, ec);
 
 					if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
 					{
@@ -1935,7 +1935,7 @@ retry:
 
 						listen_socket_t s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
-							, m_listen_port_retries, flags | open_ssl_socket, ec);
+							, flags | open_ssl_socket, ec);
 
 						if (s.sock)
 						{
@@ -1964,10 +1964,10 @@ retry:
 			session_log("cannot bind TCP listen socket to interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-			if (m_listen_port_retries > 0)
+			if (listen_port_retries > 0)
 			{
 				m_listen_interface.port(m_listen_interface.port() + 1);
-				--m_listen_port_retries;
+				--listen_port_retries;
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
@@ -2018,10 +2018,10 @@ retry:
 			session_log("cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-			if (m_listen_port_retries > 0)
+			if (listen_port_retries > 0)
 			{
 				m_listen_interface.port(m_listen_interface.port() + 1);
-				--m_listen_port_retries;
+				--listen_port_retries;
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())

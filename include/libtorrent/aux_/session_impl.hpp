@@ -824,11 +824,6 @@ namespace libtorrent
 			// at startup
 			int m_key;
 
-			// the number of retries we make when binding the
-			// listen socket. For each retry the port number
-			// is incremented by one
-			int m_listen_port_retries;
-
 			// the addresses or device names of the interfaces we are supposed to
 			// listen on. if empty, it means that we should let the os decide
 			// which interface to listen on
@@ -885,7 +880,7 @@ namespace libtorrent
 			};
 
 			listen_socket_t setup_listener(std::string const& device
-				, bool ipv4, int port, int& retries, int flags, error_code& ec);
+				, bool ipv4, int port, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			entry m_dht_state;
