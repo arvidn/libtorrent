@@ -2362,13 +2362,20 @@ namespace libtorrent
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);
 
-		const static int static_category = alert::dht_operation_notification;
+		static const int static_category = alert::dht_operation_notification;
 		TORRENT_DEFINE_ALERT(dht_get_peers_reply_alert, 87)
 
 		virtual std::string message() const;
 
 		sha1_hash info_hash;
-		std::vector<tcp::endpoint> peers;
+
+		int num_peers() const;
+		tcp::endpoint get_peer(int index) const;
+
+	private:
+		aux::stack_allocator& m_alloc;
+		int m_num_peers;
+		int m_peers_idx; // coded like a pair of (index to actual endpoint bytes, size of endpoint)
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL

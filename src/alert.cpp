@@ -1777,19 +1777,54 @@ namespace libtorrent {
 		return buf;
 	}
 
-	dht_get_peers_reply_alert::dht_get_peers_reply_alert(aux::stack_allocator&
+	dht_get_peers_reply_alert::dht_get_peers_reply_alert(aux::stack_allocator& alloc
 		, sha1_hash const& ih
-		, std::vector<tcp::endpoint> const& v)
-		: info_hash(ih), peers(v)
-	{}
+		, std::vector<tcp::endpoint> const& peers)
+		: m_alloc(alloc)
+		, info_hash(ih)
+		, m_num_peers(peers.size())
+		, m_peers_idx(alloc.allocate(sizeof(int) * peers.size() * 2))
+	{
+		for (int i = 0; i < m_num_peers; i++) {
+			tcp::endpoint endp = peers[i];
+			int size = endp.size();
+			int idx = alloc.copy_buffer((char*)endp.data(), size);
+			memcpy(alloc.ptr(sizeof(int) * (2 * i))    , (void*)&idx , sizeof(int));
+			memcpy(alloc.ptr(sizeof(int) * (2 * i + 1)), (void*)&size, sizeof(int));
+		}
+	}
 
 	std::string dht_get_peers_reply_alert::message() const
 	{
 		char ih_hex[41];
 		to_hex((const char*)&info_hash[0], 20, ih_hex);
 		char msg[200];
-		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %ld", ih_hex, peers.size());
+		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %ld", ih_hex, m_num_peers);
 		return msg;
+	}
+
+	int dht_get_peers_reply_alert::num_peers() const
+	{
+		return m_num_peers;
+	}
+
+	tcp::endpoint dht_get_peers_reply_alert::get_peer(int index) const
+	{
+		int idx, size;
+		memcpy((void*)&idx , m_alloc.ptr(sizeof(int) * (2 * index))    , sizeof(int));
+		memcpy((void*)&size, m_alloc.ptr(sizeof(int) * (2 * index + 1)), sizeof(int));
+
+		tcp::endpoint endp;
+
+		if (size == sizeof(boost::asio::detail::sockaddr_in6_type))
+		{
+			endp.resize(sizeof(boost::asio::detail::sockaddr_in6_type));
+		}
+
+		memcpy((void*)endp.data(), m_alloc.ptr(idx), size);
+
+
+		return endp;
 	}
 
 } // namespace libtorrent
