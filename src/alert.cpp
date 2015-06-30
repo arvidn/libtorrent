@@ -1789,8 +1789,8 @@ namespace libtorrent {
 			tcp::endpoint endp = peers[i];
 			int size = endp.size();
 			int idx = alloc.copy_buffer((char*)endp.data(), size);
-			memcpy(alloc.ptr(sizeof(int) * (2 * i))    , (void*)&idx , sizeof(int));
-			memcpy(alloc.ptr(sizeof(int) * (2 * i + 1)), (void*)&size, sizeof(int));
+			memcpy(alloc.ptr(m_peers_idx + sizeof(int) * (2 * i))    , (void*)&idx , sizeof(int));
+			memcpy(alloc.ptr(m_peers_idx + sizeof(int) * (2 * i + 1)), (void*)&size, sizeof(int));
 		}
 	}
 
@@ -1811,8 +1811,8 @@ namespace libtorrent {
 	tcp::endpoint dht_get_peers_reply_alert::get_peer(int index) const
 	{
 		int idx, size;
-		memcpy((void*)&idx , m_alloc.ptr(sizeof(int) * (2 * index))    , sizeof(int));
-		memcpy((void*)&size, m_alloc.ptr(sizeof(int) * (2 * index + 1)), sizeof(int));
+		memcpy((void*)&idx , m_alloc.ptr(m_peers_idx + sizeof(int) * (2 * index))    , sizeof(int));
+		memcpy((void*)&size, m_alloc.ptr(m_peers_idx + sizeof(int) * (2 * index + 1)), sizeof(int));
 
 		tcp::endpoint endp;
 
