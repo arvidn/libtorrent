@@ -5565,16 +5565,6 @@ retry:
 	void session_impl::dht_announce(sha1_hash const& info_hash, int port, int flags)
 	{
 		if (!m_dht) return;
-
-		port = port <= 0 ? listen_port() : port;
-
-		// if incoming uTP connections are allowed, set the implied_port
-		// argument in the announce, this will make the DHT node use
-		// our source port in the packet as our listen port, which is
-		// likely more accurate when behind a NAT
-		if (settings().get_bool(settings_pack::enable_incoming_utp))
-			flags |= dht::dht_tracker::flag_implied_port;
-
 		m_dht->announce(info_hash, port, flags, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
 	}
 
