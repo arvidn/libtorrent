@@ -1581,11 +1581,6 @@ namespace libtorrent
 		// If it has never done that, this value is -1.
 		int last_scrape;
 
-		// the number of regions of non-downloaded pieces in the torrent. This is
-		// an interesting metric on windows vista, since there is a limit on the
-		// number of sparse regions in a single file there.
-		int sparse_regions;
-
 		// the priority of this torrent
 		int priority;
 

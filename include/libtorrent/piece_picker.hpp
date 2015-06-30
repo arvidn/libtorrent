@@ -208,7 +208,7 @@ namespace libtorrent
 			// hash check for this piece
 			boost::uint16_t outstanding_hash_check:1;
 		};
-		
+
 		piece_picker();
 
 		void get_availability(std::vector<int>& avail) const;
@@ -225,7 +225,7 @@ namespace libtorrent
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
 		void dec_refcount(bitfield const& bitmask, const void* peer);
-		
+
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
@@ -241,11 +241,9 @@ namespace libtorrent
 
 		// the lowest piece index we do not have
 		int cursor() const { return m_cursor; }
-		
+
 		// one past the last piece we do not have.
 		int reverse_cursor() const { return m_reverse_cursor; }
-
-		int sparse_regions() const { return m_sparse_regions; }
 
 		// sets all pieces to dont-have
 		void init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces);
@@ -811,7 +809,7 @@ namespace libtorrent
 
 		// the number of pieces we have that also are filtered
 		int m_num_have_filtered;
-		
+
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
 		int m_cursor;
@@ -821,13 +819,10 @@ namespace libtorrent
 		// all the subsequent pieces
 		int m_reverse_cursor;
 
-		// the number of regions of pieces we don't have.
-		int m_sparse_regions;
-
 		// the number of pieces we have (i.e. passed + flushed).
 		// This includes pieces that we have filtered but still have
 		int m_num_have;
-		
+
 		// this is the number of partial download pieces
 		// that may be caused by pad files. We raise the limit
 		// of number of partial pieces by this amount, to not

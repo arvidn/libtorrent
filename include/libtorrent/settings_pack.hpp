@@ -1083,17 +1083,6 @@ namespace libtorrent
 			// favour of a choked peer.
 			seeding_piece_quota,
 
-			// ``max_sparse_regions`` is a limit of the number of *sparse regions*
-			// in a torrent. A sparse region is defined as a hole of pieces we
-			// have not yet downloaded, in between pieces that have been
-			// downloaded. This is used as a hack for windows vista which has a
-			// bug where you cannot write files with more than a certain number of
-			// sparse regions. This limit is not hard, it will be exceeded. Once
-			// it's exceeded, pieces that will maintain or decrease the number of
-			// sparse regions are prioritized. To disable this functionality, set
-			// this to 0. It defaults to 0 on all platforms except windows.
-			max_sparse_regions,
-
 			// TODO: deprecate this
 			// ``max_rejects`` is the number of piece requests we will reject in a
 			// row while a peer is choked before the peer is considered abusive

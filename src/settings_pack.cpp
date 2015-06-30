@@ -275,11 +275,6 @@ namespace libtorrent
 		SET(min_announce_interval, 5 * 60, 0),
 		SET(auto_manage_startup, 60, 0),
 		SET(seeding_piece_quota, 20, 0),
-#ifdef TORRENT_WINDOWS
-		SET(max_sparse_regions, 30000, 0),
-#else
-		SET(max_sparse_regions, 0, 0),
-#endif
 		SET(max_rejects, 50, 0),
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),

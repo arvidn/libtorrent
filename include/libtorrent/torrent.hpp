@@ -1145,8 +1145,6 @@ namespace libtorrent
 
 	private:
 
-		void update_sparse_piece_prio(int piece, int start, int end);
-
 		void ip_filter_updated();
 
 		void inc_stats_counter(int c, int value = 1);
@@ -1536,11 +1534,6 @@ namespace libtorrent
 		// total time we've been available as a seed on this torrent
 		// does not count when the torrent is stopped or paused
 		unsigned int m_seeding_time:24;
-
-		// this is a counter that is decreased every
-		// second, and when it reaches 0, the peer_list::pulse()
-		// is called and the time scaler is reset to 10.
-		boost::int8_t m_time_scaler;
 
 // ----
 

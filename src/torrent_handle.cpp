@@ -119,7 +119,6 @@ namespace libtorrent
 		, seeding_time(0)
 		, seed_rank(0)
 		, last_scrape(0)
-		, sparse_regions(0)
 		, priority(0)
 		, state(checking_resume_data)
 		, need_save_resume(false)

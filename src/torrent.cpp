@@ -238,7 +238,6 @@ namespace libtorrent
 #endif
 		, m_need_save_resume_data(true)
 		, m_seeding_time(0)
-		, m_time_scaler(0)
 		, m_max_uploads((1<<24)-1)
 		, m_save_resume_flags(0)
 		, m_num_uploads(0)
@@ -2655,7 +2654,7 @@ namespace libtorrent
 		debug_log("start_checking, m_checking_piece: %d", m_checking_piece);
 #endif
 	}
-	
+
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
 	void torrent::on_piece_hashed(disk_io_job const* j)
@@ -3292,7 +3291,7 @@ namespace libtorrent
 		// these numbers are cached in the resume data
 		m_need_save_resume_data = true;
 	}
- 
+
 	void torrent::tracker_response(
 		tracker_request const& r
 		, address const& tracker_ip // this is the IP we connected to
@@ -4077,20 +4076,6 @@ namespace libtorrent
 
 	}
 
-	void torrent::update_sparse_piece_prio(int i, int start, int end)
-	{
-		TORRENT_ASSERT(m_picker);
-		if (m_picker->have_piece(i) || m_picker->piece_priority(i) == 0)
-			return;
-		bool have_before = i < start || m_picker->have_piece(i - 1);
-		bool have_after = i >= end || m_picker->have_piece(i + 1);
-		if (have_after && have_before)
-			m_picker->set_piece_priority(i, 7);
-		else if (have_after || have_before)
-			m_picker->set_piece_priority(i, 6);
-		update_gauge();
-	}
-
 	// this is called once we have completely downloaded piece
 	// 'index', its hash has been verified. It's also called
 	// during initial file check when we find a piece whose hash
@@ -4137,20 +4122,6 @@ namespace libtorrent
 			// we have received it, try to send stuff (fill_send_buffer)
 			if (announce_piece) p->announce_piece(index);
 			else p->fill_send_buffer();
-		}
-
-		if (settings().get_int(settings_pack::max_sparse_regions) > 0
-			&& has_picker()
-			&& m_picker->sparse_regions() > settings().get_int(settings_pack::max_sparse_regions))
-		{
-			// we have too many sparse regions. Prioritize pieces
-			// that won't introduce new sparse regions
-			// prioritize pieces that will reduce the number of sparse
-			// regions even higher
-			int start = m_picker->cursor();
-			int end = m_picker->reverse_cursor();
-			if (index > start) update_sparse_piece_prio(index - 1, start, end);
-			if (index < end - 1) update_sparse_piece_prio(index + 1, start, end);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -9817,26 +9788,6 @@ namespace libtorrent
 		if (m_need_suggest_pieces_refresh)
 			do_refresh_suggest_pieces();
 
-		m_time_scaler--;
-		if (m_time_scaler <= 0)
-		{
-			m_time_scaler = 10;
-
-			if (settings().get_int(settings_pack::max_sparse_regions) > 0
-				&& has_picker()
-				&& m_picker->sparse_regions() > settings().get_int(settings_pack::max_sparse_regions))
-			{
-				// we have too many sparse regions. Prioritize pieces
-				// that won't introduce new sparse regions
-				// prioritize pieces that will reduce the number of sparse
-				// regions even higher
-				int start = m_picker->cursor();
-				int end = m_picker->reverse_cursor();
-				for (int i = start; i < end; ++i)
-					update_sparse_piece_prio(i, start, end);
-			}
-		}
-
 		if (settings().get_bool(settings_pack::rate_limit_ip_overhead))
 		{
 			int up_limit = upload_limit();
@@ -11636,7 +11587,6 @@ namespace libtorrent
 		int num_pieces = m_torrent_file->num_pieces();
 		if (has_picker() && (flags & torrent_handle::query_pieces))
 		{
-			st->sparse_regions = m_picker->sparse_regions();
 			st->pieces.resize(num_pieces, false);
 			for (int i = 0; i < num_pieces; ++i)
 				if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
