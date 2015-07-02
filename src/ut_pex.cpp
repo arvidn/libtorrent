@@ -90,7 +90,7 @@ namespace libtorrent { namespace
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 	
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection* pc);
+		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle pc);
 
 		std::vector<char>& get_ut_pex_msg()
 		{
@@ -646,13 +646,13 @@ namespace libtorrent { namespace
 		bool m_first_time;
 	};
 
-	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection* pc)
+	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
+		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
-			, *pc, *this));
+			, *pc.native_handle(), *this));
 	}
 } }
 

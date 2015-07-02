@@ -627,6 +627,7 @@ SOURCES =
 	web_connection_base
 	web_peer_connection
 	http_seed_connection
+	peer_connection_handle
 	i2p_stream
 	instantiate_connection
 	natpmp

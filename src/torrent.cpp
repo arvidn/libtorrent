@@ -1509,7 +1509,7 @@ namespace libtorrent
 			i != m_connections.end(); ++i)
 		{
 			peer_connection* p = *i;
-			boost::shared_ptr<peer_plugin> pp(tp->new_connection(p));
+			boost::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
 			if (pp) p->add_extension(pp);
 		}
 
@@ -6401,7 +6401,7 @@ namespace libtorrent
 			, end(m_extensions.end()); i != end; ++i)
 		{
 			boost::shared_ptr<peer_plugin>
-				pp((*i)->new_connection(c.get()));
+				pp((*i)->new_connection(peer_connection_handle(c.get()->self())));
 			if (pp) c->add_extension(pp);
 		}
 #endif
@@ -7463,7 +7463,8 @@ namespace libtorrent
 				, end(m_extensions.end()); i != end; ++i)
 			{
 				TORRENT_TRY {
-					boost::shared_ptr<peer_plugin> pp((*i)->new_connection(c.get()));
+					boost::shared_ptr<peer_plugin> pp((*i)->new_connection(
+						peer_connection_handle(c.get()->self())));
 					if (pp) c->add_extension(pp);
 				} TORRENT_CATCH (std::exception&) {}
 			}
@@ -7765,7 +7766,8 @@ namespace libtorrent
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
-				boost::shared_ptr<peer_plugin> pp((*i)->new_connection(p));
+				boost::shared_ptr<peer_plugin> pp((*i)->new_connection(
+					peer_connection_handle(p->self())));
 				if (pp) p->add_extension(pp);
 			}
 #endif

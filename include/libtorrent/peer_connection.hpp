@@ -270,7 +270,7 @@ namespace libtorrent
 		, public bandwidth_socket
 		, public peer_class_set
 		, public disk_observer
-		, public peer_connection_interface 
+		, public peer_connection_interface
 		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
@@ -665,7 +665,7 @@ namespace libtorrent
 			, void* userdata = NULL, block_cache_reference ref
 			= block_cache_reference());
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		void set_country(char const* c)
 		{
 			TORRENT_ASSERT(strlen(c) == 2);

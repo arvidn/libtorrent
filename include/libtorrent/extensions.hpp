@@ -177,15 +177,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 
 namespace libtorrent
 {
 	namespace aux { struct session_impl; }
 
 	struct peer_plugin;
-	class bt_peer_connection;
 	struct peer_request;
-	class peer_connection;
 	class entry;
 	struct bdecode_node;
 	struct disk_buffer_holder;
@@ -223,7 +222,7 @@ namespace libtorrent
 
 		// return true if the add_torrent_params should be added
 		virtual bool on_unknown_torrent(sha1_hash const& /* info_hash */
-			, peer_connection* /* pc */, add_torrent_params& /* p */)
+			, peer_connection_handle /* pc */, add_torrent_params& /* p */)
 		{ return false; }
 
 		// called once per second
@@ -262,13 +261,13 @@ namespace libtorrent
 		// are supposed to return an instance of your peer_plugin class. Which in
 		// turn will have its hook functions called on event specific to that peer.
 		// 
-		// The ``peer_connection`` will be valid as long as the ``shared_ptr`` is being
-		// held by the torrent object. So, it is generally a good idea to not keep a
-		// ``shared_ptr`` to your own peer_plugin. If you want to keep references to it,
-		// use ``weak_ptr``.
+		// The ``peer_connection_handle`` will be valid as long as the ``shared_ptr``
+		// is being held by the torrent object. So, it is generally a good idea to not
+		// keep a ``shared_ptr`` to your own peer_plugin. If you want to keep references
+		// to it, use ``weak_ptr``.
 		// 
 		// If this function throws an exception, the connection will be closed.
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection*)
+		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle)
 		{ return boost::shared_ptr<peer_plugin>(); }
 
 		// These hooks are called when a piece passes the hash check or fails the hash
