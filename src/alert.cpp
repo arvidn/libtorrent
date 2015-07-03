@@ -1783,14 +1783,18 @@ namespace libtorrent {
 		: m_alloc(alloc)
 		, info_hash(ih)
 		, m_num_peers(peers.size())
-		, m_peers_idx(alloc.allocate(sizeof(int) * peers.size() * 2))
+		, m_peers_idx(alloc.allocate(sizeof(boost::int32_t) * peers.size() * 2))
 	{
 		for (int i = 0; i < m_num_peers; i++) {
 			tcp::endpoint endp = peers[i];
-			int size = endp.size();
-			int idx = alloc.copy_buffer((char*)endp.data(), size);
-			memcpy(alloc.ptr(m_peers_idx + sizeof(int) * (2 * i))    , (void*)&idx , sizeof(int));
-			memcpy(alloc.ptr(m_peers_idx + sizeof(int) * (2 * i + 1)), (void*)&size, sizeof(int));
+			boost::int32_t size = (boost::int32_t)endp.size();
+			boost::int32_t idx = (boost::int32_t)alloc.copy_buffer((char*)endp.data(), size);
+
+			char* idx_ptr = alloc.ptr(m_peers_idx) + sizeof(boost::int32_t) * (2 * i);
+			char* size_ptr = idx_ptr + sizeof(boost::int32_t);
+
+			detail::write_int32(idx, idx_ptr);
+			detail::write_int32(size, size_ptr);
 		}
 	}
 
@@ -1810,9 +1814,13 @@ namespace libtorrent {
 
 	tcp::endpoint dht_get_peers_reply_alert::get_peer(int index) const
 	{
-		int idx, size;
-		memcpy((void*)&idx , m_alloc.ptr(m_peers_idx + sizeof(int) * (2 * index))    , sizeof(int));
-		memcpy((void*)&size, m_alloc.ptr(m_peers_idx + sizeof(int) * (2 * index + 1)), sizeof(int));
+		boost::int32_t idx, size;
+
+		const char* idx_ptr = m_alloc.ptr(m_peers_idx) + sizeof(boost::int32_t) * (2 * index);
+		const char* size_ptr = idx_ptr + sizeof(boost::int32_t);
+
+		idx = detail::read_int32(idx_ptr);
+		size = detail::read_int32(size_ptr);
 
 		tcp::endpoint endp;
 
