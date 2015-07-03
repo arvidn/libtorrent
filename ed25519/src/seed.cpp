@@ -8,7 +8,7 @@
 
 #ifndef ED25519_NO_SEED
 
-#ifdef TORRENT_WINRT
+#if TORRENT_USE_CRYPTOGRAPHIC_BUFFER
 #include <robuffer.h>
 #include <wrl/client.h>
 using namespace Windows::Security::Cryptography;
@@ -22,7 +22,7 @@ using namespace Microsoft::WRL;
 #endif
 
 void ed25519_create_seed(unsigned char *seed) {
-#ifdef TORRENT_WINRT
+#if TORRENT_USE_CRYPTOGRAPHIC_BUFFER
     IBuffer^ seedBuffer = CryptographicBuffer::GenerateRandom(32);
     ComPtr<IBufferByteAccess> bufferByteAccess;
     reinterpret_cast<IInspectable*>(seedBuffer)->QueryInterface(IID_PPV_ARGS(&bufferByteAccess));
