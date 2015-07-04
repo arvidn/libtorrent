@@ -192,6 +192,9 @@ namespace libtorrent {
 			// enables dht_log_alert, debug logging for the DHT
 			dht_log_notification = 0x20000,
 
+			// enable events from pure dht operations not related to torrents
+			dht_operation_notification = 0x40000,
+
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't
