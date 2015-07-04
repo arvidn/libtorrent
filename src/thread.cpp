@@ -105,7 +105,7 @@ namespace libtorrent
 	condition_variable::condition_variable()
 		: m_num_waiters(0)
 	{
-		m_sem = CreateSemaphore(0, 0, INT_MAX, 0);
+		m_sem = CreateSemaphoreEx(0, 0, INT_MAX, 0, 0, SEMAPHORE_ALL_ACCESS);
 	}
 
 	condition_variable::~condition_variable()
@@ -118,7 +118,7 @@ namespace libtorrent
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
 		l.unlock();
-		WaitForSingleObject(m_sem, INFINITE);
+		WaitForSingleObjectEx(m_sem, INFINITE, FALSE);
 		l.lock();
 		--m_num_waiters;
 	}
@@ -128,7 +128,7 @@ namespace libtorrent
 		TORRENT_ASSERT(l.locked());
 		++m_num_waiters;
 		l.unlock();
-		WaitForSingleObject(m_sem, total_milliseconds(rel_time));
+		WaitForSingleObjectEx(m_sem, total_milliseconds(rel_time), FALSE);
 		l.lock();
 		--m_num_waiters;
 	}

@@ -63,7 +63,7 @@ using libtorrent::dht::node;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
-using namespace libtorrent::detail;
+using libtorrent::detail::write_endpoint;
 
 enum
 {
