@@ -63,6 +63,7 @@ using libtorrent::dht::node;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
+using libtorrent::detail::write_endpoint;
 
 enum
 {
@@ -392,7 +393,7 @@ namespace libtorrent { namespace dht
 		entry* n = (entry*)userdata;
 		std::string node;
 		std::back_insert_iterator<std::string> out(node);
-		libtorrent::detail::write_endpoint(e.ep(), out);
+		write_endpoint(e.ep(), out);
 		n->list().push_back(entry(node));
 	}
 
@@ -411,7 +412,7 @@ namespace libtorrent { namespace dht
 			{
 				std::string node;
 				std::back_insert_iterator<std::string> out(node);
-				libtorrent::detail::write_endpoint(i->ep(), out);
+				write_endpoint(i->ep(), out);
 				nodes.list().push_back(entry(node));
 			}
 			if (!nodes.list().empty())
