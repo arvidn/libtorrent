@@ -2370,12 +2370,12 @@ namespace libtorrent
 		sha1_hash info_hash;
 
 		int num_peers() const;
-		tcp::endpoint get_peer(int index) const;
+		void peers(std::vector<tcp::endpoint>& peers) const;
 
 	private:
 		aux::stack_allocator& m_alloc;
 		int m_num_peers;
-		int m_peers_idx; // coded like a pair of (index to actual endpoint bytes, size of endpoint)
+		int m_peers_idx;
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL
