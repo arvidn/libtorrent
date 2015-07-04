@@ -56,9 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-// c++/cx keyword
-#undef interface
-
 namespace libtorrent
 {
 
@@ -1282,7 +1279,7 @@ namespace libtorrent
 		virtual std::string message() const;
 		TORRENT_NOT_DISCARDABLE
 
-#ifndef TORRENT_NO_DEPRECATE
+#if !defined(TORRENT_NO_DEPRECATE) && !defined(TORRENT_WINRT)
 		// the interface libtorrent attempted to listen on
 		std::string interface;
 #endif
