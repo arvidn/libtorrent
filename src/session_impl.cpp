@@ -519,9 +519,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-		session_log("config: %s\n"
-			"version: %s\n"
-			"revision: %s\n\n"
+		session_log("config: %s version: %s revision: %s"
 			, TORRENT_CFG_STRING
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);

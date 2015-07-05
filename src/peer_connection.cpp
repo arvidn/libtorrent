@@ -5259,7 +5259,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(channel == upload_channel
 			? peer_log_alert::outgoing : peer_log_alert::incoming
-			, "ASSIGN BANDWIDHT", "bytes: %d", amount);
+			, "ASSIGN_BANDWIDHT", "bytes: %d", amount);
 #endif
 
 		TORRENT_ASSERT(amount > 0 || is_disconnecting());
@@ -5352,15 +5352,6 @@ namespace libtorrent
 		}
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(
-			channel == download_channel ? peer_log_alert::incoming
-				: peer_log_alert::outgoing,
-			"REQUEST_BANDWIDTH", "bytes: %d quota: %d wanted_transfer: %d "
-			"prio: %d num_channels: %d", bytes, m_quota[channel]
-			, wanted_transfer(channel), priority, c);
-#endif
-
 		TORRENT_ASSERT((m_channel_state[channel] & peer_info::bw_limit) == 0);
 
 		bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
@@ -5370,16 +5361,18 @@ namespace libtorrent
 
 		if (ret == 0)
 		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(
+				channel == download_channel ? peer_log_alert::incoming
+					: peer_log_alert::outgoing,
+				"REQUEST_BANDWIDTH", "bytes: %d quota: %d wanted_transfer: %d "
+				"prio: %d num_channels: %d", bytes, m_quota[channel]
+				, wanted_transfer(channel), priority, c);
+#endif
 			m_channel_state[channel] |= peer_info::bw_limit;
 		}
 		else
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(
-				channel == download_channel ? peer_log_alert::incoming
-					: peer_log_alert::outgoing
-				, "ASSIGN_BANDWIDTH", "bytes: %d", ret);
-#endif
 			m_quota[channel] += ret;
 		}
 
