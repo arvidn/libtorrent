@@ -34,9 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <stdarg.h> // for va_list
 #include <ctime>
 #include <algorithm>
 #include <set>
+#include <map>
+#include <vector>
 #include <cctype>
 #include <numeric>
 #include <limits> // for numeric_limits
@@ -56,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/parse_url.hpp"
@@ -69,7 +71,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/alert.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
@@ -79,17 +80,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/enum_net.hpp"
 #include "libtorrent/http_connection.hpp"
-#include "libtorrent/gzip.hpp" // for inflate_gzip
 #include "libtorrent/random.hpp"
 #include "libtorrent/peer_class.hpp" // for peer_class
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
@@ -106,6 +103,8 @@ using boost::tuples::make_tuple;
 
 namespace libtorrent
 {
+	class alert_manager;
+
 	namespace {
 
 	int root2(int x)
@@ -3783,7 +3782,7 @@ namespace libtorrent
 		st.total_wanted_done = boost::int64_t(num_passed() - m_picker->num_have_filtered())
 			* piece_size;
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
-		
+
 		st.total_done = boost::int64_t(num_passed()) * piece_size;
 		// if num_passed() == num_pieces(), we should be a seed, and taken the
 		// branch above
@@ -3800,7 +3799,7 @@ namespace libtorrent
 		}
 		st.total_wanted -= boost::int64_t(num_filtered_pieces) * piece_size;
 		TORRENT_ASSERT(st.total_wanted >= 0);
-	
+
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
 		// assumed all pieces were of equal size
@@ -9158,7 +9157,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
-	
+
 		if (!valid_metadata())
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -11720,9 +11719,9 @@ namespace libtorrent
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;
 
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
-	
+
 		char buf[400];
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
