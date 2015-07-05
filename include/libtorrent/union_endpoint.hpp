@@ -127,7 +127,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 		bool v4:1;
 #endif
-	};	
+	};
 }
 
 #endif

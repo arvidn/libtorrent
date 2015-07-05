@@ -153,7 +153,7 @@ namespace libtorrent
 		complete_async("i2p_stream::on_sam_connect");
 #endif
 		m_state = sam_idle;
-	
+
 		if (ec)
 		{
 			h(ec);

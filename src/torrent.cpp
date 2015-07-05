@@ -2361,7 +2361,7 @@ namespace libtorrent
 
 			// parse out "banned_peers" and add them as banned
 			if (bdecode_node banned_peers_entry = m_resume_data->node.dict_find_list("banned_peers"))
-			{	
+			{
 				for (int i = 0; i < banned_peers_entry.list_size(); ++i)
 				{
 					bdecode_node e = banned_peers_entry.list_at(i);
