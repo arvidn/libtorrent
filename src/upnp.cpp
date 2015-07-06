@@ -143,7 +143,7 @@ void upnp::log(char const* msg, mutex::scoped_lock& l)
 
 void upnp::discover_device_impl(mutex::scoped_lock& l)
 {
-	const char msearch[] = 
+	const char msearch[] =
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: 239.255.255.250:1900\r\n"
 		"ST:upnp:rootdevice\r\n"
@@ -246,7 +246,7 @@ void upnp::delete_mapping(int mapping)
 	log(msg, l);
 
 	if (m.protocol == none) return;
-	
+
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
@@ -297,7 +297,7 @@ void upnp::resend_request(error_code const& ec)
 		disable(errors::no_router, l);
 		return;
 	}
-	
+
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
 	{
@@ -691,7 +691,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		log(msg, l);
 		return;
 	}
-	
+
 	char const* soap_action = "AddPortMapping";
 
 	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
@@ -848,20 +848,11 @@ namespace
 
 struct parse_state
 {
-	parse_state(): in_service(false), service_type(0) {}
-	void reset(char const* st)
-	{
-		in_service = false;
-		service_type = st;
-		tag_stack.clear();
-		control_url.clear();
-		model.clear();
-		url_base.clear();
-	}
+	parse_state(): in_service(false) {}
 	bool in_service;
 	std::list<std::string> tag_stack;
 	std::string control_url;
-	char const* service_type;
+	std::string service_type;
 	std::string model;
 	std::string url_base;
 	bool top_tags(const char* str1, const char* str2)
@@ -898,13 +889,18 @@ TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_s
 	else if (type == xml_string)
 	{
 		if (state.tag_stack.empty()) return;
-//		std::cout << " " << string << std::endl;
+//		std::cout << " " << string << std::endl;}
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			if (string_equal_no_case(string, state.service_type))
+			if (string_equal_no_case(string, "urn:schemas-upnp-org:service:WANIPConnection:1")
+				|| string_equal_no_case(string, "urn:schemas-upnp-org:service:WANIPConnection:2")
+				|| string_equal_no_case(string, "urn:schemas-upnp-org:service:WANPPPConnection:1"))
+			{
+				state.service_type = string;
 				state.in_service = true;
+			}
 		}
-		else if (state.control_url.empty() && state.in_service && state.top_tags("service", "controlurl"))
+		else if (state.control_url.empty() && state.in_service && state.top_tags("service", "controlurl") && strlen(string) > 0)
 		{
 			// default to the first (or only) control url in the router's listing
 			state.control_url = string;
@@ -966,37 +962,22 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
 	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
 		, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
-	if (!s.control_url.empty())
+	if (s.control_url.empty())
 	{
-		d.service_namespace = s.service_type;
-		if (!s.model.empty()) m_model = s.model;
+		char msg[500];
+		snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
+			, d.url.c_str());
+		log(msg, l);
+		d.disabled = true;
+		return;
 	}
-	else
-	{
-		// we didn't find the WAN IP connection, look for
-		// a PPP connection
-		s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
-		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
-			, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
-		if (!s.control_url.empty())
-		{
-			d.service_namespace = s.service_type;
-			if (!s.model.empty()) m_model = s.model;
-		}
-		else
-		{
-			char msg[500];
-			snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
-				, d.url.c_str());
-			log(msg, l);
-			d.disabled = true;
-			return;
-		}
-	}
-	
+	static std::string service_type;
+	service_type.swap(s.service_type);
+	d.service_namespace = service_type.c_str();
+	if (!s.model.empty()) m_model = s.model;
+
 	if (!s.url_base.empty() && s.control_url.substr(0, 7) != "http://")
 	{
 		// avoid double slashes in path
@@ -1044,7 +1025,7 @@ void upnp::on_upnp_xml(error_code const& e
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_resolver
 		, boost::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-		, boost::ref(d), _5), true, default_max_bottled_buffer_size 
+		, boost::ref(d), _5), true, default_max_bottled_buffer_size
 		, boost::bind(&upnp::get_ip_address, self(), boost::ref(d))));
 	d.upnp_connection->start(d.hostname, d.port
 		, seconds(10), 1);
@@ -1094,7 +1075,7 @@ void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
 		m_callback(i - m_mappings.begin(), address(), 0, ec);
 		l.lock();
 	}
-	
+
 	// we cannot clear the devices since there
 	// might be outstanding requests relying on
 	// the device entry being present when they
@@ -1115,7 +1096,7 @@ namespace
 		bool exit;
 		int error_code;
 	};
-	
+
 	void find_error_code(int type, char const* string, error_code_parse_state& state)
 	{
 		if (state.exit) return;
@@ -1158,7 +1139,7 @@ namespace
 		int code;
 		char const* msg;
 	};
-	
+
 	error_code_t error_codes[] =
 	{
 		{0, "no error"}
@@ -1319,9 +1300,9 @@ void upnp::on_upnp_map_response(error_code const& e
 		d.disabled = true;
 		return;
 	}
-	
+
 	if (m_closing) return;
-	
+
 //	 error code response may look like this:
 //	<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
 //		s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -1376,7 +1357,7 @@ void upnp::on_upnp_map_response(error_code const& e
 			, s.error_code);
 		log(msg, l);
 	}
-	
+
 	mapping_t& m = d.mapping[mapping];
 
 	if (s.error_code == 725)
