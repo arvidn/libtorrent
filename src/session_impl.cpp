@@ -5496,7 +5496,7 @@ retry:
 
 	namespace {
 
-		void on_dht_put(alert_manager& alerts, sha1_hash target)
+		void on_dht_put_immutable_item(alert_manager& alerts, sha1_hash target)
 		{
 			if (alerts.should_post<dht_put_alert>())
 				alerts.emplace_alert<dht_put_alert>(target);
@@ -5526,10 +5526,10 @@ retry:
 
 	} // anonymous namespace
 
-	void session_impl::dht_put_item(entry data, sha1_hash target)
+	void session_impl::dht_put_immutable_item(entry data, sha1_hash target)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(data, boost::bind(&on_dht_put, boost::ref(m_alerts)
+		m_dht->put_item(data, boost::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)
 			, target));
 	}
 
