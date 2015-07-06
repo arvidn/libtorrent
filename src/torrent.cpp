@@ -91,6 +91,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
+#include "libtorrent/alert_manager.hpp"
+#include "libtorrent/disk_interface.hpp"
+// TODO: factor out cache_status to its own header
+#include "libtorrent/disk_io_thread.hpp" // for cache_status
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -103,8 +107,6 @@ using boost::tuples::make_tuple;
 
 namespace libtorrent
 {
-	class alert_manager;
-
 	namespace {
 
 	int root2(int x)
