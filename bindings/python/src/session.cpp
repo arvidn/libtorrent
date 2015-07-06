@@ -67,32 +67,6 @@ namespace
         return s.add_dht_router(std::make_pair(router_, port_));
     }
 
-    void dht_get_immutable_item(lt::session& s, sha1_hash const& target)
-    {
-        allow_threading_guard guard;
-        s.dht_get_item(target);
-    }
-
-    void dht_get_mutable_item(lt::session& s, boost::array<char, 32> key, std::string salt)
-    {
-        allow_threading_guard guard;
-        s.dht_get_item(key, salt);
-    }
-
-    sha1_hash dht_put_immutable_item(lt::session& s, entry data)
-    {
-        allow_threading_guard guard;
-        return s.dht_put_item(data);
-    }
-
-    void dht_put_mutable_item(lt::session& s
-        , boost::array<char, 32> key
-        , boost::function<void(entry&, boost::array<char,64>&, boost::uint64_t&, std::string const&)> cb
-        , std::string salt)
-    {
-        allow_threading_guard guard;
-        s.dht_put_item(key, cb, salt);
-    }
 #endif // TORRENT_DISABLE_DHT
 
     void add_extension(lt::session& s, object const& e)
@@ -527,6 +501,15 @@ namespace
 
 void bind_session()
 {
+#ifndef TORRENT_DISABLE_DHT
+    void (lt::session::*dht_get_immutable_item)(sha1_hash const&) = &lt::session::dht_get_item;
+    void (lt::session::*dht_get_mutable_item)(boost::array<char, 32>, std::string) = &lt::session::dht_get_item;
+    sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
+    void (lt::session::*dht_put_mutable_item)(boost::array<char, 32> key
+        , boost::function<void(entry&, boost::array<char,64>&, boost::uint64_t&, std::string const&)> cb
+        , std::string salt) = &lt::session::dht_put_item; // TODO: resolve the callback type for python
+#endif // TORRENT_DISABLE_DHT
+
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*start_dht0)() = &lt::session::start_dht;
@@ -695,10 +678,10 @@ void bind_session()
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
-        .def("dht_get_immutable_item", &dht_get_immutable_item)
-        .def("dht_get_mutable_item", &dht_get_mutable_item)
-        .def("dht_put_immutable_item", &dht_put_immutable_item)
-        .def("dht_put_mutable_item", &dht_put_mutable_item)
+        .def("dht_get_immutable_item", allow_threads(dht_get_immutable_item))
+        .def("dht_get_mutable_item", allow_threads(dht_get_mutable_item))
+        .def("dht_put_immutable_item", allow_threads(dht_put_immutable_item))
+        .def("dht_put_mutable_item", allow_threads(dht_put_mutable_item))
         .def("dht_get_peers", allow_threads(&lt::session::dht_get_peers))
         .def("dht_announce", allow_threads(&lt::session::dht_announce))
 #endif // TORRENT_DISABLE_DHT
