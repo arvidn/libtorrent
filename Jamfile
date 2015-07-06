@@ -507,9 +507,11 @@ feature export-extra : off on : composite propagated ;
 
 # this is a trick to get filename paths to targets to become shorter
 # making it possible to build on windows, especially mingw seems particular
+# for release builds, disable optimizations as they bump GCC over the edge of
+# allowed memory usage on travis-ci
 variant test_release
 	: release : <asserts>production <debug-symbols>on
-	  <invariant-checks>full <boost-link>shared
+	  <invariant-checks>full <boost-link>shared <optimization>off
 	  <export-extra>on <debug-iterators>on <threading>multi
 	;
 variant test_debug : debug
