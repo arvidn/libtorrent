@@ -97,9 +97,6 @@ std::string demangle(char const* name)
 }
 #elif defined WIN32
 
-#undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501 // XP
-
 #include "windows.h"
 #include "dbghelp.h"
 
@@ -142,9 +139,6 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 // visual studio 9 and up appears to support this
 #elif defined WIN32 && _MSC_VER >= 1500
-
-#undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0501 // XP
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"
