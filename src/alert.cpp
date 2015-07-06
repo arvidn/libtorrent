@@ -789,7 +789,7 @@ namespace libtorrent {
 		, error_code const& ec
 		, socket_type_t t)
 		:
-#ifndef TORRENT_NO_DEPRECATE
+#if !defined(TORRENT_NO_DEPRECATE) && !defined(TORRENT_WINRT)
 			interface(iface),
 #endif
 		error(ec)
