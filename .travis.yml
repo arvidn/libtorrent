@@ -1,37 +1,51 @@
 language: cpp
 
+os:
+  - linux
+  - osx
+
 env:
-   - variant=test_debug
-   - variant=test_release
-   - variant=test_barebones
-
-install:
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; fi
-   - if [ $TRAVIS_OS_NAME == linux ]; then sudo apt-get install libboost1.54-all-dev python2.7-dev; fi
-   - if [ $TRAVIS_OS_NAME == osx ]; then sudo brew install boost boost-build python27-dev; fi
-   - 'echo "using gcc : : ccache g++ ;" >~/user-config.jam'
-   - 'echo "using clang : : ccache clang++ ;" >>~/user-config.jam'
-   - 'echo "using python : 2.7 ;" >>~/user-config.jam'
-   - ccache --show-stats
-   - ccache -V
-   - which $CXX
-   - ls -la `which $CXX`
-
-cache: ccache
-
-script:
-   - cd test
-   - bjam -j 4 variant=$variant warnings=off -l900 $CC
-   - cd ../examples
-   - bjam -j 1 variant=$variant warnings=off $CC
-   - cd ../bindings/python
-   - bjam -j 1 variant=$variant warnings=off $CC
-   - ccache --show-stats
+  - variant=test_debug
+  - variant=test_release
+  - variant=test_barebones
 
 compiler:
-   - gcc
-   - clang
+  - gcc
+  - clang
 
-os:
-   - linux
-   - osx
+# container-based builds
+sudo: false
+cache:
+  directories:
+    - $HOME/.ccache
+
+# sources  list: https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json,
+# packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
+addons:
+  apt:
+    sources:
+    - boost-latest
+    packages:
+    - libboost1.55-all-dev
+    - python2.7-dev
+
+install:
+  #- if [ $TRAVIS_OS_NAME == "linux" ]; then sudo add-apt-repository -y ppa:boost-latest/ppa; sudo apt-get update -qq; fi
+  #- if [ $TRAVIS_OS_NAME == "linux" ]; then sudo apt-get install libboost1.54-all-dev python2.7-dev; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then sudo brew install boost boost-build python27-dev; fi
+  - 'echo "using gcc : : ccache g++ ;" > ~/user-config.jam'
+  - 'echo "using clang : : ccache clang++ ;" >> ~/user-config.jam'
+  - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
+  - ccache --show-stats
+  - ccache -V
+  - which $CXX
+  - ls -la `which $CXX`
+
+script:
+  - cd test
+  - bjam -j 3 variant=$variant warnings=off -l900 $CC
+  - cd ../examples
+  - bjam -j 3 variant=$variant warnings=off $CC
+  - cd ../bindings/python
+  - bjam -j 3 variant=$variant warnings=off $CC
+  - ccache --show-stats
