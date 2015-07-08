@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/session.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp"
@@ -50,6 +49,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct plugin;
+	struct torrent_plugin;
+	class torrent;
+	struct ip_filter;
+	class port_filter;
+	class connection_queue;
+	class alert;
+
+#ifndef TORRENT_NO_DEPRECATE
+	struct session_status;
+#endif
+
+	typedef boost::function<void(sha1_hash const&, std::vector<char>&
+		, error_code&)> user_load_function_t;
+
 	struct TORRENT_EXPORT session_handle
 	{
 		session_handle(aux::session_impl* impl)
@@ -57,6 +71,39 @@ namespace libtorrent
 		{}
 
 		// TODO: 2 the ip filter should probably be saved here too
+
+		// flags that determines which aspects of the session should be
+		// saved when calling save_state().
+		enum save_state_flags_t
+		{
+			// saves settings (i.e. the session_settings)
+			save_settings =     0x001,
+
+			// saves dht_settings
+			save_dht_settings = 0x002,
+
+			// saves dht state such as nodes and node-id, possibly accelerating
+			// joining the DHT if provided at next session startup.
+			save_dht_state =    0x004,
+
+			// save pe_settings
+			save_encryption_settings = 0x020,
+
+			// internal
+			save_as_map =       0x040
+
+#ifndef TORRENT_NO_DEPRECATE
+			,
+			// saves RSS feeds
+			save_feeds =        0x080,
+			save_proxy =        0x008,
+			save_i2p_proxy =    0x010,
+			save_dht_proxy = save_proxy,
+			save_peer_proxy = save_proxy,
+			save_web_proxy = save_proxy,
+			save_tracker_proxy = save_proxy
+#endif
+		};
 
 		// loads and saves all session settings, including dht_settings,
 		// encryption settings and proxy settings. ``save_state`` writes all keys
@@ -246,6 +293,8 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		cache_status get_cache_status() const;
 #endif
+
+		enum { disk_cache_no_pieces = 1 };
 
 		// Fills in the cache_status struct with information about the given torrent.
 		// If ``flags`` is ``session::disk_cache_no_pieces`` the ``cache_status::pieces`` field
@@ -508,6 +557,13 @@ namespace libtorrent
 		// peer potentially across you changing your IP.
 		void set_key(int key);
 
+		// built-in peer classes
+		enum {
+			global_peer_class_id,
+			tcp_peer_class_id,
+			local_peer_class_id
+		};
+
 		// ``is_listening()`` will tell you whether or not the session has
 		// successfully opened a listening port. If it hasn't, this function will
 		// return false, and then you can set a new
@@ -653,6 +709,12 @@ namespace libtorrent
 		// interface and port range). As usual, if the interface is left as 0
 		// this function will return false on failure. If it fails, it will also
 		// generate alerts describing the error. It will return true on success.
+		enum listen_on_flags_t
+		{
+			// this is always on starting with 0.16.2
+			listen_reuse_address = 0x01,
+			listen_no_system_port = 0x02
+		};
 
 		// deprecated in 0.16
 
@@ -670,6 +732,25 @@ namespace libtorrent
 			, const char* net_interface = 0
 			, int flags = 0);
 #endif
+
+		// flags to be passed in to remove_torrent().
+		enum options_t
+		{
+			// delete the files belonging to the torrent from disk.
+			delete_files = 1
+		};
+
+		// flags to be passed in to the session constructor
+		enum session_flags_t
+		{
+			// this will add common extensions like ut_pex, ut_metadata, lt_tex
+			// smart_ban and possibly others.
+			add_default_plugins = 1,
+
+			// this will start features like DHT, local service discovery, UPnP
+			// and NAT-PMP.
+			start_default_features = 2
+		};
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in
@@ -932,11 +1013,14 @@ namespace libtorrent
 		void stop_natpmp();
 #endif
 
+		// protocols used by add_port_mapping()
+		enum protocol_type { udp = 1, tcp = 2 };
+
 		// add_port_mapping adds a port forwarding on UPnP and/or NAT-PMP,
 		// whichever is enabled. The return value is a handle referring to the
 		// port mapping that was just created. Pass it to delete_port_mapping()
 		// to remove it.
-		int add_port_mapping(session::protocol_type t, int external_port, int local_port);
+		int add_port_mapping(protocol_type t, int external_port, int local_port);
 		void delete_port_mapping(int handle);
 
 		// This function is intended only for use by plugins. This type does
