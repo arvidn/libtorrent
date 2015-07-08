@@ -5,6 +5,7 @@ import os
 import ssl
 import gzip
 import base64
+import socket
 
 chunked_encoding = False
 keepalive = True
