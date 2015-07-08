@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include <iostream>
 
-char upnp_xml[] = 
+char upnp_xml[] =
 "<root>"
 "<specVersion>"
 "<major>1</major>"
@@ -239,20 +239,11 @@ namespace libtorrent {
 
 struct parse_state
 {
-	parse_state(): in_service(false), service_type("") {}
-	void reset(char const* st)
-	{
-		in_service = false;
-		service_type = st;
-		tag_stack.clear();
-		control_url.clear();
-		model.clear();
-		url_base.clear();
-	}
+	parse_state(): in_service(false){}
 	bool in_service;
 	std::list<std::string> tag_stack;
 	std::string control_url;
-	char const* service_type;
+	std::string service_type;
 	std::string model;
 	std::string url_base;
 };
@@ -292,31 +283,32 @@ void parser_callback(std::string& out, int token, char const* s, char const* val
 TORRENT_TEST(xml)
 {
 	// test upnp xml parser
+	{
+		parse_state xml_s;
+		xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
+			, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
-	parse_state xml_s;
-	xml_s.reset("urn:schemas-upnp-org:service:WANIPConnection:1");
-	xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
-		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
+		std::cerr << "namespace " << xml_s.service_type << std::endl;
+		std::cerr << "url_base: " << xml_s.url_base << std::endl;
+		std::cerr << "control_url: " << xml_s.control_url << std::endl;
+		std::cerr << "model: " << xml_s.model << std::endl;
+		TEST_CHECK(xml_s.url_base == "http://192.168.0.1:5678");
+		TEST_CHECK(xml_s.control_url == "/WANIPConnection");
+		TEST_CHECK(xml_s.model == "D-Link Router");
+	}
+	{
+		parse_state xml_s;
+		xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
+			, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
 
-	std::cerr << "namespace " << xml_s.service_type << std::endl;
-	std::cerr << "url_base: " << xml_s.url_base << std::endl;
-	std::cerr << "control_url: " << xml_s.control_url << std::endl;
-	std::cerr << "model: " << xml_s.model << std::endl;
-	TEST_CHECK(xml_s.url_base == "http://192.168.0.1:5678");
-	TEST_CHECK(xml_s.control_url == "/WANIPConnection");
-	TEST_CHECK(xml_s.model == "D-Link Router");
-
-	xml_s.reset("urn:schemas-upnp-org:service:WANPPPConnection:1");
-	xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
-		, boost::bind(&find_control_url, _1, _2, boost::ref(xml_s)));
-
-	std::cerr << "namespace " << xml_s.service_type << std::endl;
-	std::cerr << "url_base: " << xml_s.url_base << std::endl;
-	std::cerr << "control_url: " << xml_s.control_url << std::endl;
-	std::cerr << "model: " << xml_s.model << std::endl;
-	TEST_CHECK(xml_s.url_base == "http://192.168.1.1:49152");
-	TEST_CHECK(xml_s.control_url == "/upnp/control/WANPPPConn1");
-	TEST_CHECK(xml_s.model == "Wireless-G ADSL Home Gateway");
+		std::cerr << "namespace " << xml_s.service_type << std::endl;
+		std::cerr << "url_base: " << xml_s.url_base << std::endl;
+		std::cerr << "control_url: " << xml_s.control_url << std::endl;
+		std::cerr << "model: " << xml_s.model << std::endl;
+		TEST_CHECK(xml_s.url_base == "http://192.168.1.1:49152");
+		TEST_CHECK(xml_s.control_url == "/upnp/control/WANPPPConn1");
+		TEST_CHECK(xml_s.model == "Wireless-G ADSL Home Gateway");
+	}
 
 	{
 		// test xml parser
