@@ -189,6 +189,7 @@ test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
+test_file_progress_SOURCES = test_file_progress.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
