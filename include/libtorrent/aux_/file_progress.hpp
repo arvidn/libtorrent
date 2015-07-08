@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <boost/cstdint.hpp>
 
+#include "libtorrent/export.hpp"
+
 namespace libtorrent
 {
 class piece_picker;
@@ -45,7 +47,7 @@ class torrent_handle;
 
 namespace aux
 {
-	struct file_progress
+	struct TORRENT_EXTRA_EXPORT file_progress
 	{
 		file_progress();
 

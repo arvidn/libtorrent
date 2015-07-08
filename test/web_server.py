@@ -145,7 +145,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				if not keepalive:
 					s.send_header("Connection", "close")
 					try:
-						s.request.shutdown(SHUT_RD);
+						s.request.shutdown(socket.SHUT_RD);
 					except Exception, e:
 						print 'Failed to shutdown read-channel of socket: ', e
 
