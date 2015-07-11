@@ -3496,8 +3496,7 @@ namespace libtorrent
 					continue;
 				}
 
-				cached_piece_entry* pe = m_disk_cache.find_piece(j);
-				pe = m_disk_cache.add_dirty_block(j);
+				cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
 
 				if (pe == NULL)
 				{

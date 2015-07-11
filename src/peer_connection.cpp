@@ -862,9 +862,10 @@ namespace libtorrent
 		if (on_parole()) ret |= piece_picker::on_parole
 			| piece_picker::prioritize_partials;
 
-		// only one of rarest_first and sequential can be set.
-		TORRENT_ASSERT((ret & piece_picker::rarest_first) ? 1 : 0
-			+ (ret & piece_picker::sequential) ? 1 : 0 <= 1);
+		// only one of rarest_first and sequential can be set. i.e. the sum of
+		// whether the bit is set or not may only be 0 or 1 (never 2)
+		TORRENT_ASSERT(((ret & piece_picker::rarest_first) ? 1 : 0)
+			+ ((ret & piece_picker::sequential) ? 1 : 0) <= 1);
 		return ret;
 	}
 
