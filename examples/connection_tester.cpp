@@ -991,6 +991,7 @@ int main(int argc, char* argv[])
 			if (ret != buf.size())
 			{
 				fprintf(stderr, "write returned: %d (expected %d)\n", int(ret), int(buf.size()));
+				fclose(f);
 				return 1;
 			}
 			printf("wrote %s\n", torrent_name);
@@ -1024,7 +1025,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	tcp::endpoint ep(addr, destination_port);
-	
+
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
@@ -1065,7 +1066,7 @@ int main(int argc, char* argv[])
 
 	thread t1(boost::bind(&io_thread, &ios[0]));
 	thread t2(boost::bind(&io_thread, &ios[1]));
- 
+
 	t1.join();
 	t2.join();
 
@@ -1073,7 +1074,7 @@ int main(int argc, char* argv[])
 	float down = 0.f;
 	boost::uint64_t total_sent = 0;
 	boost::uint64_t total_received = 0;
-	
+
 	for (std::vector<peer_conn*>::iterator i = conns.begin()
 		, end(conns.end()); i != end; ++i)
 	{
