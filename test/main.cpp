@@ -190,7 +190,7 @@ EXPORT int main(int argc, char const* argv[])
 #ifdef WIN32
 	// try to suppress hanging the process by windows displaying
 	// modal dialogs.
-	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT | SEM_NOALIGNMENTFAULTEXCEPT
+	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 

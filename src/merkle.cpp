@@ -47,7 +47,7 @@ namespace libtorrent
 		TORRENT_ASSERT(tree_node > 0);
 		// even numbers have their sibling to the left
 		// odd numbers have their sibling to the right
-		return tree_node + (tree_node&1?1:-1);
+		return tree_node + ((tree_node&1)?1:-1);
 	}
 
 	int merkle_num_nodes(int leafs)
