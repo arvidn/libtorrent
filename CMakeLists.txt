@@ -65,6 +65,7 @@ set(sources
 	rss
 	session
 	session_call
+	session_handle
 	session_impl
 	session_settings
 	session_stats
