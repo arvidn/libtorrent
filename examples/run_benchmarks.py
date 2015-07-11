@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import os
 import resource
@@ -200,7 +202,7 @@ def prefix_len(text, prefix):
 
 def device_name(path):
 	mount = subprocess.Popen('mount', stdout=subprocess.PIPE)
-	
+
 	max_match_len = 0
 	match_device = ''
 	path = os.path.abspath(path)
@@ -310,7 +312,7 @@ def run_test(config):
 	tester_output = open('session_stats/tester.output', 'w+')
 	tester = subprocess.Popen(shlex.split(cmdline), stdout=tester_output)
 	print 'OK'
-	
+
 	time.sleep(2)
 
 	print '\n'

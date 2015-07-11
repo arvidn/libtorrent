@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 f = open('../include/libtorrent/settings_pack.hpp')
 
 out = open('settings.rst', 'w+')

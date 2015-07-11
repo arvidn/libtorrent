@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import glob
 import os
 import sys
@@ -371,7 +373,7 @@ def parse_class(lno, lines, filename):
 
 		context = ''
 		if verbose: print '??      %s' % l
-   
+
 	if len(name) > 0:
 		print '\x1b[31mFAILED TO PARSE CLASS\x1b[0m %s\nfile: %s:%d' % (name, filename, lno)
 	return [None, lno]
@@ -416,7 +418,7 @@ def parse_enum(lno, lines, filename):
 		start_brace += l.count('{')
 		end_brace += l.count('}')
 
-		if '{' in l: 
+		if '{' in l:
 			l = l.split('{')[1]
 		l = l.split('}')[0]
 
@@ -1019,7 +1021,7 @@ for cat in categories:
 			print >>out, '%s\n' % block.replace('\n', '\n\t')
 			f['desc'] = linkify_symbols(f['desc'])
 			print >>out, '%s' % f['desc']
-	
+
 			print >>out, dump_link_targets()
 
 		render_enums(out, c['enums'], False, '.')
@@ -1060,7 +1062,7 @@ for cat in categories:
 		print >>out, linkify_symbols(f['desc'])
 
 		print >>out, dump_link_targets()
-	
+
 	render_enums(out, enums, True, '-')
 
 	print >>out, dump_link_targets()
@@ -1084,5 +1086,5 @@ for i,o in preprocess_rst.items():
 
 	out.close()
 	f.close()
-		
+
 

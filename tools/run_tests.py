@@ -1,5 +1,4 @@
-
-#!/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2013, Arvid Norberg
 # All rights reserved.
@@ -89,10 +88,10 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 	try:
 
 		results = {}
-   
+
 		feature_list = features.split(' ')
 		os.chdir(test_dir)
-   
+
    		c = 0
 		for t in tests:
 			c = c + 1
@@ -118,19 +117,19 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 				sys.stdout.write('.')
 				sys.stdout.flush()
 			p.wait()
-   
+
 			# parse out the toolset version from the xml file
 			compiler = ''
 			compiler_version = ''
 			command = ''
-   
+
 			# make this parse the actual test to pick up the time
 			# spent runnin the test
 			try:
 				dom = et.parse(xml_file)
-   
+
 				command = dom.find('./command').text
-   
+
 				prop = dom.findall('./action/properties/property')
 				for a in prop:
 					name = a.attrib['name']
@@ -140,14 +139,14 @@ def run_tests(toolset, tests, features, options, test_dir, time_limit):
 					if name.startswith('toolset-') and name.endswith(':version'):
 						compiler_version = a.text
 						if compiler != '': break
-   
+
 				if compiler != '' and compiler_version != '':
 					toolset = compiler + '-' + compiler_version
 			except: pass
-   
+
 			r = { 'status': p.returncode, 'output': output, 'command': command }
 			results[t + '|' + features] = r
-   
+
 			if p.returncode != 0:
 				# if the build or test failed, print out the
 				# important parts
@@ -367,7 +366,7 @@ def main(argv):
 			print >>f, json.dumps(results)
 			f.close()
 
-			
+
 	finally:
 		# always restore current directory
 		try:

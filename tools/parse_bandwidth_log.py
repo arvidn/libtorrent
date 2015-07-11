@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 import os, sys, time
 
 keys = [['upload rate', 'x1y1', 6], ['history entries', 'x1y2', 10], ['queue', 'x1y2', 4]]

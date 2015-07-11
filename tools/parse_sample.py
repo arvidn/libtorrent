@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 
 # to use this script, first run 'sample' to sample your libtorrent based process
@@ -95,7 +97,7 @@ for l in f:
 	if 'BN_CTX_free' == fun: fold = indentation
 	if 'cerror' == fun: fold = indentation
 	if '0xffffffff' == fun: fold = indentation
-	
+
 list = []
 for k in fun_samples:
 	list.append((fun_samples[k], k))
