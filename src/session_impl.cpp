@@ -115,6 +115,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
+#include "libtorrent/error.hpp"
 
 #endif // TORRENT_DISABLE_LOGGING
 
@@ -1673,10 +1674,7 @@ namespace aux {
 		address bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
 			, device.c_str(), port, ec);
 
-		if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
-			return ret;
-
-		while (bool(ec) && retries > 0)
+		while (ec == error_code(error::address_in_use) && retries > 0)
 		{
 			TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1693,7 +1691,7 @@ namespace aux {
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
-		if (bool(ec) && !(flags & listen_no_system_port))
+		if (ec == error_code(error::address_in_use) && !(flags & listen_no_system_port))
 		{
 			// instead of giving up, try let the OS pick a port
 			port = 0;
