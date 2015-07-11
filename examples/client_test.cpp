@@ -633,7 +633,7 @@ void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libto
 		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
 		return;
 	}
-	load_file(i->second.c_str(), buf, ec);
+	load_file(i->second, buf, ec);
 }
 
 // if non-empty, a peer that will be added to all torrents
@@ -710,7 +710,7 @@ void add_torrent(libtorrent::session& ses
 		, leaf_path(torrent) + ".resume"));
 
 	error_code ec;
-	load_file(filename.c_str(), p.resume_data, ec);
+	load_file(filename, p.resume_data, ec);
 
 	p.url = path_to_url(torrent);
 	p.save_path = save_path;
@@ -745,7 +745,7 @@ std::vector<std::string> list_dir(std::string path
 		std::string p = fd.cFileName;
 		if (filter_fun(p))
 			ret.push_back(p);
-	
+
 	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
 #else
@@ -846,7 +846,7 @@ void scan_dir(std::string const& dir_path
 			files.erase(i++);
 			continue;
 		}
-		
+
 		h.auto_managed(false);
 		h.pause();
 		// the alert handler for save_resume_data_alert
@@ -1638,7 +1638,7 @@ int main(int argc, char* argv[])
 				std::string filename = path_append(save_path, path_append(".resume"
 					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-				load_file(filename.c_str(), p.resume_data, ec);
+				load_file(filename, p.resume_data, ec);
 			}
 
 			printf("adding URL: %s\n", i->c_str());
@@ -1779,7 +1779,7 @@ int main(int argc, char* argv[])
 						std::string filename = path_append(save_path, path_append(".resume"
 								, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-						load_file(filename.c_str(), p.resume_data, ec);
+						load_file(filename, p.resume_data, ec);
 					}
 
 					printf("adding URL: %s\n", url);
