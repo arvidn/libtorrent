@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/io_service.hpp"
 #include "peer_server.hpp"
 #include "test_utils.hpp"
 
@@ -50,7 +51,7 @@ using namespace libtorrent;
 struct peer_server
 {
 
-	boost::asio::io_service m_ios;
+	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_peer_requests;
 	tcp::acceptor m_acceptor;
 	int m_port;
@@ -123,7 +124,7 @@ struct peer_server
 			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
 			while (!done)
 			{
-				m_ios.run_one();
+				m_ios.poll_one();
 				m_ios.reset();
 			}
 

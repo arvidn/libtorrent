@@ -182,11 +182,11 @@ namespace libtorrent
 		// 
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
-		// 	io_service. The io_service::run() call _must_ have returned before
-		// 	it's safe to destruct the session. Which means you *MUST* call
-		// 	session::abort() and save the session_proxy first, then destruct the
-		// 	session object, then sync withthe io_service, then destruct the
-		// 	session_proxy object.
+		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
+		// 	before it's safe to destruct the session. Which means you *MUST*
+		// 	call session::abort() and save the session_proxy first, then
+		// 	destruct the session object, then sync with the io_service, then
+		// 	destruct the session_proxy object.
 		session(settings_pack const& pack
 			, io_service& ios
 			, int flags = start_default_features | add_default_plugins)

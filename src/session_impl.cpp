@@ -1161,11 +1161,11 @@ namespace aux {
 		int snd_size = sett.get_int(settings_pack::send_socket_buffer_size);
 		if (snd_size)
 		{
-			tcp::socket::send_buffer_size prev_option;
+			typename Socket::send_buffer_size prev_option;
 			s.get_option(prev_option, ec);
 			if (!ec && prev_option.value() != snd_size)
 			{
-				tcp::socket::send_buffer_size option(snd_size);
+				typename Socket::send_buffer_size option(snd_size);
 				s.set_option(option, ec);
 				if (ec)
 				{
@@ -1178,11 +1178,11 @@ namespace aux {
 		int recv_size = sett.get_int(settings_pack::recv_socket_buffer_size);
 		if (recv_size)
 		{
-			tcp::socket::receive_buffer_size prev_option;
+			typename Socket::receive_buffer_size prev_option;
 			s.get_option(prev_option, ec);
 			if (!ec && prev_option.value() != recv_size)
 			{
-				tcp::socket::receive_buffer_size option(recv_size);
+				typename Socket::receive_buffer_size option(recv_size);
 				s.set_option(option, ec);
 				if (ec)
 				{
@@ -1941,16 +1941,6 @@ retry:
 						}
 					}
 #endif
-				}
-
-				if (num_device_fails == 2)
-				{
-					// only report this if both IPv4 and IPv6 fails for a device
-					if (m_alerts.should_post<listen_failed_alert>())
-						m_alerts.emplace_alert<listen_failed_alert>(device
-							, listen_failed_alert::bind
-							, error_code(boost::system::errc::no_such_device, generic_category())
-							, listen_failed_alert::tcp);
 				}
 			}
 		}

@@ -330,7 +330,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_read_some(boost::asio::null_buffers const&, Handler const& handler)
+	void async_read_some(null_buffers const&, Handler const& handler)
 	{
 		if (m_impl == 0)
 		{

@@ -276,7 +276,7 @@ namespace libtorrent
 		int num_fence_jobs[disk_io_job::num_job_ids];
 #endif
 	};
-	
+
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
 	struct TORRENT_EXTRA_EXPORT disk_io_thread TORRENT_FINAL

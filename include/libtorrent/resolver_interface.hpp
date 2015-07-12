@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-using boost::asio::ip::tcp;
-
 struct resolver_interface
 {
 	typedef boost::function<void(error_code const&, std::vector<address> const&)>

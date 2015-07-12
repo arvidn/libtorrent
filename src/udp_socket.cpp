@@ -39,12 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/error.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 #include <stdlib.h>
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
 #include <boost/system/system_error.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -217,7 +219,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 		{
 			if (!m_v6_write_subscribed)
 			{
-				m_ipv6_sock.async_send(boost::asio::null_buffers()
+				m_ipv6_sock.async_send(null_buffers()
 					, boost::bind(&udp_socket::on_writable, this, _1, &m_ipv6_sock));
 				m_v6_write_subscribed = true;
 			}
@@ -227,7 +229,7 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 		{
 			if (!m_v4_write_subscribed)
 			{
-				m_ipv4_sock.async_send(boost::asio::null_buffers()
+				m_ipv4_sock.async_send(null_buffers()
 					, boost::bind(&udp_socket::on_writable, this, _1, &m_ipv4_sock));
 				m_v4_write_subscribed = true;
 			}
@@ -488,7 +490,7 @@ void udp_socket::setup_read(udp::socket* s)
 	udp::endpoint ep;
 	TORRENT_TRY
 	{
-		s->async_receive_from(boost::asio::null_buffers()
+		s->async_receive_from(null_buffers()
 			, ep, boost::bind(&udp_socket::on_read, this, _1, s));
 	}
 	TORRENT_CATCH(boost::system::system_error& e)
@@ -729,6 +731,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	}
 
 #if TORRENT_USE_IPV6
+	// TODO: 2 the udp_socket should really just be a single socket, and the
+	// session should support having more than one, just like with TCP sockets
+	// for now, just make bind failures non-fatal
 	if (supports_ipv6() && (ep.address().is_v6() || is_any(ep.address())))
 	{
 		udp::endpoint ep6 = ep;
@@ -740,11 +745,19 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		ec.clear();
 #endif
 		m_ipv6_sock.bind(ep6, ec);
-		if (ec) return;
-		udp::socket::non_blocking_io ioc(true);
-		m_ipv6_sock.io_control(ioc, ec);
-		if (ec) return;
-		setup_read(&m_ipv6_sock);
+		if (ec != error_code(boost::system::errc::address_not_available
+			, boost::system::generic_category()))
+		{
+			if (ec) return;
+			udp::socket::non_blocking_io ioc(true);
+			m_ipv6_sock.io_control(ioc, ec);
+			if (ec) return;
+			setup_read(&m_ipv6_sock);
+		}
+		else
+		{
+			ec.clear();
+		}
 	}
 #endif
 #if TORRENT_USE_ASSERTS

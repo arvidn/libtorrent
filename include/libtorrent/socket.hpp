@@ -68,6 +68,7 @@ namespace libtorrent
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
+	using boost::asio::null_buffers;
 
 #if TORRENT_USE_IPV6
 #ifdef IPV6_V6ONLY

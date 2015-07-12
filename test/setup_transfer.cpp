@@ -606,7 +606,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 	// excercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
-	
+
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
 	fs.add_file("temporary", total_size);

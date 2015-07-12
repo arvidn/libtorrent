@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	alert::alert() : m_timestamp(aux::time_now()) {}
+	alert::alert() : m_timestamp(clock_type::now()) {}
 	alert::~alert() {}
 	time_point alert::timestamp() const { return m_timestamp; }
 

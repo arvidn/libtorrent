@@ -54,7 +54,7 @@ using namespace libtorrent;
 struct dht_server
 {
 
-	boost::asio::io_service m_ios;
+	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_dht_requests;
 	udp::socket m_socket;
 	int m_port;
@@ -125,7 +125,7 @@ struct dht_server
 				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
 			while (!done)
 			{
-				m_ios.run_one();
+				m_ios.poll_one();
 				m_ios.reset();
 			}
 

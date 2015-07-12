@@ -56,7 +56,7 @@ using namespace libtorrent;
 struct udp_tracker
 {
 
-	boost::asio::io_service m_ios;
+	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_udp_announces;
 	udp::socket m_socket;
 	int m_port;

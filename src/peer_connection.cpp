@@ -5650,7 +5650,7 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("peer_connection::on_receive_data_nb");
 #endif
-			m_socket->async_read_some(boost::asio::null_buffers(), make_read_handler(
+			m_socket->async_read_some(null_buffers(), make_read_handler(
 				boost::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
 			return 0;
 		}
