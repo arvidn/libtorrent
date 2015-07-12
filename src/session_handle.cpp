@@ -367,18 +367,32 @@ namespace libtorrent
 		sha1_hash ret = hasher(&buf[0], buf.size()).final();
 
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL2(dht_put_item, data, ret);
+		TORRENT_ASYNC_CALL2(dht_put_immutable_item, data, ret);
 #endif
 		return ret;
 	}
 
 	void session_handle::dht_put_item(boost::array<char, 32> key
 		, boost::function<void(entry&, boost::array<char,64>&
-			, boost::uint64_t&, std::string const&)> cb
+		, boost::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL3(dht_put_mutable_item, key, cb, salt);
+#endif
+	}
+
+	void session_handle::dht_get_peers(sha1_hash const& info_hash)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL1(dht_get_peers, info_hash);
+#endif
+	}
+
+	void session_handle::dht_announce(sha1_hash const& info_hash, int port, int flags)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL3(dht_announce, info_hash, port, flags);
 #endif
 	}
 

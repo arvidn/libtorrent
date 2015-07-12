@@ -422,8 +422,11 @@ namespace libtorrent
 		// calling the callback in between is convenient.
 		void dht_put_item(boost::array<char, 32> key
 			, boost::function<void(entry&, boost::array<char,64>&
-				, boost::uint64_t&, std::string const&)> cb
+			, boost::uint64_t&, std::string const&)> cb
 			, std::string salt = std::string());
+
+		void dht_get_peers(sha1_hash const& info_hash);
+		void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
