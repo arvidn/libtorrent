@@ -96,6 +96,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/choker.hpp"
+#include "libtorrent/error.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -115,7 +116,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
-#include "libtorrent/error.hpp"
 
 #endif // TORRENT_DISABLE_LOGGING
 
@@ -1691,7 +1691,8 @@ namespace aux {
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
-		if (ec == error_code(error::address_in_use) && !(flags & listen_no_system_port))
+		if (ec == error_code(error::address_in_use)
+			&& !(flags & listen_no_system_port))
 		{
 			// instead of giving up, try let the OS pick a port
 			port = 0;
