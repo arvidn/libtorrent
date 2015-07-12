@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import BaseHTTPServer
 import SimpleHTTPServer
 import sys

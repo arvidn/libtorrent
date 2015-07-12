@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2013, Arvid Norberg
 # All rights reserved.
@@ -136,7 +136,7 @@ def loop():
 		r = revs[0]
 		print '\n\nREVISION %d ===\n' % r
 		svn_up(r)
-	
+
 		try:
 			run_tests.main(sys.argv[1:])
 			last_rev = r;

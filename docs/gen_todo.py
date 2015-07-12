@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import glob
 import os
 
@@ -54,7 +56,7 @@ for f in files:
 			prio = items[-1]['priority']
 			if prio >= 0 and prio <= 4: priority_count[prio] += 1
 			continue
-			
+
 		if state == '':
 			context.append(html_sanitize(l))
 			if len(context) > 20: context.pop(0)

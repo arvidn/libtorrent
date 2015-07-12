@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 import os, sys, time
 
 # usage: memory.log memory_index.log
@@ -92,7 +92,7 @@ for l in lines:
          print >>out
 	 cur_line = [-1] * allocation_points_to_print
          last_time = time
- 
+
       size = int(l[5])
       ap = int(l[0])
       if ap in hot_ap:

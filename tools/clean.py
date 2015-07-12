@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import shutil
 import glob
@@ -31,7 +33,7 @@ def clean():
 		'Jamfile.rej',
 		'Jamfile.orig',
 	]
-	
+
 	directories = [
 		'examples',
 		'test',
@@ -47,7 +49,7 @@ def clean():
 		os.path.join('bindings', 'c'),
 		os.path.join('bindings', os.path.join('c', 'src'))
 	]
-	
+
 	for d in directories:
 		for f in to_delete:
 			path = os.path.join(d, f)
@@ -62,7 +64,7 @@ def clean():
 						print p
 					except Exception, e:
 						print p, e
-   	
+
 if	__name__ == "__main__":
 	clean()
-   	
+

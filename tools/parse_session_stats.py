@@ -102,7 +102,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 			return None
 
 	except: pass
-		
+
 	script = os.path.join(output_dir, '%s_%04d.gnuplot' % (name, generation))
 	out = open(script, 'wb')
 	print >>out, "set term png size 1200,700"
@@ -153,7 +153,7 @@ def gen_report(name, unit, lines, short_unit, generation, log_file, options):
 		print >>out, 'set ylabel "%s"' % unit
 		print >>out, 'set xlabel "time (s)"'
 		print >>out, 'set format y "%%.1s%%c%s";' % short_unit
-		print >>out, 'set style fill solid 1.0 noborder' 
+		print >>out, 'set style fill solid 1.0 noborder'
 		print >>out, 'plot',
 		column = 2
 		first = True

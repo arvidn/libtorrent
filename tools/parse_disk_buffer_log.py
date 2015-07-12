@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 import os, sys, time
 
@@ -65,7 +65,7 @@ for l in lines:
 for i in keys:
 	print '%s: avg: %f' % (i, field_sum[i] / last_t)
 print
-	
+
 out.close()
 
 out = open('disk_buffer.gnuplot', 'wb')

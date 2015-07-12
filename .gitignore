@@ -1,0 +1,15 @@
+*.lo
+*.la
+
+*.m4
+*.in
+*.pc
+*.libs
+*.deps
+*.cache
+*.dirstamp
+
+bin
+config*
+Makefile
+build-aux

@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2013, Arvid Norberg
 # All rights reserved.
@@ -122,7 +122,7 @@ def save_log_file(log_name, project_name, branch_name, test_name, timestamp, dat
 	sys.stdout.flush()
 
 def parse_tests(rev_dir):
-	
+
 	# this contains mappings from platforms to
 	# the next layer of dictionaries. The next
 	# layer contains a mapping of toolsets to
@@ -134,7 +134,7 @@ def parse_tests(rev_dir):
 	# as whether it passed and the output from the
 	# command
 	# example:
-	
+
 	# {
 	#   darwin: {
 	#     clang-4.2.1: {
@@ -160,25 +160,25 @@ def parse_tests(rev_dir):
 		except Exception, e:
 			print '\nFAILED TO LOAD "%s": %s\n' % (f, e)
 			continue
-	
+
 		platform = platform_toolset[0]
 		toolset = platform_toolset[1]
-	
+
 		for cfg in j:
 			test_name = cfg.split('|')[0]
 			features = cfg.split('|')[1]
-	
+
 			if not features in tests:
 				tests[features] = set()
-	
+
 			tests[features].add(test_name)
-	
+
 			if not platform in platforms:
 				platforms[platform] = {}
-	
+
 			if not toolset in platforms[platform]:
 				platforms[platform][toolset] = {}
-	
+
 			if not features in platforms[platform][toolset]:
 				platforms[platform][toolset][features] = {}
 

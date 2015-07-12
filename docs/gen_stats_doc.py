@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 counter_types = {}
 
 f = open('../include/libtorrent/performance_counters.hpp')
@@ -28,7 +30,7 @@ for l in f:
 	if '=' in l: l = l[:l.index('=')].strip()
 
 	counter_types[l] = counter_type
-	
+
 f.close()
 
 f = open('../src/session_stats.cpp')

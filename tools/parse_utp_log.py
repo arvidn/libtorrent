@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os, sys, time
 
 # usage: parse_log.py log-file [socket-index to focus on]
@@ -15,7 +17,7 @@ if socket_filter == None:
 
 	for l in file:
 		if not 'our_delay' in l: continue
-	
+
 		try:
 			a = l.strip().split(" ")
 			socket_index = a[1][:-1]
@@ -40,7 +42,7 @@ if socket_filter == None:
 		print '%s: %d' % (i[0], i[1])
 		count += 1
 		if count > 5: break
-	
+
 	file.close()
 	socket_filter = items[0][0]
 	print '\nfocusing on socket %s' % socket_filter
@@ -119,7 +121,7 @@ for l in file:
         continue
 #    if socket_index[:2] != '0x':
 #        continue
-    
+
     if socket_filter != None and socket_index != socket_filter:
         continue
 
