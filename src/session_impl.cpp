@@ -1806,7 +1806,7 @@ retry:
 				, m_listen_interface.port()
 				, flags, ec);
 
-			if (s.sock)
+			if (!ec && s.sock)
 			{
 				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
@@ -1825,7 +1825,7 @@ retry:
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
 
-				if (s.sock)
+				if (!ec && s.sock)
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
@@ -1840,7 +1840,7 @@ retry:
 				listen_socket_t s = setup_listener("::1", false, m_listen_interface.port()
 					, flags, ec);
 
-				if (s.sock)
+				if (!ec && s.sock)
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
@@ -1854,7 +1854,7 @@ retry:
 						, m_settings.get_int(settings_pack::ssl_listen)
 						, flags | open_ssl_socket, ec);
 
-					if (s.sock)
+					if (!ec && s.sock)
 					{
 						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
@@ -1911,7 +1911,7 @@ retry:
 						continue;
 					}
 
-					if (s.sock)
+					if (!ec && s.sock)
 					{
 						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
@@ -1934,7 +1934,7 @@ retry:
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
 
-						if (s.sock)
+						if (!ec && s.sock)
 						{
 							TORRENT_ASSERT(!m_abort);
 							m_listen_sockets.push_back(s);
