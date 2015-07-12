@@ -56,7 +56,7 @@ namespace libtorrent
 		// in the other end. In the case of a web seed, the server type and
 		// version will be a part of this string.
 		std::string client;
-		
+
 		// a bitfield, with one bit per piece in the torrent. Each bit tells you
 		// if the peer has that piece (if it's set to 1) or if the peer miss that
 		// piece (set to 0).
@@ -179,7 +179,7 @@ namespace libtorrent
 
 			// this connection is obfuscated with RC4
 			rc4_encrypted = 0x100000,
-			
+
 			// the handshake of this connection was obfuscated
 			// with a diffie-hellman exchange
 			plaintext_encrypted = 0x200000
@@ -210,7 +210,7 @@ namespace libtorrent
 
 			// The peer was added from the fast resume data.
 			resume_data = 0x10,
-			
+
 			// we received an incoming connection from this peer
 			incoming = 0x20
 		};
@@ -261,7 +261,7 @@ namespace libtorrent
 		// this is the number of requests we have sent to this peer that we
 		// haven't got a response for yet
 		int download_queue_length;
-		
+
 		// the number of block requests that have timed out, and are still in the
 		// download queue
 		int timed_out_requests;
@@ -301,7 +301,7 @@ namespace libtorrent
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;
-	
+
 		// the kind of connection this is. Used for the connection_type field.
 		enum connection_type_t
 		{
@@ -317,7 +317,7 @@ namespace libtorrent
 
 		// the kind of connection this peer uses. See connection_type_t.
 		int connection_type;
-		
+
 		// an estimate of the rate this peer is downloading at, in
 		// bytes per second.
 		int remote_dl_rate;

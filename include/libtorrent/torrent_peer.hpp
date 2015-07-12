@@ -62,6 +62,10 @@ namespace libtorrent
 
 		tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
+#ifndef TORRENT_DISABLE_LOGGING
+		std::string to_string() const;
+#endif
+
 		// this is the accumulated amount of
 		// uploaded and downloaded data to this
 		// torrent_peer. It only accounts for what was

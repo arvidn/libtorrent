@@ -897,7 +897,8 @@ namespace libtorrent
 	}
 
 	// this is an internal function
-	bool peer_list::insert_peer(torrent_peer* p, iterator iter, int flags, torrent_state* state)
+	bool peer_list::insert_peer(torrent_peer* p, iterator iter, int flags
+		, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(p);

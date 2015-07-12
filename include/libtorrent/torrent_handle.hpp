@@ -1096,20 +1096,20 @@ namespace libtorrent
 		// ``flags`` are the same flags that are passed along with the ``ut_pex`` extension.
 		//
 		// ==== ==========================================
-		// 0x01 peer supports encryption
+		// 0x01 peer supports encryption.
 		// 
 		// 0x02 peer is a seed
 		// 
-		// 0x04 supports uTP. This is only a positive flags
-		//      passing 0 doesn't mean the peer doesn't
-		//      support uTP
+		// 0x04 supports uTP. If this is not set, the peer will only be contacted
+		//      over TCP.
 		// 
 		// 0x08 supports holepunching protocol. If this
 		//      flag is received from a peer, it can be
 		//      used as a rendezvous point in case direct
 		//      connections to the peer fail
 		// ==== ==========================================
-		void connect_peer(tcp::endpoint const& adr, int source = 0, int flags = 0) const;
+		void connect_peer(tcp::endpoint const& adr, int source = 0
+			, int flags = 0x1 + 0x4 + 0x8) const;
 
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be

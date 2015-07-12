@@ -184,6 +184,17 @@ namespace libtorrent
 		return peer_rank;
 	}
 
+#ifndef TORRENT_DISABLE_LOGGING
+	std::string torrent_peer::to_string() const
+	{
+#if TORRENT_USE_I2P
+		if (is_i2p_addr) return dest();
+#endif // TORRENT_USE_I2P
+		error_code ec;
+		return address().to_string(ec);
+	}
+#endif
+
 	boost::uint64_t torrent_peer::total_download() const
 	{
 		if (connection != 0)

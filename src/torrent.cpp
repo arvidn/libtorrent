@@ -346,12 +346,6 @@ namespace libtorrent
 			m_resume_data.reset(new resume_data_t);
 			m_resume_data->buf = p.resume_data;
 		}
-
-		update_want_peers();
-		update_want_scrape();
-		update_want_tick();
-		update_state_list();
-
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -710,8 +704,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		INVARIANT_CHECK;
-
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
 			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
@@ -822,6 +814,11 @@ namespace libtorrent
 			}
 		}
 
+		update_want_peers();
+		update_want_scrape();
+		update_want_tick();
+		update_state_list();
+
 		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
 			// we need to download the .torrent file from m_url
@@ -838,6 +835,10 @@ namespace libtorrent
 			set_state(torrent_status::downloading_metadata);
 			start_announcing();
 		}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 	}
 
 	void torrent::start_download_url()
@@ -7393,7 +7394,15 @@ namespace libtorrent
 				sm = m_ses.utp_socket_manager();
 
 			// don't make a TCP connection if it's disabled
-			if (sm == 0 && !settings().get_bool(settings_pack::enable_outgoing_tcp)) return false;
+			if (sm == 0 && !settings().get_bool(settings_pack::enable_outgoing_tcp))
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("discarding peer \"%s\": TCP connections disabled "
+					"[ supports-utp: %d ]", peerinfo->to_string().c_str()
+					, peerinfo->supports_utp);
+#endif
+				return false;
+			}
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
@@ -7998,10 +8007,29 @@ namespace libtorrent
 			, !m_allow_peers && m_auto_managed && !m_abort);
 	}
 
+	char const* list_name(int idx)
+	{
+#define TORRENT_LIST_NAME(n) case aux::session_interface:: n: return #n;
+		switch (idx)
+		{
+			TORRENT_LIST_NAME(torrent_state_updates);
+			TORRENT_LIST_NAME(torrent_want_tick);
+			TORRENT_LIST_NAME(torrent_want_peers_download);
+			TORRENT_LIST_NAME(torrent_want_peers_finished);
+			TORRENT_LIST_NAME(torrent_want_scrape);
+			TORRENT_LIST_NAME(torrent_downloading_auto_managed);
+			TORRENT_LIST_NAME(torrent_seeding_auto_managed);
+			TORRENT_LIST_NAME(torrent_checking_auto_managed);
+			default: TORRENT_ASSERT_VAL(false, idx);
+		}
+#undef TORRENT_LIST_NAME
+	}
+
 	void torrent::update_list(int list, bool in)
 	{
 		link& l = m_links[list];
 		std::vector<torrent*>& v = m_ses.torrent_list(list);
+
 		if (in)
 		{
 			if (l.in_list()) return;
@@ -8012,6 +8040,10 @@ namespace libtorrent
 			if (!l.in_list()) return;
 			l.unlink(v, list);
 		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** UPDATE LIST [ %s : %d ]", list_name(list), int(in));
+#endif
 	}
 
 	void torrent::disconnect_all(error_code const& ec, operation_t op)
@@ -10904,7 +10936,15 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 #if !TORRENT_USE_IPV6
-		if (!adr.address().is_v4()) return NULL;
+		if (!adr.address().is_v4())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			error_code ec;
+			debug_log("add_peer() %s unsupported address family"
+				, adr.address().to_string(ec).c_str());
+#endif
+			return NULL;
+		}
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -10912,7 +10952,7 @@ namespace libtorrent
 		{
 			// try to send a DHT ping to this peer
 			// as well, to figure out if it supports
-			// DHT (uTorrent and BitComet doesn't
+			// DHT (uTorrent and BitComet don't
 			// advertise support)
 			udp::endpoint node(adr.address(), adr.port());
 			session().add_dht_node(node);
@@ -10971,6 +11011,13 @@ namespace libtorrent
 		torrent_state st = get_peer_list_state();
 		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
 		peers_erased(st.erased);
+
+#ifndef TORRENT_DISABLE_LOGGING
+			error_code ec;
+			debug_log("add_peer() %s connect-candidates: %d"
+				, adr.address().to_string(ec).c_str(), m_peer_list->num_connect_candidates());
+#endif
+
 		if (p)
 		{
 			state_updated();
