@@ -57,10 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 
-#ifndef TORRENT_DISABLE_LOGGING
-#include <fstream>
-#endif
-
 namespace libtorrent { namespace dht
 {
 
@@ -300,9 +296,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	time_point now = clock_type::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
-	std::ofstream reply_stats("round_trip_ms.log", std::ios::app);
-	reply_stats << m.addr << "\t" << total_milliseconds(now - o->sent())
-		<< std::endl;
+    m_log->log(dht_logger::rpc_manager, "round trip time(ms): %lld from %s"
+        , total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
 	bdecode_node ret_ent = m.message.dict_find_dict("r");
