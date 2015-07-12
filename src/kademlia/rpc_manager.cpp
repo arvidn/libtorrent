@@ -296,7 +296,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	time_point now = clock_type::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
-    m_log->log(dht_logger::rpc_manager, "round trip time(ms): %lld from %s"
+    m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
         , total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
