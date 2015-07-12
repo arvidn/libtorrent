@@ -36,8 +36,7 @@ install:
   - 'echo "using gcc : : ccache g++ ;" > ~/user-config.jam'
   - 'echo "using clang : : ccache clang++ ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
-  - ccache --show-stats
-  - ccache -V
+  - ccache -V && ccache --show-stats && ccache --zero-stats
   - which $CXX
   - ls -la `which $CXX`
 
