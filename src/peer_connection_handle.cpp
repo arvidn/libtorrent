@@ -48,6 +48,7 @@ int peer_connection_handle::type() const
 	return pc->type();
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 void peer_connection_handle::add_extension(boost::shared_ptr<peer_plugin> ext)
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
@@ -61,34 +62,7 @@ peer_plugin const* peer_connection_handle::find_plugin(char const* type)
 	TORRENT_ASSERT(pc);
 	return pc->find_plugin(type);
 }
-
-bool peer_connection_handle::no_download() const
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->no_download();
-}
-
-bool peer_connection_handle::ignore_stats() const
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->ignore_stats();
-}
-
-boost::uint32_t peer_connection_handle::peer_rank() const
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->peer_rank();
-}
-
-bool peer_connection_handle::can_write() const
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->can_write();
-}
+#endif
 
 bool peer_connection_handle::is_seed() const
 {
@@ -97,18 +71,18 @@ bool peer_connection_handle::is_seed() const
 	return pc->is_seed();
 }
 
-bool peer_connection_handle::share_mode() const
+bool peer_connection_handle::upload_only() const
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	return pc->share_mode();
+	return pc->upload_only();
 }
 
-void peer_connection_handle::set_upload_only(bool u)
+peer_id const& peer_connection_handle::pid() const
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
-	pc->set_upload_only(u);
+	return pc->pid();
 }
 
 bool peer_connection_handle::has_piece(int i) const
@@ -218,13 +192,6 @@ bool peer_connection_handle::is_outgoing() const
 	return pc->is_outgoing();
 }
 
-bool peer_connection_handle::received_listen_port() const
-{
-	boost::shared_ptr<peer_connection const> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->received_listen_port();
-}
-
 bool peer_connection_handle::on_local_network() const
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
@@ -244,13 +211,6 @@ bool peer_connection_handle::failed() const
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->failed();
-}
-
-bool peer_connection_handle::disconnect_if_redundant()
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->disconnect_if_redundant();
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -278,34 +238,6 @@ bool peer_connection_handle::has_metadata() const
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	return pc->has_metadata();
-}
-
-bool peer_connection_handle::send_choke()
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->send_choke();
-}
-
-bool peer_connection_handle::send_unchoke()
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->send_unchoke();
-}
-
-void peer_connection_handle::send_interested()
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	pc->send_interested();
-}
-
-void peer_connection_handle::send_suggest(int piece)
-{
-	boost::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	pc->send_suggest(piece);
 }
 
 bool peer_connection_handle::in_handshake() const
@@ -350,12 +282,7 @@ bool bt_peer_connection_handle::support_extensions() const
 	return pc->support_extensions();
 }
 
-boost::shared_ptr<bt_peer_connection> bt_peer_connection_handle::native_handle() const
-{
-	return boost::static_pointer_cast<bt_peer_connection>(
-		peer_connection_handle::native_handle());
-}
-
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 bool bt_peer_connection_handle::supports_encryption() const
 {
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();
@@ -375,6 +302,13 @@ void bt_peer_connection_handle::switch_recv_crypto(boost::shared_ptr<crypto_plug
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_recv_crypto(crypto);
+}
+#endif
+
+boost::shared_ptr<bt_peer_connection> bt_peer_connection_handle::native_handle() const
+{
+	return boost::static_pointer_cast<bt_peer_connection>(
+		peer_connection_handle::native_handle());
 }
 
 } // namespace libtorrent

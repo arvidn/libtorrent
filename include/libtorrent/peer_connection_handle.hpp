@@ -63,20 +63,9 @@ struct TORRENT_EXPORT peer_connection_handle
 	peer_plugin const* find_plugin(char const* type);
 #endif
 
-	bool no_download() const;
-	bool ignore_stats() const;
-
-	boost::uint32_t peer_rank() const;
-
-	bool can_write() const;
 	bool is_seed() const;
-	bool share_mode() const;
 
-	void set_upload_only(bool u);
 	bool upload_only() const;
-
-	// will send a keep-alive message to the peer
-	void keep_alive();
 
 	peer_id const& pid() const;
 	bool has_piece(int i) const;
@@ -102,14 +91,10 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool is_connecting() const;
 	bool is_outgoing() const;
 
-	bool received_listen_port() const;
-
 	bool on_local_network() const;
 	bool ignore_unchoke_slots() const;
 
 	bool failed() const;
-
-	bool disconnect_if_redundant();
 
 #ifndef TORRENT_DISABLE_LOGGING
 	void peer_log(peer_log_alert::direction_t direction
@@ -119,12 +104,6 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool can_disconnect(error_code const& ec) const;
 
 	bool has_metadata() const;
-
-	bool send_choke();
-	bool send_unchoke();
-	void send_interested();
-	void send_not_interested();
-	void send_suggest(int piece);
 
 	bool in_handshake() const;
 
