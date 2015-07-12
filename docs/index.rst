@@ -81,7 +81,7 @@ libtorrent
 .. _mailing list: http://lists.sourceforge.net/lists/listinfo/libtorrent-discuss
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
-.. _`report bugs`: http://code.google.com/p/libtorrent/issues/entry
+.. _`report bugs`: https://github.com/arvidn/libtorrent/issues
 .. _`github page`: http:/github.com/arvidn/libtorrent
 .. _blog: http://blog.libtorrent.org
 
