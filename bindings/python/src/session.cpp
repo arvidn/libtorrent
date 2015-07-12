@@ -55,9 +55,9 @@ namespace
 #ifndef TORRENT_DISABLE_DHT
     void add_dht_node(lt::session& s, tuple n)
     {
-        allow_threading_guard guard;
         std::string ip = extract<std::string>(n[0]);
         int port = extract<int>(n[1]);
+        allow_threading_guard guard;
         s.add_dht_node(std::make_pair(ip, port));
     }
 
