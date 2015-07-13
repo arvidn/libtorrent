@@ -58,10 +58,8 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	int type() const;
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	void add_extension(boost::shared_ptr<peer_plugin>);
 	peer_plugin const* find_plugin(char const* type);
-#endif
 
 	bool is_seed() const;
 
@@ -96,10 +94,8 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	bool failed() const;
 
-#ifndef TORRENT_DISABLE_LOGGING
 	void peer_log(peer_log_alert::direction_t direction
 		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
-#endif
 
 	bool can_disconnect(error_code const& ec) const;
 
@@ -130,12 +126,10 @@ struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
 	bool packet_finished() const;
 	bool support_extensions() const;
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	bool supports_encryption() const;
 
 	void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
 	void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
-#endif
 
 	boost::shared_ptr<bt_peer_connection> native_handle() const;
 };
