@@ -7071,6 +7071,8 @@ namespace libtorrent
 				error_code ec;
 				torrent_peer const* p = *i;
 				address addr = p->address();
+				if (p->is_i2p_addr)
+					continue;
 				if (p->banned)
 				{
 #if TORRENT_USE_IPV6
