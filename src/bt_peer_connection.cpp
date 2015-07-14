@@ -2282,7 +2282,10 @@ namespace libtorrent
 		std::string remote_address;
 		std::back_insert_iterator<std::string> out(remote_address);
 		detail::write_address(remote().address(), out);
-		handshake["yourip"] = remote_address;
+#if TORRENT_USE_I2P
+		if (!is_i2p(*get_socket()))
+#endif
+			handshake["yourip"] = remote_address;
 		handshake["reqq"] = m_settings.get_int(settings_pack::max_allowed_in_request_queue);
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
