@@ -312,17 +312,14 @@ if (MSVC)
 
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
-else()
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	add_definitions(-Wno-c++11-extensions)
+	add_definitions(-fcolor-diagnostics)
 endif()
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DBOOST_EXCEPTION_DISABLE)
 add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_definitions(-fcolor-diagnostics)
-endif()
 
 if (tcmalloc)
 	target_link_libraries(torrent-rasterbar tcmalloc)
