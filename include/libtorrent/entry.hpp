@@ -146,7 +146,7 @@ namespace libtorrent
 		// hidden
 		bool operator==(entry const& e) const;
 		bool operator!=(entry const& e) const { return !(*this == e); }
-		
+
 		// copies the structure of the right hand side into this
 		// entry.
 #ifndef TORRENT_NO_DEPRECATE

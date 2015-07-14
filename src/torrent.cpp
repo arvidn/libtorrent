@@ -1860,7 +1860,9 @@ namespace libtorrent
 
 		construct_storage();
 
-		if (!m_seed_mode && m_resume_data)
+		// if we've already loaded file priorities, don't load piece priorities,
+		// they will interfere.
+		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
 		{
 			bdecode_node piece_priority = m_resume_data->node
 				.dict_find_string("piece_priority");
@@ -5437,7 +5439,7 @@ namespace libtorrent
 		}
 		update_piece_priorities();
 	}
-	
+
 	int torrent::file_priority(int index) const
 	{
 		// this call is only valid on torrents with metadata
@@ -6608,7 +6610,7 @@ namespace libtorrent
 #endif
 			return;
 		}
-			
+
 		p->set_country(j->name);
 	}
 #endif
@@ -6742,7 +6744,9 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		if (!m_seed_mode && !m_override_resume_data)
+		// load file priorities except if the add_torrent_param file was set to
+		// override resume data
+		if (!m_seed_mode && (!m_override_resume_data || m_file_priority.empty()))
 		{
 			bdecode_node file_priority = rd.dict_find_list("file_priority");
 			if (file_priority && file_priority.list_size()
@@ -7157,10 +7161,20 @@ namespace libtorrent
 		ret["announce_to_lsd"] = m_announce_to_lsd;
 		ret["auto_managed"] = m_auto_managed;
 
-		// write piece priorities
-		// but only if they are not set to the default
-		if (has_picker())
+		// piece priorities and file priorities are mutually exclusive. If there
+		// are file priorities set, don't save piece priorities.
+		if (!m_file_priority.empty())
 		{
+			// write file priorities
+			entry::list_type& file_priority = ret["file_priority"].list();
+			file_priority.clear();
+			for (int i = 0, end(m_file_priority.size()); i < end; ++i)
+				file_priority.push_back(m_file_priority[i]);
+		}
+		else if (has_picker())
+		{
+			// write piece priorities
+			// but only if they are not set to the default
 			bool default_prio = true;
 			for (int i = 0, end(m_torrent_file->num_pieces()); i < end; ++i)
 			{
@@ -7178,12 +7192,6 @@ namespace libtorrent
 					piece_priority[i] = m_picker->piece_priority(i);
 			}
 		}
-
-		// write file priorities
-		entry::list_type& file_priority = ret["file_priority"].list();
-		file_priority.clear();
-		for (int i = 0, end(m_file_priority.size()); i < end; ++i)
-			file_priority.push_back(m_file_priority[i]);
 	}
 
 	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const

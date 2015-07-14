@@ -153,6 +153,8 @@ namespace libtorrent
 			// add_torrent_params configuring the torrent override the corresponding
 			// configuration from the resume file, with the one exception of save
 			// resume data, which has its own flag (for historic reasons).
+			// If this flag is set, but file_priorities is empty, file priorities
+			// are still loaded from the resume data, if present.
 			flag_override_resume_data = 0x002,
 
 			// If ``flag_upload_mode`` is set, the torrent will be initialized in
