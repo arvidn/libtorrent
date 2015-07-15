@@ -278,7 +278,10 @@ done:
 	}
 }
 # else
-#  define _BSD_SOURCE
+#  undef _BSD_SOURCE
+#  define _BSD_SOURCE // deprecated since glibc 2.20
+#  undef _DEFAULT_SOURCE
+#  define _DEFAULT_SOURCE
 #  include <sys/uio.h>
 # endif
 #endif

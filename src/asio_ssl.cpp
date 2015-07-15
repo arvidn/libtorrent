@@ -13,6 +13,7 @@
 // only define BOOST_ASIO_DECL if it hasn't already been defined
 // or if it has been defined to an empty string
 #if TORRENT_HAS_ASIO_DECL == x
+#undef BOOST_ASIO_DECL
 #define BOOST_ASIO_DECL BOOST_SYMBOL_EXPORT
 #endif
 

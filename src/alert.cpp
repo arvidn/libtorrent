@@ -1807,7 +1807,7 @@ namespace libtorrent {
 		char ih_hex[41];
 		to_hex((const char*)&info_hash[0], 20, ih_hex);
 		char msg[200];
-		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %ld", ih_hex, m_num_peers);
+		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", ih_hex, m_num_peers);
 		return msg;
 	}
 
