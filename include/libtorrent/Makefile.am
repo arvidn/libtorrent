@@ -85,6 +85,7 @@ nobase_include_HEADERS = \
   pe_crypto.hpp                \
   performance_counters.hpp     \
   peer_connection.hpp          \
+  peer_connection_handle.hpp   \
   peer_connection_interface.hpp \
   peer.hpp                     \
   peer_class.hpp               \

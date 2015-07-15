@@ -93,6 +93,7 @@ libtorrent_rasterbar_la_SOURCES = \
   pe_crypto.cpp                   \
   performance_counters.cpp        \
   peer_connection.cpp             \
+  peer_connection_handle.cpp      \
   peer_class.cpp                  \
   peer_class_set.cpp              \
   piece_picker.cpp                \

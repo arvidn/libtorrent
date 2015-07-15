@@ -4049,7 +4049,7 @@ retry:
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
 			add_torrent_params p;
-			if ((*i)->on_unknown_torrent(info_hash, pc, p))
+			if ((*i)->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
 			{
 				error_code ec;
 				torrent_handle handle = add_torrent(p, ec);

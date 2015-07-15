@@ -47,6 +47,7 @@ set(sources
 	bt_peer_connection
 	web_peer_connection
 	http_seed_connection
+	peer_connection_handle
 	instantiate_connection
 	merkle
 	natpmp

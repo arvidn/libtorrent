@@ -128,7 +128,7 @@ namespace libtorrent { namespace
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection* pc);
+			peer_connection_handle pc);
 		
 		buffer::const_interval metadata() const
 		{
@@ -543,12 +543,12 @@ namespace libtorrent { namespace
 	};
 
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(
-		peer_connection* pc)
+		peer_connection_handle pc)
 	{
-		if (pc->type() != peer_connection::bittorrent_connection)
+		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc, *this));
+		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc.native_handle().get(), *this));
 	}
 
 	std::pair<int, int> metadata_plugin::metadata_request()
