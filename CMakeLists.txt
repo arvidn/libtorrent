@@ -215,15 +215,14 @@ else()
 	add_definitions(-DTORRENT_DISABLE_DHT)
 endif()
 
-if(NOT MSVC)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fvisibility-inlines-hidden")
-endif()
-
 if (shared)
 	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
-else (shared)
+	if(NOT MSVC)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+	endif()
+else()
 	if(static_runtime)
 		# fix /MT flag:
 		set(CompilerFlags
