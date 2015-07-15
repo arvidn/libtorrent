@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 lib_LTLIBRARIES = libtorrent-rasterbar.la
+noinst_LIBRARIES = libasio_src.a
 
 if ENABLE_DHT
 KADEMLIA_SOURCES = \
@@ -33,12 +34,21 @@ if WITH_OPENSSL
 ASIO_OPENSSL_SOURCES = asio_ssl.cpp
 endif
 
+ASIO_SOURCES = \
+  asio.cpp     \
+  $(ASIO_OPENSSL_SOURCES)
+
+if INCLUDE_ASIO_SRC
+ASIO_SOURCES_SHARED = $(ASIO_SOURCES)
+else
+ASIO_SOURCES_SHARED =
+endif
+
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   alert.cpp                       \
   alert_manager.cpp               \
   allocator.cpp                   \
-  asio.cpp                        \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
@@ -147,13 +157,19 @@ libtorrent_rasterbar_la_SOURCES = \
   file_progress.cpp               \
   \
   $(KADEMLIA_SOURCES)             \
-  $(ASIO_OPENSSL_SOURCES)
+  $(ASIO_SOURCES_SHARED)
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
-libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@
+libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ \
+	@BOOST_CHRONO_LIB@ @BOOST_RANDOM_LIB@ @OPENSSL_LIBS@
 
-AM_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY -I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
-AM_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
+libtorrent_rasterbar_la_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY @LIB_CPPFLAGS@ \
+	-I$(top_srcdir)/include -I$(top_srcdir)/ed25519/src @DEBUGFLAGS@ @OPENSSL_INCLUDES@
+libtorrent_rasterbar_la_CFLAGS = -I$(top_srcdir)/ed25519/src -std=c99
+
+libasio_src_a_SOURCES = $(ASIO_SOURCES)
+libasio_src_a_CPPFLAGS = -DTORRENT_BUILDING_LIBRARY \
+	-I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
 AM_LDFLAGS = @OPENSSL_LDFLAGS@
 

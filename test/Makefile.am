@@ -1,7 +1,6 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
-  bdecode_benchmark          \
   test_primitives            \
   test_recheck               \
   test_stat_cache            \
@@ -37,7 +36,9 @@ test_programs = \
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
-noinst_LTLIBRARIES = libtest.la
+noinst_LIBRARIES = libtest.a
+noinst_PROGRAMS = bdecode_benchmark
+EXTRA_bdecode_benchmark_DEPENDENCIES = libtest.a
 endif
 
 TESTS = $(check_PROGRAMS)
@@ -102,7 +103,7 @@ noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
   test_utils.hpp
 
-libtest_la_SOURCES = main.cpp \
+libtest_a_SOURCES = main.cpp \
   test.cpp \
   setup_transfer.cpp \
   dht_server.cpp \
@@ -191,11 +192,12 @@ test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
 
-LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
+AM_CPPFLAGS=-ftemplate-depth-50 -DBOOST_ASIO_SEPARATE_COMPILATION \
+	-I$(top_srcdir)/include @DEBUGFLAGS@
+#	-I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
 
-#AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
-AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
-
-AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@ \
-	@BOOST_CHRONO_LIB@
+AM_LDFLAGS= libtest.a $(top_builddir)/src/libtorrent-rasterbar.la \
+	$(top_builddir)/src/libasio_src.a \
+	@BOOST_SYSTEM_LIB@ @BOOST_CHRONO_LIB@ @BOOST_RANDOM_LIB@ \
+	@PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 

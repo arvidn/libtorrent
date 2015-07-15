@@ -1,0 +1,20 @@
+path-constant LIBTORRENT_ROOT : . ;
+
+rule asio_src ( properties * )
+{
+	local result ;
+
+	if ! <define>TORRENT_BUILDING_STATIC in $(properties)
+	{
+		result += <include>$(LIBTORRENT_ROOT)/include ;
+		result += <define>BOOST_ASIO_SEPARATE_COMPILATION ;
+		result += <source>$(LIBTORRENT_ROOT)/src/asio.cpp ;
+
+		if <crypto>openssl in $(properties)
+		{
+			result += <source>$(LIBTORRENT_ROOT)/src/asio_ssl.cpp ;
+		}
+	}
+
+	return $(result) ;
+}

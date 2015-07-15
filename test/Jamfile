@@ -4,13 +4,15 @@ import feature : feature ;
 use-project /torrent : .. ;
 
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+	: <threading>multi <debug-iterators>on <invariant-checks>full
+	  <conditional>@asio_src ;
 
 exe enum_if : enum_if.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+	: <threading>multi <debug-iterators>on <invariant-checks>full
+	  <conditional>@asio_src ;
 
 exe bdecode_benchmark : bdecode_benchmark.cpp /torrent//torrent
-	: <variant>release ;
+	: <variant>release <conditional>@asio_src ;
 
 explicit test_natpmp ;
 explicit enum_if ;
@@ -68,6 +70,7 @@ lib libtorrent_test
 	<include>../ed25519/src
 	<target-os>windows:<library>advapi32
 	<conditional>@link_libtorrent
+	<conditional>@asio_src
 
 	: # default build
 	<link>shared

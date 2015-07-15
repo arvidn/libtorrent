@@ -35,10 +35,10 @@ connection_tester_SOURCES = connection_tester.cpp
 upnp_test_SOURCES = upnp_test.cpp
 #upnp_test_LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
-LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
+AM_CPPFLAGS = -ftemplate-depth-50 -DBOOST_ASIO_SEPARATE_COMPILATION \
+	-I$(top_srcdir)/include @DEBUGFLAGS@
 
-AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
-
-AM_LDFLAGS = @BOOST_SYSTEM_LIB@
-#AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @BOOST_FILESYSTEM_LIB@ @BOOST_THREAD_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
-#AM_LDFLAGS = @OPENSSL_LDFLAGS@
+AM_LDFLAGS = $(top_builddir)/src/libtorrent-rasterbar.la \
+	$(top_builddir)/src/libasio_src.a \
+	@BOOST_SYSTEM_LIB@ @BOOST_CHRONO_LIB@ @BOOST_RANDOM_LIB@ \
+	@PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@

@@ -27,10 +27,9 @@ EXTRA_DIST = Jamfile     \
 
 fuzz_torrent_SOURCES = fuzz_torrent.cpp
 
-LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
-
 AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-AM_LDFLAGS = @BOOST_SYSTEM_LIB@
-#AM_LDFLAGS = $(LDFLAGS) @BOOST_SYSTEM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
-#AM_LDFLAGS = @OPENSSL_LDFLAGS@
+AM_LDFLAGS = $(top_builddir)/src/libtorrent-rasterbar.la \
+	$(top_builddir)/src/libasio_src.a \
+	@BOOST_SYSTEM_LIB@ @BOOST_CHRONO_LIB@ @BOOST_RANDOM_LIB@ \
+	@PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@

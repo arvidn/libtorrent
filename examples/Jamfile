@@ -11,7 +11,9 @@ if $(BOOST_ROOT)
 
 project client_test
    : requirements
-	<threading>multi <library>/torrent//torrent
+	<threading>multi
+	<library>/torrent//torrent
+	<conditional>@asio_src
 	: default-build
 	<link>static
    ;  
