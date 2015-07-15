@@ -567,9 +567,6 @@ defines you can use to control the build.
 | ``TORRENT_DISABLE_DHT``                | If this is defined, the support for trackerless |
 |                                        | torrents will be disabled.                      |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DHT_VERBOSE_LOGGING``        | This will enable verbose logging of the DHT     |
-|                                        | protocol traffic.                               |
-+----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_ENCRYPTION``         | This will disable any encryption support and    |
 |                                        | the dependencies of a crypto library.           |
 |                                        | Encryption support is the peer connection       |

@@ -1069,7 +1069,7 @@ TORRENT_TEST(dht)
 		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
    
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
 #endif
 	}
@@ -1088,7 +1088,7 @@ TORRENT_TEST(dht)
 		}
 		TEST_EQUAL(tbl.num_active_buckets(), 6);
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
 #endif
 	}
@@ -1340,7 +1340,7 @@ TORRENT_TEST(dht)
 		//#error test num_global_nodes
 		//#error test need_refresh
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+#if defined TORRENT_DEBUG
 		table.print_state(std::cerr);
 #endif
 
