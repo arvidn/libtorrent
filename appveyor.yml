@@ -14,6 +14,7 @@ environment:
     linkflags: '"/LIBPATH:C:\\OpenSSL-Win32\\lib"'
   - variant: test_release
     compiler: msvc
+    linkflags: '"/LIBPATH:C:\\OpenSSL-Win32\\lib"'
   - variant: test_debug
     compiler: gcc
     linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
