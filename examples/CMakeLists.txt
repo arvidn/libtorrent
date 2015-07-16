@@ -21,9 +21,22 @@ find_package(Boost REQUIRED COMPONENTS system)
 include_directories(${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 add_definitions(${LibtorrentRasterbar_DEFINITIONS})
 
-FILE(GLOB examples RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.cpp")
-foreach(s ${examples})
-    get_filename_component (sn ${s} NAME_WE)
-    add_executable(${sn} ${s})
-    target_link_libraries(${sn} ${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES})
-endforeach(s)
+set(single_file_examples
+    simple_client
+    stats_counters
+    dump_torrent
+    make_torrent
+    connection_tester
+    upnp_test)
+
+foreach(example ${single_file_examples})
+    add_executable(${example} "${example}.cpp")
+    target_link_libraries(${example} ${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES})
+endforeach(example)
+
+add_executable(client_test
+    client_test.cpp
+    print.cpp
+    torrent_view.cpp
+    session_view.cpp)
+target_link_libraries(client_test ${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES})
