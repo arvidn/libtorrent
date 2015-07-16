@@ -26,6 +26,7 @@ set(sources
 	entry
 	error_code
 	file_storage
+	file_progress
 	lazy_bdecode
 	escape_string
 	string_util
@@ -185,7 +186,7 @@ include_directories(${includes})
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
 
 if (encryption)
-	list(APPEND sources pe_crypto asio_ssl)
+	list(APPEND sources mpi pe_crypto asio_ssl)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
