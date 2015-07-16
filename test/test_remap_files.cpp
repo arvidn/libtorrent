@@ -43,6 +43,8 @@ using namespace libtorrent;
 namespace lt = libtorrent;
 using boost::tuples::ignore;
 
+namespace {
+
 template <class T>
 boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 {
@@ -58,6 +60,8 @@ bool on_alert(alert const* a)
 
 	return false;
 }
+
+} // anonymous namespace
 
 void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 {

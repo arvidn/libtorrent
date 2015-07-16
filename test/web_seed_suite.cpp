@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+namespace {
+
 int peer_disconnects = 0;
 
 bool on_alert(alert const* a)
@@ -79,6 +81,8 @@ static sha1_hash file_hash(std::string const& name)
 }
 */
 static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_http", "_http_pw", "_i2p"};
+
+} // anonymous namespace
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_file
