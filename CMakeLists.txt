@@ -362,22 +362,23 @@ configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
 
 # === build tests ===
 if(build_tests)
-	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
-	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp
-		test/dht_server.cpp test/udp_tracker.cpp test/peer_server.cpp
-		test/web_seed_suite.cpp test/test_utils.cpp)
+	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
+	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
+	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
+
+	add_library(test_common OBJECT test/main.cpp test/test.cpp
+		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
+		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
+		test/test_utils.cpp)
 	enable_testing()
 
 	foreach(s ${tests})
 		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} torrent-rasterbar test_common)
+		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
+		target_link_libraries(${sn} torrent-rasterbar)
 		add_test(${sn} ${s})
 	endforeach(s)
 
-#	add_executable(test_upnp test/test_upnp.cpp)
-#	target_link_libraries(test_upnp torrent-rasterbar)
-
-#	add_executable(test_natpmp test/test_natpmp.cpp)
-#	target_link_libraries(test_natpmp torrent-rasterbar)
+	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
+	target_link_libraries(bdecode_benchmark torrent-rasterbar)
 endif()

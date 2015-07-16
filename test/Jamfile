@@ -9,7 +9,7 @@ exe test_natpmp : test_natpmp.cpp /torrent//torrent
 exe enum_if : enum_if.cpp /torrent//torrent
 	: <threading>multi <debug-iterators>on <invariant-checks>full ;
 
-exe bdecode_benchmark : test_bdecode_performance.cpp /torrent//torrent
+exe bdecode_benchmark : bdecode_benchmark.cpp /torrent//torrent
 	: <variant>release ;
 
 explicit test_natpmp ;
