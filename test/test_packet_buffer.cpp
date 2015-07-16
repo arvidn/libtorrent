@@ -86,14 +86,14 @@ TORRENT_TEST(insert)
 	for (int i = 0; i < 0xff; ++i)
 	{
 		int index = (i + 0xfff0) & 0xffff;
-		pb.insert(index, (void*)(index + 1));
+		pb.insert(index, reinterpret_cast<void*>(index + 1));
 		fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
 		TEST_EQUAL(pb.capacity(), 512);
 		if (i >= 14)
 		{
 			index = (index - 14) & 0xffff;
 			fprintf(stderr, "remove: %u\n", index);
-			TEST_CHECK(pb.remove(index) == (void*)(index + 1));
+			TEST_CHECK(pb.remove(index) == reinterpret_cast<void*>(index + 1));
 			TEST_EQUAL(pb.size(), 14);
 		}
 	}

@@ -294,7 +294,7 @@ TORRENT_TEST(string)
 	TEST_EQUAL(ptr, std::string("f"));
 
 	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, NULL);
+	TEST_EQUAL(ptr, static_cast<char*>(0));
 
 	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));
 	TEST_EQUAL(std::string("foobar")
