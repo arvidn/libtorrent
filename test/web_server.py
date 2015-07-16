@@ -7,7 +7,6 @@ import os
 import ssl
 import gzip
 import base64
-import socket
 
 chunked_encoding = False
 keepalive = True
@@ -148,7 +147,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				if not keepalive:
 					s.send_header("Connection", "close")
 					try:
-						s.request.shutdown(socket.SHUT_RD);
+						s.request.shutdown();
 					except Exception, e:
 						print 'Failed to shutdown read-channel of socket: ', e
 
@@ -174,7 +173,6 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				s.send_response(404)
 				s.send_header("Content-Length", "0")
 				s.end_headers()
-
 
 if __name__ == '__main__':
 	port = int(sys.argv[1])
