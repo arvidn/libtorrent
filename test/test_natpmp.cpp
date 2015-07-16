@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/connection_queue.hpp"
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -66,7 +65,6 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	connection_queue cc(ios);
 	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4()
 		, &callback, &log_callback);
 
