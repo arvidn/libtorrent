@@ -11,6 +11,7 @@
 #  LibtorrentRasterbar_DEFINITIONS - Compiler switches required for using libtorrent-rasterbar
 #  LibtorrentRasterbar_OPENSSL_ENABLED - libtorrent-rasterbar uses and links against OpenSSL
 
+find_package(Threads REQUIRED)
 find_package(PkgConfig QUIET)
 
 if(PKG_CONFIG_FOUND)
@@ -43,7 +44,6 @@ else()
     else()
         list(APPEND LibtorrentRasterbar_DEFINITIONS
             -DTORRENT_LINKING_SHARED -DBOOST_ASIO_DYN_LINK
-            -DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK
             -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
     endif()
 endif()
@@ -61,13 +61,15 @@ if(LibtorrentRasterbar_USE_STATIC_LIBS)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ${LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
 endif()
 
-set(LibtorrentRasterbar_LIBRARIES ${LibtorrentRasterbar_LIBRARY})
+set(LibtorrentRasterbar_LIBRARIES ${LibtorrentRasterbar_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
 set(LibtorrentRasterbar_INCLUDE_DIRS ${LibtorrentRasterbar_INCLUDE_DIR})
 
-if(NOT Boost_SYSTEM_FOUND OR NOT Boost_THREAD_FOUND OR NOT Boost_DATE_TIME_FOUND OR NOT Boost_CHRONO_FOUND)
-    find_package(Boost REQUIRED COMPONENTS system thread date_time chrono)
-    set(LibtorrentRasterbar_LIBRARIES ${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES})
-    set(LibtorrentRasterbar_INCLUDE_DIRS ${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+if(NOT Boost_SYSTEM_FOUND OR NOT Boost_CHRONO_FOUND OR NOT Boost_RANDOM_FOUND)
+    find_package(Boost REQUIRED COMPONENTS system chrono random)
+    set(LibtorrentRasterbar_LIBRARIES
+        ${LibtorrentRasterbar_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+    set(LibtorrentRasterbar_INCLUDE_DIRS
+        ${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 endif()
 
 list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL LibtorrentRasterbar_ENCRYPTION_INDEX)
@@ -85,9 +87,8 @@ find_package_handle_standard_args(LibtorrentRasterbar DEFAULT_MSG
                                   LibtorrentRasterbar_LIBRARY
                                   LibtorrentRasterbar_INCLUDE_DIR
                                   Boost_SYSTEM_FOUND
-                                  Boost_THREAD_FOUND
-                                  Boost_DATE_TIME_FOUND
-                                  Boost_CHRONO_FOUND)
+                                  Boost_CHRONO_FOUND
+                                  Boost_RANDOM_FOUND)
 
 mark_as_advanced(LibtorrentRasterbar_INCLUDE_DIR LibtorrentRasterbar_LIBRARY
     LibtorrentRasterbar_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES

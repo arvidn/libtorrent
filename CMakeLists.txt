@@ -181,6 +181,8 @@ if (build_tests)
 	add_definitions(-DTORRENT_EXPORT_EXTRA)
 endif (build_tests)
 
+find_package(Threads REQUIRED)
+
 include_directories(${includes})
 
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
@@ -245,16 +247,16 @@ endif()
 
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono random)
+	FIND_PACKAGE(Boost REQUIRED COMPONENTS system chrono random)
 endif()
 include_directories(${Boost_INCLUDE_DIR})
-target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
+target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # this works around a bug in asio in boost-1.39
 #add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
 
 if(NOT static_runtime)
-	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
+	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
 else()
 	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
 endif()
