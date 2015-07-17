@@ -328,7 +328,12 @@ namespace libtorrent
 			return false;
 		}
 
-		const char* ptr = buf + 4;
+		// the first word is the action, if it's not [0, 3]
+		// it's not a valid udp tracker response
+		const char* ptr = buf;
+		boost::uint32_t action = detail::read_uint32(ptr);
+		if (action > 3) return false;
+
 		boost::uint32_t transaction = detail::read_uint32(ptr);
 		udp_conns_t::iterator i = m_udp_conns.find(transaction);
 
