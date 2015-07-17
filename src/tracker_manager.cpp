@@ -283,7 +283,13 @@ namespace libtorrent
 	bool tracker_manager::incoming_packet(error_code const& e
 		, udp::endpoint const& ep, char const* buf, int size)
 	{
-		// m_ses.m_stat.received_tracker_bytes(len + 28);
+		// filter out packets that are obviously not UDP tracker packets
+		if (size < 8) return false;
+
+		const char* ptr = buf;
+		int action = detail::read_int32(ptr);
+		if (action > 3) return false;
+
 		for (tracker_connections_t::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
@@ -298,7 +304,13 @@ namespace libtorrent
 	bool tracker_manager::incoming_packet(error_code const& e
 		, char const* hostname, char const* buf, int size)
 	{
-		// m_ses.m_stat.received_tracker_bytes(len + 28);
+		// filter out packets that are obviously not UDP tracker packets
+		if (size < 8) return false;
+
+		const char* ptr = buf;
+		int action = detail::read_int32(ptr);
+		if (action > 3) return false;
+
 		for (tracker_connections_t::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
