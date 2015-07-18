@@ -3290,7 +3290,7 @@ namespace libtorrent
 		if (has_peer_choked() || !is_interesting()) return false;
 		if ((int)m_download_queue.size() + (int)m_request_queue.size()
 			> m_desired_queue_size * 2) return false;
-		if (on_parole()) return false; 
+		if (on_parole()) return false;
 		if (m_disconnecting) return false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -4491,12 +4491,12 @@ namespace libtorrent
 			// a have-all message, effectively terminating
 			// super-seeding, since the peer may pick any piece
 			write_bitfield();
-			
+
 			return;
 		}
 
 		assert(!has_piece(new_piece));
-		
+
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d (super seed)"
 			, new_piece);
@@ -4516,7 +4516,7 @@ namespace libtorrent
 
 	void peer_connection::max_out_request_queue(int s)
 	{
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "MAX_OUT_QUEUE_SIZE", "%d -> %d"
 			, m_max_out_request_queue, s);
 #endif
@@ -4551,7 +4551,7 @@ namespace libtorrent
 		const int block_size = t->block_size();
 
 		TORRENT_ASSERT(block_size > 0);
-		
+
 		m_desired_queue_size = queue_time * download_rate / block_size;
 
 		if (m_desired_queue_size > m_max_out_request_queue)
@@ -4559,7 +4559,7 @@ namespace libtorrent
 		if (m_desired_queue_size < min_request_queue)
 			m_desired_queue_size = min_request_queue;
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "UPDATE_QUEUE_SIZE"
 			, "dqs: %d max: %d dl: %d qt: %d snubbed: %d"
 			, m_desired_queue_size, m_max_out_request_queue
@@ -4803,7 +4803,7 @@ namespace libtorrent
 
 		update_desired_queue_size();
 
-		if (m_desired_queue_size == m_max_out_request_queue 
+		if (m_desired_queue_size == m_max_out_request_queue
 				&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().emplace_alert<performance_alert>(t->get_handle()
@@ -4841,7 +4841,7 @@ namespace libtorrent
 			else
 				m_remote_dl_rate = int(boost::int64_t(m_remote_pieces_dled)
 					* piece_size / 60);
-			
+
 			m_remote_pieces_dled = 0;
 			m_remote_dl_update = now;
 		}
@@ -4983,8 +4983,8 @@ namespace libtorrent
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
-		
-		boost::uint64_t upload_rate = int(m_statistics.upload_rate());
+
+		boost::uint64_t upload_rate = m_statistics.upload_rate();
 
 		int buffer_size_watermark = int(upload_rate
 			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100);
@@ -4998,11 +4998,14 @@ namespace libtorrent
 			buffer_size_watermark = m_settings.get_int(settings_pack::send_buffer_watermark);
 		}
 
-#ifdef TORRENT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "SEND_BUFFER_WATERMARK"
-			, "%d max: %d min: %d factor: %d"
-			, buffer_size_watermark, m_ses.settings().send_buffer_watermark
-			, m_ses.settings().send_buffer_low_watermark, m_ses.settings().send_buffer_watermark_factor);
+			, "current watermark: %d max: %d min: %d factor: %d upload-rate: %d B/s"
+			, buffer_size_watermark
+			, m_ses.settings().get_int(settings_pack::send_buffer_watermark)
+			, m_ses.settings().get_int(settings_pack::send_buffer_low_watermark)
+			, m_ses.settings().get_int(settings_pack::send_buffer_watermark_factor)
+			, int(upload_rate));
 #endif
 
 		// don't just pop the front element here, since in seed mode one request may
@@ -5014,7 +5017,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
 			peer_request& r = m_requests[i];
-			
+
 			TORRENT_ASSERT(r.piece >= 0);
 			TORRENT_ASSERT(r.piece < (int)m_have_piece.size());
 //			TORRENT_ASSERT(t->have_piece(r.piece));
@@ -5472,15 +5475,18 @@ namespace libtorrent
 			if (m_send_buffer.empty())
 			{
 				peer_log(peer_log_alert::outgoing, "SEND_BUFFER_DEPLETED"
-					, "quota: %d buf: %d connecting: %s disconnecting: %s pending_disk: %d"
+					, "quota: %d buf: %d connecting: %s disconnecting: %s "
+					"pending_disk: %d piece-requests: %d"
 					, m_quota[upload_channel]
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
-					, m_disconnecting?"yes":"no", m_reading_bytes);
+					, m_disconnecting?"yes":"no", m_reading_bytes
+					, int(m_requests.size()));
 			}
 			else
 			{
 				peer_log(peer_log_alert::outgoing, "CANNOT_WRITE"
-					, "quota: %d buf: %d connecting: %s disconnecting: %s pending_disk: %d"
+					, "quota: %d buf: %d connecting: %s disconnecting: %s "
+					"pending_disk: %d"
 					, m_quota[upload_channel]
 					, int(m_send_buffer.size()), m_connecting?"yes":"no"
 					, m_disconnecting?"yes":"no", m_reading_bytes);
