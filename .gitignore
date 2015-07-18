@@ -13,3 +13,5 @@ bin
 config*
 Makefile
 build-aux
+test_tmp_*
+
