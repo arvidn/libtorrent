@@ -450,12 +450,12 @@ public:
 			if (buffer_size(*i) == 0) continue;
 			using boost::asio::buffer_cast;
 			using boost::asio::buffer_size;
-			add_write_buffer((void*)buffer_cast<void const*>(*i), buffer_size(*i));
+			add_write_buffer(buffer_cast<void const*>(*i), buffer_size(*i));
 			bytes_added += buffer_size(*i);
 		}
 		if (bytes_added == 0)
 		{
-			// if we're reading 0 bytes, post handler immediately
+			// if we're writing 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
 			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
 			return;
