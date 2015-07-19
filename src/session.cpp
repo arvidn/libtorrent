@@ -1389,7 +1389,7 @@ namespace libtorrent
 		, utp_min_timeout(500) // milliseconds
 		, utp_syn_resends(2)
 		, utp_fin_resends(2)
-		, utp_num_resends(6)
+		, utp_num_resends(3)
 		, utp_connect_timeout(3000) // milliseconds
 #ifndef TORRENT_NO_DEPRECATE
 		, utp_delayed_ack(0) // milliseconds
