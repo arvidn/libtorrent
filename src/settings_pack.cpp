@@ -308,7 +308,7 @@ namespace libtorrent
 		SET(utp_min_timeout, 500, 0),
 		SET(utp_syn_resends, 2, 0),
 		SET(utp_fin_resends, 2, 0),
-		SET(utp_num_resends, 6, 0),
+		SET(utp_num_resends, 3, 0),
 		SET(utp_connect_timeout, 3000, 0),
 		SET(utp_delayed_ack, 0, 0),
 		SET(utp_loss_multiplier, 50, 0),

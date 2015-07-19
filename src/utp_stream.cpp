@@ -280,6 +280,7 @@ struct utp_socket_impl
 		, m_deferred_ack(false)
 		, m_subscribe_drained(false)
 		, m_stalled(false)
+		, m_confirmed(false)
 	{
 		m_sm->inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
@@ -405,7 +406,7 @@ public:
 	// refer to the unwritten portions of the buffers, and the
 	// ones that fill up are erased from the vector
 	std::vector<iovec_t> m_read_buffer;
-	
+
 	// packets we've received without a read operation
 	// active. Store them here until the client triggers
 	// an async_read_some
@@ -491,7 +492,7 @@ public:
 
 	// the sum of all packets stored in m_receive_buffer
 	boost::int32_t m_receive_buffer_size;
-	
+
 	// the sum of all buffers in m_read_buffer
 	boost::int32_t m_read_buffer_size;
 
@@ -675,6 +676,11 @@ public:
 	// of sockets in the utp_socket_manager to be notified of
 	// the socket being writable again
 	bool m_stalled:1;
+
+	// this is false by default and set to true once we've received a non-SYN
+	// packet for this connection with a correct ack_nr, confirming that the
+	// other end is not spoofing its source IP
+	bool m_confirmed:1;
 };
 
 utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
@@ -2736,11 +2742,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	if (m_state == UTP_STATE_SYN_SENT && ph->get_type() == ST_STATE)
 		cmp_seq_nr = m_seq_nr;
 #endif
-	if (m_state != UTP_STATE_NONE
-		&& compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK))
+	if ((m_state != UTP_STATE_NONE || ph->get_type() != ST_SYN)
+		&& (compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK)
+			|| compare_less_wrap(ph->ack_nr, m_acked_seq_nr
+				- dup_ack_limit, ACK_MASK)))
 	{
-		UTP_LOG("%8p: ERROR: incoming packet ack_nr:%d our seq_nr:%d (ignored)\n"
-			, this, int(ph->ack_nr), m_seq_nr);
+		UTP_LOG("%8p: ERROR: incoming packet ack_nr:%d our seq_nr:%d our "
+			"acked_seq_nr:%d (ignored)\n"
+			, this, int(ph->ack_nr), m_seq_nr, m_acked_seq_nr);
 		m_sm->inc_stats_counter(counters::utp_redundant_pkts_in);
 		return true;
 	}
@@ -2803,12 +2812,6 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		{
 			UTP_LOG("%8p: ERROR: invalid RESET packet, ack_nr:%d our seq_nr:%d (ignored)\n"
 				, this, int(ph->ack_nr), m_seq_nr);
-			return true;
-		}
-		if (compare_less_wrap(ph->ack_nr, m_acked_seq_nr , ACK_MASK))
-		{
-			UTP_LOG("%8p: ERROR: invalid RESET packet, ack_nr:%d our acked_seq_nr:%d (ignored)\n"
-				, this, int(ph->ack_nr), m_acked_seq_nr);
 			return true;
 		}
 		UTP_LOGV("%8p: incoming packet type:RESET\n", this);
@@ -2927,7 +2930,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		ptr += len;
 		extension = next_extension;
 	}
-	
+
 	// the send operation in parse_sack() may have set the socket to an error
 	// state, in which case we shouldn't continue
 	if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
@@ -3117,6 +3120,10 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			// received a FIN packet, we need to ack that as well
 			bool has_ack = ph->get_type() == ST_DATA || ph->get_type() == ST_FIN || ph->get_type() == ST_SYN;
 			boost::uint32_t prev_out_packets = m_out_packets;
+
+			// the connection is connected and this packet made it past all the
+			// checks. We can now assume the other end is not spoofing it's IP.
+			if (ph->get_type() != ST_SYN) m_confirmed = true;
 
 			// try to send more data as long as we can
 			// if send_pkt returns true
@@ -3504,7 +3511,10 @@ void utp_socket_impl::tick(time_point now)
 
 		if (m_outbuf.size()) ++m_num_timeouts;
 
-		if (m_num_timeouts > m_sm->num_resends())
+		// a socket that has not been confirmed to actually have a live remote end
+		// (the IP may have been spoofed) fail on the first timeout. If we had
+		// heard anything from this peer, it would have been confirmed.
+		if (m_num_timeouts > m_sm->num_resends() || !m_confirmed)
 		{
 			// the connection is dead
 			m_error = boost::asio::error::timed_out;
@@ -3541,7 +3551,7 @@ void utp_socket_impl::tick(time_point now)
 		TORRENT_ASSERT(m_cwnd >= 0);
 
 		m_timeout = now + milliseconds(packet_timeout());
-	
+
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"
 			, this, int(m_cwnd >> 16));
 
