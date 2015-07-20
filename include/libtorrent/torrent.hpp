@@ -726,6 +726,7 @@ namespace libtorrent
 		{
 			return valid_metadata()
 				&& (!m_picker
+				|| m_seed_mode
 				|| m_state == torrent_status::seeding
 				|| m_picker->num_have() == m_picker->num_pieces());
 		}
@@ -843,7 +844,7 @@ namespace libtorrent
 		int sequence_number() const { return m_sequence_number; }
 
 		bool seed_mode() const { return m_seed_mode; }
-		void leave_seed_mode(bool seed);
+		void leave_seed_mode(bool skip_checking);
 
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
@@ -1202,7 +1203,7 @@ namespace libtorrent
 
 		// this is set when we don't want to load seed_mode,
 		// paused or auto_managed from the resume data
-		bool m_override_resume_data:1;
+		const bool m_override_resume_data:1;
 
 		// this is true while there is a country
 		// resolution in progress. To avoid flodding
