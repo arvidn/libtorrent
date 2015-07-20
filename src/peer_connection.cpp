@@ -145,6 +145,8 @@ namespace libtorrent
 		, m_downloaded_at_last_round(0)
 		, m_uploaded_at_last_round(0)
 		, m_uploaded_at_last_unchoke(0)
+		, m_downloaded_last_second(0)
+		, m_uploaded_last_second(0)
 		, m_outstanding_bytes(0)
 		, m_last_seen_complete(0)
 		, m_receiving_block(piece_block::invalid)
@@ -159,7 +161,7 @@ namespace libtorrent
 		, m_download_rate_peak(0)
 		, m_upload_rate_peak(0)
 		, m_send_barrier(INT_MAX)
-		, m_desired_queue_size(2)
+		, m_desired_queue_size(4)
 		, m_prefer_contiguous_blocks(0)
 		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
@@ -181,6 +183,7 @@ namespace libtorrent
 		, m_need_interest_update(false)
 		, m_has_metadata(true)
 		, m_exceeded_limit(false)
+		, m_slow_start(true)
 #if TORRENT_USE_ASSERTS
 		, m_in_constructor(true)
 		, m_disconnect_started(false)
@@ -2611,6 +2614,10 @@ namespace libtorrent
 		if (!m_bitfield_received) incoming_have_none();
 		if (is_disconnecting()) return;
 
+		// slow-start
+		if (m_slow_start)
+			m_desired_queue_size += 1;
+
 		update_desired_queue_size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3687,6 +3694,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t->ready_for_connections()) return;
 		m_interesting = false;
+		m_slow_start = false;
 		m_counters.inc_stats_counter(counters::num_peers_down_interested, -1);
 
 		disconnect_if_redundant();
@@ -3711,7 +3719,7 @@ namespace libtorrent
 		// don't suggest anything to a peer that isn't interested
 		if (has_piece(piece) || !m_peer_interested)
 			return;
-	
+
 		// we cannot suggest a piece we don't have!
 #if TORRENT_USE_ASSERTS
 		boost::shared_ptr<torrent> t = m_torrent.lock();
@@ -4536,23 +4544,30 @@ namespace libtorrent
 			m_desired_queue_size = 1;
 			return;
 		}
-	
+
 		int download_rate = statistics().download_payload_rate();
 
-		// calculate the desired download queue size
+		// the desired download queue size
 		const int queue_time = m_settings.get_int(settings_pack::request_queue_time);
-		// (if the latency is more than this, the download will stall)
-		// so, the queue size is queue_time * down_rate / 16 kiB
-		// (16 kB is the size of each request)
-		// the minimum number of requests is 2 and the maximum is 48
-		// the block size doesn't have to be 16. So we first query the
-		// torrent for it
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		const int block_size = t->block_size();
 
-		TORRENT_ASSERT(block_size > 0);
+		// when we're in slow-start mode we increase the desired queue size every
+		// time we receive a piece, no need to adjust it here (other than
+		// enforcing the upper limit)
+		if (!m_slow_start)
+		{
+			// (if the latency is more than this, the download will stall)
+			// so, the queue size is queue_time * down_rate / 16 kiB
+			// (16 kB is the size of each request)
+			// the minimum number of requests is 2 and the maximum is 48
+			// the block size doesn't have to be 16. So we first query the
+			// torrent for it
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			const int block_size = t->block_size();
 
-		m_desired_queue_size = queue_time * download_rate / block_size;
+			TORRENT_ASSERT(block_size > 0);
+
+			m_desired_queue_size = queue_time * download_rate / block_size;
+		}
 
 		if (m_desired_queue_size > m_max_out_request_queue)
 			m_desired_queue_size = m_max_out_request_queue;
@@ -4561,9 +4576,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "UPDATE_QUEUE_SIZE"
-			, "dqs: %d max: %d dl: %d qt: %d snubbed: %d"
+			, "dqs: %d max: %d dl: %d qt: %d snubbed: %d slow-start: %d"
 			, m_desired_queue_size, m_max_out_request_queue
-			, download_rate, queue_time, int(m_snubbed));
+			, download_rate, queue_time, int(m_snubbed), int(m_slow_start));
 #endif
 	}
 
@@ -4787,6 +4802,23 @@ namespace libtorrent
 		// if we haven't sent something in too long, send a keep-alive
 		keep_alive();
 
+		// if our download rate isn't increasing significantly anymore, end slow
+		// start. The 10kB is to have some slack here.
+		if (m_slow_start && m_downloaded_last_second > 0
+			&& m_downloaded_last_second + 10000
+				>= m_statistics.last_payload_downloaded())
+		{
+			m_slow_start = false;
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "SLOW_START", "exit slow start: "
+				"prev-dl: %d dl: %d"
+				, int(m_downloaded_last_second)
+				, int(m_statistics.last_payload_downloaded()));
+#endif
+		}
+		m_downloaded_last_second = m_statistics.last_payload_downloaded();
+		m_uploaded_last_second = m_statistics.last_payload_uploaded();
+
 		m_statistics.second_tick(tick_interval_ms);
 
 		if (m_statistics.upload_payload_rate() > m_upload_rate_peak)
@@ -4860,6 +4892,7 @@ namespace libtorrent
 		if (!m_snubbed)
 		{
 			m_snubbed = true;
+			m_slow_start = false;
 			if (t->alerts().should_post<peer_snubbed_alert>())
 			{
 				t->alerts().emplace_alert<peer_snubbed_alert>(t->get_handle()
@@ -4984,9 +5017,7 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 
-		boost::uint64_t upload_rate = m_statistics.upload_rate();
-
-		int buffer_size_watermark = int(upload_rate
+		int buffer_size_watermark = int(m_uploaded_last_second
 			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100);
 
 		if (buffer_size_watermark < m_settings.get_int(settings_pack::send_buffer_low_watermark))
@@ -5000,12 +5031,12 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "SEND_BUFFER_WATERMARK"
-			, "current watermark: %d max: %d min: %d factor: %d upload-rate: %d B/s"
+			, "current watermark: %d max: %d min: %d factor: %d uploaded: %d B/s"
 			, buffer_size_watermark
 			, m_ses.settings().get_int(settings_pack::send_buffer_watermark)
 			, m_ses.settings().get_int(settings_pack::send_buffer_low_watermark)
 			, m_ses.settings().get_int(settings_pack::send_buffer_watermark_factor)
-			, int(upload_rate));
+			, int(m_uploaded_last_second));
 #endif
 
 		// don't just pop the front element here, since in seed mode one request may

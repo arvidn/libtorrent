@@ -127,7 +127,7 @@ namespace libtorrent
 		// unexpectedly from the peer
 		boost::uint32_t not_wanted:1;
 		boost::uint32_t timed_out:1;
-		
+
 		// the busy flag is set if the block was
 		// requested from another peer when this
 		// request was queued. We only allow a single
@@ -207,7 +207,7 @@ namespace libtorrent
 		// take a raw pointer. torrent objects should always
 		// outlive their peers
 		boost::weak_ptr<torrent> m_torrent;
-	
+
 	public:
 
 		// a back reference to the session
@@ -216,7 +216,7 @@ namespace libtorrent
 
 		// settings that apply to this peer
 		aux::session_settings const& m_settings;
-		
+
 	protected:
 
 		// this is true if this connection has been added
@@ -967,6 +967,12 @@ namespace libtorrent
 		// for the round-robin unchoke algorithm.
 		boost::int64_t m_uploaded_at_last_unchoke;
 
+		// the number of payload bytes downloaded last second tick
+		boost::int32_t m_downloaded_last_second;
+
+		// the number of payload bytes uploaded last second tick
+		boost::int32_t m_uploaded_last_second;
+
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
@@ -1113,6 +1119,7 @@ namespace libtorrent
 
 		// the number of request we should queue up
 		// at the remote end.
+		// TODO: 2 rename this target queue size
 		boost::uint16_t m_desired_queue_size;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -1228,6 +1235,12 @@ namespace libtorrent
 		// order to know which torrent it belongs to, to know which
 		// other peers to compare it to.
 		bool m_exceeded_limit:1;
+
+		// this is slow-start at the bittorrent layer. It affects how we increase
+		// desired queue size (i.e. the number of outstanding requests we keep).
+		// While the underlying transport protocol is in slow-start, the number of
+		// outstanding requests need to increase at the same pace to keep up.
+		bool m_slow_start:1;
 
 		// TODO: 3 factor this out into its own header and use it for UDP socket
 		// and maybe second_timer as well
