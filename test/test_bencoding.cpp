@@ -471,7 +471,7 @@ TORRENT_TEST(bencoding)
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.dict_find_pstr("foobar2");
-		TEST_EQUAL(ps.ptr, NULL);
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
 		TEST_EQUAL(ps.len, 0);
 	}
 
@@ -491,7 +491,7 @@ TORRENT_TEST(bencoding)
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.list_pstr_at(1);
-		TEST_EQUAL(ps.ptr, NULL);
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
 		TEST_EQUAL(ps.len, 0);
 	}
 

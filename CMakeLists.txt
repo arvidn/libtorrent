@@ -26,6 +26,7 @@ set(sources
 	entry
 	error_code
 	file_storage
+	file_progress
 	lazy_bdecode
 	escape_string
 	string_util
@@ -180,12 +181,14 @@ if (build_tests)
 	add_definitions(-DTORRENT_EXPORT_EXTRA)
 endif (build_tests)
 
+find_package(Threads REQUIRED)
+
 include_directories(${includes})
 
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
 
 if (encryption)
-	list(APPEND sources pe_crypto asio_ssl)
+	list(APPEND sources mpi pe_crypto asio_ssl)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
@@ -215,15 +218,14 @@ else()
 	add_definitions(-DTORRENT_DISABLE_DHT)
 endif()
 
-if(NOT MSVC)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
-	set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fvisibility-inlines-hidden")
-endif()
-
 if (shared)
 	add_definitions(-DTORRENT_BUILDING_SHARED)
 	add_library(torrent-rasterbar SHARED ${sources2})
-else (shared)
+	if(NOT MSVC)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")
+	endif()
+else()
 	if(static_runtime)
 		# fix /MT flag:
 		set(CompilerFlags
@@ -245,16 +247,16 @@ endif()
 
 # Boost
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
-	FIND_PACKAGE( Boost COMPONENTS system thread date_time chrono random)
+	FIND_PACKAGE(Boost REQUIRED COMPONENTS system chrono random)
 endif()
 include_directories(${Boost_INCLUDE_DIR})
-target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES})
+target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # this works around a bug in asio in boost-1.39
 #add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
 
 if(NOT static_runtime)
-	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_DATE_TIME_DYN_LINK -DBOOST_THREAD_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
+	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
 else()
 	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
 endif()
@@ -360,22 +362,23 @@ configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
 
 # === build tests ===
 if(build_tests)
-	FILE(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
-	add_library(test_common STATIC test/main.cpp test/setup_transfer.cpp
-		test/dht_server.cpp test/udp_tracker.cpp test/peer_server.cpp
-		test/web_seed_suite.cpp test/test_utils.cpp)
+	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
+	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
+	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
+
+	add_library(test_common OBJECT test/main.cpp test/test.cpp
+		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
+		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
+		test/test_utils.cpp)
 	enable_testing()
 
 	foreach(s ${tests})
 		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s})
-		target_link_libraries(${sn} torrent-rasterbar test_common)
+		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
+		target_link_libraries(${sn} torrent-rasterbar)
 		add_test(${sn} ${s})
 	endforeach(s)
 
-#	add_executable(test_upnp test/test_upnp.cpp)
-#	target_link_libraries(test_upnp torrent-rasterbar)
-
-#	add_executable(test_natpmp test/test_natpmp.cpp)
-#	target_link_libraries(test_natpmp torrent-rasterbar)
+	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
+	target_link_libraries(bdecode_benchmark torrent-rasterbar)
 endif()

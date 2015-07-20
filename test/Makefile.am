@@ -1,6 +1,7 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
 test_programs = \
+  bdecode_benchmark          \
   test_primitives            \
   test_recheck               \
   test_stat_cache            \
@@ -8,7 +9,6 @@ test_programs = \
   test_privacy               \
   test_priority              \
   test_auto_unchoke          \
-  test_bdecode_performance   \
   test_checking              \
   test_fast_extension        \
   test_http_connection       \
@@ -158,13 +158,13 @@ test_primitives_SOURCES = \
   test_dos_blocker.cpp \
   test_upnp.cpp
 
+bdecode_benchmark_SOURCES = bdecode_benchmark.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
 test_file_SOURCES = test_file.cpp
 test_privacy_SOURCES = test_privacy.cpp
 test_priority_SOURCES = test_priority.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
-test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
 test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_http_connection_SOURCES = test_http_connection.cpp

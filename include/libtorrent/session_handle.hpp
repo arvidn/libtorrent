@@ -54,7 +54,6 @@ namespace libtorrent
 	class torrent;
 	struct ip_filter;
 	class port_filter;
-	class connection_queue;
 	class alert;
 
 #ifndef TORRENT_NO_DEPRECATE

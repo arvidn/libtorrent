@@ -241,7 +241,7 @@ TORRENT_TEST(wait_for_alert)
 	alert* a = mgr.wait_for_alert(seconds(1));
 
 	time_point end = clock_type::now();
-	TEST_EQUAL(a, NULL);
+	TEST_EQUAL(a, static_cast<alert*>(0));
 	TEST_CHECK(end - start > milliseconds(900));
 	TEST_CHECK(end - start < milliseconds(1100));
 
