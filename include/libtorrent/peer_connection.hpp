@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <utility> // for std::forward
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
@@ -313,7 +314,7 @@ namespace libtorrent
 
 		torrent_peer* peer_info_struct() const
 		{ return m_peer_info; }
-	
+
 		// this is called when the peer object is created, in case
 		// it was let in by the connections limit slack. This means
 		// the peer needs to, as soon as the handshake is done, either
@@ -977,7 +978,7 @@ namespace libtorrent
 		{
 #ifdef TORRENT_DEBUG
 			handler_storage()
-			  : used(false)
+				: used(false)
 			{}
 
 			bool used;
@@ -1028,7 +1029,7 @@ namespace libtorrent
 		// if it ends up being bound to a different local IP, the connection
 		// is closed.
 		tcp::endpoint m_local;
-		
+
 		// remote peer's id
 		peer_id m_peer_id;
 
@@ -1062,13 +1063,13 @@ namespace libtorrent
 		// from disk, that will be added to the send
 		// buffer as soon as they complete
 		int m_reading_bytes;
-		
+
 		// options used for the piece picker. These flags will
 		// be augmented with flags controlled by other settings
 		// like sequential download etc. These are here to
 		// let plugins control flags that should always be set
 		int m_picker_options;
-		
+
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request
 		// queue gets empty, and there have been
@@ -1086,7 +1087,7 @@ namespace libtorrent
 		int m_superseed_piece[2];
 
 		// pieces downloaded since last second
-		// timer timeout; used for determining 
+		// timer timeout; used for determining
 		// approx download rate
 		int m_remote_pieces_dled;
 
@@ -1114,7 +1115,7 @@ namespace libtorrent
 		// at the remote end.
 		boost::uint16_t m_desired_queue_size;
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		// in case the session settings is set
 		// to resolve countries, this is set to
 		// the two character country code this
@@ -1129,7 +1130,7 @@ namespace libtorrent
 		// will be used to determine if whole pieces
 		// are preferred.
 		boost::uint8_t m_prefer_contiguous_blocks;
-		
+
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
 		// once this reaches a certain threshold, the
@@ -1141,7 +1142,7 @@ namespace libtorrent
 		// for a piece, before we read it. It's used to throttle
 		// the hash checks to just a few per peer at a time.
 		boost::uint8_t m_outstanding_piece_verification:3;
-		
+
 		// is true if it was we that connected to the peer
 		// and false if we got an incoming connection
 		// could be considered: true = local, false = remote
@@ -1157,7 +1158,7 @@ namespace libtorrent
 		// reconnect to this peer is shorter, and likely
 		// immediate.
 		bool m_fast_reconnect:1;
-		
+
 		// this is set to true if the connection timed
 		// out or closed the connection. In that
 		// case we will not try to reconnect to
@@ -1176,7 +1177,7 @@ namespace libtorrent
 		// at a time.
 		bool m_request_large_blocks:1;
 
-		// set to true if this peer is in share mode		
+		// set to true if this peer is in share mode
 		bool m_share_mode:1;
 
 		// set to true when this peer is only uploading
@@ -1215,7 +1216,7 @@ namespace libtorrent
 		// interest are coalesced into only triggering it once
 		// the actual computation is done in do_update_interest().
 		bool m_need_interest_update:1;
-		
+
 		// set to true if this peer has metadata, and false
 		// otherwise.
 		bool m_has_metadata:1;
@@ -1228,16 +1229,26 @@ namespace libtorrent
 		// other peers to compare it to.
 		bool m_exceeded_limit:1;
 
+		// TODO: 3 factor this out into its own header and use it for UDP socket
+		// and maybe second_timer as well
 		template <class Handler, std::size_t Size>
 		struct allocating_handler
 		{
+			// TODO: 3 if move semantics is supported, move the handler into this
+			// wrapper
 			allocating_handler(
-				Handler const& h, handler_storage<Size>& s
-			)
-			  : handler(h)
-			  , storage(s)
+				Handler const& h, handler_storage<Size>& s)
+				: handler(h)
+				, storage(s)
 			{}
 
+#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+			template <class... A>
+			void operator()(A&&... a) const
+			{
+				handler(std::forward<A>(a)...);
+			}
+#else
 			template <class A0>
 			void operator()(A0 const& a0) const
 			{
@@ -1255,9 +1266,10 @@ namespace libtorrent
 			{
 				handler(a0, a1, a2);
 			}
+#endif
 
 			friend void* asio_handler_allocate(
-			    std::size_t size, allocating_handler<Handler, Size>* ctx)
+				std::size_t size, allocating_handler<Handler, Size>* ctx)
 			{
 				TORRENT_UNUSED(size);
 				TORRENT_ASSERT(size <= Size);
