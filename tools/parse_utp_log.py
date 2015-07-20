@@ -53,9 +53,10 @@ delay_samples = 'points lc rgb "blue"'
 delay_base = 'steps lw 2 lc rgb "purple"'
 target_delay = 'steps lw 2 lc rgb "red"'
 off_target = 'dots lc rgb "blue"'
-cwnd = 'steps lc rgb "green"'
+cwnd = 'steps lc rgb "green" lw 2'
 window_size = 'steps lc rgb "sea-green"'
 rtt = 'lines lc rgb "light-blue"'
+send_buffer = 'lines lc rgb "light-red"'
 
 metrics = {
 	'our_delay':['our delay (ms)', 'x1y2', delay_samples],
@@ -77,7 +78,7 @@ metrics = {
 	'their_delay_base':['their delay base (us)', 'x1y1', delay_base],
 	'their_actual_delay':['their actual delay (us)', 'x1y1', delay_samples],
 	'actual_delay':['actual_delay (us)', 'x1y1', delay_samples],
-	'send_buffer':['send buffer size (B)', 'x1y1', 'lines'],
+	'send_buffer':['send buffer size (B)', 'x1y1', send_buffer],
 	'recv_buffer':['receive buffer size (B)', 'x1y1', 'lines']
 }
 
@@ -199,8 +200,14 @@ out.close()
 
 plot = [
 	{
-		'data': ['upload_rate', 'max_window', 'cur_window', 'wnduser', 'cur_window_packets', 'packet_size', 'rtt'],
+		'data': ['max_window', 'send_buffer', 'cur_window', 'rtt'],
 		'title': 'send-packet-size',
+		'y1': 'Bytes',
+		'y2': 'Time (ms)'
+	},
+	{
+		'data': ['upload_rate', 'max_window', 'cur_window', 'wnduser', 'cur_window_packets', 'packet_size', 'rtt'],
+		'title': 'slow-start',
 		'y1': 'Bytes',
 		'y2': 'Time (ms)'
 	},

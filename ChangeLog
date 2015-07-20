@@ -1,5 +1,6 @@
 1.0.6 release
 
+	* fix request queue size performance issue
 	* slightly improve UDP tracker performance
 	* fix http scrapes
 	* add missing port mapping functions to python binding

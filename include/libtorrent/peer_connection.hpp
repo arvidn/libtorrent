@@ -801,6 +801,12 @@ namespace libtorrent
 		// other peers to compare it to.
 		bool m_exceeded_limit:1;
 
+		// this is slow-start at the bittorrent layer. It affects how we increase
+		// desired queue size (i.e. the number of outstanding requests we keep).
+		// While the underlying transport protocol is in slow-start, the number of
+		// outstanding requests need to increase at the same pace to keep up.
+		bool m_slow_start:1;
+
 		// TODO: make these private as well
 	protected:
 
@@ -1025,6 +1031,12 @@ namespace libtorrent
 		// extended.
 		int m_timeout_extend;
 
+		// the number of payload bytes downloaded last second tick
+		boost::int32_t m_downloaded_last_second;
+
+		// the number of payload bytes uploaded last second tick
+		boost::int32_t m_uploaded_last_second;
+
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
@@ -1147,6 +1159,7 @@ namespace libtorrent
 
 		// the number of request we should queue up
 		// at the remote end.
+		// TODO: 2 rename this target queue size
 		boost::uint16_t m_desired_queue_size;
 
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	

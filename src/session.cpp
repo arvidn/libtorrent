@@ -1385,7 +1385,7 @@ namespace libtorrent
 		, connections_limit(200)
 		, connections_slack(10)
 		, utp_target_delay(100) // milliseconds
-		, utp_gain_factor(1500) // bytes per rtt
+		, utp_gain_factor(3000) // bytes per rtt
 		, utp_min_timeout(500) // milliseconds
 		, utp_syn_resends(2)
 		, utp_fin_resends(2)

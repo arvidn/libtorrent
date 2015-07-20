@@ -623,7 +623,7 @@ struct utp_socket_impl
 	// this is done at startup of a socket in order to find its
 	// link capacity faster. This behaves similar to TCP slow start
 	bool m_slow_start:1;
-	
+
 	// this is true as long as we have as many packets in
 	// flight as allowed by the congestion window (cwnd)
 	bool m_cwnd_full:1;
@@ -1602,7 +1602,9 @@ private:
 // congestion window, false if there is no more space.
 bool utp_socket_impl::send_pkt(int flags)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	bool force = (flags & pkt_ack) || (flags & pkt_fin);
 
@@ -2144,8 +2146,15 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// less than or equal to. If we experience loss of the
 	// same packet again, ignore it.
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr + 1, ACK_MASK)) return;
-	
+
+	// cut window size in 2
+	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
+	m_loss_seq_nr = m_seq_nr;
+	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", this, seq_nr);
+
 	// if we happen to be in slow-start mode, we need to leave it
+	// note that we set ssthres to the window size _after_ reducing it. Next slow
+	// start should end before we over shoot.
 	if (m_slow_start)
 	{
 		m_ssthres = m_cwnd >> 16;
@@ -2153,20 +2162,17 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", this);
 	}
 
-	// cut window size in 2
-	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
-	m_loss_seq_nr = m_seq_nr;
-	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", this, seq_nr);
-
 	// the window size could go below one MMS here, if it does,
 	// we'll get a timeout in about one second
-	
+
 	m_sm->inc_stats_counter(utp_socket_manager::packet_loss);
 }
 
 void utp_socket_impl::maybe_inc_acked_seq_nr()
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	bool incremented = false;
 	// don't pass m_seq_nr, since we move into sequence
@@ -2198,7 +2204,9 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 	, boost::uint32_t& min_rtt, boost::uint16_t seq_nr)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	TORRENT_ASSERT(p);
 
@@ -2244,7 +2252,9 @@ void utp_socket_impl::ack_packet(packet* p, ptime const& receive_time
 
 void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p, ptime now)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	while (!m_read_buffer.empty())
 	{
@@ -3213,7 +3223,7 @@ void utp_socket_impl::do_ledbat(int acked_bytes, int delay, int in_flight, ptime
 	boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
 	boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
 	boost::int64_t scaled_gain;
-  
+
 	if (delay >= target_delay)
 	{
 		if (m_slow_start)
@@ -3502,15 +3512,15 @@ void utp_socket_impl::check_receive_buffers() const
 void utp_socket_impl::check_invariant() const
 {
 	for (int i = m_outbuf.cursor();
-		i != int((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK); 
+		i != int((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK);
 		i = (i + 1) & ACK_MASK)
 	{
 		packet* p = (packet*)m_outbuf.at(i);
-		if (m_mtu_seq == i && m_mtu_seq != 0 && p)
+		if (!p) continue;
+		if (m_mtu_seq == i && m_mtu_seq != 0)
 		{
 			TORRENT_ASSERT(p->mtu_probe);
 		}
-		if (!p) continue;
 		TORRENT_ASSERT(((utp_header*)p->buf)->seq_nr == i);
 	}
 
