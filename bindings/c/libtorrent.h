@@ -195,7 +195,6 @@ struct torrent_status
 	int seed_rank;
 	int last_scrape;
 	int has_incoming;
-	int sparse_regions;
 	int seed_mode;
 };
 
