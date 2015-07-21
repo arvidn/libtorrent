@@ -74,6 +74,9 @@
 
 1.0.6 release
 
+	* improved seed-mode handling (seed-mode will now automatically be left when
+	  performing operations implying it's not a seed)
+	* fixed issue with file priorities and override resume data
 	* fix request queue size performance issue
 	* slightly improve UDP tracker performance
 	* fix http scrape

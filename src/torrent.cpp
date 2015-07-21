@@ -502,7 +502,6 @@ namespace libtorrent
 
 		set_state(torrent_status::downloading);
 
-		m_override_resume_data = true;
 		init();
 	}
 #else // if 0
@@ -649,17 +648,16 @@ namespace libtorrent
 
 		set_state(torrent_status::downloading);
 
-		m_override_resume_data = true;
 		init();
 	}
 
 #endif // if 0
 
-	void torrent::leave_seed_mode(bool seed)
+	void torrent::leave_seed_mode(bool skip_checking)
 	{
 		if (!m_seed_mode) return;
 
-		if (!seed)
+		if (!skip_checking)
 		{
 			// this means the user promised we had all the
 			// files, but it turned out we didn't. This is
@@ -673,12 +671,13 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** LEAVING SEED MODE (%s)", seed ? "as seed" : "as non-seed");
+		debug_log("*** LEAVING SEED MODE (%s)"
+			, skip_checking ? "as seed" : "as non-seed");
 #endif
 		m_seed_mode = false;
 		// seed is false if we turned out not
 		// to be a seed after all
-		if (!seed)
+		if (!skip_checking)
 		{
 			m_have_all = false;
 			set_state(torrent_status::downloading);
@@ -1915,8 +1914,6 @@ namespace libtorrent
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
 		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
-		set_state(torrent_status::checking_resume_data);
-
 #if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = true;
 #endif
@@ -1929,6 +1926,8 @@ namespace libtorrent
 			update_gauge();
 			return;
 		}
+
+		set_state(torrent_status::checking_resume_data);
 
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
@@ -2435,6 +2434,12 @@ namespace libtorrent
 							update_gauge();
 							we_have(i);
 						}
+						else if (m_seed_mode)
+						{
+						// being in seed mode and missing a piece is not compatible.
+						// Leave seed mode if that happens
+							leave_seed_mode(true);
+						}
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
 				}
@@ -2471,6 +2476,10 @@ namespace libtorrent
 						if (e.type() != bdecode_node::dict_t) continue;
 						int piece = e.dict_find_int_value("piece", -1);
 						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
+
+						// being in seed mode and missing a piece is not compatible.
+						// Leave seed mode if that happens
+						if (m_seed_mode) leave_seed_mode(true);
 
 						if (has_picker() && m_picker->have_piece(piece))
 						{
@@ -2544,6 +2553,10 @@ namespace libtorrent
 
 		disconnect_all(errors::stopping_torrent, op_bittorrent);
 		stop_announcing();
+
+		// we're checking everything anyway, no point in assuming we are a seed
+		// now.
+		leave_seed_mode(true);
 
 		m_ses.disk_thread().async_release_files(m_storage.get()
 			, boost::function<void(disk_io_job const*)>());
@@ -3697,11 +3710,11 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces() == 0)
 			return 0;
 
-		if (!has_picker()) return m_have_all ? m_torrent_file->total_size() : 0;
-
 		// if any piece hash fails, we'll be taken out of seed mode
 		// and m_seed_mode will be false
 		if (m_seed_mode) return m_torrent_file->total_size();
+
+		if (!has_picker()) return m_have_all ? m_torrent_file->total_size() : 0;
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
@@ -5409,6 +5422,7 @@ namespace libtorrent
 		if (!valid_metadata() || is_seed()) return;
 
 		if (index < 0 || index >= m_torrent_file->num_files()) return;
+
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
 		if (int(m_file_priority.size()) <= index)
@@ -7165,11 +7179,17 @@ namespace libtorrent
 		// are file priorities set, don't save piece priorities.
 		if (!m_file_priority.empty())
 		{
-			// write file priorities
-			entry::list_type& file_priority = ret["file_priority"].list();
-			file_priority.clear();
-			for (int i = 0, end(m_file_priority.size()); i < end; ++i)
-				file_priority.push_back(m_file_priority[i]);
+
+			// when in seed mode (i.e. the client promises that we have all files)
+			// it does not make sense to save file priorities.
+			if (!m_seed_mode)
+			{
+				// write file priorities
+				entry::list_type& file_priority = ret["file_priority"].list();
+				file_priority.clear();
+				for (int i = 0, end(m_file_priority.size()); i < end; ++i)
+					file_priority.push_back(m_file_priority[i]);
+			}
 		}
 		else if (has_picker())
 		{
@@ -7568,13 +7588,6 @@ namespace libtorrent
 			m_ses.alerts().emplace_alert<metadata_received_alert>(
 				get_handle());
 		}
-
-		// this makes the resume data "paused" and
-		// "auto_managed" fields be ignored. If the paused
-		// field is not ignored, the invariant check will fail
-		// since we will be paused but without having disconnected
-		// any of the peers.
-		m_override_resume_data = true;
 
 		// we have to initialize the torrent before we start
 		// disconnecting redundant peers, otherwise we'll think
@@ -8222,7 +8235,7 @@ namespace libtorrent
 	}
 
 	// this is called when we were finished, but some files were
-	// marked for downloading, and we are no longer finished	
+	// marked for downloading, and we are no longer finished
 	void torrent::resume_download()
 	{
 		// the invariant doesn't hold here, because it expects the torrent
@@ -8234,11 +8247,15 @@ namespace libtorrent
 			|| m_state == torrent_status::allocating)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
-			, int(m_state));
+			debug_log("*** RESUME_DOWNLOAD [ skipping, state: %d ]"
+				, int(m_state));
 #endif
 			return;
 		}
+
+		// we're downloading now, which means we're no longer in seed mode
+		if (m_seed_mode)
+			leave_seed_mode(false);
 
 		TORRENT_ASSERT(!is_finished());
 		set_state(torrent_status::downloading);
@@ -8354,8 +8371,11 @@ namespace libtorrent
 		// not switch to downloading mode. If all files are
 		// filtered, we're finished when we start.
 		if (m_state != torrent_status::finished
-			&& m_state != torrent_status::seeding)
+			&& m_state != torrent_status::seeding
+			&& !m_seed_mode)
+		{
 			set_state(torrent_status::downloading);
+		}
 
 		INVARIANT_CHECK;
 
@@ -8656,6 +8676,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_links[aux::session_interface::torrent_seeding_auto_managed].in_list()
 			== is_seeding);
 
+		if (m_seed_mode)
+		{
+			TORRENT_ASSERT(is_seed());
+		}
 
 		TORRENT_ASSERT(is_single_thread());
 		// this fires during disconnecting peers
@@ -11353,8 +11377,6 @@ namespace libtorrent
 		TORRENT_ASSERT(s != 0); // this state isn't used anymore
 
 #if TORRENT_USE_ASSERTS
-		if (s == torrent_status::seeding)
-			TORRENT_ASSERT(is_seed());
 
 		if (s == torrent_status::seeding)
 		{
