@@ -31,11 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_status.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include <boost/bind.hpp>
 
 #include <libtorrent.h>
+#include <stdarg.h>
 
 namespace
 {
@@ -186,7 +188,7 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 		switch (tag)
 		{
 			case TOR_FILENAME:
-				params.ti = new (std::nothrow) torrent_info(va_arg(lp, char const*), ec);
+				params.ti.reset(new (std::nothrow) torrent_info(va_arg(lp, char const*), ec));
 				break;
 			case TOR_TORRENT:
 				torrent_data = va_arg(lp, char const*);
@@ -195,13 +197,13 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 				torrent_size = va_arg(lp, int);
 				break;
 			case TOR_INFOHASH:
-				params.ti = new (std::nothrow) torrent_info(sha1_hash(va_arg(lp, char const*)));
+				params.ti.reset(new (std::nothrow) torrent_info(sha1_hash(va_arg(lp, char const*))));
 				break;
 			case TOR_INFOHASH_HEX:
 			{
 				sha1_hash ih;
 				from_hex(va_arg(lp, char const*), 40, (char*)&ih[0]);
-				params.ti = new (std::nothrow) torrent_info(ih);
+				params.ti.reset(new (std::nothrow) torrent_info(ih));
 				break;
 			}
 			case TOR_MAGNETLINK:
@@ -253,13 +255,12 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 	}
 
 	if (!params.ti && torrent_data && torrent_size)
-		params.ti = new (std::nothrow) torrent_info(torrent_data, torrent_size);
+		params.ti.reset(new (std::nothrow) torrent_info(torrent_data, torrent_size));
 
 	std::vector<char> rd;
 	if (resume_data && resume_size)
 	{
-		rd.assign(resume_data, resume_data + resume_size);
-		params.resume_data = &rd;
+		params.resume_data.assign(resume_data, resume_data + resume_size);
 	}
 	torrent_handle h;
 	if (!params.ti && magnet_url)
@@ -490,8 +491,8 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 	s->paused = ts.paused;
 	s->progress = ts.progress;
 	strncpy(s->error, ts.error.c_str(), 1025);
-	s->next_announce = ts.next_announce.total_seconds();
-	s->announce_interval = ts.announce_interval.total_seconds();
+	s->next_announce = libtorrent::total_seconds(ts.next_announce);
+	s->announce_interval = libtorrent::total_seconds(ts.announce_interval);
 	strncpy(s->current_tracker, ts.current_tracker.c_str(), 512);
 	s->total_download = ts.total_download = ts.total_download = ts.total_download;
 	s->total_upload = ts.total_upload = ts.total_upload = ts.total_upload;
@@ -530,7 +531,6 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 	s->seed_rank = ts.seed_rank;
 	s->last_scrape = ts.last_scrape;
 	s->has_incoming = ts.has_incoming;
-	s->sparse_regions = ts.sparse_regions;
 	s->seed_mode = ts.seed_mode;
 	return 0;
 }
