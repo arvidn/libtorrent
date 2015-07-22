@@ -658,8 +658,9 @@ namespace libtorrent { namespace
 
 namespace libtorrent
 {
-	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent* t, void*)
+	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle th, void*)
 	{
+		torrent* t = th.native_handle().get();
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{

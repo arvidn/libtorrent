@@ -867,13 +867,13 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext_function_t;
+	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> ext_function_t;
 
 	struct session_plugin_wrapper : plugin
 	{
 		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle t, void* user)
 		{ return m_f(t, user); }
 		ext_function_t m_f;
 	};
@@ -4433,7 +4433,7 @@ retry:
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), userdata));
+			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 	}
@@ -4623,13 +4623,13 @@ retry:
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::vector<boost::function<
-			boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+			boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> >
 			torrent_plugins_t;
 
 		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
 			, end(params.extensions.end()); i != end; ++i)
 		{
-			torrent_ptr->add_extension((*i)(torrent_ptr.get(),
+			torrent_ptr->add_extension((*i)(torrent_ptr->get_handle(),
 				params.userdata));
 		}
 

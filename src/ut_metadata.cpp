@@ -655,8 +655,9 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent* t, void*)
+	boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle th, void*)
 	{
+		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
 		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
 		return boost::shared_ptr<torrent_plugin>(new ut_metadata_plugin(*t));

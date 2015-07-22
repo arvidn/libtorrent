@@ -301,7 +301,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 		void remove_extension(boost::shared_ptr<torrent_plugin>);
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif

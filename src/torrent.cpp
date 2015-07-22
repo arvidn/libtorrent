@@ -1498,10 +1498,10 @@ namespace libtorrent
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> const& ext
 		, void* userdata)
 	{
-		boost::shared_ptr<torrent_plugin> tp(ext(this, userdata));
+		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
 		add_extension(tp);

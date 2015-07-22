@@ -193,7 +193,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
-				torrent*, void*)> ext);
+				torrent_handle, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
 #if TORRENT_USE_ASSERTS

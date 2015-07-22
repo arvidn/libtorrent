@@ -389,8 +389,9 @@ namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent* t, void*)
+	boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle th, void*)
 	{
+		torrent* t = th.native_handle().get();
 		return boost::shared_ptr<torrent_plugin>(new smart_ban_plugin(*t));
 	}
 

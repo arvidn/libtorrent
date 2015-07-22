@@ -96,10 +96,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // The signature of the function is::
 // 
-// 	boost::shared_ptr<torrent_plugin> (*)(torrent*, void*);
+// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle, void*);
 // 
-// The first argument is the internal torrent object, the second argument
-// is the userdata passed to ``session::add_torrent()`` or
+// The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
 // 
 // The function should return a ``boost::shared_ptr<torrent_plugin>`` which
@@ -177,6 +176,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 
 namespace libtorrent
@@ -191,7 +191,6 @@ namespace libtorrent
 	struct bitfield;
 	class alert;
 	struct torrent_plugin;
-	class torrent;
 	struct torrent_peer;
 	struct add_torrent_params;
 
@@ -211,7 +210,7 @@ namespace libtorrent
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent*, void*)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle, void*)
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session

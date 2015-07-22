@@ -35,10 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/torrent_handle.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -56,7 +58,7 @@ namespace libtorrent
 	// 
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent*, void*);
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

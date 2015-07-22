@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -58,7 +59,7 @@ namespace libtorrent
 	// via torrent_handle::add_extension().
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent*, void*);
+	create_metadata_plugin(torrent_handle, void*);
 #endif
 }
 #endif
