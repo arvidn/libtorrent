@@ -1801,8 +1801,6 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
-
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
 				, flags, ec);
@@ -1821,7 +1819,6 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 				listen_socket_t s = setup_listener("0.0.0.0", true
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
@@ -1929,8 +1926,6 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						int retries = 10;
-
 						listen_socket_t s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
