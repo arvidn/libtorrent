@@ -5428,6 +5428,16 @@ retry:
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
+		// if node.first is an IP address, no async resolution is necessary
+		error_code e;
+		address ip = address::from_string(node.first, e);
+		if (!e)
+		{
+			std::vector<address> addresses;
+			addresses.push_back(ip);
+			on_dht_router_name_lookup(e, addresses, node.second);
+			return;
+		}
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_router_name_lookup");
 #endif
