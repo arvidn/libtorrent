@@ -3638,12 +3638,24 @@ retry:
 		}
 	}
 
+	namespace {
+		struct last_optimistic_unchoke_cmp
+		{
+			bool operator()(peer_connection_handle const& l
+				, peer_connection_handle const& r)
+			{
+				return l.native_handle()->peer_info_struct()->last_optimistically_unchoked
+					< r.native_handle()->peer_info_struct()->last_optimistically_unchoked;
+			}
+		};
+	}
+
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<torrent_peer*> opt_unchoke;
+		std::vector<peer_connection_handle> opt_unchoke;
 
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -3660,7 +3672,7 @@ retry:
 			if (pi->optimistically_unchoked)
 			{
 				TORRENT_ASSERT(!p->is_choked());
-				opt_unchoke.push_back(pi);
+				opt_unchoke.push_back(peer_connection_handle(*i));
 			}
 
 			if (!p->is_connecting()
@@ -3671,7 +3683,7 @@ retry:
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(pi);
+				opt_unchoke.push_back(peer_connection_handle(*i));
 			}
 		}
 
@@ -3683,9 +3695,7 @@ retry:
 
 		// sort all candidates based on when they were last optimistically
 		// unchoked.
-		std::sort(opt_unchoke.begin(), opt_unchoke.end()
-			, boost::bind(&torrent_peer::last_optimistically_unchoked, _1)
-			< boost::bind(&torrent_peer::last_optimistically_unchoked, _2));
+		std::sort(opt_unchoke.begin(), opt_unchoke.end(), last_optimistic_unchoke_cmp());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
@@ -3702,10 +3712,10 @@ retry:
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
+		for (std::vector<peer_connection_handle>::iterator i = opt_unchoke.begin()
 			, end(opt_unchoke.end()); i != end; ++i)
 		{
-			torrent_peer* pi = *i;
+			torrent_peer* pi = i->native_handle()->peer_info_struct();
 			if (num_opt_unchoke > 0)
 			{
 				--num_opt_unchoke;

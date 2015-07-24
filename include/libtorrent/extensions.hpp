@@ -190,7 +190,6 @@ namespace libtorrent
 	struct bitfield;
 	class alert;
 	struct torrent_plugin;
-	struct torrent_peer;
 	struct add_torrent_params;
 
 	// this is the base class for a session plugin. One primary feature
@@ -232,7 +231,7 @@ namespace libtorrent
 		// optimistically unchoked.
 		// if the plugin returns true then the ordering provided will be
 		// used and no other plugin will be allowed to change it.
-		virtual bool on_optimistic_unchoke(std::vector<torrent_peer*>& /* peers */)
+		virtual bool on_optimistic_unchoke(std::vector<peer_connection_handle>& /* peers */)
 		{ return false; }
 
 		// called when saving settings state
