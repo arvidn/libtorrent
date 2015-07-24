@@ -895,7 +895,7 @@ namespace aux {
 
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
-		ext->added(this);
+		ext->added(session_handle(this));
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 

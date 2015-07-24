@@ -176,13 +176,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/session_handle.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
-
 	struct peer_plugin;
 	struct peer_request;
 	class entry;
@@ -214,7 +213,7 @@ namespace libtorrent
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(aux::session_impl*) {}
+		virtual void added(session_handle) {}
 
 		// called when an alert is posted alerts that are filtered are not posted
 		virtual void on_alert(alert const*) {}
