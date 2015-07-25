@@ -6,6 +6,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/bencode.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -172,7 +173,7 @@ namespace
 
 } // namespace unnamed
 
-boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
 {
    error_code ec;
    boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
@@ -182,7 +183,12 @@ boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, 
    return ret;
 }
 
-boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
+{
+	return buffer_constructor0(buf, len, 0);
+}
+
+boost::intrusive_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
 {
    error_code ec;
    boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
@@ -190,6 +196,36 @@ boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename,
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
+}
+
+boost::intrusive_ptr<torrent_info> file_constructor1(std::string const& filename)
+{
+	return file_constructor0(filename, 0);
+}
+
+boost::intrusive_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
+{
+	error_code ec;
+	lazy_entry e;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ent);
+	if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		throw invalid_torrent_file(ec);
+#endif
+	}
+
+	boost::intrusive_ptr<torrent_info> ret(new torrent_info(e, ec, flags));
+#ifndef BOOST_NO_EXCEPTIONS
+	if (ec) throw libtorrent_exception(ec);
+#endif
+	return ret;
+}
+
+boost::intrusive_ptr<torrent_info> bencoded_constructor1(entry const& ent)
+{
+	return bencoded_constructor0(ent, 0);
 }
 
 void bind_torrent_info()
@@ -208,15 +244,13 @@ void bind_torrent_info()
         ;
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_EXCEPTIONS
-        .def(init<entry const&>(arg("e")))
-#endif
-#endif
-
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
-        .def("__init__", make_constructor(&buffer_constructor))
-        .def("__init__", make_constructor(&file_constructor))
+        .def("__init__", make_constructor(&buffer_constructor0))
+        .def("__init__", make_constructor(&buffer_constructor1))
+        .def("__init__", make_constructor(&file_constructor0))
+        .def("__init__", make_constructor(&file_constructor1))
+        .def("__init__", make_constructor(&bencoded_constructor0))
+        .def("__init__", make_constructor(&bencoded_constructor1))
         .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
