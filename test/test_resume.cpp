@@ -206,7 +206,6 @@ void test_piece_priorities()
 int test_main()
 {
 	test_piece_priorities();
-	return 0;
 
 	torrent_status s;
 
