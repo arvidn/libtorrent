@@ -1573,6 +1573,16 @@ namespace libtorrent
 			, (storage_mode_t)m_storage_mode, m_file_priority);
 		m_storage = m_owning_storage.get();
 
+		if (m_share_mode)
+		{
+			// in share mode, all pieces have their priorities initialized to 0
+			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
+		}
+
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		update_piece_priorities();
+
 		if (!m_seed_mode)
 		{
 			TORRENT_ASSERT(!m_picker);
@@ -1600,12 +1610,6 @@ namespace libtorrent
 			}
 		}
 
-		if (m_share_mode)
-		{
-			// in share mode, all pieces have their priorities initialized to 0
-			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
-		}
-
 		if (!m_connections_initialized)
 		{
 			m_connections_initialized = true;
@@ -1622,10 +1626,6 @@ namespace libtorrent
 				pc->init();
 			}
 		}
-
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		update_piece_priorities();
 
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
 		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
