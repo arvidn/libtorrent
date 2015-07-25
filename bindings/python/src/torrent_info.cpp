@@ -173,7 +173,7 @@ namespace
 
 } // namespace unnamed
 
-boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
 {
    error_code ec;
    boost::intrusive_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
@@ -183,7 +183,12 @@ boost::intrusive_ptr<torrent_info> buffer_constructor(char const* buf, int len, 
    return ret;
 }
 
-boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::intrusive_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
+{
+	return buffer_constructor0(buf, len, 0);
+}
+
+boost::intrusive_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
 {
    error_code ec;
    boost::intrusive_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
@@ -193,7 +198,12 @@ boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename,
    return ret;
 }
 
-boost::intrusive_ptr<torrent_info> bencoded_constructor(entry const& ent, int flags)
+boost::intrusive_ptr<torrent_info> file_constructor1(std::string const& filename)
+{
+	return file_constructor0(filename, 0);
+}
+
+boost::intrusive_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
 {
 	error_code ec;
 	lazy_entry e;
@@ -213,6 +223,11 @@ boost::intrusive_ptr<torrent_info> bencoded_constructor(entry const& ent, int fl
 	return ret;
 }
 
+boost::intrusive_ptr<torrent_info> bencoded_constructor1(entry const& ent)
+{
+	return bencoded_constructor0(ent, 0);
+}
+
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
@@ -230,9 +245,12 @@ void bind_torrent_info()
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
-        .def("__init__", make_constructor(&buffer_constructor))
-        .def("__init__", make_constructor(&file_constructor))
-        .def("__init__", make_constructor(&bencoded_constructor))
+        .def("__init__", make_constructor(&buffer_constructor0))
+        .def("__init__", make_constructor(&buffer_constructor1))
+        .def("__init__", make_constructor(&file_constructor0))
+        .def("__init__", make_constructor(&file_constructor1))
+        .def("__init__", make_constructor(&bencoded_constructor0))
+        .def("__init__", make_constructor(&bencoded_constructor1))
         .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
