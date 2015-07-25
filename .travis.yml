@@ -47,4 +47,5 @@ script:
   - bjam -j 3 variant=$variant warnings=off $CC
   - cd ../bindings/python
   - bjam -j 3 variant=$variant warnings=off $CC
+  - python test.py
   - ccache --show-stats

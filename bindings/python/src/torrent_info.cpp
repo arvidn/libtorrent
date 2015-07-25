@@ -143,24 +143,60 @@ namespace
 
 } // namespace unnamed
 
-boost::shared_ptr<torrent_info> buffer_constructor(char const* buf, int len, int flags)
+boost::shared_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(buf, len, ec, flags));
+   boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(buf, len, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
 }
 
-boost::shared_ptr<torrent_info> file_constructor(std::string const& filename, int flags)
+boost::shared_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
+{
+	return buffer_constructor0(buf, len, 0);
+}
+
+boost::shared_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(new torrent_info(filename, ec, flags));
+   boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(filename, ec, flags));
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw libtorrent_exception(ec);
 #endif
    return ret;
+}
+
+boost::shared_ptr<torrent_info> file_constructor1(std::string const& filename)
+{
+	return file_constructor0(filename, 0);
+}
+
+boost::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
+{
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ent);
+
+	bdecode_node e;
+	error_code ec;
+	if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		throw invalid_torrent_file(ec);
+#endif
+	}
+
+	boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(e, ec, flags));
+#ifndef BOOST_NO_EXCEPTIONS
+	if (ec) throw libtorrent_exception(ec);
+#endif
+	return ret;
+}
+
+boost::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent)
+{
+	return bencoded_constructor0(ent, 0);
 }
 
 void bind_torrent_info()
@@ -179,15 +215,13 @@ void bind_torrent_info()
         ;
 
     class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_EXCEPTIONS
-        .def(init<entry const&>(arg("e")))
-#endif
-#endif
-
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
-        .def("__init__", make_constructor(&buffer_constructor))
-        .def("__init__", make_constructor(&file_constructor))
+        .def("__init__", make_constructor(&buffer_constructor0))
+        .def("__init__", make_constructor(&buffer_constructor1))
+        .def("__init__", make_constructor(&file_constructor0))
+        .def("__init__", make_constructor(&file_constructor1))
+        .def("__init__", make_constructor(&bencoded_constructor0))
+        .def("__init__", make_constructor(&bencoded_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE

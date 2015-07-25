@@ -127,7 +127,8 @@ A very simple example usage of the module would be something like this::
 		ti: info }
 	h = ses.add_torrent(params)
 
-	while (not h.is_seed()):
+	s = h.status()
+	while (not s.is_seeding):
 		s = h.status()
 
 		state_str = ['queued', 'checking', 'downloading metadata', \

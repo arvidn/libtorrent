@@ -154,6 +154,7 @@ void bind_create_torrent()
     file_entry (file_storage::*at)(int) const = &file_storage::at;
 #endif
 
+	 // TODO: 3 move this to its own file
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
         .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
