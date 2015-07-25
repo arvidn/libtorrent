@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/bencode.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -164,8 +166,48 @@ void default_tests(torrent_status const& s)
 	TEST_EQUAL(s.completed_time, 1348);
 }
 
+void test_piece_priorities()
+{
+	session ses;
+	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.piece_priority(0, 0);
+	h.piece_priority(ti->num_pieces()-1, 0);
+
+	h.save_resume_data();
+	std::auto_ptr<alert> a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a.get());
+	if (save_resume_data_alert* ra = alert_cast<save_resume_data_alert>(a.get()))
+	{
+		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
+		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
+		TEST_EQUAL(prios.size(), ti->num_pieces());
+		TEST_EQUAL(prios[0], '\0');
+		TEST_EQUAL(prios[1], '\x01');
+		TEST_EQUAL(prios[ti->num_pieces()-1], '\0');
+
+		bencode(std::back_inserter(p.resume_data), *ra->resume_data);
+	}
+
+	ses.remove_torrent(h);
+
+	// now, make sure the piece priorities are loaded correctly
+	h = ses.add_torrent(p);
+	TEST_EQUAL(h.piece_priority(0), 0);
+	TEST_EQUAL(h.piece_priority(1), 1);
+	TEST_EQUAL(h.piece_priority(ti->num_pieces()-1), 0);
+}
+
 int test_main()
 {
+	test_piece_priorities();
+	return 0;
+
 	torrent_status s;
 
 	fprintf(stderr, "flags: 0\n");
