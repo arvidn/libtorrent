@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct torrent_plugin;
-	class torrent;
+	struct torrent_handle;
 
 	// constructor function for the smart ban extension. The extension keeps
 	// track of the data peers have sent us for failing pieces and once the
@@ -53,7 +53,7 @@ namespace libtorrent
 	// out to have sent corrupt data.
 	// This function can either be passed in the add_torrent_params::extensions
 	// field, or via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent*, void*);
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

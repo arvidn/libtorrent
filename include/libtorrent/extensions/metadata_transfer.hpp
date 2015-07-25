@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct torrent_plugin;
-	class torrent;
+	struct torrent_handle;
 
 #ifndef TORRENT_NO_DEPRECATE
 	// constructor function for the metadata transfer extension. This
@@ -58,7 +58,7 @@ namespace libtorrent
 	// via torrent_handle::add_extension().
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent*, void*);
+	create_metadata_plugin(torrent_handle const&, void*);
 #endif
 }
 #endif

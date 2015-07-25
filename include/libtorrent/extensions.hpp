@@ -96,10 +96,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // The signature of the function is::
 // 
-// 	boost::shared_ptr<torrent_plugin> (*)(torrent*, void*);
+// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
 // 
-// The first argument is the internal torrent object, the second argument
-// is the userdata passed to ``session::add_torrent()`` or
+// The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
 // 
 // The function should return a ``boost::shared_ptr<torrent_plugin>`` which
@@ -177,12 +176,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/peer_connection_handle.hpp"
+#include "libtorrent/session_handle.hpp"
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
-
 	struct peer_plugin;
 	struct peer_request;
 	class entry;
@@ -191,9 +188,9 @@ namespace libtorrent
 	struct bitfield;
 	class alert;
 	struct torrent_plugin;
-	class torrent;
-	struct torrent_peer;
 	struct add_torrent_params;
+	struct peer_connection_handle;
+	struct torrent_handle;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -211,18 +208,18 @@ namespace libtorrent
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent*, void*)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(aux::session_impl*) {}
+		virtual void added(session_handle) {}
 
 		// called when an alert is posted alerts that are filtered are not posted
 		virtual void on_alert(alert const*) {}
 
 		// return true if the add_torrent_params should be added
 		virtual bool on_unknown_torrent(sha1_hash const& /* info_hash */
-			, peer_connection_handle /* pc */, add_torrent_params& /* p */)
+			, peer_connection_handle const& /* pc */, add_torrent_params& /* p */)
 		{ return false; }
 
 		// called once per second
@@ -234,7 +231,7 @@ namespace libtorrent
 		// optimistically unchoked.
 		// if the plugin returns true then the ordering provided will be
 		// used and no other plugin will be allowed to change it.
-		virtual bool on_optimistic_unchoke(std::vector<torrent_peer*>& /* peers */)
+		virtual bool on_optimistic_unchoke(std::vector<peer_connection_handle>& /* peers */)
 		{ return false; }
 
 		// called when saving settings state
@@ -267,7 +264,7 @@ namespace libtorrent
 		// to it, use ``weak_ptr``.
 		// 
 		// If this function throws an exception, the connection will be closed.
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle)
+		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
 		{ return boost::shared_ptr<peer_plugin>(); }
 
 		// These hooks are called when a piece passes the hash check or fails the hash

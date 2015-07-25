@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -1497,10 +1498,10 @@ namespace libtorrent
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
-		boost::shared_ptr<torrent_plugin> tp(ext(this, userdata));
+		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
 		add_extension(tp);

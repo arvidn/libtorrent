@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent_info;
-	class torrent;
 	struct torrent_plugin;
+	struct torrent_handle;
 
 	// The add_torrent_params is a parameter pack for adding torrents to a
 	// session. The key fields when adding a torrent are:
@@ -331,7 +331,7 @@ namespace libtorrent
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> >
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By

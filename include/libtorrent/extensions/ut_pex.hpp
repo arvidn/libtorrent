@@ -49,7 +49,7 @@ namespace libtorrent
 {
 	struct torrent_plugin;
 	struct peer_plugin;
-	class torrent;
+	struct torrent_handle;
 
 	// constructor function for the ut_pex extension. The ut_pex
 	// extension allows peers to gossip about their connections, allowing
@@ -59,7 +59,7 @@ namespace libtorrent
 	// 
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent*, void*);
+	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);
 
 	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep);
 }

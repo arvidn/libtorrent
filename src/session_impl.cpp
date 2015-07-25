@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
@@ -95,6 +96,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/choker.hpp"
 #include "libtorrent/error.hpp"
 
@@ -867,13 +869,13 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> ext_function_t;
+	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext_function_t;
 
 	struct session_plugin_wrapper : plugin
 	{
 		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent* t, void* user)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user)
 		{ return m_f(t, user); }
 		ext_function_t m_f;
 	};
@@ -895,7 +897,7 @@ namespace aux {
 
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
-		ext->added(this);
+		ext->added(session_handle(this));
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
@@ -3638,12 +3640,24 @@ retry:
 		}
 	}
 
+	namespace {
+		struct last_optimistic_unchoke_cmp
+		{
+			bool operator()(peer_connection_handle const& l
+				, peer_connection_handle const& r)
+			{
+				return l.native_handle()->peer_info_struct()->last_optimistically_unchoked
+					< r.native_handle()->peer_info_struct()->last_optimistically_unchoked;
+			}
+		};
+	}
+
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<torrent_peer*> opt_unchoke;
+		std::vector<peer_connection_handle> opt_unchoke;
 
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
@@ -3660,7 +3674,7 @@ retry:
 			if (pi->optimistically_unchoked)
 			{
 				TORRENT_ASSERT(!p->is_choked());
-				opt_unchoke.push_back(pi);
+				opt_unchoke.push_back(peer_connection_handle(*i));
 			}
 
 			if (!p->is_connecting()
@@ -3671,7 +3685,7 @@ retry:
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(pi);
+				opt_unchoke.push_back(peer_connection_handle(*i));
 			}
 		}
 
@@ -3683,9 +3697,7 @@ retry:
 
 		// sort all candidates based on when they were last optimistically
 		// unchoked.
-		std::sort(opt_unchoke.begin(), opt_unchoke.end()
-			, boost::bind(&torrent_peer::last_optimistically_unchoked, _1)
-			< boost::bind(&torrent_peer::last_optimistically_unchoked, _2));
+		std::sort(opt_unchoke.begin(), opt_unchoke.end(), last_optimistic_unchoke_cmp());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
@@ -3702,10 +3714,10 @@ retry:
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
+		for (std::vector<peer_connection_handle>::iterator i = opt_unchoke.begin()
 			, end(opt_unchoke.end()); i != end; ++i)
 		{
-			torrent_peer* pi = *i;
+			torrent_peer* pi = i->native_handle()->peer_info_struct();
 			if (num_opt_unchoke > 0)
 			{
 				--num_opt_unchoke;
@@ -4433,7 +4445,7 @@ retry:
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr.get(), userdata));
+			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 	}
@@ -4623,13 +4635,13 @@ retry:
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::vector<boost::function<
-			boost::shared_ptr<torrent_plugin>(torrent*, void*)> >
+			boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> >
 			torrent_plugins_t;
 
 		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
 			, end(params.extensions.end()); i != end; ++i)
 		{
-			torrent_ptr->add_extension((*i)(torrent_ptr.get(),
+			torrent_ptr->add_extension((*i)(torrent_ptr->get_handle(),
 				params.userdata));
 		}
 

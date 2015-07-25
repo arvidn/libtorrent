@@ -501,7 +501,7 @@ namespace libtorrent
 		// pointer. The function is expected to return a shared pointer to
 		// a torrent_plugin instance.
 		void add_extension(
-			boost::function<boost::shared_ptr<torrent_plugin>(torrent*, void*)> const& ext
+			boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata = 0);
 
 		// ``set_metadata`` expects the *info* section of metadata. i.e. The

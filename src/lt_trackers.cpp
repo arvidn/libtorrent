@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
@@ -54,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 namespace libtorrent { namespace
 {
@@ -79,7 +81,7 @@ namespace libtorrent { namespace
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection_handle pc);
+			peer_connection_handle const& pc);
 		
 		virtual void tick()
 		{
@@ -360,7 +362,7 @@ namespace libtorrent { namespace
 	};
 
 	boost::shared_ptr<peer_plugin> lt_tracker_plugin::new_connection(
-		peer_connection_handle pc)
+		peer_connection_handle const& pc)
 	{
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
@@ -377,8 +379,9 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent* t, void*)
+	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle const& th, void*)
 	{
+		torrent* t = th.native_handle().get();
 		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
 		return boost::shared_ptr<torrent_plugin>(new lt_tracker_plugin(*t));
 	}

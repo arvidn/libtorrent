@@ -69,7 +69,7 @@ enum flags_t
 };
 
 void test_transfer(int flags
-	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent*, void*)
+	, boost::shared_ptr<libtorrent::torrent_plugin> (*constructor)(libtorrent::torrent_handle const&, void*)
 	, int timeout)
 {
 	using namespace libtorrent;
