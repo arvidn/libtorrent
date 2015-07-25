@@ -6,6 +6,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/bencode.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
@@ -192,6 +193,26 @@ boost::intrusive_ptr<torrent_info> file_constructor(std::string const& filename,
    return ret;
 }
 
+boost::intrusive_ptr<torrent_info> bencoded_constructor(entry const& ent, int flags)
+{
+	error_code ec;
+	lazy_entry e;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ent);
+	if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		throw invalid_torrent_file(ec);
+#endif
+	}
+
+	boost::intrusive_ptr<torrent_info> ret(new torrent_info(e, ec, flags));
+#ifndef BOOST_NO_EXCEPTIONS
+	if (ec) throw libtorrent_exception(ec);
+#endif
+	return ret;
+}
+
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
@@ -208,15 +229,10 @@ void bind_torrent_info()
         ;
 
     class_<torrent_info, boost::intrusive_ptr<torrent_info> >("torrent_info", no_init)
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_EXCEPTIONS
-        .def(init<entry const&>(arg("e")))
-#endif
-#endif
-
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def("__init__", make_constructor(&buffer_constructor))
         .def("__init__", make_constructor(&file_constructor))
+        .def("__init__", make_constructor(&bencoded_constructor))
         .def(init<torrent_info const&, int>((arg("ti"), arg("flags") = 0)))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE

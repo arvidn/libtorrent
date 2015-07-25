@@ -344,15 +344,6 @@ namespace libtorrent
 		torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		torrent_info(char const* buffer, int size, int flags = 0);
 		torrent_info(std::string const& filename, int flags = 0);
-#ifndef TORRENT_NO_DEPRECATE
-#if TORRENT_USE_WSTRING
-		// all wstring APIs are deprecated since 0.16.11
-		// instead, use the wchar -> utf8 conversion functions
-		// and pass in utf8 strings
-		TORRENT_DEPRECATED_PREFIX
-		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
-#endif // TORRENT_USE_WSTRING
-#endif // TORRENT_NO_DEPRECATE
 #endif
 		torrent_info(torrent_info const& t, int flags = 0);
 		torrent_info(sha1_hash const& info_hash, int flags = 0);
@@ -366,6 +357,8 @@ namespace libtorrent
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED_PREFIX
 		torrent_info(std::wstring const& filename, error_code& ec, int flags = 0) TORRENT_DEPRECATED;
+		TORRENT_DEPRECATED_PREFIX
+		torrent_info(std::wstring const& filename, int flags = 0) TORRENT_DEPRECATED;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
