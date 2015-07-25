@@ -178,7 +178,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/torrent_handle.hpp"
-#include "libtorrent/peer_connection_handle.hpp"
 
 namespace libtorrent
 {
@@ -191,6 +190,7 @@ namespace libtorrent
 	class alert;
 	struct torrent_plugin;
 	struct add_torrent_params;
+	struct peer_connection_handle;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -219,7 +219,7 @@ namespace libtorrent
 
 		// return true if the add_torrent_params should be added
 		virtual bool on_unknown_torrent(sha1_hash const& /* info_hash */
-			, peer_connection_handle /* pc */, add_torrent_params& /* p */)
+			, peer_connection_handle const& /* pc */, add_torrent_params& /* p */)
 		{ return false; }
 
 		// called once per second
@@ -264,7 +264,7 @@ namespace libtorrent
 		// to it, use ``weak_ptr``.
 		// 
 		// If this function throws an exception, the connection will be closed.
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle)
+		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
 		{ return boost::shared_ptr<peer_plugin>(); }
 
 		// These hooks are called when a piece passes the hash check or fails the hash

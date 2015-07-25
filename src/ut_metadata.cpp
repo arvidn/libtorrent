@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
@@ -124,7 +125,7 @@ namespace libtorrent { namespace
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection_handle pc);
+			peer_connection_handle const& pc);
 
 		int get_metadata_size() const
 		{
@@ -500,7 +501,7 @@ namespace libtorrent { namespace
 	};
 
 	boost::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
-		peer_connection_handle pc)
+		peer_connection_handle const& pc)
 	{
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();

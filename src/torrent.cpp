@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"

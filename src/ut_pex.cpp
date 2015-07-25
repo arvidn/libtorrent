@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/extensions.hpp"
@@ -90,7 +91,7 @@ namespace libtorrent { namespace
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 	
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle pc);
+		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const& pc);
 
 		std::vector<char>& get_ut_pex_msg()
 		{
@@ -646,7 +647,7 @@ namespace libtorrent { namespace
 		bool m_first_time;
 	};
 
-	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle pc)
+	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
 	{
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
