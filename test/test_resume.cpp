@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/bencode.hpp"
 
 #include <boost/make_shared.hpp>
 
@@ -186,6 +187,43 @@ void default_tests(torrent_status const& s)
 	TEST_EQUAL(s.seeding_time, 1340);
 	TEST_EQUAL(s.added_time, 1347);
 	TEST_EQUAL(s.completed_time, 1348);
+}
+
+TORRENT_TEST(piece_priorities)
+{
+	session ses;
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.piece_priority(0, 0);
+	h.piece_priority(ti->num_pieces()-1, 0);
+
+	h.save_resume_data();
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	if (save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a))
+	{
+		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
+		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
+		TEST_EQUAL(prios.size(), ti->num_pieces());
+		TEST_EQUAL(prios[0], '\0');
+		TEST_EQUAL(prios[1], '\x04');
+		TEST_EQUAL(prios[ti->num_pieces()-1], '\0');
+
+		bencode(std::back_inserter(p.resume_data), *ra->resume_data);
+	}
+
+	ses.remove_torrent(h);
+
+	// now, make sure the piece priorities are loaded correctly
+	h = ses.add_torrent(p);
+	TEST_EQUAL(h.piece_priority(0), 0);
+	TEST_EQUAL(h.piece_priority(1), 4);
+	TEST_EQUAL(h.piece_priority(ti->num_pieces()-1), 0);
 }
 
 // TODO: test what happens when loading a resume file with both piece priorities
