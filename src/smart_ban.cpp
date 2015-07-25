@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/disk_io_thread.hpp"
@@ -389,7 +390,7 @@ namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle th, void*)
+	boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		return boost::shared_ptr<torrent_plugin>(new smart_ban_plugin(*t));

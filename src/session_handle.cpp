@@ -414,7 +414,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	void session_handle::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> ext)
+	void session_handle::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL1(add_extension, ext);

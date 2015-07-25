@@ -482,7 +482,7 @@ namespace libtorrent
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
 		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
-			torrent_handle, void*)> ext);
+			torrent_handle const&, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
 #ifndef TORRENT_NO_DEPRECATE

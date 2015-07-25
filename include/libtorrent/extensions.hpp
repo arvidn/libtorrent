@@ -96,7 +96,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // The signature of the function is::
 // 
-// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle, void*);
+// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
 // 
 // The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
@@ -177,7 +177,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/torrent_handle.hpp"
 
 namespace libtorrent
 {
@@ -191,6 +190,7 @@ namespace libtorrent
 	struct torrent_plugin;
 	struct add_torrent_params;
 	struct peer_connection_handle;
+	struct torrent_handle;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -208,7 +208,7 @@ namespace libtorrent
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle, void*)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session

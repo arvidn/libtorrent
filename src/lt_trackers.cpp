@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 namespace libtorrent { namespace
 {
@@ -378,7 +379,7 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle th, void*)
+	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();

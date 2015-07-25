@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/torrent_handle.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -47,12 +46,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct torrent_plugin;
-	class torrent;
+	struct torrent_handle;
 
 	// constructor function for the trackers exchange extension. This can
 	// either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
-	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle, void*);
+	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

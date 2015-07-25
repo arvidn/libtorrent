@@ -96,6 +96,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/torrent_peer.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/choker.hpp"
 #include "libtorrent/error.hpp"
 
@@ -868,13 +869,13 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> ext_function_t;
+	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext_function_t;
 
 	struct session_plugin_wrapper : plugin
 	{
 		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle t, void* user)
+		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user)
 		{ return m_f(t, user); }
 		ext_function_t m_f;
 	};
@@ -4634,7 +4635,7 @@ retry:
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::vector<boost::function<
-			boost::shared_ptr<torrent_plugin>(torrent_handle, void*)> >
+			boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> >
 			torrent_plugins_t;
 
 		for (torrent_plugins_t::const_iterator i = params.extensions.begin()

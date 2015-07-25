@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -656,7 +657,7 @@ namespace libtorrent { namespace
 namespace libtorrent
 {
 
-	boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle th, void*)
+	boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private

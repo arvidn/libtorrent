@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -659,7 +660,7 @@ namespace libtorrent { namespace
 
 namespace libtorrent
 {
-	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle th, void*)
+	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()

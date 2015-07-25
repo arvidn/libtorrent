@@ -62,7 +62,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp" // for user_load_function_t
 #include "libtorrent/ip_voter.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -111,6 +110,7 @@ namespace libtorrent
 	class torrent;
 	class alert;
 	struct cache_info;
+	struct torrent_handle;
 
 	namespace dht
 	{
@@ -193,7 +193,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
-				torrent_handle, void*)> ext);
+				torrent_handle const&, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
 #if TORRENT_USE_ASSERTS
