@@ -45,6 +45,8 @@ script:
   - bjam -j 3 variant=$variant warnings=off -l900 $CC
   - cd ../examples
   - bjam -j 3 variant=$variant warnings=off $CC
+  - cd ../
+  - bjam -j 3 variant=$variant warnings=off $CC install
   - cd ../bindings/python
   - bjam -j 3 variant=$variant warnings=off $CC
   - python test.py
