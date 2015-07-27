@@ -72,6 +72,15 @@ namespace libtorrent
 					, reinterpret_cast<UTF32**>(&dst_start)
 					, reinterpret_cast<UTF32*>(dst_start + wide.size())
 					, lenientConversion);
+				if (ret == sourceIllegal)
+				{
+					// assume Latin-1
+					wide.clear();
+					std::copy((boost::uint8_t const*)*src_start
+						, (boost::uint8_t const*)src_end
+						, std::back_inserter(wide));
+					return static_cast<utf8_conv_result_t>(ret);
+				}
 				wide.resize(dst_start - wide.c_str());
 				return static_cast<utf8_conv_result_t>(ret);
 			}
@@ -92,6 +101,15 @@ namespace libtorrent
 					, reinterpret_cast<UTF16**>(&dst_start)
 					, reinterpret_cast<UTF16*>(dst_start + wide.size())
 					, lenientConversion);
+				if (ret == sourceIllegal)
+				{
+					// assume Latin-1
+					wide.clear();
+					std::copy((boost::uint8_t const*)*src_start
+						, (boost::uint8_t const*)src_end
+						, std::back_inserter(wide));
+					return static_cast<utf8_conv_result_t>(ret);
+				}
 				wide.resize(dst_start - wide.c_str());
 				return static_cast<utf8_conv_result_t>(ret);
 			}
