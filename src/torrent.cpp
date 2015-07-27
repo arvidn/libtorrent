@@ -1885,7 +1885,6 @@ namespace libtorrent
 						// being in seed mode and missing a piece is not compatible.
 						// Leave seed mode if that happens
 						if (pieces_str[i] & 1) we_have(i);
-						else if (m_seed_mode) leave_seed_mode(true);
 
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
@@ -5309,9 +5308,6 @@ namespace libtorrent
 #endif
 		}
 
-		if (m_seed_mode)
-			m_verified.resize(m_torrent_file->num_pieces(), false);
-
 		m_last_scrape = rd.dict_find_int_value("last_scrape", 0);
 		m_last_download = rd.dict_find_int_value("last_download", 0);
 		m_last_upload = rd.dict_find_int_value("last_upload", 0);
@@ -5363,14 +5359,18 @@ namespace libtorrent
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
 
-		if (!m_seed_mode && !m_override_resume_data)
+		if (!m_override_resume_data)
 		{
 			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
 			if (file_priority && file_priority->list_size()
 				== m_torrent_file->num_files())
 			{
 				for (int i = 0; i < file_priority->list_size(); ++i)
+				{
 					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
+					// this is suspicious, leave seed mode
+					if (m_file_priority[i] == 0) m_seed_mode = false;
+				}
 				update_piece_priorities();
 			}
 		}
@@ -5451,6 +5451,40 @@ namespace libtorrent
 				// no one uses merkle torrents
 				TORRENT_ASSERT(false);
 			}
+		}
+
+		if (m_seed_mode)
+		{
+			// some sanity checking. Maybe we shouldn't be in seed mode anymore
+			lazy_entry const* pieces = rd.dict_find("pieces");
+			if (pieces && pieces->type() == lazy_entry::string_t
+				&& int(pieces->string_length()) == m_torrent_file->num_pieces())
+			{
+				char const* pieces_str = pieces->string_ptr();
+				for (int i = 0, end(pieces->string_length()); i < end; ++i)
+				{
+					// being in seed mode and missing a piece is not compatible.
+					// Leave seed mode if that happens
+					if ((pieces_str[i] & 1)) continue;
+					m_seed_mode = false;
+					break;
+				}
+			}
+
+			lazy_entry const* piece_priority = m_resume_entry.dict_find_string("piece_priority");
+			if (piece_priority && piece_priority->string_length()
+				== m_torrent_file->num_pieces())
+			{
+				char const* p = piece_priority->string_ptr();
+				for (int i = 0; i < piece_priority->string_length(); ++i)
+				{
+					if (p[i] > 0) continue;
+					m_seed_mode = false;
+					break;
+				}
+			}
+
+			m_verified.resize(m_torrent_file->num_pieces(), false);
 		}
 	}
 
