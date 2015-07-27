@@ -8,7 +8,6 @@ set(sources
 	alert
 	alert_manager
 	allocator
-	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -188,7 +187,7 @@ include_directories(${includes})
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
 
 if (encryption)
-	list(APPEND sources mpi pe_crypto asio_ssl)
+	list(APPEND sources mpi pe_crypto)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
@@ -256,9 +255,7 @@ target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_I
 #add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
 
 if(NOT static_runtime)
-	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
-else()
-	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
+	add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
 endif()
 
 if (WIN32)

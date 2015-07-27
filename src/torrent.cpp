@@ -8077,6 +8077,7 @@ namespace libtorrent
 			default: TORRENT_ASSERT_VAL(false, idx);
 		}
 #undef TORRENT_LIST_NAME
+		return "";
 	}
 
 	void torrent::update_list(int list, bool in)

@@ -324,11 +324,6 @@ rule building ( properties * )
 		result += <source>src/assert.cpp ;
 	}
 
-	if <crypto>openssl in $(properties)
-	{
-		result += <source>src/asio_ssl.cpp ;
-	}
-
 	if <encryption>on in $(properties)
 	{
 		result += <source>src/mpi.c ;
@@ -353,8 +348,6 @@ rule building ( properties * )
 		&& ! <debug-iterators>on in $(properties)
 	{
 		# hide non-external symbols
-		# use ms-compat because boost.asio (as of 1.47.0
-		# appears to have some types not fully exported)
 		result += <cflags>-fvisibility=hidden ;
 		result += <cxxflags>-fvisibility-inlines-hidden ;
 
@@ -586,7 +579,6 @@ SOURCES =
 	alert
 	alert_manager
 	allocator
-	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -752,10 +744,6 @@ local usage-requirements =
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
 	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
-# make sure asio symbols are properly exported
-# and imported
-	<link>shared:<define>BOOST_ASIO_DYN_LINK
-	<define>BOOST_ASIO_SEPARATE_COMPILATION
 	<tag>@tag
 	;
 
@@ -772,11 +760,6 @@ lib torrent
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
 	<define>BOOST_NO_DEPRECATED
-
-	# on windows, when linking statically against asio
-	# but producing a DLL, everything inside the DLL needs
-	# to declare the symbol as being exported
-	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp

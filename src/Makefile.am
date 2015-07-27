@@ -29,16 +29,11 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/verify.cpp
 endif
 
-if WITH_OPENSSL
-ASIO_OPENSSL_SOURCES = asio_ssl.cpp
-endif
-
 libtorrent_rasterbar_la_SOURCES = \
   web_connection_base.cpp         \
   alert.cpp                       \
   alert_manager.cpp               \
   allocator.cpp                   \
-  asio.cpp                        \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
@@ -146,8 +141,7 @@ libtorrent_rasterbar_la_SOURCES = \
   xml_parse.cpp                   \
   file_progress.cpp               \
   \
-  $(KADEMLIA_SOURCES)             \
-  $(ASIO_OPENSSL_SOURCES)
+  $(KADEMLIA_SOURCES)
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LIBADD = @BOOST_SYSTEM_LIB@ @OPENSSL_LIBS@

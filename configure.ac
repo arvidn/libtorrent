@@ -541,9 +541,6 @@ COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 AC_DEFINE([BOOST_ASIO_ENABLE_CANCELIO],[1],[Define to enable cancel support in asio on windows XP and older.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_ENABLE_CANCELIO "
 
-AC_DEFINE([BOOST_ASIO_DYN_LINK],[1],[make asio export its symbols])
-COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_DYN_LINK"
-
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])
 AS_IF([test "x$PYTHON_INSTALL_PARAMS" = "x"],

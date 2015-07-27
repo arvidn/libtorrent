@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __GNUC__
 // this is to suppress the warnings for using std::auto_ptr
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
