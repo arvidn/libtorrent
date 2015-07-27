@@ -4326,8 +4326,13 @@ namespace libtorrent
 
 		// if our download rate isn't increasing significantly anymore, end slow
 		// start. The 10kB is to have some slack here.
-		if (m_slow_start && m_downloaded_last_second > 0
-			&& m_downloaded_last_second + 10000
+		// we can't dp this when we're choked, because we aren't sending any
+		// requests yet, so there hasn't been an opportunity to ramp up the
+		// connection yet.
+		if (m_slow_start
+			&& !m_peer_choked
+			&& m_downloaded_last_second > 0
+			&& m_downloaded_last_second + 5000
 				>= m_statistics.last_payload_downloaded())
 		{
 			m_slow_start = false;
