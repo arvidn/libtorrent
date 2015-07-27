@@ -18,20 +18,20 @@ rule libtorrent_linking ( properties * )
 }
 
 lib torrentc
+  : # sources
+    library.cpp
 
-    : # sources
-	 library.cpp
-
-	 : # requirements
+  : # requirements
     <conditional>@libtorrent_linking
     <library>/torrent//torrent/<link>static
-	 <include>.
+    <conditional>@asio_src
+    <include>.
 
-	 : # default build
-	 <link>static
+  : # default build
+    <link>static
 
-	 : # usage-requirements
-	 <include>.
+  : # usage-requirements
+    <include>.
 ;
 
 exe simple_client : simple_client.c torrentc ;

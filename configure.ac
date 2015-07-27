@@ -541,20 +541,21 @@ COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 AC_DEFINE([BOOST_ASIO_ENABLE_CANCELIO],[1],[Define to enable cancel support in asio on windows XP and older.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_ENABLE_CANCELIO "
 
-AC_DEFINE([BOOST_ASIO_DYN_LINK],[1],[make asio export its symbols])
-COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_DYN_LINK"
-
 dnl Use possibly specific python install params
 AC_ARG_VAR([PYTHON_INSTALL_PARAMS], [Set specific install parameters for python bindings.])
 AS_IF([test "x$PYTHON_INSTALL_PARAMS" = "x"],
       [PYTHON_INSTALL_PARAMS='--prefix=$(DESTDIR)$(prefix)'])
 
 dnl Set some defines if we are building a shared library
+AM_CONDITIONAL([INCLUDE_ASIO_SRC], [test "x$enable_shared" = "xyes"])
 AS_IF([test "x$enable_shared" = "xyes"],
       [AC_DEFINE([TORRENT_BUILDING_SHARED],[1],[Define to exports functions and classes with default visibility in GCC.])
-       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LINKING_SHARED "])
+       LIB_CPPFLAGS="-DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK"
+       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_LINKING_SHARED "],
+      [LIB_CPPFLAGS=""])
 
 AC_SUBST(DEBUGFLAGS)
+AC_SUBST(LIB_CPPFLAGS)
 AC_SUBST(PYTHON_INSTALL_PARAMS)
 AC_SUBST(COMPILETIME_OPTIONS)
 

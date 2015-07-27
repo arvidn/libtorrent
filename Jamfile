@@ -176,10 +176,12 @@ rule linking ( properties * )
 				# but we're linking against boost statically, we still
 				# need to make boost think it's being built as a shared
 				# library, so that it properly exports its symbols
-				result += <define>BOOST_ALL_DYN_LINK ;
-				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_ALL_DYN_LINK ;
-				result += <library>/boost/random//boost_random/<link>static/<define>BOOST_ALL_DYN_LINK ;
+				result += <define>BOOST_SYSTEM_DYN_LINK ;
+				result += <define>BOOST_CHRONO_DYN_LINK ;
+				result += <define>BOOST_RANDOM_DYN_LINK ;
+				result += <library>/boost/system//boost_system/<link>static/<define>BOOST_SYSTEM_DYN_LINK ;
+				result += <library>/boost/chrono//boost_chrono/<link>static/<define>BOOST_CHRONO_DYN_LINK ;
+				result += <library>/boost/random//boost_random/<link>static/<define>BOOST_RANDOM_DYN_LINK ;
 			}
 			else
 			{
@@ -322,11 +324,6 @@ rule building ( properties * )
 		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
-	}
-
-	if <crypto>openssl in $(properties)
-	{
-		result += <source>src/asio_ssl.cpp ;
 	}
 
 	if <encryption>on in $(properties)
@@ -586,7 +583,6 @@ SOURCES =
 	alert
 	alert_manager
 	allocator
-	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -752,10 +748,6 @@ local usage-requirements =
 	<boost>system:<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
 	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
-# make sure asio symbols are properly exported
-# and imported
-	<link>shared:<define>BOOST_ASIO_DYN_LINK
-	<define>BOOST_ASIO_SEPARATE_COMPILATION
 	<tag>@tag
 	;
 
@@ -771,18 +763,19 @@ lib torrent
 	<threading>multi
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
+	<link>static:<define>TORRENT_BUILDING_STATIC
 	<define>BOOST_NO_DEPRECATED
 
-	# on windows, when linking statically against asio
+	# on windows, when linking statically against boost
 	# but producing a DLL, everything inside the DLL needs
 	# to declare the symbol as being exported
-	<link>shared:<define>BOOST_ASIO_SOURCE
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
+	<conditional>@asio_src
 	<conditional>@warnings
 	<boost>system:<cxxflags>$(CXXFLAGS)
 
@@ -799,6 +792,8 @@ lib torrent
 	: # usage requirements
 	$(usage-requirements)
 	<link>shared:<define>TORRENT_LINKING_SHARED
+	# make sure users share asio symbols with a static libtorrent
+	<link>static:<define>BOOST_ASIO_SEPARATE_COMPILATION
 	;
 
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;

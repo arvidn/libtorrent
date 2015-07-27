@@ -135,6 +135,7 @@ my-python-extension py_libtorrent
   : # requirements
     <include>src
     <conditional>@libtorrent_linking
+    <conditional>@asio_src
   : # usage-requirements
     <conditional>@libtorrent_linking
     <suppress-import-lib>false

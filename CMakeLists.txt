@@ -8,7 +8,6 @@ set(sources
 	alert
 	alert_manager
 	allocator
-	asio
 	assert
 	bandwidth_limit
 	bandwidth_manager
@@ -185,10 +184,13 @@ find_package(Threads REQUIRED)
 
 include_directories(${includes})
 
+set(asio_sources src/asio.cpp)
+
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
 
 if (encryption)
-	list(APPEND sources mpi pe_crypto asio_ssl)
+	list(APPEND sources mpi pe_crypto)
+	list(APPEND asio_sources src/asio_ssl.cpp)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()
@@ -206,6 +208,13 @@ endif()
 foreach(s ${sources})
 	list(APPEND sources2 src/${s})
 endforeach(s)
+
+if (shared)
+	list(APPEND sources2 ${asio_sources})
+	add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
+else()
+	message(STATUS "When linking static libtorrent, define BOOST_ASIO_SEPARATE_COMPILATION and include boost/asio/impl(/ssl)/src.hpp")
+endif()
 
 if (dht)
 	foreach(s ${kademlia_sources})
@@ -254,12 +263,6 @@ target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_I
 
 # this works around a bug in asio in boost-1.39
 #add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
-
-if(NOT static_runtime)
-	add_definitions(-DBOOST_ASIO_DYN_LINK -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
-else()
-	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
-endif()
 
 if (WIN32)
 	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
@@ -336,8 +339,11 @@ get_property (COMPILETIME_OPTIONS_LIST
 	PROPERTY COMPILE_DEFINITIONS
 	)
 foreach (s ${COMPILETIME_OPTIONS_LIST})
-	set (COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
+	set(COMPILETIME_OPTIONS "${COMPILETIME_OPTIONS} -D${s}")
 endforeach (s)
+if (NOT shared)
+	set(COMPILETIME_OPTIONS "-DBOOST_ASIO_SEPARATE_COMPILATION ${COMPILETIME_OPTIONS}")
+endif()
 
 configure_file(libtorrent-rasterbar-cmake.pc.in libtorrent-rasterbar.pc)
 
@@ -358,13 +364,18 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtorrent-rasterbar.pc DESTINATION ${
 # === set up examples directory as an independent project ===
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/examples)
 configure_file(examples/run_cmake.sh.in examples/run_cmake.sh)
-# to build the examples, run examples/run_cmake.sh after building libtorrent
+# to build the examples, source examples/run_cmake.sh after building libtorrent
 
 # === build tests ===
 if(build_tests)
 	file(GLOB tests RELATIVE "${PROJECT_SOURCE_DIR}" "test/test_*.cpp")
 	list(REMOVE_ITEM tests "test/test_natpmp.cpp") # doesn't build at time of writing
 	list(REMOVE_ITEM tests "test/test_utils.cpp") # helper file, not a test
+
+	add_definitions(-DBOOST_ASIO_SEPARATE_COMPILATION)
+
+	add_library(asio_src OBJECT ${asio_sources})
+	set(asio_src_objects $<TARGET_OBJECTS:asio_src>)
 
 	add_library(test_common OBJECT test/main.cpp test/test.cpp
 		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
@@ -374,11 +385,11 @@ if(build_tests)
 
 	foreach(s ${tests})
 		get_filename_component (sn ${s} NAME_WE)
-		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
+		add_executable(${sn} ${s} ${asio_src_objects} $<TARGET_OBJECTS:test_common>)
 		target_link_libraries(${sn} torrent-rasterbar)
 		add_test(${sn} ${s})
 	endforeach(s)
 
-	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
+	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp ${asio_src_objects})
 	target_link_libraries(bdecode_benchmark torrent-rasterbar)
 endif()

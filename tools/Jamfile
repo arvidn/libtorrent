@@ -25,18 +25,23 @@ rule link_libtorrent ( properties * )
 	return $(result) ;
 }
 
+# If we just use <conditional>@asio_src in the project clause, Boost.Build
+# complains about clashes with the object files built for the library.
+# Use an obj macro to get around this clash and make it "private" for tools.
+obj asio_src_obj : ../src/asio.cpp : <conditional>@asio_src ;
+
 project tools
-   : requirements
+	: requirements
 	<threading>multi
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static
-   ;  
+   ;
 
-exe fuzz_torrent : fuzz_torrent.cpp ;
-exe parse_hash_fails : parse_hash_fails.cpp ;
-exe parse_access_log : parse_access_log.cpp ;
-exe dht : dht_put.cpp : <include>../ed25519/src ;
+exe fuzz_torrent : fuzz_torrent.cpp asio_src_obj ;
+exe parse_hash_fails : parse_hash_fails.cpp asio_src_obj ;
+exe parse_access_log : parse_access_log.cpp asio_src_obj ;
+exe dht : dht_put.cpp asio_src_obj : <include>../ed25519/src ;
 
 explicit parse_hash_fails ;
 

@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
+#if defined TORRENT_BUILDING_LIBRARY && !defined BOOST_ASIO_SEPARATE_COMPILATION
+#define BOOST_ASIO_SEPARATE_COMPILATION
+#endif
+
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
@@ -59,10 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_DEBUG_BUFFERS && !defined TORRENT_DISABLE_POOL_ALLOCATOR
 #error TORRENT_DEBUG_BUFFERS only works if you also disable pool allocators with TORRENT_DISABLE_POOL_ALLOCATOR
-#endif
-
-#if !defined BOOST_ASIO_SEPARATE_COMPILATION && !defined BOOST_ASIO_DYN_LINK
-#define BOOST_ASIO_SEPARATE_COMPILATION
 #endif
 
 #ifndef _MSC_VER
