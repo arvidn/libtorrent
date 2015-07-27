@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import libtorrent as lt
+import py_libtorrent as lt
 
 import unittest
 

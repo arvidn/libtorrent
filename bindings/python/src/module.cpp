@@ -29,7 +29,7 @@ void bind_converters();
 void bind_create_torrent();
 void bind_error_code();
 
-BOOST_PYTHON_MODULE(libtorrent)
+BOOST_PYTHON_MODULE(py_libtorrent)
 {
     Py_Initialize();
     PyEval_InitThreads();

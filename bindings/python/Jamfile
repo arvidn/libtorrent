@@ -110,7 +110,7 @@ rule my-python-extension ( name : sources * : requirements * : default-build * :
         ] ;
 }
 
-my-python-extension libtorrent 
+my-python-extension py_libtorrent
   : # sources
     src/module.cpp
     src/big_number.cpp
@@ -141,7 +141,7 @@ my-python-extension libtorrent
   ;
 
 install stage_module
-	: libtorrent
+	: py_libtorrent
 	: <location>.
 	  <install-dependencies>on
 	  <install-type>LIB
