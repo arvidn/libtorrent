@@ -1779,6 +1779,8 @@ namespace libtorrent
 	// shared_from_this()
 	void torrent::init()
 	{
+		INVARIANT_CHECK;
+
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1867,10 +1869,6 @@ namespace libtorrent
 			m_file_priority.resize(m_torrent_file->num_files(), 0);
 		}
 
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		update_piece_priorities();
-
 		// if we've already loaded file priorities, don't load piece priorities,
 		// they will interfere.
 		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
@@ -1885,11 +1883,11 @@ namespace libtorrent
 				for (int i = 0; i < piece_priority.string_length(); ++i)
 				{
 					int prio = p[i];
-					if (!has_picker() && prio == 1) continue;
+					if (!has_picker() && prio == 4) continue;
 					need_picker();
 					m_picker->set_piece_priority(i, p[i]);
-					update_gauge();
 				}
+				update_gauge();
 			}
 		}
 
@@ -1925,6 +1923,7 @@ namespace libtorrent
 			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
 			m_resume_data.reset();
 			update_gauge();
+			update_state_list();
 			return;
 		}
 
@@ -1991,7 +1990,6 @@ namespace libtorrent
 				picker().piece_passed(*i);
 				TORRENT_ASSERT(picker().have_piece(*i));
 				we_have(*i);
-				update_gauge();
 			}
 		}
 
@@ -2435,12 +2433,7 @@ namespace libtorrent
 							update_gauge();
 							we_have(i);
 						}
-						else if (m_seed_mode)
-						{
-						// being in seed mode and missing a piece is not compatible.
-						// Leave seed mode if that happens
-							leave_seed_mode(true);
-						}
+
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
 				}
@@ -4790,6 +4783,7 @@ namespace libtorrent
 		m_abort = true;
 		update_want_peers();
 		update_want_tick();
+		update_want_scrape();
 		update_gauge();
 
 		// if the torrent is paused, it doesn't need
@@ -4836,6 +4830,7 @@ namespace libtorrent
 
 		m_allow_peers = false;
 		m_auto_managed = false;
+		update_state_list();
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -5341,6 +5336,7 @@ namespace libtorrent
 		}
 
 		state_updated();
+		update_state_list();
 	}
 
 	void torrent::piece_priorities(std::vector<int>* pieces) const
@@ -5389,7 +5385,7 @@ namespace libtorrent
 			limit = m_torrent_file->num_files();
 
 		if (int(m_file_priority.size()) < limit)
-			m_file_priority.resize(limit, 1);
+			m_file_priority.resize(limit, 4);
 
 		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
 
@@ -5430,7 +5426,7 @@ namespace libtorrent
 		{
 			// any unallocated slot is assumed to be 1
 			if (prio == 1) return;
-			m_file_priority.resize(index+1, 1);
+			m_file_priority.resize(index+1, 4);
 
 			// initialize pad files to priority 0
 			file_storage const& fs = m_torrent_file->files();
@@ -5458,14 +5454,14 @@ namespace libtorrent
 	int torrent::file_priority(int index) const
 	{
 		// this call is only valid on torrents with metadata
-		if (!valid_metadata()) return 1;
+		if (!valid_metadata()) return 4;
 
 		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
 
 		// any unallocated slot is assumed to be 1
 		// unless it's a pad file
 		if (int(m_file_priority.size()) <= index)
-			return m_torrent_file->files().pad_file_at(index) ? 0 : 1;
+			return m_torrent_file->files().pad_file_at(index) ? 0 : 4;
 
 		return m_file_priority[index];
 	}
@@ -5482,7 +5478,7 @@ namespace libtorrent
 		}
 
 		files->clear();
-		files->resize(m_torrent_file->num_files(), 1);
+		files->resize(m_torrent_file->num_files(), 4);
 		TORRENT_ASSERT(int(m_file_priority.size()) <= m_torrent_file->num_files());
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
@@ -5510,7 +5506,7 @@ namespace libtorrent
 			position += size;
 			int file_prio;
 			if (m_file_priority.size() <= i)
-				file_prio = 1;
+				file_prio = 4;
 			else
 				file_prio = m_file_priority[i];
 
@@ -6667,6 +6663,7 @@ namespace libtorrent
 			{
 				m_auto_managed = auto_managed_;
 
+				update_want_scrape();
 				update_state_list();
 			}
 
@@ -6701,9 +6698,6 @@ namespace libtorrent
 				, paused_, sequential_, super_seeding_, auto_managed_);
 #endif
 		}
-
-		if (m_seed_mode)
-			m_verified.resize(m_torrent_file->num_pieces(), false);
 
 		int now = m_ses.session_time();
 		int tmp = rd.dict_find_int_value("last_scrape", -1);
@@ -6761,21 +6755,25 @@ namespace libtorrent
 
 		// load file priorities except if the add_torrent_param file was set to
 		// override resume data
-		if (!m_seed_mode && (!m_override_resume_data || m_file_priority.empty()))
+		if (!m_override_resume_data || m_file_priority.empty())
 		{
 			bdecode_node file_priority = rd.dict_find_list("file_priority");
 			if (file_priority && file_priority.list_size()
-				== m_torrent_file->num_files())
+				<= m_torrent_file->num_files())
 			{
-				int num_files = m_torrent_file->num_files();
+				int num_files = file_priority.list_size();
 				m_file_priority.resize(num_files);
 				for (int i = 0; i < num_files; ++i)
+				{
 					m_file_priority[i] = file_priority.list_int_value_at(i, 1);
+					// this is suspicious, leave seed mode
+					if (m_file_priority[i] == 0) m_seed_mode = false;
+				}
 				// unallocated slots are assumed to be priority 1, so cut off any
 				// trailing ones
 				int end_range = num_files - 1;
 				for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
-				m_file_priority.resize(end_range + 1);
+				m_file_priority.resize(end_range + 1, 4);
 
 				// initialize pad files to priority 0
 				file_storage const& fs = m_torrent_file->files();
@@ -6784,9 +6782,9 @@ namespace libtorrent
 					if (!fs.pad_file_at(i)) continue;
 					m_file_priority[i] = 0;
 				}
-			}
 
-			update_piece_priorities();
+				update_piece_priorities();
+			}
 		}
 
 		bdecode_node trackers = rd.dict_find_list("trackers");
@@ -6871,6 +6869,40 @@ namespace libtorrent
 		// clear it here since we've just restored the resume data we already
 		// have. Nothing has changed from that state yet.
 		m_need_save_resume_data = false;
+
+		if (m_seed_mode)
+		{
+			// some sanity checking. Maybe we shouldn't be in seed mode anymore
+			bdecode_node pieces = rd.dict_find("pieces");
+			if (pieces && pieces.type() == bdecode_node::string_t
+				&& int(pieces.string_length()) == m_torrent_file->num_pieces())
+			{
+				char const* pieces_str = pieces.string_ptr();
+				for (int i = 0, end(pieces.string_length()); i < end; ++i)
+				{
+					// being in seed mode and missing a piece is not compatible.
+					// Leave seed mode if that happens
+					if ((pieces_str[i] & 1)) continue;
+					m_seed_mode = false;
+					break;
+				}
+			}
+
+			bdecode_node piece_priority = rd.dict_find_string("piece_priority");
+			if (piece_priority && piece_priority.string_length()
+				== m_torrent_file->num_pieces())
+			{
+				char const* p = piece_priority.string_ptr();
+				for (int i = 0; i < piece_priority.string_length(); ++i)
+				{
+					if (p[i] > 0) continue;
+					m_seed_mode = false;
+					break;
+				}
+			}
+
+			m_verified.resize(m_torrent_file->num_pieces(), false);
+		}
 	}
 
 	boost::shared_ptr<const torrent_info> torrent::get_torrent_copy()
@@ -7199,7 +7231,7 @@ namespace libtorrent
 			bool default_prio = true;
 			for (int i = 0, end(m_torrent_file->num_pieces()); i < end; ++i)
 			{
-				if (m_picker->piece_priority(i) == 1) continue;
+				if (m_picker->piece_priority(i) == 4) continue;
 				default_prio = false;
 				break;
 			}

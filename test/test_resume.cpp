@@ -79,7 +79,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["file-version"] = 1;
 	rd["info-hash"] = ti->info_hash().to_string();
 	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
-	rd["pieces"] = std::string(ti->num_pieces(), '\0');
+	rd["pieces"] = std::string(ti->num_pieces(), '\x01');
 
 	rd["total_uploaded"] = 1337;
 	rd["total_downloaded"] = 1338;
@@ -221,6 +221,7 @@ TORRENT_TEST(piece_priorities)
 
 	// now, make sure the piece priorities are loaded correctly
 	h = ses.add_torrent(p);
+
 	TEST_EQUAL(h.piece_priority(0), 0);
 	TEST_EQUAL(h.piece_priority(1), 4);
 	TEST_EQUAL(h.piece_priority(ti->num_pieces()-1), 0);
@@ -240,9 +241,9 @@ TORRENT_TEST(file_priorities_default)
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
-	TEST_EQUAL(file_priorities[0], 1);
-	TEST_EQUAL(file_priorities[1], 1);
-	TEST_EQUAL(file_priorities[2], 1);
+	TEST_EQUAL(file_priorities[0], 4);
+	TEST_EQUAL(file_priorities[1], 4);
+	TEST_EQUAL(file_priorities[2], 4);
 }
 
 TORRENT_TEST(file_priorities_resume_seed_mode)
@@ -269,6 +270,82 @@ TORRENT_TEST(file_priorities_seed_mode)
 	TEST_EQUAL(file_priorities[0], 0);
 	TEST_EQUAL(file_priorities[1], 0);
 	TEST_EQUAL(file_priorities[2], 0);
+}
+
+void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio)
+{
+	fprintf(stderr, "test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
+		, file_prio, pieces_have, piece_prio);
+
+	session ses;
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hash().to_string();
+	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+
+	if (file_prio)
+	{
+		// this should take it out of seed_mode
+		entry::list_type& file_prio = rd["file_priority"].list();
+		file_prio.push_back(entry(0));
+	}
+
+	std::string pieces(ti->num_pieces(), '\x01');
+	if (pieces_have)
+	{
+		pieces[0] = '\0';
+	}
+	rd["pieces"] = pieces;
+
+	std::string pieces_prio(ti->num_pieces(), '\x01');
+	if (piece_prio)
+	{
+		pieces_prio[0] = '\0';
+	}
+	rd["piece_priority"] = pieces_prio;
+
+	rd["seed_mode"] = 1;
+
+	bencode(back_inserter(p.resume_data), rd);
+
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status s = h.status();
+	if (file_prio || piece_prio || pieces_have)
+	{
+		TEST_EQUAL(s.seed_mode, false);
+	}
+	else
+	{
+		TEST_EQUAL(s.seed_mode, true);
+	}
+}
+
+TORRENT_TEST(seed_mode_file_prio)
+{
+	test_seed_mode(true, false, false);
+}
+
+TORRENT_TEST(seed_mode_piece_prio)
+{
+	test_seed_mode(false, true, false);
+}
+
+TORRENT_TEST(seed_mode_piece_have)
+{
+	test_seed_mode(false, false, true);
+}
+
+TORRENT_TEST(seed_mode_preserve)
+{
+	test_seed_mode(false, false, false);
 }
 
 TORRENT_TEST(resume_save_load)
