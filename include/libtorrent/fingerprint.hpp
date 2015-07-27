@@ -39,13 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/export.hpp"
 
 namespace libtorrent
 {
 
 	// The fingerprint class represents information about a client and its version. It is used
 	// to encode this information into the client's peer id.
-	struct fingerprint
+	struct TORRENT_DEPRECATED_EXPORT fingerprint
 	{
 
 		// The constructor takes a ``char const*`` that should point to a string constant containing

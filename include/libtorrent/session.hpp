@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/version.hpp"
-#include "libtorrent/fingerprint.hpp"
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io_service.hpp"
@@ -56,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp"
+#include "libtorrent/fingerprint.hpp"
 #endif
 
 #ifdef TORRENT_USE_OPENSSL

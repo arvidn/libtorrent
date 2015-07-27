@@ -58,12 +58,13 @@ struct bytes_from_python
     }
 };
 
-
+#ifndef TORRENT_NO_DEPRECATE
 object client_fingerprint_(peer_id const& id)
 {
     boost::optional<fingerprint> result = client_fingerprint(id);
     return result ? object(*result) : object();
 }
+#endif
 
 entry bdecode_(bytes const& data)
 {
@@ -85,8 +86,8 @@ void bind_utility()
 
 #ifndef TORRENT_NO_DEPRECATE
     def("identify_client", &libtorrent::identify_client);
-#endif
     def("client_fingerprint", &client_fingerprint_);
+#endif
     def("bdecode", &bdecode_);
     def("bencode", &bencode_);
 }
