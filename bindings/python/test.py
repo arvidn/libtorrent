@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# this name "py_libtorrent" is the name produced by the Jamfile. The setup.py
+# will actually name it libtorrent for the distro. It's only called
+# py_libtorrent here to be able to coexist with the main libtorrent.so on linux
+# (which otherwise would have the same name in the same directory)
 import py_libtorrent as lt
 
 import unittest
