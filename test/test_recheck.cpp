@@ -55,7 +55,7 @@ const int mask = alert::all_categories & ~(alert::performance_warning | alert::s
 
 void wait_for_complete(lt::session& ses, torrent_handle h)
 {
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 70; ++i)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
@@ -80,7 +80,8 @@ TORRENT_TEST(recheck)
 	create_directory("tmp1_recheck", ec);
 	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024, 7);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 4 * 1024 * 1024
+		, 7, false);
 	file.close();
 
 	add_torrent_params param;
