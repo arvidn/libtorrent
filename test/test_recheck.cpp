@@ -72,6 +72,10 @@ TORRENT_TEST(recheck)
 	settings_pack sett;
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48675");
 	sett.set_int(settings_pack::alert_mask, mask);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
 	lt::session ses1(sett);
 	create_directory("tmp1_recheck", ec);
 	if (ec) fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
