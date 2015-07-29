@@ -105,7 +105,11 @@ namespace libtorrent
 	condition_variable::condition_variable()
 		: m_num_waiters(0)
 	{
+#if _WIN32_WINNT == 0x0501
+		m_sem = CreateSemaphore(0, 0, INT_MAX, 0);
+#else
 		m_sem = CreateSemaphoreEx(0, 0, INT_MAX, 0, 0, SEMAPHORE_ALL_ACCESS);
+#endif
 	}
 
 	condition_variable::~condition_variable()
