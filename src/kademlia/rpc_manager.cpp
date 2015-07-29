@@ -407,7 +407,7 @@ time_duration rpc_manager::tick()
 	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
 	std::for_each(short_timeouts.begin(), short_timeouts.end(), boost::bind(&observer::short_timeout, _1));
 
-	return ret;
+	return (std::max)(ret, duration_cast<time_duration>(milliseconds(200)));
 }
 
 void rpc_manager::add_our_id(entry& e)
