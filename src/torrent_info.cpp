@@ -812,7 +812,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		lazy_entry e;
-		if (buf.size() == 0 || lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (lazy_bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
 
