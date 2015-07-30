@@ -57,7 +57,7 @@ Bindings
 libtorrent
 ==========
 
-.. _download: https://sourceforge.net/projects/libtorrent/files/libtorrent/
+.. _download: https://github.com/arvidn/libtorrent/releases
 .. _`download python binding`: https://sourceforge.net/projects/libtorrent/files/py-libtorrent/
 .. _features: features.html
 .. _contributing: contributing.html
@@ -147,7 +147,7 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2014
+Written by Arvid Norberg. Copyright |copy| 2003-2015
 
 Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
 
@@ -157,13 +157,10 @@ Thanks to `Umeå University`__ for providing development and test hardware.
 
 __ http://www.cs.umu.se
 
-Project is hosted by sourceforge.
+Project is hosted by github__.
 
-|sf_logo|__
+__ https://www.github.com/arvidn/libtorrent
 
-__ http://sourceforge.net
-
-.. |sf_logo| image:: http://sourceforge.net/sflogo.php?group_id=7994
 .. |copy| unicode:: 0xA9 .. copyright sign
 
 .. raw:: html
