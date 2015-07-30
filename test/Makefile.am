@@ -5,6 +5,7 @@ test_programs = \
   test_file                  \
   test_file_storage          \
   test_privacy               \
+  test_priority              \
   test_auto_unchoke          \
   test_bandwidth_limiter     \
   test_bdecode_performance   \
@@ -28,6 +29,7 @@ test_programs = \
   test_primitives            \
   test_http_parser           \
   test_magnet                \
+  test_natpmp                \
   test_packet_buffer         \
   test_read_piece            \
   test_resume                \
@@ -35,8 +37,10 @@ test_programs = \
   test_ssl                   \
   test_storage               \
   test_swarm                 \
+  test_time                  \
   test_threads               \
   test_torrent               \
+  test_torrent_info          \
   test_torrent_parse         \
   test_tracker               \
   test_trackers_extension    \
@@ -46,6 +50,14 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_web_seed              \
+  test_web_seed_ban          \
+  test_web_seed_chunked      \
+  test_web_seed_http         \
+  test_web_seed_http_pw      \
+  test_web_seed_redirect     \
+  test_web_seed_socks4       \
+  test_web_seed_socks5       \
+  test_web_seed_socks5_pw    \
   test_url_seed              \
   test_remap_files           \
   test_gzip                  \
@@ -127,6 +139,7 @@ test_bitfield_SOURCES = test_bitfield.cpp
 test_file_SOURCES = test_file.cpp
 test_file_storage_SOURCES = test_file_storage.cpp
 test_privacy_SOURCES = test_privacy.cpp
+test_priority_SOURCES = test_priority.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_bandwidth_limiter_SOURCES = test_bandwidth_limiter.cpp
 test_bdecode_performance_SOURCES = test_bdecode_performance.cpp
@@ -150,6 +163,7 @@ test_string_SOURCES = test_string.cpp
 test_primitives_SOURCES = test_primitives.cpp
 test_http_parser_SOURCES = test_http_parser.cpp
 test_magnet_SOURCES = test_magnet.cpp
+test_natpmp_SOURCES = test_natpmp.cpp
 test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
@@ -157,8 +171,10 @@ test_swarm_SOURCES = test_swarm.cpp
 test_resume_SOURCES = test_resume.cpp
 test_rss_SOURCES = test_rss.cpp
 test_ssl_SOURCES = test_ssl.cpp
+test_time_SOURCES = test_time.cpp
 test_threads_SOURCES = test_threads.cpp
 test_torrent_SOURCES = test_torrent.cpp
+test_torrent_info_SOURCES = test_torrent_info.cpp
 test_torrent_parse_SOURCES = test_torrent_parse.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
@@ -168,6 +184,14 @@ enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_web_seed_ban_SOURCES = test_web_seed_ban.cpp
+test_web_seed_chunked_SOURCES = test_web_seed_chunked.cpp
+test_web_seed_http_SOURCES = test_web_seed_http.cpp
+test_web_seed_http_pw_SOURCES = test_web_seed_http_pw.cpp
+test_web_seed_redirect_SOURCES = test_web_seed_redirect.cpp
+test_web_seed_socks4_SOURCES = test_web_seed_socks4.cpp
+test_web_seed_socks5_SOURCES = test_web_seed_socks5.cpp
+test_web_seed_socks5_pw_SOURCES = test_web_seed_socks5_pw.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_gzip_SOURCES = test_gzip.cpp
