@@ -1828,7 +1828,7 @@ disconnected.
 +------------------------------+------+------------+
 | name                         | type | default    |
 +==============================+======+============+
-| send_buffer_low_watermark    | int  | 512        |
+| send_buffer_low_watermark    | int  | 10 * 1024  |
 +------------------------------+------+------------+
 | send_buffer_watermark        | int  | 500 * 1024 |
 +------------------------------+------+------------+
@@ -2296,28 +2296,6 @@ It defaults to 3 pieces, which means that when seeding, any peer
 we've sent more than this number of pieces to will be unchoked in
 favour of a choked peer.
 
-.. _max_sparse_regions:
-
-.. raw:: html
-
-	<a name="max_sparse_regions"></a>
-
-+--------------------+------+---------+
-| name               | type | default |
-+====================+======+=========+
-| max_sparse_regions | int  | 0       |
-+--------------------+------+---------+
-
-``max_sparse_regions`` is a limit of the number of *sparse regions*
-in a torrent. A sparse region is defined as a hole of pieces we
-have not yet downloaded, in between pieces that have been
-downloaded. This is used as a hack for windows vista which has a
-bug where you cannot write files with more than a certain number of
-sparse regions. This limit is not hard, it will be exceeded. Once
-it's exceeded, pieces that will maintain or decrease the number of
-sparse regions are prioritized. To disable this functionality, set
-this to 0. It defaults to 0 on all platforms except windows.
-
 .. _max_rejects:
 
 .. raw:: html
@@ -2762,7 +2740,7 @@ replace existing ones.
 +=====================+======+=========+
 | utp_target_delay    | int  | 100     |
 +---------------------+------+---------+
-| utp_gain_factor     | int  | 1500    |
+| utp_gain_factor     | int  | 3000    |
 +---------------------+------+---------+
 | utp_min_timeout     | int  | 500     |
 +---------------------+------+---------+
@@ -2770,7 +2748,7 @@ replace existing ones.
 +---------------------+------+---------+
 | utp_fin_resends     | int  | 2       |
 +---------------------+------+---------+
-| utp_num_resends     | int  | 6       |
+| utp_num_resends     | int  | 3       |
 +---------------------+------+---------+
 | utp_connect_timeout | int  | 3000    |
 +---------------------+------+---------+
@@ -2902,8 +2880,7 @@ fill up to this level.
 +-------------------+------+------------------+
 
 ``max_metadata_size`` is the maximum allowed size (in bytes) to be
-received by the metadata extension, i.e. magnet links. It defaults
-to 1 MiB.
+received by the metadata extension, i.e. magnet links.
 
 .. _hashing_threads:
 
@@ -3184,6 +3161,17 @@ kinds of alerts to receive
 
 control the settings for incoming and outgoing connections
 respectively. see enc_policy enum for the available options.
+Keep in mind that protocol encryption degrades performance in
+several respects:
+1. It prevents "zero copy" disk buffers being sent to peers, since
+   each peer needs to mutate the data (i.e. encrypt it) the data
+   must be copied per peer connection rather than sending the same
+   buffer to multiple peers.
+2. The encryption itself requires more CPU than plain bittorrent
+   protocol. The highest cost is the Diffie Hellman exchange on
+   connection setup.
+3. The encryption handshake adds several round-trips to the
+connection setup, and delays transferring data.
 
 .. _allowed_enc_level:
 
