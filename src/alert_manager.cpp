@@ -147,7 +147,7 @@ namespace libtorrent
 		{
 			// never call a callback with the lock held!
 			lock.unlock();
-			m_notify();
+			if (m_notify) m_notify();
 		}
 	}
 
