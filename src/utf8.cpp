@@ -31,12 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/utf8.hpp"
-#include "libtorrent/ConvertUTF.h"
 
 // on windows we need these functions for
 // convert_to_native and convert_from_native
 #if TORRENT_USE_WSTRING || defined TORRENT_WINDOWS
+
+#include <iterator>
+#include "libtorrent/utf8.hpp"
+#include "libtorrent/ConvertUTF.h"
 
 namespace libtorrent
 {
