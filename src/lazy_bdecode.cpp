@@ -96,9 +96,11 @@ namespace libtorrent
 	{
 		char const* const orig_start = start;
 		ret.clear();
-		if (start == end) return 0;
 
 		std::vector<lazy_entry*> stack;
+
+		if (start == end)
+			TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 		stack.push_back(&ret);
 		while (start <= end)

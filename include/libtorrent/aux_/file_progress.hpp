@@ -43,7 +43,7 @@ namespace libtorrent
 class piece_picker;
 class file_storage;
 class alert_manager;
-class torrent_handle;
+struct torrent_handle;
 
 namespace aux
 {

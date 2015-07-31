@@ -713,7 +713,9 @@ namespace libtorrent
 		stack_frame* stack = TORRENT_ALLOCA(stack_frame, depth_limit);
 
 		char const* const orig_start = start;
-		if (start == end) return 0;
+
+		if (start == end)
+			TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 		while (start <= end)
 		{

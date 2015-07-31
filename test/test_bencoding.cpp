@@ -439,7 +439,9 @@ TORRENT_TEST(bencoding)
 		lazy_entry e;
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
-		TEST_EQUAL(ret, 0);
+		TEST_EQUAL(ret, -1);
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
+			, get_bdecode_category()));
 		printf("%s\n", print_entry(e).c_str());
 	}
 
