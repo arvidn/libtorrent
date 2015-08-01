@@ -82,7 +82,7 @@ libtorrent
 .. _archive: http://dir.gmane.org/gmane.network.bit-torrent.libtorrent
 .. _`who's using libtorrent?`: projects.html
 .. _`report bugs`: https://github.com/arvidn/libtorrent/issues
-.. _`github page`: http:/github.com/arvidn/libtorrent
+.. _`github page`: https://github.com/arvidn/libtorrent
 .. _blog: http://blog.libtorrent.org
 
 .. _`ruby bindings`: http://libtorrent-ruby.rubyforge.org/
