@@ -154,16 +154,16 @@ namespace libtorrent
 				// byte order, so they have to be byteswapped before
 				// applying the shift operations, and then byteswapped
 				// back again.
-				m_number[0] = ntohl(m_number[0]);
+				m_number[0] = network_to_host(m_number[0]);
 				for (int i = 0; i < number_size - 1; ++i)
 				{
 					m_number[i] <<= n;
-					m_number[i+1] = ntohl(m_number[i+1]);
+					m_number[i+1] = network_to_host(m_number[i+1]);
 					m_number[i] |= m_number[i+1] >> (32 - n);
-					m_number[i] = htonl(m_number[i]);
+					m_number[i] = host_to_network(m_number[i]);
 				}
 				m_number[number_size-1] <<= n;
-				m_number[number_size-1] = htonl(m_number[number_size-1]);
+				m_number[number_size-1] = host_to_network(m_number[number_size-1]);
 			}
 			return *this;
 		}
@@ -191,17 +191,17 @@ namespace libtorrent
 				// byte order, so they have to be byteswapped before
 				// applying the shift operations, and then byteswapped
 				// back again.
-				m_number[number_size-1] = ntohl(m_number[number_size-1]);
+				m_number[number_size-1] = network_to_host(m_number[number_size-1]);
 
 				for (int i = number_size - 1; i > 0; --i)
 				{
 					m_number[i] >>= n;
-					m_number[i-1] = ntohl(m_number[i-1]);
+					m_number[i-1] = network_to_host(m_number[i-1]);
 					m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
-					m_number[i] = htonl(m_number[i]);
+					m_number[i] = host_to_network(m_number[i]);
 				}
 				m_number[0] >>= n;
-				m_number[0] = htonl(m_number[0]);
+				m_number[0] = host_to_network(m_number[0]);
 			}
 			return *this;
 		}
@@ -219,8 +219,8 @@ namespace libtorrent
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
-				boost::uint32_t lhs = ntohl(m_number[i]);
-				boost::uint32_t rhs = ntohl(n.m_number[i]);
+				boost::uint32_t lhs = network_to_host(m_number[i]);
+				boost::uint32_t rhs = network_to_host(n.m_number[i]);
 				if (lhs < rhs) return true;
 				if (lhs > rhs) return false;
 			}
@@ -277,30 +277,30 @@ namespace libtorrent
 		}
 
 		// accessors for specific bytes
-		unsigned char& operator[](int i)
+		boost::uint8_t& operator[](int i)
 		{
 			TORRENT_ASSERT(i >= 0 && i < size);
-			return reinterpret_cast<unsigned char*>(m_number)[i];
+			return reinterpret_cast<boost::uint8_t*>(m_number)[i];
 		}
-		unsigned char const& operator[](int i) const
+		boost::uint8_t const& operator[](int i) const
 		{
 			TORRENT_ASSERT(i >= 0 && i < size);
-			return reinterpret_cast<unsigned char const*>(m_number)[i];
+			return reinterpret_cast<boost::uint8_t const*>(m_number)[i];
 		}
 
-		typedef const unsigned char* const_iterator;
-		typedef unsigned char* iterator;
+		typedef const boost::uint8_t* const_iterator;
+		typedef boost::uint8_t* iterator;
 
 		// start and end iterators for the hash. The value type
-		// of these iterators is ``unsigned char``.
+		// of these iterators is ``boost::uint8_t``.
 		const_iterator begin() const
-		{ return reinterpret_cast<unsigned char const*>(m_number); }
+		{ return reinterpret_cast<boost::uint8_t const*>(m_number); }
 		const_iterator end() const
-		{ return reinterpret_cast<unsigned char const*>(m_number) + size; }
+		{ return reinterpret_cast<boost::uint8_t const*>(m_number) + size; }
 		iterator begin()
-		{ return reinterpret_cast<unsigned char*>(m_number); }
+		{ return reinterpret_cast<boost::uint8_t*>(m_number); }
 		iterator end()
-		{ return reinterpret_cast<unsigned char*>(m_number) + size; }
+		{ return reinterpret_cast<boost::uint8_t*>(m_number) + size; }
 
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.

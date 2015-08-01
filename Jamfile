@@ -265,6 +265,7 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-compare ;
 		result += <cflags>-Wno-sign-conversion ;
+		result += <cflags>-Wno-conversion ;
 	}
 
 	if <toolset>gcc in $(properties)
@@ -502,8 +503,8 @@ feature export-extra : off on : composite propagated ;
 # making it possible to build on windows, especially mingw seems particular
 # for release builds, disable optimizations as they bump GCC over the edge of
 # allowed memory usage on travis-ci
-variant test_release
-	: release : <asserts>production <debug-symbols>on
+variant test_release : release
+	: <asserts>production <debug-symbols>on
 	  <invariant-checks>full <boost-link>shared <optimization>off
 	  <export-extra>on <debug-iterators>on <threading>multi
 	;
@@ -518,7 +519,6 @@ variant test_barebones : debug
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <threading>multi
 	;
-
 
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;

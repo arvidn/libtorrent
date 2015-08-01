@@ -63,7 +63,7 @@ template <typename Handle>
 void sync_call_handle(Handle& h, boost::function<void(void)> f)
 {
 	bool done = false;
-	session_impl& ses = (session_impl&) h->session();
+	session_impl& ses = static_cast<session_impl&>(h->session());
 	ses.get_io_service().dispatch(boost::bind(&aux::fun_wrap
 		, boost::ref(done)
 		, boost::ref(ses.cond)
@@ -91,7 +91,7 @@ template <typename Handle, typename Ret>
 void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
 {
 	bool done = false;
-	session_impl& ses = (session_impl&) h->session();
+	session_impl& ses = static_cast<session_impl&>(h->session());
 	ses.get_io_service().dispatch(boost::bind(&aux::fun_ret<Ret>
 		, boost::ref(r)
 		, boost::ref(done)
@@ -105,3 +105,4 @@ void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
 } } // namespace aux namespace libtorrent
 
 #endif // TORRENT_SESSION_CALL_HPP_INCLUDED
+

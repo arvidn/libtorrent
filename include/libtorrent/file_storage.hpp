@@ -60,6 +60,10 @@ namespace libtorrent
 		file_entry();
 		// hidden
 		~file_entry();
+#if __cplusplus >= 201103L
+		file_entry(file_entry const& st) = default;
+		file_entry& operator=(file_entry const& st) = default;
+#endif
 
 		// the full path of this file. The paths are unicode strings
 		// encoded in UTF-8.

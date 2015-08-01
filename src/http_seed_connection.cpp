@@ -174,7 +174,7 @@ namespace libtorrent
 		request += "GET ";
 		request += using_proxy ? m_url : m_path;
 		request += "?info_hash=";
-		request += escape_string((char const*)&t->torrent_file().info_hash()[0], 20);
+		request += escape_string(reinterpret_cast<char const*>(&t->torrent_file().info_hash()[0]), 20);
 		request += "&piece=";
 		request += to_string(r.piece).elems;
 

@@ -71,7 +71,7 @@ int render_lsd_packet(char* dst, int len, int listen_port
 }
 } // anonymous namespace
 
-static error_code ec;
+static error_code dummy;
 
 lsd::lsd(io_service& ios, peer_callback_t const& cb
 #ifndef TORRENT_DISABLE_LOGGING
@@ -79,9 +79,9 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 #endif
 	)
 	: m_callback(cb)
-	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", ec), 6771))
+	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", dummy), 6771))
 #if TORRENT_USE_IPV6
-	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", ec), 6771))
+	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", dummy), 6771))
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 	, m_log_cb(log)

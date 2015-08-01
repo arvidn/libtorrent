@@ -208,6 +208,9 @@ namespace libtorrent {
 		alert();
 		// hidden
 		virtual ~alert();
+#if __cplusplus >= 201103L
+		alert(alert const& st) = default;
+#endif
 
 		// a timestamp is automatically created in the constructor
 		time_point timestamp() const;

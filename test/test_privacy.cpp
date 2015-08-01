@@ -111,6 +111,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, true);
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
@@ -119,7 +120,6 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
 	listen_port += (libtorrent::random() % 10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
-	sett.set_bool(settings_pack::enable_dht, true);
 
 	// if we don't do this, the peer connection test
 	// will be delayed by several seconds, by first

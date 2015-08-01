@@ -82,8 +82,8 @@ namespace libtorrent
 			if (e1.port() > e2.port())
 				swap(e1, e2);
 			boost::uint32_t p;
-			reinterpret_cast<boost::uint16_t*>(&p)[0] = htons(e1.port());
-			reinterpret_cast<boost::uint16_t*>(&p)[1] = htons(e2.port());
+			reinterpret_cast<boost::uint16_t*>(&p)[0] = host_to_network(e1.port());
+			reinterpret_cast<boost::uint16_t*>(&p)[1] = host_to_network(e2.port());
 			ret = crc32c_32(p);
 		}
 #if TORRENT_USE_IPV6

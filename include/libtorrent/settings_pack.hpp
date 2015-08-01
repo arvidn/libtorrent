@@ -35,7 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include <vector>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/smart_ptr.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW
 // 

@@ -82,14 +82,15 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48800, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49800, 50000), "0.0.0.0", 0);
 	settings_pack s;
 
 	s.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);
 	s.set_int(settings_pack::in_enc_policy, settings_pack::pe_enabled);
 	s.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
-	ses2.apply_settings(s);
+
+	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:48800");
+
+	lt::session ses2(s, 0);
 
 	fprintf(stderr, " Session2 \n");
 	display_settings(s);
@@ -98,7 +99,10 @@ void test_transfer(libtorrent::settings_pack::enc_policy policy
 	s.set_int(settings_pack::in_enc_policy, policy);
 	s.set_int(settings_pack::allowed_enc_level, level);
 	s.set_bool(settings_pack::prefer_rc4, pref_rc4);
-	ses1.apply_settings(s);
+
+	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:49800");
+
+	lt::session ses1(s, 0);
 
 	fprintf(stderr, " Session1 \n");
 	display_settings(s);

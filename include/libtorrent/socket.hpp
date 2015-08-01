@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_HPP_INCLUDED
 #define TORRENT_SOCKET_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 // if building as Objective C++, asio's template

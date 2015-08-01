@@ -37,8 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/disk_io_job.hpp" // for block_cache_reference
 #include <algorithm>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

@@ -57,8 +57,18 @@ TORRENT_TEST(trackers_extension)
 	session_proxy p1;
 	session_proxy p2;
 
-	lt::session ses1(fingerprint("LT", 0, 1, 0, 0), std::make_pair(48130, 49000), "0.0.0.0", 0);
-	lt::session ses2(fingerprint("LT", 0, 1, 0, 0), std::make_pair(49130, 50000), "0.0.0.0", 0);
+	settings_pack s;
+	s.set_bool(settings_pack::enable_upnp, false);
+	s.set_bool(settings_pack::enable_natpmp, false);
+	s.set_bool(settings_pack::enable_lsd, false);
+	s.set_bool(settings_pack::enable_dht, false);
+	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+
+	lt::session ses1(s, 0);
+
+	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:49130");
+	lt::session ses2(s, 0);
+
 	ses1.add_extension(create_lt_trackers_plugin);
 	ses2.add_extension(create_lt_trackers_plugin);
 
@@ -71,6 +81,7 @@ TORRENT_TEST(trackers_extension)
 	torrent_handle tor1 = ses1.add_torrent(atp, ec);
 	atp.trackers.push_back("http://test.non-existent.com/announce");
 	torrent_handle tor2 = ses2.add_torrent(atp, ec);
+
 	tor2.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), ses1.listen_port()));
 
 	// trackers are NOT supposed to be exchanged for torrents that we

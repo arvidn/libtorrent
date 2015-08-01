@@ -208,7 +208,7 @@ namespace libtorrent
 				write_char(out, 'e');
 				ret += 2;
 				break;
-			default:
+			case entry::undefined_t:
 				// trying to encode a structure with uninitialized values!
 //				TORRENT_ASSERT_VAL(false, e.type());
 				// do nothing

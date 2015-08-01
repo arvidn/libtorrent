@@ -1251,6 +1251,10 @@ namespace libtorrent
 		// hidden
 		torrent_status();
 		~torrent_status();
+#if __cplusplus >= 201103L
+		torrent_status(torrent_status const& st) = default;
+		torrent_status& operator=(torrent_status const& st) = default;
+#endif
 
 		// compres if the torrent status objects come from the same torrent. i.e.
 		// only the torrent_handle field is compared.
