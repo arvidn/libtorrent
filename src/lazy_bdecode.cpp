@@ -126,11 +126,11 @@ namespace libtorrent
 	{
 		char const* const orig_start = start;
 		ret.clear();
-		
+
 		std::vector<lazy_entry*> stack;
-		
-		if (start == end) return TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
-		
+
+		if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
+
 		stack.push_back(&ret);
 		while (start <= end)
 		{
@@ -544,7 +544,7 @@ namespace libtorrent
 			line_len += 4;
 			break;
 		}
-	
+
 		if (line_len > limit) return -1;
 		return line_len;
 	}
