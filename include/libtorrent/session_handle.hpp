@@ -65,9 +65,13 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_handle
 	{
+		session_handle() : m_impl(NULL) {}
+
 		session_handle(aux::session_impl* impl)
 			: m_impl(impl)
 		{}
+
+		bool is_valid() const { return m_impl; }
 
 		// TODO: 2 the ip filter should probably be saved here too
 
