@@ -675,7 +675,7 @@ namespace libtorrent
 		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
-		debug_log("*** LEAVING SEED MODE (%s)", seed ? "as seed" : "as non-seed");
+		debug_log("*** LEAVING SEED MODE (%s)", m_seed_mode ? "as seed" : "as non-seed");
 #endif
 		m_seed_mode = false;
 		// seed is false if we turned out not
