@@ -12,7 +12,7 @@ lib boost_python : : <name>boost_python ;
 feature visibility : default hidden : composite propagated link-incompatible ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
-feature libtorrent-link : static shared : ;
+feature libtorrent-link : shared static : composite propagated ;
 feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
 feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
@@ -99,7 +99,7 @@ rule my-python-extension ( name : sources * : requirements * : default-build * :
         ] ;
 }
 
-my-python-extension libtorrent 
+my-python-extension libtorrent
   : # sources
     src/module.cpp
     src/big_number.cpp
@@ -124,11 +124,9 @@ my-python-extension libtorrent
   : # requirements
     <include>src
     <conditional>@libtorrent_linking
-  : # default build
-    <boost-link>static
-    <libtorrent-link>static
+  : # usage-requirements
+    <conditional>@libtorrent_linking
     <suppress-import-lib>false
   ;
 
 install stage_module : libtorrent : <location>. ;
-
