@@ -72,6 +72,9 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+
+	* fixed total_wanted bug (when setting file priorities in add_torrent_params)
+
 1.0.6 release
 
 	* fixed uTP vulnerability

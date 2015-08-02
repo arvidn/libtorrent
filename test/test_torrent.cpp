@@ -154,6 +154,46 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	}
 }
 
+TORRENT_TEST(total_wanted)
+{
+	file_storage fs;
+
+	fs.add_file("test_torrent_dir4/tmp1", 1024);
+	fs.add_file("test_torrent_dir4/tmp2", 1024);
+	fs.add_file("test_torrent_dir4/tmp3", 1024);
+	fs.add_file("test_torrent_dir4/tmp4", 1024);
+
+	libtorrent::create_torrent t(fs, 1024);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	error_code ec;
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), ec));
+
+	settings_pack pack;
+	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_int(settings_pack::max_retry_port_bind, 10);
+	lt::session ses(pack);
+
+	add_torrent_params p;
+	p.ti = info;
+	p.save_path = ".";
+
+	// we just want 1 out of 4 files, 1024 out of 4096 bytes
+	p.file_priorities.resize(4, 0);
+	p.file_priorities[1] = 1;
+
+	p.ti = info;
+
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status st = h.status();
+	std::cout << "total_wanted: " << st.total_wanted << " : " << 1024 << std::endl;
+	TEST_EQUAL(st.total_wanted, 1024);
+	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
+	TEST_EQUAL(st.total_wanted_done, 0);
+}
+
 TORRENT_TEST(torrent)
 {
 /*	{
@@ -194,7 +234,6 @@ TORRENT_TEST(torrent)
 
 		fs.add_file("test_torrent_dir2/tmp1", 0);
 		libtorrent::create_torrent t(fs, 128 * 1024, 6);
-		t.add_tracker("http://non-existing.com/announce");
 
 		std::vector<char> tmp;
 		std::back_insert_iterator<std::vector<char> > out(tmp);

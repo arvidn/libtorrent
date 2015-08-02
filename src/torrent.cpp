@@ -1891,6 +1891,14 @@ namespace libtorrent
 			}
 		}
 
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		if (!m_file_priority.empty() && std::find(m_file_priority.begin()
+				, m_file_priority.end(), 0) != m_file_priority.end())
+		{
+			update_piece_priorities();
+		}
+
 		if (!m_connections_initialized)
 		{
 			m_connections_initialized = true;
