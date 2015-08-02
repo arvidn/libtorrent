@@ -178,8 +178,6 @@ int test_main()
 {
 	test_total_wanted();
 
-	return 0;
-
 	{
 		remove("test_torrent_dir2/tmp1");
 		remove("test_torrent_dir2/tmp2");
