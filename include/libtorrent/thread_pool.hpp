@@ -50,13 +50,13 @@ namespace libtorrent
 		thread_pool() : m_num_threads(0) {}
 		virtual ~thread_pool() {}
 		void stop() { set_num_threads(0, true); }
-		void set_num_threads(int i, bool wait = true)
+		void set_num_threads(int n, bool wait = true)
 		{
-			if (i == m_num_threads) return;
-   
-			if (i > m_num_threads)
+			if (n == m_num_threads) return;
+
+			if (n > m_num_threads)
 			{
-				while (m_num_threads < i)
+				while (m_num_threads < n)
 				{
 					++m_num_threads;
 					m_threads.push_back(boost::shared_ptr<thread>(
@@ -65,11 +65,15 @@ namespace libtorrent
 			}
 			else
 			{
-				while (m_num_threads > i) { --m_num_threads; }
+				while (m_num_threads > n) { --m_num_threads; }
 				mutex::scoped_lock l(m_mutex);
 				m_cond.notify_all();
 				l.unlock();
-				if (wait) for (int i = m_num_threads; i < int(m_threads.size()); ++i) m_threads[i]->join();
+				if (wait)
+				{
+					for (int i = m_num_threads; i < int(m_threads.size()); ++i)
+						m_threads[i]->join();
+				}
 				// this will detach the threads
 				m_threads.resize(m_num_threads);
 			}

@@ -129,7 +129,7 @@ namespace libtorrent
 			i2p_proxy
 		};
 #endif
-		
+
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options
 		boost::uint8_t type;
@@ -159,6 +159,10 @@ namespace libtorrent
 		session_settings(std::string const& user_agent = "libtorrent/"
 			LIBTORRENT_VERSION);
 		~session_settings();
+#if __cplusplus >= 201103L
+		session_settings(session_settings const& st) = default;
+		session_settings& operator=(session_settings const& st) = default;
+#endif
 
 		// automatically set to the libtorrent version you're using in order to
 		// be forward binary compatible. This field should not be changed.

@@ -509,10 +509,9 @@ namespace libtorrent
 	// of normal bittorrent operation, since it will just send garbage
 	// to peers and throw away all the data it downloads. It would end
 	// up being banned immediately
-	class disabled_storage : public storage_interface, boost::noncopyable
+	class disabled_storage TORRENT_FINAL : public storage_interface, boost::noncopyable
 	{
 	public:
-		disabled_storage(int piece_size) : m_piece_size(piece_size) {}
 		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
 		virtual void set_file_priority(std::vector<boost::uint8_t> const&
 			, storage_error&) TORRENT_OVERRIDE {}
@@ -531,15 +530,11 @@ namespace libtorrent
 			, std::vector<std::string> const*
 			, storage_error&) TORRENT_OVERRIDE { return false; }
 		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
-
-	private:
-
-		int m_piece_size;
 	};
 
 	// this storage implementation always reads zeroes, and always discards
 	// anything written to it
-	struct zero_storage : storage_interface
+	struct zero_storage TORRENT_FINAL : storage_interface
 	{
 		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
 

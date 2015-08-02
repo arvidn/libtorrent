@@ -46,6 +46,10 @@ namespace libtorrent
 	struct socket_job
 	{
 		socket_job() : type(none), vec(NULL), recv_buf(NULL), buf_size(0) {}
+#if __cplusplus >= 201103L
+		socket_job(socket_job const& st) = default;
+		socket_job& operator=(socket_job const& st) = default;
+#endif
 
 		enum job_type_t
 		{

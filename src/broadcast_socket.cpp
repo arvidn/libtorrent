@@ -33,11 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 
 #include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #if defined TORRENT_OS2
 #include <pthread.h>
 #endif
 
 #include <boost/bind.hpp>
+#include <boost/asio/ip/host_name.hpp>
+#include <boost/asio/ip/multicast.hpp>
+
+#ifdef TORRENT_WINDOWS
+#include <iphlpapi.h> // for if_nametoindex
+#endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -50,13 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DEBUG
 #include "libtorrent/socket_io.hpp"
-#endif
-
-#include <boost/asio/ip/host_name.hpp>
-#include <boost/asio/ip/multicast.hpp>
-
-#ifdef TORRENT_WINDOWS
-#include <iphlpapi.h> // for if_nametoindex
 #endif
 
 namespace libtorrent

@@ -60,11 +60,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_DISK_THREAD 0
 
+#if __cplusplus >= 201103L
+
+#if DEBUG_DISK_THREAD
+#define DLOG(...) debug_log(__VA_ARGS__)
+#else
+#define DLOG(...) do {} while(false)
+#endif
+
+#else
+
 #if DEBUG_DISK_THREAD
 #define DLOG debug_log
 #else
 #define DLOG TORRENT_WHILE_0 debug_log
 #endif
+
+#endif // cplusplus
 
 namespace libtorrent
 {

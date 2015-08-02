@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
@@ -46,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef BOOST_NO_EXCEPTIONS
 #include <boost/system/system_error.hpp>
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #define CCONTROL_TARGET 100
 

@@ -132,14 +132,14 @@ namespace libtorrent
 		return ret;
 	}
 
-	torrent_peer::torrent_peer(boost::uint16_t port, bool conn, int src)
+	torrent_peer::torrent_peer(boost::uint16_t port_, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(0)
 		, peer_rank(0)
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
-		, port(port)
+		, port(port_)
 		, hashfails(0)
 		, failcount(0)
 		, connectable(conn)

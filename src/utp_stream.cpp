@@ -95,8 +95,17 @@ void utp_log(char const* fmt, ...)
 
 #else
 
+#if __cplusplus >= 201103L
+
+#define UTP_LOG(...) do {} while(false)
+#define UTP_LOGV(...) do {} while(false)
+
+#else
+
 #define UTP_LOG TORRENT_WHILE_0 printf
 #define UTP_LOGV TORRENT_WHILE_0 printf
+
+#endif // cplusplus
 
 #endif
 

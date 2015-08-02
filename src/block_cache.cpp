@@ -161,7 +161,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_CACHE 0
 
-#define DLOG if (DEBUG_CACHE) fprintf
+#if __cplusplus >= 201103L
+
+#if DEBUG_CACHE
+#define DLOG(...) fprintf(__VA_ARGS__)
+#else
+#define DLOG(...) do {} while (false)
+#endif
+
+#else // cplusplus
+
+#if DEBUG_CACHE
+#define DLOG fprintf
+#else
+#define DLOG TORRENT_WHILE_0 fprintf
+#endif
+
+#endif // cplusplus
 
 namespace libtorrent {
 

@@ -90,6 +90,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0
 
+#if __cplusplus >= 201103L
+
+#if DEBUG_STORAGE
+#define DLOG(...) fprintf(__VA_ARGS__)
+#else
+#define DLOG(...) do {} while (false)
+#endif
+
+#if DEBUG_DELETE_FILES
+#define DFLOG(...) fprintf(__VA_ARGS__)
+#else
+#define DFLOG(...) do {} while (false)
+#endif
+
+#else
+
 #if DEBUG_STORAGE
 #define DLOG fprintf
 #else
@@ -101,6 +117,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #define DFLOG TORRENT_WHILE_0 fprintf
 #endif
+
+#endif // cplusplus
 
 namespace libtorrent
 {
@@ -1389,7 +1407,7 @@ namespace libtorrent
 
 	storage_interface* disabled_storage_constructor(storage_params const& params)
 	{
-		return new disabled_storage(params.files->piece_length());
+		return new disabled_storage;
 	}
 
 	// -- zero_storage ------------------------------------------------------

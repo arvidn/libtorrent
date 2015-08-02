@@ -45,10 +45,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #endif
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <cstdlib>
 
 namespace libtorrent {

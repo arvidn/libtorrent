@@ -83,6 +83,10 @@ namespace libtorrent
 		announce_entry(std::string const& u);
 		announce_entry();
 		~announce_entry();
+#if __cplusplus >= 201103L
+		announce_entry(announce_entry const& st) = default;
+		announce_entry& operator=(announce_entry const& st) = default;
+#endif
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;
