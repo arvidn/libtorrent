@@ -167,7 +167,8 @@ TORRENT_TEST(total_wanted)
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
-	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), ec));
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
+		&tmp[0], tmp.size(), boost::ref(ec)));
 
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
