@@ -658,7 +658,7 @@ namespace libtorrent {
 		, file(f)
 #endif
 		, operation(op)
-		, m_file_idx(alloc.copy_string(file))
+		, m_file_idx(alloc.copy_string(f))
 	{}
 
 	char const* storage_moved_failed_alert::file_path() const
@@ -945,7 +945,7 @@ namespace libtorrent {
 		, file(f)
 #endif
 		, operation(op)
-		, m_path_idx(alloc.copy_string(file))
+		, m_path_idx(alloc.copy_string(f))
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		msg = convert_from_native(error.message());
@@ -1676,7 +1676,7 @@ namespace libtorrent {
 #endif
 		, error(ec)
 		, operation(op)
-		, m_file_idx(alloc.copy_string(file))
+		, m_file_idx(alloc.copy_string(f))
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		msg = convert_from_native(error.message());
