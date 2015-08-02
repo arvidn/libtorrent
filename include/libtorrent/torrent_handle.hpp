@@ -82,7 +82,7 @@ namespace libtorrent
 	// for compatibility with 0.14
 	typedef libtorrent_exception duplicate_torrent;
 	typedef libtorrent_exception invalid_handle;
-	void throw_invalid_handle();
+	void throw_invalid_handle() TORRENT_NO_RETURN;
 #endif
 
 	// holds the state of a block in a piece. Who we requested
@@ -251,6 +251,10 @@ namespace libtorrent
 
 		torrent_handle(torrent_handle const& t)
 		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
+
+#if __cplusplus >= 201103L
+		torrent_handle& operator=(torrent_handle const& st) = default;
+#endif
 
 		// flags for add_piece().
 		enum flags_t { overwrite_existing = 1 };

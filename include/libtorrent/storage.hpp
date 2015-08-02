@@ -604,7 +604,7 @@ namespace libtorrent
 		// if there is a fence up, returns true and adds the job
 		// to the queue of blocked jobs
 		bool is_blocked(disk_io_job* j);
-		
+
 		// the number of blocked jobs
 		int num_blocked() const;
 
@@ -638,7 +638,7 @@ namespace libtorrent
 	{
 		void add_piece(cached_piece_entry* p);
 		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry* p) const;
+		bool has_piece(cached_piece_entry const* p) const;
 		int num_pieces() const { return m_cached_pieces.size(); }
 		boost::unordered_set<cached_piece_entry*> const& cached_pieces() const
 		{ return m_cached_pieces; }

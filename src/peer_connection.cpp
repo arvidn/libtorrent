@@ -606,21 +606,21 @@ namespace libtorrent
 		if (addr.is_v4())
 		{
 			address_v4::bytes_type bytes = addr.to_v4().to_bytes();
-			x.assign((char*)&bytes[0], bytes.size());
+			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
 #if TORRENT_USE_IPV6
 		else
 		{
 			address_v6::bytes_type bytes = addr.to_v6().to_bytes();
-			x.assign((char*)&bytes[0], bytes.size());
+			x.assign(reinterpret_cast<char*>(bytes.data()), bytes.size());
 		}
 #endif
-		x.append((char*)&t->torrent_file().info_hash()[0], 20);
+		x.append(t->torrent_file().info_hash().data(), 20);
 
 		sha1_hash hash = hasher(x.c_str(), x.size()).final();
 		for (;;)
 		{
-			char* p = (char*)&hash[0];
+			char* p = hash.data();
 			for (int i = 0; i < 5; ++i)
 			{
 				int piece = detail::read_uint32(p) % num_pieces;
@@ -642,7 +642,7 @@ namespace libtorrent
 						|| int(m_accept_fast.size()) == num_pieces) return;
 				}
 			}
-			hash = hasher((char*)&hash[0], 20).final();
+			hash = hasher(hash.data(), 20).final();
 		}
 	}
 
@@ -878,7 +878,7 @@ namespace libtorrent
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
 			return;
 		m_fast_reconnect = r;
-		peer_info_struct()->last_connected = (boost::uint16_t)m_ses.session_time();
+		peer_info_struct()->last_connected = boost::uint16_t(m_ses.session_time());
 		int rewind = m_settings.get_int(settings_pack::min_reconnect_time)
 			* m_settings.get_int(settings_pack::max_failcount);
 		if (peer_info_struct()->last_connected < rewind) peer_info_struct()->last_connected = 0;
@@ -3295,7 +3295,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (has_peer_choked() || !is_interesting()) return false;
-		if ((int)m_download_queue.size() + (int)m_request_queue.size()
+		if (int(m_download_queue.size()) + int(m_request_queue.size())
 			> m_desired_queue_size * 2) return false;
 		if (on_parole()) return false;
 		if (m_disconnecting) return false;
@@ -3747,7 +3747,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
-		
+
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
@@ -3769,13 +3769,13 @@ namespace libtorrent
 			|| t->state() == torrent_status::allocating)
 			return;
 
-		if ((int)m_download_queue.size() >= m_desired_queue_size
+		if (int(m_download_queue.size()) >= m_desired_queue_size
 			|| t->upload_mode()) return;
 
 		bool empty_download_queue = m_download_queue.empty();
 
 		while (!m_request_queue.empty()
-			&& ((int)m_download_queue.size() < m_desired_queue_size
+			&& (int(m_download_queue.size()) < m_desired_queue_size
 				|| m_queued_time_critical > 0))
 		{
 			pending_block block = m_request_queue.front();
@@ -3984,7 +3984,7 @@ namespace libtorrent
 		if (m_disconnecting) return;
 
 		m_socket->set_close_reason(error_to_close_reason(ec));
-		close_reason_t close_reason = (close_reason_t)m_socket->get_close_reason();
+		close_reason_t close_reason = close_reason_t(m_socket->get_close_reason());
 #ifndef TORRENT_DISABLE_LOGGING
 		if (close_reason != 0)
 		{
@@ -4406,7 +4406,7 @@ namespace libtorrent
 		p.used_receive_buffer = m_recv_buffer.pos();
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
-		
+
 		// pieces may be empty if we don't have metadata yet
 		if (p.pieces.size() == 0)
 		{
@@ -4418,7 +4418,7 @@ namespace libtorrent
 #if TORRENT_NO_FPU
 			p.progress = 0.f;
 #else
-			p.progress = (float)p.pieces.count() / (float)p.pieces.size();
+			p.progress = float(p.pieces.count()) / float(p.pieces.size());
 #endif
 			p.progress_ppm = boost::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size();
 		}
@@ -5055,7 +5055,7 @@ namespace libtorrent
 			peer_request& r = m_requests[i];
 
 			TORRENT_ASSERT(r.piece >= 0);
-			TORRENT_ASSERT(r.piece < (int)m_have_piece.size());
+			TORRENT_ASSERT(r.piece < int(m_have_piece.size()));
 //			TORRENT_ASSERT(t->have_piece(r.piece));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
@@ -6768,7 +6768,7 @@ namespace libtorrent
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		return m_num_pieces == (int)m_have_piece.size()
+		return m_num_pieces == int(m_have_piece.size())
 			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 

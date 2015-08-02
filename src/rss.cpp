@@ -76,7 +76,7 @@ struct feed_state
 		{
 			case atom: return string_equal_no_case(tag, "entry");
 			case rss2: return string_equal_no_case(tag, "item");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -86,7 +86,7 @@ struct feed_state
 		{
 			case atom:
 			case rss2: return string_equal_no_case(tag, "title");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -96,7 +96,7 @@ struct feed_state
 		{
 			case atom:
 			case rss2: return string_equal_no_case(tag, "link");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -107,7 +107,7 @@ struct feed_state
 			case atom: return string_equal_no_case(tag, "summary");
 			case rss2: return string_equal_no_case(tag, "description")
 				|| string_equal_no_case(tag, "media:text");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -117,7 +117,7 @@ struct feed_state
 		{
 			case atom: return string_equal_no_case(tag, "id");
 			case rss2: return string_equal_no_case(tag, "guid");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -127,7 +127,7 @@ struct feed_state
 		{
 			case atom: return false;
 			case rss2: return string_equal_no_case(tag, "comments");
-			default: return false;
+			case none: return false;
 		}
 	}
 
@@ -137,14 +137,14 @@ struct feed_state
 		{
 			case atom: return false;
 			case rss2: return string_equal_no_case(tag, "category");
-			default: return false;
+			case none: return false;
 		}
 	}
 
 	bool is_size(char const* tag) const
 	{
 		return string_equal_no_case(tag, "size")
-		 || string_equal_no_case(tag, "contentlength");
+			|| string_equal_no_case(tag, "contentlength");
 	}
 
 	bool is_hash(char const* tag) const
@@ -262,7 +262,7 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				f.current_item.size = strtoll(name, 0, 10);
 			else if (f.is_hash(f.current_tag.c_str()) && strlen(name) == 40)
 			{
-				if (!from_hex(name, 40, (char*)&f.current_item.info_hash[0]))
+				if (!from_hex(name, 40, f.current_item.info_hash.data()))
 				{
 					// hex parsing failed
 					f.current_item.info_hash.clear();

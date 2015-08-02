@@ -59,7 +59,7 @@ namespace libtorrent
 		{ set_bits(&k[0], bits, N); }
 
 		std::string to_string() const
-		{ return std::string((char const*)&bits[0], N); }
+		{ return std::string(reinterpret_cast<char const*>(&bits[0]), N); }
 
 		void from_string(char const* str)
 		{ memcpy(bits, str, N); }

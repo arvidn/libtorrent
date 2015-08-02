@@ -51,6 +51,10 @@ namespace libtorrent
 	struct TORRENT_EXPORT feed_item
 	{
 		feed_item();
+#if __cplusplus >= 201103L
+		feed_item(feed_item const& st) = default;
+		feed_item & operator=(feed_item const& st) = default;
+#endif
 		~feed_item();
 
 		// these are self explanatory and may be empty if the feed does not specify

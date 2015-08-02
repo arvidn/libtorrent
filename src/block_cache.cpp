@@ -364,7 +364,8 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
+		, std::make_pair(j->storage->files()->name()
+			, reinterpret_cast<void const*>(j->storage->files())))
 		== m_deleted_storages.end());
 #endif
 
@@ -641,8 +642,9 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 #if TORRENT_USE_ASSERTS
 void block_cache::mark_deleted(file_storage const& fs)
 {
-	m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
-	if(m_deleted_storages.size() > 100)
+	m_deleted_storages.push_back(std::make_pair(fs.name()
+		, reinterpret_cast<void const*>(&fs)));
+	if (m_deleted_storages.size() > 100)
 		m_deleted_storages.erase(m_deleted_storages.begin());
 }
 #endif
@@ -1226,11 +1228,11 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		// either free the block or insert it. Never replace a block
 		if (pe->blocks[block].buf)
 		{
-			free_buffer((char*)iov[i].iov_base);
+			free_buffer(static_cast<char*>(iov[i].iov_base));
 		}
 		else
 		{
-			pe->blocks[block].buf = (char*)iov[i].iov_base;
+			pe->blocks[block].buf = static_cast<char*>(iov[i].iov_base);
 
 			TORRENT_PIECE_ASSERT(iov[i].iov_base != NULL, pe);
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
@@ -1245,7 +1247,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			}
 			else
 			{
-#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
 				// volatile read blocks are group 0, regular reads are group 1
 				int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
 				kern_return_t ret = vm_purgable_control(
@@ -1269,7 +1271,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			}
 		}
 
-#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
 		TORRENT_ASSERT(pe->blocks[block].buf != NULL
 			|| (flags & blocks_inc_refcount) == 0);
 #else
@@ -1291,7 +1293,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
 	{
-#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
 		// we're adding the first refcount to this block, first make sure
 		// its still here. It's only volatile if it's not dirty and has refcount == 0
 		if (!pe->blocks[block].dirty)
@@ -1356,7 +1358,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
 
-#if TORRENT_USE_PURGABLE_CONTROL && TORRENT_DISABLE_POOL_ALLOCATOR
+#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
 		// we're removing the last refcount to this block, first make sure
 		// its still here. It's only volatile if it's not dirty and has refcount == 0
 		if (!pe->blocks[block].dirty)
@@ -1564,7 +1566,7 @@ void block_cache::check_invariant() const
 
 		for (list_iterator p = m_lru[i].iterate(); p.get(); p.next())
 		{
-			cached_piece_entry* pe = (cached_piece_entry*)p.get();
+			cached_piece_entry* pe = static_cast<cached_piece_entry*>(p.get());
 			TORRENT_PIECE_ASSERT(pe->cache_state == i, pe);
 			if (pe->num_dirty > 0)
 				TORRENT_PIECE_ASSERT(i == cached_piece_entry::write_lru, pe);
@@ -1573,7 +1575,7 @@ void block_cache::check_invariant() const
 //				TORRENT_ASSERT(pe->num_dirty > 0);
 			for (tailqueue_iterator j = pe->jobs.iterate(); j.get(); j.next())
 			{
-				disk_io_job* job = (disk_io_job*)j.get();
+				disk_io_job const* job = static_cast<disk_io_job const*>(j.get());
 				TORRENT_PIECE_ASSERT(job->piece == pe->piece, pe);
 				TORRENT_PIECE_ASSERT(job->in_use, pe);
 				TORRENT_PIECE_ASSERT(!job->callback_called, pe);
@@ -1615,7 +1617,7 @@ void block_cache::check_invariant() const
 	{
 		cached_piece_entry const& p = *i;
 		TORRENT_PIECE_ASSERT(p.blocks, &p);
-		
+
 		TORRENT_PIECE_ASSERT(p.storage, &p);
 		int num_blocks = 0;
 		int num_dirty = 0;
@@ -1822,7 +1824,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 
 cached_piece_entry* block_cache::find_piece(block_cache_reference const& ref)
 {
-	return find_piece((piece_manager*)ref.storage, ref.piece);
+	return find_piece(static_cast<piece_manager*>(ref.storage), ref.piece);
 }
 
 cached_piece_entry* block_cache::find_piece(disk_io_job const* j)
@@ -1843,7 +1845,7 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 #if TORRENT_USE_ASSERTS
 	for (tailqueue_iterator j = i->jobs.iterate(); j.get(); j.next())
 	{
-		disk_io_job* job = (disk_io_job*)j.get();
+		disk_io_job const* job = static_cast<disk_io_job const*>(j.get());
 		TORRENT_PIECE_ASSERT(job->piece == piece, &*i);
 	}
 #endif

@@ -310,7 +310,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		bool has_peer(peer_connection const* p) const
-		{ return sorted_find(m_connections, (peer_connection*)p) != m_connections.end(); }
+		{ return sorted_find(m_connections, p) != m_connections.end(); }
 		bool is_single_thread() const { return single_threaded::is_single_thread(); }
 #endif
 
@@ -393,7 +393,9 @@ namespace libtorrent
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
 			, boost::shared_ptr<read_piece_struct> rp);
 
-		storage_mode_t storage_mode() const { return (storage_mode_t)m_storage_mode; }
+		storage_mode_t storage_mode() const
+		{ return storage_mode_t(m_storage_mode); }
+
 		storage_interface* get_storage()
 		{
 			if (!m_storage) return 0;
@@ -410,7 +412,7 @@ namespace libtorrent
 		void new_external_ip();
 
 		torrent_status::state_t state() const
-		{ return (torrent_status::state_t)m_state; }
+		{ return torrent_status::state_t(m_state); }
 		void set_state(torrent_status::state_t s);
 
 		aux::session_settings const& settings() const;
@@ -589,7 +591,7 @@ namespace libtorrent
 		void set_download_limit(int limit);
 		int download_limit() const;
 
-		peer_class_t peer_class() const { return (peer_class_t)m_peer_class; }
+		peer_class_t peer_class() const { return peer_class_t(m_peer_class); }
 
 		void set_max_uploads(int limit, bool state_update = true);
 		int max_uploads() const { return m_max_uploads; }
@@ -598,13 +600,13 @@ namespace libtorrent
 
 // --------------------------------------------
 		// PEER MANAGEMENT
-		
+
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
 		void add_web_seed(std::string const& url, web_seed_t::type_t type);
 		void add_web_seed(std::string const& url, web_seed_t::type_t type
 			, std::string const& auth, web_seed_t::headers_t const& extra_headers);
-	
+
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
 
@@ -660,7 +662,7 @@ namespace libtorrent
 		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
 
 		// the number of peers that belong to this torrent
-		int num_peers() const { return (int)m_connections.size(); }
+		int num_peers() const { return int(m_connections.size()); }
 		int num_seeds() const;
 		int num_downloaders() const;
 

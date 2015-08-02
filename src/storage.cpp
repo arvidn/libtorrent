@@ -414,7 +414,7 @@ namespace libtorrent
 		// close files that were opened in write mode
 		m_pool.release(this);
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
 	}
@@ -492,7 +492,7 @@ namespace libtorrent
 		// valid.
 		if (exists(old_name, ec.ec))
 		{
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 			print_open_files("release files", m_files.name().c_str());
 #endif
 
@@ -547,7 +547,7 @@ namespace libtorrent
 		// make sure we don't have the files open
 		m_pool.release(this);
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
 	}
@@ -573,7 +573,7 @@ namespace libtorrent
 		// case
 		if (!m_pool.assert_idle_files(this))
 		{
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 			print_open_files("delete-files idle assert failed", m_files.name().c_str());
 #endif
 			TORRENT_ASSERT(false);
@@ -583,7 +583,7 @@ namespace libtorrent
 		// make sure we don't have the files open
 		m_pool.release(this);
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
@@ -633,7 +633,7 @@ namespace libtorrent
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("delete-files done", m_files.name().c_str());
 #endif
 	}
@@ -1003,7 +1003,7 @@ namespace libtorrent
 
 		m_pool.release(this);
 
-#if TORRENT_DEBUG_FILE_LEAKS
+#if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
@@ -1431,9 +1431,9 @@ namespace libtorrent
 #endif
 	}
 
-	bool storage_piece_set::has_piece(cached_piece_entry* p) const
+	bool storage_piece_set::has_piece(cached_piece_entry const* p) const
 	{
-		return m_cached_pieces.count(p) > 0;
+		return m_cached_pieces.count(const_cast<cached_piece_entry*>(p)) > 0;
 	}
 
 	void storage_piece_set::remove_piece(cached_piece_entry* p)

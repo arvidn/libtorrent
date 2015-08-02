@@ -118,6 +118,9 @@ namespace libtorrent
 		}
 		void assign(char const* str) { std::memcpy(m_number, str, size); }
 
+		char const* data() const { return reinterpret_cast<char const*>(&m_number[0]); }
+		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
+
 		// set the sha1-hash to all zeroes.
 		void clear() { std::memset(m_number, 0, size); }
 

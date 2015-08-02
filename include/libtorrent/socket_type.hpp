@@ -282,13 +282,13 @@ namespace libtorrent
 		template <class S> S* get()
 		{
 			if (m_type != socket_type_int_impl<S>::value) return 0;
-			return (S*)m_data;
+			return reinterpret_cast<S*>(m_data);
 		}
 
-		template <class S> S const* get() const 
+		template <class S> S const* get() const
 		{
 			if (m_type != socket_type_int_impl<S>::value) return 0;
-			return (S const*)m_data;
+			return reinterpret_cast<S const*>(m_data);
 		}
 
 	private:

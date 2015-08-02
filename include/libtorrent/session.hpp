@@ -125,6 +125,10 @@ namespace libtorrent
 		// implementation object.
 		session_proxy() {}
 		~session_proxy();
+#if __cplusplus >= 201103L
+		session_proxy(session_proxy const& st) = default;
+		session_proxy& operator=(session_proxy const& st) = default;
+#endif
 	private:
 		session_proxy(
 			boost::shared_ptr<io_service> ios

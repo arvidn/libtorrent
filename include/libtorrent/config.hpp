@@ -407,8 +407,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 // at the highest warning level, clang actually warns about functions
-// that could be marked noreturn. There seems to be versions of GCC
-// that declare being 
+// that could be marked noreturn.
 #if defined __clang__ || defined __GNUC__
 #define TORRENT_NO_RETURN __attribute((noreturn))
 #else

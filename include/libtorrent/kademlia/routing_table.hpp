@@ -128,7 +128,7 @@ public:
 	// not pinged. If the bucket the node falls into is full,
 	// the node will be ignored.
 	void heard_about(node_id const& id, udp::endpoint const& ep);
-	
+
 	node_entry const* next_refresh();
 
 	enum
@@ -143,7 +143,7 @@ public:
 		, int options, int count = 0);
 	void remove_node(node_entry* n
 		, table_t::iterator bucket) ;
-	
+
 	int bucket_size(int bucket) const
 	{
 		int num_buckets = m_buckets.size();
@@ -151,7 +151,7 @@ public:
 		if (bucket < num_buckets) bucket = num_buckets - 1;
 		table_t::const_iterator i = m_buckets.begin();
 		std::advance(i, bucket);
-		return (int)i->live_nodes.size();
+		return int(i->live_nodes.size());
 	}
 
 	void for_each_node(void (*)(void*, node_entry const&)

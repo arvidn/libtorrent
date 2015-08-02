@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_ICONV
 #include <iconv.h>
 #include <locale.h>
-#endif 
+#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -161,14 +161,14 @@ namespace libtorrent
 			else
 			{
 				ret += '%';
-				ret += hex_chars[((unsigned char)*str) >> 4];
-				ret += hex_chars[((unsigned char)*str) & 15];
+				ret += hex_chars[boost::uint8_t(*str) >> 4];
+				ret += hex_chars[boost::uint8_t(*str) & 15];
 			}
 			++str;
 		}
 		return ret;
 	}
-	
+
 	std::string escape_string(const char* str, int len)
 	{
 		return escape_string_impl(str, len, 11);
@@ -189,7 +189,7 @@ namespace libtorrent
 		}
 		return false;
 	}
-	
+
 	void convert_path_to_posix(std::string& path)
 	{
 		for (std::string::iterator i = path.begin()

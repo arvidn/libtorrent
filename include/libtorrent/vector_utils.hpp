@@ -50,10 +50,11 @@ namespace libtorrent {
 	}
 
 	template <class T>
-	typename std::vector<T>::const_iterator sorted_find(std::vector<T> const& container
-		, T v)
+	typename std::vector<T*>::const_iterator sorted_find(std::vector<T*> const& container
+		, T const* v)
 	{
-		return sorted_find(const_cast<std::vector<T>&>(container), v);
+		return sorted_find(const_cast<std::vector<T*>&>(container)
+			, const_cast<T*>(v));
 	}
 
 	template<class T>

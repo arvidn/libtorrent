@@ -108,8 +108,8 @@ namespace libtorrent
 	private:
 		struct barrier
 		{
-			barrier(boost::shared_ptr<crypto_plugin> plugin, int next)
-				: enc_handler(plugin), next(next) {}
+			barrier(boost::shared_ptr<crypto_plugin> plugin, int n)
+				: enc_handler(plugin), next(n) {}
 			boost::shared_ptr<crypto_plugin> enc_handler;
 			// number of bytes to next barrier
 			int next;

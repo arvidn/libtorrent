@@ -33,10 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RESOLVER_INTERFACE_HPP_INCLUDE
 #define TORRENT_RESOLVER_INTERFACE_HPP_INCLUDE
 
-#include <boost/function.hpp>
 #include <vector>
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/function.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

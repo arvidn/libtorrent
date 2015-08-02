@@ -6947,7 +6947,7 @@ namespace libtorrent
 		if (!m_source_feed_url.empty()) ret["feed"] = m_source_feed_url;
 
 		const sha1_hash& info_hash = torrent_file().info_hash();
-		ret["info-hash"] = std::string((char*)info_hash.begin(), (char*)info_hash.end());
+		ret["info-hash"] = info_hash.to_string();
 
 		if (valid_metadata())
 		{

@@ -81,8 +81,8 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
 		{
-			ret += hex_chars[((unsigned char)*i) >> 4];
-			ret += hex_chars[((unsigned char)*i) & 0xf];
+			ret += hex_chars[boost::uint8_t(*i) >> 4];
+			ret += hex_chars[boost::uint8_t(*i) & 0xf];
 		}
 		return ret;
 	}
@@ -91,8 +91,8 @@ namespace libtorrent
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
-			*out++ = hex_chars[((unsigned char)*in) >> 4];
-			*out++ = hex_chars[((unsigned char)*in) & 0xf];
+			*out++ = hex_chars[boost::uint8_t(*in) >> 4];
+			*out++ = hex_chars[boost::uint8_t(*in) & 0xf];
 		}
 		*out = '\0';
 	}

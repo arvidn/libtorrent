@@ -151,7 +151,7 @@ namespace libtorrent
 		// tells you which specific type this lazy entry has.
 		// See entry_type_t. The type determines which subset of
 		// member functions are valid to use.
-		entry_type_t type() const { return (entry_type_t)m_type; }
+		entry_type_t type() const { return entry_type_t(m_type); }
 
 		// start points to the first decimal digit
 		// length is the number of digits

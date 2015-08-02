@@ -898,7 +898,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			return node_added;
 		}
 
-		if ((int)rb.size() >= m_bucket_size)
+		if (int(rb.size()) >= m_bucket_size)
 		{
 			// if the replacement bucket is full, remove the oldest entry
 			// but prefer nodes that haven't been pinged, since they are
@@ -1174,7 +1174,7 @@ void routing_table::find_node(node_id const& target
 	{
 		--j;
 		bucket_t& b = j->live_nodes;
-	
+
 		if (options & include_failed)
 		{
 			std::copy(b.begin(), b.end(), std::back_inserter(l));

@@ -97,7 +97,9 @@ namespace libtorrent
 	struct TORRENT_EXPORT invalid_encoding: std::exception
 	{
 		// hidden
-		virtual const char* what() const throw() { return "invalid bencoding"; }
+		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER
+			TORRENT_OVERRIDE TORRENT_FINAL
+		{ return "invalid bencoding"; }
 	};
 #endif
 
@@ -338,7 +340,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (is_digit((unsigned char)*in))
+				if (is_digit(boost::uint8_t(*in)))
 				{
 					std::string len_s = read_until(in, end, ':', err);
 					if (err)

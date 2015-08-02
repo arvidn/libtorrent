@@ -34,8 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/crc.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <cstdio>
 #include <algorithm>
 
@@ -224,7 +230,7 @@ namespace libtorrent
 
 	internal_file_entry::~internal_file_entry()
 	{
-		if (name_len == name_is_owned) free((void*)name);
+		if (name_len == name_is_owned) free(const_cast<char*>(name));
 	}
 
 	internal_file_entry::internal_file_entry(internal_file_entry const& fe)

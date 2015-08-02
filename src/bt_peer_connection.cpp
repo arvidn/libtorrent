@@ -515,7 +515,7 @@ namespace libtorrent
 		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
 		h.reset();
 		h.update("req2",4);
-		h.update((const char*)info_hash.begin(), 20);
+		h.update(info_hash.data(), 20);
 		sha1_hash streamkey_hash = h.final();
 
 		h.reset();
@@ -619,7 +619,8 @@ namespace libtorrent
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
 	}
 
-	void bt_peer_connection::init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key)
+	void bt_peer_connection::init_pe_rc4_handler(char const* secret
+		, sha1_hash const& stream_key)
 	{
 		INVARIANT_CHECK;
 
@@ -635,7 +636,7 @@ namespace libtorrent
 
 		if (is_outgoing()) h.update(keyA, 4); else h.update(keyB, 4);
 		h.update(secret, dh_key_len);
-		h.update((char const*)stream_key.begin(), 20);
+		h.update(stream_key.data(), 20);
 		const sha1_hash local_key = h.final();
 
 		h.reset();
@@ -646,7 +647,7 @@ namespace libtorrent
 
 		if (is_outgoing()) h.update(keyB, 4); else h.update(keyA, 4);
 		h.update(secret, dh_key_len);
-		h.update((char const*)stream_key.begin(), 20);
+		h.update(stream_key.data(), 20);
 		const sha1_hash remote_key = h.final();
 
 		TORRENT_ASSERT(!m_rc4.get());
@@ -739,10 +740,10 @@ namespace libtorrent
 		{
 			// if we're encrypting this buffer, we need to make a copy
 			// since we'll mutate it
-			char* buf = (char*)malloc(size);
+			char* buf = static_cast<char*>(malloc(size));
 			memcpy(buf, buffer, size);
 			append_send_buffer(buf, size, &regular_c_free, NULL);
-			destructor((char*)buffer, userdata, ref);
+			destructor(const_cast<char*>(buffer), userdata, ref);
 		}
 		else
 #endif
@@ -830,7 +831,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			char hex_pid[41];
-			to_hex((char const*)&m_our_peer_id[0], 20, hex_pid);
+			to_hex(m_our_peer_id.data(), 20, hex_pid);
 			hex_pid[40] = 0;
 			peer_log(peer_log_alert::outgoing, "HANDSHAKE"
 				, "sent peer_id: %s client: %s"
@@ -3371,7 +3372,7 @@ namespace libtorrent
 			}
 #endif
 			peer_id pid;
-			std::copy(recv_buffer.begin, recv_buffer.begin + 20, (char*)pid.begin());
+			std::copy(recv_buffer.begin, recv_buffer.begin + 20, pid.data());
 
 			if (t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
 			{

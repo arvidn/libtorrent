@@ -151,7 +151,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		return (entry::data_type)m_type;
+		return entry::data_type(m_type);
 	}
 
 	entry::~entry() { destruct(); }
@@ -542,13 +542,13 @@ namespace libtorrent
 
 		if (m_type == undefined_t)
 		{
-			construct((data_type)e.m_type);
+			construct(data_type(e.m_type));
 			clear_that = true;
 		}
 
 		if (e.m_type == undefined_t)
 		{
-			e.construct((data_type)m_type);
+			e.construct(data_type(m_type));
 			clear_this = true;
 		}
 
