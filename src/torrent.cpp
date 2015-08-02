@@ -1579,10 +1579,6 @@ namespace libtorrent
 			std::fill(m_file_priority.begin(), m_file_priority.end(), 0);
 		}
 
-		// in case file priorities were passed in via the add_torrent_params
-		// and also in the case of share mode, we need to update the priorities
-		update_piece_priorities();
-
 		if (!m_seed_mode)
 		{
 			TORRENT_ASSERT(!m_picker);
@@ -1608,6 +1604,19 @@ namespace libtorrent
 					m_policy.recalculate_connect_candidates();
 				}
 			}
+		}
+
+		// in case file priorities were passed in via the add_torrent_params
+		// and also in the case of share mode, we need to update the priorities
+		//
+		// THIS MUST BE DONE AFTER WE CREATE THE PIECE PICKER.
+		// The piece picker is the one that keeps track of piece priorities, and
+		// until we have the piece picker, we will be considered a seed, which
+		// screws with update_piece_priorities()
+		if (!m_file_priority.empty() && std::find(m_file_priority.begin()
+				, m_file_priority.end(), 0) != m_file_priority.end())
+		{
+			update_piece_priorities();
 		}
 
 		if (!m_connections_initialized)

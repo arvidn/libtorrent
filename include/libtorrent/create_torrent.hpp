@@ -123,7 +123,7 @@ namespace libtorrent
 			// not grow with more pieces. When this option is specified, it is
 			// recommended to have a fairly small piece size, say 64 kiB.
 			// When creating merkle torrents, the full hash tree is also generated
-			// and should be saved off separately. It is accessed through the 
+			// and should be saved off separately. It is accessed through the
 			// create_torrent::merkle_tree() function.
 			, merkle = 2
 
