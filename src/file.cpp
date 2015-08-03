@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/io.hpp"
+#include "libtorrent/storage.hpp"
 #endif
 
 #include <sys/stat.h>
@@ -1274,6 +1275,8 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 	boost::uint32_t silly_hash(std::string const& str)
 	{
+		if (!default_storage::disk_write_access_log()) return 0;
+
 		boost::uint32_t ret = 1;
 		for (int i = 0; i < str.size(); ++i)
 		{
