@@ -443,6 +443,11 @@ namespace libtorrent
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
 
+#ifdef TORRENT_DISK_STATS
+		static bool disk_write_access_log();
+		static void disk_write_access_log(bool enable);
+#endif
+
 	private:
 
 		int sparse_end(int start) const;
