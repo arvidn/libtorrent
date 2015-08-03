@@ -92,7 +92,7 @@ if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
 else:
 
 	source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
-	source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
+	source_list = [os.path.abspath(os.path.join(os.path.dirname(__file__), "src", s)) for s in source_list if s.endswith(".cpp")]
 
 	ext = [Extension('libtorrent',
 		sources = source_list,
