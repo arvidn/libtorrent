@@ -1395,20 +1395,20 @@ namespace libtorrent
 	void default_storage::disk_write_access_log(bool enable) {
 		if (enable)
 		{
-            if (g_access_log == NULL)
-            {
-                g_access_log = fopen("file_access.log", "a+");
-            }
-        }
-        else
-        {
-            if (g_access_log != NULL)
-            {
-                FILE* f = g_access_log;
-                g_access_log = NULL;
-                fclose(f);
-            }
-        }
+			if (g_access_log == NULL)
+			{
+				g_access_log = fopen("file_access.log", "a+");
+			}
+		}
+		else
+		{
+			if (g_access_log != NULL)
+			{
+				FILE* f = g_access_log;
+				g_access_log = NULL;
+				fclose(f);
+			}
+		}
 	}
 #endif
 
