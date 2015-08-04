@@ -39,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-#include <fstream>
-#endif
-
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -57,11 +53,7 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
-	bandwidth_manager(int channel
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, bool log = false
-#endif		
-		);
+	bandwidth_manager(int channel);
 
 	void close();
 
@@ -99,11 +91,6 @@ private:
 	int m_channel;
 
 	bool m_abort;
-
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-	std::ofstream m_log;
-	time_point m_start;
-#endif
 };
 
 }

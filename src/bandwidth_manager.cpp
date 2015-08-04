@@ -36,20 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	bandwidth_manager::bandwidth_manager(int channel
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, bool log
-#endif		
-		)
+	bandwidth_manager::bandwidth_manager(int channel)
 		: m_queued_bytes(0)
 		, m_channel(channel)
 		, m_abort(false)
 	{
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		if (log)
-			m_log.open("bandwidth_limiter.log", std::ios::trunc);
-		m_start = aux::time_now();
-#endif
 	}
 
 	void bandwidth_manager::close()

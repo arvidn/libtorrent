@@ -441,9 +441,6 @@ feature piece-allocator : valloc memalign posix_memalign : composite propagated 
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
-feature bandwidth-limit-logging : off on : composite propagated link-incompatible ;
-feature.compose <bandwidth-limit-logging>on : <define>TORRENT_VERBOSE_BANDWIDTH_LIMIT ;
-
 feature invariant-checks : on off full : composite propagated link-incompatible ;
 feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
 feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
