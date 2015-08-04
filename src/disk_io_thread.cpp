@@ -81,11 +81,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-#ifdef TORRENT_DISK_STATS
-	// this is defined and used in storage.cpp
-	extern FILE* g_access_log;
-#endif
-
 #if TORRENT_USE_ASSERTS
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
@@ -168,10 +163,6 @@ namespace libtorrent
 		m_disk_cache.set_settings(m_settings, ec);
 		TORRENT_ASSERT(!ec);
 
-#ifdef TORRENT_DISK_STATS
-		if (g_access_log == NULL) g_access_log = fopen("file_access.log", "a+");
-#endif
-
 #if TORRENT_USE_RLIMIT
 		// ---- auto-cap open files ----
 
@@ -198,15 +189,6 @@ namespace libtorrent
 		std::pair<block_cache::iterator, block_cache::iterator> pieces
 			= m_disk_cache.all_pieces();
 		TORRENT_ASSERT(pieces.first == pieces.second);
-#endif
-
-#ifdef TORRENT_DISK_STATS
-		if (g_access_log)
-		{
-			FILE* f = g_access_log;
-			g_access_log = NULL;
-			fclose(f);
-		}
 #endif
 
 		TORRENT_ASSERT(m_magic == 0x1337);

@@ -122,50 +122,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-#ifdef TORRENT_DISK_STATS
-	static boost::atomic<int> event_id;
-	static mutex disk_access_mutex;
-
-	// this is opened and closed by the disk_io_thread class
-	FILE* g_access_log = NULL;
-
-	enum access_log_flags_t
-	{
-		op_read = 0,
-		op_write = 1,
-		op_start = 0,
-		op_end = 2
-	};
-
-	void write_access_log(boost::uint64_t offset, boost::uint32_t fileid, int flags, time_point timestamp)
-	{
-		if (g_access_log == NULL) return;
-
-		// the event format in the log is:
-		// uint64_t timestamp (microseconds)
-		// uint64_t file offset
-		// uint32_t file-id
-		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
-		char event[29];
-		char* ptr = event;
-		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
-		detail::write_uint64(offset, ptr);
-		detail::write_uint64((boost::uint64_t)event_id++, ptr);
-		detail::write_uint32(fileid, ptr);
-		detail::write_uint8(flags, ptr);
-
-		mutex::scoped_lock l(disk_access_mutex);
-		int ret = fwrite(event, 1, sizeof(event), g_access_log);
-		l.unlock();
-		if (ret != sizeof(event))
-		{
-			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
-				, errno, strerror(errno));
-		}
-	}
-#endif
-
 	int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target)
 	{
 		int size = 0;
@@ -228,6 +184,49 @@ namespace libtorrent
 			size += i->iov_len;
 			TORRENT_ASSERT(size <= bytes);
 			if (size >= bytes) return count;
+		}
+	}
+#endif
+
+#ifdef TORRENT_DISK_STATS
+	static boost::atomic<int> event_id;
+	static mutex disk_access_mutex;
+
+	// this is opened and closed by the disk_io_thread class
+	FILE* g_access_log = NULL;
+
+	enum access_log_flags_t
+	{
+		op_read = 0,
+		op_write = 1,
+		op_start = 0,
+		op_end = 2
+	};
+
+	void write_access_log(boost::uint64_t offset, boost::uint32_t fileid, int flags, time_point timestamp)
+	{
+		if (g_access_log == NULL) return;
+
+		// the event format in the log is:
+		// uint64_t timestamp (microseconds)
+		// uint64_t file offset
+		// uint32_t file-id
+		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
+		char event[29];
+		char* ptr = event;
+		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
+		detail::write_uint64(offset, ptr);
+		detail::write_uint64((boost::uint64_t)event_id++, ptr);
+		detail::write_uint32(fileid, ptr);
+		detail::write_uint8(flags, ptr);
+
+		mutex::scoped_lock l(disk_access_mutex);
+		int ret = fwrite(event, 1, sizeof(event), g_access_log);
+		l.unlock();
+		if (ret != sizeof(event))
+		{
+			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
+				, errno, strerror(errno));
 		}
 	}
 #endif
@@ -1387,6 +1386,31 @@ namespace libtorrent
 
 		return false;
 	}
+
+#ifdef TORRENT_DISK_STATS
+	bool default_storage::disk_write_access_log() {
+		return g_access_log != NULL;
+	}
+
+	void default_storage::disk_write_access_log(bool enable) {
+		if (enable)
+		{
+			if (g_access_log == NULL)
+			{
+				g_access_log = fopen("file_access.log", "a+");
+			}
+		}
+		else
+		{
+			if (g_access_log != NULL)
+			{
+				FILE* f = g_access_log;
+				g_access_log = NULL;
+				fclose(f);
+			}
+		}
+	}
+#endif
 
 	storage_interface* default_storage_constructor(storage_params const& params)
 	{
