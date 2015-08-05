@@ -368,11 +368,7 @@ namespace aux {
 		, m_disk_thread(m_io_service, m_stats_counters
 			, (uncork_interface*)this)
 		, m_download_rate(peer_connection::download_channel)
-#ifdef TORRENT_VERBOSE_BANDWIDTH_LIMIT
-		, m_upload_rate(peer_connection::upload_channel, true)
-#else
 		, m_upload_rate(peer_connection::upload_channel)
-#endif
 		, m_global_class(0)
 		, m_tcp_peer_class(0)
 		, m_local_peer_class(0)
