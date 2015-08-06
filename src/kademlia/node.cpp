@@ -416,8 +416,8 @@ void node::direct_request(boost::asio::ip::udp::endpoint ep, entry& e
 	, boost::function<void(msg const&)> f)
 {
 	// not really a traversal
-	boost::intrusive_ptr<direct_trasversal> algo(
-		new direct_trasversal(*this, (node_id::min)(), f));
+	boost::intrusive_ptr<direct_traversal> algo(
+		new direct_traversal(*this, (node_id::min)(), f));
 
 	void* ptr = m_rpc.allocate_observer();
 	if (ptr == 0) return;

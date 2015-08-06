@@ -40,16 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-struct direct_trasversal : traversal_algorithm
+struct direct_traversal : traversal_algorithm
 {
-	direct_trasversal(node& node
+	direct_traversal(node& node
 		, node_id target
 		, boost::function<void(msg const&)> cb)
 		: traversal_algorithm(node, target)
 		, m_cb(cb)
 	{}
 
-	virtual char const* name() const { return "direct_trasversal"; }
+	virtual char const* name() const { return "direct_traversal"; }
 
 	void invoke_cb(msg const& m)
 	{
@@ -75,7 +75,7 @@ struct direct_observer : observer
 	virtual void reply(msg const& m)
 	{
 		flags |= flag_done;
-		static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+		static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
 	}
 
 	virtual void timeout()
@@ -86,12 +86,12 @@ struct direct_observer : observer
 		if (flags & flag_ipv6_address)
 		{
 			msg m(e, target_ep());
-			static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+			static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
 		}
 		else
 		{
 			msg m(e, target_ep());
-			static_cast<direct_trasversal*>(algorithm())->invoke_cb(m);
+			static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
 		}
 	}
 };
