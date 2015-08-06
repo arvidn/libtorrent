@@ -6766,11 +6766,11 @@ namespace libtorrent
 		if (!m_override_resume_data || m_file_priority.empty())
 		{
 			bdecode_node file_priority = rd.dict_find_list("file_priority");
-			if (file_priority && file_priority.list_size()
-				<= m_torrent_file->num_files())
+			if (file_priority)
 			{
-				int num_files = file_priority.list_size();
-				m_file_priority.resize(num_files);
+				const int num_files = (std::min)(file_priority.list_size()
+					, m_torrent_file->num_files());
+				m_file_priority.resize(num_files, 4);
 				for (int i = 0; i < num_files; ++i)
 				{
 					m_file_priority[i] = file_priority.list_int_value_at(i, 1);
@@ -8262,12 +8262,13 @@ namespace libtorrent
 
 		update_want_peers();
 
-		TORRENT_ASSERT(m_storage);
-
-		// we need to keep the object alive during this operation
-		inc_refcount("release_files");
-		m_ses.disk_thread().async_release_files(m_storage.get()
-			, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+		if (m_storage)
+		{
+			// we need to keep the object alive during this operation
+			inc_refcount("release_files");
+			m_ses.disk_thread().async_release_files(m_storage.get()
+				, boost::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+		}
 
 		// this torrent just completed downloads, which means it will fall
 		// under a different limit with the auto-manager. Make sure we
@@ -11171,6 +11172,8 @@ namespace libtorrent
 	void torrent::verify_piece(int piece)
 	{
 //		picker().mark_as_checking(piece);
+
+		TORRENT_ASSERT(m_storage.get());
 
 		inc_refcount("verify_piece");
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
