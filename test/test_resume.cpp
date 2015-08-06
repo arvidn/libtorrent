@@ -203,7 +203,44 @@ void test_piece_priorities()
 	TEST_EQUAL(h.piece_priority(ti->num_pieces()-1), 0);
 }
 
-void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio)
+void test_file_prio()
+{
+	fprintf(stderr, "test_file_prio\n");
+
+	session ses;
+	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+
+	entry rd;
+
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = ti->info_hash().to_string();
+	rd["blocks per piece"] = (std::max)(1, ti->piece_length() / 0x4000);
+
+	entry::list_type& file_prio = rd["file_priority"].list();
+	for (int i = 0; i < 100; ++i)
+	{
+		file_prio.push_back(entry(0));
+	}
+
+	std::string pieces(ti->num_pieces(), '\x01');
+	rd["pieces"] = pieces;
+
+	std::string pieces_prio(ti->num_pieces(), '\x01');
+	rd["piece_priority"] = pieces_prio;
+
+	bencode(back_inserter(p.resume_data), rd);
+
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status s = h.status();
+	TEST_EQUAL(s.total_wanted, 0);
+}
+void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
+	, bool all_files_zero = false)
 {
 	fprintf(stderr, "test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
 		, file_prio, pieces_have, piece_prio);
@@ -226,6 +263,13 @@ void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio)
 		// this should take it out of seed_mode
 		entry::list_type& file_prio = rd["file_priority"].list();
 		file_prio.push_back(entry(0));
+		if (all_files_zero)
+		{
+			for (int i = 0; i < 100; ++i)
+			{
+				file_prio.push_back(entry(0));
+			}
+		}
 	}
 
 	std::string pieces(ti->num_pieces(), '\x01');
@@ -261,6 +305,8 @@ void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio)
 
 int test_main()
 {
+	test_file_prio();
+
 	test_seed_mode(true, false, false);
 	test_seed_mode(false, true, false);
 	test_seed_mode(false, false, true);

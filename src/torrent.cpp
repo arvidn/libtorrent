@@ -3601,7 +3601,7 @@ namespace libtorrent
 
 		// post a message to the main thread to destruct
 		// the torrent object from there
-		if (m_owning_storage.get())
+		if (m_owning_storage)
 		{
 			m_storage->abort_disk_io();
 			m_storage->async_release_files(
@@ -5371,10 +5371,11 @@ namespace libtorrent
 		if (!m_override_resume_data)
 		{
 			lazy_entry const* file_priority = rd.dict_find_list("file_priority");
-			if (file_priority && file_priority->list_size()
-				== m_torrent_file->num_files())
+			if (file_priority)
 			{
-				for (int i = 0; i < file_priority->list_size(); ++i)
+				const int num_files = (std::min)(file_priority->list_size()
+					, m_torrent_file->num_files());
+				for (int i = 0; i < num_files; ++i)
 				{
 					m_file_priority[i] = file_priority->list_int_value_at(i, 1);
 					// this is suspicious, leave seed mode
@@ -6580,10 +6581,12 @@ namespace libtorrent
 
 		m_policy.recalculate_connect_candidates();
 
-		TORRENT_ASSERT(m_storage);
-		// we need to keep the object alive during this operation
-		m_storage->async_release_files(
-			boost::bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+		if (m_storage)
+		{
+			// we need to keep the object alive during this operation
+			m_storage->async_release_files(
+				boost::bind(&torrent::on_files_released, shared_from_this(), _1, _2));
+		}
 
 		// this torrent just completed downloads, which means it will fall
 		// under a different limit with the auto-manager. Make sure we
