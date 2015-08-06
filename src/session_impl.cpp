@@ -5549,9 +5549,7 @@ retry:
 
 		void on_direct_response(alert_manager& alerts, void* userdata, dht::msg const& msg)
 		{
-			entry e;
-			e = msg.message;
-			alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr, e);
+			alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr, msg.message);
 		}
 
 	} // anonymous namespace

@@ -1832,9 +1832,11 @@ namespace libtorrent {
 	}
 
 	dht_direct_response_alert::dht_direct_response_alert(
-		aux::stack_allocator&, void* userdata
-		, udp::endpoint const& addr, entry const& response)
-		: userdata(userdata), addr(addr), response(response)
+		aux::stack_allocator& alloc, void* userdata
+		, udp::endpoint const& addr, bdecode_node const& response)
+		: userdata(userdata), addr(addr), m_alloc(alloc)
+		, m_response_idx(alloc.copy_buffer(response.data_section().first, response.data_section().second))
+		, m_response_size(response.data_section().second)
 	{}
 
 	std::string dht_direct_response_alert::message() const
@@ -1842,8 +1844,17 @@ namespace libtorrent {
 		char msg[1050];
 		snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
 			, addr.address().to_string().c_str()
-			, response.to_string().c_str());
+			, std::string(m_alloc.ptr(m_response_idx), m_response_size).c_str());
 		return msg;
+	}
+
+	void dht_direct_response_alert::response(bdecode_node& ret) const
+	{
+		char const* start = m_alloc.ptr(m_response_idx);
+		char const* end = start + m_response_size;
+		error_code ec;
+		bdecode(start, end, ret, ec);
+		TORRENT_ASSERT(!ec);
 	}
 
 } // namespace libtorrent

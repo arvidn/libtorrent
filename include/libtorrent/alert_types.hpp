@@ -2385,7 +2385,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_direct_response_alert: alert
 	{
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
-			, udp::endpoint const& addr, entry const& response);
+			, udp::endpoint const& addr, bdecode_node const& response);
 
 		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
 
@@ -2394,7 +2394,13 @@ namespace libtorrent
 
 		void* userdata;
 		udp::endpoint addr;
-		entry response;
+
+		void response(bdecode_node& ret) const;
+
+	private:
+		aux::stack_allocator& m_alloc;
+		int m_response_idx;
+		int m_response_size;
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL
