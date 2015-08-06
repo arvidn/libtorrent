@@ -295,7 +295,7 @@ namespace libtorrent
 	bdecode_node::type_t bdecode_node::type() const
 	{
 		if (m_token_idx == -1) return none_t;
-		return (bdecode_node::type_t)m_root_tokens[m_token_idx].type;
+		return static_cast<bdecode_node::type_t>(m_root_tokens[m_token_idx].type);
 	}
 
 	bdecode_node::operator bool() const
@@ -958,7 +958,7 @@ done:
 			line_len += 4;
 			break;
 		}
-	
+
 		if (line_len > limit) return -1;
 		return line_len;
 	}
@@ -974,7 +974,7 @@ done:
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", (unsigned char)str[i]);
+				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}

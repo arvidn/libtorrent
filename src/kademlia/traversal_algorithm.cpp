@@ -147,7 +147,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			, m_target)
 		));
 
-	std::vector<observer_ptr>::iterator i = std::lower_bound(
+	std::vector<observer_ptr>::iterator iter = std::lower_bound(
 		m_results.begin()
 		, m_results.end()
 		, o
@@ -159,7 +159,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		)
 	);
 
-	if (i == m_results.end() || (*i)->id() != id)
+	if (iter == m_results.end() || (*iter)->id() != id)
 	{
 		if (m_node.settings().restrict_search_ips
 			&& !(flags & observer::flag_initial))
@@ -189,7 +189,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			m_peer4_prefixes.insert(prefix4);
 		}
 
-		TORRENT_ASSERT((o->flags & observer::flag_no_id) || std::find_if(m_results.begin(), m_results.end()
+		TORRENT_ASSERT((o->flags & observer::flag_no_id)
+			|| std::find_if(m_results.begin(), m_results.end()
 			, boost::bind(&observer::id, _1) == id) == m_results.end());
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -203,7 +204,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 				, distance_exp(m_target, id), m_invoke_count, name());
 		}
 #endif
-		i = m_results.insert(i, o);
+		iter = m_results.insert(iter, o);
 
 		TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
 			, boost::bind(

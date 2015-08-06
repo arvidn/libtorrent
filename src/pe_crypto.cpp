@@ -86,7 +86,9 @@ namespace libtorrent
 
 		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
 			return;
-		if (mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret)))
+		if (mp_read_unsigned_bin(&secret
+				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
+				, sizeof(m_dh_local_secret)))
 			return;
 
 		// generator is 2
@@ -98,7 +100,9 @@ namespace libtorrent
 		// key is now our local key
 		int size = mp_unsigned_bin_size(&key);
 		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
-		mp_to_unsigned_bin(&key, (unsigned char*)m_dh_local_key + sizeof(m_dh_local_key) - size);
+		mp_to_unsigned_bin(&key
+			, reinterpret_cast<unsigned char*>(m_dh_local_key)
+			+ sizeof(m_dh_local_key) - size);
 	}
 
 	char const* dh_key_exchange::get_local_key() const
@@ -116,9 +120,12 @@ namespace libtorrent
 
 		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
 			return -1;
-		if (mp_read_unsigned_bin(&secret, (unsigned char*)m_dh_local_secret, sizeof(m_dh_local_secret)))
+		if (mp_read_unsigned_bin(&secret
+				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
+				, sizeof(m_dh_local_secret)))
 			return -1;
-		if (mp_read_unsigned_bin(&remote_key, (unsigned char*)remote_pubkey, 96))
+		if (mp_read_unsigned_bin(&remote_key
+				, reinterpret_cast<const unsigned char*>(remote_pubkey), 96))
 			return -1;
 
 		if (mp_exptmod(&remote_key, &secret, &prime, &remote_key))
@@ -127,7 +134,9 @@ namespace libtorrent
 		// remote_key is now the shared secret
 		int size = mp_unsigned_bin_size(&remote_key);
 		memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
-		mp_to_unsigned_bin(&remote_key, (unsigned char*)m_dh_shared_secret + sizeof(m_dh_shared_secret) - size);
+		mp_to_unsigned_bin(&remote_key
+			, reinterpret_cast<unsigned char*>(m_dh_shared_secret)
+			+ sizeof(m_dh_shared_secret) - size);
 
 		// calculate the xor mask for the obfuscated hash
 		hasher h;
@@ -306,14 +315,14 @@ namespace libtorrent
 		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
 			i != buf.end(); ++i)
 		{
-			char* pos = boost::asio::buffer_cast<char*>(*i);
+			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
 			int len = boost::asio::buffer_size(*i);
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt((unsigned char*)pos, len, &m_rc4_outgoing);
+			rc4_encrypt(pos, len, &m_rc4_outgoing);
 		}
 		buf.clear();
 		return bytes_processed;
@@ -334,14 +343,14 @@ namespace libtorrent
 		for (std::vector<boost::asio::mutable_buffer>::iterator i = buf.begin();
 			i != buf.end(); ++i)
 		{
-			char* pos = boost::asio::buffer_cast<char*>(*i);
+			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
 			int len = boost::asio::buffer_size(*i);
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt(reinterpret_cast<unsigned char*>(pos), len, &m_rc4_incoming);
+			rc4_encrypt(pos, len, &m_rc4_incoming);
 		}
 		buf.clear();
 		produce = bytes_processed;

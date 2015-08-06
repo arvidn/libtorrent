@@ -62,7 +62,7 @@ namespace libtorrent
 		// sizing the disk cache size when it's set to
 		// automatic.
 		boost::uint64_t ret = 0;
-	
+
 #ifdef TORRENT_BSD
 #ifdef HW_MEMSIZE
 		int mib[2] = { CTL_HW, HW_MEMSIZE };

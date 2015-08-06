@@ -120,7 +120,7 @@ node::node(udp_socket_interface* sock
 }
 
 bool node::verify_token(std::string const& token, char const* info_hash
-	, udp::endpoint const& addr)
+	, udp::endpoint const& addr) const
 {
 	if (token.length() != 4)
 	{
@@ -139,19 +139,19 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	std::string address = addr.address().to_string(ec);
 	if (ec) return false;
 	h1.update(&address[0], address.length());
-	h1.update((char*)&m_secret[0], sizeof(m_secret[0]));
-	h1.update((char*)info_hash, sha1_hash::size);
+	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
+	h1.update(reinterpret_cast<char const*>(info_hash), sha1_hash::size);
 
 	sha1_hash h = h1.final();
-	if (std::equal(token.begin(), token.end(), (char*)&h[0]))
+	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
 
 	hasher h2;
 	h2.update(&address[0], address.length());
-	h2.update((char*)&m_secret[1], sizeof(m_secret[1]));
-	h2.update((char*)info_hash, sha1_hash::size);
+	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
+	h2.update(info_hash, sha1_hash::size);
 	h = h2.final();
-	if (std::equal(token.begin(), token.end(), (char*)&h[0]))
+	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
 	return false;
 }
@@ -165,12 +165,12 @@ std::string node::generate_token(udp::endpoint const& addr, char const* info_has
 	std::string address = addr.address().to_string(ec);
 	TORRENT_ASSERT(!ec);
 	h.update(&address[0], address.length());
-	h.update((char*)&m_secret[0], sizeof(m_secret[0]));
+	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
 	h.update(info_hash, sha1_hash::size);
 
 	sha1_hash hash = h.final();
-	std::copy(hash.begin(), hash.begin() + 4, (char*)&token[0]);
-	TORRENT_ASSERT(std::equal(token.begin(), token.end(), (char*)&hash[0]));
+	std::copy(hash.begin(), hash.begin() + 4, reinterpret_cast<char*>(&token[0]));
+	TORRENT_ASSERT(std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&hash[0])));
 	return token;
 }
 
@@ -674,7 +674,7 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	}
 	else
 	{
-		int num = (std::min)((int)v.peers.size(), m_settings.max_peers_reply);
+		int num = (std::min)(int(v.peers.size()), m_settings.max_peers_reply);
 		std::set<peer_entry>::const_iterator iter = v.peers.begin();
 		entry::list_type& pe = reply["values"].list();
 		std::string endpoint;
@@ -1131,7 +1131,8 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
-		if (!verify_token(msg_keys[0].string_value(), (char const*)&target[0], m.addr))
+		if (!verify_token(msg_keys[0].string_value()
+				, reinterpret_cast<char const*>(&target[0]), m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "invalid token");
@@ -1161,10 +1162,10 @@ void node::incoming_request(msg const& m, entry& e)
 					m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
 				}
 				dht_immutable_item to_add;
-				to_add.value = (char*)malloc(buf.second);
+				to_add.value = static_cast<char*>(malloc(buf.second));
 				to_add.size = buf.second;
 				memcpy(to_add.value, buf.first, buf.second);
-		
+
 				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
 					std::make_pair(target, to_add));
 				m_counters.inc_stats_counter(counters::dht_immutable_data);
@@ -1211,14 +1212,14 @@ void node::incoming_request(msg const& m, entry& e)
 					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
 				}
 				dht_mutable_item to_add;
-				to_add.value = (char*)malloc(buf.second);
+				to_add.value = static_cast<char*>(malloc(buf.second));
 				to_add.size = buf.second;
 				to_add.seq = msg_keys[2].int_value();
 				to_add.salt = NULL;
 				to_add.salt_size = 0;
 				if (salt.second > 0)
 				{
-					to_add.salt = (char*)malloc(salt.second);
+					to_add.salt = static_cast<char*>(malloc(salt.second));
 					to_add.salt_size = salt.second;
 					memcpy(to_add.salt, salt.first, salt.second);
 				}
@@ -1262,7 +1263,7 @@ void node::incoming_request(msg const& m, entry& e)
 					if (item->size != buf.second)
 					{
 						free(item->value);
-						item->value = (char*)malloc(buf.second);
+						item->value = static_cast<char*>(malloc(buf.second));
 						item->size = buf.second;
 					}
 					item->seq = msg_keys[2].int_value();

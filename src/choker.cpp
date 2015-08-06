@@ -394,7 +394,7 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(false && "unknown seed choking algorithm");
+			TORRENT_ASSERT(false);
 
 			int pieces = sett.get_int(settings_pack::seeding_piece_quota);
 			std::partial_sort(peers.begin(), peers.begin()

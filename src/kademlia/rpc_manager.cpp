@@ -263,8 +263,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	std::string transaction_id = m.message.dict_find_string_value("t");
 	if (transaction_id.empty()) return false;
 
-	std::string::const_iterator i = transaction_id.begin();	
-	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(i);
+	std::string::const_iterator ptr = transaction_id.begin();
+	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(ptr);
 
 	observer_ptr o;
 	std::pair<transactions_t::iterator, transactions_t::iterator> range = m_transactions.equal_range(tid);
@@ -296,8 +296,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	time_point now = clock_type::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
-    m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
-        , total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
+	m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
+		, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
 	bdecode_node ret_ent = m.message.dict_find_dict("r");

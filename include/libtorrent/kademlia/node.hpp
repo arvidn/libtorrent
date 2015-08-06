@@ -249,7 +249,7 @@ public:
 	void get_item(char const* pk, std::string const& salt, boost::function<bool(item&)> f);
 
 	bool verify_token(std::string const& token, char const* info_hash
-		, udp::endpoint const& addr);
+		, udp::endpoint const& addr) const;
 
 	std::string generate_token(udp::endpoint const& addr, char const* info_hash);
 

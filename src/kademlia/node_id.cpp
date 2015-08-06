@@ -99,7 +99,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 {
 	boost::uint8_t* ip = 0;
-	
+
 	static const boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
 #if TORRENT_USE_IPV6
 	static const boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
@@ -164,8 +164,8 @@ void make_id_secret(node_id& in)
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
-	hasher h((char*)&secret, 4);
-	h.update((char*)&rand, 4);
+	hasher h(reinterpret_cast<char*>(&secret), 4);
+	h.update(reinterpret_cast<char*>(&rand), 4);
 	sha1_hash secret_hash = h.final();
 	memcpy(&in[20-4], &secret_hash[0], 4);
 	memcpy(&in[20-8], &rand, 4);
@@ -189,8 +189,8 @@ bool verify_secret_id(node_id const& nid)
 {
 	if (secret == 0) return false;
 
-	hasher h((char*)&secret, 4);
-	h.update((char const*)&nid[20-8], 4);
+	hasher h(reinterpret_cast<char*>(&secret), 4);
+	h.update(reinterpret_cast<char const*>(&nid[20-8]), 4);
 	sha1_hash secret_hash = h.final();
 	return memcmp(&nid[20-4], &secret_hash[0], 4) == 0;
 }

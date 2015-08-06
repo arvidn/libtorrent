@@ -692,7 +692,7 @@ namespace libtorrent
 			, std::vector<std::string> const* links
 			, storage_error& error);
 
-		// helper functions for check_fastresume	
+		// helper functions for check_fastresume
 		int check_no_fastresume(storage_error& error);
 		int check_init_storage(storage_error& error);
 

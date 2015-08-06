@@ -678,7 +678,8 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
+		, std::make_pair(j->storage->files()->name()
+		, static_cast<void const*>(j->storage->files())))
 		== m_deleted_storages.end());
 #endif
 
@@ -1127,9 +1128,9 @@ void block_cache::clear(tailqueue& jobs)
 		cached_piece_entry& pe = const_cast<cached_piece_entry&>(*p);
 #if TORRENT_USE_ASSERTS
 		for (tailqueue_iterator i = pe.jobs.iterate(); i.get(); i.next())
-			TORRENT_PIECE_ASSERT(((disk_io_job*)i.get())->piece == pe.piece, &pe);
+			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
 		for (tailqueue_iterator i = pe.read_jobs.iterate(); i.get(); i.next())
-			TORRENT_PIECE_ASSERT(((disk_io_job*)i.get())->piece == pe.piece, &pe);
+			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
 #endif
 		// this also removes the jobs from the piece
 		jobs.append(pe.jobs);
@@ -1173,7 +1174,7 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	linked_list* ghost_list = &m_lru[pe->cache_state + 1];
 	while (ghost_list->size() >= m_ghost_size)
 	{
-		cached_piece_entry* p = (cached_piece_entry*)ghost_list->front();
+		cached_piece_entry* p = static_cast<cached_piece_entry*>(ghost_list->front());
 		TORRENT_PIECE_ASSERT(p != pe, p);
 		TORRENT_PIECE_ASSERT(p->num_blocks == 0, p);
 		TORRENT_PIECE_ASSERT(p->refcount == 0, p);
@@ -1215,7 +1216,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 	// we're not allowed to add dirty blocks
 	// for a deleted storage!
 	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name(), (void const*)j->storage->files()))
+		, std::make_pair(j->storage->files()->name(), static_cast<void const*>(j->storage->files())))
 		== m_deleted_storages.end());
 #endif
 
@@ -1621,7 +1622,7 @@ void block_cache::check_invariant() const
 		, end(storages.end()); i != end; ++i)
 	{
 		for (boost::unordered_set<cached_piece_entry*>::iterator j = (*i)->cached_pieces().begin()
-			, end((*i)->cached_pieces().end()); j != end; ++j)
+			, end2((*i)->cached_pieces().end()); j != end2; ++j)
 		{
 			cached_piece_entry* pe = *j;
 			TORRENT_PIECE_ASSERT(pe->storage.get() == *i, pe);
@@ -1640,7 +1641,7 @@ void block_cache::check_invariant() const
 		int num_pending = 0;
 		int num_refcount = 0;
 
-		bool in_storage = p.storage->has_piece((cached_piece_entry*)&p);
+		bool in_storage = p.storage->has_piece(&p);
 		switch (p.cache_state)
 		{
 			case cached_piece_entry::write_lru:
