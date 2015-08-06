@@ -1,3 +1,4 @@
+	* fixed falling back to sending UDP packets direct when socks proxy fails
 	* fixed total_wanted bug (when setting file priorities in add_torrent_params)
 
 1.0.6 release
