@@ -392,6 +392,21 @@ namespace
         return ret;
     }
 
+    list get_feeds(session& s)
+    {
+        list ret;
+        std::vector<feed_handle> feeds;
+        {
+            allow_threading_guard guard;
+            s.get_feeds(feeds);
+        }
+        for (std::vector<feed_handle>::iterator i = feeds.begin(); i != feeds.end(); ++i)
+        {
+            ret.append(*i);
+        }
+        return ret;
+    }
+
 	 cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
 	 {
 	 	cache_status ret;
@@ -733,6 +748,7 @@ void bind_session()
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
         .def("find_torrent", allow_threads(&lt::session::find_torrent))
         .def("get_torrents", &get_torrents)
+        .def("get_feeds", &get_feeds)
         .def("pause", allow_threads(&lt::session::pause))
         .def("resume", allow_threads(&lt::session::resume))
         .def("is_paused", allow_threads(&lt::session::is_paused))
