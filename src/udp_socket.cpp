@@ -932,6 +932,13 @@ void udp_socket::on_connected(error_code const& e)
 
 	if (e)
 	{
+		// we failed to connect to the proxy, if we don't have force_proxy set,
+		// drain the queue over the UDP socket
+		if (!m_force_proxy)
+		{
+			drain_queue();
+		}
+
 		call_handler(e, udp::endpoint(), 0, 0);
 		return;
 	}
