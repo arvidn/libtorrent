@@ -98,11 +98,11 @@ sha1_hash item_target_id(std::pair<char const*, int> salt
 }
 
 bool verify_mutable_item(
-	std::pair<char const*, int> v,
-	std::pair<char const*, int> salt,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sig)
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sig)
 {
 #ifdef TORRENT_USE_VALGRIND
 	VALGRIND_CHECK_MEM_IS_DEFINED(v.first, v.second);
@@ -113,10 +113,10 @@ bool verify_mutable_item(
 	char str[canonical_length];
 	int len = canonical_string(v, seq, salt, str);
 
-	return ed25519_verify((unsigned char const*)sig,
-		(unsigned char const*)str,
-		len,
-		(unsigned char const*)pk) == 1;
+	return ed25519_verify(reinterpret_cast<unsigned char const*>(sig)
+		, reinterpret_cast<unsigned char const*>(str)
+		, len
+		, reinterpret_cast<unsigned char const*>(pk)) == 1;
 }
 
 // given the bencoded buffer ``v``, the salt (which is optional and may have
@@ -126,12 +126,12 @@ bool verify_mutable_item(
 // at least 64 bytes of available space. This space is where the signature is
 // written.
 void sign_mutable_item(
-	std::pair<char const*, int> v,
-	std::pair<char const*, int> salt,
-	boost::uint64_t seq,
-	char const* pk,
-	char const* sk,
-	char* sig)
+	std::pair<char const*, int> v
+	, std::pair<char const*, int> salt
+	, boost::uint64_t seq
+	, char const* pk
+	, char const* sk
+	, char* sig)
 {
 #ifdef TORRENT_USE_VALGRIND
 	VALGRIND_CHECK_MEM_IS_DEFINED(v.first, v.second);
@@ -142,11 +142,11 @@ void sign_mutable_item(
 	char str[canonical_length];
 	int len = canonical_string(v, seq, salt, str);
 
-	ed25519_sign((unsigned char*)sig,
-		(unsigned char const*)str,
-		len,
-		(unsigned char const*)pk,
-		(unsigned char const*)sk
+	ed25519_sign(reinterpret_cast<unsigned char*>(sig)
+		, reinterpret_cast<unsigned char const*>(str)
+		, len
+		, reinterpret_cast<unsigned char const*>(pk)
+		, reinterpret_cast<unsigned char const*>(sk)
 	);
 }
 

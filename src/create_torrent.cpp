@@ -179,7 +179,7 @@ namespace libtorrent
 				iothread->async_hash(storage.get(), *piece_counter
 					, disk_io_job::sequential_access
 					, boost::bind(&on_hash, _1, t, storage, iothread
-					, piece_counter, completed_piece, f, ec), (void*)0);
+					, piece_counter, completed_piece, f, ec), NULL);
 				++(*piece_counter);
 			}
 			else
@@ -276,7 +276,7 @@ namespace libtorrent
 		storage_interface* storage_impl = default_storage_constructor(params);
 
 		boost::shared_ptr<piece_manager> storage = boost::make_shared<piece_manager>(
-			storage_impl, dummy, (file_storage*)&t.files());
+			storage_impl, dummy, const_cast<file_storage*>(&t.files()));
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
@@ -295,7 +295,7 @@ namespace libtorrent
 		{
 			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
 				, boost::bind(&on_hash, _1, &t, storage, &disk_thread
-				, &piece_counter, &completed_piece, &f, &ec), (void*)0);
+				, &piece_counter, &completed_piece, &f, &ec), NULL);
 			++piece_counter;
 			if (piece_counter >= t.num_pieces()) break;
 		}
@@ -327,7 +327,7 @@ namespace libtorrent
 		{
 			const int target_size = 40 * 1024;
 			piece_size = int(fs.total_size() / (target_size / 20));
-	
+
 			int i = 16*1024;
 			for (; i < 2*1024*1024; i *= 2)
 			{
@@ -550,7 +550,7 @@ namespace libtorrent
 				&& (flags & file_storage::flag_symlink))
 			{
 				entry& sympath_e = info["symlink path"];
-				
+
 				std::string split = split_path(m_files.symlink(0));
 				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
@@ -570,18 +570,20 @@ namespace libtorrent
 				{
 					files.list().push_back(entry());
 					entry& file_e = files.list().back();
-					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i); 
+					if (m_include_mtime && m_files.mtime(i)) file_e["mtime"] = m_files.mtime(i);
 					file_e["length"] = m_files.file_size(i);
 					entry& path_e = file_e["path"];
 
 					TORRENT_ASSERT(has_parent_path(m_files.file_path(i)));
 
-					std::string split = split_path(m_files.file_path(i));
-					TORRENT_ASSERT(split.c_str() == m_files.name());
+					{
+						std::string split = split_path(m_files.file_path(i));
+						TORRENT_ASSERT(split.c_str() == m_files.name());
 
-					for (char const* e = next_path_element(split.c_str());
-						e != 0; e = next_path_element(e))
-						path_e.list().push_back(entry(e));
+						for (char const* e = next_path_element(split.c_str());
+							e != 0; e = next_path_element(e))
+							path_e.list().push_back(entry(e));
+					}
 
 					int flags = m_files.file_flags(i);
 					if (flags != 0)
@@ -634,8 +636,8 @@ namespace libtorrent
 				for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
 				{
 					hasher h;
-					h.update((char const*)&m_merkle_tree[i][0], 20);
-					h.update((char const*)&m_merkle_tree[i+1][0], 20);
+					h.update(m_merkle_tree[i].data(), 20);
+					h.update(m_merkle_tree[i+1].data(), 20);
 					m_merkle_tree[parent] = h.final();
 				}
 				level_start = merkle_get_parent(level_start);
@@ -643,7 +645,7 @@ namespace libtorrent
 			}
 			TORRENT_ASSERT(level_size == 1);
 			std::string& p = info["root hash"].string();
-			p.assign((char const*)&m_merkle_tree[0][0], 20);
+			p.assign(m_merkle_tree[0].data(), 20);
 		}
 		else
 		{
@@ -652,7 +654,7 @@ namespace libtorrent
 			for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
 				i != m_piece_hash.end(); ++i)
 			{
-				p.append((char*)i->begin(), sha1_hash::size);
+				p.append(i->data(), sha1_hash::size);
 			}
 		}
 
@@ -661,7 +663,6 @@ namespace libtorrent
 		m_info_hash = hasher(&buf[0], buf.size()).final();
 
 		return dict;
-	
 	}
 
 	void create_torrent::add_tracker(std::string const& url, int tier)
@@ -690,14 +691,14 @@ namespace libtorrent
 	void create_torrent::set_hash(int index, sha1_hash const& h)
 	{
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_piece_hash.size());
+		TORRENT_ASSERT(index < int(m_piece_hash.size()));
 		m_piece_hash[index] = h;
 	}
 
 	void create_torrent::set_file_hash(int index, sha1_hash const& h)
 	{
 		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < (int)m_files.num_files());
+		TORRENT_ASSERT(index < int(m_files.num_files()));
 		if (m_filehashes.empty()) m_filehashes.resize(m_files.num_files());
 		m_filehashes[index] = h;
 	}
