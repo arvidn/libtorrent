@@ -185,6 +185,7 @@ void bind_alert()
             .value("session_log_notification", alert::session_log_notification)
             .value("torrent_log_notification", alert::torrent_log_notification)
             .value("peer_log_notification", alert::peer_log_notification)
+            .value("rss_notification", alert::rss_notification)
             // deliberately not INT_MAX. Arch linux crash while throwing an exception
             .value("all_categories", (alert::category_t)0xfffffff)
             ;
