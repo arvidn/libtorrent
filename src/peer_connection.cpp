@@ -6227,7 +6227,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			t->debug_log("END connect [%p]", this);
+			if (t) t->debug_log("END connect [%p]", this);
 			m_connect_time = completed;
 		}
 #endif
