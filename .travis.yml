@@ -29,6 +29,7 @@ addons:
     packages:
     - g++-4.9
     - libboost1.55-all-dev
+    - boost-build
     - python2.7-dev
 
 before_install:
