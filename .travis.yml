@@ -29,22 +29,18 @@ addons:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
     - python2.7-dev
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - g++-4.9
+    - g++-5
 
 before_install:
   - git submodule update --init --recursive
 
 install:
-  - 'echo "using gcc : : ccache g++-4.9 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - which $CXX-4.9
-  - ls -la `which $CXX-4.9`
+  - which $CXX-5
+  - ls -la `which $CXX-5`
 
 script:
   - cd test
