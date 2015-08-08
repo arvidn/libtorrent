@@ -29,6 +29,9 @@ addons:
     - libboost1.55-all-dev
     - python2.7-dev
 
+before_install:
+  - git submodule update --init --recursive
+
 install:
   - if [ $TRAVIS_OS_NAME == "osx" ]; then sudo brew install boost boost-build python27-dev; fi
   - 'echo "using gcc : : ccache g++ ;" > ~/user-config.jam'
