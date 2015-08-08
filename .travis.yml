@@ -30,15 +30,14 @@ addons:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
     - python2.7-dev
-    - g++-5
-    - libc++-dev
+    - g++-4.8
 
 before_install:
-  - git submodule update --init --recursive
+  - git submodule foreach git pull origin master --depth=1
 
 install:
-  - 'echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using clang : : ccache clang++ : <compileflags>-stdlib=libc++ <linkflags>-stdlib=libc++ <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
