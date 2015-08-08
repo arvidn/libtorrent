@@ -412,7 +412,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 }
 
 void node::get_item(sha1_hash const& target
-	, boost::function<bool(item&)> f)
+	, boost::function<bool(item&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -430,7 +430,7 @@ void node::get_item(sha1_hash const& target
 }
 
 void node::get_item(char const* pk, std::string const& salt
-	, boost::function<bool(item&)> f)
+	, boost::function<bool(item&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)

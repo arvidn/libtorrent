@@ -70,15 +70,26 @@ void get_item::got_data(bdecode_node const& v,
 		{
 			if (!m_data.assign(v, salt, seq, pk, sig))
 				return;
+
+			// for get_item, we should call callback when we get data,
+			// even if the date is not authoritative, we can update later.
+			// so caller can get response ASAP without waitting transaction
+			// time-out (15 seconds).
+			// for put_item, the callback function will do nothing
+			// if the data is non-authoritative.
+			// we can just ignore the return value here since for mutable
+			// data, we always need the transaction done.
+			m_data_callback(m_data, false);
 		}
 	}
 	else if (m_data.empty())
 	{
 		// this is the first time we receive data,
 		// and it's immutable
+        // for immutable data, any response is authoritative.
 
 		m_data.assign(v);
-		bool put_requested = m_data_callback(m_data);
+		bool put_requested = m_data_callback(m_data, true);
 
 		// if we intend to put, we need to keep going
 		// until we find the closest nodes, since those
@@ -162,10 +173,10 @@ void get_item::done()
 {
 	if (m_data.is_mutable() || m_data.empty())
 	{
-		// for mutable data, we only call the callback at the end,
-		// when we've heard from everyone, to be sure we got the
+		// for mutable data, now we have authoritative data since
+		// we've heard from everyone, to be sure we got the
 		// latest version of the data (i.e. highest sequence number)
-		bool put_requested = m_data_callback(m_data);
+		bool put_requested = m_data_callback(m_data, true);
 		if (put_requested)
 		{
 #if TORRENT_USE_ASSERTS
