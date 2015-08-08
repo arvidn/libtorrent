@@ -46,6 +46,6 @@ script:
   - cd ../bindings/python
   - bjam -j 3 variant=$variant warnings=off $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
-  - ../../simulation
+  - cd ../../simulation
   - bjam -j 3 variant=$variant warnings=off $CC
   - ccache --show-stats
