@@ -59,7 +59,7 @@ http_connection::http_connection(io_service& ios
 	, http_connect_handler const& ch
 	, http_filter_handler const& fh
 #ifdef TORRENT_USE_OPENSSL
-	, boost::asio::ssl::context* ssl_ctx
+	, ssl::context* ssl_ctx
 #endif
 	)
 	: m_sock(ios)
@@ -330,13 +330,13 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			if (m_ssl_ctx == 0)
 			{
-				m_ssl_ctx = new (std::nothrow) boost::asio::ssl::context(
-					m_timer.get_io_service(), boost::asio::ssl::context::sslv23_client);
+				m_ssl_ctx = new (std::nothrow) ssl::context(
+					m_timer.get_io_service(), ssl::context::sslv23_client);
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
 					error_code ec;
-					m_ssl_ctx->set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					TORRENT_ASSERT(!ec);
 				}
 			}

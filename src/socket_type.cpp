@@ -243,22 +243,22 @@ namespace libtorrent
 			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
 				TORRENT_ASSERT(userdata);
 				new ((ssl_stream<tcp::socket>*)m_data) ssl_stream<tcp::socket>(m_io_service
-					, *((boost::asio::ssl::context*)userdata));
+					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
 				TORRENT_ASSERT(userdata);
 				new ((ssl_stream<socks5_stream>*)m_data) ssl_stream<socks5_stream>(m_io_service
-					, *((boost::asio::ssl::context*)userdata));
+					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<http_stream> >::value:
 				TORRENT_ASSERT(userdata);
 				new ((ssl_stream<http_stream>*)m_data) ssl_stream<http_stream>(m_io_service
-					, *((boost::asio::ssl::context*)userdata));
+					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
 				TORRENT_ASSERT(userdata);
 				new ((ssl_stream<utp_stream>*)m_data) ssl_stream<utp_stream>(m_io_service
-					, *((boost::asio::ssl::context*)userdata));
+					, *static_cast<ssl::context*>(userdata));
 				break;
 #else
 				TORRENT_UNUSED(userdata);

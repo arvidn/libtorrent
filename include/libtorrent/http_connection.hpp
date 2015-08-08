@@ -90,7 +90,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		, http_connect_handler const& ch = http_connect_handler()
 		, http_filter_handler const& fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
-		, boost::asio::ssl::context* ssl_ctx = 0
+		, ssl::context* ssl_ctx = 0
 #endif
 		);
 
@@ -158,7 +158,7 @@ private:
 	socket_type m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
-	boost::asio::ssl::context* m_ssl_ctx;
+	ssl::context* m_ssl_ctx;
 	bool m_own_ssl_context;
 #endif
 

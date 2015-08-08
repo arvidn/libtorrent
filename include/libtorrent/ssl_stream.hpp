@@ -49,16 +49,32 @@ POSSIBILITY OF SUCH DAMAGE.
 // this name in every single scope
 #undef set_key
 
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
+
+	namespace ssl {
+#if defined TORRENT_BUILD_SIMULATOR
+	using sim::asio::ssl::context;
+	using sim::asio::ssl::stream_base;
+	using sim::asio::ssl::stream;
+#else
+	using boost::asio::ssl::context;
+	using boost::asio::ssl::stream_base;
+	using boost::asio::ssl::stream;
+#endif
+	}
 
 template <class Stream>
 class ssl_stream
 {
 public:
 
-	explicit ssl_stream(io_service& io_service, boost::asio::ssl::context& ctx)
+	explicit ssl_stream(io_service& io_service, ssl::context& ctx)
 		: m_sock(io_service, ctx)
 	{
 	}
@@ -106,14 +122,14 @@ public:
 	{
 		// this is used for accepting SSL connections
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
-		m_sock.async_handshake(boost::asio::ssl::stream_base::server
+		m_sock.async_handshake(ssl::stream_base::server
 			, boost::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
 	void accept_handshake(error_code& ec)
 	{
 		// this is used for accepting SSL connections
-		m_sock.handshake(boost::asio::ssl::stream_base::server, ec);
+		m_sock.handshake(ssl::stream_base::server, ec);
 	}
 
 	template <class Handler>
@@ -302,7 +318,7 @@ private:
 			return;
 		}
 
-		m_sock.async_handshake(boost::asio::ssl::stream_base::client
+		m_sock.async_handshake(ssl::stream_base::client
 			, boost::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
@@ -311,7 +327,7 @@ private:
 		(*h)(e);
 	}
 
-	boost::asio::ssl::stream<Stream> m_sock;
+	ssl::stream<Stream> m_sock;
 };
 
 }

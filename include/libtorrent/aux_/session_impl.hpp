@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/context.hpp>
+#include "libtorrent/ssl_stream.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -696,7 +696,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			// this is a generic SSL context used when talking to
 			// unauthenticated HTTPS servers
-			boost::asio::ssl::context m_ssl_ctx;
+			ssl::context m_ssl_ctx;
 #endif
 
 			// handles delayed alerts
@@ -862,7 +862,7 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-			boost::asio::ssl::context* ssl_ctx() { return &m_ssl_ctx; } 
+			ssl::context* ssl_ctx() { return &m_ssl_ctx; }
 			void on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s);
 			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
 #endif
