@@ -46,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_UTP_LOG 0
 #define TORRENT_VERBOSE_UTP_LOG 0
+
+// the behavior of the sequence numbers as implemented by uTorrent is not
+// particularly regular. This switch indicates the odd parts.
 #define TORRENT_UT_SEQ 1
 
 #if TORRENT_UTP_LOG
@@ -3377,7 +3380,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 		if (m_slow_start)
 		{
 			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
-			m_ssthres = m_cwnd >> 16;
+			m_ssthres = (m_cwnd >> 16) / 2;
 			m_slow_start = false;
 		}
 
