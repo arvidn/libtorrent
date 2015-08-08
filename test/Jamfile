@@ -59,6 +59,7 @@ lib libtorrent_test
 	web_seed_suite.cpp
 	swarm_suite.cpp
 	test_utils.cpp
+	settings.cpp
 
 	: # requirements
 	# this is used to determine whether
@@ -76,6 +77,7 @@ lib libtorrent_test
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
 	<logging>on
+	<include>.
 ;
 
 explicit libtorrent_test ;

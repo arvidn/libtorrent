@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2015, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-#define TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+#include "swarm_suite.hpp"
+#include "test.hpp"
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
+TORRENT_TEST(seed_mode)
 {
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::high_resolution_timer deadline_timer;
-#else
-	typedef boost::asio::high_resolution_timer deadline_timer;
-#endif
+	// with seed mode
+	simulate_swarm(seed_mode);
 }
 
-#endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+TORRENT_TEST(plain)
+{
+	simulate_swarm();
+}
+
+TORRENT_TEST(suggest)
+{
+	// with suggest pieces
+	simulate_swarm(suggest_read_cache);
+}
+
+TORRENT_TEST(utp)
+{
+	simulate_swarm(utp_only);
+}
+TORRENT_TEST(explicit_cache)
+{
+	// test explicit cache
+	simulate_swarm(suggest_read_cache | explicit_cache);
+}
 

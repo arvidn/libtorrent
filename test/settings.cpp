@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2015, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,34 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-#define TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/alert.hpp"
 
-#include "libtorrent/config.hpp"
+using namespace libtorrent;
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
+libtorrent::settings_pack settings()
 {
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::high_resolution_timer deadline_timer;
-#else
-	typedef boost::asio::high_resolution_timer deadline_timer;
-#endif
-}
+	const int mask = alert::all_categories
+		& ~(alert::progress_notification
+			| alert::performance_warning
+			| alert::stats_notification);
 
-#endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+	settings_pack pack;
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
+
+	pack.set_int(settings_pack::alert_mask, mask);
+
+#ifndef TORRENT_BUILD_SIMULATOR
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+#else
+	// we use 0 threads (disk I/O operations will be performed in the network
+	// thread) to be simulator friendly.
+	pack.set_int(settings_pack::aio_threads, 0);
+#endif
+
+	return pack;
+}
 

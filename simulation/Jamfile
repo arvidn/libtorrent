@@ -1,0 +1,29 @@
+import testing ;
+import feature : feature ;
+
+use-project /torrent : .. ;
+use-project /libtorrent_test : ../test ;
+
+use-project /libsimulator : libsimulator ;
+
+project
+	: requirements
+	<simulator>on
+	<library>/torrent//torrent
+	<library>/libtorrent_test//libtorrent_test
+	<source>swarm_suite.cpp
+	<source>setup_swarm.cpp
+	<source>setup_dht.cpp
+	: default-build
+	<threading>multi
+	<invariant-checks>full
+	<debug-iterators>on
+	<picker-debugging>on
+	;
+
+test-suite libtorrent-sims :
+	[ run test_swarm.cpp ]
+	[ run test_utp.cpp ]
+	[ run test_dht.cpp ]
+	;
+

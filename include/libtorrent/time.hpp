@@ -45,11 +45,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/chrono.hpp>
 #endif
 
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
-#if defined BOOST_ASIO_HAS_STD_CHRONO
+#if defined TORRENT_BUILD_SIMULATOR
+	typedef sim::chrono::high_resolution_clock clock_type;
+#elif defined BOOST_ASIO_HAS_STD_CHRONO
 	typedef std::chrono::high_resolution_clock clock_type;
 #else
 	typedef boost::chrono::high_resolution_clock clock_type;

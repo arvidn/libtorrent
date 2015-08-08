@@ -100,7 +100,7 @@ EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
-  test_utils.hpp
+  test_utils.hpp settings.hpp
 
 libtest_la_SOURCES = main.cpp \
   test.cpp \
@@ -110,7 +110,8 @@ libtest_la_SOURCES = main.cpp \
   peer_server.cpp \
   web_seed_suite.cpp \
   swarm_suite.cpp \
-  test_utils.cpp
+  test_utils.cpp \
+  settings.cpp \
 
 test_primitives_SOURCES = \
   test_primitives.cpp \

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2015, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-#define TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+#include "libtorrent/io_service.hpp"
+#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
+struct swarm_setup_provider
 {
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::high_resolution_timer deadline_timer;
-#else
-	typedef boost::asio::high_resolution_timer deadline_timer;
-#endif
-}
+	// can be used to check expected end conditions
+	virtual void on_exit(std::vector<libtorrent::torrent_handle> const& torrents) {}
 
-#endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+	// called for every alert. if the simulation is done, return true
+	virtual bool on_alert(libtorrent::alert const* alert
+		, int session_idx
+		, std::vector<libtorrent::torrent_handle> const& handles) { return false; }
+
+	// called for every torrent that's added (and every session that's started).
+	// this is useful to give every session a unique save path and to make some
+	// sessions seeds and others downloaders
+	virtual libtorrent::add_torrent_params add_torrent(int idx) = 0;
+
+	// called for every session that's added
+	virtual libtorrent::settings_pack add_session(int idx) = 0;
+};
+
+void setup_swarm(int num_nodes, swarm_setup_provider& config);
 

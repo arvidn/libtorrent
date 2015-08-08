@@ -61,16 +61,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef Protocol
 #endif
 
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
 
+#if defined TORRENT_BUILD_SIMULATOR
+	using sim::asio::ip::udp;
+	using sim::asio::ip::tcp;
+	using sim::asio::async_write;
+	using sim::asio::async_read;
+	using sim::asio::null_buffers;
+#else
 	using boost::asio::ip::tcp;
 	using boost::asio::ip::udp;
 	using boost::asio::async_write;
 	using boost::asio::async_read;
 	using boost::asio::null_buffers;
+#endif
 
 #if TORRENT_USE_IPV6
 #ifdef IPV6_V6ONLY

@@ -5618,7 +5618,7 @@ retry:
 	session_impl::~session_impl()
 	{
 		// this is not allowed to be the network thread!
-		TORRENT_ASSERT(is_not_thread());
+//		TORRENT_ASSERT(is_not_thread());
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2015, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-#define TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+#include "test.hpp"
 
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
-#if defined TORRENT_BUILD_SIMULATOR
-#include "simulator/simulator.hpp"
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-namespace libtorrent
+enum test_flags_t
 {
-#if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::asio::high_resolution_timer deadline_timer;
-#else
-	typedef boost::asio::high_resolution_timer deadline_timer;
-#endif
-}
+	super_seeding = 1,
+	strict_super_seeding = 2,
+	seed_mode = 4,
+	time_critical = 8,
+	suggest_read_cache = 16,
+	explicit_cache = 32,
+	utp_only = 64
+};
 
-#endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
+void EXPORT simulate_swarm(int flags = 0);
 

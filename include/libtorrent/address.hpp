@@ -49,6 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/asio/ip/address.hpp>
 
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef __OBJC__
@@ -57,12 +61,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
+#if defined TORRENT_BUILD_SIMULATOR
+	typedef sim::asio::ip::address address;
+	typedef sim::asio::ip::address_v4 address_v4;
+#if TORRENT_USE_IPV6
+	typedef sim::asio::ip::address_v6 address_v6;
+#endif
+#else
 	typedef boost::asio::ip::address address;
 	typedef boost::asio::ip::address_v4 address_v4;
 #if TORRENT_USE_IPV6
 	typedef boost::asio::ip::address_v6 address_v6;
 #endif
+#endif // SIMULATOR
 }
 
 #endif

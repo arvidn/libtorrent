@@ -48,6 +48,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/asio/io_service.hpp>
 
+#if defined TORRENT_BUILD_SIMULATOR
+#include "simulator/simulator.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef __OBJC__
@@ -56,7 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+#if defined TORRENT_BUILD_SIMULATOR
+	typedef sim::asio::io_service io_service;
+#else
 	typedef boost::asio::io_service io_service;
+#endif
 }
 
 #endif

@@ -47,13 +47,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef Protocol
 #endif
 
+#if defined TORRENT_BUILD_SIMULATOR
+namespace sim { namespace asio {
+	struct io_service;
+}}
+#endif
+
 namespace boost { namespace asio {
 	class io_service;
 }}
 
 namespace libtorrent
 {
+#if defined TORRENT_BUILD_SIMULATOR
+	typedef sim::asio::io_service io_service;
+#else
 	typedef boost::asio::io_service io_service;
+#endif
 }
 
 #endif
