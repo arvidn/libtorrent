@@ -25,6 +25,7 @@ addons:
   apt:
     sources:
     - boost-latest
+    - ubuntu-toolchain-r-test
     packages:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
@@ -44,13 +45,13 @@ install:
 
 script:
   - cd test
-  - b2 -j 3 variant=$variant warnings=off -l900 $CC
+  - bjam -j 3 variant=$variant warnings=off -l900 $CC
   - cd ../examples
-  - b2 -j 3 variant=$variant warnings=off $CC
+  - bjam -j 3 variant=$variant warnings=off $CC
   - cd ../bindings/python
-  - b2 -j 3 variant=$variant warnings=off $CC stage_module
+  - bjam -j 3 variant=$variant warnings=off $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
   - cd ../../simulation
-  - b2 -j 3 variant=$variant warnings=off $CC
+  - bjam -j 3 variant=$variant warnings=off $CC
   - ccache --show-stats
 
