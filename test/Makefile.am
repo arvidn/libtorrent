@@ -111,7 +111,7 @@ libtest_la_SOURCES = main.cpp \
   web_seed_suite.cpp \
   swarm_suite.cpp \
   test_utils.cpp \
-  settings.cpp \
+  settings.cpp
 
 test_primitives_SOURCES = \
   test_primitives.cpp \
