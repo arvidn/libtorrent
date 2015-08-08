@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert.hpp"
+#include "settings.hpp"
 
 using namespace libtorrent;
 
