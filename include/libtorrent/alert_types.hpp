@@ -1993,7 +1993,8 @@ namespace libtorrent
 			, boost::array<char, 64> sig
 			, boost::uint64_t sequence
 			, std::string const& s
-			, entry const& i);
+			, entry const& i
+			, bool a);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
 
@@ -2022,6 +2023,9 @@ namespace libtorrent
 
 		// the data for this item
 		entry item;
+
+		// the last response for mutable date is authoritative.
+		bool authoritative;
 	};
 
 	// this is posted when a DHT put operation completes. This is useful if the

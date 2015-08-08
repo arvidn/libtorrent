@@ -300,7 +300,7 @@ namespace libtorrent
 
 			void get_immutable_callback(sha1_hash target
 				, dht::item const& i);
-			void get_mutable_callback(dht::item const& i);
+			void get_mutable_callback(dht::item const& i, bool);
 
 			void dht_get_immutable_item(sha1_hash const& target);
 

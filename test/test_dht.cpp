@@ -406,7 +406,7 @@ std::vector<dht::item> g_got_items;
 dht::item g_put_item;
 int g_put_count;
 
-bool get_item_cb(dht::item& i)
+bool get_item_cb(dht::item& i, bool a)
 {
 	if (!i.empty())
 		g_got_items.push_back(i);

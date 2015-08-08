@@ -5485,11 +5485,11 @@ retry:
 	}
 
 	// callback for dht_mutable_get
-	void session_impl::get_mutable_callback(dht::item const& i)
+	void session_impl::get_mutable_callback(dht::item const& i, bool authoritative)
 	{
 		TORRENT_ASSERT(i.is_mutable());
 		m_alerts.emplace_alert<dht_mutable_item_alert>(i.pk(), i.sig(), i.seq()
-			, i.salt(), i.value());
+			, i.salt(), i.value(), authoritative);
 	}
 
 	// key is a 32-byte binary string, the public key to look up.
@@ -5499,7 +5499,7 @@ retry:
 	{
 		if (!m_dht) return;
 		m_dht->get_item(key.data(), boost::bind(&session_impl::get_mutable_callback
-			, this, _1), salt);
+			, this, _1, _2), salt);
 	}
 
 	namespace {
