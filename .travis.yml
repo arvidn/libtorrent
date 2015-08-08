@@ -28,6 +28,7 @@ addons:
     - ppa:ubuntu-toolchain-r/test
     packages:
     - libboost1.55-all-dev
+    - boost-build
     - python2.7-dev
     - g++-4.8
 
@@ -36,7 +37,7 @@ before_install:
 
 install:
   - if [ $TRAVIS_OS_NAME == "osx" ]; then sudo brew install boost boost-build python27-dev; fi
-  - 'echo "using gcc-4.8 : : ccache g++ : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
@@ -45,12 +46,12 @@ install:
 
 script:
   - cd test
-  - bjam -j 3 variant=$variant warnings=off -l900 $CC
+  - b2 -j 3 variant=$variant warnings=off -l900 $CC
   - cd ../examples
-  - bjam -j 3 variant=$variant warnings=off $CC
+  - b2 -j 3 variant=$variant warnings=off $CC
   - cd ../bindings/python
-  - bjam -j 3 variant=$variant warnings=off $CC stage_module
+  - b2 -j 3 variant=$variant warnings=off $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
   - cd ../../simulation
-  - bjam -j 3 variant=$variant warnings=off $CC
+  - b2 -j 3 variant=$variant warnings=off $CC
   - ccache --show-stats
