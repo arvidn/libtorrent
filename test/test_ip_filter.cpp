@@ -80,7 +80,6 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 		TEST_CHECK(r.back().last == IP("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 	}
 
-	iterator i = r.begin();
 	for (iterator i(r.begin()), j(boost::next(r.begin()))
 		, end(r.end()); j != end; ++j, ++i)
 	{

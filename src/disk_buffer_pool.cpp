@@ -188,7 +188,8 @@ namespace libtorrent
 		{
 			l.unlock();
 			m_ios.post(boost::bind(&watermark_callback
-				, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, slice));
+				, static_cast<std::vector<boost::shared_ptr<disk_observer> >*>(NULL)
+				, slice));
 			return;
 		}
 
@@ -199,7 +200,8 @@ namespace libtorrent
 		{
 			l.unlock();
 			m_ios.post(boost::bind(&watermark_callback
-				, (std::vector<boost::shared_ptr<disk_observer> >*)NULL, handlers));
+				, static_cast<std::vector<boost::shared_ptr<disk_observer> >*>(NULL)
+				, handlers));
 			return;
 		}
 
@@ -307,7 +309,7 @@ namespace libtorrent
 				// we need to roll back and free all the buffers
 				// we've already allocated
 				for (int j = 0; j < i; ++j)
-					free_buffer_impl((char*)iov[j].iov_base, l);
+					free_buffer_impl(static_cast<char*>(iov[j].iov_base), l);
 				return -1;
 			}
 		}
@@ -319,7 +321,7 @@ namespace libtorrent
 		// TODO: perhaps we should sort the buffers here?
 		mutex::scoped_lock l(m_pool_mutex);
 		for (int i = 0; i < iov_len; ++i)
-			free_buffer_impl((char*)iov[i].iov_base, l);
+			free_buffer_impl(static_cast<char*>(iov[i].iov_base), l);
 		check_buffer_level(l);
 	}
 
@@ -575,8 +577,8 @@ namespace libtorrent
 #define MAP_NOCACHE 0
 #endif
 				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
-				m_cache_pool = (char*)mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
-					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0);
+				m_cache_pool = static_cast<char*>(mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
+					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
 				if (intptr_t(m_cache_pool) == -1)
 				{
 					ec.assign(errno, boost::system::generic_category());

@@ -586,7 +586,7 @@ namespace libtorrent
 		{
 			// currently, only swapping entries of the same type or where one
 			// of the entries is uninitialized is supported.
-			TORRENT_ASSERT(false && "not implemented");
+			TORRENT_ASSERT(false);
 		}
 	}
 
@@ -605,7 +605,7 @@ namespace libtorrent
 		{
 		case int_t:
 			out += libtorrent::to_string(integer()).elems;
-		  	out += "\n";
+			out += "\n";
 			break;
 		case string_t:
 			{

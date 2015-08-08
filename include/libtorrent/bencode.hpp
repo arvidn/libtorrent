@@ -122,8 +122,8 @@ namespace libtorrent
 				++ret;
 			}
 			return ret;
-		}	
-		
+		}
+
 		template <class OutIt>
 		void write_char(OutIt& out, char c)
 		{

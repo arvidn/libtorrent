@@ -138,7 +138,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	if (ec)
 	{
 		m_timer.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, (char*)0, 0));
+			, me, ec, static_cast<char*>(NULL), 0));
 		return;
 	}
 
@@ -150,7 +150,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		error_code ec(errors::unsupported_url_protocol);
 		m_timer.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, (char*)0, 0));
+			, me, ec, static_cast<char*>(NULL), 0));
 		return;
 	}
 
@@ -158,7 +158,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	bool ssl = false;
 	if (protocol == "https") ssl = true;
-	
+
 	char request[4096];
 	char* end = request + sizeof(request);
 	char* ptr = request;
@@ -199,7 +199,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (!m_user_agent.empty())
 		APPEND_FMT1("User-Agent: %s\r\n", m_user_agent.c_str());
-	
+
 	if (m_bottled)
 		APPEND_FMT("Accept-Encoding: gzip\r\n");
 
@@ -258,7 +258,7 @@ void http_connection::start(std::string const& hostname, int port
 	if (ec)
 	{
 		m_timer.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, (char*)0, 0));
+			, me, ec, static_cast<char*>(NULL), 0));
 		return;
 	}
 
@@ -298,7 +298,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
 			m_timer.get_io_service().post(boost::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), (char*)0, 0));
+				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), static_cast<char*>(NULL), 0));
 			return;
 		}
 #endif
@@ -354,7 +354,7 @@ void http_connection::start(std::string const& hostname, int port
 			if (ec)
 			{
 				m_timer.get_io_service().post(boost::bind(&http_connection::callback
-					, me, ec, (char*)0, 0));
+					, me, ec, static_cast<char*>(NULL), 0));
 				return;
 			}
 		}
@@ -363,7 +363,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (ec)
 		{
 			m_timer.get_io_service().post(boost::bind(&http_connection::callback
-				, me, ec, (char*)0, 0));
+				, me, ec, static_cast<char*>(NULL), 0));
 			return;
 		}
 

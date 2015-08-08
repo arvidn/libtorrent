@@ -1406,13 +1406,13 @@ namespace libtorrent
 			hasher hs;
 			if (sibling < n)
 			{
-				hs.update((char const*)&sibling_hash->second[0], 20);
-				hs.update((char const*)&h[0], 20);
+				hs.update(sibling_hash->second.data(), 20);
+				hs.update(h.data(), 20);
 			}
 			else
 			{
-				hs.update((char const*)&h[0], 20);
-				hs.update((char const*)&sibling_hash->second[0], 20);
+				hs.update(h.data(), 20);
+				hs.update(sibling_hash->second.data(), 20);
 			}
 			h = hs.final();
 			n = parent;

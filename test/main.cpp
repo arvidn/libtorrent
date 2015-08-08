@@ -264,8 +264,8 @@ EXPORT int main(int argc, char const* argv[])
 
 			t.output = tmpfile();
 			int ret1 = dup2(fileno(t.output), fileno(stdout));
-			int ret2 = dup2(fileno(t.output), fileno(stderr));
-			if (ret1 < 0 /*|| ret2 < 0*/)
+			dup2(fileno(t.output), fileno(stderr));
+			if (ret1 < 0 )
 			{
 				fprintf(stderr, "failed to redirect output: (%d) %s\n"
 					, errno, strerror(errno));

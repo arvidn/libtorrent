@@ -44,6 +44,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+// tests are expected to even test deprecated functionality. There is no point
+// in warning about deprecated use in any of the tests.
+
+#if defined __clang__
+#pragma clang diagnostic ignored "-Wdeprecated"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+#elif defined __GNUC__
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+#elif defined _MSC_VER
+#pragma warning(disable : 4996)
+#endif
+
 #if defined TORRENT_BUILDING_TEST_SHARED
 #define EXPORT BOOST_SYMBOL_EXPORT
 #elif defined TORRENT_LINK_TEST_SHARED

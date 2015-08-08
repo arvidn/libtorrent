@@ -536,7 +536,7 @@ namespace libtorrent
 			line_len += 4;
 			break;
 		}
-	
+
 		if (line_len > limit) return -1;
 		return line_len;
 	}
@@ -552,7 +552,7 @@ namespace libtorrent
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", (unsigned char)str[i]);
+				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}

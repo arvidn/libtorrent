@@ -578,6 +578,7 @@ TORRENT_TEST(bencoding)
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::overflow);
+		TEST_EQUAL(e, b + 18);
 	}
 
 	{
@@ -586,6 +587,7 @@ TORRENT_TEST(bencoding)
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
+		TEST_EQUAL(e, b + 3);
 	}
 
 	{

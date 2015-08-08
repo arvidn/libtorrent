@@ -280,7 +280,7 @@ namespace libtorrent
 		if (string_len >= name_is_owned) string_len = name_is_owned - 1;
 
 		// free the current string, before assigning the new one
-		if (name_len == name_is_owned) free((void*)name);
+		if (name_len == name_is_owned) free(const_cast<char*>(name));
 		if (n == NULL)
 		{
 			TORRENT_ASSERT(borrow_string == false);
@@ -429,7 +429,7 @@ namespace libtorrent
 
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = piece * (boost::int64_t)m_piece_length + offset;
+		target.offset = piece * boost::int64_t(m_piece_length) + offset;
 		TORRENT_ASSERT_PRECOND(boost::int64_t(target.offset + size) <= m_total_size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
@@ -458,7 +458,7 @@ namespace libtorrent
 				file_offset += f.size;
 				ret.push_back(f);
 			}
-			
+
 			TORRENT_ASSERT(size >= 0);
 		}
 		return ret;

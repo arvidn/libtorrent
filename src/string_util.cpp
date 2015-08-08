@@ -148,7 +148,7 @@ namespace libtorrent
 	char* allocate_string_copy(char const* str)
 	{
 		if (str == 0) return 0;
-		char* tmp = (char*)std::malloc(std::strlen(str) + 1);
+		char* tmp = static_cast<char*>(std::malloc(std::strlen(str) + 1));
 		if (tmp == 0) return 0;
 		std::strcpy(tmp, str);
 		return tmp;
@@ -160,7 +160,7 @@ namespace libtorrent
 		int offset = uintptr_t(p) & 0x7;
 		// if we're already aligned, don't do anything
 		if (offset == 0) return p;
-		
+
 		// offset is how far passed the last aligned address
 		// we are. We need to go forward to the next aligned
 		// one. Since aligned addresses are 8 bytes apart, add

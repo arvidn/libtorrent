@@ -1620,7 +1620,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int buf_size = bufs_size(bufs, num_bufs);
 		// this is page aligned since it's used in APIs which
 		// are likely to require that (depending on OS)
-		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		char* buf = static_cast<char*>(page_aligned_allocator::malloc(buf_size));
 		if (!buf) return false;
 		tmp->iov_base = buf;
 		tmp->iov_len = buf_size;
@@ -1642,7 +1642,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// operation
 		int buf_size = 0;
 		for (int i = 0; i < num_bufs; ++i) buf_size += bufs[i].iov_len;
-		char* buf = (char*)page_aligned_allocator::malloc(buf_size);
+		char* buf = static_cast<char*>(page_aligned_allocator::malloc(buf_size));
 		if (!buf) return false;
 		gather_copy(bufs, num_bufs, buf);
 		tmp->iov_base = buf;
@@ -1786,7 +1786,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 		if (flags & file::coalesce_buffers)
-			coalesce_read_buffers_end(bufs, num_bufs, (char*)tmp.iov_base, !ec);
+			coalesce_read_buffers_end(bufs, num_bufs
+				, static_cast<char*>(tmp.iov_base), !ec);
 
 #endif
 		return ret;
