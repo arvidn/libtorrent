@@ -67,7 +67,7 @@ build variants, see `libtorrent build options`_.
 
 For example::
 
-	$ bjam dht-support=on boost=source release link=static
+	$ bjam dht-support=on link=static
 
 On Mac OS X, this will produce the following python module::
 

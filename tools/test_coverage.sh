@@ -13,7 +13,7 @@ function run_test {
 	cd test
 
 	set +e
-	bjam asserts=off invariant-checks=off link=static boost=source deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off -j4 $1
+	bjam asserts=off invariant-checks=off link=static deprecated-functions=off debug-iterators=off test-coverage=on picker-debugging=off -j4 $1
 	set -e
 	cd ..
 

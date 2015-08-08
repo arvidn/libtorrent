@@ -155,11 +155,15 @@ Then the only thing left is simply to invoke ``bjam``. If you want to specify
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example::
 
-  bjam msvc-7.1 boost=source
-  bjam gcc-3.3 boost=source
-  bjam darwin-4.0 boost=source
+  bjam msvc-7.1
+  bjam gcc-3.3
+  bjam darwin-4.0
 
-If you're building against a system installed boost, specify ``boost=system``.
+.. note::
+
+	If the environment variable ``BOOST_ROOT`` is not set, the jamfile will
+	attempt to link against "installed" boost libraries. i.e. assume the headers
+	and libraries are available in default search paths.
 
 To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are ``release``, ``debug``,
@@ -173,7 +177,7 @@ can set the ``runtime-link`` feature on the commandline, either to ``shared``
 or ``static``. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example::
 
-  bjam msvc-7.1 link=static runtime-link=static boost=source
+  bjam msvc-7.1 link=static runtime-link=static
 
 .. note::
 
@@ -236,14 +240,6 @@ Build features:
 +--------------------------+----------------------------------------------------+
 | boost build feature      | values                                             |
 +==========================+====================================================+
-| ``boost``                | * ``system`` - default. Tells the Jamfile that     |
-|                          |   boost is installed and should be linked against  |
-|                          |   the system libraries.                            |
-|                          | * ``source`` - Specifies that boost is to be built |
-|                          |   from source. The environment variable            |
-|                          |   ``BOOST_ROOT`` must be defined to point to the   |
-|                          |   boost directory.                                 |
-+--------------------------+----------------------------------------------------+
 | ``boost-link``           | * ``static`` - links statically against the boost  |
 |                          |   libraries.                                       |
 |                          | * ``shared`` - links dynamically against the boost |

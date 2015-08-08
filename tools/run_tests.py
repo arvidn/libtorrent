@@ -203,7 +203,7 @@ def main(argv):
 	test_dirs = []
 	build_dirs = []
 	configs = []
-	options = ['boost=source', 'preserve-test-targets=on']
+	options = ['preserve-test-targets=on']
 	time_limit = 1200
 
 	for arg in argv:

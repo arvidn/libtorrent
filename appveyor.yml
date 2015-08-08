@@ -42,4 +42,4 @@ cache:
 - C:\OpenSSL-Win32
 build_script:
 - cd %ROOT_DIRECTORY%\test
-- b2.exe -j2 %compiler% boost=source variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
+- b2.exe -j2 %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
