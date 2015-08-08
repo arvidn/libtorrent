@@ -40,8 +40,6 @@ install:
   - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - which $CXX-5
-  - ls -la `which $CXX-5`
 
 script:
   - cd test
