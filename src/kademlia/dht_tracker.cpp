@@ -247,12 +247,12 @@ namespace libtorrent { namespace dht
 		return false;
 	}
 
-	bool get_mutable_item_callback(item& it, boost::function<void(item const&)> f)
+	bool get_mutable_item_callback(item& it, bool authoritative, boost::function<void(item const&, bool)> f)
 	{
 		// the reason to wrap here is to control the return value
 		// since it controls whether we re-put the content
 		TORRENT_ASSERT(it.is_mutable());
-		f(it);
+		f(it, authoritative);
 		return false;
 	}
 
@@ -267,9 +267,11 @@ namespace libtorrent { namespace dht
 		return true;
 	}
 
-	bool put_mutable_item_callback(item& it, boost::function<void(item&)> cb)
+	bool put_mutable_item_callback(item& it, bool authoritative, boost::function<void(item&)> cb)
 	{
-		cb(it);
+		if (authoritative) {
+			cb(it);
+		}
 		return true;
 	}
 
@@ -284,10 +286,10 @@ namespace libtorrent { namespace dht
 	// key is a 32-byte binary string, the public key to look up.
 	// the salt is optional
 	void dht_tracker::get_item(char const* key
-		, boost::function<void(item const&)> cb
+		, boost::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
-		m_dht.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, cb));
+		m_dht.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, _2, cb));
 	}
 
 	void dht_tracker::put_item(entry data
@@ -306,7 +308,7 @@ namespace libtorrent { namespace dht
 		, boost::function<void(item&)> cb, std::string salt)
 	{
 		m_dht.get_item(key, salt, boost::bind(&put_mutable_item_callback
-			, _1, cb));
+			, _1, _2, cb));
 	}
 
 	// translate bittorrent kademlia message into the generice kademlia message

@@ -97,7 +97,7 @@ namespace libtorrent { namespace dht
 		// key is a 32-byte binary string, the public key to look up.
 		// the salt is optional
 		void get_item(char const* key
-			, boost::function<void(item const&)> cb
+			, boost::function<void(item const&, bool)> cb
 			, std::string salt = std::string());
 
 		void put_item(entry data

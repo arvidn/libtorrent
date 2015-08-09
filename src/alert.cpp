@@ -1448,17 +1448,19 @@ namespace libtorrent {
 		, boost::array<char, 64> sig
 		, boost::uint64_t sequence
 		, std::string const& s
-		, entry const& i)
-		: key(k), signature(sig), seq(sequence), salt(s), item(i)
+		, entry const& i
+		, bool a)
+		: key(k), signature(sig), seq(sequence), salt(s), item(i), authoritative(a)
 	{}
 
 	std::string dht_mutable_item_alert::message() const
 	{
 		char msg[1050];
-		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 ") [ %s ]"
+		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 " %s) [ %s ]"
 			, to_hex(std::string(&key[0], 32)).c_str()
 			, salt.c_str()
 			, seq
+			, authoritative ? "auth" : "non-auth"
 			, item.to_string().c_str());
 		return msg;
 	}
