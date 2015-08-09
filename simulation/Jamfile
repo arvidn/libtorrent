@@ -9,7 +9,7 @@ use-project /libsimulator : libsimulator ;
 project
 	: requirements
 	<simulator>on
-	<library>/torrent//torrent
+	<library>/torrent//torrent/<export-extra>on
 	<library>/libtorrent_test//libtorrent_test
 	<source>swarm_suite.cpp
 	<source>setup_swarm.cpp
