@@ -895,6 +895,9 @@ namespace aux {
 		m_alerts.add_extension(ext);
 		ext->added(session_handle(this));
 
+		// get any DHT queries the plugin would like to handle
+		// and record them in m_extension_dht_queries for lookup
+		// later
 		dht_extensions_t dht_ext;
 		ext->register_dht_extensions(dht_ext);
 		for (dht_extensions_t::iterator e = dht_ext.begin();
