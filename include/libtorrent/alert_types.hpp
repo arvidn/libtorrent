@@ -2382,6 +2382,8 @@ namespace libtorrent
 		int m_peers_idx;
 	};
 
+	// This is posted exactly once for every call to session_handle::dht_direct_request.
+	// If the request failed, response() will return a default constructed bdecode_node.
 	struct TORRENT_EXPORT dht_direct_response_alert: alert
 	{
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
