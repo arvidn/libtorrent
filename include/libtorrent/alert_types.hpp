@@ -2395,7 +2395,7 @@ namespace libtorrent
 		void* userdata;
 		udp::endpoint addr;
 
-		void response(bdecode_node& ret) const;
+		bdecode_node response() const;
 
 	private:
 		aux::stack_allocator& m_alloc;

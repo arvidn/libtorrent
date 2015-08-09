@@ -1848,13 +1848,15 @@ namespace libtorrent {
 		return msg;
 	}
 
-	void dht_direct_response_alert::response(bdecode_node& ret) const
+	bdecode_node dht_direct_response_alert::response() const
 	{
 		char const* start = m_alloc.ptr(m_response_idx);
 		char const* end = start + m_response_size;
 		error_code ec;
+		bdecode_node ret;
 		bdecode(start, end, ret, ec);
 		TORRENT_ASSERT(!ec);
+		return ret;
 	}
 
 } // namespace libtorrent
