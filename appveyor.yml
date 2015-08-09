@@ -24,6 +24,7 @@ environment:
 #    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
 
 install:
+- git submodule update --init --recursive
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
 - if not exist c:\OpenSSL-Win32\nul (
