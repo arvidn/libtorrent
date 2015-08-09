@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_WINDOWS
 // windows.h must be included after stdlib.h under mingw
-#include <windows.h> 
+#include <windows.h>
 #endif
 
 #ifdef TORRENT_MINGW
@@ -80,7 +80,9 @@ namespace libtorrent
 		static int s = 0;
 		if (s != 0) return s;
 
-#ifdef TORRENT_WINDOWS
+#ifdef TORRENT_BUILD_SIMULATOR
+		s = 4096;
+#elif defined TORRENT_WINDOWS
 		SYSTEM_INFO si;
 		GetSystemInfo(&si);
 		s = si.dwPageSize;

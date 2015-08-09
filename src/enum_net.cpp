@@ -404,7 +404,16 @@ namespace libtorrent
 	{
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
-#if TORRENT_USE_IFADDRS
+#if defined TORRENT_BUILD_SIMULATOR
+
+		ip_interface wan;
+		wan.interface_address = ios.get_ip();
+		wan.netmask = address_v4::from_string("255.255.255.255");
+		strcpy(wan.name, "eth0");
+		wan.mtu = ios.sim().config().path_mtu(ios.get_ip(), ios.get_ip());
+		ret.push_back(wan);
+
+#elif TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -664,9 +673,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	address get_default_gateway(error_code& ec)
+	address get_default_gateway(io_service& ios, error_code& ec)
 	{
-		std::vector<ip_route> ret = enum_routes(ec);
+		std::vector<ip_route> ret = enum_routes(ios, ec);
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
 			, boost::bind(&is_loopback, boost::bind(&ip_route::destination, _1)));
@@ -678,11 +687,23 @@ namespace libtorrent
 		return i->gateway;
 	}
 
-	std::vector<ip_route> enum_routes(error_code& ec)
+	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
 
-#if TORRENT_USE_SYSCTL
+#ifdef TORRENT_BUILD_SIMULATOR
+
+		ip_route r;
+		r.destination = address_v4();
+		r.netmask = address_v4::from_string("255.255.255.0");
+		address_v4::bytes_type b = ios.get_ip().to_v4().to_bytes();
+		b[3] = 1;
+		r.gateway = address_v4(b);
+		strcpy(r.name, "eth0");
+		r.mtu = ios.sim().config().path_mtu(ios.get_ip(), ios.get_ip());
+		ret.push_back(r);
+
+#elif TORRENT_USE_SYSCTL
 /*
 		struct rt_msg
 		{
