@@ -199,7 +199,6 @@ alias win-tests :
 	test_remap_files
 	test_auto_unchoke
 	test_torrent
-	test_http_connection
 	test_transfer
 	test_time_critical
 	test_metadata_extension
