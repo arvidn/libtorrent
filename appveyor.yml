@@ -26,7 +26,9 @@ environment:
 install:
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if not exist c:\OpenSSL-Win32\nul ( appveyor DownloadFile https://strcpy.net/packages/Win32OpenSSL-1_0_2a.exe && Win32OpenSSL-1_0_2a.exe /silent /verysilent /sp- /suppressmsgboxes )
+- if not exist c:\OpenSSL-Win32\nul (
+  appveyor DownloadFile https://strcpy.net/packages/Win32OpenSSL-1_0_2a.exe
+  && Win32OpenSSL-1_0_2a.exe /silent /verysilent /sp- /suppressmsgboxes )
 - copy c:\OpenSSL-Win32\ssleay32.dll %WINDIR%\system32
 - copy c:\OpenSSL-Win32\libeay32.dll %WINDIR%\system32
 - cd %ROOT_DIRECTORY%
@@ -46,6 +48,14 @@ install:
 cache:
 - C:\OpenSSL-Win32
 build_script:
+- cd %ROOT_DIRECTORY%\examples
+- b2.exe -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
 - cd %ROOT_DIRECTORY%\test
 - b2.exe -j2 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
+- cd %ROOT_DIRECTORY%\bindings\python
+- b2.exe -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths stage_module
+- python test.py
+- if $variant == "test_debug" (
+  cd %ROOT_DIRECTORY%\simulation
+  && b2.exe -j2 crypto=built-in warnings=off %compiler% )
 
