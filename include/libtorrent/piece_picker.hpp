@@ -136,7 +136,7 @@ namespace libtorrent
 
 		enum options_t
 		{
-			// pick rarest first 
+			// pick rarest first
 			rarest_first = 1,
 			// pick the most common first, or the last pieces if sequential
 			reverse = 2,

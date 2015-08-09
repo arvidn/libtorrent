@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/time.hpp" // for clock_type
 #include <fstream>
 
@@ -49,15 +50,18 @@ struct swarm_config : swarm_setup_provider
 {
 	swarm_config(int flags)
 		: m_flags(flags)
-		, m_swarm_id(std::rand())
 		, m_start_time(lt::clock_type::now())
 	{
+		m_swarm_id = test_counter();
+
 		// in case the previous run was terminated
 		error_code ec;
 		char save_path[200];
 		snprintf(save_path, sizeof(save_path), "swarm-%04d-peer-%02d"
 			, m_swarm_id, 0);
 		create_directory(save_path, ec);
+		if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+			, save_path, ec.message().c_str());
 		std::ofstream file(combine_path(save_path, "temporary").c_str());
 		m_ti = ::create_torrent(&file, 0x4000, 9, false);
 		file.close();

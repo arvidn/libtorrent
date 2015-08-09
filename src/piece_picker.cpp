@@ -268,7 +268,7 @@ namespace libtorrent
 #endif
 
 		// since we're removing a downloading_piece, we also need to free its
-		// blocks that are allocated from the m_block_info array. 
+		// blocks that are allocated from the m_block_info array.
 		m_free_block_infos.push_back(i->info_idx);
 
 		TORRENT_ASSERT(find_dl_piece(download_state, i->index) == i);

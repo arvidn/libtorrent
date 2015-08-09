@@ -50,9 +50,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef WIN32
 #include <windows.h> // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
+#include <process.h> // for _getpid
 
 #define dup _dup
 #define dup2 _dup2
+
+#else
+
+#include <unistd.h> // for getpid()
 
 #endif
 
@@ -63,6 +68,8 @@ using namespace libtorrent;
 int old_stdout = -1;
 int old_stderr = -1;
 bool redirect_output = true;
+
+extern int _g_test_idx;
 
 // the current tests file descriptor
 unit_test_t* current_test = NULL;
@@ -194,7 +201,6 @@ EXPORT int main(int argc, char const* argv[])
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 #endif
 
-	srand(total_microseconds(clock_type::now().time_since_epoch()) & 0x7fffffff);
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just
@@ -217,8 +223,14 @@ EXPORT int main(int argc, char const* argv[])
 	signal(SIGSYS, &sig_handler);
 #endif
 
+	int process_id = -1;
+#ifdef _WIN32
+	process_id = _getpid();
+#else
+	process_id = getpid();
+#endif
 	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", rand());
+	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
 	std::string test_dir = complete(dir);
 	error_code ec;
 	create_directory(test_dir, ec);
@@ -273,6 +285,7 @@ EXPORT int main(int argc, char const* argv[])
 			}
 		}
 
+		_g_test_idx = i;
 		current_test = &t;
 
 #ifndef BOOST_NO_EXCEPTIONS

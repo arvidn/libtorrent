@@ -52,6 +52,17 @@ namespace libtorrent
 	using boost::random::mt19937;
 	using boost::random::uniform_int_distribution;
 
+#ifdef TORRENT_BUILD_SIMULATOR
+
+	boost::uint32_t random()
+	{
+		// make sure random numbers are deterministic. Seed with a fixed number
+		static mt19937 random_engine(4040);
+		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
+	}
+
+#else
+
 #if !TORRENT_THREADSAFE_STATIC
 	// because local statics are not atomic pre c++11
 	// do it manually, probably at a higher cost
@@ -80,5 +91,8 @@ namespace libtorrent
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(*rnd);
 #endif
 	}
+
+#endif // TORRENT_BUILD_SIMULATOR
+
 }
 

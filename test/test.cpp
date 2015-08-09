@@ -37,8 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 unit_test_t _g_unit_tests[1024];
 int _g_num_unit_tests = 0;
 int _g_test_failures = 0;
+int _g_test_idx = 0;
 
 static std::vector<std::string> failure_strings;
+
+int test_counter()
+{
+	return _g_test_idx;
+}
 
 void report_failure(char const* err, char const* file, int line)
 {

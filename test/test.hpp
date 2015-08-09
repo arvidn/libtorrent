@@ -69,6 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void EXPORT report_failure(char const* err, char const* file, int line);
 int EXPORT print_failures();
+int EXPORT test_counter();
 
 typedef void (*unit_test_fun_t)();
 
