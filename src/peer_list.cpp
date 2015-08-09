@@ -569,7 +569,6 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		error_code ec;
 		TORRENT_ASSERT(!state->is_paused);
 
 		iterator iter;
@@ -721,7 +720,6 @@ namespace libtorrent
 		{
 			// we don't have any info about this peer.
 			// add a new entry
-			error_code ec;
 
 			if (state->max_peerlist_size
 				&& int(m_peers.size()) >= state->max_peerlist_size)

@@ -366,7 +366,7 @@ namespace aux {
 		, m_alert_pointer_pos(0)
 #endif
 		, m_disk_thread(m_io_service, m_stats_counters
-			, (uncork_interface*)this)
+			, static_cast<uncork_interface*>(this))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_global_class(0)
@@ -1346,8 +1346,8 @@ namespace aux {
 		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
 		{
 #ifdef TORRENT_DEBUG
-			torrent* i = (torrent*)m_torrent_lru.front();
-			while (i != NULL && i != t) i = (torrent*)i->next;
+			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
+			while (i != NULL && i != t) i = static_cast<torrent*>(i->next);
 			TORRENT_ASSERT(i == t);
 #endif
 
@@ -1386,8 +1386,8 @@ namespace aux {
 		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
 
 #if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		torrent* i = (torrent*)m_torrent_lru.front();
-		while (i != NULL && i != t) i = (torrent*)i->next;
+		torrent* i = static_cast<torrent*>(m_torrent_lru.front());
+		while (i != NULL && i != t) i = static_cast<torrent*>(i->next);
 		TORRENT_ASSERT(i == t);
 #endif
 
@@ -1425,8 +1425,8 @@ namespace aux {
 		if (ignore->next != NULL || ignore->prev != NULL || m_torrent_lru.front() == ignore)
 		{
 #ifdef TORRENT_DEBUG
-			torrent* i = (torrent*)m_torrent_lru.front();
-			while (i != NULL && i != ignore) i = (torrent*)i->next;
+			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
+			while (i != NULL && i != ignore) i = static_cast<torrent*>(i->next);
 			TORRENT_ASSERT(i == ignore);
 #endif
 			++loaded_limit;
@@ -1436,11 +1436,11 @@ namespace aux {
 		{
 			// we're at the limit of loaded torrents. Find the least important
 			// torrent and unload it. This is done with an LRU.
-			torrent* i = (torrent*)m_torrent_lru.front();
+			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
 
 			if (i == ignore)
 			{
-				i = (torrent*)i->next;
+				i = static_cast<torrent*>(i->next);
 				if (i == NULL) break;
 			}
 			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
@@ -4416,7 +4416,7 @@ retry:
 
 	void session_impl::on_async_load_torrent(disk_io_job const* j)
 	{
-		add_torrent_params* params = (add_torrent_params*)j->requester;
+		add_torrent_params* params = static_cast<add_torrent_params*>(j->requester);
 		error_code ec;
 		torrent_handle handle;
 		if (j->error.ec)
@@ -4908,7 +4908,7 @@ retry:
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update((char*)&tptr->info_hash()[0], 20);
+		h.update(tptr->info_hash().data(), 20);
 		m_obfuscated_torrents.erase(h.final());
 #endif
 
@@ -5094,7 +5094,7 @@ retry:
 		std::copy(print.begin(), print.begin() + print.length(), m_peer_id.begin());
 		if (print.length() < 20)
 		{
-			url_random((char*)&m_peer_id[print.length()], (char*)&m_peer_id[0] + 20);
+			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
 		}
 	}
 
@@ -5393,7 +5393,7 @@ retry:
 		INVARIANT_CHECK;
 
 		stop_dht();
-		m_dht = boost::make_shared<dht::dht_tracker>((dht_observer*)this
+		m_dht = boost::make_shared<dht::dht_tracker>(static_cast<dht_observer*>(this)
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters), &startup_state);
 
@@ -6024,7 +6024,7 @@ retry:
 		if (!m_settings.get_bool(settings_pack::anonymous_mode)) return;
 
 		m_settings.set_str(settings_pack::user_agent, "");
-		url_random((char*)&m_peer_id[0], (char*)&m_peer_id[0] + 20);
+		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
 
 	void session_impl::update_force_proxy()
@@ -6385,9 +6385,9 @@ retry:
 		, int local_port)
 	{
 		int ret = 0;
-		if (m_upnp) ret = m_upnp->add_mapping((upnp::protocol_type)t, external_port
+		if (m_upnp) ret = m_upnp->add_mapping(static_cast<upnp::protocol_type>(t), external_port
 			, local_port);
-		if (m_natpmp) ret = m_natpmp->add_mapping((natpmp::protocol_type)t, external_port
+		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<natpmp::protocol_type>(t), external_port
 			, local_port);
 		return ret;
 	}
@@ -6576,9 +6576,9 @@ retry:
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		int num_bytes = send_buffer_size();
-		return (char*)malloc(num_bytes);
+		return static_cast<char*>(malloc(num_bytes));
 #else
-		return (char*)m_send_buffers.malloc();
+		return static_cast<char*>(m_send_buffers.malloc());
 #endif
 	}
 
@@ -6626,7 +6626,7 @@ retry:
 #endif
 		for (list_iterator i = m_torrent_lru.iterate(); i.get(); i.next())
 		{
-			torrent* t = (torrent*)i.get();
+			torrent* t = static_cast<torrent*>(i.get());
 			TORRENT_ASSERT(t->is_loaded());
 			TORRENT_ASSERT(unique_torrents.count(t) == 0);
 			unique_torrents.insert(t);

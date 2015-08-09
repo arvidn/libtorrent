@@ -5797,7 +5797,7 @@ namespace libtorrent
 		, block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_send_buffer.append_buffer((char*)buffer, size, size, destructor
+		m_send_buffer.append_buffer(const_cast<char*>(buffer), size, size, destructor
 			, userdata, ref);
 	}
 
@@ -6522,7 +6522,7 @@ namespace libtorrent
 		}
 		else if (!m_in_constructor)
 		{
-			TORRENT_ASSERT(m_ses.has_peer((peer_connection*)this));
+			TORRENT_ASSERT(m_ses.has_peer(this));
 		}
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);

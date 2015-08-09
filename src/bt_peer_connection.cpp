@@ -1082,7 +1082,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		bitfield bits;
-		bits.assign((char*)recv_buffer.begin + 1
+		bits.assign(recv_buffer.begin + 1
 			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*8);
 
 		incoming_bitfield(bits);
@@ -1131,7 +1131,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		bool merkle = (unsigned char)recv_buffer.begin[0] == 250;
+		bool merkle = static_cast<boost::uint8_t>(recv_buffer.begin[0]) == 250;
 		if (merkle)
 		{
 			if (recv_pos == 1)
@@ -1927,7 +1927,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
-		int packet_type = (unsigned char)recv_buffer[0];
+		int packet_type = static_cast<boost::uint8_t>(recv_buffer[0]);
 
 		if (m_settings.get_bool(settings_pack::support_merkle_torrents)
 			&& packet_type == 250) packet_type = msg_piece;
@@ -1948,9 +1948,6 @@ namespace libtorrent
 #endif
 
 			received_bytes(0, received);
-			// What's going on here?!
-			// break in debug builds to allow investigation
-//			TORRENT_ASSERT(false);
 			disconnect(errors::invalid_message, op_bittorrent);
 			return m_recv_buffer.packet_finished();
 		}
@@ -2178,10 +2175,10 @@ namespace libtorrent
 		}
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
-	
-		char* msg = TORRENT_ALLOCA(char, packet_size);
+
+		boost::uint8_t* msg = TORRENT_ALLOCA(boost::uint8_t, packet_size);
 		if (msg == 0) return; // out of memory
-		unsigned char* ptr = (unsigned char*)msg;
+		unsigned char* ptr = msg;
 
 		detail::write_int32(packet_size - 4, ptr);
 		detail::write_uint8(msg_bitfield, ptr);
@@ -2191,7 +2188,7 @@ namespace libtorrent
 			memset(ptr, 0xff, packet_size - 5);
 
 			// Clear trailing bits
-			unsigned char *p = ((unsigned char *)msg) + packet_size - 1;
+			unsigned char *p = msg + packet_size - 1;
 			*p = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
 		}
 		else
@@ -2233,7 +2230,7 @@ namespace libtorrent
 #endif
 		m_sent_bitfield = true;
 
-		send_buffer(msg, packet_size);
+		send_buffer(reinterpret_cast<char const*>(msg), packet_size);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
 
@@ -2350,9 +2347,9 @@ namespace libtorrent
 
 		char msg[6];
 		char* ptr = msg;
-		
+
 		// write the length of the message
-		detail::write_int32((int)dict_msg.size() + 2, ptr);
+		detail::write_int32(int(dict_msg.size()) + 2, ptr);
 		detail::write_uint8(msg_extended, ptr);
 		// signal handshake message
 		detail::write_uint8(0, ptr);
@@ -2471,14 +2468,14 @@ namespace libtorrent
 	void buffer_reclaim_block(char* /* buffer */, void* userdata
 		, block_cache_reference ref)
 	{
-		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
+		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
 		buf->reclaim_block(ref);
 	}
 
 	void buffer_free_disk_buf(char* buffer, void* userdata
 		, block_cache_reference /* ref */)
 	{
-		buffer_allocator_interface* buf = (buffer_allocator_interface*)userdata;
+		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
 		buf->free_disk_buffer(buffer);
 	}
 
@@ -2516,7 +2513,7 @@ namespace libtorrent
 		// is 0, we need to include the merkle node hashes
 		if (merkle)
 		{
-			std::vector<char>	piece_list_buf;
+			std::vector<char> piece_list_buf;
 			entry piece_list;
 			entry::list_type& l = piece_list.list();
 			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
@@ -2530,8 +2527,10 @@ namespace libtorrent
 			bencode(std::back_inserter(piece_list_buf), piece_list);
 			detail::write_int32(piece_list_buf.size(), ptr);
 
-			char* ptr = msg;
-			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size(), ptr);
+			// back-patch the length field
+			char* ptr2 = msg;
+			detail::write_int32(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size()
+				, ptr2);
 
 			send_buffer(msg, 17);
 			send_buffer(&piece_list_buf[0], piece_list_buf.size());
@@ -2728,10 +2727,10 @@ namespace libtorrent
 				}
 			}
 
-			int syncoffset = get_syncoffset((char*)m_sync_hash->begin(), 20
+			int syncoffset = get_syncoffset(m_sync_hash->data(), 20
 				, recv_buffer.begin, recv_buffer.left());
 
-			// No sync 
+			// No sync
 			if (syncoffset == -1)
 			{
 				received_bytes(0, bytes_transferred);
@@ -3301,7 +3300,7 @@ namespace libtorrent
 				// info_hash we got from the peer
 				sha1_hash info_hash;
 				std::copy(recv_buffer.begin + 8, recv_buffer.begin + 28
-					, (char*)info_hash.begin());
+					, info_hash.data());
 
 				attach_to_torrent(info_hash);
 				if (is_disconnecting()) return;
@@ -3310,7 +3309,7 @@ namespace libtorrent
 			{
 				// verify info hash
 				if (!std::equal(recv_buffer.begin + 8, recv_buffer.begin + 28
-					, (const char*)t->torrent_file().info_hash().begin()))
+					, t->torrent_file().info_hash().data()))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "ERROR", "received invalid info_hash");
@@ -3326,7 +3325,7 @@ namespace libtorrent
 
 			t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
-			
+
 			// if this is a local connection, we have already
 			// sent the handshake
 			if (!is_outgoing()) write_handshake();
@@ -3612,9 +3611,9 @@ namespace libtorrent
 			m_payloads.erase(m_payloads.begin(), first_to_keep);
 		}
 
-		TORRENT_ASSERT(amount_payload <= (int)bytes_transferred);
+		TORRENT_ASSERT(amount_payload <= int(bytes_transferred));
 		sent_bytes(amount_payload, bytes_transferred - amount_payload);
-		
+
 		if (amount_payload > 0)
 		{
 			boost::shared_ptr<torrent> t = associated_torrent().lock();

@@ -148,9 +148,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #endif
 		)
 	{
-		error_code ec(errors::unsupported_url_protocol);
+		error_code err(errors::unsupported_url_protocol);
 		m_timer.get_io_service().post(boost::bind(&http_connection::callback
-			, me, ec, static_cast<char*>(NULL), 0));
+			, me, err, static_cast<char*>(NULL), 0));
 		return;
 	}
 
@@ -275,8 +275,8 @@ void http_connection::start(std::string const& hostname, int port
 	{
 		m_ssl = ssl;
 		m_bind_addr = bind_addr;
-		error_code ec;
-		if (m_sock.is_open()) m_sock.close(ec);
+		error_code err;
+		if (m_sock.is_open()) m_sock.close(err);
 
 #if TORRENT_USE_I2P
 		bool is_i2p = false;
@@ -348,7 +348,6 @@ void http_connection::start(std::string const& hostname, int port
 
 		if (m_bind_addr != address_v4::any())
 		{
-			error_code ec;
 			m_sock.open(m_bind_addr.is_v4()?tcp::v4():tcp::v6(), ec);
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
@@ -631,7 +630,7 @@ void http_connection::callback(error_code e, char* data, int size)
 	std::vector<char> buf;
 	if (data && m_bottled && m_parser.header_finished())
 	{
-		size = m_parser.collapse_chunk_headers((char*)data, size);
+		size = m_parser.collapse_chunk_headers(data, size);
 
 		std::string const& encoding = m_parser.header("content-encoding");
 		if ((encoding == "gzip" || encoding == "x-gzip") && size > 0 && data)

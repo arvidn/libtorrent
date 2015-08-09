@@ -157,7 +157,7 @@ namespace libtorrent {
 		while (new_size < size)
 			new_size <<= 1;
 
-		void** new_storage = (void**)malloc(sizeof(void*) * new_size);
+		void** new_storage = static_cast<void**>(malloc(sizeof(void*) * new_size));
 #ifndef BOOST_NO_EXCEPTIONS
 		if (new_storage == NULL) throw std::bad_alloc();
 #endif

@@ -300,10 +300,10 @@ namespace
 				, tmp, &compare_id);
 
 #ifndef NDEBUG
-		for (int i = 1; i < size; ++i)
+		for (int j = 1; j < size; ++j)
 		{
-			TORRENT_ASSERT(compare_id(name_map[i-1]
-				, name_map[i]));
+			TORRENT_ASSERT(compare_id(name_map[j-1]
+				, name_map[j]));
 		}
 #endif
 
@@ -334,7 +334,7 @@ namespace
 		return identity;
 	}
 
-	bool find_string(unsigned char const* id, char const* search)
+	bool find_string(char const* id, char const* search)
 	{
 		return std::equal(search, search + std::strlen(search), id);
 	}
@@ -362,7 +362,7 @@ namespace libtorrent
 
 	std::string identify_client(peer_id const& p)
 	{
-		peer_id::const_iterator PID = p.begin();
+		char const* PID = p.data();
 		boost::optional<fingerprint> f;
 
 		if (p.is_all_zeros()) return "Unknown";
@@ -380,11 +380,11 @@ namespace libtorrent
 		}
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
-			return "Bits on Wheels " + std::string((char const*)PID + 4, (char const*)PID + 7);
+			return "Bits on Wheels " + std::string(PID + 4, (char const*)PID + 7);
 
 		if (find_string(PID, "eX"))
 		{
-			std::string user((char const*)PID + 2, (char const*)PID + 14);
+			std::string user(PID + 2, PID + 14);
 			return std::string("eXeem ('") + user.c_str() + "')";
 		}
 

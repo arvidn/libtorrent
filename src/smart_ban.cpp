@@ -86,7 +86,7 @@ void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
 
 	file_storage const& fs = t.torrent_file().files();
 	std::vector<file_slice> files = fs.map_block(piece, block * 0x4000, len);
-	
+
 	std::string fn = fs.file_path(fs.internal_at(files[0].file_index));
 
 	char filename[4094];
@@ -94,7 +94,7 @@ void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
 	for (int i = 0; i < files.size(); ++i)
 	{
 		offset += snprintf(filename+offset, sizeof(filename)-offset
-			, "%s[%"PRId64",%d]", libtorrent::filename(fn).c_str(), files[i].offset, int(files[i].size));
+			, "%s[%" PRId64 ",%d]", libtorrent::filename(fn).c_str(), files[i].offset, int(files[i].size));
 		if (offset >= sizeof(filename)) break;
 	}
 

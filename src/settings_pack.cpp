@@ -458,6 +458,9 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 	boost::shared_ptr<settings_pack> load_pack_from_struct(
 		aux::session_settings const& current, session_settings const& s)
 	{
@@ -539,6 +542,9 @@ namespace libtorrent
 		ret.peer_turnover = float(current.get_int(settings_pack::peer_turnover)) / 100.f;
 		ret.peer_turnover_cutoff = float(current.get_int(settings_pack::peer_turnover_cutoff)) / 100.f;
 	}
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #endif
 
 	void initialize_default_settings(aux::session_settings& s)

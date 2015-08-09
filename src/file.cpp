@@ -1837,7 +1837,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			free(tmp.iov_base);
 
 #endif
-#if TORRENT_HAVE_FDATASYNC \
+#if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
 	!defined DIRECTIO_ON
 		if (m_open_mode & no_cache)
@@ -2075,7 +2075,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 					return false;
 				}
 				// ok, let's try to allocate non contiguous space then
-				fstore_t f = {F_ALLOCATEALL, F_PEOFPOSMODE, 0, s, 0};
+				f.fst_flags = F_ALLOCATEALL;
 				if (fcntl(native_handle(), F_PREALLOCATE, &f) < 0)
 				{
 					ec.assign(errno, generic_category());

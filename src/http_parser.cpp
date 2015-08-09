@@ -513,7 +513,7 @@ restart_response:
 		return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
 			, m_recv_buffer.begin + last_byte);
 	}
-	
+
 	void http_parser::reset()
 	{
 		m_method.clear();
@@ -534,7 +534,7 @@ restart_response:
 		m_chunk_header_size = 0;
 		m_partial_chunk_header = 0;
 	}
-	
+
 	int http_parser::collapse_chunk_headers(char* buffer, int size) const
 	{
 		if (!chunked_encoding()) return size;
@@ -542,7 +542,7 @@ restart_response:
 		// go through all chunks and compact them
 		// since we're bottled, and the buffer is our after all
 		// it's OK to mutate it
-		char* write_ptr = (char*)buffer;
+		char* write_ptr = buffer;
 		// the offsets in the array are from the start of the
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
