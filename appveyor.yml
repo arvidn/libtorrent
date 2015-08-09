@@ -15,9 +15,14 @@ environment:
   - variant: test_release
     compiler: msvc
     linkflags: '"/LIBPATH:C:\\OpenSSL-Win32\\lib"'
-  - variant: test_debug
-    compiler: gcc
-    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
+
+# mingw and boost.random don't like each other. Comment this back in once there
+# is support
+
+#  - variant: test_debug
+#    compiler: gcc
+#    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
+
 install:
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
@@ -42,4 +47,5 @@ cache:
 - C:\OpenSSL-Win32
 build_script:
 - cd %ROOT_DIRECTORY%\test
-- b2.exe -j2 %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
+- b2.exe -j2 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off --abbreviate-paths
+

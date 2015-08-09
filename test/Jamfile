@@ -144,6 +144,7 @@ test-suite libtorrent :
 		test_settings_pack.cpp
 		test_fence.cpp
 		test_dos_blocker.cpp
+		test_stat_cache.cpp
 		test_file_progress.cpp ]
 
 	[ run test_storage.cpp ]
@@ -151,7 +152,6 @@ test-suite libtorrent :
 	[ run test_read_piece.cpp ]
 
 	[ run test_file.cpp ]
-	[ run test_stat_cache.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_recheck.cpp ]
@@ -185,8 +185,38 @@ test-suite libtorrent :
 	[ run test_swarm.cpp ]
 	[ run test_super_seeding.cpp ]
 
-# make these test more reliable
+# turn these tests into simulations
 #	[ run test_upnp.cpp ]
 #	[ run test_lsd.cpp ]
 	;
+
+# these are the tests run on appveyor, while the flapping ones are being
+# transitioned into simulations
+alias win-tests :
+	test_primitives
+	test_pe_crypto
+	test_utp
+	test_remap_files
+	test_auto_unchoke
+	test_torrent
+	test_http_connection
+	test_transfer
+	test_time_critical
+	test_metadata_extension
+	test_pex
+	test_priority
+	test_super_seeding
+	test_swarm
+	test_storage
+	test_session
+	test_read_piece
+	test_file
+	test_fast_extension
+	test_recheck
+	test_resume
+	test_tracker
+	test_checking
+	;
+
+explicit win-tests ;
 

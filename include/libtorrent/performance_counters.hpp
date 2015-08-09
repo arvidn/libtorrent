@@ -393,7 +393,7 @@ namespace libtorrent
 			num_fenced_flush_hashed,
 			num_fenced_flush_storage,
 			num_fenced_trim_cache,
-			num_fenced_file_priority, 
+			num_fenced_file_priority,
 			num_fenced_load_torrent,
 			num_fenced_clear_piece,
 			num_fenced_tick_storage,

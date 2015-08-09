@@ -21,7 +21,7 @@ project
 	<picker-debugging>on
 	;
 
-test-suite libtorrent-sims :
+alias libtorrent-sims :
 	[ run test_swarm.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_dht.cpp ]
