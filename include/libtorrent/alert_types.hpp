@@ -2389,6 +2389,10 @@ namespace libtorrent
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr, bdecode_node const& response);
 
+		// for when there was a timeout so we don't have a response
+		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+			, udp::endpoint const& addr);
+
 		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
 
 		static const int static_category = alert::dht_notification;

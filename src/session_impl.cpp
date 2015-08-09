@@ -5552,7 +5552,10 @@ retry:
 
 		void on_direct_response(alert_manager& alerts, void* userdata, dht::msg const& msg)
 		{
-			alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr, msg.message);
+			if (msg.message.type() == bdecode_node::none_t)
+				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr);
+			else
+				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr, msg.message);
 		}
 
 	} // anonymous namespace
