@@ -20,8 +20,6 @@ test_programs = \
   test_ssl                   \
   test_storage               \
   test_time_critical         \
-  test_super_seeding         \
-  test_swarm                 \
   test_torrent               \
   test_tracker               \
   test_trackers_extension    \
@@ -174,8 +172,6 @@ test_pex_SOURCES = test_pex.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
 test_time_critical_SOURCES = test_time_critical.cpp
-test_super_seeding_SOURCES = test_super_seeding.cpp
-test_swarm_SOURCES = test_swarm.cpp
 test_resume_SOURCES = test_resume.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_torrent_SOURCES = test_torrent.cpp

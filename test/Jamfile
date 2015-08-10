@@ -181,8 +181,6 @@ test-suite libtorrent :
 	[ run test_time_critical.cpp ]
 	[ run test_pex.cpp ]
 	[ run test_priority.cpp ]
-	[ run test_swarm.cpp ]
-	[ run test_super_seeding.cpp ]
 
 # turn these tests into simulations
 #	[ run test_upnp.cpp ]
@@ -202,8 +200,6 @@ alias win-tests :
 	test_time_critical
 	test_pex
 	test_priority
-	test_super_seeding
-	test_swarm
 	test_storage
 	test_session
 	test_read_piece

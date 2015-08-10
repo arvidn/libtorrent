@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2014, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,27 +31,17 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "swarm_suite.hpp"
-
-TORRENT_TEST(seed_mode)
-{
-	// with seed mode
-	test_swarm(seed_mode);
-}
+#include "test.hpp"
 
 TORRENT_TEST(plain)
 {
-	test_swarm();
+	// with super seeding
+	simulate_swarm(super_seeding);
 }
 
-TORRENT_TEST(suggest)
+TORRENT_TEST(strict)
 {
-	// with suggest pieces
-	test_swarm(suggest);
-}
-
-TORRENT_TEST(explicit_cache)
-{
-	// test explicit cache
-	test_swarm(suggest | explicit_cache);
+	// with strict super seeding
+	simulate_swarm(super_seeding | strict_super_seeding);
 }
 

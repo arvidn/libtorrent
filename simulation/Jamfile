@@ -24,6 +24,7 @@ project
 
 alias libtorrent-sims :
 	[ run test_swarm.cpp ]
+	[ run test_super_seeding.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_dht.cpp ]
 	[ run test_pe_crypto.cpp ]
