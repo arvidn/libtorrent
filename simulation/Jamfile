@@ -6,6 +6,7 @@ use-project /libtorrent_test : ../test ;
 
 use-project /libsimulator : libsimulator ;
 
+# TODO: create another library with the libtorrent simulator utilities
 project
 	: requirements
 	<simulator>on
@@ -25,5 +26,6 @@ alias libtorrent-sims :
 	[ run test_swarm.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_dht.cpp ]
+	[ run test_pe_crypto.cpp ]
 	;
 

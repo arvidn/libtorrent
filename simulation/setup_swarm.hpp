@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 
+#ifndef TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
+#define TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
+
 struct swarm_setup_provider
 {
 	// can be used to check expected end conditions
@@ -54,4 +57,6 @@ struct swarm_setup_provider
 };
 
 void setup_swarm(int num_nodes, swarm_setup_provider& config);
+
+#endif
 

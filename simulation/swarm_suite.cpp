@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,82 +35,36 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/time.hpp" // for clock_type
-#include <fstream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp" // for create_torrent (factor this out!)
 #include "setup_swarm.hpp"
 #include "swarm_suite.hpp"
-#include "settings.hpp"
+#include "swarm_config.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-struct swarm_config : swarm_setup_provider
+struct test_swarm_config : swarm_config
 {
-	swarm_config(int flags)
-		: m_flags(flags)
-		, m_start_time(lt::clock_type::now())
-	{
-		m_swarm_id = test_counter();
+	test_swarm_config(int flags)
+		: swarm_config()
+		, m_flags(flags)
+	{}
 
-		// in case the previous run was terminated
-		error_code ec;
-		char save_path[200];
-		snprintf(save_path, sizeof(save_path), "swarm-%04d-peer-%02d"
-			, m_swarm_id, 0);
-		create_directory(save_path, ec);
-		if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
-			, save_path, ec.message().c_str());
-		std::ofstream file(combine_path(save_path, "temporary").c_str());
-		m_ti = ::create_torrent(&file, 0x4000, 9, false);
-		file.close();
-	}
-
-	virtual void on_exit(std::vector<torrent_handle> const& torrents)
+	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
 	{
-		TEST_CHECK(torrents.size() > 0);
-		for (int i = 0; i < int(torrents.size()); ++i)
-		{
-			torrent_status st = torrents[i].status();
-			TEST_CHECK(st.is_seeding);
-			TEST_CHECK(st.total_upload > 0 || st.total_download > 0);
-		}
+		swarm_config::on_exit(torrents);
 
 		TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(2100));
-	}
-
-	// called for every alert. if the simulation is done, return true
-	virtual bool on_alert(libtorrent::alert const* alert
-		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& torrents)
-	{
-		if (torrents.empty()) return false;
-
-		bool all_are_seeding = true;
-		for (int i = 0; i < int(torrents.size()); ++i)
-		{
-			if (torrents[i].status().is_seeding)
-				continue;
-
-			all_are_seeding = false;
-			break;
-		}
-
-		// if all torrents are seeds, terminate the simulation, we're done
-		return all_are_seeding;
 	}
 
 	// called for every torrent that's added (and every session that's started).
 	// this is useful to give every session a unique save path and to make some
 	// sessions seeds and others downloaders
-	virtual libtorrent::add_torrent_params add_torrent(int idx)
+	virtual libtorrent::add_torrent_params add_torrent(int idx) override
 	{
-		add_torrent_params p;
-		p.flags &= ~add_torrent_params::flag_paused;
-		p.flags &= ~add_torrent_params::flag_auto_managed;
-
-		p.ti = m_ti;
+		add_torrent_params p = swarm_config::add_torrent(idx);
 
 		// only the first session is set to seed mode
 		if (idx == 0)
@@ -118,17 +72,13 @@ struct swarm_config : swarm_setup_provider
 			if (m_flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 		}
 
-		char save_path[200];
-		snprintf(save_path, sizeof(save_path), "swarm-%04d-peer-%02d"
-			, m_swarm_id, idx);
-		p.save_path = save_path;
 		return p;
 	}
 
 	// called for every session that's added
-	virtual libtorrent::settings_pack add_session(int idx)
+	virtual libtorrent::settings_pack add_session(int idx) override
 	{
-		settings_pack pack = settings();
+		settings_pack pack = swarm_config::add_session(idx);
 
 		pack.set_bool(settings_pack::strict_super_seeding, m_flags & strict_super_seeding);
 
@@ -162,19 +112,11 @@ struct swarm_config : swarm_setup_provider
 			pack.set_bool(settings_pack::enable_outgoing_tcp, true);
 		}
 
-		// make sure the sessions have different peer ids
-		lt::peer_id pid;
-		std::generate(&pid[0], &pid[0] + 20, &random_byte);
-		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
-
 		return pack;
 	}
 
 private:
 	int m_flags;
-	int m_swarm_id;
-	lt::time_point m_start_time;
-	boost::shared_ptr<libtorrent::torrent_info> m_ti;
 };
 
 void simulate_swarm(int flags)
@@ -189,7 +131,7 @@ void simulate_swarm(int flags)
 		, (flags & utp_only) ? "utp-only": ""
 		);
 
-	swarm_config cfg(flags);
+	test_swarm_config cfg(flags);
 	setup_swarm(2, cfg);
 }
 

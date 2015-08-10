@@ -176,7 +176,8 @@ private:
 
 	network_setup_provider& m_config;
 
-	sim::simulation m_sim;
+	sim::default_config cfg;
+	sim::simulation m_sim{cfg};
 	asio::io_service m_ios;
 	lt::time_point m_start_time;
 
