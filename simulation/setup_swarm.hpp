@@ -45,12 +45,21 @@ struct swarm_setup_provider
 	// called for every alert. if the simulation is done, return true
 	virtual bool on_alert(libtorrent::alert const* alert
 		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& handles) { return false; }
+		, std::vector<libtorrent::torrent_handle> const& handles
+		, libtorrent::session& ses) { return false; }
 
 	// called for every torrent that's added (and every session that's started).
 	// this is useful to give every session a unique save path and to make some
 	// sessions seeds and others downloaders
 	virtual libtorrent::add_torrent_params add_torrent(int idx) = 0;
+
+	// called for every torrent that's added once the torrent_handle comes back.
+	// can be used to set options on the torrent
+	virtual void on_torrent_added(int idx, libtorrent::torrent_handle h) {}
+
+	// called for every session that's created. Leaves an opportunity for the
+	// configuration object to add extensions etc.
+	virtual void on_session_added(int idx, libtorrent::session& ses) {}
 
 	// called for every session that's added
 	virtual libtorrent::settings_pack add_session(int idx) = 0;

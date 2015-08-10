@@ -13,7 +13,6 @@ test_programs = \
   test_fast_extension        \
   test_http_connection       \
   test_lsd                   \
-  test_metadata_extension    \
   test_pe_crypto             \
   test_pex                   \
   test_read_piece            \
@@ -170,7 +169,6 @@ test_checking_SOURCES = test_checking.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
 test_lsd_SOURCES = test_lsd.cpp
-test_metadata_extension_SOURCES = test_metadata_extension.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_pex_SOURCES = test_pex.cpp
 test_read_piece_SOURCES = test_read_piece.cpp

@@ -105,7 +105,8 @@ struct swarm_config : swarm_setup_provider
 	// called for every alert. if the simulation is done, return true
 	virtual bool on_alert(libtorrent::alert const* alert
 		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& torrents)
+		, std::vector<libtorrent::torrent_handle> const& torrents
+		, libtorrent::session& ses) override
 	{
 		if (torrents.empty()) return false;
 
@@ -126,7 +127,7 @@ struct swarm_config : swarm_setup_provider
 	// called for every torrent that's added (and every session that's started).
 	// this is useful to give every session a unique save path and to make some
 	// sessions seeds and others downloaders
-	virtual libtorrent::add_torrent_params add_torrent(int idx)
+	virtual libtorrent::add_torrent_params add_torrent(int idx) override
 	{
 		add_torrent_params p;
 		p.flags &= ~add_torrent_params::flag_paused;
@@ -148,7 +149,7 @@ struct swarm_config : swarm_setup_provider
 	}
 
 	// called for every session that's added
-	virtual libtorrent::settings_pack add_session(int idx)
+	virtual libtorrent::settings_pack add_session(int idx) override
 	{
 		settings_pack pack = settings();
 

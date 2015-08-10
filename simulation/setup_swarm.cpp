@@ -74,6 +74,7 @@ struct swarm
 				boost::make_shared<lt::session>(pack
 					, boost::ref(*m_io_service.back()));
 			m_nodes.push_back(ses);
+			m_config.on_session_added(i, *ses);
 
 			// reserve a slot in here for when the torrent gets added (notified by
 			// an alert)
@@ -144,6 +145,9 @@ struct swarm
 				lt::torrent_handle h = at->handle;
 				m_torrents[session_index] = h;
 
+				// let the config object have a chance to set up the torrent
+				m_config.on_torrent_added(session_index, h);
+
 				// now, connect this torrent to all the others in the swarm
 				for (int k = 0; k < session_index; ++k)
 				{
@@ -154,7 +158,8 @@ struct swarm
 				}
 			}
 
-			if (m_config.on_alert(a, session_index, m_torrents))
+			if (m_config.on_alert(a, session_index, m_torrents
+					, *m_nodes[session_index]))
 				term = true;
 		}
 
