@@ -77,6 +77,7 @@ struct test_swarm_config : swarm_config
 		: swarm_config()
 		, m_flags(flags)
 		, m_plugin(plugin)
+		, m_metadata_alerts(0)
 	{}
 
 	// called for every session that's added
@@ -146,6 +147,11 @@ struct test_swarm_config : swarm_config
 		, std::vector<libtorrent::torrent_handle> const& handles
 		, libtorrent::session& ses) override
 	{
+		if (alert_cast<metadata_received_alert>(alert))
+		{
+			m_metadata_alerts += 1;
+		}
+
 		// make sure this function can be called on
 		// torrents without metadata
 		if ((m_flags & disconnect) == 0)
@@ -175,6 +181,7 @@ struct test_swarm_config : swarm_config
 
 	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
 	{
+		TEST_EQUAL(m_metadata_alerts, 1);
 		// in this case we should have completed without downloading anything
 		// because the downloader had upload only set
 		if (m_flags & upload_only) return;
@@ -185,6 +192,7 @@ struct test_swarm_config : swarm_config
 private:
 	int m_flags;
 	boost::shared_ptr<torrent_plugin> (*m_plugin)(torrent_handle const&, void*);
+	int m_metadata_alerts;
 };
 
 TORRENT_TEST(ut_metadata_encryption_reverse)
