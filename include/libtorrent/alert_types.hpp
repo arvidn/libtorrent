@@ -1398,7 +1398,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(portmap_log_alert, 52)
 
-		static const int static_category = alert::port_mapping_notification;
+		static const int static_category = alert::port_mapping_log_notification;
 		virtual std::string message() const;
 
 		int map_type;
