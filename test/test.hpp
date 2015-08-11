@@ -88,8 +88,8 @@ extern int EXPORT _g_test_failures;
 
 #define TORRENT_TEST(test_name) \
 	static void BOOST_PP_CAT(unit_test_, test_name)(); \
-	static struct BOOST_PP_CAT(register_class, __LINE__) { \
-		BOOST_PP_CAT(register_class, __LINE__) () { \
+	static struct BOOST_PP_CAT(register_class_, test_name) { \
+		BOOST_PP_CAT(register_class_, test_name) () { \
 			unit_test_t& t = _g_unit_tests[_g_num_unit_tests]; \
 			t.fun = &BOOST_PP_CAT(unit_test_, test_name); \
 			t.name = __FILE__ "." #test_name; \
@@ -98,7 +98,7 @@ extern int EXPORT _g_test_failures;
 			t.output = NULL; \
 			_g_num_unit_tests++; \
 		} \
-	} BOOST_PP_CAT(_static_registrar, __LINE__); \
+	} BOOST_PP_CAT(_static_registrar_, test_name); \
 	static void BOOST_PP_CAT(unit_test_, test_name)()
 
 #define TEST_REPORT_AUX(x, line, file) \

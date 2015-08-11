@@ -408,6 +408,8 @@ int g_put_count;
 
 bool get_item_cb(dht::item& i, bool a)
 {
+	// only count authoritative data
+	if (!a) return false;
 	if (!i.empty())
 		g_got_items.push_back(i);
 	if (!g_put_item.empty())
