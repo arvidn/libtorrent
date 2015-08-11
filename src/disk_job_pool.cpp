@@ -51,7 +51,7 @@ namespace libtorrent
 	disk_io_job* disk_job_pool::allocate_job(int type)
 	{
 		mutex::scoped_lock l(m_job_mutex);
-		disk_io_job* ptr = (disk_io_job*)m_job_pool.malloc();
+		disk_io_job* ptr = static_cast<disk_io_job*>(m_job_pool.malloc());
 		m_job_pool.set_next_size(100);
 		if (ptr == 0) return 0;
 		++m_jobs_in_use;
@@ -61,7 +61,7 @@ namespace libtorrent
 		TORRENT_ASSERT(ptr);
 
 		new (ptr) disk_io_job;
-		ptr->action = (disk_io_job::action_t)type;
+		ptr->action = static_cast<disk_io_job::action_t>(type);
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		ptr->in_use = true;
 #endif

@@ -440,7 +440,7 @@ namespace libtorrent
 	{
 		if (m_type != e.m_type) return false;
 
-		switch(m_type)
+		switch (m_type)
 		{
 		case int_t:
 			return integer() == e.integer();
@@ -458,7 +458,7 @@ namespace libtorrent
 
 	void entry::construct(data_type t)
 	{
-		switch(t)
+		switch (t)
 		{
 		case int_t:
 			new(data) integer_type;
@@ -472,8 +472,8 @@ namespace libtorrent
 		case dictionary_t:
 			new (data) dictionary_type;
 			break;
-		default:
-			TORRENT_ASSERT(t == undefined_t);
+		case undefined_t:
+			break;
 		}
 		m_type = t;
 #ifdef TORRENT_DEBUG
@@ -497,7 +497,7 @@ namespace libtorrent
 		case dictionary_t:
 			new (data) dictionary_type(e.dict());
 			break;
-		default:
+		case undefined_t:
 			TORRENT_ASSERT(e.type() == undefined_t);
 		}
 		m_type = e.type();
@@ -664,6 +664,7 @@ namespace libtorrent
 					i->second.to_string_impl(out, indent+2);
 				}
 			} break;
+		case undefined_t:
 		default:
 			out += "<uninitialized>\n";
 		}

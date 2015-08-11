@@ -103,8 +103,8 @@ namespace libtorrent
 		tmp_path.reserve(target.size()+5);
 		bool valid_encoding = true;
 
-		UTF8 const* ptr = (UTF8 const*)&target[0];
-		UTF8 const* end = (UTF8 const*)&target[0] + target.size();
+		UTF8 const* ptr = reinterpret_cast<UTF8 const*>(&target[0]);
+		UTF8 const* end = ptr + target.size();
 		while (ptr < end)
 		{
 			UTF32 codepoint;
@@ -154,11 +154,11 @@ namespace libtorrent
 			cp = &codepoint;
 			UTF8 sequence[5];
 			UTF8* start = sequence;
-			res = ConvertUTF32toUTF8((const UTF32**)&cp, cp + 1, &start, start + 5, lenientConversion);
+			res = ConvertUTF32toUTF8(const_cast<const UTF32**>(&cp), cp + 1, &start, start + 5, lenientConversion);
 			TORRENT_ASSERT(res == conversionOK);
 
 			for (int i = 0; i < start - sequence; ++i)
-				tmp_path += (char)sequence[i];
+				tmp_path += char(sequence[i]);
 		}
 
 		// the encoding was not valid utf-8

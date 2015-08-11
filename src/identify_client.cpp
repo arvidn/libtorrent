@@ -380,7 +380,7 @@ namespace libtorrent
 		}
 
 		if (find_string(PID, "-BOW") && PID[7] == '-')
-			return "Bits on Wheels " + std::string(PID + 4, (char const*)PID + 7);
+			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
 
 		if (find_string(PID, "eX"))
 		{

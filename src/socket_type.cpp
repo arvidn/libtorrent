@@ -223,20 +223,20 @@ namespace libtorrent
 		{
 			case 0: break;
 			case socket_type_int_impl<tcp::socket>::value:
-				new ((tcp::socket*)m_data) tcp::socket(m_io_service);
+				new (reinterpret_cast<tcp::socket*>(m_data)) tcp::socket(m_io_service);
 				break;
 			case socket_type_int_impl<socks5_stream>::value:
-				new ((socks5_stream*)m_data) socks5_stream(m_io_service);
+				new (reinterpret_cast<socks5_stream*>(m_data)) socks5_stream(m_io_service);
 				break;
 			case socket_type_int_impl<http_stream>::value:
-				new ((http_stream*)m_data) http_stream(m_io_service);
+				new (reinterpret_cast<http_stream*>(m_data)) http_stream(m_io_service);
 				break;
 			case socket_type_int_impl<utp_stream>::value:
-				new ((utp_stream*)m_data) utp_stream(m_io_service);
+				new (reinterpret_cast<utp_stream*>(m_data)) utp_stream(m_io_service);
 				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
-				new ((i2p_stream*)m_data) i2p_stream(m_io_service);
+				new (reinterpret_cast<i2p_stream*>(m_data)) i2p_stream(m_io_service);
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL

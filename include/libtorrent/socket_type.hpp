@@ -185,7 +185,7 @@ namespace libtorrent
 
 		typedef tcp::socket::receive_buffer_size receive_buffer_size;
 		typedef tcp::socket::send_buffer_size send_buffer_size;
-	
+
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
 
@@ -205,7 +205,7 @@ namespace libtorrent
 
 		void open(protocol_type const& p, error_code& ec);
 		void close(error_code& ec);
-		
+
 		// this is only relevant for uTP connections
 		void set_close_reason(boost::uint16_t code);
 		boost::uint16_t get_close_reason();

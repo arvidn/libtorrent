@@ -4674,7 +4674,7 @@ retry:
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update((char*)&(*ih)[0], 20);
+		h.update(ih->data(), 20);
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));

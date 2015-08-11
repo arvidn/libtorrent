@@ -370,7 +370,7 @@ namespace libtorrent
 #else
 			if (m_using_pool_allocator)
 			{
-				ret = (char*)m_pool.malloc();
+				ret = static_cast<char*>(m_pool.malloc());
 				int effective_block_size = m_cache_buffer_chunk_size
 					? m_cache_buffer_chunk_size
 					: (std::max)(m_max_use / 10, 1);

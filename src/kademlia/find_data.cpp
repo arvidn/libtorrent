@@ -83,7 +83,7 @@ namespace {
 
 void add_entry_fun(void* userdata, node_entry const& e)
 {
-	traversal_algorithm* f = (traversal_algorithm*)userdata;
+	traversal_algorithm* f = static_cast<traversal_algorithm*>(userdata);
 	f->add_entry(e.id, e.ep(), observer::flag_initial);
 }
 
@@ -104,7 +104,7 @@ void find_data::start()
 	// if the user didn't add seed-nodes manually, grab a bunch of nodes from the
 	// routing table
 	if (m_results.empty())
-		m_node.m_table.for_each_node(&add_entry_fun, 0, (traversal_algorithm*)this);
+		m_node.m_table.for_each_node(&add_entry_fun, 0, this);
 
 	traversal_algorithm::start();
 }

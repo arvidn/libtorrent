@@ -635,7 +635,7 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update((char*)&m_torrent_file->info_hash()[0], 20);
+		h.update(m_torrent_file->info_hash().data(), 20);
 		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
 
@@ -810,7 +810,8 @@ namespace libtorrent
 				debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
 #endif
 				if (m_ses.alerts().should_post<fastresume_rejected_alert>())
-					m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), ec, "", (char const*)0);
+					m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
+						, ec, "", static_cast<char const*>(0));
 			}
 		}
 
@@ -1006,8 +1007,9 @@ namespace libtorrent
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
 			inc_refcount("read_piece");
-			m_ses.disk_thread().async_read(&storage(), r, boost::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, r, rp), (void*)1);
+			m_ses.disk_thread().async_read(&storage(), r
+				, boost::bind(&torrent::on_disk_read_complete
+				, shared_from_this(), _1, r, rp), reinterpret_cast<void*>(1));
 		}
 	}
 
@@ -1018,7 +1020,7 @@ namespace libtorrent
 			, end(m_connections.end()); i != end; ++i)
 		{
 			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
-			bt_peer_connection* p = (bt_peer_connection*)*i;
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			p->write_share_mode();
 		}
 #endif
@@ -1037,7 +1039,7 @@ namespace libtorrent
 			// since the call to disconnect_if_redundant() may
 			// delete the entry from this container, make sure
 			// to increment the iterator early
-			bt_peer_connection* p = (bt_peer_connection*)*i;
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
 				boost::shared_ptr<peer_connection> me(p->self());
@@ -1747,7 +1749,7 @@ namespace libtorrent
 		}
 		params.path = m_save_path;
 		params.pool = &m_ses.disk_thread().files();
-		params.mode = (storage_mode_t)m_storage_mode;
+		params.mode = static_cast<storage_mode_t>(m_storage_mode);
 		params.priorities = &m_file_priority;
 		params.info = m_torrent_file.get();
 
@@ -1757,7 +1759,8 @@ namespace libtorrent
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
 		m_storage = boost::make_shared<piece_manager>(
-			storage_impl, shared_from_this(), (file_storage*)&m_torrent_file->files());
+			storage_impl, shared_from_this()
+			, const_cast<file_storage*>(&m_torrent_file->files()));
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
@@ -1839,7 +1842,8 @@ namespace libtorrent
 			if (ev && m_ses.alerts().should_post<fastresume_rejected_alert>())
 			{
 				error_code ec = error_code(ev, get_libtorrent_category());
-				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), ec, "", (char const*)0);
+				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
+					, ec, "", static_cast<char const*>(0));
 			}
 
 			if (ev)
@@ -2232,11 +2236,11 @@ namespace libtorrent
 		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
 		{
 			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
-			bt_peer_connection* p = (bt_peer_connection*)(*i);
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			if (!p->supports_holepunch()) continue;
 			peer_plugin const* pp = p->find_plugin("ut_pex");
 			if (!pp) continue;
-			if (was_introduced_by(pp, ep)) return (bt_peer_connection*)p;
+			if (was_introduced_by(pp, ep)) return p;
 		}
 #endif
 		return NULL;
@@ -2248,7 +2252,7 @@ namespace libtorrent
 		{
 			peer_connection* p = *i;
 			if (p->type() != peer_connection::bittorrent_connection) continue;
-			if (p->remote() == ep) return (bt_peer_connection*)p;
+			if (p->remote() == ep) return static_cast<bt_peer_connection*>(p);
 		}
 		return NULL;
 	}
@@ -2362,7 +2366,7 @@ namespace libtorrent
 					int port = e.dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
 					error_code ec;
-					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
+					tcp::endpoint a(address::from_string(ip, ec), boost::uint16_t(port));
 					if (ec) continue;
 					add_peer(a, peer_info::resume_data);
 				}
@@ -2380,7 +2384,8 @@ namespace libtorrent
 					int port = e.dict_find_int_value("port");
 					if (ip.empty() || port == 0) continue;
 					error_code ec;
-					tcp::endpoint a(address::from_string(ip, ec), (unsigned short)port);
+					tcp::endpoint a(address::from_string(ip, ec)
+						, boost::uint16_t(port));
 					if (ec) continue;
 					torrent_peer* p = add_peer(a, peer_info::resume_data);
 					if (p) ban_peer(p);
@@ -2498,7 +2503,7 @@ namespace libtorrent
 						if (int(bitmask.size()) != num_bitmask_bytes) continue;
 						for (int k = 0; k < num_bitmask_bytes; ++k)
 						{
-							const unsigned char bits = (unsigned char)bitmask[k];
+							const boost::uint8_t bits = boost::uint8_t(bitmask[k]);
 							int num_bits = (std::min)(num_blocks_per_piece - k*8, 8);
 							for (int b = 0; b < num_bits; ++b)
 							{
@@ -4249,7 +4254,7 @@ namespace libtorrent
 		// significant operations, but we should use them right away
 		// ignore NULL pointers
 		std::remove_copy(downloaders.begin(), downloaders.end()
-			, std::inserter(peers, peers.begin()), (torrent_peer*)0);
+			, std::inserter(peers, peers.begin()), static_cast<torrent_peer*>(0));
 
 		for (std::set<void*>::iterator i = peers.begin()
 			, end(peers.end()); i != end; ++i)

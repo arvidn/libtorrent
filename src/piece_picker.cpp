@@ -348,7 +348,7 @@ namespace libtorrent
 					{
 						if (info[k].peer)
 						{
-							torrent_peer* p = (torrent_peer*)info[k].peer;
+							torrent_peer* p = static_cast<torrent_peer*>(info[k].peer);
 							TORRENT_ASSERT(p->in_use);
 							TORRENT_ASSERT(p->connection == NULL
 								|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -481,7 +481,7 @@ namespace libtorrent
 					for (int k = 0; k < m_blocks_per_piece; ++k)
 					{
 						if (!info[k].peer) continue;
-						torrent_peer* p = (torrent_peer*)info[k].peer;
+						torrent_peer* p = static_cast<torrent_peer*>(info[k].peer);
 						TORRENT_ASSERT(p->in_use);
 						TORRENT_ASSERT(p->connection == NULL
 							|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -2637,7 +2637,7 @@ get_out:
 		, int options) const
 	{
 		TORRENT_ASSERT(piece >= 0);
-		TORRENT_ASSERT(piece < (int)m_piece_map.size());
+		TORRENT_ASSERT(piece < int(m_piece_map.size()));
 		TORRENT_ASSERT(is_piece_free(piece, pieces));
 
 //		std::cout << "add_blocks(" << piece << ")" << std::endl;

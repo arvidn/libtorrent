@@ -155,7 +155,8 @@ namespace
 				{
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage()
 						, r, boost::bind(&smart_ban_plugin::on_read_ok_block
-						, shared_from_this(), *i, i->second.peer->address(), _1), (void*)1);
+						, shared_from_this(), *i, i->second.peer->address(), _1)
+						, reinterpret_cast<void*>(1));
 					m_block_hashes.erase(i++);
 				}
 				else
@@ -211,7 +212,8 @@ namespace
 					// block read will have been deleted by the time it gets back to the network thread
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
 						, boost::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, ((torrent_peer*)*i)->address(), _1), (void*)1
+						, shared_from_this(), pb, static_cast<torrent_peer*>(*i)->address(), _1)
+						, reinterpret_cast<void*>(1)
 						, disk_io_job::force_copy);
 				}
 
@@ -236,7 +238,7 @@ namespace
 		void on_read_failed_block(piece_block b, address a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
-			
+
 			disk_buffer_holder buffer(m_torrent.session(), *j);
 
 			// ignore read errors
@@ -244,7 +246,7 @@ namespace
 
 			hasher h;
 			h.update(j->buffer.disk_block, j->d.io.buffer_size);
-			h.update((char const*)&m_salt, sizeof(m_salt));
+			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
 			std::pair<peer_list::iterator, peer_list::iterator> range
 				= m_torrent.find_peers(a);
@@ -325,7 +327,7 @@ namespace
 
 			hasher h;
 			h.update(j->buffer.disk_block, j->d.io.buffer_size);
-			h.update((char const*)&m_salt, sizeof(m_salt));
+			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 			sha1_hash ok_digest = h.final();
 
 			if (b.second.digest == ok_digest) return;

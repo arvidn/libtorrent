@@ -167,7 +167,6 @@ namespace libtorrent
 				case lazy_entry::int_t:
 				case lazy_entry::string_t:
 				case lazy_entry::none_t:
-				default:
 					break;
 			}
 

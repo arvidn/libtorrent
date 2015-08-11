@@ -371,46 +371,46 @@ namespace libtorrent
 			char* name = string_tokenize(next, '=', &next);
 			if (name == 0) break;
 //			fprintf(stderr, "name=\"%s\"\n", name);
-			char* ptr = string_tokenize(next, ' ', &next);
-			if (ptr == 0) { handle_error(invalid_response, h); return; }
-//			fprintf(stderr, "value=\"%s\"\n", ptr);
+			char* ptr2 = string_tokenize(next, ' ', &next);
+			if (ptr2 == 0) { handle_error(invalid_response, h); return; }
+//			fprintf(stderr, "value=\"%s\"\n", ptr2);
 
 			if (strcmp("RESULT", name) == 0)
 			{
-				if (strcmp("OK", ptr) == 0)
+				if (strcmp("OK", ptr2) == 0)
 					result = i2p_error::no_error;
-				else if (strcmp("CANT_REACH_PEER", ptr) == 0)
+				else if (strcmp("CANT_REACH_PEER", ptr2) == 0)
 					result = i2p_error::cant_reach_peer;
-				else if (strcmp("I2P_ERROR", ptr) == 0)
+				else if (strcmp("I2P_ERROR", ptr2) == 0)
 					result = i2p_error::i2p_error;
-				else if (strcmp("INVALID_KEY", ptr) == 0)
+				else if (strcmp("INVALID_KEY", ptr2) == 0)
 					result = i2p_error::invalid_key;
-				else if (strcmp("INVALID_ID", ptr) == 0)
+				else if (strcmp("INVALID_ID", ptr2) == 0)
 					result = i2p_error::invalid_id;
-				else if (strcmp("TIMEOUT", ptr) == 0)
+				else if (strcmp("TIMEOUT", ptr2) == 0)
 					result = i2p_error::timeout;
-				else if (strcmp("KEY_NOT_FOUND", ptr) == 0)
+				else if (strcmp("KEY_NOT_FOUND", ptr2) == 0)
 					result = i2p_error::key_not_found;
-				else if (strcmp("DUPLICATED_ID", ptr) == 0)
+				else if (strcmp("DUPLICATED_ID", ptr2) == 0)
 					result = i2p_error::duplicated_id;
 				else
 					result = i2p_error::num_errors; // unknown error
 			}
 			else if (strcmp("MESSAGE", name) == 0)
 			{
-//				message = ptr;
+//				message = ptr2;
 			}
 			else if (strcmp("VERSION", name) == 0)
 			{
-//				version = float(atof(ptr));
+//				version = float(atof(ptr2));
 			}
 			else if (strcmp("VALUE", name) == 0)
 			{
-				m_name_lookup = ptr;
+				m_name_lookup = ptr2;
 			}
 			else if (strcmp("DESTINATION", name) == 0)
 			{
-				m_dest = ptr;
+				m_dest = ptr2;
 			}
 		}
 

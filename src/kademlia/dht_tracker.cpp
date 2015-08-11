@@ -398,7 +398,7 @@ namespace libtorrent { namespace dht
 
 	void add_node_fun(void* userdata, node_entry const& e)
 	{
-		entry* n = (entry*)userdata;
+		entry* n = static_cast<entry*>(userdata);
 		std::string node;
 		std::back_insert_iterator<std::string> out(node);
 		write_endpoint(e.ep(), out);
@@ -475,7 +475,7 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(m_send_buf), e);
 		error_code ec;
 
-		if (m_sock.send(addr, &m_send_buf[0], (int)m_send_buf.size(), ec, send_flags))
+		if (m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, send_flags))
 		{
 			if (ec)
 			{

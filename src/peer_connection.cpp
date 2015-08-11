@@ -1435,23 +1435,23 @@ namespace libtorrent
 
 		if (is_disconnecting()) return;
 
-		std::vector<pending_block>::iterator i = std::find_if(
+		std::vector<pending_block>::iterator dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
 			, boost::bind(match_request, boost::cref(r), boost::bind(&pending_block::block, _1)
 			, t->block_size()));
-	
-		if (i != m_download_queue.end())
+
+		if (dlq_iter != m_download_queue.end())
 		{
-			pending_block b = *i;
-			bool remove_from_picker = !i->timed_out && !i->not_wanted;
-			m_download_queue.erase(i);
+			pending_block b = *dlq_iter;
+			bool remove_from_picker = !dlq_iter->timed_out && !dlq_iter->not_wanted;
+			m_download_queue.erase(dlq_iter);
 			TORRENT_ASSERT(m_outstanding_bytes >= r.length);
 			m_outstanding_bytes -= r.length;
 			if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
-			
+
 			// if the peer is in parole mode, keep the request
 			if (peer_info_struct() && peer_info_struct()->on_parole)
 			{
@@ -1499,7 +1499,7 @@ namespace libtorrent
 			send_block_requests();
 		}
 	}
-	
+
 	// -----------------------------
 	// ------- SUGGEST PIECE -------
 	// -----------------------------
@@ -2855,13 +2855,13 @@ namespace libtorrent
 				{
 					// only make predictions if all remaining
 					// blocks are requested from the same peer
-					torrent_peer* p = (torrent_peer*)d[0];
-					if (p->connection)
+					torrent_peer* peer = static_cast<torrent_peer*>(d[0]);
+					if (peer->connection)
 					{
 						// we have a connection. now, what is the current
 						// download rate from this peer, and how many blocks
 						// do we have left to download?
-						boost::int64_t rate = p->connection->statistics().download_payload_rate();
+						boost::int64_t rate = peer->connection->statistics().download_payload_rate();
 						boost::int64_t bytes_left = boost::int64_t(st.requested) * t->block_size();
 						// the settings unit is milliseconds, so calculate the
 						// number of milliseconds worth of bytes left in the piece
@@ -2996,8 +2996,7 @@ namespace libtorrent
 				i = q.begin(), end(q.end()); i != end; ++i)
 			{
 				if (i->index != block_finished.piece_index) continue;
-				piece_picker::downloading_piece const& p = *i;
-				piece_picker::block_info* info = picker.blocks_for_piece(p);
+				piece_picker::block_info* info = picker.blocks_for_piece(*i);
 				TORRENT_ASSERT(info[block_finished.block_index].state
 					== piece_picker::block_info::state_finished);
 			}
@@ -5814,7 +5813,7 @@ namespace libtorrent
 	namespace {
 		void session_free_buffer(char* buffer, void* userdata, block_cache_reference)
 		{
-			aux::session_interface* ses = (aux::session_interface*)userdata;
+			aux::session_interface* ses = static_cast<aux::session_interface*>(userdata);
 			ses->free_buffer(buffer);
 		}
 	}
@@ -6332,17 +6331,22 @@ namespace libtorrent
 
 		if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
-			error_code ec;
-			m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+			error_code err;
+			m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), err);
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
-				, m_settings.get_int(settings_pack::peer_tos), ec.message().c_str());
+				, m_settings.get_int(settings_pack::peer_tos), err.message().c_str());
 #endif
 		}
 #if TORRENT_USE_IPV6 && defined IPV6_TCLASS
 		else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
-			m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+			error_code err;
+			m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), err);
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::outgoing, "SET_TOS", "tos: %d e: %s"
+				, m_settings.get_int(settings_pack::peer_tos), err.message().c_str());
+#endif
 		}
 #endif
 
@@ -6379,7 +6383,7 @@ namespace libtorrent
 		// in the current message queue
 		m_ses.deferred_submit_jobs();
 
-#ifndef TORRENT_DISABLE_LOGGING 
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ON_SEND_DATA", "bytes: %d error: %s"
 			, int(bytes_transferred), error.message().c_str());
 #endif
