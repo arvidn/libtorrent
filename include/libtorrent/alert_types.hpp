@@ -2382,12 +2382,39 @@ namespace libtorrent
 		int m_peers_idx;
 	};
 
+	// This is posted exactly once for every call to session_handle::dht_direct_request.
+	// If the request failed, response() will return a default constructed bdecode_node.
+	struct TORRENT_EXPORT dht_direct_response_alert: alert
+	{
+		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+			, udp::endpoint const& addr, bdecode_node const& response);
+
+		// for when there was a timeout so we don't have a response
+		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
+			, udp::endpoint const& addr);
+
+		TORRENT_DEFINE_ALERT(dht_direct_response_alert, 88)
+
+		static const int static_category = alert::dht_notification;
+		virtual std::string message() const;
+
+		void* userdata;
+		udp::endpoint addr;
+
+		bdecode_node response() const;
+
+	private:
+		aux::stack_allocator& m_alloc;
+		int m_response_idx;
+		int m_response_size;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 88 };
+	enum { num_alert_types = 89 };
 }
 
 

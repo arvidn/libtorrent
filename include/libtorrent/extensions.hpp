@@ -192,6 +192,14 @@ namespace libtorrent
 	struct peer_connection_handle;
 	struct torrent_handle;
 
+	// Functions of this type are called to handle incoming DHT requests
+	typedef boost::function<bool(udp::endpoint const& source
+		, bdecode_node const& request, entry& response)> dht_extension_handler_t;
+
+	// Map of query strings to handlers. Note that query strings are limited to 15 bytes.
+	// see max_dht_query_length
+	typedef std::vector<std::pair<std::string, dht_extension_handler_t> > dht_extensions_t;
+
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
 	// and can add its own torrent_plugins.
@@ -213,6 +221,10 @@ namespace libtorrent
 
 		// called when plugin is added to a session
 		virtual void added(session_handle) {}
+
+		// called after a plugin is added
+		// allows the plugin to register DHT requests it would like to handle
+		virtual void register_dht_extensions(dht_extensions_t&) {}
 
 		// called when an alert is posted alerts that are filtered are not posted
 		virtual void on_alert(alert const*) {}

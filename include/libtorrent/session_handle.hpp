@@ -431,6 +431,14 @@ namespace libtorrent
 		void dht_get_peers(sha1_hash const& info_hash);
 		void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
+		// Send an arbitrary DHT request directly to the specified endpoint. This
+		// function is intended for use by plugins. Whan a response is received
+		// or the request times out, a dht_direct_response_alert will be posted
+		// with the response (if any) and the userdata pointer passed in here.
+		// Since this alert is a reponse to an explicit call, it will always be
+		// posted, regardless of the alert mask.
+		void dht_direct_request(boost::asio::ip::udp::endpoint ep, entry const& e, void* userdata);
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15
 		// use save_state and load_state instead

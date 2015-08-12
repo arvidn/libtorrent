@@ -108,6 +108,13 @@ struct TORRENT_EXPORT peer_connection_handle
 	time_t last_seen_complete() const;
 	time_point time_of_last_unchoke() const;
 
+	bool operator==(peer_connection_handle const& o) const
+	{ return m_connection.lock() == o.m_connection.lock(); }
+	bool operator!=(peer_connection_handle const& o) const
+	{ return m_connection.lock() != o.m_connection.lock(); }
+	bool operator<(peer_connection_handle const& o) const
+	{ return m_connection.lock() < o.m_connection.lock(); }
+
 	boost::shared_ptr<peer_connection> native_handle() const
 	{
 		return m_connection.lock();

@@ -438,6 +438,8 @@ struct obs : dht::dht_observer
 	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE {}
 	virtual void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) TORRENT_OVERRIDE {}
+	virtual bool on_dht_request(char const* query, int query_len
+		, dht::msg const& request, entry& response) TORRENT_OVERRIDE { return false; }
 };
 
 // TODO: test obfuscated_get_peers

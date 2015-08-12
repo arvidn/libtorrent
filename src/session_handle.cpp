@@ -396,6 +396,13 @@ namespace libtorrent
 #endif
 	}
 
+	void session_handle::dht_direct_request(boost::asio::ip::udp::endpoint ep, entry const& e, void* userdata)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL3(dht_direct_request, ep, e, userdata);
+#endif
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	entry session_handle::dht_state() const
 	{

@@ -894,7 +894,25 @@ namespace aux {
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
 		ext->added(session_handle(this));
+
+		// get any DHT queries the plugin would like to handle
+		// and record them in m_extension_dht_queries for lookup
+		// later
+		dht_extensions_t dht_ext;
+		ext->register_dht_extensions(dht_ext);
+		for (dht_extensions_t::iterator e = dht_ext.begin();
+			e != dht_ext.end(); ++e)
+		{
+			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
+			if (e->first.size() > max_dht_query_length) continue;
+			extention_dht_query registration;
+			registration.query_len = e->first.size();
+			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
+			registration.handler = e->second;
+			m_extension_dht_queries.push_back(registration);
+		}
 	}
+
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -5532,6 +5550,14 @@ retry:
 				alerts.emplace_alert<dht_get_peers_reply_alert>(info_hash, peers);
 		}
 
+		void on_direct_response(alert_manager& alerts, void* userdata, dht::msg const& msg)
+		{
+			if (msg.message.type() == bdecode_node::none_t)
+				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr);
+			else
+				alerts.emplace_alert<dht_direct_response_alert>(userdata, msg.addr, msg.message);
+		}
+
 	} // anonymous namespace
 
 	void session_impl::dht_put_immutable_item(entry data, sha1_hash target)
@@ -5561,6 +5587,12 @@ retry:
 	{
 		if (!m_dht) return;
 		m_dht->announce(info_hash, port, flags, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+	}
+
+	void session_impl::dht_direct_request(boost::asio::ip::udp::endpoint ep, entry& e, void* userdata)
+	{
+		if (!m_dht) return;
+		m_dht->direct_request(ep, e, boost::bind(&on_direct_response, boost::ref(m_alerts), userdata, _1));
 	}
 
 #endif
@@ -6494,6 +6526,24 @@ retry:
 			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
+	}
+
+	bool session_impl::on_dht_request(char const* query, int query_len
+		, dht::msg const& request, entry& response)
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (query_len > max_dht_query_length) return false;
+
+		for (m_extension_dht_queries_t::iterator i = m_extension_dht_queries.begin();
+			i != m_extension_dht_queries.end(); ++i)
+		{
+			if (query_len == i->query_len
+				&& memcmp(i->query.data(), query, query_len) == 0
+				&& i->handler(request.addr, request.message, response))
+				return true;
+		}
+#endif
+		return false;
 	}
 
 	void session_impl::set_external_address(address const& ip

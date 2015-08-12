@@ -96,7 +96,7 @@ struct observer : boost::noncopyable
 
 	// this is called when no reply has been received within
 	// some timeout
-	void timeout();
+	virtual void timeout();
 
 	// if this is called the destructor should
 	// not invoke any new messages, and should

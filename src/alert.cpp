@@ -1831,5 +1831,42 @@ namespace libtorrent {
 		}
 	}
 
+	dht_direct_response_alert::dht_direct_response_alert(
+		aux::stack_allocator& alloc, void* userdata
+		, udp::endpoint const& addr, bdecode_node const& response)
+		: userdata(userdata), addr(addr), m_alloc(alloc)
+		, m_response_idx(alloc.copy_buffer(response.data_section().first, response.data_section().second))
+		, m_response_size(response.data_section().second)
+	{}
+
+	dht_direct_response_alert::dht_direct_response_alert(
+		aux::stack_allocator& alloc
+		, void* userdata
+		, udp::endpoint const& addr)
+		: userdata(userdata), addr(addr), m_alloc(alloc)
+		, m_response_idx(-1), m_response_size(0)
+	{}
+
+	std::string dht_direct_response_alert::message() const
+	{
+		char msg[1050];
+		snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
+			, addr.address().to_string().c_str()
+			, m_response_size ? std::string(m_alloc.ptr(m_response_idx), m_response_size).c_str() : "");
+		return msg;
+	}
+
+	bdecode_node dht_direct_response_alert::response() const
+	{
+		if (m_response_size == 0) return bdecode_node();
+		char const* start = m_alloc.ptr(m_response_idx);
+		char const* end = start + m_response_size;
+		error_code ec;
+		bdecode_node ret;
+		bdecode(start, end, ret, ec);
+		TORRENT_ASSERT(!ec);
+		return ret;
+	}
+
 } // namespace libtorrent
 
