@@ -468,7 +468,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 {
 	appendf(response, ", \"settings\": [");
 
-	libtorrent::aux::session_settings sett = m_ses.get_settings();
+	settings_pack sett = m_ses.get_settings();
 
 	// type: 0 = int, 1= bool, 2=string
 	int first = 1;

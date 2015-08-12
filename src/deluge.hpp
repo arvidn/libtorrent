@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 #include <boost/asio/ssl.hpp>
 
@@ -87,7 +88,7 @@ namespace libtorrent
 
 		void incoming_rpc(conn_state* st);
 		void output_error(int id, char const* msg, rencoder& out);
-		void output_config_value(std::string set_name, aux::session_settings const& sett
+		void output_config_value(std::string set_name, libtorrent::settings_pack const& sett
 			, rencoder& out, permissions_interface const* p);
 
 		void write_response(rencoder const& output, ssl_socket* sock, error_code& ec);
@@ -103,7 +104,7 @@ namespace libtorrent
 		auth_interface const* m_auth;
 		add_torrent_params m_params_model;
 		io_service m_ios;
-		socket_acceptor* m_listen_socket;
+		tcp::acceptor* m_listen_socket;
 		thread* m_accept_thread;
 		std::vector<thread*> m_threads;
 		mutex m_mutex;

@@ -104,7 +104,7 @@ deluge::~deluge()
 
 void deluge::accept_thread(int port)
 {
-	socket_acceptor socket(m_ios);
+	tcp::acceptor socket(m_ios);
 	m_listen_socket = &socket;
 
 	error_code ec;
@@ -114,7 +114,7 @@ void deluge::accept_thread(int port)
 		fprintf(stderr, "open: %s\n", ec.message().c_str());
 		return;
 	}
-	socket.set_option(socket_acceptor::reuse_address(true), ec);
+	socket.set_option(tcp::acceptor::reuse_address(true), ec);
 	if (ec)
 	{
 		fprintf(stderr, "reuse address: %s\n", ec.message().c_str());
@@ -347,7 +347,7 @@ char const* map_deluge_setting(std::string const& name)
 		return name.c_str();
 }
 
-void deluge::output_config_value(std::string set_name, aux::session_settings const& sett
+void deluge::output_config_value(std::string set_name, settings_pack const& sett
 	, rencoder& out, permissions_interface const* p)
 {
 	char const* lt_name = map_deluge_setting(set_name);
@@ -417,7 +417,7 @@ void deluge::handle_get_config_value(conn_state* st)
 
 	int id = tokens[1].integer(buf);
 
-	aux::session_settings sett = m_ses.get_settings();
+	settings_pack sett = m_ses.get_settings();
 	
 	// [ RPC_RESPONSE, req-id, [<config value>] ]
 
@@ -856,7 +856,7 @@ void deluge::handle_get_config_values(conn_state* st)
 
 	int id = tokens[1].integer(buf);
 
-	aux::session_settings sett = m_ses.get_settings();
+	settings_pack sett = m_ses.get_settings();
 	
 	rtok_t const* keys = &tokens[4];
 	int num_keys = keys->num_items();
@@ -995,7 +995,7 @@ void deluge::connection_thread()
 read_some_more:
 			TORRENT_ASSERT(buffer.size() > 0);
 			TORRENT_ASSERT(buffer.size() - buffer_use > 0);
-			ret = sock->read_some(asio::buffer(&buffer[buffer_use]
+			ret = sock->read_some(boost::asio::buffer(&buffer[buffer_use]
 				, buffer.size() - buffer_use), ec);
 			if (ec)
 			{
@@ -1147,7 +1147,7 @@ void deluge::write_response(rencoder const& out, ssl_socket* sock, error_code& e
 	deflateEnd(&strm);
 	if (ret != Z_STREAM_END) return;
 
-	ret = asio::write(*sock, asio::buffer(&deflated[0], deflated.size()), ec);
+	ret = boost::asio::write(*sock, boost::asio::buffer(&deflated[0], deflated.size()), ec);
 	if (ec)
 	{
 		fprintf(stderr, "write: %s\n", ec.message().c_str());

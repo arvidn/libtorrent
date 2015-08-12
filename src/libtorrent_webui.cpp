@@ -663,7 +663,7 @@ namespace libtorrent
 
 		io::write_uint16(num_settings, ptr);
 
-		aux::session_settings s = m_ses.get_settings();
+		settings_pack s = m_ses.get_settings();
 
 		for (int i = 0; i < num_settings; ++i)
 		{

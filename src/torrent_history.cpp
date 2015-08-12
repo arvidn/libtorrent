@@ -257,7 +257,6 @@ namespace libtorrent
 		CMP_SET(seed_rank);
 		CMP_SET(last_scrape);
 		CMP_SET(has_incoming);
-		CMP_SET(sparse_regions);
 		CMP_SET(seed_mode);
 		CMP_SET(upload_mode);
 		CMP_SET(share_mode);
@@ -343,7 +342,6 @@ namespace libtorrent
 		PRINT(seed_rank, PRId64);
 		PRINT(last_scrape, PRId64);
 		PRINT(has_incoming, PRId64);
-		PRINT(sparse_regions, PRId64);
 		PRINT(seed_mode, PRId64);
 		PRINT(upload_mode, PRId64);
 		PRINT(share_mode, PRId64);

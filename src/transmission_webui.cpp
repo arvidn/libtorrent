@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/make_shared.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <boost/asio/error.hpp>
 
 extern "C" {
 #include "local_mongoose.h"
@@ -630,7 +631,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 					, 0 // lastAnnounceStartTime
 					, to_bool(!a.last_error) // lastAnnounceSucceeded
 					, 0 // lastAnnounceTime
-					, to_bool(a.last_error == asio::error::timed_out) // lastAnnounceTimeOut
+					, to_bool(a.last_error == boost::asio::error::timed_out) // lastAnnounceTimeOut
 					, 0, "", 0, "false", 0, "false"
 					, 0 // leecherCount
 					, time(NULL) + a.next_announce_in()
@@ -977,7 +978,7 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	}
 
 	session_status st = m_ses.status();
-	aux::session_settings sett = m_ses.get_settings();
+	settings_pack sett = m_ses.get_settings();
 
 	pe_settings pes = m_ses.get_pe_settings();
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
