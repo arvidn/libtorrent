@@ -322,7 +322,7 @@ namespace libtorrent
 			void dht_get_peers(sha1_hash const& info_hash);
 			void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
-			void dht_direct_request(boost::asio::ip::udp::endpoint ep, entry& e, void* userdata);
+			void dht_direct_request(udp::endpoint ep, entry& e, void* userdata = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;

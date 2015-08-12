@@ -311,7 +311,7 @@ namespace libtorrent { namespace dht
 			, _1, _2, cb));
 	}
 
-	void dht_tracker::direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+	void dht_tracker::direct_request(udp::endpoint ep, entry& e
 		, boost::function<void(msg const&)> f)
 	{
 		m_dht.direct_request(ep, e, f);
