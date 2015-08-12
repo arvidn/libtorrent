@@ -5589,7 +5589,7 @@ retry:
 		m_dht->announce(info_hash, port, flags, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
 	}
 
-	void session_impl::dht_direct_request(boost::asio::ip::udp::endpoint ep, entry& e, void* userdata)
+	void session_impl::dht_direct_request(udp::endpoint ep, entry& e, void* userdata)
 	{
 		if (!m_dht) return;
 		m_dht->direct_request(ep, e, boost::bind(&on_direct_response, boost::ref(m_alerts), userdata, _1));
