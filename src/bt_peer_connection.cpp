@@ -186,20 +186,22 @@ namespace libtorrent
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-		boost::uint8_t out_enc_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		boost::uint8_t out_policy = m_settings.get_int(settings_pack::out_enc_policy);
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
 		if (is_ssl(*get_socket()))
-			out_enc_policy = settings_pack::pe_disabled;
+			out_policy = settings_pack::pe_disabled;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 		char const* policy_name[] = {"forced", "enabled", "disabled"};
+		TORRENT_ASSERT(out_policy < sizeof(policy_name)/sizeof(policy_name[0]));
+		TORRENT_ASSERT(out_policy >= 0);
 		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "outgoing encryption policy: %s", policy_name[out_enc_policy]);
+			, "outgoing encryption policy: %s", policy_name[out_policy]);
 #endif
 
-		if (out_enc_policy == settings_pack::pe_forced)
+		if (out_policy == settings_pack::pe_forced)
 		{
 			write_pe1_2_dhkey();
 			if (is_disconnecting()) return;
@@ -208,7 +210,7 @@ namespace libtorrent
 			m_recv_buffer.reset(dh_key_len);
 			setup_receive();
 		}
-		else if (out_enc_policy == settings_pack::pe_enabled)
+		else if (out_policy == settings_pack::pe_enabled)
 		{
 			TORRENT_ASSERT(peer_info_struct());
 
@@ -241,7 +243,7 @@ namespace libtorrent
 				setup_receive();
 			}
 		}
-		else if (out_enc_policy == settings_pack::pe_disabled)
+		else if (out_policy == settings_pack::pe_disabled)
 #endif
 		{
 			write_handshake();
@@ -3155,13 +3157,13 @@ namespace libtorrent
 			{
 				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
-				
+
 				pi->pe_support = true;
 			}
 		}
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		
+
 		if (m_state == read_protocol_identifier)
 		{
 			received_bytes(0, bytes_transferred);
@@ -3442,7 +3444,7 @@ namespace libtorrent
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct())
 				t->clear_failcount(peer_info_struct());
-			
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			// Toggle pe_support back to false if this is a
 			// standard successful connection
