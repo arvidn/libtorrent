@@ -195,6 +195,10 @@ namespace libtorrent {
 			// enable events from pure dht operations not related to torrents
 			dht_operation_notification = 0x40000,
 
+			// enables port mapping log events. This log is useful
+			// for debugging the UPnP or NAT-PMP implementation
+			port_mapping_log_notification = 0x80000,
+
 			// The full bitmask, representing all available categories.
 			//
 			// since the enum is signed, make sure this isn't

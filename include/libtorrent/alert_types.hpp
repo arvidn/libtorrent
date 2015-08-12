@@ -1390,7 +1390,9 @@ namespace libtorrent
 	// This alert is generated to log informational events related to either
 	// UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
 	// and 1 = UPnP). Displaying these messages to an end user is only useful
-	// for debugging the UPnP or NAT-PMP implementation.
+	// for debugging the UPnP or NAT-PMP implementation. This alert is only
+	// posted if the alert::port_mapping_log_notification flag is enabled in
+	// the alert mask.
 	struct TORRENT_EXPORT portmap_log_alert: alert
 	{
 		// internal
@@ -1398,7 +1400,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(portmap_log_alert, 52)
 
-		static const int static_category = alert::port_mapping_notification;
+		static const int static_category = alert::port_mapping_log_notification;
 		virtual std::string message() const;
 
 		int map_type;
