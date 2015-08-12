@@ -321,6 +321,10 @@ The file format is a bencoded dictionary containing the following fields:
 +--------------------------+--------------------------------------------------------------+
 | ``seed_mode``            | integer. 1 if the torrent is in seed mode, 0 otherwise.      |
 +--------------------------+--------------------------------------------------------------+
+| ``priority``             | integer. The priority of a torrent determines how much       |
+|                          | bandwidth its peers are assigned when distributing upload    |
+|                          | and download rate quotas.                                    |
++--------------------------+--------------------------------------------------------------+
 | ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
 |                          | entry is the priority of the file with the same index.       |
 +--------------------------+--------------------------------------------------------------+
