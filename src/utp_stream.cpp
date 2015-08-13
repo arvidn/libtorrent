@@ -3526,7 +3526,8 @@ void utp_socket_impl::tick(time_point now)
 		// a socket that has not been confirmed to actually have a live remote end
 		// (the IP may have been spoofed) fail on the first timeout. If we had
 		// heard anything from this peer, it would have been confirmed.
-		if (m_num_timeouts > m_sm->num_resends() || !m_confirmed)
+		if (m_num_timeouts > m_sm->num_resends()
+			|| (m_num_timeouts > 0 && !m_confirmed))
 		{
 			// the connection is dead
 			m_error = boost::asio::error::timed_out;
