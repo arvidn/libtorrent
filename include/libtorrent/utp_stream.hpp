@@ -55,6 +55,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+#ifndef TORRENT_UTP_LOG_ENABLE
+	#define TORRENT_UTP_LOG 0
+	#define TORRENT_VERBOSE_UTP_LOG 0
+#else
+	#define TORRENT_UTP_LOG 1
+	#define TORRENT_VERBOSE_UTP_LOG 1
+#endif
 
 #ifdef TORRENT_UTP_LOG
 	bool is_utp_stream_logging();

@@ -473,8 +473,7 @@ feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
 feature utp-log : off on : composite propagated link-incompatible ;
-feature.compose <utp-log>off : <define>TORRENT_UTP_LOG=0 <define>TORRENT_VERBOSE_UTP_LOG=0 ;
-feature.compose <utp-log>on : <define>TORRENT_UTP_LOG=1 <define>TORRENT_VERBOSE_UTP_LOG=1 ;
+feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
 
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
