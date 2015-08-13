@@ -1,3 +1,5 @@
+	* fix bug in uTP that would cause any connection taking more than one second
+	  to connect be timed out (introduced in the vulnerability path)
 	* fixed falling back to sending UDP packets direct when socks proxy fails
 	* fixed total_wanted bug (when setting file priorities in add_torrent_params)
 
