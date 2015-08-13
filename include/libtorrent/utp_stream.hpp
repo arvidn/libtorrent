@@ -55,6 +55,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+#ifdef TORRENT_UTP_LOG
+	bool is_utp_stream_logging();
+
+	// This function should be used at the very beginning and very end of your program.
+	void set_utp_stream_logging(bool enable);
+#endif
+
 	struct utp_socket_manager;
 
 	// internal: some MTU and protocol header sizes constants
@@ -467,11 +475,6 @@ public:
 		m_write_handler = handler;
 		issue_write();
 	}
-
-#ifdef TORRENT_UTP_LOG
-	static bool utp_stream_log();
-	static void utp_stream_log(bool enable);
-#endif
 
 private:
 	// explicitly disallow assignment, to silence msvc warning

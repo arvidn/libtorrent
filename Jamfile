@@ -472,8 +472,8 @@ feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHE
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
 
-feature utp-stats : off on : composite propagated link-incompatible ;
-feature.compose <utp-stats>on : <define>TORRENT_UTP_LOG <define>TORRENT_VERBOSE_UTP_LOG ;
+feature utp-log : off on : composite propagated link-incompatible ;
+feature.compose <utp-log>on : <define>TORRENT_UTP_LOG <define>TORRENT_VERBOSE_UTP_LOG ;
 
 feature simulate-slow-read : off on : composite propagated ;
 feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;

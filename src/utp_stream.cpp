@@ -88,6 +88,29 @@ void utp_log(char const* fmt, ...)
 	va_end(l);
 }
 
+bool is_utp_stream_logging() {
+	return log_file_holder.utp_log_file != NULL;
+}
+
+void set_utp_stream_logging(bool enable) {
+	if (enable)
+	{
+		if (log_file_holder.utp_log_file == NULL)
+		{
+			log_file_holder.utp_log_file = fopen("utp.log", "w+");
+		}
+	}
+	else
+	{
+		if (log_file_holder.utp_log_file != NULL)
+		{
+			FILE* f = log_file_holder.utp_log_file;
+			log_file_holder.utp_log_file = NULL;
+			fclose(f);
+		}
+	}
+}
+
 #define UTP_LOG utp_log
 #if TORRENT_VERBOSE_UTP_LOG
 #define UTP_LOGV utp_log
@@ -1170,31 +1193,6 @@ void utp_stream::do_connect(tcp::endpoint const& ep)
 	if (m_impl->test_socket_state()) return;
 	m_impl->send_syn();
 }
-
-#ifdef TORRENT_UTP_LOG
-	bool utp_stream::utp_stream_log() {
-		return log_file_holder.utp_log_file != NULL;
-	}
-
-	void utp_stream::utp_stream_log(bool enable) {
-		if (enable)
-		{
-			if (log_file_holder.utp_log_file == NULL)
-			{
-				log_file_holder.utp_log_file = fopen("utp.log", "w+");
-			}
-		}
-		else
-		{
-			if (log_file_holder.utp_log_file != NULL)
-			{
-				FILE* f = log_file_holder.utp_log_file;
-				log_file_holder.utp_log_file = NULL;
-				fclose(f);
-			}
-		}
-	}
-#endif
 
 // =========== utp_socket_impl ============
 
