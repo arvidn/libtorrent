@@ -63,7 +63,7 @@ namespace libtorrent
 	#define TORRENT_VERBOSE_UTP_LOG 1
 #endif
 
-#ifdef TORRENT_UTP_LOG
+#if TORRENT_UTP_LOG
 	bool is_utp_stream_logging();
 
 	// This function should be used at the very beginning and very end of your program.
