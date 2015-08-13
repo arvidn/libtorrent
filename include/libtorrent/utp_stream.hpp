@@ -468,6 +468,11 @@ public:
 		issue_write();
 	}
 
+#ifdef TORRENT_UTP_LOG
+	static bool utp_stream_log();
+	static void utp_stream_log(bool enable);
+#endif
+
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	utp_stream& operator=(utp_stream const&);
