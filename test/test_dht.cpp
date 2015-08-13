@@ -567,6 +567,8 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "   invalid announce response: %s\n", error_string);
 	}
 
+	init_rand_address();
+
 	// announce from 100 random IPs and make sure scrape works
 	// 50 downloaders and 50 seeds
 	for (int i = 0; i < 100; ++i)
@@ -753,9 +755,11 @@ TORRENT_TEST(dht)
 
 	// ====== put ======
 
+	init_rand_address();
+
 	udp::endpoint eps[1000];
 
- 	for (int i = 0; i < 1000; ++i)
+	for (int i = 0; i < 1000; ++i)
 		eps[i] = udp::endpoint(rand_v4(), (rand() % 16534) + 1);
 
 	announce_item items[] =
@@ -1328,6 +1332,8 @@ TORRENT_TEST(dht)
 		}
 
 		s.restrict_routing_ips = false;
+
+		init_rand_address();
 
 		add_and_replace(tmp, diff);
 		table.node_seen(id, udp::endpoint(rand_v4(), rand()), 10);

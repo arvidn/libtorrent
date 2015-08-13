@@ -79,6 +79,12 @@ namespace lt = libtorrent;
 #endif
 
 boost::uint32_t g_addr = 0x92343023;
+
+void init_rand_address()
+{
+	g_addr = 0x92343023;
+}
+
 address rand_v4()
 {
 	do {

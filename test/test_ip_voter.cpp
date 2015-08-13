@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "setup_transfer.hpp" // for rand_v4
 
 using namespace libtorrent;
@@ -58,6 +60,8 @@ bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 // we don't flap
 TORRENT_TEST(test_random)
 {
+	init_rand_address();
+
 	ip_voter ipv;
 
 	address_v4 addr1(address_v4::from_string("51.41.61.132"));
@@ -75,6 +79,8 @@ TORRENT_TEST(test_random)
 
 TORRENT_TEST(two_ips)
 {
+	init_rand_address();
+
 	ip_voter ipv;
 
 	address_v4 addr1(address_v4::from_string("51.1.1.1"));
@@ -100,6 +106,8 @@ TORRENT_TEST(two_ips)
 
 TORRENT_TEST(one_ip)
 {
+	init_rand_address();
+
 	ip_voter ipv;
 
 	address_v4 start_addr(address_v4::from_string("93.12.63.174"));
@@ -138,5 +146,71 @@ TORRENT_TEST(one_ip)
 	}
 
 	TEST_CHECK(ipv.external_address() == addr1);
+}
+
+TORRENT_TEST(externa_ip_1)
+{
+	init_rand_address();
+
+	// test external ip voting
+	external_ip ipv1;
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 malicious responses from the same peer
+	error_code ec;
+	address real_external = address_v4::from_string("5.5.5.5", ec);
+	TEST_CHECK(!ec);
+	address malicious = address_v4::from_string("4.4.4.4", ec);
+	TEST_CHECK(!ec);
+	for (int i = 0; i < 50; ++i)
+	{
+		ipv1.cast_vote(real_external, aux::session_impl::source_dht, rand_v4());
+		ipv1.cast_vote(rand_v4(), aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ipv1.external_address(rand_v4()) == real_external);
+}
+
+TORRENT_TEST(externa_ip_2)
+{
+	init_rand_address();
+
+	external_ip ipv2;
+
+	// test a single malicious node
+	// adds 50 legitimate responses from different peers
+	// and 50 consistent malicious responses from the same peer
+	error_code ec;
+	address malicious = address_v4::from_string("4.4.4.4", ec);
+	TEST_CHECK(!ec);
+	address real_external1 = address_v4::from_string("5.5.5.5", ec);
+	TEST_CHECK(!ec);
+	address real_external2;
+#if TORRENT_USE_IPV6
+	if (supports_ipv6())
+	{
+		real_external2 = address_v6::from_string("2f80::", ec);
+		TEST_CHECK(!ec);
+	}
+#endif
+	malicious = address_v4::from_string("4.4.4.4", ec);
+	TEST_CHECK(!ec);
+	address malicious_external = address_v4::from_string("3.3.3.3", ec);
+	TEST_CHECK(!ec);
+	for (int i = 0; i < 50; ++i)
+	{
+		ipv2.cast_vote(real_external1, aux::session_impl::source_dht, rand_v4());
+#if TORRENT_USE_IPV6
+		if (supports_ipv6())
+			ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+#endif
+		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
+	}
+	TEST_CHECK(ipv2.external_address(rand_v4()) == real_external1);
+#if TORRENT_USE_IPV6
+	if (supports_ipv6())
+		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
+#endif
+
 }
 

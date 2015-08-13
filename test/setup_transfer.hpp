@@ -51,6 +51,7 @@ EXPORT void save_file(char const* filename, char const* data, int size);
 
 EXPORT void report_failure(char const* err, char const* file, int line);
 
+EXPORT void init_rand_address();
 EXPORT libtorrent::address rand_v4();
 #if TORRENT_USE_IPV6
 EXPORT libtorrent::address rand_v6();
