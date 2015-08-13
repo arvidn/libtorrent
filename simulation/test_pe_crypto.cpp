@@ -74,10 +74,11 @@ void display_settings(libtorrent::settings_pack const& s)
 
 struct test_swarm_config : swarm_config
 {
-	test_swarm_config(libtorrent::settings_pack::enc_policy m_policy
+	test_swarm_config(libtorrent::settings_pack::enc_policy policy
 		, libtorrent::settings_pack::enc_level level
 		, bool prefer_rc4)
 		: swarm_config()
+		, m_policy(policy)
 		, m_level(level)
 		, m_prefer_rc4(prefer_rc4)
 	{}

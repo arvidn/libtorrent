@@ -1562,7 +1562,7 @@ namespace libtorrent
 		};
 
 		// the encoding policy options for use with
-		// settings_pack::pe_out_enc_policy and settings_pack::pe_in_enc_policy.
+		// settings_pack::out_enc_policy and settings_pack::in_enc_policy.
 		enum enc_policy
 		{
 			// Only encrypted connections are allowed. Incoming connections that
@@ -1581,7 +1581,7 @@ namespace libtorrent
 		};
 
 		// the encryption levels, to be used with
-		// settings_pack::pe_allowed_enc_level.
+		// settings_pack::allowed_enc_level.
 		enum enc_level
 		{
 			// use only plaintext encryption

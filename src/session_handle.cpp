@@ -304,7 +304,7 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_dht, false);
 		apply_settings(p);
 	}
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 	void session_handle::set_dht_settings(dht_settings const& settings)
 	{
@@ -648,6 +648,16 @@ namespace libtorrent
 
 	void session_handle::apply_settings(settings_pack const& s)
 	{
+		TORRENT_ASSERT_PRECOND(!s.has_val(settings_pack::out_enc_policy)
+			|| s.get_int(settings_pack::out_enc_policy)
+				<= settings_pack::pe_disabled);
+		TORRENT_ASSERT_PRECOND(!s.has_val(settings_pack::in_enc_policy)
+			|| s.get_int(settings_pack::in_enc_policy)
+				<= settings_pack::pe_disabled);
+		TORRENT_ASSERT_PRECOND(!s.has_val(settings_pack::allowed_enc_level)
+			|| s.get_int(settings_pack::allowed_enc_level)
+				<= settings_pack::pe_both);
+
 		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(s);
 		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
 	}
