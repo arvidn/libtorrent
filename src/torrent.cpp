@@ -5266,7 +5266,10 @@ namespace libtorrent
 		m_complete = rd.dict_find_int_value("num_complete", 0xffffff);
 		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
 		m_downloaded = rd.dict_find_int_value("num_downloaded", 0xffffff);
-
+		int priorityValue = rd.dict_find_int_value("priority");
+		if (priorityValue >=0 && priorityValue < 256)
+			m_priority = priorityValue;
+			
 		if (!m_override_resume_data)
 		{
 			int up_limit_ = rd.dict_find_int_value("upload_rate_limit", -1);
@@ -5773,7 +5776,8 @@ namespace libtorrent
 		ret["announce_to_trackers"] = m_announce_to_trackers;
 		ret["announce_to_lsd"] = m_announce_to_lsd;
 		ret["auto_managed"] = m_auto_managed;
-
+		ret["priority"] = m_priority;
+		
 		// write piece priorities
 		entry::string_type& piece_priority = ret["piece_priority"].string();
 		piece_priority.resize(m_torrent_file->num_pieces());
