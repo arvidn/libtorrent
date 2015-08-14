@@ -38,7 +38,7 @@ before_install:
 install:
   - 'if [ $variant == "test_debug" ]; then
     echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 <compileflags>-fsanitize=address <linkflags>-fsanitize=address ;" > ~/user-config.jam;
-    else;
+    else
     echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam;
     fi'
   - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
