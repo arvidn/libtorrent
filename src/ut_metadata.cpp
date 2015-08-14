@@ -382,7 +382,8 @@ namespace libtorrent { namespace
 						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
 							, "have: %d invalid piece %d metadata size: %d"
 							, int(m_torrent.valid_metadata()), piece
-							, int(m_tp.get_metadata_size()));
+							, m_torrent.valid_metadata()
+								? int(m_tp.get_metadata_size()) : 0);
 #endif
 						write_metadata_packet(metadata_dont_have, piece);
 						return true;
@@ -495,7 +496,7 @@ namespace libtorrent { namespace
 		// request queues
 		std::vector<int> m_sent_requests;
 		std::vector<int> m_incoming_requests;
-		
+
 		torrent& m_torrent;
 		bt_peer_connection& m_pc;
 		ut_metadata_plugin& m_tp;
@@ -559,7 +560,7 @@ namespace libtorrent { namespace
 			m_torrent.add_redundant_bytes(size, torrent::piece_unknown);
 			return false;
 		}
-		
+
 		if (!m_metadata)
 		{
 			// verify the total_size
@@ -567,7 +568,7 @@ namespace libtorrent { namespace
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
-					, "metadata size too big: %d", total_size);				
+					, "metadata size too big: %d", total_size);
 #endif
 // #error post alert
 				return false;
@@ -582,7 +583,7 @@ namespace libtorrent { namespace
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
-				, "piece: %d INVALID", piece);				
+				, "piece: %d INVALID", piece);
 #endif
 			return false;
 		}
@@ -592,7 +593,7 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_LOGGING
 			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
 				, "total_size: %d INCONSISTENT WITH: %d"
-				, total_size, m_metadata_size);				
+				, total_size, m_metadata_size);
 #endif
 			// they disagree about the size!
 			return false;
@@ -600,7 +601,7 @@ namespace libtorrent { namespace
 
 		if (piece * 16 * 1024 + size > m_metadata_size)
 		{
-			// this piece is invalid 
+			// this piece is invalid
 			return false;
 		}
 

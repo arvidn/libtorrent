@@ -31,8 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "setup_transfer.hpp"
-#include "test_utils.hpp"
 #include "test_utils.hpp"
 #include "swarm_config.hpp"
 

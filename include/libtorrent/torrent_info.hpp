@@ -243,7 +243,7 @@ namespace libtorrent
 		{
 			if (url < e.url) return true;
 			if (url > e.url) return false;
-		  	return type < e.type;
+			return type < e.type;
 		}
 
 		// The URL of the web seed

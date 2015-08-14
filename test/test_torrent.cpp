@@ -154,6 +154,24 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	}
 }
 
+TORRENT_TEST(long_names)
+{
+	entry info;
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["name"] = "slightly shorter name, it's kind of sad that people started the trend of incorrectly encoding the regular name field and then adding another one with correct encoding";
+	info["name.utf-8"] = "this is a long ass name in order to try to make make_magnet_uri overflow and hopefully crash. Although, by the time you read this that particular bug should have been fixed";
+	info["piece length"] = 16 * 1024;
+	info["length"] = 3245;
+	entry torrent;
+	torrent["info"] = info;
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	error_code ec;
+	boost::shared_ptr<torrent_info> ti(boost::make_shared<torrent_info>(&buf[0], buf.size(), boost::ref(ec)));
+	TEST_CHECK(!ec);
+}
+
 TORRENT_TEST(total_wanted)
 {
 	file_storage fs;

@@ -669,7 +669,7 @@ namespace libtorrent
 		// event, we need to let this announce through
 		bool need_send_complete = is_seed && !complete_sent;
 
-		return now > next_announce
+		return now >= next_announce
 			&& (now >= min_announce || need_send_complete)
 			&& (fails < fail_limit || fail_limit == 0)
 			&& !updating;

@@ -33,9 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/torrent_handle.hpp"
 
 #ifndef TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
 #define TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
+
+namespace libtorrent
+{
+	class alert;
+	class session;
+}
 
 struct swarm_setup_provider
 {

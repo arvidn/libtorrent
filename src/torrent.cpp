@@ -3156,7 +3156,7 @@ namespace libtorrent
 				// a warning if there isn't one
 				std::string protocol = req.url.substr(0, req.url.find(':'));
 				int proxy_type = settings().get_int(settings_pack::proxy_type);
-	
+
 				// http can run over any proxy, so as long as one is used
 				// it's OK. If no proxy is configured, skip this tracker
 				if ((protocol == "http" || protocol == "https")
