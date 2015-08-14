@@ -36,7 +36,11 @@ before_install:
   - git submodule foreach git pull origin master --depth=1
 
 install:
-  - 'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - if [ $variant == "test_debug" ]; then
+    'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 <compileflags>-fsanitize=address <linkflags>-fsanitize=address ;" > ~/user-config.jam';
+    else;
+    'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam';
+    fi
   - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
