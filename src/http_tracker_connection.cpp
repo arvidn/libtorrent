@@ -115,7 +115,7 @@ namespace libtorrent
 			url += "?";
 
 		url += "info_hash=";
-		url += escape_string((const char*)&tracker_req().info_hash[0], 20);
+		url += escape_string(tracker_req().info_hash.data(), 20);
 
 		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 		{
@@ -135,7 +135,7 @@ namespace libtorrent
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, escape_string((const char*)&tracker_req().pid[0], 20).c_str()
+				, escape_string(tracker_req().pid.data(), 20).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
 				, i2p ? 1 : tracker_req().listen_port
@@ -169,9 +169,14 @@ namespace libtorrent
 			if (i2p && tracker_req().i2pconn)
 			{
 				if (tracker_req().i2pconn->local_endpoint().empty())
+				{
 					fail(error_code(errors::no_i2p_endpoint), -1, "Waiting for i2p acceptor from SAM bridge", 5);
+					return;
+				}
 				else
+				{
 					url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
+				}
 			}
 			else
 #endif
@@ -363,9 +368,9 @@ namespace libtorrent
 			std::list<address> ip_list;
 			if (m_tracker_connection)
 			{
-				error_code ec;
+				error_code ignore;
 				ip_list.push_back(
-					m_tracker_connection->socket().remote_endpoint(ec).address());
+					m_tracker_connection->socket().remote_endpoint(ignore).address());
 				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
 				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
 					, end(epts.end()); i != end; ++i)
@@ -416,7 +421,7 @@ namespace libtorrent
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
-		ret.port = (unsigned short)i.int_value();
+		ret.port = boost::uint16_t(i.int_value());
 
 		return true;
 	}
@@ -521,7 +526,6 @@ namespace libtorrent
 					if (len - i < 6) break;
 
 					ipv4_peer_entry p;
-					error_code ec;
 					p.ip = detail::read_v4_address(peers).to_v4().to_bytes();
 					p.port = detail::read_uint16(peers);
 					resp.peers4.push_back(p);

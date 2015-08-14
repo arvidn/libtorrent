@@ -104,7 +104,7 @@ TORRENT_TEST(parse_peers4)
 TORRENT_TEST(parse_i2p_peers)
 {
 	// d8:completei8e10:incompletei4e8:intervali3600e5:peers352: ...
-	char const response[] = { 0x64, 0x38, 0x3a, 0x63, 0x6f, 0x6d,
+	boost::uint8_t const response[] = { 0x64, 0x38, 0x3a, 0x63, 0x6f, 0x6d,
 		0x70, 0x6c, 0x65, 0x74, 0x65, 0x69, 0x38, 0x65, 0x31, 0x30,
 		0x3a, 0x69, 0x6e, 0x63, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74,
 		0x65, 0x69, 0x34, 0x65, 0x38, 0x3a, 0x69, 0x6e, 0x74, 0x65,
@@ -147,7 +147,8 @@ TORRENT_TEST(parse_i2p_peers)
 		0xc2, 0x8a, 0x22, 0x6b, 0x47, 0xc1, 0xd1, 0x52, 0x61, 0x66,
 		0xa0, 0x75, 0xab, 0x65 };
 	error_code ec;
-	tracker_response resp = parse_tracker_response(response, sizeof(response)
+	tracker_response resp = parse_tracker_response(
+		reinterpret_cast<char const*>(response), sizeof(response)
 		, ec, tracker_request::i2p, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
@@ -156,7 +157,6 @@ TORRENT_TEST(parse_i2p_peers)
 	if (resp.peers.size() == 11)
 	{
 		TEST_EQUAL(resp.peers[0].hostname, "wgcobfq73pzmtmcttiy2knon5bm2a7gn6j6idaiccf53ikwrecdq.b32.i2p");
-//		TEST_EQUAL(resp.peers[9].hostname, "cbmvhhhgdmxha4toqj5qhphse2n3henk6g5geev3orfxardudgza.b32.i2p");
 		TEST_EQUAL(resp.peers[10].hostname, "ufunemgwuun5t2sn3oay4zv7jvwdezwcrirgwr6b2fjgczvaowvq.b32.i2p");
 	}
 }
