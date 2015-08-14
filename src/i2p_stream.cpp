@@ -414,6 +414,7 @@ namespace libtorrent
 			}
 		}
 
+		error_code ec(result, get_i2p_category());
 		switch (result)
 		{
 			case i2p_error::no_error:
@@ -421,7 +422,6 @@ namespace libtorrent
 				break;
 			default:
 			{
-				error_code ec (result, get_i2p_category ());
 				handle_error (ec, h);
 				return;
 			}
@@ -449,7 +449,7 @@ namespace libtorrent
 		case read_connect_response:
 		case read_session_create_response:
 		case read_name_lookup_response:
-			(*h)(e);
+			(*h)(ec);
 			std::vector<char>().swap(m_buffer);
 			break;
 		case read_accept_response:

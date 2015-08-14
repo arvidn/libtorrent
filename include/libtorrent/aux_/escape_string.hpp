@@ -39,6 +39,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace string
+	{
+		enum flags_t
+		{
+			// use lower case alphabet used with i2p
+			lowercase = 0x1,
+			// don't insert padding
+			no_padding = 0x2,
+			// shortcut used for addresses as sha256 hashes
+			i2p = lowercase | no_padding
+		};
+
+	}
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
 	TORRENT_EXTRA_EXPORT std::string escape_string(const char* str, int len);
@@ -58,7 +71,7 @@ namespace libtorrent
 	// encodes a string using the base64 scheme
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
 	// encodes a string using the base32 scheme
-	TORRENT_EXTRA_EXPORT std::string base32encode(std::string const& s);
+	TORRENT_EXTRA_EXPORT std::string base32encode(std::string const& s, int flags=0);
 	TORRENT_EXTRA_EXPORT std::string base32decode(std::string const& s);
 
 	TORRENT_EXTRA_EXPORT std::string url_has_argument(

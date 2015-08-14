@@ -46,6 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
+#if TORRENT_USE_I2P
+#  include <boost/algorithm/string/predicate.hpp>
+#endif
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -3244,7 +3247,7 @@ namespace libtorrent
 			req.filter = m_ip_filter;
 
 		req.info_hash = m_torrent_file->info_hash();
-		req.kind = tracker_request::scrape_request;
+		req.kind |= tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
 		req.auth = tracker_login();
 		req.key = tracker_key();
@@ -3267,7 +3270,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(req.kind == tracker_request::scrape_request);
+		TORRENT_ASSERT(0 != (req.kind & tracker_request::scrape_request));
 
 		announce_entry* ae = find_tracker(req);
 		if (ae)
@@ -3325,7 +3328,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(r.kind == tracker_request::announce_request);
+		TORRENT_ASSERT(0 == (r.kind & tracker_request::scrape_request));
 
 		// TODO: 2 this looks suspicious. Figure out why it makes sense to use the
 		// first IP in this list and leave a comment here
@@ -3418,20 +3421,22 @@ namespace libtorrent
 			{
 				// this is an i2p name, we need to use the sam connection
 				// to do the name lookup
-				/*
-				m_ses.m_i2p_conn.async_name_lookup(i->ip.c_str()
-					, boost::bind(&torrent::on_i2p_resolve
-					, shared_from_this(), _1));
-				*/
-				// it seems like you're not supposed to do a name lookup
-				// on the peers returned from the tracker, but just strip
-				// the .i2p and use it as a destination
-				std::string hostname = i->hostname.substr(i->hostname.size() - 4);
-				torrent_state st = get_peer_list_state();
-				need_peer_list();
-				if (m_peer_list->add_i2p_peer(hostname.c_str(), peer_info::tracker, 0, &st))
-					state_updated();
-				peers_erased(st.erased);
+				if (boost::algorithm::ends_with(i->hostname, ".b32.i2p"))
+				{
+#if defined TORRENT_ASIO_DEBUGGING
+					add_outstanding_async("torrent::on_i2p_resolve");
+#endif
+					r.i2pconn->async_name_lookup(i->hostname.c_str()
+						, boost::bind(&torrent::on_i2p_resolve
+						, shared_from_this(), _1, _2));
+				}
+				else {
+					torrent_state st = get_peer_list_state();
+					need_peer_list();
+					if (m_peer_list->add_i2p_peer (i->hostname.c_str (), peer_info::tracker, 0, &st))
+						state_updated ();
+					peers_erased (st.erased);
+				}
 			}
 			else
 #endif
@@ -3647,6 +3652,9 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("torrent::on_i2p_resolve");
+#endif
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec)
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
@@ -7128,6 +7136,8 @@ namespace libtorrent
 				error_code ec;
 				torrent_peer const* p = *i;
 				address addr = p->address();
+				if (p->is_i2p_addr)
+					continue;
 				if (p->banned)
 				{
 #if TORRENT_USE_IPV6
@@ -11801,7 +11811,7 @@ namespace libtorrent
 		debug_log("*** tracker error: (%d) %s %s", ec.value()
 			, ec.message().c_str(), msg.c_str());
 #endif
-		if (r.kind == tracker_request::announce_request)
+		if (0 == (r.kind & tracker_request::scrape_request))
 		{
 			announce_entry* ae = find_tracker(r);
 			if (ae)
@@ -11824,7 +11834,7 @@ namespace libtorrent
 					, ae?ae->fails:0, response_code, r.url, ec, msg);
 			}
 		}
-		else if (r.kind == tracker_request::scrape_request)
+		else if (0 != (r.kind & tracker_request::scrape_request))
 		{
 			if (response_code == 410)
 			{

@@ -118,8 +118,12 @@ namespace libtorrent
 
 		enum kind_t
 		{
-			announce_request,
-			scrape_request
+			// do not compare against announce_request ! check if not scrape instead
+			announce_request = 0,
+			scrape_request = 1,
+			// affects interpretation of peers string in HTTP response
+			// see parse_tracker_response()
+			i2p = 2
 		};
 
 		std::string url;

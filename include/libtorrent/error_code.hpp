@@ -397,6 +397,8 @@ namespace libtorrent
 
 			// The URL specified an i2p address, but no i2p router is configured
 			no_i2p_router = 160,
+			// i2p acceptor is not available yet, can't announce without endpoint
+			no_i2p_endpoint = 161,
 
 
 
