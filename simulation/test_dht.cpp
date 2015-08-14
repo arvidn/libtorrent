@@ -118,6 +118,6 @@ private:
 TORRENT_TEST(dht)
 {
 	network_config cfg;
-	setup_dht(20, cfg);
+	setup_dht(10, cfg);
 }
 
