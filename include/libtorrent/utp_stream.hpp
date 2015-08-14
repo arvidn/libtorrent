@@ -55,6 +55,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+#ifndef TORRENT_UTP_LOG_ENABLE
+	#define TORRENT_UTP_LOG 0
+	#define TORRENT_VERBOSE_UTP_LOG 0
+#else
+	#define TORRENT_UTP_LOG 1
+	#define TORRENT_VERBOSE_UTP_LOG 1
+#endif
+
+#if TORRENT_UTP_LOG
+	bool is_utp_stream_logging();
+
+	// This function should be used at the very beginning and very end of your program.
+	void set_utp_stream_logging(bool enable);
+#endif
+
 	struct utp_socket_manager;
 
 	// internal: some MTU and protocol header sizes constants

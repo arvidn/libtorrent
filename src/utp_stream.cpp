@@ -44,9 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <limits>
 
-#define TORRENT_UTP_LOG 0
-#define TORRENT_VERBOSE_UTP_LOG 0
-
 // the behavior of the sequence numbers as implemented by uTorrent is not
 // particularly regular. This switch indicates the odd parts.
 #define TORRENT_UT_SEQ 1
@@ -70,7 +67,7 @@ static struct utp_logger
 
 	utp_logger() : utp_log_file(0)
 	{
-		utp_log_file = fopen("utp.log", "w+");
+		utp_log_file = NULL;
 	}
 	~utp_logger()
 	{
@@ -80,6 +77,8 @@ static struct utp_logger
 
 void utp_log(char const* fmt, ...)
 {
+	if (log_file_holder.utp_log_file == NULL) return;
+
 	mutex::scoped_lock lock(log_file_holder.utp_log_mutex);
 	static time_point start = clock_type::now();
 	fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
@@ -87,6 +86,29 @@ void utp_log(char const* fmt, ...)
 	va_start(l, fmt);
 	vfprintf(log_file_holder.utp_log_file, fmt, l);
 	va_end(l);
+}
+
+bool is_utp_stream_logging() {
+	return log_file_holder.utp_log_file != NULL;
+}
+
+void set_utp_stream_logging(bool enable) {
+	if (enable)
+	{
+		if (log_file_holder.utp_log_file == NULL)
+		{
+			log_file_holder.utp_log_file = fopen("utp.log", "w+");
+		}
+	}
+	else
+	{
+		if (log_file_holder.utp_log_file != NULL)
+		{
+			FILE* f = log_file_holder.utp_log_file;
+			log_file_holder.utp_log_file = NULL;
+			fclose(f);
+		}
+	}
 }
 
 #define UTP_LOG utp_log
