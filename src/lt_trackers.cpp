@@ -237,15 +237,15 @@ namespace libtorrent { namespace
 				if (need_encoding(e.url.c_str(), e.url.size())) continue;
 
 				// ignore invalid URLs
-				error_code ec;
+				error_code err;
 				std::string protocol;
 				std::string auth;
 				std::string hostname;
 				int port;
 				std::string path;
 				boost::tie(protocol, auth, hostname, port, path)
-					= parse_url_components(e.url, ec);
-				if (ec) continue;
+					= parse_url_components(e.url, err);
+				if (err) continue;
 
 				// ignore unknown protocols
 				if (protocol != "udp" && protocol != "http" && protocol != "https")
@@ -273,7 +273,8 @@ namespace libtorrent { namespace
 
 		virtual void tick()
 		{
-			if (!m_message_index) return;	// no handshake yet
+			// no handshake yet
+			if (!m_message_index) return;
 			if (++m_2_minutes <= 120) return;
 			m_2_minutes = 0;
 

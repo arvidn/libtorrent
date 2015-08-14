@@ -527,7 +527,7 @@ namespace libtorrent
 		if (cb)
 		{
 			char hex_ih[41];
-			to_hex((char const*)&tracker_req().info_hash[0], 20, hex_ih);
+			to_hex(tracker_req().info_hash.data(), 20, hex_ih);
 			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s]"
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
@@ -757,7 +757,7 @@ namespace libtorrent
 		if (cb)
 		{
 			char hex_ih[41];
-			to_hex((char const*)&req.info_hash[0], 20, hex_ih);
+			to_hex(req.info_hash.data(), 20, hex_ih);
 			cb->debug_log("==> UDP_TRACKER_ANNOUNCE [%s]", hex_ih);
 		}
 #endif

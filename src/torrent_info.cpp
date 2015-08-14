@@ -588,7 +588,7 @@ namespace libtorrent
 			ec = errors::metadata_too_large;
 			return -2;
 		}
-		v.resize((unsigned int)s);
+		v.resize(std::size_t(s));
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
 		boost::int64_t read = f.readv(0, &b, 1, ec);
@@ -1266,8 +1266,8 @@ namespace libtorrent
 		if (name.empty()) name = to_hex(m_info_hash.to_string());
 
 		// extract file list
-		bdecode_node i = info.dict_find_list("files");
-		if (!i)
+		bdecode_node files_node = info.dict_find_list("files");
+		if (!files_node)
 		{
 			// if there's no list of files, there has to be a length
 			// field.
@@ -1278,7 +1278,7 @@ namespace libtorrent
 		}
 		else
 		{
-			if (!extract_files(i, files, name, info_ptr_diff, ec))
+			if (!extract_files(files_node, files, name, info_ptr_diff, ec))
 				return false;
 			m_multifile = true;
 		}
@@ -1521,13 +1521,13 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		// extract the url of the tracker
-		bdecode_node i = torrent_file.dict_find_list("announce-list");
-		if (i)
+		bdecode_node announce_node = torrent_file.dict_find_list("announce-list");
+		if (announce_node)
 		{
-			m_urls.reserve(i.list_size());
-			for (int j = 0, end(i.list_size()); j < end; ++j)
+			m_urls.reserve(announce_node.list_size());
+			for (int j = 0, end(announce_node.list_size()); j < end; ++j)
 			{
-				bdecode_node tier = i.list_at(j);
+				bdecode_node tier = announce_node.list_at(j);
 				if (tier.type() != bdecode_node::list_t) continue;
 				for (int k = 0, end(tier.list_size()); k < end; ++k)
 				{
@@ -1562,7 +1562,6 @@ namespace libtorrent
 				std::random_shuffle(start, stop);
 			}
 		}
-		
 
 		if (m_urls.empty())
 		{

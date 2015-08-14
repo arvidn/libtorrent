@@ -149,7 +149,7 @@ namespace libtorrent
 			size += bufs->iov_len;
 			if (size >= bytes)
 			{
-				((char*&)bufs->iov_base) += bufs->iov_len - (size - bytes);
+				reinterpret_cast<char*&>(bufs->iov_base) += bufs->iov_len - (size - bytes);
 				bufs->iov_len = size - bytes;
 				return;
 			}
@@ -720,7 +720,7 @@ namespace libtorrent
 		TORRENT_ASSERT(slot >= 0);
 		TORRENT_ASSERT(slot < files().num_pieces());
 
-		boost::int64_t file_offset = (boost::int64_t)slot * files().piece_length();
+		boost::int64_t file_offset = boost::int64_t(slot) * files().piece_length();
 		int file_index = 0;
 
 		for (;;)
@@ -1064,8 +1064,8 @@ namespace libtorrent
 					else
 					{
 						// ignore errors when removing
-						error_code e;
-						remove_all(old_path, e);
+						error_code ignore;
+						remove_all(old_path, ignore);
 					}
 					break;
 				}
@@ -1270,8 +1270,8 @@ namespace libtorrent
 				write_access_log(adjusted_offset, handle->file_id(), op_start | flags, clock_type::now());
 #endif
 
-				bytes_transferred = (int)((*handle).*op.op)(adjusted_offset
-					, tmp_bufs, num_tmp_bufs, e, op.mode);
+				bytes_transferred = int(((*handle).*op.op)(adjusted_offset
+					, tmp_bufs, num_tmp_bufs, e, op.mode));
 
 				// we either get an error or 0 or more bytes read
 				TORRENT_ASSERT(e || bytes_transferred >= 0);
@@ -1431,6 +1431,7 @@ namespace libtorrent
 
 	storage_interface* disabled_storage_constructor(storage_params const& params)
 	{
+		TORRENT_UNUSED(params);
 		return new disabled_storage;
 	}
 

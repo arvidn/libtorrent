@@ -4668,8 +4668,8 @@ retry:
 		{
 			torrent_info::nodes_t const& nodes = params.ti->nodes();
 			std::for_each(nodes.begin(), nodes.end(), boost::bind(
-				(void(dht::dht_tracker::*)(std::pair<std::string, int> const&))
-				&dht::dht_tracker::add_node
+				static_cast<void(dht::dht_tracker::*)(std::pair<std::string, int> const&)>(
+					&dht::dht_tracker::add_node)
 				, boost::ref(m_dht), _1));
 		}
 #endif
@@ -6515,7 +6515,7 @@ retry:
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
-		m_alerts.emplace_alert<dht_log_alert>((dht_log_alert::dht_module_t)m, buf);
+		m_alerts.emplace_alert<dht_log_alert>(static_cast<dht_log_alert::dht_module_t>(m), buf);
 	}
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len

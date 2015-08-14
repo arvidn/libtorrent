@@ -8380,7 +8380,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_trackers.size()));
-		if (index >= (int)m_trackers.size()) return -1;
+		if (index >= int(m_trackers.size())) return -1;
 
 		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
 		{
@@ -8399,7 +8399,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_trackers.size()));
-		if (index >= (int)m_trackers.size()) return -1;
+		if (index >= int(m_trackers.size())) return -1;
 
 		while (index < int(m_trackers.size()) - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
 		{
@@ -11318,7 +11318,6 @@ namespace libtorrent
 			return;
 		}
 
-		int num_files = m_torrent_file->num_files();
 		// if this is the first time the client asks for file progress.
 		// allocate it and make sure it's up to date
 
@@ -11454,7 +11453,7 @@ namespace libtorrent
 		if (m_ses.alerts().should_post<state_changed_alert>())
 		{
 			m_ses.alerts().emplace_alert<state_changed_alert>(get_handle()
-				, s, (torrent_status::state_t)m_state);
+				, s, static_cast<torrent_status::state_t>(m_state));
 		}
 
 		if (s == torrent_status::finished
@@ -11600,7 +11599,7 @@ namespace libtorrent
 		st->time_since_download = m_last_download == (std::numeric_limits<boost::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_download);
 
-		st->storage_mode = (storage_mode_t)m_storage_mode;
+		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 
 		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
 		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
@@ -11680,7 +11679,7 @@ namespace libtorrent
 		st->need_save_resume = need_save_resume_data();
 		st->ip_filter_applies = m_apply_ip_filter;
 
-		st->state = (torrent_status::state_t)m_state;
+		st->state = static_cast<torrent_status::state_t>(m_state);
 
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 		if (st->state == torrent_status::finished

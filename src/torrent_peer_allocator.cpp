@@ -59,7 +59,7 @@ namespace libtorrent
 		switch(type)
 		{
 			case torrent_peer_allocator_interface::ipv4_peer_type:
-				p = (torrent_peer*)m_ipv4_peer_pool.malloc();
+				p = static_cast<torrent_peer*>(m_ipv4_peer_pool.malloc());
 				if (p == NULL) return NULL;
 				m_ipv4_peer_pool.set_next_size(500);
 				m_total_bytes += sizeof(libtorrent::ipv4_peer);
@@ -69,7 +69,7 @@ namespace libtorrent
 				break;
 #if TORRENT_USE_IPV6
 			case torrent_peer_allocator_interface::ipv6_peer_type:
-				p = (torrent_peer*)m_ipv6_peer_pool.malloc();
+				p = static_cast<torrent_peer*>(m_ipv6_peer_pool.malloc());
 				if (p == NULL) return NULL;
 				m_ipv6_peer_pool.set_next_size(500);
 				m_total_bytes += sizeof(libtorrent::ipv6_peer);
@@ -80,7 +80,7 @@ namespace libtorrent
 #endif
 #if TORRENT_USE_I2P
 			case torrent_peer_allocator_interface::i2p_peer_type:
-				p = (torrent_peer*)m_i2p_peer_pool.malloc();
+				p = static_cast<torrent_peer*>(m_i2p_peer_pool.malloc());
 				if (p == NULL) return NULL;
 				m_i2p_peer_pool.set_next_size(500);
 				m_total_bytes += sizeof(libtorrent::i2p_peer);
@@ -98,7 +98,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 		if (p->is_v6_addr)
 		{
-			TORRENT_ASSERT(m_ipv6_peer_pool.is_from((libtorrent::ipv6_peer*)p));
+			TORRENT_ASSERT(m_ipv6_peer_pool.is_from(static_cast<libtorrent::ipv6_peer*>(p)));
 			static_cast<libtorrent::ipv6_peer*>(p)->~ipv6_peer();
 			m_ipv6_peer_pool.free(p);
 			TORRENT_ASSERT(m_live_bytes >= sizeof(ipv6_peer));
@@ -111,7 +111,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 		if (p->is_i2p_addr)
 		{
-			TORRENT_ASSERT(m_i2p_peer_pool.is_from((libtorrent::i2p_peer*)p));
+			TORRENT_ASSERT(m_i2p_peer_pool.is_from(static_cast<libtorrent::i2p_peer*>(p)));
 			static_cast<libtorrent::i2p_peer*>(p)->~i2p_peer();
 			m_i2p_peer_pool.free(p);
 			TORRENT_ASSERT(m_live_bytes >= sizeof(i2p_peer));
@@ -121,7 +121,7 @@ namespace libtorrent
 			return;
 		}
 #endif
-		TORRENT_ASSERT(m_ipv4_peer_pool.is_from((libtorrent::ipv4_peer*)p));
+		TORRENT_ASSERT(m_ipv4_peer_pool.is_from(static_cast<libtorrent::ipv4_peer*>(p)));
 		static_cast<libtorrent::ipv4_peer*>(p)->~ipv4_peer();
 		m_ipv4_peer_pool.free(p);
 		TORRENT_ASSERT(m_live_bytes >= sizeof(ipv4_peer));

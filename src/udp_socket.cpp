@@ -94,7 +94,7 @@ udp_socket::udp_socket(io_service& ios)
 
 	m_buf_size = 2048;
 	m_new_buf_size = m_buf_size;
-	m_buf = (char*)malloc(m_buf_size);
+	m_buf = static_cast<char*>(malloc(m_buf_size));
 }
 
 udp_socket::~udp_socket()
@@ -281,14 +281,14 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 
 	for (;;)
 	{
-		error_code ec;
+		error_code err;
 		udp::endpoint ep;
-		size_t bytes_transferred = s->receive_from(boost::asio::buffer(m_buf, m_buf_size), ep, 0, ec);
+		size_t bytes_transferred = s->receive_from(boost::asio::buffer(m_buf, m_buf_size), ep, 0, err);
 
 		// TODO: it would be nice to detect this on posix systems also
 #ifdef TORRENT_WINDOWS
-		if ((ec == error_code(ERROR_MORE_DATA, system_category())
-			|| ec == error_code(WSAEMSGSIZE, system_category()))
+		if ((err == error_code(ERROR_MORE_DATA, system_category())
+			|| err == error_code(WSAEMSGSIZE, system_category()))
 			&& m_buf_size < 65536)
 		{
 			// if this function fails to allocate memory, m_buf_size
@@ -299,8 +299,8 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		}
 #endif
 
-		if (ec == boost::asio::error::would_block || ec == boost::asio::error::try_again) break;
-		on_read_impl(ep, ec, bytes_transferred);
+		if (err == boost::asio::error::would_block || err == boost::asio::error::try_again) break;
+		on_read_impl(ep, err, bytes_transferred);
 	}
 	call_drained_handler();
 	setup_read(s);
@@ -1279,7 +1279,7 @@ void udp_socket::connect2(error_code const& e)
 	else
 	{
 		// in this case we need to read more data from the socket
-		TORRENT_ASSERT(false && "not implemented yet!");
+		TORRENT_ASSERT(false);
 		drain_queue();
 		return;
 	}
