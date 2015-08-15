@@ -30,11 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "test.hpp"
 
 using namespace libtorrent;
 
@@ -81,12 +84,19 @@ dht_direct_response_alert* get_direct_response(session& ses)
 
 }
 
+#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
+
 TORRENT_TEST(direct_dht_request)
 {
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	settings_pack sp;
+	sp.set_bool(settings_pack::enable_lsd, false);
+	sp.set_bool(settings_pack::enable_natpmp, false);
+	sp.set_bool(settings_pack::enable_upnp, false);
+	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
 	session responder(sp, 0);
-	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42435");
+	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
 	session requester(sp, 0);
 
 	responder.add_extension(boost::static_pointer_cast<plugin>(boost::make_shared<test_plugin>()));
@@ -95,7 +105,7 @@ TORRENT_TEST(direct_dht_request)
 
 	entry r;
 	r["q"] = "test_good";
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), 42434)
+	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), responder.listen_port())
 		, r, (void*)12345);
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
@@ -104,7 +114,7 @@ TORRENT_TEST(direct_dht_request)
 	{
 		bdecode_node response = ra->response();
 		TEST_EQUAL(ra->addr.address(), address::from_string("127.0.0.1"));
-		TEST_EQUAL(ra->addr.port(), 42434);
+		TEST_EQUAL(ra->addr.port(), responder.listen_port());
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
 		TEST_EQUAL(ra->userdata, (void*)12345);
 	}
@@ -123,4 +133,5 @@ TORRENT_TEST(direct_dht_request)
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
 		TEST_EQUAL(ra->userdata, (void*)123456);
 	}
+#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
 }
