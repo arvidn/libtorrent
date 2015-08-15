@@ -353,6 +353,10 @@ namespace aux {
 
 	session_impl::session_impl(io_service& ios)
 		:
+#ifndef TORRENT_NO_DEPRECATE
+		m_next_rss_update(min_time())
+		,
+#endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
 		,
@@ -403,9 +407,6 @@ namespace aux {
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
-#ifndef TORRENT_NO_DEPRECATE
-		, m_next_rss_update(min_time())
-#endif
 		, m_next_port(0)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
@@ -1817,8 +1818,6 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
-
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
 				, flags, ec);
@@ -1837,7 +1836,6 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 				listen_socket_t s = setup_listener("0.0.0.0", true
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
@@ -1945,8 +1943,6 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						int retries = 10;
-
 						listen_socket_t s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
@@ -5455,6 +5451,16 @@ retry:
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
+		// if node.first is an IP address, no async resolution is necessary
+		error_code e;
+		address ip = address::from_string(node.first, e);
+		if (!e)
+		{
+			std::vector<address> addresses;
+			addresses.push_back(ip);
+			on_dht_router_name_lookup(e, addresses, node.second);
+			return;
+		}
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_router_name_lookup");
 #endif
