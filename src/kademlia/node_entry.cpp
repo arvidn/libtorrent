@@ -41,8 +41,7 @@ namespace libtorrent { namespace dht
 		, bool pinged)
 		: last_queried(pinged ? aux::time_now() : min_time())
 		, id(id_)
-		, a(ep.address().to_v4().to_bytes())
-		, p(ep.port())
+		, endpoint(ep)
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
@@ -54,8 +53,7 @@ namespace libtorrent { namespace dht
 	node_entry::node_entry(udp::endpoint ep)
 		: last_queried(min_time())
 		, id(0)
-		, a(ep.address().to_v4().to_bytes())
-		, p(ep.port())
+		, endpoint(ep)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -67,7 +65,6 @@ namespace libtorrent { namespace dht
 	node_entry::node_entry()
 		: last_queried(min_time())
 		, id(0)
-		, p(0)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{

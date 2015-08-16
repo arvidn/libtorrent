@@ -73,6 +73,23 @@ struct routing_table_node
 	bucket_t live_nodes;
 };
 
+struct ip_set
+{
+	void insert(address addr);
+	size_t count(address addr);
+	void erase(address addr);
+
+	bool operator==(ip_set const& rh)
+	{
+		return m_ip4s == rh.m_ip4s && m_ip6s == rh.m_ip6s;
+	}
+
+	// these must be multisets because there can be multiple routing table
+	// entries for a single IP when restrict_routing_ips is set to false
+	boost::unordered_multiset<address_v4::bytes_type> m_ip4s;
+	boost::unordered_multiset<address_v6::bytes_type> m_ip6s;
+};
+
 // differences in the implementation from the description in
 // the paper:
 //
@@ -256,9 +273,8 @@ private:
 
 	// these are all the IPs that are in the routing
 	// table. It's used to only allow a single entry
-	// per IP in the whole table. Currently only for
-	// IPv4
-	boost::unordered_multiset<address_v4::bytes_type> m_ips;
+	// per IP in the whole table.
+	ip_set m_ips;
 
 	// constant called k in paper
 	int m_bucket_size;

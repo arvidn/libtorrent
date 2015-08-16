@@ -55,10 +55,10 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	void timed_out() { if (pinged() && timeout_count < 0xfe) ++timeout_count; }
 	int fail_count() const { return pinged() ? timeout_count : 0; }
 	void reset_fail_count() { if (pinged()) timeout_count = 0; }
-	udp::endpoint ep() const { return udp::endpoint(address_v4(a), p); }
+	udp::endpoint ep() const { return endpoint; }
 	bool confirmed() const { return timeout_count == 0; }
-	address addr() const { return address_v4(a); }
-	int port() const { return p; }
+	address addr() const { return endpoint.address(); }
+	int port() const { return endpoint.port; }
 
 #ifndef TORRENT_DISABLE_LOGGING
 	time_point first_seen;
@@ -69,8 +69,7 @@ struct TORRENT_EXTRA_EXPORT node_entry
 
 	node_id id;
 
-	address_v4::bytes_type a;
-	boost::uint16_t p;
+	union_endpoint endpoint;
 
 	// the average RTT of this node
 	boost::uint16_t rtt;

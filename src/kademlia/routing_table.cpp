@@ -58,15 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::uint8_t;
 
-#if BOOST_VERSION <= 104700
-namespace boost {
-size_t hash_value(libtorrent::address_v4::bytes_type ip)
-{
-	return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
-}
-}
-#endif
-
 namespace libtorrent { namespace dht
 {
 namespace
@@ -87,6 +78,30 @@ namespace
 
 		return true;
 	}
+}
+
+void ip_set::insert(address addr)
+{
+	if (addr.is_v4())
+		m_ip4s.insert(addr.to_v4().to_bytes());
+	else
+		m_ip6s.insert(addr.to_v6().to_bytes());
+}
+
+size_t ip_set::count(address addr)
+{
+	if (addr.is_v4())
+		return m_ip4s.count(addr.to_v4().to_bytes());
+	else
+		return m_ip6s.count(addr.to_v6().to_bytes());
+}
+
+void ip_set::erase(address addr)
+{
+	if (addr.is_v4())
+		erase_one(m_ip4s, addr.to_v4().to_bytes());
+	else
+		erase_one(m_ip6s, addr.to_v6().to_bytes());
 }
 
 routing_table::routing_table(node_id const& id, int bucket_size
@@ -514,8 +529,8 @@ void routing_table::remove_node(node_entry* n
 		&& n < &bucket->replacements[0] + bucket->replacements.size())
 	{
 		int idx = n - &bucket->replacements[0];
-		TORRENT_ASSERT(m_ips.count(n->a) > 0);
-		erase_one(m_ips, n->a);
+		TORRENT_ASSERT(m_ips.count(n->addr()) > 0);
+		m_ips.erase(n->addr());
 		bucket->replacements.erase(bucket->replacements.begin() + idx);
 	}
 
@@ -524,8 +539,8 @@ void routing_table::remove_node(node_entry* n
 		&& n < &bucket->live_nodes[0] + bucket->live_nodes.size())
 	{
 		int idx = n - &bucket->live_nodes[0];
-		TORRENT_ASSERT(m_ips.count(n->a) > 0);
-		erase_one(m_ips, n->a);
+		TORRENT_ASSERT(m_ips.count(n->addr()) > 0);
+		m_ips.erase(n->addr());
 		bucket->live_nodes.erase(bucket->live_nodes.begin() + idx);
 	}
 }
@@ -582,7 +597,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (e.id == m_id) return failed_to_add;
 
 	// do we already have this IP in the table?
-	if (m_ips.count(e.addr().to_v4().to_bytes()) > 0)
+	if (m_ips.count(e.addr()) > 0)
 	{
 		// this exact IP already exists in the table. It might be the case
 		// that the node changed IP. If pinged is true, and the port also
@@ -688,7 +703,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		j->timeout_count = 0;
 		j->update_rtt(e.rtt);
 		e = *j;
-		erase_one(m_ips, j->addr().to_v4().to_bytes());
+		m_ips.erase(j->addr());
 		rb.erase(j);
 	}
 
@@ -737,7 +752,7 @@ ip_ok:
 	{
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
-		m_ips.insert(e.addr().to_v4().to_bytes());
+		m_ips.insert(e.addr());
 		return node_added;
 	}
 
@@ -762,9 +777,9 @@ ip_ok:
 		{
 			// j points to a node that has not been pinged.
 			// Replace it with this new one
-			erase_one(m_ips, j->addr().to_v4().to_bytes());
+			m_ips.erase(j->addr());
 			*j = e;
-			m_ips.insert(e.addr().to_v4().to_bytes());
+			m_ips.insert(e.addr());
 			return node_added;
 		}
 
@@ -783,9 +798,9 @@ ip_ok:
 		{
 			// i points to a node that has been marked
 			// as stale. Replace it with this new one
-			erase_one(m_ips, j->addr().to_v4().to_bytes());
+			m_ips.erase(j->addr());
 			*j = e;
-			m_ips.insert(e.addr().to_v4().to_bytes());
+			m_ips.insert(e.addr());
 			return node_added;
 		}
 
@@ -893,9 +908,9 @@ ip_ok:
 
 		if (j != b.end() && (force_replace || j->rtt > e.rtt))
 		{
-			erase_one(m_ips, j->addr().to_v4().to_bytes());
+			m_ips.erase(j->addr());
 			*j = e;
-			m_ips.insert(e.addr().to_v4().to_bytes());
+			m_ips.insert(e.addr());
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log)
 			{
@@ -940,13 +955,13 @@ ip_ok:
 			// less reliable than this one, that has been pinged
 			j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1) == false);
 			if (j == rb.end()) j = rb.begin();
-			erase_one(m_ips, j->addr().to_v4().to_bytes());
+			m_ips.erase(j->addr());
 			rb.erase(j);
 		}
 
 		if (rb.empty()) rb.reserve(m_bucket_size);
 		rb.push_back(e);
-		m_ips.insert(e.addr().to_v4().to_bytes());
+		m_ips.insert(e.addr());
 		return node_added;
 	}
 
@@ -1140,13 +1155,13 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		// has never responded at all, remove it
 		if (j->fail_count() >= m_settings.max_fail_count || !j->pinged())
 		{
-			erase_one(m_ips, j->addr().to_v4().to_bytes());
+			m_ips.erase(j->addr());
 			b.erase(j);
 		}
 		return;
 	}
 
-	erase_one(m_ips, j->a);
+	m_ips.erase(j->addr());
 	b.erase(j);
 
 	// sort by RTT first, to find the node with the lowest
@@ -1277,7 +1292,7 @@ void routing_table::find_node(node_id const& target
 #if TORRENT_USE_INVARIANT_CHECKS
 void routing_table::check_invariant() const
 {
-	boost::unordered_multiset<address_v4::bytes_type> all_ips;
+	ip_set all_ips;
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
@@ -1285,12 +1300,13 @@ void routing_table::check_invariant() const
 		for (bucket_t::const_iterator j = i->replacements.begin();
 			j != i->replacements.end(); ++j)
 		{
-			all_ips.insert(j->addr().to_v4().to_bytes());
+			all_ips.insert(j->addr());
 		}
 		for (bucket_t::const_iterator j = i->live_nodes.begin();
 			j != i->live_nodes.end(); ++j)
 		{
-			all_ips.insert(j->addr().to_v4().to_bytes());
+			TORRENT_ASSERT(j->addr().is_v4() == i->live_nodes.begin()->addr().is_v4());
+			all_ips.insert(j->addr());
 		}
 	}
 
