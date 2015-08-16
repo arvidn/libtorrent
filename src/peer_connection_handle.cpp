@@ -217,6 +217,7 @@ bool peer_connection_handle::failed() const
 	return pc->failed();
 }
 
+TORRENT_FORMAT(4,5)
 void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 	, char const* event, char const* fmt, ...) const
 {

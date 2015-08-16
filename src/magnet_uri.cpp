@@ -112,12 +112,14 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 
-	torrent_handle add_magnet_uri_deprecated(session& ses, std::string const& uri
-		, add_torrent_params p, error_code& ec)
-	{
-		parse_magnet_uri(uri, p, ec);
-		if (ec) return torrent_handle();
-		return ses.add_torrent(p, ec);
+	namespace {
+		torrent_handle add_magnet_uri_deprecated(session& ses, std::string const& uri
+			, add_torrent_params p, error_code& ec)
+		{
+			parse_magnet_uri(uri, p, ec);
+			if (ec) return torrent_handle();
+			return ses.add_torrent(p, ec);
+		}
 	}
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
@@ -147,13 +149,13 @@ namespace libtorrent
 		if (!display_name.empty()) params.name = unescape_string(display_name.c_str(), ec);
 		std::string tracker_string = url_has_argument(uri, "tr");
 		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string.c_str(), ec));
-	
+
 		std::string btih = url_has_argument(uri, "xt");
 		if (btih.empty()) return torrent_handle();
 
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&params.info_hash[0]);
+		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, params.info_hash.data());
 		else params.info_hash.assign(base32decode(btih.substr(9)));
 
 		return ses.add_torrent(params);
@@ -175,9 +177,11 @@ namespace libtorrent
 		ec.clear();
 		std::string name;
 
-		error_code e;
-		std::string display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) name = unescape_string(display_name.c_str(), e);
+		{
+			error_code e;
+			std::string display_name = url_has_argument(uri, "dn");
+			if (!display_name.empty()) name = unescape_string(display_name.c_str(), e);
+		}
 
 		// parse trackers out of the magnet link
 		std::string::size_type pos = std::string::npos;
@@ -234,7 +238,7 @@ namespace libtorrent
 				if (port != 0)
 					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider), port));
 			}
-			
+
 			node_pos = uri.find("&dht=", node_pos);
 			if (node_pos == std::string::npos) break;
 			node_pos += 5;
@@ -243,7 +247,7 @@ namespace libtorrent
 #endif
 
 		sha1_hash info_hash;
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&info_hash[0]);
+		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, info_hash.data());
 		else info_hash.assign(base32decode(btih.substr(9)));
 
 		p.info_hash = info_hash;

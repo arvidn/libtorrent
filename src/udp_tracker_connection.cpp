@@ -606,7 +606,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb)
 		{
-			boost::shared_ptr<request_callback> cb = requester();
 			cb->debug_log("<== UDP_TRACKER_RESPONSE [ url: %s ]", tracker_req().url.c_str());
 		}
 #endif

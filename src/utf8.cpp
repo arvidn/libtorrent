@@ -46,7 +46,7 @@ namespace libtorrent
 	{
 		// ==== utf-8 -> wide ===
 		template<int width>
-		struct convert_to_wide 
+		struct convert_to_wide
 		{
 			static utf8_conv_result_t convert(UTF8 const** src_start
 				, UTF8 const* src_end
@@ -78,8 +78,8 @@ namespace libtorrent
 				{
 					// assume Latin-1
 					wide.clear();
-					std::copy((boost::uint8_t const*)*src_start
-						, (boost::uint8_t const*)src_end
+					std::copy(reinterpret_cast<boost::uint8_t const*>(*src_start)
+						,reinterpret_cast<boost::uint8_t const*>(src_end)
 						, std::back_inserter(wide));
 					return static_cast<utf8_conv_result_t>(ret);
 				}
@@ -107,8 +107,8 @@ namespace libtorrent
 				{
 					// assume Latin-1
 					wide.clear();
-					std::copy((boost::uint8_t const*)*src_start
-						, (boost::uint8_t const*)src_end
+					std::copy(reinterpret_cast<boost::uint8_t const*>(*src_start)
+						, reinterpret_cast<boost::uint8_t const*>(src_end)
 						, std::back_inserter(wide));
 					return static_cast<utf8_conv_result_t>(ret);
 				}

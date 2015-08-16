@@ -138,7 +138,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 #endif
 
 	char ih_hex[41];
-	to_hex((char const*)&ih[0], 20, ih_hex);
+	to_hex(ih.data(), 20, ih_hex);
 	char msg[200];
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -279,7 +279,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		}
 
 		sha1_hash ih(0);
-		from_hex(ih_str.c_str(), 40, (char*)&ih[0]);
+		from_hex(ih_str.c_str(), 40, ih.data());
 
 		if (!ih.is_all_zeros() && port != 0)
 		{

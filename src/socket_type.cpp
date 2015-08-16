@@ -218,6 +218,10 @@ namespace libtorrent
 
 	void socket_type::construct(int type, void* userdata)
 	{
+#ifndef TORRENT_USE_OPENSSL
+		TORRENT_UNUSED(userdata);
+#endif
+
 		destruct();
 		switch (type)
 		{
@@ -260,8 +264,6 @@ namespace libtorrent
 				new ((ssl_stream<utp_stream>*)m_data) ssl_stream<utp_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
-#else
-				TORRENT_UNUSED(userdata);
 #endif
 			default: TORRENT_ASSERT(false);
 		}

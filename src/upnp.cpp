@@ -67,7 +67,7 @@ namespace upnp_errors
 
 } // upnp_errors namespace
 
-static error_code ec;
+static error_code ignore_error;
 
 upnp::upnp(io_service& ios
 	, address const& listen_interface, std::string const& user_agent
@@ -79,7 +79,8 @@ upnp::upnp(io_service& ios
 	, m_retry_count(0)
 	, m_io_service(ios)
 	, m_resolver(ios)
-	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250", ec), 1900))
+	, m_socket(udp::endpoint(address_v4::from_string("239.255.255.250"
+		, ignore_error), 1900))
 	, m_broadcast_timer(ios)
 	, m_refresh_timer(ios)
 	, m_map_timer(ios)
@@ -699,10 +700,10 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 
 	char const* soap_action = "AddPortMapping";
 
+	error_code ec;
 	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
 
 	char soap[2048];
-	error_code ec;
 	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
@@ -1273,7 +1274,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	if (!s.ip_address.empty()) {
 		snprintf(msg, sizeof(msg), "got router external IP address %s", s.ip_address.c_str());
 		log(msg, l);
-		d.external_ip = address::from_string(s.ip_address.c_str(), ec);
+		d.external_ip = address::from_string(s.ip_address.c_str(), ignore_error);
 	} else {
 		log("failed to find external IP address in response", l);
 	}

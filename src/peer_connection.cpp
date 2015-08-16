@@ -3721,12 +3721,14 @@ namespace libtorrent
 
 		// we cannot suggest a piece we don't have!
 #if TORRENT_USE_ASSERTS
-		boost::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->has_piece_passed(piece));
+		{
+			boost::shared_ptr<torrent> t = m_torrent.lock();
+			TORRENT_ASSERT(t);
+			TORRENT_ASSERT(t->has_piece_passed(piece));
+			TORRENT_ASSERT(piece >= 0 && piece < t->torrent_file().num_pieces());
+		}
 #endif
 
-		TORRENT_ASSERT(piece >= 0 && piece < t->torrent_file().num_pieces());
 
 		if (m_sent_suggested_pieces.empty())
 		{
@@ -3940,7 +3942,6 @@ namespace libtorrent
 			m_peer_info->supports_utp = false;
 			// reconnect immediately using TCP
 			torrent_peer* pi = peer_info_struct();
-			boost::shared_ptr<torrent> t = m_torrent.lock();
 			fast_reconnect(true);
 			disconnect(e, op_connect, 0);
 			if (t && pi) t->connect_to_peer(pi, true);
@@ -3957,7 +3958,6 @@ namespace libtorrent
 			&& m_peer_info->supports_holepunch
 			&& !m_holepunch_mode)
 		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
 			// see if we can try a holepunch
 			bt_peer_connection* p = t->find_introducer(remote());
 			if (p)
@@ -6080,14 +6080,13 @@ namespace libtorrent
 				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 				return;
 			}
-	
+
 			TORRENT_ASSERT(bytes_transferred > 0);
 			m_recv_buffer.received(bytes_transferred);
 
 			int bytes = bytes_transferred;
 			int sub_transferred = 0;
 			do {
-				INVARIANT_CHECK;
 // TODO: The stats checks can not be honored when authenticated encryption is in use
 // because we may have encrypted data which we cannot authenticate yet
 #if 0
@@ -6106,7 +6105,7 @@ namespace libtorrent
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 #endif
-			if (m_disconnecting) return;
+				if (m_disconnecting) return;
 
 			} while (bytes > 0 && sub_transferred > 0);
 

@@ -36,6 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#endif
+
 #define TORRENT_ASYNC_CALL(x) \
 	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl))
 
@@ -74,6 +84,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
 	aux::sync_call_ret<type>(*m_impl, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2, a3)))
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 using libtorrent::aux::session_impl;
 
@@ -863,7 +881,7 @@ namespace libtorrent
 				| alert::dht_notification); break;
 			case alert::critical: m = alert::error_notification | alert::storage_notification; break;
 			case alert::fatal: m = alert::error_notification; break;
-			default: break;
+			case alert::none: m = 0; break;
 		}
 
 		settings_pack p;

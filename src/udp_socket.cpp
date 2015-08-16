@@ -656,10 +656,10 @@ void udp_socket::set_buf_size(int s)
 	if (s == m_buf_size) return;
 
 	bool no_mem = false;
-	void* tmp = realloc(m_buf, s);
+	char* tmp = static_cast<char*>(realloc(m_buf, s));
 	if (tmp != 0)
 	{
-		m_buf = (char*)tmp;
+		m_buf = tmp;
 		m_buf_size = s;
 		m_new_buf_size = s;
 	}
@@ -1063,7 +1063,7 @@ void udp_socket::handshake2(error_code const& e)
 		}
 
 		// start sub-negotiation
-		char* p = &m_tmp_buf[0];
+		p = &m_tmp_buf[0];
 		write_uint8(1, p);
 		write_uint8(m_proxy_settings.username.size(), p);
 		write_string(m_proxy_settings.username, p);

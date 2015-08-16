@@ -149,7 +149,8 @@ namespace libtorrent
 			size += bufs->iov_len;
 			if (size >= bytes)
 			{
-				reinterpret_cast<char*&>(bufs->iov_base) += bufs->iov_len - (size - bytes);
+				bufs->iov_base = reinterpret_cast<char*>(bufs->iov_base)
+					+ bufs->iov_len - (size - bytes);
 				bufs->iov_len = size - bytes;
 				return;
 			}

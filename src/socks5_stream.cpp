@@ -198,7 +198,7 @@ namespace libtorrent
 
 			// start sub-negotiation
 			m_buffer.resize(m_user.size() + m_password.size() + 3);
-			char* p = &m_buffer[0];
+			p = &m_buffer[0];
 			write_uint8(1, p);
 			write_uint8(m_user.size(), p);
 			write_string(m_user, p);

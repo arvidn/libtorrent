@@ -1832,18 +1832,18 @@ namespace libtorrent {
 	}
 
 	dht_direct_response_alert::dht_direct_response_alert(
-		aux::stack_allocator& alloc, void* userdata
+		aux::stack_allocator& alloc, void* userdata_
 		, udp::endpoint const& addr, bdecode_node const& response)
-		: userdata(userdata), addr(addr), m_alloc(alloc)
+		: userdata(userdata_), addr(addr), m_alloc(alloc)
 		, m_response_idx(alloc.copy_buffer(response.data_section().first, response.data_section().second))
 		, m_response_size(response.data_section().second)
 	{}
 
 	dht_direct_response_alert::dht_direct_response_alert(
 		aux::stack_allocator& alloc
-		, void* userdata
-		, udp::endpoint const& addr)
-		: userdata(userdata), addr(addr), m_alloc(alloc)
+		, void* userdata_
+		, udp::endpoint const& addr_)
+		: userdata(userdata_), addr(addr_), m_alloc(alloc)
 		, m_response_idx(-1), m_response_size(0)
 	{}
 

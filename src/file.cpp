@@ -30,6 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#endif
+
+// these defines are just in case the system we're on needs them for 64 bit file
+// support
 #define _FILE_OFFSET_BITS 64
 #define _LARGE_FILES 1
 
@@ -38,6 +50,14 @@ POSSIBILITY OF SUCH DAMAGE.
 // incorrect and consistently fail resume data
 #ifndef __MINGW_USE_VC2005_COMPAT
 # define __MINGW_USE_VC2005_COMPAT
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 #include "libtorrent/config.hpp"

@@ -205,9 +205,9 @@ namespace libtorrent
 		if (aux::time_now() - seconds(60) > m_last_route_update)
 		{
 			m_last_route_update = aux::time_now();
-			error_code ec;
-			m_routes = enum_routes(m_sock.get_io_service(), ec);
-			if (ec) return socket_ep;
+			error_code err;
+			m_routes = enum_routes(m_sock.get_io_service(), err);
+			if (err) return socket_ep;
 		}
 
 		if (m_routes.empty()) return socket_ep;
@@ -236,9 +236,9 @@ namespace libtorrent
 		if (aux::time_now() - seconds(60) > m_last_if_update)
 		{
 			m_last_if_update = aux::time_now();
-			error_code ec;
-			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), ec);
-			if (ec) return socket_ep;
+			error_code err;
+			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), err);
+			if (err) return socket_ep;
 		}
 
 		for (std::vector<ip_interface>::iterator i = m_interfaces.begin()
@@ -263,7 +263,7 @@ namespace libtorrent
 
 		if (size < int(sizeof(utp_header))) return false;
 
-		utp_header const* ph = (utp_header*)p;
+		utp_header const* ph = reinterpret_cast<utp_header const*>(p);
 
 //		UTP_LOGV("incoming packet version:%d\n", int(ph->get_version()));
 

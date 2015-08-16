@@ -84,8 +84,8 @@ namespace libtorrent
 			desired_queue_size = (std::min)(1, desired_queue_size);
 
 		int num_requests = desired_queue_size
-			- (int)c.download_queue().size()
-			- (int)c.request_queue().size();
+			- int(c.download_queue().size())
+			- int(c.request_queue().size());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		c.peer_log(peer_log_alert::info, "PIECE_PICKER"

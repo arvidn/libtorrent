@@ -353,6 +353,10 @@ namespace aux {
 
 	session_impl::session_impl(io_service& ios)
 		:
+#ifndef TORRENT_NO_DEPRECATE
+		m_next_rss_update(min_time())
+		,
+#endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
 		,
@@ -403,9 +407,6 @@ namespace aux {
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
-#ifndef TORRENT_NO_DEPRECATE
-		, m_next_rss_update(min_time())
-#endif
 		, m_next_port(0)
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
@@ -1666,8 +1667,10 @@ namespace aux {
 		// may end up binding to the same socket as some other random
 		// application. Don't do it!
 #ifndef TORRENT_WINDOWS
-		error_code err; // ignore errors here
-		ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
+		{
+			error_code err; // ignore errors here
+			ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
+		}
 #endif
 
 #if TORRENT_USE_IPV6

@@ -58,12 +58,83 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/thread.hpp"
 
-#if defined(_MSC_VER) && _MSC_VER < 1300
-namespace std
-{
-	using ::srand;
-	using ::isalnum;
-};
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-macros"
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-macros"
+#endif
+
+#define TORRENT_ASYNC_CALL(x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = static_cast<session_impl&>(t->session()); \
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t))
+
+#define TORRENT_ASYNC_CALL1(x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = static_cast<session_impl&>(t->session()); \
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1))
+
+#define TORRENT_ASYNC_CALL2(x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = static_cast<session_impl&>(t->session()); \
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2))
+
+#define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = static_cast<session_impl&>(t->session()); \
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3))
+
+#define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (!t) return; \
+	session_impl& ses = static_cast<session_impl&>(t->session()); \
+	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
+
+#define TORRENT_SYNC_CALL(x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t));
+
+#define TORRENT_SYNC_CALL1(x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1));
+
+#define TORRENT_SYNC_CALL2(x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2));
+
+#define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2, a3));
+
+#define TORRENT_SYNC_CALL_RET(type, def, x) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t)));
+
+#define TORRENT_SYNC_CALL_RET1(type, def, x, a1) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)));
+
+#define TORRENT_SYNC_CALL_RET2(type, def, x, a1, a2) \
+	boost::shared_ptr<torrent> t = m_torrent.lock(); \
+	type r = def; \
+	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)));
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 using libtorrent::aux::session_impl;
@@ -140,67 +211,6 @@ namespace libtorrent
 	{}
 
 	torrent_status::~torrent_status() {}
-
-#define TORRENT_ASYNC_CALL(x) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	session_impl& ses = static_cast<session_impl&>(t->session()); \
-	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t))
-
-#define TORRENT_ASYNC_CALL1(x, a1) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	session_impl& ses = static_cast<session_impl&>(t->session()); \
-	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1))
-
-#define TORRENT_ASYNC_CALL2(x, a1, a2) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	session_impl& ses = static_cast<session_impl&>(t->session()); \
-	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2))
-
-#define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	session_impl& ses = static_cast<session_impl&>(t->session()); \
-	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3))
-
-#define TORRENT_ASYNC_CALL4(x, a1, a2, a3, a4) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (!t) return; \
-	session_impl& ses = static_cast<session_impl&>(t->session()); \
-	ses.get_io_service().dispatch(boost::bind(&torrent:: x, t, a1, a2, a3, a4))
-
-#define TORRENT_SYNC_CALL(x) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t));
-
-#define TORRENT_SYNC_CALL1(x, a1) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1));
-
-#define TORRENT_SYNC_CALL2(x, a1, a2) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2));
-
-#define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	if (t) aux::sync_call_handle(t, boost::bind(&torrent:: x, t, a1, a2, a3));
-
-#define TORRENT_SYNC_CALL_RET(type, def, x) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	type r = def; \
-	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t)));
-
-#define TORRENT_SYNC_CALL_RET1(type, def, x, a1) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	type r = def; \
-	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1)));
-
-#define TORRENT_SYNC_CALL_RET2(type, def, x, a1, a2) \
-	boost::shared_ptr<torrent> t = m_torrent.lock(); \
-	type r = def; \
-	if (t) aux::sync_call_ret_handle(t, r, boost::function<type(void)>(boost::bind(&torrent:: x, t, a1, a2)));
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle()

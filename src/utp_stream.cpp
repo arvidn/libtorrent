@@ -466,6 +466,7 @@ public:
 
 	// the send and receive buffers
 	// maps packet sequence numbers
+	// TODO 3: if the packet_buffer was a template, we could avoid some pointer casts
 	packet_buffer m_inbuf;
 	packet_buffer m_outbuf;
 
@@ -919,7 +920,7 @@ int utp_stream::read_buffer_size() const
 
 void utp_stream::on_close_reason(void* self, boost::uint16_t close_reason)
 {
-	utp_stream* s = (utp_stream*)self;
+	utp_stream* s = static_cast<utp_stream*>(self);
 	TORRENT_ASSERT(s->m_impl);
 	s->m_incoming_close_reason = close_reason;
 }
@@ -927,7 +928,7 @@ void utp_stream::on_close_reason(void* self, boost::uint16_t close_reason)
 void utp_stream::on_read(void* self, size_t bytes_transferred
 	, error_code const& ec, bool kill)
 {
-	utp_stream* s = (utp_stream*)self;
+	utp_stream* s = static_cast<utp_stream*>(self);
 
 	UTP_LOGV("%8p: calling read handler read:%d ec:%s kill:%d\n", s->m_impl
 		, int(bytes_transferred), ec.message().c_str(), kill);
@@ -950,7 +951,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred
 void utp_stream::on_write(void* self, size_t bytes_transferred
 	, error_code const& ec, bool kill)
 {
-	utp_stream* s = (utp_stream*)self;
+	utp_stream* s = static_cast<utp_stream*>(self);
 
 	UTP_LOGV("%8p: calling write handler written:%d ec:%s kill:%d\n", s->m_impl
 		, int(bytes_transferred), ec.message().c_str(), kill);
@@ -972,7 +973,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred
 
 void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 {
-	utp_stream* s = (utp_stream*)self;
+	utp_stream* s = static_cast<utp_stream*>(self);
 	TORRENT_ASSERT(s);
 
 	UTP_LOGV("%8p: calling connect handler ec:%s kill:%d\n"
@@ -2041,12 +2042,8 @@ bool utp_socket_impl::send_pkt(int flags)
 #endif
 
 	error_code ec;
-#ifdef TORRENT_DEBUG
-	// simulate 1% packet loss
-//	if ((random() % 100) > 0)
-#endif
 	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-		, (char const*)h, p->size, ec
+		, reinterpret_cast<char const*>(h), p->size, ec
 		, p->mtu_probe ? utp_socket_manager::dont_fragment : 0);
 
 	++m_out_packets;
@@ -2074,7 +2071,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		UTP_LOGV("%8p: re-sending\n", this);
 #endif
 		m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
-			, (char const*)h, p->size, ec, 0);
+			, reinterpret_cast<char const*>(h), p->size, ec, 0);
 	}
 
 	if (ec == error::would_block || ec == error::try_again)

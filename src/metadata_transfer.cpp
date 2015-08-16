@@ -131,7 +131,7 @@ namespace libtorrent { namespace
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc);
-		
+
 		buffer::const_interval metadata() const
 		{
 			if (!m_metadata)
@@ -162,13 +162,13 @@ namespace libtorrent { namespace
 			std::pair<int, int> req = offset_to_req(std::make_pair(offset, size)
 				, total_size);
 
-			TORRENT_ASSERT(req.first + req.second <= (int)m_have_metadata.size());
+			TORRENT_ASSERT(req.first + req.second <= int(m_have_metadata.size()));
 
 			std::fill(
 				m_have_metadata.begin() + req.first
 				, m_have_metadata.begin() + req.first + req.second
 				, true);
-		
+
 			bool have_all = std::count(
 				m_have_metadata.begin()
 				, m_have_metadata.end()
@@ -335,7 +335,7 @@ namespace libtorrent { namespace
 			if (m_torrent.valid_metadata())
 			{
 				std::pair<int, int> offset
-					= req_to_offset(req, (int)m_tp.metadata().left());
+					= req_to_offset(req, int(m_tp.metadata().left()));
 
 				char msg[15];
 				char* ptr = msg;
@@ -351,7 +351,7 @@ namespace libtorrent { namespace
 				detail::write_uint8(m_message_index, ptr);
 				// means 'data packet'
 				detail::write_uint8(1, ptr);
-				detail::write_uint32((int)m_tp.metadata().left(), ptr);
+				detail::write_uint32(int(m_tp.metadata().left()), ptr);
 				detail::write_uint32(offset.first, ptr);
 				m_pc.send_buffer(msg, sizeof(msg));
 
@@ -566,7 +566,7 @@ namespace libtorrent { namespace
 			int min = *std::min_element(m_requested_metadata.begin() + i
 				, m_requested_metadata.begin() + i + num_blocks);
 			min += std::accumulate(m_requested_metadata.begin() + i
-				, m_requested_metadata.begin() + i + num_blocks, (int)0);
+				, m_requested_metadata.begin() + i + num_blocks, int(0));
 
 			if (min_element > min)
 			{

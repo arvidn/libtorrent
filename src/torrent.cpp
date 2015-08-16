@@ -2041,7 +2041,7 @@ namespace libtorrent
 				std::vector<boost::shared_ptr<torrent> > ts = m_ses.find_collection(*i);
 
 				for (std::vector<boost::shared_ptr<torrent> >::iterator k = ts.begin()
-					, end(ts.end()); k != end; ++k)
+					, end2(ts.end()); k != end2; ++k)
 				{
 					// Only attempt to reuse files from torrents that are seeding.
 					// TODO: this could be optimized by looking up which files are
@@ -2674,7 +2674,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1), (void*)1);
+					, shared_from_this(), _1), reinterpret_cast<void*>(1));
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2822,7 +2822,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, boost::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1), (void*)1);
+					, shared_from_this(), _1), reinterpret_cast<void*>(1));
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d", m_checking_piece);
 #endif
@@ -4995,11 +4995,12 @@ namespace libtorrent
 
 	boost::uint32_t torrent::tracker_key() const
 	{
-		uintptr_t self = (uintptr_t)this;
-		uintptr_t ses = (uintptr_t)&m_ses;
-		sha1_hash h = hasher((char*)&self, sizeof(self))
-			.update((char*)&m_storage, sizeof(m_storage))
-			.update((char*)&ses, sizeof(ses))
+		uintptr_t self = reinterpret_cast<uintptr_t>(this);
+		uintptr_t ses = reinterpret_cast<uintptr_t>(&m_ses);
+		uintptr_t storage = reinterpret_cast<uintptr_t>(m_storage.get());
+		sha1_hash h = hasher(reinterpret_cast<char const*>(&self), sizeof(self))
+			.update(reinterpret_cast<char const*>(&storage), sizeof(storage))
+			.update(reinterpret_cast<char const*>(&ses), sizeof(ses))
 			.final();
 		unsigned char const* ptr = &h[0];
 		return detail::read_uint32(ptr);
@@ -5133,7 +5134,7 @@ namespace libtorrent
 		for (std::vector<void*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i, ++block)
 		{
-			torrent_peer* p = (torrent_peer*)*i;
+			torrent_peer* p = static_cast<torrent_peer*>(*i);
 			if (p == 0 || p->connection == 0) continue;
 			peer_connection* peer = static_cast<peer_connection*>(p->connection);
 			peer->make_time_critical(piece_block(piece, block));
@@ -5672,10 +5673,10 @@ namespace libtorrent
 
 		// the bitmask need to have exactly one bit for every file
 		// in the torrent
-		TORRENT_ASSERT((int)bitmask.size() == m_torrent_file->num_files());
+		TORRENT_ASSERT(int(bitmask.size()) == m_torrent_file->num_files());
 
 		if (int(bitmask.size()) != m_torrent_file->num_files()) return;
-		
+
 		boost::int64_t position = 0;
 
 		if (m_torrent_file->num_pieces())
@@ -5684,13 +5685,13 @@ namespace libtorrent
 			// mark all pieces as filtered, then clear the bits for files
 			// that should be downloaded
 			std::vector<bool> piece_filter(m_torrent_file->num_pieces(), true);
-			for (int i = 0; i < (int)bitmask.size(); ++i)
+			for (int i = 0; i < int(bitmask.size()); ++i)
 			{
 				boost::int64_t start = position;
 				position += m_torrent_file->files().file_size(i);
 				// is the file selected for download?
 				if (!bitmask[i])
-				{           
+				{
 					// mark all pieces of the file as downloadable
 					int start_piece = int(start / piece_length);
 					int last_piece = int(position / piece_length);
@@ -7339,9 +7340,9 @@ namespace libtorrent
 		{
 			partial_piece_info pi;
 			pi.blocks_in_piece = p.blocks_in_piece(i->index);
-			pi.finished = (int)i->finished;
-			pi.writing = (int)i->writing;
-			pi.requested = (int)i->requested;
+			pi.finished = int(i->finished);
+			pi.writing = int(i->writing);
+			pi.requested = int(i->requested);
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[counter * blocks_per_piece];
 			int piece_size = int(torrent_file().piece_size(i->index));
@@ -9695,8 +9696,7 @@ namespace libtorrent
 			, end(m_trackers.end()); i != end; ++i)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			char msg[1000];
-			snprintf(msg, sizeof(msg), "*** tracker: \"%s\" "
+			debug_log("*** tracker: \"%s\" "
 				"[ tiers: %d trackers: %d"
 				" found: %d i->tier: %d tier: %d"
 				" working: %d fails: %d limit: %d upd: %d ]"
@@ -9704,7 +9704,6 @@ namespace libtorrent
 				, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
 				, i->tier, tier, i->is_working(), i->fails, i->fail_limit
 				, i->updating);
-			debug_log(msg);
 #endif
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
 				&& found_working
@@ -9733,12 +9732,10 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char msg[200];
-		snprintf(msg, sizeof(msg), "*** update tracker timer: next_announce < now %d"
+		debug_log("*** update tracker timer: next_announce < now %d"
 			" m_waiting_tracker: %d next_announce_in: %d"
 			, next_announce <= now, m_waiting_tracker
 			, int(total_seconds(now - next_announce)));
-		debug_log(msg);
 #endif
 		if (next_announce <= now) next_announce = now;
 
