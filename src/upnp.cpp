@@ -98,33 +98,13 @@ upnp::upnp(io_service& ios
 	TORRENT_UNUSED(listen_interface);
 }
 
-void upnp::start(void* state)
+void upnp::start()
 {
 	error_code ec;
 	m_socket.open(boost::bind(&upnp::on_reply, self(), _1, _2, _3)
 		, m_refresh_timer.get_io_service(), ec);
 
-	if (state)
-	{
-		upnp_state_t* s = (upnp_state_t*)state;
-		m_devices.swap(s->devices);
-		m_mappings.swap(s->mappings);
-		delete s;
-	}
-
 	m_mappings.reserve(10);
-}
-
-void* upnp::drain_state()
-{
-	upnp_state_t* s = new upnp_state_t;
-	s->mappings.swap(m_mappings);
-
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
-		i->upnp_connection.reset();
-	s->devices.swap(m_devices);
-	return s;
 }
 
 upnp::~upnp()

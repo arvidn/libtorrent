@@ -115,9 +115,7 @@ public:
 		, bool ignore_nonrouters);
 	~upnp();
 
-	void start(void* state = 0);
-
-	void* drain_state();
+	void start();
 
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
 
