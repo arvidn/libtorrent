@@ -47,6 +47,7 @@ struct network_config : network_setup_provider
 {
 	network_config()
 		: m_start_time(lt::clock_type::now())
+		, m_ticks(0)
 	{}
 
 	virtual void on_exit() override final {}
