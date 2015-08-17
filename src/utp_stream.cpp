@@ -466,9 +466,8 @@ public:
 
 	// the send and receive buffers
 	// maps packet sequence numbers
-	// TODO 3: if the packet_buffer was a template, we could avoid some pointer casts
-	packet_buffer m_inbuf;
-	packet_buffer m_outbuf;
+	packet_buffer<packet> m_inbuf;
+	packet_buffer<packet> m_outbuf;
 
 	// the time when the last packet we sent times out. Including re-sends.
 	// if we ever end up not having sent anything in one second (
@@ -1087,7 +1086,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 	for (std::vector<packet*>::iterator i = m_impl->m_receive_buffer.begin()
 		, end(m_impl->m_receive_buffer.end()); i != end;)
 	{
-		if (target == m_impl->m_read_buffer.end()) 
+		if (target == m_impl->m_read_buffer.end())
 		{
 			UTP_LOGV("  No more target buffers: %d bytes left in buffer\n"
 				, m_impl->m_receive_buffer_size);
@@ -1102,7 +1101,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		TORRENT_ASSERT(to_copy >= 0);
 		memcpy(target->buf, p->buf + p->header_size, to_copy);
 		ret += to_copy;
-		target->buf = ((char*)target->buf) + to_copy;
+		target->buf = static_cast<char*>(target->buf) + to_copy;
 		TORRENT_ASSERT(int(target->len) >= to_copy);
 		target->len -= to_copy;
 		m_impl->m_receive_buffer_size -= to_copy;
@@ -1213,14 +1212,14 @@ utp_socket_impl::~utp_socket_impl()
 		+ m_inbuf.capacity()) & ACK_MASK);
 		i != end; i = (i + 1) & ACK_MASK)
 	{
-		void* p = m_inbuf.remove(i);
+		packet* p = m_inbuf.remove(i);
 		free(p);
 	}
 	for (boost::uint16_t i = m_outbuf.cursor(), end((m_outbuf.cursor()
 		+ m_outbuf.capacity()) & ACK_MASK);
 		i != end; i = (i + 1) & ACK_MASK)
 	{
-		void* p = m_outbuf.remove(i);
+		packet* p = m_outbuf.remove(i);
 		free(p);
 	}
 
@@ -1360,7 +1359,7 @@ void utp_socket_impl::send_syn()
 	m_ack_nr = 0;
 	m_fast_resend_seq_nr = m_seq_nr;
 
-	packet* p = (packet*)malloc(sizeof(packet) + sizeof(utp_header));
+	packet* p = static_cast<packet*>(malloc(sizeof(packet) + sizeof(utp_header)));
 	p->size = sizeof(utp_header);
 	p->header_size = sizeof(utp_header);
 	p->num_transmissions = 0;
@@ -1368,7 +1367,7 @@ void utp_socket_impl::send_syn()
 	p->num_fast_resend = 0;
 #endif
 	p->need_resend = false;
-	utp_header* h = (utp_header*)p->buf;
+	utp_header* h = reinterpret_cast<utp_header*>(p->buf);
 	h->type_ver = (ST_SYN << 4) | 1;
 	h->extension = utp_no_extension;
 	// using recv_id here is intentional! This is an odd
@@ -1393,8 +1392,8 @@ void utp_socket_impl::send_syn()
 #endif
 
 	error_code ec;
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)h
-		, sizeof(utp_header), ec);
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, reinterpret_cast<char const*>(h) , sizeof(utp_header), ec);
 
 	if (ec == error::would_block || ec == error::try_again)
 	{
@@ -1422,7 +1421,7 @@ void utp_socket_impl::send_syn()
 	TORRENT_ASSERT(!m_outbuf.at(m_seq_nr));
 	m_outbuf.insert(m_seq_nr, p);
 	TORRENT_ASSERT(h->seq_nr == m_seq_nr);
-	TORRENT_ASSERT(p->buf == (boost::uint8_t*)h);
+	TORRENT_ASSERT(p->buf == reinterpret_cast<boost::uint8_t*>(h));
 
 	m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
 
@@ -1484,7 +1483,8 @@ void utp_socket_impl::send_reset(utp_header* ph)
 
 	// ignore errors here
 	error_code ec;
-	m_sm->send_packet(udp::endpoint(m_remote_address, m_port), (char const*)&h, sizeof(h), ec);
+	m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
+		, reinterpret_cast<char const*>(&h), sizeof(h), ec);
 }
 
 std::size_t utp_socket_impl::available() const
@@ -1558,7 +1558,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 
 				if (compare_less_wrap(m_fast_resend_seq_nr, ack_nr, ACK_MASK)) ++dups;
 				// this bit was set, ack_nr was received
-				packet* p = (packet*)m_outbuf.remove(ack_nr);
+				packet* p = m_outbuf.remove(ack_nr);
 				if (p)
 				{
 					*acked_bytes += p->size - p->header_size;
@@ -1596,7 +1596,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 		int num_resent = 0;
 		while (m_fast_resend_seq_nr != last_ack)
 		{
-			packet* p = (packet*)m_outbuf.at(m_fast_resend_seq_nr);
+			packet* p = m_outbuf.at(m_fast_resend_seq_nr);
 			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
 			if (!p) continue;
 			++num_resent;
@@ -1754,7 +1754,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	// a separate list of sequence numbers that need resending
 	for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
 	{
-		packet* p = (packet*)m_outbuf.at(i);
+		packet* p = m_outbuf.at(i);
 		if (!p) continue;
 		if (!p->need_resend) continue;
 		if (!resend_packet(p))
@@ -1880,9 +1880,9 @@ bool utp_socket_impl::send_pkt(int flags)
 			// this alloca() statement won't necessarily produce
 			// correctly aligned memory. That's why we ask for 7 more bytes
 			// and adjust our pointer to be aligned later
-			p = (packet*)TORRENT_ALLOCA(char, sizeof(packet) + packet_size
-				+ sizeof(packet*) - 1);
-			p = (packet*)align_pointer(p);
+			p = reinterpret_cast<packet*>(TORRENT_ALLOCA(char, sizeof(packet) + packet_size
+				+ sizeof(packet*) - 1));
+			p = reinterpret_cast<packet*>(align_pointer(p));
 			UTP_LOGV("%8p: allocating %d bytes on the stack\n", this, packet_size);
 			p->allocated = packet_size;
 		}
@@ -2116,7 +2116,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		// release the buffer, we're saving it in the circular
 		// buffer of outgoing packets
 		buf_holder.release();
-		packet* old = (packet*)m_outbuf.insert(m_seq_nr, p);
+		packet* old = m_outbuf.insert(m_seq_nr, p);
 		if (old)
 		{
 			TORRENT_ASSERT(((utp_header*)old->buf)->seq_nr == m_seq_nr);
@@ -2544,7 +2544,7 @@ bool utp_socket_impl::consume_incoming_data(
 		{
 			int const next_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
-			packet* p = (packet*)m_inbuf.remove(next_ack_nr);
+			packet* p = m_inbuf.remove(next_ack_nr);
 
 			if (!p) break;
 
@@ -2907,7 +2907,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		{
 			if (m_fast_resend_seq_nr == ack_nr)
 				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
-			packet* p = (packet*)m_outbuf.remove(ack_nr);
+			packet* p = m_outbuf.remove(ack_nr);
 
 			if (!p) continue;
 
@@ -2974,7 +2974,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n", this, m_fast_resend_seq_nr, m_duplicate_acks);
 
 		// resend the lost packet
-		packet* p = (packet*)m_outbuf.at(m_fast_resend_seq_nr);
+		packet* p = m_outbuf.at(m_fast_resend_seq_nr);
 		TORRENT_ASSERT(p);
 
 		// don't fast-resend this again
@@ -3609,7 +3609,7 @@ void utp_socket_impl::tick(time_point now)
 			i != ((m_seq_nr + 1) & ACK_MASK);
 			i = (i + 1) & ACK_MASK)
 		{
-			packet* p = (packet*)m_outbuf.at(i);
+			packet* p = m_outbuf.at(i);
 			if (!p) continue;
 			if (p->need_resend) continue;
 			p->need_resend = true;
@@ -3621,7 +3621,7 @@ void utp_socket_impl::tick(time_point now)
 		TORRENT_ASSERT(m_bytes_in_flight == 0);
 
 		// if we have a packet that needs re-sending, resend it
-		packet* p = (packet*)m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
+		packet* p = m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK);
 		if (p)
 		{
 			if (p->num_transmissions >= m_sm->num_resends()
@@ -3697,7 +3697,7 @@ void utp_socket_impl::check_invariant() const
 		i != int((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK);
 		i = (i + 1) & ACK_MASK)
 	{
-		packet* p = (packet*)m_outbuf.at(i);
+		packet* p = m_outbuf.at(i);
 		if (!p) continue;
 		if (m_mtu_seq == i && m_mtu_seq != 0)
 		{

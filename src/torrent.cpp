@@ -4124,13 +4124,13 @@ namespace libtorrent
 		// (unless it has already been announced through predictive_piece_announce
 		// feature).
 		bool announce_piece = true;
-		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
+		std::vector<int>::iterator it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
-		if (i != m_predictive_pieces.end() && *i == index)
+		if (it != m_predictive_pieces.end() && *it == index)
 		{
 			// this means we've already announced the piece
 			announce_piece = false;
-			m_predictive_pieces.erase(i);
+			m_predictive_pieces.erase(it);
 		}
 
 		// make a copy of the peer list since peers
@@ -4339,9 +4339,9 @@ namespace libtorrent
 		if (m_ses.alerts().should_post<hash_failed_alert>())
 			m_ses.alerts().emplace_alert<hash_failed_alert>(get_handle(), index);
 
-		std::vector<int>::iterator i = std::lower_bound(m_predictive_pieces.begin()
+		std::vector<int>::iterator it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
-		if (i != m_predictive_pieces.end() && *i == index)
+		if (it != m_predictive_pieces.end() && *it == index)
 		{
 			for (peer_iterator p = m_connections.begin()
 				, end(m_connections.end()); p != end; ++p)
@@ -4353,7 +4353,7 @@ namespace libtorrent
 				// know that we don't actually have this piece
 				(*p)->write_dont_have(index);
 			}
-			m_predictive_pieces.erase(i);
+			m_predictive_pieces.erase(it);
 		}
 		// increase the total amount of failed bytes
 		add_failed_bytes(m_torrent_file->piece_size(index));
@@ -4382,7 +4382,7 @@ namespace libtorrent
 		for (std::vector<void*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i)
 		{
-			torrent_peer* p = (torrent_peer*)*i;
+			torrent_peer* p = static_cast<torrent_peer*>(*i);
 			if (p && p->connection)
 			{
 				peer_connection* peer = static_cast<peer_connection*>(p->connection);
@@ -4583,7 +4583,7 @@ namespace libtorrent
 		}
 #endif
 	}
-		
+
 	// when we get a bitfield message, this is called for that piece
 	void torrent::peer_has(bitfield const& bits, peer_connection const* peer)
 	{
@@ -7362,11 +7362,11 @@ namespace libtorrent
 				}
 				else
 				{
-					torrent_peer* p = static_cast<torrent_peer*>(info[j].peer);
-					TORRENT_ASSERT(p->in_use);
-					if (p->connection)
+					torrent_peer* tp = static_cast<torrent_peer*>(info[j].peer);
+					TORRENT_ASSERT(tp->in_use);
+					if (tp->connection)
 					{
-						peer_connection* peer = static_cast<peer_connection*>(p->connection);
+						peer_connection* peer = static_cast<peer_connection*>(tp->connection);
 						TORRENT_ASSERT(peer->m_in_use);
 						bi.set_peer(peer->remote());
 						if (bi.state == block_info::requested)
@@ -7390,7 +7390,7 @@ namespace libtorrent
 					}
 					else
 					{
-						bi.set_peer(p->ip());
+						bi.set_peer(tp->ip());
 						bi.bytes_progress = complete ? bi.block_size : 0;
 					}
 				}
@@ -8800,14 +8800,14 @@ namespace libtorrent
 							peer_connection const& p = *(*i);
 							fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
 							for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
-								, end(p.request_queue().end()); i != end; ++i)
+								, end2(p.request_queue().end()); i != end2; ++i)
 							{
 								fprintf(stderr, "  rq: (%d, %d) %s %s %s\n", i->block.piece_index
 									, i->block.block_index, i->not_wanted ? "not-wanted" : ""
 									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
 							}
 							for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
-								, end(p.download_queue().end()); i != end; ++i)
+								, end2(p.download_queue().end()); i != end2; ++i)
 							{
 								fprintf(stderr, "  dq: (%d, %d) %s %s %s\n", i->block.piece_index
 									, i->block.block_index, i->not_wanted ? "not-wanted" : ""

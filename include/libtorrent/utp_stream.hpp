@@ -70,6 +70,8 @@ namespace libtorrent
 	void set_utp_stream_logging(bool enable);
 #endif
 
+	bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs, boost::uint32_t mask);
+
 	struct utp_socket_manager;
 
 	// internal: some MTU and protocol header sizes constants

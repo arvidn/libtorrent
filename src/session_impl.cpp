@@ -1820,7 +1820,7 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+			const int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
@@ -1840,8 +1840,7 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
-				listen_socket_t s = setup_listener("0.0.0.0", true
+				s = setup_listener("0.0.0.0", true
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
 
@@ -1857,7 +1856,7 @@ retry:
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				listen_socket_t s = setup_listener("::1", false, m_listen_interface.port()
+				s = setup_listener("::1", false, m_listen_interface.port()
 					, flags, ec);
 
 				if (!ec && s.sock)
@@ -1870,7 +1869,7 @@ retry:
 				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
 					s.ssl = true;
-					listen_socket_t s = setup_listener("::1", false
+					s = setup_listener("::1", false
 						, m_settings.get_int(settings_pack::ssl_listen)
 						, flags | open_ssl_socket, ec);
 
@@ -2504,7 +2503,6 @@ retry:
 		// peer is correctly bound to on of them
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
-			error_code ec;
 			tcp::endpoint local = s->local_endpoint(ec);
 			if (ec)
 			{
@@ -2927,10 +2925,10 @@ retry:
 #endif
 
 		// remove undead peers that only have this list as their reference keeping them alive
-		std::vector<boost::shared_ptr<peer_connection> >::iterator i = std::remove_if(
-			m_undead_peers.begin(), m_undead_peers.end()
+		std::vector<boost::shared_ptr<peer_connection> >::iterator remove_it
+			= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
 			, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
-		m_undead_peers.erase(i, m_undead_peers.end());
+		m_undead_peers.erase(remove_it, m_undead_peers.end());
 
 		int tick_interval_ms = int(total_milliseconds(now - m_last_second_tick));
 		m_last_second_tick = now;
@@ -4551,14 +4549,14 @@ retry:
 			&& !params.resume_data.empty())
 		{
 			int pos;
-			error_code ec;
+			error_code err;
 			bdecode_node tmp;
 			bdecode_node info;
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
 			if (bdecode(&params.resume_data[0], &params.resume_data[0]
-					+ params.resume_data.size(), tmp, ec, &pos) == 0
+					+ params.resume_data.size(), tmp, err, &pos) == 0
 				&& tmp.type() == bdecode_node::dict_t
 				&& (info = tmp.dict_find_dict("info")))
 			{
@@ -4583,7 +4581,7 @@ retry:
 #endif
 					params.ti = boost::make_shared<torrent_info>(resume_ih);
 
-					if (params.ti->parse_info_section(info, ec, 0))
+					if (params.ti->parse_info_section(info, err, 0))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
 						session_log("successfully loaded metadata from resume file");
@@ -4596,7 +4594,7 @@ retry:
 					{
 #ifndef TORRENT_DISABLE_LOGGING
 						session_log("failed to load metadata from resume file: %s"
-								, ec.message().c_str());
+							, err.message().c_str());
 #endif
 					}
 				}
@@ -4610,7 +4608,7 @@ retry:
 #ifndef TORRENT_DISABLE_LOGGING
 			else
 			{
-				session_log("no metadata found");
+				session_log("no metadata found (\"%s\")", err.message().c_str());
 			}
 #endif
 		}

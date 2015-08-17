@@ -66,13 +66,13 @@ namespace libtorrent
 	// whenever the element at the cursor is removed, the
 	// cursor is bumped to the next occupied element
 
-	class TORRENT_EXTRA_EXPORT packet_buffer
+	class TORRENT_EXTRA_EXPORT packet_buffer_impl
 	{
 	public:
 		typedef boost::uint32_t index_type;
 
-		packet_buffer();
-		~packet_buffer();
+		packet_buffer_impl();
+		~packet_buffer_impl();
 
 		void* insert(index_type idx, void* value);
 
@@ -111,6 +111,31 @@ namespace libtorrent
 		index_type m_first;
 		index_type m_last;
 	};
+
+	template <typename T>
+	class packet_buffer : packet_buffer_impl
+	{
+	public:
+
+		using packet_buffer_impl::index_type;
+		using packet_buffer_impl::size;
+		using packet_buffer_impl::capacity;
+		using packet_buffer_impl::reserve;
+		using packet_buffer_impl::cursor;
+		using packet_buffer_impl::span;
+
+		T* insert(index_type i, T* p)
+		{
+			return static_cast<T*>(packet_buffer_impl::insert(i, p));
+		}
+
+		T* at(index_type idx) const
+		{ return static_cast<T*>(packet_buffer_impl::at(idx)); }
+
+		T* remove(index_type idx)
+		{ return static_cast<T*>(packet_buffer_impl::remove(idx)); }
+	};
+
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED

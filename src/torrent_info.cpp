@@ -472,8 +472,8 @@ namespace libtorrent
 		{
 			for (int i = 0, end(s_p.list_size()); i < end; ++i)
 			{
-				std::string path_element = s_p.list_at(i).string_value();
-				symlink_path = combine_path(symlink_path, path_element);
+				std::string pe = s_p.list_at(i).string_value();
+				symlink_path = combine_path(symlink_path, pe);
 			}
 		}
 		else
@@ -1386,9 +1386,9 @@ namespace libtorrent
 
 		int n = m_merkle_first_leaf + piece;
 		typedef std::map<int, sha1_hash>::const_iterator iter;
-		iter i = subtree.find(n);
-		if (i == subtree.end()) return false;
-		sha1_hash h = i->second;
+		iter it = subtree.find(n);
+		if (it == subtree.end()) return false;
+		sha1_hash h = it->second;
 
 		// if the verification passes, these are the
 		// nodes to add to our tree
@@ -1529,7 +1529,7 @@ namespace libtorrent
 			{
 				bdecode_node tier = announce_node.list_at(j);
 				if (tier.type() != bdecode_node::list_t) continue;
-				for (int k = 0, end(tier.list_size()); k < end; ++k)
+				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
 					announce_entry e(tier.list_string_value_at(k));
 					e.trim();
