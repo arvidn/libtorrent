@@ -145,7 +145,8 @@ test-suite libtorrent :
 		test_fence.cpp
 		test_dos_blocker.cpp
 		test_stat_cache.cpp
-		test_file_progress.cpp ]
+		test_file_progress.cpp
+		test_direct_dht.cpp ]
 
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]
