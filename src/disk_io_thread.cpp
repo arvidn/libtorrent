@@ -89,7 +89,7 @@ namespace libtorrent
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0
-#endif
+#endif // TORRENT_USE_ASSERTS
 
 	namespace {
 
@@ -98,7 +98,7 @@ namespace libtorrent
 #if DEBUG_DISK_THREAD
 		static mutex log_mutex;
 		static const time_point start = clock_type::now();
-		va_list v;	
+		va_list v;
 		va_start(v, fmt);
 
 		char usr[2048];

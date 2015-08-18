@@ -124,11 +124,11 @@ namespace libtorrent { namespace
 	address sockaddr_to_address(sockaddr const* sin, int assume_family = -1)
 	{
 		if (sin->sa_family == AF_INET || assume_family == AF_INET)
-			return inaddr_to_address(&((sockaddr_in const*)sin)->sin_addr
+			return inaddr_to_address(&reinterpret_cast<sockaddr_in const*>(sin)->sin_addr
 				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
 #if TORRENT_USE_IPV6
 		else if (sin->sa_family == AF_INET6 || assume_family == AF_INET6)
-			return inaddr6_to_address(&((sockaddr_in6 const*)sin)->sin6_addr
+			return inaddr6_to_address(&reinterpret_cast<sockaddr_in6 const*>(sin)->sin6_addr
 				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
 #endif
 		return address();
@@ -230,7 +230,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	bool parse_route(int s, rt_msghdr* rtm, ip_route* rt_info)
 	{
 		sockaddr* rti_info[RTAX_MAX];
-		sockaddr* sa = (sockaddr*)(rtm + 1);
+		sockaddr* sa = reinterpret_cast<sockaddr*>(rtm + 1);
 		for (int i = 0; i < RTAX_MAX; ++i)
 		{
 			if ((rtm->rtm_addrs & (1 << i)) == 0)
@@ -243,7 +243,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #define ROUNDUP(a) \
 	((a) > 0 ? (1 + (((a) - 1) | (sizeof(long) - 1))) : sizeof(long))
 
-			sa = (sockaddr*)((char*)(sa) + ROUNDUP(sa->sa_len));
+			sa = reinterpret_cast<sockaddr*>(reinterpret_cast<char*>(sa) + ROUNDUP(sa->sa_len));
 
 #undef ROUNDUP
 		}
@@ -850,7 +850,7 @@ namespace libtorrent
 	rt_msghdr* rtm;
 	for (char* next = buf.get(); next < end; next += rtm->rtm_msglen)
 	{
-		rtm = (rt_msghdr*)next;
+		rtm = reinterpret_cast<rt_msghdr*>(next);
 		if (rtm->rtm_version != RTM_VERSION)
 			continue;
 

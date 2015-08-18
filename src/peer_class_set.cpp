@@ -43,7 +43,7 @@ namespace libtorrent
 			!= m_class.begin() + m_size) return;
 		if (m_size >= m_class.size() - 1)
 		{
-			assert(false);
+			TORRENT_ASSERT(false);
 			return;
 		}
 		m_class[m_size] = c;
