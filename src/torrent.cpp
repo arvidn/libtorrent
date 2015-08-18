@@ -4595,6 +4595,7 @@ namespace libtorrent
 			return;
 		}
 
+		policy::peer* pp = p->peer_info_struct();
 		if (ready_for_connections())
 		{
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == NULL
@@ -4604,7 +4605,7 @@ namespace libtorrent
 			{
 				if (m_picker.get())
 				{
-					m_picker->dec_refcount_all(p);
+					m_picker->dec_refcount_all(pp);
 				}
 			}
 			else
@@ -4613,7 +4614,7 @@ namespace libtorrent
 				{
 					bitfield const& pieces = p->get_bitfield();
 					TORRENT_ASSERT(pieces.count() <= int(pieces.size()));
-					m_picker->dec_refcount(pieces, p);
+					m_picker->dec_refcount(pieces, pp);
 				}
 			}
 		}
@@ -4624,7 +4625,6 @@ namespace libtorrent
 			m_ses.m_unchoke_time_scaler = 0;
 		}
 
-		policy::peer* pp = p->peer_info_struct();
 		if (pp)
 		{
 			if (pp->optimistically_unchoked)
