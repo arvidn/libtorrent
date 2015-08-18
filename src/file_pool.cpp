@@ -303,7 +303,8 @@ namespace libtorrent
 	void file_pool::mark_deleted(file_storage const& fs)
 	{
 		mutex::scoped_lock l(m_mutex);
-		m_deleted_storages.push_back(std::make_pair(fs.name(), (void const*)&fs));
+		m_deleted_storages.push_back(std::make_pair(fs.name()
+			, static_cast<void const*>(&fs)));
 		if(m_deleted_storages.size() > 100)
 			m_deleted_storages.erase(m_deleted_storages.begin());
 	}

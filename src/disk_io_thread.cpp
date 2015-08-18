@@ -250,7 +250,7 @@ namespace libtorrent
 			m_job_cond.notify_all();
 			m_hash_job_cond.notify_all();
 			l.unlock();
-			if (wait) for (int i = m_num_threads; i < m_threads.size(); ++i) m_threads[i]->join();
+			if (wait) for (int j = m_num_threads; j < m_threads.size(); ++j) m_threads[j]->join();
 			// this will detach the threads
 			m_threads.resize(m_num_threads);
 		}
@@ -531,8 +531,8 @@ namespace libtorrent
 				--pe->piece_refcount;
 				m_disk_cache.maybe_free_piece(pe);
 			}
-			int num_blocks = iovec_offset[i+1] - iovec_offset[i];
-			iovec_flushed(pe, flushing + iovec_offset[i], num_blocks
+			const int block_diff = iovec_offset[i+1] - iovec_offset[i];
+			iovec_flushed(pe, flushing + iovec_offset[i], block_diff
 				, block_start, error, completed_jobs);
 			block_start += p->blocks_in_piece;
 		}
@@ -1121,7 +1121,7 @@ namespace libtorrent
 
 		if (ret == retry_job)
 		{
-			mutex::scoped_lock l(m_job_mutex);
+			mutex::scoped_lock l2(m_job_mutex);
 			// to avoid busy looping here, give up
 			// our quanta in case there aren't any other
 			// jobs to run in between
@@ -1129,12 +1129,12 @@ namespace libtorrent
 			// TODO: a potentially more efficient solution would be to have a special
 			// queue for retry jobs, that's only ever run when a job completes, in
 			// any thread. It would only work if counters::num_running_disk_jobs > 0
-			
+
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-	
+
 			bool need_sleep = m_queued_jobs.empty();
 			m_queued_jobs.push_back(j);
-			l.unlock();
+			l2.unlock();
 			if (need_sleep) sleep(0);
 			return;
 		}
@@ -1177,10 +1177,10 @@ namespace libtorrent
 
 		int file_flags = file_flags_for_job(j);
 		file::iovec_t b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
-   
+
 		int ret = j->storage->get_storage_impl()->readv(&b, 1
 			, j->piece, j->d.io.offset, file_flags, j->error);
-   
+
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 
 		if (!j->error.ec)
@@ -1260,8 +1260,8 @@ namespace libtorrent
 		{
 			ret = do_uncached_read(j);
 
-			mutex::scoped_lock l(m_cache_mutex);
-			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			mutex::scoped_lock l2(m_cache_mutex);
+			pe = m_disk_cache.find_piece(j);
 			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return ret;
 		}
@@ -1304,7 +1304,7 @@ namespace libtorrent
 			// read failed. free buffers and return error
 			m_disk_cache.free_iovec(iov, iov_len);
 
-			cached_piece_entry* pe = m_disk_cache.find_piece(j);
+			pe = m_disk_cache.find_piece(j);
 			if (pe == NULL)
 			{
 				// the piece is supposed to be allocated when the
@@ -1723,15 +1723,15 @@ namespace libtorrent
 			mutex::scoped_lock l(m_cache_mutex);
 			// if we succeed in adding the block to the cache, the job will
 			// be added along with it. we may not free j if so
-			cached_piece_entry* pe = m_disk_cache.add_dirty_block(j);
+			cached_piece_entry* dpe = m_disk_cache.add_dirty_block(j);
 
 			// if the buffer was successfully added to the cache
 			// our holder should no longer own it
-			if (pe) buffer.release();
+			if (dpe) buffer.release();
 
-			if (pe && pe->outstanding_flush == 0)
+			if (dpe && dpe->outstanding_flush == 0)
 			{
-				pe->outstanding_flush = 1;
+				dpe->outstanding_flush = 1;
 				l.unlock();
 
 				// the block and write job were successfully inserted
@@ -1744,7 +1744,7 @@ namespace libtorrent
 			}
 			// if we added the block (regardless of whether we also
 			// issued a flush job or not), we're done.
-			if (pe) return;
+			if (dpe) return;
 			l.unlock();
 		}
 
@@ -2222,9 +2222,9 @@ namespace libtorrent
 
 			for (tailqueue_iterator i = hash_jobs.iterate(); i.get(); i.next())
 			{
-				disk_io_job* j = (disk_io_job*)i.get();
-				memcpy(j->d.piece_hash, &result[0], 20);
-				j->ret = 0;
+				disk_io_job* hj = (disk_io_job*)i.get();
+				memcpy(hj->d.piece_hash, result.data(), 20);
+				hj->ret = 0;
 			}
 
 			delete pe->hash;
@@ -2278,10 +2278,10 @@ namespace libtorrent
 			}
 
 			offset += block_size;
-			h.update((char const*)iov.iov_base, iov.iov_len);
+			h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
 		}
 
-		m_disk_cache.free_buffer((char*)iov.iov_base);
+		m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 
 		sha1_hash piece_hash = h.final();
 		memcpy(j->d.piece_hash, &piece_hash[0], 20);
@@ -2436,8 +2436,8 @@ namespace libtorrent
 					// and decrements the piece_refcount
 
 					// decrement the refcounts of the blocks we just hashed
-					for (int i = 0; i < num_locked_blocks; ++i)
-						m_disk_cache.dec_block_refcount(pe, locked_blocks[i], block_cache::ref_hashing);
+					for (int k = 0; k < num_locked_blocks; ++k)
+						m_disk_cache.dec_block_refcount(pe, locked_blocks[k], block_cache::ref_hashing);
 
 					--pe->piece_refcount;
 					pe->hashing = false;
@@ -2461,7 +2461,7 @@ namespace libtorrent
 
 				if (ret < 0)
 				{
-					m_disk_cache.free_buffer((char*)iov.iov_base);
+					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 					l.lock();
 					break;
 				}
@@ -2493,7 +2493,7 @@ namespace libtorrent
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += iov.iov_len;
-				ph->h.update((char const*)iov.iov_base, iov.iov_len);
+				ph->h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
 
 				l.lock();
 				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
@@ -3471,8 +3471,8 @@ namespace libtorrent
 					&& m_settings.get_bool(settings_pack::use_read_cache)
 					&& m_settings.get_int(settings_pack::cache_size) > 0)
 				{
-					int ret = prep_read_job_impl(j, false);
-					switch (ret)
+					int state = prep_read_job_impl(j, false);
+					switch (state)
 					{
 						case 0:
 							completed_jobs.push_back(j);
@@ -3571,7 +3571,7 @@ namespace libtorrent
 		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
 		l.unlock();
 
-		uncork_interface* uncork = (uncork_interface*)userdata;
+		uncork_interface* uncork = static_cast<uncork_interface*>(userdata);
 		std::vector<disk_io_job*> to_delete;
 		to_delete.reserve(num_jobs);
 

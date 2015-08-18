@@ -200,6 +200,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT ipv4_peer : torrent_peer
 	{
 		ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
+		ipv4_peer(ipv4_peer const& p);
 
 		address_v4 addr;
 	private:
@@ -214,6 +215,7 @@ namespace libtorrent
 
 		char* destination;
 	private:
+		i2p_peer(const i2p_peer&);
 		i2p_peer& operator=(i2p_peer const&);
 	};
 #endif
@@ -227,6 +229,7 @@ namespace libtorrent
 	private:
 		// explicitly disallow assignment, to silence msvc warning
 		ipv6_peer& operator=(ipv6_peer const&);
+		ipv6_peer(ipv6_peer const&);
 	};
 #endif
 

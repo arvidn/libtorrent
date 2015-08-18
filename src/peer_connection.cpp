@@ -6651,29 +6651,29 @@ namespace libtorrent
 				// make sure this peer is not a dangling pointer
 				TORRENT_ASSERT(m_ses.has_peer(*i));
 				peer_connection const& p = *(*i);
-				for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
-					, end(p.request_queue().end()); i != end; ++i)
+				for (std::vector<pending_block>::const_iterator j = p.request_queue().begin()
+					, end(p.request_queue().end()); j != end; ++j)
 				{
-					++num_requests[i->block].num_peers;
-					++num_requests[i->block].num_peers_with_timeouts;
-					++num_requests[i->block].num_peers_with_nowant;
-					++num_requests[i->block].num_not_requested;
-//					num_requests[i->block].peers.push_back(&p);
+					++num_requests[j->block].num_peers;
+					++num_requests[j->block].num_peers_with_timeouts;
+					++num_requests[j->block].num_peers_with_nowant;
+					++num_requests[j->block].num_not_requested;
+//					num_requests[j->block].peers.push_back(&p);
 				}
-				for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
-					, end(p.download_queue().end()); i != end; ++i)
+				for (std::vector<pending_block>::const_iterator j = p.download_queue().begin()
+					, end(p.download_queue().end()); j != end; ++j)
 				{
-					if (!i->not_wanted && !i->timed_out) ++num_requests[i->block].num_peers;
-					if (i->timed_out) ++num_requests[i->block].num_peers_with_timeouts;
-					if (i->not_wanted) ++num_requests[i->block].num_peers_with_nowant;
-//					num_requests[i->block].peers.push_back(&p);
+					if (!j->not_wanted && !j->timed_out) ++num_requests[j->block].num_peers;
+					if (j->timed_out) ++num_requests[j->block].num_peers_with_timeouts;
+					if (j->not_wanted) ++num_requests[j->block].num_peers_with_nowant;
+//					num_requests[j->block].peers.push_back(&p);
 				}
 			}
-			for (std::map<piece_block, peer_count_t>::iterator i = num_requests.begin()
-				, end(num_requests.end()); i != end; ++i)
+			for (std::map<piece_block, peer_count_t>::iterator j = num_requests.begin()
+				, end(num_requests.end()); j != end; ++j)
 			{
-				piece_block b = i->first;
-				peer_count_t const& pc = i->second;
+				piece_block b = j->first;
+				peer_count_t const& pc = j->second;
 				int count = pc.num_peers;
 				int count_with_timeouts = pc.num_peers_with_timeouts;
 				int count_with_nowant = pc.num_peers_with_nowant;

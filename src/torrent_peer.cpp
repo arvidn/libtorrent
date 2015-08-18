@@ -235,6 +235,9 @@ namespace libtorrent
 #endif
 	}
 
+	ipv4_peer::ipv4_peer(ipv4_peer const& p)
+		: torrent_peer(p), addr(p.addr) {}
+
 #if TORRENT_USE_I2P
 	i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
 		: torrent_peer(0, connectable, src), destination(allocate_string_copy(dest))
