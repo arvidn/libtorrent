@@ -72,6 +72,7 @@ namespace libtorrent
 	class peer_connection;
 	struct bitfield;
 	struct counters;
+	struct torrent_peer;
 
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
@@ -118,9 +119,8 @@ namespace libtorrent
 		{
 			block_info(): peer(0), num_peers(0), state(state_none) {}
 			// the peer this block was requested or
-			// downloaded from. This is a pointer to
-			// a torrent_peer object
-			void* peer;
+			// downloaded from.
+			torrent_peer* peer;
 			// the number of peers that has this block in their
 			// download or request queues
 			unsigned num_peers:14;
@@ -130,7 +130,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			// to allow verifying the invariant of blocks belonging to the right piece
 			int piece_index;
-			std::set<void*> peers;
+			std::set<torrent_peer*> peers;
 #endif
 		};
 
@@ -216,21 +216,21 @@ namespace libtorrent
 
 		// increases the peer count for the given piece
 		// (is used when a HAVE message is received)
-		void inc_refcount(int index, const void* peer);
-		void dec_refcount(int index, const void* peer);
+		void inc_refcount(int index, const torrent_peer* peer);
+		void dec_refcount(int index, const torrent_peer* peer);
 
 		// increases the peer count for the given piece
 		// (is used when a BITFIELD message is received)
-		void inc_refcount(bitfield const& bitmask, const void* peer);
+		void inc_refcount(bitfield const& bitmask, const torrent_peer* peer);
 		// decreases the peer count for the given piece
 		// (used when a peer disconnects)
-		void dec_refcount(bitfield const& bitmask, const void* peer);
+		void dec_refcount(bitfield const& bitmask, const torrent_peer* peer);
 
 		// these will increase and decrease the peer count
 		// of all pieces. They are used when seeds join
 		// or leave the swarm.
-		void inc_refcount_all(const void* peer);
-		void dec_refcount_all(const void* peer);
+		void inc_refcount_all(const torrent_peer* peer);
+		void dec_refcount_all(const torrent_peer* peer);
 
 		// This indicates that we just received this piece
 		// it means that the refcounter will indicate that
@@ -297,7 +297,7 @@ namespace libtorrent
 		// (i.e. higher overhead per request).
 		void pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
-			, int prefer_contiguous_blocks, void* peer
+			, int prefer_contiguous_blocks, torrent_peer* peer
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
 			, counters& pc
@@ -314,7 +314,7 @@ namespace libtorrent
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, void* peer, std::vector<int> const& ignore
+			, torrent_peer* peer, std::vector<int> const& ignore
 			, int options) const;
 
 		// picks blocks only from downloading pieces
@@ -324,12 +324,12 @@ namespace libtorrent
 			, std::vector<piece_block>& backup_blocks
 			, std::vector<piece_block>& backup_blocks2
 			, int num_blocks, int prefer_contiguous_blocks
-			, void* peer
+			, torrent_peer* peer
 			, int options) const;
 
 		// clears the peer pointer in all downloading pieces with this
 		// peer pointer
-		void clear_peer(void* peer);
+		void clear_peer(torrent_peer* peer);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		// this is an invariant check
@@ -349,15 +349,15 @@ namespace libtorrent
 
 		// marks this piece-block as queued for downloading
 		// options are flags from options_t.
-		bool mark_as_downloading(piece_block block, void* peer
+		bool mark_as_downloading(piece_block block, torrent_peer* peer
 			, int options = 0);
 
 		// returns true if the block was marked as writing,
 		// and false if the block is already finished or writing
-		bool mark_as_writing(piece_block block, void* peer);
+		bool mark_as_writing(piece_block block, torrent_peer* peer);
 
-		void mark_as_canceled(piece_block block, void* peer);
-		void mark_as_finished(piece_block block, void* peer);
+		void mark_as_canceled(piece_block block, torrent_peer* peer);
+		void mark_as_finished(piece_block block, torrent_peer* peer);
 	
 		// prevent blocks from being picked from this piece.
 		// to unlock the piece, call restore_piece() on it
@@ -390,7 +390,7 @@ namespace libtorrent
 
 		// clears the given piece's download flag
 		// this means that this piece-block can be picked again
-		void abort_download(piece_block block, void* peer = 0);
+		void abort_download(piece_block block, torrent_peer* peer = 0);
 
 		// returns true if all blocks in this piece are finished
 		// or if we have the piece
@@ -409,7 +409,7 @@ namespace libtorrent
 
 		// return the peer pointers to all peers that participated in
 		// this piece
-		void get_downloaders(std::vector<void*>& d, int index) const;
+		void get_downloaders(std::vector<torrent_peer*>& d, int index) const;
 
 		std::vector<piece_picker::downloading_piece> get_download_queue() const;
 		int get_download_queue_size() const;
@@ -417,7 +417,7 @@ namespace libtorrent
 		void get_download_queue_sizes(int* partial
 			, int* full, int* finished, int* zero_prio) const;
 
-		void* get_downloader(piece_block block) const;
+		torrent_peer* get_downloader(piece_block block) const;
 
 		// the number of filtered pieces we don't have
 		int num_filtered() const { return m_num_filtered; }
@@ -449,7 +449,7 @@ namespace libtorrent
 		void verify_pick(std::vector<piece_block> const& picked
 			, bitfield const& bits) const;
 
-		void check_peer_invariant(bitfield const& have, void const* p) const;
+		void check_peer_invariant(bitfield const& have, torrent_peer const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif
 #if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
@@ -483,7 +483,7 @@ namespace libtorrent
 
 		boost::tuple<bool, bool, int, int> requested_from(
 			piece_picker::downloading_piece const& p
-			, int num_blocks_in_piece, void* peer) const;
+			, int num_blocks_in_piece, torrent_peer* peer) const;
 
 		bool can_pick(int piece, bitfield const& bitmask) const;
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
@@ -617,7 +617,7 @@ namespace libtorrent
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			// all the peers that have this piece
-			std::set<const void*> have_peers;
+			std::set<const torrent_peer*> have_peers;
 #endif
 
 			enum
@@ -639,18 +639,18 @@ namespace libtorrent
 				max_peer_count = 0xffff
 #endif
 			};
-			
+
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
 			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
 			bool downloading() const { return download_state != piece_open; }
-			
+
 			bool filtered() const { return piece_priority == filter_priority; }
 
 			// this function returns the effective priority of the piece. It's
 			// actually the sort order of this piece compared to other pieces. A
 			// lower index means it will be picked before a piece with a higher
-			// index. 
+			// index.
 			// The availability of the piece (the number of peers that have this
 			// piece) is fundamentally controlling the priority. It's multiplied
 			// by 3 to form 3 levels of priority for each availability.

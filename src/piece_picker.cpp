@@ -349,7 +349,7 @@ namespace libtorrent
 					{
 						if (info[j].peer)
 						{
-							torrent_peer* p = static_cast<torrent_peer*>(info[j].peer);
+							torrent_peer* p = info[j].peer;
 							TORRENT_ASSERT(p->in_use);
 							TORRENT_ASSERT(p->connection == NULL
 								|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -435,7 +435,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void piece_picker::check_peer_invariant(bitfield const& have
-		, void const* p) const
+		, torrent_peer const* p) const
 	{
 #ifdef TORRENT_DEBUG_REFCOUNTS
 		int num_pieces = have.size();
@@ -482,7 +482,7 @@ namespace libtorrent
 					for (int j = 0; j < m_blocks_per_piece; ++j)
 					{
 						if (!info[j].peer) continue;
-						torrent_peer* p = static_cast<torrent_peer*>(info[j].peer);
+						torrent_peer* p = info[j].peer;
 						TORRENT_ASSERT(p->in_use);
 						TORRENT_ASSERT(p->connection == NULL
 							|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -511,7 +511,7 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(info[k].piece_index == i->index);
 					TORRENT_ASSERT(info[k].peer == 0
-						|| static_cast<torrent_peer*>(info[k].peer)->in_use);
+						|| info[k].peer->in_use);
 
 					if (info[k].state == block_info::state_finished)
 					{
@@ -1136,7 +1136,7 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::inc_refcount_all(const void* peer)
+	void piece_picker::inc_refcount_all(const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1162,7 +1162,7 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::dec_refcount_all(const void* peer)
+	void piece_picker::dec_refcount_all(const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1209,7 +1209,7 @@ namespace libtorrent
 		m_dirty = true;
 	}
 
-	void piece_picker::inc_refcount(int index, const void* peer)
+	void piece_picker::inc_refcount(int index, const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1260,7 +1260,7 @@ namespace libtorrent
 		m_dirty = true;
 	}
 
-	void piece_picker::dec_refcount(int index, const void* peer)
+	void piece_picker::dec_refcount(int index, const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1297,7 +1297,7 @@ namespace libtorrent
 		if (prev_priority >= 0) update(prev_priority, p.index);
 	}
 
-	void piece_picker::inc_refcount(bitfield const& bitmask, const void* peer)
+	void piece_picker::inc_refcount(bitfield const& bitmask, const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1393,7 +1393,7 @@ namespace libtorrent
 		if (updated) m_dirty = true;
 	}
 
-	void piece_picker::dec_refcount(bitfield const& bitmask, const void* peer)
+	void piece_picker::dec_refcount(bitfield const& bitmask, const torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -1935,7 +1935,7 @@ namespace libtorrent
 	// num_blocks of interesting blocks that the peer has.
 	// prefer_contiguous_blocks can be set if this peer should download whole
 	// pieces rather than trying to download blocks from the same piece as other
-	// peers. the void* is the pointer to the torrent_peer of the peer we're
+	// peers. the peer argument is the torrent_peer of the peer we're
 	// picking pieces from. This is used when downloading whole pieces, to only
 	// pick from the same piece the same peer is downloading from.
 
@@ -1958,13 +1958,13 @@ namespace libtorrent
 
 	void piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
-		, int prefer_contiguous_blocks, void* peer
+		, int prefer_contiguous_blocks, torrent_peer* peer
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
 		, counters& pc
 		) const
 	{
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == 0 || peer->in_use);
 
 		// prevent the number of partial pieces to grow indefinitely
 		// make this scale by the number of peers we have. For large
@@ -2571,7 +2571,7 @@ get_out:
 	}
 #endif
 
-	void piece_picker::clear_peer(void* peer)
+	void piece_picker::clear_peer(torrent_peer* peer)
 	{
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
@@ -2588,7 +2588,7 @@ get_out:
 	// the first-fit range, which would be better
 	boost::tuple<bool, bool, int, int> piece_picker::requested_from(
 		piece_picker::downloading_piece const& p
-		, int num_blocks_in_piece, void* peer) const
+		, int num_blocks_in_piece, torrent_peer* peer) const
 	{
 		bool exclusive = true;
 		bool exclusive_active = true;
@@ -2637,7 +2637,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, void* peer, std::vector<int> const& ignore
+		, torrent_peer* peer, std::vector<int> const& ignore
 		, int options) const
 	{
 		TORRENT_ASSERT(piece >= 0);
@@ -2717,7 +2717,7 @@ get_out:
 		, std::vector<piece_block>& backup_blocks
 		, std::vector<piece_block>& backup_blocks2
 		, int num_blocks, int prefer_contiguous_blocks
-		, void* peer, int options) const
+		, torrent_peer* peer, int options) const
 	{
 		if (!pieces[dp.index]) return num_blocks;
 		TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
@@ -3101,7 +3101,7 @@ get_out:
 
 	// options may be 0 or piece_picker::reverse
 	bool piece_picker::mark_as_downloading(piece_block block
-		, void* peer, int options)
+		, torrent_peer* peer, int options)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_downloading( {"
@@ -3245,7 +3245,7 @@ get_out:
 		return m_piece_map[piece].peer_count + m_seeds;
 	}
 
-	bool piece_picker::mark_as_writing(piece_block block, void* peer)
+	bool piece_picker::mark_as_writing(piece_block block, torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -3437,7 +3437,7 @@ get_out:
 		}
 	}
 
-	void piece_picker::mark_as_canceled(const piece_block block, void* peer)
+	void piece_picker::mark_as_canceled(const piece_block block, torrent_peer* peer)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "mark_as_cancelled( {"
@@ -3501,7 +3501,7 @@ get_out:
 #endif
 	}
 
-	void piece_picker::mark_as_finished(piece_block block, void* peer)
+	void piece_picker::mark_as_finished(piece_block block, torrent_peer* peer)
 	{
 #if TORRENT_USE_INVARIANT_CHECKS
 		check_piece_state();
@@ -3622,7 +3622,7 @@ get_out:
 	}
 */
 
-	void piece_picker::get_downloaders(std::vector<void*>& d, int index) const
+	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d, int index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index <= int(m_piece_map.size()));
 
@@ -3633,7 +3633,7 @@ get_out:
 
 		if (state == piece_pos::piece_open)
 		{
-			for (int i = 0; i < num_blocks; ++i) d.push_back(0);
+			for (int i = 0; i < num_blocks; ++i) d.push_back(NULL);
 			return;
 		}
 
@@ -3644,12 +3644,12 @@ get_out:
 		for (int j = 0; j != num_blocks; ++j)
 		{
 			TORRENT_ASSERT(binfo[j].peer == 0
-				|| static_cast<torrent_peer*>(binfo[j].peer)->in_use);
+				|| binfo[j].peer->in_use);
 			d.push_back(binfo[j].peer);
 		}
 	}
 
-	void* piece_picker::get_downloader(piece_block block) const
+	torrent_peer* piece_picker::get_downloader(piece_block block) const
 	{
 		int state = m_piece_map[block.piece_index].download_queue();
 		if (state == piece_pos::piece_open) return 0;
@@ -3661,16 +3661,16 @@ get_out:
 		block_info const* binfo = blocks_for_piece(*i);
 		TORRENT_ASSERT(binfo[block.block_index].piece_index == block.piece_index);
 		if (binfo[block.block_index].state == block_info::state_none)
-			return 0;
+			return NULL;
 
-		void* peer = binfo[block.block_index].peer;
+		torrent_peer* peer = binfo[block.block_index].peer;
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
 		return peer;
 	}
 
 	// this is called when a request is rejected or when
 	// a peer disconnects. The piece might be in any state
-	void piece_picker::abort_download(piece_block block, void* peer)
+	void piece_picker::abort_download(piece_block block, torrent_peer* peer)
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
@@ -3679,7 +3679,7 @@ get_out:
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "abort_download( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == 0 || peer->in_use);
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -3695,7 +3695,7 @@ get_out:
 
 		block_info* binfo = blocks_for_piece(*i);
 		block_info& info = binfo[block.block_index];
-		TORRENT_ASSERT(info.peer == 0 || static_cast<torrent_peer*>(info.peer)->in_use);
+		TORRENT_ASSERT(info.peer == 0 || info.peer->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 
 		TORRENT_ASSERT(info.state != block_info::state_none);

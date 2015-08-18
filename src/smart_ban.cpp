@@ -195,16 +195,16 @@ namespace
 			// a bunch of read operations on it
 			if (m_torrent.is_aborted()) return;
 
-			std::vector<void*> downloaders;
+			std::vector<torrent_peer*> downloaders;
 			m_torrent.picker().get_downloaders(downloaders, p);
 
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, (std::min)(16*1024, size)};
 			piece_block pb(p, 0);
-			for (std::vector<void*>::iterator i = downloaders.begin()
+			for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 				, end(downloaders.end()); i != end; ++i)
 			{
-				if (*i != 0)
+				if (*i != NULL)
 				{
 					// for very sad and involved reasons, this read need to force a copy out of the cache
 					// since the piece has failed, this block is very likely to be replaced with a newly
@@ -212,8 +212,8 @@ namespace
 					// block read will have been deleted by the time it gets back to the network thread
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
 						, boost::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, static_cast<torrent_peer*>(*i)->address(), _1)
-						, reinterpret_cast<void*>(1)
+						, shared_from_this(), pb, (*i)->address(), _1)
+						, reinterpret_cast<torrent_peer*>(1)
 						, disk_io_job::force_copy);
 				}
 

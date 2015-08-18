@@ -124,16 +124,16 @@ boost::shared_ptr<piece_picker> setup_picker(
 			TEST_CHECK(!p->is_finished(piece_block(i, j)));
 			if ((blocks & (1 << j)) == 0) continue;
 			++counter;
-			bool ret = p->mark_as_downloading(piece_block(i, j), (void*)tmp_peer);
+			bool ret = p->mark_as_downloading(piece_block(i, j), tmp_peer);
 			TEST_CHECK(ret == true);
 			TEST_CHECK(p->is_requested(piece_block(i, j)) == bool(blocks & (1 << j)));
-			p->mark_as_writing(piece_block(i, j), (void*)tmp_peer);
+			p->mark_as_writing(piece_block(i, j), tmp_peer);
 			TEST_CHECK(!p->is_finished(piece_block(i, j)));
 			// trying to mark a block as requested after it has been completed
 			// should fail (return false)
-			ret = p->mark_as_downloading(piece_block(i, j), (void*)tmp_peer);
+			ret = p->mark_as_downloading(piece_block(i, j), tmp_peer);
 			TEST_CHECK(ret == false);
-			p->mark_as_finished(piece_block(i, j), (void*)tmp_peer);
+			p->mark_as_finished(piece_block(i, j), tmp_peer);
 
 			TEST_CHECK(p->is_downloaded(piece_block(i, j)) == bool(blocks & (1 << j)));
 			TEST_CHECK(p->is_finished(piece_block(i, j)) == bool(blocks & (1 << j)));
@@ -250,7 +250,7 @@ std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
 	, char const* availability
 	, int num_blocks
 	, int prefer_contiguous_blocks
-	, void* peer_struct
+	, torrent_peer* peer_struct
 	, int options = piece_picker::rarest_first
 	, std::vector<int> const& suggested_pieces = empty_vector)
 {
@@ -408,7 +408,7 @@ TORRENT_TEST(piece_picker)
 	p->mark_as_downloading(piece_block(0, 2), &tmp2);
 	p->mark_as_writing(piece_block(0, 2), &tmp2);
 
-	std::vector<void*> d;
+	std::vector<torrent_peer*> d;
 	p->get_downloaders(d, 0);
 	TEST_EQUAL(d.size(), 4);
 	TEST_CHECK(d[0] == NULL);
@@ -1166,12 +1166,12 @@ TORRENT_TEST(piece_picker)
 	p->mark_as_downloading(piece_block(2, 1), &tmp2);
 	p->mark_as_downloading(piece_block(3, 1), &tmp3);
 
-	std::vector<void*> dls;
-	void* expected_dls1[] = {&tmp1, &tmp2, &tmp3, 0};
-	void* expected_dls2[] = {0, &tmp1, 0, 0};
-	void* expected_dls3[] = {0, &tmp2, 0, 0};
-	void* expected_dls4[] = {0, &tmp3, 0, 0};
-	void* expected_dls5[] = {&tmp1, 0, &tmp3, 0};
+	std::vector<torrent_peer*> dls;
+	torrent_peer* expected_dls1[] = {&tmp1, &tmp2, &tmp3, 0};
+	torrent_peer* expected_dls2[] = {0, &tmp1, 0, 0};
+	torrent_peer* expected_dls3[] = {0, &tmp2, 0, 0};
+	torrent_peer* expected_dls4[] = {0, &tmp3, 0, 0};
+	torrent_peer* expected_dls5[] = {&tmp1, 0, &tmp3, 0};
 	p->get_downloaders(dls, 0);
 	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls1));
 	p->get_downloaders(dls, 1);
@@ -1238,7 +1238,7 @@ TORRENT_TEST(piece_picker)
 	// decrease refcount on something that's not in the piece list
 	p->dec_refcount(5, &tmp0);
 	p->inc_refcount(5, &tmp0);
-	
+
 	bitfield bits = string2vec("*      ");
 	TEST_EQUAL(bits.get_bit(0), true);
 	TEST_EQUAL(bits.get_bit(1), false);
@@ -1261,14 +1261,14 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(test_pick(p), 0);
 
 // ========================================================
-	
+
 	// test unverified_blocks, marking blocks and get_downloader
 	print_title("test unverified blocks");
 	p = setup_picker("1111111", "       ", "", "0300700");
 	TEST_CHECK(p->unverified_blocks() == 2 + 3);
-	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == (void*)tmp_peer);
-	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == (void*)tmp_peer);
-	TEST_CHECK(p->get_downloader(piece_block(4, 2)) == (void*)tmp_peer);
+	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == tmp_peer);
+	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == tmp_peer);
+	TEST_CHECK(p->get_downloader(piece_block(4, 2)) == tmp_peer);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == 0);
 	p->mark_as_downloading(piece_block(4, 3), &peer_struct);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);
@@ -1300,7 +1300,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->unverified_blocks() == 2);
 
 // ========================================================
-	
+
 	// test prefer_contiguous_blocks
 	print_title("test prefer contiguous blocks");
 	p = setup_picker("1111111", "       ", "", "");

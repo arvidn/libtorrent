@@ -721,7 +721,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
-				t->picker().check_peer_invariant(m_have_piece, this);
+				t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 			if (t->is_upload_only()) send_not_interested();
 			else t->peer_is_interesting(*this);
@@ -1894,7 +1894,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
-				t->picker().check_peer_invariant(m_have_piece, this);
+				t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 		}
 
@@ -2057,7 +2057,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
-				t->picker().check_peer_invariant(m_have_piece, this);
+				t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 			return;
 		}
@@ -2084,7 +2084,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
-				t->picker().check_peer_invariant(m_have_piece, this);
+				t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 
 			// this will cause us to send the INTERESTED message
@@ -2849,13 +2849,13 @@ namespace libtorrent
 			int num_blocks = t->picker().blocks_in_piece(piece);
 			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
 			{
-				std::vector<void*> d;
+				std::vector<torrent_peer*> d;
 				t->picker().get_downloaders(d, piece);
 				if (d.size() == 1)
 				{
 					// only make predictions if all remaining
 					// blocks are requested from the same peer
-					torrent_peer* peer = static_cast<torrent_peer*>(d[0]);
+					torrent_peer* peer = d[0];
 					if (peer->connection)
 					{
 						// we have a connection. now, what is the current
@@ -3145,7 +3145,7 @@ namespace libtorrent
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		if (t && t->has_picker())
-			t->picker().check_peer_invariant(m_have_piece, this);
+			t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 
 		TORRENT_ASSERT(m_have_piece.all_set());
@@ -6505,7 +6505,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS \
 	&& !defined TORRENT_NO_EXPENSIVE_INVARIANT_CHECK
 		if (t && t->has_picker() && !m_disconnecting)
-			t->picker().check_peer_invariant(m_have_piece, this);
+			t->picker().check_peer_invariant(m_have_piece, peer_info_struct());
 #endif
 
 		if (!m_disconnect_started && m_initialized)
