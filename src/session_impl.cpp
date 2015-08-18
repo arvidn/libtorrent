@@ -4669,7 +4669,7 @@ retry:
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
-		if (m_dht && params.ti)
+		if (params.ti)
 		{
 			torrent_info::nodes_t const& nodes = params.ti->nodes();
 			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
