@@ -416,6 +416,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		, m_dht_announce_timer(m_io_service)
 		, m_dht_interval_update_torrents(0)
+		, m_outstanding_router_lookups(0)
 #endif
 		, m_external_udp_port(0)
 		, m_udp_socket(m_io_service)
@@ -5413,6 +5414,10 @@ retry:
 		INVARIANT_CHECK;
 
 		stop_dht();
+
+		// postpone starting the DHT if we're still resolving the DHT router
+		if (m_outstanding_router_lookups > 0) return;
+
 		m_dht = boost::make_shared<dht::dht_tracker>(static_cast<dht_observer*>(this)
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters), &startup_state);
@@ -5459,6 +5464,7 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_dht_router_name_lookup");
 #endif
+		++m_outstanding_router_lookups;
 		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
 			, boost::bind(&session_impl::on_dht_router_name_lookup
 				, this, _1, _2, node.second));
@@ -5470,11 +5476,15 @@ retry:
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("session_impl::on_dht_router_name_lookup");
 #endif
+		--m_outstanding_router_lookups;
+
 		if (e)
 		{
 			if (m_alerts.should_post<dht_error_alert>())
 				m_alerts.emplace_alert<dht_error_alert>(
 					dht_error_alert::hostname_lookup, e);
+
+			if (m_outstanding_router_lookups == 0) update_dht();
 			return;
 		}
 
@@ -5487,6 +5497,8 @@ retry:
 			if (m_dht) m_dht->add_router_node(ep);
 			m_dht_router_nodes.push_back(ep);
 		}
+
+		if (m_outstanding_router_lookups == 0) update_dht();
 	}
 
 	// callback for dht_immutable_get

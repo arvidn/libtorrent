@@ -1009,6 +1009,10 @@ namespace libtorrent
 			// is updated again. This especially matters for
 			// small numbers.
 			int m_dht_interval_update_torrents;
+
+			// the number of DHT router lookups there are currently outstanding. As
+			// long as this is > 0, we'll postpone starting the DHT
+			int m_outstanding_router_lookups;
 #endif
 
 			bool incoming_packet(error_code const& ec
