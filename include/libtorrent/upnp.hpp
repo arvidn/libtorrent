@@ -105,6 +105,29 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
+struct parse_state
+{
+	parse_state(): in_service(false) {}
+	bool in_service;
+	std::list<std::string> tag_stack;
+	std::string control_url;
+	std::string service_type;
+	std::string model;
+	std::string url_base;
+	bool top_tags(const char* str1, const char* str2)
+	{
+		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
+		if (i == tag_stack.rend()) return false;
+		if (!string_equal_no_case(i->c_str(), str2)) return false;
+		++i;
+		if (i == tag_stack.rend()) return false;
+		if (!string_equal_no_case(i->c_str(), str1)) return false;
+		return true;
+	}
+};
+
+TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state);
+
 // TODO: support using the windows API for UPnP operations as well
 class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
 {

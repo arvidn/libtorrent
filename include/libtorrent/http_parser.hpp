@@ -126,7 +126,7 @@ namespace libtorrent
 
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
 		std::vector<std::pair<boost::int64_t, boost::int64_t> > const& chunks() const { return m_chunked_ranges; }
-		
+
 	private:
 		boost::int64_t m_recv_pos;
 		std::string m_method;

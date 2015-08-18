@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
+	// TODO: 3 make this take a const buffer instead (and pass in string length
+	// to callback function). Then remove all associated const_casts.
 	TORRENT_EXTRA_EXPORT void xml_parse(char* p, char* end
 		, boost::function<void(int,char const*,char const*)> callback)
 	{
@@ -61,7 +63,7 @@ namespace libtorrent
 			}
 
 			if (p == end) break;
-		
+
 			// skip '<'
 			++p;
 			if (p != end && p+8 < end && string_begins_no_case("![CDATA[", p))
@@ -79,7 +81,7 @@ namespace libtorrent
 					callback(token, start, val_start);
 					break;
 				}
-			
+
 				token = xml_string;
 				char tmp = p[-2];
 				p[-2] = 0;

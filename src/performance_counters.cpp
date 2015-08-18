@@ -124,12 +124,10 @@ namespace libtorrent {
 	// is blended in at.
 	void counters::blend_stats_counter(int c, boost::int64_t value, int ratio)
 	{
-		TORRENT_ASSERT(c >= 0);
+		TORRENT_ASSERT(c >= num_stats_counters);
 		TORRENT_ASSERT(c < num_counters);
 		TORRENT_ASSERT(ratio >= 0);
 		TORRENT_ASSERT(ratio <= 100);
-
-		TORRENT_ASSERT(num_stats_counters);
 
 #if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
 		boost::int64_t current = m_stats_counter[c].load(boost::memory_order_relaxed);
@@ -160,7 +158,7 @@ namespace libtorrent {
 		// if this assert fires, someone is trying to decrement a counter
 		// which is not allowed. Counters are monotonically increasing
 		TORRENT_ASSERT(value >= m_stats_counter[c] || c >= num_stats_counters);
-	
+
 		m_stats_counter[c] = value;
 #endif
 	}

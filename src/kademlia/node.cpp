@@ -610,10 +610,10 @@ time_duration node::connection_timeout()
 		// if there are no more peers, remove the entry altogether
 		if (t.peers.empty())
 		{
-			table_t::iterator i = m_map.find(key);
-			if (i != m_map.end())
+			table_t::iterator it = m_map.find(key);
+			if (it != m_map.end())
 			{
-				m_map.erase(i);
+				m_map.erase(it);
 				m_counters.inc_stats_counter(counters::dht_torrents, -1);
 			}
 		}
@@ -633,8 +633,8 @@ void node::status(std::vector<dht_routing_bucket>& table
 		, end(m_running_requests.end()); i != end; ++i)
 	{
 		requests.push_back(dht_lookup());
-		dht_lookup& l = requests.back();
-		(*i)->status(l);
+		dht_lookup& lookup = requests.back();
+		(*i)->status(lookup);
 	}
 }
 
@@ -652,8 +652,8 @@ void node::status(session_status& s)
 		, end(m_running_requests.end()); i != end; ++i)
 	{
 		s.active_requests.push_back(dht_lookup());
-		dht_lookup& l = s.active_requests.back();
-		(*i)->status(l);
+		dht_lookup& lookup = s.active_requests.back();
+		(*i)->status(lookup);
 	}
 }
 #endif
@@ -677,12 +677,12 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 		bloom_filter<256> downloaders;
 		bloom_filter<256> seeds;
 
-		for (std::set<peer_entry>::const_iterator i = v.peers.begin()
-			, end(v.peers.end()); i != end; ++i)
+		for (std::set<peer_entry>::const_iterator peer_it = v.peers.begin()
+			, end(v.peers.end()); peer_it != end; ++peer_it)
 		{
 			sha1_hash iphash;
-			hash_address(i->addr.address(), iphash);
-			if (i->seed) seeds.set(iphash);
+			hash_address(peer_it->addr.address(), iphash);
+			if (peer_it->seed) seeds.set(iphash);
 			else downloaders.set(iphash);
 		}
 
@@ -834,6 +834,8 @@ void incoming_error(entry& e, char const* msg, int error_code)
 struct immutable_item_comparator
 {
 	immutable_item_comparator(node_id const& our_id) : m_our_id(our_id) {}
+	immutable_item_comparator(immutable_item_comparator const& c)
+		: m_our_id(c.m_our_id) {}
 
 	bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
 		, std::pair<node_id, dht_immutable_item> const& rhs) const
@@ -851,6 +853,7 @@ struct immutable_item_comparator
 	}
 
 private:
+
 	// explicitly disallow assignment, to silence msvc warning
 	immutable_item_comparator& operator=(immutable_item_comparator const&);
 
@@ -1336,30 +1339,30 @@ void node::incoming_request(msg const& m, entry& e)
 //			, to_hex(target.to_string()).c_str());
 
 		reply["token"] = generate_token(m.addr, msg_keys[1].string_ptr());
-		
+
 		nodes_t n;
 		// always return nodes as well as peers
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 
-		dht_immutable_table_t::iterator i = m_immutable_table.end();
+		dht_immutable_table_t::iterator imutable_it = m_immutable_table.end();
 
 		// if the get has a sequence number it must be for a mutable item
 		// so don't bother searching the immutable table
 		if (!msg_keys[0])
-			i = m_immutable_table.find(target);
+			imutable_it = m_immutable_table.find(target);
 
-		if (i != m_immutable_table.end())
+		if (imutable_it != m_immutable_table.end())
 		{
-			dht_immutable_item const& f = i->second;
+			dht_immutable_item const& f = imutable_it->second;
 			reply["v"] = bdecode(f.value, f.value + f.size);
 		}
 		else
 		{
-			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
-			if (i != m_mutable_table.end())
+			dht_mutable_table_t::iterator mutable_it = m_mutable_table.find(target);
+			if (mutable_it != m_mutable_table.end())
 			{
-				dht_mutable_item const& f = i->second;
+				dht_mutable_item const& f = mutable_it->second;
 				reply["seq"] = f.seq;
 				if (!msg_keys[0] || boost::uint64_t(msg_keys[0].int_value()) < f.seq)
 				{

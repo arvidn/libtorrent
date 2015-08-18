@@ -107,7 +107,7 @@ namespace libtorrent
 			if (n < m_header_size) return;
 			using namespace libtorrent::detail;
 
-			char* ptr = (char*)header.get();
+			char* ptr = reinterpret_cast<char*>(header.get());
 			// we have a header. Parse it
 			int num_pieces_ = read_uint32(ptr);
 			int piece_size_ = read_uint32(ptr);
@@ -365,7 +365,7 @@ namespace libtorrent
 			// part file, remove it
 			std::string p = combine_path(m_path, m_name);
 			remove(p, ec);
-		
+
 			if (ec == boost::system::errc::no_such_file_or_directory)
 				ec.clear();
 			return;
@@ -378,7 +378,7 @@ namespace libtorrent
 
 		using namespace libtorrent::detail;
 
-		char* ptr = (char*)header.get();
+		char* ptr = reinterpret_cast<char*>(header.get());
 
 		write_uint32(m_max_pieces, ptr);
 		write_uint32(m_piece_size, ptr);
@@ -391,7 +391,7 @@ namespace libtorrent
 				slot = i->second;
 			write_uint32(slot, ptr);
 		}
-		memset(ptr, 0, m_header_size - (ptr - (char*)header.get()));
+		memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_MEM_IS_DEFINED(header.get(), m_header_size);

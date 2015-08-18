@@ -1139,7 +1139,7 @@ namespace libtorrent
 			return;
 		}
 
-#if TORRENT_USE_ASSERT
+#if TORRENT_USE_ASSERTS
 		// TODO: it should clear the hash state even when there's an error, right?
 		if (j->action == disk_io_job::hash && !j->error.ec)
 		{
@@ -1326,7 +1326,7 @@ namespace libtorrent
 		}
 
 		int block = j->d.io.offset / block_size;
-#if TORRENT_USE_ASSERT
+#if TORRENT_USE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action, block));
 #endif
 		// as soon we insert the blocks they may be evicted
@@ -1480,7 +1480,7 @@ namespace libtorrent
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
 			if (pe && pe->hashing_done)
 			{
-#if TORRENT_USE_ASSERT
+#if TORRENT_USE_ASSERTS
 				print_piece_log(pe->piece_log);
 #endif
 				TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != j->buffer.disk_block);
@@ -1494,7 +1494,7 @@ namespace libtorrent
 
 			if (pe)
 			{
-#if TORRENT_USE_ASSERT
+#if TORRENT_USE_ASSERTS
 				pe->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
 
@@ -1667,7 +1667,7 @@ namespace libtorrent
 		j->callback = handler;
 		j->flags = flags;
 
-#if TORRENT_USE_ASSERT
+#if TORRENT_USE_ASSERTS
 		mutex::scoped_lock l3_(m_cache_mutex);
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
@@ -1682,7 +1682,7 @@ namespace libtorrent
 		l3_.unlock();
 #endif
 
-#if TORRENT_USE_ASSERT && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		mutex::scoped_lock l2_(m_cache_mutex);
 		std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
 		for (block_cache::iterator i = range.first; i != range.second; ++i)

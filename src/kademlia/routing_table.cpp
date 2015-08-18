@@ -144,7 +144,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	{
 		nodes += i->live_nodes.size();
 		for (bucket_t::const_iterator k = i->live_nodes.begin()
-			, end(i->live_nodes.end()); k != end; ++k)
+			, end2(i->live_nodes.end()); k != end2; ++k)
 		{
 			if (k->confirmed()) ++confirmed;
 		}
@@ -255,7 +255,7 @@ void routing_table::print_state(std::ostream& os) const
 			id_shift = bucket_index + 1;
 
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
-			, end(i->live_nodes.end()); j != end; ++j)
+			, end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			int bucket_size_limit = bucket_limit(bucket_index);
 			boost::uint32_t top_mask = bucket_size_limit - 1;
@@ -344,9 +344,9 @@ void routing_table::print_state(std::ostream& os) const
 			id_shift = bucket_index;
 		else
 			id_shift = bucket_index + 1;
-		
+
 		for (bucket_t::const_iterator j = i->live_nodes.begin()
-			, end(i->live_nodes.end()); j != end; ++j)
+			, end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			node_id id = j->id;
 			id <<= id_shift;
@@ -358,10 +358,10 @@ void routing_table::print_state(std::ostream& os) const
 		cursor += snprintf(&buf[cursor], buf.size() - cursor
 			, "%2d mask: %2x: [", bucket_index, (top_mask >> mask_shift));
 
-		for (int i = 0; i < bucket_size_limit; ++i)
+		for (int j = 0; j < bucket_size_limit; ++j)
 		{
 			cursor += snprintf(&buf[cursor], buf.size() - cursor
-				, (sub_buckets[i] ? "X" : " "));
+				, (sub_buckets[j] ? "X" : " "));
 		}
 		cursor += snprintf(&buf[cursor], buf.size() - cursor
 			, "]\n");
@@ -387,7 +387,7 @@ node_entry const* routing_table::next_refresh()
 		, end(m_buckets.rend()); i != end; ++i, --idx)
 	{
 		for (bucket_t::iterator j = i->live_nodes.begin()
-			, end(i->live_nodes.end()); j != end; ++j)
+			, end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			// this shouldn't happen
 			TORRENT_ASSERT(m_id != j->id);
@@ -776,21 +776,24 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// in case bucket_size_limit is not an even power of 2
 		mask = (0xff << mask_shift) & 0xff;
 
-		node_id id = e.id;
-		// the last bucket is special, since it hasn't been split yet, it
-		// includes that top bit as well
-		if (bucket_index + 1 == m_buckets.size())
-			id <<= bucket_index;
-		else
-			id <<= bucket_index + 1;
-
 		// pick out all nodes that have the same prefix as the new node
 		std::vector<bucket_t::iterator> nodes;
 		bool force_replace = false;
-		for (j = b.begin(); j != b.end(); ++j)
+
 		{
-			if (!matching_prefix(*j, mask, id[0] & mask, bucket_index)) continue;
-			nodes.push_back(j);
+			node_id id = e.id;
+			// the last bucket is special, since it hasn't been split yet, it
+			// includes that top bit as well
+			if (bucket_index + 1 == m_buckets.size())
+				id <<= bucket_index;
+			else
+				id <<= bucket_index + 1;
+
+			for (j = b.begin(); j != b.end(); ++j)
+			{
+				if (!matching_prefix(*j, mask, id[0] & mask, bucket_index)) continue;
+				nodes.push_back(j);
+			}
 		}
 
 		if (!nodes.empty())
@@ -866,8 +869,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifndef TORRENT_DISABLE_LOGGING
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&e.id[0]), sha1_hash::size, hex_id);
-			m_log->log(dht_logger::routing_table, "replaving node with higher RTT: %s %s"
+			to_hex(e.id.data(), sha1_hash::size, hex_id);
+			m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
 				, hex_id, print_address(e.addr()).c_str());
 #endif
 			return node_added;
@@ -999,13 +1002,13 @@ void routing_table::for_each_node(
 		if (fun1)
 		{
 			for (bucket_t::const_iterator j = i->live_nodes.begin()
-				, end(i->live_nodes.end()); j != end; ++j)
+				, end2(i->live_nodes.end()); j != end2; ++j)
 				fun1(userdata, *j);
 		}
 		if (fun2)
 		{
 			for (bucket_t::const_iterator j = i->replacements.begin()
-				, end(i->replacements.end()); j != end; ++j)
+				, end2(i->replacements.end()); j != end2; ++j)
 				fun2(userdata, *j);
 		}
 	}

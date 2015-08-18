@@ -235,23 +235,6 @@ char upnp_xml2[] =
 
 using namespace libtorrent;
 
-namespace libtorrent {
-
-struct parse_state
-{
-	parse_state(): in_service(false){}
-	bool in_service;
-	std::list<std::string> tag_stack;
-	std::string control_url;
-	std::string service_type;
-	std::string model;
-	std::string url_base;
-};
-
-	TORRENT_EXTRA_EXPORT void find_control_url(int type\
-		, char const* string, parse_state& state);
-}
-
 void parser_callback(std::string& out, int token, char const* s, char const* val)
 {
 	switch (token)

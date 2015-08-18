@@ -180,21 +180,21 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 	log(msg, l);
 	if (m_disabled) return -1;
 
-	std::vector<global_mapping_t>::iterator i = std::find_if(
+	std::vector<global_mapping_t>::iterator mapping_it = std::find_if(
 		m_mappings.begin(), m_mappings.end()
 		, boost::bind(&global_mapping_t::protocol, _1) == int(none));
 
-	if (i == m_mappings.end())
+	if (mapping_it == m_mappings.end())
 	{
 		m_mappings.push_back(global_mapping_t());
-		i = m_mappings.end() - 1;
+		mapping_it = m_mappings.end() - 1;
 	}
 
-	i->protocol = p;
-	i->external_port = external_port;
-	i->local_port = local_port;
+	mapping_it->protocol = p;
+	mapping_it->external_port = external_port;
+	mapping_it->local_port = local_port;
 
-	int mapping_index = i - m_mappings.begin();
+	int mapping_index = mapping_it - m_mappings.begin();
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
@@ -479,7 +479,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	{
 		std::string protocol;
 		std::string auth;
-		error_code ec;
 		// we don't have this device in our list. Add it
 		boost::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
@@ -515,10 +514,12 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			return;
 		}
 
-		char msg[500];
-		snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
-			, d.url.c_str(), int(m_devices.size()));
-		log(msg, l);
+		{
+			char msg[500];
+			snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
+				, d.url.c_str(), int(m_devices.size()));
+			log(msg, l);
+		}
 
 		if (m_devices.size() >= 50)
 		{
@@ -832,27 +833,6 @@ namespace
 	}
 }
 
-struct parse_state
-{
-	parse_state(): in_service(false) {}
-	bool in_service;
-	std::list<std::string> tag_stack;
-	std::string control_url;
-	std::string service_type;
-	std::string model;
-	std::string url_base;
-	bool top_tags(const char* str1, const char* str2)
-	{
-		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
-		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str2)) return false;
-		++i;
-		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str1)) return false;
-		return true;
-	}
-};
-
 TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state)
 {
 	if (type == xml_start_tag)
@@ -948,7 +928,8 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+	xml_parse(const_cast<char*>(p.get_body().begin),
+		const_cast<char*>(p.get_body().end)
 		, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
 	if (s.control_url.empty())
 	{
@@ -987,12 +968,14 @@ void upnp::on_upnp_xml(error_code const& e
 			+ to_string(d.port).elems + s.control_url;
 	}
 
-	char msg[500];
-	snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
-		"urlbase: %s in response from %s"
-		, d.control_url.c_str(), d.service_namespace
-		, s.url_base.c_str(), d.url.c_str());
-	log(msg, l);
+	{
+		char msg[500];
+		snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
+			"urlbase: %s in response from %s"
+			, d.control_url.c_str(), d.service_namespace
+			, s.url_base.c_str(), d.url.c_str());
+		log(msg, l);
+	}
 
 	boost::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
@@ -1235,13 +1218,15 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	// </s:Body>
 	// </s:Envelope>
 
-	char msg[500];
-	snprintf(msg, sizeof(msg), "get external IP address response: %s"
-		, std::string(p.get_body().begin, p.get_body().end).c_str());
-	log(msg, l);
+	{
+		char msg[500];
+		snprintf(msg, sizeof(msg), "get external IP address response: %s"
+			, std::string(p.get_body().begin, p.get_body().end).c_str());
+		log(msg, l);
+	}
 
 	ip_address_parse_state s;
-	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+	xml_parse(const_cast<char*>(p.get_body().begin), const_cast<char*>(p.get_body().end)
 		, boost::bind(&find_ip_address, _1, _2, boost::ref(s)));
 	if (s.error_code != -1)
 	{
@@ -1252,6 +1237,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	}
 
 	if (!s.ip_address.empty()) {
+		char msg[500];
 		snprintf(msg, sizeof(msg), "got router external IP address %s", s.ip_address.c_str());
 		log(msg, l);
 		d.external_ip = address::from_string(s.ip_address.c_str(), ignore_error);
@@ -1333,7 +1319,8 @@ void upnp::on_upnp_map_response(error_code const& e
 	// since those might contain valid UPnP error codes
 
 	error_code_parse_state s;
-	xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+	xml_parse(const_cast<char*>(p.get_body().begin)
+		, const_cast<char*>(p.get_body().end)
 		, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
 
 	if (s.error_code != -1)
@@ -1474,7 +1461,8 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	error_code_parse_state s;
 	if (p.header_finished())
 	{
-		xml_parse((char*)p.get_body().begin, (char*)p.get_body().end
+		xml_parse(const_cast<char*>(p.get_body().begin)
+			, const_cast<char*>(p.get_body().end)
 			, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
 	}
 
@@ -1551,7 +1539,7 @@ void upnp::close()
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
 		for (std::vector<mapping_t>::iterator j = d.mapping.begin()
-			, end(d.mapping.end()); j != end; ++j)
+			, end2(d.mapping.end()); j != end2; ++j)
 		{
 			if (j->protocol == none) continue;
 			if (j->action == mapping_t::action_add)

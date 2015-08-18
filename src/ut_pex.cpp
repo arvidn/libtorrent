@@ -326,7 +326,7 @@ namespace libtorrent { namespace
 					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
 					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					if (j != m_peers.end() && *j == v) m_peers.erase(j);
-				} 
+				}
 			}
 
 			p = pex_msg.dict_find_string("added");
@@ -358,7 +358,7 @@ namespace libtorrent { namespace
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
 					m_torrent.add_peer(adr, peer_info::pex, flags);
-				} 
+				}
 			}
 
 #if TORRENT_USE_IPV6
@@ -673,7 +673,7 @@ namespace libtorrent
 
 	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep)
 	{
-		ut_pex_peer_plugin* p = (ut_pex_peer_plugin*)pp;
+		ut_pex_peer_plugin const* p = static_cast<ut_pex_peer_plugin const*>(pp);
 #if TORRENT_USE_IPV6
 		if (ep.address().is_v4())
 		{
@@ -687,7 +687,7 @@ namespace libtorrent
 		else
 		{
 			ut_pex_peer_plugin::peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers6_t::iterator i
+			ut_pex_peer_plugin::peers6_t::const_iterator i
 				= std::lower_bound(p->m_peers6.begin(), p->m_peers6.end(), v);
 			return i != p->m_peers6.end() && *i == v;
 		}
