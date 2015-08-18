@@ -495,19 +495,19 @@ namespace libtorrent
 
 		// special case for deprecated float values
 		int val = current.get_int(settings_pack::share_ratio_limit);
-		if (s.share_ratio_limit != float(val) / 100.f)
+		if (fabs(s.share_ratio_limit - float(val) / 100.f) > 0.001f)
 			p->set_int(settings_pack::share_ratio_limit, s.share_ratio_limit * 100);
 
 		val = current.get_int(settings_pack::seed_time_ratio_limit);
-		if (s.seed_time_ratio_limit != float(val) / 100.f)
+		if (fabs(s.seed_time_ratio_limit - float(val) / 100.f) > 0.001f)
 			p->set_int(settings_pack::seed_time_ratio_limit, s.seed_time_ratio_limit * 100);
 
 		val = current.get_int(settings_pack::peer_turnover);
-		if (s.peer_turnover != float(val) / 100.f)
+		if (fabs(s.peer_turnover - float(val) / 100.f) > 0.001)
 			p->set_int(settings_pack::peer_turnover, s.peer_turnover * 100);
 
 		val = current.get_int(settings_pack::peer_turnover_cutoff);
-		if (s.peer_turnover_cutoff != float(val) / 100.f)
+		if (fabs(s.peer_turnover_cutoff - float(val) / 100.f) > 0.001)
 			p->set_int(settings_pack::peer_turnover_cutoff, s.peer_turnover_cutoff * 100);
 
 		return p;

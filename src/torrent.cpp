@@ -4500,7 +4500,7 @@ namespace libtorrent
 		for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i)
 		{
-			torrent_peer* p = (torrent_peer*)*i;
+			torrent_peer* p = *i;
 			if (p && p->connection)
 			{
 				peer_connection* peer = static_cast<peer_connection*>(p->connection);
@@ -4552,7 +4552,7 @@ namespace libtorrent
 			std::vector<pending_block> const& dq = p->download_queue();
 			std::vector<pending_block> const& rq = p->request_queue();
 			for (std::vector<pending_block>::const_iterator k = dq.begin()
-				, end(dq.end()); k != end; ++k)
+				, end2(dq.end()); k != end2; ++k)
 			{
 				if (k->timed_out || k->not_wanted) continue;
 				if (int(k->block.piece_index) != j->piece) continue;
@@ -4560,7 +4560,7 @@ namespace libtorrent
 					, p->picker_options());
 			}
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
-				, end(rq.end()); k != end; ++k)
+				, end2(rq.end()); k != end2; ++k)
 			{
 				if (int(k->block.piece_index) != j->piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
@@ -4668,14 +4668,14 @@ namespace libtorrent
 		if (m_suggested_pieces.empty()
 			|| num_peers < m_suggested_pieces[m_suggested_pieces.size()-1].num_peers - 1)
 		{
-			suggest_piece_t p;
-			p.piece_index = index;
-			p.num_peers = num_peers;
+			suggest_piece_t sp;
+			sp.piece_index = index;
+			sp.num_peers = num_peers;
 
 			typedef std::vector<suggest_piece_t>::iterator iter;
-			
+
 			std::pair<iter, iter> range = std::equal_range(
-				m_suggested_pieces.begin(), m_suggested_pieces.end(), p);
+				m_suggested_pieces.begin(), m_suggested_pieces.end(), sp);
 
 			// make sure this piece isn't already in the suggested set.
 			// if it is, just ignore it
@@ -4683,7 +4683,7 @@ namespace libtorrent
 				, boost::bind(&suggest_piece_t::piece_index, _1) == index);
 			if (i != range.second) return;
 
-			m_suggested_pieces.insert(range.second, p);
+			m_suggested_pieces.insert(range.second, sp);
 			if (m_suggested_pieces.size() > 0)
 				m_suggested_pieces.pop_back();
 
@@ -4770,10 +4770,10 @@ namespace libtorrent
 				// TODO: really, we should just keep the picker around
 				// in this case to maintain the availability counters
 				p.num_peers = 0;
-				for (const_peer_iterator i = m_connections.begin()
-					, end(m_connections.end()); i != end; ++i)
+				for (const_peer_iterator j = m_connections.begin()
+					, end2(m_connections.end()); j != end2; ++j)
 				{
-					peer_connection* peer = *i;
+					peer_connection* peer = *j;
 					if (peer->has_piece(p.piece_index)) ++p.num_peers;
 				}
 			}
@@ -5029,7 +5029,7 @@ namespace libtorrent
 
 			std::vector<pending_block> dq = p->download_queue();
 			for (std::vector<pending_block>::iterator k = dq.begin()
-				, end(dq.end()); k != end; ++k)
+				, end2(dq.end()); k != end2; ++k)
 			{
 				if (time_critical.count(k->block.piece_index)) continue;
 				if (k->not_wanted || k->timed_out) continue;
@@ -5038,7 +5038,7 @@ namespace libtorrent
 
 			std::vector<pending_block> rq = p->request_queue();
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
-				, end(rq.end()); k != end; ++k)
+				, end2(rq.end()); k != end2; ++k)
 			{
 				if (time_critical.count(k->block.piece_index)) continue;
 				p->cancel_request(k->block, true);
@@ -5117,9 +5117,10 @@ namespace libtorrent
 		p.deadline = deadline;
 		p.peers = 0;
 		p.piece = piece;
-		std::vector<time_critical_piece>::iterator i = std::upper_bound(m_time_critical_pieces.begin()
+		std::vector<time_critical_piece>::iterator critical_piece_it
+			= std::upper_bound(m_time_critical_pieces.begin()
 			, m_time_critical_pieces.end(), p);
-		m_time_critical_pieces.insert(i, p);
+		m_time_critical_pieces.insert(critical_piece_it, p);
 
 		// just in case this piece had priority 0
 		int prev_prio = m_picker->piece_priority(piece);
@@ -5139,9 +5140,9 @@ namespace libtorrent
 		for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i, ++block)
 		{
-			torrent_peer* p = *i;
-			if (p == 0 || p->connection == 0) continue;
-			peer_connection* peer = static_cast<peer_connection*>(p->connection);
+			torrent_peer* tp = *i;
+			if (tp == 0 || tp->connection == 0) continue;
+			peer_connection* peer = static_cast<peer_connection*>(tp->connection);
 			peer->make_time_critical(piece_block(piece, block));
 		}
 	}
@@ -8090,6 +8091,8 @@ namespace libtorrent
 			, !m_allow_peers && m_auto_managed && !m_abort);
 	}
 
+	namespace {
+
 	char const* list_name(int idx)
 	{
 #define TORRENT_LIST_NAME(n) case aux::session_interface:: n: return #n;
@@ -8108,6 +8111,8 @@ namespace libtorrent
 #undef TORRENT_LIST_NAME
 		return "";
 	}
+
+	} // anonymous namespace
 
 	void torrent::update_list(int list, bool in)
 	{
@@ -8766,12 +8771,18 @@ namespace libtorrent
 			if (p.peer_info_struct() && p.peer_info_struct()->seed)
 				++seeds;
 
-			for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
-				, end(p.request_queue().end()); i != end; ++i)
-				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
-			for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
-				, end(p.download_queue().end()); i != end; ++i)
-				if (!i->not_wanted && !i->timed_out) ++num_requests[i->block];
+			for (std::vector<pending_block>::const_iterator j = p.request_queue().begin()
+				, end(p.request_queue().end()); j != end; ++j)
+			{
+				if (!j->not_wanted && !j->timed_out) ++num_requests[j->block];
+			}
+
+			for (std::vector<pending_block>::const_iterator j = p.download_queue().begin()
+				, end(p.download_queue().end()); j != end; ++j)
+			{
+				if (!j->not_wanted && !j->timed_out) ++num_requests[j->block];
+			}
+
 			if (!p.is_choked() && !p.ignore_unchoke_slots()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this && associated_torrent != 0)
@@ -8800,23 +8811,23 @@ namespace libtorrent
 						fprintf(stderr, "picker count discrepancy: "
 							"picker: %d != peerlist: %d\n", picker_count, count);
 
-						for (const_peer_iterator i = this->begin(); i != this->end(); ++i)
+						for (const_peer_iterator j = this->begin(); j != this->end(); ++j)
 						{
-							peer_connection const& p = *(*i);
+							peer_connection const& p = *(*j);
 							fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
-							for (std::vector<pending_block>::const_iterator i = p.request_queue().begin()
-								, end2(p.request_queue().end()); i != end2; ++i)
+							for (std::vector<pending_block>::const_iterator k = p.request_queue().begin()
+								, end2(p.request_queue().end()); k != end2; ++k)
 							{
-								fprintf(stderr, "  rq: (%d, %d) %s %s %s\n", i->block.piece_index
-									, i->block.block_index, i->not_wanted ? "not-wanted" : ""
-									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
+								fprintf(stderr, "  rq: (%d, %d) %s %s %s\n", k->block.piece_index
+									, k->block.block_index, k->not_wanted ? "not-wanted" : ""
+									, k->timed_out ? "timed-out" : "", k->busy ? "busy": "");
 							}
-							for (std::vector<pending_block>::const_iterator i = p.download_queue().begin()
-								, end2(p.download_queue().end()); i != end2; ++i)
+							for (std::vector<pending_block>::const_iterator k = p.download_queue().begin()
+								, end2(p.download_queue().end()); k != end2; ++k)
 							{
-								fprintf(stderr, "  dq: (%d, %d) %s %s %s\n", i->block.piece_index
-									, i->block.block_index, i->not_wanted ? "not-wanted" : ""
-									, i->timed_out ? "timed-out" : "", i->busy ? "busy": "");
+								fprintf(stderr, "  dq: (%d, %d) %s %s %s\n", k->block.piece_index
+									, k->block.block_index, k->not_wanted ? "not-wanted" : ""
+									, k->timed_out ? "timed-out" : "", k->busy ? "busy": "");
 							}
 						}
 						TORRENT_ASSERT(false);

@@ -60,6 +60,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <valgrind/memcheck.h>
 #endif
 
+#if TORRENT_USE_RLIMIT
+// capture this here where warnings are disabled (the macro generates warnings)
+const rlim_t rlim_infinity = RLIM_INFINITY;
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_id.hpp"
@@ -1820,8 +1825,6 @@ retry:
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			const int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
-
 			listen_socket_t s = setup_listener("0.0.0.0", true
 				, m_listen_interface.port()
 				, flags, ec);
@@ -1947,8 +1950,6 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						int retries = 10;
-
 						listen_socket_t s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
@@ -2896,8 +2897,7 @@ retry:
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("*** TICK TIMER FAILED %s", e.message().c_str());
 #endif
-			::abort();
-			return;
+			std::abort();
 		}
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -4550,15 +4550,15 @@ retry:
 		{
 			int pos;
 			error_code err;
-			bdecode_node tmp;
+			bdecode_node root;
 			bdecode_node info;
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("adding magnet link with resume data");
 #endif
 			if (bdecode(&params.resume_data[0], &params.resume_data[0]
-					+ params.resume_data.size(), tmp, err, &pos) == 0
-				&& tmp.type() == bdecode_node::dict_t
-				&& (info = tmp.dict_find_dict("info")))
+					+ params.resume_data.size(), root, err, &pos) == 0
+				&& root.type() == bdecode_node::dict_t
+				&& (info = root.dict_find_dict("info")))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("found metadata in resume data");
@@ -6128,7 +6128,7 @@ retry:
 #if TORRENT_USE_RLIMIT
 			rlimit l;
 			if (getrlimit(RLIMIT_NOFILE, &l) == 0
-				&& l.rlim_cur != RLIM_INFINITY)
+				&& l.rlim_cur != rlim_infinity)
 			{
 				m_settings.set_int(settings_pack::connections_limit
 					, l.rlim_cur - m_settings.get_int(settings_pack::file_pool_size));

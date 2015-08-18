@@ -31,15 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include <boost/bind.hpp>
-#include <vector>
-#include <stdlib.h> // for wcstombscstombs
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/asio/ip/host_name.hpp>
+#include <boost/bind.hpp>
+#include <vector>
+#include <stdlib.h> // for wcstombscstombs
 
 #if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
@@ -84,6 +87,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_IFADDRS
 #include <ifaddrs.h>
 #endif
+
+#if TORRENT_USE_IFADDRS
+// capture this here where warnings are disabled (the macro generates warnings)
+const int siocgifmtu = SIOCGIFMTU;
+#endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #if defined(TORRENT_OS2) && !defined(IF_NAMESIZE)
 #define IF_NAMESIZE IFNAMSIZ
@@ -212,7 +222,7 @@ namespace libtorrent { namespace
 		ifreq req;
 		memset(&req, 0, sizeof(req));
 		if_indextoname(if_index, req.ifr_name);
-		ioctl(s, SIOCGIFMTU, &req);
+		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
 //		obviously this doesn't work correctly. How do you get the netmask for a route?
 //		if (ioctl(s, SIOCGIFNETMASK, &req) == 0) {
@@ -268,7 +278,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ifreq req;
 		memset(&req, 0, sizeof(req));
 		if_indextoname(rtm->rtm_index, req.ifr_name);
-		if (ioctl(s, SIOCGIFMTU, &req) < 0) return false;
+		if (ioctl(s, siocgifmtu, &req) < 0) return false;
 		rt_info->mtu = req.ifr_mtu;
 
 		return true;
@@ -448,7 +458,7 @@ namespace libtorrent
 					memset(&req, 0, sizeof(req));
 					// -1 to leave a null terminator
 					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
-					if (ioctl(s, SIOCGIFMTU, &req) < 0)
+					if (ioctl(s, siocgifmtu, &req) < 0)
 					{
 						continue;
 					}
@@ -510,7 +520,7 @@ namespace libtorrent
 				memset(&req, 0, sizeof(req));
 				// -1 to leave a null terminator
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
-				if (ioctl(s, SIOCGIFMTU, &req) < 0)
+				if (ioctl(s, siocgifmtu, &req) < 0)
 				{
 					ec = error_code(errno, boost::asio::error::system_category);
 					close(s);
@@ -690,6 +700,7 @@ namespace libtorrent
 	std::vector<ip_route> enum_routes(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret;
+		TORRENT_UNUSED(ios);
 
 #ifdef TORRENT_BUILD_SIMULATOR
 

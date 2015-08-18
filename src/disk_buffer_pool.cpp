@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_observer.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <algorithm>
 #include <boost/bind.hpp>
 #include <boost/system/error_code.hpp>
@@ -55,6 +57,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>
+
+// capture this here where warnings are disabled (the macro generates warnings)
+const rlim_t rlimit_as = RLIMIT_AS;
+const rlim_t rlim_infinity = RLIM_INFINITY;
 #endif
 
 #ifdef TORRENT_LINUX
@@ -66,6 +72,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // see comments at:
 // http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -479,7 +487,7 @@ namespace libtorrent
 		if (ret > 0)
 		{
 			struct rlimit r;
-			if (getrlimit(RLIMIT_AS, &r) == 0 && r.rlim_cur != RLIM_INFINITY)
+			if (getrlimit(rlimit_as, &r) == 0 && r.rlim_cur != rlim_infinity)
 			{
 				if (ret > r.rlim_cur)
 					ret = r.rlim_cur;

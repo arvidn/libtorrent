@@ -69,7 +69,7 @@ namespace libtorrent
 			FileIdBothDirectoryInfo,
 			FileIdBothDirectoryRestartInfo,
 			FileIoPriorityHintInfo,
-			FileRemoteProtocolInfo, 
+			FileRemoteProtocolInfo,
 			MaximumFileInfoByHandleClass
 		} FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
 
@@ -102,7 +102,7 @@ namespace libtorrent
 
 			SetFileInformationByHandle = (SetFileInformationByHandle_t)GetProcAddress(kernel32, "SetFileInformationByHandle");
 			if (SetFileInformationByHandle == NULL)
-			{ 
+			{
 				failed_kernel_load = true;
 				return;
 			}
@@ -132,7 +132,8 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		// we're not allowed to open a file
 		// from a deleted storage!
-		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end(), std::make_pair(fs.name(), (void const*)&fs))
+		TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
+			, std::make_pair(fs.name(), static_cast<void const*>(&fs)))
 			== m_deleted_storages.end());
 #endif
 
@@ -211,7 +212,7 @@ namespace libtorrent
 		file_handle file_ptr = e.file_ptr;
 
 		// the file is not in our cache
-		if ((int)m_files.size() >= m_size)
+		if (int(m_files.size()) >= m_size)
 		{
 			// the file cache is at its maximum size, close
 			// the least recently used (lru) file from it
@@ -226,7 +227,7 @@ namespace libtorrent
 
 		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
 		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
-	
+
 		for (file_set::const_iterator i = start; i != end; ++i)
 		{
 			pool_file_status s;

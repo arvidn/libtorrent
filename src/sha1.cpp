@@ -68,9 +68,8 @@ namespace
 		using namespace std;
 		u32 a, b, c, d, e;
 
-		CHAR64LONG16* block;
-		u8 workspace[64];
-		block = (CHAR64LONG16*)workspace;
+		CHAR64LONG16 workspace;
+		CHAR64LONG16* block = &workspace;
 		memcpy(block, buffer, 64);
 
 		// Copy context->state[] to working vars
@@ -213,9 +212,9 @@ void SHA1_final(u8* digest, sha_ctx* context)
 			>> ((3-(i & 3)) * 8) ) & 255);
 	}
 
-	SHA1_update(context, (u8 const*)"\200", 1);
+	SHA1_update(context, reinterpret_cast<u8 const*>("\200"), 1);
 	while ((context->count[0] & 504) != 448)
-		SHA1_update(context, (u8 const*)"\0", 1);
+		SHA1_update(context, reinterpret_cast<u8 const*>("\0"), 1);
 	SHA1_update(context, finalcount, 8);  // Should cause a SHA1transform()
 
 	for (u32 i = 0; i < 20; ++i)
@@ -226,7 +225,7 @@ void SHA1_final(u8* digest, sha_ctx* context)
 }
 
 } // libtorrent namespace
-  
+
 /************************************************************
 
 -----------------
