@@ -80,7 +80,6 @@ namespace libtorrent { namespace dht
 		void stop();
 
 		void add_node(udp::endpoint node);
-		void add_node(std::pair<std::string, int> const& node);
 		void add_router_node(udp::endpoint const& node);
 
 		entry state() const;
@@ -126,10 +125,6 @@ namespace libtorrent { namespace dht
 		boost::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void on_name_lookup(error_code const& e
-			, udp::resolver::iterator host);
-		void on_router_name_lookup(error_code const& e
-			, udp::resolver::iterator host);
 		void connection_timeout(error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void tick(error_code const& e);

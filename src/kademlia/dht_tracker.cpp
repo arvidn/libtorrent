@@ -442,22 +442,6 @@ namespace libtorrent { namespace dht
 		m_dht.add_node(node);
 	}
 
-	void dht_tracker::add_node(std::pair<std::string, int> const& node)
-	{
-		char port[7];
-		snprintf(port, sizeof(port), "%d", node.second);
-		udp::resolver::query q(node.first, port);
-		m_host_resolver.async_resolve(q,
-			boost::bind(&dht_tracker::on_name_lookup, self(), _1, _2));
-	}
-
-	void dht_tracker::on_name_lookup(error_code const& e
-		, udp::resolver::iterator host)
-	{
-		if (e || host == udp::resolver::iterator()) return;
-		add_node(host->endpoint());
-	}
-
 	void dht_tracker::add_router_node(udp::endpoint const& node)
 	{
 		m_dht.add_router_node(node);
