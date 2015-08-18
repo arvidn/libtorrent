@@ -328,6 +328,8 @@ namespace libtorrent
 			entry dht_state() const;
 #endif
 			void on_dht_announce(error_code const& e);
+			void on_dht_name_lookup(error_code const& e
+				, std::vector<address> const& addresses, int port);
 			void on_dht_router_name_lookup(error_code const& e
 				, std::vector<address> const& addresses, int port);
 #endif
@@ -996,7 +998,11 @@ namespace libtorrent
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
-			std::list<udp::endpoint> m_dht_router_nodes;
+			std::vector<udp::endpoint> m_dht_router_nodes;
+
+			// if a DHT node is added when there's no DHT instance, they're stored
+			// here until we start the DHT
+			std::vector<udp::endpoint> m_dht_nodes;
 
 			// this announce timer is used
 			// by the DHT.

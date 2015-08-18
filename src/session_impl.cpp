@@ -3354,6 +3354,7 @@ retry:
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_dht) m_dht->add_node(n);
+		else m_dht_nodes.push_back(n);
 	}
 
 	bool session_impl::has_dht() const
@@ -4510,11 +4511,13 @@ retry:
 
 #ifndef TORRENT_DISABLE_DHT
 		// add p.dht_nodes to the DHT, if enabled
-		if (m_dht && !p.dht_nodes.empty())
+		if (!p.dht_nodes.empty())
 		{
 			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
 				, end(p.dht_nodes.end()); i != end; ++i)
-				m_dht->add_node(*i);
+			{
+				add_dht_node_name(*i);
+			}
 		}
 #endif
 
@@ -4669,10 +4672,11 @@ retry:
 		if (m_dht && params.ti)
 		{
 			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			std::for_each(nodes.begin(), nodes.end(), boost::bind(
-				static_cast<void(dht::dht_tracker::*)(std::pair<std::string, int> const&)>(
-					&dht::dht_tracker::add_node)
-				, boost::ref(m_dht), _1));
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
+				, end(nodes.end()); i != end; ++i)
+			{
+				add_dht_node_name(*i);
+			}
 		}
 #endif
 
@@ -5422,11 +5426,18 @@ retry:
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters), &startup_state);
 
-		for (std::list<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
+		for (std::vector<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
 		{
 			m_dht->add_router_node(*i);
 		}
+
+		for (std::vector<udp::endpoint>::iterator i = m_dht_nodes.begin()
+			, end(m_dht_nodes.end()); i != end; ++i)
+		{
+			m_dht->add_node(*i);
+		}
+		m_dht_nodes.clear();
 
 		m_dht->start(startup_state, boost::bind(&on_bootstrap, boost::ref(m_alerts)));
 
@@ -5456,7 +5467,35 @@ retry:
 
 	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
 	{
-		if (m_dht) m_dht->add_node(node);
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_dht_name_lookup");
+#endif
+		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
+			, boost::bind(&session_impl::on_dht_name_lookup
+				, this, _1, _2, node.second));
+	}
+
+	void session_impl::on_dht_name_lookup(error_code const& e
+		, std::vector<address> const& addresses, int port)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_dht_name_lookup");
+#endif
+
+		if (e)
+		{
+			if (m_alerts.should_post<dht_error_alert>())
+				m_alerts.emplace_alert<dht_error_alert>(
+					dht_error_alert::hostname_lookup, e);
+			return;
+		}
+
+		for (std::vector<address>::const_iterator i = addresses.begin()
+			, end(addresses.end()); i != end; ++i)
+		{
+			udp::endpoint ep(*i, port);
+			add_dht_node(ep);
+		}
 	}
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
