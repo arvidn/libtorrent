@@ -656,7 +656,6 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
-	tailqueue
 	timestamp_history
 	udp_socket
 	upnp

@@ -59,7 +59,7 @@ namespace libtorrent
 		list_node* m_current;
 	};
 
-	// TOOD: 3 move the code into a .cpp file and add a unit test for linked_list
+	// TOOD: 3 make this a template and add a unit test
 	struct linked_list
 	{
 		linked_list(): m_first(0), m_last(0), m_size(0) {}

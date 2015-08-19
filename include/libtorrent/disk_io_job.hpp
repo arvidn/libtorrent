@@ -74,7 +74,8 @@ namespace libtorrent
 	// pointers and chaining them back and forth into lists saves
 	// a lot of heap allocation churn of using general purpose
 	// containers.
-	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node, boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node<disk_io_job>
+		, boost::noncopyable
 	{
 		disk_io_job();
 		~disk_io_job();

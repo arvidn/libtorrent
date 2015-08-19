@@ -37,10 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	template <typename T>
 	struct tailqueue_node
 	{
 		tailqueue_node() : next(0) {}
-		tailqueue_node* next;
+		T* next;
 	};
 
 	template<class N>
@@ -51,40 +52,130 @@ namespace libtorrent
 		return ret;
 	}
 
+	template <typename T>
 	struct tailqueue_iterator
 	{
-		friend struct tailqueue;
-		tailqueue_node const* get() const { return m_current; }
+		template <typename U> friend struct tailqueue;
+
+		T* get() const { return m_current; }
 		void next() { m_current = m_current->next; }
 
 	private:
-		tailqueue_iterator(tailqueue_node const* cur)
+		tailqueue_iterator(T* cur)
 			: m_current(cur) {}
 		// the current element
-		tailqueue_node const* m_current;
+		T* m_current;
 	};
 
+	template <typename T>
+//#error boost::enable_if< is_base<T, tailqueue_node<T> > >
 	struct TORRENT_EXTRA_EXPORT tailqueue
 	{
-		tailqueue();
+		tailqueue(): m_first(NULL), m_last(NULL), m_size(0) {}
 
-		tailqueue_iterator iterate() const
-		{ return tailqueue_iterator(m_first); }
+		tailqueue_iterator<const T> iterate() const
+		{ return tailqueue_iterator<const T>(m_first); }
 
-		void append(tailqueue& rhs);
-		void prepend(tailqueue& rhs);
-		tailqueue_node* pop_front();
-		void push_front(tailqueue_node* e);
-		void push_back(tailqueue_node* e);
-		tailqueue_node* get_all();
+		tailqueue_iterator<T> iterate()
+		{ return tailqueue_iterator<T>(m_first); }
+
+		void append(tailqueue<T>& rhs)
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			TORRENT_ASSERT(rhs.m_last == 0 || rhs.m_last->next == 0);
+
+			if (rhs.m_first == 0) return;
+
+			if (m_first == 0)
+			{
+				swap(rhs);
+				return;
+			}
+
+			m_last->next = rhs.m_first;
+			m_last = rhs.m_last;
+			m_size += rhs.m_size;
+			rhs.m_first = 0;
+			rhs.m_last = 0;
+			rhs.m_size = 0;
+
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+		}
+
+		void prepend(tailqueue<T>& rhs)
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			TORRENT_ASSERT(rhs.m_last == 0 || rhs.m_last->next == 0);
+
+			if (rhs.m_first == 0) return;
+
+			if (m_first == 0)
+			{
+				swap(rhs);
+				return;
+			}
+
+			swap(rhs);
+			append(rhs);
+		}
+
+		T* pop_front()
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			T* e = m_first;
+			m_first = m_first->next;
+			if (e == m_last) m_last = 0;
+			e->next = 0;
+			--m_size;
+			return e;
+		}
+		void push_front(T* e)
+		{
+			TORRENT_ASSERT(e->next == 0);
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			e->next = m_first;
+			m_first = e;
+			if (!m_last) m_last = e;
+			++m_size;
+		}
+		void push_back(T* e)
+		{
+			TORRENT_ASSERT(e->next == 0);
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			if (m_last) m_last->next = e;
+			else m_first = e;
+			m_last = e;
+			e->next = 0;
+			++m_size;
+		}
+		T* get_all()
+		{
+			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			T* e = m_first;
+			m_first = 0;
+			m_last = 0;
+			m_size = 0;
+			return e;
+		}
+		void swap(tailqueue<T>& rhs)
+		{
+			T* tmp = m_first;
+			m_first = rhs.m_first;
+			rhs.m_first = tmp;
+			tmp = m_last;
+			m_last = rhs.m_last;
+			rhs.m_last = tmp;
+			int tmp2 = m_size;
+			m_size = rhs.m_size;
+			rhs.m_size = tmp2;
+		}
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
-		void swap(tailqueue& rhs);
-		tailqueue_node* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
-		tailqueue_node* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
+		T* first() const { TORRENT_ASSERT(m_size > 0); return m_first; }
+		T* last() const { TORRENT_ASSERT(m_size > 0); return m_last; }
 	private:
-		tailqueue_node* m_first;
-		tailqueue_node* m_last;
+		T* m_first;
+		T* m_last;
 		int m_size;
 	};
 }

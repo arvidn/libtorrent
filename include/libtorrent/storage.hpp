@@ -598,7 +598,7 @@ namespace libtorrent
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
 		// fence being lowered.
-		int job_complete(disk_io_job* j, tailqueue& job_queue);
+		int job_complete(disk_io_job* j, tailqueue<disk_io_job>& job_queue);
 		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
 		// if there is a fence up, returns true and adds the job
@@ -617,7 +617,7 @@ namespace libtorrent
 
 		// when there's a fence up, jobs are queued up in here
 		// until the fence is lowered
-		tailqueue m_blocked_jobs;
+		tailqueue<disk_io_job> m_blocked_jobs;
 
 		// the number of disk_io_job objects there are, belonging
 		// to this torrent, currently pending, hanging off of

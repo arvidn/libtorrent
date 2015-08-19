@@ -298,7 +298,7 @@ namespace libtorrent
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
 	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block
-		, tailqueue& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(l.locked());
@@ -688,7 +688,7 @@ namespace libtorrent
 	void disk_io_thread::iovec_flushed(cached_piece_entry* pe
 		, int* flushing, int num_blocks, int block_offset
 		, storage_error const& error
-		, tailqueue& completed_jobs)
+		, jobqueue_t& completed_jobs)
 	{
 		for (int i = 0; i < num_blocks; ++i)
 			flushing[i] -= block_offset;
@@ -710,10 +710,10 @@ namespace libtorrent
 		}
 		else
 		{
-			disk_io_job* j = (disk_io_job*)pe->jobs.get_all();
+			disk_io_job* j = pe->jobs.get_all();
 			while (j)
 			{
-				disk_io_job* next = (disk_io_job*)j->next;
+				disk_io_job* next = j->next;
 				j->next = NULL;
 				TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
 				TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
@@ -735,7 +735,7 @@ namespace libtorrent
 	// issues write operations for blocks in the given
 	// range on the given piece.
 	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
-		, tailqueue& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		INVARIANT_CHECK;
@@ -777,18 +777,18 @@ namespace libtorrent
 		return iov_len;
 	}
 
-	void disk_io_thread::fail_jobs(storage_error const& e, tailqueue& jobs_)
+	void disk_io_thread::fail_jobs(storage_error const& e, jobqueue_t& jobs_)
 	{
-		tailqueue jobs;
+		jobqueue_t jobs;
 		fail_jobs_impl(e, jobs_, jobs);
 		if (jobs.size()) add_completed_jobs(jobs);
 	}
 
-	void disk_io_thread::fail_jobs_impl(storage_error const& e, tailqueue& src, tailqueue& dst)
+	void disk_io_thread::fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst)
 	{
 		while (src.size())
 		{
-			disk_io_job* j = (disk_io_job*)src.pop_front();
+			disk_io_job* j = src.pop_front();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 			j->ret = -1;
 			j->error = e;
@@ -797,7 +797,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags
-		, tailqueue& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		TORRENT_ASSERT(l.locked());
 		if (flags & flush_delete_cache)
@@ -830,7 +830,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
-		, tailqueue& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
 	{
 		if (storage)
 		{
@@ -900,7 +900,7 @@ namespace libtorrent
 	// size limit. This means we should not restrict ourselves to contiguous
 	// blocks of write cache line size, but try to flush all old blocks
 	// this is why we pass in 1 as cont_block to the flushing functions
-	void disk_io_thread::try_flush_write_blocks(int num, tailqueue& completed_jobs
+	void disk_io_thread::try_flush_write_blocks(int num, jobqueue_t& completed_jobs
 		, mutex::scoped_lock& l)
 	{
 		DLOG("try_flush_write_blocks: %d\n", num);
@@ -972,7 +972,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_expired_write_blocks(tailqueue& completed_jobs
+	void disk_io_thread::flush_expired_write_blocks(jobqueue_t& completed_jobs
 		, mutex::scoped_lock& l)
 	{
 		DLOG("flush_expired_write_blocks\n");
@@ -1022,7 +1022,7 @@ namespace libtorrent
 
 	namespace {
 
-	typedef int (disk_io_thread::*disk_io_fun_t)(disk_io_job* j, tailqueue& completed_jobs);
+	typedef int (disk_io_thread::*disk_io_fun_t)(disk_io_job* j, jobqueue_t& completed_jobs);
 
 	// this is a jump-table for disk I/O jobs
 	const disk_io_fun_t job_functions[] =
@@ -1061,7 +1061,7 @@ namespace libtorrent
 	// below the number of blocks we flushed by the time we're done flushing
 	// that's why we need to call this fairly often. Both before and after
 	// a disk job is executed
-	void disk_io_thread::check_cache_level(mutex::scoped_lock& l, tailqueue& completed_jobs)
+	void disk_io_thread::check_cache_level(mutex::scoped_lock& l, jobqueue_t& completed_jobs)
 	{
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
@@ -1077,7 +1077,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::perform_job(disk_io_job* j, tailqueue& completed_jobs)
+	void disk_io_thread::perform_job(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->next == 0);
@@ -1197,7 +1197,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::do_read(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		if (!m_settings.get_bool(settings_pack::use_read_cache)
 			|| m_settings.get_int(settings_pack::cache_size) == 0)
@@ -1352,7 +1352,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::maybe_issue_queued_read_jobs(cached_piece_entry* pe
-		, tailqueue& completed_jobs)
+		, jobqueue_t& completed_jobs)
 	{
 		TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
@@ -1375,7 +1375,7 @@ namespace libtorrent
 		// Any job that is a cache hit now, complete it immediately.
 		// Then, issue the first non-cache-hit job. Once it complete
 		// it will keep working off this list
-		tailqueue stalled_jobs;
+		jobqueue_t stalled_jobs;
 		pe->read_jobs.swap(stalled_jobs);
 
 		// the next job to issue (i.e. this is a cache-miss)
@@ -1383,7 +1383,7 @@ namespace libtorrent
 
 		while (stalled_jobs.size() > 0)
 		{
-			disk_io_job* j = (disk_io_job*)stalled_jobs.pop_front();
+			disk_io_job* j = stalled_jobs.pop_front();
 			TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
 
 			int ret = m_disk_cache.try_read(j);
@@ -1465,7 +1465,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int disk_io_thread::do_write(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_write(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
@@ -1836,19 +1836,19 @@ namespace libtorrent
 #endif
 
 		// remove cache blocks belonging to this torrent
-		tailqueue completed_jobs;
+		jobqueue_t completed_jobs;
 
 		// remove outstanding jobs belonging to this torrent
 		mutex::scoped_lock l2(m_job_mutex);
 
-		// TODO: maybe the tailqueue_iterator should contain a pointer-pointer
+		// TODO: maybe the tailqueue_iterator<disk_io_job> should contain a pointer-pointer
 		// instead and have an unlink function
-		disk_io_job* qj = (disk_io_job*)m_queued_jobs.get_all();
-		tailqueue to_abort;
+		disk_io_job* qj = m_queued_jobs.get_all();
+		jobqueue_t to_abort;
 
 		while (qj)
 		{
-			disk_io_job* next = (disk_io_job*)qj->next;
+			disk_io_job* next = qj->next;
 #if TORRENT_USE_ASSERTS
 			qj->next = NULL;
 #endif
@@ -1937,12 +1937,12 @@ namespace libtorrent
 		// remove outstanding hash jobs belonging to this torrent
 		mutex::scoped_lock l2(m_job_mutex);
 
-		disk_io_job* qj = (disk_io_job*)m_queued_hash_jobs.get_all();
-		tailqueue to_abort;
+		disk_io_job* qj = m_queued_hash_jobs.get_all();
+		jobqueue_t to_abort;
 
 		while (qj)
 		{
-			disk_io_job* next = (disk_io_job*)qj->next;
+			disk_io_job* next = qj->next;
 #if TORRENT_USE_ASSERTS
 			qj->next = NULL;
 #endif
@@ -1959,7 +1959,7 @@ namespace libtorrent
 		j->callback = handler;
 		add_fence_job(storage, j);
 
-		tailqueue completed_jobs;
+		jobqueue_t completed_jobs;
 		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
 			, to_abort, completed_jobs);
 		if (completed_jobs.size())
@@ -2071,14 +2071,14 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 
-		tailqueue jobs;
+		jobqueue_t jobs;
 		boost::unordered_set<cached_piece_entry*> const& cache = storage->cached_pieces();
 
 		// note that i is incremented in the body!
 		for (boost::unordered_set<cached_piece_entry*>::const_iterator i = cache.begin()
 			, end(cache.end()); i != end; )
 		{
-			tailqueue temp;
+			jobqueue_t temp;
 			if (m_disk_cache.evict_piece(*(i++), temp))
 				jobs.append(temp);
 		}
@@ -2125,7 +2125,7 @@ namespace libtorrent
 		// never be the case when this function is used
 		// in fact, no jobs should really be hung on this piece
 		// at this point
-		tailqueue jobs;
+		jobqueue_t jobs;
 		bool ok = m_disk_cache.evict_piece(pe, jobs);
 		TORRENT_PIECE_ASSERT(ok, pe);
 		TORRENT_UNUSED(ok);
@@ -2204,12 +2204,12 @@ namespace libtorrent
 
 		// if there are any hash-jobs hanging off of this piece
 		// we should post them now
-		disk_io_job* j = (disk_io_job*)pe->jobs.get_all();
-		tailqueue hash_jobs;
+		disk_io_job* j = pe->jobs.get_all();
+		jobqueue_t hash_jobs;
 		while (j)
 		{
 			TORRENT_PIECE_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage, pe);
-			disk_io_job* next = (disk_io_job*)j->next;
+			disk_io_job* next = j->next;
 			j->next = NULL;
 			TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 			if (j->action == disk_io_job::hash) hash_jobs.push_back(j);
@@ -2220,9 +2220,9 @@ namespace libtorrent
 		{
 			sha1_hash result = pe->hash->h.final();
 
-			for (tailqueue_iterator i = hash_jobs.iterate(); i.get(); i.next())
+			for (tailqueue_iterator<disk_io_job> i = hash_jobs.iterate(); i.get(); i.next())
 			{
-				disk_io_job* hj = (disk_io_job*)i.get();
+				disk_io_job* hj = const_cast<disk_io_job*>(i.get());
 				memcpy(hj->d.piece_hash, result.data(), 20);
 				hj->ret = 0;
 			}
@@ -2288,7 +2288,7 @@ namespace libtorrent
 		return ret >= 0 ? 0 : -1;
 	}
 
-	int disk_io_thread::do_hash(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		INVARIANT_CHECK;
 
@@ -2533,7 +2533,7 @@ namespace libtorrent
 		return ret < 0 ? ret : 0;
 	}
 
-	int disk_io_thread::do_move_storage(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_move_storage(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2543,7 +2543,7 @@ namespace libtorrent
 			, j->flags, j->error);
 	}
 
-	int disk_io_thread::do_release_files(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_release_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		INVARIANT_CHECK;
 
@@ -2558,7 +2558,7 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 
-	int disk_io_thread::do_delete_files(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->buffer.string == 0);
 		INVARIANT_CHECK;
@@ -2579,7 +2579,7 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 
-	int disk_io_thread::do_check_fastresume(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_check_fastresume(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2592,7 +2592,7 @@ namespace libtorrent
 		return j->storage->check_fastresume(*rd, links.get(), j->error);
 	}
 
-	int disk_io_thread::do_save_resume_data(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_save_resume_data(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2608,7 +2608,7 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 
-	int disk_io_thread::do_rename_file(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_rename_file(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2619,7 +2619,7 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 
-	int disk_io_thread::do_stop_torrent(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2637,7 +2637,7 @@ namespace libtorrent
 		return j->error ? -1 : 0;
 	}
 
-	int disk_io_thread::do_cache_piece(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_cache_piece(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer.disk_block == 0);
@@ -2739,7 +2739,7 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	int disk_io_thread::do_finalize_file(disk_io_job* j, tailqueue& /* completed_jobs */)
+	int disk_io_thread::do_finalize_file(disk_io_job* j, jobqueue_t& /* completed_jobs */)
 	{
 		j->storage->get_storage_impl()->finalize_file(j->piece, j->error);
 		return j->error ? -1 : 0;
@@ -2889,7 +2889,7 @@ namespace libtorrent
 #endif
 	}
 
-	int disk_io_thread::do_flush_piece(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -2908,7 +2908,7 @@ namespace libtorrent
 	// this is triggered every time we insert a new dirty block in a piece
 	// by the time this gets executed, the block may already have been flushed
 	// triggered by another mechanism.
-	int disk_io_thread::do_flush_hashed(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -2961,27 +2961,27 @@ namespace libtorrent
 		return 0;
 	}
 
-	int disk_io_thread::do_flush_storage(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
 		return 0;
 	}
 
-	int disk_io_thread::do_trim_cache(disk_io_job*, tailqueue& /* completed_jobs */)
+	int disk_io_thread::do_trim_cache(disk_io_job*, jobqueue_t& /* completed_jobs */)
 	{
 //#error implement
 		return 0;
 	}
 
-	int disk_io_thread::do_file_priority(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		boost::scoped_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
 		return 0;
 	}
 
-	int disk_io_thread::do_load_torrent(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_load_torrent(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		add_torrent_params* params = (add_torrent_params*)j->requester;
 
@@ -3007,7 +3007,7 @@ namespace libtorrent
 	// this job won't return until all outstanding jobs on this
 	// piece are completed or cancelled and the buffers for it
 	// have been evicted
-	int disk_io_thread::do_clear_piece(disk_io_job* j, tailqueue& completed_jobs)
+	int disk_io_thread::do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -3027,7 +3027,7 @@ namespace libtorrent
 		// evicted. A piece may fail to be evicted if there
 		// are still outstanding operations on it, in which case
 		// try again later
-		tailqueue jobs;
+		jobqueue_t jobs;
 		if (m_disk_cache.evict_piece(pe, jobs))
 		{
 			fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
@@ -3044,7 +3044,7 @@ namespace libtorrent
 		return retry_job;
 	}
 
-	int disk_io_thread::do_tick(disk_io_job* j, tailqueue& /* completed_jobs */ )
+	int disk_io_thread::do_tick(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		// true means this storage wants more ticks, false
 		// disables ticking (until it's enabled again)
@@ -3193,7 +3193,7 @@ namespace libtorrent
 	{
 		while (!m_queued_jobs.empty())
 		{
-			disk_io_job* j = (disk_io_job*)m_queued_jobs.pop_front();
+			disk_io_job* j = m_queued_jobs.pop_front();
 			maybe_flush_write_blocks();
 			execute_job(j);
 		}
@@ -3218,7 +3218,7 @@ namespace libtorrent
 			, int(m_stats_counters[counters::blocked_disk_jobs])
 			, m_queued_jobs.size(), int(m_num_threads));
 		m_last_cache_expiry = now;
-		tailqueue completed_jobs;
+		jobqueue_t completed_jobs;
 		flush_expired_write_blocks(completed_jobs, l);
 		l.unlock();
 		if (completed_jobs.size())
@@ -3227,7 +3227,7 @@ namespace libtorrent
 
 	void disk_io_thread::execute_job(disk_io_job* j)
 	{
-		tailqueue completed_jobs;
+		jobqueue_t completed_jobs;
 		perform_job(j, completed_jobs);
 		if (completed_jobs.size())
 			add_completed_jobs(completed_jobs);
@@ -3260,14 +3260,14 @@ namespace libtorrent
 					break;
 				}
 
-				j = (disk_io_job*)m_queued_jobs.pop_front();
+				j = m_queued_jobs.pop_front();
 			}
 			else if (type == hasher_thread)
 			{
 				TORRENT_ASSERT(l.locked());
 				while (m_queued_hash_jobs.empty() && thread_id < m_num_threads) m_hash_job_cond.wait(l);
 				if (m_queued_hash_jobs.empty() && thread_id >= m_num_threads) break;
-				j = (disk_io_job*)m_queued_hash_jobs.pop_front();
+				j = m_queued_hash_jobs.pop_front();
 			}
 
 			l.unlock();
@@ -3337,7 +3337,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		tailqueue jobs;
+		jobqueue_t jobs;
 		m_disk_cache.clear(jobs);
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 
@@ -3378,14 +3378,14 @@ namespace libtorrent
 
 	void disk_io_thread::add_completed_job(disk_io_job* j)
 	{
-		tailqueue tmp;
+		jobqueue_t tmp;
 		tmp.push_back(j);
 		add_completed_jobs(tmp);
 	}
 
-	void disk_io_thread::add_completed_jobs(tailqueue& jobs)
+	void disk_io_thread::add_completed_jobs(jobqueue_t& jobs)
 	{
-		tailqueue new_completed_jobs;
+		jobqueue_t new_completed_jobs;
 		do
 		{
 			// when a job completes, it's possible for it to cause
@@ -3400,14 +3400,14 @@ namespace libtorrent
 		} while (jobs.size() > 0);
 	}
 
-	void disk_io_thread::add_completed_jobs_impl(tailqueue& jobs
-		, tailqueue& completed_jobs)
+	void disk_io_thread::add_completed_jobs_impl(jobqueue_t& jobs
+		, jobqueue_t& completed_jobs)
 	{
-		tailqueue new_jobs;
+		jobqueue_t new_jobs;
 		int ret = 0;
-		for (tailqueue_iterator i = jobs.iterate(); i.get(); i.next())
+		for (tailqueue_iterator<disk_io_job> i = jobs.iterate(); i.get(); i.next())
 		{
-			disk_io_job* j = (disk_io_job*)i.get();
+			disk_io_job* j = i.get();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
 //			DLOG("job_complete %s outstanding: %d\n"
@@ -3442,7 +3442,7 @@ namespace libtorrent
 		if (new_jobs.size() > 0)
 		{
 #if TORRENT_USE_ASSERTS
-			for (tailqueue_iterator i = new_jobs.iterate(); i.get(); i.next())
+			for (tailqueue_iterator<disk_io_job> i = new_jobs.iterate(); i.get(); i.next())
 			{
 				disk_io_job const* j = static_cast<disk_io_job const*>(i.get());
 				TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
@@ -3460,12 +3460,12 @@ namespace libtorrent
 				}
 			}
 #endif
-			tailqueue other_jobs;
-			tailqueue flush_jobs;
+			jobqueue_t other_jobs;
+			jobqueue_t flush_jobs;
 			mutex::scoped_lock l_(m_cache_mutex);
 			while (new_jobs.size() > 0)
 			{
-				disk_io_job* j = (disk_io_job*)new_jobs.pop_front();
+				disk_io_job* j = new_jobs.pop_front();
 
 				if (j->action == disk_io_job::read
 					&& m_settings.get_bool(settings_pack::use_read_cache)
@@ -3535,7 +3535,7 @@ namespace libtorrent
 
 			while (flush_jobs.size() > 0)
 			{
-				disk_io_job* j = (disk_io_job*)flush_jobs.pop_front();
+				disk_io_job* j = flush_jobs.pop_front();
 				add_job(j, false);
 			}
 
@@ -3568,7 +3568,7 @@ namespace libtorrent
 #endif
 
 		int num_jobs = m_completed_jobs.size();
-		disk_io_job* j = (disk_io_job*)m_completed_jobs.get_all();
+		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
 		uncork_interface* uncork = static_cast<uncork_interface*>(userdata);
@@ -3580,7 +3580,7 @@ namespace libtorrent
 			TORRENT_ASSERT(j->job_posted == true);
 			TORRENT_ASSERT(j->callback_called == false);
 //			DLOG("   callback: %s\n", job_action_name[j->action]);
-			disk_io_job* next = (disk_io_job*)j->next;
+			disk_io_job* next = j->next;
 
 #if TORRENT_USE_ASSERTS
 			j->callback_called = true;

@@ -77,7 +77,6 @@ set(sources
 	stat
 	stat_cache
 	storage
-	tailqueue
 	time
 	timestamp_history
 	torrent

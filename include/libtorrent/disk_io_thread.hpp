@@ -98,6 +98,8 @@ namespace libtorrent
 		bool need_readback;
 	};
 
+	typedef tailqueue<disk_io_job> jobqueue_t;
+
 	// this struct holds a number of statistics counters
 	// relevant for the disk io thread and disk cache.
 	struct TORRENT_EXPORT cache_status
@@ -397,37 +399,38 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 
-		void maybe_issue_queued_read_jobs(cached_piece_entry* pe, tailqueue& completed_jobs);
-		int do_read(disk_io_job* j, tailqueue& completed_jobs);
+		void maybe_issue_queued_read_jobs(cached_piece_entry* pe,
+			jobqueue_t& completed_jobs);
+		int do_read(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_uncached_read(disk_io_job* j);
 
-		int do_write(disk_io_job* j, tailqueue& completed_jobs);
+		int do_write(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_uncached_write(disk_io_job* j);
 
-		int do_hash(disk_io_job* j, tailqueue& completed_jobs);
+		int do_hash(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_uncached_hash(disk_io_job* j);
 
-		int do_move_storage(disk_io_job* j, tailqueue& completed_jobs);
-		int do_release_files(disk_io_job* j, tailqueue& completed_jobs);
-		int do_delete_files(disk_io_job* j, tailqueue& completed_jobs);
-		int do_check_fastresume(disk_io_job* j, tailqueue& completed_jobs);
-		int do_save_resume_data(disk_io_job* j, tailqueue& completed_jobs);
-		int do_rename_file(disk_io_job* j, tailqueue& completed_jobs);
-		int do_stop_torrent(disk_io_job* j, tailqueue& completed_jobs);
-		int do_read_and_hash(disk_io_job* j, tailqueue& completed_jobs);
-		int do_cache_piece(disk_io_job* j, tailqueue& completed_jobs);
+		int do_move_storage(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_release_files(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_check_fastresume(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_save_resume_data(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_rename_file(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_read_and_hash(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_cache_piece(disk_io_job* j, jobqueue_t& completed_jobs);
 #ifndef TORRENT_NO_DEPRECATE
-		int do_finalize_file(disk_io_job* j, tailqueue& completed_jobs);
+		int do_finalize_file(disk_io_job* j, jobqueue_t& completed_jobs);
 #endif
-		int do_flush_piece(disk_io_job* j, tailqueue& completed_jobs);
-		int do_flush_hashed(disk_io_job* j, tailqueue& completed_jobs);
-		int do_flush_storage(disk_io_job* j, tailqueue& completed_jobs);
-		int do_trim_cache(disk_io_job* j, tailqueue& completed_jobs);
-		int do_file_priority(disk_io_job* j, tailqueue& completed_jobs);
-		int do_load_torrent(disk_io_job* j, tailqueue& completed_jobs);
-		int do_clear_piece(disk_io_job* j, tailqueue& completed_jobs);
-		int do_tick(disk_io_job* j, tailqueue& completed_jobs);
-		int do_resolve_links(disk_io_job* j, tailqueue& completed_jobs);
+		int do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_load_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_tick(disk_io_job* j, jobqueue_t& completed_jobs);
+		int do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
 
 		void call_job_handlers(void* userdata);
 
@@ -445,16 +448,16 @@ namespace libtorrent
 		};
 
 		void add_completed_job(disk_io_job* j);
-		void add_completed_jobs(tailqueue& jobs);
-		void add_completed_jobs_impl(tailqueue& jobs
-			, tailqueue& completed_jobs);
+		void add_completed_jobs(jobqueue_t& jobs);
+		void add_completed_jobs_impl(jobqueue_t& jobs
+			, jobqueue_t& completed_jobs);
 
-		void fail_jobs(storage_error const& e, tailqueue& jobs_);
-		void fail_jobs_impl(storage_error const& e, tailqueue& src, tailqueue& dst);
+		void fail_jobs(storage_error const& e, jobqueue_t& jobs_);
+		void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
-		void check_cache_level(mutex::scoped_lock& l, tailqueue& completed_jobs);
+		void check_cache_level(mutex::scoped_lock& l, jobqueue_t& completed_jobs);
 
-		void perform_job(disk_io_job* j, tailqueue& completed_jobs);
+		void perform_job(disk_io_job* j, jobqueue_t& completed_jobs);
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool user_add = true);
@@ -465,7 +468,7 @@ namespace libtorrent
 		// writes out the blocks [start, end) (releases the lock
 		// during the file operation)
 		int flush_range(cached_piece_entry* p, int start, int end
-			, tailqueue& completed_jobs, mutex::scoped_lock& l);
+			, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
 		// low level flush operations, used by flush_range
 		int build_iovec(cached_piece_entry* pe, int start, int end
@@ -475,7 +478,7 @@ namespace libtorrent
 		void iovec_flushed(cached_piece_entry* pe
 			, int* flushing, int num_blocks, int block_offset
 			, storage_error const& error
-			, tailqueue& completed_jobs);
+			, jobqueue_t& completed_jobs);
 
 		// assumes l is locked (the cache mutex).
 		// assumes pe->hash to be set.
@@ -498,13 +501,13 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(piece_manager* storage, boost::uint32_t flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
-		void flush_expired_write_blocks(tailqueue& completed_jobs, mutex::scoped_lock& l);
-		void flush_piece(cached_piece_entry* pe, int flags, tailqueue& completed_jobs, mutex::scoped_lock& l);
+		void flush_cache(piece_manager* storage, boost::uint32_t flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+		void flush_expired_write_blocks(jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
-		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, tailqueue& completed_jobs, mutex::scoped_lock& l);
+		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
-		void try_flush_write_blocks(int num, tailqueue& completed_jobs, mutex::scoped_lock& l);
+		void try_flush_write_blocks(int num, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
 
 		// used to batch reclaiming of blocks to once per cycle
 		void commit_reclaimed_blocks();
@@ -579,13 +582,13 @@ namespace libtorrent
 		mutable mutex m_job_mutex;
 
 		// jobs queued for servicing
-		tailqueue m_queued_jobs;
+		jobqueue_t m_queued_jobs;
 
 		// when using more than 2 threads, this is
 		// used for just hashing jobs, just for threads
 		// dedicated to do hashing
 		condition_variable m_hash_job_cond;
-		tailqueue m_queued_hash_jobs;
+		jobqueue_t m_queued_hash_jobs;
 
 		// used to rate limit disk performance warnings
 		time_point m_last_disk_aio_performance_warning;
@@ -596,7 +599,7 @@ namespace libtorrent
 		// will then drain the queue and execute the jobs'
 		// handler functions
 		mutex m_completed_jobs_mutex;
-		tailqueue m_completed_jobs;
+		jobqueue_t m_completed_jobs;
 
 		// these are blocks that have been returned by the main thread
 		// but they haven't been freed yet. This is used to batch

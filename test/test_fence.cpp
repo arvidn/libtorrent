@@ -26,7 +26,7 @@ TORRENT_TEST(empty_fence)
 	ret = fence.is_blocked(&test_job[8]);
 	TEST_CHECK(ret == true);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 
 	// complete the fence job
 	fence.job_complete(&test_job[5], jobs);
@@ -78,7 +78,7 @@ TORRENT_TEST(job_fence)
 	ret = fence.is_blocked(&test_job[8]);
 	TEST_CHECK(ret == true);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 
 	fence.job_complete(&test_job[3], jobs);
 	TEST_CHECK(jobs.size() == 0);
@@ -155,7 +155,7 @@ TORRENT_TEST(double_fence)
 	ret = fence.is_blocked(&test_job[9]);
 	TEST_CHECK(ret == true);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 
 	fence.job_complete(&test_job[3], jobs);
 	TEST_CHECK(jobs.size() == 0);

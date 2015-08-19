@@ -816,7 +816,7 @@ void block_cache::free_block(cached_piece_entry* pe, int block)
 	b.buf = NULL;
 }
 
-bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue& jobs)
+bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jobs)
 {
 	INVARIANT_CHECK;
 
@@ -883,7 +883,7 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 		"piece: %d\n", this, int(p->piece));
 
 	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	if (!evict_piece(p, jobs))
 	{
 		p->marked_for_deletion = true;
@@ -1114,7 +1114,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	return num;
 }
 
-void block_cache::clear(tailqueue& jobs)
+void block_cache::clear(tailqueue<disk_io_job>& jobs)
 {
 	INVARIANT_CHECK;
 
@@ -1127,9 +1127,9 @@ void block_cache::clear(tailqueue& jobs)
 	{
 		cached_piece_entry& pe = const_cast<cached_piece_entry&>(*p);
 #if TORRENT_USE_ASSERTS
-		for (tailqueue_iterator i = pe.jobs.iterate(); i.get(); i.next())
+		for (tailqueue_iterator<disk_io_job> i = pe.jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
-		for (tailqueue_iterator i = pe.read_jobs.iterate(); i.get(); i.next())
+		for (tailqueue_iterator<disk_io_job> i = pe.read_jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
 #endif
 		// this also removes the jobs from the piece
@@ -1590,7 +1590,7 @@ void block_cache::check_invariant() const
 
 //			if (i == cached_piece_entry::write_lru)
 //				TORRENT_ASSERT(pe->num_dirty > 0);
-			for (tailqueue_iterator j = pe->jobs.iterate(); j.get(); j.next())
+			for (tailqueue_iterator<disk_io_job> j = pe->jobs.iterate(); j.get(); j.next())
 			{
 				disk_io_job const* job = static_cast<disk_io_job const*>(j.get());
 				TORRENT_PIECE_ASSERT(job->piece == pe->piece, pe);
@@ -1830,7 +1830,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 		"piece: %d refcount: %d marked_for_deletion: %d\n", this
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bool removed = evict_piece(pe, jobs);
 	TORRENT_UNUSED(removed); // suppress warning
 	TORRENT_PIECE_ASSERT(removed, pe);
@@ -1860,7 +1860,7 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
 
 #if TORRENT_USE_ASSERTS
-	for (tailqueue_iterator j = i->jobs.iterate(); j.get(); j.next())
+	for (tailqueue_iterator<const disk_io_job> j = i->jobs.iterate(); j.get(); j.next())
 	{
 		disk_io_job const* job = static_cast<disk_io_job const*>(j.get());
 		TORRENT_PIECE_ASSERT(job->piece == piece, &*i);

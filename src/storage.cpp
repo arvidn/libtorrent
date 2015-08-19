@@ -1606,7 +1606,7 @@ namespace libtorrent
 		, m_outstanding_jobs(0)
 	{}
 
-	int disk_job_fence::job_complete(disk_io_job* j, tailqueue& jobs)
+	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)
 	{
 		mutex::scoped_lock l(m_mutex);
 

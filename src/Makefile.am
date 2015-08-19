@@ -119,7 +119,6 @@ libtorrent_rasterbar_la_SOURCES = \
   storage.cpp                     \
   session_stats.cpp               \
   string_util.cpp                 \
-  tailqueue.cpp                   \
   thread.cpp                      \
   torrent.cpp                     \
   torrent_handle.cpp              \

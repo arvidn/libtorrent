@@ -204,7 +204,7 @@ void test_write()
 	// to the buffer
 	RETURN_BUFFER;
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
 
@@ -219,7 +219,7 @@ void test_flush()
 	int flushing[1] = {0};
 	FLUSH(flushing);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
 
@@ -241,7 +241,7 @@ void test_insert()
 	TEST_EQUAL(c[counters::arc_write_size], 0);
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
 
@@ -263,7 +263,7 @@ void test_evict()
 	TEST_EQUAL(c[counters::arc_write_size], 0);
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	// this should make it not be evicted
 	// just free the buffers
 	++pe->piece_refcount;
@@ -359,7 +359,7 @@ void test_arc_promote()
 	TEST_EQUAL(c[counters::arc_write_size], 0);
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
 
@@ -381,7 +381,7 @@ void test_arc_unghost()
 	TEST_EQUAL(c[counters::arc_write_size], 0);
 	TEST_EQUAL(c[counters::arc_volatile_size], 0);
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.evict_piece(pe, jobs);
 
 	bc.update_stats_counters(c);
@@ -451,7 +451,7 @@ void test_unaligned_read()
 	// return the reference to the buffer we just read
 	RETURN_BUFFER;
 
-	tailqueue jobs;
+	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
 }
 

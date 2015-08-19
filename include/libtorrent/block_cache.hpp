@@ -192,11 +192,11 @@ namespace libtorrent
 		boost::shared_ptr<piece_manager> storage;
 
 		// write jobs hanging off of this piece
-		tailqueue jobs;
+		tailqueue<disk_io_job> jobs;
 
 		// read jobs waiting for the read job currently outstanding
 		// on this piece to complete. These are executed at that point.
-		tailqueue read_jobs;
+		tailqueue<disk_io_job> read_jobs;
 
 		int get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
@@ -375,7 +375,7 @@ namespace libtorrent
 		// similar to mark_for_deletion, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p, tailqueue& jobs);
+		bool evict_piece(cached_piece_entry* p, tailqueue<disk_io_job>& jobs);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list
@@ -449,8 +449,8 @@ namespace libtorrent
 		// that couldn't be
 		int try_evict_blocks(int num, cached_piece_entry* ignore = 0);
 
-		// if there are any dirty blocks 
-		void clear(tailqueue& jobs);
+		// if there are any dirty blocks
+		void clear(tailqueue<disk_io_job>& jobs);
 
 		void update_stats_counters(counters& c) const;
 #ifndef TORRENT_NO_DEPRECATE
