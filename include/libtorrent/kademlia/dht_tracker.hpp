@@ -152,7 +152,6 @@ namespace libtorrent { namespace dht
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;
 		dht_settings const& m_settings;
-		int m_refresh_bucket;
 
 		bool m_abort;
 

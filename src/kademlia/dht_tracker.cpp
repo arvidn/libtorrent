@@ -108,7 +108,6 @@ namespace libtorrent { namespace dht
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
 		, m_settings(settings)
-		, m_refresh_bucket(160)
 		, m_abort(false)
 		, m_host_resolver(sock.get_io_service())
 	{

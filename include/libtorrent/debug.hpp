@@ -45,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <map>
 #include <cstring>
 #include <deque>
@@ -53,7 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mach/task_info.h>
 #include <mach/task.h>
 #include <mach/mach_init.h>
+
+const mach_msg_type_number_t task_events_info_count = TASK_EVENTS_INFO_COUNT;
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 std::string demangle(char const* name);
 
@@ -120,9 +126,9 @@ namespace libtorrent
 			w.timestamp = clock_type::now();
 #ifdef __MACH__
 			task_events_info teinfo;
-			mach_msg_type_number_t t_info_count = TASK_EVENTS_INFO_COUNT;
-			task_info(mach_task_self(), TASK_EVENTS_INFO, (task_info_t)&teinfo
-				, &t_info_count);
+			mach_msg_type_number_t t_info_count = task_events_info_count;
+			task_info(mach_task_self(), TASK_EVENTS_INFO,
+				reinterpret_cast<task_info_t>(&teinfo), &t_info_count);
 			w.context_switches = teinfo.csw;
 #else
 			w.context_switches = 0;
