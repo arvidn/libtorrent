@@ -161,7 +161,7 @@ TORRENT_TEST(push_back)
 	std::vector<A*> ptrs;
 	q.get_pointers(ptrs);
 
-	TEST_EQUAL(ptrs.size(), q.size());
+	TEST_EQUAL(int(ptrs.size()), q.size());
 	TEST_EQUAL(ptrs[0]->type(), 1);
 	TEST_EQUAL(ptrs[1]->type(), 1);
 	TEST_EQUAL(ptrs[2]->type(), 1);
@@ -207,14 +207,14 @@ TORRENT_TEST(swap)
 
 	std::vector<A*> ptrs;
 	q1.get_pointers(ptrs);
-	TEST_EQUAL(ptrs.size(), q1.size());
+	TEST_EQUAL(int(ptrs.size()), q1.size());
 
 	TEST_EQUAL(ptrs[0]->type(), 1);
 	TEST_EQUAL(ptrs[1]->type(), 1);
 	TEST_EQUAL(ptrs[2]->type(), 1);
 
 	q2.get_pointers(ptrs);
-	TEST_EQUAL(ptrs.size(), q2.size());
+	TEST_EQUAL(int(ptrs.size()), q2.size());
 
 	TEST_EQUAL(ptrs[0]->type(), 2);
 	TEST_EQUAL(ptrs[1]->type(), 2);
@@ -223,14 +223,14 @@ TORRENT_TEST(swap)
 
 	q1.get_pointers(ptrs);
 	TEST_EQUAL(q1.size(), 2);
-	TEST_EQUAL(ptrs.size(), q1.size());
+	TEST_EQUAL(int(ptrs.size()), q1.size());
 
 	TEST_EQUAL(ptrs[0]->type(), 2);
 	TEST_EQUAL(ptrs[1]->type(), 2);
 
 	q2.get_pointers(ptrs);
 	TEST_EQUAL(q2.size(), 3);
-	TEST_EQUAL(ptrs.size(), q2.size());
+	TEST_EQUAL(int(ptrs.size()), q2.size());
 
 	TEST_EQUAL(ptrs[0]->type(), 1);
 	TEST_EQUAL(ptrs[1]->type(), 1);
@@ -274,9 +274,9 @@ TORRENT_TEST(copy_move)
 	std::vector<F*> ptrs;
 	q.get_pointers(ptrs);
 
-	TEST_EQUAL(ptrs.size(), 1000);
+	TEST_EQUAL(int(ptrs.size()), 1000);
 
-	for (int i = 0; i < ptrs.size(); ++i)
+	for (int i = 0; i < int(ptrs.size()); ++i)
 	{
 		ptrs[i]->check_invariant();
 		TEST_EQUAL(ptrs[i]->f, i);

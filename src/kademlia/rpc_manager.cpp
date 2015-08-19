@@ -337,7 +337,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 #ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-		, o->algorithm(), int(transaction_id.size())
+		, static_cast<void*>(o->algorithm()), int(transaction_id.size())
 		, print_endpoint(m.addr).c_str());
 #endif
 	o->reply(m);
@@ -357,7 +357,7 @@ time_duration rpc_manager::tick()
 	static const int short_timeout = 1;
 	static const int timeout = 15;
 
-	//	look for observers that have timed out
+	// look for observers that have timed out
 
 	if (m_transactions.empty()) return seconds(short_timeout);
 
@@ -377,7 +377,7 @@ time_duration rpc_manager::tick()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
-				, o->algorithm(), o->transaction_id()
+				, static_cast<void*>(o->algorithm()), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
 #endif
 			m_transactions.erase(i++);
@@ -391,7 +391,7 @@ time_duration rpc_manager::tick()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
-				, o->algorithm(), o->transaction_id()
+				, static_cast<void*>(o->algorithm()), o->transaction_id()
 				, print_endpoint(o->target_ep()).c_str());
 #endif
 			++i;
@@ -438,7 +438,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 
 #ifndef TORRENT_DISABLE_LOGGING
 	m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
-		, o->algorithm(), e["q"].string().c_str()
+		, static_cast<void*>(o->algorithm()), e["q"].string().c_str()
 		, print_endpoint(target_addr).c_str());
 #endif
 

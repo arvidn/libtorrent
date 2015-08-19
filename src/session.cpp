@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <ctime>
 #include <algorithm>
 #include <set>
@@ -37,16 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <algorithm>
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
+#ifdef TORRENT_PROFILE_CALLS
+#include <boost/unordered_map.hpp>
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -74,10 +76,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/lazy_entry.hpp"
-
-#ifdef TORRENT_PROFILE_CALLS
-#include <boost/unordered_map.hpp>
-#endif
 
 using boost::shared_ptr;
 using boost::weak_ptr;

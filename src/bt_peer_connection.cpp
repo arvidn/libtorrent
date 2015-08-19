@@ -31,6 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
@@ -38,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include <memory> // autp_ptr
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -196,7 +202,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		char const* policy_name[] = {"forced", "enabled", "disabled"};
 		TORRENT_ASSERT(out_policy < sizeof(policy_name)/sizeof(policy_name[0]));
-		TORRENT_ASSERT(out_policy >= 0);
 		peer_log(peer_log_alert::info, "ENCRYPTION"
 			, "outgoing encryption policy: %s", policy_name[out_policy]);
 #endif

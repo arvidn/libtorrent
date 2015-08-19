@@ -1878,7 +1878,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_check_fastresume(piece_manager* storage
 		, bdecode_node const* resume_data
-		, std::auto_ptr<std::vector<std::string> >& links
+		, std::vector<std::string>& links
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 #ifdef TORRENT_DEBUG
@@ -1887,14 +1887,17 @@ namespace libtorrent
 		storage->assert_torrent_refcount();
 #endif
 
+		std::vector<std::string>* links_vector
+			= new std::vector<std::string>();
+		links_vector->swap(links);
+
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
 		j->storage = storage->shared_from_this();
 		j->buffer.string = (char*)resume_data;
-		j->d.links = links.get();
+		j->d.links = links_vector;
 		j->callback = handler;
 
 		add_fence_job(storage, j);
-		links.release();
 	}
 
 	void disk_io_thread::async_save_resume_data(piece_manager* storage
@@ -2570,7 +2573,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		m_disk_cache.mark_deleted(*j->storage->files());
 #endif
-		
+
 		flush_cache(j->storage.get(), flush_delete_cache | flush_expect_clear
 			, completed_jobs, l);
 		l.unlock();
@@ -2588,7 +2591,7 @@ namespace libtorrent
 		bdecode_node tmp;
 		if (rd == NULL) rd = &tmp;
 
-		std::auto_ptr<std::vector<std::string> > links(j->d.links);
+		boost::scoped_ptr<std::vector<std::string> > links(j->d.links);
 		return j->storage->check_fastresume(*rd, links.get(), j->error);
 	}
 

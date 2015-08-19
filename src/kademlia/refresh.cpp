@@ -89,7 +89,7 @@ void bootstrap::done()
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
-		, this);
+		, static_cast<void*>(this));
 #endif
 
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()

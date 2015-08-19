@@ -90,7 +90,7 @@ TORRENT_TEST(resolve_links)
 	std::string path = combine_path(parent_path(current_working_directory())
 		, "mutable_test_torrents");
 
-	for (int i = 0; i < sizeof(test_torrents)/sizeof(test_torrents[0]); ++i)
+	for (int i = 0; i < int(sizeof(test_torrents)/sizeof(test_torrents[0])); ++i)
 	{
 		test_torrent_t const& e = test_torrents[i];
 
@@ -115,7 +115,7 @@ TORRENT_TEST(resolve_links)
 		if (num_matches > e.expected_matches)
 		{
 			file_storage const& fs = ti1->files();
-			for (int i = 0; i < links.size(); ++i)
+			for (int i = 0; i < int(links.size()); ++i)
 			{
 				TORRENT_ASSERT(i < fs.num_files());
 				fprintf(stderr, "%s --> %s : %d\n", fs.file_name(i).c_str()

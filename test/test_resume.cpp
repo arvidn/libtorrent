@@ -209,7 +209,7 @@ TORRENT_TEST(piece_priorities)
 	{
 		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
 		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
-		TEST_EQUAL(prios.size(), ti->num_pieces());
+		TEST_EQUAL(int(prios.size()), ti->num_pieces());
 		TEST_EQUAL(prios[0], '\0');
 		TEST_EQUAL(prios[1], '\x04');
 		TEST_EQUAL(prios[ti->num_pieces()-1], '\0');

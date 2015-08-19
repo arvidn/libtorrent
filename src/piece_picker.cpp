@@ -3270,9 +3270,6 @@ get_out:
 			// if we already have this piece, just ignore this
 			if (have_piece(block.piece_index)) return false;
 
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-			TORRENT_PIECE_PICKER_INVARIANT_CHECK;
-#endif
 			int prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundries.size())
 				|| m_dirty);

@@ -774,7 +774,7 @@ TORRENT_TEST(dht)
 		{ generate_next(), 8 }
 	};
 
-	for (int i = 0; i < sizeof(items)/sizeof(items[0]); ++i)
+	for (int i = 0; i < int(sizeof(items)/sizeof(items[0])); ++i)
 		items[i].gen();
 
 	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
@@ -1729,7 +1729,7 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_got_items.front().value(), items[0].ent);
 		TEST_CHECK(memcmp(g_got_items.front().pk().data(), public_key, item_pk_len) == 0);
 		TEST_CHECK(memcmp(g_got_items.front().sig().data(), signature, item_sig_len) == 0);
-		TEST_EQUAL(g_got_items.front().seq(), seq);
+		TEST_EQUAL(int(g_got_items.front().seq()), seq);
 		g_got_items.clear();
 
 	} while (false);

@@ -230,7 +230,8 @@ namespace libtorrent
 			, "ep: %s type: %s seed: %d p: %p local: %s"
 			, print_endpoint(m_remote).c_str()
 			, m_socket->type_name()
-			, m_peer_info ? m_peer_info->seed : 0, m_peer_info
+			, m_peer_info ? m_peer_info->seed : 0
+			, static_cast<void*>(m_peer_info)
 			, print_endpoint(local_ep).c_str());
 #endif
 #ifdef TORRENT_DEBUG
@@ -389,7 +390,7 @@ namespace libtorrent
 			disconnect(ec, op_sock_bind);
 			return;
 		}
-	
+
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "ASYNC_CONNECT", "dst: %s"
 			, print_endpoint(m_remote).c_str());
@@ -400,7 +401,8 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (t)
-			t->debug_log("START connect [%p] (%d)", this, int(t->num_peers()));
+			t->debug_log("START connect [%p] (%d)", static_cast<void*>(this)
+				, int(t->num_peers()));
 #endif
 
 		m_socket->async_connect(m_remote
@@ -706,7 +708,8 @@ namespace libtorrent
 		if (m_num_pieces == int(m_have_piece.size()))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "INIT", "this is a seed p: %p", m_peer_info);
+			peer_log(peer_log_alert::info, "INIT", "this is a seed p: %p"
+				, static_cast<void*>(m_peer_info));
 #endif
 
 			TORRENT_ASSERT(m_have_piece.all_set());
@@ -1576,7 +1579,8 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		m_unchoke_time = clock_type::now();
-		t->debug_log("UNCHOKE [%p] (%d ms)", this, int(total_milliseconds(m_unchoke_time - m_bitfield_time)));
+		t->debug_log("UNCHOKE [%p] (%d ms)", static_cast<void*>(this)
+			, int(total_milliseconds(m_unchoke_time - m_bitfield_time)));
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1881,7 +1885,8 @@ namespace libtorrent
 		if (is_seed())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p", m_peer_info);
+			peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p"
+				, static_cast<void*>(m_peer_info));
 #endif
 
 			TORRENT_ASSERT(m_have_piece.all_set());
@@ -2039,7 +2044,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+		t->debug_log("HANDSHAKE [%p] (%d ms)"
+			, static_cast<void*>(this)
+			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 		// if we don't have metadata yet
 		// just remember the bitmask
@@ -2049,7 +2056,8 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_num_pieces == int(bits.size()))
-				peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p", m_peer_info);
+				peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p"
+					, static_cast<void*>(m_peer_info));
 #endif
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
@@ -2063,12 +2071,13 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(t->valid_metadata());
-		
+
 		int num_pieces = bits.count();
 		if (num_pieces == int(m_have_piece.size()))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p", m_peer_info);
+			peer_log(peer_log_alert::info, "SEED", "this is a seed. p: %p"
+				, static_cast<void*>(m_peer_info));
 #endif
 
 			t->set_seed(m_peer_info, true);
@@ -2780,7 +2789,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		t->debug_log("PIECE [%p] (%d ms) (%d)", this
+		t->debug_log("PIECE [%p] (%d ms) (%d)", static_cast<void*>(this)
 			, int(total_milliseconds(clock_type::now() - m_unchoke_time)), t->num_have());
 
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
@@ -2977,7 +2986,7 @@ namespace libtorrent
 
 		if (t->alerts().should_post<block_finished_alert>())
 		{
-			t->alerts().emplace_alert<block_finished_alert>(t->get_handle(), 
+			t->alerts().emplace_alert<block_finished_alert>(t->get_handle(),
 				remote(), pid(), int(block_finished.block_index)
 				, int(block_finished.piece_index));
 		}
@@ -3111,7 +3120,8 @@ namespace libtorrent
 		m_have_all = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "SEED", "this is a seed p: %p", m_peer_info);
+		peer_log(peer_log_alert::info, "SEED", "this is a seed p: %p"
+			, static_cast<void*>(m_peer_info));
 #endif
 
 		t->set_seed(m_peer_info, true);
@@ -3120,7 +3130,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+		t->debug_log("HANDSHAKE [%p] (%d ms)"
+			, static_cast<void*>(this)
+			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 
 		// if we don't have metadata yet
@@ -3140,7 +3152,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_have_piece.empty());
 		m_have_piece.set_all();
 		m_num_pieces = m_have_piece.size();
-		
+
 		t->peer_has_all(this);
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -3192,12 +3204,14 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		m_bitfield_time = clock_type::now();
-		t->debug_log("HANDSHAKE [%p] (%d ms)", this, int(total_milliseconds(m_bitfield_time - m_connect_time)));
+		t->debug_log("HANDSHAKE [%p] (%d ms)"
+			, static_cast<void*>(this)
+			, int(total_milliseconds(m_bitfield_time - m_connect_time)));
 #endif
 		m_have_piece.clear_all();
 		m_num_pieces = 0;
 
-		// if the peer is ready to download stuff, it must have metadata		
+		// if the peer is ready to download stuff, it must have metadata
 		m_has_metadata = true;
 
 		// we're never interested in a peer that doesn't have anything
@@ -3222,7 +3236,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			time_point now = clock_type::now();
-			t->debug_log("ALLOW FAST [%p] (%d ms)", this, int(total_milliseconds(now - m_connect_time)));
+			t->debug_log("ALLOW FAST [%p] (%d ms)"
+				, static_cast<void*>(this)
+				, int(total_milliseconds(now - m_connect_time)));
 			if (m_peer_choked) m_unchoke_time = now;
 		}
 		peer_log(peer_log_alert::incoming_message, "ALLOWED_FAST", "%d", index);
@@ -3901,7 +3917,7 @@ namespace libtorrent
 			// request timeout.
 			m_requested = aux::time_now();
 #ifndef TORRENT_DISABLE_LOGGING
-			t->debug_log("REQUEST [%p] (%d ms)", this
+			t->debug_log("REQUEST [%p] (%d ms)", static_cast<void*>(this)
 				, int(total_milliseconds(clock_type::now() - m_unchoke_time)));
 #endif
 		}
@@ -5211,7 +5227,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 			, "ret: %d piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
-			, j->ret, r.piece, r.start, r.length, j->buffer.disk_block
+			, j->ret, r.piece, r.start, r.length
+			, static_cast<void*>(j->buffer.disk_block)
 			, (j->flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
 			, j->error.ec.message().c_str(), disk_rtt);
 #endif
@@ -5229,7 +5246,7 @@ namespace libtorrent
 				disconnect(j->error.ec, op_file_read);
 				return;
 			}
-		
+
 			TORRENT_ASSERT(j->buffer.disk_block == 0);
 			write_dont_have(r.piece);
 			write_reject_request(r);
@@ -6225,7 +6242,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			if (t) t->debug_log("END connect [%p]", this);
+			if (t) t->debug_log("END connect [%p]", static_cast<void*>(this));
 			m_connect_time = completed;
 		}
 #endif
@@ -6249,7 +6266,7 @@ namespace libtorrent
 		}
 
 		if (m_disconnecting) return;
-		
+
 		if (e)
 		{
 			connect_failed(e);

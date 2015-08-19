@@ -463,7 +463,7 @@ void test_check_files(std::string const& test_path
 
 	bool done = false;
 	bdecode_node frd;
-	std::auto_ptr<std::vector<std::string> > links;
+	std::vector<std::string> links;
 	io.async_check_fastresume(pm.get(), &frd, links
 		, boost::bind(&on_check_resume_data, _1, &done));
 	io.submit_jobs();

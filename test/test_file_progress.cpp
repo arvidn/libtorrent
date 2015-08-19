@@ -70,7 +70,7 @@ TORRENT_TEST(init)
 		for (int i = 0; i < int(vec.size()); ++i)
 			sum += vec[i];
 
-		TEST_EQUAL(sum, fs.piece_size(idx));
+		TEST_EQUAL(int(sum), fs.piece_size(idx));
 	}
 }
 
@@ -99,7 +99,7 @@ TORRENT_TEST(init2)
 		fp.export_progress(vec);
 
 		boost::uint64_t sum = 0;
-		for (int i = 0; i < vec.size(); ++i)
+		for (int i = 0; i < int(vec.size()); ++i)
 			sum += vec[i];
 
 		TEST_EQUAL(int(sum), fs.piece_size(idx));

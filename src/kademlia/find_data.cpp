@@ -54,7 +54,7 @@ void find_data_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}
@@ -64,7 +64,7 @@ void find_data_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}
@@ -112,8 +112,10 @@ void find_data::start()
 void find_data::got_write_token(node_id const& n, std::string const& write_token)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] adding write token '%s' under id '%s'"
-		, this, to_hex(write_token).c_str(), to_hex(n.to_string()).c_str());
+	get_node().observer()->log(dht_logger::traversal
+		, "[%p] adding write token '%s' under id '%s'"
+		, static_cast<void*>(this), to_hex(write_token).c_str()
+		, to_hex(n.to_string()).c_str());
 #endif
 	m_write_tokens[n] = write_token;
 }
@@ -138,7 +140,7 @@ void find_data::done()
 
 #ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE"
-		, this, name());
+		, static_cast<void*>(this), name());
 #endif
 
 	std::vector<std::pair<node_entry, std::string> > results;
@@ -151,7 +153,7 @@ void find_data::done()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] not alive: %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 			continue;
 		}
@@ -160,14 +162,14 @@ void find_data::done()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] no write token: %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 			continue;
 		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 #ifndef TORRENT_DISABLE_LOGGING
 			get_node().observer()->log(dht_logger::traversal, "[%p] %s"
-				, this, print_endpoint(o->target_ep()).c_str());
+				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 		--num_results;
 	}

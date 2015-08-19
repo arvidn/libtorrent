@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/random.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/shared_ptr.hpp>
 #include <boost/bind.hpp>
 #include <algorithm>
@@ -43,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <map>
 #include <iostream>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "test.hpp"
 
@@ -97,7 +101,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	{
 		const int avail = availability[i] - '0';
 		assert(avail >= 0);
-		
+
 		static const torrent_peer* peers[10] = { &tmp0, &tmp1, &tmp2
 			, &tmp3, &tmp4, &tmp5, &tmp6, &tmp7, &tmp8, &tmp9 };
 		TORRENT_ASSERT(avail < 10);
@@ -141,12 +145,12 @@ boost::shared_ptr<piece_picker> setup_picker(
 
 		piece_picker::downloading_piece st;
 		p->piece_info(i, st);
-		TEST_CHECK(st.writing == 0);
-		TEST_CHECK(st.requested == 0);
-		TEST_CHECK(st.index == i);
+		TEST_EQUAL(int(st.writing), 0);
+		TEST_EQUAL(int(st.requested), 0);
+		TEST_EQUAL(int(st.index),  i);
 
-		TEST_CHECK(st.finished == counter);
-		TEST_CHECK(st.finished + st.requested + st.writing == counter);
+		TEST_EQUAL(st.finished, counter);
+		TEST_EQUAL(st.finished + st.requested + st.writing, counter);
 
 		TEST_CHECK(p->is_piece_finished(i) == (counter == 4));
 	}
@@ -1774,11 +1778,14 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(downloads.size(), 3);
 
 	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1) == 1) != downloads.end());
+		, boost::bind(&piece_picker::downloading_piece::index, _1)
+		== boost::uint32_t(1)) != downloads.end());
 	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1) == 2) != downloads.end());
+		, boost::bind(&piece_picker::downloading_piece::index, _1)
+		== boost::uint32_t(2)) != downloads.end());
 	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1) == 3) != downloads.end());
+		, boost::bind(&piece_picker::downloading_piece::index, _1)
+		== boost::uint32_t(3)) != downloads.end());
 
 // ========================================================
 

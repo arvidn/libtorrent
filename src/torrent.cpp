@@ -2013,7 +2013,7 @@ namespace libtorrent
 		if (num_pad_files > 0)
 			m_picker->set_num_pad_files(num_pad_files);
 
-		std::auto_ptr<std::vector<std::string> > links;
+		std::vector<std::string> links;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (!m_torrent_file->similar_torrents().empty()
 			|| !m_torrent_file->collections().empty())
@@ -2055,7 +2055,6 @@ namespace libtorrent
 			std::vector<resolve_links::link_t> const& l = res.get_links();
 			if (!l.empty())
 			{
-				links.reset(new std::vector<std::string>(l.size()));
 				for (std::vector<resolve_links::link_t>::const_iterator i = l.begin()
 					, end(l.end()); i != end; ++i)
 				{
@@ -2063,7 +2062,7 @@ namespace libtorrent
 
 					torrent_info const& ti = *i->ti;
 					std::string const& save_path = i->save_path;
-					links->push_back(combine_path(save_path
+					links.push_back(combine_path(save_path
 						, ti.files().file_path(i->file_idx)));
 				}
 			}
@@ -2071,7 +2070,7 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		inc_refcount("check_fastresume");
-		// async_check_fastresume will release links
+		// async_check_fastresume will gut links
 		m_ses.disk_thread().async_check_fastresume(
 			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
@@ -2601,7 +2600,7 @@ namespace libtorrent
 
 		m_resume_data.reset();
 
-		std::auto_ptr<std::vector<std::string> > links;
+		std::vector<std::string> links;
 		inc_refcount("force_recheck");
 		m_ses.disk_thread().async_check_fastresume(m_storage.get(), NULL
 			, links, boost::bind(&torrent::on_force_recheck
@@ -6483,7 +6482,8 @@ namespace libtorrent
 			if (c->is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("START queue peer [%p] (%d)", c.get(), num_peers());
+			debug_log("START queue peer [%p] (%d)", static_cast<void*>(c.get())
+				, num_peers());
 #endif
 		}
 		TORRENT_CATCH (std::exception& e)

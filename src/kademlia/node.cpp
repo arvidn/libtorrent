@@ -484,7 +484,7 @@ struct ping_observer : observer
 			{
 				get_observer()->log(dht_logger::node
 					, "[%p] missing response dict"
-					, algorithm());
+					, static_cast<void*>(algorithm()));
 			}
 #endif
 			return;

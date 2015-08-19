@@ -52,7 +52,7 @@ void get_peers_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}
@@ -74,7 +74,7 @@ void get_peers_observer::reply(msg const& m)
 			{
 				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, algorithm()
+					, static_cast<void*>(algorithm())
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
@@ -96,7 +96,7 @@ void get_peers_observer::reply(msg const& m)
 			{
 				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
 					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, algorithm()
+					, static_cast<void*>(algorithm())
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
@@ -279,7 +279,8 @@ void obfuscated_get_peers::done()
 #ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "
 			"phase 1 done, spawning get_peers [ %p ]"
-			, this, ta.get());
+			, static_cast<void*>(this)
+			, static_cast<void*>(ta.get()));
 #endif
 
 	int num_added = 0;
@@ -309,7 +310,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}
@@ -319,7 +320,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}

@@ -599,7 +599,7 @@ TORRENT_TEST(bencoding)
 			"d1:a9205357638345293824:11111",
 		};
 
-		for (int i = 0; i < sizeof(b)/sizeof(b[0]); ++i)
+		for (int i = 0; i < int(sizeof(b)/sizeof(b[0])); ++i)
 		{
 			lazy_entry e;
 			error_code ec;

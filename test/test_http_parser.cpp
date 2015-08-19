@@ -68,7 +68,7 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev || ret.get<2>());
 		if (!ret.get<2>())
 		{
-			TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
+			TEST_EQUAL(ret.get<0>() + ret.get<1>(), int(strlen(str)));
 		}
 
 		prev = ret;
@@ -227,7 +227,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, chunked_test);
 
 	printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
-	TEST_CHECK(received == make_tuple(20, strlen(chunked_test) - 20, false));
+	TEST_CHECK(received == make_tuple(20, int(strlen(chunked_test)) - 20, false));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end
 		, "4\r\ntest\r\n10\r\n0123456789abcdef"));

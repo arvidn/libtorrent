@@ -142,7 +142,7 @@ static void nop() {}
 	rj.d.io.ref.storage = 0
 
 #define FLUSH(flushing) \
-	for (int i = 0; i < sizeof(flushing)/sizeof(flushing[0]); ++i) \
+	for (int i = 0; i < int(sizeof(flushing)/sizeof(flushing[0])); ++i) \
 	{ \
 		pe->blocks[flushing[i]].pending = true; \
 		bc.inc_block_refcount(pe, 0, block_cache::ref_flushing); \

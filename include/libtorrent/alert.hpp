@@ -266,6 +266,10 @@ namespace libtorrent {
 		virtual int category() const = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
@@ -284,6 +288,9 @@ namespace libtorrent {
 		virtual bool discardable_impl() const { return true; }
 
 		virtual std::auto_ptr<alert> clone_impl() const = 0;
+
+#pragma GCC diagnostic pop
+
 #endif
 
 	private:

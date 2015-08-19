@@ -30,9 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/atomic.hpp>
 #include <list>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/thread.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp" // for test_sleep

@@ -30,12 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #if defined TORRENT_OS2
 #include <pthread.h>
 #endif
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"

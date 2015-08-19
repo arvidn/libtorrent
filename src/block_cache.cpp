@@ -283,7 +283,7 @@ const char* const job_action_name[] =
 				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
 				"piece_log:\n"
 				, int(pe->piece), pe->refcount, pe->piece_refcount, int(pe->num_blocks)
-				, int(pe->hashing), pe->hash, pe->hash ? pe->hash->offset : -1
+				, int(pe->hashing), static_cast<void*>(pe->hash), pe->hash ? pe->hash->offset : -1
 				, int(pe->cache_state)
 				, pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)

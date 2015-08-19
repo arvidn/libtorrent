@@ -78,6 +78,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "item");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_title(char const* tag) const
@@ -88,6 +89,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "title");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_url(char const* tag) const
@@ -98,6 +100,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "link");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_desc(char const* tag) const
@@ -109,6 +112,7 @@ struct feed_state
 				|| string_equal_no_case(tag, "media:text");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_uuid(char const* tag) const
@@ -119,6 +123,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "guid");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_comment(char const* tag) const
@@ -129,6 +134,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "comments");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_category(char const* tag) const
@@ -139,6 +145,7 @@ struct feed_state
 			case rss2: return string_equal_no_case(tag, "category");
 			case none: return false;
 		}
+		return false;
 	}
 
 	bool is_size(char const* tag) const

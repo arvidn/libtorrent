@@ -112,7 +112,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 		TEST_EQUAL(st.total_wanted_done, 0);
 		if (!st.is_seeding)
 		{
-			TEST_EQUAL(h.file_priorities().size(), info->num_files());
+			TEST_EQUAL(int(h.file_priorities().size()), info->num_files());
 			TEST_EQUAL(h.file_priorities()[0], 0);
 			if (info->num_files() > 1)
 				TEST_EQUAL(h.file_priorities()[1], 0);

@@ -33,10 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IP_FILTER_HPP
 #define TORRENT_IP_FILTER_HPP
 
-#include <set>
-#include <vector>
+#include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <set>
+#include <vector>
 
 #include <boost/limits.hpp>
 #include <boost/utility.hpp>
@@ -45,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/config.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -148,15 +149,15 @@ namespace detail
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
-			
+
 			typename range_t::iterator i = m_access_list.upper_bound(first);
 			typename range_t::iterator j = m_access_list.upper_bound(last);
 
 			if (i != m_access_list.begin()) --i;
-			
+
 			TORRENT_ASSERT(j != m_access_list.begin());
 			TORRENT_ASSERT(j != i);
-			
+
 			boost::uint32_t first_access = i->access;
 			boost::uint32_t last_access = boost::prior(j)->access;
 
@@ -184,7 +185,7 @@ namespace detail
 			{
 				m_access_list.insert(i, range(first, flags));
 			}
-			
+
 			if ((j != m_access_list.end()
 					&& minus_one(j->start) != last)
 				|| (j == m_access_list.end()
@@ -228,14 +229,14 @@ namespace detail
 					r.last = ExternalAddressType(max_addr<Addr>());
 				else
 					r.last = ExternalAddressType(minus_one(i->start));
-			
+
 				ret.push_back(r);
 			}
 			return ret;
 		}
 
 	private:
-	
+
 		struct range
 		{
 			range(Addr addr, int a = 0): start(addr), access(a) {}
@@ -300,7 +301,7 @@ struct TORRENT_EXPORT ip_filter
 #else
 	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
 #endif
-	
+
 	// This function will return the current state of the filter in the minimum number of
 	// ranges possible. They are sorted from ranges in low addresses to high addresses. Each
 	// entry in the returned vector is a range with the access control specified in its
@@ -311,7 +312,7 @@ struct TORRENT_EXPORT ip_filter
 	filter_tuple_t export_filter() const;
 
 //	void print() const;
-	
+
 private:
 
 	detail::filter_impl<address_v4::bytes_type> m_filter4;

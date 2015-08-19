@@ -30,24 +30,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
+#include "libtorrent/gzip.hpp"
+#include "libtorrent/socket_io.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <list>
 #include <cctype>
 #include <algorithm>
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/gzip.hpp"
-#include "libtorrent/socket_io.hpp"
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
 #include <boost/bind.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"

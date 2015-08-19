@@ -83,8 +83,8 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 	for (iterator i(r.begin()), j(boost::next(r.begin()))
 		, end(r.end()); j != end; ++j, ++i)
 	{
-		TEST_CHECK(f.access(i->last) == i->flags);
-		TEST_CHECK(f.access(j->first) == j->flags);
+		TEST_EQUAL(f.access(i->last), int(i->flags));
+		TEST_EQUAL(f.access(j->first), int(j->flags));
 		TEST_CHECK(detail::plus_one(i->last.to_bytes()) == j->first.to_bytes());
 	}
 }
@@ -261,7 +261,7 @@ TORRENT_TEST(ip_filter)
 		range = boost::get<1>(f.export_filter());
 		test_rules_invariant(range, f);
 
-		TEST_CHECK(range.size() == 3);
+		TEST_EQUAL(range.size(), 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected2, &compare<address_v6>));
 
 	}

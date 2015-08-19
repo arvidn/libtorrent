@@ -213,7 +213,7 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 	// the bencoded dict if logging is disabled
 	get_node().observer()->log(dht_logger::traversal, "[%p] sending put "
 		"[ seq: %" PRId64 " nodes: %d ]"
-		, this, (m_data.is_mutable() ? m_data.seq() : -1)
+		, static_cast<void*>(this), (m_data.is_mutable() ? m_data.seq() : -1)
 		, int(v.size()));
 #endif
 
@@ -227,7 +227,7 @@ void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] put-distance: %d"
-			, this, 160 - distance_exp(m_target, i->first.id));
+			, static_cast<void*>(this), 160 - distance_exp(m_target, i->first.id));
 #endif
 
 		void* ptr = m_node.m_rpc.allocate_observer();
@@ -269,7 +269,7 @@ void get_item_observer::reply(msg const& m)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, algorithm());
+			, static_cast<void*>(algorithm()));
 #endif
 		return;
 	}

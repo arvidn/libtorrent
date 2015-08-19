@@ -235,7 +235,7 @@ namespace libtorrent
 
 		// number of read jobs in the disk job queue
 		int read_queue_size;
-	
+
 		// number of jobs blocked because of a fence
 		int blocked_jobs;
 
@@ -315,7 +315,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
 			, bdecode_node const* resume_data
-			, std::auto_ptr<std::vector<std::string> >& links
+			, std::vector<std::string>& links
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_save_resume_data(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler);
