@@ -13,6 +13,9 @@ compiler:
   - gcc
   - clang
 
+git:
+  submodules: false
+
 # container-based builds
 sudo: false
 cache:
@@ -33,7 +36,7 @@ addons:
     - g++-4.8
 
 before_install:
-  - git submodule foreach git pull origin master --depth=1
+  - git submodule update --init --recursive
 
 install:
   - 'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
