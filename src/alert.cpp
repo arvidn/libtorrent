@@ -60,16 +60,19 @@ namespace libtorrent {
 		: handle(h)
 		, m_alloc(alloc)
 	{
-		std::string name_str;
-		if (h.native_handle())
+		boost::shared_ptr<torrent> t = h.native_handle();
+		if (t)
 		{
-			m_name_idx = alloc.copy_string(h.native_handle()->name());
-		}
-		else if (h.is_valid())
-		{
-			char msg[41];
-			to_hex(h.native_handle()->info_hash().data(), 20, msg);
-			m_name_idx = alloc.copy_string(msg);
+			std::string name_str = t->name();
+			if (!name_str.empty()) {
+				m_name_idx = alloc.copy_string(name_str);
+			}
+			else
+			{
+				char msg[41];
+				to_hex(t->info_hash().data(), 20, msg);
+				m_name_idx = alloc.copy_string(msg);
+			}
 		}
 		else
 		{
