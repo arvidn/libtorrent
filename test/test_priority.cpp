@@ -64,11 +64,6 @@ bool on_alert(alert const* a)
 	return false;
 }
 
-// these are declared before the session objects
-// so that they are destructed last. This enables
-// the sessions to destruct in parallel
-std::vector<session_proxy> sp;
-
 void cleanup()
 {
 	error_code ec;
@@ -80,6 +75,9 @@ void cleanup()
 
 void test_transfer(settings_pack const& sett)
 {
+	// this allows shutting down the sessions in parallel
+	std::vector<session_proxy> sp;
+
 	cleanup();
 
 	settings_pack pack = sett;
@@ -163,7 +161,7 @@ void test_transfer(settings_pack const& sett)
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -368,7 +366,6 @@ done:
 		fprintf(stderr, "ses2 failed to reconnect to ses1!\n");
 	TEST_CHECK(st2.is_seeding);
 
-	// this allows shutting down the sessions in parallel
 	sp.push_back(ses1.abort());
 	sp.push_back(ses2.abort());
 }
