@@ -100,7 +100,7 @@ namespace libtorrent
 			, flush_hashed
 			, flush_storage
 			, trim_cache
-			, file_priority 
+			, file_priority
 			, load_torrent
 			, clear_piece
 			, tick_storage

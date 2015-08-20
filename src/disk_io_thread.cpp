@@ -1893,7 +1893,7 @@ namespace libtorrent
 
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
 		j->storage = storage->shared_from_this();
-		j->buffer.string = (char*)resume_data;
+		j->buffer.check_resume_data = resume_data;
 		j->d.links = links_vector;
 		j->callback = handler;
 
@@ -2054,7 +2054,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
-		j->requester = (char*)params;
+		j->requester = reinterpret_cast<char*>(params);
 		j->callback = handler;
 
 		add_job(j);
@@ -2986,7 +2986,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_load_torrent(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		add_torrent_params* params = (add_torrent_params*)j->requester;
+		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
 
 		std::string filename = resolve_file_url(params->url);
 		torrent_info* t = new torrent_info(filename, j->error.ec);
