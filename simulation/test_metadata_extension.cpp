@@ -99,7 +99,6 @@ struct test_swarm_config : swarm_config
 
 		if (m_flags & utp)
 		{
-			s.set_bool(settings_pack::utp_dynamic_sock_buf, true);
 			s.set_bool(settings_pack::enable_incoming_utp, true);
 			s.set_bool(settings_pack::enable_outgoing_utp, true);
 			s.set_bool(settings_pack::enable_incoming_tcp, false);
