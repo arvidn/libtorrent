@@ -48,7 +48,7 @@ struct test_plugin : plugin
 {
 	virtual void register_dht_extensions(dht_extensions_t& ext)
 	{
-		ext.push_back(std::make_pair("test_good", &good_response));
+		ext.push_back(dht_extensions_t::value_type("test_good", &good_response));
 	}
 
 	static bool good_response(udp::endpoint const& source
