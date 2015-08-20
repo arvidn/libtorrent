@@ -5,13 +5,11 @@ os:
   - osx
 
 env:
-  - variant=test_debug
-  - variant=test_release
-  - variant=test_barebones
-
-compiler:
-  - gcc
-  - clang
+  - variant=test_debug cc=gcc-cpp11 sim=1
+  - variant=test_debug cc=clang-cpp11 sim=0
+  - variant=test_debug cc=gcc-cpp98 sim=0
+  - variant=test_release cc=gcc-cpp11 sim=0
+  - variant=test_barebones cc=gcc-cpp11 sim=0
 
 git:
   submodules: false
@@ -39,8 +37,10 @@ before_install:
   - git submodule update --init --recursive
 
 install:
-  - 'echo "using gcc : : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using clang : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
+  - 'echo "using clang : cpp11 : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using clang : cpp98 : ccache clang++ : <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
@@ -52,7 +52,7 @@ script:
   - cd ../bindings/python
   - bjam --hash -j3 variant=$variant warnings=off $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
-  - if [ $variant == "test_debug" ]; then
+  - if [ $sim ]; then
     cd ../../simulation;
     bjam --hash -j3 crypto=built-in warnings=off $CC;
     fi
