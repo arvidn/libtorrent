@@ -275,7 +275,7 @@ namespace libtorrent
 		, public request_callback
 		, public peer_class_set
 		, public boost::enable_shared_from_this<torrent>
-		, public list_node // used for torrent activity LRU
+		, public list_node<torrent> // used for torrent activity LRU
 	{
 	public:
 

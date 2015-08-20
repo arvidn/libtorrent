@@ -905,13 +905,13 @@ namespace libtorrent
 	{
 		DLOG("try_flush_write_blocks: %d\n", num);
 
-		list_iterator range = m_disk_cache.write_lru_pieces();
+		list_iterator<cached_piece_entry> range = m_disk_cache.write_lru_pieces();
 		std::vector<std::pair<piece_manager*, int> > pieces;
 		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
-		for (list_iterator p = range; p.get() && num > 0; p.next())
+		for (list_iterator<cached_piece_entry> p = range; p.get() && num > 0; p.next())
 		{
-			cached_piece_entry* e = (cached_piece_entry*)p.get();
+			cached_piece_entry* e = p.get();
 			if (e->num_dirty == 0) continue;
 			pieces.push_back(std::make_pair(e->storage.get(), int(e->piece)));
 		}
@@ -939,7 +939,7 @@ namespace libtorrent
 
 		// when the write cache is under high pressure, it is likely
 		// counter productive to actually do this, since a piece may
-		// not have had its flush_hashed job run on it 
+		// not have had its flush_hashed job run on it
 		// so only do it if no other thread is currently flushing
 
 		if (num == 0 || m_stats_counters[counters::num_writing_threads] > 0) return;
@@ -987,9 +987,9 @@ namespace libtorrent
 		cached_piece_entry** to_flush = TORRENT_ALLOCA(cached_piece_entry*, 200);
 		int num_flush = 0;
 
-		for (list_iterator p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
+		for (list_iterator<cached_piece_entry> p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
 		{
-			cached_piece_entry* e = (cached_piece_entry*)p.get();
+			cached_piece_entry* e = p.get();
 #if TORRENT_USE_ASSERTS
 			TORRENT_PIECE_ASSERT(e->expire >= timeout, e);
 			timeout = e->expire;
@@ -2477,7 +2477,7 @@ namespace libtorrent
 					ret = -1;
 					j->error.ec.assign(boost::asio::error::eof
 						, boost::asio::error::get_misc_category());
-					m_disk_cache.free_buffer((char*)iov.iov_base);
+					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 					l.lock();
 					break;
 				}

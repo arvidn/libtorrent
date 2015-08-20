@@ -410,7 +410,7 @@ void block_cache::bump_lru(cached_piece_entry* p)
 {
 	// move to the top of the LRU list
 	TORRENT_PIECE_ASSERT(p->cache_state == cached_piece_entry::write_lru, p);
-	linked_list* lru_list = &m_lru[p->cache_state];
+	linked_list<cached_piece_entry>* lru_list = &m_lru[p->cache_state];
 
 	// move to the back (MRU) of the list
 	lru_list->erase(p);
@@ -522,8 +522,8 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 
 	TORRENT_PIECE_ASSERT(state < cached_piece_entry::num_lrus, p);
 	TORRENT_PIECE_ASSERT(desired_state < cached_piece_entry::num_lrus, p);
-	linked_list* src = &m_lru[state];
-	linked_list* dst = &m_lru[desired_state];
+	linked_list<cached_piece_entry>* src = &m_lru[state];
+	linked_list<cached_piece_entry>* dst = &m_lru[desired_state];
 
 	src->erase(p);
 	dst->push_back(p);
@@ -579,7 +579,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		j->storage->add_piece(p);
 
 		TORRENT_PIECE_ASSERT(p->cache_state < cached_piece_entry::num_lrus, p);
-		linked_list* lru_list = &m_lru[p->cache_state];
+		linked_list<cached_piece_entry>* lru_list = &m_lru[p->cache_state];
 		lru_list->push_back(p);
 
 		// this piece is part of the ARC cache (as opposed to
@@ -897,7 +897,7 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 	TORRENT_PIECE_ASSERT(pe->ok_to_evict(), pe);
 	TORRENT_PIECE_ASSERT(pe->cache_state < cached_piece_entry::num_lrus, pe);
 	TORRENT_PIECE_ASSERT(pe->jobs.empty(), pe);
-	linked_list* lru_list = &m_lru[pe->cache_state];
+	linked_list<cached_piece_entry>* lru_list = &m_lru[pe->cache_state];
 	if (pe->hash)
 	{
 		TORRENT_PIECE_ASSERT(pe->hash->offset == 0, pe);
@@ -931,7 +931,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	// lru_list is an array of two lists, these are the two ends to evict from,
 	// ordered by preference.
 
-	linked_list* lru_list[3];
+	linked_list<cached_piece_entry>* lru_list[3];
 
 	// however, before we consider any of the proper LRU lists, we evict pieces
 	// from the volatile list. These are low priority pieces that were
@@ -979,7 +979,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		// to iterate over this linked list. Presumably because of the random
 		// access of memory. It would be nice if pieces with no evictable blocks
 		// weren't in this list
-		for (list_iterator i = lru_list[end]->iterate(); i.get() && num > 0;)
+		for (list_iterator<cached_piece_entry> i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
 			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
 			TORRENT_PIECE_ASSERT(pe->in_use, pe);
@@ -1044,7 +1044,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	{
 		for (int pass = 0; pass < 2 && num > 0; ++pass)
 		{
-			for (list_iterator i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
+			for (list_iterator<cached_piece_entry> i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
 			{
 				cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
 				TORRENT_PIECE_ASSERT(pe->in_use, pe);
@@ -1171,7 +1171,7 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 		return;
 
 	// if the ghost list is growing too big, remove the oldest entry
-	linked_list* ghost_list = &m_lru[pe->cache_state + 1];
+	linked_list<cached_piece_entry>* ghost_list = &m_lru[pe->cache_state + 1];
 	while (ghost_list->size() >= m_ghost_size)
 	{
 		cached_piece_entry* p = static_cast<cached_piece_entry*>(ghost_list->front());
@@ -1581,7 +1581,7 @@ void block_cache::check_invariant() const
 	{
 		time_point timeout = min_time();
 
-		for (list_iterator p = m_lru[i].iterate(); p.get(); p.next())
+		for (list_iterator<cached_piece_entry> p = m_lru[i].iterate(); p.get(); p.next())
 		{
 			cached_piece_entry* pe = static_cast<cached_piece_entry*>(p.get());
 			TORRENT_PIECE_ASSERT(pe->cache_state == i, pe);

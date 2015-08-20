@@ -168,7 +168,7 @@ namespace libtorrent
 
 	// list_node is here to be able to link this cache entry
 	// into one of the LRU lists
-	struct TORRENT_EXTRA_EXPORT cached_piece_entry : list_node
+	struct TORRENT_EXTRA_EXPORT cached_piece_entry : list_node<cached_piece_entry>
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
@@ -362,7 +362,7 @@ namespace libtorrent
 		std::pair<iterator, iterator> all_pieces() const;
 		int num_pieces() const { return m_pieces.size(); }
 
-		list_iterator write_lru_pieces() const
+		list_iterator<cached_piece_entry> write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
 		int num_write_lru_pieces() const { return m_lru[cached_piece_entry::write_lru].size(); }
@@ -491,7 +491,7 @@ namespace libtorrent
 		// [2] = read-LRU1-ghost
 		// [3] = read-LRU2
 		// [4] = read-LRU2-ghost
-		linked_list m_lru[cached_piece_entry::num_lrus];
+		linked_list<cached_piece_entry> m_lru[cached_piece_entry::num_lrus];
 
 		// this is used to determine whether to evict blocks from
 		// L1 or L2.

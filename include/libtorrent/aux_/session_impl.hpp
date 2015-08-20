@@ -773,7 +773,7 @@ namespace libtorrent
 			// which torrents should be loaded into RAM and which ones
 			// shouldn't. Each torrent that's loaded is part of this
 			// list.
-			linked_list m_torrent_lru;
+			linked_list<torrent> m_torrent_lru;
 
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
 

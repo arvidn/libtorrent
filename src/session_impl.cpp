@@ -1372,8 +1372,8 @@ namespace aux {
 		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
 		{
 #ifdef TORRENT_DEBUG
-			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
-			while (i != NULL && i != t) i = static_cast<torrent*>(i->next);
+			torrent* i = m_torrent_lru.front();
+			while (i != NULL && i != t) i = i->next;
 			TORRENT_ASSERT(i == t);
 #endif
 
@@ -1412,8 +1412,8 @@ namespace aux {
 		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
 
 #if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		torrent* i = static_cast<torrent*>(m_torrent_lru.front());
-		while (i != NULL && i != t) i = static_cast<torrent*>(i->next);
+		torrent* i = m_torrent_lru.front();
+		while (i != NULL && i != t) i = i->next;
 		TORRENT_ASSERT(i == t);
 #endif
 
@@ -1451,8 +1451,8 @@ namespace aux {
 		if (ignore->next != NULL || ignore->prev != NULL || m_torrent_lru.front() == ignore)
 		{
 #ifdef TORRENT_DEBUG
-			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
-			while (i != NULL && i != ignore) i = static_cast<torrent*>(i->next);
+			torrent* i = m_torrent_lru.front();
+			while (i != NULL && i != ignore) i = i->next;
 			TORRENT_ASSERT(i == ignore);
 #endif
 			++loaded_limit;
@@ -1462,11 +1462,11 @@ namespace aux {
 		{
 			// we're at the limit of loaded torrents. Find the least important
 			// torrent and unload it. This is done with an LRU.
-			torrent* i = static_cast<torrent*>(m_torrent_lru.front());
+			torrent* i = m_torrent_lru.front();
 
 			if (i == ignore)
 			{
-				i = static_cast<torrent*>(i->next);
+				i = i->next;
 				if (i == NULL) break;
 			}
 			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
@@ -5761,12 +5761,12 @@ retry:
 		// clear the torrent LRU. We do this to avoid having the torrent
 		// destructor assert because it's still linked into the lru list
 #if TORRENT_USE_ASSERTS
-		list_node* i = m_torrent_lru.get_all();
+		list_node<torrent>* i = m_torrent_lru.get_all();
 		// clear the prev and next pointers in all torrents
 		// to avoid the assert when destructing them
 		while (i)
 		{
-			list_node* tmp = i;
+			list_node<torrent>* tmp = i;
 			i = i->next;
 			tmp->next = NULL;
 			tmp->prev = NULL;
@@ -6727,9 +6727,9 @@ retry:
 #else
 		std::set<torrent*> unique_torrents;
 #endif
-		for (list_iterator i = m_torrent_lru.iterate(); i.get(); i.next())
+		for (list_iterator<torrent> i = m_torrent_lru.iterate(); i.get(); i.next())
 		{
-			torrent* t = static_cast<torrent*>(i.get());
+			torrent* t = i.get();
 			TORRENT_ASSERT(t->is_loaded());
 			TORRENT_ASSERT(unique_torrents.count(t) == 0);
 			unique_torrents.insert(t);

@@ -37,40 +37,46 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 3 enable_if T derives from list_node<T>
+	template <typename T>
 	struct list_node
 	{
 		list_node() : prev(0), next(0) {}
-		list_node* prev;
-		list_node* next;
+		T* prev;
+		T* next;
 	};
 
+	template <typename T>
 	struct list_iterator
 	{
+		template <typename U>
 		friend struct linked_list;
-		list_node const* get() const { return m_current; }
-		list_node* get() { return m_current; }
+
+		T const* get() const { return m_current; }
+		T* get() { return m_current; }
 		void next() { m_current = m_current->next; }
 		void prev() { m_current = m_current->prev; }
 
 	private:
-		list_iterator(list_node* cur)
+		list_iterator(T* cur)
 			: m_current(cur) {}
 		// the current element
-		list_node* m_current;
+		T* m_current;
 	};
 
-	// TOOD: 3 make this a template and add a unit test
+	// TOOD: 3 add a unit test
+	template <typename T>
 	struct linked_list
 	{
-		linked_list(): m_first(0), m_last(0), m_size(0) {}
+		linked_list(): m_first(NULL), m_last(NULL), m_size(0) {}
 
-		list_iterator iterate() const
-		{ return list_iterator(m_first); }
+		list_iterator<T> iterate() const
+		{ return list_iterator<T>(m_first); }
 
-		void erase(list_node* e)
+		void erase(T* e)
 		{
 #if TORRENT_USE_ASSERTS
-			list_node* tmp = m_first;
+			T* tmp = m_first;
 			bool found = false;
 			while (tmp)
 			{
@@ -101,7 +107,7 @@ namespace libtorrent
 			--m_size;
 			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
 		}
-		void push_front(list_node* e)
+		void push_front(T* e)
 		{
 			TORRENT_ASSERT(e->next == 0);
 			TORRENT_ASSERT(e->prev== 0);
@@ -113,7 +119,7 @@ namespace libtorrent
 			m_first = e;
 			++m_size;
 		}
-		void push_back(list_node* e)
+		void push_back(T* e)
 		{
 			TORRENT_ASSERT(e->next == 0);
 			TORRENT_ASSERT(e->prev== 0);
@@ -125,25 +131,25 @@ namespace libtorrent
 			m_last = e;
 			++m_size;
 		}
-		list_node* get_all()
+		T* get_all()
 		{
 			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
 			TORRENT_ASSERT(m_first == 0 || m_first->prev == 0);
-			list_node* e = m_first;
+			T* e = m_first;
 			m_first = 0;
 			m_last = 0;
 			m_size = 0;
 			return e;
 		}
-		list_node* back() { return m_last; }
-		list_node* front() { return m_first; }
-		list_node const* back() const { return m_last; }
-		list_node const* front() const { return m_first; }
+		T* back() { return m_last; }
+		T* front() { return m_first; }
+		T const* back() const { return m_last; }
+		T const* front() const { return m_first; }
 		int size() const { return m_size; }
 		bool empty() const { return m_size == 0; }
 	private:
-		list_node* m_first;
-		list_node* m_last;
+		T* m_first;
+		T* m_last;
 		int m_size;
 	};
 }
