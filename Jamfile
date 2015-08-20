@@ -296,7 +296,6 @@ rule warnings ( properties * )
 		result += <cflags>-Wparentheses ;
 		result += <cflags>-Wvla ;
 		result += <cflags>-Wc++11-compat ;
-		result += <cflags>-Wc++14-compat ;
 
 		result += <cflags>-Wno-format-zero-length ;
 
