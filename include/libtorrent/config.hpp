@@ -380,7 +380,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_UNUSED(x) (void)(x)
 
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+#if (defined _MSC_VER && _MSC_VER < 1900) && !defined TORRENT_MINGW
 
 #include <stdarg.h>
 
@@ -402,8 +402,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 }
 
 #define strtoll _strtoi64
-#else
-#include <limits.h>
 #endif
 
 // at the highest warning level, clang actually warns about functions
