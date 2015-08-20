@@ -109,6 +109,7 @@ namespace libtorrent
 		for (int i = 0; i < piece_pos::num_download_categories; ++i)
 			m_downloads[i].clear();
 		m_block_info.clear();
+		m_free_block_infos.clear();
 
 		m_num_filtered += m_num_have_filtered;
 		m_num_have_filtered = 0;
