@@ -338,6 +338,12 @@ rule building ( properties * )
 		result += <define>TORRENT_EXPORT_EXTRA ;
 	}
 
+	if <toolset>msvc in $(properties)
+	{
+		# allow larger .obj files (with more sections)
+		result += <cflags>/bigobj ;
+	}
+
 	if ( <variant>debug in $(properties)
 		&& ( <toolset>clang in $(properties)
 			|| <toolset>gcc in $(properties)
