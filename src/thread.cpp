@@ -74,7 +74,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(l.locked());
 		// wow, this is quite a hack
-		pthread_cond_wait(&m_cond, reinterpret_cast<::pthread_mutex_t*>(&l.mutex()));
+		pthread_cond_wait(&m_cond, reinterpret_cast<pthread_mutex_t*>(&l.mutex()));
 	}
 
 	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
@@ -89,7 +89,7 @@ namespace libtorrent
 		ts.tv_sec = tv.tv_sec + total_seconds(rel_time) + microseconds / 1000000;
 
 		// wow, this is quite a hack
-		pthread_cond_timedwait(&m_cond, reinterpret_cast<::pthread_mutex_t*>(&l.mutex()), &ts);
+		pthread_cond_timedwait(&m_cond, reinterpret_cast<pthread_mutex_t*>(&l.mutex()), &ts);
 	}
 
 	void condition_variable::notify_all()
