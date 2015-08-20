@@ -58,13 +58,13 @@ cache:
 - C:\OpenSSL-Win32
 build_script:
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off
+- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include"
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off
+- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include"
 - cd %ROOT_DIRECTORY%\bindings\python
-- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" warnings=off stage_module
+- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include="C:\\OpenSSL-Win32\\include" stage_module
 - python test.py
 - if %variant% == "test_debug" (
   cd %ROOT_DIRECTORY%\simulation
-  && b2.exe --hash -j2 crypto=built-in warnings=off %compiler% )
+  && b2.exe --hash -j2 crypto=built-in %compiler% )
 
