@@ -46,15 +46,15 @@ install:
 
 script:
   - cd test
-  - bjam --hash -j3 variant=$variant warnings=off -l900 $CC
+  - bjam --hash -j3 variant=$variant -l900 $CC
   - cd ../examples
-  - bjam --hash -j3 variant=$variant warnings=off $CC
+  - bjam --hash -j3 variant=$variant $CC
   - cd ../bindings/python
-  - bjam --hash -j3 variant=$variant warnings=off $CC stage_module
+  - bjam --hash -j3 variant=$variant $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
   - if [ $sim ]; then
     cd ../../simulation;
-    bjam --hash -j3 crypto=built-in warnings=off $CC;
+    bjam --hash -j3 crypto=built-in $CC;
     fi
   - ccache --show-stats
 

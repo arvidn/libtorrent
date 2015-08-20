@@ -268,10 +268,10 @@ rule warnings ( properties * )
 	{
 		result += <cflags>-Weverything ;
 		result += <cflags>-Wno-documentation ;
-		result += <cflags>-Wno-c++98-compat-pedantic ;
+		result += <cxxflags>-Wno-c++98-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
-		result += <cflags>-Wno-c++98-compat ;
+		result += <cxxflags>-Wno-c++98-compat ;
 		result += <cflags>-Wno-exit-time-destructors ;
 		result += <cflags>-Wno-documentation-unknown-command ;
 		result += <cflags>-Wno-disabled-macro-expansion ;
@@ -295,7 +295,7 @@ rule warnings ( properties * )
 #		result += <cflags>-Wmisleading-indentation ;
 		result += <cflags>-Wparentheses ;
 		result += <cflags>-Wvla ;
-		result += <cflags>-Wc++11-compat ;
+		result += <cxxflags>-Wc++11-compat ;
 
 		result += <cflags>-Wno-format-zero-length ;
 
