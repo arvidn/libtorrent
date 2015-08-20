@@ -2646,17 +2646,7 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 {
 	INVARIANT_CHECK;
 
-	// if we're in a RAM constrained environment, don't increase
-	// the buffer size for interfaces with large MTUs. Just stick
-	// to ethernet frame sizes
-	if (m_sm->allow_dynamic_sock_buf())
-	{
-		// Make sure that we have enough socket buffer space
-		// for sending and receiving packets of this size
-		// add 10% for smaller ACKs and other overhead
-		m_sm->set_sock_buf(link_mtu * 11 / 10);
-	}
-	else if (link_mtu > TORRENT_ETHERNET_MTU)
+	if (link_mtu > TORRENT_ETHERNET_MTU)
 	{
 		// we can't use larger packets than this since we're
 		// not allocating any more memory for socket buffers

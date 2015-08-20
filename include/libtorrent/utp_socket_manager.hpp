@@ -87,7 +87,6 @@ namespace libtorrent
 		int connect_timeout() const { return m_sett.get_int(settings_pack::utp_connect_timeout); }
 		int min_timeout() const { return m_sett.get_int(settings_pack::utp_min_timeout); }
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
-		bool allow_dynamic_sock_buf() const { return m_sett.get_bool(settings_pack::utp_dynamic_sock_buf); }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
 		void set_sock_buf(int size);
@@ -123,7 +122,7 @@ namespace libtorrent
 		// user callback function to indicate bytes have been
 		// sent or received.
 		std::vector<utp_socket_impl*> m_drained_event;
-		
+
 		// list of sockets that received EWOULDBLOCK from the
 		// underlying socket. They are notified when the socket
 		// becomes writable again

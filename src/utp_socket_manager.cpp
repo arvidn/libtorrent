@@ -90,34 +90,10 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-		if (aux::time_now() - seconds(60) > m_last_route_update)
-		{
-			m_last_route_update = aux::time_now();
-			error_code ec;
-			m_routes = enum_routes(m_sock.get_io_service(), ec);
-		}
 
 		int mtu = 0;
-		if (!m_routes.empty())
-		{
-			for (std::vector<ip_route>::iterator i = m_routes.begin()
-				, end(m_routes.end()); i != end; ++i)
-			{
-				if (!match_addr_mask(addr, i->destination, i->netmask)) continue;
-
-				// assume that we'll actually use the route with the largest
-				// MTU (seems like a reasonable assumption).
-				// this could however be improved by using the route metrics
-				// and the prefix length of the netmask to order the matches
-				if (mtu < i->mtu) mtu = i->mtu;
-			}
-		}
-
-		if (mtu == 0)
-		{
-			if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
-			else mtu = TORRENT_ETHERNET_MTU;
-		}
+		if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
+		else mtu = TORRENT_ETHERNET_MTU;
 
 #if defined __APPLE__
 		// apple has a very strange loopback. It appears you can't

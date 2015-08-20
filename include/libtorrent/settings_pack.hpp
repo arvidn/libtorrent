@@ -477,16 +477,6 @@ namespace libtorrent
 			// libtorrent API.
 			report_web_seed_downloads,
 
-			// controls if the uTP socket manager is allowed to increase the
-			// socket buffer if a network interface with a large MTU is used (such
-			// as loopback or ethernet jumbo frames). This defaults to true and
-			// might improve uTP throughput. For RAM constrained systems,
-			// disabling this typically saves around 30kB in user space and
-			// probably around 400kB in kernel socket buffers (it adjusts the send
-			// and receive buffer size on the kernel socket, both for IPv4 and
-			// IPv6).
-			utp_dynamic_sock_buf,
-
 			// set to true if uTP connections should be rate limited This option
 			// is *DEPRECATED*, please use set_peer_class_filter() instead.
 #ifndef TORRENT_NO_DEPRECATE

@@ -167,9 +167,6 @@ namespace libtorrent
 		// whole pieces
 		set.set_bool(settings_pack::coalesce_reads, false);
 		set.set_bool(settings_pack::coalesce_writes, false);
-
-		// disallow the buffer size to grow for the uTP socket
-		set.set_bool(settings_pack::utp_dynamic_sock_buf, false);
 	}
 
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set)
@@ -275,14 +272,11 @@ namespace libtorrent
 
 		// always stuff at least 1 MiB down each peer
 		// pipe, to quickly ramp up send rates
- 		set.set_int(settings_pack::send_buffer_low_watermark, 1 * 1024 * 1024);
+		set.set_int(settings_pack::send_buffer_low_watermark, 1 * 1024 * 1024);
 
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.set_int(settings_pack::max_failcount, 1);
-
-		// allow the buffer size to grow for the uTP socket
-		set.set_bool(settings_pack::utp_dynamic_sock_buf, true);
 
 		// we're likely to have more than 4 cores on a high
 		// performance machine. One core is needed for the
