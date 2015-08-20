@@ -267,8 +267,10 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
@@ -289,9 +291,11 @@ namespace libtorrent {
 
 		virtual std::auto_ptr<alert> clone_impl() const = 0;
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-
 #endif
+
+#endif // TORRENT_NO_DEPRECATE
 
 	private:
 		// explicitly disallow assignment, to silence msvc warning

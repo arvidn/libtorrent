@@ -117,8 +117,10 @@ namespace libtorrent
 		return false;
 	}
 
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 	void alert_manager::set_dispatch_function(
 		boost::function<void(std::auto_ptr<alert>)> const& fun)
@@ -141,7 +143,9 @@ namespace libtorrent
 		}
 	}
 
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 
 #endif
 
