@@ -1788,6 +1788,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		TORRENT_ASSERT(is_open());
 
 #if TORRENT_USE_PREADV
+		TORRENT_UNUSED(flags);
+
 		int ret = iov(&::preadv, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
 
@@ -1836,6 +1838,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		ec.clear();
 
 #if TORRENT_USE_PREADV
+		TORRENT_UNUSED(flags);
+
 		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
 

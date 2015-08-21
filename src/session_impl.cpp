@@ -320,6 +320,8 @@ namespace aux {
 	// be the hex encoded info-hash
 	int servername_callback(SSL *s, int *ad, void *arg)
 	{
+		TORRENT_UNUSED(ad);
+
 		session_impl* ses = (session_impl*)arg;
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 

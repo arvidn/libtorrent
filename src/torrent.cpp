@@ -5845,6 +5845,8 @@ namespace libtorrent
 	std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
 		, std::string pw)
 	{
+		TORRENT_UNUSED(p);
+
 		if (p != boost::asio::ssl::context::for_reading) return "";
 		return pw;
 	}
