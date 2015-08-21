@@ -2293,7 +2293,8 @@ namespace libtorrent
 				bool peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
-					, t->has_piece_passed(r.piece), peer_interested, false);
+					, t->has_piece_passed(r.piece)
+					, peer_interested, false);
 			}
 
 			// be lenient and pretend that the peer said it was interested

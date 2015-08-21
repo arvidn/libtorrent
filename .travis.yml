@@ -46,11 +46,11 @@ install:
 
 script:
   - cd test
-  - bjam --hash -j3 variant=$variant -l900 $CC
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $CC
   - cd ../examples
-  - bjam --hash -j3 variant=$variant $CC
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $CC
   - cd ../bindings/python
-  - bjam --hash -j3 variant=$variant $CC stage_module
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $CC stage_module
   - LD_LIBRARY_PATH=. python test.py
   - if [ $sim ]; then
     cd ../../simulation;

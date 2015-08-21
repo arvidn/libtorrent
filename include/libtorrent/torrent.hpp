@@ -787,6 +787,7 @@ namespace libtorrent
 		bool has_piece_passed(int index) const
 		{
 			if (!valid_metadata()) return false;
+			if (index < 0 || index >= torrent_file().num_pieces()) return false;
 			if (!has_picker()) return m_have_all;
 			return m_picker->has_piece_passed(index);
 		}
