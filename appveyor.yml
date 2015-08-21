@@ -10,22 +10,27 @@ environment:
     compiler: msvc-12.0
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-10.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib"'
+    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2010\\include"'
   - variant: test_debug
     compiler: msvc-14.0
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_barebones
     compiler: msvc-12.0
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_release
     compiler: msvc-12.0
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
 
 # mingw and boost.random don't like each other. Comment this back in once there
 # is support
@@ -45,6 +50,13 @@ install:
   && copy c:\openssl-1.0.1p-vs2013\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\libeay32.lib
   && copy c:\openssl-1.0.1p-vs2013\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib\ssleay32.lib
   && copy c:\openssl-1.0.1p-vs2013\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib\libeay32.lib )
+- if not exist c:\openssl-1.0.1p-vs2010\nul (
+  appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z
+  && 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z
+  && copy c:\openssl-1.0.1p-vs2010\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\ssleay32.lib
+  && copy c:\openssl-1.0.1p-vs2010\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\libeay32.lib
+  && copy c:\openssl-1.0.1p-vs2010\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib\ssleay32.lib
+  && copy c:\openssl-1.0.1p-vs2010\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib\libeay32.lib )
 - cd %ROOT_DIRECTORY%
 - set BOOST_ROOT=c:\Libraries\boost
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -63,16 +75,18 @@ install:
 - echo %ROOT_DIRECTORY%
 cache:
 - C:\openssl-1.0.1p-vs2013
+- C:\openssl-1.0.1p-vs2010
 build_script:
-- cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include="c:\\openssl-1.0.1p-vs2013\\include"
-- cd %ROOT_DIRECTORY%\test
-- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include="c:\\openssl-1.0.1p-vs2013\\include"
-- b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include="c:\\openssl-1.0.1p-vs2013\\include"
-- cd %ROOT_DIRECTORY%\bindings\python
-- b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include="c:\\openssl-1.0.1p-vs2013\\include"
-- python test.py
-- if %variant% == "test_debug" (
-  cd %ROOT_DIRECTORY%\simulation
-  && b2.exe --hash -j2 crypto=built-in %compiler% )
+- type "C:\\Program Files (x86)\\Microsoft Visual Studio 10.0\\VC\\vcvarsall.bat" x86_amd64
+#- cd %ROOT_DIRECTORY%\examples
+#- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
+#- cd %ROOT_DIRECTORY%\test
+#- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include=%include%
+#- b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
+#- cd %ROOT_DIRECTORY%\bindings\python
+#- b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include=%include%
+#- python test.py
+#- if %variant% == "test_debug" (
+#  cd %ROOT_DIRECTORY%\simulation
+#  && b2.exe --hash -j2 crypto=built-in %compiler% )
 
