@@ -37,10 +37,10 @@ before_install:
   - git submodule update --init --recursive
 
 install:
-  - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
-  - 'echo "using clang : cpp11 : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
-  - 'echo "using clang : cpp98 : ccache clang++ : <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
+  - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
+  - 'echo "using clang : cpp11 : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
+  - 'echo "using clang : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
