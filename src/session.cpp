@@ -380,6 +380,8 @@ namespace libtorrent
 			add_extension(create_ut_metadata_plugin);
 			add_extension(create_smart_ban_plugin);
 		}
+#else
+		TORRENT_UNUSED(flags);
 #endif
 
 		m_impl->start_session(pack);

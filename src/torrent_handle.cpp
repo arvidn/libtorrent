@@ -311,6 +311,9 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL2(add_extension, ext, userdata);
+#else
+		TORRENT_UNUSED(ext);
+		TORRENT_UNUSED(userdata);
 #endif
 	}
 

@@ -54,6 +54,8 @@ void peer_connection_handle::add_extension(boost::shared_ptr<peer_plugin> ext)
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->add_extension(ext);
+#else
+	TORRENT_UNUSED(ext);
 #endif
 }
 
@@ -64,6 +66,7 @@ peer_plugin const* peer_connection_handle::find_plugin(char const* type)
 	TORRENT_ASSERT(pc);
 	return pc->find_plugin(type);
 #else
+	TORRENT_UNUSED(type);
 	return NULL;
 #endif
 }
@@ -228,6 +231,10 @@ void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 	va_start(v, fmt);
 	pc->peer_log(direction, event, fmt, v);
 	va_end(v);
+#else
+	TORRENT_UNUSED(direction);
+	TORRENT_UNUSED(event);
+	TORRENT_UNUSED(fmt);
 #endif
 }
 
@@ -304,6 +311,8 @@ void bt_peer_connection_handle::switch_send_crypto(boost::shared_ptr<crypto_plug
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_send_crypto(crypto);
+#else
+	TORRENT_UNUSED(crypto);
 #endif
 }
 
@@ -313,6 +322,8 @@ void bt_peer_connection_handle::switch_recv_crypto(boost::shared_ptr<crypto_plug
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	pc->switch_recv_crypto(crypto);
+#else
+	TORRENT_UNUSED(crypto);
 #endif
 }
 

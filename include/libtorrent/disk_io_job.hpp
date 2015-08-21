@@ -227,7 +227,7 @@ namespace libtorrent
 		// flags controlling this job
 		boost::uint8_t flags;
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		bool in_use:1;
 
 		// set to true when the job is added to the completion queue.

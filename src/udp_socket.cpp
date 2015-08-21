@@ -243,6 +243,8 @@ void udp_socket::on_writable(error_code const& ec, udp::socket* s)
 	if (s == &m_ipv6_sock)
 		m_v6_write_subscribed = false;
 	else
+#else
+		TORRENT_UNUSED(s);
 #endif
 		m_v4_write_subscribed = false;
 
@@ -268,6 +270,8 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		--m_v6_outstanding;
 	}
 	else
+#else
+		TORRENT_UNUSED(s);
 #endif
 	{
 		TORRENT_ASSERT(m_v4_outstanding > 0);

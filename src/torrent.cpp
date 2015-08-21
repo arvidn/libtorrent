@@ -928,7 +928,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(prev == NULL && next == NULL);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -2244,6 +2244,8 @@ namespace libtorrent
 			if (!pp) continue;
 			if (was_introduced_by(pp, ep)) return p;
 		}
+#else
+		TORRENT_UNUSED(ep);
 #endif
 		return NULL;
 	}
@@ -4312,6 +4314,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			(*p)->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
 				, index, milliseconds);
+#else
+			TORRENT_UNUSED(milliseconds);
 #endif
 			(*p)->announce_piece(index);
 		}
@@ -8702,7 +8706,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -11696,7 +11700,7 @@ namespace libtorrent
 
 		st->state = static_cast<torrent_status::state_t>(m_state);
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		if (st->state == torrent_status::finished
 			|| st->state == torrent_status::seeding)
 		{

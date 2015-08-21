@@ -127,7 +127,7 @@ namespace libtorrent
 		, m_dont_have_id(0)
 		, m_share_mode_id(0)
 #endif
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		, m_in_constructor(true)
 #endif
 	{

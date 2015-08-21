@@ -62,7 +62,7 @@ namespace libtorrent
 
 		new (ptr) disk_io_job;
 		ptr->action = static_cast<disk_io_job::action_t>(type);
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		ptr->in_use = true;
 #endif
 		return ptr;
@@ -72,7 +72,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j);
 		if (j == 0) return;
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		TORRENT_ASSERT(j->in_use);
 		j->in_use = false;
 #endif

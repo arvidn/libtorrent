@@ -140,6 +140,7 @@ namespace libtorrent
 			return memcmp(&b[0], teredo_prefix, 4) == 0;
 		} TORRENT_CATCH(std::exception&) { return false; }
 #else
+		TORRENT_UNUSED(addr);
 		return false;
 #endif
 	}

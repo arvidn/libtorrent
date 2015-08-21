@@ -384,6 +384,8 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing, "BIND", "dst: %s ec: %s"
 			, print_endpoint(bound_ip).c_str()
 			, ec.message().c_str());
+#else
+		TORRENT_UNUSED(bound_ip);
 #endif
 		if (ec)
 		{
@@ -1119,6 +1121,8 @@ namespace libtorrent
 				(*i)->on_piece_pass(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
+#else
+		TORRENT_UNUSED(index);
 #endif
 	}
 
@@ -2172,6 +2176,8 @@ namespace libtorrent
 		{
 			if (!(*i)->can_disconnect(ec)) return false;
 		}
+#else
+		TORRENT_UNUSED(ec);
 #endif
 		return true;
 	}
@@ -3083,6 +3089,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 		m_ses.add_dht_node(udp::endpoint(
 			m_remote.address(), listen_port));
+#else
+		TORRENT_UNUSED(listen_port);
 #endif
 	}
 

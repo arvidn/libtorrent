@@ -697,6 +697,7 @@ namespace aux {
 	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_UNUSED(flags); // potentially unused
 
 		entry& e = *eptr;
 
@@ -2729,6 +2730,8 @@ retry:
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" CLOSING CONNECTION %s : %s"
 			, print_endpoint(p->remote()).c_str(), ec.message().c_str());
+#else
+		TORRENT_UNUSED(ec);
 #endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
@@ -4089,6 +4092,9 @@ retry:
 				return handle.native_handle();
 			}
 		}
+#else
+		TORRENT_UNUSED(pc);
+		TORRENT_UNUSED(info_hash);
 #endif
 		return boost::shared_ptr<torrent>();
 	}
@@ -6597,6 +6603,11 @@ retry:
 				&& i->handler(request.addr, request.message, response))
 				return true;
 		}
+#else
+		TORRENT_UNUSED(query);
+		TORRENT_UNUSED(query_len);
+		TORRENT_UNUSED(request);
+		TORRENT_UNUSED(response);
 #endif
 		return false;
 	}

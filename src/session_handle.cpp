@@ -328,6 +328,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(set_dht_settings, settings);
+#else
+		TORRENT_UNUSED(settings);
 #endif
 	}
 
@@ -353,6 +355,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(add_dht_node_name, node);
+#else
+		TORRENT_UNUSED(node);
 #endif
 	}
 
@@ -360,6 +364,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(add_dht_router, node);
+#else
+		TORRENT_UNUSED(node);
 #endif
 	}
 
@@ -367,6 +373,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(dht_get_immutable_item, target);
+#else
+		TORRENT_UNUSED(target);
 #endif
 	}
 
@@ -375,6 +383,9 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL2(dht_get_mutable_item, key, salt);
+#else
+		TORRENT_UNUSED(key);
+		TORRENT_UNUSED(salt);
 #endif
 	}
 
@@ -397,6 +408,10 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL3(dht_put_mutable_item, key, cb, salt);
+#else
+		TORRENT_UNUSED(key);
+		TORRENT_UNUSED(cb);
+		TORRENT_UNUSED(salt);
 #endif
 	}
 
@@ -404,6 +419,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(dht_get_peers, info_hash);
+#else
+		TORRENT_UNUSED(info_hash);
 #endif
 	}
 
@@ -411,6 +428,10 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL3(dht_announce, info_hash, port, flags);
+#else
+		TORRENT_UNUSED(info_hash);
+		TORRENT_UNUSED(port);
+		TORRENT_UNUSED(flags);
 #endif
 	}
 
@@ -418,6 +439,10 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL3(dht_direct_request, ep, e, userdata);
+#else
+		TORRENT_UNUSED(ep);
+		TORRENT_UNUSED(e);
+		TORRENT_UNUSED(userdata);
 #endif
 	}
 
@@ -435,6 +460,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL1(start_dht, startup_state);
+#else
+		TORRENT_UNUSED(startup_state);
 #endif
 	}
 #endif // TORRENT_NO_DEPRECATE
@@ -443,6 +470,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL1(add_extension, ext);
+#else
+		TORRENT_UNUSED(ext);
 #endif
 	}
 
@@ -450,6 +479,8 @@ namespace libtorrent
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		TORRENT_ASYNC_CALL1(add_ses_extension, ext);
+#else
+		TORRENT_UNUSED(ext);
 #endif
 	}
 
