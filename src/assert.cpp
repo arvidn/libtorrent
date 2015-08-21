@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #ifdef TORRENT_PRODUCTION_ASSERTS
 #include <boost/atomic.hpp>
 #endif
@@ -51,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <stdlib.h>
 #include <stdarg.h>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // uClibc++ doesn't have cxxabi.h
 #if defined __GNUC__ && __GNUC__ >= 3 \
@@ -214,8 +218,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
 char const* libtorrent_assert_log = "asserts.log";
+namespace {
 // the number of asserts we've printed to the log
 boost::atomic<int> assert_counter(0);
+}
 #endif
 
 TORRENT_FORMAT(1,2)
@@ -239,7 +245,10 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 #endif
 }
 
-TORRENT_NO_RETURN TORRENT_EXPORT void assert_fail(char const* expr, int line
+#ifndef TORRENT_PRODUCTION_ASSERTS
+TORRENT_NO_RETURN
+#endif
+TORRENT_EXPORT void assert_fail(char const* expr, int line
 	, char const* file, char const* function, char const* value, int kind)
 {
 #ifdef TORRENT_PRODUCTION_ASSERTS

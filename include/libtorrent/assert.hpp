@@ -71,7 +71,8 @@ extern char const* libtorrent_assert_log;
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...) TORRENT_FORMAT(1,2);
 
-#if TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING
+#if (TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING) \
+	&& !defined TORRENT_PRODUCTION_ASSERTS
 TORRENT_NO_RETURN
 #endif
 TORRENT_EXPORT void assert_fail(const char* expr, int line
