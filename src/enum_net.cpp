@@ -416,6 +416,8 @@ namespace libtorrent
 		std::vector<ip_interface> ret;
 #if defined TORRENT_BUILD_SIMULATOR
 
+		TORRENT_UNUSED(ec);
+
 		ip_interface wan;
 		wan.interface_address = ios.get_ip();
 		wan.netmask = address_v4::from_string("255.255.255.255");
@@ -703,6 +705,8 @@ namespace libtorrent
 		TORRENT_UNUSED(ios);
 
 #ifdef TORRENT_BUILD_SIMULATOR
+
+		TORRENT_UNUSED(ec);
 
 		ip_route r;
 		r.destination = address_v4();

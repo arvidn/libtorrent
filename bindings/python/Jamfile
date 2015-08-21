@@ -147,6 +147,9 @@ my-python-extension py_libtorrent
     src/error_code.cpp
   : # requirements
     <include>src
+    <toolset>gcc:<cxxflags>-Wno-deprecated-declarations
+    <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
+    <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
     <conditional>@libtorrent_linking
   : # usage-requirements
     <conditional>@libtorrent_linking
