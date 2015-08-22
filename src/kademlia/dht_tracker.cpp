@@ -87,7 +87,7 @@ namespace libtorrent { namespace dht
 		entry const* nid = e->find_key("node-id");
 		if (nid == 0 || nid->type() != entry::string_t || nid->string().length() != 20)
 			return (node_id::min)();
-		return node_id(node_id(nid->string().c_str()));
+		return node_id(nid->string().c_str());
 	}
 
 	} // anonymous namespace
