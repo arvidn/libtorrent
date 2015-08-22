@@ -185,7 +185,6 @@ namespace libtorrent
 		SET(no_recheck_incomplete_resume, false, 0),
 		SET(anonymous_mode, false, &session_impl::update_anonymous_mode),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
-		SET(utp_dynamic_sock_buf, true, 0),
 		DEPRECATED_SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
 		SET(announce_double_nat, false, 0),
 		SET(seeding_outgoing_connections, true, 0),
