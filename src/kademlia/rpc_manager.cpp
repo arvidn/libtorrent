@@ -300,18 +300,23 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 		, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
+	if (m.message.dict_find_string_value("y") == "e") 
+	{
+		// it's an error.
+#ifndef TORRENT_DISABLE_LOGGING
+		bdecode_node err_ent = m.message.dict_find("e");
+		TORRENT_ASSERT(err_ent);
+		m_log->log(dht_logger::rpc_manager, "reply with error from %s: %s"
+			, print_endpoint(m.addr).c_str(), err_ent.list_string_value_at(1).c_str());
+#endif
+		o->reply(m);
+		return false;
+	}
+
 	bdecode_node ret_ent = m.message.dict_find_dict("r");
 	if (!ret_ent)
 	{
-		// it may be an error
-		ret_ent = m.message.dict_find("e");
 		o->timeout();
-		if (!ret_ent)
-		{
-			entry e;
-			incoming_error(e, "missing 'r' key");
-			m_sock->send_packet(e, m.addr, 0);
-		}
 		return false;
 	}
 
@@ -319,9 +324,6 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	if (!node_id_ent || node_id_ent.string_length() != 20)
 	{
 		o->timeout();
-		entry e;
-		incoming_error(e, "missing 'id' key");
-		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
@@ -329,9 +331,6 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();
-		entry e;
-		incoming_error(e, "invalid node ID");
-		m_sock->send_packet(e, m.addr, 0);
 		return false;
 	}
 
