@@ -462,7 +462,7 @@ bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
 } // anonymous namespace
 
 node_entry* routing_table::find_node(udp::endpoint const& ep
-	, routing_table::table_t::iterator* bucket) 
+	, routing_table::table_t::iterator* bucket)
 {
 	for (table_t::iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
@@ -489,7 +489,7 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 }
 
 void routing_table::remove_node(node_entry* n
-	, routing_table::table_t::iterator bucket) 
+	, routing_table::table_t::iterator bucket)
 {
 	INVARIANT_CHECK;
 
@@ -612,7 +612,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			remove_node(existing, existing_bucket);
 		}
 	}
-	
+
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
@@ -719,8 +719,10 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// can we split the bucket?
 	// only nodes that haven't failed can split the bucket, and we can only
 	// split the last bucket
-	bool can_split = (boost::next(i) == m_buckets.end() && m_buckets.size() < 159)
-		&& e.fail_count() == 0;
+	const bool can_split = (boost::next(i) == m_buckets.end()
+		&& m_buckets.size() < 159)
+		&& e.fail_count() == 0
+		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
 
 	if (e.pinged() && e.fail_count() == 0)
 	{
@@ -759,7 +761,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			m_ips.insert(e.addr().to_v4().to_bytes());
 			return node_added;
 		}
-		
+
 		// in order to provide as few lookups as possible before finding
 		// the data someone is looking for, make sure there is an affinity
 		// towards having a good spread of node IDs in each bucket
@@ -1056,7 +1058,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	// claiming the same ID. The node we have in our routing
 	// table is not necessarily stale
 	if (j->ep() != ep) return;
-	
+
 	if (rb.empty())
 	{
 		j->timed_out();

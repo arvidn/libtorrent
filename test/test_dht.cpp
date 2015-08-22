@@ -443,6 +443,7 @@ struct obs : dht::dht_observer
 };
 
 // TODO: test obfuscated_get_peers
+// TODO: 3 split this test up into smaller test cases
 TORRENT_TEST(dht)
 {
 	dht_settings sett;
@@ -934,7 +935,7 @@ TORRENT_TEST(dht)
 #ifdef TORRENT_USE_VALGRIND
 		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
 #endif
-		// break the signature 
+		// break the signature
 		signature[2] ^= 0xaa;
 
 		fprintf(stderr, "PUT broken signature\n");
@@ -1064,19 +1065,56 @@ TORRENT_TEST(dht)
 		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
 		routing_table tbl(id, 8, sett, &observer);
-   
+
 		// insert 256 nodes evenly distributed across the ID space.
 		// we expect to fill the top 5 buckets
-		for (int i = 0; i < 256; ++i)
+		for (int i = 255; i >= 0; --i)
 		{
 			// test a node with the same IP:port changing ID
 			add_and_replace(id, diff);
-			id[0] = i;
+			// in order to make this node-load a bit more realistic, start from
+			// distant nodes and work our way in closer to the node id
+			// the routing table will reject nodes that are too imbalanced (if all
+			// nodes are very close to our ID and none are far away, it's
+			// suspicious).
+			id[0] ^= i;
+			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+
+			// restore the first byte of the node ID
+			id[0] ^= i;
+		}
+		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
+		// number of nodes per tree level (when adding 256 evenly distributed
+		// nodes):
+		// 0: 128
+		// 1: 64
+		// 2: 32
+		// 3: 16
+		// 4: 8
+		// i.e. no more than 5 levels
+		TEST_EQUAL(tbl.num_active_buckets(), 5);
+
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+		tbl.print_state(std::cerr);
+#endif
+	}
+
+	{
+		sett.extended_routing_table = false;
+		node_id id = to_hash("1234876923549721020394873245098347598635");
+
+		routing_table tbl(id, 8, sett, &observer);
+
+		// insert nodes in the routing table that will force it to split
+		// and make sure we don't end up with a table completely out of balance
+		for (int i = 0; i < 32; ++i)
+		{
+			id[4] = i;
 			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 		}
 		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
-		TEST_EQUAL(tbl.num_active_buckets(), 6);
-   
+		TEST_EQUAL(tbl.num_active_buckets(), 2);
+
 #if defined TORRENT_DEBUG
 		tbl.print_state(std::cerr);
 #endif
