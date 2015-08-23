@@ -20,9 +20,9 @@ environment:
     include: '"c:\\openssl-1.0.1p-vs2010\\include"'
   - variant: test_debug
     compiler: msvc-14.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
+    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_barebones
     compiler: msvc-12.0
     x64: 1
@@ -47,20 +47,30 @@ install:
 - git submodule update --init --recursive
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if not exist c:\openssl-1.0.1p-vs2013\nul (
+- if not exist openssl-1.0.1p-vs2013.7z (
   appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z
-  && 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z
-  && copy c:\openssl-1.0.1p-vs2013\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\ssleay32.lib
-  && copy c:\openssl-1.0.1p-vs2013\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\libeay32.lib
-  && copy c:\openssl-1.0.1p-vs2013\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib\ssleay32.lib
-  && copy c:\openssl-1.0.1p-vs2013\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib\libeay32.lib )
-- if not exist c:\openssl-1.0.1p-vs2010\nul (
+  )
+- 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z
+- copy c:\openssl-1.0.1p-vs2013\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2013\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\libeay32.lib
+- copy c:\openssl-1.0.1p-vs2013\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2013\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib\libeay32.lib
+- if not exist openssl-1.0.1p-vs2010.7z (
   appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z
-  && 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z
-  && copy c:\openssl-1.0.1p-vs2010\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\ssleay32.lib
-  && copy c:\openssl-1.0.1p-vs2010\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\libeay32.lib
-  && copy c:\openssl-1.0.1p-vs2010\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib\ssleay32.lib
-  && copy c:\openssl-1.0.1p-vs2010\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib\libeay32.lib )
+  )
+- 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z
+- copy c:\openssl-1.0.1p-vs2010\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2010\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\libeay32.lib
+- copy c:\openssl-1.0.1p-vs2010\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2010\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib\libeay32.lib
+- if not exist openssl-1.0.1p-vs2015.7z (
+  appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z
+  )
+- 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z
+- copy c:\openssl-1.0.1p-vs2015\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2015\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\libeay32.lib
+- copy c:\openssl-1.0.1p-vs2015\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib\ssleay32.lib
+- copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
 - cd %ROOT_DIRECTORY%
 - set BOOST_ROOT=c:\Libraries\boost
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -78,15 +88,16 @@ install:
 - python --version
 - echo %ROOT_DIRECTORY%
 cache:
-- C:\openssl-1.0.1p-vs2013
-- C:\openssl-1.0.1p-vs2010
+- openssl-1.0.1p-vs2010.7z
+- openssl-1.0.1p-vs2013.7z
+- openssl-1.0.1p-vs2015.7z
 build_script:
 - cd %ROOT_DIRECTORY%\examples
 - b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
 - cd %ROOT_DIRECTORY%\test
 - b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include=%include%
 - if defined x64 (
-    b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
+  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
   )
 - cd %ROOT_DIRECTORY%\bindings\python
 - b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include=%include%
@@ -95,5 +106,4 @@ build_script:
   cd %ROOT_DIRECTORY%\simulation
   && b2.exe --hash -j2 crypto=built-in %compiler%
   )
-
 
