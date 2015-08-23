@@ -559,7 +559,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
 #endif
-		
+
 		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
@@ -1240,8 +1240,10 @@ namespace libtorrent
 
 		void setup_peer_class();
 
-		// The list of web seeds in this torrent. Seeds
-		// with fatal errors are removed from the set
+		// The list of web seeds in this torrent. Seeds with fatal errors are
+		// removed from the set. It's important that iteratores are not
+		// invalidated as entries are added and removed from this list, hence the
+		// std::list
 		std::list<web_seed_t> m_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1274,7 +1276,7 @@ namespace libtorrent
 		// these are the pieces we're currently
 		// suggesting to peers.
 		std::vector<suggest_piece_t> m_suggested_pieces;
-		
+
 		std::vector<announce_entry> m_trackers;
 		// this is an index into m_trackers
 

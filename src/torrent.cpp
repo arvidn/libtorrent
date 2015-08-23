@@ -6023,21 +6023,28 @@ namespace libtorrent
 		if (web->resolving)
 		{
 			web->removed = true;
-			return;
 		}
-		peer_connection* peer = static_cast<peer_connection*>(web->peer_info.connection);
-		if (peer)
+		else
 		{
-			// if we have a connection for this web seed, we also need to
-			// disconnect it and clear its reference to the peer_info object
-			// that's part of the web_seed_t we're about to remove
-			TORRENT_ASSERT(peer->m_in_use == 1337);
-			peer->disconnect(boost::asio::error::operation_aborted, op_bittorrent);
-			peer->set_peer_info(0);
-		}
-		if (has_picker()) picker().clear_peer(&web->peer_info);
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("removing web seed: \"%s\"", web->url.c_str());
+#endif
 
-		m_web_seeds.erase(web);
+			peer_connection* peer = static_cast<peer_connection*>(web->peer_info.connection);
+			if (peer)
+			{
+				// if we have a connection for this web seed, we also need to
+				// disconnect it and clear its reference to the peer_info object
+				// that's part of the web_seed_t we're about to remove
+				TORRENT_ASSERT(peer->m_in_use == 1337);
+				peer->disconnect(boost::asio::error::operation_aborted, op_bittorrent);
+				peer->set_peer_info(0);
+			}
+			if (has_picker()) picker().clear_peer(&web->peer_info);
+
+			m_web_seeds.erase(web);
+		}
+
 		update_want_tick();
 	}
 
@@ -6095,7 +6102,7 @@ namespace libtorrent
 			remove_web_seed(web);
 			return;
 		}
-		
+
 #ifdef TORRENT_USE_OPENSSL
 		if (protocol != "http" && protocol != "https")
 #else
@@ -7080,6 +7087,7 @@ namespace libtorrent
 			for (std::list<web_seed_t>::const_iterator i = m_web_seeds.begin()
 				, end(m_web_seeds.end()); i != end; ++i)
 			{
+				if (i->removed) continue;
 				if (i->type == web_seed_entry::url_seed)
 					url_list.push_back(i->url);
 				else if (i->type == web_seed_entry::http_seed)
@@ -10111,6 +10119,7 @@ namespace libtorrent
 				if (w->peer_info.connection) continue;
 				if (w->retry > aux::time_now()) continue;
 				if (w->resolving) continue;
+				if (w->removed) continue;
 
 				connect_to_url_seed(w);
 			}
@@ -10928,6 +10937,7 @@ namespace libtorrent
 			, end(m_web_seeds.end()); i != end; ++i)
 		{
 			if (i->peer_info.banned) continue;
+			if (i->removed) continue;
 			if (i->type != type) continue;
 			ret.insert(i->url);
 		}
@@ -10940,6 +10950,7 @@ namespace libtorrent
 			, m_web_seeds.end()
 			, (boost::bind(&web_seed_t::url, _1)
 				== url && boost::bind(&web_seed_t::type, _1) == type));
+
 		if (i != m_web_seeds.end()) remove_web_seed(i);
 	}
 
@@ -10957,9 +10968,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(i->resolving == false);
 
-#ifndef TORRENT_DISABLE_LOGGING
-		debug_log("disconnect web seed: \"%s\"", i->url.c_str());
-#endif
 		TORRENT_ASSERT(i->peer_info.connection);
 		i->peer_info.connection = 0;
 	}
@@ -10973,11 +10981,18 @@ namespace libtorrent
 				, boost::bind(&web_seed_t::peer_info, _1)) == p);
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
-		if (i->peer_info.connection) i->peer_info.connection->disconnect(ec, op, error);
-		if (has_picker()) picker().clear_peer(&i->peer_info);
-		m_web_seeds.erase(i);
-		update_want_tick();
-		m_need_save_resume_data = true;
+
+		peer_connection* peer = static_cast<peer_connection*>(i->peer_info.connection);
+		if (peer)
+		{
+			// if we have a connection for this web seed, we also need to
+			// disconnect it and clear its reference to the peer_info object
+			// that's part of the web_seed_t we're about to remove
+			TORRENT_ASSERT(peer->m_in_use == 1337);
+			peer->disconnect(ec, op, error);
+			peer->set_peer_info(0);
+		}
+		remove_web_seed(i);
 	}
 
 	void torrent::retry_web_seed(peer_connection* p, int retry)
@@ -10990,6 +11005,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
+		if (i->removed) return;
 		if (retry == 0) retry = settings().get_int(settings_pack::urlseed_wait_retry);
 		i->retry = aux::time_now() + seconds(retry);
 	}
