@@ -8,6 +8,8 @@ environment:
   matrix:
   - variant: test_debug
     compiler: msvc-12.0
+    x64: 1
+    sim: 1
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
@@ -23,11 +25,13 @@ environment:
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_barebones
     compiler: msvc-12.0
+    x64: 1
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_release
     compiler: msvc-12.0
+    x64: 1
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
@@ -77,16 +81,19 @@ cache:
 - C:\openssl-1.0.1p-vs2013
 - C:\openssl-1.0.1p-vs2010
 build_script:
-- type "C:\\Program Files (x86)\\Microsoft Visual Studio 10.0\\VC\\vcvarsall.bat" x86_amd64
-#- cd %ROOT_DIRECTORY%\examples
-#- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
-#- cd %ROOT_DIRECTORY%\test
-#- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include=%include%
-#- b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
-#- cd %ROOT_DIRECTORY%\bindings\python
-#- b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include=%include%
-#- python test.py
-#- if %variant% == "test_debug" (
-#  cd %ROOT_DIRECTORY%\simulation
-#  && b2.exe --hash -j2 crypto=built-in %compiler% )
+- cd %ROOT_DIRECTORY%\examples
+- b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
+- cd %ROOT_DIRECTORY%\test
+- b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include=%include%
+- if defined x64 (
+    b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
+  )
+- cd %ROOT_DIRECTORY%\bindings\python
+- b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include=%include%
+- python test.py
+- if defined sim (
+  cd %ROOT_DIRECTORY%\simulation
+  && b2.exe --hash -j2 crypto=built-in %compiler%
+  )
+
 
