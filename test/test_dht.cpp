@@ -442,14 +442,20 @@ struct obs : dht::dht_observer
 		, dht::msg const& request, entry& response) TORRENT_OVERRIDE { return false; }
 };
 
-// TODO: test obfuscated_get_peers
-// TODO: 3 split this test up into smaller test cases
-TORRENT_TEST(dht)
+dht_settings test_settings()
 {
 	dht_settings sett;
 	sett.max_torrents = 4;
 	sett.max_dht_items = 4;
 	sett.enforce_node_id = false;
+	return sett;
+}
+
+// TODO: test obfuscated_get_peers
+// TODO: 3 split this test up into smaller test cases
+TORRENT_TEST(dht)
+{
+	dht_settings sett = test_settings();
 	mock_socket s;
 	obs observer;
 	counters cnt;
@@ -1055,186 +1061,6 @@ TORRENT_TEST(dht)
 			TEST_ERROR(error_string);
 		}
 
-	}
-
-// test routing table
-
-	{
-		sett.extended_routing_table = false;
-		node_id id = to_hash("1234876923549721020394873245098347598635");
-		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
-
-		routing_table tbl(id, 8, sett, &observer);
-
-		// insert 256 nodes evenly distributed across the ID space.
-		// we expect to fill the top 5 buckets
-		for (int i = 255; i >= 0; --i)
-		{
-			// test a node with the same IP:port changing ID
-			add_and_replace(id, diff);
-			// in order to make this node-load a bit more realistic, start from
-			// distant nodes and work our way in closer to the node id
-			// the routing table will reject nodes that are too imbalanced (if all
-			// nodes are very close to our ID and none are far away, it's
-			// suspicious).
-			id[0] ^= i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
-
-			// restore the first byte of the node ID
-			id[0] ^= i;
-		}
-		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
-		// number of nodes per tree level (when adding 256 evenly distributed
-		// nodes):
-		// 0: 128
-		// 1: 64
-		// 2: 32
-		// 3: 16
-		// 4: 8
-		// i.e. no more than 5 levels
-		TEST_EQUAL(tbl.num_active_buckets(), 5);
-
-#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
-		tbl.print_state(std::cerr);
-#endif
-	}
-
-	{
-		sett.extended_routing_table = false;
-		node_id id = to_hash("1234876923549721020394873245098347598635");
-
-		routing_table tbl(id, 8, sett, &observer);
-
-		// insert nodes in the routing table that will force it to split
-		// and make sure we don't end up with a table completely out of balance
-		for (int i = 0; i < 32; ++i)
-		{
-			id[4] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
-		}
-		printf("num_active_buckets: %d\n", tbl.num_active_buckets());
-		TEST_EQUAL(tbl.num_active_buckets(), 2);
-
-#if defined TORRENT_DEBUG
-		tbl.print_state(std::cerr);
-#endif
-	}
-
-	{
-		sett.extended_routing_table = true;
-		node_id id = to_hash("1234876923549721020394873245098347598635");
-		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
-
-		routing_table tbl(id, 8, sett, &observer);
-		for (int i = 0; i < 256; ++i)
-		{
-			add_and_replace(id, diff);
-			id[0] = i;
-			tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
-		}
-		TEST_EQUAL(tbl.num_active_buckets(), 6);
-
-#if defined TORRENT_DEBUG
-		tbl.print_state(std::cerr);
-#endif
-	}
-
-	// test verify_message
-	static const key_desc_t msg_desc[] = {
-		{"A", bdecode_node::string_t, 4, 0},
-		{"B", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
-			{"B1", bdecode_node::string_t, 0, 0},
-			{"B2", bdecode_node::string_t, 0, key_desc_t::last_child},
-		{"C", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
-			{"C1", bdecode_node::string_t, 0, 0},
-			{"C2", bdecode_node::string_t, 0, key_desc_t::last_child},
-	};
-
-	bdecode_node msg_keys[7];
-
-	bdecode_node ent;
-
-	error_code ec;
-	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
-	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
-	TEST_CHECK(ret);
-	TEST_CHECK(msg_keys[0]);
-	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
-	TEST_CHECK(msg_keys[1]);
-	TEST_CHECK(msg_keys[2]);
-	if (msg_keys[2]) TEST_EQUAL(msg_keys[2].string_value(), "test2");
-	TEST_CHECK(msg_keys[3]);
-	if (msg_keys[3]) TEST_EQUAL(msg_keys[3].string_value(), "test3");
-	TEST_CHECK(!msg_keys[4]);
-	TEST_CHECK(!msg_keys[5]);
-	TEST_CHECK(!msg_keys[6]);
-
-	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
-	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
-	TEST_CHECK(ret);
-	TEST_CHECK(msg_keys[0]);
-	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
-	TEST_CHECK(!msg_keys[1]);
-	TEST_CHECK(!msg_keys[2]);
-	TEST_CHECK(!msg_keys[3]);
-	TEST_CHECK(msg_keys[4]);
-	TEST_CHECK(msg_keys[5]);
-	if (msg_keys[5]) TEST_EQUAL(msg_keys[5].string_value(), "test2");
-	TEST_CHECK(msg_keys[6]);
-	if (msg_keys[6]) TEST_EQUAL(msg_keys[6].string_value(), "test3");
-
-
-	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
-	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
-	TEST_CHECK(!ret);
-	fprintf(stderr, "%s\n", error_string);
-	TEST_EQUAL(error_string, std::string("missing 'A' key"));
-
-	char const test_msg4[] = "d1:A6:foobare";
-	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
-	TEST_CHECK(!ret);
-	fprintf(stderr, "%s\n", error_string);
-	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
-
-	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
-	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
-		, sizeof(error_string));
-	TEST_CHECK(!ret);
-	fprintf(stderr, "%s\n", error_string);
-	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
-
-	// test empty strings [ { "":1 }, "" ]
-	char const test_msg6[] = "ld0:i1ee0:e";
-	bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
-	fprintf(stderr, "%s\n", print_entry(ent).c_str());
-	TEST_CHECK(ent.type() == bdecode_node::list_t);
-	if (ent.type() == bdecode_node::list_t)
-	{
-		TEST_CHECK(ent.list_size() == 2);
-		if (ent.list_size() == 2)
-		{
-			TEST_CHECK(ent.list_at(0).dict_find_int_value("") == 1);
-			TEST_CHECK(ent.list_at(1).string_value() == "");
-		}
 	}
 
 	// test node-id functions
@@ -1964,7 +1790,17 @@ TORRENT_TEST(dht)
 		g_put_count = 0;
 
 	} while (false);
+}
 
+void get_test_keypair(char* public_key, char* private_key)
+{
+	from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, public_key);
+	from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
+		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, private_key);
+}
+
+TORRENT_TEST(signing_test1)
+{
 	// test vector 1
 
 	// test content
@@ -1972,9 +1808,12 @@ TORRENT_TEST(dht)
 	// test salt
 	std::pair<char const*, int> test_salt("foobar", 6);
 
-	from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, public_key);
-	from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
-		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, private_key);
+	char private_key[item_sk_len];
+	char public_key[item_pk_len];
+	get_test_keypair(public_key, private_key);
+	std::pair<char const*, int> empty_salt;
+
+	char signature[item_sig_len];
 
 	sign_mutable_item(test_content, empty_salt, 1, public_key
 		, private_key, signature);
@@ -1985,9 +1824,23 @@ TORRENT_TEST(dht)
 
 	sha1_hash target_id = item_target_id(empty_salt, public_key);
 	TEST_EQUAL(to_hex(target_id.to_string()), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
+}
+
+TORRENT_TEST(signing_test2)
+{
+
+	char private_key[item_sk_len];
+	char public_key[item_pk_len];
+	get_test_keypair(public_key, private_key);
+
+	// test content
+	std::pair<char const*, int> test_content("12:Hello World!", 15);
+
+	char signature[item_sig_len];
+	// test salt
+	std::pair<char const*, int> test_salt("foobar", 6);
 
 	// test vector 2 (the keypair is the same as test 1)
-
 	sign_mutable_item(test_content, test_salt, 1, public_key
 		, private_key, signature);
 
@@ -1995,13 +1848,215 @@ TORRENT_TEST(dht)
 		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
 		"df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08");
 
-	target_id = item_target_id(test_salt, public_key);
+	sha1_hash target_id = item_target_id(test_salt, public_key);
 	TEST_EQUAL(to_hex(target_id.to_string()), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
+}
 
+TORRENT_TEST(signing_test3)
+{
 	// test vector 3
 
-	target_id = item_target_id(test_content);
+	// test content
+	std::pair<char const*, int> test_content("12:Hello World!", 15);
+
+	sha1_hash target_id = item_target_id(test_content);
 	TEST_EQUAL(to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
+}
+
+// TODO: 2 split this up into smaller test cases
+TORRENT_TEST(verify_message)
+{
+	char error_string[200];
+
+	// test verify_message
+	static const key_desc_t msg_desc[] = {
+		{"A", bdecode_node::string_t, 4, 0},
+		{"B", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"B1", bdecode_node::string_t, 0, 0},
+			{"B2", bdecode_node::string_t, 0, key_desc_t::last_child},
+		{"C", bdecode_node::dict_t, 0, key_desc_t::optional | key_desc_t::parse_children},
+			{"C1", bdecode_node::string_t, 0, 0},
+			{"C2", bdecode_node::string_t, 0, key_desc_t::last_child},
+	};
+
+	bdecode_node msg_keys[7];
+
+	bdecode_node ent;
+
+	error_code ec;
+	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
+	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	bool ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+		, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
+	TEST_CHECK(msg_keys[1]);
+	TEST_CHECK(msg_keys[2]);
+	if (msg_keys[2]) TEST_EQUAL(msg_keys[2].string_value(), "test2");
+	TEST_CHECK(msg_keys[3]);
+	if (msg_keys[3]) TEST_EQUAL(msg_keys[3].string_value(), "test3");
+	TEST_CHECK(!msg_keys[4]);
+	TEST_CHECK(!msg_keys[5]);
+	TEST_CHECK(!msg_keys[6]);
+
+	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
+	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+		, sizeof(error_string));
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
+	TEST_CHECK(!msg_keys[1]);
+	TEST_CHECK(!msg_keys[2]);
+	TEST_CHECK(!msg_keys[3]);
+	TEST_CHECK(msg_keys[4]);
+	TEST_CHECK(msg_keys[5]);
+	if (msg_keys[5]) TEST_EQUAL(msg_keys[5].string_value(), "test2");
+	TEST_CHECK(msg_keys[6]);
+	if (msg_keys[6]) TEST_EQUAL(msg_keys[6].string_value(), "test3");
+
+
+	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
+	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+		, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'A' key"));
+
+	char const test_msg4[] = "d1:A6:foobare";
+	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+		, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
+
+	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
+	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+		, sizeof(error_string));
+	TEST_CHECK(!ret);
+	fprintf(stderr, "%s\n", error_string);
+	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
+
+	// test empty strings [ { "":1 }, "" ]
+	char const test_msg6[] = "ld0:i1ee0:e";
+	bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
+	fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	TEST_CHECK(ent.type() == bdecode_node::list_t);
+	if (ent.type() == bdecode_node::list_t)
+	{
+		TEST_CHECK(ent.list_size() == 2);
+		if (ent.list_size() == 2)
+		{
+			TEST_CHECK(ent.list_at(0).dict_find_int_value("") == 1);
+			TEST_CHECK(ent.list_at(1).string_value() == "");
+		}
+	}
+}
+
+TORRENT_TEST(routing_table_uniform)
+{
+	// test routing table
+	dht_settings sett = test_settings();
+	obs observer;
+
+	sett.extended_routing_table = false;
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+	routing_table tbl(id, 8, sett, &observer);
+
+	// insert 256 nodes evenly distributed across the ID space.
+	// we expect to fill the top 5 buckets
+	for (int i = 255; i >= 0; --i)
+	{
+		// test a node with the same IP:port changing ID
+		add_and_replace(id, diff);
+		// in order to make this node-load a bit more realistic, start from
+		// distant nodes and work our way in closer to the node id
+		// the routing table will reject nodes that are too imbalanced (if all
+		// nodes are very close to our ID and none are far away, it's
+		// suspicious).
+		id[0] ^= i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+
+		// restore the first byte of the node ID
+		id[0] ^= i;
+	}
+	printf("num_active_buckets: %d\n", tbl.num_active_buckets());
+	// number of nodes per tree level (when adding 256 evenly distributed
+	// nodes):
+	// 0: 128
+	// 1: 64
+	// 2: 32
+	// 3: 16
+	// 4: 8
+	// i.e. no more than 5 levels
+	TEST_EQUAL(tbl.num_active_buckets(), 5);
+
+#if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
+	tbl.print_state(std::cerr);
+#endif
+}
+
+TORRENT_TEST(routing_table_balance)
+{
+	dht_settings sett = test_settings();
+	obs observer;
+
+	sett.extended_routing_table = false;
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+
+	routing_table tbl(id, 8, sett, &observer);
+
+	// insert nodes in the routing table that will force it to split
+	// and make sure we don't end up with a table completely out of balance
+	for (int i = 0; i < 32; ++i)
+	{
+		id[4] = i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+	}
+	printf("num_active_buckets: %d\n", tbl.num_active_buckets());
+	TEST_EQUAL(tbl.num_active_buckets(), 2);
+
+#if defined TORRENT_DEBUG
+	tbl.print_state(std::cerr);
+#endif
+}
+
+TORRENT_TEST(routing_table_extended)
+{
+	dht_settings sett = test_settings();
+	obs observer;
+	sett.extended_routing_table = true;
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+	routing_table tbl(id, 8, sett, &observer);
+	for (int i = 0; i < 256; ++i)
+	{
+		add_and_replace(id, diff);
+		id[0] = i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+	}
+	TEST_EQUAL(tbl.num_active_buckets(), 6);
+
+#if defined TORRENT_DEBUG
+	tbl.print_state(std::cerr);
+#endif
 }
 
 #endif
