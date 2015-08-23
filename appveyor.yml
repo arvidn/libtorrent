@@ -7,9 +7,15 @@ clone_depth: 1
 environment:
   matrix:
   - variant: test_debug
-    compiler: msvc-12.0
+    compiler: msvc-14.0
     x64: 1
     sim: 1
+    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+  - variant: test_debug
+    compiler: msvc-12.0
+    x64: 1
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
@@ -18,11 +24,6 @@ environment:
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib"'
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2010\\include"'
-  - variant: test_debug
-    compiler: msvc-14.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_barebones
     compiler: msvc-12.0
     x64: 1
@@ -110,6 +111,6 @@ build_script:
 - python test.py
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
-  && b2.exe --hash -j2 crypto=built-in %compiler%
+  && b2.exe --hash -j2 link=shared crypto=built-in %compiler%
   )
 
