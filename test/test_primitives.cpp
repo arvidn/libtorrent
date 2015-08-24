@@ -82,20 +82,6 @@ TORRENT_TEST(primitives)
 	using namespace libtorrent;
 	error_code ec;
 
-	sliding_average<4> avg;
-	TEST_EQUAL(avg.mean(), 0);
-	TEST_EQUAL(avg.avg_deviation(), 0);
-	avg.add_sample(500);
-	TEST_EQUAL(avg.mean(), 500);
-	TEST_EQUAL(avg.avg_deviation(), 0);
-	avg.add_sample(501);
-	TEST_EQUAL(avg.avg_deviation(), 1);
-	avg.add_sample(0);
-	avg.add_sample(0);
-	printf("avg: %d dev: %d\n", avg.mean(), avg.avg_deviation());
-	TEST_CHECK(abs(avg.mean() - 250) < 50);
-	TEST_CHECK(abs(avg.avg_deviation() - 250) < 80);
-
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
@@ -147,36 +133,6 @@ TORRENT_TEST(primitives)
 	}
 
 	// test network functions
-
-	// TODO: 3 move this out to a test_enum_net test
-	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
-	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
-	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
-	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
-#if TORRENT_USE_IPV6
-	if (supports_ipv6())
-	{
-		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
-		TEST_CHECK(is_any(address_v6::any()));
-	}
-#endif
-	TEST_CHECK(is_any(address_v4::any()));
-	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
-
-	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.176", ec),
-		address::from_string("10.0.1.176", ec),
-		address::from_string("255.255.255.0", ec)));
-
-	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.0.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
-
-	TEST_CHECK(!match_addr_mask(
-		address::from_string("10.0.1.3", ec),
-		address::from_string("10.1.3.3", ec),
-		address::from_string("255.255.0.0", ec)));
 
 	// CIDR distance test
 	sha1_hash h1 = to_hash("0123456789abcdef01232456789abcdef0123456");

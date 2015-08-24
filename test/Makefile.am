@@ -29,6 +29,7 @@ test_programs = \
   test_web_seed              \
   test_url_seed              \
   test_remap_files           \
+  test_enum_net              \
   test_file_progress
 
 if ENABLE_TESTS
