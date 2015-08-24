@@ -59,7 +59,6 @@ namespace {
 	}
 }
 
-// TODO: 3 write a unit test for settings_pack
 namespace libtorrent
 {
 	struct str_setting_entry_t

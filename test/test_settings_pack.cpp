@@ -34,17 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/bencode.hpp"
 #include <iostream>
 
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
-TORRENT_TEST(settings_pack)
+TORRENT_TEST(default_settings)
 {
-	settings_pack sp;
-
-	sp.set_int(settings_pack::max_out_request_queue, 1337);
-
 	aux::session_settings sett;
 	initialize_default_settings(sett);
 
@@ -58,14 +55,44 @@ TORRENT_TEST(settings_pack)
 	if (e.dict().size() > 0)
 		std::cerr << e << std::endl;
 #endif
+}
+
+TORRENT_TEST(apply_pack)
+{
+	aux::session_settings sett;
+	initialize_default_settings(sett);
+	settings_pack sp;
+	sp.set_int(settings_pack::max_out_request_queue, 1337);
+
+	TEST_CHECK(sett.get_int(settings_pack::max_out_request_queue) != 1337);
 
 	apply_pack(&sp, sett);
 
 	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
+	entry e;
 	save_settings_to_dict(sett, e.dict());
 	TEST_EQUAL(e.dict().size(), 1);
 
+	std::string out;
+	bencode(std::back_inserter(out), e);
+	TEST_EQUAL(out, "d21:max_out_request_queuei1337ee");
+}
 
+TORRENT_TEST(sparse_pack)
+{
+	settings_pack pack;
+	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), false);
+
+	pack.set_bool(settings_pack::send_redundant_have, true);
+
+	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
+	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
+	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
+	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
+}
+
+TORRENT_TEST(test_name)
+{
 #define TEST_NAME(n) \
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
 	TEST_CHECK(strcmp(name_for_setting(settings_pack:: n), #n) == 0)
@@ -78,7 +105,29 @@ TORRENT_TEST(settings_pack)
 #endif
 	TEST_NAME(peer_turnover_interval);
 	TEST_NAME(mmap_cache);
+}
 
+TORRENT_TEST(clear)
+{
+	settings_pack pack;
+	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), false);
+
+	pack.set_bool(settings_pack::send_redundant_have, true);
+
+	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
+	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
+	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
+	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
+
+	pack.clear();
+
+	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), false);
+	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
+	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
+}
+
+TORRENT_TEST(duplicates)
+{
 	settings_pack p;
 	p.set_str(settings_pack::peer_fingerprint, "abc");
 	p.set_str(settings_pack::peer_fingerprint, "cde");
@@ -87,4 +136,6 @@ TORRENT_TEST(settings_pack)
 
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
 }
+
+// TODO: load_pack_from_dict
 
