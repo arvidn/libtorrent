@@ -292,8 +292,8 @@ namespace libtorrent
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			instantiate_connection(m_sock.get_io_service(), proxy_settings(), *c
-				, m_ssl_context, this, true);
+			instantiate_connection(m_sock.get_io_service(), aux::proxy_settings(), *c
+				, m_ssl_context, this, true, false);
 
 
 			utp_stream* str = NULL;

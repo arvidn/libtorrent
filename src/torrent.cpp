@@ -863,7 +863,7 @@ namespace libtorrent
 				, m_ssl_ctx.get()
 #endif
 				));
-		proxy_settings ps = m_ses.proxy();
+		aux::proxy_settings ps = m_ses.proxy();
 		conn->get(m_url, seconds(30), 0, &ps
 			, 5, settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
@@ -6198,7 +6198,7 @@ namespace libtorrent
 			return;
 		}
 
-		proxy_settings const& ps = m_ses.proxy();
+		aux::proxy_settings const& ps = m_ses.proxy();
 		if (ps.type == settings_pack::http
 			|| ps.type == settings_pack::http_pw)
 		{
@@ -6410,7 +6410,8 @@ namespace libtorrent
 			if (!userdata) userdata = m_ses.ssl_ctx();
 		}
 #endif
-		bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.proxy(), *s, userdata, 0, true);
+		bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.proxy()
+			, *s, userdata, 0, true, false);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
@@ -7515,7 +7516,12 @@ namespace libtorrent
 				return false;
 			}
 
-			bool ret = instantiate_connection(m_ses.get_io_service(), m_ses.i2p_proxy(), *s);
+			// It's not entirely obvious why this peer connection is not marked as
+			// one. The main feature of a peer connection is that whether or not we
+			// proxy it is configurable. When we use i2p, we want to always prox
+			// everything via i2p.
+			bool ret = instantiate_connection(m_ses.get_io_service()
+				, m_ses.i2p_proxy(), *s, NULL, NULL, false, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->destination);
@@ -7556,7 +7562,7 @@ namespace libtorrent
 #endif
 
 			bool ret = instantiate_connection(m_ses.get_io_service()
-				, m_ses.proxy(), *s, userdata, sm, true);
+				, m_ses.proxy(), *s, userdata, sm, true, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 

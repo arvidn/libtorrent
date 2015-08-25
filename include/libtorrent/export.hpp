@@ -87,7 +87,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // only export this type if deprecated functions are enabled
 #ifdef TORRENT_NO_DEPRECATE
-#define TORRENT_DEPRECATED_EXPORT
+#define TORRENT_DEPRECATED_EXPORT TORRENT_EXTRA_EXPORT
 #else
 #define TORRENT_DEPRECATED_EXPORT TORRENT_EXPORT
 #endif

@@ -71,7 +71,12 @@ namespace libtorrent
 		udp_socket(io_service& ios);
 		~udp_socket();
 
-		enum flags_t { dont_drop = 1, peer_connection = 2, dont_queue = 4 };
+		enum flags_t {
+			dont_drop = 1
+			, peer_connection = 2
+			, tracker_connection = 4
+			, dont_queue = 8
+		};
 
 		bool is_open() const
 		{
@@ -96,8 +101,8 @@ namespace libtorrent
 		void close();
 		int local_port() const { return m_bind_port; }
 
-		void set_proxy_settings(proxy_settings const& ps);
-		proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
+		void set_proxy_settings(aux::proxy_settings const& ps);
+		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
 		void set_force_proxy(bool f) { m_force_proxy = f; }
 
 		bool is_closed() const { return m_abort; }
@@ -236,7 +241,7 @@ namespace libtorrent
 #endif
 
 		tcp::socket m_socks5_sock;
-		proxy_settings m_proxy_settings;
+		aux::proxy_settings m_proxy_settings;
 		tcp::resolver m_resolver;
 		char m_tmp_buf[270];
 		bool m_queue_packets;

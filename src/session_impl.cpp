@@ -220,31 +220,6 @@ void network_thread_pool::process_job(socket_job const& j, bool post)
 	}
 }
 
-// TODO: 2 find a better place for this function
-proxy_settings::proxy_settings(settings_pack const& sett)
-{
-	hostname = sett.get_str(settings_pack::proxy_hostname);
-	username = sett.get_str(settings_pack::proxy_username);
-	password = sett.get_str(settings_pack::proxy_password);
-	type = sett.get_int(settings_pack::proxy_type);
-	port = sett.get_int(settings_pack::proxy_port);
-	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
-	proxy_peer_connections = sett.get_bool(
-		settings_pack::proxy_peer_connections);
-}
-
-proxy_settings::proxy_settings(aux::session_settings const& sett)
-{
-	hostname = sett.get_str(settings_pack::proxy_hostname);
-	username = sett.get_str(settings_pack::proxy_username);
-	password = sett.get_str(settings_pack::proxy_password);
-	type = sett.get_int(settings_pack::proxy_type);
-	port = sett.get_int(settings_pack::proxy_port);
-	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
-	proxy_peer_connections = sett.get_bool(
-		settings_pack::proxy_peer_connections);
-}
-
 namespace aux {
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
@@ -2125,7 +2100,7 @@ retry:
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, proxy()
-			, *m_socks_listen_socket);
+			, *m_socks_listen_socket, NULL, NULL, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
@@ -2197,7 +2172,7 @@ retry:
 
 		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
-			, *m_i2p_listen_socket);
+			, *m_i2p_listen_socket, NULL, NULL, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 

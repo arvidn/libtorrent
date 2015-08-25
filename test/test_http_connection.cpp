@@ -106,7 +106,7 @@ void reset_globals()
 }
 
 void run_test(std::string const& url, int size, int status, int connected
-	, boost::optional<error_code> ec, proxy_settings const& ps
+	, boost::optional<error_code> ec, aux::proxy_settings const& ps
 	, std::string const& auth = std::string())
 {
 	reset_globals();
@@ -174,7 +174,7 @@ void run_suite(std::string const& protocol
 		, flags & flag_chunked_encoding
 		, flags & flag_keepalive);
 
-	proxy_settings ps;
+	aux::proxy_settings ps;
 	ps.hostname = "127.0.0.1";
 	ps.username = "testuser";
 	ps.password = "testpass";

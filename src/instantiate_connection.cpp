@@ -40,11 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 2 peer_connection and tracker_connection should probably be flags
+	// TODO: 2 move this function into libtorrent::aux namespace
 	bool instantiate_connection(io_service& ios
-		, proxy_settings const& ps, socket_type& s
+		, aux::proxy_settings const& ps, socket_type& s
 		, void* ssl_context
 		, utp_socket_manager* sm
-		, bool peer_connection)
+		, bool peer_connection
+		, bool tracker_connection)
 	{
 #ifndef TORRENT_USE_OPENSSL
 		TORRENT_UNUSED(ssl_context);
@@ -77,7 +80,8 @@ namespace libtorrent
 		}
 #endif
 		else if (ps.type == settings_pack::none
-			|| (peer_connection && !ps.proxy_peer_connections))
+			|| (peer_connection && !ps.proxy_peer_connections)
+			|| (tracker_connection && !ps.proxy_tracker_connections))
 		{
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)

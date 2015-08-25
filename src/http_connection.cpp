@@ -108,7 +108,7 @@ http_connection::~http_connection()
 }
 
 void http_connection::get(std::string const& url, time_duration timeout, int prio
-	, proxy_settings const* ps, int handle_redirects, std::string const& user_agent
+	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
 	, address const& bind_addr, int resolve_flags, std::string const& auth_
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
@@ -223,7 +223,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 }
 
 void http_connection::start(std::string const& hostname, int port
-	, time_duration timeout, int prio, proxy_settings const* ps, bool ssl
+	, time_duration timeout, int prio, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
 	, address const& bind_addr
 	, int resolve_flags
@@ -307,9 +307,9 @@ void http_connection::start(std::string const& hostname, int port
 		}
 #endif
 
-		proxy_settings const* proxy = ps;
+		aux::proxy_settings const* proxy = ps;
 #if TORRENT_USE_I2P
-		proxy_settings i2p_proxy;
+		aux::proxy_settings i2p_proxy;
 		if (is_i2p)
 		{
 			i2p_proxy = i2p_conn->proxy();
@@ -326,7 +326,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			proxy = 0;
 		}
-		proxy_settings null_proxy;
+		aux::proxy_settings null_proxy;
 
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
@@ -347,8 +347,11 @@ void http_connection::start(std::string const& hostname, int port
 			userdata = m_ssl_ctx;
 		}
 #endif
+		// assume this is not a tracker connection. Tracker connections that
+		// shouldn't be subject to the proxy should pass in NULL as the proxy
+		// pointer.
 		instantiate_connection(m_timer.get_io_service()
-			, proxy ? *proxy : null_proxy, m_sock, userdata);
+			, proxy ? *proxy : null_proxy, m_sock, userdata, NULL, false, false);
 
 		if (m_bind_addr != address_v4::any())
 		{

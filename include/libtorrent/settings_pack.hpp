@@ -644,6 +644,10 @@ namespace libtorrent
 			// unlikely to matter anyway
 			auto_sequential,
 
+			// if true, trackerconnections are made over the configured proxy, if
+			// any.
+			proxy_tracker_connections,
+
 			max_bool_setting_internal
 		};
 

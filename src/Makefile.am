@@ -108,6 +108,7 @@ libtorrent_rasterbar_la_SOURCES = \
   session_handle.cpp              \
   session_impl.cpp                \
   session_settings.cpp            \
+  proxy_settings.cpp              \
   settings_pack.cpp               \
   sha1.cpp                        \
   smart_ban.cpp                   \

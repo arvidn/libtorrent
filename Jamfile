@@ -694,6 +694,7 @@ SOURCES =
 	performance_counters
 	resolver
 	session_settings
+	proxy_settings
 	file_progress
 
 # -- extensions --
