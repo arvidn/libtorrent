@@ -83,16 +83,8 @@ struct direct_observer : observer
 		if (flags & flag_done) return;
 		flags |= flag_done;
 		bdecode_node e;
-		if (flags & flag_ipv6_address)
-		{
-			msg m(e, target_ep());
-			static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
-		}
-		else
-		{
-			msg m(e, target_ep());
-			static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
-		}
+		msg m(e, target_ep());
+		static_cast<direct_traversal*>(algorithm())->invoke_cb(m);
 	}
 };
 
