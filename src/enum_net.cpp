@@ -88,7 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ifaddrs.h>
 #endif
 
-#if TORRENT_USE_IFADDRS
+#if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 // capture this here where warnings are disabled (the macro generates warnings)
 const int siocgifmtu = SIOCGIFMTU;
 #endif
