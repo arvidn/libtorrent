@@ -51,7 +51,7 @@ except:
 ext = None
 packages = None
 
-if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
+if '--bjam' in sys.argv:
 
 	if '--bjam' in sys.argv:
 		del sys.argv[sys.argv.index('--bjam')]
@@ -94,15 +94,16 @@ else:
 	source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
 	source_list = [os.path.abspath(os.path.join(os.path.dirname(__file__), "src", s)) for s in source_list if s.endswith(".cpp")]
 
-	ext = [Extension('libtorrent',
-		sources = source_list,
-		language='c++',
-		include_dirs = parse_cmd(extra_cmd, '-I'),
-		library_dirs = parse_cmd(extra_cmd, '-L'),
-		extra_link_args = ldflags.split() + arch(),
-		extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() \
-			+ target_specific(),
-		libraries = ['torrent-rasterbar'] + parse_cmd(extra_cmd, '-l'))]
+	if extra_cmd:
+		ext = [Extension('libtorrent',
+			sources = source_list,
+			language='c++',
+			include_dirs = parse_cmd(extra_cmd, '-I'),
+			library_dirs = parse_cmd(extra_cmd, '-L'),
+			extra_link_args = ldflags.split() + arch(),
+			extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() \
+				+ target_specific(),
+			libraries = ['torrent-rasterbar'] + parse_cmd(extra_cmd, '-l'))]
 
 setup(name = 'python-libtorrent',
 	version = '1.1.0',
