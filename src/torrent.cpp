@@ -1313,6 +1313,8 @@ namespace libtorrent
 	{
 		if (m_picker) return;
 
+		TORRENT_ASSERT(valid_metadata());
+
 		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
@@ -3417,8 +3419,7 @@ namespace libtorrent
 				continue;
 
 #if TORRENT_USE_I2P
-			char const* top_domain = strrchr(i->hostname.c_str(), '.');
-			if (top_domain && strcmp(top_domain, ".i2p") == 0)
+			if (r.i2pconn && boost::algorithm::ends_with(i->hostname, ".i2p"))
 			{
 				// this is an i2p name, we need to use the sam connection
 				// to do the name lookup
@@ -3431,12 +3432,13 @@ namespace libtorrent
 						, boost::bind(&torrent::on_i2p_resolve
 						, shared_from_this(), _1, _2));
 				}
-				else {
+				else
+				{
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer (i->hostname.c_str (), peer_info::tracker, 0, &st))
-						state_updated ();
-					peers_erased (st.erased);
+					if (m_peer_list->add_i2p_peer(i->hostname.c_str (), peer_info::tracker, 0, &st))
+						state_updated();
+					peers_erased(st.erased);
 				}
 			}
 			else
@@ -4593,6 +4595,7 @@ namespace libtorrent
 	{
 		if (has_picker())
 		{
+			TORRENT_ASSERT(bits.size() == torrent_file().num_pieces());
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount(bits, pp);
 			refresh_suggest_pieces();
@@ -4624,6 +4627,7 @@ namespace libtorrent
 	{
 		if (has_picker())
 		{
+			TORRENT_ASSERT(bits.size() == torrent_file().num_pieces());
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(bits, pp);
 			// TODO: update suggest_piece?

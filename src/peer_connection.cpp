@@ -736,6 +736,7 @@ namespace libtorrent
 		// if we're a seed, we don't keep track of piece availability
 		if (t->has_picker())
 		{
+			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 			t->peer_has(m_have_piece, this);
 			bool interesting = false;
 			for (int i = 0; i < int(m_have_piece.size()); ++i)
@@ -1540,7 +1541,7 @@ namespace libtorrent
 #endif
 			return;
 		}
-		
+
 		if (t->valid_metadata())
 		{
 			if (index >= int(m_have_piece.size()))
@@ -2030,8 +2031,13 @@ namespace libtorrent
 		// if we don't have the metedata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& (bits.size() + 7) / 8 != (m_have_piece.size() + 7) / 8)
+			&& bits.size() != int(m_have_piece.size()))
 		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::incoming_message, "BITFIELD"
+				, "invalid size: %d expected %d", bits.size()
+				, int(m_have_piece.size()));
+#endif
 			disconnect(errors::invalid_bitfield_size, op_bittorrent, 2);
 			return;
 		}

@@ -290,7 +290,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 	std::vector<char> buf;
 
 	// reserve space for the message header
-	// uint32: packet-length 
+	// uint32: packet-length
 	//  uint8: 20 (extension message)
 	//  uint8: 0 (handshake)
 	buf.resize(4 + 1 + 1);
@@ -337,7 +337,7 @@ void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int pie
 	std::vector<char> buf;
 
 	// reserve space for the message header
-	// uint32: packet-length 
+	// uint32: packet-length
 	//  uint8: 20 (extension message)
 	//  uint8: <ut_metadata_msg> (ut_metadata)
 	buf.resize(4 + 1 + 1);
@@ -491,6 +491,46 @@ TORRENT_TEST(reject_fast)
 	s.close();
 	test_sleep(500);
 	print_session_log(*ses);
+}
+
+TORRENT_TEST(invalid_suggest)
+{
+	std::cerr << "\n === test suggest ===\n" << std::endl;
+
+	sha1_hash ih;
+	boost::shared_ptr<lt::session> ses;
+	io_service ios;
+	tcp::socket s(ios);
+	setup_peer(s, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_all(s);
+	print_session_log(*ses);
+
+	// this is an invalid suggest message. We would not expect to receive a
+	// request for that piece index.
+	send_suggest_piece(s, -234);
+	send_unchoke(s);
+	test_sleep(500);
+	print_session_log(*ses);
+
+	int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+	int idx = -1;
+	while (len > 0)
+	{
+		if (recv_buffer[0] == 6)
+		{
+			char* ptr = recv_buffer + 1;
+			idx = detail::read_int32(ptr);
+			break;
+		}
+		len = read_message(s, recv_buffer, sizeof(recv_buffer));
+	}
+	TEST_CHECK(idx != -234);
+	TEST_CHECK(idx != -1);
+	s.close();
 }
 
 TORRENT_TEST(reject_suggest)
