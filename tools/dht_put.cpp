@@ -159,10 +159,13 @@ int main(int argc, char* argv[])
 	}
 
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_int(settings_pack::alert_mask, 0xffffffff);
 	lt::session s(sett);
 
 	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
+	sett.set_bool(settings_pack::enable_dht, true);
+	s.apply_settings(sett);
 
 	FILE* f = fopen(".dht", "rb");
 	if (f != NULL)
