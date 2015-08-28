@@ -1275,8 +1275,10 @@ namespace aux {
 		req.ssl_ctx = &m_ssl_ctx;
 #endif
 #if TORRENT_USE_I2P
-		req.i2pconn = &m_i2p_conn;
-		req.kind |= tracker_request::i2p;
+		if (!m_settings.get_str(settings_pack::i2p_hostname).empty())
+		{
+			req.i2pconn = &m_i2p_conn;
+		}
 #endif
 
 		if (is_any(req.bind_ip)) req.bind_ip = m_listen_interface.address();

@@ -3195,6 +3195,13 @@ namespace libtorrent
 			req.auth = tracker_login();
 			req.key = tracker_key();
 
+#ifdef TORRENT_USE_OPENSSL
+			if (is_i2p())
+			{
+				req.kind |= tracker_request::i2p;
+			}
+#endif
+
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d"
 				, req.url.c_str()

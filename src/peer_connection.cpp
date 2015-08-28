@@ -2291,10 +2291,9 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "peer is not interested "
-				" t: %d n: %d h: %d block_limit: %d"
+				" t: %d n: %d block_limit: %d"
 				, int(t->torrent_file().piece_size(r.piece))
 				, t->torrent_file().num_pieces()
-				, t->has_piece_passed(r.piece)
 				, t->block_size());
 			peer_log(peer_log_alert::info, "INTERESTED", "artificial incoming INTERESTED message");
 #endif
@@ -2420,6 +2419,10 @@ namespace libtorrent
 
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests);
+
+			TORRENT_ASSERT(t->valid_metadata());
+			TORRENT_ASSERT(r.piece >= 0);
+			TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
 
 			m_requests.push_back(r);
 
@@ -5155,6 +5158,11 @@ namespace libtorrent
 
 				// the callback function may be called immediately, instead of being posted
 				if (!t->need_loaded()) return;
+
+				TORRENT_ASSERT(t->valid_metadata());
+				TORRENT_ASSERT(r.piece >= 0);
+				TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
+
 				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
 					, boost::bind(&peer_connection::on_disk_read_complete
