@@ -4561,7 +4561,7 @@ namespace libtorrent
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
-		
+
 		boost::uint64_t upload_rate = int(m_statistics.upload_rate());
 
 		int buffer_size_watermark = int(upload_rate
@@ -4587,9 +4587,10 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
 			peer_request& r = m_requests.front();
-			
+
 			TORRENT_ASSERT(r.piece >= 0);
 			TORRENT_ASSERT(r.piece < (int)m_have_piece.size());
+			TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
 			TORRENT_ASSERT(t->have_piece(r.piece));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
