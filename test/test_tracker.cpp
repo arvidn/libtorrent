@@ -472,7 +472,11 @@ TORRENT_TEST(try_next)
 		TEST_EQUAL(tr[1].fails, 1);
 		TEST_EQUAL(tr[1].verified, false);
 		TEST_CHECK(tr[1].last_error == boost::asio::error::timed_out
-			|| tr[1].last_error == boost::system::error_condition(boost::system::errc::connection_refused));
+			|| tr[1].last_error == boost::system::error_condition(boost::system::errc::connection_refused)
+#ifdef TORRENT_WINDOWS
+			|| tr[1].last_error == boost::system::error_code(boost::system::system_category(), ERROR_CONNECTION_REFUSED)
+#endif
+			);
 
 		TEST_EQUAL(tr[2].fails, 0);
 		TEST_EQUAL(tr[2].verified, true);
