@@ -159,10 +159,13 @@ int main(int argc, char* argv[])
 	}
 
 	settings_pack sett;
+	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_int(settings_pack::alert_mask, 0xffffffff);
 	lt::session s(sett);
 
 	s.add_dht_router(std::pair<std::string, int>("router.utorrent.com", 6881));
+	sett.set_bool(settings_pack::enable_dht, true);
+	s.apply_settings(sett);
 
 	FILE* f = fopen(".dht", "rb");
 	if (f != NULL)
@@ -297,14 +300,20 @@ int main(int argc, char* argv[])
 		bootstrap(s);
 		s.dht_get_item(public_key);
 
-		alert* a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
+		bool authoritative = false;
 
-		dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a);
-		entry data;
-		if (item)
-			data.swap(item->item);
+		while (!authoritative)
+		{
+			alert* a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
 
-		printf("%s", data.to_string().c_str());
+			dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a);
+			entry data;
+			if (item)
+				data.swap(item->item);
+
+			authoritative = item->authoritative;
+			printf("%s: %s", authoritative ? "auth" : "non-auth", data.to_string().c_str());
+		}
 	}
 	else
 	{
