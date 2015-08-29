@@ -510,7 +510,7 @@ namespace libtorrent
 					p.hostname = base32encode(std::string(peers + i, 32), string::i2p);
 					p.hostname += ".b32.i2p";
 					p.port = 6881;
-					resp.peers.push_back (p);
+					resp.peers.push_back(p);
 				}
 			}
 			else

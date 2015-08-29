@@ -78,7 +78,10 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			s.end_headers()
 		elif s.path.startswith('/announce'):
 			s.send_response(200)
-			response = 'd8:intervali1800e8:completei1e10:incompletei1e5:peers0:e'
+			response = 'd8:intervali1800e8:completei1e10:incompletei1e' + \
+				'5:peers12:AAAABBCCCCDD' + \
+				'6:peers618:EEEEEEEEEEEEEEEEFF' + \
+				'e'
 			s.send_header("Content-Length", "%d" % len(response))
 			s.send_header("Connection", "close")
 			s.end_headers()

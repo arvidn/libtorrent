@@ -404,7 +404,7 @@ namespace libtorrent
 		// bw_state enum.
 		char read_state;
 		char write_state;
-		
+
 		// the two letter `ISO 3166 country code`__ for the country the peer is
 		// connected from. If the country hasn't been resolved yet, both chars
 		// are set to 0. If the resolution failed for some reason, the field is
@@ -441,7 +441,7 @@ namespace libtorrent
 		{
 			banned = 1
 		};
-		
+
 		// internal
 		tcp::endpoint ip;
 		// internal

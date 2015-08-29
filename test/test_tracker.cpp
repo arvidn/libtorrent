@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "udp_tracker.hpp"
+#include "settings.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/peer_info.hpp" // for peer_list_entry
+#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -306,10 +310,6 @@ TORRENT_TEST(extract_peer)
 	}
 }
 
-int const alert_mask = alert::all_categories
-	& ~alert::progress_notification
-	& ~alert::stats_notification;
-
 TORRENT_TEST(udp_tracker)
 {
 	int http_port = start_web_server();
@@ -317,17 +317,9 @@ TORRENT_TEST(udp_tracker)
 
 	int prev_udp_announces = num_udp_announces();
 
-	settings_pack pack;
-#ifndef TORRENT_NO_DEPRECATE
-	pack.set_int(settings_pack::half_open_limit, 1);
-#endif
-	pack.set_bool(settings_pack::enable_lsd, false);
-	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_bool(settings_pack::enable_upnp, false);
-	pack.set_bool(settings_pack::enable_dht, false);
+	settings_pack pack = settings();
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
-	pack.set_int(settings_pack::alert_mask, alert_mask);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48875");
 
 	boost::scoped_ptr<lt::session> s(new lt::session(pack));
@@ -393,31 +385,23 @@ TORRENT_TEST(udp_tracker)
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 }
 
+TORRENT_TEST(try_next)
+{
 // ========================================
 // test that we move on to try the next tier if the first one fails
 // ========================================
 
-TORRENT_TEST(try_next)
-{
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 
 	int prev_udp_announces = num_udp_announces();
 
-	settings_pack pack;
-#ifndef TORRENT_NO_DEPRECATE
-	pack.set_int(settings_pack::half_open_limit, 1);
-#endif
-	pack.set_bool(settings_pack::enable_lsd, false);
-	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_bool(settings_pack::enable_upnp, false);
-	pack.set_bool(settings_pack::enable_dht, false);
+	settings_pack pack = settings();
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, false);
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
-	pack.set_int(settings_pack::alert_mask, alert_mask);
 
 	boost::scoped_ptr<lt::session> s(new lt::session(pack));
 
@@ -467,6 +451,33 @@ TORRENT_TEST(try_next)
 		test_sleep(100);
 	}
 
+	// we expect the first two trackers to have failed (because the hostname
+	// doesn't exist and the port isn't open),
+	// the second tracker to have succeeded and the third to not have been used
+	std::vector<announce_entry> tr = h.trackers();
+
+	TEST_EQUAL(tr.size(), 4);
+
+	if (tr.size() == 4)
+	{
+		// this tracker may not have failed yet, but just timed out (if the
+		// hostname lookup is slow)
+		if (tr[0].fails == 1)
+		{
+			TEST_EQUAL(tr[0].verified, false);
+			TEST_EQUAL(tr[0].last_error, boost::asio::error::netdb_errors::host_not_found);
+		}
+
+		TEST_EQUAL(tr[1].fails, 1);
+		TEST_EQUAL(tr[1].verified, false);
+		TEST_EQUAL(tr[1].last_error, boost::asio::error::timed_out);
+
+		TEST_EQUAL(tr[2].fails, 0);
+		TEST_EQUAL(tr[2].verified, true);
+
+		TEST_EQUAL(tr[3].fails, 0);
+		TEST_EQUAL(tr[3].verified, false);
+	}
 	test_sleep(1000);
 
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 1);
@@ -477,6 +488,74 @@ TORRENT_TEST(try_next)
 
 	fprintf(stderr, "stop_tracker\n");
 	stop_udp_tracker();
+	fprintf(stderr, "stop_web_server\n");
+	stop_web_server();
+	fprintf(stderr, "done\n");
+}
+
+TORRENT_TEST(http_peers)
+{
+	int http_port = start_web_server();
+
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
+
+	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+
+	error_code ec;
+	remove_all("tmp2_tracker", ec);
+	create_directory("tmp2_tracker", ec);
+	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	file.close();
+
+	char tracker_url[200];
+	// and this should not be announced to (since the one before it succeeded)
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+		, http_port);
+	t->add_tracker(tracker_url, 0);
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.ti = t;
+	addp.save_path = "tmp2_tracker";
+	torrent_handle h = s->add_torrent(addp);
+
+	// wait to hit the tracker
+	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
+
+	// we expect to have certain peers in our peer list now
+	// these peers are hard coded in web_server.py
+	std::vector<peer_list_entry> peers;
+	h.get_full_peer_list(peers);
+
+	std::set<tcp::endpoint> expected_peers;
+	expected_peers.insert(tcp::endpoint(address_v4::from_string("65.65.65.65"), 16962));
+	expected_peers.insert(tcp::endpoint(address_v4::from_string("67.67.67.67"), 17476));
+#if TORRENT_USE_IPV6
+	if (supports_ipv6())
+	{
+		expected_peers.insert(tcp::endpoint(address_v6::from_string("4545:4545:4545:4545:4545:4545:4545:4545"), 17990));
+	}
+#endif
+
+	TEST_EQUAL(peers.size(), expected_peers.size());
+	for (std::vector<peer_list_entry>::iterator i = peers.begin()
+		, end(peers.end()); i != end; ++i)
+	{
+		TEST_EQUAL(expected_peers.count(i->ip), 1);
+	}
+
+	fprintf(stderr, "destructing session\n");
+	s.reset();
+	fprintf(stderr, "done\n");
+
 	fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
 	fprintf(stderr, "done\n");
