@@ -1314,6 +1314,7 @@ namespace libtorrent
 		if (m_picker) return;
 
 		TORRENT_ASSERT(valid_metadata());
+		TORRENT_ASSERT(m_connections_initialized);
 
 		INVARIANT_CHECK;
 
@@ -1796,8 +1797,8 @@ namespace libtorrent
 #endif
 
 		if (!need_loaded()) return;
+		TORRENT_ASSERT(valid_metadata());
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
-		TORRENT_ASSERT(m_torrent_file->is_valid());
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
 
 		if (int(m_file_priority.size()) > m_torrent_file->num_files())
@@ -1878,6 +1879,29 @@ namespace libtorrent
 			m_file_priority.resize(m_torrent_file->num_files(), 0);
 		}
 
+		// it's important to initialize the peers early, because this is what will
+		// fix up their have-bitmasks to have the correct size
+		// TODO: 2 add a unit test where we don't have metadata, connect to a peer
+		// that sends a bitfield that's too large, then we get the metadata
+		if (!m_connections_initialized)
+		{
+			m_connections_initialized = true;
+			// all peer connections have to initialize themselves now that the metadata
+			// is available
+			// copy the peer list since peers may disconnect and invalidate
+			// m_connections as we initialize them
+			std::vector<peer_connection*> peers = m_connections;
+			for (torrent::peer_iterator i = peers.begin();
+				i != peers.end(); ++i)
+			{
+				peer_connection* pc = *i;
+				if (pc->is_disconnecting()) continue;
+				pc->on_metadata_impl();
+				if (pc->is_disconnecting()) continue;
+				pc->init();
+			}
+		}
+
 		// if we've already loaded file priorities, don't load piece priorities,
 		// they will interfere.
 		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
@@ -1906,25 +1930,6 @@ namespace libtorrent
 				, m_file_priority.end(), 0) != m_file_priority.end())
 		{
 			update_piece_priorities();
-		}
-
-		if (!m_connections_initialized)
-		{
-			m_connections_initialized = true;
-			// all peer connections have to initialize themselves now that the metadata
-			// is available
-			// copy the peer list since peers may disconnect and invalidate
-			// m_connections as we initialize them
-			std::vector<peer_connection*> peers = m_connections;
-			for (torrent::peer_iterator i = peers.begin();
-				i != peers.end(); ++i)
-			{
-				peer_connection* pc = *i;
-				if (pc->is_disconnecting()) continue;
-				pc->on_metadata_impl();
-				if (pc->is_disconnecting()) continue;
-				pc->init();
-			}
 		}
 
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
@@ -5269,8 +5274,14 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return;
+#ifndef TORRENT_DISABLE_LOGGING
+		if (!valid_metadata())
+		{
+			debug_log("*** SET_PIECE_PRIORITY [ idx: %d prio: %d ignored. "
+				"no metadata yet ]", index, priority);
+		}
+#endif
+		if (!valid_metadata() || is_seed()) return;
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(index >= 0);
@@ -5297,10 +5308,10 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(valid_metadata());
-		if (!has_picker()) return 1;
+		if (!has_picker()) return 4;
 
 		// this call is only valid on torrents with metadata
+		TORRENT_ASSERT(valid_metadata());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 		if (index < 0 || index >= m_torrent_file->num_pieces()) return 0;
@@ -5353,6 +5364,14 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
 		if (is_seed()) return;
+
+		if (!valid_metadata())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** PRIORITIZE_PIECES [ ignored. no metadata yet ]");
+#endif
+			return;
+		}
 
 		need_picker();
 
@@ -5457,10 +5476,15 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		// this call is only valid on torrents with metadata
-		if (!valid_metadata() || is_seed()) return;
+		if (is_seed()) return;
 
-		if (index < 0 || index >= m_torrent_file->num_files()) return;
+		// setting file priority on a torrent that doesn't have metadata yet is
+		// similar to having passed in file priorities through add_torrent_params.
+		// we store the priorities in m_file_priority until we get the metadata
+		if (index < 0 || (valid_metadata() && index >= m_torrent_file->num_files()))
+		{
+			return;
+		}
 
 		if (prio < 0) prio = 0;
 		else if (prio > 7) prio = 7;
@@ -5469,19 +5493,12 @@ namespace libtorrent
 			// any unallocated slot is assumed to be 1
 			if (prio == 1) return;
 			m_file_priority.resize(index+1, 4);
-
-			// initialize pad files to priority 0
-			file_storage const& fs = m_torrent_file->files();
-			for (int i = 0; i < (std::min)(fs.num_files(), index+1); ++i)
-			{
-				if (!fs.pad_file_at(i)) continue;
-				m_file_priority[i] = 0;
-			}
-
 		}
 
 		if (m_file_priority[index] == prio) return;
 		m_file_priority[index] = prio;
+
+		if (!valid_metadata()) return;
 
 		// stoage may be NULL during shutdown
 		if (m_storage)
@@ -5495,15 +5512,21 @@ namespace libtorrent
 
 	int torrent::file_priority(int index) const
 	{
-		// this call is only valid on torrents with metadata
-		if (!valid_metadata()) return 4;
+		TORRENT_ASSERT_PRECOND(index >= 0);
+		if (index < 0) return 0;
 
-		if (index < 0 || index >= m_torrent_file->num_files()) return 0;
+		// if we have metadata, perform additional checks
+		if (valid_metadata())
+		{
+			TORRENT_ASSERT_PRECOND(index < m_torrent_file->num_files());
+			if (index >= m_torrent_file->num_files()) return 0;
 
-		// any unallocated slot is assumed to be 1
-		// unless it's a pad file
-		if (int(m_file_priority.size()) <= index)
-			return m_torrent_file->files().pad_file_at(index) ? 0 : 4;
+			// pad files always have priority 0
+			if (m_torrent_file->files().pad_file_at(index)) return 0;
+		}
+
+		// any unallocated slot is assumed to be 4 (normal priority)
+		if (int(m_file_priority.size()) <= index) return 4;
 
 		return m_file_priority[index];
 	}
@@ -5547,7 +5570,11 @@ namespace libtorrent
 			if (size == 0) continue;
 			position += size;
 			int file_prio;
-			if (m_file_priority.size() <= i)
+
+			// pad files always have priority 0
+			if (fs.pad_file_at(i))
+				file_prio = 0;
+			else if (m_file_priority.size() <= i)
 				file_prio = 4;
 			else
 				file_prio = m_file_priority[i];
@@ -5657,7 +5684,7 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
 		if (!has_picker()) return false;
-		
+
 		TORRENT_ASSERT(m_picker.get());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
@@ -8561,7 +8588,6 @@ namespace libtorrent
 				}
 			}
 		}
-
 
 		start_announcing();
 

@@ -378,4 +378,45 @@ TORRENT_TEST(priority)
 	cleanup();
 }
 
+// test to set piece and file priority on a torrent that doesn't have metadata
+// yet
+TORRENT_TEST(no_metadata_file_prio)
+{
+	settings_pack pack;
+	lt::session ses(pack);
 
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.info_hash = sha1_hash("abababababababababab");
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	h.file_priority(0, 0);
+	TEST_EQUAL(h.file_priority(0), 0);
+	h.file_priority(0, 1);
+	TEST_EQUAL(h.file_priority(0), 1);
+
+	ses.remove_torrent(h);
+}
+
+TORRENT_TEST(no_metadata_piece_prio)
+{
+	settings_pack pack;
+	lt::session ses(pack);
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.info_hash = sha1_hash("abababababababababab");
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	// you can't set piece priorities before the metadata has been downloaded
+	h.piece_priority(2, 0);
+	TEST_EQUAL(h.piece_priority(2), 4);
+	h.piece_priority(2, 1);
+	TEST_EQUAL(h.piece_priority(2), 4);
+
+	ses.remove_torrent(h);
+}

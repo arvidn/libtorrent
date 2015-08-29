@@ -94,7 +94,7 @@ TORRENT_TEST(peer_priority)
 			tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x4d2)
 			, tcp::endpoint(address::from_string("ffff:ffff:ffff:ffff::1"), 0x12c));
 		TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));
-        
+
 		// these IPs don't belong to the same /32, so apply the full mask
 		// 0xffffffff55555555
 		p = peer_priority(
