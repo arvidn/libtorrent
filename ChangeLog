@@ -1,3 +1,4 @@
+	* add option to not proxy tracker connections through proxy
 	* removed sparse-regions feature
 	* support using 0 disk threads (to perform disk I/O in network thread)
 	* removed deprecated handle_alert template
