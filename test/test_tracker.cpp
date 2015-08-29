@@ -470,7 +470,8 @@ TORRENT_TEST(try_next)
 
 		TEST_EQUAL(tr[1].fails, 1);
 		TEST_EQUAL(tr[1].verified, false);
-		TEST_EQUAL(tr[1].last_error, boost::asio::error::timed_out);
+		TEST_CHECK(tr[1].last_error == boost::asio::error::timed_out
+			|| tr[1].last_error == boost::asio::error::connection_refused);
 
 		TEST_EQUAL(tr[2].fails, 0);
 		TEST_EQUAL(tr[2].verified, true);
