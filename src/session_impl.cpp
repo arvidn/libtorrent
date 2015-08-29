@@ -3080,7 +3080,7 @@ retry:
 			TORRENT_ASSERT(t.want_tick());
 			TORRENT_ASSERT(!t.is_aborted());
 
-			t.second_tick(tick_interval_ms, m_tick_residual / 1000);
+			t.second_tick(tick_interval_ms);
 
 			// if the call to second_tick caused the torrent
 			// to no longer want to be ticked (i.e. it was

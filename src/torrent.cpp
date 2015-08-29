@@ -9919,8 +9919,7 @@ namespace libtorrent
 			: m_ses.session_time() - m_became_seed);
 	}
 
-	// TODO: 2 if residual is not used, remove it
-	void torrent::second_tick(int tick_interval_ms, int /* residual */)
+	void torrent::second_tick(int tick_interval_ms)
 	{
 		TORRENT_ASSERT(want_tick());
 		TORRENT_ASSERT(is_single_thread());
