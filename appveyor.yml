@@ -13,11 +13,11 @@ environment:
     linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
-    compiler: msvc-14.0
+    compiler: msvc-12.0
     x64: 1
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
+    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-12.0
     linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
