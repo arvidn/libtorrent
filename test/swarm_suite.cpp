@@ -211,23 +211,31 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
+		fprintf(stderr, "wait returned: %d ms\n"
+			, int(total_milliseconds(clock_type::now() - start)));
 		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			std::cerr << ret->message() << std::endl;
+			fprintf(stderr, "%s\n", ret->message().c_str());
 		}
 		start = clock_type::now();
 	}
+
+	fprintf(stderr, "loop returned: %d ms\n"
+		, int(total_milliseconds(clock_type::now() - start)));
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();
 	p2 = ses2.abort();
 	p3 = ses3.abort();
 
-	TEST_CHECK(clock_type::now() - start < seconds(3));
-	TEST_CHECK(clock_type::now() - start >= seconds(2));
+	time_point end = clock_type::now();
+
+	fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
+	TEST_CHECK(end - start < seconds(3));
+	TEST_CHECK(end - start >= seconds(2));
 
 	TEST_CHECK(!exists("tmp1_swarm/temporary"));
 	TEST_CHECK(!exists("tmp2_swarm/temporary"));

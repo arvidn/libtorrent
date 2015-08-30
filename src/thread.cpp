@@ -167,7 +167,7 @@ namespace libtorrent
 		l.lock();
 		--m_num_waiters;
 	}
-	
+
 	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
 	{
 		TORRENT_ASSERT(l.locked());

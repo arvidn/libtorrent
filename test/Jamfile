@@ -193,7 +193,6 @@ test-suite libtorrent :
 alias win-tests :
 	test_primitives
 	test_pe_crypto
-	test_utp
 	test_remap_files
 	test_auto_unchoke
 	test_torrent

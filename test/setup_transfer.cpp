@@ -335,14 +335,22 @@ bool downloading_alert(libtorrent::alert const* a)
 
 void wait_for_downloading(lt::session& ses, char const* name)
 {
+	time_point start = clock_type::now();
 	downloading_done = false;
 	alert const* a = 0;
 	do
 	{
 		print_alerts(ses, name, true, true, true, &downloading_alert, false);
 		if (downloading_done) break;
-		a = ses.wait_for_alert(milliseconds(500));
+		if (total_seconds(clock_type::now() - start) > 10) break;
+		a = ses.wait_for_alert(seconds(2));
 	} while (a);
+	if (!downloading_done)
+	{
+		fprintf(stderr, "did not receive a state_changed_alert indicating "
+			"the torrent is downloading. waited: %d ms\n"
+			, int(total_milliseconds(clock_type::now() - start)));
+	}
 }
 
 void print_ses_rate(float time
