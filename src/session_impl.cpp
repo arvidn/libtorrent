@@ -6779,9 +6779,12 @@ namespace aux {
 		set_external_address(ip, source_dht, source);
 	}
 
-	address session_impl::external_address()
+	address session_impl::external_address(address_type at)
 	{
-		return m_external_ip.external_address(address_v4());
+		if (at == ipv4)
+			return m_external_ip.external_address(address_v4());
+		else
+			return m_external_ip.external_address(address_v6());
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)

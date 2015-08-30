@@ -476,7 +476,7 @@ struct obs : dht::dht_observer
 		, address const& source) TORRENT_OVERRIDE
 	{}
 
-	virtual address external_address() TORRENT_OVERRIDE
+	virtual address external_address(address_type at) TORRENT_OVERRIDE
 	{
 		return address_v4::from_string("236.0.0.1");
 	}

@@ -73,14 +73,14 @@ namespace {
 
 void nop() {}
 
-node_id calculate_node_id(node_id const& nid, dht_observer* observer)
+node_id calculate_node_id(node_id const& nid, dht_observer* observer, address_type at)
 {
 	address external_address;
-	if (observer) external_address = observer->external_address();
+	if (observer) external_address = observer->external_address(at);
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
-	if (!observer || external_address == address())
+	if (!observer || external_address.is_unspecified())
 	{
 		return generate_random_id();
 	}
@@ -99,7 +99,7 @@ node::node(udp_socket_interface* sock
 	, struct counters& cnt
 	, dht_storage_constructor_type storage_constructor)
 	: m_settings(settings)
-	, m_id(calculate_node_id(nid, observer))
+	, m_id(calculate_node_id(nid, observer, ipv4))
 	, m_table(m_id, 8, settings, observer)
 	, m_rpc(m_id, m_settings, m_table, sock, observer)
 	, m_observer(observer)
