@@ -105,9 +105,9 @@ namespace libtorrent
 		if (m_sam_socket) m_sam_socket->close(e);
 	}
 
-	proxy_settings i2p_connection::proxy() const
+	aux::proxy_settings i2p_connection::proxy() const
 	{
-		proxy_settings ret;
+		aux::proxy_settings ret;
 		ret.hostname = m_hostname;
 		ret.port = m_port;
 		ret.type = settings_pack::i2p_proxy;

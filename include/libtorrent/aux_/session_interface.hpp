@@ -64,7 +64,6 @@ namespace libtorrent
 {
 	class peer_connection;
 	class torrent;
-	struct proxy_settings;
 	struct socket_job;
 #ifndef TORRENT_NO_DEPRECATE
 	struct pe_settings;
@@ -101,6 +100,7 @@ namespace libtorrent
 
 namespace libtorrent { namespace aux
 {
+	struct proxy_settings;
 	struct session_settings;
 
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS

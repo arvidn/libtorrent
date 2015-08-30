@@ -471,12 +471,13 @@ TORRENT_TEST(try_next)
 
 		TEST_EQUAL(tr[1].fails, 1);
 		TEST_EQUAL(tr[1].verified, false);
-		TEST_CHECK(tr[1].last_error == boost::asio::error::timed_out
+		const bool tracker_error = tr[1].last_error == boost::asio::error::timed_out
 			|| tr[1].last_error == boost::system::error_condition(boost::system::errc::connection_refused)
 #ifdef TORRENT_WINDOWS
-			|| tr[1].last_error == boost::system::error_code(boost::system::system_category(), ERROR_CONNECTION_REFUSED)
+			|| tr[1].last_error == boost::system::error_code(ERROR_CONNECTION_REFUSED, boost::system::system_category())
 #endif
-			);
+			;
+		TEST_EQUAL(tracker_error, true);
 
 		TEST_EQUAL(tr[2].fails, 0);
 		TEST_EQUAL(tr[2].verified, true);
@@ -565,5 +566,74 @@ TORRENT_TEST(http_peers)
 	fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
 	fprintf(stderr, "done\n");
+}
+
+void test_proxy(bool proxy_trackers)
+{
+	int http_port = start_web_server();
+
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
+	pack.set_bool(settings_pack::force_proxy, true);
+
+	pack.set_str(settings_pack::proxy_hostname, "non-existing.com");
+	pack.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	pack.set_int(settings_pack::proxy_port, 4444);
+	pack.set_bool(settings_pack::proxy_tracker_connections, proxy_trackers);
+
+	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+
+	error_code ec;
+	remove_all("tmp2_tracker", ec);
+	create_directory("tmp2_tracker", ec);
+	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	file.close();
+
+	char tracker_url[200];
+	// and this should not be announced to (since the one before it succeeded)
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+		, http_port);
+	t->add_tracker(tracker_url, 0);
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.ti = t;
+	addp.save_path = "tmp2_tracker";
+	torrent_handle h = s->add_torrent(addp);
+
+	// wait to hit the tracker
+	const alert* a = wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
+	if (proxy_trackers)
+	{
+		TEST_CHECK(a == NULL);
+	}
+	else
+	{
+		TEST_CHECK(a != NULL);
+	}
+
+	fprintf(stderr, "destructing session\n");
+	s.reset();
+	fprintf(stderr, "done\n");
+
+	fprintf(stderr, "stop_web_server\n");
+	stop_web_server();
+	fprintf(stderr, "done\n");
+}
+
+TORRENT_TEST(tracker_proxy)
+{
+	fprintf(stderr, "\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
+	test_proxy(false);
+
+	fprintf(stderr, "\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
+	test_proxy(true);
 }
 
