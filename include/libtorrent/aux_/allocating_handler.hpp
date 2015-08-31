@@ -87,7 +87,7 @@ namespace libtorrent { namespace aux
 		{}
 #endif
 
-#if !deffined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
+#if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
 		&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		template <class... A>
 		void operator()(A&&... a) const
