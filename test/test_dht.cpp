@@ -452,7 +452,7 @@ dht_settings test_settings()
 }
 
 // TODO: test obfuscated_get_peers
-// TODO: 3 split this test up into smaller test cases
+// TODO: 2 split this test up into smaller test cases
 TORRENT_TEST(dht)
 {
 	dht_settings sett = test_settings();
