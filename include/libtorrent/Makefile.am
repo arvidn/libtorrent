@@ -8,6 +8,7 @@ nobase_include_HEADERS = \
   alert_observer.hpp           \
   alert_types.hpp              \
   alloca.hpp                   \
+  allocating_handler.hpp       \
   allocator.hpp                \
   assert.hpp                   \
   bandwidth_limit.hpp          \

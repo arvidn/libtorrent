@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/aux_/allocating_handler.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/debug.hpp"
@@ -79,7 +80,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
-#include <boost/aligned_storage.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -983,25 +983,9 @@ namespace libtorrent
 		// have sent to it
 		int m_outstanding_bytes;
 
-		template <std::size_t Size>
-		struct handler_storage
-		{
-#ifdef TORRENT_DEBUG
-			handler_storage()
-				: used(false)
-			{}
-
-			bool used;
-#else
-			handler_storage() {}
-#endif
-			boost::aligned_storage<Size> bytes;
-		private:
-			handler_storage(handler_storage const&);
-		};
-
-		handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
-		handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
+		// TODO: 3 use handler storage for second_tick and udp_packet handler too
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
+		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
 
 		// we have suggested these pieces to the peer
 		// don't suggest it again
@@ -1246,89 +1230,20 @@ namespace libtorrent
 		// outstanding requests need to increase at the same pace to keep up.
 		bool m_slow_start:1;
 
-		// TODO: 3 factor this out into its own header and use it for UDP socket
-		// and maybe second_timer as well
-		template <class Handler, std::size_t Size>
-		struct allocating_handler
-		{
-			// TODO: 3 if move semantics is supported, move the handler into this
-			// wrapper
-			allocating_handler(
-				Handler const& h, handler_storage<Size>& s)
-				: handler(h)
-				, storage(s)
-			{}
-
-#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
-			template <class... A>
-			void operator()(A&&... a) const
-			{
-				handler(std::forward<A>(a)...);
-			}
-#else
-			template <class A0>
-			void operator()(A0 const& a0) const
-			{
-				handler(a0);
-			}
-
-			template <class A0, class A1>
-			void operator()(A0 const& a0, A1 const& a1) const
-			{
-				handler(a0, a1);
-			}
-
-			template <class A0, class A1, class A2>
-			void operator()(A0 const& a0, A1 const& a1, A2 const& a2) const
-			{
-				handler(a0, a1, a2);
-			}
-#endif
-
-			friend void* asio_handler_allocate(
-				std::size_t size, allocating_handler<Handler, Size>* ctx)
-			{
-				TORRENT_UNUSED(size);
-				TORRENT_ASSERT(size <= Size);
-#ifdef TORRENT_DEBUG
-				TORRENT_ASSERT(!ctx->storage.used);
-				ctx->storage.used = true;
-#endif
-				return &ctx->storage.bytes;
-			}
-
-			friend void asio_handler_deallocate(
-				void* ptr, std::size_t size, allocating_handler<Handler, Size>* ctx)
-			{
-				TORRENT_UNUSED(ptr);
-				TORRENT_UNUSED(size);
-				TORRENT_UNUSED(ctx);
-
-				TORRENT_ASSERT(size <= Size);
-				TORRENT_ASSERT(ptr == &ctx->storage.bytes);
-#ifdef TORRENT_DEBUG
-				ctx->storage.used = false;
-#endif
-			}
-
-			Handler handler;
-			handler_storage<Size>& storage;
-		};
-
 		template <class Handler>
-		allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
 			make_read_handler(Handler const& handler)
 		{
-			return allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
 				handler, m_read_handler_storage
 			);
 		}
 
 		template <class Handler>
-		allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>
+		aux::allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>
 			make_write_handler(Handler const& handler)
 		{
-			return allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>(
+			return aux::allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>(
 				handler, m_write_handler_storage
 			);
 		}
