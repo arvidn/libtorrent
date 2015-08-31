@@ -144,7 +144,7 @@ TORRENT_TEST(erase_last)
 
 	list.erase(&n0);
 
-	int expected[] = { };
+	int expected[] = { -1 };
 	compare(list, expected, 0);
 
 	TEST_CHECK(list.empty());
