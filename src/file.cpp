@@ -493,7 +493,7 @@ namespace libtorrent
 		std::string n_exist = convert_to_native(file);
 		std::string n_link = convert_to_native(link);
 #endif
-		BOOL ret = CreateHardLink(n_link.c_str(), n_exist.c_str(), NULL);
+		BOOL ret = CreateHardLink_(n_link.c_str(), n_exist.c_str(), NULL);
 		if (ret)
 		{
 			ec.clear();
@@ -503,11 +503,16 @@ namespace libtorrent
 		// something failed. Does the filesystem not support hard links?
 		// TODO: 3 find out what error code is reported when the filesystem
 		// does not support hard links.
+		DWORD error = GetLastError();
+		if (error != ERROR_NOT_SUPPORTED || error != ERROR_ACCESS_DENIED)
+		{
+			// it's possible CreateHardLink will copy the file internally too,
+			// if the filesystem does not support it.
+			ec.assign(GetLastError(), system_category());
+			return;
+		}
 
-		// it's possible CreateHardLink will copy the file internally too,
-		// if the filesystem does not support it.
-		ec.assign(GetLastError(), system_category());
-		return;
+		// fall back to making a copy
 
 #else
 
@@ -532,6 +537,9 @@ namespace libtorrent
 			ec.assign(errno, generic_category());
 			return;
 		}
+
+		// fall back to making a copy
+
 #endif
 
 		// if we get here, we should copy the file

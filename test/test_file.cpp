@@ -290,7 +290,7 @@ TORRENT_TEST(file)
 #endif
 	if (ec)
 		fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_CHECK(!ec);
+	TEST_EQUAL(ec, error_code());
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 	file::iovec_t b = {(void*)"test", 4};
 	TEST_EQUAL(f.writev(0, &b, 1, ec), 4);
@@ -303,8 +303,60 @@ TORRENT_TEST(file)
 	TEST_EQUAL(f.readv(0, &b, 1, ec), 4);
 	if (ec)
 		fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
-	TEST_CHECK(!ec);
+	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(strcmp(test_buf, "test") == 0);
 	f.close();
+}
+
+TORRENT_TEST(hard_link)
+{
+	// try to create a hard link to see what happens
+	// first create a regular file to then add another link to.
+
+	// create a file, write some stuff to it, create a hard link to that file,
+	// read that file and assert we get the same stuff we wrote to the first file
+	error_code ec;
+	file f;
+	TEST_CHECK(f.open("original_file", file::read_write, ec));
+	if (ec)
+		fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+
+	file::iovec_t b = {(void*)"abcdefghijklmnopqrstuvwxyz", 26};
+	TEST_EQUAL(f.writev(0, &b, 1, ec), 26);
+	if (ec)
+		fprintf(stderr, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	f.close();
+
+	hard_link("original_file", "second_link", ec);
+
+	if (ec)
+		fprintf(stderr, "hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+
+
+	TEST_CHECK(f.open("second_link", file::read_write, ec));
+	if (ec)
+		fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+
+	char test_buf[27] = {0};
+	b.iov_base = test_buf;
+	b.iov_len = 27;
+	TEST_EQUAL(f.readv(0, &b, 1, ec), 26);
+	if (ec)
+		fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	TEST_CHECK(strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
+	f.close();
+
+	remove("original_file", ec);
+	if (ec)
+		fprintf(stderr, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+
+	remove("second_link", ec);
+	if (ec)
+		fprintf(stderr, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 }
 
