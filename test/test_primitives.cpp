@@ -30,20 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/parse_url.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/enum_net.hpp"
-#include "libtorrent/socket_io.hpp"
-#include <boost/bind.hpp>
-#include <iostream>
-#include <set>
+#include "libtorrent/socket_io.hpp" // for print_endpoint
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
