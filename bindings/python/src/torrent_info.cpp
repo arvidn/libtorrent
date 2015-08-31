@@ -149,8 +149,8 @@ namespace
        return result;
     }
 
-    bool get_tier(announce_entry const& ae) { return ae.tier; }
-    void set_tier(announce_entry& ae, bool v) { ae.tier = v; }
+    int get_tier(announce_entry const& ae) { return ae.tier; }
+    void set_tier(announce_entry& ae, int v) { ae.tier = v; }
     bool get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
     void set_fail_limit(announce_entry& ae, int l) { ae.fail_limit = l; }
     bool get_fails(announce_entry const& ae) { return ae.fails; }
