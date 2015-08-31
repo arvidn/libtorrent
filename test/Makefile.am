@@ -30,7 +30,8 @@ test_programs = \
   test_url_seed              \
   test_remap_files           \
   test_enum_net              \
-  test_file_progress
+  test_file_progress         \
+  test_linked_list
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -184,6 +185,7 @@ test_web_seed_SOURCES = test_web_seed.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
+test_linked_list_SOURCES = test_linked_list.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
