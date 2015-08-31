@@ -73,19 +73,21 @@ namespace libtorrent { namespace aux
 	template <class Handler, std::size_t Size>
 	struct allocating_handler
 	{
+
+		// TODO: 3 make sure the handlers we pass in are potentially movable!
 #if !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		allocating_handler(
 			Handler&& h, handler_storage<Size>& s)
 			: handler(std::move(h))
 			, storage(s)
 		{}
-#else
+#endif
+
 		allocating_handler(
 			Handler const& h, handler_storage<Size>& s)
 			: handler(h)
 			, storage(s)
 		{}
-#endif
 
 #if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
 		&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
