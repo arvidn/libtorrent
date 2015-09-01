@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg, Daniel Wallin
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -97,6 +97,11 @@ namespace libtorrent { namespace aux
 			handler(std::forward<A>(a)...);
 		}
 #else
+		void operator()() const
+		{
+			handler();
+		}
+
 		template <class A0>
 		void operator()(A0 const& a0) const
 		{

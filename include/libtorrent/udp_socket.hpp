@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/allocating_handler.hpp"
 
 #include <deque>
 
@@ -174,6 +175,29 @@ namespace libtorrent
 		// non-copyable
 		udp_socket(udp_socket const&);
 		udp_socket& operator=(udp_socket const&);
+
+		template <class Handler>
+		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+			make_read_handler(udp::socket* s, Handler const& handler)
+		{
+#if TORRENT_USE_IPV6
+			if (s == &m_ipv6_sock)
+			{
+				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+					handler, m_read6_handler_storage);
+			}
+#endif
+			else
+			{
+				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+					handler, m_read4_handler_storage);
+			}
+		}
+
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read4_handler_storage;
+#if TORRENT_USE_IPV6
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read6_handler_storage;
+#endif
 
 		// observers on this udp socket
 		std::vector<udp_socket_observer*> m_observers;

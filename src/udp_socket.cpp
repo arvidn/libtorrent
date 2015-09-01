@@ -501,7 +501,7 @@ void udp_socket::setup_read(udp::socket* s)
 	TORRENT_TRY
 	{
 		s->async_receive_from(null_buffers()
-			, ep, boost::bind(&udp_socket::on_read, this, _1, s));
+			, ep, make_read_handler(s, boost::bind(&udp_socket::on_read, this, _1, s)));
 	}
 	TORRENT_CATCH(boost::system::system_error& e)
 	{
@@ -510,8 +510,8 @@ void udp_socket::setup_read(udp::socket* s)
 		error_code ec;
 		boost::system::system_error e(ec);
 #endif
-		get_io_service().post(boost::bind(&udp_socket::on_read
-			, this, e.code(), s));
+		get_io_service().post(make_read_handler(s, boost::bind(&udp_socket::on_read
+			, this, e.code(), s)));
 	}
 }
 
