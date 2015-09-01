@@ -141,8 +141,6 @@ void observer::short_timeout()
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
-// this is called when no reply has been received within
-// some timeout
 void observer::timeout()
 {
 	if (flags & flag_done) return;
@@ -302,14 +300,23 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 
 	if (m.message.dict_find_string_value("y") == "e") 
 	{
-		// it's an error.
+		// It's an error.
 #ifndef TORRENT_DISABLE_LOGGING
 		bdecode_node err_ent = m.message.dict_find("e");
 		TORRENT_ASSERT(err_ent);
 		m_log->log(dht_logger::rpc_manager, "reply with error from %s: %s"
 			, print_endpoint(m.addr).c_str(), err_ent.list_string_value_at(1).c_str());
 #endif
-		o->reply(m);
+		// Logically, we should call o->reply(m) since we get a reply.
+		// a reply could be "response" or "error", here the reply is an "error".
+		// if the reply is an "error", basically the observer could/will
+		// do nothing with it, especially when observer::reply() is intended to
+		// handle a "response", not an "error".
+		// A "response" should somehow call algorithm->finished(), and an error/timeout
+		// should call algorithm->failed(). From this point of view,
+		// we should call o->timeout() instead of o->reply(m) because o->reply()
+		// will call algorithm->finished().
+		o->timeout();
 		return false;
 	}
 

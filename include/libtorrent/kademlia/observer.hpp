@@ -95,7 +95,7 @@ struct observer : boost::noncopyable
 	bool has_short_timeout() const { return (flags & flag_short_timeout) != 0; }
 
 	// this is called when no reply has been received within
-	// some timeout
+	// some timeout, or a reply with incorrect format.
 	virtual void timeout();
 
 	// if this is called the destructor should

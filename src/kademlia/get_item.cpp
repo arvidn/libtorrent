@@ -271,6 +271,7 @@ void get_item_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 
@@ -286,7 +287,10 @@ void get_item_observer::reply(msg const& m)
 	if (q)
 		seq = q.int_value();
 	else if (pk && sig)
+	{
+		timeout();
 		return;
+	}
 
 	bdecode_node v = r.dict_find("v");
 	if (v)
