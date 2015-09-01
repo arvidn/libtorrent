@@ -464,39 +464,27 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(m_send_buf), e);
 		error_code ec;
 
-		if (m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, send_flags))
-		{
-			if (ec)
-			{
-				m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
-#ifndef TORRENT_DISABLE_LOGGING
-				m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-					, m_send_buf.size(), addr);
-#endif
-				return false;
-			}
-
-			m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
-			// account for IP and UDP overhead
-			m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-				, addr.address().is_v6() ? 48 : 28);
-			m_counters.inc_stats_counter(counters::dht_messages_out);
-#ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), addr);
-#endif
-			return true;
-		}
-		else
+		bool ret = m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, send_flags);
+		if (!ret || ec)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
-
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
 				, m_send_buf.size(), addr);
 #endif
 			return false;
 		}
+
+		m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
+		// account for IP and UDP overhead
+		m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
+			, addr.address().is_v6() ? 48 : 28);
+		m_counters.inc_stats_counter(counters::dht_messages_out);
+#ifndef TORRENT_DISABLE_LOGGING
+		m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
+			, m_send_buf.size(), addr);
+#endif
+		return true;
 	}
 
 }}
