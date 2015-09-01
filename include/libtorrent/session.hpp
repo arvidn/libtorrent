@@ -126,8 +126,8 @@ namespace libtorrent
 		session_proxy() {}
 		~session_proxy();
 #if __cplusplus >= 201103L
-		session_proxy(session_proxy const& st) = default;
-		session_proxy& operator=(session_proxy const& st) = default;
+		session_proxy(session_proxy const&) = default;
+		session_proxy& operator=(session_proxy const&) = default;
 #endif
 	private:
 		session_proxy(

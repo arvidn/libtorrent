@@ -60,8 +60,8 @@ namespace libtorrent
 			LIBTORRENT_VERSION);
 		~session_settings();
 #if __cplusplus >= 201103L
-		session_settings(session_settings const& st) = default;
-		session_settings& operator=(session_settings const& st) = default;
+		session_settings(session_settings const&) = default;
+		session_settings& operator=(session_settings const&) = default;
 #endif
 
 		// automatically set to the libtorrent version you're using in order to

@@ -295,8 +295,8 @@ private:
 			magic = 0;
 		}
 #if __cplusplus >= 201103L
-		rootdevice(rootdevice const& st) = default;
-		rootdevice& operator=(rootdevice const& st) = default;
+		rootdevice(rootdevice const&) = default;
+		rootdevice& operator=(rootdevice const&) = default;
 #endif
 #endif
 

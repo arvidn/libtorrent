@@ -253,7 +253,7 @@ namespace libtorrent
 		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
 
 #if __cplusplus >= 201103L
-		torrent_handle& operator=(torrent_handle const& st) = default;
+		torrent_handle& operator=(torrent_handle const&) = default;
 #endif
 
 		// flags for add_piece().
@@ -1261,8 +1261,8 @@ namespace libtorrent
 		torrent_status();
 		~torrent_status();
 #if __cplusplus >= 201103L
-		torrent_status(torrent_status const& st) = default;
-		torrent_status& operator=(torrent_status const& st) = default;
+		torrent_status(torrent_status const&) = default;
+		torrent_status& operator=(torrent_status const&) = default;
 #endif
 
 		// compres if the torrent status objects come from the same torrent. i.e.

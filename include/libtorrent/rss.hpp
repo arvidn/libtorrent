@@ -52,8 +52,8 @@ namespace libtorrent
 	{
 		feed_item();
 #if __cplusplus >= 201103L
-		feed_item(feed_item const& st) = default;
-		feed_item & operator=(feed_item const& st) = default;
+		feed_item(feed_item const&) = default;
+		feed_item & operator=(feed_item const&) = default;
 #endif
 		~feed_item();
 

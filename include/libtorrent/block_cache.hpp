@@ -173,8 +173,8 @@ namespace libtorrent
 		cached_piece_entry();
 		~cached_piece_entry();
 #if __cplusplus >= 201103L
-		cached_piece_entry(cached_piece_entry const& st) = default;
-		cached_piece_entry& operator=(cached_piece_entry const& st) = default;
+		cached_piece_entry(cached_piece_entry const&) = default;
+		cached_piece_entry& operator=(cached_piece_entry const&) = default;
 #endif
 
 		bool ok_to_evict(bool ignore_hash = false) const

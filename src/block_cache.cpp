@@ -1277,7 +1277,9 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 #endif
 				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 				{
-					fprintf(stderr, "insert_blocks(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+					fprintf(stderr, "insert_blocks(piece=%d block=%d):
+						vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %"
+						PRIx64 "\n"
 						, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 					free_buffer(pe->blocks[block].buf);
 					pe->blocks[block].buf = NULL;
@@ -1326,7 +1328,9 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{
-				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): "
+					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %"
+					PRIx64 "\n"
 					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 
 				free_buffer(pe->blocks[block].buf);
@@ -1392,7 +1396,9 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{
-				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): "
+					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %"
+					PRIx64 "\n"
 					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 				free_buffer(pe->blocks[block].buf);
 				pe->blocks[block].buf = NULL;
