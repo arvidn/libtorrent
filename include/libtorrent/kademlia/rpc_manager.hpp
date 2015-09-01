@@ -83,7 +83,8 @@ public:
 	rpc_manager(node_id const& our_id
 		, routing_table& table
 		, udp_socket_interface* sock
-		, dht_logger* log);
+		, dht_logger* log
+		, bool read_only = false);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
@@ -130,6 +131,7 @@ private:
 	node_id m_our_id;
 	boost::uint32_t m_allocated_observers:31;
 	boost::uint32_t m_destructing:1;
+	bool m_read_only;
 };
 
 } } // namespace libtorrent::dht

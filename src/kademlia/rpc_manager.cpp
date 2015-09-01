@@ -164,7 +164,8 @@ enum { observer_size = max3<
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, routing_table& table, udp_socket_interface* sock
-	, dht_logger* log)
+	, dht_logger* log
+	, bool read_only)
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
 	, m_log(log)
@@ -173,6 +174,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
+	, m_read_only(read_only)
 {}
 
 rpc_manager::~rpc_manager()
@@ -438,6 +440,10 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	int tid = (random() ^ (random() << 5)) & 0xffff;
 	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
+
+	// When a DHT node enters the read-only state, in each outgoing query message,
+	// places a 'ro' key in the top-level message dictionary and sets its value to 1.
+	if (m_read_only) e["ro"] = 1;
 
 	o->set_target(target_addr);
 	o->set_transaction_id(tid);
