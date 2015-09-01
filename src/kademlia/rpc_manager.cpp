@@ -141,8 +141,6 @@ void observer::short_timeout()
 	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
 }
 
-// this is called when no reply has been received within
-// some timeout
 void observer::timeout()
 {
 	if (flags & flag_done) return;

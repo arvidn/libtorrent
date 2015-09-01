@@ -56,6 +56,7 @@ void find_data_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 
@@ -66,6 +67,7 @@ void find_data_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 	bdecode_node token = r.dict_find_string("token");

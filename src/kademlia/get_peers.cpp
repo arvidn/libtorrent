@@ -54,6 +54,7 @@ void get_peers_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 
@@ -312,6 +313,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 
@@ -322,6 +324,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
 			, static_cast<void*>(algorithm()));
 #endif
+		timeout();
 		return;
 	}
 
