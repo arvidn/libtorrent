@@ -1490,7 +1490,7 @@ namespace libtorrent
 		// without getting banned.
 		int block_ratelimit;
 
-		// when set, the other nodes won't kept this node in their routing
+		// when set, the other nodes won't keep this node in their routing
 		// tables, it's meant for low-power and/or ephemeral devices that
 		// cannot support the DHT, it is also useful for mobile devices which
 		// are sensitive to network traffic and battery life.

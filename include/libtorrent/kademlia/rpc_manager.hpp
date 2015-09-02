@@ -81,17 +81,17 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 public:
 
 	rpc_manager(node_id const& our_id
+		, dht_settings const& settings
 		, routing_table& table
 		, udp_socket_interface* sock
-		, dht_logger* log
-		, bool read_only = false);
+		, dht_logger* log);
 	~rpc_manager();
 
 	void unreachable(udp::endpoint const& ep);
 
 	// returns true if the node needs a refresh
 	// if so, id is assigned the node id to refresh
-	bool incoming(msg const&, node_id* id, libtorrent::dht_settings const& settings);
+	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
 	bool invoke(entry& e, udp::endpoint target
@@ -126,12 +126,12 @@ private:
 	
 	udp_socket_interface* m_sock;
 	dht_logger* m_log;
+	dht_settings const& m_settings;
 	routing_table& m_table;
 	time_point m_timer;
 	node_id m_our_id;
 	boost::uint32_t m_allocated_observers:31;
 	boost::uint32_t m_destructing:1;
-	bool m_read_only;
 };
 
 } } // namespace libtorrent::dht
