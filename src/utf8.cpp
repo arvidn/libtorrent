@@ -40,6 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/ConvertUTF.h"
 
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-member-function"
+#endif
+
 namespace libtorrent
 {
 	namespace
@@ -192,6 +198,10 @@ namespace libtorrent
 			&src_start, src_start + wide.size(), utf8);
 	}
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif
 

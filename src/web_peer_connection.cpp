@@ -268,7 +268,7 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	torrent_info const& info = t->torrent_file();
 	peer_request req = r;
-	
+
 	std::string request;
 	request.reserve(400);
 
@@ -300,6 +300,8 @@ void web_peer_connection::write_request(peer_request const& r)
 			peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
 				, int(m_piece.size()), int(front.piece), int(front.start)
 				, int (front.start + front.length - 1));
+#else
+			TORRENT_UNUSED(front);
 #endif
 
 			req.start += m_piece.size();

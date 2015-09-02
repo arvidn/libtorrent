@@ -553,7 +553,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
+			, char const* event, char const* fmt, ...) const TORRENT_FORMAT(4,5);
+		void peer_log(peer_log_alert::direction_t direction
+			, char const* event) const;
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING

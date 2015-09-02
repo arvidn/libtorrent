@@ -75,6 +75,7 @@ static struct utp_logger
 	}
 } log_file_holder;
 
+TORRENT_FORMAT(1, 2)
 void utp_log(char const* fmt, ...)
 {
 	if (log_file_holder.utp_log_file == NULL) return;
@@ -120,7 +121,7 @@ void set_utp_stream_logging(bool enable) {
 
 #else
 
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || defined __clang__
 
 #define UTP_LOG(...) do {} while(false)
 #define UTP_LOGV(...) do {} while(false)

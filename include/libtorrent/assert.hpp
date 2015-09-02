@@ -57,17 +57,8 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
 #define TORRENT_WHILE_0 while (0)
 #endif
 
-#if TORRENT_USE_ASSERTS
 
-#ifdef TORRENT_PRODUCTION_ASSERTS
-extern char const* libtorrent_assert_log;
-#endif
-
-#ifndef TORRENT_USE_SYSTEM_ASSERTS
-
-#if TORRENT_USE_IOSTREAM
-#include <sstream>
-#endif
+// declarations of the two functions
 
 TORRENT_EXPORT void assert_print(char const* fmt, ...) TORRENT_FORMAT(1,2);
 
@@ -77,6 +68,20 @@ TORRENT_NO_RETURN
 #endif
 TORRENT_EXPORT void assert_fail(const char* expr, int line
 	, char const* file, char const* function, char const* val, int kind = 0);
+
+
+
+#if TORRENT_USE_ASSERTS
+
+#ifdef TORRENT_PRODUCTION_ASSERTS
+extern char const* libtorrent_assert_log;
+#endif
+
+#if TORRENT_USE_IOSTREAM
+#include <sstream>
+#endif
+
+#ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND(x) \
 	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0

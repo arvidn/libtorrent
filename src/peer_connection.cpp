@@ -502,6 +502,12 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+	void peer_connection::peer_log(peer_log_alert::direction_t direction
+		, char const* event) const
+	{
+		peer_log(direction, event, "");
+	}
+
 	TORRENT_FORMAT(4,5)
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
 		, char const* event, char const* fmt, ...) const

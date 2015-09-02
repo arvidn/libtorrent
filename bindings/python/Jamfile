@@ -149,7 +149,7 @@ my-python-extension py_libtorrent
     <include>src
     <toolset>gcc:<cxxflags>-Wno-deprecated-declarations
     <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
-    <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
+	<toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
   : # usage-requirements
     <conditional>@libtorrent_linking

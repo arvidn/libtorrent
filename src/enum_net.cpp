@@ -232,7 +232,7 @@ namespace libtorrent { namespace
 	}
 #endif
 
-#if TORRENT_USE_SYSCTL
+#if TORRENT_USE_SYSCTL && !defined TORRENT_BUILD_SIMULATOR
 #ifdef TORRENT_OS2
 int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 #endif
@@ -285,7 +285,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
-#if TORRENT_USE_IFADDRS
+#if TORRENT_USE_IFADDRS && !defined TORRENT_BUILD_SIMULATOR
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
 		int family = ifa->ifa_addr->sa_family;

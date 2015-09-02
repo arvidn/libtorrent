@@ -401,11 +401,6 @@ namespace libtorrent
 		stats_counters().inc_stats_counter(counters::num_outgoing_suggest);
 	}
 
-	namespace {
-		char random_byte()
-		{ return random() & 0xff; }
-	}
-
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
 	{
 		TORRENT_ASSERT(!associated_torrent().expired());
@@ -445,6 +440,11 @@ namespace libtorrent
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+
+	namespace {
+		char random_byte()
+		{ return random() & 0xff; }
+	}
 
 	void bt_peer_connection::write_pe1_2_dhkey()
 	{
@@ -728,7 +728,6 @@ namespace libtorrent
 		int packet_size = 0;
 		m_rc4->decrypt(vec, consume, produce, packet_size);
 	}
-#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	namespace {
 		void regular_c_free(char* buf, void* /* userdata */
@@ -737,6 +736,8 @@ namespace libtorrent
 			::free(buf);
 		}
 	}
+
+#endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
 		, chained_buffer::free_buffer_fun destructor, void* userdata

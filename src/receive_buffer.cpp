@@ -221,7 +221,7 @@ void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& v
 			, m_recv_pos - regular_buf_size));
 	}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 	int vec_bytes = 0;
 	for (std::vector<asio::mutable_buffer>::iterator i = vec.begin();
 		i != vec.end(); ++i)

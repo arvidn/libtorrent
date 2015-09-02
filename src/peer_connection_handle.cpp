@@ -229,7 +229,14 @@ void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 	TORRENT_ASSERT(pc);
 	va_list v;
 	va_start(v, fmt);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	pc->peer_log(direction, event, fmt, v);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	va_end(v);
 #else
 	TORRENT_UNUSED(direction);

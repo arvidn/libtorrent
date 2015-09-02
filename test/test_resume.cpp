@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 boost::shared_ptr<torrent_info> generate_torrent()
 {
@@ -52,7 +53,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
 	fs.add_file("test_resume/tmp2", 128 * 1024);
 	fs.add_file("test_resume/tmp3", 128 * 1024);
-	libtorrent::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024, 6);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 
@@ -61,7 +62,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 	for (int i = 0; i < num; ++i)
 	{
 		sha1_hash ph;
-		for (int k = 0; k < 20; ++k) ph[k] = libtorrent::random();
+		for (int k = 0; k < 20; ++k) ph[k] = lt::random();
 		t.set_hash(i, ph);
 	}
 
@@ -131,7 +132,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	return ret;
 }
 
-torrent_handle test_resume_flags(libtorrent::session& ses, int flags
+torrent_handle test_resume_flags(lt::session& ses, int flags
 	, char const* file_priorities = "1111", char const* resume_file_prio = "")
 {
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
@@ -191,7 +192,7 @@ void default_tests(torrent_status const& s)
 
 TORRENT_TEST(piece_priorities)
 {
-	session ses;
+	lt::session ses;
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
@@ -237,7 +238,7 @@ TORRENT_TEST(piece_priorities)
 
 TORRENT_TEST(file_priorities_default)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -249,7 +250,7 @@ TORRENT_TEST(file_priorities_default)
 TORRENT_TEST(file_priorities_resume_seed_mode)
 {
 	// in share mode file priorities should always be 0
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses,
 		add_torrent_params::flag_share_mode, "", "123").file_priorities();
 
@@ -262,7 +263,7 @@ TORRENT_TEST(file_priorities_resume_seed_mode)
 TORRENT_TEST(file_priorities_seed_mode)
 {
 	// in share mode file priorities should always be 0
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses,
 		add_torrent_params::flag_share_mode, "123", "").file_priorities();
 
@@ -276,7 +277,7 @@ TORRENT_TEST(zero_file_prio)
 {
 	fprintf(stderr, "test_file_prio\n");
 
-	session ses;
+	lt::session ses;
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
@@ -315,7 +316,7 @@ void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
 	fprintf(stderr, "test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
 		, file_prio, pieces_have, piece_prio);
 
-	session ses;
+	lt::session ses;
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
@@ -395,7 +396,7 @@ TORRENT_TEST(seed_mode_preserve)
 
 TORRENT_TEST(resume_save_load)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_handle h = test_resume_flags(ses, 0, "123", "");
 
 	h.save_resume_data();
@@ -421,7 +422,7 @@ TORRENT_TEST(resume_save_load)
 
 TORRENT_TEST(resume_save_load_resume)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_handle h = test_resume_flags(ses, 0, "", "123");
 
 	h.save_resume_data();
@@ -450,7 +451,7 @@ TORRENT_TEST(file_priorities_resume_override)
 	// make sure that an empty file_priorities vector in add_torrent_params won't
 	// override the resume data file priorities, even when override resume data
 	// flag is set.
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses,
 		add_torrent_params::flag_override_resume_data, "", "123").file_priorities();
 
@@ -462,7 +463,7 @@ TORRENT_TEST(file_priorities_resume_override)
 
 TORRENT_TEST(file_priorities_resume)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -473,7 +474,7 @@ TORRENT_TEST(file_priorities_resume)
 
 TORRENT_TEST(file_priorities1)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "010").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -486,7 +487,7 @@ TORRENT_TEST(file_priorities1)
 
 TORRENT_TEST(file_priorities2)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -497,7 +498,7 @@ TORRENT_TEST(file_priorities2)
 
 TORRENT_TEST(file_priorities3)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "4321").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -508,7 +509,7 @@ TORRENT_TEST(file_priorities3)
 
 TORRENT_TEST(plain)
 {
-	libtorrent::session ses;
+	lt::session ses;
 
 	torrent_status s = test_resume_flags(ses, 0).status();
 	default_tests(s);
@@ -531,7 +532,7 @@ TORRENT_TEST(plain)
 
 TORRENT_TEST(use_resume_save_path)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_use_resume_save_path).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -553,7 +554,7 @@ TORRENT_TEST(use_resume_save_path)
 
 TORRENT_TEST(override_resume_data)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_status s = test_resume_flags(ses
 		, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_paused).status();
@@ -578,7 +579,7 @@ TORRENT_TEST(override_resume_data)
 
 TORRENT_TEST(seed_mode)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_seed_mode).status();
 	default_tests(s);
@@ -601,7 +602,7 @@ TORRENT_TEST(seed_mode)
 
 TORRENT_TEST(upload_mode)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_upload_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -623,7 +624,7 @@ TORRENT_TEST(upload_mode)
 
 TORRENT_TEST(share_mode)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	torrent_status s = test_resume_flags(ses
 		, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_share_mode).status();
@@ -647,7 +648,7 @@ TORRENT_TEST(share_mode)
 
 TORRENT_TEST(auto_managed)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	// resume data overrides the auto-managed flag
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_auto_managed).status();
 	default_tests(s);
@@ -670,7 +671,7 @@ TORRENT_TEST(auto_managed)
 
 TORRENT_TEST(paused)
 {
-	libtorrent::session ses;
+	lt::session ses;
 	// resume data overrides the paused flag
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_paused).status();
 	default_tests(s);

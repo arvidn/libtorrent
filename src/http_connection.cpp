@@ -339,9 +339,13 @@ void http_connection::start(std::string const& hostname, int port
 				if (m_ssl_ctx)
 				{
 					m_own_ssl_context = true;
-					error_code ec;
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
-					TORRENT_ASSERT(!ec);
+					if (ec)
+					{
+						m_timer.get_io_service().post(boost::bind(&http_connection::callback
+								, me, ec, static_cast<char*>(NULL), 0));
+						return;
+					}
 				}
 			}
 			userdata = m_ssl_ctx;

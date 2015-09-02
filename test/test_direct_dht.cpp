@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 namespace
 {
@@ -63,7 +64,7 @@ struct test_plugin : plugin
 	}
 };
 
-dht_direct_response_alert* get_direct_response(session& ses)
+dht_direct_response_alert* get_direct_response(lt::session& ses)
 {
 	for (;;)
 	{
@@ -95,9 +96,9 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_bool(settings_pack::enable_upnp, false);
 	sp.set_int(settings_pack::max_retry_port_bind, 800);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:42434");
-	session responder(sp, 0);
+	lt::session responder(sp, 0);
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
-	session requester(sp, 0);
+	lt::session requester(sp, 0);
 
 	responder.add_extension(boost::static_pointer_cast<plugin>(boost::make_shared<test_plugin>()));
 

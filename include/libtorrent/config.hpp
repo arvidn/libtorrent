@@ -439,7 +439,7 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 
 #if defined __GNUC__ || defined __clang__
-#define TORRENT_FORMAT(fmt, ellipsis) __attribute__((format(printf, fmt, ellipsis)))
+#define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
 #else
 #define TORRENT_FORMAT(fmt, ellipsis)
 #endif

@@ -1,5 +1,5 @@
 
-#if !BOOST_PP_IS_ITERATING
+#if !defined BOOST_PP_IS_ITERATING || !BOOST_PP_IS_ITERATING
 // set-up iteration
 
 #include <boost/preprocessor/repetition/enum_params.hpp>

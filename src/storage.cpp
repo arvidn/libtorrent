@@ -90,7 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0
 
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_STORAGE
 #define DLOG(...) fprintf(__VA_ARGS__)
@@ -217,7 +217,7 @@ namespace libtorrent
 		char* ptr = event;
 		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
 		detail::write_uint64(offset, ptr);
-		detail::write_uint64((boost::uint64_t)event_id++, ptr);
+		detail::write_uint64(static_cast<boost::uint64_t>(event_id++), ptr);
 		detail::write_uint32(fileid, ptr);
 		detail::write_uint8(flags, ptr);
 
