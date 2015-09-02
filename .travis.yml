@@ -2,7 +2,7 @@ language: cpp
 
 os:
   - linux
-  - osx
+#  - osx
 
 env:
   - variant=test_debug cc=gcc-cpp11 sim=1
