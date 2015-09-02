@@ -1972,8 +1972,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_immutable_item_alert, 74)
 
-		static const int static_category = alert::error_notification
-			| alert::dht_notification;
+		static const int static_category = alert::dht_notification;
 
 		virtual std::string message() const;
 		TORRENT_NOT_DISCARDABLE
@@ -2000,8 +1999,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
 
-		static const int static_category = alert::error_notification
-			| alert::dht_notification;
+		static const int static_category = alert::dht_notification;
 		virtual std::string message() const;
 
 		TORRENT_NOT_DISCARDABLE
