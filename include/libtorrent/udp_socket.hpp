@@ -186,8 +186,8 @@ namespace libtorrent
 				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
 					handler, m_read6_handler_storage);
 			}
-#endif
 			else
+#endif
 			{
 				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
 					handler, m_read4_handler_storage);
