@@ -8,7 +8,6 @@ nobase_include_HEADERS = \
   alert_observer.hpp           \
   alert_types.hpp              \
   alloca.hpp                   \
-  allocating_handler.hpp       \
   allocator.hpp                \
   assert.hpp                   \
   bandwidth_limit.hpp          \
@@ -159,6 +158,7 @@ nobase_include_HEADERS = \
   tommath_superclass.h              \
   \
   aux_/alert_manager_variadic_emplace.hpp \
+  aux_/allocating_handler.hpp       \
   aux_/cpuid.hpp                    \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \
