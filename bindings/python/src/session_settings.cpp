@@ -290,6 +290,9 @@ void bind_session_settings()
         .def_readwrite("privacy_lookups", &dht_settings::privacy_lookups)
         .def_readwrite("enforce_node_id", &dht_settings::enforce_node_id)
         .def_readwrite("ignore_dark_internet", &dht_settings::ignore_dark_internet)
+        .def_readwrite("block_timeout", &dht_settings::block_timeout)
+        .def_readwrite("block_ratelimit", &dht_settings::block_ratelimit)
+        .def_readwrite("read_only", &dht_settings::read_only)
     ;
 #endif
 
