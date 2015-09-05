@@ -126,7 +126,8 @@ struct parse_state
 	}
 };
 
-TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state);
+TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
+	, int str_len, parse_state& state);
 
 // TODO: support using the windows API for UPnP operations as well
 class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
