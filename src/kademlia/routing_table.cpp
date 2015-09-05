@@ -1106,6 +1106,8 @@ void routing_table::add_router_node(udp::endpoint router)
 // pinged == false)
 void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 {
+	// only when the node_id pass the verification, add it to routing table.
+	if (m_settings.enforce_node_id && !verify_id(id, ep.address())) return;
 	add_node(node_entry(id, ep));
 }
 
