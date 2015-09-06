@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/session_status.hpp"
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 
@@ -137,7 +138,7 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
-	// if a pwer fails once, don't try it again
+	// if a peer fails once, don't try it again
 	sett.set_int(settings_pack::max_failcount, 1);
 	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
@@ -194,7 +195,12 @@ void test_ssl(int test_idx, bool use_utp)
 
 	// make sure they've taken effect
 	if (test.downloader_has_cert || test.seed_has_cert)
-		test_sleep(500);
+	{
+		// this will cause a round-trip to the main thread, and make sure the
+		// previous async. calls have completed
+		ses1.status();
+		ses2.status();
+	}
 
 	// connect the peers after setting the certificates
 	int port = 0;

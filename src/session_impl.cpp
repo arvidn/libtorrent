@@ -1756,11 +1756,6 @@ namespace aux {
 			}
 		}
 
-		if (m_alerts.should_post<listen_succeeded_alert>())
-			m_alerts.emplace_alert<listen_succeeded_alert>(tcp::endpoint(bind_ip, port)
-				, (flags & open_ssl_socket) ? listen_succeeded_alert::tcp_ssl
-				: listen_succeeded_alert::tcp);
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" listening on: %s external port: %d"
 			, print_endpoint(tcp::endpoint(bind_ip, port)).c_str(), ret.external_port);
@@ -1966,12 +1961,11 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
+		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
 
 		// if ssl port is 0, we don't want to listen on an SSL port
 		if (ssl_port != 0)
 		{
-			udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
-
 			// TODO: 2 use bind_to_device in udp_socket
 			m_ssl_udp_socket.bind(ssl_bind_if, ec);
 			if (ec)
@@ -1988,18 +1982,13 @@ retry:
 				}
 				ec.clear();
 			}
-			else
-			{
-				if (m_alerts.should_post<listen_succeeded_alert>())
-					m_alerts.emplace_alert<listen_succeeded_alert>(
-							tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
-							, listen_succeeded_alert::utp_ssl);
-			}
+			// TODO: 3 port map SSL udp socket here
 		}
 #endif // TORRENT_USE_OPENSSL
 
 		// TODO: 2 use bind_to_device in udp_socket
-		m_udp_socket.bind(udp::endpoint(m_listen_interface.address(), m_listen_interface.port()), ec);
+		m_udp_socket.bind(udp::endpoint(m_listen_interface.address()
+			, m_listen_interface.port()), ec);
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2025,8 +2014,41 @@ retry:
 			m_external_udp_port = m_udp_socket.local_port();
 			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
 			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
+		}
+
+		// we made it! now post all the listen_succeeded_alerts
+
+		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			listen_succeeded_alert::socket_type_t socket_type = i->ssl
+				? listen_succeeded_alert::tcp_ssl
+				: listen_succeeded_alert::tcp;
+
+			if (!m_alerts.should_post<listen_succeeded_alert>()) continue;
+
+			error_code err;
+			tcp::endpoint bind_ep = i->sock->local_endpoint(err);
+			if (err) continue;
+
+			m_alerts.emplace_alert<listen_succeeded_alert>(bind_ep, socket_type);
+		}
+
+#ifdef TORRENT_USE_OPENSSL
+		if (m_ssl_udp_socket.is_open())
+		{
 			if (m_alerts.should_post<listen_succeeded_alert>())
-				m_alerts.emplace_alert<listen_succeeded_alert>(m_listen_interface, listen_succeeded_alert::udp);
+				m_alerts.emplace_alert<listen_succeeded_alert>(
+					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
+						, listen_succeeded_alert::utp_ssl);
+		}
+#endif
+
+		if (m_udp_socket.is_open())
+		{
+			if (m_alerts.should_post<listen_succeeded_alert>())
+				m_alerts.emplace_alert<listen_succeeded_alert>(m_listen_interface
+					, listen_succeeded_alert::udp);
 		}
 
 		if (m_settings.get_int(settings_pack::peer_tos) != 0)
