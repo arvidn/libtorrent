@@ -40,7 +40,9 @@ addons:
 before_install:
   - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew install --quiet ccache boost-build boost-python; fi
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; fi
+
+# disable simulations on OSX for now. It hangs on travis
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc-${lang}"; fi
   - 'echo "using toolset: " ${toolset}'

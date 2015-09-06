@@ -898,7 +898,7 @@ utp_stream::~utp_stream()
 {
 	if (m_impl)
 	{
-		UTP_LOGV("%8p: utp_stream destructed\n", m_impl);
+		UTP_LOGV("%8p: utp_stream destructed\n", static_cast<void*>(m_impl));
 		m_impl->destroy();
 		detach_utp_impl(m_impl);
 	}
@@ -932,7 +932,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 
-	UTP_LOGV("%8p: calling read handler read:%d ec:%s kill:%d\n", s->m_impl
+	UTP_LOGV("%8p: calling read handler read:%d ec:%s kill:%d\n", static_cast<void*>(s->m_impl)
 		, int(bytes_transferred), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_read_handler);
@@ -955,7 +955,8 @@ void utp_stream::on_write(void* self, size_t bytes_transferred
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 
-	UTP_LOGV("%8p: calling write handler written:%d ec:%s kill:%d\n", s->m_impl
+	UTP_LOGV("%8p: calling write handler written:%d ec:%s kill:%d\n"
+		, static_cast<void*>(s->m_impl)
 		, int(bytes_transferred), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_write_handler);
@@ -979,7 +980,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	TORRENT_ASSERT(s);
 
 	UTP_LOGV("%8p: calling connect handler ec:%s kill:%d\n"
-		, s->m_impl, ec.message().c_str(), kill);
+		, static_cast<void*>(s->m_impl), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_connect_handler);
 	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
@@ -1004,7 +1005,7 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
 	m_impl->m_read_buffer_size += len;
 
-	UTP_LOGV("%8p: add_read_buffer %d bytes\n", m_impl, int(len));
+		UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(m_impl), int(len));
 }
 
 // this is the wrapper to add a user provided write buffer to the
@@ -1040,7 +1041,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
 
-	UTP_LOGV("%8p: add_write_buffer %d bytes\n", m_impl, int(len));
+	UTP_LOGV("%8p: add_write_buffer %d bytes\n", static_cast<void*>(m_impl), int(len));
 }
 
 // this is called when all user provided read buffers have been added
@@ -1059,7 +1060,7 @@ void utp_stream::issue_read()
 	if (m_impl->test_socket_state()) return;
 
 	UTP_LOGV("%8p: new read handler. %d bytes in buffer\n"
-		, m_impl, m_impl->m_receive_buffer_size);
+		, static_cast<void*>(m_impl), m_impl->m_receive_buffer_size);
 
 	// so, the client wants to read. If we already
 	// have some data in the read buffer, move it into the
@@ -1143,12 +1144,12 @@ size_t utp_stream::read_some(bool clear_buffers)
 		|| m_impl->m_read_buffer.empty());
 
 	UTP_LOGV("%8p: %d packets moved from buffer to user space (%d bytes)\n"
-		, m_impl, pop_packets, int(ret));
+		, static_cast<void*>(m_impl), pop_packets, int(ret));
 
 	if (clear_buffers)
 	{
-		 m_impl->m_read_buffer_size = 0;
-		 m_impl->m_read_buffer.clear();
+		m_impl->m_read_buffer_size = 0;
+		m_impl->m_read_buffer.clear();
 	}
 	TORRENT_ASSERT(ret > 0 || m_impl->m_null_buffers);
 	return ret;
@@ -1159,7 +1160,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 void utp_stream::issue_write()
 {
 	UTP_LOGV("%8p: new write handler. %d bytes to write\n"
-		, m_impl, m_impl->m_write_buffer_size);
+		, static_cast<void*>(m_impl), m_impl->m_write_buffer_size);
 
 	TORRENT_ASSERT(m_impl->m_write_buffer_size > 0);
 	TORRENT_ASSERT(m_impl->m_write_handler == false);
@@ -1256,7 +1257,7 @@ bool utp_socket_impl::should_delete() const
 
 	if (ret)
 	{
-		UTP_LOGV("%8p: should_delete() = true\n", static_cast<void*>(this));
+		UTP_LOGV("%8p: should_delete() = true\n", static_cast<void const*>(this));
 	}
 
 	return ret;
