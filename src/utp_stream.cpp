@@ -812,7 +812,7 @@ void utp_socket_impl::update_mtu_limits()
 	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
 
 	UTP_LOGV("%8p: updating MTU to: %d [%d, %d]\n"
-		, this, m_mtu, m_mtu_floor, m_mtu_ceiling);
+		, static_cast<void*>(this), m_mtu, m_mtu_floor, m_mtu_ceiling);
 
 	// clear the mtu probe sequence number since
 	// it was either dropped or acked
@@ -1208,7 +1208,7 @@ utp_socket_impl::~utp_socket_impl()
 
 	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, -1);
 
-	UTP_LOGV("%8p: destroying utp socket state\n", this);
+	UTP_LOGV("%8p: destroying utp socket state\n", static_cast<void*>(this));
 
 	// free any buffers we're holding
 	for (boost::uint16_t i = m_inbuf.cursor(), end((m_inbuf.cursor()
@@ -1256,7 +1256,7 @@ bool utp_socket_impl::should_delete() const
 
 	if (ret)
 	{
-		UTP_LOGV("%8p: should_delete() = true\n", this);
+		UTP_LOGV("%8p: should_delete() = true\n", static_cast<void*>(this));
 	}
 
 	return ret;
@@ -1272,7 +1272,7 @@ void utp_socket_impl::maybe_trigger_receive_callback()
 	if (m_null_buffers && m_receive_buffer_size == 0) return;
 	else if (!m_null_buffers && m_read == 0) return;
 
-	UTP_LOGV("%8p: calling read handler read:%d\n", this, m_read);
+	UTP_LOGV("%8p: calling read handler read:%d\n", static_cast<void*>(this), m_read);
 	m_read_handler = false;
 	utp_stream::on_read(m_userdata, m_read, m_error, false);
 	m_read = 0;
@@ -1287,7 +1287,7 @@ void utp_socket_impl::maybe_trigger_send_callback()
 	// nothing has been written or there's no outstanding write operation
 	if (m_written == 0 || m_write_handler == false) return;
 
-	UTP_LOGV("%8p: calling write handler written:%d\n", this, m_written);
+	UTP_LOGV("%8p: calling write handler written:%d\n", static_cast<void*>(this), m_written);
 
 	m_write_handler = false;
 	utp_stream::on_write(m_userdata, m_written, m_error, false);
@@ -1300,7 +1300,7 @@ void utp_socket_impl::set_close_reason(boost::uint16_t code)
 {
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: set_close_reason: %d\n"
-		, this, int(m_close_reason));
+		, static_cast<void*>(this), int(m_close_reason));
 #endif
 	m_close_reason = code;
 }
@@ -1311,7 +1311,7 @@ bool utp_socket_impl::destroy()
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: destroy state:%s (close-reason: %d)\n"
-		, this, socket_state_names[m_state], int(m_close_reason));
+		, static_cast<void*>(this), socket_state_names[m_state], int(m_close_reason));
 #endif
 
 	if (m_userdata == 0) return false;
@@ -1335,7 +1335,7 @@ bool utp_socket_impl::destroy()
 	{
 		set_state(UTP_STATE_DELETE);
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+		UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
 	}
 
@@ -1348,7 +1348,7 @@ void utp_socket_impl::detach()
 {
 	INVARIANT_CHECK;
 
-	UTP_LOGV("%8p: detach()\n", this);
+	UTP_LOGV("%8p: detach()\n", static_cast<void*>(this));
 	m_attached = false;
 }
 
@@ -1390,7 +1390,7 @@ void utp_socket_impl::send_syn()
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: send_syn seq_nr:%d id:%d target:%s\n"
-		, this, int(m_seq_nr), int(m_recv_id)
+		, static_cast<void*>(this), int(m_seq_nr), int(m_recv_id)
 		, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str());
 #endif
 
@@ -1401,7 +1401,7 @@ void utp_socket_impl::send_syn()
 	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: socket stalled\n", this);
+		UTP_LOGV("%8p: socket stalled\n", static_cast<void*>(this));
 #endif
 		if (!m_stalled)
 		{
@@ -1431,7 +1431,7 @@ void utp_socket_impl::send_syn()
 	TORRENT_ASSERT(!m_error);
 	set_state(UTP_STATE_SYN_SENT);
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+	UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
 }
 
@@ -1441,7 +1441,7 @@ void utp_socket_impl::send_syn()
 void utp_socket_impl::writable()
 {
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: writable\n", this);
+	UTP_LOGV("%8p: writable\n", static_cast<void*>(this));
 #endif
 	if (should_delete()) return;
 
@@ -1461,7 +1461,7 @@ void utp_socket_impl::send_fin()
 		set_state(UTP_STATE_FIN_SENT);
 
 #if TORRENT_UTP_LOG
-	UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+	UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
 }
 
@@ -1482,7 +1482,7 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
 	UTP_LOGV("%8p: send_reset seq_nr:%d id:%d ack_nr:%d\n"
-		, this, int(h.seq_nr), int(m_send_id), int(ph->seq_nr));
+		, static_cast<void*>(this), int(h.seq_nr), int(m_send_id), int(ph->seq_nr));
 
 	// ignore errors here
 	error_code ec;
@@ -1503,7 +1503,7 @@ void utp_socket_impl::parse_close_reason(boost::uint8_t const* ptr, int size)
 	boost::uint16_t incoming_close_reason = detail::read_uint16(ptr);
 
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
-		, this, int(incoming_close_reason));
+		, static_cast<void*>(this), int(incoming_close_reason));
 
 	if (m_userdata == 0) return;
 
@@ -1535,7 +1535,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 		}
 	}
 	UTP_LOGV("%8p: got SACK first:%d %s our_seq_nr:%u\n"
-		, this, ack_nr, bitmask.c_str(), m_seq_nr);
+		, static_cast<void*>(this), ack_nr, bitmask.c_str(), m_seq_nr);
 #endif
 
 	// the number of acked packets past the fast re-send sequence number
@@ -1567,7 +1567,7 @@ void utp_socket_impl::parse_sack(boost::uint16_t packet_ack, boost::uint8_t cons
 					*acked_bytes += p->size - p->header_size;
 					// each ACKed packet counts as a duplicate ack
 					UTP_LOGV("%8p: duplicate_acks:%u fast_resend_seq_nr:%u\n"
-						, this, m_duplicate_acks, m_fast_resend_seq_nr);
+						, static_cast<void*>(this), m_duplicate_acks, m_fast_resend_seq_nr);
 					ack_packet(p, now, min_rtt, ack_nr);
 				}
 				else
@@ -1671,7 +1671,7 @@ void utp_socket_impl::subscribe_drained()
 
 	if (m_subscribe_drained) return;
 
-	UTP_LOGV("%8p: subscribe drained\n", this);
+	UTP_LOGV("%8p: subscribe drained\n", static_cast<void*>(this));
 	m_subscribe_drained = true;
 	m_sm->subscribe_drained(this);
 }
@@ -1682,7 +1682,7 @@ void utp_socket_impl::defer_ack()
 
 	if (m_deferred_ack) return;
 
-	UTP_LOGV("%8p: defer ack\n", this);
+	UTP_LOGV("%8p: defer ack\n", static_cast<void*>(this));
 	m_deferred_ack = true;
 	m_sm->defer_ack(this);
 }
@@ -1703,7 +1703,7 @@ void utp_socket_impl::remove_sack_header(packet* p)
 		|| h->extension == utp_close_reason);
 
 	UTP_LOGV("%8p: removing SACK header, %d bytes\n"
-		, this, sack_size + 2);
+		, static_cast<void*>(this), sack_size + 2);
 
 	TORRENT_ASSERT(p->size >= p->header_size);
 	TORRENT_ASSERT(p->header_size >= sizeof(utp_header) + sack_size + 2);
@@ -1816,7 +1816,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 		UTP_LOGV("%8p: no space in window send_buffer_size:%d cwnd:%d "
 			"adv_wnd:%d in-flight:%d mtu:%d\n"
-			, this, m_write_buffer_size, int(m_cwnd >> 16)
+			, static_cast<void*>(this), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu);
 
 		if (!force)
@@ -1825,7 +1825,7 @@ bool utp_socket_impl::send_pkt(int flags)
 			UTP_LOGV("%8p: skipping send seq_nr:%d ack_nr:%d "
 				"id:%d target:%s header_size:%d error:%s send_buffer_size:%d cwnd:%d "
 				"adv_wnd:%d in-flight:%d mtu:%d\n"
-				, this, int(m_seq_nr), int(m_ack_nr)
+				, static_cast<void*>(this), int(m_seq_nr), int(m_ack_nr)
 				, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 				, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 				, m_adv_wnd, m_bytes_in_flight, m_mtu);
@@ -1842,7 +1842,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		UTP_LOGV("%8p: skipping send (no payload and no force) seq_nr:%d ack_nr:%d "
 			"id:%d target:%s header_size:%d error:%s send_buffer_size:%d cwnd:%d "
 			"adv_wnd:%d in-flight:%d mtu:%d\n"
-			, this, int(m_seq_nr), int(m_ack_nr)
+			, static_cast<void*>(this), int(m_seq_nr), int(m_ack_nr)
 			, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 			, header_size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu);
@@ -1890,7 +1890,7 @@ bool utp_socket_impl::send_pkt(int flags)
 			p = reinterpret_cast<packet*>(TORRENT_ALLOCA(char, sizeof(packet) + packet_size
 				+ sizeof(packet*) - 1));
 			p = reinterpret_cast<packet*>(align_pointer(p));
-			UTP_LOGV("%8p: allocating %d bytes on the stack\n", this, packet_size);
+			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
 			p->allocated = packet_size;
 		}
 
@@ -1949,7 +1949,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		p->size += size_left;
 
 		UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
-			, this, size_left, p->size, p->allocated);
+			, static_cast<void*>(this), size_left, p->size, p->allocated);
 
 		// did we fill up the whole mtu?
 		// if we didn't, we may still send it if there's
@@ -1998,7 +1998,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		// payload
 		UTP_LOGV("%8p: NAGLE not enough payload send_buffer_size:%d cwnd:%d "
 			"adv_wnd:%d in-flight:%d mtu:%d\n"
-			, this, m_write_buffer_size, int(m_cwnd >> 16)
+			, static_cast<void*>(this), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu);
 		TORRENT_ASSERT(m_nagle_packet == NULL);
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
@@ -2040,7 +2040,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u "
 		"mtu_probe:%d extension:%d\n"
-		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
+		, static_cast<void*>(this), int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, p->size, m_error.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
@@ -2059,7 +2059,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	if (ec == error::message_size)
 	{
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: error sending packet: %s\n", this, ec.message().c_str());
+		UTP_LOGV("%8p: error sending packet: %s\n", static_cast<void*>(this), ec.message().c_str());
 #endif
 		// if we fail even though this is not a probe, we're screwed
 		// since we'd have to repacketize
@@ -2075,7 +2075,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		ec.clear();
 
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: re-sending\n", this);
+		UTP_LOGV("%8p: re-sending\n", static_cast<void*>(this));
 #endif
 		m_sm->send_packet(udp::endpoint(m_remote_address, m_port)
 			, reinterpret_cast<char const*>(h), p->size, ec, 0);
@@ -2084,7 +2084,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: socket stalled\n", this);
+		UTP_LOGV("%8p: socket stalled\n", static_cast<void*>(this));
 #endif
 		if (!m_stalled)
 		{
@@ -2254,7 +2254,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	UTP_LOGV("%8p: re-sending packet seq_nr:%d ack_nr:%d type:%s "
 		"id:%d target:%s size:%d error:%s send_buffer_size:%d cwnd:%d "
 		"adv_wnd:%d in-flight:%d mtu:%d timestamp:%u time_diff:%u\n"
-		, this, int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
+		, static_cast<void*>(this), int(h->seq_nr), int(h->ack_nr), packet_type_names[h->get_type()]
 		, m_send_id, print_endpoint(udp::endpoint(m_remote_address, m_port)).c_str()
 		, p->size, ec.message().c_str(), m_write_buffer_size, int(m_cwnd >> 16)
 		, m_adv_wnd, m_bytes_in_flight, m_mtu, boost::uint32_t(h->timestamp_microseconds)
@@ -2264,7 +2264,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	if (ec == error::would_block || ec == error::try_again)
 	{
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: socket stalled\n", this);
+		UTP_LOGV("%8p: socket stalled\n", static_cast<void*>(this));
 #endif
 		if (!m_stalled)
 		{
@@ -2304,7 +2304,7 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	// cut window size in 2
 	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
 	m_loss_seq_nr = m_seq_nr;
-	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", this, seq_nr);
+	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", static_cast<void*>(this), seq_nr);
 
 	// if we happen to be in slow-start mode, we need to leave it
 	// note that we set ssthres to the window size _after_ reducing it. Next slow
@@ -2313,7 +2313,7 @@ void utp_socket_impl::experienced_loss(int seq_nr)
 	{
 		m_ssthres = m_cwnd >> 16;
 		m_slow_start = false;
-		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", this);
+		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", static_cast<void*>(this));
 	}
 
 	// the window size could go below one MMS here, if it does,
@@ -2406,7 +2406,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 	}
 
 	UTP_LOGV("%8p: acked packet %d (%d bytes) (rtt:%u)\n"
-		, this, seq_nr, p->size - p->header_size, rtt / 1000);
+		, static_cast<void*>(this), seq_nr, p->size - p->header_size, rtt / 1000);
 
 	m_rtt.add_sample(rtt / 1000);
 	if (rtt < min_rtt) min_rtt = rtt;
@@ -2422,7 +2422,7 @@ void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p
 
 	while (!m_read_buffer.empty())
 	{
-		UTP_LOGV("%8p: incoming: have user buffer (%d)\n", this, m_read_buffer_size);
+		UTP_LOGV("%8p: incoming: have user buffer (%d)\n", static_cast<void*>(this), m_read_buffer_size);
 		if (p)
 		{
 			buf = p->buf + p->header_size;
@@ -2436,7 +2436,7 @@ void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p
 		target->buf = reinterpret_cast<boost::uint8_t*>(target->buf) + to_copy;
 		target->len -= to_copy;
 		buf += to_copy;
-		UTP_LOGV("%8p: copied %d bytes into user receive buffer\n", this, to_copy);
+		UTP_LOGV("%8p: copied %d bytes into user receive buffer\n", static_cast<void*>(this), to_copy);
 		TORRENT_ASSERT(m_read_buffer_size >= to_copy);
 		m_read_buffer_size -= to_copy;
 		size -= to_copy;
@@ -2469,7 +2469,7 @@ void utp_socket_impl::incoming(boost::uint8_t const* buf, int size, packet* p
 	m_receive_buffer.push_back(p);
 	m_receive_buffer_size += p->size - p->header_size;
 
-	UTP_LOGV("%8p: incoming: saving packet in receive buffer (%d)\n", this, m_receive_buffer_size);
+	UTP_LOGV("%8p: incoming: saving packet in receive buffer (%d)\n", static_cast<void*>(this), m_receive_buffer_size);
 
 	check_receive_buffers();
 }
@@ -2509,7 +2509,8 @@ bool utp_socket_impl::consume_incoming_data(
 	{
 		// What?! We've already received a FIN and everything up
 		// to it has been acked. Ignore this packet
-		UTP_LOG("%8p: ERROR: ignoring packet on shut down socket\n", this);
+		UTP_LOG("%8p: ERROR: ignoring packet on shut down socket\n"
+			, static_cast<void*>(this));
 		return true;
 	}
 
@@ -2522,7 +2523,7 @@ bool utp_socket_impl::consume_incoming_data(
 		// more data packets
 		UTP_LOG("%8p: ERROR: our advertized window is not honored. "
 			"recv_buf: %d buffered_in: %d max_size: %d\n"
-			, this, m_receive_buffer_size, m_buffered_incoming_bytes, m_in_buf_size);
+			, static_cast<void*>(this), m_receive_buffer_size, m_buffered_incoming_bytes, m_in_buf_size);
 		return false;
 	}
 
@@ -2532,7 +2533,8 @@ bool utp_socket_impl::consume_incoming_data(
 
 		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
 		{
-			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet\n", this);
+			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet\n"
+				, static_cast<void*>(this));
 			return true;
 		}
 
@@ -2545,7 +2547,7 @@ bool utp_socket_impl::consume_incoming_data(
 		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
 
 		UTP_LOGV("%8p: remove inbuf: %d (%d)\n"
-			, this, m_ack_nr, int(m_inbuf.size()));
+			, static_cast<void*>(this), m_ack_nr, int(m_inbuf.size()));
 
 		for (;;)
 		{
@@ -2561,7 +2563,7 @@ bool utp_socket_impl::consume_incoming_data(
 			m_ack_nr = next_ack_nr;
 
 			UTP_LOGV("%8p: reordered remove inbuf: %d (%d)\n"
-				, this, m_ack_nr, int(m_inbuf.size()));
+				, static_cast<void*>(this), m_ack_nr, int(m_inbuf.size()));
 		}
 	}
 	else
@@ -2574,7 +2576,7 @@ bool utp_socket_impl::consume_incoming_data(
 		if (!compare_less_wrap(m_ack_nr, ph->seq_nr, ACK_MASK))
 		{
 			UTP_LOGV("%8p: already received seq_nr: %d\n"
-				, this, int(ph->seq_nr));
+				, static_cast<void*>(this), int(ph->seq_nr));
 			return true;
 		}
 
@@ -2582,14 +2584,14 @@ bool utp_socket_impl::consume_incoming_data(
 		if (m_inbuf.at(ph->seq_nr))
 		{
 			UTP_LOGV("%8p: already received seq_nr: %d\n"
-				, this, int(ph->seq_nr));
+				, static_cast<void*>(this), int(ph->seq_nr));
 			return true;
 		}
 
 		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
 		{
 			UTP_LOGV("%8p: other end is not honoring our advertised window, dropping packet %d\n"
-				, this, int(ph->seq_nr));
+				, static_cast<void*>(this), int(ph->seq_nr));
 			return true;
 		}
 
@@ -2607,7 +2609,7 @@ bool utp_socket_impl::consume_incoming_data(
 		m_buffered_incoming_bytes += p->size;
 
 		UTP_LOGV("%8p: out of order. insert inbuf: %d (%d) m_ack_nr: %d\n"
-			, this, int(ph->seq_nr), int(m_inbuf.size()), m_ack_nr);
+			, static_cast<void*>(this), int(ph->seq_nr), int(m_inbuf.size()), m_ack_nr);
 	}
 
 	return false;
@@ -2629,14 +2631,14 @@ bool utp_socket_impl::test_socket_state()
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: state:%s error:%s\n"
-		, this, socket_state_names[m_state], m_error.message().c_str());
+		, static_cast<void*>(this), socket_state_names[m_state], m_error.message().c_str());
 #endif
 
 	if (cancel_handlers(m_error, true))
 	{
 		set_state(UTP_STATE_DELETE);
 #if TORRENT_UTP_LOG
-		UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+		UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
 		return true;
 	}
@@ -2671,7 +2673,7 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
 
 	UTP_LOGV("%8p: initializing MTU to: %d [%d, %d]\n"
-		, this, m_mtu, m_mtu_floor, m_mtu_ceiling);
+		, static_cast<void*>(this), m_mtu, m_mtu_floor, m_mtu_ceiling);
 }
 
 // return false if this is an invalid packet
@@ -2687,7 +2689,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	if (ph->get_version() != 1)
 	{
 		UTP_LOG("%8p: ERROR: incoming packet version:%d (ignored)\n"
-			, this, int(ph->get_version()));
+			, static_cast<void*>(this), int(ph->get_version()));
 		m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 		return false;
 	}
@@ -2696,7 +2698,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	if (ph->get_type() != ST_SYN && ph->connection_id != m_recv_id)
 	{
 		UTP_LOG("%8p: ERROR: incoming packet id:%d expected:%d (ignored)\n"
-			, this, int(ph->connection_id), int(m_recv_id));
+			, static_cast<void*>(this), int(ph->connection_id), int(m_recv_id));
 		m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 		return false;
 	}
@@ -2704,7 +2706,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	if (ph->get_type() >= NUM_TYPES)
 	{
 		UTP_LOG("%8p: ERROR: incoming packet type:%d (ignored)\n"
-			, this, int(ph->get_type()));
+			, static_cast<void*>(this), int(ph->get_type()));
 		m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 		return false;
 	}
@@ -2717,7 +2719,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 	if (m_state != UTP_STATE_NONE && ph->get_type() == ST_SYN)
 	{
-		UTP_LOG("%8p: ERROR: incoming packet type:ST_SYN (ignored)\n", this);
+		UTP_LOG("%8p: ERROR: incoming packet type:ST_SYN (ignored)\n"
+			, static_cast<void*>(this));
 		m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 		return true;
 	}
@@ -2741,7 +2744,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
 		int base_change = m_their_delay_hist.base() - prev_base;
 		UTP_LOGV("%8p: their_delay::add_sample:%u prev_base:%u new_base:%u\n"
-			, this, m_reply_micro, prev_base, m_their_delay_hist.base());
+			, static_cast<void*>(this), m_reply_micro, prev_base, m_their_delay_hist.base());
 
 		if (prev_base && base_change < 0 && base_change > -10000 && m_delay_hist.initialized())
 		{
@@ -2752,7 +2755,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		}
 
 		UTP_LOGV("%8p: incoming packet reply_micro:%u base_change:%d\n"
-			, this, m_reply_micro, prev_base ? base_change : 0);
+			, static_cast<void*>(this), m_reply_micro, prev_base ? base_change : 0);
 	}
 
 	// is this ACK valid? If the other end is ACKing
@@ -2777,7 +2780,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		UTP_LOG("%8p: ERROR: incoming packet ack_nr:%d our seq_nr:%d our "
 			"acked_seq_nr:%d (ignored)\n"
-			, this, int(ph->ack_nr), m_seq_nr, m_acked_seq_nr);
+			, static_cast<void*>(this), int(ph->ack_nr), m_seq_nr, m_acked_seq_nr);
 		m_sm->inc_stats_counter(counters::utp_redundant_pkts_in);
 		return true;
 	}
@@ -2799,7 +2802,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		// we've already received this packet
 		UTP_LOGV("%8p: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
-			, this, int(ph->seq_nr), m_ack_nr);
+			, static_cast<void*>(this), int(ph->seq_nr), m_ack_nr);
 		m_sm->inc_stats_counter(counters::utp_redundant_pkts_in);
 		return true;
 	}
@@ -2811,7 +2814,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 #if TORRENT_UTP_LOG
 		UTP_LOG("%8p: ERROR: incoming packet type: %s seq_nr:%d eof_seq_nr:%d (ignored)\n"
-			, this, packet_type_names[ph->get_type()], int(ph->seq_nr), m_eof_seq_nr);
+			, static_cast<void*>(this), packet_type_names[ph->get_type()], int(ph->seq_nr), m_eof_seq_nr);
 #endif
 		return true;
 	}
@@ -2829,7 +2832,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		// packets. Neither is very likely, and it should be OK
 		// to drop the timestamp information.
 		UTP_LOG("%8p: ERROR: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
-			, this, int(ph->seq_nr), m_ack_nr);
+			, static_cast<void*>(this), int(ph->seq_nr), m_ack_nr);
 		m_sm->inc_stats_counter(counters::utp_redundant_pkts_in);
 		return true;
 	}
@@ -2839,10 +2842,10 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		if (compare_less_wrap(cmp_seq_nr, ph->ack_nr, ACK_MASK))
 		{
 			UTP_LOG("%8p: ERROR: invalid RESET packet, ack_nr:%d our seq_nr:%d (ignored)\n"
-				, this, int(ph->ack_nr), m_seq_nr);
+				, static_cast<void*>(this), int(ph->ack_nr), m_seq_nr);
 			return true;
 		}
-		UTP_LOGV("%8p: incoming packet type:RESET\n", this);
+		UTP_LOGV("%8p: incoming packet type:RESET\n", static_cast<void*>(this));
 		m_error = boost::asio::error::connection_reset;
 		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
@@ -2855,7 +2858,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	m_num_timeouts = 0;
 	m_timeout = receive_time + milliseconds(packet_timeout());
 	UTP_LOGV("%8p: updating timeout to: now + %d\n"
-		, this, packet_timeout());
+		, static_cast<void*>(this), packet_timeout());
 
 	// the test for INT_MAX here is a work-around for a bug in uTorrent where
 	// it's sometimes sent as INT_MAX when it is in fact uninitialized
@@ -2926,7 +2929,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		// but the packet is too short
 		if (ptr - buf + 2 > size)
 		{
-			UTP_LOG("%8p: ERROR: invalid extension header\n", this);
+			UTP_LOG("%8p: ERROR: invalid extension header\n", static_cast<void*>(this));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
@@ -2935,14 +2938,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		if (len < 0)
 		{
 			UTP_LOGV("%8p: invalid extension length:%d packet:%d\n"
-				, this, len, int(ptr - buf));
+				, static_cast<void*>(this), len, int(ptr - buf));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
 		if (ptr - buf + len > ptrdiff_t(size))
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header size:%d packet:%d\n"
-				, this, len, int(ptr - buf));
+				, static_cast<void*>(this), len, int(ptr - buf));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
@@ -2968,7 +2971,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		// LOSS
 
-		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n", this, m_fast_resend_seq_nr, m_duplicate_acks);
+		UTP_LOGV("%8p: Packet %d lost. (%d duplicate acks, trigger fast-resend)\n"
+			, static_cast<void*>(this), m_fast_resend_seq_nr, m_duplicate_acks);
 
 		// resend the lost packet
 		packet* p = m_outbuf.at(m_fast_resend_seq_nr);
@@ -2994,7 +2998,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: incoming packet seq_nr:%d ack_nr:%d type:%s id:%d size:%d timestampdiff:%u timestamp:%u "
 			"our ack_nr:%d our seq_nr:%d our acked_seq_nr:%d our state:%s\n"
-		, this, int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->get_type()]
+		, static_cast<void*>(this), int(ph->seq_nr), int(ph->ack_nr), packet_type_names[ph->get_type()]
 		, int(ph->connection_id), payload_size, boost::uint32_t(ph->timestamp_difference_microseconds)
 		, boost::uint32_t(ph->timestamp_microseconds), m_ack_nr, m_seq_nr, m_acked_seq_nr, socket_state_names[m_state]);
 #endif
@@ -3005,7 +3009,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK)
 			|| ph->seq_nr == m_ack_nr)
 		{
-			UTP_LOGV("%8p: FIN received in order\n", this);
+			UTP_LOGV("%8p: FIN received in order\n", static_cast<void*>(this));
 
 			// The FIN arrived in order, nothing else is in the
 			// reorder buffer.
@@ -3031,7 +3035,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 		if (m_eof)
 		{
-			UTP_LOGV("%8p: duplicate FIN packet (ignoring)\n", this);
+			UTP_LOGV("%8p: duplicate FIN packet (ignoring)\n", static_cast<void*>(this));
 			return true;
 		}
 		m_eof = true;
@@ -3064,7 +3068,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: received ST_SYN state:%s seq_nr:%d ack_nr:%d\n"
-					, this, socket_state_names[m_state], m_seq_nr, m_ack_nr);
+					, static_cast<void*>(this), socket_state_names[m_state], m_seq_nr, m_ack_nr);
 #endif
 				TORRENT_ASSERT(m_send_id == ph->connection_id);
 				TORRENT_ASSERT(m_recv_id == ((m_send_id + 1) & 0xffff));
@@ -3075,7 +3079,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOG("%8p: ERROR: type:%s state:%s (ignored)\n"
-					, this, packet_type_names[ph->get_type()], socket_state_names[m_state]);
+					, static_cast<void*>(this), packet_type_names[ph->get_type()], socket_state_names[m_state]);
 #endif
 			}
 			break;
@@ -3087,7 +3091,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: incorrect ack_nr (%d) waiting for %d\n"
-					, this, int(ph->ack_nr), (m_seq_nr - 1) & ACK_MASK);
+					, static_cast<void*>(this), int(ph->ack_nr), (m_seq_nr - 1) & ACK_MASK);
 #endif
 				break;
 			}
@@ -3095,7 +3099,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			TORRENT_ASSERT(!m_error);
 			set_state(UTP_STATE_CONNECTED);
 #if TORRENT_UTP_LOG
-			UTP_LOGV("%8p: state:%s\n", this, socket_state_names[m_state]);
+			UTP_LOGV("%8p: state:%s\n", static_cast<void*>(this), socket_state_names[m_state]);
 #endif
 
 			// only progress our ack_nr on ST_DATA messages
@@ -3109,7 +3113,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			// notify the client that the socket connected
 			if (m_connect_handler)
 			{
-				UTP_LOGV("%8p: calling connect handler\n", this);
+				UTP_LOGV("%8p: calling connect handler\n", static_cast<void*>(this));
 				m_connect_handler = false;
 				utp_stream::on_connect(m_userdata, m_error, false);
 			}
@@ -3175,7 +3179,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			// from our side.
 			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
 			{
-				UTP_LOGV("%8p: incoming stream consumed\n", this);
+				UTP_LOGV("%8p: incoming stream consumed\n", static_cast<void*>(this));
 
 				// This transitions to the UTP_STATE_FIN_SENT state.
 				send_fin();
@@ -3230,7 +3234,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 					"fast_resend_seq_nr:%d "
 					"ssthres:%d "
 					"\n"
-					, this
+					, static_cast<void*>(this)
 					, sample
 					, float(delay / 1000.f)
 					, float(their_delay / 1000.f)
@@ -3336,18 +3340,19 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 				// When this happens we know that the remote side has
 				// received all of our packets.
 
-				UTP_LOGV("%8p: FIN acked\n", this);
+				UTP_LOGV("%8p: FIN acked\n", static_cast<void*>(this));
 
 				if (!m_attached)
 				{
-					UTP_LOGV("%8p: close initiated here, delete socket\n", this);
+					UTP_LOGV("%8p: close initiated here, delete socket\n"
+						, static_cast<void*>(this));
 					m_error = boost::asio::error::eof;
 					set_state(UTP_STATE_DELETE);
 					test_socket_state();
 				}
 				else
 				{
-					UTP_LOGV("%8p: closing socket\n", this);
+					UTP_LOGV("%8p: closing socket\n", static_cast<void*>(this));
 					m_error = boost::asio::error::eof;
 					set_state(UTP_STATE_ERROR_WAIT);
 					test_socket_state();
@@ -3393,7 +3398,8 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	{
 		if (m_slow_start)
 		{
-			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n", this, target_delay - delay);
+			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n"
+				, static_cast<void*>(this), target_delay - delay);
 			m_ssthres = (m_cwnd >> 16) / 2;
 			m_slow_start = false;
 		}
@@ -3425,7 +3431,8 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 				// aggressive
 				m_slow_start = false;
 				scaled_gain = linear_gain;
-				UTP_LOGV("%8p: cwnd > ssthres (%d) slow_start -> 0\n", this, m_ssthres);
+				UTP_LOGV("%8p: cwnd > ssthres (%d) slow_start -> 0\n"
+					, static_cast<void*>(this), m_ssthres);
 			}
 			else
 			{
@@ -3448,7 +3455,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d slow_start:%d\n"
-		, this, delay, target_delay - delay, window_factor / float(1 << 16)
+		, static_cast<void*>(this), delay, target_delay - delay, window_factor / float(1 << 16)
 		, delay_factor / float(1 << 16)
 		, scaled_gain / float(1 << 16), int(m_cwnd >> 16)
 		, int(m_slow_start));
@@ -3470,7 +3477,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	if (window_size_left >= m_mtu)
 	{
 		UTP_LOGV("%8p: mtu:%d in_flight:%d adv_wnd:%d cwnd:%d acked_bytes:%d cwnd_full -> 0\n"
-			, this, m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
+			, static_cast<void*>(this), m_mtu, in_flight, int(m_adv_wnd), int(m_cwnd >> 16), acked_bytes);
 		m_cwnd_full = false;
 	}
 
@@ -3478,7 +3485,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	{
 		m_slow_start = false;
 		UTP_LOGV("%8p: cwnd > advertized wnd (%d) slow_start -> 0\n"
-			, this, m_adv_wnd);
+			, static_cast<void*>(this), m_adv_wnd);
 	}
 }
 
@@ -3517,7 +3524,7 @@ void utp_socket_impl::tick(time_point now)
 
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: tick:%s r: %d (%s) w: %d (%s)\n"
-		, this, socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
+		, static_cast<void*>(this), socket_state_names[m_state], m_read, m_read_handler ? "handler" : "no handler"
 		, m_written, m_write_handler ? "handler" : "no handler");
 #endif
 
@@ -3580,7 +3587,7 @@ void utp_socket_impl::tick(time_point now)
 		m_timeout = now + milliseconds(packet_timeout());
 
 		UTP_LOGV("%8p: timeout resetting cwnd:%d\n"
-			, this, int(m_cwnd >> 16));
+			, static_cast<void*>(this), int(m_cwnd >> 16));
 
 		// we dropped all packets, that includes the mtu probe
 		m_mtu_seq = 0;
@@ -3595,7 +3602,7 @@ void utp_socket_impl::tick(time_point now)
 		// we're very likely to have an ssthres set, which will make us leave
 		// slow start before inducing more delay or loss.
 		m_slow_start = true;
-		UTP_LOGV("%8p: timeout slow_start -> 1\n", this);
+		UTP_LOGV("%8p: timeout slow_start -> 1\n", static_cast<void*>(this));
 
 		// we need to go one past m_seq_nr to cover the case
 		// where we just sent a SYN packet and then adjusted for
@@ -3610,7 +3617,7 @@ void utp_socket_impl::tick(time_point now)
 			p->need_resend = true;
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
-			UTP_LOGV("%8p: Packet %d lost (timeout).\n", this, i);
+			UTP_LOGV("%8p: Packet %d lost (timeout).\n", static_cast<void*>(this), i);
 		}
 
 		TORRENT_ASSERT(m_bytes_in_flight == 0);
@@ -3625,7 +3632,7 @@ void utp_socket_impl::tick(time_point now)
 			{
 #if TORRENT_UTP_LOG
 				UTP_LOGV("%8p: %d failed sends in a row. Socket timed out. state:%s\n"
-					, this, p->num_transmissions, socket_state_names[m_state]);
+					, static_cast<void*>(this), p->num_transmissions, socket_state_names[m_state]);
 #endif
 
 				// the connection is dead

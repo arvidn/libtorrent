@@ -52,18 +52,27 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 
-#ifndef TORRENT_WINDOWS
-#include <sys/resource.h>
-#endif
-
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
 
 #if TORRENT_USE_RLIMIT
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+#endif // __GNUC__
+
+#include <sys/resource.h>
+
 // capture this here where warnings are disabled (the macro generates warnings)
 const rlim_t rlim_infinity = RLIM_INFINITY;
-#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif // __GNUC__
+
+#endif // TORRENT_USE_RLIMIT
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

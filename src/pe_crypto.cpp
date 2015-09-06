@@ -35,9 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <algorithm>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+#endif
+
 extern "C" {
 #include "libtorrent/tommath.h"
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/pe_crypto.hpp"

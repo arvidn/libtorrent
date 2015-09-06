@@ -889,7 +889,7 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 	INVARIANT_CHECK;
 
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
-		"piece: %d\n", this, int(p->piece));
+		"piece: %d\n", static_cast<void*>(this), int(p->piece));
 
 	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
 	tailqueue<disk_io_job> jobs;
@@ -928,7 +928,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 	if (num <= 0) return 0;
 
-	DLOG(stderr, "[%p] try_evict_blocks: %d\n", this, num);
+	DLOG(stderr, "[%p] try_evict_blocks: %d\n", static_cast<void*>(this), num);
 
 	char** to_delete = TORRENT_ALLOCA(char*, num);
 	int num_to_delete = 0;
@@ -1116,7 +1116,8 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 	if (num_to_delete == 0) return num;
 
-	DLOG(stderr, "[%p]    removed %d blocks\n", this, num_to_delete);
+	DLOG(stderr, "[%p]    removed %d blocks\n", static_cast<void*>(this)
+		, num_to_delete);
 
 	free_multiple_buffers(to_delete, num_to_delete);
 
@@ -1839,7 +1840,8 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 	boost::shared_ptr<piece_manager> s = pe->storage;
 
 	DLOG(stderr, "[%p] block_cache maybe_free_piece "
-		"piece: %d refcount: %d marked_for_deletion: %d\n", this
+		"piece: %d refcount: %d marked_for_deletion: %d\n"
+		, static_cast<void*>(this)
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
 	tailqueue<disk_io_job> jobs;
