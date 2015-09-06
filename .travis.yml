@@ -41,6 +41,7 @@ before_install:
   - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew install --quiet ccache boost-build boost-python; fi
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc-${lang}"; fi
   - 'echo "using toolset: " ${toolset}'
 
@@ -58,7 +59,7 @@ install:
 
 script:
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset
   - cd ../bindings/python
