@@ -217,29 +217,30 @@ namespace libtorrent
 	// are posted to the network thread
 	struct TORRENT_EXTRA_EXPORT feed : boost::enable_shared_from_this<feed>
 	{
-		friend void parse_feed(feed_state& f, int token, char const* name, char const* val);
+		friend void parse_feed(feed_state& f, int token, char const* name, int len
+			, char const* val, int val_len);
 
 		feed(aux::session_impl& ses, feed_settings const& feed);
 
 		void on_feed(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
-	
+
 		int update_feed();
-	
+
 		aux::session_impl& session() const { return m_ses; }
-	
+
 		void set_settings(feed_settings const& s);
 		void get_settings(feed_settings* s) const;
-   	void get_feed_status(feed_status* ret) const;
+		void get_feed_status(feed_status* ret) const;
 
 		int next_update(time_t now) const;
 
 		void load_state(bdecode_node const& rd);
 		void save_state(entry& rd) const;
-	
+
 	private:
 		friend struct aux::session_impl;
-	
+
 		// explicitly disallow assignment, to silence msvc warning
 		feed& operator=(feed const&);
 
@@ -275,12 +276,12 @@ namespace libtorrent
 		// true while waiting for the server to respond
 		bool m_updating;
 		feed_settings m_settings;
-	
+
 		aux::session_impl& m_ses;
 	};
-	
+
 }
 #endif // TORRENT_NO_DEPRECATE
-	
+
 #endif
 

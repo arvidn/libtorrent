@@ -826,19 +826,24 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 
 namespace
 {
-	void copy_tolower(std::string& dst, char const* src)
+	void copy_tolower(std::string& dst, char const* src, int len)
 	{
 		dst.clear();
-		while (*src) dst.push_back(to_lower(*src++));
+		dst.reserve(len);
+		while (len-- > 0)
+		{
+			dst.push_back(to_lower(*src++));
+		}
 	}
 }
 
-TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_state& state)
+TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
+	, int str_len, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
 		std::string tag;
-		copy_tolower(tag, string);
+		copy_tolower(tag, string, str_len);
 		state.tag_stack.push_back(tag);
 //		std::copy(state.tag_stack.begin(), state.tag_stack.end(), std::ostream_iterator<std::string>(std::cout, " "));
 //		std::cout << std::endl;
@@ -858,26 +863,27 @@ TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string, parse_s
 //		std::cout << " " << string << std::endl;}
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			if (string_equal_no_case(string, "urn:schemas-upnp-org:service:WANIPConnection:1")
-				|| string_equal_no_case(string, "urn:schemas-upnp-org:service:WANIPConnection:2")
-				|| string_equal_no_case(string, "urn:schemas-upnp-org:service:WANPPPConnection:1"))
+			std::string name(string, str_len);
+			if (string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:1")
+				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:2")
+				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANPPPConnection:1"))
 			{
-				state.service_type = string;
+				state.service_type.assign(string, str_len);
 				state.in_service = true;
 			}
 		}
 		else if (state.control_url.empty() && state.in_service && state.top_tags("service", "controlurl") && strlen(string) > 0)
 		{
 			// default to the first (or only) control url in the router's listing
-			state.control_url = string;
+			state.control_url.assign(string, str_len);
 		}
 		else if (state.model.empty() && state.top_tags("device", "modelname"))
 		{
-			state.model = string;
+			state.model.assign(string, str_len);
 		}
 		else if (state.tag_stack.back() == "urlbase")
 		{
-			state.url_base = string;
+			state.url_base.assign(string, str_len);
 		}
 	}
 }
@@ -928,9 +934,8 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	xml_parse(const_cast<char*>(p.get_body().begin),
-		const_cast<char*>(p.get_body().end)
-		, boost::bind(&find_control_url, _1, _2, boost::ref(s)));
+	xml_parse(p.get_body().begin, p.get_body().end
+		, boost::bind(&find_control_url, _1, _2, _3, boost::ref(s)));
 	if (s.control_url.empty())
 	{
 		char msg[500];

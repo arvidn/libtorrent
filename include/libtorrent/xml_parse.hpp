@@ -62,11 +62,14 @@ namespace libtorrent
 		xml_tag_content
 	};
 
-	// callback(int type, char const* name, char const* val)
-	// str2 is only used for attributes. name is element or attribute
-	// name and val is attribute value
-	TORRENT_EXTRA_EXPORT void xml_parse(char* p, char* end
-		, boost::function<void(int,char const*,char const*)> callback);
+	// callback(int type, char const* name, int name_len
+	//   , char const* val, int val_len)
+	// name is element or attribute name
+	// val is attribute value
+	// neither string is null terminated, but their lengths are specified via
+	// name_len and val_len respectively
+	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
+		, boost::function<void(int,char const*,int,char const*,int)> callback);
 }
 
 

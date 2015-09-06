@@ -166,7 +166,8 @@ struct feed_state
 	}
 };
 
-void parse_feed(feed_state& f, int token, char const* name, char const* val)
+void parse_feed(feed_state& f, int token, char const* name, int name_len
+	, char const* val, int val_len)
 {
 	switch (token)
 	{
@@ -176,7 +177,7 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 		case xml_start_tag:
 		case xml_empty_tag:
 		{
-			f.current_tag = name;
+			f.current_tag.assign(name, name_len);
 			if (f.type == feed_state::none)
 			{
 				if (string_equal_no_case(f.current_tag.c_str(), "feed"))
@@ -184,20 +185,21 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				else if (string_equal_no_case(f.current_tag.c_str(), "rss"))
 					f.type = feed_state::rss2;
 			}
-			if (f.is_item(name)) f.in_item = true;
+			if (f.is_item(f.current_tag.c_str())) f.in_item = true;
 			return;
 		}
 		case xml_attribute:
 		{
 			if (!f.in_item) return;
+			std::string str(name, name_len);
 			if (f.is_url(f.current_tag.c_str())
 				&& f.type == feed_state::atom)
 			{
 				// atom feeds have items like this:
 				// <link href="http://..." length="12345"/>
-				if (string_equal_no_case(name, "href"))
-					f.current_item.url = val;
-				else if (string_equal_no_case(name, "length"))
+				if (string_equal_no_case(str.c_str(), "href"))
+					f.current_item.url.assign(val, val_len);
+				else if (string_equal_no_case(str.c_str(), "length"))
 					f.current_item.size = strtoll(val, 0, 10);
 			}
 			else if (f.type == feed_state::rss2
@@ -205,9 +207,9 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 			{
 				// rss feeds have items like this:
 				// <enclosure url="http://..." length="12345"/>
-				if (string_equal_no_case(name, "url"))
-					f.current_item.url = val;
-				else if (string_equal_no_case(name, "length"))
+				if (string_equal_no_case(str.c_str(), "url"))
+					f.current_item.url.assign(val, val_len);
+				else if (string_equal_no_case(str.c_str(), "length"))
 					f.current_item.size = strtoll(val, 0, 10);
 			}
 			else if (f.type == feed_state::rss2
@@ -215,16 +217,16 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 			{
 				// rss feeds sometimes have items like this:
 				// <media:content url="http://..." filesize="12345"/>
-				if (string_equal_no_case(name, "url"))
-					f.current_item.url = val;
-				else if (string_equal_no_case(name, "filesize"))
+				if (string_equal_no_case(str.c_str(), "url"))
+					f.current_item.url.assign(val, val_len);
+				else if (string_equal_no_case(str.c_str(), "filesize"))
 					f.current_item.size = strtoll(val, 0, 10);
 			}
 			return;
 		}
 		case xml_end_tag:
 		{
-			if (f.in_item && f.is_item(name))
+			if (f.in_item && f.is_item(std::string(name, name_len).c_str()))
 			{
 				f.in_item = false;
 				if (!f.current_item.title.empty()
@@ -243,9 +245,9 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 			if (!f.in_item)
 			{
 				if (f.is_title(f.current_tag.c_str()))
-					f.ret.m_title = name;
+					f.ret.m_title.assign(name, name_len);
 				else if (f.is_desc(f.current_tag.c_str()))
-					f.ret.m_description = name;
+					f.ret.m_description.assign(name, name_len);
 				else if (f.is_ttl(f.current_tag.c_str()))
 				{
 					int tmp = atoi(name);
@@ -254,20 +256,20 @@ void parse_feed(feed_state& f, int token, char const* name, char const* val)
 				return;
 			}
 			if (f.is_title(f.current_tag.c_str()))
-				f.current_item.title = name;
+				f.current_item.title.assign(name, name_len);
 			else if (f.is_desc(f.current_tag.c_str()))
-				f.current_item.description = name;
+				f.current_item.description.assign(name, name_len);
 			else if (f.is_uuid(f.current_tag.c_str()))
-				f.current_item.uuid = name;
+				f.current_item.uuid.assign(name, name_len);
 			else if (f.is_url(f.current_tag.c_str()) && f.type != feed_state::atom)
-				f.current_item.url = name;
+				f.current_item.url.assign(name, name_len);
 			else if (f.is_comment(f.current_tag.c_str()))
-				f.current_item.comment = name;
+				f.current_item.comment.assign(name, name_len);
 			else if (f.is_category(f.current_tag.c_str()))
-				f.current_item.category = name;
+				f.current_item.category.assign(name, name_len);
 			else if (f.is_size(f.current_tag.c_str()))
 				f.current_item.size = strtoll(name, 0, 10);
-			else if (f.is_hash(f.current_tag.c_str()) && strlen(name) == 40)
+			else if (f.is_hash(f.current_tag.c_str()) && name_len == 40)
 			{
 				if (!from_hex(name, 40, f.current_item.info_hash.data()))
 				{
@@ -381,10 +383,9 @@ void feed::on_feed(error_code const& ec
 
 	m_failures = 0;
 
-	char* buf = const_cast<char*>(data);
-
 	feed_state s(*this);
-	xml_parse(buf, buf + size, boost::bind(&parse_feed, boost::ref(s), _1, _2, _3));
+	xml_parse(data, data + size, boost::bind(&parse_feed, boost::ref(s)
+			, _1, _2, _3, _4, _5));
 
 	time_t now = time(NULL);
 
