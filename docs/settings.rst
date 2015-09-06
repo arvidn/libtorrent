@@ -866,27 +866,6 @@ tracker or not. Defaults to on. Turning it off also excludes web
 seed traffic from other stats and download rate reporting via the
 libtorrent API.
 
-.. _utp_dynamic_sock_buf:
-
-.. raw:: html
-
-	<a name="utp_dynamic_sock_buf"></a>
-
-+----------------------+------+---------+
-| name                 | type | default |
-+======================+======+=========+
-| utp_dynamic_sock_buf | bool | true    |
-+----------------------+------+---------+
-
-controls if the uTP socket manager is allowed to increase the
-socket buffer if a network interface with a large MTU is used (such
-as loopback or ethernet jumbo frames). This defaults to true and
-might improve uTP throughput. For RAM constrained systems,
-disabling this typically saves around 30kB in user space and
-probably around 400kB in kernel socket buffers (it adjusts the send
-and receive buffer size on the kernel socket, both for IPv4 and
-IPv6).
-
 .. _announce_double_nat:
 
 .. raw:: html
@@ -1333,6 +1312,21 @@ if this setting is true, torrents with a very high availability of
 pieces (and seeds) are downloaded sequentially. This is more
 efficient for the disk I/O. With many seeds, the download order is
 unlikely to matter anyway
+
+.. _proxy_tracker_connections:
+
+.. raw:: html
+
+	<a name="proxy_tracker_connections"></a>
+
++---------------------------+------+---------+
+| name                      | type | default |
++===========================+======+=========+
+| proxy_tracker_connections | bool | true    |
++---------------------------+------+---------+
+
+if true, trackerconnections are made over the configured proxy, if
+any.
 
 .. _tracker_completion_timeout:
 
@@ -3163,6 +3157,7 @@ control the settings for incoming and outgoing connections
 respectively. see enc_policy enum for the available options.
 Keep in mind that protocol encryption degrades performance in
 several respects:
+
 1. It prevents "zero copy" disk buffers being sent to peers, since
    each peer needs to mutate the data (i.e. encrypt it) the data
    must be copied per peer connection rather than sending the same
@@ -3171,7 +3166,7 @@ several respects:
    protocol. The highest cost is the Diffie Hellman exchange on
    connection setup.
 3. The encryption handshake adds several round-trips to the
-connection setup, and delays transferring data.
+   connection setup, and delays transferring data.
 
 .. _allowed_enc_level:
 

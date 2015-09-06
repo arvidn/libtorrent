@@ -273,7 +273,7 @@ namespace libtorrent
 		//
 		// The signature of the function to pass in is::
 		//
-		// void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
+		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
 		void set_load_function(user_load_function_t fun);
 
 #ifndef TORRENT_NO_DEPRECATE

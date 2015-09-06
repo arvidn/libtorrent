@@ -1469,6 +1469,7 @@ namespace libtorrent
 			// respectively. see enc_policy enum for the available options.
 			// Keep in mind that protocol encryption degrades performance in
 			// several respects:
+			// 
 			// 1. It prevents "zero copy" disk buffers being sent to peers, since
 			//    each peer needs to mutate the data (i.e. encrypt it) the data
 			//    must be copied per peer connection rather than sending the same
@@ -1477,7 +1478,7 @@ namespace libtorrent
 			//    protocol. The highest cost is the Diffie Hellman exchange on
 			//    connection setup.
 			// 3. The encryption handshake adds several round-trips to the
-			// connection setup, and delays transferring data.
+			//    connection setup, and delays transferring data.
 			out_enc_policy,
 			in_enc_policy,
 
@@ -1533,7 +1534,7 @@ namespace libtorrent
 			fastest_upload,
 			anti_leech
 		};
- 
+
 		enum io_buffer_mode_t
 		{
 			enable_os_cache = 0,

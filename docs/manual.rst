@@ -189,6 +189,24 @@ well. If there are more non-auto managed torrents being downloaded than the
 settings_pack::active_downloads setting, any auto managed torrents will be queued until
 torrents are removed so that the number drops below the limit.
 
+In addition to the downloading and seeding limits, there are limits on *actions*
+torrents perform. The downloading and seeding limits control whether peers are
+allowed at all, and if peers are not allowed, torrents are stopped and don't do
+anything. If peers are allowed, torrents may:
+
+1. announce to trackers
+2. announce to the DHT
+3. announce to local peer discovery (local service discovery)
+
+Each of those actions are associated with a cost and hence may need a seprarate
+limit. These limits are controlled by settings_pack::active_tracker_limit,
+settings_pack::active_dht_limit and settings_pack::active_lsd_limit
+respectively.
+
+A client that is not concerned about the separate costs of these actions should
+set all 3 of these limits to the same value as settings_pack::active_limit (i.e.
+the max limit of any active torrent).
+
 At a regular interval, torrents are checked if there needs to be any
 re-ordering of which torrents are active and which are queued. This interval
 can be controlled via settings_pack::auto_manage_interval.
