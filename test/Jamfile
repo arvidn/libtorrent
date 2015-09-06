@@ -110,7 +110,6 @@ test-suite libtorrent :
 		test_bloom_filter.cpp
 		test_identify_client.cpp
 		test_merkle.cpp
-		test_alert_manager.cpp
 		test_resolve_links.cpp
 		test_crc32.cpp
 		test_heterogeneous_queue.cpp
@@ -150,6 +149,7 @@ test-suite libtorrent :
 		test_linked_list.cpp
 		test_file_progress.cpp ]
 
+	[ run test_alert_manager.cpp ]
 	[ run test_direct_dht.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
