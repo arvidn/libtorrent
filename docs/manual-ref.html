@@ -224,6 +224,21 @@ well. If there are more non-auto managed torrents being downloaded than the
 <tt class="docutils literal">active_downloads</tt> setting, any auto managed torrents will be queued until
 torrents are removed so that the number drops below the limit.</p>
 <p>The default values are 8 active downloads and 5 active seeds.</p>
+<p>In addition to the downloading and seeding limits, there are limits on <em>actions</em>
+torrents perform. The downloading and seeding limits control whether peers are
+allowed at all, and if peers are not allowed, torrents are stopped and don't do
+anything. If peers are allowed, torrents may:</p>
+<ol class="arabic simple">
+<li>announce to trackers</li>
+<li>announce to the DHT</li>
+<li>announce to local peer discovery (local service discovery)</li>
+</ol>
+<p>Each of those actions are associated with a cost and hence may need a seprarate
+limit. These limits are controlled by <tt class="docutils literal">active_tracker_limit</tt>,
+<tt class="docutils literal">active_dht_limit</tt> and <tt class="docutils literal">active_lsd_limit</tt> respectively.</p>
+<p>A client that is not concerned about the separate costs of these actions should
+set all 3 of these limits to the same value as <tt class="docutils literal">active_limit</tt> (i.e.
+the max limit of any active torrent).</p>
 <p>At a regular interval, torrents are checked if there needs to be any
 re-ordering of which torrents are active and which are queued. This interval
 can be controlled via <tt class="docutils literal">auto_manage_interval</tt> in <a class="reference external" href="reference-Settings.html#session_settings">session_settings</a>. It defaults
@@ -357,6 +372,11 @@ have, if a limit is set.</td>
 </tr>
 <tr><td><tt class="docutils literal">seed_mode</tt></td>
 <td>integer. 1 if the torrent is in seed mode, 0 otherwise.</td>
+</tr>
+<tr><td><tt class="docutils literal">priority</tt></td>
+<td>integer. The priority of a torrent determines how much
+bandwidth its peers are assigned when distributing upload
+and download rate quotas.</td>
 </tr>
 <tr><td><tt class="docutils literal">file_priority</tt></td>
 <td>list of integers. One entry per file in the torrent. Each
