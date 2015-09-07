@@ -148,11 +148,19 @@ namespace libtorrent
 	bool supports_ipv6()
 	{
 #if TORRENT_USE_IPV6
+#ifdef TORRENT_WINDOWS
 		TORRENT_TRY {
 			error_code ec;
 			address::from_string("::1", ec);
 			return !ec;
 		} TORRENT_CATCH(std::exception&) { return false; }
+#else
+		io_service ios;
+		tcp::socket test(ios);
+		error_code ec;
+		test.open(tcp::v6(), ec);
+		return !bool(ec);
+#endif // WINDOWS
 #else
 		return false;
 #endif
