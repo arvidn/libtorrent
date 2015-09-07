@@ -47,6 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
+namespace libtorrent {
+namespace aux {
+
 inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
@@ -80,6 +83,9 @@ inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
 
 #endif // OPENSSL_VERSION_NUMBER
 #endif // BOOST_VERSION
+
+}
+}
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

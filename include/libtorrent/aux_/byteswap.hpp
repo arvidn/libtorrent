@@ -50,6 +50,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arpa/inet.h>
 #endif
 
+namespace libtorrent {
+namespace aux {
+
 // these need to be within the disabled warnings because on OSX
 // the htonl and ntohl macros cause lots of old-style case warnings
 inline boost::uint32_t host_to_network(boost::uint32_t x)
@@ -63,6 +66,9 @@ inline boost::uint16_t host_to_network(boost::uint16_t x)
 
 inline boost::uint16_t network_to_host(boost::uint16_t x)
 { return ntohs(x); }
+
+}
+}
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

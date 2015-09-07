@@ -76,7 +76,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/openssl.hpp"
+#include "libtorrent/aux_/openssl.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -468,9 +468,9 @@ namespace aux {
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if BOOST_VERSION >= 104700
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
-		openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
+		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
 			, servername_callback);
-		openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
+		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
 #endif // OPENSSL_VERSION_NUMBER
 #endif // BOOST_VERSION
 #endif
