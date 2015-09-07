@@ -104,9 +104,6 @@ namespace
     { return FileIter(self, self.num_files()); }
 #endif
 
-    char const* filestorage_name(file_storage const& fs)
-    { return fs.name().c_str(); }
-
     bool call_python_object2(boost::python::object& obj, std::string const& i)
     {
        return obj(i);

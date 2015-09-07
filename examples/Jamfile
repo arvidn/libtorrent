@@ -12,6 +12,7 @@ if $(BOOST_ROOT)
 project client_test
    : requirements
 	<threading>multi <library>/torrent//torrent
+	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 	: default-build
 	<link>static
    ;  

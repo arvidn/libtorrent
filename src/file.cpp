@@ -1300,15 +1300,18 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DISK_STATS
-	boost::uint32_t silly_hash(std::string const& str)
+	namespace
 	{
-		boost::uint32_t ret = 1;
-		for (int i = 0; i < str.size(); ++i)
+		boost::uint32_t silly_hash(std::string const& str)
 		{
-			if (str[i] == 0) continue;
-			ret *= int(str[i]);
+			boost::uint32_t ret = 1;
+			for (int i = 0; i < str.size(); ++i)
+			{
+				if (str[i] == 0) continue;
+					ret *= int(str[i]);
+			}
+			return ret;
 		}
-		return ret;
 	}
 #endif
 

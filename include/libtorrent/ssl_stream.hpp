@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/openssl.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -87,9 +88,7 @@ public:
 
 	void set_host_name(std::string name)
 	{
-#if OPENSSL_VERSION_NUMBER >= 0x90812f
-		SSL_set_tlsext_host_name(m_sock.native_handle(), name.c_str());
-#endif
+		openssl_set_tlsext_hostname(m_sock.native_handle(), name.c_str());
 	}
 
 	template <class T>

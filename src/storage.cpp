@@ -90,7 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0
 
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_STORAGE
 #define DLOG(...) fprintf(__VA_ARGS__)
@@ -217,7 +217,7 @@ namespace libtorrent
 		char* ptr = event;
 		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
 		detail::write_uint64(offset, ptr);
-		detail::write_uint64((boost::uint64_t)event_id++, ptr);
+		detail::write_uint64(static_cast<boost::uint64_t>(event_id++), ptr);
 		detail::write_uint32(fileid, ptr);
 		detail::write_uint8(flags, ptr);
 
@@ -574,7 +574,8 @@ namespace libtorrent
 	{
 		remove(p, ec);
 
-		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", this, p.c_str(), ec.message().c_str());
+		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", static_cast<void*>(this)
+			, p.c_str(), ec.message().c_str());
 
 		if (ec == boost::system::errc::no_such_file_or_directory)
 			ec.clear();
@@ -582,7 +583,7 @@ namespace libtorrent
 
 	void default_storage::delete_files(storage_error& ec)
 	{
-		DFLOG(stderr, "[%p] delete_files\n", this);
+		DFLOG(stderr, "[%p] delete_files\n", static_cast<void*>(this));
 
 #if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
@@ -644,12 +645,13 @@ namespace libtorrent
 
 		error_code error;
 		remove(combine_path(m_save_path, m_part_file_name), error);
-		DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", this
+		DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", static_cast<void*>(this)
 			, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
 		if (error != boost::system::errc::no_such_file_or_directory && !error)
 		{ ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 
-		DFLOG(stderr, "[%p] delete_files result: %s\n", this, ec.ec.message().c_str());
+		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
+			, ec.ec.message().c_str());
 
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("delete-files done", m_files.name().c_str());
@@ -1701,7 +1703,7 @@ namespace libtorrent
 	{
 		mutex::scoped_lock l(m_mutex);
 		DLOG(stderr, "[%p] is_blocked: fence: %d num_outstanding: %d\n"
-			, this, m_has_fence, int(m_outstanding_jobs));
+			, static_cast<void*>(this), m_has_fence, int(m_outstanding_jobs));
 
 		// if this is the job that raised the fence, don't block it
 		// ignore fence can only ignore one fence. If there are several,
@@ -1748,12 +1750,13 @@ namespace libtorrent
 		mutex::scoped_lock l(m_mutex);
 
 		DLOG(stderr, "[%p] raise_fence: fence: %d num_outstanding: %d\n"
-			, this, m_has_fence, int(m_outstanding_jobs));
+			, static_cast<void*>(this), m_has_fence, int(m_outstanding_jobs));
 
 		if (m_has_fence == 0 && m_outstanding_jobs == 0)
 		{
 			++m_has_fence;
-			DLOG(stderr, "[%p] raise_fence: need posting\n", this);
+			DLOG(stderr, "[%p] raise_fence: need posting\n"
+				, static_cast<void*>(this));
 
 			// the job j is expected to be put on the job queue
 			// after this, without being passed through is_blocked()

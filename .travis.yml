@@ -2,14 +2,13 @@ language: cpp
 
 os:
   - linux
-#  - osx
+  - osx
 
 env:
-  - variant=test_debug cc=gcc-cpp11 sim=1
-  - variant=test_debug cc=clang-cpp11 sim=0
-  - variant=test_debug cc=gcc-cpp98 sim=0
-  - variant=test_release cc=gcc-cpp11 sim=0
-  - variant=test_barebones cc=gcc-cpp11 sim=0
+  - variant=test_debug lang=cpp11 sim=1
+  - variant=test_debug lang=cpp98 sim=0
+  - variant=test_release lang=cpp11 sim=0
+  - variant=test_barebones lang=cpp11 sim=0
 
 git:
   submodules: false
@@ -40,26 +39,37 @@ addons:
 
 before_install:
   - git submodule update --init --recursive
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew install --quiet ccache boost-build boost-python; fi
+
+# disable simulations on OSX for now. It hangs on travis
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
+  - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc-${lang}"; fi
+  - 'echo "using toolset: " ${toolset}'
 
 install:
   - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
-  - 'echo "using clang : cpp11 : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
-  - 'echo "using clang : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
+
+# osx builds need to disable the deprecated warning because of the openssl
+# shipping with the system having marked all functions as deprecated. Since
+# we're building with -Werror, we can't have those warnings
+  - 'echo "using darwin : cpp11 : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
+  - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
 script:
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $CC
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $CC
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset
   - cd ../bindings/python
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $CC stage_module
-  - LD_LIBRARY_PATH=. python test.py
-  - if [ $sim ]; then
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module
+  - LD_LIBRARY_PATH=. DYLD_LIBRARY_PATH=. python test.py
+  - if [ $sim = "1" ]; then
     cd ../../simulation;
-    bjam --hash -j3 crypto=built-in $CC;
+    bjam --hash -j2 crypto=built-in $toolset;
     fi
   - ccache --show-stats
 

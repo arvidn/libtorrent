@@ -107,9 +107,10 @@ namespace libtorrent { namespace
 			m_requested_metadata.resize(256, 0);
 		}
 
+/*
 		bool need_loaded()
 		{ return m_torrent.need_loaded(); }
-
+*/
 		virtual void on_unload()
 		{
 			m_metadata.reset();
@@ -225,7 +226,9 @@ namespace libtorrent { namespace
 				metadata();
 		}
 
+/*
 		int metadata_size() const { return m_metadata_size; }
+*/
 
 	private:
 		torrent& m_torrent;

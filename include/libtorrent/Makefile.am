@@ -78,6 +78,7 @@ nobase_include_HEADERS = \
   max.hpp                      \
   natpmp.hpp                   \
   network_thread_pool.hpp      \
+  openssl.hpp                  \
   operations.hpp               \
   packet_buffer.hpp            \
   parse_url.hpp                \

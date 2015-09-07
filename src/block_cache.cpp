@@ -49,11 +49,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #endif
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #if TORRENT_USE_PURGABLE_CONTROL
 #include <mach/mach.h>
 // see comments at:
 // http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
+
+const vm_purgable_t vm_purgable_set_state = VM_PURGABLE_SET_STATE;
+const vm_purgable_t vm_purgable_nonvolatile = VM_PURGABLE_NONVOLATILE;
+
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 /*
 
@@ -161,7 +169,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_CACHE 0
 
-#if __cplusplus >= 201103L
+#if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_CACHE
 #define DLOG(...) fprintf(__VA_ARGS__)
@@ -292,7 +300,8 @@ const char* const job_action_name[] =
 				, int(pe->read_jobs.size()), int(pe->jobs.size()));
 			for (int i = 0; i < pe->piece_log.size(); ++i)
 			{
-				assert_print(&", %s (%d)"[i==0], job_name(pe->piece_log[i].job), pe->piece_log[i].block);
+				assert_print("%s %s (%d)", (i==0?"":",")
+					, job_name(pe->piece_log[i].job), pe->piece_log[i].block);
 			}
 		}
 		assert_print("\n");
@@ -880,7 +889,7 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 	INVARIANT_CHECK;
 
 	DLOG(stderr, "[%p] block_cache mark-for-deletion "
-		"piece: %d\n", this, int(p->piece));
+		"piece: %d\n", static_cast<void*>(this), int(p->piece));
 
 	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
 	tailqueue<disk_io_job> jobs;
@@ -919,7 +928,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 	if (num <= 0) return 0;
 
-	DLOG(stderr, "[%p] try_evict_blocks: %d\n", this, num);
+	DLOG(stderr, "[%p] try_evict_blocks: %d\n", static_cast<void*>(this), num);
 
 	char** to_delete = TORRENT_ALLOCA(char*, num);
 	int num_to_delete = 0;
@@ -1107,7 +1116,8 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 	if (num_to_delete == 0) return num;
 
-	DLOG(stderr, "[%p]    removed %d blocks\n", this, num_to_delete);
+	DLOG(stderr, "[%p]    removed %d blocks\n", static_cast<void*>(this)
+		, num_to_delete);
 
 	free_multiple_buffers(to_delete, num_to_delete);
 
@@ -1270,14 +1280,15 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 				kern_return_t ret = vm_purgable_control(
 					mach_task_self(),
 					reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-					VM_PURGABLE_SET_STATE,
+					vm_purgable_set_state,
 					&state);
 #ifdef TORRENT_DEBUG
 //				if ((random() % 200) == 0) ret = 1;
 #endif
 				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 				{
-					fprintf(stderr, "insert_blocks(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+					fprintf(stderr, "insert_blocks(piece=%d block=%d): "
+						"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
 						, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 					free_buffer(pe->blocks[block].buf);
 					pe->blocks[block].buf = NULL;
@@ -1315,18 +1326,19 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 		// its still here. It's only volatile if it's not dirty and has refcount == 0
 		if (!pe->blocks[block].dirty)
 		{
-			int state = VM_PURGABLE_NONVOLATILE;
+			int state = vm_purgable_nonvolatile;
 			kern_return_t ret = vm_purgable_control(
 				mach_task_self(),
 				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				VM_PURGABLE_SET_STATE,
+				vm_purgable_set_state,
 				&state);
 #ifdef TORRENT_DEBUG
 //			if ((random() % 200) == 0) ret = 1;
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{
-				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): "
+					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
 					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 
 				free_buffer(pe->blocks[block].buf);
@@ -1385,14 +1397,15 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 			kern_return_t ret = vm_purgable_control(
 				mach_task_self(),
 				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				VM_PURGABLE_SET_STATE,
+				vm_purgable_set_state,
 				&state);
 #ifdef TORRENT_DEBUG
 //			if ((random() % 200) == 0) ret = 1;
 #endif
 			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
 			{
-				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
+				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): "
+					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
 					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
 				free_buffer(pe->blocks[block].buf);
 				pe->blocks[block].buf = NULL;
@@ -1827,7 +1840,8 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 	boost::shared_ptr<piece_manager> s = pe->storage;
 
 	DLOG(stderr, "[%p] block_cache maybe_free_piece "
-		"piece: %d refcount: %d marked_for_deletion: %d\n", this
+		"piece: %d refcount: %d marked_for_deletion: %d\n"
+		, static_cast<void*>(this)
 		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
 
 	tailqueue<disk_io_job> jobs;

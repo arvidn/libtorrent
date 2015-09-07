@@ -396,7 +396,7 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
-	ses.reset(new lt::session(sett, session::add_default_plugins));
+	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
 
 	error_code ec;
 	add_torrent_params p;

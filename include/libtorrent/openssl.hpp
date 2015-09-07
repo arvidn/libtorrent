@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2015, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,54 +30,55 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_NETWORK_THREAD_POOL_HPP_INCLUDED
-#define TORRENT_NETWORK_THREAD_POOL_HPP_INCLUDED
+#ifndef TORRENT_OPENSSL_HPP_INCLUDED
+#define TORRENT_OPENSSL_HPP_INCLUDED
 
-#include "libtorrent/thread_pool.hpp"
-#include <boost/shared_ptr.hpp>
-#include <vector>
+#ifdef TORRENT_USE_OPENSSL
 
-namespace libtorrent
+// all of OpenSSL causes warnings, so we just have to disable them
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <openssl/ssl.h>
+#include <openssl/safestack.h> // for sk_GENERAL_NAME_value
+#include <openssl/x509v3.h> // for GENERAL_NAME
+
+inline void openssl_set_tlsext_hostname(SSL* s, char const* name)
 {
-
-	class peer_connection;
-	class buffer;
-
-	struct socket_job
-	{
-		socket_job() : type(none), vec(NULL), recv_buf(NULL), buf_size(0) {}
-#if __cplusplus >= 201103L
-		socket_job(socket_job const&) = default;
-		socket_job& operator=(socket_job const&) = default;
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
+	SSL_set_tlsext_host_name(s, name);
 #endif
-
-		enum job_type_t
-		{
-			read_job = 0,
-			write_job,
-			none
-		};
-
-		job_type_t type;
-
-		// used for write jobs
-		std::vector<boost::asio::const_buffer> const* vec;
-		// used for read jobs
-		char* recv_buf;
-		int buf_size;
-		boost::array<boost::asio::mutable_buffer, 2> read_vec;
-
-		boost::shared_ptr<peer_connection> peer;
-		// defined in session_impl.cpp
-		~socket_job();
-	};
-
-	// defined in session_impl.cpp
-	struct network_thread_pool : thread_pool<socket_job>
-	{
-		void process_job(socket_job const& j, bool post);
-	};
 }
 
-#endif // TORRENT_NETWORK_THREAD_POOL_HPP_INCLUDED
+#if BOOST_VERSION >= 104700
+#if OPENSSL_VERSION_NUMBER >= 0x90812f
+
+inline void openssl_set_tlsext_servername_callback(SSL_CTX* ctx
+	, int (*servername_callback)(SSL*, int*, void*))
+{
+	SSL_CTX_set_tlsext_servername_callback(ctx, servername_callback);
+}
+
+inline void openssl_set_tlsext_servername_arg(SSL_CTX* ctx, void* userdata)
+{
+	SSL_CTX_set_tlsext_servername_arg(ctx, userdata);
+}
+
+inline int openssl_num_general_names(GENERAL_NAMES* gens)
+{
+	return sk_GENERAL_NAME_num(gens);
+}
+
+inline GENERAL_NAME* openssl_general_name_value(GENERAL_NAMES* gens, int i)
+{
+	return sk_GENERAL_NAME_value(gens, i);
+}
+
+#endif // OPENSSL_VERSION_NUMBER
+#endif // BOOST_VERSION
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#endif // TORRENT_USE_OPENSSL
+
+#endif // TORRENT_OPENSSL_HPP_INCLUDED
 

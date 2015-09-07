@@ -31,6 +31,11 @@ namespace
 
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-member-function"
+#endif
+
 // blk0() and blk() perform the initial expand.
 // I got the idea of expanding during the round function from SSLeay
 	struct little_endian_blk0
@@ -50,9 +55,12 @@ namespace
 		}
 	};
 
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #define blk(i) (block->l[i&15] = rol(block->l[(i+13)&15]^block->l[(i+8)&15] \
-    ^block->l[(i+2)&15]^block->l[i&15],1))
+	^block->l[(i+2)&15]^block->l[i&15],1))
 
 // (R0+R1), R2, R3, R4 are the different operations used in SHA1
 #define R0(v,w,x,y,z,i) z+=((w&(x^y))^y)+BlkFun::apply(block, i)+0x5A827999+rol(v,5);w=rol(w,30);

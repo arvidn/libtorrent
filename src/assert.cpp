@@ -301,8 +301,11 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 #endif
 }
 
-#else
+#elif !TORRENT_USE_ASSERTS
 
+// these are just here to make it possible for a client that built with debug
+// enable to be able to link against a release build (just possible, not
+// necessarily supported)
 TORRENT_FORMAT(1,2)
 TORRENT_EXPORT void assert_print(char const*, ...) {}
 TORRENT_EXPORT void assert_fail(char const*, int, char const*

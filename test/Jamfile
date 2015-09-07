@@ -69,6 +69,7 @@ lib libtorrent_test
 	<include>../ed25519/src
 	<target-os>windows:<library>advapi32
 	<conditional>@link_libtorrent
+	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 
 	: # default build
 	<link>shared
@@ -88,6 +89,7 @@ project
 	: requirements
 	<conditional>@link_test
 	<conditional>@link_libtorrent
+	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 	: default-build
 	<threading>multi
 	<invariant-checks>full
@@ -108,7 +110,6 @@ test-suite libtorrent :
 		test_bloom_filter.cpp
 		test_identify_client.cpp
 		test_merkle.cpp
-		test_alert_manager.cpp
 		test_resolve_links.cpp
 		test_crc32.cpp
 		test_heterogeneous_queue.cpp
@@ -148,6 +149,7 @@ test-suite libtorrent :
 		test_linked_list.cpp
 		test_file_progress.cpp ]
 
+	[ run test_alert_manager.cpp ]
 	[ run test_direct_dht.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
@@ -211,6 +213,45 @@ alias win-tests :
 	test_tracker
 	test_checking
 	;
+
+# the openssl test hangs on the travis osx machine. difficult to debug
+alias osx-tests :
+	test_primitives
+	test_alert_manager
+	test_direct_dht
+	test_magnet
+	test_storage
+	test_session
+	test_read_piece
+	test_file
+	test_fast_extension
+	test_privacy
+	test_recheck
+	test_resume
+#	test_ssl
+	test_tracker
+	test_checking
+	test_url_seed
+	test_web_seed
+	test_web_seed_redirect
+	test_web_seed_socks4
+	test_web_seed_socks5
+	test_web_seed_socks5_pw
+	test_web_seed_http
+	test_web_seed_http_pw
+	test_web_seed_chunked
+	test_web_seed_ban
+	test_pe_crypto
+	test_remap_files
+	test_utp
+	test_auto_unchoke
+	test_http_connection
+	test_torrent
+	test_transfer
+	test_time_critical
+	test_pex
+	test_priority
+;
 
 explicit win-tests ;
 

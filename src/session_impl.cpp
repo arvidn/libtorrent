@@ -52,21 +52,31 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 
-#ifndef TORRENT_WINDOWS
-#include <sys/resource.h>
-#endif
-
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
 
 #if TORRENT_USE_RLIMIT
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+#endif // __GNUC__
+
+#include <sys/resource.h>
+
 // capture this here where warnings are disabled (the macro generates warnings)
 const rlim_t rlim_infinity = RLIM_INFINITY;
-#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif // __GNUC__
+
+#endif // TORRENT_USE_RLIMIT
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include "libtorrent/openssl.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
@@ -289,22 +299,23 @@ namespace aux {
 	}
 
 #if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700 && OPENSSL_VERSION_NUMBER >= 0x90812f
+	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
 	// trying to connect to. The 40 first bytes in the name is expected to
 	// be the hex encoded info-hash
-	int servername_callback(SSL *s, int *ad, void *arg)
+	int servername_callback(SSL* s, int* ad, void* arg)
 	{
 		TORRENT_UNUSED(ad);
 
-		session_impl* ses = (session_impl*)arg;
+		session_impl* ses = reinterpret_cast<session_impl*>(arg);
 		const char* servername = SSL_get_servername(s, TLSEXT_NAMETYPE_host_name);
 
 		if (!servername || strlen(servername) < 40)
 			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		sha1_hash info_hash;
-		bool valid = from_hex(servername, 40, (char*)&info_hash[0]);
+		bool valid = from_hex(servername, 40, info_hash.data());
 
 		// the server name is not a valid hex-encoded info-hash
 		if (!valid)
@@ -331,6 +342,7 @@ namespace aux {
 
 		return SSL_TLSEXT_ERR_OK;
 	}
+	} // anonymous namesoace
 #endif
 
 	session_impl::session_impl(io_service& ios)
@@ -456,8 +468,9 @@ namespace aux {
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 #if BOOST_VERSION >= 104700
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
-		SSL_CTX_set_tlsext_servername_callback(m_ssl_ctx.native_handle(), servername_callback);
-		SSL_CTX_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
+		openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
+			, servername_callback);
+		openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
 #endif // OPENSSL_VERSION_NUMBER
 #endif // BOOST_VERSION
 #endif
@@ -1926,14 +1939,14 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						listen_socket_t s = setup_listener(device, address_family
+						listen_socket_t ssl_s = setup_listener(device, address_family
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
 
-						if (!ec && s.sock)
+						if (!ec && ssl_s.sock)
 						{
 							TORRENT_ASSERT(!m_abort);
-							m_listen_sockets.push_back(s);
+							m_listen_sockets.push_back(ssl_s);
 						}
 					}
 #endif

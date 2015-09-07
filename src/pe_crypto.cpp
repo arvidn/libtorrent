@@ -35,9 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <algorithm>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
+#endif
+
 extern "C" {
 #include "libtorrent/tommath.h"
 }
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/pe_crypto.hpp"
@@ -175,7 +184,7 @@ namespace libtorrent
 			TORRENT_ASSERT(to_process == 0);
 		}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 		to_process = 0;
 		for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 			i != iovec.end(); ++i)
@@ -193,7 +202,7 @@ namespace libtorrent
 				m_send_barriers.pop_front();
 			}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
 			if (next_barrier != INT_MAX)
 			{
 				int overhead = 0;

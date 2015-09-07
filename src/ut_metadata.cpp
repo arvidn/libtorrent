@@ -94,7 +94,7 @@ namespace libtorrent { namespace
 	{
 		ut_metadata_plugin(torrent& t)
 			: m_torrent(t)
-			, m_metadata_progress(0)
+//			, m_metadata_progress(0)
 			, m_metadata_size(0)
 		{
 			// initialize m_metadata_size
@@ -156,7 +156,7 @@ namespace libtorrent { namespace
 		// we should request.
 		// returns -1 if we should hold off the request
 		int metadata_request(bool has_metadata);
-
+/*
 		// this is called from the peer_connection for
 		// each piece of metadata it receives
 		void metadata_progress(int total_size, int received)
@@ -165,7 +165,7 @@ namespace libtorrent { namespace
 			m_metadata_size = total_size;
 			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
-
+*/
 		void on_piece_pass(int)
 		{
 			// if we became a seed, copy the metadata from
@@ -191,7 +191,7 @@ namespace libtorrent { namespace
 		// it is mutable because it's generated lazily
 		mutable boost::shared_array<char> m_metadata;
 
-		int m_metadata_progress;
+//		int m_metadata_progress;
 		mutable int m_metadata_size;
 
 		struct metadata_piece

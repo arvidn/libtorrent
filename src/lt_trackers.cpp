@@ -82,7 +82,7 @@ namespace libtorrent { namespace
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc);
-		
+
 		virtual void tick()
 		{
 			if (m_2_minutes++ < 120) return;

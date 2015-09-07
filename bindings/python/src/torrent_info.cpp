@@ -84,18 +84,6 @@ namespace
         ti.set_merkle_tree(h);
     }
 
-#ifndef TORRENT_NO_DEPRECATE
-    file_storage::iterator begin_files(torrent_info& i)
-    {
-        return i.begin_files();
-    }
-
-    file_storage::iterator end_files(torrent_info& i)
-    {
-        return i.end_files();
-    }
-#endif
-
     std::string hash_for_piece(torrent_info const& ti, int i)
     {
         return ti.hash_for_piece(i).to_string();

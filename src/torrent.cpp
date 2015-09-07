@@ -1558,9 +1558,9 @@ namespace libtorrent
 		std::string names;
 		bool match = false;
 #endif
-		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
+		for (int i = 0; i < openssl_num_general_names(gens); ++i)
 		{
-			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
+			GENERAL_NAME* gen = openssl_general_name_value(gens, i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
@@ -1579,8 +1579,9 @@ namespace libtorrent
 				// if we're logging, keep looping over all names,
 				// for completeness of the log
 				continue;
-#endif
+#else
 				return true;
+#endif
 			}
 		}
 
@@ -1619,9 +1620,9 @@ namespace libtorrent
 		debug_log("<== incoming SSL CONNECTION [ n: %s | match: %s ]"
 			, names.c_str(), match?"yes":"no");
 		return match;
-#endif
-
+#else
 		return false;
+#endif
 	}
 #endif // BOOST_VERSION
 
@@ -1686,7 +1687,7 @@ namespace libtorrent
 		X509_STORE* cert_store = X509_STORE_new();
 		if (!cert_store)
 		{
-			error_code ec(::ERR_get_error(),
+			ec.assign(::ERR_get_error(),
 				boost::asio::error::get_ssl_category());
 			set_error(ec, error_file_ssl_ctx);
 			pause();
@@ -1694,7 +1695,9 @@ namespace libtorrent
 		}
 
 		// wrap the PEM certificate in a BIO, for openssl to read
-		BIO* bp = BIO_new_mem_buf((void*)cert.c_str(), cert.size());
+		BIO* bp = BIO_new_mem_buf(
+			const_cast<void*>(static_cast<void const*>(cert.c_str()))
+			, cert.size());
 
 		// parse the certificate into OpenSSL's internal
 		// representation
@@ -1704,7 +1707,7 @@ namespace libtorrent
 
 		if (!certificate)
 		{
-			error_code ec(::ERR_get_error(),
+			ec.assign(::ERR_get_error(),
 				boost::asio::error::get_ssl_category());
 			X509_STORE_free(cert_store);
 			set_error(ec, error_file_ssl_ctx);
@@ -5884,13 +5887,15 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_USE_OPENSSL
-	std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
-		, std::string pw)
-	{
-		TORRENT_UNUSED(length);
+	namespace {
+		std::string password_callback(int length, boost::asio::ssl::context::password_purpose p
+			, std::string pw)
+		{
+			TORRENT_UNUSED(length);
 
-		if (p != boost::asio::ssl::context::for_reading) return "";
-		return pw;
+			if (p != boost::asio::ssl::context::for_reading) return "";
+			return pw;
+		}
 	}
 
 	// certificate is a filename to a .pem file which is our
@@ -8151,6 +8156,7 @@ namespace libtorrent
 
 	namespace {
 
+#ifndef TORRENT_DISABLE_LOGGING
 	char const* list_name(int idx)
 	{
 #define TORRENT_LIST_NAME(n) case aux::session_interface:: n: return #n;
@@ -8169,6 +8175,7 @@ namespace libtorrent
 #undef TORRENT_LIST_NAME
 		return "";
 	}
+#endif // TORRENT_DISABLE_LOGGING
 
 	} // anonymous namespace
 

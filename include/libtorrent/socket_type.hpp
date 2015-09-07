@@ -43,6 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/max.hpp"
 #include "libtorrent/assert.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/type_traits/aligned_storage.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
@@ -282,13 +288,13 @@ namespace libtorrent
 		template <class S> S* get()
 		{
 			if (m_type != socket_type_int_impl<S>::value) return 0;
-			return reinterpret_cast<S*>(m_data);
+			return reinterpret_cast<S*>(&m_data);
 		}
 
 		template <class S> S const* get() const
 		{
 			if (m_type != socket_type_int_impl<S>::value) return 0;
-			return reinterpret_cast<S const*>(m_data);
+			return reinterpret_cast<S const*>(&m_data);
 		}
 
 	private:
@@ -321,10 +327,7 @@ namespace libtorrent
 			>::value
 		};
 
-		// TODO: 2 it would be nice to use aligned_storage here when
-		// building on c++11
-		boost::int64_t m_data[(storage_size + sizeof(boost::int64_t) - 1)
-			/ sizeof(boost::int64_t)];
+		boost::aligned_storage<storage_size, 16>::type m_data;
 	};
 
 	// returns true if this socket is an SSL socket

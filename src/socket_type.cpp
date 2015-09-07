@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket_type.hpp"
+#include "libtorrent/openssl.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -114,8 +115,8 @@ namespace libtorrent
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		if (ctx)
 		{
-			SSL_CTX_set_tlsext_servername_callback(ctx, 0);
-			SSL_CTX_set_tlsext_servername_arg(ctx, 0);
+			openssl_set_tlsext_servername_callback(ctx, 0);
+			openssl_set_tlsext_servername_arg(ctx, 0);
 		}
 #endif // OPENSSL_VERSION_NUMBER
 #else
@@ -227,41 +228,41 @@ namespace libtorrent
 		{
 			case 0: break;
 			case socket_type_int_impl<tcp::socket>::value:
-				new (reinterpret_cast<tcp::socket*>(m_data)) tcp::socket(m_io_service);
+				new (reinterpret_cast<tcp::socket*>(&m_data)) tcp::socket(m_io_service);
 				break;
 			case socket_type_int_impl<socks5_stream>::value:
-				new (reinterpret_cast<socks5_stream*>(m_data)) socks5_stream(m_io_service);
+				new (reinterpret_cast<socks5_stream*>(&m_data)) socks5_stream(m_io_service);
 				break;
 			case socket_type_int_impl<http_stream>::value:
-				new (reinterpret_cast<http_stream*>(m_data)) http_stream(m_io_service);
+				new (reinterpret_cast<http_stream*>(&m_data)) http_stream(m_io_service);
 				break;
 			case socket_type_int_impl<utp_stream>::value:
-				new (reinterpret_cast<utp_stream*>(m_data)) utp_stream(m_io_service);
+				new (reinterpret_cast<utp_stream*>(&m_data)) utp_stream(m_io_service);
 				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
-				new (reinterpret_cast<i2p_stream*>(m_data)) i2p_stream(m_io_service);
+				new (reinterpret_cast<i2p_stream*>(&m_data)) i2p_stream(m_io_service);
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
 			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
 				TORRENT_ASSERT(userdata);
-				new ((ssl_stream<tcp::socket>*)m_data) ssl_stream<tcp::socket>(m_io_service
+				new (reinterpret_cast<ssl_stream<tcp::socket>*>(&m_data)) ssl_stream<tcp::socket>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
 				TORRENT_ASSERT(userdata);
-				new ((ssl_stream<socks5_stream>*)m_data) ssl_stream<socks5_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<socks5_stream>*>(&m_data)) ssl_stream<socks5_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<http_stream> >::value:
 				TORRENT_ASSERT(userdata);
-				new ((ssl_stream<http_stream>*)m_data) ssl_stream<http_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<http_stream>*>(&m_data)) ssl_stream<http_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
 			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
 				TORRENT_ASSERT(userdata);
-				new ((ssl_stream<utp_stream>*)m_data) ssl_stream<utp_stream>(m_io_service
+				new (reinterpret_cast<ssl_stream<utp_stream>*>(&m_data)) ssl_stream<utp_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
 #endif

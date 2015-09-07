@@ -512,8 +512,8 @@ namespace libtorrent
 		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;
 		virtual ~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER;
 #if __cplusplus >= 201103L
-		libtorrent_exception(libtorrent_exception const& st) = default;
-		libtorrent_exception& operator=(libtorrent_exception const& st) = default;
+		libtorrent_exception(libtorrent_exception const&) = default;
+		libtorrent_exception& operator=(libtorrent_exception const&) = default;
 #endif
 		error_code error() const { return m_error; }
 	private:

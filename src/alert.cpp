@@ -881,9 +881,10 @@ namespace libtorrent {
 
 	std::string listen_succeeded_alert::message() const
 	{
+		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "SSL/uTP" };
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
-			, sock_type_str[sock_type], print_endpoint(endpoint).c_str());
+			, type_str[sock_type], print_endpoint(endpoint).c_str());
 		return ret;
 	}
 
