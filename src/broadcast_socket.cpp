@@ -147,7 +147,10 @@ namespace libtorrent
 
 	bool supports_ipv6()
 	{
-#if TORRENT_USE_IPV6
+#if defined TORRENT_BUILD_SIMULATOR || !TORRENT_USE_IPV6
+		return false;
+#else
+
 #ifdef TORRENT_WINDOWS
 		TORRENT_TRY {
 			error_code ec;
@@ -161,8 +164,7 @@ namespace libtorrent
 		test.open(tcp::v6(), ec);
 		return !bool(ec);
 #endif // WINDOWS
-#else
-		return false;
+
 #endif
 	}
 
