@@ -263,7 +263,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("==> DHT_PORT [ %d ]", listen_port);
@@ -277,7 +278,8 @@ namespace libtorrent
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(!m_sent_bitfield);
 #if TORRENT_USE_ASSERTS
 		m_sent_bitfield = true;
 #endif
@@ -291,7 +293,8 @@ namespace libtorrent
 	void bt_peer_connection::write_have_none()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(!m_sent_bitfield);
 #if TORRENT_USE_ASSERTS
 		m_sent_bitfield = true;
 #endif
@@ -316,7 +319,8 @@ namespace libtorrent
 		peer_log("==> REJECT_PIECE [ piece: %d | s: %d | l: %d ]"
 			, r.piece, r.start, r.length);
 #endif
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[] = {0,0,0,13, msg_reject_request,0,0,0,0, 0,0,0,0, 0,0,0,0};
@@ -333,7 +337,8 @@ namespace libtorrent
 
 		if (!m_supports_fast) return;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
@@ -348,7 +353,8 @@ namespace libtorrent
 
 		if (!m_supports_fast) return;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
@@ -1953,7 +1959,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[17] = {0,0,0,13, msg_cancel};
@@ -1971,7 +1978,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		char msg[17] = {0,0,0,13, msg_request};
@@ -1989,7 +1997,8 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(m_sent_handshake && !m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(!m_sent_bitfield);
 		TORRENT_ASSERT(t->valid_metadata());
 
 		// in this case, have_all or have_none should be sent instead
@@ -2238,7 +2247,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		if (is_choked()) return;
 		char msg[] = {0,0,0,1,msg_choke};
@@ -2249,7 +2259,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, sizeof(msg));
@@ -2267,7 +2278,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_interested};
 		send_buffer(msg, sizeof(msg));
@@ -2277,7 +2289,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		char msg[] = {0,0,0,1,msg_not_interested};
 		send_buffer(msg, sizeof(msg));
@@ -2289,7 +2302,8 @@ namespace libtorrent
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().num_pieces());
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		char msg[] = {0,0,0,5,msg_have,0,0,0,0};
 		char* ptr = msg + 5;
@@ -2301,7 +2315,8 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake && m_sent_bitfield);
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
