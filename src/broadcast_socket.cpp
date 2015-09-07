@@ -159,7 +159,7 @@ namespace libtorrent
 		tcp::socket test(ios);
 		error_code ec;
 		test.open(tcp::v6(), ec);
-		return bool(ec);
+		return !bool(ec);
 #endif // WINDOWS
 #else
 		return false;
