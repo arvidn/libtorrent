@@ -38,6 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 // all of OpenSSL causes warnings, so we just have to disable them
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#ifdef TORRENT_WINDOWS
+// because openssl includes winsock.h, we must include winsock2.h first
+#include <winsock2.h>
+#endif
+
 #include <openssl/ssl.h>
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME

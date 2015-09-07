@@ -53,14 +53,18 @@ environment:
 #    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
 
 install:
-- git submodule update --init --recursive
+- if defined sim ( git submodule update --init --recursive )
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
 - if %compiler% == msvc-12.0 (
     if not exist openssl-1.0.1p-vs2013.7z (
-      appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z
+      echo downloading openssl-2013
+      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z"
     )
-    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z
+  )
+- if %compiler% == msvc-12.0 (
+    echo extracting openssl-2013
+    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z > nul
     & copy c:\openssl-1.0.1p-vs2013\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\ssleay32.lib
     & copy c:\openssl-1.0.1p-vs2013\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\libeay32.lib
     & copy c:\openssl-1.0.1p-vs2013\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib\ssleay32.lib
@@ -68,23 +72,31 @@ install:
   )
 - if %compiler% == msvc-10.0 (
     if not exist openssl-1.0.1p-vs2010.7z (
-      appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z
+      echo downloading openssl-2010
+      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2010.7z"
     )
-  & 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z
-  & copy c:\openssl-1.0.1p-vs2010\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\ssleay32.lib
-  & copy c:\openssl-1.0.1p-vs2010\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\libeay32.lib
-  & copy c:\openssl-1.0.1p-vs2010\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib\ssleay32.lib
-  & copy c:\openssl-1.0.1p-vs2010\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib\libeay32.lib
+  )
+- if %compiler% == msvc-10.0 (
+    echo extracting openssl-2010
+    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2010.7z > nul
+    & copy c:\openssl-1.0.1p-vs2010\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\ssleay32.lib
+    & copy c:\openssl-1.0.1p-vs2010\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib64\libeay32.lib
+    & copy c:\openssl-1.0.1p-vs2010\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2010\lib\ssleay32.lib
+    & copy c:\openssl-1.0.1p-vs2010\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2010\lib\libeay32.lib
   )
 - if %compiler% == msvc-14.0 (
     if not exist openssl-1.0.1p-vs2015.7z (
-      appveyor DownloadFile http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z
+      echo downloading openssl-2015
+      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
     )
-  & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z
-  & copy c:\openssl-1.0.1p-vs2015\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\ssleay32.lib
-  & copy c:\openssl-1.0.1p-vs2015\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\libeay32.lib
-  & copy c:\openssl-1.0.1p-vs2015\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib\ssleay32.lib
-  & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
+  )
+- if %compiler% == msvc-14.0 (
+    echo extracting openssl-2015
+    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
+    & copy c:\openssl-1.0.1p-vs2015\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\ssleay32.lib
+    & copy c:\openssl-1.0.1p-vs2015\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\libeay32.lib
+    & copy c:\openssl-1.0.1p-vs2015\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib\ssleay32.lib
+    & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
   )
 - cd %ROOT_DIRECTORY%
 - set BOOST_ROOT=c:\Libraries\boost
