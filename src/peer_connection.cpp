@@ -4522,12 +4522,16 @@ namespace libtorrent
 	void peer_connection::superseed_piece(int replace_piece, int new_piece)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		if (is_connecting()) return;
+		if (in_handshake()) return;
+
 		if (new_piece == -1)
 		{
 			if (m_superseed_piece[0] == -1) return;
 			m_superseed_piece[0] = -1;
 			m_superseed_piece[1] = -1;
-			
+
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SUPER_SEEDING", "ending");
 #endif
@@ -4689,6 +4693,7 @@ namespace libtorrent
 		}
 
 		if (t->super_seeding()
+			&& t->ready_for_connections()
 			&& !m_peer_interested
 			&& m_became_uninterested + seconds(10) < now)
 		{
