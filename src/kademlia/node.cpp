@@ -69,24 +69,7 @@ namespace libtorrent { namespace dht
 
 using detail::write_endpoint;
 
-// TODO: 2 make this configurable in dht_settings
-enum { announce_interval = 30 };
-
 namespace {
-
-// remove peers that have timed out
-void purge_peers(std::set<peer_entry>& peers)
-{
-	for (std::set<peer_entry>::iterator i = peers.begin()
-		  , end(peers.end()); i != end;)
-	{
-		// the peer has timed out
-		if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
-			peers.erase(i++);
-		else
-			++i;
-	}
-}
 
 void nop() {}
 
@@ -115,9 +98,16 @@ node::node(udp_socket_interface* sock
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
 	, m_counters(cnt)
+	, m_storage(dht_default_storage_constructor(m_id, m_settings, m_counters))
 {
 	m_secret[0] = random();
 	m_secret[1] = random();
+
+	TORRENT_ASSERT(m_storage.get() != NULL);
+}
+
+node::~node()
+{
 }
 
 bool node::verify_token(std::string const& token, char const* info_hash
@@ -590,38 +580,7 @@ time_duration node::connection_timeout()
 	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 
-	for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
-		i != m_immutable_table.end();)
-	{
-		if (i->second.last_seen + minutes(60) > now)
-		{
-			++i;
-			continue;
-		}
-		free(i->second.value);
-		m_immutable_table.erase(i++);
-		m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
-	}
-
-	// look through all peers and see if any have timed out
-	for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
-	{
-		torrent_entry& t = i->second;
-		node_id const& key = i->first;
-		++i;
-		purge_peers(t.peers);
-
-		// if there are no more peers, remove the entry altogether
-		if (t.peers.empty())
-		{
-			table_t::iterator it = m_map.find(key);
-			if (it != m_map.end())
-			{
-				m_map.erase(it);
-				m_counters.inc_stats_counter(counters::dht_torrents, -1);
-			}
-		}
-	}
+	m_storage->tick();
 
 	return d;
 }
@@ -649,7 +608,7 @@ void node::status(session_status& s)
 	mutex_t::scoped_lock l(m_mutex);
 
 	m_table.status(s);
-	s.dht_torrents = int(m_map.size());
+	s.dht_torrents = int(m_storage->num_torrents());
 	s.active_requests.clear();
 	s.dht_total_allocations = m_rpc.num_allocated_observers();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
@@ -668,52 +627,7 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	if (m_observer)
 		m_observer->get_peers(info_hash);
 
-	table_t::const_iterator i = m_map.lower_bound(info_hash);
-	if (i == m_map.end()) return;
-	if (i->first != info_hash) return;
-
-	torrent_entry const& v = i->second;
-
-	if (!v.name.empty()) reply["n"] = v.name;
-
-	if (scrape)
-	{
-		bloom_filter<256> downloaders;
-		bloom_filter<256> seeds;
-
-		for (std::set<peer_entry>::const_iterator peer_it = v.peers.begin()
-			, end(v.peers.end()); peer_it != end; ++peer_it)
-		{
-			sha1_hash iphash;
-			hash_address(peer_it->addr.address(), iphash);
-			if (peer_it->seed) seeds.set(iphash);
-			else downloaders.set(iphash);
-		}
-
-		reply["BFpe"] = downloaders.to_string();
-		reply["BFsd"] = seeds.to_string();
-	}
-	else
-	{
-		int num = (std::min)(int(v.peers.size()), m_settings.max_peers_reply);
-		std::set<peer_entry>::const_iterator iter = v.peers.begin();
-		entry::list_type& pe = reply["values"].list();
-		std::string endpoint;
-
-		for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
-		{
-			if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m) continue;
-			if (noseed && iter->seed) continue;
-			endpoint.resize(18);
-			std::string::iterator out = endpoint.begin();
-			write_endpoint(iter->addr, out);
-			endpoint.resize(out - endpoint.begin());
-			pe.push_back(entry(endpoint));
-
-			++m;
-		}
-	}
-	return;
+	m_storage->get_peers(info_hash, noseed, scrape, reply);
 }
 
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
@@ -832,37 +746,6 @@ void incoming_error(entry& e, char const* msg, int error_code)
 	l.push_back(entry(error_code));
 	l.push_back(entry(msg));
 }
-
-// return true of the first argument is a better canidate for removal, i.e.
-// less important to keep
-struct immutable_item_comparator
-{
-	immutable_item_comparator(node_id const& our_id) : m_our_id(our_id) {}
-	immutable_item_comparator(immutable_item_comparator const& c)
-		: m_our_id(c.m_our_id) {}
-
-	bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
-		, std::pair<node_id, dht_immutable_item> const& rhs) const
-	{
-		int l_distance = distance_exp(lhs.first, m_our_id);
-		int r_distance = distance_exp(rhs.first, m_our_id);
-
-		// this is a score taking the popularity (number of announcers) and the
-		// fit, in terms of distance from ideal storing node, into account.
-		// each additional 5 announcers is worth one extra bit in the distance.
-		// that is, an item with 10 announcers is allowed to be twice as far
-		// from another item with 5 announcers, from our node ID. Twice as far
-		// because it gets one more bit.
-		return lhs.second.num_announcers / 5 - l_distance < rhs.second.num_announcers / 5 - r_distance;
-	}
-
-private:
-
-	// explicitly disallow assignment, to silence msvc warning
-	immutable_item_comparator& operator=(immutable_item_comparator const&);
-
-	node_id const& m_our_id;
-};
 
 // build response
 void node::incoming_request(msg const& m, entry& e)
@@ -1039,53 +922,11 @@ void node::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr, 0xffff);
 
-		table_t::iterator ti = m_map.find(info_hash);
-		torrent_entry* v;
-		if (ti == m_map.end())
-		{
-			// we don't have this torrent, add it
-			// do we need to remove another one first?
-			if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
-			{
-				// we need to remove some. Remove the ones with the
-				// fewest peers
-				int num_peers = m_map.begin()->second.peers.size();
-				table_t::iterator candidate = m_map.begin();
-				for (table_t::iterator i = m_map.begin()
-					, end(m_map.end()); i != end; ++i)
-				{
-					if (int(i->second.peers.size()) > num_peers) continue;
-					if (i->first == info_hash) continue;
-					num_peers = i->second.peers.size();
-					candidate = i;
-				}
-				m_map.erase(candidate);
-				m_counters.inc_stats_counter(counters::dht_torrents, -1);
-			}
-			m_counters.inc_stats_counter(counters::dht_torrents);
-	  		v = &m_map[info_hash];
-		}
-		else
-		{
-			v = &ti->second;
-		}
+		tcp::endpoint addr = tcp::endpoint(m.addr.address(), port);
+		std::string name = msg_keys[3] ? msg_keys[3].string_value() : std::string();
+		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
-		// the peer announces a torrent name, and we don't have a name
-		// for this torrent. Store it.
-		if (msg_keys[3] && v->name.empty())
-		{
-			std::string name = msg_keys[3].string_value();
-			if (name.size() > 50) name.resize(50);
-			v->name = name;
-		}
-
-		peer_entry peer;
-		peer.addr = tcp::endpoint(m.addr.address(), port);
-		peer.added = aux::time_now();
-		peer.seed = msg_keys[4] && msg_keys[4].int_value();
-		std::set<peer_entry>::iterator i = v->peers.find(peer);
-		if (i != v->peers.end()) v->peers.erase(i++);
-		v->peers.insert(i, peer);
+		m_storage->announce_peer(info_hash, addr, name, seed);
 	}
 	else if (query_len == 3 && memcmp(query, "put", 3) == 0)
 	{
@@ -1166,41 +1007,9 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		dht_immutable_item* f = 0;
-
 		if (!mutable_put)
 		{
-			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
-			if (i == m_immutable_table.end())
-			{
-				// make sure we don't add too many items
-				if (int(m_immutable_table.size()) >= m_settings.max_dht_items)
-				{
-					// delete the least important one (i.e. the one
-					// the fewest peers are announcing, and farthest
-					// from our node ID)
-					dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
-						, m_immutable_table.end()
-						, immutable_item_comparator(m_id));
-
-					TORRENT_ASSERT(j != m_immutable_table.end());
-					free(j->second.value);
-					m_immutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
-				}
-				dht_immutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(buf.second));
-				to_add.size = buf.second;
-				memcpy(to_add.value, buf.first, buf.second);
-
-				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
-					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_immutable_data);
-			}
-
-//			fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
-
-			f = &i->second;
+			m_storage->put_immutable_item(target, buf.first, buf.second, m.addr.address());
 		}
 		else
 		{
@@ -1210,111 +1019,65 @@ void node::incoming_request(msg const& m, entry& e)
 			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4].string_ptr(), item_sig_len);
 			VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
 #endif
+			boost::int64_t seq = msg_keys[2].int_value();
+
+			if (seq < 0)
+			{
+				m_counters.inc_stats_counter(counters::dht_invalid_put);
+				incoming_error(e, "invalid (negative) sequence number");
+				return;
+			}
+
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
 			if (!verify_mutable_item(buf, salt
-				, msg_keys[2].int_value(), pk, sig))
+				, seq, pk, sig))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid signature", 206);
 				return;
 			}
 
-			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
-			if (i == m_mutable_table.end())
-			{
-				// this is the case where we don't have an item in this slot
-				// make sure we don't add too many items
-				if (int(m_mutable_table.size()) >= m_settings.max_dht_items)
-				{
-					// delete the least important one (i.e. the one
-					// the fewest peers are announcing)
-					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
-						, m_mutable_table.end()
-						, boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
-					TORRENT_ASSERT(j != m_mutable_table.end());
-					free(j->second.value);
-					free(j->second.salt);
-					m_mutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
-				}
-				dht_mutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(buf.second));
-				to_add.size = buf.second;
-				to_add.seq = msg_keys[2].int_value();
-				to_add.salt = NULL;
-				to_add.salt_size = 0;
-				if (salt.second > 0)
-				{
-					to_add.salt = static_cast<char*>(malloc(salt.second));
-					to_add.salt_size = salt.second;
-					memcpy(to_add.salt, salt.first, salt.second);
-				}
-				memcpy(to_add.sig, sig, sizeof(to_add.sig));
-				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4].string_length());
-				memcpy(to_add.value, buf.first, buf.second);
-				memcpy(&to_add.key, pk, sizeof(to_add.key));
-		
-				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
-					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_mutable_data);
+			TORRENT_ASSERT(item_sig_len == msg_keys[4].string_length());
 
-//				fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
+			boost::int64_t item_seq;
+			if (!m_storage->get_mutable_item_seq(target, item_seq))
+			{
+				m_storage->put_mutable_item(target
+					, buf.first, buf.second
+					, sig, seq, pk
+					, salt.first, salt.second
+					, m.addr.address());
 			}
 			else
 			{
-				// this is the case where we already 
-				dht_mutable_item* item = &i->second;
-
 				// this is the "cas" field in the put message
 				// if it was specified, we MUST make sure the current sequence
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item->seq != msg_keys[5].int_value())
+				if (msg_keys[5] && item_seq != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
 					return;
 				}
 
-				if (item->seq > boost::uint64_t(msg_keys[2].int_value()))
+				if (item_seq > seq)
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "old sequence number", 302);
 					return;
 				}
 
-				if (item->seq < boost::uint64_t(msg_keys[2].int_value()))
-				{
-					if (item->size != buf.second)
-					{
-						free(item->value);
-						item->value = static_cast<char*>(malloc(buf.second));
-						item->size = buf.second;
-					}
-					item->seq = msg_keys[2].int_value();
-					memcpy(item->sig, msg_keys[4].string_ptr(), sizeof(item->sig));
-					TORRENT_ASSERT(sizeof(item->sig) == msg_keys[4].string_length());
-					memcpy(item->value, buf.first, buf.second);
-				}
+				m_storage->put_mutable_item(target
+					, buf.first, buf.second
+					, sig, seq, pk
+					, salt.first, salt.second
+					, m.addr.address());
 			}
-
-			f = &i->second;
 		}
 
 		m_table.node_seen(id, m.addr, 0xffff);
-
-		f->last_seen = aux::time_now();
-
-		// maybe increase num_announcers if we haven't seen this IP before
-		sha1_hash iphash;
-		hash_address(m.addr.address(), iphash);
-		if (!f->ips.find(iphash))
-		{
-			f->ips.set(iphash);
-			++f->num_announcers;
-		}
 	}
 	else if (query_len == 3 && memcmp(query, "get", 3) == 0)
 	{
@@ -1349,32 +1112,20 @@ void node::incoming_request(msg const& m, entry& e)
 		m_table.find_node(target, n, 0);
 		write_nodes_entry(reply, n);
 
-		dht_immutable_table_t::iterator imutable_it = m_immutable_table.end();
-
 		// if the get has a sequence number it must be for a mutable item
 		// so don't bother searching the immutable table
 		if (!msg_keys[0])
-			imutable_it = m_immutable_table.find(target);
-
-		if (imutable_it != m_immutable_table.end())
 		{
-			dht_immutable_item const& f = imutable_it->second;
-			reply["v"] = bdecode(f.value, f.value + f.size);
+			if (!m_storage->get_immutable_item(target, reply)) // ok, check for a mutable one
+			{
+				m_storage->get_mutable_item(target, 0, true, reply);
+			}
 		}
 		else
 		{
-			dht_mutable_table_t::iterator mutable_it = m_mutable_table.find(target);
-			if (mutable_it != m_mutable_table.end())
-			{
-				dht_mutable_item const& f = mutable_it->second;
-				reply["seq"] = f.seq;
-				if (!msg_keys[0] || boost::uint64_t(msg_keys[0].int_value()) < f.seq)
-				{
-					reply["v"] = bdecode(f.value, f.value + f.size);
-					reply["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
-					reply["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
-				}
-			}
+			m_storage->get_mutable_item(target
+				, msg_keys[0].int_value(), false
+				, reply);
 		}
 	}
 	else
@@ -1401,7 +1152,4 @@ void node::incoming_request(msg const& m, entry& e)
 		return;
 	}
 }
-
-
 } } // namespace libtorrent::dht
-

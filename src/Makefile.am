@@ -4,6 +4,7 @@ lib_LTLIBRARIES = libtorrent-rasterbar.la
 
 if ENABLE_DHT
 KADEMLIA_SOURCES = \
+  kademlia/dht_storage.cpp      \
   kademlia/dht_tracker.cpp      \
   kademlia/find_data.cpp        \
   kademlia/node.cpp             \

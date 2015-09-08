@@ -139,6 +139,7 @@ test-suite libtorrent :
 		test_xml.cpp
 		test_ip_filter.cpp
 		test_hasher.cpp
+		test_dht_storage.cpp
 		test_dht.cpp
 		test_block_cache.cpp
 		test_peer_classes.cpp

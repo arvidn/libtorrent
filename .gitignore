@@ -15,3 +15,5 @@ Makefile
 build-aux
 test_tmp_*
 
+.DS_Store
+.idea
