@@ -1558,9 +1558,9 @@ namespace libtorrent
 		std::string names;
 		bool match = false;
 #endif
-		for (int i = 0; i < openssl_num_general_names(gens); ++i)
+		for (int i = 0; i < aux::openssl_num_general_names(gens); ++i)
 		{
-			GENERAL_NAME* gen = openssl_general_name_value(gens, i);
+			GENERAL_NAME* gen = aux::openssl_general_name_value(gens, i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket_type.hpp"
-#include "libtorrent/openssl.hpp"
+#include "libtorrent/aux_/openssl.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -115,8 +115,8 @@ namespace libtorrent
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		if (ctx)
 		{
-			openssl_set_tlsext_servername_callback(ctx, 0);
-			openssl_set_tlsext_servername_arg(ctx, 0);
+			aux::openssl_set_tlsext_servername_callback(ctx, 0);
+			aux::openssl_set_tlsext_servername_arg(ctx, 0);
 		}
 #endif // OPENSSL_VERSION_NUMBER
 #else

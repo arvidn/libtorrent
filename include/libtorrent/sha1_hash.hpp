@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/byteswap.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include "libtorrent/hex.hpp" // to_hex, from_hex
@@ -157,16 +157,16 @@ namespace libtorrent
 				// byte order, so they have to be byteswapped before
 				// applying the shift operations, and then byteswapped
 				// back again.
-				m_number[0] = network_to_host(m_number[0]);
+				m_number[0] = aux::network_to_host(m_number[0]);
 				for (int i = 0; i < number_size - 1; ++i)
 				{
 					m_number[i] <<= n;
-					m_number[i+1] = network_to_host(m_number[i+1]);
+					m_number[i+1] = aux::network_to_host(m_number[i+1]);
 					m_number[i] |= m_number[i+1] >> (32 - n);
-					m_number[i] = host_to_network(m_number[i]);
+					m_number[i] = aux::host_to_network(m_number[i]);
 				}
 				m_number[number_size-1] <<= n;
-				m_number[number_size-1] = host_to_network(m_number[number_size-1]);
+				m_number[number_size-1] = aux::host_to_network(m_number[number_size-1]);
 			}
 			return *this;
 		}
@@ -194,17 +194,17 @@ namespace libtorrent
 				// byte order, so they have to be byteswapped before
 				// applying the shift operations, and then byteswapped
 				// back again.
-				m_number[number_size-1] = network_to_host(m_number[number_size-1]);
+				m_number[number_size-1] = aux::network_to_host(m_number[number_size-1]);
 
 				for (int i = number_size - 1; i > 0; --i)
 				{
 					m_number[i] >>= n;
-					m_number[i-1] = network_to_host(m_number[i-1]);
+					m_number[i-1] = aux::network_to_host(m_number[i-1]);
 					m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
-					m_number[i] = host_to_network(m_number[i]);
+					m_number[i] = aux::host_to_network(m_number[i]);
 				}
 				m_number[0] >>= n;
-				m_number[0] = host_to_network(m_number[0]);
+				m_number[0] = aux::host_to_network(m_number[0]);
 			}
 			return *this;
 		}
@@ -222,8 +222,8 @@ namespace libtorrent
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
-				boost::uint32_t lhs = network_to_host(m_number[i]);
-				boost::uint32_t rhs = network_to_host(n.m_number[i]);
+				boost::uint32_t lhs = aux::network_to_host(m_number[i]);
+				boost::uint32_t rhs = aux::network_to_host(n.m_number[i]);
 				if (lhs < rhs) return true;
 				if (lhs > rhs) return false;
 			}

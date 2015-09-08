@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/byteswap.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 
 #include <cstring> // for memset and memcpy
@@ -98,7 +98,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			return (m_buf[index / 32] & host_to_network((0x80000000 >> (index & 31)))) != 0;
+			return (m_buf[index / 32] & aux::host_to_network((0x80000000 >> (index & 31)))) != 0;
 		}
 
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
@@ -106,13 +106,13 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			m_buf[index / 32] &= host_to_network(~(0x80000000 >> (index & 31)));
+			m_buf[index / 32] &= aux::host_to_network(~(0x80000000 >> (index & 31)));
 		}
 		void set_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			m_buf[index / 32] |= host_to_network((0x80000000 >> (index & 31)));
+			m_buf[index / 32] |= aux::host_to_network((0x80000000 >> (index & 31)));
 		}
 
 		// returns true if all bits in the bitfield are set
@@ -126,7 +126,7 @@ namespace libtorrent
 			int rest = size() & 31;
 			if (rest > 0)
 			{
-				boost::uint32_t mask = host_to_network(0xffffffff << (32-rest));
+				boost::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
 				if ((m_buf[words] & mask) != mask) return false;
 			}
 			return true;
@@ -223,7 +223,7 @@ namespace libtorrent
 			typedef bool& reference;
 			typedef std::forward_iterator_tag iterator_category;
 
-			bool operator*() { return (*buf & host_to_network(bit)) != 0; }
+			bool operator*() { return (*buf & aux::host_to_network(bit)) != 0; }
 			const_iterator& operator++() { inc(); return *this; }
 			const_iterator operator++(int)
 			{ const_iterator ret(*this); inc(); return ret; }
@@ -289,7 +289,7 @@ namespace libtorrent
 			int new_size_words = num_words();
 			if (val)
 			{
-				if (old_size_words && b) m_buf[old_size_words - 1] |= host_to_network((0xffffffff >> b));
+				if (old_size_words && b) m_buf[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
 				if (old_size_words < new_size_words)
 					std::memset(m_buf + old_size_words, 0xff
 						, size_t((new_size_words - old_size_words) * 4));
@@ -357,7 +357,7 @@ namespace libtorrent
 		void clear_trailing_bits()
 		{
 			// clear the tail bits in the last byte
-			if (size() & 31) m_buf[num_words() - 1] &= host_to_network(0xffffffff << (32 - (size() & 31)));
+			if (size() & 31) m_buf[num_words() - 1] &= aux::host_to_network(0xffffffff << (32 - (size() & 31)));
 		}
 
 		void dealloc()

@@ -23,7 +23,6 @@ nobase_include_HEADERS = \
   bt_peer_connection.hpp       \
   buffer.hpp                   \
   build_config.hpp             \
-  byteswap.hpp                 \
   chained_buffer.hpp           \
   choker.hpp                   \
   close_reason.hpp             \
@@ -78,7 +77,6 @@ nobase_include_HEADERS = \
   max.hpp                      \
   natpmp.hpp                   \
   network_thread_pool.hpp      \
-  openssl.hpp                  \
   operations.hpp               \
   packet_buffer.hpp            \
   parse_url.hpp                \
@@ -172,6 +170,8 @@ nobase_include_HEADERS = \
   aux_/session_interface.hpp        \
   aux_/time.hpp                     \
   aux_/file_progress.hpp            \
+  aux_/openssl.hpp                  \
+  aux_/byteswap.hpp                 \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \
