@@ -51,4 +51,6 @@ When creating a pull request, please consider the following checklist:
 * if your patch is against the current stable release branch, please also
   forward-poret the patch to master (at the time of this writing, automatic
   merge in git does not work, possibly because the branch was created in svn)
-
+* if your patch adds a new .cpp file, please make sure it's added to the
+  appropriate ``Jamfile``, ``Makefile.am`` and ``CMakeList.txt``. If it's adding
+  a header file, make sure it's added to ``include/libtorrent/Makefile,am``.
