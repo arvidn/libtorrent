@@ -606,7 +606,7 @@ namespace libtorrent
 		for (std::vector<std::pair<boost::uint16_t, int> >::const_iterator i = pack->m_ints.begin()
 			, end(pack->m_ints.end()); i != end; ++i)
 		{
-			// disregard setting indices that are not string types
+			// disregard setting indices that are not int types
 			if ((i->first & settings_pack::type_mask) != settings_pack::int_type_base)
 				continue;
 		
@@ -625,7 +625,7 @@ namespace libtorrent
 		for (std::vector<std::pair<boost::uint16_t, bool> >::const_iterator i = pack->m_bools.begin()
 			, end(pack->m_bools.end()); i != end; ++i)
 		{
-			// disregard setting indices that are not string types
+			// disregard setting indices that are not bool types
 			if ((i->first & settings_pack::type_mask) != settings_pack::bool_type_base)
 				continue;
 		

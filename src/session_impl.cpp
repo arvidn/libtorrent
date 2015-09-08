@@ -750,6 +750,7 @@ namespace aux {
 		if (e->type() != bdecode_node::dict_t) return;
 
 #ifndef TORRENT_DISABLE_DHT
+		bool need_update_dht = false;
 		// load from the old settings names
 		settings = e->dict_find_dict("dht");
 		if (settings)
@@ -772,9 +773,17 @@ namespace aux {
 			val = settings.dict_find_int("extended_routing_table");
 			if (val) m_dht_settings.extended_routing_table = val.int_value();
 		}
+
+		settings = e->dict_find_dict("dht state");
+		if (settings)
+		{
+			m_dht_state = settings;
+			need_update_dht = true;
+		}
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
+		bool need_update_proxy = false;
 		settings = e->dict_find_dict("proxy");
 		if (settings)
 		{
@@ -793,6 +802,7 @@ namespace aux {
 			if (val) m_settings.set_str(settings_pack::proxy_password, val.string_value());
 			val = settings.dict_find_string("username");
 			if (val) m_settings.set_str(settings_pack::proxy_username, val.string_value());
+			need_update_proxy = true;
 		}
 
 		settings = e->dict_find_dict("encryption");
@@ -808,32 +818,7 @@ namespace aux {
 			val = settings.dict_find_int("allowed_enc_level");
 			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val.int_value());
 		}
-#endif
 
-		settings = e->dict_find_dict("settings");
-		if (settings)
-		{
-			boost::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
-			apply_settings_pack(pack);
-		}
-
-		// in case we just set a socks proxy, we might have to
-		// open the socks incoming connection
-		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-		m_udp_socket.set_proxy_settings(proxy());
-
-#ifndef TORRENT_DISABLE_DHT
-		settings = e->dict_find_dict("dht state");
-		if (settings)
-		{
-			// TODO: 2 if the DHT is enabled, it should probably be restarted here.
-			// maybe it should even be deferred to not be started until the client
-			// has had a chance to pass in the dht state
-			m_dht_state = settings;
-		}
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
 		settings = e->dict_find_list("feeds");
 		if (settings)
 		{
@@ -849,6 +834,23 @@ namespace aux {
 			update_rss_feeds();
 		}
 #endif
+
+		settings = e->dict_find_dict("settings");
+		if (settings)
+		{
+			// apply_settings_pack will update dht and proxy
+			boost::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
+			apply_settings_pack(pack);
+		}
+		else
+		{
+#ifndef TORRENT_DISABLE_DHT
+			if (need_update_dht) update_dht();
+#endif
+#ifndef TORRENT_NO_DEPRECATE
+			if (need_update_proxy) update_proxy();
+#endif
+		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
