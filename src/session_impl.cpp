@@ -704,7 +704,15 @@ namespace aux {
 			dht_sett["max_dht_items"] = m_dht_settings.max_dht_items;
 			dht_sett["max_torrent_search_reply"] = m_dht_settings.max_torrent_search_reply;
 			dht_sett["restrict_routing_ips"] = m_dht_settings.restrict_routing_ips;
+			dht_sett["restrict_search_ips"] = m_dht_settings.restrict_search_ips;
 			dht_sett["extended_routing_table"] = m_dht_settings.extended_routing_table;
+			dht_sett["aggressive_lookups"] = m_dht_settings.aggressive_lookups;
+			dht_sett["privacy_lookups"] = m_dht_settings.privacy_lookups;
+			dht_sett["enforce_node_id"] = m_dht_settings.enforce_node_id;
+			dht_sett["ignore_dark_internet"] = m_dht_settings.ignore_dark_internet;
+			dht_sett["block_timeout"] = m_dht_settings.block_timeout;
+			dht_sett["block_ratelimit"] = m_dht_settings.block_ratelimit;
+			dht_sett["read_only"] = m_dht_settings.read_only;
 		}
 
 		if (m_dht && (flags & session::save_dht_state))
@@ -769,8 +777,24 @@ namespace aux {
 			if (val) m_dht_settings.max_torrent_search_reply = val.int_value();
 			val = settings.dict_find_int("restrict_routing_ips");
 			if (val) m_dht_settings.restrict_routing_ips = val.int_value();
+			val = settings.dict_find_int("restrict_search_ips");
+			if (val) m_dht_settings.restrict_search_ips = val.int_value();
 			val = settings.dict_find_int("extended_routing_table");
 			if (val) m_dht_settings.extended_routing_table = val.int_value();
+			val = settings.dict_find_int("aggressive_lookups");
+			if (val) m_dht_settings.aggressive_lookups = val.int_value();
+			val = settings.dict_find_int("privacy_lookups");
+			if (val) m_dht_settings.privacy_lookups = val.int_value();
+			val = settings.dict_find_int("enforce_node_id");
+			if (val) m_dht_settings.enforce_node_id = val.int_value();
+			val = settings.dict_find_int("ignore_dark_internet");
+			if (val) m_dht_settings.ignore_dark_internet = val.int_value();
+			val = settings.dict_find_int("block_timeout");
+			if (val) m_dht_settings.block_timeout = val.int_value();
+			val = settings.dict_find_int("block_ratelimit");
+			if (val) m_dht_settings.block_ratelimit = val.int_value();
+			val = settings.dict_find_int("read_only");
+			if (val) m_dht_settings.read_only = val.int_value();
 		}
 #endif
 

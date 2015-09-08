@@ -136,6 +136,57 @@ void lazy_from_entry(entry const& e, bdecode_node& l)
 	TEST_CHECK(ret == 0);
 }
 
+void send_simple_dht_request(node& node, char const* msg, udp::endpoint const& ep
+	, bdecode_node* reply, entry const& args,
+	char const* t = "10", bool has_response = true)
+{
+	reply->clear();
+	entry e;
+	e["q"] = msg;
+	e["t"] = t;
+	e["y"] = "q";
+	e["a"] = args;
+
+	char msg_buf[1500];
+	int size = bencode(msg_buf, e);
+
+#ifdef TORRENT_USE_VALGRIND
+	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
+#endif
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf, msg_buf + size, decoded, ec);
+   	TEST_CHECK(!ec);
+
+	dht::msg m(decoded, ep);
+	node.incoming(m);
+
+	// If the request is supposed to get a response, by now the node should have 
+	// invoked the send function and put the response in g_sent_packets
+	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
+	if (has_response)
+	{
+		if (i == g_sent_packets.end())
+		{
+			TEST_ERROR("not response from DHT node");
+			return;
+		}
+		lazy_from_entry(i->second, *reply);
+		g_sent_packets.erase(i);
+
+		return;
+	}
+
+	// this request suppose won't be responsed.
+	if (i != g_sent_packets.end())
+	{
+		TEST_ERROR("shouldn't have response from DHT node");
+		return;
+	}
+}
+
+
 void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	, bdecode_node* reply, char const* t = "10", char const* info_hash = 0
 	, char const* name = 0, std::string const token = std::string(), int port = 0
@@ -449,6 +500,16 @@ dht_settings test_settings()
 	sett.max_dht_items = 4;
 	sett.enforce_node_id = false;
 	return sett;
+}
+
+entry test_args(sha1_hash const* nid = NULL)
+{
+    entry a;
+
+    if (nid == NULL) a["id"] = generate_next().to_string();
+    else a["id"] = nid->to_string();
+
+    return a;
 }
 
 // TODO: test obfuscated_get_peers
@@ -1334,6 +1395,7 @@ TORRENT_TEST(dht)
 			{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+
 	// bootstrap
 
 	g_sent_packets.clear();
@@ -2057,6 +2119,104 @@ TORRENT_TEST(routing_table_extended)
 #if defined TORRENT_DEBUG
 	tbl.print_state(std::cerr);
 #endif
+}
+
+TORRENT_TEST(read_only_node)
+{
+	dht_settings sett = test_settings();
+	sett.read_only = true;
+	mock_socket s;
+	obs observer;
+	counters cnt;
+    
+	dht::node node(&s, sett, node_id(0), &observer, cnt);
+	udp::endpoint source(address::from_string("10.0.0.1"), 20);
+	bdecode_node response;
+	entry args = test_args();
+
+	// for incoming requests, read_only node won't response.
+	send_simple_dht_request(node, "ping", source, &response, args, "10", false);
+	TEST_EQUAL(response.type(), bdecode_node::none_t);
+
+	args["target"] = "01010101010101010101";
+	send_simple_dht_request(node, "get", source, &response, args, "10", false);
+	TEST_EQUAL(response.type(), bdecode_node::none_t);
+
+	// also, the sender shouldn't be added to routing table.
+	boost::tuple<int, int, int> nums = node.size();
+	TEST_EQUAL(nums.get<0>(), 0);
+	TEST_EQUAL(nums.get<1>(), 0);
+	TEST_EQUAL(nums.get<2>(), 0);
+
+	// for outgoing requests, read_only node will add 'ro' key (value == 1)
+	// in top-level of request.
+	bdecode_node parsed[7];
+	char error_string[200];
+	udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
+	node.m_table.add_node(initial_node);
+	bdecode_node request;
+	sha1_hash target = generate_next();
+
+	node.get_item(target, get_item_cb);
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	TEST_EQUAL(g_sent_packets.front().first, initial_node);
+
+	dht::key_desc_t get_item_desc[] = {
+		{"y", bdecode_node::string_t, 1, 0},
+		{"t", bdecode_node::string_t, 2, 0},
+		{"q", bdecode_node::string_t, 3, 0},
+		{"ro", bdecode_node::int_t, 4, key_desc_t::optional},
+		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+			{"id", bdecode_node::string_t, 20, 0},
+			{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
+	};
+
+	lazy_from_entry(g_sent_packets.front().second, request);
+	bool ret = verify_message(request, get_item_desc, parsed, 7, error_string
+		, sizeof(error_string));
+
+	TEST_CHECK(ret);
+	TEST_EQUAL(parsed[3].int_value(), 1);
+
+	// should have one node now, whichi is 4.4.4.4:1234
+	nums = node.size();
+	TEST_EQUAL(nums.get<0>(), 1);
+	TEST_EQUAL(nums.get<1>(), 0);
+	TEST_EQUAL(nums.get<2>(), 0);
+
+	// now, disable read_only, try again.
+	g_sent_packets.clear();
+	sett.read_only = false;
+
+	send_simple_dht_request(node, "get", source, &response, args, "10", true);
+	// sender should be added to routing table 
+	nums = node.size();
+	TEST_EQUAL(nums.get<0>(), 2);
+	TEST_EQUAL(nums.get<1>(), 0);
+	TEST_EQUAL(nums.get<2>(), 0);
+
+	// now, request shouldn't have 'ro' key anymore
+	g_sent_packets.clear();
+	target = generate_next();
+	node.get_item(target, get_item_cb);
+
+	// since we have 2 nodes, we should have two packets.
+	TEST_EQUAL(g_sent_packets.size(), 2);
+
+	// both of them shouldn't a 'ro' key.
+	lazy_from_entry(g_sent_packets.front().second, request);
+	ret = verify_message(request, get_item_desc, parsed, 7, error_string
+		, sizeof(error_string));
+
+	TEST_CHECK(ret);
+	TEST_CHECK(!parsed[3]);
+
+	lazy_from_entry(g_sent_packets.back().second, request);
+	ret = verify_message(request, get_item_desc, parsed, 7, error_string
+		, sizeof(error_string));
+
+	TEST_CHECK(ret);
+	TEST_CHECK(!parsed[3]);
 }
 
 #endif

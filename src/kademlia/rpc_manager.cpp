@@ -163,11 +163,13 @@ enum { observer_size = max3<
 };
 
 rpc_manager::rpc_manager(node_id const& our_id
+	, dht_settings const& settings
 	, routing_table& table, udp_socket_interface* sock
 	, dht_logger* log)
 	: m_pool_allocator(observer_size, 10)
 	, m_sock(sock)
 	, m_log(log)
+	, m_settings(settings)
 	, m_table(table)
 	, m_timer(aux::time_now())
 	, m_our_id(our_id)
@@ -244,8 +246,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	}
 }
 
-bool rpc_manager::incoming(msg const& m, node_id* id
-	, libtorrent::dht_settings const& settings)
+bool rpc_manager::incoming(msg const& m, node_id* id)
 {
 	INVARIANT_CHECK;
 
@@ -335,7 +336,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id
 	}
 
 	node_id nid = node_id(node_id_ent.string_ptr());
-	if (settings.enforce_node_id && !verify_id(nid, m.addr.address()))
+	if (m_settings.enforce_node_id && !verify_id(nid, m.addr.address()))
 	{
 		o->timeout();
 		return false;
@@ -438,6 +439,10 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	int tid = (random() ^ (random() << 5)) & 0xffff;
 	io::write_uint16(tid, out);
 	e["t"] = transaction_id;
+
+	// When a DHT node enters the read-only state, in each outgoing query message,
+	// places a 'ro' key in the top-level message dictionary and sets its value to 1.
+	if (m_settings.read_only) e["ro"] = 1;
 
 	o->set_target(target_addr);
 	o->set_transaction_id(tid);

@@ -109,7 +109,7 @@ node::node(udp_socket_interface* sock
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, observer))
 	, m_table(m_id, 8, settings, observer)
-	, m_rpc(m_id, m_table, sock, observer)
+	, m_rpc(m_id, m_settings, m_table, sock, observer)
 	, m_observer(observer)
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
@@ -274,12 +274,16 @@ void node::incoming(msg const& m)
 		case 'r':
 		{
 			node_id id;
-			m_rpc.incoming(m, &id, m_settings);
+			m_rpc.incoming(m, &id);
 			break;
 		}
 		case 'q':
 		{
 			TORRENT_ASSERT(m.message.dict_find_string_value("y") == "q");
+			// When a DHT node enters the read-only state, it no longer
+			// responds to 'query' messages that it receives.
+			if (m_settings.read_only) break;
+
 			entry e;
 			incoming_request(m, e);
 			m_sock->send_packet(e, m.addr, 0);
@@ -296,7 +300,7 @@ void node::incoming(msg const& m)
 			}
 #endif
 			node_id id;
-			m_rpc.incoming(m, &id, m_settings);
+			m_rpc.incoming(m, &id);
 			break;
 		}
 	}
