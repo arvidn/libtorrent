@@ -112,7 +112,8 @@ namespace libtorrent {
 		if (ec)
 		{
 			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
-				, torrent_alert::message().c_str() , piece, ec.message().c_str());
+				, torrent_alert::message().c_str() , piece
+				, convert_from_native(ec.message()).c_str());
 		}
 		else
 		{
@@ -164,7 +165,8 @@ namespace libtorrent {
 	{
 		char ret[200 + TORRENT_MAX_PATH * 2];
 		snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
-			, torrent_alert::message().c_str(), index, convert_from_native(error.message()).c_str());
+			, torrent_alert::message().c_str(), index
+			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
@@ -233,7 +235,7 @@ namespace libtorrent {
 		char ret[400];
 		snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
 			, tracker_alert::message().c_str(), status_code
-			, error.message().c_str(), msg.c_str(), times_in_row);
+			, convert_from_native(error.message()).c_str(), msg.c_str(), times_in_row);
 		return ret;
 	}
 
