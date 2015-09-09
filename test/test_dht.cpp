@@ -724,32 +724,11 @@ TORRENT_TEST(dht)
 	// http://libtorrent.org/dht_sec.html
 	source = udp::endpoint(address::from_string("124.31.75.21"), 1);
 	node_id nid = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
-		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
-
-	dht::key_desc_t nodes_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
-	};
-
-	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, nodes_desc, parsed, 3, error_string
-		, sizeof(error_string));
-	TEST_CHECK(ret);
-	if (ret)
-	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-	}
-	else
-	{
-		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		fprintf(stderr, "   invalid error response: %s\n", error_string);
-	}
 
 	// verify that we reject invalid node IDs
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
+	int nodes_num = node.size().get<0>();
 	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
 		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
 
@@ -775,6 +754,36 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid error response: %s\n", error_string);
 	}
+	
+	// a node with invalid node-id shouldn't be added to routing table.
+	TEST_EQUAL(node.size().get<0>(), nodes_num);
+
+	// now the node-id is valid.
+	nid[0] = 0x5f;
+	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
+		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
+
+	dht::key_desc_t nodes_desc[] = {
+		{"y", bdecode_node::string_t, 1, 0},
+		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+	};
+
+	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	ret = dht::verify_message(response, nodes_desc, parsed, 3, error_string
+		, sizeof(error_string));
+	TEST_CHECK(ret);
+	if (ret)
+	{
+		TEST_CHECK(parsed[0].string_value() == "r");
+	}
+	else
+	{
+		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+		fprintf(stderr, "   invalid error response: %s\n", error_string);
+	}
+	// node with valid node-id should be added to routing table.
+	TEST_EQUAL(node.size().get<0>(), nodes_num + 1);
 
 	sett.enforce_node_id = false;
 
@@ -2143,10 +2152,7 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 
 	// also, the sender shouldn't be added to routing table.
-	boost::tuple<int, int, int> nums = node.size();
-	TEST_EQUAL(nums.get<0>(), 0);
-	TEST_EQUAL(nums.get<1>(), 0);
-	TEST_EQUAL(nums.get<2>(), 0);
+	TEST_EQUAL(node.size().get<0>(), 0);
 
 	// for outgoing requests, read_only node will add 'ro' key (value == 1)
 	// in top-level of request.
@@ -2179,23 +2185,16 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(parsed[3].int_value(), 1);
 
 	// should have one node now, whichi is 4.4.4.4:1234
-	nums = node.size();
-	TEST_EQUAL(nums.get<0>(), 1);
-	TEST_EQUAL(nums.get<1>(), 0);
-	TEST_EQUAL(nums.get<2>(), 0);
+	TEST_EQUAL(node.size().get<0>(), 1);
 
 	// now, disable read_only, try again.
 	g_sent_packets.clear();
 	sett.read_only = false;
 
 	send_simple_dht_request(node, "get", source, &response, args, "10", true);
-	// sender should be added to routing table 
-	nums = node.size();
-	TEST_EQUAL(nums.get<0>(), 2);
-	TEST_EQUAL(nums.get<1>(), 0);
-	TEST_EQUAL(nums.get<2>(), 0);
+	// sender should be added to routing table, there are 2 nodes now.
+	TEST_EQUAL(node.size().get<0>(), 2);
 
-	// now, request shouldn't have 'ro' key anymore
 	g_sent_packets.clear();
 	target = generate_next();
 	node.get_item(target, get_item_cb);
@@ -2203,7 +2202,7 @@ TORRENT_TEST(read_only_node)
 	// since we have 2 nodes, we should have two packets.
 	TEST_EQUAL(g_sent_packets.size(), 2);
 
-	// both of them shouldn't a 'ro' key.
+	// both of them shouldn't have a 'ro' key.
 	lazy_from_entry(g_sent_packets.front().second, request);
 	ret = verify_message(request, get_item_desc, parsed, 7, error_string
 		, sizeof(error_string));
