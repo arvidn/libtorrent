@@ -70,9 +70,14 @@ struct swarm_setup_provider
 
 	// called for every session that's added
 	virtual libtorrent::settings_pack add_session(int idx) = 0;
+
+	// called once a second. if it returns true, the simulation is terminated
+	// by default, simulations end after 200 seconds
+	virtual bool tick(int t) { return t > 200; }
 };
 
 void setup_swarm(int num_nodes, swarm_setup_provider& config);
+void setup_swarm(int num_nodes, sim::simulation& sim, swarm_setup_provider& config);
 
 #endif
 
