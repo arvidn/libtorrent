@@ -154,7 +154,8 @@ namespace libtorrent {
 		if (ec)
 		{
 			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
-				, torrent_alert::message().c_str() , piece, ec.message().c_str());
+				, torrent_alert::message().c_str() , piece
+				, convert_from_native(ec.message()).c_str());
 		}
 		else
 		{
@@ -298,7 +299,8 @@ namespace libtorrent {
 		char ret[400];
 		snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
 			, tracker_alert::message().c_str(), status_code
-			, error.message().c_str(), error_message(), times_in_row);
+			, convert_from_native(error.message()).c_str(), error_message()
+			, times_in_row);
 		return ret;
 	}
 
@@ -1291,7 +1293,8 @@ namespace libtorrent {
 	std::string mmap_cache_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value(), error.message().c_str());
+		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value()
+			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
 
