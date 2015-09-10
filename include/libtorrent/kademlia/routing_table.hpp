@@ -148,7 +148,7 @@ public:
 	{
 		int num_buckets = m_buckets.size();
 		if (num_buckets == 0) return 0;
-		if (bucket < num_buckets) bucket = num_buckets - 1;
+		if (bucket >= num_buckets) bucket = num_buckets - 1;
 		table_t::const_iterator i = m_buckets.begin();
 		std::advance(i, bucket);
 		return int(i->live_nodes.size());
