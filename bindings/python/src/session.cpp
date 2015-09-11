@@ -118,9 +118,9 @@ namespace
 			}
 		}
 
-		if (!sett_dict.has_key("outgoing_port"))
+		if (sett_dict.has_key("outgoing_port"))
 			sett.outgoing_ports.first = extract<int>(sett_dict["outgoing_port"]);
-		if (!sett_dict.has_key("num_outgoing_ports"))
+		if (sett_dict.has_key("num_outgoing_ports"))
 			sett.outgoing_ports.second = sett.outgoing_ports.first + extract<int>(sett_dict["num_outgoing_ports"]);
 
 		ses.set_settings(sett);
