@@ -256,6 +256,8 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 			, o->target_ep());
 	}
 
+	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
+
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
