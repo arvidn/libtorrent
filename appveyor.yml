@@ -113,9 +113,9 @@ build_script:
   ) else (
   b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   & cd %ROOT_DIRECTORY%\examples
-  & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
+  & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
   & cd %ROOT_DIRECTORY%\bindings\python
-  & b2.exe --hash -j2 %compiler% stage_module variant=%variant% linkflags=%linkflags32% include=%include%
+  & b2.exe --hash -j2 %compiler% stage_module variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
   & python test.py
   )
 - if defined sim (

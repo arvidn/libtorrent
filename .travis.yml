@@ -63,9 +63,9 @@ script:
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ../bindings/python
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared
   - LD_LIBRARY_PATH=. DYLD_LIBRARY_PATH=. python test.py
   - if [ $sim = "1" ]; then
     cd ../../simulation;
