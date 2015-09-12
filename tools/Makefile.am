@@ -1,5 +1,4 @@
 tool_programs =  \
-  parse_hash_fails \
   parse_request_log
 
 if ENABLE_EXAMPLES
@@ -25,7 +24,6 @@ EXTRA_DIST = Jamfile     \
   run_regression_tests.py\
   run_tests.py
 
-parse_hash_fails_SOURCES = parse_hash_fails.cpp
 parse_request_log_SOURCES = parse_request_log.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la

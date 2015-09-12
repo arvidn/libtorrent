@@ -30,13 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/file.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/io.hpp"
 #include <cstring>
 #include <boost/bind.hpp>
 #include <stdlib.h>
 #include <map>
 #include <vector>
+#include <assert.h>
+#include <stdio.h>
+#include <errno.h>
 
 using namespace libtorrent;
 using namespace libtorrent::detail; // for write_* and read_*
