@@ -9,7 +9,7 @@ use-project /torrent : ../.. ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 
-feature visibility : default hidden : composite propagated link-incompatible ;
+feature visibility : default hidden : composite ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 feature libtorrent-link : shared static : composite propagated ;
@@ -93,11 +93,11 @@ rule libtorrent_linking ( properties * )
 
     if <libtorrent-link>shared in $(properties)
     {
-        result += <library>/torrent//torrent/<link>shared/<boost-link>shared ;
+        result += <library>/torrent//torrent/<link>shared ;
     }
     else
     {
-        result += <library>/torrent//torrent/<link>static/<boost-link>static ;
+        result += <library>/torrent//torrent/<link>static ;
     }
 
     return $(result) ;
@@ -149,7 +149,7 @@ my-python-extension py_libtorrent
     <include>src
     <toolset>gcc:<cxxflags>-Wno-deprecated-declarations
     <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
-	<toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
+    <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
   : # usage-requirements
     <conditional>@libtorrent_linking
@@ -157,11 +157,11 @@ my-python-extension py_libtorrent
   ;
 
 install stage_module
-	: py_libtorrent
-	: <location>.
-	  <install-dependencies>on
-	  <install-type>LIB
-	;
+  : py_libtorrent
+  : <location>.
+    <install-dependencies>on
+    <install-type>LIB
+  ;
 
 explicit stage_module ;
 
