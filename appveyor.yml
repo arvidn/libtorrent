@@ -9,40 +9,28 @@ environment:
   - variant: test_debug
     compiler: msvc-14.0
     sim: 1
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: msvc-12.0
     x64: 1
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-12.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-10.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2010\\include"'
   - variant: test_barebones
     compiler: msvc-12.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
-  - variant: test_barebones
-    compiler: msvc-12.0
-    x64: 1
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_release
     compiler: msvc-12.0
-    linkflags32: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    linkflags64: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
 
 # mingw and boost.random don't like each other. Comment this back in once there
@@ -121,9 +109,9 @@ cache:
 build_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
-  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags64% include=%include%
+  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   ) else (
-  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags32% include=%include%
+  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   & cd %ROOT_DIRECTORY%\examples
   & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags32% include=%include%
   & cd %ROOT_DIRECTORY%\bindings\python
