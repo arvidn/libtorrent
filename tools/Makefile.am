@@ -21,7 +21,6 @@ EXTRA_DIST = Jamfile     \
   parse_session_stats.py \
   parse_test_results.py  \
   parse_utp_log.py       \
-  parse_hash_fails.cpp   \
   run_regression_tests.py\
   run_tests.py
 
