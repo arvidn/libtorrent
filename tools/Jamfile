@@ -33,7 +33,6 @@ project tools
 	<link>static
    ;  
 
-exe parse_hash_fails : parse_hash_fails.cpp ;
 exe parse_request_log : parse_request_log.cpp ;
 exe dht : dht_put.cpp : <include>../ed25519/src ;
 
