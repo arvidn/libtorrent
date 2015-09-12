@@ -62,7 +62,7 @@ bool bootstrap::invoke(observer_ptr o)
 
 //	e["q"] = "find_node";
 //	a["target"] = target().to_string();
-	m_node.stats_counters().inc_stats_counter(counters::dht_find_node_out);
+	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
