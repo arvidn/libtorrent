@@ -24,7 +24,7 @@ cache:
   directories:
     - $HOME/.ccache
 
-# sources  list: https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json,
+# sources  list: https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json
 # packages list: https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-precise
 addons:
   apt:
@@ -39,7 +39,7 @@ addons:
 
 before_install:
   - git submodule update --init --recursive --remote --depth=1
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew install --quiet ccache boost-build boost-python; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
 
 # disable simulations on OSX for now. It hangs on travis
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
