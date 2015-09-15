@@ -95,7 +95,7 @@ namespace libtorrent
 
 			// means that this peer supports the
 			// `extension protocol`__.
-			// 
+			//
 			// __ extension_protocol.html
 			supports_extensions = 0x10,
 
@@ -349,7 +349,7 @@ namespace libtorrent
 		// are given in bytes per second. This number is reset to 0 on reconnect.
 		int download_rate_peak;
 		int upload_rate_peak;
-		
+
 		// the progress of the peer in the range [0, 1]. This is always 0 when
 		// floating point operations are diabled, instead use ``progress_ppm``.
 		float progress; // [0, 1]
@@ -378,7 +378,7 @@ namespace libtorrent
 		// bits for the read_state and write_state
 		enum bw_state
 		{
-			// The peer is not waiting for any external events to   
+			// The peer is not waiting for any external events to
 			// send or receive data.
 			bw_idle = 0,
 
@@ -412,7 +412,7 @@ namespace libtorrent
 		// code, it is set to "!!". The ``countries.nerd.dk`` service is used to
 		// look up countries. This field will remain set to 0 unless the torrent
 		// is set to resolve countries, see `resolve_countries()`_.
-		// 
+		//
 		// __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 		char country[2];
 

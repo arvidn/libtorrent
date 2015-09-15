@@ -21,7 +21,7 @@ static u64 load_4(const unsigned char *in) {
     result |= ((u64) in[1]) << 8;
     result |= ((u64) in[2]) << 16;
     result |= ((u64) in[3]) << 24;
-    
+
     return result;
 }
 
@@ -776,7 +776,7 @@ void sc_muladd(unsigned char *s, const unsigned char *a, const unsigned char *b,
     carry10 = s10 >> 21;
     s11 += carry10;
     s10 -= carry10 << 21;
-    
+
     s[0] = (unsigned char) ((s0 >> 0) & 0xff);
     s[1] = (unsigned char) ((s0 >> 8) & 0xff);
     s[2] = (unsigned char) (((s0 >> 16) | (s1 << 5)) & 0xff);

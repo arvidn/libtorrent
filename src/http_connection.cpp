@@ -822,7 +822,7 @@ void http_connection::on_read(error_code const& e
 					);
 				return;
 			}
-	
+
 			m_redirects = 0;
 		}
 

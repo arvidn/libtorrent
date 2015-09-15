@@ -50,12 +50,12 @@ namespace libtorrent
 	struct lazy_entry;
 
 	// This function decodes bencoded_ data.
-	// 
+	//
 	// .. _bencoded: http://wiki.theory.org/index.php/BitTorrentSpecification
-	// 
+	//
 	// The lazy bdecoder and lazy_entry has been deprecated in favour of
 	// bdecode_node and its corresponding bdecode() function.
-	// 
+	//
 	// *lazy* refers to the fact that it doesn't copy any actual data out of the
 	// bencoded buffer. It builds a tree of ``lazy_entry`` which has pointers into
 	// the bencoded buffer. This makes it very fast and efficient. On top of that,
@@ -74,7 +74,7 @@ namespace libtorrent
 	// upper limit for desktop computers. Very few torrents have more items in them.
 	// The limit corresponds to about 25 MB, which might be a bit much for embedded
 	// systems.
-	// 
+	//
 	// ``start`` and ``end`` defines the bencoded buffer to be decoded. ``ret`` is
 	// the ``lazy_entry`` which is filled in with the whole decoded tree. ``ec``
 	// is a reference to an ``error_code`` which is set to describe the error encountered
@@ -106,7 +106,7 @@ namespace libtorrent
 		// construct a string pointing to the characters at ``p``
 		// of length ``l`` characters. No NULL termination is required.
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
-		
+
 		// the number of characters in the string.
 		int len;
 
@@ -322,7 +322,7 @@ namespace libtorrent
 			TORRENT_ASSERT(end - m_begin < INT_MAX);
 			m_len = int(end - m_begin);
 		}
-		
+
 		// internal
 		void clear();
 

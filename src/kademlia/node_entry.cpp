@@ -75,7 +75,7 @@ namespace libtorrent { namespace dht
 		first_seen = aux::time_now();
 #endif
 	}
-	
+
 	void node_entry::update_rtt(int new_rtt)
 	{
 		TORRENT_ASSERT(new_rtt <= 0xffff);

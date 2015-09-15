@@ -15,7 +15,7 @@ project client_test
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 	: default-build
 	<link>static
-   ;  
+   ;
 
 exe client_test : client_test.cpp print.cpp torrent_view.cpp session_view.cpp ;
 

@@ -54,9 +54,9 @@ namespace libtorrent
 		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
 		// are the flags used in the ``file::open()`` function. This enum is defined as a member
 		// of the ``file`` class.
-		// 
+		//
 		// ::
-		// 
+		//
 		// 	enum
 		// 	{
 		// 		read_only = 0,
@@ -69,7 +69,7 @@ namespace libtorrent
 		// 		random_access = 32,
 		// 		lock_file = 64,
 		// 	};
-		// 
+		//
 		// Note that the read/write mode is not a bitmask. The two least significant bits are used
 		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
 		int open_mode;
@@ -137,7 +137,7 @@ namespace libtorrent
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
 		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
-		
+
 		file_set m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;

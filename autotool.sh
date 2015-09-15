@@ -101,7 +101,7 @@ version_check() {
   if [ "$vc_status" != 0 ]; then
 	  printerr "***Error***: $vc_package $vc_comparator $vc_min_version not found."
   fi
- 
+
   return $vc_status
 }
 

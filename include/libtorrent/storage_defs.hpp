@@ -78,7 +78,7 @@ namespace libtorrent
 		std::vector<boost::uint8_t> const* priorities; // optional
 		torrent_info const* info; // optional
 	};
-	
+
 	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
 
 	// the constructor function for the regular file storage. This is the

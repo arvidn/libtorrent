@@ -520,7 +520,7 @@ void feed::save_state(entry& rd) const
 		item["category"] = i->category;
 		item["size"] = i->size;
 	}
-	
+
 	// settings
 	feed_settings sett_def;
 #define TORRENT_WRITE_SETTING(name) \

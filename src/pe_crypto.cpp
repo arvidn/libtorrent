@@ -397,7 +397,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	for (j = x = y = 0; x < 256; x++) {
 		y = (y + state->buf[x] + key[j++]) & 255;
 		if (j == keylen) {
-			j = 0; 
+			j = 0;
 		}
 		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
 	}

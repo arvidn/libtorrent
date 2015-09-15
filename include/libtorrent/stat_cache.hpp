@@ -46,7 +46,7 @@ namespace libtorrent
 		~stat_cache();
 
 		void init(int num_files);
-		
+
 		enum
 		{
 			cache_error = -1,

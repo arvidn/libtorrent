@@ -162,7 +162,7 @@ void send_simple_dht_request(node& node, char const* msg, udp::endpoint const& e
 	dht::msg m(decoded, ep);
 	node.incoming(m);
 
-	// If the request is supposed to get a response, by now the node should have 
+	// If the request is supposed to get a response, by now the node should have
 	// invoked the send function and put the response in g_sent_packets
 	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
 	if (has_response)
@@ -343,7 +343,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			bdecode_node response;
 			send_dht_request(node, "get", eps[i], &response, "10", 0
 				, 0, no, 0, (char const*)&items[j].target[0]);
-			
+
 			key_desc_t desc[] =
 			{
 				{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
@@ -412,7 +412,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		bdecode_node response;
 		send_dht_request(node, "get", eps[j], &response, "10", 0
 			, 0, no, 0, (char const*)&items[j].target[0]);
-		
+
 		key_desc_t desc[] =
 		{
 			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
@@ -754,7 +754,7 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid error response: %s\n", error_string);
 	}
-	
+
 	// a node with invalid node-id shouldn't be added to routing table.
 	TEST_EQUAL(node.size().get<0>(), nodes_num);
 
@@ -2137,7 +2137,7 @@ TORRENT_TEST(read_only_node)
 	mock_socket s;
 	obs observer;
 	counters cnt;
-    
+
 	dht::node node(&s, sett, node_id(0), &observer, cnt);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;

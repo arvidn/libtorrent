@@ -36,7 +36,7 @@ void bind_sha1_hash()
         .def("to_bytes", sha1_hash_bytes)
         ;
 
-    scope().attr("big_number") = scope().attr("sha1_hash"); 
-    scope().attr("peer_id") = scope().attr("sha1_hash"); 
+    scope().attr("big_number") = scope().attr("sha1_hash");
+    scope().attr("peer_id") = scope().attr("sha1_hash");
 }
 

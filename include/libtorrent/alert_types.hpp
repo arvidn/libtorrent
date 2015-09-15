@@ -185,11 +185,11 @@ namespace libtorrent
 	// the torrent handle in its baseclass will always be invalid (since the torrent
 	// is already removed) it has the info hash as a member, to identify it.
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
-	// 
+	//
 	// Even though the ``handle`` member doesn't point to an existing torrent anymore,
 	// it is still useful for comparing to other handles, which may also no
 	// longer point to existing torrents, but to the same non-existing torrents.
-	// 
+	//
 	// The ``torrent_handle`` acts as a ``weak_ptr``, even though its object no
 	// longer exists, it can still compare equal to another weak pointer which
 	// points to the same non-existent object.
@@ -212,7 +212,7 @@ namespace libtorrent
 	// is 0. If successful, ``buffer`` points to a buffer containing all the data
 	// of the piece. ``piece`` is the piece index that was read. ``size`` is the
 	// number of bytes that was read.
-	// 
+	//
 	// If the operation fails, ec will indicat what went wrong.
 	struct TORRENT_EXPORT read_piece_alert: torrent_alert
 	{
@@ -351,9 +351,9 @@ namespace libtorrent
 			// send it all before the disk gets back to us.
 			// The number of bytes that we keep outstanding, requested from the disk, is calculated
 			// as follows::
-			// 
+			//
 			//   min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
-			// 
+			//
 			// If you receive this alert, you migth want to either increase your ``send_buffer_watermark``
 			// or ``send_buffer_watermark_factor``.
 			send_buffer_watermark_too_low,
@@ -768,7 +768,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_finished_alert: torrent_alert
 	{
 		// internal
-		torrent_finished_alert(aux::stack_allocator& alloc, 
+		torrent_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle h);
 
 		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
@@ -783,7 +783,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
 	{
 		// internal
-		piece_finished_alert(aux::stack_allocator& alloc, 
+		piece_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle const& h, int piece_num);
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
@@ -945,12 +945,12 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a request to delete the files of a torrent complete.
-	// 
+	//
 	// The ``info_hash`` is the info-hash of the torrent that was just deleted. Most of
 	// the time the torrent_handle in the ``torrent_alert`` will be invalid by the time
 	// this alert arrives, since the torrent is being deleted. The ``info_hash`` member
 	// is hence the main way of identifying which torrent just completed the delete.
-	// 
+	//
 	// This alert is posted in the ``storage_notification`` category, and that bit
 	// needs to be set in the alert_mask.
 	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
@@ -1178,13 +1178,13 @@ namespace libtorrent
 	// This alert is generated when the metadata has been completely received and the torrent
 	// can start downloading. It is not generated on torrents that are started with metadata, but
 	// only those that needs to download it from peers (when utilizing the libtorrent extension).
-	// 
+	//
 	// There are no additional data members in this alert.
-	// 
+	//
 	// Typically, when receiving this alert, you would want to save the torrent file in order
 	// to load it back up again when the session is restarted. Here's an example snippet of
 	// code to do that::
-	// 
+	//
 	//	torrent_handle h = alert->handle();
 	//	if (h.is_valid()) {
 	//		boost::shared_ptr<torrent_info const> ti = h.torrent_file();
@@ -1198,7 +1198,7 @@ namespace libtorrent
 	//			fclose(f);
 	//		}
 	//	}
-	// 
+	//
 	struct TORRENT_EXPORT metadata_received_alert: torrent_alert
 	{
 		// internal
@@ -1461,7 +1461,7 @@ namespace libtorrent
 
 	// This alert is posted when an incoming peer connection, or a peer that's about to be added
 	// to our peer list, is blocked for some reason. This could be any of:
-	// 
+	//
 	// * the IP filter
 	// * i2p mixed mode restrictions (a normal peer is not allowed on an i2p swarm)
 	// * the port filter
@@ -1677,7 +1677,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted on RSS feed events such as start of RSS feed updates,
 	// successful completed updates and errors during updates.
-	// 
+	//
 	// This alert is only posted if the ``rss_notifications`` category is enabled
 	// in the alert_mask.
 	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert: alert
@@ -1787,7 +1787,7 @@ namespace libtorrent
 
 		// tells you what kind of socket the connection was accepted
 		// as:
-		// 
+		//
 		// 0. none (no socket instantiated)
 		// 1. TCP
 		// 2. Socks5
@@ -1798,7 +1798,7 @@ namespace libtorrent
 		// 7. SSL/Socks5
 		// 8. HTTPS (SSL/HTTP)
 		// 9. SSL/uTP
-		// 
+		//
 		int socket_type;
 
 		// is the IP address and port the connection came from.
@@ -1895,7 +1895,7 @@ namespace libtorrent
 	// happens in very specific cases. For instance, when a torrent is
 	// downloaded from a URL, the true info hash is not known immediately. First
 	// the .torrent file must be downloaded and parsed.
-	// 
+	//
 	// Once this download completes, the ``torrent_update_alert`` is posted to
 	// notify the client of the info-hash changing.
 	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
@@ -1918,7 +1918,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted every time a new RSS item (i.e. torrent) is received
 	// from an RSS feed.
-	// 
+	//
 	// It is only posted if the ``rss_notifications`` category is enabled in the
 	// alert_mask.
 	struct TORRENT_EXPORT rss_item_alert : alert

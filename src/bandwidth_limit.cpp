@@ -50,7 +50,7 @@ namespace libtorrent
 		TORRENT_ASSERT(limit < INT_MAX);
 		m_limit = limit;
 	}
-	
+
 	int bandwidth_channel::quota_left() const
 	{
 		if (m_limit == 0) return inf;

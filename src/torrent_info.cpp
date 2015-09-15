@@ -448,7 +448,7 @@ namespace libtorrent
 		bdecode_node attr = dict.dict_find_string("attr");
 		if (attr)
 		{
-			for (int i = 0; i < attr.string_length(); ++i)	
+			for (int i = 0; i < attr.string_length(); ++i)
 			{
 				switch (attr.string_ptr()[i])
 				{
@@ -1653,7 +1653,7 @@ namespace libtorrent
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
 		verify_encoding(m_comment);
-	
+
 		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
 		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
 		verify_encoding(m_created_by);

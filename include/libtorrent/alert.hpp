@@ -53,18 +53,18 @@ POSSIBILITY OF SUCH DAMAGE.
 // The pop_alerts() function on session is the main interface for retrieving
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
 // been posted by libtorrent pop_alerts() will return an empty list.
-// 
+//
 // By default, only errors are reported. set_alert_mask() can be used to
 // specify which kinds of events should be reported. The alert mask is
 // comprised by bits from the category_t enum.
-// 
+//
 // Every alert belongs to one or more category. There is a cost associated with
 // posting alerts. Only alerts that belong to an enabled category are
 // posted. Setting the alert bitmask to 0 will disable all alerts (except those
 // that are non-discardable). Alerts that are responses to API calls such as
 // save_resume_data() and post_session_stats() are non-discardable and will be
 // posted even if their category is disabled.
-// 
+//
 // There are other alert base classes that some alerts derive from, all the
 // alerts that are generated for a specific torrent are derived from
 // torrent_alert, and tracker events derive from tracker_alert.
@@ -109,7 +109,7 @@ namespace libtorrent {
 		enum category_t
 		{
 			// Enables alerts that report an error. This includes:
-			// 
+			//
 			// * tracker errors
 			// * tracker warnings
 			// * file errors
@@ -223,7 +223,7 @@ namespace libtorrent {
 		// compared against a specific alert by querying a static constant called ``alert_type``
 		// in the alert. It can be used to determine the run-time type of an alert* in
 		// order to cast to that alert type and access specific members.
-		// 
+		//
 		// e.g:
 		//
 		// .. code:: c++
@@ -232,7 +232,7 @@ namespace libtorrent {
 		//	ses.pop_alerts(&alerts);
 		//	for (alert* i : alerts) {
 		//		switch (a->type()) {
-		// 
+		//
 		//			case read_piece_alert::alert_type:
 		//			{
 		//				read_piece_alert* p = (read_piece_alert*)a;

@@ -118,7 +118,7 @@ namespace libtorrent
 #endif
 			}
 		};
-	
+
 		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
 		void open_unicast_socket(io_service& ios, address const& addr
@@ -154,6 +154,6 @@ namespace libtorrent
 		bool m_abort;
 	};
 }
-	
+
 #endif
 

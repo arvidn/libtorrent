@@ -77,7 +77,7 @@ namespace libtorrent
 
 		// we only want left-over bandwidth
 		// TODO: introduce a web-seed default class which has a low download priority
-		
+
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
@@ -123,7 +123,7 @@ namespace libtorrent
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-	
+
 		// this is always a seed
 		incoming_have_all();
 

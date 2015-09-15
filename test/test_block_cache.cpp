@@ -81,7 +81,7 @@ static void nop() {}
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #define INITIALIZE_JOB(j) j.in_use = true;
 #else
-#define INITIALIZE_JOB(j) 
+#define INITIALIZE_JOB(j)
 #endif
 
 #define TEST_SETUP \

@@ -92,7 +92,7 @@ struct key_desc_t
 		// has to be divisible by the number, instead
 		// of having that exact size
 		size_divisible = 8
-	}; 
+	};
 };
 
 bool TORRENT_EXTRA_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
@@ -329,7 +329,7 @@ private:
 	table_t m_map;
 	dht_immutable_table_t m_immutable_table;
 	dht_mutable_table_t m_mutable_table;
-	
+
 	time_point m_last_tracker_tick;
 
 	// the last time we issued a bootstrap or a refresh on our own ID, to expand

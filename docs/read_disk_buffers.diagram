@@ -5,8 +5,8 @@
 |                |                  |             |                   | send buffer |
 +----------------+                  +-------------+                   +------+------+
         ^                                                                   |
-        | read() from file                                write() to socket | 
-        | (copy)                                          (copy)            | 
+        | read() from file                                write() to socket |
+        | (copy)                                          (copy)            |
 ---=----|---------------------------------=---------------------------------|--=----
         |                        kernel space                               |
         |                                                                   v

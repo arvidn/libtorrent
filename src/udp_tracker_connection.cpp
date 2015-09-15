@@ -96,7 +96,7 @@ namespace libtorrent
 			tracker_connection::fail(ec);
 			return;
 		}
-		
+
 		aux::session_settings const& settings = m_man.settings();
 
 		if (settings.get_bool(settings_pack::proxy_hostnames)
@@ -214,7 +214,7 @@ namespace libtorrent
 			for (std::vector<tcp::endpoint>::iterator k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
-				if (tracker_req().filter->access(k->address()) == ip_filter::blocked) 
+				if (tracker_req().filter->access(k->address()) == ip_filter::blocked)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
@@ -233,7 +233,7 @@ namespace libtorrent
 			fail(error_code(errors::banned_by_ip_filter));
 			return;
 		}
-		
+
 		m_target = pick_target_endpoint();
 
 		start_announce();
@@ -684,7 +684,7 @@ namespace libtorrent
 			close();
 			return true;
 		}
-		
+
 		cb->tracker_scrape_response(tracker_req()
 			, complete, incomplete, downloaded, -1);
 

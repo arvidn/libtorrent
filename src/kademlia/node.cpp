@@ -96,7 +96,7 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer)
 	if (observer) external_address = observer->external_address();
 	if (nid == (node_id::min)() || !verify_id(nid, external_address))
 		return generate_id(external_address);
-  	
+
 	return nid;
 }
 
@@ -944,7 +944,7 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		reply["token"] = generate_token(m.addr, msg_keys[0].string_ptr());
-		
+
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
 		sha1_hash info_hash(msg_keys[0].string_ptr());
@@ -1254,7 +1254,7 @@ void node::incoming_request(msg const& m, entry& e)
 				TORRENT_ASSERT(sizeof(to_add.sig) == msg_keys[4].string_length());
 				memcpy(to_add.value, buf.first, buf.second);
 				memcpy(&to_add.key, pk, sizeof(to_add.key));
-		
+
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
 				m_counters.inc_stats_counter(counters::dht_mutable_data);
@@ -1263,7 +1263,7 @@ void node::incoming_request(msg const& m, entry& e)
 			}
 			else
 			{
-				// this is the case where we already 
+				// this is the case where we already
 				dht_mutable_item* item = &i->second;
 
 				// this is the "cas" field in the put message

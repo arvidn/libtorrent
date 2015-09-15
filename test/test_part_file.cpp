@@ -98,7 +98,7 @@ TORRENT_TEST(part_file)
 	{
 		// load the part file back in
 		part_file pf(combine_path(cwd, "partfile_test_dir2"), "partfile.parts", 100, piece_size);
-	
+
 		memset(buf, 0, sizeof(buf));
 
 		file::iovec_t v = {&buf, 1024};

@@ -79,7 +79,7 @@ void ed25519_sign(unsigned char *signature,
 
 Creates a signature of the given message with the given key pair. `signature`
 must be a writable 64 byte buffer. `message` must have at least `message_len`
-bytes to be read. 
+bytes to be read.
 
 ```c
 int ed25519_verify(const unsigned char *signature,
@@ -153,7 +153,7 @@ ed25519_create_keypair(other_public_key, other_private_key, seed);
 /* do a key exchange with other_public_key */
 ed25519_key_exchange(shared_secret, other_public_key, private_key);
 
-/* 
+/*
     the magic here is that ed25519_key_exchange(shared_secret, public_key,
     other_private_key); would result in the same shared_secret
 */

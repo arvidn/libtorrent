@@ -181,7 +181,7 @@ rpc_manager::~rpc_manager()
 {
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
-	
+
 	for (transactions_t::iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
@@ -299,7 +299,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
-	if (m.message.dict_find_string_value("y") == "e") 
+	if (m.message.dict_find_string_value("y") == "e")
 	{
 		// It's an error.
 #ifndef TORRENT_DISABLE_LOGGING

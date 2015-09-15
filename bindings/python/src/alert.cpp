@@ -210,7 +210,7 @@ void bind_alert()
 
     class_<torrent_removed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_removed_alert", no_init)
-        .def_readonly("info_hash", &torrent_removed_alert::info_hash) 
+        .def_readonly("info_hash", &torrent_removed_alert::info_hash)
         ;
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
@@ -609,7 +609,7 @@ void bind_alert()
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-        .def_readonly("error", &torrent_need_cert_alert::error) 
+        .def_readonly("error", &torrent_need_cert_alert::error)
         ;
 
     class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(

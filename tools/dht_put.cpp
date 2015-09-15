@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 		++argv;
 		--argc;
 		if (argc < 1) usage();
-	
+
 		unsigned char seed[32];
 		ed25519_create_seed(seed);
 
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
 	{
 		++argv;
 		--argc;
-	
+
 		if (argc < 1) usage();
 
 		if (strlen(argv[0]) != 40)
@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
 
 		bootstrap(s);
 		sha1_hash target = s.dht_put_item(data);
-		
+
 		printf("PUT %s\n", to_hex(target.to_string()).c_str());
 
 		wait_for_alert(s, dht_put_alert::alert_type);
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
 		boost::array<char, 64> private_key;
 		ed25519_create_keypair((unsigned char*)public_key.data()
 			, (unsigned char*)private_key.data(), seed);
-		
+
 		bootstrap(s);
 		s.dht_put_item(public_key, boost::bind(&put_string, _1, _2, _3, _4
 			, public_key.data(), private_key.data(), argv[0]));

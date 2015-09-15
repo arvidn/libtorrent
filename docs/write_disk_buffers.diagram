@@ -4,8 +4,8 @@
 | receive buffer +--=-------------->| plain text +--=--------------->| disk cache |
 +----------------+                  | buffer     |                   +------+-----+
         ^                           +------------+                          |
-        | read() on socket                                 write() to file  | 
-        | (copy)                                           (copy)           | 
+        | read() on socket                                 write() to file  |
+        | (copy)                                           (copy)           |
 ---=----|---------------------------------=---------------------------------|--=----
         |                        kernel space                               |
         |                                                                   v

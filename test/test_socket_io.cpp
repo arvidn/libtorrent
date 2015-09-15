@@ -72,7 +72,7 @@ TORRENT_TEST(socket_io)
 	write_address(address_v6::from_string("1000::ffff"), out3);
 	TEST_CHECK(std::equal(buf.begin(), buf.end(), "\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff"));
 	in = buf.begin();
-	address addr6 = read_v6_address(in); 
+	address addr6 = read_v6_address(in);
 	TEST_EQUAL(addr6, address_v6::from_string("1000::ffff"));
 
 	buf.clear();
@@ -81,7 +81,7 @@ TORRENT_TEST(socket_io)
 	TEST_CHECK(std::equal(buf.begin(), buf.end(), "\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39"));
 	TEST_EQUAL(buf.size(), 18);
 	in = buf.begin();
-	udp::endpoint ep6 = read_v6_endpoint<udp::endpoint>(in); 
+	udp::endpoint ep6 = read_v6_endpoint<udp::endpoint>(in);
 	TEST_EQUAL(ep6, udp::endpoint(address_v6::from_string("1000::ffff"), 1337));
 #endif
 

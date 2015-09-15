@@ -5,7 +5,7 @@
 
 .document a:hover {
     background: none;
-} 
+}
 
 .document a.reference {
     color: #8D370A;
@@ -130,22 +130,22 @@ table, th, td { border: none; }
 
 th, td { padding: 0.3em; }
 
-th { 
+th {
     text-align: left;
-    background: #f0f0e0; 
+    background: #f0f0e0;
     border-right: solid 1px #f0f0e0;
     border-top: solid 1px #e8e8d8;
     border-bottom: solid 1px #e8e8d8;
 }
 
-td { 
-    background: #f8f8e8; 
+td {
+    background: #f8f8e8;
     border-right: solid 1px #f8f8e8;
     border-bottom: solid 1px #e8e8d8;
 }
 
 td td {
-    background: #e8e8d8; 
+    background: #e8e8d8;
     border-right: solid 1px #e8e8d8;
     border-bottom: solid 1px #d8d8c8;
 }

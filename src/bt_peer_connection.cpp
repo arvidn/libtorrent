@@ -808,7 +808,7 @@ namespace libtorrent
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
 
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifndef TORRENT_DISABLE_LOGGING
 		std::string bitmask;
 		for (int k = 0; k < 8; ++k)
 		{
@@ -1466,7 +1466,7 @@ namespace libtorrent
 		r.piece = detail::read_int32(ptr);
 		r.start = detail::read_int32(ptr);
 		r.length = detail::read_int32(ptr);
-		
+
 		incoming_reject_request(r);
 	}
 
@@ -1485,7 +1485,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin + 1;
 		int index = detail::read_int32(ptr);
-		
+
 		incoming_allowed_fast(index);
 	}
 
@@ -2039,7 +2039,7 @@ namespace libtorrent
 	void bt_peer_connection::write_share_mode()
 	{
 		INVARIANT_CHECK;
-		
+
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		if (m_share_mode_id == 0) return;
 
@@ -2157,7 +2157,7 @@ namespace libtorrent
 			m_sent_bitfield = true;
 			return;
 		}
-	
+
 		const int num_pieces = t->torrent_file().num_pieces();
 		TORRENT_ASSERT(num_pieces > 0);
 		if (num_pieces <= 0)
@@ -2665,12 +2665,12 @@ namespace libtorrent
 			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
 
 			if (!m_recv_buffer.packet_finished()) return;
-			
+
 			// write our dh public key. m_dh_key_exchange is
 			// initialized in write_pe1_2_dhkey()
 			if (!is_outgoing()) write_pe1_2_dhkey();
 			if (is_disconnecting()) return;
-			
+
 			// read dh key, generate shared secret
 			if (m_dh_key_exchange->compute_secret(recv_buffer.begin) != 0)
 			{
@@ -2825,7 +2825,7 @@ namespace libtorrent
 					t = associated_torrent().lock();
 					TORRENT_ASSERT(t);
 				}
-			
+
 				init_pe_rc4_handler(m_dh_key_exchange->get_secret(), ti->info_hash());
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
@@ -2864,7 +2864,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
 			TORRENT_ASSERT(recv_buffer == m_recv_buffer.get());
-			
+
 			if (recv_buffer.left() < 8)
 			{
 				received_bytes(0, bytes_transferred);
@@ -2874,7 +2874,7 @@ namespace libtorrent
 			}
 
 			// generate the verification constant
-			if (!m_sync_vc.get()) 
+			if (!m_sync_vc.get())
 			{
 				TORRENT_ASSERT(m_sync_bytes_read == 0);
 
@@ -2892,7 +2892,7 @@ namespace libtorrent
 			int syncoffset = get_syncoffset(m_sync_vc.get(), 8
 				, recv_buffer.begin, recv_buffer.left());
 
-			// No sync 
+			// No sync
 			if (syncoffset == -1)
 			{
 				std::size_t bytes_processed = recv_buffer.left() - 8;
@@ -2940,14 +2940,14 @@ namespace libtorrent
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 4+2);
 			received_bytes(0, bytes_transferred);
 			bytes_transferred = 0;
-			
+
 			if (!m_recv_buffer.packet_finished()) return;
 
 			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
 			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
 
 			recv_buffer = m_recv_buffer.get();
-			
+
 			boost::uint32_t crypto_field = detail::read_uint32(recv_buffer.begin);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2962,7 +2962,7 @@ namespace libtorrent
 				// select a crypto method
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
 				boost::uint32_t crypto_select = crypto_field & allowed_encryption;
-	
+
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
 				if (m_settings.get_bool(settings_pack::prefer_rc4))
@@ -2998,7 +2998,7 @@ namespace libtorrent
 				// check if crypto select is valid
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
 
-				crypto_field &= allowed_encryption; 
+				crypto_field &= allowed_encryption;
 				if (crypto_field == 0)
 				{
 					// we don't allow any of the offered encryption levels
@@ -3018,7 +3018,7 @@ namespace libtorrent
 				disconnect(errors::invalid_pad_size, op_encryption, 2);
 				return;
 			}
-			
+
 			m_state = read_pe_pad;
 			if (!is_outgoing())
 				m_recv_buffer.reset(len_pad + 2); // len(IA) at the end of pad
@@ -3057,8 +3057,8 @@ namespace libtorrent
 			{
 				recv_buffer.begin += pad_size;
 				int len_ia = detail::read_int16(recv_buffer.begin);
-				
-				if (len_ia < 0) 
+
+				if (len_ia < 0)
 				{
 					disconnect(errors::invalid_encrypt_handshake, op_encryption, 2);
 					return;
@@ -3285,7 +3285,7 @@ namespace libtorrent
 			recv_buffer = m_recv_buffer.get();
 
 
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifndef TORRENT_DISABLE_LOGGING
 			std::string extensions;
 			extensions.resize(8 * 8);
 			for (int i=0; i < 8; ++i)

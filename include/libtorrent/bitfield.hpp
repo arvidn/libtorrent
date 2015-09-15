@@ -189,7 +189,7 @@ namespace libtorrent
 				}
 
 				return ret;
-			}	
+			}
 #endif // TORRENT_HAS_SSE
 
 			for (int i = 0; i < words; ++i)

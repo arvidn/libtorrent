@@ -144,7 +144,7 @@ enum state_t
 	allocating,
 	checking_resume_data
 };
-	
+
 struct torrent_status
 {
 	enum state_t state;
@@ -172,7 +172,7 @@ struct torrent_status
 	int list_peers;
 	int connect_candidates;
 
-	// what to do?	
+	// what to do?
 //	bitfield pieces;
 
 	int num_pieces;

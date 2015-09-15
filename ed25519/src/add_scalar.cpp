@@ -9,8 +9,8 @@
 /* see http://crypto.stackexchange.com/a/6215/4697 */
 void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar) {
     const unsigned char SC_1[32] = {1}; /* scalar with value 1 */
-    
-    unsigned char n[32]; 
+
+    unsigned char n[32];
     ge_p3 nB;
     ge_p1p1 A_p1p1;
     ge_p3 A;
@@ -52,7 +52,7 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
             ge_add(&A_p1p1, &nB, &T);
             ge_p1p1_to_p3(&A, &A_p1p1);
         }
-            
+
         /* pack public key */
         ge_p3_tobytes(public_key, &A);
     }

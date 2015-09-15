@@ -80,14 +80,14 @@ namespace libtorrent
 			struct stat s;
 			if (lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
 			int file_attr = 0;
-			if (s.st_mode & S_IXUSR) 
+			if (s.st_mode & S_IXUSR)
 				file_attr += file_storage::attribute_executable;
 			if (S_ISLNK(s.st_mode))
 				file_attr += file_storage::attribute_symlink;
 			return file_attr;
 #endif
 		}
-	
+
 #ifndef TORRENT_WINDOWS
 		std::string get_symlink_path_impl(char const* path)
 		{
@@ -147,7 +147,7 @@ namespace libtorrent
 
 				// mask all bits to check if the file is a symlink
 				if ((file_flags & file_storage::attribute_symlink)
-					&& (flags & create_torrent::symlinks)) 
+					&& (flags & create_torrent::symlinks))
 				{
 					std::string sym_path = get_symlink_path(f);
 					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
@@ -419,7 +419,7 @@ namespace libtorrent
 			return dict;
 
 		if (!m_urls.empty()) dict["announce"] = m_urls.front().first;
-		
+
 		if (!m_nodes.empty())
 		{
 			entry& nodes = dict["nodes"];
@@ -461,7 +461,7 @@ namespace libtorrent
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
-			
+
 		if (!m_url_seeds.empty())
 		{
 			if (m_url_seeds.size() == 1)
