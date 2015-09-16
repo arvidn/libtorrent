@@ -137,14 +137,14 @@ The disk cache implements *ARC*, Adaptive Replacement Cache. This consists of a 
 6. write cache (blocks waiting to be flushed to disk)
 
 .. parsed-literal::
-	
+
 	             <--- recently used  frequently used --->
 	+--------------+--------------+  +--------------+--------------+
 	|     L1 **ghost** |           L1 |  | L2           | L2 **ghost**     |
 	+--------------+--------------+  +--------------+--------------+
-	
+
 	               <---------- cache_size ---------->
-	
+
 	<---------------------- 2 x cache_size ------------------------>
 
 These LRUs are stored in ``block_cache`` in an array ``m_lru``.

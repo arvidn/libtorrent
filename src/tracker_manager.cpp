@@ -120,7 +120,7 @@ namespace libtorrent
 		time_point now = clock_type::now();
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
-		
+
 		if ((m_read_timeout
 				&& m_read_timeout <= total_seconds(receive_timeout))
 			|| (m_completion_timeout
@@ -437,7 +437,7 @@ namespace libtorrent
 			(*i)->close();
 		}
 	}
-	
+
 	bool tracker_manager::empty() const
 	{
 		mutex_t::scoped_lock l(m_mutex);

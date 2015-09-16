@@ -387,7 +387,7 @@ namespace libtorrent
 			? file_status::character_special : file_status::regular_file;
 
 #else
-		
+
 		// posix version
 
 		std::string const& f = convert_to_native(inf);
@@ -845,7 +845,7 @@ namespace libtorrent
 				++len;
 			}
 			return std::string(first, len);
-			
+
 		}
 		return std::string(sep + 1);
 	}
@@ -983,7 +983,7 @@ namespace libtorrent
 		ret.resize(write_cur - &ret[0]);
 		return ret;
 	}
-#endif	
+#endif
 
 	boost::int64_t file_size(std::string const& f)
 	{
@@ -1623,7 +1623,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	// defined in storage.cpp
 	int bufs_size(file::iovec_t const* bufs, int num_bufs);
-	
+
 	namespace {
 
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
@@ -2233,7 +2233,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		// return the offset to the next allocated region
 		return buffer.FileOffset.QuadPart;
-		
+
 #elif defined SEEK_DATA
 		// this is supported on solaris
 		boost::int64_t ret = lseek(native_handle(), start, SEEK_DATA);

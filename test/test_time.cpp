@@ -80,7 +80,7 @@ TORRENT_TEST(time)
 		TEST_CHECK(now >= last);
 		last = now;
 	}
-	
+
 	mutex m;
 	condition_variable cv;
 	thread t1(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));

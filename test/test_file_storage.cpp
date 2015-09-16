@@ -105,7 +105,7 @@ TORRENT_TEST(set_name)
 	// torrent, the path of the files should change too
 	file_storage st;
 	setup_test_storage(st);
-	
+
 	st.set_name("test_2");
 	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test_2"
 		, "a")));

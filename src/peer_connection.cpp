@@ -801,7 +801,7 @@ namespace libtorrent
 		m_connected = false;
 		if (!m_download_queue.empty())
 			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
-		
+
 		// defensive
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		// if t is NULL, we better not be connecting, since
@@ -839,7 +839,7 @@ namespace libtorrent
 	int peer_connection::picker_options() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		int ret = m_picker_options; 
+		int ret = m_picker_options;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -984,13 +984,13 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		return m_request_queue;
 	}
-	
+
 	std::vector<pending_block> const& peer_connection::download_queue() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_download_queue;
 	}
-	
+
 	std::vector<peer_request> const& peer_connection::upload_queue() const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1648,8 +1648,8 @@ namespace libtorrent
 
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
-	
-		// if the peer is ready to download stuff, it must have metadata		
+
+		// if the peer is ready to download stuff, it must have metadata
 		m_has_metadata = true;
 
 		disconnect_if_redundant();
@@ -1868,7 +1868,7 @@ namespace libtorrent
 		m_have_piece.set_bit(index);
 		++m_num_pieces;
 
-		// if the peer is downloading stuff, it must have metadata		
+		// if the peer is downloading stuff, it must have metadata
 		m_has_metadata = true;
 
 		// only update the piece_picker if
@@ -2561,9 +2561,9 @@ namespace libtorrent
 	{
 		check_postcondition(boost::shared_ptr<torrent> const& t_
 			, bool init_check = true): t(t_) { if (init_check) check(); }
-	
+
 		~check_postcondition() { check(); }
-		
+
 		void check()
 		{
 			if (!t->is_seed())
@@ -2581,7 +2581,7 @@ namespace libtorrent
 				}
 			}
 		}
-		
+
 		shared_ptr<torrent> t;
 	};
 #endif
@@ -3194,7 +3194,7 @@ namespace libtorrent
 
 		disconnect_if_redundant();
 	}
-	
+
 	// -----------------------------
 	// --------- HAVE NONE ---------
 	// -----------------------------
@@ -3435,7 +3435,7 @@ namespace libtorrent
 			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
-				if (i->busy) 
+				if (i->busy)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "PIECE_PICKER"
@@ -3460,7 +3460,7 @@ namespace libtorrent
 
 		if (t->alerts().should_post<block_downloading_alert>())
 		{
-			t->alerts().emplace_alert<block_downloading_alert>(t->get_handle(), 
+			t->alerts().emplace_alert<block_downloading_alert>(t->get_handle(),
 				remote(), pid(), block.block_index, block.piece_index);
 		}
 
@@ -3907,7 +3907,7 @@ namespace libtorrent
 
 			// the verification will fail for coalesced blocks
 			TORRENT_ASSERT(verify_piece(r) || m_request_large_blocks);
-			
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			bool handled = false;
 			for (extension_list_t::iterator i = m_extensions.begin()
@@ -4116,7 +4116,7 @@ namespace libtorrent
 		if (ec == error_code(errors::timed_out)
 			|| ec == error::timed_out)
 			m_counters.inc_stats_counter(counters::transport_timeout_peers);
-		
+
 		if (ec == error_code(errors::timed_out_inactivity)
 			|| ec == error_code(errors::timed_out_no_request)
 			|| ec == error_code(errors::timed_out_no_interest))
@@ -4357,8 +4357,8 @@ namespace libtorrent
 
 		p.download_queue_time = download_queue_time();
 		p.queue_bytes = m_outstanding_bytes;
-		
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES	
+
+#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		p.country[0] = m_country[0];
 		p.country[1] = m_country[1];
 #else
@@ -4917,7 +4917,7 @@ namespace libtorrent
 			boost::int64_t piece_size = t->torrent_file().piece_length();
 
 			if (m_remote_dl_rate > 0)
-				m_remote_dl_rate = int((m_remote_dl_rate * 2 / 3) + 
+				m_remote_dl_rate = int((m_remote_dl_rate * 2 / 3) +
 					((boost::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60));
 			else
 				m_remote_dl_rate = int(boost::int64_t(m_remote_pieces_dled)
@@ -5317,7 +5317,7 @@ namespace libtorrent
 			disconnect(j->error.ec, op_file_read);
 			return;
 		}
-		
+
 		if (j->ret != r.length)
 		{
 			// handle_disk_error may disconnect us
@@ -5677,7 +5677,7 @@ namespace libtorrent
 		{
 			return;
 		}
-		
+
 		if (!can_read())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6655,7 +6655,7 @@ namespace libtorrent
 		// in share mode we don't close redundant connections
 		if (m_settings.get_bool(settings_pack::close_redundant_connections) && !t->share_mode())
 		{
-			bool ok_to_disconnect = 
+			bool ok_to_disconnect =
 				can_disconnect(error_code(errors::upload_upload_connection))
 					|| can_disconnect(error_code(errors::uninteresting_upload_peer))
 					|| can_disconnect(error_code(errors::too_many_requests_when_choked))
@@ -6800,7 +6800,7 @@ namespace libtorrent
 		time_duration d;
 		d = aux::time_now() - m_last_sent;
 		if (total_seconds(d) < timeout() / 2) return;
-		
+
 		if (m_connecting) return;
 		if (in_handshake()) return;
 

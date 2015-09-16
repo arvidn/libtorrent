@@ -107,7 +107,7 @@ namespace libtorrent
 		// returns the number of seconds to the next announce on this tracker.
 		// ``min_announce_in()`` returns the number of seconds until we are
 		// allowed to force another tracker update with this tracker.
-		// 
+		//
 		// If the last time this tracker was contacted failed, ``last_error`` is
 		// the error code describing what error occurred.
 		int next_announce_in() const;
@@ -277,15 +277,15 @@ namespace libtorrent
 		// internally when downloading torrents without the metadata. The
 		// metadata will be created by libtorrent as soon as it has been
 		// downloaded from the swarm.
-		// 
+		//
 		// The constructor that takes a bdecode_node will create a torrent_info
 		// object from the information found in the given torrent_file. The
 		// bdecode_node represents a tree node in an bencoded file. To load an
 		// ordinary .torrent file into a bdecode_node, use bdecode().
-		// 
+		//
 		// The version that takes a buffer pointer and a size will decode it as a
 		// .torrent file and initialize the torrent_info object for you.
-		// 
+		//
 		// The version that takes a filename will simply load the torrent file
 		// and decode it inside the constructor, for convenience. This might not
 		// be the most suitable for applications that want to be able to report
@@ -294,14 +294,14 @@ namespace libtorrent
 		// There is an upper limit on the size of the torrent file that will be
 		// loaded by the overload taking a filename. If it's important that even
 		// very large torrent files are loaded, use one of the other overloads.
-		// 
+		//
 		// The overloads that takes an ``error_code const&`` never throws if an
 		// error occur, they will simply set the error code to describe what went
 		// wrong and not fully initialize the torrent_info object. The overloads
 		// that do not take the extra error_code parameter will always throw if
 		// an error occurs. These overloads are not available when building
 		// without exception support.
-		// 
+		//
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS
 		torrent_info(bdecode_node const& torrent_file, int flags = 0);
@@ -339,12 +339,12 @@ namespace libtorrent
 		// having a torrent file. When renaming files in a storage, the storage
 		// needs to make its own copy of the file_storage in order to make its
 		// mapping differ from the one in the torrent file.
-		// 
+		//
 		// ``orig_files()`` returns the original (unmodified) file storage for
 		// this torrent. This is used by the web server connection, which needs
 		// to request files with the original names. Filename may be chaged using
 		// ``torrent_info::rename_file()``.
-		// 
+		//
 		// For more information on the file_storage object, see the separate
 		// document on how to create torrents.
 		file_storage const& files() const { return m_files; }
@@ -357,11 +357,11 @@ namespace libtorrent
 		// Renames a the file with the specified index to the new name. The new
 		// filename is reflected by the ``file_storage`` returned by ``files()``
 		// but not by the one returned by ``orig_files()``.
-		// 
+		//
 		// If you want to rename the base name of the torrent (for a multifile
 		// torrent), you can copy the ``file_storage`` (see files() and
 		// orig_files() ), change the name, and then use `remap_files()`_.
-		// 
+		//
 		// The ``new_filename`` can both be a relative path, in which case the
 		// file name is relative to the ``save_path`` of the torrent. If the
 		// ``new_filename`` is an absolute path (i.e. ``is_complete(new_filename)
@@ -388,7 +388,7 @@ namespace libtorrent
 		// instance, download all data in a torrent to a single file, or to a
 		// number of fixed size sector aligned files, regardless of the number
 		// and sizes of the files in the torrent.
-		// 
+		//
 		// The new specified ``file_storage`` must have the exact same size as
 		// the current one.
 		void remap_files(file_storage const& f);
@@ -410,7 +410,7 @@ namespace libtorrent
 		// "collections" keys in the .torrent file. Both info-hashes and
 		// collections from within the info-dict and from outside of it are
 		// included.
-		// 
+		//
 		// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
 		std::vector<sha1_hash> similar_torrents() const;
 		std::vector<std::string> collections() const;
@@ -431,20 +431,20 @@ namespace libtorrent
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
 		// Each entry is a ``web_seed_entry`` and may refer to either a url seed
 		// or http seed.
-		// 		
+		//
 		// ``add_url_seed()`` and ``add_http_seed()`` adds one url to the list of
 		// url/http seeds. Currently, the only transport protocol supported for
 		// the url is http.
-		// 
+		//
 		// The ``extern_auth`` argument can be used for other athorization
 		// schemese than basic HTTP authorization. If set, it will override any
 		// username and password found in the URL itself. The string will be sent
 		// as the HTTP authorization header's value (without specifying "Basic").
-		// 
+		//
 		// The ``extra_headers`` argument defaults to an empty list, but can be
 		// used to insert custom HTTP headers in the requests to a specific web
 		// seed.
-		// 
+		//
 		// See http-seeding_ for more information.
  		void add_url_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
@@ -481,7 +481,7 @@ namespace libtorrent
 		// ``end_files()``, ``rbegin_files()`` and ``rend_files()``. These will
 		// give you standard vector iterators with the type
 		// ``internal_file_entry``, which is an internal type.
-		// 
+		//
 		// You can resolve it into the public representation of a file
 		// (``file_entry``) using the ``file_storage::at`` function, which takes
 		// an index and an iterator.
@@ -517,7 +517,7 @@ namespace libtorrent
 		// This function will map a range in a specific file into a range in the
 		// torrent. The ``file_offset`` parameter is the offset in the file,
 		// given in bytes, where 0 is the start of the file. See peer_request.
-		// 
+		//
 		// The input range is assumed to be valid within the torrent.
 		// ``file_offset`` + ``size`` is not allowed to be greater than the file
 		// size. ``file_index`` must refer to a valid file, i.e. it cannot be >=
@@ -594,7 +594,7 @@ namespace libtorrent
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this
 		// torrent, if any.
-		// 
+		//
 		// ``set_merkle_tree()`` moves the passed in merkle tree into the
 		// torrent_info object. i.e. ``h`` will not be identical after the call.
 		// You need to set the merkle tree for a torrent that you've just created
@@ -607,18 +607,18 @@ namespace libtorrent
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 
 		// ``name()`` returns the name of the torrent.
-		// 
+		//
 		// ``comment()`` returns the comment associated with the torrent. If
 		// there's no comment, it will return an empty string.
 		// ``creation_date()`` returns the creation date of the torrent as time_t
 		// (`posix time`_). If there's no time stamp in the torrent file, the
 		// optional object will be uninitialized.
-		// 
+		//
 		// Both the name and the comment is UTF-8 encoded strings.
-		// 
+		//
 		// ``creator()`` returns the creator string in the torrent. If there is
 		// no creator string it will return an empty string.
-		// 
+		//
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 		const std::string& name() const { return m_files.name(); }
 		boost::optional<time_t> creation_date() const;
@@ -629,7 +629,7 @@ namespace libtorrent
 
 		// dht nodes to add to the routing table/bootstrap from
 		typedef std::vector<std::pair<std::string, int> > nodes_t;
-		
+
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).
 		nodes_t const& nodes() const
@@ -639,7 +639,7 @@ namespace libtorrent
 		// It may be used, by the client, to bootstrap into the DHT network.
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
-		
+
 		// populates the torrent_info by providing just the info-dict buffer.
 		// This is used when loading a torrent from a magnet link for instance,
 		// where we only have the info-dict. The bdecode_node ``e`` points to a
@@ -783,7 +783,7 @@ namespace libtorrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
 		bool m_multifile:1;
-		
+
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
 		bool m_private:1;

@@ -131,7 +131,7 @@ namespace libtorrent
 		std::vector<int> const& suggested = c.suggested_pieces();
 		bitfield const* bits = &c.get_bitfield();
 		bitfield fast_mask;
-		
+
 		if (c.has_peer_choked())
 		{
 			// if we are choked we can only pick pieces from the
@@ -262,7 +262,7 @@ namespace libtorrent
 		// and can't find any, that doesn't count as end-game
 		if (!c.has_peer_choked())
 			c.set_endgame(true);
-	
+
 		// if we don't have any potential busy blocks to request
 		// or if we already have outstanding requests, don't
 		// pick a busy piece

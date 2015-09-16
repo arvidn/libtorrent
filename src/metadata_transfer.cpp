@@ -518,7 +518,7 @@ namespace libtorrent { namespace
 		// request to this peer, and reset to false when
 		// we receive a reply to our request.
 		bool m_waiting_metadata_request;
-		
+
 		// this is the message index the remote peer uses
 		// for metadata extension messages.
 		int m_message_index;

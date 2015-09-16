@@ -443,7 +443,7 @@ r = p - q
 
 void ge_sub(ge_p1p1 *r, const ge_p3 *p, const ge_cached *q) {
     fe t0;
-    
+
     fe_add(r->X, p->Y, p->X);
     fe_sub(r->Y, p->Y, p->X);
     fe_mul(r->Z, r->X, q->YminusX);

@@ -313,7 +313,7 @@ public:
 		m_connect_handler = handler;
 		do_connect(endpoint);
 	}
-	
+
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{

@@ -229,7 +229,7 @@ namespace libtorrent
 		error_code ec;
 		boost::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
 		if (ec) return url;
-		
+
 		// first figure out if this url contains unencoded characters
 		if (!need_encoding(path.c_str(), path.size()))
 			return url;
@@ -285,7 +285,7 @@ namespace libtorrent
 
 		unsigned char inbuf[3];
 		unsigned char outbuf[4];
-	
+
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
@@ -340,10 +340,10 @@ namespace libtorrent
 		const char *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
 		int input_output_mapping[] = {0, 2, 4, 5, 7, 8};
-		
+
 		unsigned char inbuf[5];
 		unsigned char outbuf[8];
-	
+
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
@@ -389,7 +389,7 @@ namespace libtorrent
 	{
 		unsigned char inbuf[8];
 		unsigned char outbuf[5];
-	
+
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{

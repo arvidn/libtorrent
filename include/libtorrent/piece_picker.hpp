@@ -358,7 +358,7 @@ namespace libtorrent
 
 		void mark_as_canceled(piece_block block, torrent_peer* peer);
 		void mark_as_finished(piece_block block, torrent_peer* peer);
-	
+
 		// prevent blocks from being picked from this piece.
 		// to unlock the piece, call restore_piece() on it
 		void lock_piece(int piece);

@@ -267,7 +267,7 @@ namespace libtorrent
 
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
-		
+
 		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 

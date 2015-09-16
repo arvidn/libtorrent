@@ -75,7 +75,7 @@ public:
 	void close();
 
 private:
-	
+
 	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
 
 	void update_mapping(int i, mutex::scoped_lock& l);
@@ -133,7 +133,7 @@ private:
 	log_callback_t m_log_callback;
 
 	std::vector<mapping_t> m_mappings;
-	
+
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;
 
@@ -145,7 +145,7 @@ private:
 	// current retry count
 	int m_retry_count;
 
-	// used to receive responses in	
+	// used to receive responses in
 	char m_response_buffer[16];
 
 	// router external IP address
@@ -153,7 +153,7 @@ private:
 
 	// the endpoint we received the message from
 	udp::endpoint m_remote;
-	
+
 	// the udp socket used to communicate
 	// with the NAT router
 	udp::socket m_socket;
@@ -167,7 +167,7 @@ private:
 
 	// the mapping index that will expire next
 	int m_next_refresh;
-	
+
 	bool m_disabled;
 
 	bool m_abort;

@@ -124,7 +124,7 @@ namespace libtorrent
 		{
 			// each IP only gets to add a new IP once
 			if (m_external_address_voters.find(k)) return maybe_rotate();
-		
+
 			if (m_external_addresses.size() > 40)
 			{
 				if (random() % 100 < 50)
@@ -148,7 +148,7 @@ namespace libtorrent
 		// add one more vote to this external IP
 		if (!i->add_vote(k, source_type)) return maybe_rotate();
 		++m_total_votes;
-		
+
 		if (m_valid_external) return maybe_rotate();
 
 		i = std::min_element(m_external_addresses.begin(), m_external_addresses.end());

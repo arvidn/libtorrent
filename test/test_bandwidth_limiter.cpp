@@ -153,7 +153,7 @@ void run_test(connections_t& v
 	, boost::function<void()> f = &nop)
 {
 	std::cerr << "-------------" << std::endl;
-	
+
 	std::for_each(v.begin(), v.end()
 		, boost::bind(&peer_connection::start, _1));
 
@@ -236,7 +236,7 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 
 	if (torrent_limit > 0 && limit * num > torrent_limit)
 		limit = torrent_limit / num;
-	
+
 	float sum = 0.f;
 	float err = limit * 0.3f;
 	for (connections_t::iterator i = v.begin()

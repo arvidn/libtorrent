@@ -234,7 +234,7 @@ TORRENT_TEST(piece_priorities)
 // TODO: make sure a resume file only ever contain file priorities OR piece
 // priorities. Never both.
 
-// TODO: generally save 
+// TODO: generally save
 
 TORRENT_TEST(file_priorities_default)
 {

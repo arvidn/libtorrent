@@ -48,7 +48,7 @@ FIGURES = \
 	utp_stack \
 	storage
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 

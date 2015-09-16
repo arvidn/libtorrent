@@ -73,7 +73,7 @@ namespace libtorrent { namespace
 	{
 		// don't send out those peers that we haven't connected to
 		// (that have connected to us) and that aren't sharing their
-		// listening port 
+		// listening port
 		if (!p.is_outgoing() && !p.received_listen_port()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
@@ -91,7 +91,7 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
-	
+
 		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const& pc);
 
 		std::vector<char>& get_ut_pex_msg()
@@ -210,7 +210,7 @@ namespace libtorrent { namespace
 
 			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
 				, end(dropped.end()); i != end; ++i)
-			{	
+			{
 				if (i->address().is_v4())
 					detail::write_endpoint(*i, pld_out);
 #if TORRENT_USE_IPV6
@@ -235,7 +235,7 @@ namespace libtorrent { namespace
 
 
 	struct ut_pex_peer_plugin : peer_plugin
-	{	
+	{
 		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
 			, m_pc(pc)
@@ -282,7 +282,7 @@ namespace libtorrent { namespace
 				m_pc.disconnect(errors::pex_message_too_large, op_bittorrent, 2);
 				return true;
 			}
- 
+
 			if (body.left() < length) return true;
 
 			time_point now = aux::time_now();
@@ -378,7 +378,7 @@ namespace libtorrent { namespace
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
 					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
-				} 
+				}
 			}
 
 			p6 = pex_msg.dict_find("added6");
@@ -411,7 +411,7 @@ namespace libtorrent { namespace
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
 					m_torrent.add_peer(adr, peer_info::pex, flags);
-				} 
+				}
 			}
 #endif
 #ifndef TORRENT_DISABLE_LOGGING

@@ -165,7 +165,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -204,7 +204,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.state != torrent_status::checking_files)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -309,7 +309,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -348,7 +348,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.state != torrent_status::checking_files)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
@@ -493,7 +493,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;

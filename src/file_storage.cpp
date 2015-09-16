@@ -270,7 +270,7 @@ namespace libtorrent
 	// if borrow_chars >= 0, don't take ownership over n, just
 	// point to it. It points to borrow_chars number of characters.
 	// if borrow_chars == -1, n is a null terminated string that
-	// should be copied 
+	// should be copied
 	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
 	{
 		TORRENT_ASSERT(string_len >= 0);
@@ -606,7 +606,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -837,7 +837,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
 	{
 		TORRENT_ASSERT_PRECOND(fe.symlink_index < int(m_symlinks.size()));
@@ -969,7 +969,7 @@ namespace libtorrent
 				// limit, and it's not a padding file itself.
 				// so add a padding file in front of it
 				int pad_size = alignment - (off % alignment);
-				
+
 				// find the largest file that fits in pad_size
 				std::vector<internal_file_entry>::iterator best_match = m_files.end();
 

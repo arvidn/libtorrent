@@ -99,7 +99,7 @@ namespace detail
 	}
 
 	inline boost::uint16_t plus_one(boost::uint16_t val) { return val + 1; }
-	
+
 	template<class Addr>
 	Addr minus_one(Addr const& a)
 	{
@@ -252,7 +252,7 @@ namespace detail
 
 		typedef std::set<range> range_t;
 		range_t m_access_list;
-	
+
 	};
 
 }
@@ -278,13 +278,13 @@ struct TORRENT_EXPORT ip_filter
 	// ip addresses that will be marked with the given flags. The ``flags``
 	// can currently be 0, which means allowed, or ``ip_filter::blocked``, which
 	// means disallowed.
-	// 
+	//
 	// precondition:
 	// ``first.is_v4() == last.is_v4() && first.is_v6() == last.is_v6()``
-	// 
+	//
 	// postcondition:
 	// ``access(x) == flags`` for every ``x`` in the range [``first``, ``last``]
-	// 
+	//
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
 	void add_rule(address first, address last, boost::uint32_t flags);

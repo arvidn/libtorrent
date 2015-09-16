@@ -495,7 +495,7 @@ invariant checks), you have to rerun the configure script and rebuild, like this
 
 building with other build systems
 ---------------------------------
-  
+
 If you're building in MS Visual Studio, you may have to set the compiler
 options "force conformance in for loop scope", "treat wchar_t as built-in
 type" and "Enable Run-Time Type Info" to Yes.

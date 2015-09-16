@@ -105,7 +105,7 @@ namespace libtorrent
 		peer_connection::disconnect(ec, op, error);
 		if (t) t->disconnect_web_seed(this);
 	}
-	
+
 	boost::optional<piece_block_progress>
 	http_seed_connection::downloading_piece_progress() const
 	{
@@ -267,9 +267,9 @@ namespace libtorrent
 				}
 
 				TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
-			
+
 				TORRENT_ASSERT(recv_buffer.left() <= m_recv_buffer.packet_size());
-				
+
 				// this means the entire status line hasn't been received yet
 				if (m_parser.status_code() == -1)
 				{
@@ -321,7 +321,7 @@ namespace libtorrent
 						t->remove_web_seed(this, errors::missing_location, op_bittorrent, 2);
 						return;
 					}
-					
+
 					// add the redirected url and remove the current one
 					t->add_web_seed(location, web_seed_entry::http_seed);
 					t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);

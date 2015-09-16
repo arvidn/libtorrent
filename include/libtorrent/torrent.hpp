@@ -527,7 +527,7 @@ namespace libtorrent
 		// ============ end deprecation =============
 
 		void piece_availability(std::vector<int>& avail) const;
-		
+
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
@@ -1132,7 +1132,7 @@ namespace libtorrent
 			--m_num_connecting;
 		}
 
-		bool is_ssl_torrent() const { return m_ssl_torrent; } 
+		bool is_ssl_torrent() const { return m_ssl_torrent; }
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -1141,7 +1141,7 @@ namespace libtorrent
 		void set_ssl_cert_buffer(std::string const& certificate
 			, std::string const& private_key
 			, std::string const& dh_params);
-		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
+		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); }
 #endif
 
 		int num_time_critical_pieces() const
@@ -1526,7 +1526,7 @@ namespace libtorrent
 		// the DNS request queue, only one ip is resolved
 		// at a time.
 		mutable bool m_resolving_country:1;
-		
+
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries:1;
@@ -1579,11 +1579,11 @@ namespace libtorrent
 		// set to true if the session IP filter applies to this
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
-		
+
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
-		
+
 // ----
 
 		// the number of bytes of padding files

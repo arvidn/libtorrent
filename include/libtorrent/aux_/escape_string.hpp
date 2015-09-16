@@ -90,7 +90,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::wstring convert_to_wstring(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_wstring(std::wstring const& s);
 #endif
-	
+
 #if TORRENT_USE_ICONV || TORRENT_USE_LOCALE || defined TORRENT_WINDOWS
 	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
@@ -99,7 +99,7 @@ namespace libtorrent
 	inline std::string const& convert_to_native(std::string const& s) { return s; }
 	// internal
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
-#endif		
+#endif
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

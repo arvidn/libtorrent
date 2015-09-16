@@ -297,7 +297,7 @@ namespace
 				// we don't have to insert it
 				return;
 			}
-			
+
 			m_block_hashes.insert(i, std::pair<const piece_block, block_entry>(b, e));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -315,7 +315,7 @@ namespace
 				, print_address(p->ip().address()).c_str());
 #endif
 		}
-		
+
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
@@ -368,7 +368,7 @@ namespace
 			if (p->connection) p->connection->disconnect(
 				errors::peer_banned, op_bittorrent);
 		}
-		
+
 		torrent& m_torrent;
 
 		// This table maps a piece_block (piece and block index

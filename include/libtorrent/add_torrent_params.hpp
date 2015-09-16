@@ -135,10 +135,10 @@ namespace libtorrent
 			// if a torrent is created and seeded, or if the user already know
 			// that the files are complete, this is a way to avoid the initial
 			// file checks, and significantly reduce the startup time.
-			// 
+			//
 			// Setting ``flag_seed_mode`` on a torrent without metadata (a
 			// .torrent file) is a no-op and will be ignored.
-			// 
+			//
 			// If resume data is passed in with this torrent, the seed mode saved
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
@@ -164,7 +164,7 @@ namespace libtorrent
 			// periodically. This mode can be used to avoid race conditions when
 			// adjusting priorities of pieces before allowing the torrent to start
 			// downloading.
-			// 
+			//
 			// If the torrent is auto-managed (``flag_auto_managed``), the torrent
 			// will eventually be taken out of upload-mode, regardless of how it
 			// got there. If it's important to manually control when the torrent
@@ -180,13 +180,13 @@ namespace libtorrent
 			// download anything. This mode is intended to be safe to add any
 			// number of torrents to, without manual screening, without the risk
 			// of downloading more than is uploaded.
-			// 
+			//
 			// A torrent in share mode sets the priority to all pieces to 0,
 			// except for the pieces that are downloaded, when pieces are decided
 			// to be downloaded. This affects the progress bar, which might be set
 			// to "100% finished" most of the time. Do not change file or piece
 			// priorities for torrents in share mode, it will make it not work.
-			// 
+			//
 			// The share mode has one setting, the share ratio target, see
 			// ``session_settings::share_mode_target`` for more info.
 			flag_share_mode = 0x008,
@@ -209,13 +209,13 @@ namespace libtorrent
 			// may be resumed at any point, regardless of how it paused. If it's
 			// important to manually control when the torrent is paused and
 			// resumed, don't make it auto managed.
-			// 
+			//
 			// If ``flag_auto_managed`` is set, the torrent will be queued,
 			// started and seeded automatically by libtorrent. When this is set,
 			// the torrent should also be started as paused. The default queue
 			// order is the order the torrents were added. They are all downloaded
 			// in that order. For more details, see queuing_.
-			// 
+			//
 			// If you pass in resume data, the auto_managed state of the torrent
 			// when the resume data was saved will override the auto_managed state
 			// you pass in here. You can override this by setting
@@ -261,7 +261,7 @@ namespace libtorrent
 			, flag_ignore_flags = 0x80000000
 #endif
 		};
-	
+
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
 		int version;
@@ -346,12 +346,12 @@ namespace libtorrent
 		// be stopped and the torrent error state (``torrent_status::error``)
 		// will indicate what went wrong. The ``url`` may refer to a magnet link
 		// or a regular http URL.
-		// 
+		//
 		// If it refers to an HTTP URL, the info-hash for the added torrent will
 		// not be the true info-hash of the .torrent. Instead a placeholder,
 		// unique, info-hash is used which is later updated once the .torrent
 		// file has been downloaded.
-		// 
+		//
 		// Once the info-hash change happens, a torrent_update_alert is posted.
 		std::string url;
 
@@ -380,7 +380,7 @@ namespace libtorrent
 		// ``set_download_limit()`` functions on torrent_handle. These values let
 		// you initialize these settings when the torrent is added, instead of
 		// calling these functions immediately following adding it.
-		// 
+		//
 		// -1 means unlimited on these settings just like their counterpart
 		// functions on torrent_handle
 		int max_uploads;

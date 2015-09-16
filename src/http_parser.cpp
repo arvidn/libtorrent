@@ -71,14 +71,14 @@ namespace libtorrent
 
 		// if location is a full URL, just return it
 		if (!ec) return location;
-	
+
 		// otherwise it's likely to be just the path, or a relative path
 		std::string url = referrer;
 
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
-			// referrer with location. 
+			// referrer with location.
 
 			// first skip the url scheme of the referer
 			std::size_t i = url.find("://");
@@ -372,7 +372,7 @@ restart_response:
 					{
 						m_partial_chunk_header += incoming;
 						header_size = incoming;
-						
+
 //						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"
@@ -415,7 +415,7 @@ restart_response:
 		}
 		return ret;
 	}
-	
+
 	bool http_parser::parse_chunk_header(buffer::const_interval buf
 		, boost::int64_t* chunk_size, int* header_size)
 	{

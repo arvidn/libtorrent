@@ -91,7 +91,7 @@ void test_checking(int flags = read_only_files)
 	create_directory(combine_path("tmp1_checking", "test_torrent_dir"), ec);
 	if (ec) fprintf(stderr, "ERROR: creating directory test_torrent_dir: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
-	
+
 	file_storage fs;
 	std::srand(10);
 	int piece_size = 0x4000;

@@ -75,7 +75,7 @@ namespace libtorrent
 		return m_filter4.export_filter<address_v4>();
 #endif
 	}
-	
+
 	void port_filter::add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags)
 	{
 		m_filter.add_rule(first, last, flags);

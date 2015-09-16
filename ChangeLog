@@ -503,7 +503,7 @@
 	* support banning web seeds sending corrupt data
 	* don't let hung outgoing connection attempts block incoming connections
 	* improve SSL torrent support by using SNI and a single SSL listen socket
-	* improved peer exchange performance by sharing incoming connections which advertize listen port 
+	* improved peer exchange performance by sharing incoming connections which advertize listen port
 	* deprecate set_ratio(), and per-peer rate limits
 	* add web seed support for torrents with pad files
 	* introduced a more scalable API for torrent status updates (post_torrent_updates()) and updated client_test to use it
@@ -1152,7 +1152,7 @@ release 0.14
 	* Improved UPnP support by ignoring routers not on the clients subnet.
 
 release 0.13
-	
+
 	* Added scrape support
 	* Added add_extension() to torrent_handle. Can instantiate
 	  extensions for torrents while downloading
@@ -1208,9 +1208,9 @@ release 0.13
 	  	bool torrent_handle::is_piece_filtered(int index) const;
 	  	std::vector<bool> torrent_handle::filtered_pieces() const;
 	  	void torrent_handle::filter_files(std::vector<bool> const& files) const;
-	  
+
 	  instead, use the piece_priority functions.
-	  
+
 	* added support for NAT-PMP
 	* added support for piece priorities. Piece filtering is now set as
 	  a priority
@@ -1252,7 +1252,7 @@ release 0.12
 	* added more client peer-id signatures to be recognized.
 	* added support for HTTP servers that skip the CR before the NL at line breaks.
 	* fixed bug in the HTTP code that only accepted headers case sensitive.
-	* fixed bug where one of the session constructors didn't initialize boost.filesystem. 
+	* fixed bug where one of the session constructors didn't initialize boost.filesystem.
 	* fixed bug when the initial checking of a torrent fails with an exception.
 	* fixed bug in DHT code which would send incorrect announce messages.
 	* fixed bug where the http header parser was case sensitive to the header

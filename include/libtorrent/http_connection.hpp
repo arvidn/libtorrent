@@ -203,7 +203,7 @@ private:
 
 	// maximum size of bottled buffer
 	int m_max_bottled_buffer_size;
-	
+
 	// the current download limit, in bytes per second
 	// 0 is unlimited.
 	int m_rate_limit;

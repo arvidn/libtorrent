@@ -4022,7 +4022,7 @@ namespace libtorrent
 				}
 				fputs("\n", stderr);
 			}
-			
+
 			fputs("downloading pieces:\n", stderr);
 
 			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
@@ -5819,7 +5819,7 @@ namespace libtorrent
 	{
 		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
 			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
-		if (k != m_trackers.end()) 
+		if (k != m_trackers.end())
 		{
 			k->source |= url.source;
 			return false;
@@ -6529,7 +6529,7 @@ namespace libtorrent
 				, boost::int64_t(web->peer_info.prev_amount_upload) << 10);
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
-#ifndef TORRENT_DISABLE_LOGGING 
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("web seed connection started: [%s] %s"
 				, print_endpoint(a).c_str(), web->url.c_str());
 #endif
@@ -6679,7 +6679,7 @@ namespace libtorrent
 		int idx = 0;
 		while (idx < host_list.size() && !host_list[idx].is_v4())
 			++idx;
-			
+
 		if (idx >= host_list.size())
 		{
 			p->set_country("--");
@@ -6688,7 +6688,7 @@ namespace libtorrent
 
 		// country is an ISO 3166 country code
 		int country = host_list[idx].to_v4().to_ulong() & 0xffff;
-			
+
 		// look up the country code in the map
 		const int size = sizeof(country_map)/sizeof(country_map[0]);
 		country_entry tmp = {country, ""};
@@ -8255,7 +8255,7 @@ namespace libtorrent
 
 		lhs_transferred /= lhs_time_connected + 1;
 		rhs_transferred /= (rhs_time_connected + 1);
-		if (lhs_transferred != rhs_transferred)	
+		if (lhs_transferred != rhs_transferred)
 			return lhs_transferred < rhs_transferred;
 
 		// prefer to disconnect peers that chokes us
@@ -9356,7 +9356,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	// this is an async operation triggered by the client	
+	// this is an async operation triggered by the client
 	// TODO: add a flag to ignore stats, and only care about resume data for
 	// content. For unchanged files, don't trigger a load of the metadata
 	// just to save an empty resume data file
@@ -10585,7 +10585,7 @@ namespace libtorrent
 			if (info[k].num_peers > timed_out)
 				continue;
 
-			busy_blocks[busy_count].peers = info[k].num_peers; 
+			busy_blocks[busy_count].peers = info[k].num_peers;
 			busy_blocks[busy_count].index = k;
 			++busy_count;
 
@@ -11355,7 +11355,7 @@ namespace libtorrent
 			fp.clear();
 			return;
 		}
-	
+
 		if (!need_loaded()) return;
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;

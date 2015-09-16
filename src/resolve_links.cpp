@@ -67,7 +67,7 @@ void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
 {
 	if (!ti) return;
 
-	// only torrents with the same 
+	// only torrents with the same
 	if (ti->piece_length() != m_torrent_file->piece_length()) return;
 
 	int piece_size = ti->piece_length();

@@ -94,7 +94,7 @@ namespace libtorrent
 		};
 
 		~bt_peer_connection();
-		
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		bool supports_encryption() const
 		{ return m_encrypted; }
@@ -242,7 +242,7 @@ namespace libtorrent
 		void write_reject_request(peer_request const&) TORRENT_OVERRIDE;
 		void write_allow_fast(int piece) TORRENT_OVERRIDE;
 		void write_suggest(int piece) TORRENT_OVERRIDE;
-		
+
 		void on_connected() TORRENT_OVERRIDE;
 		void on_metadata() TORRENT_OVERRIDE;
 
@@ -327,7 +327,7 @@ private:
 			read_packet_size,
 			read_packet
 		};
-		
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		enum
 		{
@@ -398,7 +398,7 @@ private:
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.
 		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
-		
+
 		// used during an encrypted handshake then moved
 		// into m_enc_handler if rc4 encryption is negotiated
 		// otherwise it is destroyed when the handshake completes

@@ -814,7 +814,7 @@ returns
 </pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(16)">../src/escape_string.cpp:209</a></td><td>this should probably be moved into string_util.cpp</td></tr><tr id="16" style="display: none;" colspan="3"><td colspan="3"><h2>this should probably be moved into string_util.cpp</h2><h4>../src/escape_string.cpp:209</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		}
 		return false;
 	}
-	
+
 	void convert_path_to_posix(std::string&amp; path)
 	{
 		for (std::string::iterator i = path.begin()
@@ -853,7 +853,7 @@ returns
 		error_code ec;
 		boost::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
 		if (ec) return url;
-		
+
 		// first figure out if this url contains unencoded characters
 		if (!need_encoding(path.c_str(), path.size()))
 			return url;
@@ -2200,7 +2200,7 @@ for now, just make bind failures non-fatal</h2><h4>../src/udp_socket.cpp:734</h4
 			tracker_connection::fail(ec);
 			return;
 		}
-		
+
 		aux::session_settings const&amp; settings = m_man.settings();
 
 		if (settings.get_bool(settings_pack::proxy_hostnames)
@@ -2524,7 +2524,7 @@ node_id calculate_node_id(node_id const&amp; nid, dht_observer* observer)
 	if (observer) external_address = observer-&gt;external_address();
 	if (nid == (node_id::min)() || !verify_id(nid, external_address))
 		return generate_id(external_address);
-  	
+
 	return nid;
 }
 
@@ -3484,7 +3484,7 @@ to its own class, not part of the session</h2><h4>../include/libtorrent/aux_/ses
 
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(boost::shared_ptr&lt;peer_connection&gt; const&amp; c) = 0;
-		
+
 		virtual void queue_async_resume_data(boost::shared_ptr&lt;torrent&gt; const&amp; t) = 0;
 		virtual void done_async_resume() = 0;
 		virtual void evict_torrent(torrent* t) = 0;
@@ -3497,7 +3497,7 @@ to its own class, not part of the session</h2><h4>../include/libtorrent/aux_/ses
 		virtual void ban_ip(address addr) = 0;
 
 		virtual boost::int64_t session_time() const = 0;
-	
+
 		virtual bool is_paused() const = 0;
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;
@@ -3965,13 +3965,13 @@ use allocate_disk_receive_buffer and release_disk_receive_buffer</h2><h4>../incl
 		std::deque&lt;int&gt; m_file_requests;
 
 		std::string m_url;
-	
+
 		web_seed_t* m_web;
-			
+
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
 <div style="background: #ffff00" width="100%">		std::vector&lt;char&gt; m_piece;
-</div>		
+</div>
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts
@@ -4194,7 +4194,7 @@ which session is making the connection as well</h2><h4>../test/test_metadata_ext
 	lt::session* seed = &amp;ses1;
 
 	boost::tie(tor1, tor2, ignore) = setup_transfer(seed, downloader, NULL
-		, flags &amp; clear_files, true, false, "_meta");	
+		, flags &amp; clear_files, true, false, "_meta");
 
 	if (flags &amp; upload_only)
 	{
@@ -5445,7 +5445,7 @@ cached_piece_entry pointers with piece_refcount incremented to pin them</h2><h4>
 
 		// when the write cache is under high pressure, it is likely
 		// counter productive to actually do this, since a piece may
-		// not have had its flush_hashed job run on it 
+		// not have had its flush_hashed job run on it
 		// so only do it if no other thread is currently flushing
 
 		if (num == 0 || m_stats_counters[counters::num_writing_threads] &gt; 0) return;
@@ -5527,9 +5527,9 @@ any thread. It would only work if counters::num_running_disk_jobs > 0</h2><h4>..
 			// our quanta in case there aren't any other
 			// jobs to run in between
 
-<div style="background: #ffff00" width="100%">			
+<div style="background: #ffff00" width="100%">
 </div>			TORRENT_ASSERT((j-&gt;flags &amp; disk_io_job::in_progress) || !j-&gt;storage);
-	
+
 			bool need_sleep = m_queued_jobs.empty();
 			m_queued_jobs.push_back(j);
 			l.unlock();
@@ -5547,9 +5547,9 @@ any thread. It would only work if counters::num_running_disk_jobs > 0</h2><h4>..
 			// our quanta in case there aren't any other
 			// jobs to run in between
 
-			
+
 			TORRENT_ASSERT((j-&gt;flags &amp; disk_io_job::in_progress) || !j-&gt;storage);
-	
+
 			bool need_sleep = m_queued_jobs.empty();
 			m_queued_jobs.push_back(j);
 			l.unlock();
@@ -5731,7 +5731,7 @@ it would be to have a fence for just this one piece.</h2><h4>../src/disk_io_thre
 
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		
+
 		// keep track of which blocks we have locked by incrementing
 		// their refcounts. This is used to decrement only these blocks
 		// later.
@@ -5812,7 +5812,7 @@ turn through this loop</h2><h4>../src/disk_io_thread.cpp:2688</h4><pre style="ba
 		int block_size = m_disk_cache.block_size();
 		int piece_size = j-&gt;storage-&gt;files()-&gt;piece_size(j-&gt;piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		
+
 		file::iovec_t iov;
 		int ret = 0;
 		int offset = 0;
@@ -6141,7 +6141,7 @@ and flushing it, update the slot entries as we go</h2><h4>../src/part_file.cpp:3
 			// part file, remove it
 			std::string p = combine_path(m_path, m_name);
 			remove(p, ec);
-		
+
 			if (ec == boost::system::errc::no_such_file_or_directory)
 				ec.clear();
 			return;
@@ -6326,7 +6326,7 @@ because we may have encrypted data which we cannot authenticate yet</h2><h4>../s
 				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 				return;
 			}
-	
+
 			TORRENT_ASSERT(bytes_transferred &gt; 0);
 			m_recv_buffer.received(bytes_transferred);
 
@@ -7946,7 +7946,7 @@ just to save an empty resume data file</h2><h4>../src/torrent.cpp:9255</h4><pre 
 		return ret;
 	}
 
-	// this is an async operation triggered by the client	
+	// this is an async operation triggered by the client
 <div style="background: #ffff00" width="100%">	void torrent::save_resume_data(int flags)
 </div>	{
 		TORRENT_ASSERT(is_single_thread());
@@ -8307,7 +8307,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		INVARIANT_CHECK;
 
 		// we only want left-over bandwidth
-<div style="background: #ffff00" width="100%">		
+<div style="background: #ffff00" width="100%">
 </div>		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
@@ -9173,7 +9173,7 @@ and is disconnected.</h2><h4>../include/libtorrent/settings_pack.hpp:1086</h4><p
 			// essentially the same thing as disabling read cache. The number of
 			// blocks read into the read cache is always capped by the piece
 			// boundry.
-			// 
+			//
 			// When a piece in the write cache has ``write_cache_line_size``
 			// contiguous blocks in it, they will be flushed. Setting this to 1
 			// effectively disables the write cache.
@@ -9208,7 +9208,7 @@ and is disconnected.</h2><h4>../include/libtorrent/settings_pack.hpp:1086</h4><p
 		// these are the pieces we're currently
 		// suggesting to peers.
 		std::vector&lt;suggest_piece_t&gt; m_suggested_pieces;
-		
+
 		std::vector&lt;announce_entry&gt; m_trackers;
 		// this is an index into m_trackers
 
@@ -9291,7 +9291,7 @@ announce</h2><h4>../include/libtorrent/torrent_info.hpp:118</h4><pre style="back
 		// returns the number of seconds to the next announce on this tracker.
 		// ``min_announce_in()`` returns the number of seconds until we are
 		// allowed to force another tracker update with this tracker.
-		// 
+		//
 		// If the last time this tracker was contacted failed, ``last_error`` is
 		// the error code describing what error occurred.
 		int next_announce_in() const;
@@ -9364,15 +9364,15 @@ specifically to turn some std::string and std::vector into pointers</h2><h4>../i
 		// internally when downloading torrents without the metadata. The
 		// metadata will be created by libtorrent as soon as it has been
 		// downloaded from the swarm.
-		// 
+		//
 		// The constructor that takes a bdecode_node will create a torrent_info
 		// object from the information found in the given torrent_file. The
 		// bdecode_node represents a tree node in an bencoded file. To load an
 		// ordinary .torrent file into a bdecode_node, use bdecode().
-		// 
+		//
 		// The version that takes a buffer pointer and a size will decode it as a
 		// .torrent file and initialize the torrent_info object for you.
-		// 
+		//
 		// The version that takes a filename will simply load the torrent file
 		// and decode it inside the constructor, for convenience. This might not
 		// be the most suitable for applications that want to be able to report
@@ -9381,7 +9381,7 @@ specifically to turn some std::string and std::vector into pointers</h2><h4>../i
 		// There is an upper limit on the size of the torrent file that will be
 		// loaded by the overload taking a filename. If it's important that even
 		// very large torrent files are loaded, use one of the other overloads.
-		// 
+		//
 		// The overloads that takes an ``error_code const&amp;`` never throws if an
 		// error occur, they will simply set the error code to describe what went
 		// wrong and not fully initialize the torrent_info object. The overloads
@@ -9619,7 +9619,7 @@ public:
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-			boost::asio::ssl::context* ssl_ctx() { return &amp;m_ssl_ctx; } 
+			boost::asio::ssl::context* ssl_ctx() { return &amp;m_ssl_ctx; }
 			void on_incoming_utp_ssl(boost::shared_ptr&lt;socket_type&gt; const&amp; s);
 			void ssl_handshake(error_code const&amp; ec, boost::shared_ptr&lt;socket_type&gt; s);
 #endif

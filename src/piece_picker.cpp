@@ -2352,7 +2352,7 @@ get_out:
 			// we either don't have this piece, or we've already requested from it
 			if (!pieces[dp.index]) continue;
 
-			// if we already have the piece, obviously we should not have 
+			// if we already have the piece, obviously we should not have
 			// since this is a partial piece in the piece_downloading state, we
 			// should not already have it
 			TORRENT_ASSERT(!m_piece_map[dp.index].have());
