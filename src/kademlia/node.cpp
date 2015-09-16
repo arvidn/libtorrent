@@ -508,8 +508,10 @@ void node::tick()
 {
 	// every now and then we refresh our own ID, just to keep
 	// expanding the routing table buckets closer to us.
+	// if m_table.depth() < 4, means routing_table doesn't
+	// have enough nodes.
 	time_point now = aux::time_now();
-	if (m_last_self_refresh + minutes(10) < now)
+	if (m_last_self_refresh + minutes(10) < now && m_table.depth() < 4)
 	{
 		node_id target = m_id;
 		make_id_secret(target);
