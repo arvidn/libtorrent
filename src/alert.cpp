@@ -1492,11 +1492,18 @@ namespace libtorrent {
 	std::string dht_put_alert::message() const
 	{
 		char msg[1050];
-		snprintf(msg, sizeof(msg), "DHT put complete (key=%s sig=%s salt=%s seq=%" PRId64 ")"
-			, to_hex(std::string(&public_key[0], 32)).c_str()
-			, to_hex(std::string(&signature[0], 64)).c_str()
-			, salt.c_str()
-			, seq);
+		if (target.is_all_zeros())
+		{
+			snprintf(msg, sizeof(msg), "DHT put complete (key=%s sig=%s salt=%s seq=%" PRId64 ")"
+				, to_hex(std::string(&public_key[0], 32)).c_str()
+				, to_hex(std::string(&signature[0], 64)).c_str()
+				, salt.c_str()
+				, seq);
+			return msg;
+		}
+
+		snprintf(msg, sizeof(msg), "DHT put complete (hash=%s)"
+			, to_hex(target.to_string()).c_str());
 		return msg;
 	}
 
