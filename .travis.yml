@@ -38,8 +38,8 @@ addons:
     - g++-4.8
 
 before_install:
-  - git submodule update --init --recursive
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew install --quiet ccache boost-build boost-python; fi
+  - git submodule update --init --recursive  --depth=1
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
 
 # disable simulations on OSX for now. It hangs on travis
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
