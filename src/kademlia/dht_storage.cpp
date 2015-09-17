@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 
+#include <string.h> // for memset
+
 namespace libtorrent {
 namespace dht {
 namespace
@@ -198,12 +200,11 @@ namespace
 
 	public:
 
-		dht_default_storage(sha1_hash const& id, dht_settings const& settings
-			, counters& cnt)
+		dht_default_storage(sha1_hash const& id, dht_settings const& settings)
 			: m_id(id)
 			, m_settings(settings)
-			, m_counters(cnt)
 		{
+			memset(&m_counters, 0, sizeof(m_counters));
 		}
 
 		~dht_default_storage() {}
@@ -295,9 +296,9 @@ namespace
 						candidate = i;
 					}
 					m_map.erase(candidate);
-					m_counters.inc_stats_counter(counters::dht_torrents, -1);
+					m_counters.torrents -= 1;
 				}
-				m_counters.inc_stats_counter(counters::dht_torrents);
+				m_counters.torrents += 1;
 				v = &m_map[info_hash];
 			}
 			else
@@ -353,7 +354,7 @@ namespace
 					TORRENT_ASSERT(j != m_immutable_table.end());
 					free(j->second.value);
 					m_immutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
+					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
 				to_add.value = static_cast<char*>(malloc(size));
@@ -362,7 +363,7 @@ namespace
 
 				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
 					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_immutable_data);
+				m_counters.immutable_data += 1;
 			}
 
 //			fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
@@ -423,7 +424,7 @@ namespace
 					free(j->second.value);
 					free(j->second.salt);
 					m_mutable_table.erase(j);
-					m_counters.inc_stats_counter(counters::dht_mutable_data, -1);
+					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
 				to_add.value = static_cast<char*>(malloc(size));
@@ -443,7 +444,7 @@ namespace
 
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
-				m_counters.inc_stats_counter(counters::dht_mutable_data);
+				m_counters.mutable_data += 1;
 
 //				fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
 			}
@@ -483,7 +484,7 @@ namespace
 				}
 				free(i->second.value);
 				m_immutable_table.erase(i++);
-				m_counters.inc_stats_counter(counters::dht_immutable_data, -1);
+				m_counters.immutable_data -= 1;
 			}
 
 			// look through all peers and see if any have timed out
@@ -501,15 +502,20 @@ namespace
 				if (it != m_map.end())
 				{
 					m_map.erase(it);
-					m_counters.inc_stats_counter(counters::dht_torrents, -1);
+					m_counters.torrents -= 1;
 				}
 			}
+		}
+
+		virtual dht_storage_counters counters() const TORRENT_OVERRIDE
+		{
+			return m_counters;
 		}
 
 	private:
 		sha1_hash m_id;
 		dht_settings const& m_settings;
-		counters& m_counters;
+		dht_storage_counters m_counters;
 
 		table_t m_map;
 		dht_immutable_table_t m_immutable_table;
@@ -518,10 +524,9 @@ namespace
 }
 
 dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
-	, dht_settings const& settings
-	, counters& counters)
+	, dht_settings const& settings)
 {
-	return new dht_default_storage(id, settings, counters);
+	return new dht_default_storage(id, settings);
 }
 
 } } // namespace libtorrent::dht

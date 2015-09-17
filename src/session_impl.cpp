@@ -4417,6 +4417,11 @@ retry:
 	{
 		m_disk_thread.update_stats_counters(m_stats_counters);
 
+#ifndef TORRENT_DISABLE_DHT
+		if (m_dht)
+			m_dht->update_stats_counters(m_stats_counters);
+#endif
+
 		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
 			, m_stat.total_transfer(stat::upload_ip_protocol));
 

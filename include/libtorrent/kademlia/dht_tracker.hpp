@@ -114,6 +114,7 @@ namespace libtorrent { namespace dht
 #endif
 		void dht_status(std::vector<dht_routing_bucket>& table
 			, std::vector<dht_lookup>& requests);
+		void update_stats_counters(counters& c) const;
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library

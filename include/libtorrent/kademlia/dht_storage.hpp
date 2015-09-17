@@ -50,6 +50,15 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace dht
 {
+	// This structure hold the relevant counters for the storage
+	struct TORRENT_EXPORT dht_storage_counters
+	{
+		boost::int32_t torrents;
+		boost::int32_t peers;
+		boost::int32_t immutable_data;
+		boost::int32_t mutable_data;
+	};
+
 	// The DHT storage interface is a pure virtual class that can
 	// be implemented to customize how the data for the DHT is stored.
 	//
@@ -186,12 +195,13 @@ namespace dht
 		//
 		virtual void tick() = 0;
 
+		virtual dht_storage_counters counters() const = 0;
+
 		virtual ~dht_storage_interface() {}
 	};
 
 	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
-		, dht_settings const& settings
-		, counters& counters);
+		, dht_settings const& settings);
 
 } } // namespace libtorrent::dht
 

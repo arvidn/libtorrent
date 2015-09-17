@@ -98,7 +98,7 @@ node::node(udp_socket_interface* sock
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
 	, m_counters(cnt)
-	, m_storage(dht_default_storage_constructor(m_id, m_settings, m_counters))
+	, m_storage(dht_default_storage_constructor(m_id, m_settings))
 {
 	m_secret[0] = random();
 	m_secret[1] = random();
@@ -601,6 +601,18 @@ void node::status(std::vector<dht_routing_bucket>& table
 		dht_lookup& lookup = requests.back();
 		(*i)->status(lookup);
 	}
+}
+
+// TODO: in the future, this function should update all the
+// dht related counter. For now, it just update the storage
+// related ones.
+void node::update_stats_counters(counters& c) const
+{
+	const dht_storage_counters& dht_cnt = m_storage->counters();
+	c.set_value(counters::dht_torrents, dht_cnt.torrents);
+	c.set_value(counters::dht_peers, dht_cnt.peers);
+	c.set_value(counters::dht_immutable_data, dht_cnt.immutable_data);
+	c.set_value(counters::dht_mutable_data, dht_cnt.mutable_data);
 }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1154,4 +1166,5 @@ void node::incoming_request(msg const& m, entry& e)
 		return;
 	}
 }
+
 } } // namespace libtorrent::dht

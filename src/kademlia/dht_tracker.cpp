@@ -171,6 +171,11 @@ namespace libtorrent { namespace dht
 		m_dht.status(table, requests);
 	}
 
+	void dht_tracker::update_stats_counters(counters& c) const
+	{
+		m_dht.update_stats_counters(c);
+	}
+
 	void dht_tracker::connection_timeout(error_code const& e)
 	{
 		if (e || m_abort) return;
