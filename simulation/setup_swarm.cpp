@@ -51,8 +51,9 @@ namespace {
 
 struct swarm
 {
-	swarm(int num_nodes, swarm_setup_provider& config)
-		: m_config(config)
+	swarm(int num_nodes, sim::simulation& sim, swarm_setup_provider& config)
+		: m_sim(sim)
+		, m_config(config)
 		, m_ios(m_sim, asio::ip::address_v4::from_string("0.0.0.0"))
 		, m_start_time(lt::clock_type::now())
 		, m_timer(m_ios)
@@ -94,13 +95,9 @@ struct swarm
 	{
 		if (ec || m_shutting_down) return;
 
-		lt::time_duration d = lt::clock_type::now() - m_start_time;
-		boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-		printf("%4d.%03d: TICK %d\n", millis / 1000, millis % 1000, m_tick);
-
 		++m_tick;
 
-		if (m_tick > 120)
+		if (m_config.tick(m_tick))
 		{
 			terminate();
 			return;
@@ -190,10 +187,9 @@ struct swarm
 
 private:
 
+	sim::simulation& m_sim;
 	swarm_setup_provider& m_config;
 
-	sim::default_config cfg;
-	sim::simulation m_sim{cfg};
 	asio::io_service m_ios;
 	lt::time_point m_start_time;
 
@@ -210,7 +206,14 @@ private:
 
 void setup_swarm(int num_nodes, swarm_setup_provider& cfg)
 {
-	swarm s(num_nodes, cfg);
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	setup_swarm(num_nodes, sim, cfg);
+}
+
+void setup_swarm(int num_nodes, sim::simulation& sim, swarm_setup_provider& cfg)
+{
+	swarm s(num_nodes, sim, cfg);
 	s.run();
 }
 

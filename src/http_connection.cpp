@@ -432,8 +432,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	time_point now = clock_type::now();
 
-	if (c->m_start_time + c->m_completion_timeout < now
-		|| c->m_last_receive + c->m_read_timeout < now)
+	if (c->m_start_time + c->m_completion_timeout <= now
+		|| c->m_last_receive + c->m_read_timeout <= now)
 	{
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
