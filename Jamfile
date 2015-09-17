@@ -701,6 +701,7 @@ SOURCES =
 	;
 
 KADEMLIA_SOURCES =
+	dht_storage
 	dht_tracker
 	node
 	node_entry

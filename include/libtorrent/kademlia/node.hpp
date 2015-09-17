@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 #include <libtorrent/config.hpp>
+#include <libtorrent/kademlia/dht_storage.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
@@ -102,65 +103,6 @@ void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
 
 void incoming_error(entry& e, char const* msg, int error_code = 203);
 
-// this is the entry for every peer
-// the timestamp is there to make it possible
-// to remove stale peers
-struct peer_entry
-{
-	time_point added;
-	tcp::endpoint addr;
-	bool seed;
-};
-
-// this is a group. It contains a set of group members
-struct torrent_entry
-{
-	std::string name;
-	std::set<peer_entry> peers;
-};
-
-struct dht_immutable_item
-{
-	dht_immutable_item() : value(0), num_announcers(0), size(0) {}
-	// malloced space for the actual value
-	char* value;
-	// this counts the number of IPs we have seen
-	// announcing this item, this is used to determine
-	// popularity if we reach the limit of items to store
-	bloom_filter<128> ips;
-	// the last time we heard about this
-	time_point last_seen;
-	// number of IPs in the bloom filter
-	int num_announcers;
-	// size of malloced space pointed to by value
-	int size;
-};
-
-struct ed25519_public_key { char bytes[item_pk_len]; };
-
-struct dht_mutable_item : dht_immutable_item
-{
-	char sig[item_sig_len];
-	boost::uint64_t seq;
-	ed25519_public_key key;
-	char* salt;
-	int salt_size;
-};
-
-// internal
-inline bool operator<(ed25519_public_key const& lhs, ed25519_public_key const& rhs)
-{
-	return memcmp(lhs.bytes, rhs.bytes, sizeof(lhs.bytes)) < 0;
-}
-
-// internal
-inline bool operator<(peer_entry const& lhs, peer_entry const& rhs)
-{
-	return lhs.addr.address() == rhs.addr.address()
-		? lhs.addr.port() < rhs.addr.port()
-		: lhs.addr.address() < rhs.addr.address();
-}
-
 struct null_type {};
 
 class announce_observer : public observer
@@ -174,17 +116,6 @@ public:
 	void reply(msg const&) { flags |= flag_done; }
 };
 
-struct count_peers
-{
-	int* count;
-	count_peers(int* c): count(c) {}
-	void operator()(std::pair<libtorrent::dht::node_id
-		, libtorrent::dht::torrent_entry> const& t)
-	{
-		*count += t.second.peers.size();
-	}
-};
-
 struct udp_socket_interface
 {
 	virtual bool has_quota() = 0;
@@ -195,16 +126,12 @@ protected:
 
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
-typedef std::map<node_id, torrent_entry> table_t;
-typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
-typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
-
 public:
 	node(udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt);
 
-	virtual ~node() {}
+	virtual ~node();
 
 	void tick();
 	void bootstrap(std::vector<udp::endpoint> const& nodes
@@ -214,13 +141,10 @@ public:
 	void unreachable(udp::endpoint const& ep);
 	void incoming(msg const& m);
 
-	int num_torrents() const { return m_map.size(); }
-	int num_peers() const
-	{
-		int ret = 0;
-		std::for_each(m_map.begin(), m_map.end(), count_peers(&ret));
-		return ret;
-	}
+#ifndef TORRENT_NO_DEPRECATE
+	int num_torrents() const { return m_storage->num_torrents(); }
+	int num_peers() const { return m_storage->num_peers(); }
+#endif
 
 	int bucket_size(int bucket);
 
@@ -230,7 +154,9 @@ public:
 	boost::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
-	int data_size() const { return int(m_map.size()); }
+#ifndef TORRENT_NO_DEPRECATE
+	int data_size() const { return int(m_storage->num_torrents()); }
+#endif
 
 #if defined TORRENT_DEBUG
 	void print_state(std::ostream& os) const
@@ -326,10 +252,6 @@ public:
 private:
 	dht_observer* m_observer;
 
-	table_t m_map;
-	dht_immutable_table_t m_immutable_table;
-	dht_mutable_table_t m_mutable_table;
-	
 	time_point m_last_tracker_tick;
 
 	// the last time we issued a bootstrap or a refresh on our own ID, to expand
@@ -341,10 +263,10 @@ private:
 
 	udp_socket_interface* m_sock;
 	counters& m_counters;
-};
 
+	boost::scoped_ptr<dht_storage_interface> m_storage;
+};
 
 } } // namespace libtorrent::dht
 
 #endif // NODE_HPP
-
