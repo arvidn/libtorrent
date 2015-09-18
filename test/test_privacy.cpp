@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 #include <fstream>
 

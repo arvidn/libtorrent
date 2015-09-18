@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 using namespace libtorrent;
 

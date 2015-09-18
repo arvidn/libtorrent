@@ -2,6 +2,8 @@
 #define TORRENT_VIEW_HPP_
 
 #include <set>
+#include <vector>
+#include <boost/unordered_set.hpp>
 
 #include "libtorrent/torrent_handle.hpp"
 

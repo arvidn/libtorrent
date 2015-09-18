@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 #include <boost/make_shared.hpp>
 #include <boost/utility.hpp>

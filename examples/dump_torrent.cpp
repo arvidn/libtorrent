@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
 

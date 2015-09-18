@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/parse_url.hpp"
@@ -1307,6 +1308,15 @@ namespace libtorrent
 					get_handle(), r.piece, rp->piece_data, size);
 			}
 		}
+	}
+
+	storage_mode_t torrent::storage_mode() const
+	{ return storage_mode_t(m_storage_mode); }
+
+	storage_interface* torrent::get_storage()
+	{
+		if (!m_storage) return 0;
+		return m_storage->get_storage_impl();
 	}
 
 	void torrent::need_picker()

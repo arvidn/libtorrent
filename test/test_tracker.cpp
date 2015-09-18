@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp" // for parse_tracker_response
+#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 #include <fstream>
 

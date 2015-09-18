@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 enum flags_t
 {

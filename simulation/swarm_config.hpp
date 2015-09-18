@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/torrent_status.hpp"
 #include "setup_swarm.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp" // for create_torrent

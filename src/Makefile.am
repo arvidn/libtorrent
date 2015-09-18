@@ -35,6 +35,7 @@ libtorrent_rasterbar_la_SOURCES = \
   alert.cpp                       \
   alert_manager.cpp               \
   allocator.cpp                   \
+  announce_entry.cpp              \
   assert.cpp                      \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \

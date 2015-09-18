@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 #include <string>
 

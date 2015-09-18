@@ -9,6 +9,7 @@ nobase_include_HEADERS = \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
+  announce_entry.hpp           \
   assert.hpp                   \
   bandwidth_limit.hpp          \
   bandwidth_manager.hpp        \
@@ -138,6 +139,7 @@ nobase_include_HEADERS = \
   torrent_peer.hpp             \
   torrent_peer_allocator.hpp   \
   tracker_manager.hpp          \
+  torrent_status.hpp           \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
   uncork_interface.hpp         \

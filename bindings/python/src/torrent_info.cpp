@@ -4,10 +4,11 @@
 
 #include <boost/python.hpp>
 #include <boost/shared_ptr.hpp>
-#include <libtorrent/torrent_info.hpp>
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;

@@ -14,6 +14,7 @@
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
+#include <libtorrent/torrent_info.hpp>
 
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
