@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_swarm.hpp"
 #include "swarm_config.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
 #include "test.hpp"
 

@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 namespace libtorrent { namespace
 {

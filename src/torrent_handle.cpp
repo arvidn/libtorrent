@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/thread.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push

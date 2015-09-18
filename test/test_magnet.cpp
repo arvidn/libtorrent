@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/torrent_info.hpp" // for announce_entry
+#include "libtorrent/announce_entry.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;

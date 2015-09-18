@@ -44,8 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -599,88 +601,6 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	announce_entry::announce_entry(std::string const& u)
-		: url(u)
-		, next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
-		, fails(0)
-		, updating(false)
-		, source(0)
-		, verified(false)
-		, start_sent(false)
-		, complete_sent(false)
-		, send_stats(true)
-	{}
-
-	announce_entry::announce_entry()
-		: next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
-		, fails(0)
-		, updating(false)
-		, source(0)
-		, verified(false)
-		, start_sent(false)
-		, complete_sent(false)
-		, send_stats(true)
-	{}
-
-	announce_entry::~announce_entry() {}
-
-	int announce_entry::next_announce_in() const
-	{ return total_seconds(next_announce - aux::time_now()); }
-
-	int announce_entry::min_announce_in() const
-	{ return total_seconds(min_announce - aux::time_now()); }
-
-	void announce_entry::reset()
-	{
-		start_sent = false;
-		next_announce = min_time();
-		min_announce = min_time();
-	}
-
-	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
-	{
-		++fails;
-		// the exponential back-off ends up being:
-		// 7, 15, 27, 45, 95, 127, 165, ... seconds
-		// with the default tracker_backoff of 250
-		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
-			, int(tracker_retry_delay_max));
-		delay = (std::max)(delay, retry_interval);
-		next_announce = aux::time_now() + seconds(delay);
-		updating = false;
-	}
-
-	bool announce_entry::can_announce(time_point now, bool is_seed) const
-	{
-		// if we're a seed and we haven't sent a completed
-		// event, we need to let this announce through
-		bool need_send_complete = is_seed && !complete_sent;
-
-		return now >= next_announce
-			&& (now >= min_announce || need_send_complete)
-			&& (fails < fail_limit || fail_limit == 0)
-			&& !updating;
-	}
-
-	void announce_entry::trim()
-	{
-		while (!url.empty() && is_space(url[0]))
-			url.erase(url.begin());
-	}
-
 	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
 		, std::string const& auth_
 		, headers_t const& extra_headers_)
@@ -1157,6 +1077,9 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_loaded());
 	}
 
+	sha1_hash torrent_info::hash_for_piece(int index) const
+	{ return sha1_hash(hash_for_piece_ptr(index)); }
+
 	void torrent_info::copy_on_write()
 	{
 		TORRENT_ASSERT(is_loaded());
@@ -1378,6 +1301,19 @@ namespace libtorrent
 		}
 		return true;
 	}
+
+	bdecode_node torrent_info::info(char const* key) const
+	{
+		if (m_info_dict.type() == bdecode_node::none_t)
+		{
+			error_code ec;
+			bdecode(m_info_section.get(), m_info_section.get()
+				+ m_info_section_size, m_info_dict, ec);
+				if (ec) return bdecode_node();
+		}
+		return m_info_dict.dict_find(key);
+	}
+
 
 	bool torrent_info::add_merkle_nodes(std::map<int, sha1_hash> const& subtree
 		, int piece)

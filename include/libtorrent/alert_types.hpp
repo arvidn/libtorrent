@@ -33,15 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_TYPES_HPP_INCLUDED
 #define TORRENT_ALERT_TYPES_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/peer_request.hpp"
+#include "libtorrent/performance_counters.hpp"
+
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp" // for feed_handle
 #endif
@@ -49,6 +54,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/shared_array.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push

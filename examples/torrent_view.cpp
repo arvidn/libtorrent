@@ -1,5 +1,6 @@
 #include "torrent_view.hpp"
 #include "print.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 const int header_size = 2;
 

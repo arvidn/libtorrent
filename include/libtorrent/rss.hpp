@@ -45,6 +45,9 @@ namespace libtorrent
 	namespace aux
 	{ struct session_impl; }
 
+	class session;
+	struct bdecode_node;
+
 	// represents one item from an RSS feed. Specifically
 	// a feed of torrents.
 	//
@@ -99,7 +102,7 @@ namespace libtorrent
 			, default_ttl(30)
 		{}
 
-   	std::string url;
+		std::string url;
 
 		// By default ``auto_download`` is true, which means all torrents in
 		// the feed will be downloaded. Set this to false in order to manually

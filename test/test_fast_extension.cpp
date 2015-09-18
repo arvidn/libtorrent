@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

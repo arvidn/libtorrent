@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 int main(int argc, char* argv[])
 {

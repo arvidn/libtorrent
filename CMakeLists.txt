@@ -8,6 +8,7 @@ set(sources
 	alert
 	alert_manager
 	allocator
+	announce_entry
 	assert
 	bandwidth_limit
 	bandwidth_manager

@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>

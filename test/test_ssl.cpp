@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/session_status.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 

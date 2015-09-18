@@ -393,14 +393,8 @@ namespace libtorrent
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
 			, boost::shared_ptr<read_piece_struct> rp);
 
-		storage_mode_t storage_mode() const
-		{ return storage_mode_t(m_storage_mode); }
-
-		storage_interface* get_storage()
-		{
-			if (!m_storage) return 0;
-			return m_storage->get_storage_impl();
-		}
+		storage_mode_t storage_mode() const;
+		storage_interface* get_storage();
 
 		// this will flag the torrent as aborted. The main
 		// loop in session_impl will check for this state

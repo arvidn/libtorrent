@@ -5,7 +5,11 @@
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/torrent_info.hpp>
+#include <libtorrent/torrent_status.hpp>
+#include <libtorrent/entry.hpp>
 #include <libtorrent/peer_info.hpp>
+#include "libtorrent/announce_entry.hpp"
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 

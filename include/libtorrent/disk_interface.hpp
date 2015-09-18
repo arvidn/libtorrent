@@ -48,6 +48,7 @@ namespace libtorrent
 	struct disk_observer;
 	struct file_pool;
 	struct add_torrent_params;
+	struct cache_status;
 
 	struct disk_interface
 	{
