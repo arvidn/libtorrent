@@ -4194,7 +4194,7 @@ retry:
 			boost::shared_ptr<torrent> t;
 			do
 			{
-		  		t = m_dht_torrents.front().lock();
+				t = m_dht_torrents.front().lock();
 				m_dht_torrents.pop_front();
 			}
 			while (!t && !m_dht_torrents.empty());
@@ -4212,7 +4212,7 @@ retry:
 		++m_next_dht_torrent;
 		if (m_next_dht_torrent == m_torrents.end())
 			m_next_dht_torrent = m_torrents.begin();
-  	}
+	}
 #endif
 
 	void session_impl::on_lsd_announce(error_code const& e)
@@ -4262,23 +4262,25 @@ retry:
 				|| t->state() == torrent_status::queued_for_checking))
 				continue;
 
-			--dht_limit;
-			--lsd_limit;
-			--tracker_limit;
-			t->set_announce_to_dht(dht_limit >= 0);
-			t->set_announce_to_trackers(tracker_limit >= 0);
-			t->set_announce_to_lsd(lsd_limit >= 0);
-   
 			if (!t->is_paused() && t->is_inactive()
 				&& hard_limit > 0)
 			{
 				// the hard limit takes inactive torrents into account, but the
 				// download and seed limits don't.
+
+				t->set_announce_to_dht(--dht_limit >= 0);
+				t->set_announce_to_trackers(--tracker_limit >= 0);
+				t->set_announce_to_lsd(--lsd_limit >= 0);
+
 				continue;
 			}
 
 			if (type_limit > 0 && hard_limit > 0)
 			{
+				t->set_announce_to_dht(--dht_limit >= 0);
+				t->set_announce_to_trackers(--tracker_limit >= 0);
+				t->set_announce_to_lsd(--lsd_limit >= 0);
+
 				--hard_limit;
 				--type_limit;
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
@@ -4293,6 +4295,9 @@ retry:
 #endif
 				// use graceful pause for auto-managed torrents
 				t->set_allow_peers(false, true);
+				t->set_announce_to_dht(false);
+				t->set_announce_to_trackers(false);
+				t->set_announce_to_lsd(false);
 			}
 		}
 	}
