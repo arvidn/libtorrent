@@ -260,6 +260,7 @@ namespace libtorrent
 		SET(peer_tos, 0, &session_impl::update_peer_tos),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
+		SET_NOPREV(active_checking, 1, &session_impl::trigger_auto_manage),
 		SET(active_dht_limit, 88, 0),
 		SET(active_tracker_limit, 1600, 0),
 		SET(active_lsd_limit, 60, 0),

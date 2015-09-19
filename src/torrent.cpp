@@ -8082,23 +8082,27 @@ namespace libtorrent
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_state == torrent_status::checking_files
-			&& (is_auto_managed() || allows_peers()))
+		if (is_auto_managed() && !has_error())
 		{
-			is_checking = true;
-		}
-		else if (is_auto_managed() && !has_error()
-			&& (is_paused()
-				|| !is_inactive()
-				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
-		{
-			// torrents that are started (not paused) and
-			// inactive are not part of any list. They will not be touched because
-			// they are inactive
-			if (is_finished())
-				is_seeding = true;
-			else
-				is_downloading = true;
+			if (m_state == torrent_status::checking_files
+				|| m_state == torrent_status::allocating)
+			{
+				is_checking = true;
+			}
+			else if (m_state == torrent_status::downloading_metadata
+				|| m_state == torrent_status::downloading
+				|| m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding
+				|| m_state == torrent_status::downloading)
+			{
+				// torrents that are started (not paused) and
+				// inactive are not part of any list. They will not be touched because
+				// they are inactive
+				if (is_finished())
+					is_seeding = true;
+				else
+					is_downloading = true;
+			}
 		}
 
 		update_list(aux::session_interface::torrent_downloading_auto_managed
@@ -8825,20 +8829,24 @@ namespace libtorrent
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_state == torrent_status::checking_files
-			&& (is_auto_managed() || allows_peers()))
+		if (is_auto_managed() && !has_error())
 		{
-			is_checking = true;
-		}
-		else if (is_auto_managed() && !has_error()
-			&& (is_paused()
-				|| !is_inactive()
-				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
-		{
-			if (is_finished())
-				is_seeding = true;
-			else
-				is_downloading = true;
+			if (m_state == torrent_status::checking_files
+				|| m_state == torrent_status::allocating)
+			{
+				is_checking = true;
+			}
+			else if (m_state == torrent_status::downloading_metadata
+				|| m_state == torrent_status::downloading
+				|| m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding
+				|| m_state == torrent_status::downloading)
+			{
+				if (is_finished())
+					is_seeding = true;
+				else
+					is_downloading = true;
+			}
 		}
 
 		TORRENT_ASSERT(m_links[aux::session_interface::torrent_checking_auto_managed].in_list()
@@ -9359,9 +9367,9 @@ namespace libtorrent
 		enum flags
 		{
 			seed_ratio_not_met = 0x40000000,
-			no_seeds = 0x20000000,
-			recently_started = 0x10000000,
-			prio_mask = 0x0fffffff
+			no_seeds           = 0x20000000,
+			recently_started   = 0x10000000,
+			prio_mask          = 0x0fffffff
 		};
 
 		if (!is_finished()) return 0;
@@ -9974,18 +9982,27 @@ namespace libtorrent
 
 	int torrent::finished_time() const
 	{
+		// m_finished_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_finished_time + ((!is_finished() || is_paused()) ? 0
 			: (m_ses.session_time() - m_became_finished));
 	}
 
 	int torrent::active_time() const
 	{
+		// m_active_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_active_time + (is_paused() ? 0
 			: m_ses.session_time() - m_started);
 	}
 
 	int torrent::seeding_time() const
 	{
+		// m_seeding_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_seeding_time + ((!is_seed() || is_paused()) ? 0
 			: m_ses.session_time() - m_became_seed);
 	}

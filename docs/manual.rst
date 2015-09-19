@@ -174,20 +174,130 @@ The format of the magnet URI is:
 queuing
 =======
 
-libtorrent supports *queuing*. Which means it makes sure that a limited number of
-torrents are being downloaded at any given time, and once a torrent is completely
-downloaded, the next in line is started.
+libtorrent supports *queuing*. Quing is a mechanism to automatically pause and
+resume torrents based on certain criteria. The criteria depends on the overall
+state the torrent is in (checking, downloading or seeding).
 
-Torrents that are *auto managed* are subject to the queuing and the active
-torrents limits. To make a torrent auto managed, set add_torrent_params::flag_auto_managed
-when adding the torrent (see async_add_torrent() and add_torrent()).
+To opt-out of the queuing logic, make sure your torrents are added with the
+add_torrent_params::flag_auto_managed bit *cleared*. Or call
+torrent_handle::auto_managed() passing false on the torrent handle.
 
-The limits of the number of downloading and seeding torrents are controlled via
-settings_pack::active_downloads, settings_pack::active_seeds and settings_pack::active_limit in
-settings_pack. These limits takes non auto managed torrents into account as
-well. If there are more non-auto managed torrents being downloaded than the
-settings_pack::active_downloads setting, any auto managed torrents will be queued until
-torrents are removed so that the number drops below the limit.
+The overall purpose of the queuing logic is to improve performance under arbitrary
+torrent downloading and seeding load. For example, if you want to download 100
+torrents on a limited home connection, you improve performance by downloading
+them one at a time (or maybe two at a time), over downloading them all in
+parallel. The benefits are:
+
+* the average completion time of a torrent is half of what it would be if all
+  downloaded in parallel.
+* The amount of upload capacity is more likely to reach the *reciprocation rate*
+  of your peers, and is likely to improve your *return on investment* (download
+  to upload ratio)
+* your disk I/O load is likely to be more local which may improve I/O
+  performance and decrease fragmentation.
+
+There are fundamentally 3 seaparate queues:
+
+* checking torrents
+* downloading torrents
+* seeding torrents
+
+Every torrent that is not seeding has a queue number associated with it, this is
+its place in line to be started. See torrent_status::queue_position.
+
+On top of the limits of each queue, there is an over arching limit, set int
+settings_pack::active_limit. The auto manager will never start more than this
+number of torrents. Non-auto-managed torrents are exempt from this logic, and
+not counted.
+
+At a regular interval, torrents are checked if there needs to be any
+re-ordering of which torrents are active and which are queued. This interval
+can be controlled via settings_pack::auto_manage_interval.
+
+For queuing to work, resume data needs to be saved and restored for all
+torrents. See torrent_handle::save_resume_data().
+
+queue position
+--------------
+
+The torrents in the front of the queue are started and the rest are ordered with
+regards to their queue position. Any newly added torrent is placed at the end of
+the queue. Once a torrent is removed or turns into a seed, its queue position is
+-1 and all torrents that used to be after it in the queue, decreases their
+position in order to fill the gap.
+
+The queue positions are always contiguous, in a sequence without any gaps.
+
+Lower queue position means closer to the front of the queue, and will be
+started sooner than torrents with higher queue positions.
+
+To query a torrent for its position in the queue, or change its position, see:
+torrent_handle::queue_position(), torrent_handle::queue_position_up(),
+torrent_handle::queue_position_down(), torrent_handle::queue_position_top()
+and torrent_handle::queue_position_bottom().
+
+checking queue
+--------------
+
+The checking queue affects torrents in the torrent_status::checking or
+torrent_status::allocating state that are auto-managed.
+
+The checking queue will make sure that (of the torrents in its queue) no more than
+settings_pack::active_checking_limit torrents are started at any given time.
+Once a torrent completes checking and moves into a diffferent state, the next in
+line will be started for checking.
+
+Any torrent added force-started or force-stopped (i.e. the auto managed flag is
+_not_ set), will not be subject to this limit and they will all check
+independently and in parallel.
+
+downloading queue
+-----------------
+
+Similarly to the checking queue, the downloading queue will make sure that no
+more than settings_pack::active_downloads torrents are in the downloading
+state at any given time.
+
+The torrent_status::queue_position is used again here to determine who is next
+in line to be started once a downloading torrent completes or is stopped/removed.
+
+seeding queue
+-------------
+
+The seeding queue does not use torrent_status::queue_position to determine which
+torrent to seed. Instead, it estimates the *demand* for the torrent to be
+seeded. A torrent with few other seeds and many downloaders is assumed to have a
+higher demand of more seeds than one with many seeds and few downloaders.
+
+It limits the number of started seeds to settings_pack::active_seeds.
+
+On top of this basic bias, *seed priority* can be controller by specifying a
+seed ratio (the upload to download ratio), a seed-time ratio (the download
+time to seeding time ratio) and a seed-time (the abosulte time to be seeding a
+torrent). Until all those targets are hit, the torrent will be prioritized for
+seeding.
+
+Among torrents that have met their seed target, torrents where we don't know of
+any other seed take strict priority.
+
+In order to avoid flapping, torrents that were started less than 30 minutes ago
+also have priority to keep seeding.
+
+Finally, for torrents where none of the above apply, they are prioritized based
+on the download to seed ratio.
+
+The relevant settings to control these limits are
+settings_pack::share_ratio_limit, settings_pack::seed_time_ratio_limit and
+settings_pack::seed_time_limit.
+
+queuing options
+---------------
+
+In addition to simply starting and stopping torrents, the queuing mechanism can
+be more fine grained in its control of the resources used by torrents.
+
+half-started torrents
+.....................
 
 In addition to the downloading and seeding limits, there are limits on *actions*
 torrents perform. The downloading and seeding limits control whether peers are
@@ -203,49 +313,36 @@ limit. These limits are controlled by settings_pack::active_tracker_limit,
 settings_pack::active_dht_limit and settings_pack::active_lsd_limit
 respectively.
 
-A client that is not concerned about the separate costs of these actions should
-set all 3 of these limits to the same value as settings_pack::active_limit (i.e.
-the max limit of any active torrent).
+Specifically, announcing to a tracker is typically cheaper than
+announcing to the DHT. ``active_dht_limit`` will limit the number of
+torrents that are allowed to announce to the DHT. The highest priority ones
+will, and the lower priority ones won't. The will still be considered started
+though, and any incoming peers will still be accepted.
 
-At a regular interval, torrents are checked if there needs to be any
-re-ordering of which torrents are active and which are queued. This interval
-can be controlled via settings_pack::auto_manage_interval.
+If you do not wish to impose such limits (basically, if you do not wish to have
+half-started torrents) make sure to set these limits to -1 (infinite).
 
-For queuing to work, resume data needs to be saved and restored for all
-torrents. See save_resume_data().
+prefer seeds
+............
 
-downloading
------------
+In the case where ``active_downloads`` + ``active_seeds`` > ``active_limit``,
+there's an ambiguity whether the downloads should be satisfied first or the
+seeds. To disambiguate this case, the settings_pack::auto_manage_prefer_seeds
+determines whether seeds are preferred or not.
 
-Torrents that are currently being downloaded or incomplete (with bytes still to
-download) are queued. The torrents in the front of the queue are started to be
-actively downloaded and the rest are ordered with regards to their queue
-position. Any newly added torrent is placed at the end of the queue. Once a
-torrent is removed or turns into a seed, its queue position is -1 and all
-torrents that used to be after it in the queue, decreases their position in
-order to fill the gap.
+inactive torrents
+.................
 
-The queue positions are always in a sequence without any gaps.
+Torrents that are not transferring any bytes (downloading or uploading) have a
+relatively low cost to be started. It's possible to exempt such torrents from
+the download and seed queues by setting settings_pack::dont_count_slow_torrents
+to true.
 
-Lower queue position means closer to the front of the queue, and will be
-started sooner than torrents with higher queue positions.
-
-To query a torrent for its position in the queue, or change its position, see:
-queue_position(), queue_position_up(), queue_position_down(),
-queue_position_top() and queue_position_bottom().
-
-seeding
--------
-
-Auto managed seeding torrents are rotated, so that all of them are allocated a
-fair amount of seeding. Torrents with fewer completed *seed cycles* are
-prioritized for seeding. A seed cycle is completed when a torrent meets either
-the share ratio limit (uploaded bytes / downloaded bytes), the share time ratio
-(time seeding / time downloaing) or seed time limit (time seeded).
-
-The relevant settings to control these limits are
-settings_pack::share_ratio_limit, settings_pack::seed_time_ratio_limit and
-settings_pack::seed_time_limit.
+Since it sometimes may take a few minutes for a newly started torrent to find
+peers and be unchoked, or find peers that are interested in requesting data,
+torrents are not considered inactive immadiately. There must be an extended
+period of no transfers before it is considered inactive and exempt from the
+queuing limits.
 
 fast resume
 ===========

@@ -978,6 +978,10 @@ namespace libtorrent
 			// ``active_downloads`` and ``active_seeds`` are upper limits on the
 			// number of downloading torrents and seeding torrents respectively.
 			// Setting the value to -1 means unlimited.
+			//
+			// ``active_checking`` is the limit of number of checking torrents.
+			// Note that this limit applies to started non-auto-managed torrents as
+			// well (as long as they are the the checking_files state).
 			// 
 			// For example if there are 10 seeding torrents and 10 downloading
 			// torrents, and ``active_downloads`` is 4 and ``active_seeds`` is 4,
@@ -987,8 +991,9 @@ namespace libtorrent
 			// active. Torrents that are not auto managed are not counted against
 			// these limits.
 			// 
-			// ``active_limit`` is a hard limit on the number of active torrents.
-			// This applies even to slow torrents.
+			// ``active_limit`` is a hard limit on the number of active (auto
+			// managed) torrents. This limit also applies to slow torrents. It does
+			// not apply to checking torrents.
 			// 
 			// ``active_dht_limit`` is the max number of torrents to announce to
 			// the DHT. By default this is set to 88, which is no more than one
@@ -1019,6 +1024,7 @@ namespace libtorrent
 			// see dynamic-loading-of-torrent-files_.
 			active_downloads,
 			active_seeds,
+			active_checking,
 			active_dht_limit,
 			active_tracker_limit,
 			active_lsd_limit,
