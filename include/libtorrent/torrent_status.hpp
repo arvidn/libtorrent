@@ -473,6 +473,14 @@ namespace libtorrent
 		// yet. Torrents are loaded on demand.
 		bool is_loaded;
 
+		// these are set to true if this torrent is allowed to announce to the
+		// respective peer source. Whether they are true or false is determined by
+		// the queue logic/auto manager. Torrents that are not auto managed will
+		// always be allowed to announce to all peer sources.
+		bool announcing_to_trackers;
+		bool announcing_to_lsd;
+		bool announcing_to_dht;
+
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 	};

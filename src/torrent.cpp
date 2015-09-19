@@ -11653,6 +11653,10 @@ namespace libtorrent
 		st->seed_mode = m_seed_mode;
 		st->moving_storage = m_moving_storage;
 
+		st->announcing_to_trackers = m_announce_to_trackers;
+		st->announcing_to_lsd = m_announce_to_lsd;
+		st->announcing_to_dht = m_announce_to_dht;
+
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
