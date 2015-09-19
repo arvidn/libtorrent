@@ -3577,15 +3577,12 @@ retry:
 
 			TORRENT_ASSERT(t->state() != torrent_status::checking_files);
 
-			--dht_limit;
-			--lsd_limit;
-			--tracker_limit;
-			t->set_announce_to_dht(dht_limit >= 0);
-			t->set_announce_to_trackers(tracker_limit >= 0);
-			t->set_announce_to_lsd(lsd_limit >= 0);
-
 			if (type_limit > 0 && hard_limit > 0)
 			{
+				t->set_announce_to_dht(--dht_limit >= 0);
+				t->set_announce_to_trackers(--tracker_limit >= 0);
+				t->set_announce_to_lsd(--lsd_limit >= 0);
+
 				--hard_limit;
 				--type_limit;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3602,6 +3599,9 @@ retry:
 #endif
 				// use graceful pause for auto-managed torrents
 				t->set_allow_peers(false, true);
+				t->set_announce_to_dht(false);
+				t->set_announce_to_trackers(false);
+				t->set_announce_to_lsd(false);
 			}
 		}
 	}
