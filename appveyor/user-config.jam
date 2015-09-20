@@ -1,0 +1,4 @@
+using msvc : 10.0 ;
+using msvc : 12.0 ;
+using msvc : 14.0 : : <include>"C:\Program Files (x86)\Windows Kits\10\Include\10.0.10069.0\ucrt" ;
+using gcc ;

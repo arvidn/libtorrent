@@ -92,10 +92,7 @@ install:
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
-- 'echo using msvc : 10.0 ; >%HOMEDRIVE%%HOMEPATH%\user-config.jam'
-- 'echo using msvc : 12.0 ; >>%HOMEDRIVE%%HOMEPATH%\user-config.jam'
-- 'echo using msvc : 14.0 : : ^<include^>\"C:\Program Files (x86)\Windows Kits\10\Include\10.0.10069.0\ucrt\" ; >>%HOMEDRIVE%%HOMEPATH%\user-config.jam'
-- echo using gcc ; >>%HOMEDRIVE%%HOMEPATH%\user-config.jam
+- copy appveyor\user-config.jam %HOMEDRIVE%%HOMEPATH%
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
 - set PATH=%PATH%;c:\Mingw\bin
