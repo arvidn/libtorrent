@@ -1126,7 +1126,7 @@ namespace libtorrent
 			--m_num_connecting;
 		}
 
-		bool is_ssl_torrent() const { return m_ssl_torrent; } 
+		bool is_ssl_torrent() const { return m_ssl_torrent; }
 #ifdef TORRENT_USE_OPENSSL
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -1520,7 +1520,7 @@ namespace libtorrent
 		// the DNS request queue, only one ip is resolved
 		// at a time.
 		mutable bool m_resolving_country:1;
-		
+
 		// this is true if the user has enabled
 		// country resolution in this torrent
 		bool m_resolve_countries:1;
@@ -1643,7 +1643,7 @@ namespace libtorrent
 
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
-		// before the session started
+		// before the session started.
 		boost::int16_t m_last_upload;
 
 		// this is a second count-down to when we should tick the
