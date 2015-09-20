@@ -3581,6 +3581,23 @@ retry:
 
 			TORRENT_ASSERT(t->state() != torrent_status::checking_files);
 
+			// inactive torrents don't count (and if you configured them to do so,
+			// the torrent won't say it's inactive)
+			if (hard_limit > 0 && t->is_inactive())
+			{
+				t->set_announce_to_dht(--dht_limit >= 0);
+				t->set_announce_to_trackers(--tracker_limit >= 0);
+				t->set_announce_to_lsd(--lsd_limit >= 0);
+
+				--hard_limit;
+#ifndef TORRENT_DISABLE_LOGGING
+				if (!t->allows_peers())
+					t->log_to_all_peers("auto manager starting (inactive) torrent");
+#endif
+				t->set_allow_peers(true);
+				continue;
+			}
+
 			if (type_limit > 0 && hard_limit > 0)
 			{
 				t->set_announce_to_dht(--dht_limit >= 0);
@@ -3594,19 +3611,18 @@ retry:
 					t->log_to_all_peers("auto manager starting torrent");
 #endif
 				t->set_allow_peers(true);
+				continue;
 			}
-			else
-			{
+
 #ifndef TORRENT_DISABLE_LOGGING
-				if (t->allows_peers())
-					t->log_to_all_peers("auto manager pausing torrent");
+			if (t->allows_peers())
+				t->log_to_all_peers("auto manager pausing torrent");
 #endif
-				// use graceful pause for auto-managed torrents
-				t->set_allow_peers(false, true);
-				t->set_announce_to_dht(false);
-				t->set_announce_to_trackers(false);
-				t->set_announce_to_lsd(false);
-			}
+			// use graceful pause for auto-managed torrents
+			t->set_allow_peers(false, true);
+			t->set_announce_to_dht(false);
+			t->set_announce_to_trackers(false);
+			t->set_announce_to_lsd(false);
 		}
 	}
 

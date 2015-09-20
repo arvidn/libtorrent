@@ -3800,6 +3800,15 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "GRACEFUL_PAUSE", "NO MORE DOWNLOAD");
 #endif
 			disconnect(errors::torrent_paused, op_bittorrent);
+
+			// if this was the last connection, post the alert
+			// TODO: it would be nice if none of this logic would leak outside of
+			// the torrent object)
+			if (t->num_peers() == 0)
+			{
+				if (t->alerts().should_post<torrent_paused_alert>())
+					t->alerts().emplace_alert<torrent_paused_alert>(t->get_handle());
+			}
 			return;
 		}
 

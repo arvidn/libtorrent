@@ -615,7 +615,8 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 	free(random_data);
 }
 
-boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_size
+boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
+	, char const* name, int piece_size
 	, int num_pieces, bool add_tracker, std::string ssl_certificate)
 {
 	// excercise the path when encountering invalid urls
@@ -624,7 +625,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file, int piece_siz
 
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
-	fs.add_file("temporary", total_size);
+	fs.add_file(name, total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 	if (add_tracker)
 	{
@@ -744,7 +745,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);
 		std::ofstream file(combine_path("tmp1" + suffix, "temporary").c_str());
-		t = ::create_torrent(&file, piece_size, 9, false);
+		t = ::create_torrent(&file, "temporary", piece_size, 9, false);
 		file.close();
 		if (clear_files)
 		{

@@ -59,7 +59,7 @@ struct swarm_config : swarm_setup_provider
 		if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
 			, path.c_str(), ec.message().c_str());
 		std::ofstream file(combine_path(path, "temporary").c_str());
-		m_ti = ::create_torrent(&file, 0x4000, 9, false);
+		m_ti = ::create_torrent(&file, "temporary", 0x4000, 9, false);
 		file.close();
 	}
 
