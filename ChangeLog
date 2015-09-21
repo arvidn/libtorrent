@@ -73,7 +73,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
-
+	* fix fallocate hack on linux (fixes corruption on some architectures)
 	* fix auto-manage bug with announce to tracker/lsd/dht limits
 	* improve DHT routing table to not create an unbalanced tree
 	* fix bug in uTP that would cause any connection taking more than one second
