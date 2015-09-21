@@ -74,8 +74,7 @@ namespace
 TORRENT_TEST(dht_storage)
 {
 	dht_settings sett = test_settings();
-	counters cnt;
-	dht_storage_interface* s = dht_default_storage_constructor(node_id(0), sett, cnt);
+	dht_storage_interface* s = dht_default_storage_constructor(node_id(0), sett);
 
 	TEST_CHECK(s != NULL);
 
