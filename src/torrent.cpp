@@ -9254,6 +9254,13 @@ namespace libtorrent
 		return a - b;
 	}
 
+	int clamped_subtract_s16(int a, int b)
+	{
+		if (a + (std::numeric_limits<boost::int16_t>::min)() < b)
+			return (std::numeric_limits<boost::int16_t>::min)();
+		return a - b;
+	}
+
 	} // anonymous namespace
 
 	// this is called every time the session timer takes a step back. Since the
@@ -9278,28 +9285,40 @@ namespace libtorrent
 			}
 		}
 
-		if (m_started < seconds)
+		// m_active_time, m_seeding_time and m_finished_time are absolute cunters
+		// of the historical time we've spent in each state. The current time
+		// we've spent in those states (this session) is calculated by
+		// session_time() - m_started
+		// session_time() - m_became_seed
+		// session_time() - m_became_finished respectively. If any of the
+		// comparison points were pulled back to the oldest representable value (0)
+		// the left-over time must be transferred into the m_*_time counters.
+
+		if (m_started < seconds && !is_paused())
 		{
-			// the started time just got shifted out of the valid window of
-			// session time. Record this "lost time" by incrementing the
-			// counters that are supposed to keep track of the total time we've
-			// been in certain states
-			int lost_seconds = m_started - seconds;
-			if (!is_paused())
-				m_active_time += lost_seconds;
-
-			if (is_seed())
-				m_seeding_time += lost_seconds;
-
-			if (is_finished())
-				m_finished_time += lost_seconds;
+			int lost_seconds = seconds - m_started;
+			m_active_time += lost_seconds;
 		}
-
 		m_started = clamped_subtract(m_started, seconds);
 
-		m_last_upload = clamped_subtract(m_last_upload, seconds);
-		m_last_download = clamped_subtract(m_last_download, seconds);
-		m_last_scrape = clamped_subtract(m_last_scrape, seconds);
+		if (m_became_seed < seconds && is_seed())
+		{
+			int lost_seconds = seconds - m_became_seed;
+			m_seeding_time += lost_seconds;
+		}
+		m_became_seed = clamped_subtract(m_became_seed, seconds);
+
+		if (m_finished_time < seconds && is_finished())
+		{
+			int lost_seconds = seconds - m_became_finished;
+			m_finished_time += lost_seconds;
+		}
+		m_became_finished = clamped_subtract(m_became_finished, seconds);
+
+		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
+		m_last_download = clamped_subtract_s16(m_last_download, seconds);
+		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
+
 		m_last_saved_resume = clamped_subtract(m_last_saved_resume, seconds);
 		m_upload_mode_time = clamped_subtract(m_upload_mode_time, seconds);
 	}

@@ -368,7 +368,11 @@ namespace libtorrent
 
 		// the number of seconds since any peer last uploaded from this torrent
 		// and the last time a downloaded piece passed the hash check,
-		// respectively.
+		// respectively. Note, when starting up a torrent that needs its files
+		// checked, piece may pass and that will be considered downloading for the
+		// purpose of this counter. -1 means there either hasn't been any
+		// uploading/downloading, or it was too long ago for libtorrent to
+		// remember (currently forgetting happens after about 18 hours)
 		int time_since_upload;
 		int time_since_download;
 
