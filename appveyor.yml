@@ -2,23 +2,24 @@ version: 1.0.{build}
 branches:
   only:
   - master
-os: Previous Visual Studio 2015
+os: Visual Studio 2015
 clone_depth: 1
 environment:
   matrix:
+#  - variant: test_debug
+#    compiler: msvc-14.0
+#    sim: 1
+#    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+#    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
-    compiler: msvc-14.0
+    compiler: msvc-12.0
     sim: 1
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
+    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-12.0
     x64: 1
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
-  - variant: test_debug
-    compiler: msvc-12.0
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
     compiler: msvc-10.0
@@ -92,7 +93,8 @@ install:
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
-- copy appveyor\user-config.jam %HOMEDRIVE%%HOMEPATH%
+- 'echo using msvc : 10.0 ; >%HOMEDRIVE%%HOMEPATH%/user-config.jam'
+- 'echo using msvc : 12.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
 - set PATH=%PATH%;c:\Mingw\bin
