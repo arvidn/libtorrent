@@ -239,53 +239,10 @@ namespace libtorrent { namespace dht
 		m_dht.announce(ih, listen_port, flags, f);
 	}
 
-	namespace {
-
-	// these functions provide a slightly higher level
-	// interface to the get/put functionality in the DHT
-	bool get_immutable_item_callback(item& it, boost::function<void(item const&)> f)
-	{
-		// the reason to wrap here is to control the return value
-		// since it controls whether we re-put the content
-		TORRENT_ASSERT(!it.is_mutable());
-		f(it);
-		return false;
-	}
-
-	bool get_mutable_item_callback(item& it, bool authoritative, boost::function<void(item const&, bool)> f)
-	{
-		// the reason to wrap here is to control the return value
-		// since it controls whether we re-put the content
-		TORRENT_ASSERT(it.is_mutable());
-		f(it, authoritative);
-		return false;
-	}
-
-	bool put_immutable_item_callback(item& it, boost::function<void()> f
-		, entry data)
-	{
-		TORRENT_ASSERT(!it.is_mutable());
-		it.assign(data);
-		// TODO: ideally this function would be called when the
-		// put completes
-		f();
-		return true;
-	}
-
-	bool put_mutable_item_callback(item& it, bool authoritative, boost::function<void(item&)> cb)
-	{
-		if (authoritative) {
-			cb(it);
-		}
-		return true;
-	}
-
-	} // anonymous namespace
-
 	void dht_tracker::get_item(sha1_hash const& target
 		, boost::function<void(item const&)> cb)
 	{
-		m_dht.get_item(target, boost::bind(&get_immutable_item_callback, _1, cb));
+		m_dht.get_item(target, cb);
 	}
 
 	// key is a 32-byte binary string, the public key to look up.
@@ -294,26 +251,25 @@ namespace libtorrent { namespace dht
 		, boost::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
-		m_dht.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, _2, cb));
+		m_dht.get_item(key, salt, cb);
 	}
 
 	void dht_tracker::put_item(entry data
-		, boost::function<void()> cb)
+		, boost::function<void(int)> cb)
 	{
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash target = item_target_id(
 			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
 
-		m_dht.get_item(target, boost::bind(&put_immutable_item_callback
-			, _1, cb, data));
+		m_dht.put_item(target, data, cb);
 	}
 
 	void dht_tracker::put_item(char const* key
-		, boost::function<void(item&)> cb, std::string salt)
+		, boost::function<void(item&, int)> cb
+		, boost::function<void(item&)> data_cb, std::string salt)
 	{
-		m_dht.get_item(key, salt, boost::bind(&put_mutable_item_callback
-			, _1, _2, cb));
+		m_dht.put_item(key, salt, cb, data_cb);
 	}
 
 	void dht_tracker::direct_request(udp::endpoint ep, entry& e

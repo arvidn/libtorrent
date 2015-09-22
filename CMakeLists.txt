@@ -126,6 +126,7 @@ set(kademlia_sources
 	refresh
 	rpc_manager
 	find_data
+	put_data
 	node_id
 	routing_table
 	traversal_algorithm

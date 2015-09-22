@@ -51,6 +51,9 @@ void get_item::got_data(bdecode_node const& v,
 {
 	// we received data!
 
+	// for put_immutable_item, there is no data_callback.
+	if (!m_data_callback) return;
+
 	std::pair<char const*, int> salt(m_salt.c_str(), int(m_salt.size()));
 
 	sha1_hash incoming_target;
@@ -88,39 +91,27 @@ void get_item::got_data(bdecode_node const& v,
 		// and it's immutable
 
 		m_data.assign(v);
-		bool put_requested = m_data_callback(m_data, true);
 
-		// if we intend to put, we need to keep going
-		// until we find the closest nodes, since those
-		// are the ones we're putting to
-		if (put_requested)
-		{
+		// There can only be one true immutable item with a given id
+		// Now that we've got it and the user doesn't want to do a put
+		// there's no point in continuing to query other nodes
+		m_data_callback(m_data, true);
+		abort();
+
 #if TORRENT_USE_ASSERTS
-			std::vector<char> buffer;
-			bencode(std::back_inserter(buffer), m_data.value());
-			TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
+		std::vector<char> buffer;
+		bencode(std::back_inserter(buffer), m_data.value());
+		TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
 #endif
-
-			// this function is called when we're done, passing
-			// in all relevant nodes we received data from close
-			// to the target.
-			m_nodes_callback = boost::bind(&get_item::put, this, _1);
-		}
-		else
-		{
-			// There can only be one true immutable item with a given id
-			// Now that we've got it and the user doesn't want to do a put
-			// there's no point in continuing to query other nodes
-			done();
-		}
-	}
+    }
 }
 
 get_item::get_item(
 	node& dht_node
 	, node_id target
-	, data_callback const& dcallback)
-	: find_data(dht_node, target, nodes_callback())
+	, data_callback const& dcallback
+	, nodes_callback const& ncallback)
+	: find_data(dht_node, target, ncallback)
 	, m_data_callback(dcallback)
 {
 }
@@ -129,10 +120,11 @@ get_item::get_item(
 	node& dht_node
 	, char const* pk
 	, std::string const& salt
-	, data_callback const& dcallback)
+	, data_callback const& dcallback
+	, nodes_callback const& ncallback)
 	: find_data(dht_node, item_target_id(
 		std::make_pair(salt.c_str(), int(salt.size())), pk)
-		, nodes_callback())
+	        , ncallback)
 	, m_data_callback(dcallback)
 	, m_data(pk, salt)
 {
@@ -170,92 +162,29 @@ bool get_item::invoke(observer_ptr o)
 
 void get_item::done()
 {
+	// For immutable_put, we only need nodes_callback, the m_data_callback
+	// shouldn't be set.
+	if (!m_data_callback) return find_data::done();
+
 	if (m_data.is_mutable() || m_data.empty())
 	{
 		// for mutable data, now we have authoritative data since
 		// we've heard from everyone, to be sure we got the
 		// latest version of the data (i.e. highest sequence number)
-		bool put_requested = m_data_callback(m_data, true);
-		if (put_requested)
-		{
+		m_data_callback(m_data, true);
+
 #if TORRENT_USE_ASSERTS
-			if (m_data.is_mutable())
-			{
-				TORRENT_ASSERT(m_target
-					== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
-						, m_data.salt().size())
-					, m_data.pk().data()));
-			}
-			else
-			{
-				std::vector<char> buffer;
-				bencode(std::back_inserter(buffer), m_data.value());
-				TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
-			}
-#endif
-
-			// this function is called when we're done, passing
-			// in all relevant nodes we received data from close
-			// to the target.
-			m_nodes_callback = boost::bind(&get_item::put, this, _1);
-		}
-	}
-	find_data::done();
-}
-
-// this function sends a put message to the nodes
-// closest to the target. Those nodes are passed in
-// as the v argument
-void get_item::put(std::vector<std::pair<node_entry, std::string> > const& v)
-{
-#ifndef TORRENT_DISABLE_LOGGING
-	// TODO: 3 it would be nice to not have to spend so much time rendering
-	// the bencoded dict if logging is disabled
-	get_node().observer()->log(dht_logger::traversal, "[%p] sending put "
-		"[ seq: %" PRId64 " nodes: %d ]"
-		, static_cast<void*>(this), (m_data.is_mutable() ? m_data.seq() : -1)
-		, int(v.size()));
-#endif
-
-	// create a dummy traversal_algorithm
-	boost::intrusive_ptr<traversal_algorithm> algo(
-		new traversal_algorithm(m_node, (node_id::min)()));
-
-	// store on the first k nodes
-	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
-		, end(v.end()); i != end; ++i)
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		get_node().observer()->log(dht_logger::traversal, "[%p] put-distance: %d"
-			, static_cast<void*>(this), 160 - distance_exp(m_target, i->first.id));
-#endif
-
-		void* ptr = m_node.m_rpc.allocate_observer();
-		if (ptr == 0) return;
-
-		// TODO: 3 we don't support CAS errors here! we need a custom observer
-		observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
-#if TORRENT_USE_ASSERTS
-		o->m_in_constructor = false;
-#endif
-		entry e;
-		e["y"] = "q";
-		e["q"] = "put";
-		entry& a = e["a"];
-		a["v"] = m_data.value();
-		a["token"] = i->second;
 		if (m_data.is_mutable())
 		{
-			a["k"] = std::string(m_data.pk().data(), item_pk_len);
-			a["seq"] = m_data.seq();
-			a["sig"] = std::string(m_data.sig().data(), item_sig_len);
-			if (!m_data.salt().empty())
-			{
-				a["salt"] = m_data.salt();
-			}
+			TORRENT_ASSERT(m_target
+				== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
+					, m_data.salt().size())
+					, m_data.pk().data()));
 		}
-		m_node.m_rpc.invoke(e, i->first.ep(), o);
+#endif
 	}
+
+	find_data::done();
 }
 
 void get_item_observer::reply(msg const& m)

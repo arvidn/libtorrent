@@ -481,19 +481,35 @@ std::vector<dht::item> g_got_items;
 dht::item g_put_item;
 int g_put_count;
 
-bool get_item_cb(dht::item& i, bool a)
+void get_mutable_item_cb(dht::item& i, bool a)
 {
-	// only count authoritative data
-	if (!a) return false;
+	if (!a) return;
 	if (!i.empty())
 		g_got_items.push_back(i);
-	if (!g_put_item.empty())
-	{
-		i = g_put_item;
-		g_put_count++;
-		return true;
-	}
-	return false;
+}
+
+void put_mutable_item_data_cb(dht::item& i)
+{
+	if (!i.empty())
+		g_got_items.push_back(i);
+
+	TEST_CHECK(!g_put_item.empty());
+	i = g_put_item;
+	g_put_count++;
+}
+
+void put_mutable_item_cb(dht::item&, bool)
+{
+}
+
+void get_immutable_item_cb(dht::item& i)
+{
+	if (!i.empty())
+		g_got_items.push_back(i);
+}
+
+void put_immutable_item_cb(bool)
+{
 }
 
 struct obs : dht::dht_observer
@@ -1633,7 +1649,7 @@ TORRENT_TEST(dht)
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
 
-		node.get_item(items[0].target, get_item_cb);
+		node.get_item(items[0].target, get_immutable_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1679,8 +1695,7 @@ TORRENT_TEST(dht)
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
 
-		sha1_hash target = hasher(public_key, item_pk_len).final();
-		node.get_item(target, get_item_cb);
+		node.get_item(public_key, std::string(), get_mutable_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1693,7 +1708,6 @@ TORRENT_TEST(dht)
 		{
 			TEST_EQUAL(parsed[0].string_value(), "q");
 			TEST_EQUAL(parsed[2].string_value(), "get");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
 			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
 		}
 		else
@@ -1765,8 +1779,7 @@ TORRENT_TEST(dht)
 		for (int i = 0; i < num_test_nodes; ++i)
 			node.m_table.add_node(nodes[i]);
 
-		g_put_item.assign(items[0].ent);
-		node.get_item(items[0].target, get_item_cb);
+		node.put_item(items[0].target, items[0].ent, put_immutable_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
 		if (g_sent_packets.size() != num_test_nodes) break;
@@ -1793,7 +1806,6 @@ TORRENT_TEST(dht)
 			g_sent_packets.erase(packet);
 		}
 
-		TEST_EQUAL(g_put_count, 1);
 		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
 		if (g_sent_packets.size() != num_test_nodes) break;
 
@@ -1847,10 +1859,9 @@ TORRENT_TEST(dht)
 		for (int i = 0; i < num_test_nodes; ++i)
 			node.m_table.add_node(nodes[i]);
 
-		sha1_hash target = hasher(public_key, item_pk_len).final();
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		std::string sig(g_put_item.sig().data(), item_sig_len);
-		node.get_item(target, get_item_cb);
+		node.put_item(public_key, std::string(), put_mutable_item_cb, put_mutable_item_data_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
 		if (g_sent_packets.size() != num_test_nodes) break;
@@ -2308,7 +2319,7 @@ TORRENT_TEST(read_only_node)
 	bdecode_node request;
 	sha1_hash target = generate_next();
 
-	node.get_item(target, get_item_cb);
+	node.get_item(target, get_immutable_item_cb);
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
@@ -2342,7 +2353,7 @@ TORRENT_TEST(read_only_node)
 
 	g_sent_packets.clear();
 	target = generate_next();
-	node.get_item(target, get_item_cb);
+	node.get_item(target, get_immutable_item_cb);
 
 	// since we have 2 nodes, we should have two packets.
 	TEST_EQUAL(g_sent_packets.size(), 2);

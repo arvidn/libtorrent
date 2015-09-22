@@ -187,6 +187,7 @@ nobase_include_HEADERS = \
   kademlia/direct_request.hpp       \
   kademlia/dos_blocker.hpp          \
   kademlia/find_data.hpp            \
+  kademlia/put_data.hpp             \
   kademlia/msg.hpp                  \
   kademlia/node.hpp                 \
   kademlia/node_entry.hpp           \

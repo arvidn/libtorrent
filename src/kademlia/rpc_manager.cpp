@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/put_data.hpp>
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
@@ -158,7 +159,7 @@ void observer::set_id(node_id const& id)
 enum { observer_size = max3<
 	sizeof(find_data_observer)
 	, sizeof(announce_observer)
-	, sizeof(null_observer)
+	, sizeof(put_data_observer)
 	>::value
 };
 

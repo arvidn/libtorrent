@@ -706,6 +706,7 @@ KADEMLIA_SOURCES =
 	get_peers
 	item
 	get_item
+	put_data
 	;
 
 ED25519_SOURCES =

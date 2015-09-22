@@ -5648,13 +5648,24 @@ retry:
 
 	namespace {
 
-		void on_dht_put_immutable_item(alert_manager& alerts, sha1_hash target)
+		void on_dht_put_immutable_item(alert_manager& alerts, sha1_hash target, int num)
 		{
 			if (alerts.should_post<dht_put_alert>())
-				alerts.emplace_alert<dht_put_alert>(target);
+				alerts.emplace_alert<dht_put_alert>(target, num);
 		}
 
-		void put_mutable_callback(alert_manager& alerts, dht::item& i
+		void on_dht_put_mutable_item(alert_manager& alerts, dht::item& i, int num)
+		{
+			boost::array<char, 64> sig = i.sig();
+			boost::array<char, 32> pk = i.pk();
+			boost::uint64_t seq = i.seq();
+			std::string salt = i.salt();
+
+			if (alerts.should_post<dht_put_alert>())
+				alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq, num);
+		}
+
+		void put_mutable_callback(dht::item& i
 			, boost::function<void(entry&, boost::array<char,64>&
 				, boost::uint64_t&, std::string const&)> cb)
 		{
@@ -5665,9 +5676,6 @@ retry:
 			std::string salt = i.salt();
 			cb(value, sig, seq, salt);
 			i.assign(value, salt, seq, pk.data(), sig.data());
-
-			if (alerts.should_post<dht_put_alert>())
-				alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq);
 		}
 
 		void on_dht_get_peers(alert_manager& alerts, sha1_hash info_hash, std::vector<tcp::endpoint> const& peers)
@@ -5690,7 +5698,7 @@ retry:
 	{
 		if (!m_dht) return;
 		m_dht->put_item(data, boost::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)
-			, target));
+			, target, _1));
 	}
 
 	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
@@ -5699,8 +5707,9 @@ retry:
 		, std::string salt)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(key.data(), boost::bind(&put_mutable_callback
-			, boost::ref(m_alerts), _1, cb), salt);
+		m_dht->put_item(key.data(),
+			boost::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2),
+			boost::bind(&put_mutable_callback, _1, cb), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)

@@ -101,11 +101,18 @@ namespace libtorrent { namespace dht
 			, boost::function<void(item const&, bool)> cb
 			, std::string salt = std::string());
 
+		// for immutable_item.
+		// the callback function will be called when put operation is done.
+		// the bool parameter indicates the put operation success or failed.
 		void put_item(entry data
-			, boost::function<void()> cb);
+			, boost::function<void(int)> cb);
 
+		// for mutable_item.
+		// the data_cb will be called when we get authoritative mutable_item,
+		// the cb is same as put immutable_item.
 		void put_item(char const* key
-			, boost::function<void(item&)> cb, std::string salt = std::string());
+			, boost::function<void(item&, int)> cb
+			, boost::function<void(item&)> data_cb, std::string salt = std::string());
 
 		// send an arbitrary DHT request directly to a node
 		void direct_request(udp::endpoint ep, entry& e

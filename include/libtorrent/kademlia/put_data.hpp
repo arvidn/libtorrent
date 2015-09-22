@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2013, Steven Siloti
+Copyright (c) 2006-2015, Arvid Norberg, Thomas Yuan
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,63 +30,65 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef LIBTORRENT_GET_ITEM_HPP
-#define LIBTORRENT_GET_ITEM_HPP
+#ifndef TORRENT_PUT_DATA_HPP
+#define TORRENT_PUT_DATA_HPP
 
-#include <string>
-#include <libtorrent/kademlia/find_data.hpp>
+#include <libtorrent/kademlia/traversal_algorithm.hpp>
+#include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/item.hpp>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/function/function1.hpp>
+#include <boost/function/function2.hpp>
+#include <vector>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace dht
 {
+struct msg;
+class node;
 
-class get_item : public find_data
+struct put_data: traversal_algorithm
 {
-public:
-	typedef boost::function<void(item&, bool)> data_callback;
+	typedef boost::function<void(item&, int)> put_callback;
 
-	void got_data(bdecode_node const& v,
-		char const* pk,
-		boost::uint64_t seq,
-		char const* sig);
-
-	// for immutable itms
-	get_item(node& dht_node
-		, node_id target
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback);
-
-	// for mutable items
-	get_item(node& dht_node
-		, char const* pk
-		, std::string const& salt
-		, data_callback const& dcallback
-		, nodes_callback const& ncallback);
+	put_data(node& node, put_callback const& callback);
 
 	virtual char const* name() const;
 
-protected:
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep, node_id const& id);
-	virtual bool invoke(observer_ptr o);
-	virtual void done();
+	void set_data(item const& data) { m_data = data; }
 
-	data_callback m_data_callback;
+	void set_targets(std::vector<std::pair<node_entry, std::string> > const& targets);
+
+protected:
+
+	virtual void done();
+	virtual bool invoke(observer_ptr o);
+
+	put_callback m_put_callback;
 	item m_data;
-	std::string m_salt;
+	bool m_done;
 };
 
-class get_item_observer : public find_data_observer
+struct put_data_observer : traversal_observer
 {
-public:
-	get_item_observer(
+	put_data_observer(
 		boost::intrusive_ptr<traversal_algorithm> const& algorithm
-		, udp::endpoint const& ep, node_id const& id)
-		: find_data_observer(algorithm, ep, id)
-	{}
+		, udp::endpoint const& ep, node_id const& id, std::string const& token)
+		: traversal_observer(algorithm, ep, id)
+		, m_token(token)
+	{
+	}
 
-	virtual void reply(msg const&);
+	virtual void reply(msg const&) { done(); }
+
+	std::string m_token;
 };
 
 } } // namespace libtorrent::dht
 
-#endif // LIBTORRENT_GET_ITEM_HPP
+#endif // TORRENT_PUT_DATA_HPP
+
