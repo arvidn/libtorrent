@@ -224,6 +224,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_POSIX_MEMALIGN 1
 #define TORRENT_USE_FDATASYNC 1
+
+// posix_fallocate() is available under this condition
+#if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
+#define TORRENT_HAS_FALLOCATE 1
+#else
+#define TORRENT_HAS_FALLOCATE 0
+#endif
+
 #endif // ANDROID
 
 #if defined __GLIBC__ && ( defined __x86_64__ || defined __i386 \

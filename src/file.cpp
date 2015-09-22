@@ -131,23 +131,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define lseek lseek64
 #endif
 
-#include <asm/unistd.h> // For __NR_fallocate
-
-// circumvent the lack of support in glibc
-static int my_fallocate(int fd, int mode, loff_t offset, loff_t len)
-{
-#ifdef __NR_fallocate
-	// the man page on fallocate differes between versions of linux.
-	// it appears that fallocate in fact sets errno and returns -1
-	// on failure.
-	return syscall(__NR_fallocate, fd, mode, offset, len);
-#else
-	// pretend that the system call doesn't exist
-	errno = ENOSYS;
-	return -1;
-#endif
-}
-
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 // mac specifics
 
@@ -2136,23 +2119,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			int ret;
 #endif
 
-#if defined TORRENT_LINUX
-			ret = my_fallocate(native_handle(), 0, 0, s);
-			// if we return 0, everything went fine
-			// the fallocate call succeeded
-			if (ret == 0) return true;
-			// otherwise, something went wrong. If the error
-			// is ENOSYS, just keep going and do it the old-fashioned
-			// way. If fallocate failed with some other error, it
-			// probably means the user should know about it, error out
-			// and report it.
-			if (errno != ENOSYS && errno != EOPNOTSUPP && errno != EINVAL)
-			{
-				ec.assign(errno, generic_category());
-				return false;
-			}
-#endif // TORRENT_LINUX
-
 #if TORRENT_HAS_FALLOCATE
 			// if fallocate failed, we have to use posix_fallocate
 			// which can be painfully slow
@@ -2160,7 +2126,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// define TORRENT_HAS_FALLOCATE to 0.
 			ret = posix_fallocate(native_handle(), 0, s);
 			// posix_allocate fails with EINVAL in case the underlying
-			// filesystem does bot support this operation
+			// filesystem does not support this operation
 			if (ret != 0 && ret != EINVAL)
 			{
 				ec.assign(ret, generic_category());
