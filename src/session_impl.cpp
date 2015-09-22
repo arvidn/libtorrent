@@ -713,6 +713,7 @@ namespace aux {
 			dht_sett["block_timeout"] = m_dht_settings.block_timeout;
 			dht_sett["block_ratelimit"] = m_dht_settings.block_ratelimit;
 			dht_sett["read_only"] = m_dht_settings.read_only;
+			dht_sett["item_lifetime"] = m_dht_settings.item_lifetime;
 		}
 
 		if (m_dht && (flags & session::save_dht_state))
@@ -796,6 +797,8 @@ namespace aux {
 			if (val) m_dht_settings.block_ratelimit = val.int_value();
 			val = settings.dict_find_int("read_only");
 			if (val) m_dht_settings.read_only = val.int_value();
+			val = settings.dict_find_int("item_lifetime");
+			if (val) m_dht_settings.item_lifetime = val.int_value();
 		}
 
 		settings = e->dict_find_dict("dht state");

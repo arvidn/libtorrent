@@ -1404,6 +1404,7 @@ namespace libtorrent
 			, block_timeout(5 * 60)
 			, block_ratelimit(5)
 			, read_only(false)
+			, item_lifetime(0)
 		{}
 
 		// the maximum number of peers to send in a reply to ``get_peers``
@@ -1498,6 +1499,10 @@ namespace libtorrent
 		// 'ro' key (value = 1) in the top-level message dictionary of outgoing
 		// query messages.
 		bool read_only;
+
+		// the number of seconds a immutable/mutable item will be expired.
+		// default is 0, means never expires.
+		int item_lifetime;
 	};
 
 
