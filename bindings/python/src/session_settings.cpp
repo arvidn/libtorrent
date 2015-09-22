@@ -294,6 +294,7 @@ void bind_session_settings()
         .def_readwrite("block_ratelimit", &dht_settings::block_ratelimit)
         .def_readwrite("read_only", &dht_settings::read_only)
         .def_readwrite("item_lifetime", &dht_settings::item_lifetime)
+        .def_readwrite("refresh_timeout", &dht_settings::refresh_timeout)
     ;
 #endif
 
