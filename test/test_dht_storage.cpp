@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
@@ -61,6 +62,7 @@ namespace
 		dht_settings sett;
 		sett.max_torrents = 2;
 		sett.max_dht_items = 2;
+		sett.item_lifetime = seconds(120 * 60).count();
 		return sett;
 	}
 
@@ -74,9 +76,9 @@ namespace
 TORRENT_TEST(dht_storage)
 {
 	dht_settings sett = test_settings();
-	dht_storage_interface* s = dht_default_storage_constructor(node_id(0), sett);
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 
-	TEST_CHECK(s != NULL);
+	TEST_CHECK(s.get() != NULL);
 
 	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
 	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
@@ -89,10 +91,10 @@ TORRENT_TEST(dht_storage)
 	TEST_CHECK(peers["n"].string().empty())
 	TEST_CHECK(peers["values"].list().empty());
 
-	tcp::endpoint p1 = tcp::endpoint(address::from_string("124.31.75.21"), 1);
-	tcp::endpoint p2 = tcp::endpoint(address::from_string("124.31.75.22"), 1);
-	tcp::endpoint p3 = tcp::endpoint(address::from_string("124.31.75.23"), 1);
-	tcp::endpoint p4 = tcp::endpoint(address::from_string("124.31.75.24"), 1);
+	tcp::endpoint p1 = ep("124.31.75.21", 1);
+	tcp::endpoint p2 = ep("124.31.75.22", 1);
+	tcp::endpoint p3 = ep("124.31.75.23", 1);
+	tcp::endpoint p4 = ep("124.31.75.24", 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
 	s->get_peers(n1, false, false, peers);
@@ -127,8 +129,52 @@ TORRENT_TEST(dht_storage)
 	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
 	r = s->get_mutable_item(n4, 0, false, item);
 	TEST_CHECK(r);
+}
 
-	delete s;
+TORRENT_TEST(dht_storage_counters)
+{
+	dht_settings sett = test_settings();
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+
+	TEST_CHECK(s.get() != NULL);
+
+	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+
+	TEST_EQUAL(s->counters().peers, 0);
+	TEST_EQUAL(s->counters().torrents, 0);
+
+	tcp::endpoint p1 = ep("124.31.75.21", 1);
+	tcp::endpoint p2 = ep("124.31.75.22", 1);
+	tcp::endpoint p3 = ep("124.31.75.23", 1);
+	tcp::endpoint p4 = ep("124.31.75.24", 1);
+
+	s->announce_peer(n1, p1, "torrent_name", false);
+	TEST_EQUAL(s->counters().peers, 1);
+	TEST_EQUAL(s->counters().torrents, 1);
+
+	s->announce_peer(n2, p2, "torrent_name1", false);
+	s->announce_peer(n2, p3, "torrent_name1", false);
+	s->announce_peer(n3, p4, "torrent_name2", false);
+	TEST_EQUAL(s->counters().peers, 3);
+	TEST_EQUAL(s->counters().torrents, 2);
+
+	entry item;
+
+	s->put_immutable_item(n4, "123", 3, address::from_string("124.31.75.21"));
+	TEST_EQUAL(s->counters().immutable_data, 1);
+
+	s->put_immutable_item(n1, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n2, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n3, "123", 3, address::from_string("124.31.75.21"));
+	TEST_EQUAL(s->counters().immutable_data, 2);
+
+	char public_key[item_pk_len];
+	char signature[item_sig_len];
+	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
+	TEST_EQUAL(s->counters().mutable_data, 1);
 }
 
 #endif

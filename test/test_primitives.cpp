@@ -61,12 +61,6 @@ address_v6 v6(char const* str)
 }
 #endif
 
-static tcp::endpoint ep(char const* ip, int port)
-{
-	error_code ec;
-	return tcp::endpoint(address::from_string(ip, ec), port);
-}
-
 TORRENT_TEST(primitives)
 {
 	using namespace libtorrent;

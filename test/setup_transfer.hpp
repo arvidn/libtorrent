@@ -104,5 +104,7 @@ EXPORT int start_proxy(int type);
 EXPORT void stop_proxy(int port);
 EXPORT void stop_all_proxies();
 
+EXPORT libtorrent::tcp::endpoint ep(char const* ip, int port);
+
 #endif
 

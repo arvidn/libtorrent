@@ -106,19 +106,6 @@ namespace
 	// TODO: 2 make this configurable in dht_settings
 	enum { announce_interval = 30 };
 
-	void purge_peers(std::set<peer_entry>& peers)
-	{
-		for (std::set<peer_entry>::iterator i = peers.begin()
-			, end(peers.end()); i != end;)
-		{
-			// the peer has timed out
-			if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
-				peers.erase(i++);
-			else
-				++i;
-		}
-	}
-
 	struct dht_immutable_item
 	{
 		dht_immutable_item() : value(0), num_announcers(0), size(0) {}
@@ -296,6 +283,7 @@ namespace
 						candidate = i;
 					}
 					m_map.erase(candidate);
+					m_counters.peers -= num_peers;
 					m_counters.torrents -= 1;
 				}
 				m_counters.torrents += 1;
@@ -320,8 +308,13 @@ namespace
 			peer.added = aux::time_now();
 			peer.seed = seed;
 			std::set<peer_entry>::iterator i = v->peers.find(peer);
-			if (i != v->peers.end()) v->peers.erase(i++);
+			if (i != v->peers.end())
+			{
+				v->peers.erase(i++);
+				m_counters.peers -= 1;
+			}
 			v->peers.insert(i, peer);
+			m_counters.peers += 1;
 		}
 
 		bool get_immutable_item(sha1_hash const& target
@@ -489,7 +482,7 @@ namespace
 				if (it != m_map.end())
 				{
 					m_map.erase(it);
-					m_counters.torrents -= 1;
+					m_counters.torrents -= 1;// peers is decreased by purge_peers
 				}
 			}
 
@@ -540,6 +533,22 @@ namespace
 		table_t m_map;
 		dht_immutable_table_t m_immutable_table;
 		dht_mutable_table_t m_mutable_table;
+
+		void purge_peers(std::set<peer_entry>& peers)
+		{
+			for (std::set<peer_entry>::iterator i = peers.begin()
+				, end(peers.end()); i != end;)
+			{
+				// the peer has timed out
+				if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
+				{
+					peers.erase(i++);
+					m_counters.peers -= 1;
+				}
+				else
+					++i;
+			}
+		}
 	};
 }
 
