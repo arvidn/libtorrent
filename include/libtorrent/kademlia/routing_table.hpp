@@ -187,6 +187,8 @@ public:
 	void check_invariant() const;
 #endif
 
+	bool is_full(int bucket) const;
+
 private:
 
 	dht_logger* m_log;

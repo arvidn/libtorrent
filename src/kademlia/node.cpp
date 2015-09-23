@@ -564,14 +564,21 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	e["y"] = "q";
 	entry& a = e["a"];
 
-	// use get_peers instead of find_node. We'll get nodes in the response
-	// either way.
-	e["q"] = "get_peers";
-	a["info_hash"] = target.to_string();
-	m_counters.inc_stats_counter(counters::dht_get_peers_out);
+	if (m_table.is_full(bucket))
+	{
+		// current bucket is full, just ping it.
+		e["q"] = "ping";
+		m_counters.inc_stats_counter(counters::dht_ping_out);
+	}
+	else
+	{
+		// use get_peers instead of find_node. We'll get nodes in the response
+		// either way.
+		e["q"] = "get_peers";
+		a["info_hash"] = target.to_string();
+		m_counters.inc_stats_counter(counters::dht_get_peers_out);
+	}
 
-//	e["q"] = "find_node";
-//	a["target"] = target.to_string();
 	m_rpc.invoke(e, ep, o);
 }
 

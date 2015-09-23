@@ -1235,5 +1235,17 @@ void routing_table::check_invariant() const
 }
 #endif
 
+bool routing_table::is_full(int bucket) const
+{
+	int num_buckets = m_buckets.size();
+	if (num_buckets == 0) return false;
+	if (bucket >= num_buckets) return false;
+
+	table_t::const_iterator i = m_buckets.begin();
+	std::advance(i, bucket);
+	return (i->live_nodes.size() >= bucket_limit(bucket)
+		&& i->replacements.size() >= m_bucket_size);
+}
+
 } } // namespace libtorrent::dht
 
