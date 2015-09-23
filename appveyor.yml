@@ -114,7 +114,7 @@ build_script:
   & cd %ROOT_DIRECTORY%\examples
   & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
   & cd %ROOT_DIRECTORY%\bindings\python
-  & b2.exe --hash -j2 %compiler% stage_module variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
+  & b2.exe --hash -j2 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
   & python test.py
   )
 - if defined sim (

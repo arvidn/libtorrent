@@ -64,9 +64,15 @@ script:
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
-  - cd ../bindings/python
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared
-  - LD_LIBRARY_PATH=. DYLD_LIBRARY_PATH=. python test.py
+  - cd ..
+# build libtorrent separately and install it in a temporary (well known) dir
+# we have to do this because on linux the name of the python module is the same
+# as the main library, so we can't stage them to the same directory
+  - bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib
+  - cd bindings/python
+# here we specify the temporary lib dir as a path to look for the main library
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared dll-path=../../lib
+  - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - if [ $sim = "1" ]; then
     cd ../../simulation;
     bjam --hash -j2 crypto=built-in $toolset;

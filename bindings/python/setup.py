@@ -85,7 +85,7 @@ if '--bjam' in sys.argv:
 		except: pass
 		try: os.mkdir('libtorrent')
 		except: pass
-		shutil.copyfile('py_libtorrent' + file_ext, 'build/lib/libtorrent' + file_ext)
+		shutil.copyfile('libtorrent' + file_ext, 'build/lib/libtorrent' + file_ext)
 
 	packages = ['libtorrent']
 
