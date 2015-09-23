@@ -81,16 +81,6 @@ void find_data_observer::reply(msg const& m)
 	done();
 }
 
-namespace {
-
-void add_entry_fun(void* userdata, node_entry const& e)
-{
-	traversal_algorithm* f = static_cast<traversal_algorithm*>(userdata);
-	f->add_entry(e.id, e.ep(), observer::flag_initial);
-}
-
-} // anonymous namespace
-
 find_data::find_data(
 	node& dht_node
 	, node_id target
@@ -103,10 +93,19 @@ find_data::find_data(
 
 void find_data::start()
 {
-	// if the user didn't add seed-nodes manually, grab a bunch of nodes from the
-	// routing table
+	// if the user didn't add seed-nodes manually, grab k (bucket size)
+	// nodes from routing table.
 	if (m_results.empty())
-		m_node.m_table.for_each_node(&add_entry_fun, 0, this);
+	{
+		std::vector<node_entry> nodes;
+		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
+
+		for (std::vector<node_entry>::iterator i = nodes.begin()
+			, end(nodes.end()); i != end; ++i)
+		{
+			add_entry(i->id, i->ep(), observer::flag_initial);
+		}
+	}
 
 	traversal_algorithm::start();
 }
