@@ -48,11 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-static tcp::endpoint ep(char const* ip, int port)
-{
-	return tcp::endpoint(address_v4::from_string(ip), port);
-}
-
 struct mock_torrent;
 
 struct mock_peer_connection : peer_connection_interface

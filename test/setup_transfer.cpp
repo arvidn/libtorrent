@@ -906,3 +906,8 @@ void stop_web_server()
 	web_server_pid = 0;
 }
 
+tcp::endpoint ep(char const* ip, int port)
+{
+	error_code ec;
+	return tcp::endpoint(address::from_string(ip, ec), port);
+}

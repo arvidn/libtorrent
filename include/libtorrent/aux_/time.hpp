@@ -44,7 +44,7 @@ namespace libtorrent { namespace aux
 	// resolution of this timer is about 100 ms.
 	time_point const& time_now();
 
-	void update_time_now();
+	TORRENT_EXTRA_EXPORT void update_time_now();
 
 } }
 
