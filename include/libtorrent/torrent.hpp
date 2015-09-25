@@ -740,7 +740,10 @@ namespace libtorrent
 		}
 
 		bool is_inactive() const
-		{ return m_inactive; }
+		{
+			if (!settings().dont_count_slow_torrents) return false;
+			return m_inactive;
+		}
 
 		std::string save_path() const;
 		alert_manager& alerts() const;
