@@ -450,7 +450,7 @@ namespace libtorrent
 		// insert custom HTTP headers in the requests to a specific web seed.
 		// 
 		// See http-seeding_ for more information.
- 		void add_url_seed(std::string const& url
+		void add_url_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
 		void add_http_seed(std::string const& url
