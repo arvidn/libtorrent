@@ -65,6 +65,8 @@ void usage()
 		"                            item onto the DHT. The resulting target hash\n"
 		"gen-key <key-file>        - generate ed25519 keypair and save it in\n"
 		"                            the specified file\n"
+		"dump-key <key-file>       - dump ed25519 keypair from the specified key\n"
+		"                            file.\n"
 		"mput <key-file> <string>  - puts the specified string as a mutable\n"
 		"                            object under the public key in key-file\n"
 		"mget <public-key>         - get a mutable object under the specified\n"
@@ -126,6 +128,111 @@ void bootstrap(lt::session& s)
 {
 	printf("bootstrapping\n");
 	wait_for_alert(s, dht_bootstrap_alert::alert_type);
+	printf("bootstrap done.\n");
+}
+
+int dump_key(char *filename)
+{
+	FILE* f = fopen(filename, "rb+");
+	if (f == NULL)
+	{
+		fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+			, filename, errno, strerror(errno));
+		return 1;
+	}
+
+	unsigned char seed[32];
+	int size = fread(seed, 1, 32, f);
+	if (size != 32)
+	{
+		fprintf(stderr, "invalid key file.\n");
+		return 1;
+	}
+	fclose(f);
+
+	boost::array<char, 32> public_key;
+	boost::array<char, 64> private_key;
+	ed25519_create_keypair((unsigned char*)public_key.data()
+		, (unsigned char*)private_key.data(), seed);
+
+	printf("public key: %s\nprivate key: %s\n",
+		to_hex(std::string(public_key.data(), public_key.size())).c_str(),
+		to_hex(std::string(private_key.data(), private_key.size())).c_str());
+
+	return 0;
+}
+
+int generate_key(char* filename)
+{
+	unsigned char seed[32];
+	ed25519_create_seed(seed);
+
+	FILE* f = fopen(filename, "wb+");
+	if (f == NULL)
+	{
+		fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
+			, filename, errno, strerror(errno));
+		return 1;
+	}
+
+	int size = fwrite(seed, 1, 32, f);
+	if (size != 32)
+	{
+		fprintf(stderr, "failed to write key file.\n");
+		return 1;
+	}
+	fclose(f);
+
+	return 0;
+}
+
+void load_dht_state(lt::session& s)
+{
+	FILE* f = fopen(".dht", "rb");
+	if (f == NULL) return;
+
+	fseek(f, 0, SEEK_END);
+	int size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	if (size > 0)
+	{
+		std::vector<char> state;
+		state.resize(size);
+		fread(&state[0], 1, state.size(), f);
+
+		bdecode_node e;
+		error_code ec;
+		bdecode(&state[0], &state[0] + state.size(), e, ec);
+		if (ec)
+			fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
+				, ec.value(), ec.message().c_str());
+		else
+		{
+			printf("load dht state from .dht\n");
+			s.load_state(e);
+		}
+	}
+	fclose(f);
+}
+
+
+int save_dht_state(lt::session& s)
+{
+	entry e;
+	s.save_state(e, session::save_dht_state);
+	std::vector<char> state;
+	bencode(std::back_inserter(state), e);
+	FILE* f = fopen(".dht", "wb+");
+	if (f == NULL)
+	{
+		fprintf(stderr, "failed to open file .dht for writing");
+		return 1;
+	}
+	fwrite(&state[0], 1, state.size(), f);
+	fclose(f);
+
+	return 0;
 }
 
 int main(int argc, char* argv[])
@@ -136,26 +243,22 @@ int main(int argc, char* argv[])
 
 	if (argc < 1) usage();
 
+	if (strcmp(argv[0], "dump-key") == 0)
+	{
+		++argv;
+		--argc;
+		if (argc < 1) usage();
+
+		return dump_key(argv[0]);
+	}
+
 	if (strcmp(argv[0], "gen-key") == 0)
 	{
 		++argv;
 		--argc;
 		if (argc < 1) usage();
-	
-		unsigned char seed[32];
-		ed25519_create_seed(seed);
 
-		FILE* f = fopen(argv[0], "wb+");
-		if (f == NULL)
-		{
-			fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
-				, argv[0], errno, strerror(errno));
-			return 1;
-		}
-
-		fwrite(seed, 1, 32, f);
-		fclose(f);
-		return 0;
+		return generate_key(argv[0]);
 	}
 
 	settings_pack sett;
@@ -167,29 +270,7 @@ int main(int argc, char* argv[])
 	sett.set_bool(settings_pack::enable_dht, true);
 	s.apply_settings(sett);
 
-	FILE* f = fopen(".dht", "rb");
-	if (f != NULL)
-	{
-		fseek(f, 0, SEEK_END);
-		int size = ftell(f);
-		fseek(f, 0, SEEK_SET);
-		if (size > 0)
-		{
-			std::vector<char> state;
-			state.resize(size);
-			fread(&state[0], 1, state.size(), f);
-
-			bdecode_node e;
-			error_code ec;
-			bdecode(&state[0], &state[0] + state.size(), e, ec);
-			if (ec)
-				fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
-					, ec.value(), ec.message().c_str());
-			else
-				s.load_state(e);
-		}
-		fclose(f);
-	}
+	load_dht_state(s);
 
 	if (strcmp(argv[0], "get") == 0)
 	{
@@ -320,18 +401,7 @@ int main(int argc, char* argv[])
 		usage();
 	}
 
-	entry e;
-	s.save_state(e, lt::session::save_dht_state);
-	std::vector<char> state;
-	bencode(std::back_inserter(state), e);
-	f = fopen(".dht", "wb+");
-	if (f == NULL)
-	{
-		fprintf(stderr, "failed to open file .dht for writing");
-		return 1;
-	}
-	fwrite(&state[0], 1, state.size(), f);
-	fclose(f);
+	return save_dht_state(s);
 }
 
 #endif
