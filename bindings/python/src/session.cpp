@@ -607,6 +607,7 @@ void bind_session()
         .value("flag_super_seeding", add_torrent_params::flag_super_seeding)
         .value("flag_sequential_download", add_torrent_params::flag_sequential_download)
         .value("flag_use_resume_save_path", add_torrent_params::flag_use_resume_save_path)
+        .value("flag_merge_resume_http_seeds", add_torrent_params::flag_merge_resume_http_seeds)
     ;
     class_<cache_status>("cache_status")
         .def_readonly("blocks_written", &cache_status::blocks_written)
