@@ -1433,7 +1433,6 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	session_settings settings;
-	settings.dont_count_slow_torrents = false;
 
 	proxy_settings ps;
 
