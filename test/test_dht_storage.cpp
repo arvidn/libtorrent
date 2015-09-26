@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
+namespace lt = libtorrent;
 
 namespace
 {
@@ -70,6 +71,15 @@ namespace
 		sha1_hash ret;
 		from_hex(s, 40, (char *) &ret[0]);
 		return ret;
+	}
+
+	bool g_storage_constructor_invoked = false;
+
+	dht_storage_interface* dht_custom_storage_constructor(sha1_hash const& id
+		, dht_settings const& settings)
+	{
+		g_storage_constructor_invoked = true;
+		return dht_default_storage_constructor(id, settings);
 	}
 }
 
@@ -175,6 +185,52 @@ TORRENT_TEST(dht_storage_counters)
 	char signature[item_sig_len];
 	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
 	TEST_EQUAL(s->counters().mutable_data, 1);
+}
+
+TORRENT_TEST(dht_storage_set_custom)
+{
+	g_storage_constructor_invoked = false;
+	settings_pack p;
+	p.set_bool(settings_pack::enable_dht, false);
+	lt::session ses(p);
+
+	bool r = ses.is_dht_running();
+	TEST_CHECK(!r);
+
+	ses.set_dht_storage(dht_custom_storage_constructor);
+
+	p.set_bool(settings_pack::enable_dht, true);
+	ses.apply_settings(p); // async with dispatch
+	r = ses.is_dht_running();
+	TEST_CHECK(r);
+	TEST_EQUAL(g_storage_constructor_invoked, true);
+}
+
+TORRENT_TEST(dht_storage_default_set_custom)
+{
+	g_storage_constructor_invoked = false;
+	settings_pack p;
+	p.set_bool(settings_pack::enable_dht, true);
+	lt::session ses(p);
+
+	bool r = ses.is_dht_running();
+	TEST_CHECK(r);
+
+	ses.set_dht_storage(dht_custom_storage_constructor);
+
+	p.set_bool(settings_pack::enable_dht, false);
+	ses.apply_settings(p); // async with dispatch
+	r = ses.is_dht_running();
+	TEST_CHECK(!r);
+	TEST_EQUAL(g_storage_constructor_invoked, false);
+
+	ses.set_dht_storage(dht_custom_storage_constructor);
+
+	p.set_bool(settings_pack::enable_dht, true);
+	ses.apply_settings(p); // async with dispatch
+	r = ses.is_dht_running();
+	TEST_CHECK(r);
+	TEST_EQUAL(g_storage_constructor_invoked, true);
 }
 
 #endif

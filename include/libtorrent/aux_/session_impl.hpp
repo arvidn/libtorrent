@@ -292,6 +292,7 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
+			void set_dht_storage(dht::dht_storage_constructor_type sc);
 			void start_dht();
 			void stop_dht();
 			void start_dht(entry const& startup_state);
@@ -994,6 +995,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_DHT
 			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
+			dht::dht_storage_constructor_type m_dht_storage_constructor;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased

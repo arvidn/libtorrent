@@ -351,6 +351,15 @@ namespace libtorrent
 #endif
 	}
 
+	void session_handle::set_dht_storage(dht::dht_storage_constructor_type sc)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_ASYNC_CALL1(set_dht_storage, sc);
+#else
+		TORRENT_UNUSED(sc);
+#endif
+	}
+
 	void session_handle::add_dht_node(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT

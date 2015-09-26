@@ -129,7 +129,8 @@ class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 public:
 	node(udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid
-		, dht_observer* observer, counters& cnt);
+		, dht_observer* observer, counters& cnt
+		, dht_storage_constructor_type storage_constructor = dht_default_storage_constructor);
 
 	virtual ~node();
 
