@@ -8623,6 +8623,35 @@ namespace libtorrent
 		return m_ses.alerts();
 	}
 
+	bool torrent::is_seed() const
+	{
+		if (!valid_metadata()) return false;
+		if (m_seed_mode) return true;
+		if (m_have_all) return true;
+		if (m_picker && m_picker->num_passed() == m_picker->num_pieces()) return true;
+		return m_state == torrent_status::seeding;
+	}
+
+	bool torrent::is_finished() const
+	{
+		if (is_seed()) return true;
+
+		// this is slightly different from m_picker->is_finished()
+		// because any piece that has *passed* is considered here,
+		// which may be more than the piece we *have* (i.e. written to disk)
+		// keep in mind that num_filtered() does not include pieces we
+		// have that are filtered
+		return valid_metadata() && has_picker()
+			&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
+	}
+
+	bool torrent::is_inactive() const
+	{
+		if (!settings().get_bool(settings_pack::dont_count_slow_torrents))
+			return false;
+		return m_inactive;
+	}
+
 	std::string torrent::save_path() const
 	{
 		return m_save_path;

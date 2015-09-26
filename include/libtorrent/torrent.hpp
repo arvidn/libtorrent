@@ -929,32 +929,13 @@ namespace libtorrent
 		void add_failed_bytes(int b);
 
 		// this is true if we have all the pieces, but not necessarily flushed them to disk
-		bool is_seed() const
-		{
-			if (!valid_metadata()) return false;
-			if (m_seed_mode) return true;
-			if (m_have_all) return true;
-			if (m_picker && m_picker->num_passed() == m_picker->num_pieces()) return true;
-			return m_state == torrent_status::seeding;
-		}
+		bool is_seed() const;
 
 		// this is true if we have all the pieces that we want
 		// the pieces don't necessarily need to be flushed to disk
-		bool is_finished() const
-		{
-			if (is_seed()) return true;
+		bool is_finished() const;
 
-			// this is slightly different from m_picker->is_finished()
-			// because any piece that has *passed* is considered here,
-			// which may be more than the piece we *have* (i.e. written to disk)
-			// keep in mind that num_filtered() does not include pieces we
-			// have that are filtered
-			return valid_metadata() && has_picker()
-				&& m_torrent_file->num_pieces() - m_picker->num_filtered() - m_picker->num_passed() == 0;
-		}
-
-		bool is_inactive() const
-		{ return m_inactive; }
+		bool is_inactive() const;
 
 		std::string save_path() const;
 		alert_manager& alerts() const;
