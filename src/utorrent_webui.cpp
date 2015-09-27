@@ -52,6 +52,7 @@ extern "C" {
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/peer_info.hpp"

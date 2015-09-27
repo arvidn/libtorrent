@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_TORRENT_HISTORY_HPP
 
 #include "libtorrent/alert_observer.hpp"
-#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/thread.hpp" // for mutex
 #include <boost/bimap.hpp>
 #include <boost/bimap/list_of.hpp>
 #include <boost/bimap/unordered_set_of.hpp>
@@ -184,7 +185,7 @@ namespace libtorrent
 		typedef boost::bimap<boost::bimaps::list_of<int>
 			, boost::bimaps::unordered_set_of<torrent_history_entry> > queue_t;
 
-		mutable mutex m_mutex;
+		mutable libtorrent::mutex m_mutex;
 
 		queue_t m_queue;
 

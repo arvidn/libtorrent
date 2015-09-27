@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_status.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <vector>
 #include <set>
+#include <deque>
 
 namespace libtorrent
 {
