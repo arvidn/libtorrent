@@ -186,15 +186,78 @@ void send_simple_dht_request(node& node, char const* msg, udp::endpoint const& e
 	}
 }
 
+void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
+{
+	entry::list_type& pe = r["values"].list();
+	for (std::set<tcp::endpoint>::const_iterator it = peers.begin()
+		 ; it != peers.end(); ++it)
+	{
+		std::string endpoint(18, '\0');
+		std::string::iterator out = endpoint.begin();
+		libtorrent::detail::write_endpoint(*it, out);
+		endpoint.resize(out - endpoint.begin());
+		pe.push_back(entry(endpoint));
+	}
+}
+
+struct msg_args
+{
+	msg_args& info_hash(char const* i)
+	{ if (i) a["info_hash"] = std::string(i, 20); return *this; }
+
+	msg_args& name(char const* n)
+	{ if (n) a["n"] = n; return *this; }
+
+	msg_args& token(std::string t)
+	{ a["token"] = t; return *this; }
+
+	msg_args& port(int p)
+	{ a["port"] = p; return *this; }
+
+	msg_args& target(char const* t)
+	{ if (t) a["target"] = std::string(t, 20); return *this; }
+
+	msg_args& value(entry const& v)
+	{ a["v"] = v; return *this; }
+
+	msg_args& scrape(bool s)
+	{ a["scrape"] = s ? 1 : 0; return *this; }
+
+	msg_args& seed(bool s)
+	{ a["seed"] = s ? 1 : 0; return *this; }
+
+	msg_args& key(std::string k)
+	{ a["k"] = k; return *this; }
+
+	msg_args& sig(std::string s)
+	{ a["sig"] = s; return *this; }
+
+	msg_args& seq(int s)
+	{ a["seq"] = s; return *this; }
+
+	msg_args& cas(boost::int64_t c)
+	{ a["cas"] = c; return *this; }
+
+	msg_args& nid(sha1_hash const& n)
+	{ a["id"] = n.to_string(); return *this; }
+
+	msg_args& salt(char const* s)
+	{ if (s) a["salt"] = s; return *this; }
+
+	msg_args& want(std::string w)
+	{ a["want"].list().push_back(w); return *this; }
+
+	msg_args& nodes(nodes_t const& n)
+	{ if (!n.empty()) dht::write_nodes_entry(a, n); return *this; }
+
+	msg_args& peers(std::set<tcp::endpoint> const& p)
+	{ if (!p.empty()) write_peers(a.dict(), p); return *this; }
+
+	entry a;
+};
 
 void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
-	, bdecode_node* reply, char const* t = "10", char const* info_hash = 0
-	, char const* name = 0, std::string const token = std::string(), int port = 0
-	, char const* target = 0, entry const* value = 0
-	, bool scrape = false, bool seed = false
-	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1, boost::int64_t cas = -1, sha1_hash const* nid = NULL
-	, char const* put_salt = NULL)
+	, bdecode_node* reply, char const* t = "10", msg_args const& args = msg_args())
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -203,22 +266,8 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	e["q"] = msg;
 	e["t"] = t;
 	e["y"] = "q";
-	entry::dictionary_type& a = e["a"].dict();
-	if (nid == NULL) a["id"] = generate_next().to_string();
-	else a["id"] = nid->to_string();
-	if (info_hash) a["info_hash"] = std::string(info_hash, 20);
-	if (name) a["n"] = name;
-	if (!token.empty()) a["token"] = token;
-	if (port) a["port"] = port;
-	if (target) a["target"] = std::string(target, 20);
-	if (value) a["v"] = *value;
-	if (!sig.empty()) a["sig"] = sig;
-	if (!key.empty()) a["k"] = key;
-	if (scrape) a["scrape"] = 1;
-	if (seed) a["seed"] = 1;
-	if (seq >= 0) a["seq"] = seq;
-	if (cas != -1) a["cas"] = cas;
-	if (put_salt) a["salt"] = put_salt;
+	e["a"] = args.a;
+	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
@@ -253,43 +302,15 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	g_sent_packets.erase(i);
 }
 
-void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
-{
-	entry::list_type& pe = r["values"].list();
-	for (std::set<tcp::endpoint>::const_iterator it = peers.begin()
-		 ; it != peers.end(); ++it)
-	{
-		std::string endpoint(18, '\0');
-		std::string::iterator out = endpoint.begin();
-		libtorrent::detail::write_endpoint(*it, out);
-		endpoint.resize(out - endpoint.begin());
-		pe.push_back(entry(endpoint));
-	}
-}
-
 void send_dht_response(node& node, bdecode_node const& request, udp::endpoint const& ep
-	, nodes_t const& nodes = nodes_t()
-	, std::string const token = std::string(), int port = 0
-	, std::set<tcp::endpoint> const& peers = std::set<tcp::endpoint>()
-	, char const* target = 0, entry const* value = 0
-	, std::string const key = std::string(), std::string const sig = std::string()
-	, int seq = -1, sha1_hash const* nid = NULL)
+	, msg_args const& args = msg_args())
 {
 	entry e;
 	e["y"] = "r";
 	e["t"] = request.dict_find_string_value("t");
 //	e["ip"] = endpoint_to_bytes(ep);
-	entry::dictionary_type& r = e["r"].dict();
-	if (nid == NULL) r["id"] = generate_next().to_string();
-	else r["id"] = nid->to_string();
-	if (!token.empty()) r["token"] = token;
-	if (port) r["p"] = port;
-	if (!nodes.empty()) dht::write_nodes_entry(e["r"], nodes);
-	if (!peers.empty()) write_peers(r, peers);
-	if (value) r["v"] = *value;
-	if (!sig.empty()) r["sig"] = sig;
-	if (!key.empty()) r["k"] = key;
-	if (seq >= 0) r["seq"] = seq;
+	e["r"] = args.a;
+	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
@@ -341,8 +362,8 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		{
 			if ((i % items[j].num_peers) == 0) continue;
 			bdecode_node response;
-			send_dht_request(node, "get", eps[i], &response, "10", 0
-				, 0, no, 0, (char const*)&items[j].target[0]);
+			send_dht_request(node, "get", eps[i], &response, "10"
+				, msg_args().target((char const*)&items[j].target[0]));
 			
 			key_desc_t desc[] =
 			{
@@ -380,8 +401,11 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 				TEST_EQUAL(addr, eps[i].address());
 			}
 
-			send_dht_request(node, "put", eps[i], &response, "10", 0
-				, 0, token, 0, (char const*)&items[j].target[0], &items[j].ent);
+			send_dht_request(node, "put", eps[i], &response, "10"
+				, msg_args()
+					.token(token)
+					.target((char const*)&items[j].target[0])
+					.value(items[j].ent));
 
 			key_desc_t desc2[] =
 			{
@@ -410,9 +434,9 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 	for (int j = 0; j < num_items; ++j)
 	{
 		bdecode_node response;
-		send_dht_request(node, "get", eps[j], &response, "10", 0
-			, 0, no, 0, (char const*)&items[j].target[0]);
-		
+		send_dht_request(node, "get", eps[j], &response, "10"
+			, msg_args().target((char const*)&items[j].target[0]));
+
 		key_desc_t desc[] =
 		{
 			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
@@ -586,7 +610,8 @@ TORRENT_TEST(dht)
 
 	// ====== get_peers ======
 
-	send_dht_request(node, "get_peers", source, &response, "10", "01010101010101010101");
+	send_dht_request(node, "get_peers", source, &response, "10"
+		, msg_args().info_hash("01010101010101010101"));
 
 	dht::key_desc_t peer1_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -614,7 +639,13 @@ TORRENT_TEST(dht)
 
 	// ====== announce ======
 
-	send_dht_request(node, "announce_peer", source, &response, "10", "01010101010101010101", "test", token, 8080);
+	send_dht_request(node, "announce_peer", source, &response, "10"
+		, msg_args()
+			.info_hash("01010101010101010101")
+			.name("test")
+			.token(token)
+			.port(8080));
+
 
 	dht::key_desc_t ann_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -642,7 +673,9 @@ TORRENT_TEST(dht)
 	for (int i = 0; i < 100; ++i)
 	{
 		source = udp::endpoint(rand_v4(), 6000);
-		send_dht_request(node, "get_peers", source, &response, "10", "01010101010101010101");
+		send_dht_request(node, "get_peers", source, &response, "10"
+			, msg_args().info_hash("01010101010101010101"));
+
 		ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
 			, sizeof(error_string));
 
@@ -658,15 +691,21 @@ TORRENT_TEST(dht)
 			fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 		}
 		response.clear();
-		send_dht_request(node, "announce_peer", source, &response, "10", "01010101010101010101"
-			, "test", token, 8080, 0, 0, false, i >= 50);
+		send_dht_request(node, "announce_peer", source, &response, "10"
+			, msg_args()
+				.info_hash("01010101010101010101")
+				.name("test")
+				.token(token)
+				.port(8080)
+				.seed(i >= 50));
+
 		response.clear();
 	}
 
 	// ====== get_peers ======
 
-	send_dht_request(node, "get_peers", source, &response, "10", "01010101010101010101"
-		, 0, no, 0, 0, 0, true);
+	send_dht_request(node, "get_peers", source, &response, "10"
+		, msg_args().info_hash("01010101010101010101").scrape(true));
 
 	dht::key_desc_t peer2_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -729,8 +768,8 @@ TORRENT_TEST(dht)
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
 	int nodes_num = node.size().get<0>();
-	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
-		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
+	send_dht_request(node, "find_node", source, &response, "10"
+		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
 		, sizeof(error_string));
@@ -760,8 +799,8 @@ TORRENT_TEST(dht)
 
 	// now the node-id is valid.
 	nid[0] = 0x5f;
-	send_dht_request(node, "find_node", source, &response, "10", 0, 0, std::string()
-		, 0, "0101010101010101010101010101010101010101", 0, false, false, std::string(), std::string(), -1, 0, &nid);
+	send_dht_request(node, "find_node", source, &response, "10"
+		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	dht::key_desc_t nodes_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -905,9 +944,8 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "target_id: %s\n"
 			, to_hex(target_id.to_string()).c_str());
 
-		send_dht_request(node, "get", source, &response, "10", 0
-			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string());
+		send_dht_request(node, "get", source, &response, "10"
+			, msg_args().target((char*)&target_id[0]));
 
 		key_desc_t desc[] =
 		{
@@ -943,10 +981,14 @@ TORRENT_TEST(dht)
 		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
 #endif
 
-		send_dht_request(node, "put", source, &response, "10", 0
-			, 0, token, 0, 0, &items[0].ent, false, false
-			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
+		send_dht_request(node, "put", source, &response, "10"
+			, msg_args()
+				.token(token)
+				.value(items[0].ent)
+				.key(std::string(public_key, item_pk_len))
+				.sig(std::string(signature, item_sig_len))
+				.seq(seq)
+				.salt(salt.first));
 
 		ret = verify_message(response, desc2, parsed, 1, error_string
 			, sizeof(error_string));
@@ -963,9 +1005,8 @@ TORRENT_TEST(dht)
 			TEST_ERROR(error_string);
 		}
 
-		send_dht_request(node, "get", source, &response, "10", 0
-			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string());
+		send_dht_request(node, "get", source, &response, "10"
+			, msg_args().target((char*)&target_id[0]));
 
 		fprintf(stderr, "target_id: %s\n"
 			, to_hex(target_id.to_string()).c_str());
@@ -1018,10 +1059,14 @@ TORRENT_TEST(dht)
 
 		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
 
-		send_dht_request(node, "put", source, &response, "10", 0
-			, 0, token, 0, 0, &items[0].ent, false, false
-			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq, -1, NULL, salt.first);
+		send_dht_request(node, "put", source, &response, "10"
+			, msg_args()
+				.token(token)
+				.value(items[0].ent)
+				.key(std::string(public_key, item_pk_len))
+				.sig(std::string(signature, item_sig_len))
+				.seq(seq)
+				.salt(salt.first));
 
 		ret = verify_message(response, desc_error, parsed, 2, error_string
 			, sizeof(error_string));
@@ -1041,9 +1086,8 @@ TORRENT_TEST(dht)
 
 		// === test conditional get ===
 
-		send_dht_request(node, "get", source, &response, "10", 0
-			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string(), seq-1);
+		send_dht_request(node, "get", source, &response, "10"
+			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
 
 		{
 			bdecode_node r = response.dict_find_dict("r");
@@ -1052,9 +1096,8 @@ TORRENT_TEST(dht)
 			TEST_CHECK(r.dict_find("sig"));
 		}
 
-		send_dht_request(node, "get", source, &response, "10", 0
-			, 0, no, 0, (char*)&target_id[0]
-			, 0, false, false, std::string(), std::string(), seq);
+		send_dht_request(node, "get", source, &response, "10"
+			, msg_args().target((char*)&target_id[0]).seq(seq));
 
 		{
 			bdecode_node r = response.dict_find_dict("r");
@@ -1082,11 +1125,15 @@ TORRENT_TEST(dht)
 
 		fprintf(stderr, "PUT CAS 1\n");
 
-		send_dht_request(node, "put", source, &response, "10", 0
-			, 0, token, 0, 0, &items[1].ent, false, false
-			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq
-			, cas, NULL, salt.first);
+		send_dht_request(node, "put", source, &response, "10"
+			, msg_args()
+				.token(token)
+				.value(items[1].ent)
+				.key(std::string(public_key, item_pk_len))
+				.sig(std::string(signature, item_sig_len))
+				.seq(seq)
+				.cas(cas)
+				.salt(salt.first));
 
 		ret = verify_message(response, desc2, parsed, 1, error_string
 			, sizeof(error_string));
@@ -1108,11 +1155,15 @@ TORRENT_TEST(dht)
 		// put the same message again. This should fail because the
 		// CAS hash is outdated, it's not the hash of the value that's
 		// stored anymore
-		send_dht_request(node, "put", source, &response, "10", 0
-			, 0, token, 0, 0, &items[1].ent, false, false
-			, std::string(public_key, item_pk_len)
-			, std::string(signature, item_sig_len), seq
-			, cas, NULL, salt.first);
+		send_dht_request(node, "put", source, &response, "10"
+			, msg_args()
+				.token(token)
+				.value(items[1].ent)
+				.key(std::string(public_key, item_pk_len))
+				.sig(std::string(signature, item_sig_len))
+				.seq(seq)
+				.cas(cas)
+				.salt(salt.first));
 
 		ret = verify_message(response, desc_error, parsed, 2, error_string
 			, sizeof(error_string));
@@ -1445,7 +1496,7 @@ TORRENT_TEST(dht)
 		nodes_t nodes;
 		nodes.push_back(found_node);
 		g_sent_packets.clear();
-		send_dht_response(node, response, initial_node, nodes);
+		send_dht_response(node, response, initial_node, msg_args().nodes(nodes));
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1520,7 +1571,8 @@ TORRENT_TEST(dht)
 		nodes.push_back(next_node);
 
 		g_sent_packets.clear();
-		send_dht_response(node, response, initial_node, nodes, "10", 1234, peers[0]);
+		send_dht_response(node, response, initial_node
+			, msg_args().nodes(nodes).token("10").port(1234).peers(peers[0]));
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1548,7 +1600,8 @@ TORRENT_TEST(dht)
 		peers[1].insert(tcp::endpoint(address_v4::from_string("4.1.1.6"), 4116));
 
 		g_sent_packets.clear();
-		send_dht_response(node, response, next_node, nodes_t(), "11", 1234, peers[1]);
+		send_dht_response(node, response, next_node
+			, msg_args().token("11").port(1234).peers(peers[1]));
 
 		for (std::list<std::pair<udp::endpoint, entry> >::iterator i = g_sent_packets.begin()
 			, end(g_sent_packets.end()); i != end; ++i)
@@ -1604,8 +1657,8 @@ TORRENT_TEST(dht)
 		}
 
 		g_sent_packets.clear();
-		send_dht_response(node, response, initial_node, nodes_t(), "10", 1234, std::set<tcp::endpoint>()
-			, NULL, &items[0].ent);
+		send_dht_response(node, response, initial_node
+			, msg_args().token("10").port(1234).value(items[0].ent));
 
 		TEST_CHECK(g_sent_packets.empty());
 		TEST_EQUAL(g_got_items.size(), 1);
@@ -1654,8 +1707,14 @@ TORRENT_TEST(dht)
 
 		itemv.second = bencode(buffer, items[0].ent);
 		sign_mutable_item(itemv, empty_salt, seq, public_key, private_key, signature);
-		send_dht_response(node, response, initial_node, nodes_t(), "10", 1234, std::set<tcp::endpoint>()
-			, NULL, &items[0].ent, std::string(public_key, item_pk_len), std::string(signature, item_sig_len), seq);
+		send_dht_response(node, response, initial_node
+			, msg_args()
+				.token("10")
+				.port(1234)
+				.value(items[0].ent)
+				.key(std::string(public_key, item_pk_len))
+				.sig(std::string(signature, item_sig_len))
+				.seq(seq));
 
 		TEST_CHECK(g_sent_packets.empty());
 		TEST_EQUAL(g_got_items.size(), 1);
@@ -1729,8 +1788,8 @@ TORRENT_TEST(dht)
 			}
 			char t[10];
 			snprintf(t, sizeof(t), "%02d", i);
-			send_dht_response(node, response, nodes[i].ep(), nodes_t(), t, 1234,
-				std::set<tcp::endpoint>(), 0, 0, std::string(), std::string(), -1, &nodes[i].id);
+			send_dht_response(node, response, nodes[i].ep()
+				, msg_args().token(t).port(1234).nid(nodes[i].id));
 			g_sent_packets.erase(packet);
 		}
 
@@ -1813,8 +1872,8 @@ TORRENT_TEST(dht)
 			}
 			char t[10];
 			snprintf(t, sizeof(t), "%02d", i);
-			send_dht_response(node, response, nodes[i].ep(), nodes_t(), t, 1234,
-				std::set<tcp::endpoint>(), 0, 0, std::string(), std::string(), -1, &nodes[i].id);
+			send_dht_response(node, response, nodes[i].ep()
+				, msg_args().token(t).port(1234).nid(nodes[i].id));
 			g_sent_packets.erase(packet);
 		}
 
