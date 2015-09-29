@@ -223,6 +223,7 @@ namespace libtorrent
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
+		, m_merge_resume_http_seeds(p.flags & add_torrent_params::flag_merge_resume_http_seeds)
 		, m_padding(0)
 		, m_priority(0)
 		, m_complete(0xffffff)
@@ -279,6 +280,9 @@ namespace libtorrent
 
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : new torrent_info(info_hash));
+
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 		// add web seeds from add_torrent_params
 		for (std::vector<std::string>::const_iterator i = p.url_seeds.begin()
@@ -1635,9 +1639,6 @@ namespace libtorrent
 				pc->init();
 			}
 		}
-
-		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 #if TORRENT_USE_ASSERTS
 		m_resume_data_loaded = true;
@@ -5417,7 +5418,17 @@ namespace libtorrent
 				prioritize_udp_trackers();
 		}
 
+		// if merge resume http seeds is not set, we need to clear whatever web
+		// seeds we loaded from the .torrent file, because we want whatever's in
+		// the resume file to take precedence. If there aren't even any fields in
+		// the resume data though, keep the ones from the torrent
 		lazy_entry const* url_list = rd.dict_find_list("url-list");
+		lazy_entry const* httpseeds = rd.dict_find_list("httpseeds");
+		if ((url_list || httpseeds) && !m_merge_resume_http_seeds)
+		{
+			m_web_seeds.clear();
+		}
+
 		if (url_list)
 		{
 			for (int i = 0; i < url_list->list_size(); ++i)
@@ -5429,7 +5440,6 @@ namespace libtorrent
 			}
 		}
 
-		lazy_entry const* httpseeds = rd.dict_find_list("httpseeds");
 		if (httpseeds)
 		{
 			for (int i = 0; i < httpseeds->list_size(); ++i)

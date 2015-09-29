@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 boost::intrusive_ptr<torrent_info> generate_torrent()
 {
@@ -50,6 +51,7 @@ boost::intrusive_ptr<torrent_info> generate_torrent()
 	libtorrent::create_torrent t(fs, 128 * 1024, 6);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
+	t.add_url_seed("http://torrent_file_url_seed.com/");
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);
@@ -121,10 +123,8 @@ std::vector<char> generate_resume_data(torrent_info* ti)
 	return ret;
 }
 
-torrent_status test_resume_flags(int flags)
+torrent_handle test_resume_flags(lt::session& ses, int flags)
 {
-	session ses;
-
 	boost::intrusive_ptr<torrent_info> ti = generate_torrent();
 
 	add_torrent_params p;
@@ -149,9 +149,8 @@ torrent_status test_resume_flags(int flags)
 	p.file_priorities.push_back(2);
 
 	torrent_handle h = ses.add_torrent(p);
-	torrent_status s = h.status();
-	TEST_EQUAL(s.info_hash, ti->info_hash());
-	return s;
+	TEST_EQUAL(h.status().info_hash, ti->info_hash());
+	return h;
 }
 
 void default_tests(torrent_status const& s)
@@ -239,6 +238,7 @@ void test_file_prio()
 	torrent_status s = h.status();
 	TEST_EQUAL(s.total_wanted, 0);
 }
+
 void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
 	, bool all_files_zero = false)
 {
@@ -314,10 +314,11 @@ int test_main()
 
 	test_piece_priorities();
 
+	boost::scoped_ptr<lt::session> ses(new lt::session());
 	torrent_status s;
 
 	fprintf(stderr, "flags: 0\n");
-	s = test_resume_flags(0);
+	s = test_resume_flags(*ses, 0).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -336,7 +337,8 @@ int test_main()
 	TEST_EQUAL(s.uploads_limit, 1346);
 
 	fprintf(stderr, "flags: use_resume_save_path\n");
-	s = test_resume_flags(add_torrent_params::flag_use_resume_save_path);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_use_resume_save_path).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\resume_data save_path");
@@ -355,8 +357,9 @@ int test_main()
 	TEST_EQUAL(s.uploads_limit, 1346);
 
 	fprintf(stderr, "flags: override_resume_data\n");
-	s = test_resume_flags(add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_paused);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_override_resume_data
+		| add_torrent_params::flag_paused).status();
 
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -376,8 +379,9 @@ int test_main()
 	TEST_EQUAL(s.uploads_limit, 1);
 
 	fprintf(stderr, "flags: seed_mode\n");
-	s = test_resume_flags(add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_seed_mode);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_override_resume_data
+		| add_torrent_params::flag_seed_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -396,7 +400,8 @@ int test_main()
 	TEST_EQUAL(s.uploads_limit, 1);
 
 	fprintf(stderr, "flags: upload_mode\n");
-	s = test_resume_flags(add_torrent_params::flag_upload_mode);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_upload_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -415,8 +420,9 @@ int test_main()
 	TEST_EQUAL(s.uploads_limit, 1346);
 
 	fprintf(stderr, "flags: share_mode\n");
-	s = test_resume_flags(add_torrent_params::flag_override_resume_data
-		| add_torrent_params::flag_share_mode);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_override_resume_data
+		| add_torrent_params::flag_share_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -436,7 +442,8 @@ int test_main()
 
 	// resume data overrides the auto-managed flag
 	fprintf(stderr, "flags: auto_managed\n");
-	s = test_resume_flags(add_torrent_params::flag_auto_managed);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_auto_managed).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -456,7 +463,8 @@ int test_main()
 
 	// resume data overrides the paused flag
 	fprintf(stderr, "flags: paused\n");
-	s = test_resume_flags(add_torrent_params::flag_paused);
+	ses.reset(new lt::session());
+	s = test_resume_flags(*ses, add_torrent_params::flag_paused).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -473,6 +481,42 @@ int test_main()
 	TEST_EQUAL(s.ip_filter_applies, false);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
+
+	// merge url seeds with resume data
+	fprintf(stderr, "flags: merge_resume_http_seeds\n");
+	ses.reset(new lt::session());
+	torrent_handle h = test_resume_flags(*ses,
+		add_torrent_params::flag_merge_resume_http_seeds);
+	std::set<std::string> us = h.url_seeds();
+	std::set<std::string> ws = h.http_seeds();
+
+	TEST_EQUAL(us.size(), 3);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://add_torrent_params_url_seed.com"), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://torrent_file_url_seed.com/"), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://resume_data_url_seed.com"), 1);
+
+	TEST_EQUAL(ws.size(), 1);
+	TEST_EQUAL(std::count(ws.begin(), ws.end()
+		, "http://resume_data_http_seed.com"), 1);
+
+	// resume data overrides the .torrent_file
+	fprintf(stderr, "flags: no merge_resume_http_seed\n");
+	ses.reset(new lt::session());
+	h = test_resume_flags(*ses,
+		add_torrent_params::flag_merge_resume_trackers);
+	us = h.url_seeds();
+	ws = h.http_seeds();
+
+	TEST_EQUAL(ws.size(), 1);
+	TEST_EQUAL(std::count(ws.begin(), ws.end()
+		, "http://resume_data_http_seed.com"), 1);
+
+	TEST_EQUAL(us.size(), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://resume_data_url_seed.com"), 1);
 
 	// TODO: 2 test all other resume flags here too. This would require returning
 	// more than just the torrent_status from test_resume_flags. Also http seeds

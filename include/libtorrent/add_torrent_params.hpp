@@ -227,7 +227,11 @@ namespace libtorrent
 
 			// defaults to off and specifies whether tracker URLs loaded from
 			// resume data should be added to the trackers in the torrent or
-			// replace the trackers.
+			// replace the trackers. When replacing trackers (i.e. this flag is not
+			// set), any trackers passed in via add_torrent_params are also
+			// replaced by any trackers in the resume data. The default behavior is
+			// to have the resume data override the .torrent file _and_ the
+			// trackers added in add_torrent_params.
 			flag_merge_resume_trackers = 0x100,
 
 			// on by default and means that this torrent will be part of state
@@ -249,6 +253,16 @@ namespace libtorrent
 			// present, is honored. This defaults to not being set, in which
 			// case the save_path specified in add_torrent_params is always used.
 			flag_use_resume_save_path = 0x1000,
+
+			// defaults to off and specifies whether web seed URLs loaded from
+			// resume data should be added to the ones in the torrent file or
+			// replace them. No distinction is made between the two different kinds
+			// of web seeds (`BEP 17`_ and `BEP 19`_). When replacing web seeds
+			// (i.e. when this flag is not set), any web seeds passed in via
+			// add_torrent_params are also replaced. The default behavior is to
+			// have any web seeds in the resume data take presedence over whatever
+			// is passed in here as well as the .torrent file.
+			flag_merge_resume_http_seeds = 0x2000,
 
 			// internal
 			default_flags = flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
