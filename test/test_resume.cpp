@@ -490,9 +490,6 @@ int test_main()
 	std::set<std::string> us = h.url_seeds();
 	std::set<std::string> ws = h.http_seeds();
 
-	for (auto& s : ws) std::cout << s << " ";
-	std::cout << std::endl;
-
 	TEST_EQUAL(us.size(), 3);
 	TEST_EQUAL(std::count(us.begin(), us.end()
 		, "http://add_torrent_params_url_seed.com"), 1);
@@ -512,9 +509,6 @@ int test_main()
 		add_torrent_params::flag_merge_resume_trackers);
 	us = h.url_seeds();
 	ws = h.http_seeds();
-
-	for (auto& s : ws) std::cout << s << " ";
-	std::cout << std::endl;
 
 	TEST_EQUAL(ws.size(), 1);
 	TEST_EQUAL(std::count(ws.begin(), ws.end()
