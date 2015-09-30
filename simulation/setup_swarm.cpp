@@ -82,7 +82,8 @@ struct swarm
 			m_torrents.push_back(lt::torrent_handle());
 
 			lt::add_torrent_params params = m_config.add_torrent(i);
-			ses->async_add_torrent(params);
+			if (!params.save_path.empty())
+				ses->async_add_torrent(params);
 
 			ses->set_alert_notify(boost::bind(&swarm::on_alert_notify, this, i));
 		}

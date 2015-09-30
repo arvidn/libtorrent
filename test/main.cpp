@@ -68,6 +68,7 @@ using namespace libtorrent;
 int old_stdout = -1;
 int old_stderr = -1;
 bool redirect_output = true;
+bool keep_files = false;
 
 extern int _g_test_idx;
 
@@ -143,6 +144,8 @@ void print_usage(char const* executable)
 		"OPTIONS:\n"
 		"-h,--help           show this help\n"
 		"-l,--list           list the tests available to run\n"
+		"-k,--keep           keep files created by the test\n"
+		"                    regardless of whether it passed or not\n"
 		"-n,--no-redirect    don't redirect test output to\n"
 		"                    temporary file, but let it go straight\n"
 		"                    to stdout\n"
@@ -180,6 +183,11 @@ EXPORT int main(int argc, char const* argv[])
 		if (strcmp(argv[0], "-n") == 0 || strcmp(argv[0], "--no-redirect") == 0)
 		{
 			redirect_output = false;
+		}
+
+		if (strcmp(argv[0], "-k") == 0 || strcmp(argv[0], "--keep") == 0)
+		{
+			keep_files = true;
 		}
 		++argv;
 		--argc;
@@ -365,7 +373,7 @@ EXPORT int main(int argc, char const* argv[])
 
 	int ret = print_failures();
 #if !defined TORRENT_LOGGING
-	if (ret == 0)
+	if (ret == 0 && !keep_files)
 	{
 		remove_all(test_dir, ec);
 		if (ec)

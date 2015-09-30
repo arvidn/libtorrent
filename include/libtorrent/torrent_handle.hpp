@@ -545,10 +545,12 @@ namespace libtorrent
 		// requested from it, it is disconnected. This is a graceful shut down of
 		// the torrent in the sense that no downloaded bytes are wasted.
 		// 
-		// torrents that are auto-managed may be automatically resumed again. It
-		// does not make sense to pause an auto-managed torrent without making it
-		// not automanaged first. Torrents are auto-managed by default when added
-		// to the session. For more information, see queuing_.
+		// .. note::
+		// 	Torrents that are auto-managed may be automatically resumed again. It
+		// 	does not make sense to pause an auto-managed torrent without making it
+		// 	not automanaged first. Torrents are auto-managed by default when added
+		// 	to the session. For more information, see queuing_.
+		// 
 		void pause(int flags = 0) const;
 		void resume() const;
 

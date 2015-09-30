@@ -1458,9 +1458,11 @@ namespace libtorrent
 
 // ----
 
-		// total time we've been available on this torrent
-		// does not count when the torrent is stopped or paused
-		// in seconds
+		// total time we've been active on this torrent. i.e. either (trying to)
+		// download or seed. does not count time when the torrent is stopped or
+		// paused. specified in seconds. This only track time _before_ we started
+		// the torrent this last time. When the torrent is paused, this counter is
+		// incremented to include this current session.
 		unsigned int m_active_time:24;
 
 		// the index to the last tracker that worked
@@ -1468,8 +1470,8 @@ namespace libtorrent
 
 // ----
 
-		// total time we've been finished with this torrent
-		// does not count when the torrent is stopped or paused
+		// total time we've been finished with this torrent.
+		// does not count when the torrent is stopped or paused.
 		unsigned int m_finished_time:24;
 
 		// in case the piece picker hasn't been constructed
@@ -1512,8 +1514,11 @@ namespace libtorrent
 
 // ----
 
-		// total time we've been available as a seed on this torrent
-		// does not count when the torrent is stopped or paused
+		// total time we've been available as a seed on this torrent.
+		// does not count when the torrent is stopped or paused. This value only
+		// accounts for the time prior to the current start of the torrent. When
+		// the torrent is paused, this counter is incremented to account for the
+		// additional seeding time.
 		unsigned int m_seeding_time:24;
 
 // ----

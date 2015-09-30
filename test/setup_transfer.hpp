@@ -83,8 +83,8 @@ EXPORT void test_sleep(int millisec);
 EXPORT void create_random_files(std::string const& path, const int file_sizes[], int num_files);
 
 EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
-	, int piece_size = 16 * 1024, int num_pieces = 13, bool add_tracker = true
-	, std::string ssl_certificate = "");
+	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
+	, bool add_tracker = true, std::string ssl_certificate = "");
 
 EXPORT boost::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle

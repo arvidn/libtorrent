@@ -39,6 +39,7 @@ using namespace libtorrent;
 using namespace sim;
 namespace lt = libtorrent;
 
+// this is a test for torrent_status time counters are correct
 struct test_swarm_config : swarm_config
 {
 	test_swarm_config()

@@ -160,7 +160,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
@@ -549,7 +549,7 @@ void test_malicious_peer()
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 

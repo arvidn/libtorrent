@@ -235,7 +235,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));

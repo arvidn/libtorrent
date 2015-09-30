@@ -330,7 +330,7 @@ TORRENT_TEST(udp_tracker)
 	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	std::ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	char tracker_url[200];
@@ -411,7 +411,7 @@ TORRENT_TEST(try_next)
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	// this should fail
@@ -519,7 +519,7 @@ TORRENT_TEST(http_peers)
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	char tracker_url[200];
@@ -593,7 +593,7 @@ void test_proxy(bool proxy_trackers)
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	std::ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	char tracker_url[200];

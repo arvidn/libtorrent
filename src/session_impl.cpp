@@ -3556,17 +3556,18 @@ retry:
 			torrent* t = *i;
 
 			TORRENT_ASSERT(t->state() == torrent_status::checking_files);
-				if (limit <= 0)
-				{
-					t->pause();
-				}
-				else
-				{
-					t->resume();
-					t->start_checking();
-					--limit;
-				}
+			TORRENT_ASSERT(t->is_auto_managed());
+			if (limit <= 0)
+			{
+				t->pause();
 			}
+			else
+			{
+				t->resume();
+				t->start_checking();
+				--limit;
+			}
+		}
 	}
 
 	void session_impl::auto_manage_torrents(std::vector<torrent*>& list
@@ -3579,6 +3580,23 @@ retry:
 			torrent* t = *i;
 
 			TORRENT_ASSERT(t->state() != torrent_status::checking_files);
+
+			// inactive torrents don't count (and if you configured them to do so,
+			// the torrent won't say it's inactive)
+			if (hard_limit > 0 && t->is_inactive())
+			{
+				t->set_announce_to_dht(--dht_limit >= 0);
+				t->set_announce_to_trackers(--tracker_limit >= 0);
+				t->set_announce_to_lsd(--lsd_limit >= 0);
+
+				--hard_limit;
+#ifndef TORRENT_DISABLE_LOGGING
+				if (!t->allows_peers())
+					t->log_to_all_peers("auto manager starting (inactive) torrent");
+#endif
+				t->set_allow_peers(true);
+				continue;
+			}
 
 			if (type_limit > 0 && hard_limit > 0)
 			{
@@ -3593,19 +3611,18 @@ retry:
 					t->log_to_all_peers("auto manager starting torrent");
 #endif
 				t->set_allow_peers(true);
+				continue;
 			}
-			else
-			{
+
 #ifndef TORRENT_DISABLE_LOGGING
-				if (t->allows_peers())
-					t->log_to_all_peers("auto manager pausing torrent");
+			if (t->allows_peers())
+				t->log_to_all_peers("auto manager pausing torrent");
 #endif
-				// use graceful pause for auto-managed torrents
-				t->set_allow_peers(false, true);
-				t->set_announce_to_dht(false);
-				t->set_announce_to_trackers(false);
-				t->set_announce_to_lsd(false);
-			}
+			// use graceful pause for auto-managed torrents
+			t->set_allow_peers(false, true);
+			t->set_announce_to_dht(false);
+			t->set_announce_to_trackers(false);
+			t->set_announce_to_lsd(false);
 		}
 	}
 
@@ -3629,18 +3646,20 @@ retry:
 
 		// these counters are set to the number of torrents
 		// of each kind we're allowed to have active
-		int num_downloaders = settings().get_int(settings_pack::active_downloads);
-		int num_seeds = settings().get_int(settings_pack::active_seeds);
-		int checking_limit = 1;
+		int downloading_limit = settings().get_int(settings_pack::active_downloads);
+		int seeding_limit = settings().get_int(settings_pack::active_seeds);
+		int checking_limit = settings().get_int(settings_pack::active_checking);
 		int dht_limit = settings().get_int(settings_pack::active_dht_limit);
 		int tracker_limit = settings().get_int(settings_pack::active_tracker_limit);
 		int lsd_limit = settings().get_int(settings_pack::active_lsd_limit);
 		int hard_limit = settings().get_int(settings_pack::active_limit);
 
-		if (num_downloaders == -1)
-			num_downloaders = (std::numeric_limits<int>::max)();
-		if (num_seeds == -1)
-			num_seeds = (std::numeric_limits<int>::max)();
+		if (downloading_limit == -1)
+			downloading_limit = (std::numeric_limits<int>::max)();
+		if (seeding_limit == -1)
+			seeding_limit = (std::numeric_limits<int>::max)();
+		if (checking_limit == -1)
+			checking_limit = (std::numeric_limits<int>::max)();
 		if (hard_limit == -1)
 			hard_limit = (std::numeric_limits<int>::max)();
 		if (dht_limit == -1)
@@ -3649,20 +3668,6 @@ retry:
 			lsd_limit = (std::numeric_limits<int>::max)();
 		if (tracker_limit == -1)
 			tracker_limit = (std::numeric_limits<int>::max)();
-
-		// deduct "force started" torrents from the hard_limit
-		// we don't have explicit access to the number of force started torrents,
-		// but we know how many started downloading and seeding torrents we have.
-		// if we subtract all non-force started torrents from the total, we get
-		// the number of force started.
-		hard_limit -= m_stats_counters[counters::num_downloading_torrents] -
-			downloaders.size();
-		hard_limit -= m_stats_counters[counters::num_seeding_torrents]
-			+ m_stats_counters[counters::num_upload_only_torrents] -
-			seeds.size();
-
-		// TODO: 3 also deduct force started checking torrents from checking_limit
-		// also deduct started inactive torrents from hard_limit
 
 		// if hard_limit is <= 0, all torrents in these lists should be paused.
 		// The order is not relevant
@@ -3691,16 +3696,16 @@ retry:
 		if (settings().get_bool(settings_pack::auto_manage_prefer_seeds))
 		{
 			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
-				, hard_limit, num_seeds);
+				, hard_limit, seeding_limit);
 			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
-				, hard_limit, num_downloaders);
+				, hard_limit, downloading_limit);
 		}
 		else
 		{
 			auto_manage_torrents(downloaders, dht_limit, tracker_limit, lsd_limit
-				, hard_limit, num_downloaders);
+				, hard_limit, downloading_limit);
 			auto_manage_torrents(seeds, dht_limit, tracker_limit, lsd_limit
-				, hard_limit, num_seeds);
+				, hard_limit, seeding_limit);
 		}
 	}
 

@@ -1,3 +1,5 @@
+	* make all non-auto managed torrents exempt from queuing logic, including
+	  checking torrents.
 	* add option to not proxy tracker connections through proxy
 	* removed sparse-regions feature
 	* support using 0 disk threads (to perform disk I/O in network thread)

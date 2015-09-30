@@ -63,7 +63,7 @@ struct swarm_config : swarm_setup_provider
 
 		create_directory(save_path, ec);
 		std::ofstream file(combine_path(save_path, "temporary").c_str());
-		m_ti = ::create_torrent(&file, 0x4000, 90, false);
+		m_ti = ::create_torrent(&file, "temporary", 0x4000, 90, false);
 		file.close();
 	}
 

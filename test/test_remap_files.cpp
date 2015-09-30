@@ -256,7 +256,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 	create_directory("tmp1_remap2", ec);
 	std::ofstream file("tmp1_remap2/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, 32 * 1024, 7);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 32 * 1024, 7);
 	file.close();
 
 	file_storage fs;

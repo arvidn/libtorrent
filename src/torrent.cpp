@@ -2553,6 +2553,7 @@ namespace libtorrent
 			// either the fastresume data was rejected or there are
 			// some files
 			set_state(torrent_status::checking_files);
+			if (should_check_files()) start_checking();
 
 			// start the checking right away (potentially)
 			m_ses.trigger_auto_manage();
@@ -2814,20 +2815,19 @@ namespace libtorrent
 				return;
 			}
 
-			if (m_graceful_pause_mode && !m_allow_peers && m_checking_piece == m_num_checked_pieces)
-			{
-				// we are in graceful pause mode, and we just completed the last outstanding job.
-				// now we can be considered paused
-				if (alerts().should_post<torrent_paused_alert>())
-					alerts().emplace_alert<torrent_paused_alert>(get_handle());
-			}
-
 			// we paused the checking
 			if (!should_check_files())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				debug_log("on_piece_hashed, checking paused");
 #endif
+				if (m_checking_piece == m_num_checked_pieces)
+				{
+					// we are paused, and we just completed the last outstanding job.
+					// now we can be considered paused
+					if (alerts().should_post<torrent_paused_alert>())
+						alerts().emplace_alert<torrent_paused_alert>(get_handle());
+				}
 				return;
 			}
 
@@ -2853,12 +2853,15 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("on_piece_hashed, completed");
 #endif
-		// we're done checking!
-		files_checked();
+		if (m_auto_managed)
+		{
+			// if we're auto managed. assume we need to be paused until the auto
+			// managed logic runs again (which is triggered further down)
+			pause();
+		}
 
-		// recalculate auto-managed torrents sooner
-		// in order to start checking the next torrent
-		m_ses.trigger_auto_manage();
+		// we're done checking! (this should cause a call to trigger_auto_manage)
+		files_checked();
 
 		// reset the checking state
 		m_checking_piece = 0;
@@ -8082,23 +8085,27 @@ namespace libtorrent
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_state == torrent_status::checking_files
-			&& (is_auto_managed() || allows_peers()))
+		if (is_auto_managed() && !has_error())
 		{
-			is_checking = true;
-		}
-		else if (is_auto_managed() && !has_error()
-			&& (is_paused()
-				|| !is_inactive()
-				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
-		{
-			// torrents that are started (not paused) and
-			// inactive are not part of any list. They will not be touched because
-			// they are inactive
-			if (is_finished())
-				is_seeding = true;
-			else
-				is_downloading = true;
+			if (m_state == torrent_status::checking_files
+				|| m_state == torrent_status::allocating)
+			{
+				is_checking = true;
+			}
+			else if (m_state == torrent_status::downloading_metadata
+				|| m_state == torrent_status::downloading
+				|| m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding
+				|| m_state == torrent_status::downloading)
+			{
+				// torrents that are started (not paused) and
+				// inactive are not part of any list. They will not be touched because
+				// they are inactive
+				if (is_finished())
+					is_seeding = true;
+				else
+					is_downloading = true;
+			}
 		}
 
 		update_list(aux::session_interface::torrent_downloading_auto_managed
@@ -8550,10 +8557,6 @@ namespace libtorrent
 				m_need_save_resume_data = true;
 			}
 
-			// if we just finished checking and we're not a seed, we are
-			// likely to be unpaused
-			m_ses.trigger_auto_manage();
-
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
 		}
@@ -8825,20 +8828,24 @@ namespace libtorrent
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_state == torrent_status::checking_files
-			&& (is_auto_managed() || allows_peers()))
+		if (is_auto_managed() && !has_error())
 		{
-			is_checking = true;
-		}
-		else if (is_auto_managed() && !has_error()
-			&& (is_paused()
-				|| !is_inactive()
-				|| !settings().get_bool(settings_pack::dont_count_slow_torrents)))
-		{
-			if (is_finished())
-				is_seeding = true;
-			else
-				is_downloading = true;
+			if (m_state == torrent_status::checking_files
+				|| m_state == torrent_status::allocating)
+			{
+				is_checking = true;
+			}
+			else if (m_state == torrent_status::downloading_metadata
+				|| m_state == torrent_status::downloading
+				|| m_state == torrent_status::finished
+				|| m_state == torrent_status::seeding
+				|| m_state == torrent_status::downloading)
+			{
+				if (is_finished())
+					is_seeding = true;
+				else
+					is_downloading = true;
+			}
 		}
 
 		TORRENT_ASSERT(m_links[aux::session_interface::torrent_checking_auto_managed].in_list()
@@ -9359,9 +9366,9 @@ namespace libtorrent
 		enum flags
 		{
 			seed_ratio_not_met = 0x40000000,
-			no_seeds = 0x20000000,
-			recently_started = 0x10000000,
-			prio_mask = 0x0fffffff
+			no_seeds           = 0x20000000,
+			recently_started   = 0x10000000,
+			prio_mask          = 0x0fffffff
 		};
 
 		if (!is_finished()) return 0;
@@ -9556,17 +9563,8 @@ namespace libtorrent
 		m_need_save_resume_data = true;
 		state_updated();
 
-		bool prev_graceful = m_graceful_pause_mode;
 		m_graceful_pause_mode = graceful;
 		update_gauge();
-
-		if (!m_ses.is_paused() || (prev_graceful && !m_graceful_pause_mode))
-		{
-			do_pause();
-			// if this torrent was just paused
-			// we might have to resume some other auto-managed torrent
-			m_ses.trigger_auto_manage();
-		}
 	}
 
 	void torrent::do_pause()
@@ -9675,6 +9673,11 @@ namespace libtorrent
 				p->disconnect(errors::torrent_paused, op_bittorrent);
 				i = j;
 			}
+			if (m_connections.empty())
+			{
+				if (alerts().should_post<torrent_paused_alert>())
+					alerts().emplace_alert<torrent_paused_alert>(get_handle());
+			}
 			if (update_ticks)
 			{
 				update_want_peers();
@@ -9730,8 +9733,20 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		if (m_allow_peers == b
-			&& m_graceful_pause_mode == graceful) return;
+		if (m_allow_peers == b)
+		{
+			// there is one special case here. If we are
+			// currently in graceful pause mode, and we just turned into regular
+			// paused mode, we need to actually pause the torrent properly
+			if (m_allow_peers == false
+				&& m_graceful_pause_mode == true
+				&& graceful == false)
+			{
+				m_graceful_pause_mode = graceful;
+				do_pause();
+			}
+			return;
+		}
 
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
@@ -9974,18 +9989,27 @@ namespace libtorrent
 
 	int torrent::finished_time() const
 	{
+		// m_finished_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_finished_time + ((!is_finished() || is_paused()) ? 0
 			: (m_ses.session_time() - m_became_finished));
 	}
 
 	int torrent::active_time() const
 	{
+		// m_active_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_active_time + (is_paused() ? 0
 			: m_ses.session_time() - m_started);
 	}
 
 	int torrent::seeding_time() const
 	{
+		// m_seeding_time does not account for the current "session", just the
+		// time before we last started this torrent. To get the current time, we
+		// need to add the time since we started it
 		return m_seeding_time + ((!is_seed() || is_paused()) ? 0
 			: m_ses.session_time() - m_became_seed);
 	}
