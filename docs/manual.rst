@@ -174,13 +174,13 @@ The format of the magnet URI is:
 queuing
 =======
 
-libtorrent supports *queuing*. Quing is a mechanism to automatically pause and
+libtorrent supports *queuing*. Queuing is a mechanism to automatically pause and
 resume torrents based on certain criteria. The criteria depends on the overall
 state the torrent is in (checking, downloading or seeding).
 
 To opt-out of the queuing logic, make sure your torrents are added with the
 add_torrent_params::flag_auto_managed bit *cleared*. Or call
-torrent_handle::auto_managed() passing false on the torrent handle.
+``torrent_handle::auto_managed(false)`` on the torrent handle.
 
 The overall purpose of the queuing logic is to improve performance under arbitrary
 torrent downloading and seeding load. For example, if you want to download 100
@@ -205,10 +205,10 @@ There are fundamentally 3 seaparate queues:
 Every torrent that is not seeding has a queue number associated with it, this is
 its place in line to be started. See torrent_status::queue_position.
 
-On top of the limits of each queue, there is an over arching limit, set int
+On top of the limits of each queue, there is an over arching limit, set in
 settings_pack::active_limit. The auto manager will never start more than this
-number of torrents. Non-auto-managed torrents are exempt from this logic, and
-not counted.
+number of torrents (with one exception described below). Non-auto-managed
+torrents are exempt from this logic, and not counted.
 
 At a regular interval, torrents are checked if there needs to be any
 re-ordering of which torrents are active and which are queued. This interval
@@ -220,11 +220,11 @@ torrents. See torrent_handle::save_resume_data().
 queue position
 --------------
 
-The torrents in the front of the queue are started and the rest are ordered with
-regards to their queue position. Any newly added torrent is placed at the end of
-the queue. Once a torrent is removed or turns into a seed, its queue position is
--1 and all torrents that used to be after it in the queue, decreases their
-position in order to fill the gap.
+The torrents in the front of the queue are started and the rest are ordered by
+their queue position. Any newly added torrent is placed at the end of the queue.
+Once a torrent is removed or turns into a seed, its queue position is -1 and all
+torrents that used to be after it in the queue, decreases their position in
+order to fill the gap.
 
 The queue positions are always contiguous, in a sequence without any gaps.
 
@@ -294,7 +294,7 @@ queuing options
 ---------------
 
 In addition to simply starting and stopping torrents, the queuing mechanism can
-be more fine grained in its control of the resources used by torrents.
+have more fine grained control of the resources used by torrents.
 
 half-started torrents
 .....................
