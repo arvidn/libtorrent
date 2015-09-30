@@ -253,7 +253,6 @@ namespace libtorrent
 		, m_magnet_link(false)
 		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
 		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
-		, m_merge_resume_http_seeds(p.flags & add_torrent_params::flag_merge_resume_http_seeds)
 		, m_padding(0)
 		, m_priority(0)
 		, m_incomplete(0xffffff)
@@ -279,6 +278,7 @@ namespace libtorrent
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
+		, m_merge_resume_http_seeds(p.flags & add_torrent_params::flag_merge_resume_http_seeds)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
