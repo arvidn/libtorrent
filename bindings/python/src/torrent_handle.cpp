@@ -6,6 +6,7 @@
 #include <boost/python/tuple.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/peer_info.hpp>
+#include <libtorrent/storage.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -501,5 +502,11 @@ void bind_torrent_handle()
         .value("query_last_seen_complete", torrent_handle::query_last_seen_complete)
         .value("query_pieces", torrent_handle::query_pieces)
         .value("query_verified_pieces", torrent_handle::query_verified_pieces)
+    ;
+
+    enum_<move_flags_t>("move_flags_t")
+        .value("always_replace_files", always_replace_files)
+        .value("fail_if_exist", fail_if_exist)
+        .value("dont_replace", dont_replace)
     ;
 }
