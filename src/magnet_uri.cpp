@@ -251,7 +251,21 @@ namespace libtorrent
 
 		sha1_hash info_hash;
 		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, info_hash.data());
-		else info_hash.assign(base32decode(btih.substr(9)));
+		else if (btih.size() == 32 + 9)
+		{
+			std::string ih = base32decode(btih.substr(9));
+			if (ih.size() != 20)
+			{
+				ec = errors::invalid_info_hash;
+				return;
+			}
+			info_hash.assign(ih);
+		}
+		else
+		{
+			ec = errors::invalid_info_hash;
+			return;
+		}
 
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
