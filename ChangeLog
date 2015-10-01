@@ -75,6 +75,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* introduce add_torrent_params flags to merge web seeds with resume data
+	  (similar to trackers)
 	* fix bug where dont_count_slow_torrents could not be disabled
 	* fix fallocate hack on linux (fixes corruption on some architectures)
 	* fix auto-manage bug with announce to tracker/lsd/dht limits

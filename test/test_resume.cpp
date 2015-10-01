@@ -56,6 +56,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 	lt::create_torrent t(fs, 128 * 1024, 6);
 
 	t.add_tracker("http://torrent_file_tracker.com/announce");
+	t.add_url_seed("http://torrent_file_url_seed.com/");
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);
@@ -696,4 +697,45 @@ TORRENT_TEST(paused)
 	// and trackers for instance
 }
 
+TORRENT_TEST(url_seed_resume_data)
+{
+	// merge url seeds with resume data
+	fprintf(stderr, "flags: merge_resume_http_seeds\n");
+	lt::session ses;
+	torrent_handle h = test_resume_flags(ses,
+		add_torrent_params::flag_merge_resume_http_seeds);
+	std::set<std::string> us = h.url_seeds();
+	std::set<std::string> ws = h.http_seeds();
+
+	TEST_EQUAL(us.size(), 3);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://add_torrent_params_url_seed.com"), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://torrent_file_url_seed.com/"), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://resume_data_url_seed.com/"), 1);
+
+	TEST_EQUAL(ws.size(), 1);
+	TEST_EQUAL(std::count(ws.begin(), ws.end()
+		, "http://resume_data_http_seed.com"), 1);
+}
+
+TORRENT_TEST(resume_override_torrent)
+{
+	// resume data overrides the .torrent_file
+	fprintf(stderr, "flags: no merge_resume_http_seed\n");
+	lt::session ses;
+	torrent_handle h = test_resume_flags(ses,
+		add_torrent_params::flag_merge_resume_trackers);
+	std::set<std::string> us = h.url_seeds();
+	std::set<std::string> ws = h.http_seeds();
+
+	TEST_EQUAL(ws.size(), 1);
+	TEST_EQUAL(std::count(ws.begin(), ws.end()
+		, "http://resume_data_http_seed.com"), 1);
+
+	TEST_EQUAL(us.size(), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end()
+		, "http://resume_data_url_seed.com/"), 1);
+}
 

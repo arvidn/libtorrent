@@ -1695,6 +1695,11 @@ namespace libtorrent
 		// present
 		bool m_use_resume_save_path:1;
 
+		// if set to true, add web seed URLs loaded from resume
+		// data into this torrent instead of replacing the ones from the .torrent
+		// file
+		bool m_merge_resume_http_seeds:1;
+
 #if TORRENT_USE_ASSERTS
 	public:
 		// set to false until we've loaded resume data
