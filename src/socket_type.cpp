@@ -171,8 +171,8 @@ namespace libtorrent
 				get<http_stream>()->~http_stream();
 				break;
 			case socket_type_int_impl<utp_stream>::value:
-					  get<utp_stream>()->~utp_stream();
-					  break;
+				get<utp_stream>()->~utp_stream();
+				break;
 #if TORRENT_USE_I2P
 			case socket_type_int_impl<i2p_stream>::value:
 				get<i2p_stream>()->~i2p_stream();

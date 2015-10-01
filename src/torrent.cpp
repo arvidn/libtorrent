@@ -4790,8 +4790,9 @@ namespace libtorrent
 #endif
 
 		proxy_settings const& ps = m_ses.proxy();
-		if (ps.type == proxy_settings::http
+		if ((ps.type == proxy_settings::http
 			|| ps.type == proxy_settings::http_pw)
+			&& ps.proxy_peer_connections)
 		{
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 			debug_log("resolving proxy for web seed: %s", web->url.c_str());
@@ -4805,7 +4806,8 @@ namespace libtorrent
 		}
 		else if (ps.proxy_hostnames
 			&& (ps.type == proxy_settings::socks5
-				|| ps.type == proxy_settings::socks5_pw))
+				|| ps.type == proxy_settings::socks5_pw)
+			&& ps.proxy_peer_connections)
 		{
 			connect_web_seed(web, tcp::endpoint(address(), port));
 		}
@@ -4995,18 +4997,19 @@ namespace libtorrent
 
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-		bool ssl = string_begins_no_case("https://", web->url.c_str());
+		const bool ssl = string_begins_no_case("https://", web->url.c_str());
 		if (ssl)
 		{
 			userdata = m_ssl_ctx.get();
 			if (!userdata) userdata = &m_ses.m_ssl_ctx;
 		}
 #endif
-		bool ret = instantiate_connection(m_ses.m_io_service, m_ses.proxy(), *s, userdata, 0, true);
+		proxy_settings const& ps = m_ses.proxy();
+		bool ret = instantiate_connection(m_ses.m_io_service, ps
+			, *s, userdata, 0, true);
 		(void)ret;
 		TORRENT_ASSERT(ret);
 
-		proxy_settings const& ps = m_ses.proxy();
 		if (s->get<http_stream>())
 		{
 			// the web seed connection will talk immediately to
@@ -5027,8 +5030,11 @@ namespace libtorrent
 		}
 
 		if (ps.proxy_hostnames
-			&& (ps.type == proxy_settings::socks5
-				|| ps.type == proxy_settings::socks5_pw))
+			&& (s->get<socks5_stream>()
+#ifdef TORRENT_USE_OPENSSL
+				|| s->get<ssl_stream<socks5_stream> >()
+#endif
+				))
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
@@ -5037,7 +5043,7 @@ namespace libtorrent
 				ssl ? &s->get<ssl_stream<socks5_stream> >()->next_layer() :
 #endif
 				s->get<socks5_stream>();
-			TORRENT_ASSERT(str);
+			TORRENT_ASSERT_VAL(str, s->type_name());
 
 			str->set_dst_name(hostname);
 		}

@@ -132,6 +132,7 @@ test-suite libtorrent :
 	[ run test_web_seed_redirect.cpp ]
 	[ run test_web_seed_socks4.cpp ]
 	[ run test_web_seed_socks5.cpp ]
+	[ run test_web_seed_socks5_no_peers.cpp ]
 	[ run test_web_seed_socks5_pw.cpp ]
 	[ run test_web_seed_http.cpp ]
 	[ run test_web_seed_http_pw.cpp ]

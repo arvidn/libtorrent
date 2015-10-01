@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008-2013, Arvid Norberg
+Copyright (c) 2008, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,23 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
+#include "web_seed_suite.hpp"
 
-int EXPORT run_http_suite(int proxy, char const* protocol
-	, bool test_url_seed, bool chunked_encoding = false, bool test_ban = false
-	, bool keepalive = true, bool test_rename = false, bool proxy_peers = true);
+using namespace libtorrent;
 
-void EXPORT test_transfer(libtorrent::session& ses
-	, boost::intrusive_ptr<libtorrent::torrent_info> torrent_file
-	, int proxy = 0, int port = 0, char const* protocol = "http"
-	, bool url_seed = true, bool chunked_encoding = false
-	, bool test_ban = false, bool keepalive = true, bool proxy_peers = true);
+const int proxy = libtorrent::proxy_settings::socks5;
+
+int test_main()
+{
+	int ret = 0;
+	for (int url_seed = 0; url_seed < 2; ++url_seed)
+	{
+#ifdef TORRENT_USE_OPENSSL
+		run_http_suite(proxy, "https", url_seed, false, false, false, false, false);
+#endif
+		run_http_suite(proxy, "http", url_seed, false, false, false, false, false);
+	}
+	return ret;
+}
+
