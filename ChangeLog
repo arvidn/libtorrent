@@ -75,6 +75,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix bug in magnet link parser
 	* introduce add_torrent_params flags to merge web seeds with resume data
 	  (similar to trackers)
 	* fix bug where dont_count_slow_torrents could not be disabled
