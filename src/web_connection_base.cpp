@@ -75,9 +75,11 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(is_outgoing());
+
 		// we only want left-over bandwidth
 		// TODO: introduce a web-seed default class which has a low download priority
-		
+
 		std::string protocol;
 		error_code ec;
 		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)

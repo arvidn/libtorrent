@@ -27,6 +27,7 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_web_seed              \
+  test_web_seed_socks5_no_peers \
   test_url_seed              \
   test_remap_files           \
   test_enum_net              \
@@ -183,6 +184,7 @@ enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_web_seed_socks5_no_peers_SOURCES = test_web_seed_socks5_no_peers.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
