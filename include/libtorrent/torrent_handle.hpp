@@ -554,6 +554,19 @@ namespace libtorrent
 		void pause(int flags = 0) const;
 		void resume() const;
 
+		// set or clear the stop-when-ready flag. When this flag is set, the
+		// torrent will *force stop* whenever it transitions from a
+		// non-data-transferring state into a data-transferring state (referred to
+		// as being ready to download or seed). This is useful for torrents that
+		// should not start downloading or seeding yet, but what to be made ready
+		// to do so. A torrent may need to have its files checked for instance, so
+		// it needs to be started and possibly queued for checking (auto-managed
+		// and started) but as soon as it's done, it should be stopped.
+		// 
+		// *Force stopped* means auto-managed is set to false and it's paused. As
+		// if auto_manage(false) and pause() were called on the torrent.
+		void stop_when_ready(bool b) const;
+
 		// Explicitly sets the upload mode of the torrent. In upload mode, the
 		// torrent will not request any pieces. If the torrent is auto managed,
 		// it will automatically be taken out of upload mode periodically (see

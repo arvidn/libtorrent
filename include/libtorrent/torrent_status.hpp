@@ -485,6 +485,11 @@ namespace libtorrent
 		bool announcing_to_lsd;
 		bool announcing_to_dht;
 
+		// this reflects whether the ``stop_when_ready`` flag is currently enabled
+		// on this torrent. For more information, see
+		// torrent_handle::stop_when_ready().
+		bool stop_when_ready;
+
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 	};

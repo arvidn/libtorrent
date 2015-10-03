@@ -478,6 +478,8 @@ namespace libtorrent
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
 
+		void stop_when_ready(bool b) { m_stop_when_ready = b; }
+
 		int started() const { return m_started; }
 		void step_session_time(int seconds);
 		void do_pause();
@@ -521,7 +523,7 @@ namespace libtorrent
 		// ============ end deprecation =============
 
 		void piece_availability(std::vector<int>& avail) const;
-		
+
 		void set_piece_priority(int index, int priority);
 		int piece_priority(int index) const;
 
@@ -1699,6 +1701,10 @@ namespace libtorrent
 		// data into this torrent instead of replacing the ones from the .torrent
 		// file
 		bool m_merge_resume_http_seeds:1;
+
+		// if this is set, whenever transitioning into a downloading/seeding state
+		// from a non-downloading/seeding state, the torrent is paused.
+		bool m_stop_when_ready:1;
 
 #if TORRENT_USE_ASSERTS
 	public:
