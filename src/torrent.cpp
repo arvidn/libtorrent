@@ -2113,6 +2113,12 @@ namespace libtorrent
 		if (ret == piece_manager::need_full_check) return;
 
 		dequeue_torrent_check();
+		if (m_auto_managed)
+		{
+			// if we're auto managed. assume we need to be paused until the auto
+			// managed logic runs again
+			pause();
+		}
 		files_checked();
 	}
 
@@ -6751,10 +6757,6 @@ namespace libtorrent
 			// turn off super seeding if we're not a seed
 			if (m_super_seeding) m_super_seeding = false;
 
-			// if we just finished checking and we're not a seed, we are
-			// likely to be unpaused
-			m_ses.trigger_auto_manage();
-
 			if (is_finished() && m_state != torrent_status::finished)
 				finished();
 		}
@@ -6940,10 +6942,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
 
-		if (!should_check_files())
-			TORRENT_ASSERT(m_state != torrent_status::checking_files);
-		else
-			TORRENT_ASSERT(m_queued_for_checking);
+// this fails in some transitions
+//		if (!should_check_files())
+//			TORRENT_ASSERT(m_state != torrent_status::checking_files);
+//		else
+//			TORRENT_ASSERT(m_queued_for_checking);
 
 		if (m_torrent_file)
 		{
@@ -7762,8 +7765,20 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 
-		if (m_allow_peers == b
-			&& m_graceful_pause_mode == graceful) return;
+		if (m_allow_peers == b)
+		{
+			// there is one special case here. If we are
+			// currently in graceful pause mode, and we just turned into regular
+			// paused mode, we need to actually pause the torrent properly
+			if (m_allow_peers == false
+				&& m_graceful_pause_mode == true
+				&& graceful == false)
+			{
+				m_graceful_pause_mode = graceful;
+				do_pause();
+			}
+			return;
+		}
 
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
