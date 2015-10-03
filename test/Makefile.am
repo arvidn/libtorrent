@@ -57,6 +57,7 @@ test_programs = \
   test_web_seed_redirect     \
   test_web_seed_socks4       \
   test_web_seed_socks5       \
+  test_web_seed_socks5_no_peers \
   test_web_seed_socks5_pw    \
   test_url_seed              \
   test_remap_files           \
@@ -191,6 +192,7 @@ test_web_seed_http_pw_SOURCES = test_web_seed_http_pw.cpp
 test_web_seed_redirect_SOURCES = test_web_seed_redirect.cpp
 test_web_seed_socks4_SOURCES = test_web_seed_socks4.cpp
 test_web_seed_socks5_SOURCES = test_web_seed_socks5.cpp
+test_web_seed_socks5_no_peers_SOURCES = test_web_seed_socks5_no_peers.cpp
 test_web_seed_socks5_pw_SOURCES = test_web_seed_socks5_pw.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp

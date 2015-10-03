@@ -69,9 +69,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
+		TORRENT_ASSERT(is_outgoing());
+
 		// we only want left-over bandwidth
 		set_priority(1);
-		
+
 		// since this is a web seed, change the timeout
 		// according to the settings.
 		set_timeout(ses.settings().urlseed_timeout);

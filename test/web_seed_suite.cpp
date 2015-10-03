@@ -80,7 +80,7 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torrent_file
 	, int proxy, int port, char const* protocol, bool url_seed
-	, bool chunked_encoding, bool test_ban, bool keepalive)
+	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
 {
 	using namespace libtorrent;
 
@@ -108,6 +108,7 @@ void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torrent_file
 		ps.username = "testuser";
 		ps.password = "testpass";
 		ps.type = (proxy_settings::proxy_type)proxy;
+		ps.proxy_peer_connections = proxy_peers;
 		ses.set_proxy(ps);
 	}
 	else
@@ -117,6 +118,7 @@ void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torrent_file
 		ps.username.clear();
 		ps.password.clear();
 		ps.type = proxy_settings::none;
+		ps.proxy_peer_connections = proxy_peers;
 		ses.set_proxy(ps);
 	}
 
@@ -240,7 +242,8 @@ void test_transfer(session& ses, boost::intrusive_ptr<torrent_info> torrent_file
 // protocol: "http" or "https"
 // test_url_seed determines whether to use url-seed or http-seed
 int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
-	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename)
+	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename
+	, bool proxy_peers)
 {
 	using namespace libtorrent;
 
@@ -365,13 +368,13 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 		if (ec) fprintf(stderr, "listen_on failed: %s\n", ec.message().c_str());
    
 		test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
-			, chunked_encoding, test_ban, keepalive);
+			, chunked_encoding, test_ban, keepalive, proxy_peers);
 		
 		if (test_url_seed && test_rename)
 		{
 			torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
 			test_transfer(ses, torrent_file, 0, port, protocol, test_url_seed
-				, chunked_encoding, test_ban, keepalive);
+				, chunked_encoding, test_ban, keepalive, proxy_peers);
 		}
 	}
 
