@@ -6218,8 +6218,9 @@ namespace libtorrent
 		}
 
 		aux::proxy_settings const& ps = m_ses.proxy();
-		if (ps.type == settings_pack::http
+		if ((ps.type == settings_pack::http
 			|| ps.type == settings_pack::http_pw)
+			&& ps.proxy_peer_connections)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("resolving proxy for web seed: %s", web->url.c_str());
@@ -6233,7 +6234,8 @@ namespace libtorrent
 		}
 		else if (ps.proxy_hostnames
 			&& (ps.type == settings_pack::socks5
-				|| ps.type == settings_pack::socks5_pw))
+				|| ps.type == settings_pack::socks5_pw)
+			&& ps.proxy_peer_connections)
 		{
 			connect_web_seed(web, tcp::endpoint(address(), port));
 		}
@@ -6422,7 +6424,7 @@ namespace libtorrent
 
 		void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-		bool ssl = string_begins_no_case("https://", web->url.c_str());
+		const bool ssl = string_begins_no_case("https://", web->url.c_str());
 		if (ssl)
 		{
 			userdata = m_ssl_ctx.get();
@@ -6457,8 +6459,11 @@ namespace libtorrent
 		int proxy_type = settings().get_int(settings_pack::proxy_type);
 
 		if (proxy_hostnames
-			&& (proxy_type == settings_pack::socks5
-				|| proxy_type == settings_pack::socks5_pw))
+			&& (s->get<socks5_stream>()
+#ifdef TORRENT_USE_OPENSSL
+				|| s->get<ssl_stream<socks5_stream> >()
+#endif
+				))
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
@@ -6467,7 +6472,7 @@ namespace libtorrent
 				ssl ? &s->get<ssl_stream<socks5_stream> >()->next_layer() :
 #endif
 				s->get<socks5_stream>();
-			TORRENT_ASSERT(str);
+			TORRENT_ASSERT_VAL(str, s->type_name());
 
 			str->set_dst_name(hostname);
 		}

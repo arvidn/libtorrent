@@ -635,7 +635,10 @@ namespace libtorrent
 			proxy_hostnames,
 
 			// if true, peer connections are made (and accepted) over the
-			// configured proxy, if any.
+			// configured proxy, if any. Web seeds as well as regular bittorrent
+			// peer connections are considered "peer connections". Anything
+			// transporting actual torrent payload (trackers and DHT traffic are
+			// not considered peer connections).
 			proxy_peer_connections,
 
 			// if this setting is true, torrents with a very high availability of
