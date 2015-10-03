@@ -517,7 +517,9 @@ int test_main()
 	test_respect_suggest();
 	test_multiple_bitfields();
 	test_multiple_have_all();
+#ifndef TORRENT_DISABLE_EXTENSIONS
 	test_dont_have();
+#endif
 
 	return 0;
 }
