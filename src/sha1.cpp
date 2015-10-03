@@ -15,6 +15,8 @@ changelog at the end of the file.
 
 #include "libtorrent/sha1.hpp"
 
+#include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
+
 typedef boost::uint32_t u32;
 typedef boost::uint8_t u8;
 
