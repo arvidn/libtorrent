@@ -6456,7 +6456,6 @@ namespace libtorrent
 		}
 
 		bool proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames);
-		int proxy_type = settings().get_int(settings_pack::proxy_type);
 
 		if (proxy_hostnames
 			&& (s->get<socks5_stream>()
