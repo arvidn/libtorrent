@@ -98,9 +98,10 @@ namespace libtorrent { namespace dht
 		, rate_limited_udp_socket& sock
 		, dht_settings const& settings
 		, counters& cnt
+		, dht_storage_constructor_type storage_constructor
 		, entry const* state)
 		: m_counters(cnt)
-		, m_dht(this, settings, extract_node_id(state), observer, cnt)
+		, m_dht(this, settings, extract_node_id(state), observer, cnt, storage_constructor)
 		, m_sock(sock)
 		, m_log(observer)
 		, m_last_new_key(clock_type::now() - minutes(int(key_refresh)))

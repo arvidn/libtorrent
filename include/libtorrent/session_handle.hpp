@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/session_settings.hpp"
 
+#include "libtorrent/kademlia/dht_storage.hpp"
+
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/rss.hpp"
 #endif
@@ -338,7 +340,7 @@ namespace libtorrent
 		void stop_dht();
 #endif
 
-		// ``set_dht_settings`` sets some parameters availavle to the dht node.
+		// ``set_dht_settings`` sets some parameters available to the dht node.
 		// See dht_settings for more information.
 		//
 		// ``is_dht_running()`` returns true if the DHT support has been started
@@ -349,6 +351,20 @@ namespace libtorrent
 		void set_dht_settings(dht_settings const& settings);
 		bool is_dht_running() const;
 		dht_settings get_dht_settings() const;
+
+		// ``set_dht_storage`` set a dht custom storage constructor function
+		// to be used internally when the dht is created.
+		//
+		// Since the dht storage is a critical component for the dht behavior,
+		// this function will only be effective the next time the dht is started.
+		// If you never touch this feature, a default map-memory based storage
+		// is used.
+		//
+		// If you want to make sure the dht is initially created with your
+		// custom storage, create a session with the setting
+		// ``settings_pack::enable_dht`` to false, set your constructor function
+		// and call ``apply_settings`` with ``settings_pack::enable_dht`` to true.
+		void set_dht_storage(dht::dht_storage_constructor_type sc);
 
 		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
 		// pinged, and if a valid DHT reply is received, the node will be added to

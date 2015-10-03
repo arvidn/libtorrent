@@ -403,6 +403,7 @@ namespace aux {
 		, m_last_auto_manage(m_created)
 		, m_next_port(0)
 #ifndef TORRENT_DISABLE_DHT
+		, m_dht_storage_constructor(dht::dht_default_storage_constructor)
 		, m_dht_announce_timer(m_io_service)
 		, m_dht_interval_update_torrents(0)
 		, m_outstanding_router_lookups(0)
@@ -5483,7 +5484,9 @@ retry:
 
 		m_dht = boost::make_shared<dht::dht_tracker>(static_cast<dht_observer*>(this)
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
-			, boost::ref(m_stats_counters), &startup_state);
+			, boost::ref(m_stats_counters)
+			, m_dht_storage_constructor
+			, &startup_state);
 
 		for (std::vector<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
@@ -5514,6 +5517,11 @@ retry:
 	void session_impl::set_dht_settings(dht_settings const& settings)
 	{
 		m_dht_settings = settings;
+	}
+
+	void session_impl::set_dht_storage(dht::dht_storage_constructor_type sc)
+	{
+		m_dht_storage_constructor = sc;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

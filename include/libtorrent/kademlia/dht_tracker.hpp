@@ -72,7 +72,9 @@ namespace libtorrent { namespace dht
 		, boost::enable_shared_from_this<dht_tracker>
 	{
 		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
-			, dht_settings const& settings, counters& cnt, entry const* state = 0);
+			, dht_settings const& settings, counters& cnt
+			, dht_storage_constructor_type storage_constructor
+			, entry const* state = 0);
 		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap

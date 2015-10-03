@@ -30,22 +30,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef DHT_STORAGE_HPP
-#define DHT_STORAGE_HPP
+#ifndef TORRENT_DHT_STORAGE_HPP
+#define TORRENT_DHT_STORAGE_HPP
 
-#include <algorithm>
-#include <map>
-#include <set>
-#include <string>
+#include <boost/function.hpp>
 
-#include <libtorrent/config.hpp>
-#include <libtorrent/time.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
-#include <libtorrent/session_settings.hpp>
-#include <libtorrent/performance_counters.hpp>
-#include <libtorrent/kademlia/item.hpp>
+
+namespace libtorrent
+{
+	struct dht_settings;
+	class entry;
+}
 
 namespace libtorrent {
 namespace dht
@@ -200,9 +198,12 @@ namespace dht
 		virtual ~dht_storage_interface() {}
 	};
 
+	typedef boost::function<dht_storage_interface*(sha1_hash const& id
+		, dht_settings const& settings)> dht_storage_constructor_type;
+
 	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
 		, dht_settings const& settings);
 
 } } // namespace libtorrent::dht
 
-#endif //DHT_STORAGE_HPP
+#endif //TORRENT_DHT_STORAGE_HPP

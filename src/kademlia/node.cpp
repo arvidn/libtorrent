@@ -88,7 +88,8 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer)
 node::node(udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid
 	, dht_observer* observer
-	, struct counters& cnt)
+	, struct counters& cnt
+	, dht_storage_constructor_type storage_constructor)
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, observer))
 	, m_table(m_id, 8, settings, observer)
@@ -98,7 +99,7 @@ node::node(udp_socket_interface* sock
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
 	, m_counters(cnt)
-	, m_storage(dht_default_storage_constructor(m_id, m_settings))
+	, m_storage(storage_constructor(m_id, m_settings))
 {
 	m_secret[0] = random();
 	m_secret[1] = random();
