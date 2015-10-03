@@ -154,7 +154,21 @@ namespace libtorrent
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
 		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, (char*)&params.info_hash[0]);
-		else params.info_hash.assign(base32decode(btih.substr(9)));
+		else if (btih.size() == 32 + 9)
+		{
+			std::string ih = base32decode(btih.substr(9));
+			if (ih.size() != 20)
+			{
+				ec = errors::invalid_info_hash;
+				return torrent_handle();
+			}
+			params.info_hash.assign(ih);
+		}
+		else
+		{
+			ec = errors::invalid_info_hash;
+			return torrent_handle();
+		}
 
 		return ses.add_torrent(params);
 	}
