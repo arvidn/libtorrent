@@ -154,3 +154,64 @@ test-suite libtorrent :
 	[ run test_pex.cpp ]
 	; 
 
+alias ci-tests :
+
+	test_ip_voter
+	test_resume
+	test_sliding_average
+	test_socket_io
+	test_utf8
+	test_gzip
+	test_bitfield
+	test_torrent_info
+	test_time
+	test_file_storage
+	test_peer_priority
+	test_file
+	test_threads
+	test_rss
+	test_bandwidth_limiter
+	test_buffer
+	test_piece_picker
+	test_bencoding
+	test_fast_extension
+	test_primitives
+	test_http_parser
+	test_packet_buffer
+	test_string
+	test_magnet
+	test_xml
+	test_ip_filter
+	test_hasher
+	test_dht
+	test_storage
+	test_torrent_parse
+	test_session
+	test_upnp
+	test_read_piece
+
+	test_tracker
+	test_checking
+	test_web_seed
+	test_web_seed_redirect
+	test_web_seed_socks4
+	test_web_seed_socks5
+	test_web_seed_socks5_no_peers
+	test_web_seed_socks5_pw
+	test_web_seed_chunked
+	test_web_seed_ban
+	test_bdecode_performance
+	test_pe_crypto
+
+	test_remap_files
+	test_utp
+	test_auto_unchoke
+	test_http_connection
+	test_torrent
+	test_metadata_extension
+	test_trackers_extension
+	test_swarm
+	test_lsd
+	test_pex
+	;
+
