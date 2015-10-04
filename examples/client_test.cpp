@@ -1171,7 +1171,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			if (!peer.empty())
 			{
 				char* port = (char*) strrchr((char*)peer.c_str(), ':');
-				if (port > 0)
+				if (port != NULL)
 				{
 					*port++ = 0;
 					char const* ip = peer.c_str();
@@ -1870,7 +1870,7 @@ int main(int argc, char* argv[])
 				{
 					char url[4096];
 					puts("Enter magnet link:\n");
-					scanf("%4096s", url);
+					scanf("%4095s", url);
 
 					add_torrent_params p;
 					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
@@ -2028,7 +2028,7 @@ int main(int argc, char* argv[])
 				{
 					char url[2048];
 					puts("Enter RSS feed URL:\n");
-					scanf("%2048s", url);
+					scanf("%2047s", url);
 					feed_settings set;
 					set.url = url;
 					set.add_args.save_path = save_path;
