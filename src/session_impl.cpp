@@ -271,7 +271,7 @@ namespace aux {
 		tu->system_time = min_time() + microsec(stime / 10);
 #endif
 	}
-#endif //TORRENT_STATS	
+#endif //TORRENT_STATS
 
 	struct seed_random_generator
 	{
@@ -331,8 +331,8 @@ namespace aux {
 #endif
 		TORRENT_SETTING(boolean, free_torrent_hashes)
 		TORRENT_SETTING(boolean, upnp_ignore_nonrouters)
- 		TORRENT_SETTING(integer, send_buffer_low_watermark)
- 		TORRENT_SETTING(integer, send_buffer_watermark)
+		TORRENT_SETTING(integer, send_buffer_low_watermark)
+		TORRENT_SETTING(integer, send_buffer_watermark)
 		TORRENT_SETTING(integer, send_buffer_watermark_factor)
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_SETTING(boolean, auto_upload_slots)
@@ -4335,7 +4335,7 @@ retry:
 			lsd_limit = (std::numeric_limits<int>::max)();
 		if (tracker_limit == -1)
 			tracker_limit = (std::numeric_limits<int>::max)();
-            
+
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
@@ -4402,7 +4402,7 @@ retry:
 	{
 		TORRENT_ASSERT(is_network_thread());
 		if (m_allowed_upload_slots == 0) return;
-	
+
 		std::vector<policy::peer*> opt_unchoke;
 
 		for (connection_map::iterator i = m_connections.begin()
