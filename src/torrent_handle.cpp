@@ -329,6 +329,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(pause, bool(flags & graceful_pause));
 	}
 
+	void torrent_handle::stop_when_ready(bool b) const
+	{
+		TORRENT_ASYNC_CALL1(stop_when_ready, b);
+	}
+
 	void torrent_handle::apply_ip_filter(bool b) const
 	{
 		TORRENT_ASYNC_CALL1(set_apply_ip_filter, b);

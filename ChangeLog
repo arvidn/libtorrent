@@ -1,3 +1,4 @@
+	* add feature to stop torrents immediately after checking files is done
 	* make all non-auto managed torrents exempt from queuing logic, including
 	  checking torrents.
 	* add option to not proxy tracker connections through proxy

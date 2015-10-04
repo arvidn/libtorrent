@@ -279,6 +279,7 @@ namespace libtorrent
 		, m_pending_active_change(false)
 		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
 		, m_merge_resume_http_seeds(p.flags & add_torrent_params::flag_merge_resume_http_seeds)
+		, m_stop_when_ready(p.flags & add_torrent_params::flag_stop_when_ready)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -11610,6 +11611,29 @@ namespace libtorrent
 		if (m_peer_list) m_peer_list->clear_peer_prio();
 	}
 
+	namespace
+	{
+		bool is_downloading_state(int st)
+		{
+			switch (st)
+			{
+				case torrent_status::checking_files:
+				case torrent_status::allocating:
+				case torrent_status::checking_resume_data:
+					return false;
+				case torrent_status::downloading_metadata:
+				case torrent_status::downloading:
+				case torrent_status::finished:
+				case torrent_status::seeding:
+					return true;
+				default:
+					// unexpected state
+					TORRENT_ASSERT_VAL(false, st);
+					return false;
+			}
+		}
+	}
+
 	void torrent::set_state(torrent_status::state_t s)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -11641,6 +11665,21 @@ namespace libtorrent
 		{
 			alerts().emplace_alert<torrent_finished_alert>(
 				get_handle());
+		}
+
+		if (m_stop_when_ready
+			&& !is_downloading_state(m_state)
+			&& is_downloading_state(s))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("stop_when_ready triggered");
+#endif
+			// stop_when_ready is set, and we're transitioning from a downloading
+			// state to a non-downloading state. pause the torrent. Note that
+			// "downloading" is defined broadly to include any state where we
+			// either upload or download (for the purpose of this flag).
+			auto_managed(false);
+			pause();
 		}
 
 		m_state = s;
@@ -11742,6 +11781,7 @@ namespace libtorrent
 		st->announcing_to_trackers = m_announce_to_trackers;
 		st->announcing_to_lsd = m_announce_to_lsd;
 		st->announcing_to_dht = m_announce_to_dht;
+		st->stop_when_ready = m_stop_when_ready;
 
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;

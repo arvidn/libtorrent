@@ -349,7 +349,6 @@ TORRENT_TEST(seed_limit)
 		},
 
 		[](lt::session& ses) {
-			// verify result (none should have been started)
 			// make sure only 3 got started
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -439,7 +438,6 @@ TORRENT_TEST(download_limit)
 		},
 
 		[](lt::session& ses) {
-			// verify result (none should have been started)
 			// make sure only 3 got started
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -538,7 +536,6 @@ TORRENT_TEST(checking_announce)
 		},
 
 		[](lt::session& ses) {
-			// verify result (none should have been started)
 			// make sure only 3 got started
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -590,7 +587,6 @@ TORRENT_TEST(paused_checking)
 		},
 
 		[](lt::session& ses) {
-			// verify result (none should have been started)
 			// make sure only 3 got started
 			std::vector<lt::alert*> alerts;
 			ses.pop_alerts(&alerts);
@@ -616,6 +612,71 @@ TORRENT_TEST(paused_checking)
 				TEST_CHECK(!h.status().is_seeding);
 				TEST_CHECK(!h.status().auto_managed);
 				TEST_CHECK(h.status().paused);
+			}
+		});
+}
+
+// set the stop_when_ready flag and make sure we receive a paused alert *before*
+// a state_changed_alert
+TORRENT_TEST(stop_when_ready)
+{
+	run_test(
+		[](settings_pack& sett) {},
+
+		[](lt::session& ses) {
+			// add torrents
+			lt::add_torrent_params params = create_torrent(0, true);
+			// torrents are started and auto-managed
+			params.flags |= add_torrent_params::flag_auto_managed;
+			params.flags |= add_torrent_params::flag_stop_when_ready;
+			// we need this to get the tracker_announce_alert
+			params.trackers.push_back("http://10.10.0.2/announce");
+			ses.async_add_torrent(params);
+		},
+
+		[](lt::session& ses) {
+			// verify result (none should have been started)
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
+
+			lt::time_point start_time = alerts[0]->timestamp();
+
+			int num_paused = 0;
+			for (alert* a : alerts)
+			{
+				fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+						- start_time).count()), a->message().c_str());
+
+				if (alert_cast<torrent_paused_alert>(a))
+				{
+					++num_paused;
+				}
+
+				if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
+				{
+					if (sc->state == torrent_status::seeding)
+					{
+						// once we turn into beeing a seed. we should have been paused
+						// already.
+						TEST_EQUAL(num_paused, 1);
+					}
+				}
+				// there should not have been any announces. the torrent should have
+				// been stopped *before* announcing.
+				TEST_EQUAL(alert_cast<tracker_announce_alert>(a), NULL);
+			}
+
+			for (torrent_handle const& h : ses.get_torrents())
+			{
+				// the torrent should have been force-stopped (after checking was
+				// donw, because we set the stop_when_ready flag). Force stopped
+				// means not auto-managed and paused.
+				torrent_status st = h.status();
+				TEST_CHECK(!st.auto_managed);
+				TEST_EQUAL(st.paused, true);
+				// it should be seeding. If it's not seeding it may not have had its
+				// files checked.
+				TEST_EQUAL(st.state, torrent_status::seeding);
 			}
 		});
 }
