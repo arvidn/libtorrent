@@ -1,3 +1,5 @@
+1.0.7 release
+
 	* fix web seed bug when using proxy and proxy-peer-connections=false
 	* fix bug in magnet link parser
 	* introduce add_torrent_params flags to merge web seeds with resume data

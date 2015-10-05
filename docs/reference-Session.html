@@ -42,20 +42,20 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.6</td></tr>
+<td>1.0.7</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id173">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id174">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id175">session_proxy</a></li>
-<li><a class="reference internal" href="#id38" id="id176">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id177">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id178">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id179">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id180">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id176">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id177">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
+<li><a class="reference internal" href="#id41" id="id179">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -100,6 +100,7 @@ struct add_torrent_params
       flag_super_seeding,
       flag_sequential_download,
       flag_use_resume_save_path,
+      flag_merge_resume_http_seeds,
    };
 
    int version;
@@ -140,9 +141,9 @@ data for the torrent. For more information, see the <tt class="docutils literal"
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/add_torrent_params.hpp">libtorrent/add_torrent_params.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="25%" />
+<col width="27%" />
 <col width="6%" />
-<col width="68%" />
+<col width="67%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -257,7 +258,11 @@ you pass in here. You can override this by setting
 <td>256</td>
 <td>defaults to off and specifies whether tracker URLs loaded from
 resume data should be added to the trackers in the torrent or
-replace the trackers.</td>
+replace the trackers. When replacing trackers (i.e. this flag is not
+set), any trackers passed in via <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> are also
+replaced by any trackers in the resume data. The default behavior is
+to have the resume data override the .torrent file _and_ the
+trackers added in <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a>.</td>
 </tr>
 <tr><td>flag_update_subscribe</td>
 <td>512</td>
@@ -282,6 +287,17 @@ the torrent handle immediately after adding it.</td>
 <td>if this flag is set, the save path from the resume data file, if
 present, is honored. This defaults to not being set, in which
 case the save_path specified in <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> is always used.</td>
+</tr>
+<tr><td>flag_merge_resume_http_seeds</td>
+<td>8192</td>
+<td>defaults to off and specifies whether web seed URLs loaded from
+resume data should be added to the ones in the torrent file or
+replace them. No distinction is made between the two different kinds
+of web seeds (<a class="reference external" href="http://bittorrent.org/beps/bep_0017.html">BEP 17</a> and <a class="reference external" href="http://bittorrent.org/beps/bep_0019.html">BEP 19</a>). When replacing web seeds
+(i.e. when this flag is not set), any web seeds passed in via
+<a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> are also replaced. The default behavior is to
+have any web seeds in the resume data take presedence over whatever
+is passed in here as well as the .torrent file.</td>
 </tr>
 </tbody>
 </table>
@@ -455,7 +471,7 @@ struct cache_status
    int read_queue_size;
 };
 </pre>
-<a name="cache_status()"></a><div class="section" id="id25">
+<a name="cache_status()"></a><div class="section" id="id28">
 <h2>cache_status()</h2>
 <pre class="literal-block">
 <strong>cache_status</strong> ();
@@ -577,7 +593,7 @@ class session_proxy
    <strong>session_proxy</strong> ();
 };
 </pre>
-<a name="session_proxy()"></a><div class="section" id="id36">
+<a name="session_proxy()"></a><div class="section" id="id39">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
 <strong>session_proxy</strong> ();
@@ -586,7 +602,7 @@ class session_proxy
 implementation object.</p>
 <a name="session"></a></div>
 </div>
-<div class="section" id="id38">
+<div class="section" id="id41">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
@@ -725,7 +741,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id42">
+<a name="session()"></a><div class="section" id="id45">
 <h2>session()</h2>
 <pre class="literal-block">
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
@@ -759,7 +775,7 @@ pass 0 as the flags parameter.</p>
 <p>The <tt class="docutils literal">alert_mask</tt> is the same mask that you would send to
 <a class="reference external" href="reference-Session.html#set_alert_mask()">set_alert_mask()</a>.</p>
 <a name="~session()"></a></div>
-<div class="section" id="id44">
+<div class="section" id="id47">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -1047,7 +1063,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id99">
+<div class="section" id="id102">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1069,7 +1085,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id101">
+<div class="section" id="id104">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
