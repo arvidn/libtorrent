@@ -39,7 +39,7 @@ install:
 
 script:
   - cd test
-  - bjam -j 3 variant=$variant warnings=off -l900 $CC
+  - bjam -j 3 variant=$variant warnings=off -l900 $CC ci-tests
   - cd ../examples
   - bjam -j 3 variant=$variant warnings=off $CC
   - cd ..
