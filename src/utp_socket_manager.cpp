@@ -40,18 +40,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/array_view.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135
 
 namespace libtorrent
 {
+	using namespace libtorrent::aux;
 
-	utp_socket_manager::utp_socket_manager(aux::session_settings const& sett
-		, udp_socket& s
+	utp_socket_manager::utp_socket_manager(
+		send_fun_t const& send_fun
+		, incoming_utp_callback_t const& cb
+		, io_service& ios
+		, aux::session_settings const& sett
 		, counters& cnt
-		, void* ssl_context
-		, incoming_utp_callback_t cb)
-		: m_sock(s)
+		, void* ssl_context)
+		: m_send_fun(send_fun)
 		, m_cb(cb)
 		, m_last_socket(0)
 		, m_new_connection(-1)
@@ -60,6 +64,7 @@ namespace libtorrent
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
 		, m_counters(cnt)
+		, m_ios(ios)
 		, m_mtu_idx(0)
 		, m_ssl_context(ssl_context)
 	{
@@ -94,7 +99,6 @@ namespace libtorrent
 
 	void utp_socket_manager::mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu)
 	{
-
 		int mtu = 0;
 		if (is_teredo(addr)) mtu = TORRENT_TEREDO_MTU;
 		else mtu = TORRENT_ETHERNET_MTU;
@@ -118,13 +122,12 @@ namespace libtorrent
 
 		mtu -= TORRENT_UDP_HEADER;
 
-		if (m_sock.get_proxy_settings().type == settings_pack::socks5
-			|| m_sock.get_proxy_settings().type == settings_pack::socks5_pw)
+		if (m_sett.get_int(settings_pack::proxy_type) == settings_pack::socks5
+			|| m_sett.get_int(settings_pack::proxy_type) == settings_pack::socks5_pw)
 		{
 			// this is for the IP layer
-			address proxy_addr = m_sock.proxy_addr().address();
-			if (proxy_addr.is_v4()) mtu -= TORRENT_IPV4_HEADER;
-			else mtu -= TORRENT_IPV6_HEADER;
+			// assume the proxy is running over IPv4
+			mtu -= TORRENT_IPV4_HEADER;
 
 			// this is for the SOCKS layer
 			mtu -= TORRENT_SOCKS5_HEADER;
@@ -148,102 +151,20 @@ namespace libtorrent
 #if !defined TORRENT_HAS_DONT_FRAGMENT && !defined TORRENT_DEBUG_MTU
 		TORRENT_UNUSED(flags);
 #endif
-		if (!m_sock.is_open())
-		{
-			ec = boost::asio::error::operation_aborted;
-			return;
-		}
 
 #ifdef TORRENT_DEBUG_MTU
 		// drop packets that exceed the debug MTU
 		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
 #endif
 
-#ifdef TORRENT_HAS_DONT_FRAGMENT
-		error_code tmp;
-		if (flags & utp_socket_manager::dont_fragment)
-		{
-			m_sock.set_option(libtorrent::dont_fragment(true), tmp);
-			TORRENT_ASSERT_VAL(!tmp, tmp.message());
-		}
-#endif
-		m_sock.send(ep, p, len, ec, udp_socket::peer_connection);
-#ifdef TORRENT_HAS_DONT_FRAGMENT
-		if (flags & utp_socket_manager::dont_fragment)
-		{
-			m_sock.set_option(libtorrent::dont_fragment(false), tmp);
-			TORRENT_ASSERT_VAL(!tmp, tmp.message());
-		}
-#endif
+		m_send_fun(ep, array_view<char const>(p, len), ec
+			, ((flags & dont_fragment) ? udp_socket::dont_fragment : 0)
+				| udp_socket::peer_connection);
 	}
 
-	int utp_socket_manager::local_port(error_code& ec) const
+	bool utp_socket_manager::incoming_packet(udp::endpoint const& ep
+			, char const* p, int const size)
 	{
-		return m_sock.local_endpoint(ec).port();
-	}
-
-	tcp::endpoint utp_socket_manager::local_endpoint(address const& remote, error_code& ec) const
-	{
-		tcp::endpoint socket_ep = m_sock.local_endpoint(ec);
-
-		// first enumerate the routes in the routing table
-		if (aux::time_now() - seconds(60) > m_last_route_update)
-		{
-			m_last_route_update = aux::time_now();
-			error_code err;
-			m_routes = enum_routes(m_sock.get_io_service(), err);
-			if (err) return socket_ep;
-		}
-
-		if (m_routes.empty()) return socket_ep;
-		// then find the best match
-		ip_route* best = &m_routes[0];
-		for (std::vector<ip_route>::iterator i = m_routes.begin()
-			, end(m_routes.end()); i != end; ++i)
-		{
-			if (is_any(i->destination) && i->destination.is_v4() == remote.is_v4())
-			{
-				best = &*i;
-				break;
-			}
-
-			if (match_addr_mask(remote, i->destination, i->netmask))
-			{
-				best = &*i;
-				break;
-			}
-		}
-
-		// best now tells us which interface we would send over
-		// for this target. Now figure out what the local address
-		// is for that interface
-
-		if (aux::time_now() - seconds(60) > m_last_if_update)
-		{
-			m_last_if_update = aux::time_now();
-			error_code err;
-			m_interfaces = enum_net_interfaces(m_sock.get_io_service(), err);
-			if (err) return socket_ep;
-		}
-
-		for (std::vector<ip_interface>::iterator i = m_interfaces.begin()
-			, end(m_interfaces.end()); i != end; ++i)
-		{
-			if (i->interface_address.is_v4() != remote.is_v4())
-				continue;
-
-			if (strcmp(best->name, i->name) == 0)
-				return tcp::endpoint(i->interface_address, socket_ep.port());
-		}
-		return socket_ep;
-	}
-
-	bool utp_socket_manager::incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size)
-	{
-		// TODO: 2 we may want to take ec into account here. possibly close
-		// connections quicker
-		TORRENT_UNUSED(ec);
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
 		if (size < int(sizeof(utp_header))) return false;
@@ -294,14 +215,14 @@ namespace libtorrent
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
-			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_sock.get_io_service()));
+			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_ios));
 			if (!c) return false;
 
 			TORRENT_ASSERT(m_new_connection == -1);
 			// create the new socket with this ID
 			m_new_connection = id;
 
-			instantiate_connection(m_sock.get_io_service(), aux::proxy_settings(), *c
+			instantiate_connection(m_ios, aux::proxy_settings(), *c
 				, m_ssl_context, this, true, false);
 
 
@@ -395,27 +316,6 @@ namespace libtorrent
 		delete_utp_impl(i->second);
 		if (m_last_socket == i->second) m_last_socket = 0;
 		m_utp_sockets.erase(i);
-	}
-
-	void utp_socket_manager::set_sock_buf(int size)
-	{
-		if (size < m_sock_buf_size) return;
-		m_sock.set_buf_size(size);
-		error_code ec;
-		// add more socket buffer storage on the lower level socket
-		// to avoid dropping packets because of a full receive buffer
-		// while processing a packet
-
-		// only update the buffer size if it's bigger than
-		// what we already have
-		udp::socket::receive_buffer_size recv_buf_size_opt;
-		m_sock.get_option(recv_buf_size_opt, ec);
-		if (recv_buf_size_opt.value() < size * 10)
-		{
-			m_sock.set_option(udp::socket::receive_buffer_size(size * 10), ec);
-			m_sock.set_option(udp::socket::send_buffer_size(size * 3), ec);
-		}
-		m_sock_buf_size = size;
 	}
 
 	void utp_socket_manager::inc_stats_counter(int counter, int delta)

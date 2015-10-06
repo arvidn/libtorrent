@@ -41,30 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
-
-#include <deque>
 
 namespace libtorrent
 {
-	struct TORRENT_EXTRA_EXPORT udp_socket_observer
-	{
-		// return true if the packet was handled (it won't be
-		// propagated to the next observer)
-		virtual bool incoming_packet(error_code const& ec
-			, udp::endpoint const&, char const* buf, int size) = 0;
-		virtual bool incoming_packet(error_code const& /* ec */
-			, char const* /* hostname */, char const* /* buf */, int /* size */) { return false; }
-
-		// called when the socket becomes writeable, after having
-		// failed with EWOULDBLOCK
-		virtual void writable() {}
-
-		// called every time the socket is drained of packets
-		virtual void socket_drained() {}
-	protected:
-		~udp_socket_observer() {}
-	};
+	struct socks5;
 
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
@@ -76,19 +58,38 @@ namespace libtorrent
 			peer_connection = 1
 			, tracker_connection = 2
 			, dont_queue = 4
+			, dont_fragment = 8
 		};
 
 		bool is_open() const { return m_abort == false; }
-		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
+		io_service& get_io_service() { return m_socket.get_io_service(); }
 
-		void subscribe(udp_socket_observer* o);
-		void unsubscribe(udp_socket_observer* o);
+		template <typename Handler>
+		void async_read(Handler h)
+		{
+			m_socket.async_receive(null_buffers(), h);
+		}
+
+		template <typename Handler>
+		void async_write(Handler h)
+		{
+			m_socket.async_send(null_buffers(), h);
+		}
+
+		struct packet
+		{
+			aux::array_view<char> data;
+			udp::endpoint from;
+			error_code error;
+		};
+
+		int read(aux::array_view<packet> pkts, error_code& ec);
 
 		// this is only valid when using a socks5 proxy
-		void send_hostname(char const* hostname, int port, char const* p
-			, int len, error_code& ec, int flags = 0);
+		void send_hostname(char const* hostname, int port, aux::array_view<char const> p
+			, error_code& ec, int flags = 0);
 
-		void send(udp::endpoint const& ep, char const* p, int len
+		void send(udp::endpoint const& ep, aux::array_view<char const> p
 			, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
 		void close();
@@ -99,13 +100,8 @@ namespace libtorrent
 		void set_force_proxy(bool f) { m_force_proxy = f; }
 
 		bool is_closed() const { return m_abort; }
-		tcp::endpoint local_endpoint(error_code& ec) const
-		{
-			udp::endpoint ep = m_ipv4_sock.local_endpoint(ec);
-			return tcp::endpoint(ep.address(), ep.port());
-		}
-
-		void set_buf_size(int s);
+		udp::endpoint local_endpoint(error_code& ec) const
+		{ return m_socket.local_endpoint(ec); }
 
 		typedef udp::socket::receive_buffer_size receive_buffer_size;
 		typedef udp::socket::send_buffer_size send_buffer_size;
@@ -113,201 +109,51 @@ namespace libtorrent
 		template <class SocketOption>
 		void get_option(SocketOption const& opt, error_code& ec)
 		{
-#if TORRENT_USE_IPV6
-			if (opt.level(udp::v6()) == IPPROTO_IPV6)
-				m_ipv6_sock.get_option(opt, ec);
-			else
-#endif
-				m_ipv4_sock.get_option(opt, ec);
+				m_socket.get_option(opt, ec);
 		}
 
 		template <class SocketOption>
 		void set_option(SocketOption const& opt, error_code& ec)
 		{
-			if (opt.level(udp::v4()) != IPPROTO_IPV6)
-				m_ipv4_sock.set_option(opt, ec);
-#if TORRENT_USE_IPV6
-			if (opt.level(udp::v6()) != IPPROTO_IP)
-				m_ipv6_sock.set_option(opt, ec);
-#endif
+			m_socket.set_option(opt, ec);
 		}
 
 		template <class SocketOption>
 		void get_option(SocketOption& opt, error_code& ec)
 		{
-#if TORRENT_USE_IPV6
-			if (opt.level(udp::v6()) == IPPROTO_IPV6)
-				m_ipv6_sock.get_option(opt, ec);
-			else
-#endif
-				m_ipv4_sock.get_option(opt, ec);
+			m_socket.get_option(opt, ec);
 		}
-
-		udp::endpoint proxy_addr() const { return m_proxy_addr; }
 
 	private:
-
-		struct queued_packet
-		{
-			queued_packet()
-				: hostname(NULL)
-				, flags(0)
-			{}
-
-			udp::endpoint ep;
-			char* hostname;
-			buffer buf;
-			int flags;
-		};
-
-		// number of outstanding UDP socket operations
-		// using the UDP socket buffer
-		int num_outstanding() const
-		{
-			return m_v4_outstanding
-#if TORRENT_USE_IPV6
-				+ m_v6_outstanding
-#endif
-				;
-		}
 
 		// non-copyable
 		udp_socket(udp_socket const&);
 		udp_socket& operator=(udp_socket const&);
 
-		void close_impl();
+		void wrap(udp::endpoint const& ep, aux::array_view<char const> p, error_code& ec, int flags);
+		void wrap(char const* hostname, int port, aux::array_view<char const> p, error_code& ec, int flags);
+		bool unwrap(udp::endpoint& from, aux::array_view<char>& buf);
 
-		// observers on this udp socket
-		std::vector<udp_socket_observer*> m_observers;
-		std::vector<udp_socket_observer*> m_added_observers;
+		udp::socket m_socket;
 
-		template <class Handler>
-		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
-			make_read_handler4(Handler const& handler)
-		{
-			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-				handler, m_v4_read_handler_storage
-			);
-		}
-
-#if TORRENT_USE_IPV6
-		template <class Handler>
-		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
-			make_read_handler6(Handler const& handler)
-		{
-			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-				handler, m_v6_read_handler_storage
-			);
-		}
-#endif
-
-		// this is true while iterating over the observers
-		// vector, invoking observer hooks. We may not
-		// add new observers during this time, since it
-		// may invalidate the iterator. If this is true,
-		// instead add new observers to m_added_observers
-		// and they will be added later
-		bool m_observers_locked;
-
-		void call_handler(error_code const& ec, udp::endpoint const& ep
-			, char const* buf, int size);
-		void call_handler(error_code const& ec, const char* host
-			, char const* buf, int size);
-		void call_drained_handler();
-		void call_writable_handler();
-
-		void on_writable(error_code const& ec, udp::socket* s);
-
-		void setup_read(udp::socket* s);
-		void on_read(error_code const& ec, udp::socket* s);
-		void on_read_impl(udp::endpoint const& ep
-			, error_code const& e, std::size_t bytes_transferred);
-		void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
-		void on_connect_timeout(error_code const& ec);
-		void on_connected(error_code const& ec);
-		void handshake1(error_code const& e);
-		void handshake2(error_code const& e);
-		void handshake3(error_code const& e);
-		void handshake4(error_code const& e);
-		void socks_forward_udp();
-		void connect1(error_code const& e);
-		void connect2(error_code const& e);
-		void hung_up(error_code const& e);
-
-		void drain_queue();
-
-		void wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec);
-		void wrap(char const* hostname, int port, char const* p, int len, error_code& ec);
-		void unwrap(error_code const& e, char const* buf, int size);
-
-		udp::socket m_ipv4_sock;
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_v4_read_handler_storage;
-		deadline_timer m_timer;
-		int m_buf_size;
-
-		// if the buffer size is attempted
-		// to be changed while the buffer is
-		// being used, this member is set to
-		// the desired size, and it's resized
-		// later
-		int m_new_buf_size;
+		// TODO: 2 this should probably be a scoped_ptr<> or unique_ptr
+		// with a hard coded size
+		int const m_buf_size;
 		char* m_buf;
 
-#if TORRENT_USE_IPV6
-		udp::socket m_ipv6_sock;
-		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_v6_read_handler_storage;
-#endif
-
 		boost::uint16_t m_bind_port;
-		boost::uint8_t m_v4_outstanding;
-		boost::uint8_t m_restart_v4;
-#if TORRENT_USE_IPV6
-		boost::uint8_t m_v6_outstanding;
-		boost::uint8_t m_restart_v6;
-#endif
 
-		tcp::socket m_socks5_sock;
 		aux::proxy_settings m_proxy_settings;
-		tcp::resolver m_resolver;
-		char m_tmp_buf[270];
-		bool m_queue_packets;
-		bool m_tunnel_packets;
-		bool m_force_proxy;
-		bool m_abort;
 
-		// this is the endpoint the proxy server lives at.
-		// when performing a UDP associate, we get another
-		// endpoint (presumably on the same IP) where we're
-		// supposed to send UDP packets.
-		udp::endpoint m_proxy_addr;
+		boost::shared_ptr<socks5> m_socks5_connection;
 
-		// this is where UDP packets that are to be forwarded
-		// are sent. The result from UDP ASSOCIATE is stored
-		// in here.
-		udp::endpoint m_udp_proxy_addr;
-
-		// while we're connecting to the proxy
-		// we have to queue the packets, we'll flush
-		// them once we're connected
-		std::deque<queued_packet> m_queue;
-
-		// counts the number of outstanding async
-		// operations hanging on this socket
-		int m_outstanding_ops;
-
-#if TORRENT_USE_IPV6
-		bool m_v6_write_subscribed:1;
-#endif
-		bool m_v4_write_subscribed:1;
+		// TODO: 3 add a unit test for force-proxy
+		bool m_force_proxy:1;
+		bool m_abort:1;
 
 #if TORRENT_USE_ASSERTS
 		bool m_started;
 		int m_magic;
-		int m_outstanding_when_aborted;
-		int m_outstanding_connect;
-		int m_outstanding_timeout;
-		int m_outstanding_resolve;
-		int m_outstanding_socks;
 #endif
 	};
 }

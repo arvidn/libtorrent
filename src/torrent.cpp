@@ -3410,7 +3410,7 @@ namespace libtorrent
 				// the tracker did resolve to a different type of address, so announce
 				// to that as well
 
-				// TODO 2: there's a bug when removing a torrent or shutting down the session,
+				// TODO 3: there's a bug when removing a torrent or shutting down the session,
 				// where the second announce is skipped (in this case, the one to the IPv6
 				// name). This should be fixed by generalizing the tracker list structure to
 				// separate the IPv6 and IPv4 addresses as conceptually separate trackers,

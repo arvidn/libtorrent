@@ -319,19 +319,19 @@ namespace libtorrent
 		tracker_connection::close();
 	}
 
-	bool udp_tracker_connection::on_receive_hostname(error_code const& e
-		, char const* hostname, char const* buf, int size)
+	bool udp_tracker_connection::on_receive_hostname(char const* hostname
+		, char const* buf, int size)
 	{
 		TORRENT_UNUSED(hostname);
 		// just ignore the hostname this came from, pretend that
 		// it's from the same endpoint we sent it to (i.e. the same
 		// port). We have so many other ways of confirming this packet
 		// comes from the tracker anyway, so it's not a big deal
-		return on_receive(e, m_target, buf, size);
+		return on_receive(m_target, buf, size);
 	}
 
-	bool udp_tracker_connection::on_receive(error_code const& e
-		, udp::endpoint const& ep, char const* buf, int size)
+	bool udp_tracker_connection::on_receive(udp::endpoint const& ep
+		, char const* buf, int const size)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -368,8 +368,6 @@ namespace libtorrent
 #endif
 			return false;
 		}
-
-		if (e) fail(e);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]", size);
@@ -499,13 +497,13 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
-				, m_target.port(), buf, 16, ec
+			m_man.send_hostname(m_hostname.c_str()
+				, m_target.port(), aux::array_view<char const>(buf, 16), ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.get_udp_socket().send(m_target, buf, 16, ec
+			m_man.send(m_target, aux::array_view<char const>(buf, 16), ec
 				, udp_socket::tracker_connection);
 		}
 
@@ -563,12 +561,12 @@ namespace libtorrent
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.get_udp_socket().send_hostname(m_hostname.c_str(), m_target.port()
-				, buf, sizeof(buf), ec, udp_socket::tracker_connection);
+			m_man.send_hostname(m_hostname.c_str(), m_target.port()
+				, aux::array_view<char const>(buf), ec, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.get_udp_socket().send(m_target, buf, sizeof(buf), ec
+			m_man.send(m_target, aux::array_view<char const>(buf), ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_scrape;
@@ -762,13 +760,13 @@ namespace libtorrent
 
 		if (!m_hostname.empty())
 		{
-			m_man.get_udp_socket().send_hostname(m_hostname.c_str()
-				, m_target.port(), buf, out - buf, ec
+			m_man.send_hostname(m_hostname.c_str()
+				, m_target.port(), aux::array_view<char const>(buf, out - buf), ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.get_udp_socket().send(m_target, buf, out - buf, ec
+			m_man.send(m_target, aux::array_view<char const>(buf, out - buf), ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_announce;

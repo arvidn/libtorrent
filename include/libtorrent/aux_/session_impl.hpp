@@ -126,17 +126,21 @@ namespace libtorrent
 	{
 		listen_socket_t()
 			: tcp_external_port(0)
+			, udp_external_port(0)
 			, ssl(false)
+			, udp_write_blocked(false)
 		{
 			tcp_port_mapping[0] = -1;
 			tcp_port_mapping[1] = -1;
+			udp_port_mapping[0] = -1;
+			udp_port_mapping[1] = -1;
 		}
 
 		// this is typically empty but can be set
 		// to the WAN IP address of NAT-PMP or UPnP router
 		address external_address;
 
-		// this is a cached local endpoint for the listen socket
+		// this is a cached local endpoint for the listen TCP socket
 		tcp::endpoint local_endpoint;
 
 		// this is typically set to the same as the local
@@ -147,15 +151,27 @@ namespace libtorrent
 		// to be published to peers, since this is the port
 		// the client is reachable through.
 		int tcp_external_port;
+		int udp_external_port;
 
 		// 0 is natpmp 1 is upnp
 		int tcp_port_mapping[2];
+		int udp_port_mapping[2];
 
 		// set to true if this is an SSL listen socket
 		bool ssl;
 
-		// the actual socket
+		// this is true when the udp socket send() has failed with EAGAIN or
+		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
+		// writeable again. Once it is, we'll set it to false and notify the utp
+		// socket manager
+		bool udp_write_blocked;
+
+		// the actual sockets (TCP listen socket and UDP socket)
+		// An entry does not necessarily have a UDP or TCP socket. One of these
+		// pointers may be null!
+		// TODO: 3 make these unique_ptr<>
 		boost::shared_ptr<tcp::acceptor> sock;
+		boost::shared_ptr<udp_socket> udp_sock;
 	};
 
 	namespace aux
@@ -175,7 +191,6 @@ namespace libtorrent
 			: session_interface
 			, dht::dht_observer
 			, boost::noncopyable
-			, udp_socket_observer
 			, uncork_interface
 			, single_threaded
 		{
@@ -184,9 +199,6 @@ namespace libtorrent
 			// maximum length of query names which can be registered by extensions
 			enum { max_dht_query_length = 15 };
 
-#ifdef TORRENT_DEBUG
-//			friend class ::libtorrent::peer_connection;
-#endif
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
 #endif
@@ -245,9 +257,6 @@ namespace libtorrent
 			// need the initial push to connect peers
 			void prioritize_connections(boost::weak_ptr<torrent> t) TORRENT_OVERRIDE;
 
-			// if we are listening on an IPv6 interface
-			// this will return one of the IPv6 addresses on this
-			// machine, otherwise just an empty endpoint
 			tcp::endpoint get_ipv6_interface() const TORRENT_OVERRIDE;
 			tcp::endpoint get_ipv4_interface() const TORRENT_OVERRIDE;
 
@@ -353,8 +362,6 @@ namespace libtorrent
 			void on_dht_router_name_lookup(error_code const& e
 				, std::vector<address> const& addresses, int port);
 #endif
-
-			void maybe_update_udp_mapping(int nat, bool ssl, int local_port, int external_port);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			torrent const* find_encrypted_torrent(
@@ -522,7 +529,15 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			bool is_dht_running() const { return (m_dht.get() != NULL); }
-			int external_udp_port() const TORRENT_OVERRIDE { return m_external_udp_port; }
+			int external_udp_port() const TORRENT_OVERRIDE
+			{
+				for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+					, end(m_listen_sockets.end()); i != end; ++i)
+				{
+					if (i->udp_sock) return i->udp_external_port;
+				}
+				return -1;
+			}
 #endif
 
 #if TORRENT_USE_I2P
@@ -1042,20 +1057,27 @@ namespace libtorrent
 			int m_outstanding_router_lookups;
 #endif
 
-			bool incoming_packet(error_code const& ec
-				, udp::endpoint const&, char const* buf, int size) TORRENT_OVERRIDE;
+			void send_udp_packet_hostname(char const* hostname
+				, int port
+				, array_view<char const> p
+				, error_code& ec
+				, int flags);
 
-			// see m_external_listen_port. This is the same
-			// but for the udp port used by the DHT.
-			// TODO: 3 once udp sockets are part of m_listen_sockets, remove this
-			int m_external_udp_port;
+			void send_udp_packet(bool ssl
+				, udp::endpoint const& ep
+				, array_view<char const> p
+				, error_code& ec
+				, int flags);
 
-			udp_socket m_udp_socket;
+			void on_udp_writeable(boost::weak_ptr<udp_socket> s, error_code const& ec);
+
+			void on_udp_packet(boost::weak_ptr<udp_socket> const& s
+				, bool ssl, error_code const& ec);
+
 			libtorrent::utp_socket_manager m_utp_socket_manager;
 
 #ifdef TORRENT_USE_OPENSSL
 			// used for uTP connectons over SSL
-			udp_socket m_ssl_udp_socket;
 			libtorrent::utp_socket_manager m_ssl_utp_socket_manager;
 #endif
 
@@ -1068,18 +1090,17 @@ namespace libtorrent
 			boost::shared_ptr<upnp> m_upnp;
 			boost::shared_ptr<lsd> m_lsd;
 
-			// TODO: 3 once the udp socket is in listen_socket_t, these should
-			// move in there too
-			// 0 is natpmp 1 is upnp
-			int m_udp_mapping[2];
-#ifdef TORRENT_USE_OPENSSL
-			int m_ssl_udp_mapping[2];
-#endif
-
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP
 			// 2: UPnP
-			void remap_ports(boost::uint32_t mask, listen_socket_t& s);
+			// TODO: 3 perhaps this function should move into listen_socket_t
+			enum remap_port_mask_t
+			{
+				remap_natpmp = 1,
+				remap_upnp = 2,
+				remap_natpmp_and_upnp = 3
+			};
+			void remap_ports(remap_port_mask_t mask, listen_socket_t& s);
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
