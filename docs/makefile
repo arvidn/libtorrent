@@ -1,6 +1,12 @@
 # this makefile assumes that you have docutils and rst2pdf installed
 
+ifneq ($(STAGE),)
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
+endif
+
+ifndef RST2HTML
+RST2HTML:=rst2html-3.4.py
+endif
 
 REFERENCE_TARGETS = \
 	reference \
@@ -67,36 +73,48 @@ manual.rst: stats_counters.rst
 
 troubleshooting_thumb.png: troubleshooting.png
 	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
+endif
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
+ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
+endif
 
 $(REFERENCE_TARGETS:=.rst):gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst settings.rst stats_counters.rst
 	python gen_reference_doc.py
 
 %.epub:%.rst
-	rst2epub $? $@
+	rst2epub --exit-status=2 $? $@
 
 %.pdf:%.rst
-	rst2pdf $? -o $@ --stylesheets stylesheet
+	rst2pdf --exit-status=2 $? -o $@ --stylesheets stylesheet
 
 %.html:%.rst
-	rst2html-3.4.py --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
-	rst2html-3.4.py --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
+	$(RST2HTML) --exit-status=2 --template=template.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $@
+ifneq ($(STAGE),)
+	$(RST2HTML) --exit-status=2 --template=template2.txt --stylesheet-path=style.css --link-stylesheet --no-toc-backlinks $? > $(WEB_PATH)/$@
+endif
 
 %.png:%.dot
 	dot -Tpng $? >$@
+ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
+endif
 
 %.eps:%.dot
 	dot -Teps $? >$@
+ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
+endif
 
 %.png:%.diagram
-	java -jar /opt/local/share/java/ditaa0_9.jar -E $? $@
+	ditaa -E $? $@
+ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
+endif
 
 clean:
 	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) settings.rst todo.html reference*.html reference*.rst

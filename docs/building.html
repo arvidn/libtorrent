@@ -172,11 +172,16 @@ building against a source distribution of boost.</p>
 a specific toolset to use (compiler) you can just add that to the commandline.
 For example:</p>
 <pre class="literal-block">
-bjam msvc-7.1 boost=source
-bjam gcc-3.3 boost=source
-bjam darwin-4.0 boost=source
+bjam msvc-7.1
+bjam gcc-3.3
+bjam darwin-4.0
 </pre>
-<p>If you're building against a system installed boost, specify <tt class="docutils literal">boost=system</tt>.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">If the environment variable <tt class="docutils literal">BOOST_ROOT</tt> is not set, the jamfile will
+attempt to link against &quot;installed&quot; boost libraries. i.e. assume the headers
+and libraries are available in default search paths.</p>
+</div>
 <p>To build different versions you can also just add the name of the build
 variant. Some default build variants in BBv2 are <tt class="docutils literal">release</tt>, <tt class="docutils literal">debug</tt>,
 <tt class="docutils literal">profile</tt>.</p>
@@ -187,7 +192,7 @@ can set the <tt class="docutils literal"><span class="pre">runtime-link</span></
 or <tt class="docutils literal">static</tt>. Most operating systems will only allow linking shared against
 the runtime, but on windows you can do both. Example:</p>
 <pre class="literal-block">
-bjam msvc-7.1 link=static runtime-link=static boost=source
+bjam msvc-7.1 link=static runtime-link=static
 </pre>
 <div class="note">
 <p class="first admonition-title">Note</p>
@@ -254,18 +259,6 @@ For more build configuration flags see <a class="reference internal" href="#buil
 </tr>
 </thead>
 <tbody valign="top">
-<tr><td><tt class="docutils literal">boost</tt></td>
-<td><ul class="first last simple">
-<li><tt class="docutils literal">system</tt> - default. Tells the Jamfile that
-boost is installed and should be linked against
-the system libraries.</li>
-<li><tt class="docutils literal">source</tt> - Specifies that boost is to be built
-from source. The environment variable
-<tt class="docutils literal">BOOST_ROOT</tt> must be defined to point to the
-boost directory.</li>
-</ul>
-</td>
-</tr>
 <tr><td><tt class="docutils literal"><span class="pre">boost-link</span></tt></td>
 <td><ul class="first last simple">
 <li><tt class="docutils literal">static</tt> - links statically against the boost

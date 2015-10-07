@@ -92,11 +92,12 @@ namespace dht
 		// If the torrent tracked contains a name, such a name
 		// must be stored as a string in peers["n"]
 		//
-		// If the scrape parameter is true, you should fill these keys:
-		// peers["BFpe"] - with the standard bit representation of a
-		//                 256 bloom filter containing the downloaders
-		// peers["BFsd"] - with the standard bit representation of a
-		//                 256 bloom filter containing the seeders
+		// If the scrape parameter is true, you should fill these keys::
+		// 
+		//    peers["BFpe"] - with the standard bit representation of a
+		//                    256 bloom filter containing the downloaders
+		//    peers["BFsd"] - with the standard bit representation of a
+		//                    256 bloom filter containing the seeders
 		//
 		// If the scrape parameter is false, you should fill the
 		// key peers["values"] with a list containing a subset of

@@ -782,7 +782,9 @@ def linkify_symbols(string):
 #			print '  literal: "%s"' % l
 			ret.append(l)
 			continue
-		if l.endswith('::') or '.. code::' in l:
+		if l.strip() == '.. parsed-literal::' or \
+			l.strip().startswith('.. code::') or \
+			(not l.strip().startswith('..') and l.endswith('::')):
 #			print '  start literal: "%s"' % l
 			in_literal = True
 		words = l.split(' ')

@@ -1294,7 +1294,10 @@ any). This is only supported by SOCKS5 and HTTP.
 +------------------------+------+---------+
 
 if true, peer connections are made (and accepted) over the
-configured proxy, if any.
+configured proxy, if any. Web seeds as well as regular bittorrent
+peer connections are considered "peer connections". Anything
+transporting actual torrent payload (trackers and DHT traffic are
+not considered peer connections).
 
 .. _auto_sequential:
 
@@ -2061,6 +2064,8 @@ details, see QBSS_.
 
 .. _active_seeds:
 
+.. _active_checking:
+
 .. _active_dht_limit:
 
 .. _active_tracker_limit:
@@ -2075,6 +2080,7 @@ details, see QBSS_.
 
 	<a name="active_downloads"></a>
 	<a name="active_seeds"></a>
+	<a name="active_checking"></a>
 	<a name="active_dht_limit"></a>
 	<a name="active_tracker_limit"></a>
 	<a name="active_lsd_limit"></a>
@@ -2087,6 +2093,8 @@ details, see QBSS_.
 | active_downloads     | int  | 3       |
 +----------------------+------+---------+
 | active_seeds         | int  | 5       |
++----------------------+------+---------+
+| active_checking      | int  | 1       |
 +----------------------+------+---------+
 | active_dht_limit     | int  | 88      |
 +----------------------+------+---------+
@@ -2108,6 +2116,9 @@ torrents is ``min(active_downloads + active_seeds, active_limit)``.
 ``active_downloads`` and ``active_seeds`` are upper limits on the
 number of downloading torrents and seeding torrents respectively.
 Setting the value to -1 means unlimited.
+``active_checking`` is the limit of number of checking torrents.
+Note that this limit applies to started non-auto-managed torrents as
+well (as long as they are the the checking_files state).
 
 For example if there are 10 seeding torrents and 10 downloading
 torrents, and ``active_downloads`` is 4 and ``active_seeds`` is 4,
@@ -2117,8 +2128,9 @@ then there will be 2 downloading torrents and 4 seeding torrents
 active. Torrents that are not auto managed are not counted against
 these limits.
 
-``active_limit`` is a hard limit on the number of active torrents.
-This applies even to slow torrents.
+``active_limit`` is a hard limit on the number of active (auto
+managed) torrents. This limit also applies to slow torrents. It does
+not apply to checking torrents.
 
 ``active_dht_limit`` is the max number of torrents to announce to
 the DHT. By default this is set to 88, which is no more than one
