@@ -38,6 +38,7 @@ addons:
     - g++-4.8
     - ditaa
     - python3-docutils
+    - python3-pygments
 
 before_install:
   - git submodule update --init --recursive
