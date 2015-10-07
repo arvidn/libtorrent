@@ -6,9 +6,10 @@ os:
 
 env:
   - variant=test_debug lang=cpp11 sim=1
-  - variant=test_debug lang=cpp98 sim=0
-  - variant=test_release lang=cpp11 sim=0
-  - variant=test_barebones lang=cpp11 sim=0
+  - variant=test_debug lang=cpp98
+  - variant=test_release lang=cpp11 docs=1
+  - variant=test_barebones lang=cpp11
+  - variant=test_barebones lang=cpp11
 
 git:
   submodules: false
@@ -36,6 +37,7 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
+    - ditaa
 
 before_install:
   - git submodule update --init --recursive  --depth=1
@@ -60,6 +62,7 @@ install:
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
 script:
+  - if [ $docs == "1" ]; then cd docs; make; cd ..; fi
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
