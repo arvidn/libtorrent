@@ -38,6 +38,7 @@ addons:
     - python2.7-dev
     - g++-4.8
     - ditaa
+    - python3-docutils
 
 before_install:
   - git submodule update --init --recursive  --depth=1
@@ -62,7 +63,7 @@ install:
   - ccache -V && ccache --show-stats && ccache --zero-stats
 
 script:
-  - if [ $docs == "1" ]; then cd docs; make; cd ..; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then cd docs; make RST2HTML=rst2html; cd ..; fi
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
