@@ -69,6 +69,7 @@ install:
   - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
+  - rst2html --version
 
 script:
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then cd docs; make RST2HTML=rst2html; cd ..; fi
