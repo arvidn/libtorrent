@@ -62,7 +62,7 @@ namespace libtorrent
 		torrent_status& operator=(torrent_status const&) = default;
 #endif
 
-		// compres if the torrent status objects come from the same torrent. i.e.
+		// compares if the torrent status objects come from the same torrent. i.e.
 		// only the torrent_handle field is compared.
 		bool operator==(torrent_status const& st) const
 		{ return handle == st.handle; }
