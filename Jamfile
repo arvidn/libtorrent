@@ -757,7 +757,6 @@ local usage-requirements =
 	<linkflags>$(LDFLAGS)
 # this works around a bug in asio in boost-1.39
 	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
-	<tag>@tag
 	;
 
 project torrent ;
@@ -785,6 +784,8 @@ lib torrent
 	# disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+
+	<tag>@tag
 
 	$(usage-requirements)
 
