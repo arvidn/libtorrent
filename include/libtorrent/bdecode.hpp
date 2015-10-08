@@ -104,7 +104,7 @@ namespace bdecode_errors
 {
 	// libtorrent uses boost.system's ``error_code`` class to represent
 	// errors. libtorrent has its own error category get_bdecode_category()
-	// whith the error codes defined by error_code_enum.
+	// with the error codes defined by error_code_enum.
 	enum error_code_enum
 	{
 		// Not an error
@@ -233,7 +233,7 @@ struct bdecode_token
 
 // Sometimes it's important to get a non-owning reference to the root node (
 // to be able to copy it as a reference for instance). For that, use the
-// non_owninig() member function.
+// non_owning() member function.
 //
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
@@ -250,7 +250,7 @@ struct TORRENT_EXPORT bdecode_node
 	bdecode_node(bdecode_node const&);
 	bdecode_node& operator=(bdecode_node const&);
 
-	// the dypes of bdecoded nodes
+	// the types of bdecoded nodes
 	enum type_t
 	{
 		// uninitialized or default constructed. This is also used
