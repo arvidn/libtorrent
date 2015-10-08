@@ -7,7 +7,7 @@ os:
 env:
   - variant=test_debug lang=cpp11 sim=1
   - variant=test_debug lang=cpp98
-  - variant=test_release lang=cpp11 docs=1
+  - variant=test_release lang=cpp11
   - variant=test_barebones lang=cpp11
   - variant=test_barebones lang=cpp11
 
@@ -37,12 +37,14 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
-    - ditaa
-    - python3-docutils
-    - python3-pygments
+
+# travis' docutils version is too old to support syntax highlighting
+#    - ditaa
+#    - python3-docutils
+#    - python3-pygments
 
 before_install:
-  - git submodule update --init --recursive  --depth=1
+  - git submodule update --init --recursive --depth=1
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
 
 # disable simulations on OSX for now. It hangs on travis
@@ -62,15 +64,19 @@ install:
   - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - rst2html --version
 
 script:
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then cd docs; make RST2HTML=rst2html; cd ..; fi
+#  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then
+#    cd docs;
+#    make RST2HTML=rst2html;
+#    cd ..;
+#    fi
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ..
+
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
@@ -79,9 +85,12 @@ script:
 # here we specify the temporary lib dir as a path to look for the main library
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared dll-path=../../lib
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
+
+# only run simulations once
   - if [ $sim = "1" ]; then
     cd ../../simulation;
     bjam --hash -j2 crypto=built-in $toolset;
     fi
+
   - ccache --show-stats
 
