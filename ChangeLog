@@ -12,6 +12,7 @@
 	  to connect be timed out (introduced in the vulnerability path)
 	* fixed falling back to sending UDP packets direct when socks proxy fails
 	* fixed total_wanted bug (when setting file priorities in add_torrent_params)
+	* fix python3 compatibility with sha1_hash
 
 1.0.6 release
 
