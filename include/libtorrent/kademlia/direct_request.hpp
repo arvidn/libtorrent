@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef LIBTORRENT_DIRECT_REQUEST_HPP
-#define LIBTORRENT_DIRECT_REQUEST_HPP
+#ifndef TORRENT_DIRECT_REQUEST_HPP
+#define TORRENT_DIRECT_REQUEST_HPP
 
 #include <boost/function/function1.hpp>
 #include <libtorrent/kademlia/msg.hpp>
@@ -42,9 +42,11 @@ namespace libtorrent { namespace dht
 
 struct direct_traversal : traversal_algorithm
 {
+	typedef boost::function<void(dht::msg const&)> message_callback;
+
 	direct_traversal(node& node
 		, node_id target
-		, boost::function<void(msg const&)> cb)
+		, message_callback cb)
 		: traversal_algorithm(node, target)
 		, m_cb(cb)
 	{}
@@ -62,7 +64,7 @@ struct direct_traversal : traversal_algorithm
 	}
 
 protected:
-	boost::function<void(msg const&)> m_cb;
+	message_callback m_cb;
 };
 
 struct direct_observer : observer
@@ -88,6 +90,6 @@ struct direct_observer : observer
 	}
 };
 
-} } // namespace libtorrent::dht
+}} // namespace libtorrent::dht
 
-#endif
+#endif //TORRENT_DIRECT_REQUEST_HPP
