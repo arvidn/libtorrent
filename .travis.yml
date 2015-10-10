@@ -46,7 +46,7 @@ script:
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - bjam -j 3 variant=$variant warnings=off $CC link=shared install location=./lib
+  - bjam -j 3 variant=$variant warnings=off $CC link=shared install install-type=LIB location=./lib
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
   - bjam -j 3 variant=$variant warnings=off $CC stage_module libtorrent-link=shared dll-path=../../lib
