@@ -746,8 +746,9 @@ lib torrent
 headers = [ path.glob-tree include/libtorrent : *.hpp ] ;
 
 package.install install
- : <install-type>LIB
+ : <install-source-root>libtorrent
  :
  : torrent
  : $(headers)
  ;
+
