@@ -3,6 +3,7 @@
 import libtorrent as lt
 
 import unittest
+import binascii
 
 # test torrent_info
 
@@ -32,6 +33,13 @@ class test_bencoder(unittest.TestCase):
 		encoded = 'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
 		decoded = lt.bdecode(encoded)
 		self.assertEqual(decoded, {'a': 1, 'b': [1,2,3], 'c': 'foo'})
+
+class test_sha1hash(unittest.TestCase):
+
+	def test_sha1hash(self):
+		h = 'a0'*20
+		s = lt.sha1_hash(binascii.unhexlify(h))
+		self.assertEqual(h, str(s))
 
 if __name__ == '__main__':
     unittest.main()
