@@ -71,7 +71,7 @@ script:
   - bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared dll-path=../../lib
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - if [ $sim = "1" ]; then
     cd ../../simulation;
