@@ -1,0 +1,12 @@
+  <---- "recently" "frequently" --->
+        "used"     "used"
+
+  L1 ghost     L1    L2    L2 ghost
+  AAAAAAAAFFFFFFFF FFFFFFFFAAAAAAAA
+
+              cache size
+          <--------------->
+
+             2x cache size
+  <------------------------------->
+

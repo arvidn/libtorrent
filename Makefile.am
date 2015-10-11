@@ -39,6 +39,8 @@ DOCS_IMAGES = \
   docs/troubleshooting_thumb.png  \
   docs/hacking.diagram            \
   docs/hacking.png                \
+  docs/disk_cache.diagram         \
+  docs/disk_cache.png             \
   docs/utp_stack.diagram          \
   docs/utp_stack.png              \
   docs/style.css                  \
@@ -48,7 +50,7 @@ DOCS_IMAGES = \
   docs/img/blue_top.png           \
   docs/img/dotline.gif            \
   docs/img/minus.gif              \
-  docs/img/orange.png
+  docs/img/orange.png             \
 
 DOCS_PAGES = \
   docs/building.html              \
