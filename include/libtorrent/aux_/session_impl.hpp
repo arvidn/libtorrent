@@ -1161,7 +1161,7 @@ namespace libtorrent
 			// *glares at gcc*
 			struct extention_dht_query
 			{
-				uint8_t query_len;
+				boost::uint8_t query_len;
 				boost::array<char, max_dht_query_length> query;
 				dht_extension_handler_t handler;
 			};

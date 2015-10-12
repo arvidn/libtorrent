@@ -22,6 +22,7 @@ environment:
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2013\\include"'
   - variant: test_debug
+    python_package: 1
     compiler: msvc-10.0
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2010\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2010\\include"'
@@ -95,30 +96,41 @@ install:
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
 - 'echo using msvc : 10.0 ; >%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - 'echo using msvc : 12.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
+- 'echo using msvc : 9.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
 - set PATH=%PATH%;c:\Mingw\bin
 - g++ --version
 - python --version
 - echo %ROOT_DIRECTORY%
+
 cache:
 - openssl-1.0.1p-vs2010.7z
 - openssl-1.0.1p-vs2013.7z
 - openssl-1.0.1p-vs2015.7z
+
 build_script:
+- if not defined x64 (
+  cd %ROOT_DIRECTORY%\examples
+  & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
+  & cd %ROOT_DIRECTORY%\bindings\python
+  & b2.exe --hash -j2 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
+  & python test.py
+  & if defined python_package ( python setup.py --bjam bdist_msi )
+  )
+
+test_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
   b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   ) else (
   b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
-  & cd %ROOT_DIRECTORY%\examples
-  & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
-  & cd %ROOT_DIRECTORY%\bindings\python
-  & b2.exe --hash -j2 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
-  & python test.py
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
   & b2.exe --hash -j2 link=shared crypto=built-in %compiler%
   )
 
+artifacts:
+  - path: bindings\python\dist\*.msi
+    name: python-binding-win32
