@@ -36,12 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include <boost/bind.hpp>
-#include <boost/tuple/tuple.hpp>
 
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <boost/asio/connect.hpp>
@@ -49,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/error.hpp> // for asio::error::get_ssl_category()
 #include <boost/asio/ssl.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using namespace libtorrent;
 using boost::tuples::ignore;
