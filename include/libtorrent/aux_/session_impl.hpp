@@ -1135,8 +1135,8 @@ namespace libtorrent
 			boost::uint16_t m_tick_residual;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			virtual void session_log(char const* fmt, ...) const TORRENT_FORMAT(2,3) TORRENT_OVERRIDE TORRENT_FINAL;
-			virtual void session_vlog(char const* fmt, va_list& va) const TORRENT_FORMAT(2,0) TORRENT_OVERRIDE TORRENT_FINAL;
+			virtual void session_log(char const* fmt, ...) const TORRENT_OVERRIDE TORRENT_FINAL TORRENT_FORMAT(2,3);
+			virtual void session_vlog(char const* fmt, va_list& va) const TORRENT_OVERRIDE TORRENT_FINAL TORRENT_FORMAT(2,0);
 
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
