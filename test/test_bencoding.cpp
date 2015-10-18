@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bencode.hpp"
-#include <boost/lexical_cast.hpp>
+
 #include <iostream>
 #include <cstring>
 

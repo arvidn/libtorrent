@@ -201,10 +201,10 @@ namespace libtorrent
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
 #if TORRENT_USE_ASSERTS
-			bool has_peer(peer_connection const* p) const;
-			bool any_torrent_has_peer(peer_connection const* p) const;
+			bool has_peer(peer_connection const* p) const TORRENT_OVERRIDE TORRENT_FINAL;
+			bool any_torrent_has_peer(peer_connection const* p) const TORRENT_OVERRIDE TORRENT_FINAL;
 			bool is_single_thread() const { return single_threaded::is_single_thread(); }
-			bool is_posting_torrent_updates() const { return m_posting_torrent_updates; }
+			bool is_posting_torrent_updates() const TORRENT_OVERRIDE TORRENT_FINAL { return m_posting_torrent_updates; }
 			// this is set while the session is building the
 			// torrent status update message
 			bool m_posting_torrent_updates;
@@ -212,14 +212,15 @@ namespace libtorrent
 
 			void open_listen_port();
 
-			torrent_peer_allocator_interface* get_peer_allocator() { return &m_peer_allocator; }
+			torrent_peer_allocator_interface* get_peer_allocator() TORRENT_OVERRIDE TORRENT_FINAL
+			{ return &m_peer_allocator; }
 
-			io_service& get_io_service() { return m_io_service; }
-			resolver_interface& get_resolver() { return m_host_resolver; }
+			io_service& get_io_service() TORRENT_OVERRIDE TORRENT_FINAL { return m_io_service; }
+			resolver_interface& get_resolver() TORRENT_OVERRIDE TORRENT_FINAL { return m_host_resolver; }
 			void async_resolve(std::string const& host, int flags
-				, callback_t const& h);
+				, callback_t const& h) TORRENT_OVERRIDE TORRENT_FINAL;
 
-			std::vector<torrent*>& torrent_list(int i)
+			std::vector<torrent*>& torrent_list(int i) TORRENT_OVERRIDE TORRENT_FINAL
 			{
 				TORRENT_ASSERT(i >= 0);
 				TORRENT_ASSERT(i < session_interface::num_torrent_lists);
@@ -230,13 +231,13 @@ namespace libtorrent
 			// attempts, because this torrent needs more peers.
 			// this is typically done when a torrent starts out and
 			// need the initial push to connect peers
-			void prioritize_connections(boost::weak_ptr<torrent> t);
+			void prioritize_connections(boost::weak_ptr<torrent> t) TORRENT_OVERRIDE TORRENT_FINAL;
 
 			// if we are listening on an IPv6 interface
 			// this will return one of the IPv6 addresses on this
 			// machine, otherwise just an empty endpoint
-			tcp::endpoint get_ipv6_interface() const;
-			tcp::endpoint get_ipv4_interface() const;
+			tcp::endpoint get_ipv6_interface() const TORRENT_OVERRIDE TORRENT_FINAL;
+			tcp::endpoint get_ipv4_interface() const TORRENT_OVERRIDE TORRENT_FINAL;
 
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
@@ -252,14 +253,14 @@ namespace libtorrent
 			void get_feeds(std::vector<feed_handle>* f) const;
 #endif
 
-			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const;
+			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const TORRENT_OVERRIDE TORRENT_FINAL;
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 			std::vector<boost::shared_ptr<torrent> > find_collection(
-				std::string const& collection) const;
+				std::string const& collection) const TORRENT_OVERRIDE TORRENT_FINAL;
 #endif
-			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const;
-			int num_torrents() const { return m_torrents.size(); }
+			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const TORRENT_OVERRIDE TORRENT_FINAL;
+			int num_torrents() const TORRENT_OVERRIDE TORRENT_FINAL { return m_torrents.size(); }
 
 			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 				, std::string uuid);
@@ -280,15 +281,15 @@ namespace libtorrent
 
 			void apply_settings_pack(boost::shared_ptr<settings_pack> pack);
 			void apply_settings_pack_impl(settings_pack const& pack);
-			session_settings const& settings() const { return m_settings; }
+			session_settings const& settings() const TORRENT_OVERRIDE TORRENT_FINAL { return m_settings; }
 			settings_pack get_settings() const;
 
 #ifndef TORRENT_DISABLE_DHT
-			dht::dht_tracker* dht() { return m_dht.get(); }
-			bool announce_dht() const { return !m_listen_sockets.empty(); }
+			dht::dht_tracker* dht() TORRENT_OVERRIDE TORRENT_FINAL { return m_dht.get(); }
+			bool announce_dht() const TORRENT_OVERRIDE TORRENT_FINAL { return !m_listen_sockets.empty(); }
 
 			void add_dht_node_name(std::pair<std::string, int> const& node);
-			void add_dht_node(udp::endpoint n);
+			void add_dht_node(udp::endpoint n) TORRENT_OVERRIDE TORRENT_FINAL;
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
@@ -296,12 +297,12 @@ namespace libtorrent
 			void start_dht();
 			void stop_dht();
 			void start_dht(entry const& startup_state);
-			bool has_dht() const;
+			bool has_dht() const TORRENT_OVERRIDE TORRENT_FINAL;
 
 			// this is called for torrents when they are started
 			// it will prioritize them for announcing to
 			// the DHT, to get the initial peers quickly
-			void prioritize_dht(boost::weak_ptr<torrent> t);
+			void prioritize_dht(boost::weak_ptr<torrent> t) TORRENT_OVERRIDE TORRENT_FINAL;
 
 			void get_immutable_callback(sha1_hash target
 				, dht::item const& i);
@@ -365,8 +366,8 @@ namespace libtorrent
 			ip_filter const& get_ip_filter();
 
 			void set_port_filter(port_filter const& f);
-			port_filter const& get_port_filter() const TORRENT_OVERRIDE;
-			void ban_ip(address addr) TORRENT_OVERRIDE;
+			port_filter const& get_port_filter() const TORRENT_OVERRIDE TORRENT_FINAL;
+			void ban_ip(address addr) TORRENT_OVERRIDE TORRENT_FINAL;
 
 			void queue_tracker_request(tracker_request& req
 				, boost::weak_ptr<request_callback> c);
@@ -571,23 +572,23 @@ namespace libtorrent
 
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
-				, address const& source) TORRENT_OVERRIDE;
-			virtual address external_address() TORRENT_OVERRIDE;
-			virtual void get_peers(sha1_hash const& ih) TORRENT_OVERRIDE;
-			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE;
+				, address const& source) TORRENT_OVERRIDE TORRENT_FINAL;
+			virtual address external_address() TORRENT_OVERRIDE TORRENT_FINAL;
+			virtual void get_peers(sha1_hash const& ih) TORRENT_OVERRIDE TORRENT_FINAL;
+			virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE TORRENT_FINAL;
 			virtual void outgoing_get_peers(sha1_hash const& target
-				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE;
+				, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE TORRENT_FINAL;
 			virtual void log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
-				TORRENT_OVERRIDE TORRENT_FORMAT(3,4);
+				TORRENT_OVERRIDE TORRENT_FINAL TORRENT_FORMAT(3,4);
 			virtual void log_packet(message_direction_t dir, char const* pkt, int len
-				, udp::endpoint node) TORRENT_OVERRIDE;
+				, udp::endpoint node) TORRENT_OVERRIDE TORRENT_FINAL;
 
 			virtual bool on_dht_request(char const* query, int query_len
 				, dht::msg const& request, entry& response);
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source);
-			virtual external_ip const& external_address() const TORRENT_OVERRIDE;
+			virtual external_ip const& external_address() const TORRENT_OVERRIDE TORRENT_FINAL;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -600,7 +601,7 @@ namespace libtorrent
 
 			// uncork all peers added to the delayed uncork queue
 			// implements uncork_interface
-			virtual void do_delayed_uncork() TORRENT_OVERRIDE;
+			virtual void do_delayed_uncork() TORRENT_OVERRIDE TORRENT_FINAL;
 
 			void post_socket_job(socket_job& j);
 
@@ -1134,8 +1135,8 @@ namespace libtorrent
 			boost::uint16_t m_tick_residual;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			virtual void session_log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
-			virtual void session_vlog(char const* fmt, va_list& va) const TORRENT_FORMAT(2,0);
+			virtual void session_log(char const* fmt, ...) const TORRENT_OVERRIDE TORRENT_FINAL TORRENT_FORMAT(2,3);
+			virtual void session_vlog(char const* fmt, va_list& va) const TORRENT_OVERRIDE TORRENT_FINAL TORRENT_FORMAT(2,0);
 
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
@@ -1145,8 +1146,8 @@ namespace libtorrent
 
 			// TODO: 2 the throttling of saving resume data could probably be
 			// factored out into a separate class
-			void queue_async_resume_data(boost::shared_ptr<torrent> const& t);
-			void done_async_resume();
+			virtual void queue_async_resume_data(boost::shared_ptr<torrent> const& t) TORRENT_OVERRIDE TORRENT_FINAL;
+			virtual void done_async_resume() TORRENT_OVERRIDE TORRENT_FINAL;
 			void async_resume_dispatched();
 
 			// state for keeping track of external IPs

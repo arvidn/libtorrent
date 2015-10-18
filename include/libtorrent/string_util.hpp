@@ -34,11 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <vector>
 #include <string>
 #include <boost/cstdint.hpp>
 #include <boost/limits.hpp>
 #include <boost/array.hpp> // for boost::array
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

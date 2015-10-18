@@ -33,7 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DHT_STORAGE_HPP
 #define TORRENT_DHT_STORAGE_HPP
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/function.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
