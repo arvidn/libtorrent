@@ -213,6 +213,17 @@ bool item::assign(bdecode_node const& v
 void item::assign(entry const& v, std::string salt, boost::uint64_t seq
 	, char const* pk, char const* sig)
 {
+#if TORRENT_USE_ASSERTS
+	TORRENT_ASSERT(pk && sig);
+	char buffer[1000];
+	int bsize = bencode(buffer, v);
+	TORRENT_ASSERT(bsize <= 1000);
+	TORRENT_ASSERT(verify_mutable_item(
+		std::make_pair(buffer, bsize)
+		, std::make_pair(salt.data(), int(salt.size()))
+		, seq, pk, sig));
+#endif
+
 	memcpy(m_pk.c_array(), pk, item_pk_len);
 	memcpy(m_sig.c_array(), sig, item_sig_len);
 	m_salt = salt;
