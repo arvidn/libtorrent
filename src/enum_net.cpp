@@ -418,12 +418,17 @@ namespace libtorrent
 
 		TORRENT_UNUSED(ec);
 
-		ip_interface wan;
-		wan.interface_address = ios.get_ip();
-		wan.netmask = address_v4::from_string("255.255.255.255");
-		strcpy(wan.name, "eth0");
-		wan.mtu = ios.sim().config().path_mtu(ios.get_ip(), ios.get_ip());
-		ret.push_back(wan);
+		std::vector<address> ips = ios.get_ips();
+
+		for (int i = 0; i < int(ips.size()); ++i)
+		{
+			ip_interface wan;
+			wan.interface_address = ips[i];
+			wan.netmask = address_v4::from_string("255.255.255.255");
+			strcpy(wan.name, "eth0");
+			wan.mtu = ios.sim().config().path_mtu(ips[i], ips[i]);
+			ret.push_back(wan);
+		}
 
 #elif TORRENT_USE_IFADDRS
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -708,15 +713,20 @@ namespace libtorrent
 
 		TORRENT_UNUSED(ec);
 
-		ip_route r;
-		r.destination = address_v4();
-		r.netmask = address_v4::from_string("255.255.255.0");
-		address_v4::bytes_type b = ios.get_ip().to_v4().to_bytes();
-		b[3] = 1;
-		r.gateway = address_v4(b);
-		strcpy(r.name, "eth0");
-		r.mtu = ios.sim().config().path_mtu(ios.get_ip(), ios.get_ip());
-		ret.push_back(r);
+		std::vector<address> ips = ios.get_ips();
+
+		for (int i = 0; i < int(ips.size()); ++i)
+		{
+			ip_route r;
+			r.destination = address_v4();
+			r.netmask = address_v4::from_string("255.255.255.0");
+			address_v4::bytes_type b = ips[i].to_v4().to_bytes();
+			b[3] = 1;
+			r.gateway = address_v4(b);
+			strcpy(r.name, "eth0");
+			r.mtu = ios.sim().config().path_mtu(ips[i], ips[i]);
+			ret.push_back(r);
+		}
 
 #elif TORRENT_USE_SYSCTL
 /*
