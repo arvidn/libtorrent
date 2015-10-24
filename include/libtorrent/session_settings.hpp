@@ -1405,6 +1405,7 @@ namespace libtorrent
 			, block_ratelimit(5)
 			, read_only(false)
 			, item_lifetime(0)
+			, refresh_timeout(5)
 		{}
 
 		// the maximum number of peers to send in a reply to ``get_peers``
@@ -1503,6 +1504,10 @@ namespace libtorrent
 		// the number of seconds a immutable/mutable item will be expired.
 		// default is 0, means never expires.
 		int item_lifetime;
+
+		// the number of seconds DHT routing table need to be refreshed, to
+		// maintain enough fresh nodes in routing table.
+		int refresh_timeout;
 	};
 
 
