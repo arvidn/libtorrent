@@ -562,6 +562,13 @@ namespace libtorrent
 
 	void default_storage::release_files(storage_error&)
 	{
+		if (m_part_file)
+		{
+			error_code ignore;
+			m_part_file->flush_metadata(ignore);
+			m_part_file.reset();
+		}
+
 		// make sure we don't have the files open
 		m_pool.release(this);
 
