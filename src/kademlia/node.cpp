@@ -407,7 +407,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
 
-void node::direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+void node::direct_request(udp::endpoint ep, entry& e
 	, boost::function<void(msg const&)> f)
 {
 	// not really a traversal

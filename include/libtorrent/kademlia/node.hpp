@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 
 #include <libtorrent/io.hpp>
+#include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/thread.hpp>
@@ -93,7 +94,7 @@ struct key_desc_t
 		// has to be divisible by the number, instead
 		// of having that exact size
 		size_divisible = 8
-	}; 
+	};
 };
 
 bool TORRENT_EXTRA_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
@@ -172,7 +173,7 @@ public:
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
 
-	void direct_request(boost::asio::ip::udp::endpoint ep, entry& e
+	void direct_request(udp::endpoint ep, entry& e
 		, boost::function<void(msg const&)> f);
 
 	void get_item(sha1_hash const& target, boost::function<bool(item&, bool)> f);

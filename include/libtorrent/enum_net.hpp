@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
-#include <boost/asio/ip/tcp.hpp>
 
 #if TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 #include <sys/socket.h> // for SO_BINDTODEVICE
@@ -49,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -119,7 +119,7 @@ namespace libtorrent
 	address bind_to_device(io_service& ios, Socket& sock
 		, bool ipv4, char const* device_name, int port, error_code& ec)
 	{
-		boost::asio::ip::tcp::endpoint bind_ep(address_v4::any(), port);
+		tcp::endpoint bind_ep(address_v4::any(), port);
 
 		address ip = address::from_string(device_name, ec);
 		if (!ec)
