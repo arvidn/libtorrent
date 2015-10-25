@@ -32,10 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <utility>
 #include <boost/bind.hpp>
 #include <boost/function/function1.hpp>
 #include <boost/tuple/tuple.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
 #include <map>
