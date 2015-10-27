@@ -124,6 +124,13 @@ namespace libtorrent
 		address ip = address::from_string(device_name, ec);
 		if (!ec)
 		{
+#if TORRENT_USE_IPV6
+			// this is to cover the case where "0.0.0.0" is considered any IPv4 or
+			// IPv6 address. If we're asking to be bound to an IPv6 address and
+			// providing 0.0.0.0 as the device, turn it into "::0"
+			if (ip == address_v4::any() && !ipv4)
+				ip = address_v6::any();
+#endif
 			bind_ep.address(ip);
 			// it appears to be an IP. Just bind to that address
 			sock.bind(bind_ep, ec);

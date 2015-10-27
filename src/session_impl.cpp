@@ -1940,7 +1940,9 @@ retry:
 				{
 					error_code err;
 					address test_family = address::from_string(device.c_str(), err);
-					if (!err && test_family.is_v4() != address_family)
+					if (!err
+						&& test_family.is_v4() != address_family
+						&& !is_any(test_family))
 						continue;
 
 					listen_socket_t s = setup_listener(device, address_family, port

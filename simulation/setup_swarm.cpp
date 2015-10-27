@@ -127,11 +127,8 @@ struct swarm
 		bool term = false;
 		ses->pop_alerts(&alerts);
 
-		for (std::vector<lt::alert*>::iterator i = alerts.begin();
-			i != alerts.end(); ++i)
+		for (lt::alert* a : alerts)
 		{
-			lt::alert* a = *i;
-
 			lt::time_duration d = a->timestamp() - m_start_time;
 			boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
 			printf("%4d.%03d: [%02d] %s\n", millis / 1000, millis % 1000,

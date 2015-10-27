@@ -3531,13 +3531,11 @@ namespace libtorrent
 		// do it if the bind IP for the tracker request that just completed
 		// matches one of the listen interfaces, since that means this
 		// announce was the second one
-		// don't connect twice just to tell it we're stopping
 
 		if (((!is_any(m_ses.get_ipv6_interface().address()) && tracker_ip.is_v4())
 			|| (!is_any(m_ses.get_ipv4_interface().address()) && tracker_ip.is_v6()))
 			&& r.bind_ip != m_ses.get_ipv4_interface().address()
-			&& r.bind_ip != m_ses.get_ipv6_interface().address()
-			&& r.event != tracker_request::stopped)
+			&& r.bind_ip != m_ses.get_ipv6_interface().address())
 		{
 			std::list<address>::const_iterator i = std::find_if(tracker_ips.begin()
 				, tracker_ips.end(), boost::bind(&address::is_v4, _1) != tracker_ip.is_v4());
@@ -3546,15 +3544,22 @@ namespace libtorrent
 				// the tracker did resolve to a different type of address, so announce
 				// to that as well
 
+				// TODO 2: there's a bug when removing a torrent or shutting down the session,
+				// where the second announce is skipped (in this case, the one to the IPv6
+				// name). This should be fixed by generalizing the tracker list structure to
+				// separate the IPv6 and IPv4 addresses as conceptually separate trackers,
+				// and they should be announced to in parallel
+
+				tracker_request req = r;
 				// tell the tracker to bind to the opposite protocol type
-				address bind_interface = tracker_ip.is_v4()
-					?m_ses.get_ipv6_interface().address()
-					:m_ses.get_ipv4_interface().address();
-				announce_with_tracker(r.event, bind_interface);
+				req.bind_ip = tracker_ip.is_v4()
+					? m_ses.get_ipv6_interface().address()
+					: m_ses.get_ipv4_interface().address();
 #ifndef TORRENT_DISABLE_LOGGING
 				debug_log("announce again using %s as the bind interface"
-					, print_address(bind_interface).c_str());
+					, print_address(req.bind_ip).c_str());
 #endif
+				m_ses.queue_tracker_request(req, shared_from_this());
 			}
 		}
 

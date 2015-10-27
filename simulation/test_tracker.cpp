@@ -42,6 +42,8 @@ using namespace libtorrent;
 using namespace sim;
 namespace lt = libtorrent;
 
+using chrono::duration_cast;
+
 // seconds
 const int duration = 10000;
 
@@ -255,6 +257,131 @@ TORRENT_TEST(announce_interval_1800)
 TORRENT_TEST(announce_interval_1200)
 {
 	test_interval(3600);
+}
+
+struct sim_config : sim::default_config
+{
+	chrono::high_resolution_clock::duration hostname_lookup(
+		asio::ip::address const& requestor
+		, std::string hostname
+		, std::vector<asio::ip::address>& result
+		, boost::system::error_code& ec)
+	{
+		if (hostname == "tracker.com")
+		{
+			result.push_back(address_v4::from_string("10.0.0.2"));
+			result.push_back(address_v6::from_string("ff::dead:beef"));
+			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+		}
+
+		return default_config::hostname_lookup(requestor, hostname, result, ec);
+	}
+};
+
+void on_alert_notify(lt::session* ses)
+{
+	std::vector<lt::alert*> alerts;
+	ses->pop_alerts(&alerts);
+
+	for (lt::alert* a : alerts)
+	{
+		lt::time_duration d = a->timestamp().time_since_epoch();
+		boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+		printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+			a->message().c_str());
+	}
+}
+
+// this test makes sure that a tracker whose host name resolves to both IPv6 and
+// IPv4 addresses will be announced to twice, once for each address family
+TORRENT_TEST(ipv6_support)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service web_server_v4(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service web_server_v6(sim, address_v6::from_string("ff::dead:beef"));
+
+	// listen on port 8080
+	sim::http_server http_v4(web_server_v4, 8080);
+	sim::http_server http_v6(web_server_v6, 8080);
+
+	// the timestamps (in seconds) of all announces
+	std::vector<std::string> announces;
+
+	int v4_announces = 0;
+	int v6_announces = 0;
+
+	http_v4.register_handler("/announce"
+	, [&v4_announces](std::string method, std::string req)
+	{
+		++v4_announces;
+		TEST_EQUAL(method, "GET");
+
+		char response[500];
+		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+		return sim::send_response(200, "OK", size) + response;
+	});
+
+	http_v6.register_handler("/announce"
+	, [&v6_announces](std::string method, std::string req)
+	{
+		++v6_announces;
+		TEST_EQUAL(method, "GET");
+
+		char response[500];
+		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+		return sim::send_response(200, "OK", size) + response;
+	});
+
+	{
+		lt::session_proxy zombie;
+
+		asio::io_service ios(sim, { address_v4::from_string("10.0.0.3")
+			, address_v6::from_string("ffff::1337") });
+		lt::settings_pack sett = settings();
+		std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+
+		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
+
+
+		lt::add_torrent_params p;
+		p.name = "test-torrent";
+		p.save_path = ".";
+		p.info_hash.assign("abababababababababab");
+
+//TODO: parameterize http vs. udp here
+		p.trackers.push_back("http://tracker.com:8080/announce");
+		ses->async_add_torrent(p);
+
+		// stop the torrent 5 seconds in
+		asio::high_resolution_timer stop(ios);
+		stop.expires_from_now(chrono::seconds(5));
+		stop.async_wait([&ses](boost::system::error_code const& ec)
+		{
+			std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+			for (auto const& t : torrents)
+			{
+				t.pause();
+			}
+		});
+
+		// then shut down 10 seconds in
+		asio::high_resolution_timer terminate(ios);
+		terminate.expires_from_now(chrono::seconds(10));
+		terminate.async_wait([&ses,&zombie](boost::system::error_code const& ec)
+		{
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
+	// 2 because there's one announce on startup and one when shutting down
+	TEST_EQUAL(v4_announces, 2);
+	TEST_EQUAL(v6_announces, 2);
 }
 
 // TODO: test with different queuing settings
