@@ -623,8 +623,8 @@ namespace libtorrent
 		, m_created_by(t.m_created_by)
 		, m_creation_date(t.m_creation_date)
 		, m_info_hash(t.m_info_hash)
-		, m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_info_section_size(t.m_info_section_size)
+		, m_merkle_first_leaf(t.m_merkle_first_leaf)
 		, m_multifile(t.m_multifile)
 		, m_private(t.m_private)
 		, m_i2p(t.m_i2p)
@@ -769,8 +769,8 @@ namespace libtorrent
 		, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -786,8 +786,8 @@ namespace libtorrent
 	torrent_info::torrent_info(lazy_entry const& torrent_file, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -816,8 +816,8 @@ namespace libtorrent
 	torrent_info::torrent_info(entry const& torrent_file)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -850,8 +850,8 @@ namespace libtorrent
 	torrent_info::torrent_info(bdecode_node const& torrent_file, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -866,8 +866,8 @@ namespace libtorrent
 	torrent_info::torrent_info(char const* buffer, int size, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -886,8 +886,8 @@ namespace libtorrent
 	torrent_info::torrent_info(std::string const& filename, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -912,8 +912,8 @@ namespace libtorrent
 	torrent_info::torrent_info(std::wstring const& filename, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -949,8 +949,8 @@ namespace libtorrent
 		, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -963,8 +963,8 @@ namespace libtorrent
 	torrent_info::torrent_info(char const* buffer, int size, error_code& ec, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -980,8 +980,8 @@ namespace libtorrent
 	torrent_info::torrent_info(std::string const& filename, error_code& ec, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -1004,8 +1004,8 @@ namespace libtorrent
 		, int flags)
 		: m_piece_hashes(0)
 		, m_creation_date(0)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -1034,8 +1034,8 @@ namespace libtorrent
 		: m_piece_hashes(0)
 		, m_creation_date(time(0))
 		, m_info_hash(info_hash)
-		, m_merkle_first_leaf(0)
 		, m_info_section_size(0)
+		, m_merkle_first_leaf(0)
 		, m_multifile(false)
 		, m_private(false)
 		, m_i2p(false)
@@ -1152,8 +1152,7 @@ namespace libtorrent
 		h.update(section.first, section.second);
 		m_info_hash = h.final();
 
-		// the internal metadata size is only 24 bits
-		if (section.second >= (2<<24))
+		if (section.second >= UINT32_MAX)
 		{
 			ec = errors::metadata_too_large;
 			return false;
@@ -1251,6 +1250,11 @@ namespace libtorrent
 			}
 			int num_leafs = merkle_num_leafs(files.num_pieces());
 			int num_nodes = merkle_num_nodes(num_leafs);
+			if (num_nodes - num_leafs >= (2<<24))
+			{
+				ec = errors::too_many_pieces_in_torrent;
+				return false;
+			}
 			m_merkle_first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
 			std::memset(&m_merkle_tree[0], 0, num_nodes * 20);

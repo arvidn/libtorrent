@@ -608,12 +608,12 @@ namespace libtorrent
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
 
+		// the number of bytes in m_info_section
+		boost::uint32_t m_info_section_size;
+
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
-		boost::uint32_t m_merkle_first_leaf;
-
-		// the number of bytes in m_info_section
-		boost::uint32_t m_info_section_size:24;
+		boost::uint32_t m_merkle_first_leaf:24;
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible
