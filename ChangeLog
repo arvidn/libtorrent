@@ -76,6 +76,9 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+1.0.7 release
+
+	* introduce run-time check for torrent info-sections beeing too large
 	* fix web seed bug when using proxy and proxy-peer-connections=false
 	* fix bug in magnet link parser
 	* introduce add_torrent_params flags to merge web seeds with resume data
