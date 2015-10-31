@@ -95,6 +95,6 @@ int test_main()
 		fprintf(stderr, "%s == %s\n", p.c_str(), filenames[i]);
 		TEST_CHECK(p == filenames[i]);
 	}
-	
+
 	return 0;
 }

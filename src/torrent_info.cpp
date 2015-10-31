@@ -933,6 +933,13 @@ namespace libtorrent
 		h.update(section.first, section.second);
 		m_info_hash = h.final();
 
+		// the internal metadata size is only 24 bits
+		if (section.second >= (2<<24))
+		{
+			ec = errors::metadata_too_large;
+			return false;
+		}
+
 		// copy the info section
 		m_info_section_size = section.second;
 		m_info_section.reset(new char[m_info_section_size]);
