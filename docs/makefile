@@ -49,12 +49,13 @@ TARGETS = index \
 FIGURES = \
 	read_disk_buffers \
 	write_disk_buffers \
-	troubleshooting \
 	hacking \
 	utp_stack \
-	storage
+	storage \
+	disk_cache \
+	troubleshooting
 
-html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html 
+html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
@@ -71,11 +72,11 @@ stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_c
 manual.rst: stats_counters.rst
 	touch manual.rst
 
-troubleshooting_thumb.png: troubleshooting.png
-	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
-ifneq ($(STAGE),)
-	cp $@ $(WEB_PATH)/$@
-endif
+#troubleshooting_thumb.png: troubleshooting.png
+#	convert troubleshooting.png -resize 800x800 troubleshooting_thumb.png
+#ifneq ($(STAGE),)
+#	cp $@ $(WEB_PATH)/$@
+#endif
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python gen_todo.py
@@ -111,11 +112,11 @@ ifneq ($(STAGE),)
 endif
 
 %.png:%.diagram
-	ditaa -E $? $@
+	aafigure -o $@ $?
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) settings.rst todo.html reference*.html reference*.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) settings.rst todo.html reference*.html reference*.rst
 

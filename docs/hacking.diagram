@@ -1,26 +1,30 @@
-+--------------+  pimpl     +--------------+
-| cGRE session +----------->| session_impl |
-+--------------+            +------+-----+-+
-                      m_torrents[] |     |
-+---------------------+            |     |
-| cGRE torrent_handle +-------+    |     |
-+---------------------+ weak  |    |     |
-                              |    |     | m_connections[]
-                              |    | +---+-------+
-                              |    | |           |
-              m_picker        v    v |           v peers we are connected to
-      +--------------+      +--------++        +-----------------+             
-      | piece_picker |<---+-+ torrent ++    +--+ peer_connection ++            
-      +--------------+    | ++--------+|    |  ++----------------+|            
-           m_torrent_file |  +---------+    |   +-----------------+            
- +-------------------+    |                 | 
- | cGRE torrent_info |<---+                 | m_socket                     
- +-------------------+    |                 |  +--------------------------+
-              m_peer_list |          +------+->| socket_type (variant)    |
-   +-----------+          |          |         | (TCP/uTP/SSL/socks5/...) |
-   | peer_list |<---------+          |         +--------------------------+
-   +---------+-+                     v      
- list of all |     m_peers[] +--------------+        
-    peers we +-------------->| torrent_peer ++ contains contact information
-     know of                 ++-------------+| for peers we're not necessarily
-                              +--------------+ connected to
++--------------+ "pimpl"                    +----------------+
+| "session"    +--------------------------->| "session_impl" |
++--------------+                            +------+-----+---+
+                                    "m_torrents[]" |     |
++---------------------+                            |     |
+| "torrent_handle"    +--------+                   |     |
++---------------------+ "weak" |    +--------------+     |
+                               |    |                    |   "m_connections[]"
+                               |    | +-------------+----+
+                               |    | |             |
+            "m_picker"         v    v |             v "peers we are connected to"
+    +----------------+      +----------++          +-------------------+             
+    | "piece_picker" |<---+-+ "torrent" ++      +--+ "peer_connection" ++            
+    +----------------+    | ++----------+|      |  ++------------------+|            
+         "m_torrent_file" |  +-----------+      |   +-------------------+            
+ +-------------------+    |                     | 
+ | "torrent_info"    |<---+                     | "m_socket"                     
+ +-------------------+    |                     |  +----------------------------+
+                          |                     +->| "socket_type (variant)"    |
+            "m_peer_list" v                     |  | "(TCP/uTP/SSL/socks5/...)" |
+                     +--------------+           |  +----------------------------+
+                     | "peer_list"  |           |     
+                     +------------+-+           | "m_peer_info"
+                    "list of all" | "m_peers[]" |   "contains contact information"
+                      "peers we"  |             |   "for peers we're not necessarily"
+                      "know of"   |             v   "connected to"
+                                  |     +----------------+ 
+                                  +---->| "torrent_peer" ++
+                                        ++---------------+|
+                                         +----------------+
