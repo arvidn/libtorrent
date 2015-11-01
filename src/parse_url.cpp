@@ -101,16 +101,19 @@ namespace libtorrent
 				ec = errors::expected_close_bracket_in_address;
 				goto exit;
 			}
+			// strip the brackets
+			hostname.assign(start + 1, port_pos);
 			port_pos = std::find(port_pos, url.end(), ':');
 		}
 		else
 		{
 			port_pos = std::find(start, url.end(), ':');
+			if (port_pos < end) hostname.assign(start, port_pos);
+			else hostname.assign(start, end);
 		}
 
 		if (port_pos < end)
 		{
-			hostname.assign(start, port_pos);
 			++port_pos;
 			for (std::string::iterator i = port_pos; i < end; ++i)
 			{
@@ -119,10 +122,6 @@ namespace libtorrent
 				goto exit;
 			}
 			port = std::atoi(std::string(port_pos, end).c_str());
-		}
-		else
-		{
-			hostname.assign(start, end);
 		}
 
 		start = end;

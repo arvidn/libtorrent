@@ -78,6 +78,7 @@
 
 1.0.7 release
 
+	* fix IPv6 IP address resolution in URLs
 	* introduce run-time check for torrent info-sections beeing too large
 	* fix web seed bug when using proxy and proxy-peer-connections=false
 	* fix bug in magnet link parser
