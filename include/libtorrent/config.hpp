@@ -323,7 +323,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+#if (defined _MSC_VER && _MSC_VER < 1900) && !defined TORRENT_MINGW
 
 #include <stdarg.h>
 
@@ -345,8 +345,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 }
 
 #define strtoll _strtoi64
-#else
-#include <limits.h>
 #endif
 
 #if (defined(TORRENT_LOGGING) || defined(TORRENT_VERBOSE_LOGGING)) \
