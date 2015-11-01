@@ -2732,7 +2732,7 @@ namespace libtorrent
 					: m_ses.m_ipv4_interface.address();
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING
 				debug_log("announce again using %s as the bind interface"
-					, print_address(bind_interface).c_str());
+					, print_address(req.bind_ip).c_str());
 #endif
 				m_ses.m_tracker_manager.queue_request(m_ses.m_io_service, m_ses.m_half_open, req
 					, tracker_login() , shared_from_this());
