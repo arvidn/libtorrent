@@ -358,11 +358,11 @@ int test_main()
 		== make_tuple("http", "", "192.168.0.1", -1, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
-		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
+		== make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
 	// leading spaces are supposed to be stripped
 	TEST_CHECK(parse_url_components(" \thttp://[2001:ff00::1]:42/path/to/file", ec)
-		== make_tuple("http", "", "[2001:ff00::1]", 42, "/path/to/file"));
+		== make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
 	parse_url_components("http://[2001:ff00::1:42/path/to/file", ec);
 	TEST_CHECK(ec == error_code(errors::expected_close_bracket_in_address));
