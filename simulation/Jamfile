@@ -24,6 +24,7 @@ project
 	;
 
 alias libtorrent-sims :
+	[ run test_http_connection.cpp ]
 	[ run test_auto_manage.cpp ]
 	[ run test_torrent_status.cpp ]
 	[ run test_swarm.cpp ]

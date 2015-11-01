@@ -140,7 +140,7 @@ void test_interval(int interval)
 
 	http.register_handler("/announce"
 	, [&announces,interval,start](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
 			lt::clock_type::now() - start).count();
@@ -185,7 +185,7 @@ void test_completed()
 
 	http.register_handler("/announce"
 	, [&announces,interval,start](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		TEST_EQUAL(method, "GET");
 		announces.push_back(req);
@@ -309,15 +309,12 @@ TORRENT_TEST(ipv6_support)
 	sim::http_server http_v4(web_server_v4, 8080);
 	sim::http_server http_v6(web_server_v6, 8080);
 
-	// the timestamps (in seconds) of all announces
-	std::vector<std::string> announces;
-
 	int v4_announces = 0;
 	int v6_announces = 0;
 
 	http_v4.register_handler("/announce"
 	, [&v4_announces](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		++v4_announces;
 		TEST_EQUAL(method, "GET");
@@ -329,7 +326,7 @@ TORRENT_TEST(ipv6_support)
 
 	http_v6.register_handler("/announce"
 	, [&v6_announces](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		++v6_announces;
 		TEST_EQUAL(method, "GET");
