@@ -55,13 +55,6 @@ struct sim_config : sim::default_config
 		, std::vector<asio::ip::address>& result
 		, boost::system::error_code& ec)
 	{
-		if (hostname == "tracker.com")
-		{
-			result.push_back(address_v4::from_string("10.0.0.2"));
-			result.push_back(address_v6::from_string("ff::dead:beef"));
-			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
-		}
-
 		if (hostname == "try-next.com")
 		{
 			result.push_back(address_v4::from_string("10.0.0.10"));
@@ -72,6 +65,8 @@ struct sim_config : sim::default_config
 			result.push_back(address_v4::from_string("10.0.0.5"));
 			result.push_back(address_v4::from_string("10.0.0.4"));
 			result.push_back(address_v4::from_string("10.0.0.3"));
+
+			// this is the IP that works, all other should fail
 			result.push_back(address_v4::from_string("10.0.0.2"));
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
@@ -79,6 +74,25 @@ struct sim_config : sim::default_config
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
+
+// takes a string of data and chunks it up using HTTP chunked encoding
+std::string chunk_string(std::string s)
+{
+	size_t i = 10;
+	std::string ret;
+	while (!s.empty())
+	{
+		i = std::min(i, s.size());
+		char header[50];
+		snprintf(header, sizeof(header), "%zx\r\n", i);
+		ret += header;
+		ret += s.substr(0, i);
+		s.erase(s.begin(), s.begin() + i);
+		i *= 2;
+	}
+	ret += "0\r\n\r\n";
+	return ret;
+}
 
 boost::shared_ptr<http_connection> test_request(io_service& ios
 	, resolver& res
@@ -159,6 +173,7 @@ enum expect_counters
 	redirect_req = 3,
 	rel_redirect_req = 4,
 	inf_redirect_req = 5,
+	chunked_req = 6,
 
 	num_counters
 };
@@ -172,10 +187,16 @@ TORRENT_TEST(http_connection)
 	run_test(url_base + "/redirect", 1337, 200, error_code(), { 2, 1, 1, 1 });
 	run_test(url_base + "/relative/redirect", 1337, 200, error_code(), {2, 1, 1, 0, 1});
 	run_test(url_base + "/infinite/redirect", 0, 301, error_code(asio::error::eof), {6, 1, 0, 0, 0, 6});
+	run_test(url_base + "/chunked_encoding", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 1});
 
 	// we are on an IPv4 host, we can't connect to IPv6 addresses, make sure that
 	// error is correctly propagated
 	run_test("http://[ff::dead:beef]:8080/test_file", 0, -1, error_code(asio::error::address_family_not_supported)
+		, {0,1});
+
+	// there is no node at 10.0.0.10, this should fail with connection refused
+	run_test("http://10.0.0.10:8080/test_file", 0, -1,
+		error_code(boost::system::errc::connection_refused, boost::system::system_category())
 		, {0,1});
 
 	// this hostname will resolve to multiple IPs, all but one that we cannot
@@ -220,7 +241,7 @@ void run_test(std::string url, int expect_size, int expect_status
 	std::vector<int> counters(num_counters, 0);
 
 	http.register_handler("/test_file"
-	, [data_buffer,&counters](std::string method, std::string req
+		, [data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[test_file_req];
@@ -229,8 +250,21 @@ void run_test(std::string url, int expect_size, int expect_status
 		return sim::send_response(200, "OK", 1337).append(data_buffer, 1337);
 	});
 
+	http.register_handler("/chunked_encoding"
+		, [data_buffer,&counters](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
+	{
+		++counters[chunked_req];
+		print_http_header(headers);
+		TEST_EQUAL(method, "GET");
+
+		// there's no content length with chunked encoding
+		return "HTTP/1.1 200 OK\r\nTransfer-encoding: Chunked\r\n\r\n"
+			+ chunk_string(std::string(data_buffer, 1337));
+	});
+
 	http.register_handler("/redirect"
-	, [data_buffer,&counters](std::string method, std::string req
+		, [data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[redirect_req];
@@ -241,7 +275,7 @@ void run_test(std::string url, int expect_size, int expect_status
 	});
 
 	http.register_handler("/relative/redirect"
-	, [data_buffer,&counters](std::string method, std::string req
+		, [data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[rel_redirect_req];
@@ -252,7 +286,7 @@ void run_test(std::string url, int expect_size, int expect_status
 	});
 
 	http.register_handler("/infinite/redirect"
-	, [data_buffer,&counters](std::string method, std::string req
+		, [data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[inf_redirect_req];
