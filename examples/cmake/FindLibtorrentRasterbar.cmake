@@ -39,11 +39,9 @@ else()
             -DUNICODE -D_UNICODE -D_FILE_OFFSET_BITS=64)
     endif()
 
-    if(LibtorrentRasterbar_USE_STATIC_LIBS)
-        list(APPEND LibtorrentRasterbar_DEFINITIONS -DBOOST_ASIO_SEPARATE_COMPILATION)
-    else()
+    if(NOT LibtorrentRasterbar_USE_STATIC_LIBS)
         list(APPEND LibtorrentRasterbar_DEFINITIONS
-            -DTORRENT_LINKING_SHARED -DBOOST_ASIO_DYN_LINK
+            -DTORRENT_LINKING_SHARED
             -DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK)
     endif()
 endif()
