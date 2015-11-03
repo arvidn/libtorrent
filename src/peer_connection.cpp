@@ -1125,7 +1125,8 @@ namespace libtorrent
 				// as part of DHT traffic. The fact that we got an incoming
 				// connection on this info-hash, means the other end, making this
 				// connection fished it out of the DHT chatter. That's suspicious.
-				m_ses.m_ip_filter.add_rule(m_remote.address(), m_remote.address(), 0);
+				m_ses.m_ip_filter.add_rule(m_remote.address(), m_remote.address()
+					, ip_filter::blocked);
 			}
 #endif
 			disconnect(errors::invalid_info_hash, 1);
