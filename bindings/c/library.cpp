@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/magnet_uri.hpp"
