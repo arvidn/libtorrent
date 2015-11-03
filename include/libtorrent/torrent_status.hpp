@@ -117,11 +117,36 @@ namespace libtorrent
 			checking_resume_data
 		};
 
-		// may be set to an error message describing why the torrent
-		// was paused, in case it was paused by an error. If the torrent
-		// is not paused or if it's paused but not because of an error,
-		// this string is empty.
+		// may be set to an error code describing why the torrent was paused, in
+		// case it was paused by an error. If the torrent is not paused or if it's
+		// paused but not because of an error, this error_code is not set.
+		// if the error is attributed specifically to a file, error_file is set to
+		// the index of that file in the .torrent file.
+#ifndef TORRENT_NO_DEPRECATE
 		std::string error;
+#else
+		std::string _dummy_string_;
+#endif
+		error_code errc;
+		int error_file;
+
+
+		// special values for error_file to describe which file or component
+		// encountered the error (``errc``).
+		enum error_file_t {
+			// the error did not occur on a file
+			error_file_none = -1,
+
+			// the error occurred on m_url
+			error_file_url = -2,
+
+			// the error occurred setting up the SSL context
+			error_file_ssl_ctx = -3,
+
+			// the error occurred while loading the .torrent file via the user
+			// supplied load function
+			error_file_metadata = -4
+		};
 
 		// the path to the directory where this torrent's files are stored.
 		// It's typically the path as was given to async_add_torrent() or

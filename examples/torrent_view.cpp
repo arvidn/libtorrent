@@ -10,7 +10,7 @@ std::string torrent_state(lt::torrent_status const& s)
 		{"checking (q)", "checking", "dl metadata"
 		, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 
-	if (!s.error.empty()) return s.error;
+	if (s.errc) return s.errc.message();
 	std::string ret;
 	if (s.paused && !s.auto_managed) ret += "paused";
 	else if (s.paused && s.auto_managed) ret += "queued";
@@ -307,7 +307,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	if (name.size() > 50) name.resize(50);
 
 	color_code progress_bar_color = col_yellow;
-	if (!s.error.empty()) progress_bar_color = col_red;
+	if (s.errc) progress_bar_color = col_red;
 	else if (s.paused) progress_bar_color = col_blue;
 	else if (s.state == lt::torrent_status::downloading_metadata)
 		progress_bar_color = col_magenta;
