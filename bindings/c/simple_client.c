@@ -53,8 +53,7 @@ int main(int argc, char* argv[])
 
 	int ret = 0;
 	void* ses = session_create(
-		SES_LISTENPORT, 6881,
-		SES_LISTENPORT_END, 6889,
+		SES_LISTEN_INTERFACE, "0.0.0.0:6881",
 		SES_ALERT_MASK, ~(cat_progress | cat_port_mapping | cat_debug | cat_performance_warning | cat_peer),
 		TAG_END);
 

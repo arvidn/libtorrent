@@ -485,6 +485,7 @@ namespace libtorrent
 			deprecated2,
 #endif
 
+			// TODO: 3 deprecate this feature
 			// if this is true, the ``&ip=`` argument in tracker requests (unless
 			// otherwise specified) will be set to the intermediate IP address if
 			// the user is double NATed. If ther user is not double NATed, this
@@ -505,6 +506,7 @@ namespace libtorrent
 			// precaution to avoid being part of a DDoS attack
 			no_connect_privileged_ports,
 
+			// TODO: 3 deprecate this setting
 			// ``smooth_connects`` is true by default, which means the number of
 			// connection attempts per second may be limited to below the
 			// ``connection_speed``, in case we're close to bump up against the

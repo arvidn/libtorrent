@@ -35,33 +35,38 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent_status.hpp"
+#include "libtorrent/session_status.hpp"
 #include <boost/bind.hpp>
 
 #include <libtorrent.h>
 #include <stdarg.h>
 
+namespace lt = libtorrent;
+
 namespace
 {
-	std::vector<libtorrent::torrent_handle> handles;
+	// TODO: this should be associated with the session object
+	std::vector<lt::torrent_handle> handles;
 
-	int find_handle(libtorrent::torrent_handle h)
+	int find_handle(lt::torrent_handle h)
 	{
-		std::vector<libtorrent::torrent_handle>::const_iterator i
+		std::vector<lt::torrent_handle>::const_iterator i
 			= std::find(handles.begin(), handles.end(), h);
 		if (i == handles.end()) return -1;
 		return i - handles.begin();
 	}
 
-	libtorrent::torrent_handle get_handle(int i)
+	lt::torrent_handle get_handle(int i)
 	{
-		if (i < 0 || i >= int(handles.size())) return libtorrent::torrent_handle();
+		if (i < 0 || i >= int(handles.size())) return lt::torrent_handle();
 		return handles[i];
 	}
 
-	int add_handle(libtorrent::torrent_handle const& h)
+	int add_handle(lt::torrent_handle const& h)
 	{
-		std::vector<libtorrent::torrent_handle>::iterator i = std::find_if(handles.begin()
-			, handles.end(), !boost::bind(&libtorrent::torrent_handle::is_valid, _1));
+		std::vector<lt::torrent_handle>::iterator i = std::find_if(handles.begin()
+			, handles.end(), !boost::bind(&lt::torrent_handle::is_valid, _1));
 		if (i != handles.end())
 		{
 			*i = h;
@@ -80,89 +85,176 @@ namespace
 		return 0;
 	}
 
-	void copy_proxy_setting(libtorrent::proxy_settings* s, proxy_setting const* ps)
+#define STR_TAG(tag, name) \
+	case tag: \
+		pack.set_str(lt::settings_pack::name, va_arg(lp, char const*)); \
+		break;
+
+#define INT_TAG(tag, name) \
+	case tag: \
+		pack.set_int(lt::settings_pack::name, va_arg(lp, int)); \
+		break;
+
+#define BOOL_TAG(tag, name) \
+	case tag: \
+		pack.set_bool(lt::settings_pack::name, va_arg(lp, bool)); \
+		break;
+
+	void tag_list_to_settings_pack(lt::settings_pack& pack, int tag, va_list lp)
 	{
-		s->hostname.assign(ps->hostname);
-		s->port = ps->port;
-		s->username.assign(ps->username);
-		s->password.assign(ps->password);
-		s->type = (libtorrent::proxy_settings::proxy_type)ps->type;
+		while (tag != TAG_END)
+		{
+			switch (tag)
+			{
+				INT_TAG(SES_UPLOAD_RATE_LIMIT, upload_rate_limit)
+				INT_TAG(SES_DOWNLOAD_RATE_LIMIT, download_rate_limit)
+				INT_TAG(SES_MAX_UPLOAD_SLOTS, unchoke_slots_limit)
+				INT_TAG(SES_MAX_CONNECTIONS, connections_limit)
+				STR_TAG(SES_PROXY_HOSTNAME, proxy_hostname)
+				STR_TAG(SES_PROXY_USERNAME, proxy_username)
+				STR_TAG(SES_PROXY_PASSWORD, proxy_password)
+				INT_TAG(SES_PROXY_PORT, proxy_port)
+				INT_TAG(SES_PROXY_TYPE, proxy_type)
+				BOOL_TAG(SES_PROXY_DNS, proxy_hostnames)
+				BOOL_TAG(SES_PROXY_PEER_CONNECTIONS, proxy_peer_connections)
+				INT_TAG(SES_ALERT_MASK, alert_mask)
+				STR_TAG(SES_LISTEN_INTERFACE, listen_interfaces)
+				STR_TAG(SES_FINGERPRINT, peer_fingerprint)
+				INT_TAG(SES_CACHE_SIZE, cache_size)
+				INT_TAG(SES_READ_CACHE_LINE_SIZE, read_cache_line_size)
+				INT_TAG(SES_WRITE_CACHE_LINE_SIZE, write_cache_line_size)
+				BOOL_TAG(SES_ENABLE_UPNP, enable_upnp)
+				BOOL_TAG(SES_ENABLE_NATPMP, enable_natpmp)
+				BOOL_TAG(SES_ENABLE_LSD, enable_lsd)
+				BOOL_TAG(SES_ENABLE_DHT, enable_dht)
+				BOOL_TAG(SES_ENABLE_UTP_OUT, enable_outgoing_utp)
+				BOOL_TAG(SES_ENABLE_UTP_IN, enable_incoming_utp)
+				BOOL_TAG(SES_ENABLE_TCP_OUT, enable_outgoing_tcp)
+				BOOL_TAG(SES_ENABLE_TCP_IN, enable_incoming_tcp)
+				BOOL_TAG(SES_NO_ATIME_STORAGE, no_atime_storage)
+				default:
+					assert(false && "unknown tag in settings tag list");
+					return;
+			}
+
+			tag = va_arg(lp, int);
+		}
 	}
+
+#undef BOOL_TAG
+#undef INT_TAG
+#undef STR_TAG
+
+#define STR_TAG(tag, name) \
+	case tag: \
+		atp.name = va_arg(lp, char const*); \
+		break;
+
+#define INT_TAG(tag, name) \
+	case tag: \
+		atp.name = va_arg(lp, int); \
+		break;
+
+#define STRVEC_TAG(tag, name) \
+	case tag: \
+		atp.name.push_back(va_arg(lp, char const*)); \
+		break;
+
+	void tag_list_to_torrent_params(lt::add_torrent_params& atp, int tag, va_list lp)
+	{
+		char const* torrent_data = 0;
+		int torrent_size = 0;
+
+		char const* resume_data = 0;
+		int resume_size = 0;
+
+		while (tag != TAG_END)
+		{
+			switch (tag)
+			{
+				INT_TAG(TOR_MAX_UPLOAD_SLOTS, max_uploads)
+				INT_TAG(TOR_MAX_CONNECTIONS, max_connections)
+				INT_TAG(TOR_UPLOAD_RATE_LIMIT, upload_limit)
+				INT_TAG(TOR_DOWNLOAD_RATE_LIMIT, download_limit)
+				INT_TAG(TOR_FLAGS, flags)
+				STR_TAG(TOR_NAME, name)
+				STR_TAG(TOR_TRACKER_ID, trackerid)
+				STR_TAG(TOR_SAVE_PATH, save_path)
+				STR_TAG(TOR_MAGNETLINK, url)
+				STRVEC_TAG(TOR_TRACKER_URL, trackers)
+				STRVEC_TAG(TOR_WEB_SEED, url_seeds)
+				case TOR_RESUME_DATA:
+					resume_data = va_arg(lp, char const*);
+					break;
+				case TOR_RESUME_DATA_SIZE:
+					resume_size = va_arg(lp, int);
+					break;
+				case TOR_FILENAME: {
+					lt::error_code ec;
+					atp.ti.reset(new (std::nothrow) lt::torrent_info(va_arg(lp, char const*), ec));
+					break;
+				}
+				case TOR_TORRENT:
+					torrent_data = va_arg(lp, char const*);
+					break;
+				case TOR_TORRENT_SIZE:
+					torrent_size = va_arg(lp, int);
+					break;
+				case TOR_INFOHASH:
+					atp.ti.reset(new (std::nothrow) lt::torrent_info(lt::sha1_hash(va_arg(lp, char const*))));
+					break;
+				case TOR_INFOHASH_HEX:
+				{
+					lt::sha1_hash ih;
+					lt::from_hex(va_arg(lp, char const*), 40, (char*)&ih[0]);
+					atp.ti.reset(new (std::nothrow) lt::torrent_info(ih));
+					break;
+				}
+				case TOR_USER_DATA:
+					atp.userdata = va_arg(lp, void*);
+					break;
+				case TOR_STORAGE_MODE:
+					atp.storage_mode = (lt::storage_mode_t)va_arg(lp, int);
+					break;
+
+				default:
+					assert(false && "unknown tag in torrent tag list");
+					return;
+			}
+
+			tag = va_arg(lp, int);
+		}
+
+		if (!atp.ti && torrent_data && torrent_size > 0)
+			atp.ti.reset(new (std::nothrow) lt::torrent_info(torrent_data, torrent_size));
+
+		if (resume_data && resume_size > 0)
+			atp.resume_data.assign(resume_data, resume_data + resume_size);
+	}
+
+#undef STR_TAG
+
 }
 
 extern "C"
 {
 
-TORRENT_EXPORT void* session_create(int tag, ...)
+TORRENT_EXPORT session_t* session_create(int tag, ...)
 {
 	using namespace libtorrent;
 
 	va_list lp;
 	va_start(lp, tag);
 
-	fingerprint fing("LT", LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR, 0, 0);
-	std::pair<int, int> listen_range(-1, -1);
-	char const* listen_interface = "0.0.0.0";
-	int flags = session::start_default_features | session::add_default_plugins;
-	int alert_mask = alert::error_notification;
+	settings_pack pack;
+	tag_list_to_settings_pack(pack, tag, lp);
 
-	while (tag != TAG_END)
-	{
-		switch (tag)
-		{
-			case SES_FINGERPRINT:
-			{
-				char const* f = va_arg(lp, char const*);
-				fing.name[0] = f[0];
-				fing.name[1] = f[1];
-				break;
-			}
-			case SES_LISTENPORT:
-				listen_range.first = va_arg(lp, int);
-				break;
-			case SES_LISTENPORT_END:
-				listen_range.second = va_arg(lp, int);
-				break;
-			case SES_VERSION_MAJOR:
-				fing.major_version = va_arg(lp, int);
-				break;
-			case SES_VERSION_MINOR:
-				fing.minor_version = va_arg(lp, int);
-				break;
-			case SES_VERSION_TINY:
-				fing.revision_version = va_arg(lp, int);
-				break;
-			case SES_VERSION_TAG:
-				fing.tag_version = va_arg(lp, int);
-				break;
-			case SES_FLAGS:
-				flags = va_arg(lp, int);
-				break;
-			case SES_ALERT_MASK:
-				alert_mask = va_arg(lp, int);
-				break;
-			case SES_LISTEN_INTERFACE:
-				listen_interface = va_arg(lp, char const*);
-				break;
-			default:
-				// skip unknown tags
-				va_arg(lp, void*);
-				break;
-		}
-
-		tag = va_arg(lp, int);
-	}
-
-	if (listen_range.first != -1 && (listen_range.second == -1
-		|| listen_range.second < listen_range.first))
-		listen_range.second = listen_range.first;
-
-	return new (std::nothrow) session(fing, listen_range, listen_interface, flags, alert_mask);
+	return reinterpret_cast<session_t*>(new (std::nothrow) session(pack));
 }
 
-TORRENT_EXPORT void session_close(void* ses)
+TORRENT_EXPORT void session_close(session_t* ses)
 {
-	delete (libtorrent::session*)ses;
+	delete reinterpret_cast<lt::session*>(ses);
 }
 
 TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
@@ -174,109 +266,12 @@ TORRENT_EXPORT int session_add_torrent(void* ses, int tag, ...)
 	session* s = (session*)ses;
 	add_torrent_params params;
 
-	char const* torrent_data = 0;
-	int torrent_size = 0;
-
-	char const* resume_data = 0;
-	int resume_size = 0;
-
-	char const* magnet_url = 0;
+	tag_list_to_torrent_params(params, tag, lp);
 
 	error_code ec;
-
-	while (tag != TAG_END)
-	{
-		switch (tag)
-		{
-			case TOR_FILENAME:
-				params.ti.reset(new (std::nothrow) torrent_info(va_arg(lp, char const*), ec));
-				break;
-			case TOR_TORRENT:
-				torrent_data = va_arg(lp, char const*);
-				break;
-			case TOR_TORRENT_SIZE:
-				torrent_size = va_arg(lp, int);
-				break;
-			case TOR_INFOHASH:
-				params.ti.reset(new (std::nothrow) torrent_info(sha1_hash(va_arg(lp, char const*))));
-				break;
-			case TOR_INFOHASH_HEX:
-			{
-				sha1_hash ih;
-				from_hex(va_arg(lp, char const*), 40, (char*)&ih[0]);
-				params.ti.reset(new (std::nothrow) torrent_info(ih));
-				break;
-			}
-			case TOR_MAGNETLINK:
-				magnet_url = va_arg(lp, char const*);
-				break;
-			case TOR_TRACKER_URL:
-				params.tracker_url = va_arg(lp, char const*);
-				break;
-			case TOR_RESUME_DATA:
-				resume_data = va_arg(lp, char const*);
-				break;
-			case TOR_RESUME_DATA_SIZE:
-				resume_size = va_arg(lp, int);
-				break;
-			case TOR_SAVE_PATH:
-				params.save_path = va_arg(lp, char const*);
-				break;
-			case TOR_NAME:
-				params.name = va_arg(lp, char const*);
-				break;
-			case TOR_PAUSED:
-				params.paused = va_arg(lp, int) != 0;
-				break;
-			case TOR_AUTO_MANAGED:
-				params.auto_managed = va_arg(lp, int) != 0;
-				break;
-			case TOR_DUPLICATE_IS_ERROR:
-				params.duplicate_is_error = va_arg(lp, int) != 0;
-				break;
-			case TOR_USER_DATA:
-				params.userdata = va_arg(lp, void*);
-				break;
-			case TOR_SEED_MODE:
-				params.seed_mode = va_arg(lp, int) != 0;
-				break;
-			case TOR_OVERRIDE_RESUME_DATA:
-				params.override_resume_data = va_arg(lp, int) != 0;
-				break;
-			case TOR_STORAGE_MODE:
-				params.storage_mode = (libtorrent::storage_mode_t)va_arg(lp, int);
-				break;
-			default:
-				// ignore unknown tags
-				va_arg(lp, void*);
-				break;
-		}
-
-		tag = va_arg(lp, int);
-	}
-
-	if (!params.ti && torrent_data && torrent_size)
-		params.ti.reset(new (std::nothrow) torrent_info(torrent_data, torrent_size));
-
-	std::vector<char> rd;
-	if (resume_data && resume_size)
-	{
-		params.resume_data.assign(resume_data, resume_data + resume_size);
-	}
-	torrent_handle h;
-	if (!params.ti && magnet_url)
-	{
-		h = add_magnet_uri(*s, magnet_url, params, ec);
-	}
-	else
-	{
-		h = s->add_torrent(params, ec);
-	}
-
-	if (!h.is_valid())
-	{
-		return -1;
-	}
+	torrent_handle h = s->add_torrent(params, ec);
+	if (ec) return -1;
+	if (!h.is_valid()) return -1;
 
 	int i = find_handle(h);
 	if (i == -1) i = add_handle(h);
@@ -291,17 +286,27 @@ TORRENT_EXPORT void session_remove_torrent(void* ses, int tor, int flags)
 	if (!h.is_valid()) return;
 
 	session* s = (session*)ses;
-	s->remove_torrent(h, flags);	
+	s->remove_torrent(h, flags);
 }
 
 TORRENT_EXPORT int session_pop_alert(void* ses, char* dest, int len, int* category)
 {
 	using namespace libtorrent;
 
-	session* s = (session*)ses;
+	// TODO: this should be associated with the session object
+	// and this could be a lot more efficient. The C API should probably pop
+	// multiple alerts at a time as well
+	static std::vector<lt::alert*> alerts;
+	if (alerts.empty())
+	{
+		session* s = (session*)ses;
+		s->pop_alerts(&alerts);
+	}
 
-	std::auto_ptr<alert> a = s->pop_alert();
-	if (!a.get()) return -1;
+	if (alerts.empty()) return -1;
+
+	alert* a = alerts.front();
+	alerts.erase(alerts.begin());
 
 	if (category) *category = a->category();
 	strncpy(dest, a->message().c_str(), len - 1);
@@ -316,83 +321,16 @@ TORRENT_EXPORT int session_set_settings(void* ses, int tag, ...)
 
 	session* s = (session*)ses;
 
+	settings_pack sett;
+
 	va_list lp;
 	va_start(lp, tag);
 
-	while (tag != TAG_END)
-	{
-		switch (tag)
-		{
-			case SET_UPLOAD_RATE_LIMIT:
-				s->set_upload_rate_limit(va_arg(lp, int));
-				break;
-			case SET_DOWNLOAD_RATE_LIMIT:
-				s->set_download_rate_limit(va_arg(lp, int));
-				break;
-			case SET_LOCAL_UPLOAD_RATE_LIMIT:
-				s->set_local_upload_rate_limit(va_arg(lp, int));
-				break;
-			case SET_LOCAL_DOWNLOAD_RATE_LIMIT:
-				s->set_local_download_rate_limit(va_arg(lp, int));
-				break;
-			case SET_MAX_UPLOAD_SLOTS:
-				s->set_max_uploads(va_arg(lp, int));
-				break;
-			case SET_MAX_CONNECTIONS:
-				s->set_max_connections(va_arg(lp, int));
-				break;
-			case SET_HALF_OPEN_LIMIT:
-				s->set_max_half_open_connections(va_arg(lp, int));
-				break;
-			case SET_PEER_PROXY:
-			{
-				libtorrent::proxy_settings ps;
-				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
-				s->set_peer_proxy(ps);
-			}
-			case SET_WEB_SEED_PROXY:
-			{
-				libtorrent::proxy_settings ps;
-				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
-				s->set_web_seed_proxy(ps);
-			}
-			case SET_TRACKER_PROXY:
-			{
-				libtorrent::proxy_settings ps;
-				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
-				s->set_tracker_proxy(ps);
-			}
-			case SET_ALERT_MASK:
-			{
-				s->set_alert_mask(va_arg(lp, int));
-			}
-#ifndef TORRENT_DISABLE_DHT
-			case SET_DHT_PROXY:
-			{
-				libtorrent::proxy_settings ps;
-				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
-				s->set_dht_proxy(ps);
-			}
-#endif
-			case SET_PROXY:
-			{
-				libtorrent::proxy_settings ps;
-				copy_proxy_setting(&ps, va_arg(lp, struct proxy_setting const*));
-				s->set_peer_proxy(ps);
-				s->set_web_seed_proxy(ps);
-				s->set_tracker_proxy(ps);
-#ifndef TORRENT_DISABLE_DHT
-				s->set_dht_proxy(ps);
-#endif
-			}
-			default:
-				// ignore unknown tags
-				va_arg(lp, void*);
-				break;
-		}
+	settings_pack pack;
+	tag_list_to_settings_pack(pack, tag, lp);
 
-		tag = va_arg(lp, int);
-	}
+	s->apply_settings(pack);
+
 	return 0;
 }
 
@@ -400,33 +338,61 @@ TORRENT_EXPORT int session_get_setting(void* ses, int tag, void* value, int* val
 {
 	using namespace libtorrent;
 	session* s = (session*)ses;
+	settings_pack pack = s->get_settings();
+
+
+#define INT_TAG(tag, name) \
+	case tag: \
+		return set_int_value(value, value_size, pack.get_int(lt::settings_pack::name));
+
+#define BOOL_TAG(tag, name) \
+	case tag: \
+		return set_int_value(value, value_size, pack.get_bool(lt::settings_pack::name));
 
 	switch (tag)
 	{
-		case SET_UPLOAD_RATE_LIMIT:
-			return set_int_value(value, value_size, s->upload_rate_limit());
-		case SET_DOWNLOAD_RATE_LIMIT:
-			return set_int_value(value, value_size, s->download_rate_limit());
-		case SET_LOCAL_UPLOAD_RATE_LIMIT:
-			return set_int_value(value, value_size, s->local_upload_rate_limit());
-		case SET_LOCAL_DOWNLOAD_RATE_LIMIT:
-			return set_int_value(value, value_size, s->local_download_rate_limit());
-		case SET_MAX_UPLOAD_SLOTS:
-			return set_int_value(value, value_size, s->max_uploads());
-		case SET_MAX_CONNECTIONS:
-			return set_int_value(value, value_size, s->max_connections());
-		case SET_HALF_OPEN_LIMIT:
-			return set_int_value(value, value_size, s->max_half_open_connections());
+		INT_TAG(SES_UPLOAD_RATE_LIMIT, upload_rate_limit)
+		INT_TAG(SES_DOWNLOAD_RATE_LIMIT, download_rate_limit)
+		INT_TAG(SES_MAX_UPLOAD_SLOTS, unchoke_slots_limit)
+		INT_TAG(SES_MAX_CONNECTIONS, connections_limit)
+//		STR_TAG(SES_PROXY_HOSTNAME, proxy_hostname)
+//		STR_TAG(SES_PROXY_USERNAME, proxy_username)
+//		STR_TAG(SES_PROXY_PASSWORD, proxy_password)
+		INT_TAG(SES_PROXY_PORT, proxy_port)
+		INT_TAG(SES_PROXY_TYPE, proxy_type)
+		BOOL_TAG(SES_PROXY_DNS, proxy_hostnames)
+		BOOL_TAG(SES_PROXY_PEER_CONNECTIONS, proxy_peer_connections)
+		INT_TAG(SES_ALERT_MASK, alert_mask)
+//		STR_TAG(SES_LISTEN_INTERFACE, listen_interfaces)
+//		STR_TAG(SES_FINGERPRINT, peer_fingerprint)
+		INT_TAG(SES_CACHE_SIZE, cache_size)
+		INT_TAG(SES_READ_CACHE_LINE_SIZE, read_cache_line_size)
+		INT_TAG(SES_WRITE_CACHE_LINE_SIZE, write_cache_line_size)
+		BOOL_TAG(SES_ENABLE_UPNP, enable_upnp)
+		BOOL_TAG(SES_ENABLE_NATPMP, enable_natpmp)
+		BOOL_TAG(SES_ENABLE_LSD, enable_lsd)
+		BOOL_TAG(SES_ENABLE_DHT, enable_dht)
+		BOOL_TAG(SES_ENABLE_UTP_OUT, enable_outgoing_utp)
+		BOOL_TAG(SES_ENABLE_UTP_IN, enable_incoming_utp)
+		BOOL_TAG(SES_ENABLE_TCP_OUT, enable_outgoing_tcp)
+		BOOL_TAG(SES_ENABLE_TCP_IN, enable_incoming_tcp)
+		BOOL_TAG(SES_NO_ATIME_STORAGE, no_atime_storage)
 		default:
 			return -2;
 	}
+
+#undef BOOL_TAG
+#undef INT_TAG
+
 }
 
 TORRENT_EXPORT int session_get_status(void* sesptr, struct session_status* s, int struct_size)
 {
-	libtorrent::session* ses = (libtorrent::session*)sesptr;
+	lt::session* ses = (libtorrent::session*)sesptr;
 
-	libtorrent::session_status ss = ses->status();
+	// TODO: use performance counters here instead
+
+	lt::session_status ss = ses->status();
 	if (struct_size != sizeof(session_status)) return -1;
 
 	s->has_incoming_connections = ss.has_incoming_connections;
@@ -481,10 +447,10 @@ TORRENT_EXPORT int session_get_status(void* sesptr, struct session_status* s, in
 
 TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_size)
 {
-	libtorrent::torrent_handle h = get_handle(tor);
+	lt::torrent_handle h = get_handle(tor);
 	if (!h.is_valid()) return -1;
 
-	libtorrent::torrent_status ts = h.status();
+	lt::torrent_status ts = h.status();
 
 	if (struct_size != sizeof(torrent_status)) return -1;
 
@@ -492,8 +458,8 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 	s->paused = ts.paused;
 	s->progress = ts.progress;
 	strncpy(s->error, ts.error.c_str(), 1025);
-	s->next_announce = libtorrent::total_seconds(ts.next_announce);
-	s->announce_interval = libtorrent::total_seconds(ts.announce_interval);
+	s->next_announce = lt::total_seconds(ts.next_announce);
+	s->announce_interval = lt::total_seconds(ts.announce_interval);
 	strncpy(s->current_tracker, ts.current_tracker.c_str(), 512);
 	s->total_download = ts.total_download = ts.total_download = ts.total_download;
 	s->total_upload = ts.total_upload = ts.total_upload = ts.total_upload;
@@ -549,23 +515,17 @@ TORRENT_EXPORT int torrent_set_settings(int tor, int tag, ...)
 	{
 		switch (tag)
 		{
-			case SET_UPLOAD_RATE_LIMIT:
+			case TOR_UPLOAD_RATE_LIMIT:
 				h.set_upload_limit(va_arg(lp, int));
 				break;
-			case SET_DOWNLOAD_RATE_LIMIT:
+			case TOR_DOWNLOAD_RATE_LIMIT:
 				h.set_download_limit(va_arg(lp, int));
 				break;
-			case SET_MAX_UPLOAD_SLOTS:
+			case TOR_MAX_UPLOAD_SLOTS:
 				h.set_max_uploads(va_arg(lp, int));
 				break;
-			case SET_MAX_CONNECTIONS:
+			case TOR_MAX_CONNECTIONS:
 				h.set_max_connections(va_arg(lp, int));
-				break;
-			case SET_SEQUENTIAL_DOWNLOAD:
-				h.set_sequential_download(va_arg(lp, int) != 0);
-				break;
-			case SET_SUPER_SEEDING:
-				h.super_seeding(va_arg(lp, int) != 0);
 				break;
 			default:
 				// ignore unknown tags
@@ -586,18 +546,14 @@ TORRENT_EXPORT int torrent_get_setting(int tor, int tag, void* value, int* value
 
 	switch (tag)
 	{
-		case SET_UPLOAD_RATE_LIMIT:
+		case SES_UPLOAD_RATE_LIMIT:
 			return set_int_value(value, value_size, h.upload_limit());
-		case SET_DOWNLOAD_RATE_LIMIT:
+		case SES_DOWNLOAD_RATE_LIMIT:
 			return set_int_value(value, value_size, h.download_limit());
-		case SET_MAX_UPLOAD_SLOTS:
+		case SES_MAX_UPLOAD_SLOTS:
 			return set_int_value(value, value_size, h.max_uploads());
-		case SET_MAX_CONNECTIONS:
+		case SES_MAX_CONNECTIONS:
 			return set_int_value(value, value_size, h.max_connections());
-		case SET_SEQUENTIAL_DOWNLOAD:
-			return set_int_value(value, value_size, h.is_sequential_download());
-		case SET_SUPER_SEEDING:
-			return set_int_value(value, value_size, h.super_seeding());
 		default:
 			return -2;
 	}
