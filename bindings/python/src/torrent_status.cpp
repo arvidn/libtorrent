@@ -97,7 +97,11 @@ void bind_torrent_status()
         .def_readonly("upload_mode", &torrent_status::upload_mode)
         .def_readonly("share_mode", &torrent_status::share_mode)
         .def_readonly("super_seeding", &torrent_status::super_seeding)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("error", &torrent_status::error)
+#endif
+        .def_readonly("errc", &torrent_status::errc)
+        .def_readonly("error_file", &torrent_status::error_file)
         .def_readonly("priority", &torrent_status::priority)
         .def_readonly("added_time", &torrent_status::added_time)
         .def_readonly("completed_time", &torrent_status::completed_time)

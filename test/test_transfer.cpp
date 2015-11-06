@@ -312,9 +312,9 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			print_alerts(ses1, "ses1", true, true, true, &on_alert);
 			print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
-			std::string err = tor2.status().error;
-			fprintf(stderr, "error: \"%s\"\n", err.c_str());
-			TEST_CHECK(err.empty());
+			lt::error_code err = tor2.status().errc;
+			fprintf(stderr, "error: \"%s\"\n", err.message().c_str());
+			TEST_CHECK(!err);
 			tor2.set_upload_mode(false);
 
 			// at this point we probably disconnected the seed
@@ -338,7 +338,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			|| st1.state == torrent_status::checking_files);
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data
-			|| (test_disk_full && !st2.error.empty()));
+			|| (test_disk_full && st2.errc));
 
 		if (!test_disk_full && peer_disconnects >= 2) break;
 

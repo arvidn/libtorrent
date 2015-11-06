@@ -367,7 +367,7 @@ void print_ses_rate(float time
 			, int(st1->progress * 100)
 			, st1->num_peers
 			, st1->connect_candidates
-			, st1->error.empty() ? "" : (" [" + st1->error + "]").c_str());
+			, st1->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	}
 	if (st2)
 		fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
@@ -376,7 +376,7 @@ void print_ses_rate(float time
 			, int(st2->progress * 100)
 			, st2->num_peers
 			, st2->connect_candidates
-			, st2->error.empty() ? "" : (" [" + st2->error + "]").c_str());
+			, st2->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	if (st3)
 		fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
 			, int(st3->download_payload_rate / 1000)
@@ -384,7 +384,7 @@ void print_ses_rate(float time
 			, int(st3->progress * 100)
 			, st3->num_peers
 			, st3->connect_candidates
-			, st3->error.empty() ? "" : (" [" + st3->error + "]").c_str());
+			, st3->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 
 	fprintf(stderr, "\n");
 }

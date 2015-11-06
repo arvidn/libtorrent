@@ -202,7 +202,7 @@ void test_checking(int flags = read_only_files)
 
 		st = tor1.status();
 
-		printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.error.c_str());
+		printf("%d %f %s\n", st.state, st.progress_ppm / 10000.f, st.errc.message().c_str());
 
 		if (
 #ifndef TORRENT_NO_DEPRECATE
@@ -212,7 +212,7 @@ void test_checking(int flags = read_only_files)
 			&& st.state != torrent_status::checking_resume_data)
 			break;
 
-		if (!st.error.empty()) break;
+		if (!st.errc) break;
 		test_sleep(500);
 	}
 	if (flags & incomplete_files)
@@ -233,33 +233,32 @@ void test_checking(int flags = read_only_files)
 			// we expect our checking of the files to trigger
 			// attempts to truncate them, since the files are
 			// read-only here, we expect the checking to fail.
-			TEST_CHECK(!st.error.empty());
-			if (!st.error.empty())
-				fprintf(stderr, "error: %s\n", st.error.c_str());
+			TEST_CHECK(st.errc);
+			if (st.errc)
+				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 
 			// wait a while to make sure libtorrent survived the error
 			test_sleep(1000);
 
 			st = tor1.status();
 			TEST_CHECK(!st.is_seeding);
-			TEST_CHECK(!st.error.empty());
-			if (!st.error.empty())
-				fprintf(stderr, "error: %s\n", st.error.c_str());
+			TEST_CHECK(!st.errc);
+			if (st.errc)
+				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 		}
 		else
 		{
-			TEST_CHECK(st.error.empty());
-			if (!st.error.empty())
-				fprintf(stderr, "error: %s\n", st.error.c_str());
+			TEST_CHECK(!st.errc);
+			if (st.errc)
+				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 		}
 	}
 
 	if ((flags & (incomplete_files | corrupt_files)) == 0)
 	{
 		TEST_CHECK(st.is_seeding);
-		if (!st.error.empty())
-			fprintf(stderr, "ERROR: %s\n", st.error.c_str());
-		TEST_CHECK(st.error.empty());
+		if (st.errc)
+			fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 	}
 
 	// make the files writable again

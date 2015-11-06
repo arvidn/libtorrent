@@ -451,21 +451,6 @@ namespace libtorrent
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
 		void clear_error();
 
-		enum {
-			// the error did not occur on a file
-			error_file_none = -1,
-
-			// the error occurred on m_url
-			error_file_url = -2,
-
-			// the error occurred setting up the SSL context
-			error_file_ssl_ctx = -3,
-
-			// the error occurred while loading the .torrent file via the user
-			// supplied load function
-			error_file_metadata = -4
-		};
-
 		void set_error(error_code const& ec, int file);
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }

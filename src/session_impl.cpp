@@ -1514,7 +1514,7 @@ namespace aux {
 		m_user_load_torrent(t->info_hash(), buffer, ec);
 		if (ec)
 		{
-			t->set_error(ec, torrent::error_file_metadata);
+			t->set_error(ec, torrent_status::error_file_metadata);
 			t->pause(false);
 			return false;
 		}
