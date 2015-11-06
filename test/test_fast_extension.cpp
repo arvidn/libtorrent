@@ -311,6 +311,22 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 	if (ec) TEST_ERROR(ec.message());
 }
 
+void send_request(tcp::socket& s, peer_request req)
+{
+	using namespace libtorrent::detail;
+
+	log("==> request %d (%d,%d)", req.piece, req.start, req.length);
+	char msg[] = "\0\0\0\x0d\x06            "; // have_none
+	char* ptr = msg + 5;
+	write_uint32(req.piece, ptr);
+	write_uint32(req.start, ptr);
+	write_uint32(req.length, ptr);
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(msg, 17)
+		, boost::asio::transfer_all(), ec);
+	if (ec) TEST_ERROR(ec.message());
+}
+
 entry read_extension_handshake(tcp::socket& s, char* recv_buffer, int size)
 {
 	for (;;)
@@ -835,6 +851,28 @@ TORRENT_TEST(invalid_metadata_request)
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
 
 	print_session_log(*ses);
+}
+
+TORRENT_TEST(invalid_request)
+{
+	std::cerr << "\n === test request ===\n" << std::endl;
+
+	sha1_hash ih;
+	boost::shared_ptr<lt::session> ses;
+	io_service ios;
+	tcp::socket s(ios);
+	setup_peer(s, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_none(s);
+
+	peer_request req;
+	req.piece = 124134235;
+	req.start = 0;
+	req.length = 0x4000;
+	send_request(s, req);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS
