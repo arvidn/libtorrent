@@ -701,20 +701,17 @@ namespace libtorrent
 					file_size = s.file_size;
 					file_time = s.mtime;
 				}
+				else if (error == error_code(boost::system::errc::no_such_file_or_directory
+					, generic_category()))
+				{
+					m_stat_cache.set_noexist(i);
+				}
 				else
 				{
-					if (error == error_code(boost::system::errc::no_such_file_or_directory
-						, generic_category()))
-					{
-						m_stat_cache.set_noexist(i);
-					}
-					else
-					{
-						ec.ec = error;
-						ec.file = i;
-						ec.operation = storage_error::stat;
-						m_stat_cache.set_error(i);
-					}
+					ec.ec = error;
+					ec.file = i;
+					ec.operation = storage_error::stat;
+					m_stat_cache.set_error(i);
 				}
 			}
 
@@ -924,6 +921,9 @@ namespace libtorrent
 			}
 		}
 
+		// TODO: 2 we probably need to do this unconditionally in this function.
+		// Even if the resume data file appears stale, we need to create these
+		// hard links, right?
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (links)
 		{

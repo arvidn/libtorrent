@@ -38,7 +38,7 @@ addons:
     - g++-4.8
 
 before_install:
-  - git submodule update --init --recursive  --depth=1
+  - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
 
 # disable simulations on OSX for now. It hangs on travis
