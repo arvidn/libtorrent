@@ -139,7 +139,8 @@ void test_interval(int interval)
 	std::vector<int> announces;
 
 	http.register_handler("/announce"
-	, [&announces,interval,start](std::string method, std::string req)
+	, [&announces,interval,start](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
 	{
 		boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
 			lt::clock_type::now() - start).count();
@@ -183,7 +184,8 @@ void test_completed()
 	const int interval = 500;
 
 	http.register_handler("/announce"
-	, [&announces,interval,start](std::string method, std::string req)
+	, [&announces,interval,start](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
 	{
 		TEST_EQUAL(method, "GET");
 		announces.push_back(req);
@@ -314,7 +316,8 @@ TORRENT_TEST(ipv6_support)
 	int v6_announces = 0;
 
 	http_v4.register_handler("/announce"
-	, [&v4_announces](std::string method, std::string req)
+	, [&v4_announces](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
 	{
 		++v4_announces;
 		TEST_EQUAL(method, "GET");
@@ -325,7 +328,8 @@ TORRENT_TEST(ipv6_support)
 	});
 
 	http_v6.register_handler("/announce"
-	, [&v6_announces](std::string method, std::string req)
+	, [&v6_announces](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
 	{
 		++v6_announces;
 		TEST_EQUAL(method, "GET");
