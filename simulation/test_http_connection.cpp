@@ -40,10 +40,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
+#include "libtorrent/io.hpp"
+
+#include <boost/crc.hpp>
 
 using namespace libtorrent;
 using namespace sim;
 namespace lt = libtorrent;
+namespace io = lt::detail;
 
 using chrono::duration_cast;
 
@@ -174,6 +178,7 @@ enum expect_counters
 	rel_redirect_req = 4,
 	inf_redirect_req = 5,
 	chunked_req = 6,
+	test_file_gz_req = 7,
 
 	num_counters
 };
@@ -208,8 +213,10 @@ TORRENT_TEST(http_connection)
 	// make sure hostname lookup failures are passed through correctly
 	run_test("http://non-existent.com/test_file", 0, -1, asio::error::host_not_found, { 0, 1});
 
+	// make sure we handle gzipped content correctly
+	run_test(url_base + "/test_file.gz", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 0, 1});
+
 //	run_test(url_base + "/password_protected", 1337, 200, error_code(), { 1, 1, 1});
-//	run_test(url_base + "/test_file.gz", 1337, 200, error_code(), { 1, 1, 1});
 
 //#error test all proxies
 //#error test https
@@ -261,6 +268,39 @@ void run_test(std::string url, int expect_size, int expect_status
 		// there's no content length with chunked encoding
 		return "HTTP/1.1 200 OK\r\nTransfer-encoding: Chunked\r\n\r\n"
 			+ chunk_string(std::string(data_buffer, 1337));
+	});
+
+	http.register_handler("/test_file.gz"
+	, [data_buffer,&counters](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
+	{
+		++counters[test_file_gz_req];
+		print_http_header(headers);
+		TEST_EQUAL(method, "GET");
+
+		char const* extra_headers[4] = {"Content-Encoding: gzip\r\n", "", "", ""};
+		unsigned char const gzheader[] = {
+			0x1f , 0x8b , 0x08 , 0x00 // ID, compression=deflate, flags=0
+			, 0x00 , 0x00 , 0x00 , 0x00 // mtime=0
+			, 0x00, 0x01 // extra headers, OS
+			, 0x01 // last block, uncompressed
+			, 0x39 , 0x05, 0xc6 , 0xfa // length = 1337 (little endian 16 bit and inverted)
+		};
+		unsigned char trailer[8] = { 0, 0, 0, 0, 0x39, 0x05, 0x00, 0x00 };
+		boost::crc_32_type crc;
+		crc.process_bytes(data_buffer, 1337);
+		boost::uint32_t checksum = crc.checksum();
+		trailer[0] = checksum >> 24;
+		trailer[1] = (checksum >> 16) & 0xff;
+		trailer[2] = (checksum >> 8) & 0xff;
+		trailer[3] = (checksum) & 0xff;
+
+		std::string ret = sim::send_response(200, "OK", 1337 + sizeof(gzheader)
+			+ sizeof(trailer), extra_headers);
+		ret.append(std::string((char const*)gzheader, sizeof(gzheader)));
+		ret.append(data_buffer, 1337);
+		ret.append(std::string((char const*)trailer, sizeof(trailer)));
+		return ret;
 	});
 
 	http.register_handler("/redirect"
