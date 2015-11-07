@@ -1152,7 +1152,7 @@ namespace libtorrent
 		h.update(section.first, section.second);
 		m_info_hash = h.final();
 
-		if (section.second >= UINT32_MAX)
+		if (section.second >= (std::numeric_limits<boost::uint32_t>::max)())
 		{
 			ec = errors::metadata_too_large;
 			return false;
