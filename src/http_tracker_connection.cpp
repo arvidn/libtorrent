@@ -366,8 +366,6 @@ namespace libtorrent
 			if (m_tracker_connection)
 			{
 				error_code ignore;
-				ip_list.push_back(
-					m_tracker_connection->socket().remote_endpoint(ignore).address());
 				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
 				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
 					, end(epts.end()); i != end; ++i)

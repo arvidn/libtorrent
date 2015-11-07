@@ -66,7 +66,8 @@ http_connection::http_connection(io_service& ios
 	, ssl::context* ssl_ctx
 #endif
 	)
-	: m_sock(ios)
+	: m_next_ep(0)
+	, m_sock(ios)
 #ifdef TORRENT_USE_OPENSSL
 	, m_ssl_ctx(ssl_ctx)
 	, m_own_ssl_context(false)
@@ -408,6 +409,7 @@ void http_connection::start(std::string const& hostname, int port
 			add_outstanding_async("http_connection::on_resolve");
 #endif
 			m_endpoints.clear();
+			m_next_ep = 0;
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
@@ -438,7 +440,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
 		// endpoint in the list.
-		if (!c->m_endpoints.empty())
+		if (c->m_next_ep < c->m_endpoints.size())
 		{
 			error_code ec;
 			c->m_sock.close(ec);
@@ -448,8 +450,8 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		{
 			c->callback(boost::asio::error::timed_out);
 			c->close(true);
-			return;
 		}
+		return;
 	}
 	else
 	{
@@ -570,7 +572,7 @@ void http_connection::on_resolve(error_code const& e
 
 void http_connection::connect()
 {
-	TORRENT_ASSERT(!m_endpoints.empty());
+	TORRENT_ASSERT(m_next_ep < m_endpoints.size());
 
 	boost::shared_ptr<http_connection> me(shared_from_this());
 
@@ -594,11 +596,11 @@ void http_connection::connect()
 		}
 	}
 
-	TORRENT_ASSERT(!m_endpoints.empty());
-	if (m_endpoints.empty()) return;
+	TORRENT_ASSERT(m_next_ep < m_endpoints.size());
+	if (m_next_ep >= m_endpoints.size()) return;
 
-	tcp::endpoint target_address = m_endpoints.front();
-	m_endpoints.erase(m_endpoints.begin());
+	tcp::endpoint target_address = m_endpoints[m_next_ep];
+	++m_next_ep;
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("http_connection::on_connect");
@@ -628,7 +630,7 @@ void http_connection::on_connect(error_code const& e)
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
-	else if (!m_endpoints.empty() && !m_abort)
+	else if (m_next_ep < m_endpoints.size() && !m_abort)
 	{
 		// The connection failed. Try the next endpoint in the list.
 		error_code ec;

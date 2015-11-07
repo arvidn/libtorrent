@@ -3363,12 +3363,12 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(0 == (r.kind & tracker_request::scrape_request));
 
-		// TODO: 2 this looks suspicious. Figure out why it makes sense to use the
-		// first IP in this list and leave a comment here
-		if (resp.external_ip != address() && !tracker_ips.empty())
+		// if the tracker told us what our external IP address is, record it with
+		// out external IP counter (and pass along the IP of the tracker to know
+		// who to attribute this vote to)
+		if (resp.external_ip != address() && !is_any(tracker_ip))
 			m_ses.set_external_address(resp.external_ip
-				, aux::session_interface::source_tracker
-				, *tracker_ips.begin());
+				, aux::session_interface::source_tracker, tracker_ip);
 
 		time_point now = aux::time_now();
 
@@ -3410,13 +3410,22 @@ namespace libtorrent
 			m_last_scrape = m_ses.session_time();
 
 #ifndef TORRENT_DISABLE_LOGGING
+		std::string resolved_to;
+		for (std::list<address>::const_iterator i = tracker_ips.begin()
+			, end(tracker_ips.end()); i != end; ++i)
+		{
+			resolved_to += i->to_string();
+			resolved_to += ", ";
+		}
 		debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
 				"external ip: %s\n"
+				"resolved to: %s\n"
 				"we connected to: %s\n"
 				"peers:"
 			, interval
 			, print_address(resp.external_ip).c_str()
+			, resolved_to.c_str()
 			, print_address(tracker_ip).c_str());
 
 		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
