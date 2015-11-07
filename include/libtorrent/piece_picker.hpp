@@ -79,15 +79,13 @@ namespace libtorrent
 		static const piece_block invalid;
 
 		piece_block() {}
-		piece_block(boost::uint32_t p_index, boost::uint16_t b_index)
+		piece_block(int p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
 		{
-			TORRENT_ASSERT(p_index < (1 << 19));
-			TORRENT_ASSERT(b_index < (1 << 13));
 		}
-		boost::uint32_t piece_index:19;
-		boost::uint32_t block_index:13;
+		int piece_index;
+		int block_index;
 
 		bool operator<(piece_block const& b) const
 		{
@@ -838,8 +836,7 @@ namespace libtorrent
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 #else
-		// still limited by piece_block
-		enum { max_pieces = (1 << 19) - 2 };
+		enum { max_pieces = (std::numeric_limits<int>::max)() - 1 };
 #endif
 
 	};

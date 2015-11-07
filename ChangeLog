@@ -78,6 +78,7 @@
 
 1.0.7 release
 
+	* fix support for torrents with > 500'000 pieces
 	* fix ip filter bug when banning peers
 	* fix IPv6 IP address resolution in URLs
 	* introduce run-time check for torrent info-sections beeing too large
