@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	const piece_block piece_block::invalid(0x7FFFF, 0x1FFF);
+	const piece_block piece_block::invalid((std::numeric_limits<int>::max)(), (std::numeric_limits<int>::max)());
 
 	piece_picker::piece_picker()
 		: m_seeds(0)
