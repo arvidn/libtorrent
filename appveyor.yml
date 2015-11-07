@@ -103,6 +103,9 @@ install:
 - g++ --version
 - python --version
 - echo %ROOT_DIRECTORY%
+- cd %BOOST_BUILD_PATH%\src\engine
+- build.bat >nul
+- cd %ROOT_DIRECTORY%
 
 cache:
 - openssl-1.0.1p-vs2010.7z
