@@ -130,7 +130,6 @@ namespace libtorrent
 		error_code errc;
 		int error_file;
 
-
 		// special values for error_file to describe which file or component
 		// encountered the error (``errc``).
 		enum error_file_t {

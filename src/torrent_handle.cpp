@@ -144,7 +144,8 @@ namespace libtorrent
 {
 
 	torrent_status::torrent_status()
-		: total_download(0)
+		: error_file(torrent_status::error_file_none)
+		, total_download(0)
 		, total_upload(0)
 		, total_payload_download(0)
 		, total_payload_upload(0)

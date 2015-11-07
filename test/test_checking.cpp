@@ -212,7 +212,7 @@ void test_checking(int flags = read_only_files)
 			&& st.state != torrent_status::checking_resume_data)
 			break;
 
-		if (!st.errc) break;
+		if (st.errc) break;
 		test_sleep(500);
 	}
 	if (flags & incomplete_files)
@@ -242,7 +242,7 @@ void test_checking(int flags = read_only_files)
 
 			st = tor1.status();
 			TEST_CHECK(!st.is_seeding);
-			TEST_CHECK(!st.errc);
+			TEST_CHECK(st.errc);
 			if (st.errc)
 				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 		}
