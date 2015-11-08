@@ -15,6 +15,7 @@
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 #include <libtorrent/torrent_info.hpp>
+#include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
@@ -498,6 +499,43 @@ namespace
 		 TORRENT_ASSERT(!ec);
 		 ses.load_state(e);
 	 }
+
+#ifndef TORRENT_DISABLE_DHT
+    void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
+    {
+        TORRENT_ASSERT(key.size() == 32);
+        boost::array<char, 32> public_key;
+        std::copy(key.begin(), key.end(), public_key.begin());
+        ses.dht_get_item(public_key, salt);
+    }
+
+    void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq,
+                    std::string const& salt, std::string public_key, std::string private_key,
+                    std::string data)
+    {
+        using libtorrent::dht::sign_mutable_item;
+
+        e = data;
+        std::vector<char> buf;
+        bencode(std::back_inserter(buf), e);
+        ++seq;
+        sign_mutable_item(std::pair<char const*, int>(&buf[0], buf.size())
+                          , std::pair<char const*, int>(&salt[0], salt.size())
+                          , seq, public_key.c_str(), private_key.c_str(), sig.data());
+    }
+
+    void dht_put_mutable_item(lt::session& ses, std::string private_key, std::string public_key,
+                              std::string data, std::string salt)
+    {
+        TORRENT_ASSERT(private_key.size() == 64);
+        TORRENT_ASSERT(public_key.size() == 32);
+        boost::array<char, 32> key;
+        std::copy(public_key.begin(), public_key.end(), key.begin());
+        ses.dht_put_item(key, boost::bind(&put_string, _1, _2, _3, _4
+                                          , public_key, private_key, data)
+                         , salt);
+    }
+#endif
 } // namespace unnamed
 
 
@@ -505,11 +543,7 @@ void bind_session()
 {
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*dht_get_immutable_item)(sha1_hash const&) = &lt::session::dht_get_item;
-    void (lt::session::*dht_get_mutable_item)(boost::array<char, 32>, std::string) = &lt::session::dht_get_item;
     sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
-    void (lt::session::*dht_put_mutable_item)(boost::array<char, 32> key
-        , boost::function<void(entry&, boost::array<char,64>&, boost::uint64_t&, std::string const&)> cb
-        , std::string salt) = &lt::session::dht_put_item; // TODO: resolve the callback type for python
 #endif // TORRENT_DISABLE_DHT
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -683,9 +717,9 @@ void bind_session()
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
         .def("dht_get_immutable_item", allow_threads(dht_get_immutable_item))
-        .def("dht_get_mutable_item", allow_threads(dht_get_mutable_item))
+        .def("dht_get_mutable_item", &dht_get_mutable_item)
         .def("dht_put_immutable_item", allow_threads(dht_put_immutable_item))
-        .def("dht_put_mutable_item", allow_threads(dht_put_mutable_item))
+        .def("dht_put_mutable_item", &dht_put_mutable_item)
         .def("dht_get_peers", allow_threads(&lt::session::dht_get_peers))
         .def("dht_announce", allow_threads(&lt::session::dht_announce))
 #endif // TORRENT_DISABLE_DHT
