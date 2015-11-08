@@ -502,8 +502,8 @@ namespace libtorrent
 					// 32 bit builds should  capped below 2 GB of memory, even
 					// when more actual ram is available, because we're still
 					// constrained by the 32 bit virtual address space.
-					m_max_use = (std::min)(1 * 1024
-						* 1024 * 1024 / m_block_size, m_max_use);
+					m_max_use = (std::min)(2 * 1024 * 1024 * 3 / 4 * 1024
+						/ m_block_size, m_max_use);
 				}
 			}
 			else
