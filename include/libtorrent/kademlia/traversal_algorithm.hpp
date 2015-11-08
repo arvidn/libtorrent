@@ -67,7 +67,6 @@ struct traversal_algorithm : boost::noncopyable
 	void failed(observer_ptr o, int flags = 0);
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
-	void abort();
 
 	void* allocate_observer();
 	void free_observer(void* ptr);

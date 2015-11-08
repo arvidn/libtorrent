@@ -111,7 +111,7 @@ void get_item::got_data(bdecode_node const& v,
 			// There can only be one true immutable item with a given id
 			// Now that we've got it and the user doesn't want to do a put
 			// there's no point in continuing to query other nodes
-			abort();
+			done();
 		}
 	}
 }

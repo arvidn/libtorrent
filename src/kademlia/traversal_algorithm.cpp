@@ -374,14 +374,22 @@ void traversal_algorithm::done()
 #ifndef TORRENT_DISABLE_LOGGING
 	int results_target = m_node.m_table.bucket_size();
 	int closest_target = 160;
+#endif
 
-	// TODO: 3 it would be nice to not have to perform this loop if
-	// logging is disabled
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end && results_target > 0; ++i)
+		, end(m_results.end()); i != end; ++i)
 	{
 		boost::intrusive_ptr<observer> o = *i;
-		if ((o->flags & observer::flag_alive) && get_node().observer())
+		if (o->flags & observer::flag_queried)
+		{
+			// set the done flag on any outstanding queries to prevent them from
+			// calling finished() or failed() after we've already declared the traversal
+			// done
+			o->flags |= observer::flag_done;
+		}
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (results_target > 0 && (o->flags & observer::flag_alive) && get_node().observer())
 		{
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			char hex_id[41];
@@ -395,8 +403,10 @@ void traversal_algorithm::done()
 			int dist = distance_exp(m_target, o->id());
 			if (dist < closest_target) closest_target = dist;
 		}
+#endif
 	}
 
+#ifndef TORRENT_DISABLE_LOGGING
 	if (get_node().observer())
 	{
 		get_node().observer()->log(dht_logger::traversal
@@ -404,9 +414,11 @@ void traversal_algorithm::done()
 			, static_cast<void*>(this), closest_target, name());
 	}
 #endif
+
 	// delete all our references to the observer objects so
 	// they will in turn release the traversal algorithm
 	m_results.clear();
+	m_invoke_count = 0;
 }
 
 bool traversal_algorithm::add_requests()
@@ -608,27 +620,6 @@ void traversal_observer::reply(msg const& m)
 	// in case we didn't know the id of this peer when we sent the message to
 	// it. For instance if it's a bootstrap node.
 	set_id(node_id(id.string_ptr()));
-}
-
-void traversal_algorithm::abort()
-{
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
-	{
-		observer& o = **i;
-		if (o.flags & observer::flag_queried)
-			o.flags |= observer::flag_done;
-	}
-
-#ifndef TORRENT_DISABLE_LOGGING
-	if (get_node().observer())
-	{
-		get_node().observer()->log(dht_logger::traversal, "[%p] ABORTED type: %s"
-			, static_cast<void*>(this), name());
-	}
-#endif
-
-	done();
 }
 
 } } // namespace libtorrent::dht
