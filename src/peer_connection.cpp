@@ -2219,12 +2219,17 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 			++m_num_invalid_requests;
 #ifndef TORRENT_DISABLE_LOGGING
+			const bool valid_piece_index
+				= r.piece >= 0 && r.piece < int(t->torrent_file().num_pieces());
+
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not superseeded "
 				"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
 				, m_peer_interested
-				, int(t->torrent_file().piece_size(r.piece))
+				, valid_piece_index
+					? int(t->torrent_file().piece_size(r.piece))
+					: -1
 				, t->torrent_file().num_pieces()
-				, t->has_piece_passed(r.piece)
+				, valid_piece_index ? t->has_piece_passed(r.piece) : 0
 				, m_superseed_piece[0]
 				, m_superseed_piece[1]);
 #endif
