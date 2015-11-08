@@ -1523,6 +1523,7 @@ namespace libtorrent
 			}
 		}
 #endif
+
 		// 1 = forward in list, -1 = backwards in list
 		int elevator_direction = 1;
 
@@ -1830,9 +1831,21 @@ namespace libtorrent
 						// if we don't know how much RAM we have, just set the
 						// cache size to 16 MiB (1024 blocks)
 						if (m_physical_ram == 0)
+						{
 							m_settings.cache_size = 1024;
+						}
+						else if (sizeof(void*) == 4)
+						{
+							// 32 bit builds should  capped below 2 GB of memory, even
+							// when more actual ram is available, because we're still
+							// constrained by the 32 bit virtual address space.
+							m_settings.cache_size = (std::min)(boost::uint64_t(2) * 1024
+								* 1024 * 512, m_physical_ram / 8) / m_block_size;
+						}
 						else
+						{
 							m_settings.cache_size = m_physical_ram / 8 / m_block_size;
+						}
 					}
 					break;
 				}

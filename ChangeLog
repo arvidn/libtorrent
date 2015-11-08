@@ -1,5 +1,7 @@
 1.0.7 release
 
+	* fix bug where 32 bit builds could use more disk cache than the virtual
+	  address space (when set to automatic)
 	* fix support for torrents with > 500'000 pieces
 	* fix ip filter bug when banning peers
 	* fix IPv6 IP address resolution in URLs
