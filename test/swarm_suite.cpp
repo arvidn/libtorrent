@@ -234,8 +234,8 @@ void test_swarm(int flags)
 	time_point end = clock_type::now();
 
 	fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
-	TEST_CHECK(end - start < seconds(3));
-	TEST_CHECK(end - start >= seconds(2));
+	TEST_CHECK(end - start < milliseconds(3000));
+	TEST_CHECK(end - start > milliseconds(1900));
 
 	TEST_CHECK(!exists("tmp1_swarm/temporary"));
 	TEST_CHECK(!exists("tmp2_swarm/temporary"));
