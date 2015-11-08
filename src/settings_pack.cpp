@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/platform_util.hpp" // for total_physical_ram
+//#include "libtorrent/platform_util.hpp" // for total_physical_ram
 
 #include <algorithm>
 

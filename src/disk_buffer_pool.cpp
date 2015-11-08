@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_observer.hpp"
+#include "libtorrent/platform_util.hpp" // for total_physical_ram
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -459,57 +460,6 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
-	namespace {
-
-	boost::uint64_t physical_ram()
-	{
-		boost::uint64_t ret = 0;
-		// figure out how much physical RAM there is in
-		// this machine. This is used for automatically
-		// sizing the disk cache size when it's set to
-		// automatic.
-#ifdef TORRENT_BSD
-#ifdef HW_MEMSIZE
-		int mib[2] = { CTL_HW, HW_MEMSIZE };
-#else
-		// not entirely sure this sysctl supports 64
-		// bit return values, but it's probably better
-		// than not building
-		int mib[2] = { CTL_HW, HW_PHYSMEM };
-#endif
-		size_t len = sizeof(ret);
-		if (sysctl(mib, 2, &ret, &len, NULL, 0) != 0)
-			ret = 0;
-#elif defined TORRENT_WINDOWS
-		MEMORYSTATUSEX ms;
-		ms.dwLength = sizeof(MEMORYSTATUSEX);
-		if (GlobalMemoryStatusEx(&ms))
-			ret = ms.ullTotalPhys;
-		else
-			ret = 0;
-#elif defined TORRENT_LINUX
-		ret = sysconf(_SC_PHYS_PAGES);
-		ret *= sysconf(_SC_PAGESIZE);
-#elif defined TORRENT_AMIGA
-		ret = AvailMem(MEMF_PUBLIC);
-#endif
-
-#if TORRENT_USE_RLIMIT
-		if (ret > 0)
-		{
-			struct rlimit r;
-			if (getrlimit(rlimit_as, &r) == 0 && r.rlim_cur != rlim_infinity)
-			{
-				if (ret > r.rlim_cur)
-					ret = r.rlim_cur;
-			}
-		}
-#endif
-		return ret;
-	}
-
-	} // anonymous namespace
-
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett
 		, error_code& ec)
 	{
@@ -543,9 +493,18 @@ namespace libtorrent
 			int cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
 			{
-				boost::uint64_t phys_ram = physical_ram();
+				boost::uint64_t phys_ram = total_physical_ram();
 				if (phys_ram == 0) m_max_use = 1024;
 				else m_max_use = phys_ram / 8 / m_block_size;
+
+				if (sizeof(void*) == 4)
+				{
+					// 32 bit builds should  capped below 2 GB of memory, even
+					// when more actual ram is available, because we're still
+					// constrained by the 32 bit virtual address space.
+					m_max_use = (std::min)(1 * 1024
+						* 1024 * 1024 / m_block_size, m_max_use);
+				}
 			}
 			else
 			{
