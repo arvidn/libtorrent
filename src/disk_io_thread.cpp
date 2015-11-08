@@ -1840,7 +1840,7 @@ namespace libtorrent
 							// when more actual ram is available, because we're still
 							// constrained by the 32 bit virtual address space.
 							m_settings.cache_size = (std::min)(boost::uint64_t(2) * 1024
-								* 1024 * 512, m_physical_ram / 8) / m_block_size;
+								* 1024 * 1024 * 3 / 4, m_physical_ram / 8) / m_block_size;
 						}
 						else
 						{

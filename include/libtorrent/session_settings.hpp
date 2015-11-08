@@ -514,7 +514,9 @@ namespace libtorrent
 		// blocks that are allocated at a time when the pool needs to grow can be
 		// specified in ``cache_buffer_chunk_size``. This defaults to 16 blocks.
 		// Lower numbers saves memory at the expense of more heap allocations. It
-		// must be at least 1.
+		// must be at least 1. When built in 32 bit mode, the effective cache size
+		// will be capped at 3/4 of 2 GiB. This is to avoid exceeding the virtual
+		// address space limitations.
 		int cache_size;
 
 		// this is the number of disk buffer blocks (16 kiB) that should be
