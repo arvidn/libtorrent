@@ -641,7 +641,7 @@ namespace libtorrent
 #if TORRENT_COMPACT_PICKER
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 #else
-		enum { max_pieces = (std::numeric_limits<int>::max)() - 1 };
+		enum { max_pieces = INT_MAX - 1 };
 #endif
 
 	};
