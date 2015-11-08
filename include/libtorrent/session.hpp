@@ -196,7 +196,7 @@ namespace libtorrent
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
-			TORRENT_ASSERT(listen_port_range.first < listen_port_range.second);
+			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
 			init(listen_port_range, listen_interface, print, alert_mask);
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
 			set_log_path(logpath);
