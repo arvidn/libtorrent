@@ -733,9 +733,20 @@ namespace aux {
 #endif
 
 		error_code ec;
-		if (!listen_interface) listen_interface = "0.0.0.0";
+		if (!listen_interface || listen_interface[0] == '\0') listen_interface = "0.0.0.0";
 		m_listen_interface = tcp::endpoint(address::from_string(listen_interface, ec), listen_port_range.first);
-		TORRENT_ASSERT_VAL(!ec, ec);
+
+		if (ec)
+		{
+			m_listen_interface = tcp::endpoint(address_v4::any(), listen_port_range.first);
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.post_alert(listen_failed_alert(m_listen_interface
+					, listen_failed_alert::parse_addr, ec, listen_failed_alert::tcp));
+#if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_LOGGING || defined TORRENT_ERROR_LOGGING
+			session_log("failed to parse listen interface: \"%s\": (%d) %s"
+				, listen_interface ? listen_interface : "", ec.value(), ec.message().c_str());
+#endif
+		}
 
 		// ---- generate a peer id ----
 		static seed_random_generator seeder;
