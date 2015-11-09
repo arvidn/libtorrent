@@ -120,6 +120,7 @@ libtorrent_rasterbar_la_SOURCES = \
   utp_stream.cpp                  \
   web_peer_connection.cpp         \
   xml_parse.cpp                   \
+  version.cpp                     \
   \
   $(KADEMLIA_SOURCES)             \
   $(GEOIP_SOURCES)                \
