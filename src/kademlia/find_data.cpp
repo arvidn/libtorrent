@@ -135,8 +135,6 @@ char const* find_data::name() const { return "find_data"; }
 
 void find_data::done()
 {
-	if (m_invoke_count != 0) return;
-
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
