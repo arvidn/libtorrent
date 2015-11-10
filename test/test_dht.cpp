@@ -1920,6 +1920,92 @@ TORRENT_TEST(dht)
 		g_put_count = 0;
 
 	} while (false);
+
+	// verify that done() is only invoked once
+	// See PR 252
+	g_sent_packets.clear();
+	do
+	{
+		// set the branching factor to k to make this a little easier
+		int old_branching = sett.search_branching;
+		sett.search_branching = 8;
+		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
+		sha1_hash target = hasher(public_key, item_pk_len).final();
+		enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
+		node_entry nodes[num_test_nodes] =
+			{ node_entry(target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
+			, node_entry(target, udp::endpoint(address_v4::from_string("2.2.2.2"), 1232))
+			, node_entry(target, udp::endpoint(address_v4::from_string("3.3.3.3"), 1233))
+			, node_entry(target, udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
+			, node_entry(target, udp::endpoint(address_v4::from_string("5.5.5.5"), 1235))
+			, node_entry(target, udp::endpoint(address_v4::from_string("6.6.6.6"), 1236))
+			, node_entry(target, udp::endpoint(address_v4::from_string("7.7.7.7"), 1237))
+			, node_entry(target, udp::endpoint(address_v4::from_string("8.8.8.8"), 1238))
+			, node_entry(target, udp::endpoint(address_v4::from_string("9.9.9.9"), 1239)) };
+
+		// invert the ith most significant byte so that the test nodes are
+		// progressivly closer to the target item
+		for (int i = 0; i < num_test_nodes; ++i)
+			nodes[i].id[i] = ~nodes[i].id[i];
+
+		// add the first k nodes to the subject's routing table
+		for (int i = 0; i < 8; ++i)
+			node.m_table.add_node(nodes[i]);
+
+		// kick off a mutable get request
+		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
+		node.get_item(target, get_item_cb);
+
+		TEST_EQUAL(g_sent_packets.size(), 8);
+		if (g_sent_packets.size() != 8) break;
+
+		// first send responses for the k closest nodes
+		for (int i = 1;; ++i)
+		{
+			// once the k closest nodes have responded, send the final response
+			// from the farthest node, this shouldn't trigger a second call to
+			// get_item_cb
+			if (i == num_test_nodes) i = 0;
+
+			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+			TEST_CHECK(packet != g_sent_packets.end());
+			if (packet == g_sent_packets.end()) continue;
+
+			lazy_from_entry(packet->second, response);
+			ret = verify_message(response, get_item_desc, parsed, 6, error_string
+				, sizeof(error_string));
+			if (!ret)
+			{
+				fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+				TEST_ERROR(error_string);
+				continue;
+			}
+			char t[10];
+			snprintf(t, sizeof(t), "%02d", i);
+
+			msg_args args;
+			args.token(t).port(1234).nid(nodes[i].id);
+
+			// add the address of the closest node to the first response
+			if (i == 1)
+				args.nodes(nodes_t(1, nodes[8]));
+
+			send_dht_response(node, response, nodes[i].ep(), args);
+			g_sent_packets.erase(packet);
+
+			// once we've sent the response from the farthest node, we're done
+			if (i == 0) break;
+		}
+
+		TEST_EQUAL(g_put_count, 1);
+		// k nodes should now have outstanding put requests
+		TEST_EQUAL(g_sent_packets.size(), 8);
+
+		g_sent_packets.clear();
+		g_put_item.clear();
+		g_put_count = 0;
+		sett.search_branching = old_branching;
+	} while (false);
 }
 
 void get_test_keypair(char* public_key, char* private_key)
