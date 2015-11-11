@@ -1564,7 +1564,7 @@ namespace libtorrent
 			, end(m_priority_boundries.end()); i != end; ++i)
 		{
 			if (start == *i) continue;
-			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + *i);
+			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + *i, randint);
 			start = *i;
 		}
 

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/random.hpp"
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -552,7 +553,7 @@ void http_connection::on_resolve(error_code const& e
 		return;
 	}
 
-	std::random_shuffle(m_endpoints.begin(), m_endpoints.end());
+	std::random_shuffle(m_endpoints.begin(), m_endpoints.end(), randint);
 
 	// The following statement causes msvc to crash (ICE). Since it's not
 	// necessary in the vast majority of cases, just ignore the endpoint

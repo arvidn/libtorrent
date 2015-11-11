@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
@@ -1501,12 +1502,12 @@ namespace libtorrent
 				{
 					if (stop->tier != current_tier)
 					{
-						std::random_shuffle(start, stop);
+						std::random_shuffle(start, stop, randint);
 						start = stop;
 						current_tier = stop->tier;
 					}
 				}
-				std::random_shuffle(start, stop);
+				std::random_shuffle(start, stop, randint);
 			}
 		}
 
