@@ -14,6 +14,8 @@ def v(version):
 		else: ret = ret + (chr(ord('A') + i - 10),)
 	return ret
 
+revision = os.popen('git log -1 --format=format:%h').read().strip()
+
 def substitute_file(name):
 	subst = ''
 	f = open(name)
@@ -26,6 +28,8 @@ def substitute_file(name):
 			l = '#define LIBTORRENT_VERSION_TINY %d\n' % version[2]
 		elif '#define LIBTORRENT_VERSION ' in l and name.endswith('.hpp'):
 			l = '#define LIBTORRENT_VERSION "%d.%d.%d.%d"\n' % (version[0], version[1], version[2], version[3])
+		elif '#define LIBTORRENT_REVISION ' in l and name.endswith('.hpp'):
+			l = '#define LIBTORRENT_REVISION "%s"' % revision
 		elif 'AC_INIT([libtorrent-rasterbar]' in l and name.endswith('.ac'):
 			l = 'AC_INIT([libtorrent-rasterbar],[%d.%d.%d],[arvid@libtorrent.org],\n' % (version[0], version[1], version[2])
 		elif 'set (VERSION ' in l and name.endswith('.txt'):

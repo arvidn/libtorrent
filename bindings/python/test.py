@@ -41,6 +41,8 @@ class test_sha1hash(unittest.TestCase):
 		s = lt.sha1_hash(binascii.unhexlify(h))
 		self.assertEqual(h, str(s))
 
+
 if __name__ == '__main__':
-    unittest.main()
+	print lt.__version__
+	unittest.main()
 
