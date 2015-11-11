@@ -32,6 +32,8 @@ class test_bencoder(unittest.TestCase):
 		decoded = lt.bdecode(encoded)
 		self.assertEqual(decoded, {'a': 1, 'b': [1,2,3], 'c': 'foo'})
 
+
 if __name__ == '__main__':
-    unittest.main()
+	print lt.__version__
+	unittest.main()
 
