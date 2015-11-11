@@ -15,8 +15,8 @@ using namespace Windows::Security::Cryptography;
 using namespace Windows::Storage::Streams;
 using namespace Microsoft::WRL;
 #elif defined _WIN32
-#include <Windows.h>
-#include <Wincrypt.h>
+#include <windows.h>
+#include <wincrypt.h>
 #else
 #include <stdio.h>
 #endif

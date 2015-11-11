@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 
 #ifdef TORRENT_WINDOWS
-#include <Winsock2.h>
+#include <winsock2.h>
 #else
 // posix header
 // for ntohl and htonl
