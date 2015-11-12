@@ -681,6 +681,7 @@ SOURCES =
 	ConvertUTF
 	thread
 	xml_parse
+	version
 	peer_class
 	peer_class_set
 	part_file
