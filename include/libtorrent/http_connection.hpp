@@ -156,6 +156,10 @@ private:
 
 	std::vector<tcp::endpoint> m_endpoints;
 
+	// if the current connection attempt fails, we'll connect to the
+	// endpoint with this index (in m_endpoints) next
+	int m_next_ep;
+
 	socket_type m_sock;
 
 #ifdef TORRENT_USE_OPENSSL
