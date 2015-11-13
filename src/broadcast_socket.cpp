@@ -147,11 +147,11 @@ namespace libtorrent
 
 	bool supports_ipv6()
 	{
-#if defined TORRENT_BUILD_SIMULATOR || !TORRENT_USE_IPV6
+#if !TORRENT_USE_IPV6
 		return false;
-#else
-
-#ifdef TORRENT_WINDOWS
+#elif defined TORRENT_BUILD_SIMULATOR
+		return true;
+#elif defined TORRENT_WINDOWS
 		TORRENT_TRY {
 			error_code ec;
 			address::from_string("::1", ec);
@@ -163,8 +163,6 @@ namespace libtorrent
 		error_code ec;
 		test.open(tcp::v6(), ec);
 		return !bool(ec);
-#endif // WINDOWS
-
 #endif
 	}
 
