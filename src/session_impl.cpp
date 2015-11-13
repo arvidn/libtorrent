@@ -3768,7 +3768,7 @@ retry:
 		// unchoked
 
 		// avoid having a bias towards peers that happen to be sorted first
-		std::random_shuffle(opt_unchoke.begin(), opt_unchoke.end());
+		std::random_shuffle(opt_unchoke.begin(), opt_unchoke.end(), randint);
 
 		// sort all candidates based on when they were last optimistically
 		// unchoked.

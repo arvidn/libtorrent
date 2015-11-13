@@ -94,5 +94,10 @@ namespace libtorrent
 
 #endif // TORRENT_BUILD_SIMULATOR
 
+	boost::uint32_t randint(int i)
+	{
+		return random() % i;
+	}
+
 }
 

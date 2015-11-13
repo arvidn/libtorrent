@@ -7305,7 +7305,7 @@ namespace libtorrent
 		// if we didn't save 100 peers, fill in with second choice peers
 		if (num_saved_peers < 100)
 		{
-			std::random_shuffle(deferred_peers.begin(), deferred_peers.end());
+			std::random_shuffle(deferred_peers.begin(), deferred_peers.end(), randint);
 			for (std::vector<torrent_peer const*>::const_iterator i = deferred_peers.begin()
 				, end(deferred_peers.end()); i != end && num_saved_peers < 100; ++i)
 			{
@@ -10339,7 +10339,7 @@ namespace libtorrent
 				if (p->is_seed()) seeds.push_back(p);
 			}
 
-			std::random_shuffle(seeds.begin(), seeds.end());
+			std::random_shuffle(seeds.begin(), seeds.end(), randint);
 			TORRENT_ASSERT(to_disconnect <= int(seeds.size()));
 			for (int i = 0; i < to_disconnect; ++i)
 				seeds[i]->disconnect(errors::upload_upload_connection
@@ -10497,7 +10497,7 @@ namespace libtorrent
 			--pieces[i->piece].first;
 		}
 
-		std::random_shuffle(pieces.begin(), pieces.end());
+		std::random_shuffle(pieces.begin(), pieces.end(), randint);
 		std::stable_sort(pieces.begin(), pieces.end()
 			, boost::bind(&std::pair<int, int>::first, _1) <
 			boost::bind(&std::pair<int, int>::first, _2));
