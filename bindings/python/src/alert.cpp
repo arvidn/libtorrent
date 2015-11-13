@@ -144,6 +144,40 @@ list dht_stats_routing_table(dht_stats_alert const& a)
    return result;
 }
 
+dict dht_immutable_item(dht_immutable_item_alert const& alert)
+{
+    dict d;
+    d["key"] = alert.target.to_string();
+    d["value"] = alert.item.to_string();
+    return d;
+}
+
+dict dht_mutable_item(dht_mutable_item_alert const& alert)
+{
+    dict d;
+    d["key"] = std::string(alert.key.data(), alert.key.size());
+    d["value"] = alert.item.to_string();
+    d["signature"] = std::string(alert.signature.data(), alert.signature.size());
+    d["seq"] = alert.seq;
+    d["salt"] = alert.salt;
+    d["authoritative"] = alert.authoritative;
+    return d;
+}
+
+dict dht_put_item(dht_put_alert const& alert)
+{
+    dict d;
+    if (alert.target.is_all_zeros()) {
+        d["public_key"] = std::string(alert.public_key.data(), alert.public_key.size());
+        d["signature"] = std::string(alert.signature.data(), alert.signature.size());
+        d["seq"] = alert.seq;
+        d["salt"] = alert.salt;
+    } else {
+        d["target"] = alert.target.to_string();
+    }
+    return d;
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -657,4 +691,18 @@ void bind_alert()
 		 .add_property("routing_table", &dht_stats_routing_table)
         ;
 
+    class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
+       "dht_immutable_item_alert", no_init)
+        .add_property("item", &dht_immutable_item)
+        ;
+
+    class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
+       "dht_mutable_item_alert", no_init)
+        .add_property("item", &dht_mutable_item)
+        ;
+
+    class_<dht_put_alert, bases<alert>, noncopyable>(
+       "dht_put_alert", no_init)
+        .add_property("item", &dht_put_item)
+        ;
 }
