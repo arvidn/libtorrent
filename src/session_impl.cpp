@@ -1182,6 +1182,9 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
 		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
+		for (torrent_map::iterator i = m_torrents.begin()
+			, end(m_torrents.end()); i != end; ++i)
+			i->second->set_ip_filter(m_ip_filter);
 	}
 
 	ip_filter const& session_impl::get_ip_filter()
@@ -4713,6 +4716,7 @@ retry:
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
 			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
+		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
