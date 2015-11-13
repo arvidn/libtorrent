@@ -36,7 +36,7 @@ namespace libtorrent {
 
 char const* version()
 {
-	return LIBTORRENT_VERSION "." LIBTORRENT_REVISION ;
+	return LIBTORRENT_VERSION;
 }
 
 }
