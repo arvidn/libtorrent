@@ -78,6 +78,8 @@
 
 1.0.7 release
 
+	* fix bug where loading settings via load_state() would not trigger all
+	  appropriate actions
 	* fix bug where 32 bit builds could use more disk cache than the virtual
 	  address space (when set to automatic)
 	* fix support for torrents with > 500'000 pieces
