@@ -1352,7 +1352,7 @@ namespace aux {
 		TORRENT_ASSERT(is_network_thread());
 
 		lazy_entry const* settings;
-	  
+
 		if (e->type() != lazy_entry::dict_t) return;
 
 		for (int i = 0; i < int(sizeof(all_settings)/sizeof(all_settings[0])); ++i)
@@ -1360,13 +1360,19 @@ namespace aux {
 			session_category const& c = all_settings[i];
 			settings = e->dict_find_dict(c.name);
 			if (!settings) continue;
-			load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
+			if (c.offset == offsetof(session_impl, m_settings))
+			{
+				// load settings into a local variable so we can update the settings
+				// via the normal set_settings() path
+				session_settings sett;
+				load_struct(*settings, reinterpret_cast<char*>(&sett), c.map, c.num_entries);
+				set_settings(sett);
+			}
+			else
+			{
+				load_struct(*settings, reinterpret_cast<char*>(this) + c.offset, c.map, c.num_entries);
+			}
 		}
-		
-		update_rate_settings();
-		update_connections_limit();
-		update_unchoke_limit();
-		m_alerts.set_alert_queue_size_limit(m_settings.alert_queue_size);
 
 		// in case we just set a socks proxy, we might have to
 		// open the socks incoming connection
