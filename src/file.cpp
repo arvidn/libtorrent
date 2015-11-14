@@ -1615,6 +1615,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 #endif // TORRENT_LINUX
 
+			// returning 0 means end of file. Terminate the loop, there's no
+			// point in trying to read more
+			if (tmp_ret == 0) break;
+
 			num_bufs -= nbufs;
 			bufs += nbufs;
 		}
@@ -1868,6 +1872,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				ret += (std::min)(tmp_ret, size);
 			}
 #endif // TORRENT_LINUX
+
+			// returning 0 means end of file. Terminate the loop, there's no
+			// point in trying to read more
+			if (tmp_ret == 0) break;
 
 			num_bufs -= nbufs;
 			bufs += nbufs;
