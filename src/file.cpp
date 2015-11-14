@@ -1702,7 +1702,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// just need to issue the read/write operation again. In either case,
 			// punt that to the upper layer, as reissuing the operations is
 			// complicated here
-			const expected_len = bufs_size(bufs, nbufs);
+			const int expected_len = bufs_size(bufs, nbufs);
 			if (tmp_ret < expected_len) break;
 
 			num_bufs -= nbufs;
