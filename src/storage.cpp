@@ -158,15 +158,7 @@ namespace libtorrent
 		}
 	}
 
-	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs)
-	{
-		int size = 0;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-			size += i->iov_len;
-		return size;
-	}
-
-	TORRENT_EXTRA_EXPORT void clear_bufs(file::iovec_t const* bufs, int num_bufs)
+	void clear_bufs(file::iovec_t const* bufs, int num_bufs)
 	{
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			std::memset(i->iov_base, 0, i->iov_len);
@@ -1128,8 +1120,9 @@ namespace libtorrent
 	// of that is the same for reading and writing. This function
 	// is a template, and the fileop decides what to do with the
 	// file and the buffers.
-	int default_storage::readwritev(file::iovec_t const* bufs, int slot, int offset
-		, int num_bufs, fileop const& op, storage_error& ec)
+	int default_storage::readwritev(file::iovec_t const* const bufs
+		, const int slot, const int offset
+		, const int num_bufs, fileop const& op, storage_error& ec)
 	{
 		TORRENT_ASSERT(bufs != 0);
 		TORRENT_ASSERT(slot >= 0);
@@ -1137,15 +1130,9 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(num_bufs > 0);
 
-		int size = bufs_size(bufs, num_bufs);
+		const int size = bufs_size(bufs, num_bufs);
 		TORRENT_ASSERT(size > 0);
 		TORRENT_ASSERT(files().is_loaded());
-
-#if TORRENT_USE_ASSERTS
-		std::vector<file_slice> slices
-			= files().map_block(slot, offset, size);
-		TORRENT_ASSERT(!slices.empty());
-#endif
 
 		// find the file iterator and file offset
 		boost::uint64_t torrent_offset = slot * boost::uint64_t(m_files.piece_length()) + offset;
@@ -1154,39 +1141,52 @@ namespace libtorrent
 		TORRENT_ASSERT(torrent_offset < files().file_offset(file_index) + files().file_size(file_index));
 		boost::int64_t file_offset = torrent_offset - files().file_offset(file_index);
 
-		int buf_pos = 0;
-
 		file_handle handle;
+
+		// the number of bytes left before this read or write operation is
+		// completely satisfied.
 		int bytes_left = size;
 
 		TORRENT_ASSERT(bytes_left >= 0);
-
-#if TORRENT_USE_ASSERTS
-		int counter = 0;
-#endif
 
 		file::iovec_t* tmp_bufs = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
 		copy_bufs(bufs, size, current_buf);
 		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
-		int file_bytes_left;
-		for (;bytes_left > 0; ++file_index, bytes_left -= file_bytes_left
-			, buf_pos += file_bytes_left)
-		{
-			TORRENT_ASSERT(file_index < files().num_files());
-			TORRENT_ASSERT(buf_pos >= 0);
 
+		// the number of bytes left to read in the current file (specified by
+		// file_index). This is the minimum of (file_size - file_offset) and
+		// bytes_left.
+		int file_bytes_left;
+
+		// this is set to true if we advance the file_index. If so, we need to
+		// re-open the file handle below, before we start the read or write to
+		// it.
+		bool need_reopen_file = true;
+
+		while (bytes_left > 0)
+		{
 			file_bytes_left = bytes_left;
 			if (file_offset + file_bytes_left > files().file_size(file_index))
 				file_bytes_left = (std::max)(static_cast<int>(files().file_size(file_index) - file_offset), 0);
 
-			if (file_bytes_left == 0) continue;
+			// there are no bytes left in this file, move to the next one
+			// this loop skips over empty files
+			while (file_bytes_left == 0)
+			{
+				need_reopen_file = true;
+				++file_index;
+				file_offset = 0;
+				TORRENT_ASSERT(file_index < files().num_files());
 
-#if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(int(slices.size()) > counter);
-			TORRENT_ASSERT(slices[counter].file_index == file_index);
-			++counter;
-#endif
+				// this should not happen. bytes_left should be clamped by the total
+				// size of the torrent, so we should never run off the end of it
+				if (file_index >= files().num_files()) return size;
+
+				file_bytes_left = bytes_left;
+				if (file_offset + file_bytes_left > files().file_size(file_index))
+					file_bytes_left = (std::max)(static_cast<int>(files().file_size(file_index) - file_offset), 0);
+			}
 
 			if (files().pad_file_at(file_index))
 			{
@@ -1198,8 +1198,9 @@ namespace libtorrent
 					clear_bufs(tmp_bufs, num_tmp_bufs);
 				}
 				advance_bufs(current_buf, file_bytes_left);
-				TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
-				file_offset = 0;
+				bytes_left -= file_bytes_left;
+				file_offset += file_bytes_left;
+				TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= num_bufs);
 				continue;
 			}
 
@@ -1224,6 +1225,8 @@ namespace libtorrent
 
 				if ((op.mode & file::rw_mask) == file::read_write)
 				{
+					// TODO: 3 which one of these are called should be determined by
+					// the fileop object.
 					// write
 					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs
 						, slot, offset, e);
@@ -1245,30 +1248,38 @@ namespace libtorrent
 			}
 			else
 			{
-				handle = open_file(file_index, op.mode, ec);
-				if (ec) return -1;
-
-				if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
+				if (need_reopen_file)
 				{
-					if (m_file_created.size() != files().num_files())
-						m_file_created.resize(files().num_files(), false);
+					handle = open_file(file_index, op.mode, ec);
+					if (ec) return -1;
+					need_reopen_file = false;
 
-					TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
-					TORRENT_ASSERT(file_index < m_file_created.size());
-					if (m_file_created[file_index] == false)
+					if (m_allocate_files && (op.mode & file::rw_mask) != file::read_only)
 					{
-						handle->set_size(files().file_size(file_index), e);
-						m_file_created.set_bit(file_index);
-						if (e)
+						if (m_file_created.size() != files().num_files())
+							m_file_created.resize(files().num_files(), false);
+
+						TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
+						TORRENT_ASSERT(file_index < m_file_created.size());
+						// if this is the first time we open this file for writing,
+						// and we have m_allocate_files enabled, set the final size of
+						// the file right away, to allocate it on the filesystem.
+						if (m_file_created[file_index] == false)
 						{
-							ec.ec = e;
-							ec.file = file_index;
-							ec.operation = storage_error::fallocate;
-							return -1;
+							handle->set_size(files().file_size(file_index), e);
+							m_file_created.set_bit(file_index);
+							if (e)
+							{
+								ec.ec = e;
+								ec.file = file_index;
+								ec.operation = storage_error::fallocate;
+								return -1;
+							}
 						}
 					}
 				}
 
+				// please ignore the adjusted_offset. It's just file_offset.
 				boost::int64_t adjusted_offset =
 #ifndef TORRENT_NO_DEPRECATE
 					files().file_base_deprecated(file_index) +
@@ -1291,7 +1302,6 @@ namespace libtorrent
 #endif
 				TORRENT_ASSERT(bytes_transferred <= bufs_size(tmp_bufs, num_tmp_bufs));
 			}
-			file_offset = 0;
 
 			if (e)
 			{
@@ -1302,18 +1312,25 @@ namespace libtorrent
 				return -1;
 			}
 
-			if (file_bytes_left != bytes_transferred)
+			bytes_left -= bytes_transferred;
+			file_offset += bytes_transferred;
+
+			// if the file operation returned 0, we've hit end-of-file. We're done
+			if (bytes_transferred == 0)
 			{
-				// fill in this information in case the caller wants to treat
-				// this as an error
-				ec.file = file_index;
-				ec.operation = (op.mode & file::rw_mask) == file::read_only
-					? storage_error::read : storage_error::write;
-				return bytes_transferred;
+				if (file_bytes_left > 0 )
+				{
+					// fill in this information in case the caller wants to treat
+					// this as an error
+					ec.file = file_index;
+					ec.operation = (op.mode & file::rw_mask) == file::read_only
+						? storage_error::read : storage_error::write;
+				}
+				return size - bytes_left;
 			}
 
 			advance_bufs(current_buf, bytes_transferred);
-			TORRENT_ASSERT(count_bufs(current_buf, bytes_left - file_bytes_left) <= num_bufs);
+			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= num_bufs);
 		}
 		return size;
 	}
