@@ -29,7 +29,6 @@ test_programs = \
   test_primitives            \
   test_http_parser           \
   test_magnet                \
-  test_natpmp                \
   test_packet_buffer         \
   test_read_piece            \
   test_resume                \
@@ -122,7 +121,8 @@ EXTRA_DIST = Jamfile \
   pb.xml \
   upnp.xml \
   zeroes.gz \
-  utf8_test.txt
+  utf8_test.txt \
+  test_natpmp.cpp
 
 EXTRA_PROGRAMS = $(test_programs)
 
@@ -164,7 +164,6 @@ test_string_SOURCES = test_string.cpp
 test_primitives_SOURCES = test_primitives.cpp
 test_http_parser_SOURCES = test_http_parser.cpp
 test_magnet_SOURCES = test_magnet.cpp
-test_natpmp_SOURCES = test_natpmp.cpp
 test_packet_buffer_SOURCES = test_packet_buffer.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
 test_storage_SOURCES = test_storage.cpp
