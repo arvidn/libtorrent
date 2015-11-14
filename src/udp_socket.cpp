@@ -311,6 +311,16 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 
 		if (err == boost::asio::error::would_block || err == boost::asio::error::try_again) break;
 		on_read_impl(ep, err, bytes_transferred);
+
+		// found on iOS, socket will be disconnected when app goes backgroud. try to reopen it.
+		if (err == boost::asio::error::not_connected || err == boost::asio::error::bad_descriptor)
+		{
+			ep = s->local_endpoint(err);
+			if (!err) {
+				bind(ep, err);
+			}
+			return;
+		}
 	}
 	call_drained_handler();
 	setup_read(s);
