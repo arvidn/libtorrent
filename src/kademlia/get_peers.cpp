@@ -63,7 +63,8 @@ void get_peers_observer::reply(msg const& m)
 	if (n)
 	{
 		std::vector<tcp::endpoint> peer_list;
-		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t)
+		if (n.list_size() == 1 && n.list_at(0).type() == bdecode_node::string_t
+			&& m.addr.protocol() == udp::v4())
 		{
 			// assume it's mainline format
 			char const* peers = n.list_at(0).string_ptr();

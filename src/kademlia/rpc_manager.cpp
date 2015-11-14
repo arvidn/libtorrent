@@ -287,8 +287,11 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (!o)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
-			, int(transaction_id.size()), print_endpoint(m.addr).c_str());
+		if (m_table.native_address(m.addr.address()))
+		{
+			m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
+				, int(transaction_id.size()), print_endpoint(m.addr).c_str());
+		}
 #endif
 		// this isn't necessarily because the other end is doing
 		// something wrong. This can also happen when we restart
@@ -463,6 +466,12 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	// When a DHT node enters the read-only state, in each outgoing query message,
 	// places a 'ro' key in the top-level message dictionary and sets its value to 1.
 	if (m_settings.read_only) e["ro"] = 1;
+
+	node& n = o->algorithm()->get_node();
+	if (!n.native_address(o->target_addr()))
+	{
+		a["want"].list().push_back(entry(n.native_address_name()));
+	}
 
 	o->set_target(target_addr);
 	o->set_transaction_id(tid);

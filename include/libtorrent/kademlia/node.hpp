@@ -73,6 +73,9 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
+extern char const* address_type_names[num_address_type];
+extern char const* address_type_keys[num_address_type];
+
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
 
 struct null_type {};
@@ -99,9 +102,10 @@ protected:
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(udp_socket_interface* sock
+	node(address_type at, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt
+		, std::map<std::string, node*> const& nodes
 		, dht_storage_constructor_type storage_constructor = dht_default_storage_constructor);
 
 	~node();
@@ -204,6 +208,21 @@ public:
 	counters& stats_counters() const { return m_counters; }
 
 	dht_observer* observer() const { return m_observer; }
+
+	address_type native_address_type() { return m_address_type; }
+	char const* native_address_name() { return address_type_names[m_address_type]; }
+	char const* native_nodes_key() { return address_type_keys[m_address_type]; }
+
+	bool native_address(udp::endpoint ep) const
+	{ return native_address(ep.address()); }
+	bool native_address(tcp::endpoint ep) const
+	{ return native_address(ep.address()); }
+	bool native_address(address addr) const
+	{
+		return (addr.is_v4() && m_address_type == ipv4)
+			|| (addr.is_v6() && m_address_type == ipv6);
+	}
+
 private:
 
 	void send_single_refresh(udp::endpoint const& ep, int bucket
@@ -224,14 +243,20 @@ private:
 
 	void incoming_request(msg const& h, entry& e);
 
+	void write_nodes_entries(sha1_hash const& info_hash
+		, bdecode_node const& want, entry& r);
+
 	node_id m_id;
 
 public:
 	routing_table m_table;
 	rpc_manager m_rpc;
+	std::map<std::string, node*> const& m_nodes;
 
 private:
 	dht_observer* m_observer;
+
+	address_type m_address_type;
 
 	time_point m_last_tracker_tick;
 

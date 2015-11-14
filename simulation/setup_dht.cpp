@@ -84,12 +84,12 @@ struct dht_node final : lt::dht::udp_socket_interface
 		: m_io_service(sim, addr_from_int(idx))
 #if LIBSIMULATOR_USE_MOVE
 		, m_socket(m_io_service)
-		, m_dht(this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt)
+		, m_dht(ipv4, this, sett, id_from_addr(m_io_service.get_ips().front())
+			, nullptr, cnt, std::map<std::string, lt::dht::node*>())
 #else
 		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node(this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt))
+		, m_dht(new lt::dht::node(ipv4, this, sett, id_from_addr(m_io_service.get_ips().front())
+			, nullptr, cnt, std::map<std::string, lt::dht::node*>()))
 #endif
 		, m_add_dead_nodes(flags & add_dead_nodes)
 	{
@@ -99,7 +99,6 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 		udp::socket::non_blocking_io ioc(true);
 		sock().io_control(ioc);
-
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
 			, m_ep, boost::bind(&dht_node::on_read, this, _1, _2));
 	}
@@ -117,8 +116,9 @@ struct dht_node final : lt::dht::udp_socket_interface
 	// reserving space in the vector before emplacing any nodes).
 	dht_node(dht_node&& n) noexcept
 		: m_socket(std::move(n.m_socket))
-		, m_dht(this, n.m_dht.settings(), n.m_dht.nid()
-			, n.m_dht.observer(), n.m_dht.stats_counters())
+		, m_dht(ipv4, this, n.m_dht.settings(), n.m_dht.nid()
+			, n.m_dht.observer(), n.m_dht.stats_counters()
+			, std::map<std::string, lt::dht::node*>())
 	{
 		assert(false && "dht_node is not movable");
 		throw std::runtime_error("dht_node is not movable");

@@ -113,7 +113,7 @@ protected:
 			delete p;
 	}
 
-	node & m_node;
+	node& m_node;
 	std::vector<observer_ptr> m_results;
 	node_id const m_target;
 	boost::uint16_t m_ref_count;
@@ -124,8 +124,9 @@ protected:
 
 	// the IP addresses of the nodes in m_results
 	std::set<boost::uint32_t> m_peer4_prefixes;
-// no IPv6 support yet anyway
-//	std::set<boost::uint64_t> m_peer6_prefixes;
+#if TORRENT_USE_IPV6
+	std::set<boost::uint64_t> m_peer6_prefixes;
+#endif
 };
 
 struct traversal_observer : observer

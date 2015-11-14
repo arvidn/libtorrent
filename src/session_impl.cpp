@@ -6781,10 +6781,18 @@ namespace aux {
 
 	address session_impl::external_address(address_type at)
 	{
-		if (at == ipv4)
-			return m_external_ip.external_address(address_v4());
+#if !TORRENT_USE_IPV6
+		TORRENT_UNUSED(at);
+#endif
+
+		address addr;
+#if TORRENT_USE_IPV6
+		if (at == ipv6)
+			addr = address_v6();
 		else
-			return m_external_ip.external_address(address_v6());
+#endif
+			addr = address_v4();
+		return m_external_ip.external_address(addr);
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)

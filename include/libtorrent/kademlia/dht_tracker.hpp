@@ -142,7 +142,7 @@ namespace libtorrent { namespace dht
 		boost::shared_ptr<dht_tracker> self()
 		{ return shared_from_this(); }
 
-		void connection_timeout(error_code const& e);
+		void connection_timeout(node& n, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
 
@@ -157,6 +157,9 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		node m_dht;
+#if TORRENT_USE_IPV6
+		node m_dht6;
+#endif
 		send_fun_t m_send_fun;
 		dht_logger* m_log;
 
@@ -165,8 +168,13 @@ namespace libtorrent { namespace dht
 
 		deadline_timer m_key_refresh_timer;
 		deadline_timer m_connection_timer;
+#if TORRENT_USE_IPV6
+		deadline_timer m_connection_timer6;
+#endif
 		deadline_timer m_refresh_timer;
 		dht_settings const& m_settings;
+
+		std::map<std::string, node*> m_nodes;
 
 		bool m_abort;
 

@@ -58,6 +58,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using boost::uint8_t;
 
+#if BOOST_VERSION <= 104700
+namespace boost {
+	size_t hash_value(libtorrent::address_v4::bytes_type ip)
+	{
+		return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
+	}
+
+	size_t hash_value(libtorrent::address_v6::bytes_type ip)
+	{
+		return boost::hash_value(*reinterpret_cast<boost::uint64_t*>(&ip[0]));
+	}
+}
+#endif
+
 namespace libtorrent { namespace dht
 {
 namespace
@@ -82,29 +96,35 @@ namespace
 
 void ip_set::insert(address addr)
 {
-	if (addr.is_v4())
-		m_ip4s.insert(addr.to_v4().to_bytes());
-	else
+#if TORRENT_USE_IPV6
+	if (addr.is_v6())
 		m_ip6s.insert(addr.to_v6().to_bytes());
+	else
+#endif
+		m_ip4s.insert(addr.to_v4().to_bytes());
 }
 
 size_t ip_set::count(address addr)
 {
-	if (addr.is_v4())
-		return m_ip4s.count(addr.to_v4().to_bytes());
-	else
+#if TORRENT_USE_IPV6
+	if (addr.is_v6())
 		return m_ip6s.count(addr.to_v6().to_bytes());
+	else
+#endif
+		return m_ip4s.count(addr.to_v4().to_bytes());
 }
 
 void ip_set::erase(address addr)
 {
-	if (addr.is_v4())
-		erase_one(m_ip4s, addr.to_v4().to_bytes());
-	else
+#if TORRENT_USE_IPV6
+	if (addr.is_v6())
 		erase_one(m_ip6s, addr.to_v6().to_bytes());
+	else
+#endif
+		erase_one(m_ip4s, addr.to_v4().to_bytes());
 }
 
-routing_table::routing_table(node_id const& id, int bucket_size
+routing_table::routing_table(node_id const& id, address_type at, int bucket_size
 	, dht_settings const& settings
 	, dht_logger* log)
 	:
@@ -113,6 +133,7 @@ routing_table::routing_table(node_id const& id, int bucket_size
 #endif
 	m_settings(settings)
 	, m_id(id)
+	, m_address_type(at)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
 	, m_bucket_size(bucket_size)
@@ -588,6 +609,10 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 //	INVARIANT_CHECK;
 #endif
+
+	// don't add if the address isn't the right type
+	if (!native_address(e.addr()))
+		return failed_to_add;
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())

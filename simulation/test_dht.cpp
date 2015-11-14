@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "setup_swarm.hpp"
 #include "setup_dht.hpp"
+#include "libtorrent/ed25519.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/kademlia/item.hpp"
+#include <boost/bind.hpp>
 
 namespace lt = libtorrent;
 

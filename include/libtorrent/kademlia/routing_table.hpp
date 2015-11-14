@@ -79,15 +79,29 @@ struct ip_set
 	size_t count(address addr);
 	void erase(address addr);
 
+	void clear()
+	{
+		m_ip4s.clear();
+#if TORRENT_USE_IPV6
+		m_ip6s.clear();
+#endif
+	}
+
 	bool operator==(ip_set const& rh)
 	{
+#if TORRENT_USE_IPV6
 		return m_ip4s == rh.m_ip4s && m_ip6s == rh.m_ip6s;
+#else
+		return m_ip4s == rh.m_ip4s;
+#endif
 	}
 
 	// these must be multisets because there can be multiple routing table
 	// entries for a single IP when restrict_routing_ips is set to false
 	boost::unordered_multiset<address_v4::bytes_type> m_ip4s;
+#if TORRENT_USE_IPV6
 	boost::unordered_multiset<address_v6::bytes_type> m_ip6s;
+#endif
 };
 
 // differences in the implementation from the description in
@@ -118,7 +132,8 @@ public:
 	// Perhaps replacement nodes should be in a separate vector.
 	typedef std::vector<routing_table_node> table_t;
 
-	routing_table(node_id const& id, int bucket_size
+	routing_table(node_id const& id, address_type at
+		, int bucket_size
 		, dht_settings const& settings
 		, dht_logger* log);
 
@@ -229,6 +244,12 @@ public:
 
 	bool is_full(int bucket) const;
 
+	bool native_address(address addr) const
+	{
+		return (addr.is_v4() && m_address_type == ipv4)
+			|| (addr.is_v6() && m_address_type == ipv6);
+	}
+
 private:
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -256,6 +277,7 @@ private:
 	table_t m_buckets;
 
 	node_id m_id; // our own node id
+	address_type m_address_type; // address type to be stored
 
 	// the last seen depth (i.e. levels in the routing table)
 	// it's mutable because it's updated by depth(), which is const
