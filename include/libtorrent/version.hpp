@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
 #define LIBTORRENT_VERSION "1.0.7.0"
-#define LIBTORRENT_REVISION "a10289a"
+#define LIBTORRENT_REVISION "0dff874"
 namespace libtorrent {
 
 	// returns the libtorrent version as string form in this format:
