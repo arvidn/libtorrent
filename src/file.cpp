@@ -307,6 +307,14 @@ BOOST_STATIC_ASSERT((libtorrent::file::sparse & libtorrent::file::attribute_mask
 
 namespace libtorrent
 {
+	int bufs_size(file::iovec_t const* bufs, int num_bufs)
+	{
+		int size = 0;
+		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+			size += i->iov_len;
+		return size;
+	}
+
 #ifdef TORRENT_WINDOWS
 	std::string convert_separators(std::string p)
 	{
@@ -1604,9 +1612,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		m_open_mode = 0;
 	}
 
-	// defined in storage.cpp
-	int bufs_size(file::iovec_t const* bufs, int num_bufs);
-	
 	namespace {
 
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
@@ -1692,6 +1697,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			file_offset += tmp_ret;
 			ret += tmp_ret;
+
+			// we got a short read/write. It's either 0, and we're at EOF, or we
+			// just need to issue the read/write operation again. In either case,
+			// punt that to the upper layer, as reissuing the operations is
+			// complicated here
+			const expected_len = bufs_size(bufs, nbufs);
+			if (tmp_ret < expected_len) break;
 
 			num_bufs -= nbufs;
 			bufs += nbufs;

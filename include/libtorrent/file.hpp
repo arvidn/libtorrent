@@ -366,6 +366,8 @@ namespace libtorrent
 #endif
 	};
 
+	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
+
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED
