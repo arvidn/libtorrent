@@ -380,7 +380,7 @@ void traversal_algorithm::done()
 		, end(m_results.end()); i != end; ++i)
 	{
 		boost::intrusive_ptr<observer> o = *i;
-		if (o->flags & observer::flag_queried)
+		if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)
 		{
 			// set the done flag on any outstanding queries to prevent them from
 			// calling finished() or failed() after we've already declared the traversal
