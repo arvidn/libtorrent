@@ -478,6 +478,7 @@ void test_check_files(std::string const& test_path
 #define storage_mode_compact storage_mode_sparse
 #endif
 
+// TODO: 2 split this test up into smaller parts
 void run_test(bool unbuffered)
 {
 	std::string test_path = current_working_directory();

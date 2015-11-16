@@ -263,8 +263,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 	char const* message = "assertion failed. Please file a bugreport at "
 		"https://github.com/arvidn/libtorrent/issues\n"
 		"Please include the following information:\n\n"
-		"version: " LIBTORRENT_VERSION "\n"
-		LIBTORRENT_REVISION "\n";
+		"version: " LIBTORRENT_VERSION "-" LIBTORRENT_REVISION "\n";
 
 	switch (kind)
 	{
