@@ -90,9 +90,9 @@ POSSIBILITY OF SUCH DAMAGE.
 //		temp_storage(file_storage const& fs) : m_files(fs) {}
 //		virtual bool initialize(storage_error& se) { return false; }
 //		virtual bool has_any_file() { return false; }
-//		virtual int read(char* buf, int slot, int offset, int size)
+//		virtual int read(char* buf, int piece, int offset, int size)
 //		{
-//			std::map<int, std::vector<char> >::const_iterator i = m_file_data.find(slot);
+//			std::map<int, std::vector<char> >::const_iterator i = m_file_data.find(piece);
 //			if (i == m_file_data.end()) return 0;
 //			int available = i->second.size() - offset;
 //			if (available <= 0) return 0;
@@ -100,9 +100,9 @@ POSSIBILITY OF SUCH DAMAGE.
 //			memcpy(buf, &i->second[offset], available);
 //			return available;
 //		}
-//		virtual int write(const char* buf, int slot, int offset, int size)
+//		virtual int write(const char* buf, int piece, int offset, int size)
 //		{
-//			std::vector<char>& data = m_file_data[slot];
+//			std::vector<char>& data = m_file_data[piece];
 //			if (data.size() < offset + size) data.resize(offset + size);
 //			std::memcpy(&data[offset], buf, size);
 //			return size;
@@ -114,15 +114,15 @@ POSSIBILITY OF SUCH DAMAGE.
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
 //		virtual bool write_resume_data(entry& rd) const { return false; }
-//		virtual boost::int64_t physical_offset(int slot, int offset)
-//		{ return slot * m_files.piece_length() + offset; };
-//		virtual sha1_hash hash_for_slot(int slot, partial_hash& ph, int piece_size)
+//		virtual boost::int64_t physical_offset(int piece, int offset)
+//		{ return piece * m_files.piece_length() + offset; };
+//		virtual sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size)
 //		{
 //			int left = piece_size - ph.offset;
 //			assert(left >= 0);
 //			if (left > 0)
 //			{
-//				std::vector<char>& data = m_file_data[slot];
+//				std::vector<char>& data = m_file_data[piece];
 //				// if there are padding files, those blocks will be considered
 //				// completed even though they haven't been written to the storage.
 //				// in this case, just extend the piece buffer to its full size
@@ -202,9 +202,10 @@ namespace libtorrent
 	// but modifies some particular behavior, for instance encrypting the data
 	// before it's written to disk, and decrypting it when it's read again.
 	// 
-	// The storage interface is based on slots, each slot is 'piece_size' number
+	// The storage interface is based on pieces. Avery read and write operation
+	// happens in the piece-space. Each piece fits 'piece_size' number
 	// of bytes. All access is done by writing and reading whole or partial
-	// slots. One slot is one piece in the torrent.
+	// pieces.
 	// 
 	// libtorrent comes with two built-in storage implementations;
 	// ``default_storage`` and ``disabled_storage``. Their constructor functions
@@ -466,7 +467,7 @@ namespace libtorrent
 		};
 
 		void delete_one_file(std::string const& p, error_code& ec);
-		int readwritev(file::iovec_t const* bufs, int slot, int offset
+		int readwritev(file::iovec_t const* bufs, int piece, int offset
 			, int num_bufs, fileop const& op, storage_error& ec);
 
 		void need_partfile();
@@ -477,7 +478,7 @@ namespace libtorrent
 		// in order to avoid calling stat() on each file multiple times
 		// during startup, cache the results in here, and clear it all
 		// out once the torrent starts (to avoid getting stale results)
-		// each slot represents the size and timestamp of the file
+		// each entry represents the size and timestamp of the file
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode

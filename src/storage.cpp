@@ -714,12 +714,12 @@ namespace libtorrent
 		}
 	}
 
-	int default_storage::sparse_end(int slot) const
+	int default_storage::sparse_end(int piece) const
 	{
-		TORRENT_ASSERT(slot >= 0);
-		TORRENT_ASSERT(slot < files().num_pieces());
+		TORRENT_ASSERT(piece >= 0);
+		TORRENT_ASSERT(piece < files().num_pieces());
 
-		boost::int64_t file_offset = boost::int64_t(slot) * files().piece_length();
+		boost::int64_t file_offset = boost::int64_t(piece) * files().piece_length();
 		int file_index = 0;
 
 		for (;;)
@@ -734,7 +734,7 @@ namespace libtorrent
 
 		error_code ec;
 		file_handle handle = open_file_impl(file_index, file::read_only, ec);
-		if (ec) return slot;
+		if (ec) return piece;
 
 		boost::int64_t data_start = handle->sparse_end(file_offset);
 		return int((data_start + files().piece_length() - 1) / files().piece_length());
@@ -1096,7 +1096,7 @@ namespace libtorrent
 	}
 
 	int default_storage::readv(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, storage_error& ec)
+		, int piece, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::readv
 			, file::read_only | flags };
@@ -1104,15 +1104,15 @@ namespace libtorrent
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
 #endif
-		return readwritev(bufs, slot, offset, num_bufs, op, ec);
+		return readwritev(bufs, piece, offset, num_bufs, op, ec);
 	}
 
 	int default_storage::writev(file::iovec_t const* bufs, int num_bufs
-		, int slot, int offset, int flags, storage_error& ec)
+		, int piece, int offset, int flags, storage_error& ec)
 	{
 		fileop op = { &file::writev
 			, file::read_write | flags };
-		return readwritev(bufs, slot, offset, num_bufs, op, ec);
+		return readwritev(bufs, piece, offset, num_bufs, op, ec);
 	}
 
 	// much of what needs to be done when reading and writing
@@ -1121,12 +1121,12 @@ namespace libtorrent
 	// is a template, and the fileop decides what to do with the
 	// file and the buffers.
 	int default_storage::readwritev(file::iovec_t const* const bufs
-		, const int slot, const int offset
+		, const int piece, const int offset
 		, const int num_bufs, fileop const& op, storage_error& ec)
 	{
 		TORRENT_ASSERT(bufs != 0);
-		TORRENT_ASSERT(slot >= 0);
-		TORRENT_ASSERT(slot < m_files.num_pieces());
+		TORRENT_ASSERT(piece >= 0);
+		TORRENT_ASSERT(piece < m_files.num_pieces());
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(num_bufs > 0);
 
@@ -1135,7 +1135,7 @@ namespace libtorrent
 		TORRENT_ASSERT(files().is_loaded());
 
 		// find the file iterator and file offset
-		boost::uint64_t torrent_offset = slot * boost::uint64_t(m_files.piece_length()) + offset;
+		boost::uint64_t torrent_offset = piece * boost::uint64_t(m_files.piece_length()) + offset;
 		int file_index = files().file_index_at_offset(torrent_offset);
 		TORRENT_ASSERT(torrent_offset >= files().file_offset(file_index));
 		TORRENT_ASSERT(torrent_offset < files().file_offset(file_index) + files().file_size(file_index));
@@ -1229,13 +1229,13 @@ namespace libtorrent
 					// the fileop object.
 					// write
 					bytes_transferred = m_part_file->writev(tmp_bufs, num_tmp_bufs
-						, slot, offset, e);
+						, piece, offset, e);
 				}
 				else
 				{
 					// read
 					bytes_transferred = m_part_file->readv(tmp_bufs, num_tmp_bufs
-						, slot, offset, e);
+						, piece, offset, e);
 				}
 				if (e)
 				{

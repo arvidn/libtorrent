@@ -7,7 +7,7 @@
               v
 +--------------------------+
 |     "piece_manager"      |
-| "(maps pieces to slots)" |
+| "disk job fence logic"   |
 +--------------------------+
               ^
               |
@@ -15,13 +15,13 @@
 /----------------------------\      +-------------------+
 |         "storage"          |<---->| "file_pool"       |
 |                            |      | "open file cache" |
-| "(maps slots to file and"  |      +-------------------+
+| "(maps pieces to file and" |      +-------------------+
 | "offset. reads and writes" |
-| "to disk)"                 |      +--------------------+
-|                            |<-----+ "file_storage"     |
-\----------------------------/      | "standard slot to" |
-              ^                     | "file mapping"     |
-              |                     +--------------------+
+| "to disk)"                 |      +---------------------+
+|                            |<-----+ "file_storage"      |
+\----------------------------/      | "standard piece to" |
+              ^                     | "file mapping"      |
+              |                     +---------------------+
               v
 +--------------------------+
 |          "file"          |
