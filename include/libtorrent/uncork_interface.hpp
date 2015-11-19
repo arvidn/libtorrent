@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UNCORK_INTERFACE_HPP
 #define TORRENT_UNCORK_INTERFACE_HPP
 
+#include "libtorrent/export.hpp"
+
 namespace libtorrent
 {
 	// the uncork interface is used by the disk_io_thread
@@ -45,7 +47,7 @@ namespace libtorrent
 	// kernel per system call.
 	// uncorking refers to releasing the "cork" in the peers
 	// preventing them to issue sends
-	struct uncork_interface
+	struct TORRENT_EXTRA_EXPORT uncork_interface
 	{
 		virtual void do_delayed_uncork() = 0;
 	protected:

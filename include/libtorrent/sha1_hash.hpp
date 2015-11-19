@@ -136,7 +136,7 @@ namespace libtorrent
 		sha1_hash& operator<<=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			const size_t num_words = size_t(n) / 32;
+			const int num_words = n / 32;
 			if (num_words >= number_size)
 			{
 				std::memset(m_number, 0, size);
@@ -175,7 +175,7 @@ namespace libtorrent
 		sha1_hash& operator>>=(int n)
 		{
 			TORRENT_ASSERT(n >= 0);
-			const size_t num_words = size_t(n) / 32;
+			const int num_words = n / 32;
 			if (num_words >= number_size)
 			{
 				std::memset(m_number, 0, size_t(size));

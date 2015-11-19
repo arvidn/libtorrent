@@ -50,7 +50,7 @@ namespace libtorrent
 	struct disk_io_thread;
 	struct disk_observer;
 
-	struct buffer_allocator_interface
+	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
 		virtual char* allocate_disk_buffer(char const* category) = 0;
 		virtual void free_disk_buffer(char* b) = 0;

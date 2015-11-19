@@ -177,7 +177,7 @@ namespace libtorrent
 		std::vector<char> restart_piece;
 	};
 
-	struct torrent_hot_members
+	struct TORRENT_EXTRA_EXPORT torrent_hot_members
 	{
 		torrent_hot_members(aux::session_interface& ses
 			, add_torrent_params const& p, int block_size);
@@ -1018,7 +1018,7 @@ namespace libtorrent
 		bool are_files_checked() const
 		{ return m_files_checked; }
 		bool valid_storage() const
-		{ return m_storage.get(); }
+		{ return m_storage.get() != NULL; }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -1107,7 +1107,7 @@ namespace libtorrent
 #endif
 
 		int num_time_critical_pieces() const
-		{ return m_time_critical_pieces.size(); }
+		{ return int(m_time_critical_pieces.size()); }
 
 	private:
 

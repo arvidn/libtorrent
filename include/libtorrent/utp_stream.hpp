@@ -313,7 +313,7 @@ public:
 		m_connect_handler = handler;
 		do_connect(endpoint);
 	}
-	
+
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
 	{
@@ -329,7 +329,7 @@ public:
 			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
-		int bytes_added = 0;
+		std::size_t bytes_added = 0;
 		for (typename Mutable_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{
@@ -465,7 +465,7 @@ public:
 			return;
 		}
 
-		int bytes_added = 0;
+		std::size_t bytes_added = 0;
 		for (typename Const_Buffers::const_iterator i = buffers.begin()
 			, end(buffers.end()); i != end; ++i)
 		{

@@ -50,7 +50,7 @@ namespace libtorrent
 	struct add_torrent_params;
 	struct cache_status;
 
-	struct disk_interface
+	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
 		virtual void async_read(piece_manager* storage, peer_request const& r
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester

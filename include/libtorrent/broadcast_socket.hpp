@@ -79,7 +79,7 @@ namespace libtorrent
 		void send(char const* buffer, int size, error_code& ec, int flags = 0);
 
 		void close();
-		int num_send_sockets() const { return m_unicast_sockets.size(); }
+		int num_send_sockets() const { return int(m_unicast_sockets.size()); }
 		void enable_ip_broadcast(bool e);
 
 	private:

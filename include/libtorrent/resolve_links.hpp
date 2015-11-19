@@ -53,7 +53,7 @@ namespace libtorrent
 	// in other torrents.
 	struct TORRENT_EXTRA_EXPORT resolve_links
 	{
-		struct link_t
+		struct TORRENT_EXTRA_EXPORT link_t
 		{
 			boost::shared_ptr<const torrent_info> ti;
 			std::string save_path;

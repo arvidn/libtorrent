@@ -40,7 +40,7 @@ namespace libtorrent {
 
 	// this represents an object that can have many peer classes applied
 	// to it. Most notably, peer connections and torrents derive from this.
-	struct peer_class_set
+	struct TORRENT_EXTRA_EXPORT peer_class_set
 	{
 		peer_class_set() : m_size(0) {}
 		void add_class(peer_class_pool& pool, peer_class_t c);

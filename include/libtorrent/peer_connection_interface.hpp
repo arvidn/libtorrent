@@ -45,7 +45,7 @@ namespace libtorrent
 	struct peer_info;
 
 	// TODO: make this interface smaller!
-	struct peer_connection_interface
+	struct TORRENT_EXTRA_EXPORT peer_connection_interface
 	{
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;
