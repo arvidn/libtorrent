@@ -50,7 +50,7 @@ DOCS_IMAGES = \
   docs/img/blue_top.png           \
   docs/img/dotline.gif            \
   docs/img/minus.gif              \
-  docs/img/orange.png             \
+  docs/img/orange.png
 
 DOCS_PAGES = \
   docs/building.html              \
