@@ -107,6 +107,7 @@ set(sources
 	ConvertUTF
 	thread
 	xml_parse
+	version
 
 # -- extensions --
 	metadata_transfer
