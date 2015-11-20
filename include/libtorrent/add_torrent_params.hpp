@@ -273,14 +273,13 @@ namespace libtorrent
 			flag_stop_when_ready = 0x4000,
 
 			// internal
-			default_flags = flag_pinned | flag_update_subscribe
-				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+			default_flags = flag_pinned | flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 
 #ifndef TORRENT_NO_DEPRECATE
 			, flag_ignore_flags = 0x80000000
 #endif
 		};
-	
+
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
 		int version;

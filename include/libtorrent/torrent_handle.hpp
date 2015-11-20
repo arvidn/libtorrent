@@ -558,7 +558,7 @@ namespace libtorrent
 		// torrent will *force stop* whenever it transitions from a
 		// non-data-transferring state into a data-transferring state (referred to
 		// as being ready to download or seed). This is useful for torrents that
-		// should not start downloading or seeding yet, but what to be made ready
+		// should not start downloading or seeding yet, but want to be made ready
 		// to do so. A torrent may need to have its files checked for instance, so
 		// it needs to be started and possibly queued for checking (auto-managed
 		// and started) but as soon as it's done, it should be stopped.
@@ -725,11 +725,11 @@ namespace libtorrent
 		//		// if we don't get an alert within 10 seconds, abort
 		//		if (a == 0) break;
 		//		
-		// 	std::vector<alert*> alerts;
+		//		std::vector<alert*> alerts;
 		//		ses.pop_alerts(&alerts);
 		//
-		// 	for (alert* i : alerts)
-		// 	{
+		//		for (alert* i : alerts)
+		//		{
 		//			if (alert_cast<save_resume_data_failed_alert>(a))
 		//			{
 		//				process_alert(a);
@@ -746,14 +746,14 @@ namespace libtorrent
 		//		
 		//			torrent_handle h = rd->handle;
 		//			torrent_status st = h.status(torrent_handle::query_save_path
-		// 			| torrent_handle::query_name);
+		//				| torrent_handle::query_name);
 		//			std::ofstream out((st.save_path
 		//				+ "/" + st.name + ".fastresume").c_str()
 		//				, std::ios_base::binary);
 		//			out.unsetf(std::ios_base::skipws);
 		//			bencode(std::ostream_iterator<char>(out), *rd->resume_data);
 		//			--outstanding_resume_data;
-		// 	}
+		//		}
 		//	}
 		// 
 		//.. note::

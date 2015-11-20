@@ -79,6 +79,7 @@ namespace libtorrent
 			// This torrent will wait for its turn.
 			queued_for_checking,
 #else
+			// internal
 			unused_enum_for_backwards_compatibility,
 #endif
 
@@ -125,6 +126,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		std::string error;
 #else
+		// internal
 		std::string _dummy_string_;
 #endif
 		error_code errc;
