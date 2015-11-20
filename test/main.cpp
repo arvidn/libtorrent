@@ -134,7 +134,11 @@ void sig_handler(int sig)
 
 	output_test_log_to_terminal();
 
+#ifdef WIN32
+	exit(sig);
+#else
 	exit(128 + sig);
+#endif
 }
 
 void print_usage(char const* executable)
@@ -153,6 +157,17 @@ void print_usage(char const* executable)
 		"for tests, specify one or more test names as printed\n"
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
+
+#ifdef WIN32
+LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
+{
+	int sig = p->ExceptionRecord->ExceptionCode;
+	fprintf(stderr, "SEH exception: %u\n"
+		, p->ExceptionRecord->ExceptionCode);
+	sig_handler(sig);
+	exit(sig);
+}
+#endif
 
 EXPORT int main(int argc, char const* argv[])
 {
@@ -207,6 +222,8 @@ EXPORT int main(int argc, char const* argv[])
 	// modal dialogs.
 	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+
+	SetUnhandledExceptionFilter(&seh_exception_handler);
 #endif
 
 #ifdef O_NONBLOCK

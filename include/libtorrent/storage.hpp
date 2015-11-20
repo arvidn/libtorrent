@@ -398,6 +398,8 @@ namespace libtorrent
 	// override some of its behavior, when implementing a custom storage.
 	class TORRENT_EXPORT default_storage : public storage_interface, boost::noncopyable
 	{
+		friend struct write_fileop;
+		friend struct read_fileop;
 	public:
 		// constructs the default_storage based on the give file_storage (fs).
 		// ``mapped`` is an optional argument (it may be NULL). If non-NULL it
@@ -452,23 +454,7 @@ namespace libtorrent
 
 		int sparse_end(int start) const;
 
-		// this identifies a read or write operation
-		// so that default_storage::readwritev() knows what to
-		// do when it's actually touching the file
-		struct fileop
-		{
-			// file operation
-			boost::int64_t (file::*op)(boost::int64_t file_offset
-				, file::iovec_t const* bufs, int num_bufs, error_code& ec, int flags);
-			// file open mode (file::read_only, file::write_only etc.)
-			// this is used to open the file, but also passed along as the
-			// flags argument to the file operation (readv or writev)
-			int mode;
-		};
-
 		void delete_one_file(std::string const& p, error_code& ec);
-		int readwritev(file::iovec_t const* bufs, int piece, int offset
-			, int num_bufs, fileop const& op, storage_error& ec);
 
 		void need_partfile();
 
@@ -501,7 +487,7 @@ namespace libtorrent
 		// whose bit is 0, we set the file size, to make the file allocated
 		// on disk (in full allocation mode) and just sparsely allocated in
 		// case of sparse allocation mode
-		bitfield m_file_created;
+		mutable bitfield m_file_created;
 
 		bool m_allocate_files;
 	};
@@ -715,6 +701,21 @@ namespace libtorrent
 		// the torrent_info object is owned by the torrent.
 		boost::shared_ptr<void> m_torrent;
 	};
+
+	// this identifies a read or write operation so that readwritev() knows
+	// what to do when it's actually touching the file
+	struct fileop
+	{
+		virtual int file_op(int file_index, boost::int64_t file_offset, int size
+			, file::iovec_t const* bufs, storage_error& ec) = 0;
+	};
+
+	// this function is responsible for turning read and write operations in the
+	// torrent space (pieces) into read and write operations in the filesystem
+	// space (files on disk).
+	TORRENT_EXTRA_EXPORT int readwritev(file_storage const& files
+		, file::iovec_t const* bufs, int piece, int offset, int num_bufs
+		, fileop& op, storage_error& ec);
 
 }
 
