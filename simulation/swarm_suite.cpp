@@ -50,13 +50,87 @@ struct test_swarm_config : swarm_config
 	test_swarm_config(int flags)
 		: swarm_config()
 		, m_flags(flags)
+		, m_paused_once(false)
+		, m_resumed_once(false)
 	{}
 
 	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
 	{
 		swarm_config::on_exit(torrents);
 
-		TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(2100));
+		// if we stopped and started again, we loose some time and need a bit
+		// more slack for completion
+		if (m_flags & stop_start_seed)
+		{
+			TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(3700));
+		}
+		else if (m_flags & stop_start_download)
+		{
+			TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(2800));
+		}
+		else
+		{
+			TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(2100));
+		}
+	}
+
+	virtual bool on_alert(libtorrent::alert const* alert
+		, int session_idx
+		, std::vector<libtorrent::torrent_handle> const& torrents
+		, libtorrent::session& ses) override
+	{
+		if (((m_flags & stop_start_download)
+			|| (m_flags & stop_start_seed))
+			&& m_paused_once == false)
+		{
+			torrent_status st_seed = torrents[0].status();
+			torrent_status st_dl = torrents[1].status();
+
+			int flags = 0;
+			if (m_flags & graceful_pause)
+				flags = torrent_handle::graceful_pause;
+
+			if (m_flags & stop_start_download)
+			{
+				if (st_dl.total_wanted_done > st_dl.total_wanted / 2
+					&& st_dl.paused == false)
+				{
+					m_paused_once = true;
+					torrents[1].auto_managed(false);
+					torrents[1].pause(flags);
+				}
+			}
+
+			if (m_flags & stop_start_seed)
+			{
+				if (st_dl.total_wanted_done > st_dl.total_wanted / 2
+					&& st_seed.paused == false)
+				{
+					m_paused_once = true;
+					torrents[0].auto_managed(false);
+					torrents[0].pause(flags);
+				}
+			}
+		}
+
+		if (alert_cast<torrent_paused_alert>(alert))
+		{
+			TEST_EQUAL(m_resumed_once, false);
+
+			if (m_flags & stop_start_download)
+			{
+				torrents[1].resume();
+				m_resumed_once = true;
+			}
+
+			if (m_flags & stop_start_seed)
+			{
+				torrents[0].resume();
+				m_resumed_once = true;
+			}
+		}
+
+		return swarm_config::on_alert(alert, session_idx, torrents, ses);
 	}
 
 	// called for every torrent that's added (and every session that's started).
@@ -112,16 +186,19 @@ struct test_swarm_config : swarm_config
 			pack.set_bool(settings_pack::enable_outgoing_tcp, true);
 		}
 
+		pack.set_int(settings_pack::alert_mask, alert::all_categories);
 		return pack;
 	}
 
 private:
 	int m_flags;
+	bool m_paused_once;
+	bool m_resumed_once;
 };
 
 void simulate_swarm(int flags)
 {
-	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s%s%s ===\n\n\n"
+	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s%s%s%s%s%s===\n\n\n"
 		, (flags & super_seeding) ? "super-seeding ": ""
 		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & seed_mode) ? "seed-mode ": ""
@@ -129,6 +206,9 @@ void simulate_swarm(int flags)
 		, (flags & suggest_read_cache) ? "suggest-read-cache ": ""
 		, (flags & explicit_cache) ? "explicit-cache ": ""
 		, (flags & utp_only) ? "utp-only": ""
+		, (flags & stop_start_download) ? "stop-start-download ": ""
+		, (flags & stop_start_seed) ? "stop-start-seed ": ""
+		, (flags & stop_start_seed) ? "graceful-pause ": ""
 		);
 
 	test_swarm_config cfg(flags);

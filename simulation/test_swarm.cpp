@@ -54,6 +54,21 @@ TORRENT_TEST(utp)
 {
 	simulate_swarm(utp_only);
 }
+
+TORRENT_TEST(stop_start_download)
+{
+	simulate_swarm(stop_start_download);
+}
+TORRENT_TEST(stop_start_download_graceful)
+{
+	simulate_swarm(stop_start_download | graceful_pause);
+}
+
+TORRENT_TEST(stop_start_seed)
+{
+	simulate_swarm(stop_start_seed);
+}
+
 TORRENT_TEST(explicit_cache)
 {
 	// test explicit cache
