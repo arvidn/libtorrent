@@ -486,7 +486,7 @@ void node::put_item(sha1_hash const& target, entry& data, boost::function<void(i
 	if (m_observer)
 	{
 		char hex_target[41];
-		to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		to_hex(target.data(), 20, hex_target);
 		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
 			, hex_target);
 	}

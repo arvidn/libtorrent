@@ -50,45 +50,18 @@ void get_item::got_data(bdecode_node const& v,
 	char const* sig)
 {
 	// we received data!
-
-	// for put_immutable_item, there is no data_callback.
+	// if no data_callback, we needn't care about the data we get.
+	// only put_immutable_item no data_callback
 	if (!m_data_callback) return;
 
-	std::pair<char const*, int> salt(m_salt.c_str(), int(m_salt.size()));
-
-	sha1_hash incoming_target;
-	if (pk)
-		incoming_target = item_target_id(salt, pk);
-	else
-		incoming_target = item_target_id(v.data_section());
-
-	if (incoming_target != m_target) return;
-
-	if (pk && sig)
+	// for get_immutable_item
+	if (m_immutable)
 	{
-		// this is mutable data. If it passes the signature
-		// check, remember it. Just keep the version with
-		// the highest sequence number.
-		if (m_data.empty() || m_data.seq() < seq)
-		{
-			if (!m_data.assign(v, salt, seq, pk, sig))
-				return;
+		// If m_data isn't empty, we should have post alert.
+		if (!m_data.empty()) return;
 
-			// for get_item, we should call callback when we get data,
-			// even if the date is not authoritative, we can update later.
-			// so caller can get response ASAP without waitting transaction
-			// time-out (15 seconds).
-			// for put_item, the callback function will do nothing
-			// if the data is non-authoritative.
-			// we can just ignore the return value here since for mutable
-			// data, we always need the transaction done.
-			m_data_callback(m_data, false);
-		}
-	}
-	else if (m_data.empty())
-	{
-		// this is the first time we receive data,
-		// and it's immutable
+		sha1_hash incoming_target = item_target_id(v.data_section());
+		if (incoming_target != m_target) return;
 
 		m_data.assign(v);
 
@@ -96,14 +69,35 @@ void get_item::got_data(bdecode_node const& v,
 		// Now that we've got it and the user doesn't want to do a put
 		// there's no point in continuing to query other nodes
 		m_data_callback(m_data, true);
-		abort();
+		done();
 
-#if TORRENT_USE_ASSERTS
-		std::vector<char> buffer;
-		bencode(std::back_inserter(buffer), m_data.value());
-		TORRENT_ASSERT(m_target == hasher(&buffer[0], buffer.size()).final());
-#endif
-    }
+		return;
+	}
+
+	// immutalbe data should has been handled before this line, only mutable
+	// data can reach here, which means pk and sig must be valid.
+	if (!pk || !sig) return;
+
+	std::pair<char const*, int> salt(m_salt.c_str(), int(m_salt.size()));
+	sha1_hash incoming_target = item_target_id(salt, pk);
+	if (incoming_target != m_target) return;
+
+	// this is mutable data. If it passes the signature
+	// check, remember it. Just keep the version with
+	// the highest sequence number.
+	if (m_data.empty() || m_data.seq() < seq)
+	{
+		if (!m_data.assign(v, salt, seq, pk, sig))
+			return;
+
+		// for get_item, we should call callback when we get data,
+		// even if the date is not authoritative, we can update later.
+		// so caller can get response ASAP without waitting transaction
+		// time-out (15 seconds).
+		// for put_item, the callback function will do nothing
+		// if the data is non-authoritative.
+		m_data_callback(m_data, false);
+	}
 }
 
 get_item::get_item(
@@ -113,6 +107,7 @@ get_item::get_item(
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, target, ncallback)
 	, m_data_callback(dcallback)
+	, m_immutable(true)
 {
 }
 
@@ -127,6 +122,7 @@ get_item::get_item(
 	        , ncallback)
 	, m_data_callback(dcallback)
 	, m_data(pk, salt)
+	, m_immutable(false)
 {
 }
 
@@ -162,8 +158,7 @@ bool get_item::invoke(observer_ptr o)
 
 void get_item::done()
 {
-	// For immutable_put, we only need nodes_callback, the m_data_callback
-	// shouldn't be set.
+	// no data_callback for immutable item put
 	if (!m_data_callback) return find_data::done();
 
 	if (m_data.is_mutable() || m_data.empty())

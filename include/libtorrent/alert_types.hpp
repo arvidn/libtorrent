@@ -2070,7 +2070,8 @@ namespace libtorrent
 
 		// DHT put operation usually writes item to k nodes, maybe the node
 		// is stale so no response, or the node doesn't support 'put', or the
-		// token for write is out of date, etc.
+		// token for write is out of date, etc. num_success is the number of
+		// successful responses we got from the puts.
 		int num_success;
 	};
 

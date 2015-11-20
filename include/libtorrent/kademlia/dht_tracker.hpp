@@ -103,7 +103,7 @@ namespace libtorrent { namespace dht
 
 		// for immutable_item.
 		// the callback function will be called when put operation is done.
-		// the bool parameter indicates the put operation success or failed.
+		// the int parameter indicates the success numbers of put operation.
 		void put_item(entry data
 			, boost::function<void(int)> cb);
 
