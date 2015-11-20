@@ -1090,7 +1090,7 @@ namespace libtorrent
 		m_orig_files.reset(new file_storage(m_files));
 	}
 
-#define SWAP(a, b) \
+#define SWAP(tmp, a, b) \
 		tmp = a; \
 		a = b; \
 		b = tmp;
@@ -1109,16 +1109,19 @@ namespace libtorrent
 		swap(m_creation_date, ti.m_creation_date);
 		m_comment.swap(ti.m_comment);
 		m_created_by.swap(ti.m_created_by);
-		boost::uint32_t tmp;
-		SWAP(m_multifile, ti.m_multifile);
-		SWAP(m_private, ti.m_private);
-		SWAP(m_i2p, ti.m_i2p);
 		swap(m_info_section, ti.m_info_section);
-		SWAP(m_info_section_size, ti.m_info_section_size);
 		swap(m_piece_hashes, ti.m_piece_hashes);
 		m_info_dict.swap(ti.m_info_dict);
 		swap(m_merkle_tree, ti.m_merkle_tree);
-		SWAP(m_merkle_first_leaf, ti.m_merkle_first_leaf);
+		std::swap(m_info_section_size, ti.m_info_section_size);
+
+		boost::uint32_t tmp;
+		SWAP(tmp, m_merkle_first_leaf, ti.m_merkle_first_leaf);
+
+		bool tmp2;
+		SWAP(tmp2, m_private, ti.m_private);
+		SWAP(tmp2, m_i2p, ti.m_i2p);
+		SWAP(tmp2, m_multifile, ti.m_multifile);
 	}
 
 #undef SWAP

@@ -81,7 +81,8 @@ namespace libtorrent { namespace
 		return true;
 	}
 
-	struct ut_pex_plugin: torrent_plugin
+	struct ut_pex_plugin TORRENT_FINAL
+		: torrent_plugin
 	{
 		// randomize when we rebuild the pex message
 		// to evenly spread it out across all torrents
@@ -91,8 +92,9 @@ namespace libtorrent { namespace
 			: m_torrent(t)
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
-	
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const& pc);
+
+		virtual boost::shared_ptr<peer_plugin> new_connection(
+			peer_connection_handle const& pc) TORRENT_OVERRIDE;
 
 		std::vector<char>& get_ut_pex_msg()
 		{
@@ -109,7 +111,7 @@ namespace libtorrent { namespace
 		// are calculated here and the pex message is created
 		// each peer connection will use this message
 		// max_peer_entries limits the packet size
-		virtual void tick()
+		virtual void tick() TORRENT_OVERRIDE
 		{
 			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
@@ -231,11 +233,14 @@ namespace libtorrent { namespace
 		time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message;
+
+		// explicitly disallow assignment, to silence msvc warning
+		ut_pex_plugin& operator=(ut_pex_plugin const&);
 	};
 
-
-	struct ut_pex_peer_plugin : peer_plugin
-	{	
+	struct ut_pex_peer_plugin TORRENT_FINAL
+		: peer_plugin
+	{
 		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
 			, m_pc(pc)
@@ -251,15 +256,15 @@ namespace libtorrent { namespace
 			}
 		}
 
-		virtual char const* type() const { return "ut_pex"; }
+		virtual char const* type() const TORRENT_OVERRIDE { return "ut_pex"; }
 
-		virtual void add_handshake(entry& h)
+		virtual void add_handshake(entry& h) TORRENT_OVERRIDE
 		{
 			entry& messages = h["m"];
 			messages[extension_name] = extension_index;
 		}
 
-		virtual bool on_extension_handshake(bdecode_node const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h) TORRENT_OVERRIDE
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -272,7 +277,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int length, int msg, buffer::const_interval body)
+		virtual bool on_extended(int length, int msg, buffer::const_interval body) TORRENT_OVERRIDE
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
@@ -282,7 +287,7 @@ namespace libtorrent { namespace
 				m_pc.disconnect(errors::pex_message_too_large, op_bittorrent, 2);
 				return true;
 			}
- 
+
 			if (body.left() < length) return true;
 
 			time_point now = aux::time_now();
@@ -378,7 +383,7 @@ namespace libtorrent { namespace
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
 					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
-				} 
+				}
 			}
 
 			p6 = pex_msg.dict_find("added6");
@@ -425,7 +430,7 @@ namespace libtorrent { namespace
 
 		// the peers second tick
 		// every minute we send a pex message
-		virtual void tick()
+		virtual void tick() TORRENT_OVERRIDE
 		{
 			// no handshake yet
 			if (!m_message_index) return;
@@ -646,6 +651,9 @@ namespace libtorrent { namespace
 		// it is used to know if a diff message or a) ful
 		// message should be sent.
 		bool m_first_time;
+
+		// explicitly disallow assignment, to silence msvc warning
+		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&);
 	};
 
 	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)

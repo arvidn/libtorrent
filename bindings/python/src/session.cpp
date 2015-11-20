@@ -26,7 +26,11 @@
 #include "gil.hpp"
 #include "bytes.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/python.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;

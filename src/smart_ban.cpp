@@ -118,7 +118,9 @@ namespace libtorrent {
 namespace
 {
 
-	struct smart_ban_plugin : torrent_plugin, boost::enable_shared_from_this<smart_ban_plugin>
+	struct smart_ban_plugin TORRENT_FINAL
+		: torrent_plugin
+		, boost::enable_shared_from_this<smart_ban_plugin>
 	{
 		smart_ban_plugin(torrent& t)
 			: m_torrent(t)
@@ -134,7 +136,7 @@ namespace
 		{ fclose(m_log_file); }
 #endif
 
-		void on_piece_pass(int p)
+		virtual void on_piece_pass(int p) TORRENT_OVERRIDE
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
@@ -186,7 +188,7 @@ namespace
 			}
 		}
 
-		void on_piece_failed(int p)
+		virtual void on_piece_failed(int p) TORRENT_OVERRIDE
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block
@@ -315,7 +317,7 @@ namespace
 				, print_address(p->ip().address()).c_str());
 #endif
 		}
-		
+
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
@@ -368,7 +370,7 @@ namespace
 			if (p->connection) p->connection->disconnect(
 				errors::peer_banned, op_bittorrent);
 		}
-		
+
 		torrent& m_torrent;
 
 		// This table maps a piece_block (piece and block index
@@ -385,6 +387,8 @@ namespace
 #ifdef TORRENT_LOG_HASH_FAILURES
 		FILE* m_log_file;
 #endif
+		// explicitly disallow assignment, to silence msvc warning
+		smart_ban_plugin& operator=(smart_ban_plugin const&);
 	};
 
 } }
