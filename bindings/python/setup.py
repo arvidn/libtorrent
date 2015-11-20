@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from distutils import sysconfig
 from distutils.core import setup, Extension
+from distutils.sysconfig import get_config_var
 import os
 import platform
 import sys
@@ -90,6 +90,9 @@ if '--bjam' in sys.argv or ldflags == None or extra_cmd == None:
 	packages = ['libtorrent']
 
 else:
+	# Remove the '-Wstrict-prototypes' compiler option, which isn't valid for C++.
+	os.environ['OPT'] = ' '.join(
+		flag for flag in get_config_var('OPT').split() if flag != '-Wstrict-prototypes')
 
 	source_list = os.listdir(os.path.join(os.path.dirname(__file__), "src"))
 	source_list = [os.path.join("src", s) for s in source_list if s.endswith(".cpp")]
@@ -116,4 +119,3 @@ setup(name = 'python-libtorrent',
 	packages = packages,
 	ext_modules = ext
 )
-
