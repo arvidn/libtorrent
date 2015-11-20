@@ -9583,10 +9583,6 @@ namespace libtorrent
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
 		m_announce_to_lsd = false;
-		update_gauge();
-
-		update_want_peers();
-		update_want_scrape();
 
 		// we need to save this new state
 		m_need_save_resume_data = true;
@@ -9594,6 +9590,9 @@ namespace libtorrent
 
 		m_graceful_pause_mode = graceful;
 		update_gauge();
+		update_want_peers();
+		update_want_scrape();
+
 	}
 
 	void torrent::do_pause()
