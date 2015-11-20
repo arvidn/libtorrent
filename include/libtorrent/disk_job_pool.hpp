@@ -46,7 +46,7 @@ namespace libtorrent
 {
 	struct disk_io_job;
 
-	struct disk_job_pool
+	struct TORRENT_EXTRA_EXPORT disk_job_pool
 	{
 		disk_job_pool();
 		~disk_job_pool();

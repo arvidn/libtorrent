@@ -56,14 +56,14 @@ namespace libtorrent
 		if (!st.name.empty())
 		{
 			ret += "&dn=";
-			ret += escape_string(st.name.c_str(), st.name.length());
+			ret += escape_string(st.name.c_str(), int(st.name.length()));
 		}
 
 		std::vector<announce_entry> const& tr = handle.trackers();
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
+			ret += escape_string(i->url.c_str(), int(i->url.length()));
 		}
 
 		std::set<std::string> seeds = handle.url_seeds();
@@ -71,7 +71,7 @@ namespace libtorrent
 			, end(seeds.end()); i != end; ++i)
 		{
 			ret += "&ws=";
-			ret += escape_string(i->c_str(), i->length());
+			ret += escape_string(i->c_str(), int(i->length()));
 		}
 
 		return ret;

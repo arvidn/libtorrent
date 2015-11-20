@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-struct resolver_interface
+struct TORRENT_EXTRA_EXPORT resolver_interface
 {
 	typedef boost::function<void(error_code const&, std::vector<address> const&)>
 		callback_t;

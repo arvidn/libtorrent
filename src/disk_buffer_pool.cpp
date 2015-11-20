@@ -463,6 +463,8 @@ namespace libtorrent
 	void disk_buffer_pool::set_settings(aux::session_settings const& sett
 		, error_code& ec)
 	{
+		TORRENT_UNUSED(ec);
+
 		mutex::scoped_lock l(m_pool_mutex);
 
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	struct torrent_peer_allocator_interface
+	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator_interface
 	{
 		enum peer_type_t
 		{

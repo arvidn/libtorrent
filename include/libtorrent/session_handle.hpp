@@ -73,7 +73,7 @@ namespace libtorrent
 			: m_impl(impl)
 		{}
 
-		bool is_valid() const { return m_impl; }
+		bool is_valid() const { return m_impl != NULL; }
 
 		// TODO: 2 the ip filter should probably be saved here too
 

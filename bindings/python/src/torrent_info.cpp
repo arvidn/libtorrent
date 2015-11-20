@@ -2,8 +2,13 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/python.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/time.hpp"

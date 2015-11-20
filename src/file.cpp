@@ -309,10 +309,10 @@ namespace libtorrent
 {
 	int bufs_size(file::iovec_t const* bufs, int num_bufs)
 	{
-		int size = 0;
+		std::size_t size = 0;
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 			size += i->iov_len;
-		return size;
+		return int(size);
 	}
 
 #ifdef TORRENT_WINDOWS
@@ -340,6 +340,8 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
+
+		TORRENT_UNUSED(flags);
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 #define GetFileAttributesEx_ GetFileAttributesExW
@@ -1546,7 +1548,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 		else if (ret == FALSE)
 		{
-			int error = GetLastError();
+//			int error = GetLastError();
 			return true;
 		}
 
@@ -1616,7 +1618,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
-		int offset = 0;
+		std::size_t offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
@@ -1626,7 +1628,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	void scatter_copy(file::iovec_t const* bufs, int num_bufs, char const* src)
 	{
-		int offset = 0;
+		std::size_t offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);

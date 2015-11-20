@@ -105,6 +105,7 @@ namespace libtorrent
 		std::string get_symlink_path(std::string const& p)
 		{
 #if defined TORRENT_WINDOWS
+			TORRENT_UNUSED(p);
 			return "";
 #else
 			std::string path = convert_to_native(p);
@@ -361,7 +362,7 @@ namespace libtorrent
 #endif
 		m_files.set_piece_length(piece_size);
 		if (flags & (optimize_alignment | mutable_torrent_support))
-			m_files.optimize(pad_file_limit, alignment, flags & mutable_torrent_support);
+			m_files.optimize(pad_file_limit, alignment, (flags & mutable_torrent_support) != 0);
 
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));

@@ -327,7 +327,7 @@ namespace libtorrent
 			>::value
 		};
 
-		boost::aligned_storage<storage_size, 16>::type m_data;
+		boost::aligned_storage<storage_size, 8>::type m_data;
 	};
 
 	// returns true if this socket is an SSL socket

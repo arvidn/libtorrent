@@ -97,7 +97,8 @@ namespace libtorrent { namespace
 		return ret;
 	}
 
-	struct metadata_plugin : torrent_plugin
+	struct metadata_plugin TORRENT_FINAL
+		: torrent_plugin
 	{
 		metadata_plugin(torrent& t)
 			: m_torrent(t)
@@ -111,19 +112,19 @@ namespace libtorrent { namespace
 		bool need_loaded()
 		{ return m_torrent.need_loaded(); }
 */
-		virtual void on_unload()
+		virtual void on_unload() TORRENT_OVERRIDE
 		{
 			m_metadata.reset();
 		}
 
-		virtual void on_load()
+		virtual void on_load() TORRENT_OVERRIDE
 		{
 			// initialize m_metadata_size
 			TORRENT_ASSERT(m_torrent.is_loaded());
 			metadata();
 		}
 
-		virtual void on_files_checked()
+		virtual void on_files_checked() TORRENT_OVERRIDE
 		{
 			// if the torrent is a seed, make a reference to
 			// the metadata from the torrent before it is deallocated
@@ -131,7 +132,7 @@ namespace libtorrent { namespace
 		}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection_handle const& pc);
+			peer_connection_handle const& pc) TORRENT_OVERRIDE;
 
 		buffer::const_interval metadata() const
 		{
@@ -251,10 +252,13 @@ namespace libtorrent { namespace
 		// this vector keeps track of how many times each meatdata
 		// block has been requested
 		std::vector<int> m_requested_metadata;
+
+		// explicitly disallow assignment, to silence msvc warning
+		metadata_plugin& operator=(metadata_plugin const&);
 	};
 
-
-	struct metadata_peer_plugin : peer_plugin
+	struct metadata_peer_plugin TORRENT_FINAL
+		: peer_plugin
 	{
 		metadata_peer_plugin(torrent& t, peer_connection& pc
 			, metadata_plugin& tp)
@@ -268,17 +272,17 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const { return "LT_metadata"; }
+		virtual char const* type() const TORRENT_OVERRIDE { return "LT_metadata"; }
 
 		// can add entries to the extension handshake
-		virtual void add_handshake(entry& h)
+		virtual void add_handshake(entry& h) TORRENT_OVERRIDE
 		{
 			entry& messages = h["m"];
 			messages["LT_metadata"] = 14;
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h)
+		virtual bool on_extension_handshake(bdecode_node const& h) TORRENT_OVERRIDE
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -385,7 +389,7 @@ namespace libtorrent { namespace
 		}
 
 		virtual bool on_extended(int length
-			, int msg, buffer::const_interval body)
+			, int msg, buffer::const_interval body) TORRENT_OVERRIDE
 		{
 			if (msg != 14) return false;
 			if (m_message_index == 0) return false;
@@ -487,7 +491,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual void tick()
+		virtual void tick() TORRENT_OVERRIDE
 		{
 			if (m_pc.is_disconnecting()) return;
 
@@ -518,7 +522,7 @@ namespace libtorrent { namespace
 		// request to this peer, and reset to false when
 		// we receive a reply to our request.
 		bool m_waiting_metadata_request;
-		
+
 		// this is the message index the remote peer uses
 		// for metadata extension messages.
 		int m_message_index;
@@ -545,6 +549,9 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 		peer_connection& m_pc;
 		metadata_plugin& m_tp;
+
+		// explicitly disallow assignment, to silence msvc warning
+		metadata_peer_plugin& operator=(metadata_peer_plugin const&);
 	};
 
 	boost::shared_ptr<peer_plugin> metadata_plugin::new_connection(

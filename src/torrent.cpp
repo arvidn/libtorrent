@@ -170,14 +170,14 @@ namespace libtorrent
 		, add_torrent_params const& p, int block_size)
 		: m_ses(ses)
 		, m_complete(0xffffff)
-		, m_upload_mode(p.flags & add_torrent_params::flag_upload_mode)
+		, m_upload_mode((p.flags & add_torrent_params::flag_upload_mode) != 0)
 		, m_connections_initialized(false)
 		, m_abort(false)
 		, m_allow_peers((p.flags & add_torrent_params::flag_paused) == 0)
-		, m_share_mode(p.flags & add_torrent_params::flag_share_mode)
+		, m_share_mode((p.flags & add_torrent_params::flag_share_mode) != 0)
 		, m_have_all(false)
 		, m_graceful_pause_mode(false)
-		, m_state_subscription(p.flags & add_torrent_params::flag_update_subscribe)
+		, m_state_subscription((p.flags & add_torrent_params::flag_update_subscribe) != 0)
 		, m_max_connections(0xffffff)
 		, m_block_size_shift(root2(block_size))
 		, m_state(torrent_status::checking_resume_data)
@@ -237,7 +237,7 @@ namespace libtorrent
 		, m_got_tracker_response(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
-		, m_override_resume_data(p.flags & add_torrent_params::flag_override_resume_data)
+		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
@@ -251,8 +251,8 @@ namespace libtorrent
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
-		, m_apply_ip_filter(p.flags & add_torrent_params::flag_apply_ip_filter)
-		, m_merge_resume_trackers(p.flags & add_torrent_params::flag_merge_resume_trackers)
+		, m_apply_ip_filter((p.flags & add_torrent_params::flag_apply_ip_filter) != 0)
+		, m_merge_resume_trackers((p.flags & add_torrent_params::flag_merge_resume_trackers) != 0)
 		, m_padding(0)
 		, m_priority(0)
 		, m_incomplete(0xffffff)
@@ -262,7 +262,7 @@ namespace libtorrent
 		, m_is_active_finished(false)
 		, m_ssl_torrent(false)
 		, m_deleted(false)
-		, m_pinned(p.flags & add_torrent_params::flag_pinned)
+		, m_pinned((p.flags & add_torrent_params::flag_pinned) != 0)
 		, m_should_be_loaded(true)
 		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
 		, m_num_seeds(0)
@@ -277,9 +277,9 @@ namespace libtorrent
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
-		, m_use_resume_save_path(p.flags & add_torrent_params::flag_use_resume_save_path)
-		, m_merge_resume_http_seeds(p.flags & add_torrent_params::flag_merge_resume_http_seeds)
-		, m_stop_when_ready(p.flags & add_torrent_params::flag_stop_when_ready)
+		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
+		, m_merge_resume_http_seeds((p.flags & add_torrent_params::flag_merge_resume_http_seeds) != 0)
+		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -331,7 +331,7 @@ namespace libtorrent
 		m_trackers = m_torrent_file->trackers();
 		if (m_torrent_file->is_valid())
 		{
-			m_seed_mode = p.flags & add_torrent_params::flag_seed_mode;
+			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0;
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
 		}
@@ -3506,7 +3506,7 @@ namespace libtorrent
 			i != resp.peers4.end(); ++i)
 		{
 			tcp::endpoint a(address_v4(i->ip), i->port);
-			need_update |= bool(add_peer(a, peer_info::tracker));
+			need_update |= bool(add_peer(a, peer_info::tracker) != NULL);
 		}
 
 #if TORRENT_USE_IPV6
@@ -3514,7 +3514,7 @@ namespace libtorrent
 			i != resp.peers6.end(); ++i)
 		{
 			tcp::endpoint a(address_v6(i->ip), i->port);
-			need_update |= bool(add_peer(a, peer_info::tracker));
+			need_update |= bool(add_peer(a, peer_info::tracker) != NULL);
 		}
 #endif
 		if (need_update) state_updated();
@@ -6774,27 +6774,27 @@ namespace libtorrent
 			if (seed_mode_ != -1) m_seed_mode = seed_mode_ && m_torrent_file->is_valid();
 
 			int super_seeding_ = rd.dict_find_int_value("super_seeding", -1);
-			if (super_seeding_ != -1) super_seeding(super_seeding_);
+			if (super_seeding_ != -1) super_seeding(super_seeding_ != 0);
 
 			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
 			if (auto_managed_ != -1)
 			{
-				m_auto_managed = auto_managed_;
+				m_auto_managed = auto_managed_ != 0;
 
 				update_want_scrape();
 				update_state_list();
 			}
 
 			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
-			if (sequential_ != -1) set_sequential_download(sequential_);
+			if (sequential_ != -1) set_sequential_download(sequential_ != 0);
 
 			int paused_ = rd.dict_find_int_value("paused", -1);
 			if (paused_ != -1)
 			{
-				set_allow_peers(!paused_);
-				m_announce_to_dht = !paused_;
-				m_announce_to_trackers = !paused_;
-				m_announce_to_lsd = !paused_;
+				set_allow_peers(paused_ == 0);
+				m_announce_to_dht = (paused_ == 0);
+				m_announce_to_trackers = (paused_ == 0);
+				m_announce_to_lsd = (paused_ == 0);
 
 				update_gauge();
 				update_want_peers();
@@ -6802,11 +6802,11 @@ namespace libtorrent
 				update_state_list();
 			}
 			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
-			if (dht_ != -1) m_announce_to_dht = dht_;
+			if (dht_ != -1) m_announce_to_dht = (dht_ != 0);
 			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
-			if (lsd_ != -1) m_announce_to_lsd = lsd_;
+			if (lsd_ != -1) m_announce_to_lsd = (lsd_ != 0);
 			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
-			if (track_ != -1) m_announce_to_trackers = track_;
+			if (track_ != -1) m_announce_to_trackers = (track_ != 0);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("loaded resume data: max-uploads: %d max-connections: %d "
@@ -7707,7 +7707,7 @@ namespace libtorrent
 		if (m_share_mode)
 			recalc_share_mode();
 
-		return peerinfo->connection;
+		return peerinfo->connection != NULL;
 	}
 
 	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
@@ -11852,7 +11852,7 @@ namespace libtorrent
 		st->is_finished = is_finished();
 		st->super_seeding = m_super_seeding;
 		st->has_metadata = valid_metadata();
-		bytes_done(*st, flags & torrent_handle::query_accurate_download_counters);
+		bytes_done(*st, (flags & torrent_handle::query_accurate_download_counters) != 0);
 		TORRENT_ASSERT(st->total_wanted_done >= 0);
 		TORRENT_ASSERT(st->total_done >= st->total_wanted_done);
 

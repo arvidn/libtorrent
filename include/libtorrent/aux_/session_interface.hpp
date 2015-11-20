@@ -107,7 +107,7 @@ namespace libtorrent { namespace aux
 	// This is the basic logging and debug interface offered by the session.
 	// a release build with logging disabled (which is the default) will
 	// not have this class at all
-	struct session_logger
+	struct TORRENT_EXTRA_EXPORT session_logger
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual void session_log(char const* fmt, ...) const TORRENT_FORMAT(2,3) = 0;
@@ -128,7 +128,7 @@ namespace libtorrent { namespace aux
 	// TOOD: 2 make this interface a lot smaller. It could be split up into
 	// several smaller interfaces. Each subsystem could then limit the size
 	// of the mock object to test it.
-	struct session_interface
+	struct TORRENT_EXTRA_EXPORT session_interface
 		: buffer_allocator_interface
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, session_logger

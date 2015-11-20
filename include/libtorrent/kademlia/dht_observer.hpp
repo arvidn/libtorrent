@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht
 {
-	struct dht_logger
+	struct TORRENT_EXTRA_EXPORT dht_logger
 	{
 		enum module_t
 		{
@@ -64,7 +64,7 @@ namespace libtorrent { namespace dht
 		~dht_logger() {}
 	};
 
-	struct dht_observer : dht_logger
+	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
 	{
 		virtual void set_external_address(address const& addr
 			, address const& source) = 0;

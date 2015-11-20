@@ -175,7 +175,7 @@ namespace libtorrent
 	// internal
 	inline void nop(char*, void*, block_cache_reference) {}
 
-	struct peer_connection_hot_members
+	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members
 	{
 		// if tor is set, this is an outgoing connection
 		peer_connection_hot_members(
@@ -1274,8 +1274,11 @@ namespace libtorrent
 			m_need_uncork = true;
 		}
 		~cork() { if (m_need_uncork) m_pc.uncork_socket(); }
+	private:
 		peer_connection& m_pc;
 		bool m_need_uncork;
+
+		cork& operator=(cork const&);
 	};
 
 }

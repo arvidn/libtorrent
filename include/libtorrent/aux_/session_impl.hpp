@@ -260,7 +260,7 @@ namespace libtorrent
 				std::string const& collection) const TORRENT_OVERRIDE TORRENT_FINAL;
 #endif
 			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const TORRENT_OVERRIDE TORRENT_FINAL;
-			int num_torrents() const TORRENT_OVERRIDE TORRENT_FINAL { return m_torrents.size(); }
+			int num_torrents() const TORRENT_OVERRIDE TORRENT_FINAL { return int(m_torrents.size()); }
 
 			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 				, std::string uuid);
@@ -458,8 +458,7 @@ namespace libtorrent
 			bool preemptive_unchoke() const;
 			int num_uploads() const
 			{ return int(m_stats_counters[counters::num_peers_up_unchoked]); }
-			int num_connections() const
-			{ return m_connections.size(); }
+			int num_connections() const { return int(m_connections.size()); }
 
 			int peak_up_rate() const { return m_peak_up_rate; }
 

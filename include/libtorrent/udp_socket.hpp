@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct udp_socket_observer
+	struct TORRENT_EXTRA_EXPORT udp_socket_observer
 	{
 		// return true if the packet was handled (it won't be
 		// propagated to the next observer)

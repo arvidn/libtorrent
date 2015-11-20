@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct bandwidth_socket
+	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
 		virtual void assign_bandwidth(int channel, int amount) = 0;
 		virtual bool is_disconnecting() const = 0;

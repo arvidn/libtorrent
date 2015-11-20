@@ -360,12 +360,12 @@ namespace libtorrent
 		// returns a range of all pieces. This migh be a very
 		// long list, use carefully
 		std::pair<iterator, iterator> all_pieces() const;
-		int num_pieces() const { return m_pieces.size(); }
+		int num_pieces() const { return int(m_pieces.size()); }
 
 		list_iterator<cached_piece_entry> write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
-		int num_write_lru_pieces() const { return m_lru[cached_piece_entry::write_lru].size(); }
+		int num_write_lru_pieces() const { return int(m_lru[cached_piece_entry::write_lru].size()); }
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
