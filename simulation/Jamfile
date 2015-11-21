@@ -15,6 +15,7 @@ project
 	<source>swarm_suite.cpp
 	<source>setup_swarm.cpp
 	<source>setup_dht.cpp
+	<source>create_torrent.cpp
 	: default-build
 	<threading>multi
 	<invariant-checks>full
@@ -34,5 +35,6 @@ alias libtorrent-sims :
 	[ run test_metadata_extension.cpp ]
 	[ run test_trackers_extension.cpp ]
 	[ run test_tracker.cpp ]
+	[ run test_ip_filter.cpp ]
 	;
 
