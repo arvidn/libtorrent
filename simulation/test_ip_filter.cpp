@@ -289,3 +289,42 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 	);
 }
 
+// make sure IP filters apply to trackers
+TORRENT_TEST(ip_filter_trackers)
+{
+	lt::time_point start_time = lt::clock_type::now();
+
+	run_test(
+		[](lt::session& ses)
+		{
+			add_ip_filter(ses);
+
+			lt::add_torrent_params params = create_torrent(0, false);
+			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
+			params.flags &= ~lt::add_torrent_params::flag_paused;
+			params.trackers = {
+				"http://60.0.0.0:6881/announce"
+				, "http://60.0.0.1:6881/announce"
+				, "http://60.0.0.2:6881/announce"
+				, "http://60.0.0.3:6881/announce"
+				, "http://60.0.0.4:6881/announce"
+				};
+			ses.async_add_torrent(params);
+		},
+
+		[&](lt::session& ses, std::vector<lt::alert*> const& alerts)
+		{
+			for (lt::alert const* a : alerts)
+			{
+				printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
+					- start_time).count()), a->message().c_str());
+			}
+		},
+
+		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		{
+			check_tripped(test_peers, {{false, false, false, true, true}} );
+		}
+	);
+}
+
