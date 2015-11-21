@@ -62,7 +62,7 @@ struct test_swarm_config : swarm_config
 		// more slack for completion
 		if (m_flags & stop_start_seed)
 		{
-			TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(3700));
+			TEST_CHECK(lt::clock_type::now() < m_start_time + lt::milliseconds(4700));
 		}
 		else if (m_flags & stop_start_download)
 		{
@@ -131,6 +131,20 @@ struct test_swarm_config : swarm_config
 		}
 
 		return swarm_config::on_alert(alert, session_idx, torrents, ses);
+	}
+
+	virtual void on_torrent_added(int session_index, torrent_handle h) override
+	{
+		if (m_flags & add_extra_peers)
+		{
+			for (int i = 0; i < 30; ++i)
+			{
+				char ep[30];
+				snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
+				h.connect_peer(lt::tcp::endpoint(
+					lt::address_v4::from_string(ep), 6881));
+			}
+		}
 	}
 
 	// called for every torrent that's added (and every session that's started).
