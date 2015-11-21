@@ -35,40 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "test.hpp"
 #include "swarm_config.hpp"
 #include "settings.hpp"
+#include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include <iostream>
 
 using namespace sim;
 
 const int num_torrents = 10;
-
-lt::add_torrent_params create_torrent(int idx, bool seed)
-{
-	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
-	// create
-	lt::add_torrent_params params;
-	int swarm_id = test_counter();
-	char name[200];
-	snprintf(name, sizeof(name), "temp-%02d", idx);
-	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
-		, swarm_id, idx);
-	error_code ec;
-	create_directory(path, ec);
-	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
-		, path, ec.message().c_str());
-	std::ofstream file(combine_path(path, name).c_str());
-	params.ti = ::create_torrent(&file, name
-		, 0x4000, 9 + idx, false);
-	file.close();
-
-	// by setting the save path to a dummy path, it won't be seeding
-	params.save_path = seed ? path : "dummy";
-	return params;
-}
 
 using sim::asio::ip::address_v4;
 
