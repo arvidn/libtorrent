@@ -2045,11 +2045,12 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_put_alert: alert
 	{
 		// internal
-		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t);
+		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t, int n);
 		dht_put_alert(aux::stack_allocator& alloc, boost::array<char, 32> key
 			, boost::array<char, 64> sig
 			, std::string s
-			, boost::uint64_t sequence_number);
+			, boost::uint64_t sequence_number
+			, int n);
 
 		TORRENT_DEFINE_ALERT(dht_put_alert, 76)
 
@@ -2066,6 +2067,12 @@ namespace libtorrent
 		boost::array<char, 64> signature;
 		std::string salt;
 		boost::uint64_t seq;
+
+		// DHT put operation usually writes item to k nodes, maybe the node
+		// is stale so no response, or the node doesn't support 'put', or the
+		// token for write is out of date, etc. num_success is the number of
+		// successful responses we got from the puts.
+		int num_success;
 	};
 
 	// this alert is used to report errors in the i2p SAM connection

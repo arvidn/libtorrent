@@ -1472,21 +1472,24 @@ namespace libtorrent {
 		return msg;
 	}
 
-	dht_put_alert::dht_put_alert(aux::stack_allocator&, sha1_hash const& t)
+	dht_put_alert::dht_put_alert(aux::stack_allocator&, sha1_hash const& t, int n)
 		: target(t)
 		, seq(0)
+		, num_success(n)
 	{}
 
 	dht_put_alert::dht_put_alert(aux::stack_allocator&
 		, boost::array<char, 32> key
 		, boost::array<char, 64> sig
 		, std::string s
-		, boost::uint64_t sequence_number)
+		, boost::uint64_t sequence_number
+		, int n)
 		: target(0)
 		, public_key(key)
 		, signature(sig)
 		, salt(s)
 		, seq(sequence_number)
+		, num_success(n)
 	{}
 
 	std::string dht_put_alert::message() const
@@ -1494,7 +1497,8 @@ namespace libtorrent {
 		char msg[1050];
 		if (target.is_all_zeros())
 		{
-			snprintf(msg, sizeof(msg), "DHT put complete (key=%s sig=%s salt=%s seq=%" PRId64 ")"
+			snprintf(msg, sizeof(msg), "DHT put complete (success=%d key=%s sig=%s salt=%s seq=%" PRId64 ")"
+				, num_success
 				, to_hex(std::string(&public_key[0], 32)).c_str()
 				, to_hex(std::string(&signature[0], 64)).c_str()
 				, salt.c_str()
@@ -1502,7 +1506,8 @@ namespace libtorrent {
 			return msg;
 		}
 
-		snprintf(msg, sizeof(msg), "DHT put complete (hash=%s)"
+		snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
+			, num_success
 			, to_hex(target.to_string()).c_str());
 		return msg;
 	}

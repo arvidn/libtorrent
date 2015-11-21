@@ -315,7 +315,6 @@ namespace
 		// create a dummy traversal_algorithm
 		boost::intrusive_ptr<traversal_algorithm> algo(
 			new traversal_algorithm(node, (node_id::min)()));
-
 		// store on the first k nodes
 		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
 			, end(v.end()); i != end; ++i)
@@ -424,7 +423,7 @@ void node::direct_request(udp::endpoint ep, entry& e
 }
 
 void node::get_item(sha1_hash const& target
-	, boost::function<bool(item&, bool)> f)
+	, boost::function<void(item&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -437,12 +436,12 @@ void node::get_item(sha1_hash const& target
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, target, f));
+	ta.reset(new dht::get_item(*this, target, boost::bind(f, _1), find_data::nodes_callback()));
 	ta->start();
 }
 
 void node::get_item(char const* pk, std::string const& salt
-	, boost::function<bool(item&, bool)> f)
+	, boost::function<void(item&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -454,7 +453,77 @@ void node::get_item(char const* pk, std::string const& salt
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, pk, salt, f));
+	ta.reset(new dht::get_item(*this, pk, salt, f, find_data::nodes_callback()));
+	ta->start();
+}
+
+namespace {
+
+void put(std::vector<std::pair<node_entry, std::string> > const& nodes
+	, boost::intrusive_ptr<dht::put_data> ta)
+{
+    ta->set_targets(nodes);
+	ta->start();
+}
+
+void put_data_cb(item& i, bool auth
+		, boost::intrusive_ptr<put_data> ta
+		, boost::function<void(item&)> f)
+{
+	// call data_callback only when we got authoritative data.
+	if (auth)
+	{
+		f(i);
+		ta->set_data(i);
+	}
+}
+
+} // namespace
+
+void node::put_item(sha1_hash const& target, entry& data, boost::function<void(int)> f)
+{
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		char hex_target[41];
+		to_hex(target.data(), 20, hex_target);
+		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
+			, hex_target);
+	}
+#endif
+
+	item i;
+	i.assign(data);
+	boost::intrusive_ptr<dht::put_data> put_ta;
+	put_ta.reset(new dht::put_data(*this, boost::bind(f, _2)));
+	put_ta->set_data(i);
+
+	boost::intrusive_ptr<dht::get_item> ta;
+	ta.reset(new dht::get_item(*this, target, get_item::data_callback(),
+		boost::bind(&put, _1, put_ta)));
+	ta->start();
+}
+
+void node::put_item(char const* pk, std::string const& salt
+	, boost::function<void(item&, int)> f
+	, boost::function<void(item&)> data_cb)
+{
+	#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer)
+	{
+		char hex_key[65];
+		to_hex(pk, 32, hex_key);
+		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+	}
+	#endif
+
+	boost::intrusive_ptr<dht::put_data> put_ta;
+	put_ta.reset(new dht::put_data(*this, f));
+
+	boost::intrusive_ptr<dht::get_item> ta;
+	ta.reset(new dht::get_item(*this, pk, salt
+		, boost::bind(&put_data_cb, _1, _2, put_ta, data_cb)
+		, boost::bind(&put, _1, put_ta)));
 	ta->start();
 }
 

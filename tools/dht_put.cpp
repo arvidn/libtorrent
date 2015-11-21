@@ -320,7 +320,9 @@ int main(int argc, char* argv[])
 		
 		printf("PUT %s\n", to_hex(target.to_string()).c_str());
 
-		wait_for_alert(s, dht_put_alert::alert_type);
+		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
+		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
+		printf("%s\n", pa->message().c_str());
 	}
 	else if (strcmp(argv[0], "mput") == 0)
 	{
@@ -353,10 +355,12 @@ int main(int argc, char* argv[])
 		s.dht_put_item(public_key, boost::bind(&put_string, _1, _2, _3, _4
 			, public_key.data(), private_key.data(), argv[0]));
 
-		printf("public key: %s\n", to_hex(std::string(public_key.data()
+		printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()
 			, public_key.size())).c_str());
 
-		wait_for_alert(s, dht_put_alert::alert_type);
+		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
+		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
+		printf("%s\n", pa->message().c_str());
 	}
 	else if (strcmp(argv[0], "mget") == 0)
 	{
@@ -380,6 +384,7 @@ int main(int argc, char* argv[])
 
 		bootstrap(s);
 		s.dht_get_item(public_key);
+		printf("MGET %s\n", argv[0]);
 
 		bool authoritative = false;
 

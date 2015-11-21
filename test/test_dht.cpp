@@ -481,19 +481,37 @@ std::vector<dht::item> g_got_items;
 dht::item g_put_item;
 int g_put_count;
 
-bool get_item_cb(dht::item& i, bool a)
+void get_mutable_item_cb(dht::item& i, bool a)
 {
-	// only count authoritative data
-	if (!a) return false;
+	if (!a) return;
 	if (!i.empty())
 		g_got_items.push_back(i);
-	if (!g_put_item.empty())
-	{
-		i = g_put_item;
-		g_put_count++;
-		return true;
-	}
-	return false;
+}
+
+void put_mutable_item_data_cb(dht::item& i)
+{
+	if (!i.empty())
+		g_got_items.push_back(i);
+
+	TEST_CHECK(!g_put_item.empty());
+	i = g_put_item;
+	g_put_count++;
+}
+
+void put_mutable_item_cb(dht::item&, int num, int expect)
+{
+	TEST_EQUAL(num, expect);
+}
+
+void get_immutable_item_cb(dht::item& i)
+{
+	if (!i.empty())
+		g_got_items.push_back(i);
+}
+
+void put_immutable_item_cb(int num, int expect)
+{
+	TEST_EQUAL(num, expect);
 }
 
 struct obs : dht::dht_observer
@@ -1633,7 +1651,7 @@ TORRENT_TEST(dht)
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
 
-		node.get_item(items[0].target, get_item_cb);
+		node.get_item(items[0].target, get_immutable_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1679,8 +1697,7 @@ TORRENT_TEST(dht)
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
 
-		sha1_hash target = hasher(public_key, item_pk_len).final();
-		node.get_item(target, get_item_cb);
+		node.get_item(public_key, std::string(), get_mutable_item_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1693,7 +1710,6 @@ TORRENT_TEST(dht)
 		{
 			TEST_EQUAL(parsed[0].string_value(), "q");
 			TEST_EQUAL(parsed[2].string_value(), "get");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
 			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
 		}
 		else
@@ -1754,24 +1770,39 @@ TORRENT_TEST(dht)
 
 	// immutable put
 	g_sent_packets.clear();
-	do
+	for (int loop = 0; loop < 9; loop++)
 	{
+		// set the branching factor to k to make this a little easier
+		int old_branching = sett.search_branching;
+		sett.search_branching = 8;
 		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
-		enum { num_test_nodes = 2 };
+		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
-			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
-			, node_entry(generate_next(), udp::endpoint(address_v4::from_string("5.5.5.5"), 1235)) };
+			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
+			, node_entry(items[1].target, udp::endpoint(address_v4::from_string("2.2.2.2"), 1232))
+			, node_entry(items[2].target, udp::endpoint(address_v4::from_string("3.3.3.3"), 1233))
+			, node_entry(items[3].target, udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
+			, node_entry(items[4].target, udp::endpoint(address_v4::from_string("5.5.5.5"), 1235))
+			, node_entry(items[5].target, udp::endpoint(address_v4::from_string("6.6.6.6"), 1236))
+			, node_entry(items[6].target, udp::endpoint(address_v4::from_string("7.7.7.7"), 1237))
+			, node_entry(items[7].target, udp::endpoint(address_v4::from_string("8.8.8.8"), 1238)) };
 
 		for (int i = 0; i < num_test_nodes; ++i)
 			node.m_table.add_node(nodes[i]);
 
-		g_put_item.assign(items[0].ent);
-		node.get_item(items[0].target, get_item_cb);
+		entry put_data;
+		put_data = "Hello world";
+		std::string flat_data;
+		bencode(std::back_inserter(flat_data), put_data);
+		sha1_hash target = item_target_id(
+			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
 
-		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
-		if (g_sent_packets.size() != num_test_nodes) break;
+		node.put_item(target, put_data, boost::bind(&put_immutable_item_cb, _1, loop));
 
-		for (int i = 0; i < num_test_nodes; ++i)
+		TEST_EQUAL(g_sent_packets.size(), 8);
+		if (g_sent_packets.size() != 8) break;
+
+		for (int i = 0; i < 8; ++i)
 		{
 			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
@@ -1788,18 +1819,19 @@ TORRENT_TEST(dht)
 			}
 			char t[10];
 			snprintf(t, sizeof(t), "%02d", i);
-			send_dht_response(node, response, nodes[i].ep()
-				, msg_args().token(t).port(1234).nid(nodes[i].id));
+
+			msg_args args;
+			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+			send_dht_response(node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
-		TEST_EQUAL(g_put_count, 1);
-		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
-		if (g_sent_packets.size() != num_test_nodes) break;
+		TEST_EQUAL(g_sent_packets.size(), 8);
+		if (g_sent_packets.size() != 8) break;
 
-		itemv.second = bencode(buffer, items[0].ent);
+		itemv.second = bencode(buffer, put_data);
 
-		for (int i = 0; i < num_test_nodes; ++i)
+		for (int i = 0; i < 8; ++i)
 		{
 			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
@@ -1812,13 +1844,14 @@ TORRENT_TEST(dht)
 			{
 				TEST_EQUAL(parsed[0].string_value(), "q");
 				TEST_EQUAL(parsed[2].string_value(), "put");
-				std::pair<const char*, int> v = parsed[6].data_section();
-				TEST_EQUAL(v.second, itemv.second);
-				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
+				std::pair<const char*, int>v = parsed[6].data_section();
+				TEST_EQUAL(std::string(v.first, v.second), flat_data);
 				char t[10];
 				snprintf(t, sizeof(t), "%02d", i);
 				TEST_EQUAL(parsed[5].string_value(), t);
 				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+
+				if (i < loop) send_dht_response(node, response, nodes[i].ep());
 			}
 			else
 			{
@@ -1827,63 +1860,75 @@ TORRENT_TEST(dht)
 				continue;
 			}
 		}
-
+		sett.search_branching = old_branching;
 		g_sent_packets.clear();
 		g_put_item.clear();
 		g_put_count = 0;
 
-	} while (false);
+	};
 
 	// mutable put
 	g_sent_packets.clear();
-	do
+	for (int loop = 0; loop < 9; loop++)
 	{
+		// set the branching factor to k to make this a little easier
+		int old_branching = sett.search_branching;
+		sett.search_branching = 8;
 		dht::node node(&s, sett, (node_id::min)(), &observer, cnt);
-		enum { num_test_nodes = 2 };
+		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
-			{ node_entry(generate_next(), udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
-			, node_entry(generate_next(), udp::endpoint(address_v4::from_string("5.5.5.5"), 1235)) };
+			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
+			, node_entry(items[1].target, udp::endpoint(address_v4::from_string("2.2.2.2"), 1232))
+			, node_entry(items[2].target, udp::endpoint(address_v4::from_string("3.3.3.3"), 1233))
+			, node_entry(items[3].target, udp::endpoint(address_v4::from_string("4.4.4.4"), 1234))
+			, node_entry(items[4].target, udp::endpoint(address_v4::from_string("5.5.5.5"), 1235))
+			, node_entry(items[5].target, udp::endpoint(address_v4::from_string("6.6.6.6"), 1236))
+			, node_entry(items[6].target, udp::endpoint(address_v4::from_string("7.7.7.7"), 1237))
+			, node_entry(items[7].target, udp::endpoint(address_v4::from_string("8.8.8.8"), 1238)) };
 
 		for (int i = 0; i < num_test_nodes; ++i)
 			node.m_table.add_node(nodes[i]);
 
-		sha1_hash target = hasher(public_key, item_pk_len).final();
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		std::string sig(g_put_item.sig().data(), item_sig_len);
-		node.get_item(target, get_item_cb);
+		node.put_item(public_key, std::string()
+				, boost::bind(&put_mutable_item_cb, _1, _2, loop)
+				, put_mutable_item_data_cb);
 
-		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
-		if (g_sent_packets.size() != num_test_nodes) break;
+		TEST_EQUAL(g_sent_packets.size(), 8);
+		if (g_sent_packets.size() != 8) break;
 
-		for (int i = 0; i < num_test_nodes; ++i)
+		for (int i = 0; i < 8; ++i)
 		{
 			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6
-				, error_string, sizeof(error_string));
+			ret = verify_message(response, get_item_desc, parsed, 6, error_string
+				, sizeof(error_string));
 			if (!ret)
 			{
-				fprintf(stderr, "   invalid mutable put request: %s\n", print_entry(response).c_str());
+				fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
 				TEST_ERROR(error_string);
 				continue;
 			}
 			char t[10];
 			snprintf(t, sizeof(t), "%02d", i);
-			send_dht_response(node, response, nodes[i].ep()
-				, msg_args().token(t).port(1234).nid(nodes[i].id));
+
+			msg_args args;
+			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+
+			send_dht_response(node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
-		TEST_EQUAL(g_put_count, 1);
-		TEST_EQUAL(g_sent_packets.size(), num_test_nodes);
-		if (g_sent_packets.size() != num_test_nodes) break;
+		TEST_EQUAL(g_sent_packets.size(), 8);
+		if (g_sent_packets.size() != 8) break;
 
 		itemv.second = bencode(buffer, items[0].ent);
 
-		for (int i = 0; i < num_test_nodes; ++i)
+		for (int i = 0; i < 8; ++i)
 		{
 			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
@@ -1906,6 +1951,8 @@ TORRENT_TEST(dht)
 				snprintf(t, sizeof(t), "%02d", i);
 				TEST_EQUAL(parsed[9].string_value(), t);
 				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+
+				if (i < loop) send_dht_response(node, response, nodes[i].ep());
 			}
 			else
 			{
@@ -1914,12 +1961,11 @@ TORRENT_TEST(dht)
 				continue;
 			}
 		}
-
+		sett.search_branching = old_branching;
 		g_sent_packets.clear();
 		g_put_item.clear();
 		g_put_count = 0;
-
-	} while (false);
+	}
 
 	// verify that done() is only invoked once
 	// See PR 252
@@ -1952,10 +1998,11 @@ TORRENT_TEST(dht)
 		for (int i = 0; i < 8; ++i)
 			node.m_table.add_node(nodes[i]);
 
-		// kick off a mutable get request
+		// kick off a mutable put request
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-		node.get_item(target, get_item_cb);
-
+		node.put_item(public_key, std::string()
+			, boost::bind(&put_mutable_item_cb, _1, _2, 0)
+			, put_mutable_item_data_cb);
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
@@ -2308,7 +2355,7 @@ TORRENT_TEST(read_only_node)
 	bdecode_node request;
 	sha1_hash target = generate_next();
 
-	node.get_item(target, get_item_cb);
+	node.get_item(target, get_immutable_item_cb);
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
@@ -2342,7 +2389,7 @@ TORRENT_TEST(read_only_node)
 
 	g_sent_packets.clear();
 	target = generate_next();
-	node.get_item(target, get_item_cb);
+	node.get_item(target, get_immutable_item_cb);
 
 	// since we have 2 nodes, we should have two packets.
 	TEST_EQUAL(g_sent_packets.size(), 2);
