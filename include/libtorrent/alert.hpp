@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
 // been posted by libtorrent pop_alerts() will return an empty list.
 // 
-// By default, only errors are reported. set_alert_mask() can be used to
-// specify which kinds of events should be reported. The alert mask is
+// By default, only errors are reported. session_settings::alert_mask can be
+// used to specify which kinds of events should be reported. The alert mask is
 // comprised by bits from the category_t enum.
 // 
 // Every alert belongs to one or more category. There is a cost associated with
@@ -105,7 +105,8 @@ namespace libtorrent {
 		enum severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
-		// these are bits for the alert_mask used by the session. See set_alert_mask().
+		// these are bits for the alert_mask used by the session. See
+		// settings_pack::alert_mask.
 		enum category_t
 		{
 			// Enables alerts that report an error. This includes:

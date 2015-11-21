@@ -40,7 +40,11 @@ enum test_flags_t
 	time_critical = 8,
 	suggest_read_cache = 16,
 	explicit_cache = 32,
-	utp_only = 64
+	utp_only = 64,
+	stop_start_download = 128,
+	stop_start_seed = 256,
+	graceful_pause = 1024,
+	add_extra_peers = 2048
 };
 
 void EXPORT simulate_swarm(int flags = 0);

@@ -6086,6 +6086,16 @@ namespace libtorrent
 		p->set_peer_info(0);
 		TORRENT_ASSERT(i != m_connections.end());
 		m_connections.erase(i);
+
+		if (m_graceful_pause_mode && m_connections.empty())
+		{
+			// we're in graceful pause mode and this was the last peer we
+			// disconnected. This will clear the graceful_pause_mode and post the
+			// torrent_paused_alert.
+			TORRENT_ASSERT(is_paused());
+			set_allow_peers(false);
+		}
+
 		update_want_peers();
 		update_want_tick();
 	}
