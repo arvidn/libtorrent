@@ -5654,7 +5654,7 @@ retry:
 				alerts.emplace_alert<dht_put_alert>(target, num);
 		}
 
-		void on_dht_put_mutable_item(alert_manager& alerts, dht::item& i, int num)
+		void on_dht_put_mutable_item(alert_manager& alerts, dht::item const& i, int num)
 		{
 			boost::array<char, 64> sig = i.sig();
 			boost::array<char, 32> pk = i.pk();
@@ -5694,7 +5694,7 @@ retry:
 
 	} // anonymous namespace
 
-	void session_impl::dht_put_immutable_item(entry data, sha1_hash target)
+	void session_impl::dht_put_immutable_item(entry const& data, sha1_hash target)
 	{
 		if (!m_dht) return;
 		m_dht->put_item(data, boost::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)

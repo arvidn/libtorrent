@@ -177,12 +177,12 @@ public:
 	void direct_request(udp::endpoint ep, entry& e
 		, boost::function<void(msg const&)> f);
 
-	void get_item(sha1_hash const& target, boost::function<void(item&)> f);
-	void get_item(char const* pk, std::string const& salt, boost::function<void(item&, bool)> f);
+	void get_item(sha1_hash const& target, boost::function<void(item const&)> f);
+	void get_item(char const* pk, std::string const& salt, boost::function<void(item const&, bool)> f);
 
-	void put_item(sha1_hash const& target, entry& data, boost::function<void(int)> f);
+	void put_item(sha1_hash const& target, entry const& data, boost::function<void(int)> f);
 	void put_item(char const* pk, std::string const& salt
-		, boost::function<void(item&, int)> f
+		, boost::function<void(item const&, int)> f
 		, boost::function<void(item&)> data_cb);
 
 	bool verify_token(std::string const& token, char const* info_hash

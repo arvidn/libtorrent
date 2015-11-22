@@ -481,7 +481,7 @@ std::vector<dht::item> g_got_items;
 dht::item g_put_item;
 int g_put_count;
 
-void get_mutable_item_cb(dht::item& i, bool a)
+void get_mutable_item_cb(dht::item const& i, bool a)
 {
 	if (!a) return;
 	if (!i.empty())
@@ -498,12 +498,12 @@ void put_mutable_item_data_cb(dht::item& i)
 	g_put_count++;
 }
 
-void put_mutable_item_cb(dht::item&, int num, int expect)
+void put_mutable_item_cb(dht::item const&, int num, int expect)
 {
 	TEST_EQUAL(num, expect);
 }
 
-void get_immutable_item_cb(dht::item& i)
+void get_immutable_item_cb(dht::item const& i)
 {
 	if (!i.empty())
 		g_got_items.push_back(i);

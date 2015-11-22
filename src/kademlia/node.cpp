@@ -423,7 +423,7 @@ void node::direct_request(udp::endpoint ep, entry& e
 }
 
 void node::get_item(sha1_hash const& target
-	, boost::function<void(item&)> f)
+	, boost::function<void(item const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -441,7 +441,7 @@ void node::get_item(sha1_hash const& target
 }
 
 void node::get_item(char const* pk, std::string const& salt
-	, boost::function<void(item&, bool)> f)
+	, boost::function<void(item const&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -462,13 +462,13 @@ namespace {
 void put(std::vector<std::pair<node_entry, std::string> > const& nodes
 	, boost::intrusive_ptr<dht::put_data> ta)
 {
-    ta->set_targets(nodes);
+	ta->set_targets(nodes);
 	ta->start();
 }
 
-void put_data_cb(item& i, bool auth
-		, boost::intrusive_ptr<put_data> ta
-		, boost::function<void(item&)> f)
+void put_data_cb(item i, bool auth
+	, boost::intrusive_ptr<put_data> ta
+	, boost::function<void(item&)> f)
 {
 	// call data_callback only when we got authoritative data.
 	if (auth)
@@ -480,7 +480,7 @@ void put_data_cb(item& i, bool auth
 
 } // namespace
 
-void node::put_item(sha1_hash const& target, entry& data, boost::function<void(int)> f)
+void node::put_item(sha1_hash const& target, entry const& data, boost::function<void(int)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -505,7 +505,7 @@ void node::put_item(sha1_hash const& target, entry& data, boost::function<void(i
 }
 
 void node::put_item(char const* pk, std::string const& salt
-	, boost::function<void(item&, int)> f
+	, boost::function<void(item const&, int)> f
 	, boost::function<void(item&)> data_cb)
 {
 	#ifndef TORRENT_DISABLE_LOGGING
