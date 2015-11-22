@@ -379,6 +379,9 @@ void http_connection::start(std::string const& hostname, int port
 			return;
 		}
 
+		m_endpoints.clear();
+		m_next_ep = 0;
+
 #if TORRENT_USE_I2P
 		if (is_i2p)
 		{
@@ -395,9 +398,6 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 #endif
-
-		// TODO: 3 if hostname is in fact an IP address (v4 or v6), we should go
-		// straight to connecting, regardless of proxy_hostname is enabled or not
 		if (ps && ps->proxy_hostnames
 			&& (ps->type == settings_pack::socks5
 				|| ps->type == settings_pack::socks5_pw))
@@ -412,8 +412,6 @@ void http_connection::start(std::string const& hostname, int port
 #if defined TORRENT_ASIO_DEBUGGING
 			add_outstanding_async("http_connection::on_resolve");
 #endif
-			m_endpoints.clear();
-			m_next_ep = 0;
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
@@ -579,19 +577,32 @@ void http_connection::connect()
 		&& (m_proxy.type == settings_pack::socks5
 			|| m_proxy.type == settings_pack::socks5_pw))
 	{
-		// we're using a socks proxy and we're resolving
-		// hostnames through it
-#ifdef TORRENT_USE_OPENSSL
-		if (m_ssl)
+		// test to see if m_hostname really just is an IP (and not a hostname). If it
+		// is, ec will be represent "success". If so, don't set it as the socks5
+		// hostname, just connect to the IP
+		error_code ec;
+		address adr = address::from_string(m_hostname, ec);
+
+		if (ec)
 		{
-			TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
-			m_sock.get<ssl_stream<socks5_stream> >()->next_layer().set_dst_name(m_hostname);
+			// we're using a socks proxy and we're resolving
+			// hostnames through it
+#ifdef TORRENT_USE_OPENSSL
+			if (m_ssl)
+			{
+				TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
+				m_sock.get<ssl_stream<socks5_stream> >()->next_layer().set_dst_name(m_hostname);
+			}
+			else
+#endif
+			{
+				TORRENT_ASSERT(m_sock.get<socks5_stream>());
+				m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
+			}
 		}
 		else
-#endif
 		{
-			TORRENT_ASSERT(m_sock.get<socks5_stream>());
-			m_sock.get<socks5_stream>()->set_dst_name(m_hostname);
+			m_endpoints[0].address(adr);
 		}
 	}
 

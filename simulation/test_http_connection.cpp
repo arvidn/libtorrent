@@ -167,7 +167,7 @@ void print_http_header(std::map<std::string, std::string> const& headers)
 	}
 }
 
-void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
+void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status
 	, boost::system::error_condition expect_error, std::vector<int> expect_counters);
 
 enum expect_counters
@@ -184,58 +184,79 @@ enum expect_counters
 	num_counters
 };
 
-void run_suite(settings_pack::proxy_type_t proxy_type)
+void run_suite(lt::aux::proxy_settings ps)
 {
 	std::string url_base = "http://10.0.0.2:8080";
 
-	run_test(proxy_type, url_base + "/test_file", 1337, 200, error_condition(), { 1, 1, 1});
+	run_test(ps, url_base + "/test_file", 1337, 200, error_condition(), { 1, 1, 1});
 
-	run_test(proxy_type, url_base + "/non-existent", 0, 404, error_condition(), { 1, 1 });
-	run_test(proxy_type, url_base + "/redirect", 1337, 200, error_condition(), { 2, 1, 1, 1 });
-	run_test(proxy_type, url_base + "/relative/redirect", 1337, 200, error_condition(), {2, 1, 1, 0, 1});
+	run_test(ps, url_base + "/non-existent", 0, 404, error_condition(), { 1, 1 });
+	run_test(ps, url_base + "/redirect", 1337, 200, error_condition(), { 2, 1, 1, 1 });
+	run_test(ps, url_base + "/relative/redirect", 1337, 200, error_condition(), {2, 1, 1, 0, 1});
 
-	run_test(proxy_type, url_base + "/infinite/redirect", 0, 301
+	run_test(ps, url_base + "/infinite/redirect", 0, 301
 		, error_condition(asio::error::eof, asio::error::get_misc_category()), {6, 1, 0, 0, 0, 6});
 
-	run_test(proxy_type, url_base + "/chunked_encoding", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 1});
+	run_test(ps, url_base + "/chunked_encoding", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 1});
 
 	// we are on an IPv4 host, we can't connect to IPv6 addresses, make sure that
 	// error is correctly propagated
 	// with socks5 we would be able to do this, assuming the socks server
 	// supported it, but the current socks implementation in libsimulator does
 	// not support IPv6
-	if (proxy_type != settings_pack::socks5)
+	if (ps.type != settings_pack::socks5)
 	{
-		run_test(proxy_type, "http://[ff::dead:beef]:8080/test_file", 0, -1
+		run_test(ps, "http://[ff::dead:beef]:8080/test_file", 0, -1
 			, error_condition(boost::system::errc::address_family_not_supported, generic_category())
 			, {0,1});
 	}
 
 	// there is no node at 10.0.0.10, this should fail with connection refused
-	run_test(proxy_type, "http://10.0.0.10:8080/test_file", 0, -1,
+	run_test(ps, "http://10.0.0.10:8080/test_file", 0, -1,
 		error_condition(boost::system::errc::connection_refused, generic_category())
 		, {0,1});
 
-	// this hostname will resolve to multiple IPs, all but one that we cannot
-	// connect to and the second one where we'll get the test file response. Make
-	// sure the http_connection correcly tries the second IP if the first one
-	// fails.
-	run_test(proxy_type, "http://try-next.com:8080/test_file", 1337, 200
-		, error_condition(), { 1, 1, 1});
+	// TODO: 3 add support for "domain name" address type in libsimulator's socks
+	// proxy. Also, make sure we can assert that raw IPs still are passed on to
+	// the proxy server as IPs, and not as hostnames
+	if (ps.proxy_hostnames == false)
+	{
+		// this hostname will resolve to multiple IPs, all but one that we cannot
+		// connect to and the second one where we'll get the test file response. Make
+		// sure the http_connection correcly tries the second IP if the first one
+		// fails.
+		run_test(ps, "http://try-next.com:8080/test_file", 1337, 200
+			, error_condition(), { 1, 1, 1});
 
-	// make sure hostname lookup failures are passed through correctly
-	run_test(proxy_type, "http://non-existent.com/test_file", 0, -1
-		, error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category()), { 0, 1});
+		// make sure hostname lookup failures are passed through correctly
+		run_test(ps, "http://non-existent.com/test_file", 0, -1
+			, error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category()), { 0, 1});
+	}
 
 	// make sure we handle gzipped content correctly
-	run_test(proxy_type, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
+	run_test(ps, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
 
 // TODO: 2 test basic-auth
 // TODO: 2 test https
 
 }
 
-void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
+lt::aux::proxy_settings make_proxy_settings(lt::settings_pack::proxy_type_t proxy_type)
+{
+	lt::aux::proxy_settings ps;
+	ps.type = proxy_type;
+	if (proxy_type != settings_pack::none)
+	{
+		ps.hostname = "50.50.50.50";
+		ps.port = 4444;
+		ps.username = "testuser";
+		ps.password = "testpass";
+		ps.proxy_hostnames = false;
+	}
+	return ps;
+}
+
+void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status
 	, boost::system::error_condition expect_error, std::vector<int> expect_counters)
 {
 	using sim::asio::ip::address_v4;
@@ -251,19 +272,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	lt::resolver res(ios);
 
 	sim::http_server http(web_server, 8080);
-	sim::socks_server socks(proxy_ios, 4444, proxy_type == settings_pack::socks4 ? 4 : 5);
-
-	lt::aux::proxy_settings ps;
-	if (proxy_type != settings_pack::none)
-	{
-		ps.hostname = "50.50.50.50";
-		ps.port = 4444;
-		ps.username = "testuser";
-		ps.password = "testpass";
-		ps.type = proxy_type;
-		ps.proxy_hostnames = false;
-		// TODO: 2 also test proxying host names, and verify they are in fact proxied
-	}
+	sim::socks_server socks(proxy_ios, 4444, ps.type == settings_pack::socks4 ? 4 : 5);
 
 	char data_buffer[4000];
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
@@ -379,17 +388,27 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 
 TORRENT_TEST(http_connection)
 {
-	run_suite(settings_pack::none);
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::none);
+	run_suite(ps);
 }
 
 TORRENT_TEST(http_connection_socks4)
 {
-	run_suite(settings_pack::socks4);
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks4);
+	run_suite(ps);
 }
 
 TORRENT_TEST(http_connection_socks5)
 {
-	run_suite(settings_pack::socks5);
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
+	run_suite(ps);
+}
+
+TORRENT_TEST(http_connection_socks5_proxy_names)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
+	ps.proxy_hostnames = true;
+	run_suite(ps);
 }
 
 TORRENT_TEST(http_connection_socks_error)
