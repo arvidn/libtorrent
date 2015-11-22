@@ -265,7 +265,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	std::vector<int> counters(num_counters, 0);
 
 	http.register_handler("/test_file"
-		, [data_buffer,&counters](std::string method, std::string req
+		, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[test_file_req];
@@ -275,7 +275,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	});
 
 	http.register_handler("/chunked_encoding"
-		, [data_buffer,&counters](std::string method, std::string req
+		, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[chunked_req];
@@ -288,7 +288,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	});
 
 	http.register_handler("/test_file.gz"
-	, [data_buffer,&counters](std::string method, std::string req
+	, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[test_file_gz_req];
@@ -321,7 +321,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	});
 
 	http.register_handler("/redirect"
-		, [data_buffer,&counters](std::string method, std::string req
+		, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[redirect_req];
@@ -332,7 +332,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	});
 
 	http.register_handler("/relative/redirect"
-		, [data_buffer,&counters](std::string method, std::string req
+		, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[rel_redirect_req];
@@ -343,7 +343,7 @@ void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expec
 	});
 
 	http.register_handler("/infinite/redirect"
-		, [data_buffer,&counters](std::string method, std::string req
+		, [&data_buffer,&counters](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		++counters[inf_redirect_req];
@@ -410,7 +410,7 @@ TORRENT_TEST(http_connection_socks_error)
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 
 	http.register_handler("/test_file"
-		, [data_buffer](std::string method, std::string req
+		, [&data_buffer](std::string method, std::string req
 		, std::map<std::string, std::string>& headers)
 	{
 		print_http_header(headers);
