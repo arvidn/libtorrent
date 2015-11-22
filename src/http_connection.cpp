@@ -395,6 +395,9 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 #endif
+
+		// TODO: 3 if hostname is in fact an IP address (v4 or v6), we should go
+		// straight to connecting, regardless of proxy_hostname is enabled or not
 		if (ps && ps->proxy_hostnames
 			&& (ps->type == settings_pack::socks5
 				|| ps->type == settings_pack::socks5_pw))
@@ -450,7 +453,6 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		else
 		{
 			c->callback(boost::asio::error::timed_out);
-			c->close(true);
 		}
 		return;
 	}
@@ -519,7 +521,6 @@ void http_connection::on_i2p_resolve(error_code const& e
 	if (e)
 	{
 		callback(e);
-		close();
 		return;
 	}
 	connect_i2p_tracker(destination);
@@ -534,10 +535,7 @@ void http_connection::on_resolve(error_code const& e
 #endif
 	if (e)
 	{
-		boost::shared_ptr<http_connection> me(shared_from_this());
-
 		callback(e);
-		close();
 		return;
 	}
 	TORRENT_ASSERT(!addresses.empty());
@@ -640,9 +638,7 @@ void http_connection::on_connect(error_code const& e)
 	}
 	else
 	{
-		boost::shared_ptr<http_connection> me(shared_from_this());
 		callback(e);
-		close();
 	}
 }
 
@@ -664,7 +660,6 @@ void http_connection::callback(error_code e, char* data, int size)
 			if (ec)
 			{
 				if (m_handler) m_handler(ec, m_parser, data, size, *this);
-				close();
 				return;
 			}
 			size = int(buf.size());
@@ -692,9 +687,7 @@ void http_connection::on_write(error_code const& e)
 
 	if (e)
 	{
-		boost::shared_ptr<http_connection> me(shared_from_this());
 		callback(e);
-		close();
 		return;
 	}
 
@@ -763,7 +756,6 @@ void http_connection::on_read(error_code const& e
 			size = m_parser.get_body().left();
 		}
 		callback(ec, data, size);
-		close();
 		return;
 	}
 
@@ -771,7 +763,6 @@ void http_connection::on_read(error_code const& e
 	{
 		TORRENT_ASSERT(bytes_transferred == 0);
 		callback(e);
-		close();
 		return;
 	}
 
@@ -805,7 +796,6 @@ void http_connection::on_read(error_code const& e
 				{
 					// missing location header
 					callback(error_code(errors::http_missing_location));
-					close();
 					return;
 				}
 
@@ -825,7 +815,7 @@ void http_connection::on_read(error_code const& e
 					);
 				return;
 			}
-	
+
 			m_redirects = 0;
 		}
 
@@ -861,7 +851,6 @@ void http_connection::on_read(error_code const& e
 		// if we've reached the size limit, terminate the connection and
 		// report the error
 		callback(error_code(boost::system::errc::file_too_large, generic_category()));
-		close();
 		return;
 	}
 	int amount_to_read = m_recvbuffer.size() - m_read_pos;

@@ -310,6 +310,10 @@ EXPORT int main(int argc, char const* argv[])
 			}
 		}
 
+		// get proper interleaving of stderr and stdout
+		setbuf(stdout, NULL);
+		setbuf(stderr, NULL);
+
 		_g_test_idx = i;
 		current_test = &t;
 

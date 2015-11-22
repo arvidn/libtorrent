@@ -118,7 +118,6 @@ public:
 
 	void close(error_code& ec)
 	{
-		m_hostname.clear();
 		m_dst_name.clear();
 		proxy_base::close(ec);
 	}
@@ -126,7 +125,6 @@ public:
 #ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
-		m_hostname.clear();
 		m_dst_name.clear();
 		proxy_base::close();
 	}

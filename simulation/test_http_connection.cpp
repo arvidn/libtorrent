@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "swarm_config.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
+#include "simulator/socks_server.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/http_connection.hpp"
@@ -110,7 +111,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 	, int* handler_called
 	, std::string const& auth = std::string())
 {
-	std::cerr << " ===== TESTING: " << url << " =====" << std::endl;
+	fprintf(stderr, " ===== TESTING: %s =====\n", url.c_str());
 
 	auto h = boost::make_shared<http_connection>(ios
 		, res
@@ -166,7 +167,7 @@ void print_http_header(std::map<std::string, std::string> const& headers)
 	}
 }
 
-void run_test(std::string url, int expect_size, int expect_status
+void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
 	, boost::system::error_code expect_error, std::vector<int> expect_counters);
 
 enum expect_counters
@@ -183,24 +184,31 @@ enum expect_counters
 	num_counters
 };
 
-TORRENT_TEST(http_connection)
+void run_suite(settings_pack::proxy_type_t proxy_type)
 {
 	std::string url_base = "http://10.0.0.2:8080";
 
-	run_test(url_base + "/non-existent", 0, 404, error_code(), { 1, 1 });
-	run_test(url_base + "/test_file", 1337, 200, error_code(), { 1, 1, 1});
-	run_test(url_base + "/redirect", 1337, 200, error_code(), { 2, 1, 1, 1 });
-	run_test(url_base + "/relative/redirect", 1337, 200, error_code(), {2, 1, 1, 0, 1});
-	run_test(url_base + "/infinite/redirect", 0, 301, error_code(asio::error::eof), {6, 1, 0, 0, 0, 6});
-	run_test(url_base + "/chunked_encoding", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 1});
+	run_test(proxy_type, url_base + "/test_file", 1337, 200, error_code(), { 1, 1, 1});
+
+	run_test(proxy_type, url_base + "/non-existent", 0, 404, error_code(), { 1, 1 });
+	run_test(proxy_type, url_base + "/redirect", 1337, 200, error_code(), { 2, 1, 1, 1 });
+	run_test(proxy_type, url_base + "/relative/redirect", 1337, 200, error_code(), {2, 1, 1, 0, 1});
+	run_test(proxy_type, url_base + "/infinite/redirect", 0, 301, error_code(asio::error::eof), {6, 1, 0, 0, 0, 6});
+	run_test(proxy_type, url_base + "/chunked_encoding", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 1});
 
 	// we are on an IPv4 host, we can't connect to IPv6 addresses, make sure that
 	// error is correctly propagated
-	run_test("http://[ff::dead:beef]:8080/test_file", 0, -1, error_code(asio::error::address_family_not_supported)
-		, {0,1});
+	// with socks5 we would be able to do this, assuming the socks server
+	// supported it, but the current socks implementation in libsimulator does
+	// not support IPv6
+	if (proxy_type != settings_pack::socks5)
+	{
+		run_test(proxy_type, "http://[ff::dead:beef]:8080/test_file", 0, -1, error_code(asio::error::address_family_not_supported)
+			, {0,1});
+	}
 
 	// there is no node at 10.0.0.10, this should fail with connection refused
-	run_test("http://10.0.0.10:8080/test_file", 0, -1,
+	run_test(proxy_type, "http://10.0.0.10:8080/test_file", 0, -1,
 		error_code(boost::system::errc::connection_refused, boost::system::system_category())
 		, {0,1});
 
@@ -208,23 +216,20 @@ TORRENT_TEST(http_connection)
 	// connect to and the second one where we'll get the test file response. Make
 	// sure the http_connection correcly tries the second IP if the first one
 	// fails.
-	run_test("http://try-next.com:8080/test_file", 1337, 200, error_code(), { 1, 1, 1});
+	run_test(proxy_type, "http://try-next.com:8080/test_file", 1337, 200, error_code(), { 1, 1, 1});
 
 	// make sure hostname lookup failures are passed through correctly
-	run_test("http://non-existent.com/test_file", 0, -1, asio::error::host_not_found, { 0, 1});
+	run_test(proxy_type, "http://non-existent.com/test_file", 0, -1, asio::error::host_not_found, { 0, 1});
 
 	// make sure we handle gzipped content correctly
-	run_test(url_base + "/test_file.gz", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 0, 1});
+	run_test(proxy_type, url_base + "/test_file.gz", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 0, 1});
 
-//	run_test(url_base + "/password_protected", 1337, 200, error_code(), { 1, 1, 1});
-
-//#error test all proxies
-//#error test https
-//#error test chunked encoding
+// TODO: 2 test basic-auth
+// TODO: 2 test https
 
 }
 
-void run_test(std::string url, int expect_size, int expect_status
+void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
 	, boost::system::error_code expect_error, std::vector<int> expect_counters)
 {
 	using sim::asio::ip::address_v4;
@@ -236,11 +241,23 @@ void run_test(std::string url, int expect_size, int expect_status
 
 	sim::asio::io_service web_server(sim, address_v4::from_string("10.0.0.2"));
 	sim::asio::io_service ios(sim, address_v4::from_string("10.0.0.1"));
-	sim::asio::io_service ipv6_host(sim, address_v6::from_string("ff::dead:beef"));
+	sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
 	lt::resolver res(ios);
 
 	sim::http_server http(web_server, 8080);
-	sim::http_server http_v6(ipv6_host, 8080);
+	sim::socks_server socks(proxy_ios, 4444, proxy_type == settings_pack::socks4 ? 4 : 5);
+
+	lt::aux::proxy_settings ps;
+	if (proxy_type != settings_pack::none)
+	{
+		ps.hostname = "50.50.50.50";
+		ps.port = 4444;
+		ps.username = "testuser";
+		ps.password = "testpass";
+		ps.type = proxy_type;
+		ps.proxy_hostnames = false;
+		// TODO: 2 also test proxying host names, and verify they are in fact proxied
+	}
 
 	char data_buffer[4000];
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
@@ -336,12 +353,6 @@ void run_test(std::string url, int expect_size, int expect_status
 			"\r\n";
 	});
 
-	lt::aux::proxy_settings ps;
-	ps.hostname = "127.0.0.1";
-	ps.username = "testuser";
-	ps.password = "testpass";
-	ps.type = settings_pack::none;
-
 	auto c = test_request(ios, res, url, data_buffer, expect_size
 		, expect_status, expect_error, ps, &counters[connect_handler]
 		, &counters[handler]);
@@ -359,4 +370,68 @@ void run_test(std::string url, int expect_size, int expect_status
 		TEST_EQUAL(counters[i], expect_counters[i]);
 	}
 }
+
+TORRENT_TEST(http_connection)
+{
+	run_suite(settings_pack::none);
+}
+
+TORRENT_TEST(http_connection_socks4)
+{
+	run_suite(settings_pack::socks4);
+}
+
+TORRENT_TEST(http_connection_socks5)
+{
+	run_suite(settings_pack::socks5);
+}
+
+TORRENT_TEST(http_connection_socks_error)
+{
+	// if we set up to user a proxy that does not exist, expect failure!
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service web_server(sim, address_v4::from_string("10.0.0.2"));
+	sim::asio::io_service ios(sim, address_v4::from_string("10.0.0.1"));
+	lt::resolver res(ios);
+
+	sim::http_server http(web_server, 8080);
+
+	lt::aux::proxy_settings ps;
+	ps.hostname = "50.50.50.50";
+	ps.port = 4444;
+	ps.username = "testuser";
+	ps.password = "testpass";
+	ps.type = settings_pack::socks5;
+
+	char data_buffer[4000];
+	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
+
+	http.register_handler("/test_file"
+		, [data_buffer](std::string method, std::string req
+		, std::map<std::string, std::string>& headers)
+	{
+		print_http_header(headers);
+		TEST_CHECK(false && "we're not supposed to get here!");
+		return sim::send_response(200, "OK", 1337).append(data_buffer, 1337);
+	});
+
+	int connect_counter = 0;
+	int handler_counter = 0;
+	auto c = test_request(ios, res, "http://10.0.0.2:8080/test_file"
+		, data_buffer, -1, -1
+		, error_code(boost::system::errc::connection_refused, boost::system::system_category())
+		, ps, &connect_counter, &handler_counter);
+
+	error_code e;
+	sim.run(e);
+
+	if (e) std::cerr << " run failed: " << e.message() << std::endl;
+	TEST_EQUAL(e, error_code());
+}
+
+// TODO: test http proxy
+// TODO: test socks5 with password
 
