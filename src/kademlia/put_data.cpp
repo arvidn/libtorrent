@@ -67,7 +67,6 @@ void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > cons
 
 void put_data::done()
 {
-	if (m_invoke_count != 0) return;
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
