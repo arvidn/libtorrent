@@ -47,6 +47,14 @@ put_data::put_data(node& dht_node, put_callback const& callback)
 
 char const* put_data::name() const { return "put_data"; }
 
+void put_data::start()
+{
+	// router nodes must not be added to puts
+	init();
+	bool is_done = add_requests();
+	if (is_done) done();
+}
+
 void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
 {
 	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = targets.begin()
