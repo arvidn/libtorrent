@@ -53,7 +53,7 @@ class node;
 
 struct put_data: traversal_algorithm
 {
-	typedef boost::function<void(item&, int)> put_callback;
+	typedef boost::function<void(item const&, int)> put_callback;
 
 	put_data(node& node, put_callback const& callback);
 

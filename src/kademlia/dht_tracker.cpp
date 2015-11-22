@@ -254,7 +254,7 @@ namespace libtorrent { namespace dht
 		m_dht.get_item(key, salt, cb);
 	}
 
-	void dht_tracker::put_item(entry data
+	void dht_tracker::put_item(entry const& data
 		, boost::function<void(int)> cb)
 	{
 		std::string flat_data;
@@ -266,7 +266,7 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::put_item(char const* key
-		, boost::function<void(item&, int)> cb
+		, boost::function<void(item const&, int)> cb
 		, boost::function<void(item&)> data_cb, std::string salt)
 	{
 		m_dht.put_item(key, salt, cb, data_cb);

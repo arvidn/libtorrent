@@ -43,7 +43,7 @@ namespace libtorrent { namespace dht
 class get_item : public find_data
 {
 public:
-	typedef boost::function<void(item&, bool)> data_callback;
+	typedef boost::function<void(item const&, bool)> data_callback;
 
 	void got_data(bdecode_node const& v,
 		char const* pk,
