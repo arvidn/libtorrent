@@ -462,13 +462,13 @@ namespace {
 void put(std::vector<std::pair<node_entry, std::string> > const& nodes
 	, boost::intrusive_ptr<dht::put_data> ta)
 {
-    ta->set_targets(nodes);
+	ta->set_targets(nodes);
 	ta->start();
 }
 
 void put_data_cb(item& i, bool auth
-		, boost::intrusive_ptr<put_data> ta
-		, boost::function<void(item&)> f)
+	, boost::intrusive_ptr<put_data> ta
+	, boost::function<void(item&)> f)
 {
 	// call data_callback only when we got authoritative data.
 	if (auth)

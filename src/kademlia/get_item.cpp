@@ -119,7 +119,7 @@ get_item::get_item(
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, item_target_id(
 		std::make_pair(salt.c_str(), int(salt.size())), pk)
-	        , ncallback)
+		, ncallback)
 	, m_data_callback(dcallback)
 	, m_data(pk, salt)
 	, m_immutable(false)
