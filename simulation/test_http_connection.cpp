@@ -105,7 +105,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 	, char const* expected_data
 	, int expected_size
 	, int expected_status
-	, error_code expected_ec
+	, error_condition expected_error
 	, lt::aux::proxy_settings const& ps
 	, int* connect_handler_called
 	, int* handler_called
@@ -121,11 +121,11 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 			printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
 
-			if (ec != expected_ec)
+			if (ec != expected_error)
 			{
 				printf("ERROR: %s (expected: %s)\n"
 					, ec.message().c_str()
-					, expected_ec.message().c_str());
+					, expected_error.message().c_str());
 			}
 
 			const int http_status = parser.status_code();
@@ -133,7 +133,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 			{
 				TEST_EQUAL(size, expected_size);
 			}
-			TEST_EQUAL(ec, expected_ec);
+			TEST_EQUAL(ec, expected_error);
 			if (expected_status != -1)
 			{
 				TEST_EQUAL(http_status, expected_status);
@@ -168,7 +168,7 @@ void print_http_header(std::map<std::string, std::string> const& headers)
 }
 
 void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
-	, boost::system::error_code expect_error, std::vector<int> expect_counters);
+	, boost::system::error_condition expect_error, std::vector<int> expect_counters);
 
 enum expect_counters
 {
@@ -188,13 +188,16 @@ void run_suite(settings_pack::proxy_type_t proxy_type)
 {
 	std::string url_base = "http://10.0.0.2:8080";
 
-	run_test(proxy_type, url_base + "/test_file", 1337, 200, error_code(), { 1, 1, 1});
+	run_test(proxy_type, url_base + "/test_file", 1337, 200, error_condition(), { 1, 1, 1});
 
-	run_test(proxy_type, url_base + "/non-existent", 0, 404, error_code(), { 1, 1 });
-	run_test(proxy_type, url_base + "/redirect", 1337, 200, error_code(), { 2, 1, 1, 1 });
-	run_test(proxy_type, url_base + "/relative/redirect", 1337, 200, error_code(), {2, 1, 1, 0, 1});
-	run_test(proxy_type, url_base + "/infinite/redirect", 0, 301, error_code(asio::error::eof), {6, 1, 0, 0, 0, 6});
-	run_test(proxy_type, url_base + "/chunked_encoding", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 1});
+	run_test(proxy_type, url_base + "/non-existent", 0, 404, error_condition(), { 1, 1 });
+	run_test(proxy_type, url_base + "/redirect", 1337, 200, error_condition(), { 2, 1, 1, 1 });
+	run_test(proxy_type, url_base + "/relative/redirect", 1337, 200, error_condition(), {2, 1, 1, 0, 1});
+
+	run_test(proxy_type, url_base + "/infinite/redirect", 0, 301
+		, error_condition(asio::error::eof, asio::error::get_misc_category()), {6, 1, 0, 0, 0, 6});
+
+	run_test(proxy_type, url_base + "/chunked_encoding", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 1});
 
 	// we are on an IPv4 host, we can't connect to IPv6 addresses, make sure that
 	// error is correctly propagated
@@ -203,26 +206,29 @@ void run_suite(settings_pack::proxy_type_t proxy_type)
 	// not support IPv6
 	if (proxy_type != settings_pack::socks5)
 	{
-		run_test(proxy_type, "http://[ff::dead:beef]:8080/test_file", 0, -1, error_code(asio::error::address_family_not_supported)
+		run_test(proxy_type, "http://[ff::dead:beef]:8080/test_file", 0, -1
+			, error_condition(boost::system::errc::address_family_not_supported, generic_category())
 			, {0,1});
 	}
 
 	// there is no node at 10.0.0.10, this should fail with connection refused
 	run_test(proxy_type, "http://10.0.0.10:8080/test_file", 0, -1,
-		error_code(boost::system::errc::connection_refused, boost::system::system_category())
+		error_condition(boost::system::errc::connection_refused, generic_category())
 		, {0,1});
 
 	// this hostname will resolve to multiple IPs, all but one that we cannot
 	// connect to and the second one where we'll get the test file response. Make
 	// sure the http_connection correcly tries the second IP if the first one
 	// fails.
-	run_test(proxy_type, "http://try-next.com:8080/test_file", 1337, 200, error_code(), { 1, 1, 1});
+	run_test(proxy_type, "http://try-next.com:8080/test_file", 1337, 200
+		, error_condition(), { 1, 1, 1});
 
 	// make sure hostname lookup failures are passed through correctly
-	run_test(proxy_type, "http://non-existent.com/test_file", 0, -1, asio::error::host_not_found, { 0, 1});
+	run_test(proxy_type, "http://non-existent.com/test_file", 0, -1
+		, error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category()), { 0, 1});
 
 	// make sure we handle gzipped content correctly
-	run_test(proxy_type, url_base + "/test_file.gz", 1337, 200, error_code(), { 1, 1, 0, 0, 0, 0, 0, 1});
+	run_test(proxy_type, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
 
 // TODO: 2 test basic-auth
 // TODO: 2 test https
@@ -230,7 +236,7 @@ void run_suite(settings_pack::proxy_type_t proxy_type)
 }
 
 void run_test(settings_pack::proxy_type_t proxy_type, std::string url, int expect_size, int expect_status
-	, boost::system::error_code expect_error, std::vector<int> expect_counters)
+	, boost::system::error_condition expect_error, std::vector<int> expect_counters)
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -422,7 +428,7 @@ TORRENT_TEST(http_connection_socks_error)
 	int handler_counter = 0;
 	auto c = test_request(ios, res, "http://10.0.0.2:8080/test_file"
 		, data_buffer, -1, -1
-		, error_code(boost::system::errc::connection_refused, boost::system::system_category())
+		, error_condition(boost::system::errc::connection_refused, boost::system::generic_category())
 		, ps, &connect_counter, &handler_counter);
 
 	error_code e;

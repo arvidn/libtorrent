@@ -201,7 +201,7 @@ namespace libtorrent
 		e.file_ptr = boost::make_shared<file>();
 		if (!e.file_ptr)
 		{
-			ec = error_code(ENOMEM, get_posix_category());
+			ec = error_code(boost::system::errc::not_enough_memory, generic_category());
 			return e.file_ptr;
 		}
 		std::string full_path = fs.file_path(file_index, p);
