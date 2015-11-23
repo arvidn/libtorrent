@@ -93,6 +93,9 @@ bool put_data::invoke(observer_ptr o)
 		m_invoke_count = -1;
 		return false;
 	}
+
+	// TODO: what if o is not an isntance of put_data_observer? This need to be
+	// redesigned for better type saftey.
 	put_data_observer* po = static_cast<put_data_observer*>(o.get());
 
 	entry e;
