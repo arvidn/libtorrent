@@ -89,7 +89,7 @@ std::string chunk_string(std::string s)
 	{
 		i = std::min(i, s.size());
 		char header[50];
-		snprintf(header, sizeof(header), "%zx\r\n", i);
+		snprintf(header, sizeof(header), "%x\r\n", int(i));
 		ret += header;
 		ret += s.substr(0, i);
 		s.erase(s.begin(), s.begin() + i);
@@ -121,7 +121,15 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 			printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
 
-			if (ec != expected_error)
+			// this is pretty gross. Since boost.asio is a header-only library, when this test is
+			// build against shared libraries of libtorrent and simulator, there will be multiple
+			// (distinct) error categories in boost.asio. The traditional comparison of error_code
+			// and error_condition may hence fail.
+			const bool error_ok = ec == expected_error
+				|| (strcmp(ec.category().name(), expected_error.category().name()) == 0
+				&& ec.value() == expected_error.value());
+
+			if (!error_ok)
 			{
 				printf("ERROR: %s (expected: %s)\n"
 					, ec.message().c_str()
@@ -133,7 +141,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 			{
 				TEST_EQUAL(size, expected_size);
 			}
-			TEST_EQUAL(ec, expected_error);
+			TEST_CHECK(error_ok);
 			if (expected_status != -1)
 			{
 				TEST_EQUAL(http_status, expected_status);
