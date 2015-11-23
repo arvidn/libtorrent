@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
+#include <libtorrent/kademlia/direct_request.hpp>
+#include <libtorrent/kademlia/get_item.hpp>
 
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/hasher.hpp>
@@ -156,10 +158,16 @@ void observer::set_id(node_id const& id)
 	if (m_algorithm) m_algorithm->resort_results();
 }
 
-enum { observer_size = max3<
+enum { observer_size = max9<
 	sizeof(find_data_observer)
 	, sizeof(announce_observer)
 	, sizeof(put_data_observer)
+	, sizeof(direct_observer)
+	, sizeof(get_item_observer)
+	, sizeof(get_peers_observer)
+	, sizeof(obfuscated_get_peers_observer)
+	, sizeof(null_observer)
+	, sizeof(traversal_observer)
 	>::value
 };
 
