@@ -58,6 +58,7 @@ struct put_data: traversal_algorithm
 	put_data(node& node, put_callback const& callback);
 
 	virtual char const* name() const;
+	virtual void start() TORRENT_OVERRIDE;
 
 	void set_data(item const& data) { m_data = data; }
 

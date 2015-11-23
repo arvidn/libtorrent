@@ -47,6 +47,14 @@ put_data::put_data(node& dht_node, put_callback const& callback)
 
 char const* put_data::name() const { return "put_data"; }
 
+void put_data::start()
+{
+	// router nodes must not be added to puts
+	init();
+	bool is_done = add_requests();
+	if (is_done) done();
+}
+
 void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
 {
 	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = targets.begin()
@@ -85,6 +93,9 @@ bool put_data::invoke(observer_ptr o)
 		m_invoke_count = -1;
 		return false;
 	}
+
+	// TODO: what if o is not an isntance of put_data_observer? This need to be
+	// redesigned for better type saftey.
 	put_data_observer* po = static_cast<put_data_observer*>(o.get());
 
 	entry e;
