@@ -136,56 +136,6 @@ void lazy_from_entry(entry const& e, bdecode_node& l)
 	TEST_CHECK(ret == 0);
 }
 
-void send_simple_dht_request(node& node, char const* msg, udp::endpoint const& ep
-	, bdecode_node* reply, entry const& args,
-	char const* t = "10", bool has_response = true)
-{
-	reply->clear();
-	entry e;
-	e["q"] = msg;
-	e["t"] = t;
-	e["y"] = "q";
-	e["a"] = args;
-
-	char msg_buf[1500];
-	int size = bencode(msg_buf, e);
-
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
-#endif
-
-	bdecode_node decoded;
-	error_code ec;
-	bdecode(msg_buf, msg_buf + size, decoded, ec);
-   	TEST_CHECK(!ec);
-
-	dht::msg m(decoded, ep);
-	node.incoming(m);
-
-	// If the request is supposed to get a response, by now the node should have 
-	// invoked the send function and put the response in g_sent_packets
-	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
-	if (has_response)
-	{
-		if (i == g_sent_packets.end())
-		{
-			TEST_ERROR("not response from DHT node");
-			return;
-		}
-		lazy_from_entry(i->second, *reply);
-		g_sent_packets.erase(i);
-
-		return;
-	}
-
-	// this request suppose won't be responsed.
-	if (i != g_sent_packets.end())
-	{
-		TEST_ERROR("shouldn't have response from DHT node");
-		return;
-	}
-}
-
 void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
 {
 	entry::list_type& pe = r["values"].list();
@@ -257,7 +207,8 @@ struct msg_args
 };
 
 void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
-	, bdecode_node* reply, char const* t = "10", msg_args const& args = msg_args())
+	, bdecode_node* reply, msg_args const& args = msg_args()
+	, char const* t = "10", bool has_response = true)
 {
 	// we're about to clear out the backing buffer
 	// for this lazy_entry, so we better clear it now
@@ -287,19 +238,29 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	dht::msg m(decoded, ep);
 	node.incoming(m);
 
-	// by now the node should have invoked the send function and put the
-	// response in g_sent_packets
-
-	std::list<std::pair<udp::endpoint, entry> >::iterator i
-		= find_packet(ep);
-	if (i == g_sent_packets.end())
+	// If the request is supposed to get a response, by now the node should have 
+	// invoked the send function and put the response in g_sent_packets
+	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
+	if (has_response)
 	{
-		TEST_ERROR("not response from DHT node");
+		if (i == g_sent_packets.end())
+		{
+			TEST_ERROR("not response from DHT node");
+			return;
+		}
+
+		lazy_from_entry(i->second, *reply);
+		g_sent_packets.erase(i);
+
 		return;
 	}
 
-	lazy_from_entry(i->second, *reply);
-	g_sent_packets.erase(i);
+	// this request suppose won't be responsed.
+	if (i != g_sent_packets.end())
+	{
+		TEST_ERROR("shouldn't have response from DHT node");
+		return;
+	}
 }
 
 void send_dht_response(node& node, bdecode_node const& request, udp::endpoint const& ep
@@ -362,7 +323,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		{
 			if ((i % items[j].num_peers) == 0) continue;
 			bdecode_node response;
-			send_dht_request(node, "get", eps[i], &response, "10"
+			send_dht_request(node, "get", eps[i], &response
 				, msg_args().target((char const*)&items[j].target[0]));
 			
 			key_desc_t desc[] =
@@ -401,7 +362,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 				TEST_EQUAL(addr, eps[i].address());
 			}
 
-			send_dht_request(node, "put", eps[i], &response, "10"
+			send_dht_request(node, "put", eps[i], &response
 				, msg_args()
 					.token(token)
 					.target((char const*)&items[j].target[0])
@@ -434,7 +395,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 	for (int j = 0; j < num_items; ++j)
 	{
 		bdecode_node response;
-		send_dht_request(node, "get", eps[j], &response, "10"
+		send_dht_request(node, "get", eps[j], &response
 			, msg_args().target((char const*)&items[j].target[0]));
 
 		key_desc_t desc[] =
@@ -544,16 +505,6 @@ dht_settings test_settings()
 	return sett;
 }
 
-entry test_args(sha1_hash const* nid = NULL)
-{
-    entry a;
-
-    if (nid == NULL) a["id"] = generate_next().to_string();
-    else a["id"] = nid->to_string();
-
-    return a;
-}
-
 // TODO: test obfuscated_get_peers
 // TODO: 2 split this test up into smaller test cases
 TORRENT_TEST(dht)
@@ -572,7 +523,7 @@ TORRENT_TEST(dht)
 
 	// ====== ping ======
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
-	send_dht_request(node, "ping", source, &response, "10");
+	send_dht_request(node, "ping", source, &response);
 
 	dht::key_desc_t pong_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -597,7 +548,7 @@ TORRENT_TEST(dht)
 
 	// ====== invalid message ======
 
-	send_dht_request(node, "find_node", source, &response, "10");
+	send_dht_request(node, "find_node", source, &response);
 
 	dht::key_desc_t err_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -628,7 +579,7 @@ TORRENT_TEST(dht)
 
 	// ====== get_peers ======
 
-	send_dht_request(node, "get_peers", source, &response, "10"
+	send_dht_request(node, "get_peers", source, &response
 		, msg_args().info_hash("01010101010101010101"));
 
 	dht::key_desc_t peer1_desc[] = {
@@ -657,7 +608,7 @@ TORRENT_TEST(dht)
 
 	// ====== announce ======
 
-	send_dht_request(node, "announce_peer", source, &response, "10"
+	send_dht_request(node, "announce_peer", source, &response
 		, msg_args()
 			.info_hash("01010101010101010101")
 			.name("test")
@@ -691,7 +642,7 @@ TORRENT_TEST(dht)
 	for (int i = 0; i < 100; ++i)
 	{
 		source = udp::endpoint(rand_v4(), 6000);
-		send_dht_request(node, "get_peers", source, &response, "10"
+		send_dht_request(node, "get_peers", source, &response
 			, msg_args().info_hash("01010101010101010101"));
 
 		ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
@@ -709,7 +660,7 @@ TORRENT_TEST(dht)
 			fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
 		}
 		response.clear();
-		send_dht_request(node, "announce_peer", source, &response, "10"
+		send_dht_request(node, "announce_peer", source, &response
 			, msg_args()
 				.info_hash("01010101010101010101")
 				.name("test")
@@ -722,7 +673,7 @@ TORRENT_TEST(dht)
 
 	// ====== get_peers ======
 
-	send_dht_request(node, "get_peers", source, &response, "10"
+	send_dht_request(node, "get_peers", source, &response
 		, msg_args().info_hash("01010101010101010101").scrape(true));
 
 	dht::key_desc_t peer2_desc[] = {
@@ -786,7 +737,7 @@ TORRENT_TEST(dht)
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
 	int nodes_num = node.size().get<0>();
-	send_dht_request(node, "find_node", source, &response, "10"
+	send_dht_request(node, "find_node", source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
@@ -817,7 +768,7 @@ TORRENT_TEST(dht)
 
 	// now the node-id is valid.
 	nid[0] = 0x5f;
-	send_dht_request(node, "find_node", source, &response, "10"
+	send_dht_request(node, "find_node", source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	dht::key_desc_t nodes_desc[] = {
@@ -962,7 +913,7 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "target_id: %s\n"
 			, to_hex(target_id.to_string()).c_str());
 
-		send_dht_request(node, "get", source, &response, "10"
+		send_dht_request(node, "get", source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		key_desc_t desc[] =
@@ -999,7 +950,7 @@ TORRENT_TEST(dht)
 		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
 #endif
 
-		send_dht_request(node, "put", source, &response, "10"
+		send_dht_request(node, "put", source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -1023,7 +974,7 @@ TORRENT_TEST(dht)
 			TEST_ERROR(error_string);
 		}
 
-		send_dht_request(node, "get", source, &response, "10"
+		send_dht_request(node, "get", source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		fprintf(stderr, "target_id: %s\n"
@@ -1077,7 +1028,7 @@ TORRENT_TEST(dht)
 
 		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
 
-		send_dht_request(node, "put", source, &response, "10"
+		send_dht_request(node, "put", source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -1104,7 +1055,7 @@ TORRENT_TEST(dht)
 
 		// === test conditional get ===
 
-		send_dht_request(node, "get", source, &response, "10"
+		send_dht_request(node, "get", source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
 
 		{
@@ -1114,7 +1065,7 @@ TORRENT_TEST(dht)
 			TEST_CHECK(r.dict_find("sig"));
 		}
 
-		send_dht_request(node, "get", source, &response, "10"
+		send_dht_request(node, "get", source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq));
 
 		{
@@ -1143,7 +1094,7 @@ TORRENT_TEST(dht)
 
 		fprintf(stderr, "PUT CAS 1\n");
 
-		send_dht_request(node, "put", source, &response, "10"
+		send_dht_request(node, "put", source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
@@ -1173,7 +1124,7 @@ TORRENT_TEST(dht)
 		// put the same message again. This should fail because the
 		// CAS hash is outdated, it's not the hash of the value that's
 		// stored anymore
-		send_dht_request(node, "put", source, &response, "10"
+		send_dht_request(node, "put", source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
@@ -2333,14 +2284,14 @@ TORRENT_TEST(read_only_node)
 	dht::node node(&s, sett, node_id(0), &observer, cnt);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
-	entry args = test_args();
+	msg_args args;
 
 	// for incoming requests, read_only node won't response.
-	send_simple_dht_request(node, "ping", source, &response, args, "10", false);
+	send_dht_request(node, "ping", source, &response, args, "10", false);
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 
-	args["target"] = "01010101010101010101";
-	send_simple_dht_request(node, "get", source, &response, args, "10", false);
+	args.target("01010101010101010101");
+	send_dht_request(node, "get", source, &response, args, "10", false);
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 
 	// also, the sender shouldn't be added to routing table.
@@ -2376,14 +2327,14 @@ TORRENT_TEST(read_only_node)
 	TEST_CHECK(ret);
 	TEST_EQUAL(parsed[3].int_value(), 1);
 
-	// should have one node now, whichi is 4.4.4.4:1234
+	// should have one node now, which is 4.4.4.4:1234
 	TEST_EQUAL(node.size().get<0>(), 1);
 
 	// now, disable read_only, try again.
 	g_sent_packets.clear();
 	sett.read_only = false;
 
-	send_simple_dht_request(node, "get", source, &response, args, "10", true);
+	send_dht_request(node, "get", source, &response);
 	// sender should be added to routing table, there are 2 nodes now.
 	TEST_EQUAL(node.size().get<0>(), 2);
 
