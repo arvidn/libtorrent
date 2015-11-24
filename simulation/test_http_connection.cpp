@@ -76,6 +76,12 @@ struct sim_config : sim::default_config
 			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
 		}
 
+		if (hostname == "test-hostname.com")
+		{
+			result.push_back(address_v4::from_string("10.0.0.2"));
+			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+		}
+
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
@@ -198,6 +204,9 @@ void run_suite(lt::aux::proxy_settings ps)
 
 	run_test(ps, url_base + "/test_file", 1337, 200, error_condition(), { 1, 1, 1});
 
+	// positive test with a successful hostname
+	run_test(ps, "http://test-hostname.com:8080/test_file", 1337, 200, error_condition(), { 1, 1, 1});
+
 	run_test(ps, url_base + "/non-existent", 0, 404, error_condition(), { 1, 1 });
 	run_test(ps, url_base + "/redirect", 1337, 200, error_condition(), { 2, 1, 1, 1 });
 	run_test(ps, url_base + "/relative/redirect", 1337, 200, error_condition(), {2, 1, 1, 0, 1});
@@ -224,9 +233,9 @@ void run_suite(lt::aux::proxy_settings ps)
 		error_condition(boost::system::errc::connection_refused, generic_category())
 		, {0,1});
 
-	// TODO: 3 add support for "domain name" address type in libsimulator's socks
-	// proxy. Also, make sure we can assert that raw IPs still are passed on to
-	// the proxy server as IPs, and not as hostnames
+	// the try-next test in his case would test the socks proxy itself, whether
+	// it has robust retry behavior (which the simple test proxy that comes with
+	// libsimulator doesn't).
 	if (ps.proxy_hostnames == false)
 	{
 		// this hostname will resolve to multiple IPs, all but one that we cannot
@@ -235,11 +244,15 @@ void run_suite(lt::aux::proxy_settings ps)
 		// fails.
 		run_test(ps, "http://try-next.com:8080/test_file", 1337, 200
 			, error_condition(), { 1, 1, 1});
-
-		// make sure hostname lookup failures are passed through correctly
-		run_test(ps, "http://non-existent.com/test_file", 0, -1
-			, error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category()), { 0, 1});
 	}
+
+	const error_condition expected_error = ps.proxy_hostnames
+		? error_condition(boost::system::errc::host_unreachable, generic_category())
+		: error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category());
+
+	// make sure hostname lookup failures are passed through correctly
+	run_test(ps, "http://non-existent.com/test_file", 0, -1
+		, expected_error, { 0, 1});
 
 	// make sure we handle gzipped content correctly
 	run_test(ps, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
@@ -253,13 +266,13 @@ lt::aux::proxy_settings make_proxy_settings(lt::settings_pack::proxy_type_t prox
 {
 	lt::aux::proxy_settings ps;
 	ps.type = proxy_type;
+	ps.proxy_hostnames = false;
 	if (proxy_type != settings_pack::none)
 	{
 		ps.hostname = "50.50.50.50";
 		ps.port = 4444;
 		ps.username = "testuser";
 		ps.password = "testpass";
-		ps.proxy_hostnames = false;
 	}
 	return ps;
 }
