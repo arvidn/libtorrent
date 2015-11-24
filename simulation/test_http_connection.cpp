@@ -480,4 +480,6 @@ TORRENT_TEST(http_connection_socks_error)
 
 // TODO: test http proxy
 // TODO: test socks5 with password
+// TODO: test SSL
+// TODO: test keepalive
 
