@@ -46,13 +46,13 @@ void ed25519_create_seed(unsigned char *seed) {
     FILE *f = fopen("/dev/urandom", "rb");
 
     if (f == NULL) {
-        throw boost::system::system_error(boost::system::error_code(errno, boost::system::generic_category()));
+        throw boost::system::system_error(boost::system::error_code(errno, boost::system::system_category()));
     }
 
     int read = fread(seed, 1, 32, f);
     if (read != 32) {
         fclose(f);
-        throw boost::system::system_error(boost::system::error_code(errno, boost::system::generic_category()));
+        throw boost::system::system_error(boost::system::error_code(errno, boost::system::system_category()));
     }
 
     fclose(f);
