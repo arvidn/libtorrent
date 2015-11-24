@@ -219,26 +219,15 @@ void run_suite(std::string const& protocol
 	stop_web_server();
 }
 
-TORRENT_TEST(no_proxy) { run_suite("http", settings_pack::none); }
-TORRENT_TEST(socks4) { run_suite("http", settings_pack::socks4); }
-TORRENT_TEST(socks5) { run_suite("http", settings_pack::socks5); }
-TORRENT_TEST(socks5_pw) { run_suite("http", settings_pack::socks5_pw); }
 TORRENT_TEST(http) { run_suite("http", settings_pack::http); }
 TORRENT_TEST(http_pw) { run_suite("http", settings_pack::http_pw); }
 
 #ifdef TORRENT_USE_OPENSSL
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
-TORRENT_TEST(socks4_ssl) { run_suite("https", settings_pack::socks4); }
-TORRENT_TEST(socks5_ssl) { run_suite("https", settings_pack::socks5); }
-TORRENT_TEST(socks5_pw_ssl) { run_suite("https", settings_pack::socks5_pw); }
 TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
 #endif // USE_OPENSSL
 
-TORRENT_TEST(chunked_encoding)
-{
-	run_suite("http", settings_pack::none, flag_chunked_encoding | flag_keepalive);
-}
 TORRENT_TEST(no_keepalive)
 {
 	run_suite("http", settings_pack::none, 0);

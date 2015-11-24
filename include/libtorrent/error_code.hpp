@@ -482,28 +482,11 @@ namespace libtorrent
 	TORRENT_EXPORT boost::system::error_category& get_http_category();
 
 	using boost::system::error_code;
-
-	// hidden
-	inline boost::system::error_category const& system_category()
-#if BOOST_VERSION < 104400
-	{ return boost::system::get_system_category(); }
-#else
-	{ return boost::system::system_category(); }
-#endif
-
-	// hidden
-	inline boost::system::error_category const& get_posix_category()
-#if BOOST_VERSION < 103600
-	{ return boost::system::get_posix_category(); }
-#elif BOOST_VERSION < 104400
-	{ return boost::system::get_generic_category(); }
-#else
-	{ return boost::system::generic_category(); }
-#endif // BOOST_VERSION < 103600
+	using boost::system::error_condition;
 
 	// internal
-	inline boost::system::error_category const& generic_category()
-	{ return get_posix_category(); }
+	using boost::system::generic_category;
+	using boost::system::system_category;
 
 #ifndef BOOST_NO_EXCEPTIONS
 	struct TORRENT_EXPORT libtorrent_exception: std::exception

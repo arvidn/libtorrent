@@ -111,6 +111,17 @@ public:
 
 	void set_dst_name(std::string const& host)
 	{
+		// TODO: 3 enable this assert and fix remaining causes of it triggering
+/*
+#if TORRENT_USE_ASSERTS
+		error_code ec;
+		address::from_string(host, ec);
+		// if this assert trips, set_dst_name() is called wth an IP address rather
+		// than a hostname. Instead, resolve the IP into an address and pass it to
+		// async_connect instead
+		TORRENT_ASSERT(ec);
+#endif
+*/
 		m_dst_name = host;
 		if (m_dst_name.size() > 255)
 			m_dst_name.resize(255);
@@ -118,7 +129,6 @@ public:
 
 	void close(error_code& ec)
 	{
-		m_hostname.clear();
 		m_dst_name.clear();
 		proxy_base::close(ec);
 	}
@@ -126,7 +136,6 @@ public:
 #ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
-		m_hostname.clear();
 		m_dst_name.clear();
 		proxy_base::close();
 	}

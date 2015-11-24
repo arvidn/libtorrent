@@ -141,8 +141,6 @@ namespace libtorrent
 		else
 		{
 			(*h)(socks_error::unsupported_version);
-			error_code ec;
-			close(ec);
 		}
 	}
 
@@ -177,8 +175,6 @@ namespace libtorrent
 		if (version < m_version)
 		{
 			(*h)(socks_error::unsupported_version);
-			error_code ec;
-			close(ec);
 			return;
 		}
 
@@ -191,8 +187,6 @@ namespace libtorrent
 			if (m_user.empty())
 			{
 				(*h)(socks_error::username_required);
-				error_code ec;
-				close(ec);
 				return;
 			}
 
@@ -214,8 +208,6 @@ namespace libtorrent
 		else
 		{
 			(*h)(socks_error::unsupported_authentication_method);
-			error_code ec;
-			close(ec);
 			return;
 		}
 	}
@@ -253,16 +245,12 @@ namespace libtorrent
 		if (version != 1)
 		{
 			(*h)(socks_error::unsupported_authentication_version);
-			error_code ec;
-			close(ec);
 			return;
 		}
 
 		if (status != 0)
 		{
 			(*h)(socks_error::authentication_error);
-			error_code ec;
-			close(ec);
 			return;
 		}
 
@@ -309,8 +297,6 @@ namespace libtorrent
 			if (!m_remote_endpoint.address().is_v4())
 			{
 				(*h)(boost::asio::error::address_family_not_supported);
-				error_code ec;
-				close(ec);
 				return;
 			}
 			m_buffer.resize(m_user.size() + 9);
@@ -326,8 +312,6 @@ namespace libtorrent
 		else
 		{
 			(*h)(socks_error::unsupported_version);
-			error_code ec;
-			close(ec);
 			return;
 		}
 
@@ -376,8 +360,6 @@ namespace libtorrent
 			if (version < m_version)
 			{
 				(*h)(socks_error::unsupported_version);
-				error_code ec;
-				close(ec);
 				return;
 			}
 			if (response != 0)
@@ -394,7 +376,6 @@ namespace libtorrent
 					case 8: ec = boost::asio::error::address_family_not_supported; break;
 				}
 				(*h)(ec);
-				close(ec);
 				return;
 			}
 			p += 1; // reserved
@@ -437,8 +418,6 @@ namespace libtorrent
 			else
 			{
 				(*h)(boost::asio::error::address_family_not_supported);
-				error_code ec;
-				close(ec);
 				return;
 			}
 			m_buffer.resize(m_buffer.size() + extra_bytes);
@@ -455,8 +434,6 @@ namespace libtorrent
 			if (version != 0)
 			{
 				(*h)(socks_error::general_failure);
-				error_code ec;
-				close(ec);
 				return;
 			}
 
@@ -487,16 +464,14 @@ namespace libtorrent
 				return;
 			}
 
-			int code = socks_error::general_failure;
+			error_code ec(socks_error::general_failure, get_socks_category());
 			switch (response)
 			{
-				case 91: code = socks_error::authentication_error; break;
-				case 92: code = socks_error::no_identd; break;
-				case 93: code = socks_error::identd_error; break;
+				case 91: ec = boost::asio::error::connection_refused; break;
+				case 92: ec = socks_error::no_identd; break;
+				case 93: ec = socks_error::identd_error; break;
 			}
-			error_code ec(code, get_socks_category());
 			(*h)(ec);
-			close(ec);
 		}
 	}
 

@@ -104,7 +104,7 @@ struct test_storage : default_storage
 		{
 			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 			error_code ec;
-			ec = error_code(boost::system::errc::no_space_on_device, get_posix_category());
+			ec = error_code(boost::system::errc::no_space_on_device, generic_category());
 			se.ec = ec;
 			return 0;
 		}
