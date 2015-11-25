@@ -205,21 +205,21 @@ int load_file(std::string const& filename, std::vector<char>& v
 	FILE* f = fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		return -1;
 	}
 
 	int r = fseek(f, 0, SEEK_END);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		fclose(f);
 		return -1;
 	}
@@ -233,7 +233,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 	r = fseek(f, 0, SEEK_SET);
 	if (r != 0)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		fclose(f);
 		return -1;
 	}
@@ -248,7 +248,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 	r = fread(&v[0], 1, v.size(), f);
 	if (r < 0)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		fclose(f);
 		return -1;
 	}
@@ -758,7 +758,7 @@ std::vector<std::string> list_dir(std::string path
 	DIR* handle = opendir(path.c_str());
 	if (handle == 0)
 	{
-		ec.assign(errno, boost::system::generic_category());
+		ec.assign(errno, boost::system::system_category());
 		return ret;
 	}
 

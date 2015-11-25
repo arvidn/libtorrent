@@ -549,7 +549,7 @@ namespace libtorrent
 			m_cache_fd = open(sett.get_str(settings_pack::mmap_cache).c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
 			if (m_cache_fd < 0)
 			{
-				ec.assign(errno, boost::system::generic_category());
+				ec.assign(errno, boost::system::system_category());
 			}
 			else
 			{
@@ -561,7 +561,7 @@ namespace libtorrent
 					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
 				if (intptr_t(m_cache_pool) == -1)
 				{
-					ec.assign(errno, boost::system::generic_category());
+					ec.assign(errno, boost::system::system_category());
 
 					m_cache_pool = 0;
 					// attempt to make MacOS not flush this to disk, making close()
