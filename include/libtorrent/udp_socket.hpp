@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/allocating_handler.hpp"
 
 #include <deque>
 
@@ -179,6 +180,26 @@ namespace libtorrent
 		std::vector<udp_socket_observer*> m_observers;
 		std::vector<udp_socket_observer*> m_added_observers;
 
+		template <class Handler>
+		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+			make_read_handler4(Handler const& handler)
+		{
+			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+				handler, m_v4_read_handler_storage
+			);
+		}
+
+#if TORRENT_USE_IPV6
+		template <class Handler>
+		aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+			make_read_handler6(Handler const& handler)
+		{
+			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+				handler, m_v6_read_handler_storage
+			);
+		}
+#endif
+
 		// this is true while iterating over the observers
 		// vector, invoking observer hooks. We may not
 		// add new observers during this time, since it
@@ -219,6 +240,7 @@ namespace libtorrent
 		void unwrap(error_code const& e, char const* buf, int size);
 
 		udp::socket m_ipv4_sock;
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_v4_read_handler_storage;
 		deadline_timer m_timer;
 		int m_buf_size;
 
@@ -232,12 +254,15 @@ namespace libtorrent
 
 #if TORRENT_USE_IPV6
 		udp::socket m_ipv6_sock;
+		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_v6_read_handler_storage;
 #endif
 
 		boost::uint16_t m_bind_port;
 		boost::uint8_t m_v4_outstanding;
+		boost::uint8_t m_restart_v4;
 #if TORRENT_USE_IPV6
 		boost::uint8_t m_v6_outstanding;
+		boost::uint8_t m_restart_v6;
 #endif
 
 		tcp::socket m_socks5_sock;
