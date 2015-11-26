@@ -341,15 +341,8 @@ namespace libtorrent
 
 		if (ecode)
 		{
-			fail(ecode, parser.status_code());
-			close();
-			return;
-		}
-
-		if (!resp.failure_reason.empty())
-		{
-			fail(error_code(errors::tracker_failure), parser.status_code()
-				, resp.failure_reason.c_str(), resp.interval, resp.min_interval);
+			fail(ecode, parser.status_code(), resp.failure_reason.c_str()
+				, resp.interval, resp.min_interval);
 			close();
 			return;
 		}

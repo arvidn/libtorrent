@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/announce_entry.hpp"
 
 using namespace libtorrent;
 using namespace sim;
@@ -166,7 +167,7 @@ void test_interval(int interval)
 	// TODO: verify that announce_alerts seem right as well
 }
 
-void test_completed()
+TORRENT_TEST(event_completed)
 {
 	using sim::asio::ip::address_v4;
 	sim::default_config network_cfg;
@@ -239,11 +240,6 @@ void test_completed()
 				break;
 		}
 	}
-}
-
-TORRENT_TEST(event_completed)
-{
-	test_completed();
 }
 
 TORRENT_TEST(announce_interval_440)
@@ -385,6 +381,202 @@ TORRENT_TEST(ipv6_support)
 	TEST_EQUAL(v6_announces, 2);
 }
 
+template <typename Announce, typename Test>
+void announce_entry_test(Announce a, Test t)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_service tracker_ios(sim, address_v4::from_string("10.0.0.2"));
+
+	// listen on port 8080
+	sim::http_server http(tracker_ios, 8080);
+
+	http.register_handler("/announce", a);
+
+	lt::session_proxy zombie;
+
+	asio::io_service ios(sim, { address_v4::from_string("10.0.0.3")
+		, address_v6::from_string("ffff::1337") });
+	lt::settings_pack sett = settings();
+	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+
+	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
+
+	lt::add_torrent_params p;
+	p.name = "test-torrent";
+	p.save_path = ".";
+	p.info_hash.assign("abababababababababab");
+	p.trackers.push_back("http://tracker.com:8080/announce");
+	ses->async_add_torrent(p);
+
+	// stop the torrent 5 seconds in
+	asio::high_resolution_timer t1(ios);
+	t1.expires_from_now(chrono::seconds(5));
+	t1.async_wait([&ses,&t](boost::system::error_code const& ec)
+	{
+		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		torrent_handle h = torrents.front();
+
+		std::vector<announce_entry> tr = h.trackers();
+
+		TEST_EQUAL(tr.size(), 1);
+		announce_entry const& ae = tr[0];
+		t(ae);
+	});
+
+	// then shut down 10 seconds in
+	asio::high_resolution_timer t2(ios);
+	t2.expires_from_now(chrono::seconds(10));
+	t2.async_wait([&ses,&zombie](boost::system::error_code const& ec)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
+TORRENT_TEST(test_error)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			int size = snprintf(response, sizeof(response), "d14:failure reason4:teste");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), false);
+			TEST_EQUAL(ae.message, "test");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure
+				, get_libtorrent_category()));
+			TEST_EQUAL(ae.fails, 1);
+		});
+}
+
+TORRENT_TEST(test_warning)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			int size = snprintf(response, sizeof(response), "d5:peers6:aaaaaa15:warning message5:test2e");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), true);
+			TEST_EQUAL(ae.message, "test2");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code());
+			TEST_EQUAL(ae.fails, 0);
+		});
+}
+
+TORRENT_TEST(test_scrape)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			int size = snprintf(response, sizeof(response),
+				"d5:peers6:aaaaaa8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi4ee");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), true);
+			TEST_EQUAL(ae.message, "");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code());
+			TEST_EQUAL(ae.fails, 0);
+			TEST_EQUAL(ae.scrape_complete, 1);
+			TEST_EQUAL(ae.scrape_incomplete, 2);
+			TEST_EQUAL(ae.scrape_downloaded, 3);
+		});
+}
+
+TORRENT_TEST(test_http_status)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+			return sim::send_response(410, "Not A Tracker", 0);
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), false);
+			TEST_EQUAL(ae.message, "Not A Tracker");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code(410, get_http_category()));
+			TEST_EQUAL(ae.fails, 1);
+		});
+}
+
+TORRENT_TEST(test_interval)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+			char response[500];
+			int size = snprintf(response, sizeof(response)
+				, "d10:tracker id8:testteste");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), true);
+			TEST_EQUAL(ae.message, "");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code());
+			TEST_EQUAL(ae.fails, 0);
+
+			TEST_EQUAL(ae.trackerid, "testtest");
+		});
+}
+
+TORRENT_TEST(test_invalid_bencoding)
+{
+	announce_entry_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+			char response[500];
+			int size = snprintf(response, sizeof(response)
+				, "d10:tracer idteste");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](announce_entry const& ae)
+		{
+			TEST_EQUAL(ae.is_working(), false);
+			TEST_EQUAL(ae.message, "");
+			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
+			TEST_EQUAL(ae.last_error, error_code(bdecode_errors::expected_value
+				, get_bdecode_category()));
+			TEST_EQUAL(ae.fails, 1);
+		});
+}
+
+// TODO: test external IP
 // TODO: test with different queuing settings
 // TODO: test when a torrent transitions from downloading to finished and
 // finished to seeding

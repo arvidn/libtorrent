@@ -3293,6 +3293,12 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
+		announce_entry* ae = find_tracker(req);
+		if (ae)
+		{
+			ae->message = msg;
+		}
+
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
 			m_ses.alerts().emplace_alert<tracker_warning_alert>(get_handle(), req.url, msg);
 	}
