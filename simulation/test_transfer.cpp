@@ -48,25 +48,46 @@ using namespace sim;
 
 namespace lt = libtorrent;
 
+enum flags_t
+{
+	ipv6 = 1,
+};
+
+asio::ip::address addr(char const* str)
+{
+	return asio::ip::address::from_string(str);
+}
+
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
 	Setup const& setup
 	, HandleAlerts const& on_alert
-	, Test const& test)
+	, Test const& test
+	, int flags = 0)
 {
 	using namespace libtorrent;
 
 	lt::time_point start_time = lt::clock_type::now();
 
+	const bool use_ipv6 = flags & ipv6;
+
+	char const* peer0_ip[2] = { "50.0.0.1", "feed:face:baad:f00d::1" };
+	char const* peer1_ip[2] = { "50.0.0.2", "feed:face:baad:f00d::2" };
+
+	using asio::ip::address;
+	address peer0 = addr(peer0_ip[use_ipv6]);
+	address peer1 = addr(peer1_ip[use_ipv6]);
+	address proxy = (flags & ipv6) ? addr("2001::2") : addr("50.50.50.50");
+
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
-	sim::asio::io_service ios0 { sim, asio::ip::address_v4::from_string("50.0.0.1") };
-	sim::asio::io_service ios1 { sim, asio::ip::address_v4::from_string("50.0.0.2") };
+	sim::asio::io_service ios0 { sim, peer0 };
+	sim::asio::io_service ios1 { sim, peer1 };
 
 	lt::session_proxy zombie[2];
 
-	sim::asio::io_service proxy_ios{sim, asio::ip::address_v4::from_string("50.50.50.50")};
+	sim::asio::io_service proxy_ios{sim, proxy };
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 
@@ -83,10 +104,14 @@ void run_test(
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
 
+	pack.set_str(settings_pack::listen_interfaces, peer0_ip[use_ipv6] + std::string(":6881"));
+
 	// create session
-	std::shared_ptr<lt::session> ses[] = {
-		std::make_shared<lt::session>(pack, ios0)
-		, std::make_shared<lt::session>(pack, ios1) };
+	std::shared_ptr<lt::session> ses[2];
+	ses[0] = std::make_shared<lt::session>(pack, ios0);
+
+	pack.set_str(settings_pack::listen_interfaces, peer1_ip[use_ipv6] + std::string(":6881"));
+	ses[1] = std::make_shared<lt::session>(pack, ios1);
 
 	setup(*ses[0], *ses[1]);
 
@@ -101,7 +126,7 @@ void run_test(
 				- start_time).count()), a->message().c_str());
 			if (auto ta = alert_cast<lt::torrent_added_alert>(a))
 			{
-				ta->handle.connect_peer(lt::tcp::endpoint(lt::address::from_string("50.0.0.2"), 6881));
+				ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 			}
 			// call the user handler
 			on_alert(*ses[0], a);
@@ -179,7 +204,7 @@ void filter_ips(lt::session& ses)
 	ses.set_ip_filter(filter);
 }
 
-void set_proxy(lt::session& ses, int proxy_type, bool proxy_peer_connections = true)
+void set_proxy(lt::session& ses, int proxy_type, int flags = 0, bool proxy_peer_connections = true)
 {
 	// apply the proxy settings to session 0
 	using namespace libtorrent;
@@ -189,7 +214,10 @@ void set_proxy(lt::session& ses, int proxy_type, bool proxy_peer_connections = t
 		p.set_int(settings_pack::proxy_port, 4444);
 	else
 		p.set_int(settings_pack::proxy_port, 5555);
-	p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
+	if (flags & ipv6)
+		p.set_str(settings_pack::proxy_hostname, "2001::2");
+	else
+		p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
 	p.set_bool(settings_pack::proxy_hostnames, true);
 	p.set_bool(settings_pack::proxy_peer_connections, proxy_peer_connections);
 	p.set_bool(settings_pack::proxy_tracker_connections, true);
@@ -247,6 +275,52 @@ TORRENT_TEST(encryption_tcp)
 		}
 	);
 }
+
+TORRENT_TEST(no_proxy_tcp_ipv6)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		},
+		ipv6
+	);
+}
+
+TORRENT_TEST(no_proxy_utp_ipv6)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {},
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		},
+		ipv6
+	);
+}
+
+// TODO: the socks server does not support IPv6 addresses yet
+/*
+TORRENT_TEST(socks5_tcp_ipv6)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1)
+		{
+			set_proxy(ses0, settings_pack::socks5);
+			filter_ips(ses1);
+		},
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+		},
+		ipv6
+	);
+}
+*/
 
 TORRENT_TEST(no_proxy_tcp)
 {
