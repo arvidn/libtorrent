@@ -327,7 +327,7 @@ private:
 			read_packet_size,
 			read_packet
 		};
-		
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		enum
 		{

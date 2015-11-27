@@ -6120,12 +6120,6 @@ namespace libtorrent
 		m_counters.inc_stats_counter(counters::on_read_counter);
 		m_ses.received_buffer(bytes_transferred);
 
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming, "ON_RECEIVE_DATA"
-			, "bytes: %d error: %s"
-			, int(bytes_transferred), error.message().c_str());
-#endif
-
 		if (m_extension_outstanding_bytes > 0)
 			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
 

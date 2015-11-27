@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for clock_type
 
 #include "test.hpp"
-#include "setup_transfer.hpp" // for create_torrent (factor this out!)
 #include "setup_swarm.hpp"
 #include "swarm_suite.hpp"
 #include "swarm_config.hpp"

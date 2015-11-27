@@ -85,7 +85,11 @@ struct swarm
 			if (!params.save_path.empty())
 				ses->async_add_torrent(params);
 
-			ses->set_alert_notify(boost::bind(&swarm::on_alert_notify, this, i));
+			ses->set_alert_notify([i,this] {
+				// this function is called inside libtorrent and we cannot perform work
+				// immediately in it. We have to notify the outside to pull all the alerts
+				m_io_service[i]->post(boost::bind(&swarm::on_alerts, this, i));
+			});
 		}
 
 		m_timer.expires_from_now(lt::seconds(1));
@@ -106,13 +110,6 @@ struct swarm
 
 		m_timer.expires_from_now(lt::seconds(1));
 		m_timer.async_wait(boost::bind(&swarm::on_tick, this, _1));
-	}
-
-	void on_alert_notify(int session_index)
-	{
-		// this function is called inside libtorrent and we cannot perform work
-		// immediately in it. We have to notify the outside to pull all the alerts
-		m_io_service[session_index]->post(boost::bind(&swarm::on_alerts, this, session_index));
 	}
 
 	void on_alerts(int session_index)
