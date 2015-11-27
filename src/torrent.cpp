@@ -9928,13 +9928,14 @@ namespace libtorrent
 				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
 		}
 
+		if (next_announce <= now) next_announce = now;
+
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** update tracker timer: next_announce < now %d"
 			" m_waiting_tracker: %d next_announce_in: %d"
 			, next_announce <= now, m_waiting_tracker
 			, int(total_seconds(now - next_announce)));
 #endif
-		if (next_announce <= now) next_announce = now;
 
 		// don't re-issue the timer if it's the same expiration time as last time
 		// if m_waiting_tracker is false, expires_at() is undefined
