@@ -985,7 +985,6 @@ namespace libtorrent
 		// have sent to it
 		int m_outstanding_bytes;
 
-		// TODO: 3 use handler storage for second_tick and udp_packet handler too
 		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
 		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
 

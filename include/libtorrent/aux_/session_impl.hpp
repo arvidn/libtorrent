@@ -1062,6 +1062,15 @@ namespace libtorrent
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;
+			aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_tick_handler_storage;
+
+			template <class Handler>
+			aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>
+			make_tick_handler(Handler const& handler)
+			{
+				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
+					handler, m_tick_handler_storage);
+			}
 
 			// torrents are announced on the local network in a
 			// round-robin fashion. All torrents are cycled through

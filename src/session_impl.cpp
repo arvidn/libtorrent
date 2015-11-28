@@ -1730,9 +1730,10 @@ namespace aux {
 		{
 			TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
+			error_code ignore;
 			session_log("failed to bind to interface [%s %d] \"%s\" : %s (%d) : %s "
 				"(retries: %d)"
-				, device.c_str(), port, bind_ip.to_string(ec).c_str()
+				, device.c_str(), port, bind_ip.to_string(ignore).c_str()
 				, ec.category().name(), ec.value(), ec.message().c_str(), retries);
 #endif
 			ec.clear();
@@ -1755,6 +1756,8 @@ namespace aux {
 		}
 		if (ec)
 		{
+			TORRENT_ASSERT_VAL(ec.value() != 0, ec);
+
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
@@ -2958,7 +2961,7 @@ retry:
 #endif
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
-		m_timer.async_wait(boost::bind(&session_impl::on_tick, this, _1));
+		m_timer.async_wait(make_tick_handler(boost::bind(&session_impl::on_tick, this, _1)));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);

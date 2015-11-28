@@ -67,8 +67,10 @@ udp_socket::udp_socket(io_service& ios)
 #endif
 	, m_bind_port(0)
 	, m_v4_outstanding(0)
+	, m_restart_v4(0)
 #if TORRENT_USE_IPV6
 	, m_v6_outstanding(0)
+	, m_restart_v6(false)
 #endif
 	, m_socks5_sock(ios)
 	, m_resolver(ios)
@@ -284,7 +286,26 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		--m_v4_outstanding;
 	}
 
-	if (ec == boost::asio::error::operation_aborted) return;
+	if (ec == boost::asio::error::operation_aborted)
+	{
+#if TORRENT_USE_IPV6
+		if (s == &m_ipv6_sock)
+		{
+			if (m_restart_v6) {
+				--m_restart_v6;
+				setup_read(s);
+			}
+		}
+		else
+#endif
+		{
+			if (m_restart_v4) {
+				--m_restart_v4;
+				setup_read(s);
+			}
+		}
+		return;
+	}
 	if (m_abort) return;
 
 	CHECK_MAGIC;
@@ -498,10 +519,26 @@ void udp_socket::setup_read(udp::socket* s)
 
 #if TORRENT_USE_IPV6
 	if (s == &m_ipv6_sock)
+	{
+		if (m_v6_outstanding)
+		{
+			++m_restart_v6;
+			m_ipv6_sock.cancel();
+			return;
+		}
 		++m_v6_outstanding;
+	}
 	else
 #endif
+	{
+		if (m_v4_outstanding)
+		{
+			++m_restart_v4;
+			m_ipv4_sock.cancel();
+			return;
+		}
 		++m_v4_outstanding;
+	}
 
 #if defined TORRENT_ASIO_DEBUGGING
 	add_outstanding_async("udp_socket::on_read");
@@ -510,8 +547,18 @@ void udp_socket::setup_read(udp::socket* s)
 	udp::endpoint ep;
 	TORRENT_TRY
 	{
-		s->async_receive_from(null_buffers()
-			, ep, boost::bind(&udp_socket::on_read, this, _1, s));
+#if TORRENT_USE_IPV6
+		if (s == &m_ipv6_sock)
+		{
+			s->async_receive_from(null_buffers()
+				, ep, make_read_handler6(boost::bind(&udp_socket::on_read, this, _1, s)));
+		}
+		else
+#endif
+		{
+			s->async_receive_from(null_buffers()
+				, ep, make_read_handler4(boost::bind(&udp_socket::on_read, this, _1, s)));
+		}
 	}
 	TORRENT_CATCH(boost::system::system_error& e)
 	{
