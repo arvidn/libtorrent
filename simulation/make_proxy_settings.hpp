@@ -30,42 +30,28 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "test.hpp"
-#include "setup_transfer.hpp" // for ::create_torrent
-#include "libtorrent/add_torrent_params.hpp"
-#include <fstream>
+#ifndef TORRENT_MAKE_PROXY_SETTINGS_HPP
+#define TORRENT_MAKE_PROXY_SETTINGS_HPP
 
-namespace lt = libtorrent;
+#include "libtorrent/aux_/proxy_settings.hpp"
 
-std::string save_path(int idx)
+inline libtorrent::aux::proxy_settings make_proxy_settings(
+	libtorrent::settings_pack::proxy_type_t proxy_type)
 {
-	int swarm_id = test_counter();
-	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
-		, swarm_id, idx);
-	return path;
+	using namespace libtorrent;
+
+	aux::proxy_settings ps;
+	ps.type = proxy_type;
+	ps.proxy_hostnames = false;
+	if (proxy_type != settings_pack::none)
+	{
+		ps.hostname = "50.50.50.50";
+		ps.port = 4444;
+		ps.username = "testuser";
+		ps.password = "testpass";
+	}
+	return ps;
 }
 
-lt::add_torrent_params create_torrent(int idx, bool seed)
-{
-	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
-	// create
-	lt::add_torrent_params params;
-	int swarm_id = test_counter();
-	char name[200];
-	snprintf(name, sizeof(name), "temp-%02d", swarm_id);
-	std::string path = save_path(idx);
-	lt::error_code ec;
-	lt::create_directory(path, ec);
-	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
-		, path.c_str(), ec.message().c_str());
-	std::ofstream file(lt::combine_path(path, name).c_str());
-	params.ti = ::create_torrent(&file, name, 0x4000, 9 + idx, false);
-	file.close();
-
-	// by setting the save path to a dummy path, it won't be seeding
-	params.save_path = seed ? path : "dummy";
-	return params;
-}
-
+#endif
 

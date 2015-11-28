@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/io.hpp"
+#include "make_proxy_settings.hpp"
 
 #include <boost/crc.hpp>
 
@@ -260,21 +261,6 @@ void run_suite(lt::aux::proxy_settings ps)
 // TODO: 2 test basic-auth
 // TODO: 2 test https
 
-}
-
-lt::aux::proxy_settings make_proxy_settings(lt::settings_pack::proxy_type_t proxy_type)
-{
-	lt::aux::proxy_settings ps;
-	ps.type = proxy_type;
-	ps.proxy_hostnames = false;
-	if (proxy_type != settings_pack::none)
-	{
-		ps.hostname = "50.50.50.50";
-		ps.port = 4444;
-		ps.username = "testuser";
-		ps.password = "testpass";
-	}
-	return ps;
 }
 
 void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status

@@ -59,13 +59,9 @@ const int mask = alert::all_categories & ~(alert::performance_warning | alert::s
 
 int peer_disconnects = 0;
 
-int tracker_responses = 0;
-
 bool on_alert(alert const* a)
 {
-	if (alert_cast<tracker_reply_alert>(a))
-		++tracker_responses;
-	else if (alert_cast<peer_disconnected_alert>(a))
+	if (alert_cast<peer_disconnected_alert>(a))
 		++peer_disconnects;
 	else if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
@@ -216,6 +212,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
 
+	// TODO: these settings_pack tests belong in their own test
 	pack.set_int(settings_pack::unchoke_slots_limit, 0);
 	ses1.apply_settings(pack);
 	TEST_CHECK(ses1.get_settings().get_int(settings_pack::unchoke_slots_limit) == 0);
@@ -265,7 +262,6 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	// to make sure it can handle switching paths
 	bool test_move_storage = false;
 
-	tracker_responses = 0;
 	int upload_mode_timer = 0;
 
 	wait_for_downloading(ses2, "ses2");
@@ -379,27 +375,6 @@ TORRENT_TEST(no_contiguous_buffers)
 }
 
 	// test with all kinds of proxies
-TORRENT_TEST(no_proxy)
-{
-	using namespace libtorrent;
-	test_transfer(settings_pack::none, settings_pack());
-	cleanup();
-}
-
-TORRENT_TEST(socks4)
-{
-	using namespace libtorrent;
-	test_transfer(settings_pack::socks4, settings_pack());
-	cleanup();
-}
-
-TORRENT_TEST(socks5)
-{
-	using namespace libtorrent;
-	test_transfer(settings_pack::socks5, settings_pack());
-	cleanup();
-}
-
 TORRENT_TEST(socks5_pw)
 {
 	using namespace libtorrent;

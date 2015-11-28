@@ -85,6 +85,8 @@ void run_test(Setup const& setup
 	, HandleAlerts const& on_alert
 	, Test const& test)
 {
+	const lt::time_point start_time = lt::clock_type::now();
+
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -95,6 +97,9 @@ void run_test(Setup const& setup
 	lt::settings_pack pack = settings();
 	// create session
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
+
+	// TODO: 2 ideally this test should also try to connect to the session,
+	// making sure incoming connections from banned IPs are rejected
 
 	fake_peer p1(sim, "60.0.0.0");
 	fake_peer p2(sim, "60.0.0.1");
@@ -113,7 +118,13 @@ void run_test(Setup const& setup
 		std::vector<lt::alert*> alerts;
 		ses->pop_alerts(&alerts);
 		// call the user handler
-		if (!alerts.empty()) on_alert(*ses, alerts);
+		for (auto const a : alerts)
+		{
+			printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
+				- start_time).count()), a->message().c_str());
+
+			on_alert(*ses, a);
+		}
 	} ); } );
 
 	lt::deadline_timer timer(ios);
@@ -171,8 +182,6 @@ void add_ip_filter(lt::session& ses)
 // connected to
 TORRENT_TEST(apply_ip_filter)
 {
-	lt::time_point start_time = lt::clock_type::now();
-
 	run_test(
 		[](lt::session& ses)
 		{
@@ -184,18 +193,12 @@ TORRENT_TEST(apply_ip_filter)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, std::vector<lt::alert*> const& alerts)
+		[&](lt::session& ses, lt::alert const* a)
 		{
-			for (lt::alert const* a : alerts)
+			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
-				printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-					- start_time).count()), a->message().c_str());
-
-				if (lt::add_torrent_alert const* at = lt::alert_cast<lt::add_torrent_alert>(a))
-				{
-					lt::torrent_handle h = at->handle;
-					add_fake_peers(h);
-				}
+				lt::torrent_handle h = at->handle;
+				add_fake_peers(h);
 			}
 		},
 
@@ -210,8 +213,6 @@ TORRENT_TEST(apply_ip_filter)
 // connected to
 TORRENT_TEST(update_ip_filter)
 {
-	lt::time_point start_time = lt::clock_type::now();
-
 	run_test(
 		[](lt::session& ses)
 		{
@@ -221,22 +222,16 @@ TORRENT_TEST(update_ip_filter)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, std::vector<lt::alert*> const& alerts)
+		[&](lt::session& ses, lt::alert const* a)
 		{
-			for (lt::alert const* a : alerts)
+			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
-				printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-					- start_time).count()), a->message().c_str());
+				// here we add the IP filter after the torrent has already been
+				// added
+				add_ip_filter(ses);
 
-				if (lt::add_torrent_alert const* at = lt::alert_cast<lt::add_torrent_alert>(a))
-				{
-					// here we add the IP filter after the torrent has already been
-					// added
-					add_ip_filter(ses);
-
-					lt::torrent_handle h = at->handle;
-					add_fake_peers(h);
-				}
+				lt::torrent_handle h = at->handle;
+				add_fake_peers(h);
 			}
 		},
 
@@ -249,8 +244,6 @@ TORRENT_TEST(update_ip_filter)
 
 TORRENT_TEST(apply_ip_filter_to_torrent)
 {
-	lt::time_point start_time = lt::clock_type::now();
-
 	run_test(
 		[](lt::session& ses)
 		{
@@ -265,18 +258,12 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, std::vector<lt::alert*> const& alerts)
+		[&](lt::session& ses, lt::alert const* a)
 		{
-			for (lt::alert const* a : alerts)
+			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
-				printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-					- start_time).count()), a->message().c_str());
-
-				if (lt::add_torrent_alert const* at = lt::alert_cast<lt::add_torrent_alert>(a))
-				{
-					lt::torrent_handle h = at->handle;
-					add_fake_peers(h);
-				}
+				lt::torrent_handle h = at->handle;
+				add_fake_peers(h);
 			}
 		},
 
@@ -292,8 +279,6 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 // make sure IP filters apply to trackers
 TORRENT_TEST(ip_filter_trackers)
 {
-	lt::time_point start_time = lt::clock_type::now();
-
 	run_test(
 		[](lt::session& ses)
 		{
@@ -312,15 +297,7 @@ TORRENT_TEST(ip_filter_trackers)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, std::vector<lt::alert*> const& alerts)
-		{
-			for (lt::alert const* a : alerts)
-			{
-				printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-					- start_time).count()), a->message().c_str());
-			}
-		},
-
+		[](lt::session& ses, lt::alert const* a) {},
 		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
 		{
 			check_tripped(test_peers, {{false, false, false, true, true}} );

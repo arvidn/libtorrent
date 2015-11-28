@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 
 #include "libtorrent/kademlia/dht_storage.hpp"
-#include "libtorrent/kademlia/item.hpp"
 
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/address.hpp"
@@ -63,7 +62,7 @@ namespace
 		return sett;
 	}
 
-	static sha1_hash to_hash(char const *s) {
+	sha1_hash to_hash(char const *s) {
 		sha1_hash ret;
 		from_hex(s, 40, (char *) &ret[0]);
 		return ret;
@@ -117,12 +116,9 @@ TORRENT_TEST(dht_storage_counters)
 	tcp::endpoint p4 = tcp::endpoint(address::from_string("124.31.75.24"), 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
-
 	s->announce_peer(n2, p2, "torrent_name1", false);
 	s->announce_peer(n2, p3, "torrent_name1", false);
 	s->announce_peer(n3, p4, "torrent_name2", false);
-
-	entry item;
 
 	s->put_immutable_item(n4, "123", 3, address::from_string("124.31.75.21"));
 
@@ -132,7 +128,8 @@ TORRENT_TEST(dht_storage_counters)
 
 	char public_key[item_pk_len];
 	char signature[item_sig_len];
-	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
+	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4
+		, address::from_string("124.31.75.21"));
 
 	dht_storage_counters c;
 	// note that we are using the aux global timer
@@ -155,3 +152,4 @@ TORRENT_TEST(dht_storage_counters)
 	c.mutable_data = 0;
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
 }
+
