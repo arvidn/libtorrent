@@ -80,3 +80,8 @@ TORRENT_TEST(explicit_cache)
 	simulate_swarm(suggest_read_cache | explicit_cache);
 }
 
+TORRENT_TEST(shutdown)
+{
+	simulate_swarm(early_shutdown);
+}
+

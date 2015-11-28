@@ -516,44 +516,6 @@ namespace libtorrent
 	}
 #else // if 0
 
-	int torrent::current_stats_state() const
-	{
-		if (m_abort) return counters::num_checking_torrents + no_gauge_state;
-
-		if (has_error()) return counters::num_error_torrents;
-		if (!m_allow_peers || m_graceful_pause_mode)
-		{
-			if (!is_auto_managed()) return counters::num_stopped_torrents;
-			if (is_seed()) return counters::num_queued_seeding_torrents;
-			return counters::num_queued_download_torrents;
-		}
-		if (state() == torrent_status::checking_files
-#ifndef TORRENT_NO_DEPRECATE
-			|| state() == torrent_status::queued_for_checking
-#endif
-			)
-			return counters::num_checking_torrents;
-		else if (is_seed()) return counters::num_seeding_torrents;
-		else if (is_upload_only()) return counters::num_upload_only_torrents;
-		return counters::num_downloading_torrents;
-	}
-
-	void torrent::update_gauge()
-	{
-		int new_gauge_state = current_stats_state() - counters::num_checking_torrents;
-		TORRENT_ASSERT(new_gauge_state >= 0);
-		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
-
-		if (new_gauge_state == m_current_gauge_state) return;
-
-		if (m_current_gauge_state != no_gauge_state)
-			inc_stats_counter(m_current_gauge_state + counters::num_checking_torrents, -1);
-		if (new_gauge_state != no_gauge_state)
-			inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
-
-		m_current_gauge_state = new_gauge_state;
-	}
-
 	void torrent::on_torrent_download(error_code const& ec
 		, http_parser const& parser, char const* data, int size)
 	{
@@ -662,6 +624,45 @@ namespace libtorrent
 	}
 
 #endif // if 0
+
+	int torrent::current_stats_state() const
+	{
+		if (m_abort) return counters::num_checking_torrents + no_gauge_state;
+
+		if (has_error()) return counters::num_error_torrents;
+		if (!m_allow_peers || m_graceful_pause_mode)
+		{
+			if (!is_auto_managed()) return counters::num_stopped_torrents;
+			if (is_seed()) return counters::num_queued_seeding_torrents;
+			return counters::num_queued_download_torrents;
+		}
+		if (state() == torrent_status::checking_files
+#ifndef TORRENT_NO_DEPRECATE
+			|| state() == torrent_status::queued_for_checking
+#endif
+			)
+			return counters::num_checking_torrents;
+		else if (is_seed()) return counters::num_seeding_torrents;
+		else if (is_upload_only()) return counters::num_upload_only_torrents;
+		return counters::num_downloading_torrents;
+	}
+
+	void torrent::update_gauge()
+	{
+		int new_gauge_state = current_stats_state() - counters::num_checking_torrents;
+		TORRENT_ASSERT(new_gauge_state >= 0);
+		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
+
+		if (new_gauge_state == m_current_gauge_state) return;
+
+		if (m_current_gauge_state != no_gauge_state)
+			inc_stats_counter(m_current_gauge_state + counters::num_checking_torrents, -1);
+		if (new_gauge_state != no_gauge_state)
+			inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
+
+		m_current_gauge_state = new_gauge_state;
+	}
+
 
 	void torrent::leave_seed_mode(bool skip_checking)
 	{
@@ -9787,6 +9788,7 @@ namespace libtorrent
 				&& graceful == false)
 			{
 				m_graceful_pause_mode = graceful;
+				update_gauge();
 				do_pause();
 			}
 			return;

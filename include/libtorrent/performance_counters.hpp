@@ -319,8 +319,7 @@ namespace libtorrent
 		{
 			num_checking_torrents = num_stats_counters,
 			num_stopped_torrents,
-			// upload_only means finished
-			num_upload_only_torrents,
+			num_upload_only_torrents, // upload_only means finished
 			num_downloading_torrents,
 			num_seeding_torrents,
 			num_queued_seeding_torrents,
