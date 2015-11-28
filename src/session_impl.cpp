@@ -1123,11 +1123,17 @@ namespace aux {
 		m_ssl_udp_socket.close();
 #endif
 
-		m_undead_peers.clear();
-
-		// give all the sockets an opportunity to actually have their handlers
-		// called and cancelled before we continue the shutdown
-		m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+		// we need to give all the sockets an opportunity to actually have their handlers
+		// called and cancelled before we continue the shutdown. This is a bit
+		// complicated, if there are no "undead" peers, it's safe tor resume the
+		// shutdown, but if there are, we have to wait for them to be cleared out
+		// first. In session_impl::on_tick() we check them periodically. If we're
+		// shutting down and we remove the last one, we'll initiate
+		// shutdown_stage2 from there.
+		if (m_undead_peers.empty())
+		{
+			m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+		}
 	}
 
 	void session_impl::abort_stage2()
@@ -2932,6 +2938,25 @@ retry:
 		aux::update_time_now();
 		time_point now = aux::time_now();
 
+		// remove undead peers that only have this list as their reference keeping them alive
+		if (!m_undead_peers.empty())
+		{
+			std::vector<boost::shared_ptr<peer_connection> >::iterator remove_it
+				= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
+				, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
+			m_undead_peers.erase(remove_it, m_undead_peers.end());
+			if (m_undead_peers.empty())
+			{
+				// we just removed our last "undead" peer (i.e. a peer connection
+				// that had some external reference to it). It's now safe to
+				// shut-down
+				if (m_abort)
+				{
+					m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+				}
+			}
+		}
+
 // too expensive
 //		INVARIANT_CHECK;
 
@@ -2939,10 +2964,13 @@ retry:
 		// until they're all closed
 		if (m_abort)
 		{
-			if (m_utp_socket_manager.num_sockets() == 0)
+			if (m_utp_socket_manager.num_sockets() == 0
+				&& m_undead_peers.empty())
 				return;
 #if defined TORRENT_ASIO_DEBUGGING
-			fprintf(stderr, "uTP sockets left: %d\n", m_utp_socket_manager.num_sockets());
+			fprintf(stderr, "uTP sockets left: %d undead-peers left: %d\n"
+				, m_utp_socket_manager.num_sockets()
+				, int(m_undead_peers.size()));
 #endif
 		}
 
@@ -2979,12 +3007,6 @@ retry:
 			&& m_dht_interval_update_torrents != int(m_torrents.size()))
 			update_dht_announce_interval();
 #endif
-
-		// remove undead peers that only have this list as their reference keeping them alive
-		std::vector<boost::shared_ptr<peer_connection> >::iterator remove_it
-			= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
-			, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
-		m_undead_peers.erase(remove_it, m_undead_peers.end());
 
 		int tick_interval_ms = int(total_milliseconds(now - m_last_second_tick));
 		m_last_second_tick = now;
@@ -3604,6 +3626,8 @@ retry:
 					t->log_to_all_peers("auto manager starting (inactive) torrent");
 #endif
 				t->set_allow_peers(true);
+				t->update_gauge();
+				t->update_want_peers();
 				continue;
 			}
 
@@ -3620,6 +3644,8 @@ retry:
 					t->log_to_all_peers("auto manager starting torrent");
 #endif
 				t->set_allow_peers(true);
+				t->update_gauge();
+				t->update_want_peers();
 				continue;
 			}
 
@@ -3632,6 +3658,8 @@ retry:
 			t->set_announce_to_dht(false);
 			t->set_announce_to_trackers(false);
 			t->set_announce_to_lsd(false);
+			t->update_gauge();
+			t->update_want_peers();
 		}
 	}
 

@@ -53,9 +53,17 @@ struct test_swarm_config : swarm_config
 		, m_resumed_once(false)
 	{}
 
+	virtual bool tick(int t) override
+	{
+		return (m_flags & early_shutdown) ? t >= 1 : t > 200;
+	}
+
 	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
 	{
-		swarm_config::on_exit(torrents);
+		if ((m_flags & early_shutdown) == 0)
+		{
+			swarm_config::on_exit(torrents);
+		}
 
 		// if we stopped and started again, we loose some time and need a bit
 		// more slack for completion

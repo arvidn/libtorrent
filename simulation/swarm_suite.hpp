@@ -44,7 +44,8 @@ enum test_flags_t
 	stop_start_download = 128,
 	stop_start_seed = 256,
 	graceful_pause = 1024,
-	add_extra_peers = 2048
+	add_extra_peers = 2048,
+	early_shutdown = 4096
 };
 
 void EXPORT simulate_swarm(int flags = 0);
