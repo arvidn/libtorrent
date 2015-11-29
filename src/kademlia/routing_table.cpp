@@ -80,13 +80,17 @@ void erase_one(T& container, K const& key)
 routing_table::routing_table(node_id const& id, int bucket_size
 	, dht_settings const& settings
 	, dht_logger* log)
-	: m_log(log)
-	, m_settings(settings)
+	:
+#ifndef TORRENT_DISABLE_LOGGING
+	m_log(log),
+#endif
+	m_settings(settings)
 	, m_id(id)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
 	, m_bucket_size(bucket_size)
 {
+	TORRENT_UNUSED(log);
 	m_buckets.reserve(30);
 }
 

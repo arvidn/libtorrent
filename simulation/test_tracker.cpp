@@ -278,16 +278,18 @@ struct sim_config : sim::default_config
 
 void on_alert_notify(lt::session* ses)
 {
-	std::vector<lt::alert*> alerts;
-	ses->pop_alerts(&alerts);
+	ses->get_io_service().post([ses] {
+		std::vector<lt::alert*> alerts;
+		ses->pop_alerts(&alerts);
 
-	for (lt::alert* a : alerts)
-	{
-		lt::time_duration d = a->timestamp().time_since_epoch();
-		boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-		printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
-			a->message().c_str());
-	}
+		for (lt::alert* a : alerts)
+		{
+			lt::time_duration d = a->timestamp().time_since_epoch();
+			boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+			printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+				a->message().c_str());
+		}
+	});
 }
 
 // this test makes sure that a tracker whose host name resolves to both IPv6 and
@@ -370,6 +372,7 @@ TORRENT_TEST(ipv6_support)
 		terminate.async_wait([&ses,&zombie](boost::system::error_code const& ec)
 		{
 			zombie = ses->abort();
+			ses->set_alert_notify([]{});
 			ses.reset();
 		});
 
@@ -433,6 +436,7 @@ void announce_entry_test(Announce a, Test t)
 	t2.async_wait([&ses,&zombie](boost::system::error_code const& ec)
 	{
 		zombie = ses->abort();
+		ses->set_alert_notify([]{});
 		ses.reset();
 	});
 

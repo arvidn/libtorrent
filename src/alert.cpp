@@ -918,6 +918,8 @@ namespace libtorrent {
 		return ret;
 	}
 
+#ifndef TORRENT_DISABLE_LOGGING
+
 	portmap_log_alert::portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m)
 		: map_type(t)
 #ifndef TORRENT_NO_DEPRECATE
@@ -939,6 +941,8 @@ namespace libtorrent {
 			, log_message());
 		return ret;
 	}
+
+#endif
 
 	fastresume_rejected_alert::fastresume_rejected_alert(
 		aux::stack_allocator& alloc
@@ -1550,6 +1554,8 @@ namespace libtorrent {
 		return msg;
 	}
 
+#ifndef TORRENT_DISABLE_LOGGING
+
 	log_alert::log_alert(aux::stack_allocator& alloc, char const* log)
 		: m_alloc(alloc)
 		, m_str_idx(alloc.copy_string(log))
@@ -1606,6 +1612,8 @@ namespace libtorrent {
 		return torrent_alert::message() + " [" + print_endpoint(ip) + "] "
 			+ mode[direction] + " " + event_type + " [ " + msg() + " ]";
 	}
+
+#endif
 
 	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec)
 		: alert()

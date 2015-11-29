@@ -94,8 +94,12 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	bool failed() const;
 
+#ifndef TORRENT_DISABLE_LOGGING
+
 	void peer_log(peer_log_alert::direction_t direction
 		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
+
+#endif // TORRENT_DISABLE_LOGGING
 
 	bool can_disconnect(error_code const& ec) const;
 

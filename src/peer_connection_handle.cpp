@@ -220,11 +220,12 @@ bool peer_connection_handle::failed() const
 	return pc->failed();
 }
 
+#ifndef TORRENT_DISABLE_LOGGING
+
 TORRENT_FORMAT(4,5)
 void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 	, char const* event, char const* fmt, ...) const
 {
-#ifndef TORRENT_DISABLE_LOGGING
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
 	va_list v;
@@ -238,12 +239,9 @@ void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 #pragma clang diagnostic pop
 #endif
 	va_end(v);
-#else
-	TORRENT_UNUSED(direction);
-	TORRENT_UNUSED(event);
-	TORRENT_UNUSED(fmt);
-#endif
 }
+
+#endif // TORRENT_DISABLE_LOGGING
 
 bool peer_connection_handle::can_disconnect(error_code const& ec) const
 {

@@ -99,7 +99,7 @@ public:
 	void status(std::vector<dht_routing_bucket>& s) const;
 
 	void node_failed(node_id const& id, udp::endpoint const& ep);
-	
+
 	// adds an endpoint that will never be added to
 	// the routing table
 	void add_router_node(udp::endpoint router);
@@ -191,7 +191,9 @@ public:
 
 private:
 
+#ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
+#endif
 
 	table_t::iterator find_bucket(node_id const& id);
 

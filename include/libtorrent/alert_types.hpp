@@ -83,7 +83,7 @@ namespace libtorrent
 
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
-	struct TORRENT_EXPORT torrent_alert: alert
+	struct TORRENT_EXPORT torrent_alert : alert
 	{
 		// internal
 		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -133,7 +133,7 @@ namespace libtorrent
 	// This is a base class used for alerts that are associated with a
 	// specific tracker. It derives from torrent_alert since a tracker
 	// is also associated with a specific torrent.
-	struct TORRENT_EXPORT tracker_alert: torrent_alert
+	struct TORRENT_EXPORT tracker_alert : torrent_alert
 	{
 		// internal
 		tracker_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -184,7 +184,7 @@ namespace libtorrent
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
 	// from its base class.
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
-	struct TORRENT_EXPORT torrent_added_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_added_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -206,7 +206,7 @@ namespace libtorrent
 	// The ``torrent_handle`` acts as a ``weak_ptr``, even though its object no
 	// longer exists, it can still compare equal to another weak pointer which
 	// points to the same non-existent object.
-	struct TORRENT_EXPORT torrent_removed_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_removed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_removed_alert(aux::stack_allocator& alloc
@@ -227,7 +227,7 @@ namespace libtorrent
 	// number of bytes that was read.
 	// 
 	// If the operation fails, ec will indicat what went wrong.
-	struct TORRENT_EXPORT read_piece_alert: torrent_alert
+	struct TORRENT_EXPORT read_piece_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -248,7 +248,7 @@ namespace libtorrent
 
 	// This is posted whenever an individual file completes its download. i.e.
 	// All pieces overlapping this file have passed their hash check.
-	struct TORRENT_EXPORT file_completed_alert: torrent_alert
+	struct TORRENT_EXPORT file_completed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -265,7 +265,7 @@ namespace libtorrent
 
 	// This is posted as a response to a torrent_handle::rename_file() call, if the rename
 	// operation succeeds.
-	struct TORRENT_EXPORT file_renamed_alert: torrent_alert
+	struct TORRENT_EXPORT file_renamed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -291,7 +291,7 @@ namespace libtorrent
 
 	// This is posted as a response to a torrent_handle::rename_file() call, if the rename
 	// operation failed.
-	struct TORRENT_EXPORT file_rename_failed_alert: torrent_alert
+	struct TORRENT_EXPORT file_rename_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		file_rename_failed_alert(aux::stack_allocator& alloc
@@ -313,7 +313,7 @@ namespace libtorrent
 
 	// This alert is generated when a limit is reached that might have a negative impact on
 	// upload or download rate performance.
-	struct TORRENT_EXPORT performance_alert: torrent_alert
+	struct TORRENT_EXPORT performance_alert TORRENT_FINAL : torrent_alert
 	{
 		enum performance_warning_t
 		{
@@ -410,7 +410,7 @@ namespace libtorrent
 	};
 
 	// Generated whenever a torrent changes its state.
-	struct TORRENT_EXPORT state_changed_alert: torrent_alert
+	struct TORRENT_EXPORT state_changed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		state_changed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -438,7 +438,7 @@ namespace libtorrent
 	// failed. ``status_code`` is the code returned from the HTTP server. 401
 	// means the tracker needs authentication, 404 means not found etc. If the
 	// tracker timed out, the code will be set to 0.
-	struct TORRENT_EXPORT tracker_error_alert: tracker_alert
+	struct TORRENT_EXPORT tracker_error_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		tracker_error_alert(aux::stack_allocator& alloc
@@ -471,7 +471,7 @@ namespace libtorrent
 	// This alert is triggered if the tracker reply contains a warning field.
 	// Usually this means that the tracker announce was successful, but the
 	// tracker has a message to the client.
-	struct TORRENT_EXPORT tracker_warning_alert: tracker_alert
+	struct TORRENT_EXPORT tracker_warning_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		tracker_warning_alert(aux::stack_allocator& alloc
@@ -497,7 +497,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a scrape request succeeds.
-	struct TORRENT_EXPORT scrape_reply_alert: tracker_alert
+	struct TORRENT_EXPORT scrape_reply_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		scrape_reply_alert(aux::stack_allocator& alloc
@@ -519,7 +519,7 @@ namespace libtorrent
 	// If a scrape request fails, this alert is generated. This might be due
 	// to the tracker timing out, refusing connection or returning an http response
 	// code indicating an error.
-	struct TORRENT_EXPORT scrape_failed_alert: tracker_alert
+	struct TORRENT_EXPORT scrape_failed_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		scrape_failed_alert(aux::stack_allocator& alloc
@@ -557,7 +557,7 @@ namespace libtorrent
 	// This alert is only for informational purpose. It is generated when a tracker announce
 	// succeeds. It is generated regardless what kind of tracker was used, be it UDP, HTTP or
 	// the DHT.
-	struct TORRENT_EXPORT tracker_reply_alert: tracker_alert
+	struct TORRENT_EXPORT tracker_reply_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		tracker_reply_alert(aux::stack_allocator& alloc
@@ -579,7 +579,7 @@ namespace libtorrent
 	// is the number of peers we received in this packet. Typically these packets are
 	// received from multiple DHT nodes, and so the alerts are typically generated
 	// a few at a time.
-	struct TORRENT_EXPORT dht_reply_alert: tracker_alert
+	struct TORRENT_EXPORT dht_reply_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		dht_reply_alert(aux::stack_allocator& alloc
@@ -596,7 +596,7 @@ namespace libtorrent
 	// This alert is generated each time a tracker announce is sent (or attempted to be sent).
 	// There are no extra data members in this alert. The url can be found in the base class
 	// however.
-	struct TORRENT_EXPORT tracker_announce_alert: tracker_alert
+	struct TORRENT_EXPORT tracker_announce_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		tracker_announce_alert(aux::stack_allocator& alloc
@@ -618,7 +618,7 @@ namespace libtorrent
 
 	// This alert is generated when a finished piece fails its hash check. You can get the handle
 	// to the torrent which got the failed piece and the index of the piece itself from the alert.
-	struct TORRENT_EXPORT hash_failed_alert: torrent_alert
+	struct TORRENT_EXPORT hash_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		hash_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -634,7 +634,7 @@ namespace libtorrent
 
 	// This alert is generated when a peer is banned because it has sent too many corrupt pieces
 	// to us. ``ip`` is the endpoint to the peer that was banned.
-	struct TORRENT_EXPORT peer_ban_alert: peer_alert
+	struct TORRENT_EXPORT peer_ban_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_ban_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -647,7 +647,7 @@ namespace libtorrent
 
 	// This alert is generated when a peer is unsnubbed. Essentially when it was snubbed for stalling
 	// sending data, and now it started sending data again.
-	struct TORRENT_EXPORT peer_unsnubbed_alert: peer_alert
+	struct TORRENT_EXPORT peer_unsnubbed_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_unsnubbed_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -660,7 +660,7 @@ namespace libtorrent
 
 	// This alert is generated when a peer is snubbed, when it stops sending data when we request
 	// it.
-	struct TORRENT_EXPORT peer_snubbed_alert: peer_alert
+	struct TORRENT_EXPORT peer_snubbed_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_snubbed_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -673,7 +673,7 @@ namespace libtorrent
 
 	// This alert is generated when a peer sends invalid data over the peer-peer protocol. The peer
 	// will be disconnected, but you get its ip address from the alert, to identify it.
-	struct TORRENT_EXPORT peer_error_alert: peer_alert
+	struct TORRENT_EXPORT peer_error_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -698,7 +698,7 @@ namespace libtorrent
 	};
 
 	// This alert is posted every time an outgoing peer connect attempts succeeds.
-	struct TORRENT_EXPORT peer_connect_alert: peer_alert
+	struct TORRENT_EXPORT peer_connect_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -714,7 +714,7 @@ namespace libtorrent
 
 	// This alert is generated when a peer is disconnected for any reason (other than the ones
 	// covered by peer_error_alert ).
-	struct TORRENT_EXPORT peer_disconnected_alert: peer_alert
+	struct TORRENT_EXPORT peer_disconnected_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		peer_disconnected_alert(aux::stack_allocator& alloc
@@ -748,7 +748,7 @@ namespace libtorrent
 	// This is a debug alert that is generated by an incoming invalid piece request.
 	// ``ip`` is the address of the peer and the ``request`` is the actual incoming
 	// request from the peer. See peer_request for more info.
-	struct TORRENT_EXPORT invalid_request_alert: peer_alert
+	struct TORRENT_EXPORT invalid_request_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		invalid_request_alert(aux::stack_allocator& alloc
@@ -778,10 +778,10 @@ namespace libtorrent
 	// This alert is generated when a torrent switches from being a downloader to a seed.
 	// It will only be generated once per torrent. It contains a torrent_handle to the
 	// torrent in question.
-	struct TORRENT_EXPORT torrent_finished_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_finished_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
-		torrent_finished_alert(aux::stack_allocator& alloc, 
+		torrent_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle h);
 
 		TORRENT_DEFINE_ALERT(torrent_finished_alert, 26)
@@ -793,7 +793,7 @@ namespace libtorrent
 	// this alert is posted every time a piece completes downloading
 	// and passes the hash check. This alert derives from torrent_alert
 	// which contains the torrent_handle to the torrent the piece belongs to.
-	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
+	struct TORRENT_EXPORT piece_finished_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		piece_finished_alert(aux::stack_allocator& alloc,
@@ -809,7 +809,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a peer rejects or ignores a piece request.
-	struct TORRENT_EXPORT request_dropped_alert: peer_alert
+	struct TORRENT_EXPORT request_dropped_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -827,7 +827,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a block request times out.
-	struct TORRENT_EXPORT block_timeout_alert: peer_alert
+	struct TORRENT_EXPORT block_timeout_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -845,7 +845,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a block request receives a response.
-	struct TORRENT_EXPORT block_finished_alert: peer_alert
+	struct TORRENT_EXPORT block_finished_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -862,7 +862,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a block request is sent to a peer.
-	struct TORRENT_EXPORT block_downloading_alert: peer_alert
+	struct TORRENT_EXPORT block_downloading_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -883,7 +883,7 @@ namespace libtorrent
 
 	// This alert is generated when a block is received that was not requested or
 	// whose request timed out.
-	struct TORRENT_EXPORT unwanted_block_alert: peer_alert
+	struct TORRENT_EXPORT unwanted_block_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -902,7 +902,7 @@ namespace libtorrent
 	// files have been moved, as an effect of a call to ``torrent_handle::move_storage``. This
 	// is useful to synchronize with the actual disk. The ``path`` member is the new path of
 	// the storage.
-	struct TORRENT_EXPORT storage_moved_alert: torrent_alert
+	struct TORRENT_EXPORT storage_moved_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		storage_moved_alert(aux::stack_allocator& alloc
@@ -926,7 +926,7 @@ namespace libtorrent
 
 	// The ``storage_moved_failed_alert`` is generated when an attempt to move the storage,
 	// via torrent_handle::move_storage(), fails.
-	struct TORRENT_EXPORT storage_moved_failed_alert: torrent_alert
+	struct TORRENT_EXPORT storage_moved_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		storage_moved_failed_alert(aux::stack_allocator& alloc
@@ -966,7 +966,7 @@ namespace libtorrent
 	// 
 	// This alert is posted in the ``storage_notification`` category, and that bit
 	// needs to be set in the alert_mask.
-	struct TORRENT_EXPORT torrent_deleted_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_deleted_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_deleted_alert(aux::stack_allocator& alloc
@@ -984,7 +984,7 @@ namespace libtorrent
 
 	// This alert is generated when a request to delete the files of a torrent fails.
 	// Just removing a torrent from the session cannot fail
-	struct TORRENT_EXPORT torrent_delete_failed_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_delete_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_delete_failed_alert(aux::stack_allocator& alloc
@@ -1011,7 +1011,7 @@ namespace libtorrent
 
 	// This alert is generated as a response to a ``torrent_handle::save_resume_data`` request.
 	// It is generated once the disk IO thread is done writing the state for this torrent.
-	struct TORRENT_EXPORT save_resume_data_alert: torrent_alert
+	struct TORRENT_EXPORT save_resume_data_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		save_resume_data_alert(aux::stack_allocator& alloc
@@ -1031,7 +1031,7 @@ namespace libtorrent
 
 	// This alert is generated instead of ``save_resume_data_alert`` if there was an error
 	// generating the resume data. ``error`` describes what went wrong.
-	struct TORRENT_EXPORT save_resume_data_failed_alert: torrent_alert
+	struct TORRENT_EXPORT save_resume_data_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		save_resume_data_failed_alert(aux::stack_allocator& alloc
@@ -1056,7 +1056,7 @@ namespace libtorrent
 	// This alert is generated as a response to a ``torrent_handle::pause`` request. It is
 	// generated once all disk IO is complete and the files in the torrent have been closed.
 	// This is useful for synchronizing with the disk.
-	struct TORRENT_EXPORT torrent_paused_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_paused_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_paused_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -1069,7 +1069,7 @@ namespace libtorrent
 
 	// This alert is generated as a response to a torrent_handle::resume() request. It is
 	// generated when a torrent goes from a paused state to an active state.
-	struct TORRENT_EXPORT torrent_resumed_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_resumed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_resumed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -1082,7 +1082,7 @@ namespace libtorrent
 
 	// This alert is posted when a torrent completes checking. i.e. when it transitions
 	// out of the ``checking files`` state into a state where it is ready to start downloading
-	struct TORRENT_EXPORT torrent_checked_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_checked_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_checked_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -1094,7 +1094,7 @@ namespace libtorrent
 	};
 
 	// This alert is generated when a HTTP seed name lookup fails.
-	struct TORRENT_EXPORT url_seed_alert: torrent_alert
+	struct TORRENT_EXPORT url_seed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1133,7 +1133,7 @@ namespace libtorrent
 
 	// If the storage fails to read or write files that it needs access to, this alert is
 	// generated and the torrent is paused.
-	struct TORRENT_EXPORT file_error_alert: torrent_alert
+	struct TORRENT_EXPORT file_error_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		file_error_alert(aux::stack_allocator& alloc
@@ -1172,7 +1172,7 @@ namespace libtorrent
 	// failed to match it. i.e. the metadata that was received was corrupt. libtorrent will
 	// automatically retry to fetch it in this case. This is only relevant when running a
 	// torrent-less download, with the metadata extension provided by libtorrent.
-	struct TORRENT_EXPORT metadata_failed_alert: torrent_alert
+	struct TORRENT_EXPORT metadata_failed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		metadata_failed_alert(aux::stack_allocator& alloc
@@ -1212,7 +1212,7 @@ namespace libtorrent
 	//		}
 	//	}
 	// 
-	struct TORRENT_EXPORT metadata_received_alert: torrent_alert
+	struct TORRENT_EXPORT metadata_received_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		metadata_received_alert(aux::stack_allocator& alloc
@@ -1227,7 +1227,7 @@ namespace libtorrent
 	// This alert is posted when there is an error on the UDP socket. The
 	// UDP socket is used for all uTP, DHT and UDP tracker traffic. It's
 	// global to the session.
-	struct TORRENT_EXPORT udp_error_alert: alert
+	struct TORRENT_EXPORT udp_error_alert TORRENT_FINAL : alert
 	{
 		// internal
 		udp_error_alert(
@@ -1251,7 +1251,7 @@ namespace libtorrent
 	// generated. The external IP address can be acquired from the tracker (if it
 	// supports that) or from peers that supports the extension protocol.
 	// The address can be accessed through the ``external_address`` member.
-	struct TORRENT_EXPORT external_ip_alert: alert
+	struct TORRENT_EXPORT external_ip_alert TORRENT_FINAL : alert
 	{
 		// internal
 		external_ip_alert(aux::stack_allocator& alloc, address const& ip);
@@ -1274,7 +1274,7 @@ namespace libtorrent
 	// Port 0 asks the operating system to pick a port that's free). If that fails
 	// you may see a listen_failed_alert with port 0 even if you didn't ask to
 	// listen on it.
-	struct TORRENT_EXPORT listen_failed_alert: alert
+	struct TORRENT_EXPORT listen_failed_alert TORRENT_FINAL : alert
 	{
 		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
 
@@ -1321,7 +1321,7 @@ namespace libtorrent
 	// This alert is posted when the listen port succeeds to be opened on a
 	// particular interface. ``endpoint`` is the endpoint that successfully
 	// was opened for listening.
-	struct TORRENT_EXPORT listen_succeeded_alert: alert
+	struct TORRENT_EXPORT listen_succeeded_alert TORRENT_FINAL : alert
 	{
 		enum socket_type_t { tcp, tcp_ssl, udp, utp_ssl };
 
@@ -1349,7 +1349,7 @@ namespace libtorrent
 	// case it appears the client is not running on a NAT:ed network or if it
 	// appears there is no NAT router that can be remote controlled to add port
 	// mappings.
-	struct TORRENT_EXPORT portmap_error_alert: alert
+	struct TORRENT_EXPORT portmap_error_alert TORRENT_FINAL : alert
 	{
 		// internal
 		portmap_error_alert(aux::stack_allocator& alloc, int i, int t
@@ -1379,7 +1379,7 @@ namespace libtorrent
 	// a port was successfully mapped on it. On a NAT:ed network with a NAT-PMP
 	// capable router, this is typically generated once when mapping the TCP
 	// port and, if DHT is enabled, when the UDP port is mapped.
-	struct TORRENT_EXPORT portmap_alert: alert
+	struct TORRENT_EXPORT portmap_alert TORRENT_FINAL : alert
 	{
 		// internal
 		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t);
@@ -1400,13 +1400,15 @@ namespace libtorrent
 		int map_type;
 	};
 
+#ifndef TORRENT_DISABLE_LOGGING
+
 	// This alert is generated to log informational events related to either
 	// UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
 	// and 1 = UPnP). Displaying these messages to an end user is only useful
 	// for debugging the UPnP or NAT-PMP implementation. This alert is only
 	// posted if the alert::port_mapping_log_notification flag is enabled in
 	// the alert mask.
-	struct TORRENT_EXPORT portmap_log_alert: alert
+	struct TORRENT_EXPORT portmap_log_alert TORRENT_FINAL : alert
 	{
 		// internal
 		portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m);
@@ -1433,10 +1435,12 @@ namespace libtorrent
 		int m_log_idx;
 	};
 
+#endif
+
 	// This alert is generated when a fastresume file has been passed to
 	// add_torrent() but the files on disk did not match the fastresume file.
 	// The error_code explains the reason why the resume file was rejected.
-	struct TORRENT_EXPORT fastresume_rejected_alert: torrent_alert
+	struct TORRENT_EXPORT fastresume_rejected_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		fastresume_rejected_alert(aux::stack_allocator& alloc
@@ -1480,7 +1484,7 @@ namespace libtorrent
 	// * the port filter
 	// * the peer has a low port and ``no_connect_privileged_ports`` is enabled
 	// * the protocol of the peer is blocked (uTP/TCP blocking)
-	struct TORRENT_EXPORT peer_blocked_alert: torrent_alert
+	struct TORRENT_EXPORT peer_blocked_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1510,7 +1514,7 @@ namespace libtorrent
 
 	// This alert is generated when a DHT node announces to an info-hash on our
 	// DHT node. It belongs to the ``dht_notification`` category.
-	struct TORRENT_EXPORT dht_announce_alert: alert
+	struct TORRENT_EXPORT dht_announce_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_announce_alert(aux::stack_allocator& alloc, address const& i, int p
@@ -1528,7 +1532,7 @@ namespace libtorrent
 
 	// This alert is generated when a DHT node sends a ``get_peers`` message to
 	// our DHT node. It belongs to the ``dht_notification`` category.
-	struct TORRENT_EXPORT dht_get_peers_alert: alert
+	struct TORRENT_EXPORT dht_get_peers_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_get_peers_alert(aux::stack_allocator& alloc, sha1_hash const& ih);
@@ -1544,7 +1548,7 @@ namespace libtorrent
 	// This alert is posted approximately once every second, and it contains
 	// byte counters of most statistics that's tracked for torrents. Each active
 	// torrent posts these alerts regularly.
-	struct TORRENT_EXPORT stats_alert: torrent_alert
+	struct TORRENT_EXPORT stats_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		stats_alert(aux::stack_allocator& alloc, torrent_handle const& h, int interval
@@ -1596,7 +1600,7 @@ namespace libtorrent
 	// enabled to let this alert through. The alert is also posted when removing
 	// a torrent from the session, once the outstanding cache flush is complete
 	// and the torrent does no longer have any files open.
-	struct TORRENT_EXPORT cache_flushed_alert: torrent_alert
+	struct TORRENT_EXPORT cache_flushed_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		cache_flushed_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -1610,7 +1614,7 @@ namespace libtorrent
 	// anonymous mode. For instance, if the tracker proxy is not set up, no
 	// trackers will be used, because trackers can only be used through proxies
 	// when in anonymous mode.
-	struct TORRENT_EXPORT anonymous_mode_alert: torrent_alert
+	struct TORRENT_EXPORT anonymous_mode_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		anonymous_mode_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1636,7 +1640,7 @@ namespace libtorrent
 
 	// This alert is generated when we receive a local service discovery message
 	// from a peer for a torrent we're currently participating in.
-	struct TORRENT_EXPORT lsd_peer_alert: peer_alert
+	struct TORRENT_EXPORT lsd_peer_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1651,7 +1655,7 @@ namespace libtorrent
 	// This alert is posted whenever a tracker responds with a ``trackerid``.
 	// The tracker ID is like a cookie. The libtorrent will store the tracker ID
 	// for this tracker and repeat it in subsequent announces.
-	struct TORRENT_EXPORT trackerid_alert: tracker_alert
+	struct TORRENT_EXPORT trackerid_alert TORRENT_FINAL : tracker_alert
 	{
 		// internal
 		trackerid_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1676,7 +1680,7 @@ namespace libtorrent
 	};
 
 	// This alert is posted when the initial DHT bootstrap is done.
-	struct TORRENT_EXPORT dht_bootstrap_alert: alert
+	struct TORRENT_EXPORT dht_bootstrap_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_bootstrap_alert(aux::stack_allocator& alloc);
@@ -1693,7 +1697,7 @@ namespace libtorrent
 	// 
 	// This alert is only posted if the ``rss_notifications`` category is enabled
 	// in the alert_mask.
-	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert: alert
+	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert TORRENT_FINAL : alert
 	{
 		// internal
 		rss_alert(aux::stack_allocator& alloc, feed_handle h
@@ -1736,7 +1740,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 	// This is posted whenever a torrent is transitioned into the error state.
-	struct TORRENT_EXPORT torrent_error_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_error_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1766,7 +1770,7 @@ namespace libtorrent
 	// the torrent won't work unless torrent_handle::set_ssl_certificate() is called with
 	// a valid certificate. Valid certificates MUST be signed by the SSL certificate
 	// in the .torrent file.
-	struct TORRENT_EXPORT torrent_need_cert_alert: torrent_alert
+	struct TORRENT_EXPORT torrent_need_cert_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_need_cert_alert(aux::stack_allocator& alloc
@@ -1787,7 +1791,7 @@ namespace libtorrent
 	// the UDP listen socket for uTP sockets. However, connections may also be
 	// accepted ofer a Socks5 or i2p listen socket, or via a torrent specific
 	// listen socket for SSL torrents.
-	struct TORRENT_EXPORT incoming_connection_alert: alert
+	struct TORRENT_EXPORT incoming_connection_alert TORRENT_FINAL : alert
 	{
 		// internal
 		incoming_connection_alert(aux::stack_allocator& alloc, int t
@@ -1822,7 +1826,7 @@ namespace libtorrent
 	// and contains the return status of the add operation. The torrent handle of the new
 	// torrent can be found in the base class' ``handle`` member. If adding
 	// the torrent failed, ``error`` contains the error code.
-	struct TORRENT_EXPORT add_torrent_alert : torrent_alert
+	struct TORRENT_EXPORT add_torrent_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -1847,7 +1851,7 @@ namespace libtorrent
 	// status of all torrents that changed since last time this message was
 	// posted. Its category is ``status_notification``, but it's not subject to
 	// filtering, since it's only manually posted anyway.
-	struct TORRENT_EXPORT state_update_alert : alert
+	struct TORRENT_EXPORT state_update_alert TORRENT_FINAL : alert
 	{
 		state_update_alert(aux::stack_allocator& alloc
 			, std::vector<torrent_status> st);
@@ -1866,7 +1870,7 @@ namespace libtorrent
 		std::vector<torrent_status> status;
 	};
 
-	struct TORRENT_EXPORT mmap_cache_alert : alert
+	struct TORRENT_EXPORT mmap_cache_alert TORRENT_FINAL : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
 			, error_code const& ec);
@@ -1882,7 +1886,7 @@ namespace libtorrent
 	// calling post_session_stats() on the session object. Its category is
 	// ``status_notification``, but it is not subject to filtering, since it's only
 	// manually posted anyway.
-	struct TORRENT_EXPORT session_stats_alert : alert
+	struct TORRENT_EXPORT session_stats_alert TORRENT_FINAL : alert
 	{
 		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
 		TORRENT_DEFINE_ALERT_PRIO(session_stats_alert, 70)
@@ -1911,7 +1915,7 @@ namespace libtorrent
 	// 
 	// Once this download completes, the ``torrent_update_alert`` is posted to
 	// notify the client of the info-hash changing.
-	struct TORRENT_EXPORT torrent_update_alert : torrent_alert
+	struct TORRENT_EXPORT torrent_update_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -1934,7 +1938,7 @@ namespace libtorrent
 	// 
 	// It is only posted if the ``rss_notifications`` category is enabled in the
 	// alert_mask.
-	struct TORRENT_EXPORT rss_item_alert : alert
+	struct TORRENT_EXPORT rss_item_alert TORRENT_FINAL : alert
 	{
 		// internal
 		rss_item_alert(aux::stack_allocator& alloc, feed_handle h
@@ -1952,7 +1956,7 @@ namespace libtorrent
 
 	// posted when something fails in the DHT. This is not necessarily a fatal
 	// error, but it could prevent proper operation
-	struct TORRENT_EXPORT dht_error_alert: alert
+	struct TORRENT_EXPORT dht_error_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_error_alert(aux::stack_allocator& alloc, int op, error_code const& ec);
@@ -1978,7 +1982,7 @@ namespace libtorrent
 
 	// this alert is posted as a response to a call to session::get_item(),
 	// specifically the overload for looking up immutable items in the DHT.
-	struct TORRENT_EXPORT dht_immutable_item_alert: alert
+	struct TORRENT_EXPORT dht_immutable_item_alert TORRENT_FINAL : alert
 	{
 		dht_immutable_item_alert(aux::stack_allocator& alloc, sha1_hash const& t
 			, entry const& i);
@@ -2000,7 +2004,7 @@ namespace libtorrent
 
 	// this alert is posted as a response to a call to session::get_item(),
 	// specifically the overload for looking up mutable items in the DHT.
-	struct TORRENT_EXPORT dht_mutable_item_alert: alert
+	struct TORRENT_EXPORT dht_mutable_item_alert TORRENT_FINAL : alert
 	{
 		dht_mutable_item_alert(aux::stack_allocator& alloc
 			, boost::array<char, 32> k
@@ -2043,7 +2047,7 @@ namespace libtorrent
 
 	// this is posted when a DHT put operation completes. This is useful if the
 	// client is waiting for a put to complete before shutting down for instance.
-	struct TORRENT_EXPORT dht_put_alert: alert
+	struct TORRENT_EXPORT dht_put_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t, int n);
@@ -2077,7 +2081,7 @@ namespace libtorrent
 	};
 
 	// this alert is used to report errors in the i2p SAM connection
-	struct TORRENT_EXPORT i2p_alert : alert
+	struct TORRENT_EXPORT i2p_alert TORRENT_FINAL : alert
 	{
 		i2p_alert(aux::stack_allocator& alloc, error_code const& ec);
 
@@ -2092,7 +2096,7 @@ namespace libtorrent
 
 	// This alert is generated when we send a get_peers request
 	// It belongs to the ``dht_notification`` category.
-	struct TORRENT_EXPORT dht_outgoing_get_peers_alert: alert
+	struct TORRENT_EXPORT dht_outgoing_get_peers_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_outgoing_get_peers_alert(aux::stack_allocator& alloc
@@ -2115,11 +2119,12 @@ namespace libtorrent
 		udp::endpoint ip;
 	};
 
+#ifndef TORRENT_DISABLE_LOGGING
 	// This alert is posted by some session wide event. Its main purpose is
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::session_log_notification`` bit.
 	// Furhtermore, it's by default disabled as a build configuration.
-	struct TORRENT_EXPORT log_alert : alert
+	struct TORRENT_EXPORT log_alert TORRENT_FINAL : alert
 	{
 		// internal
 		log_alert(aux::stack_allocator& alloc, char const* log);
@@ -2141,7 +2146,7 @@ namespace libtorrent
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::torrent_log_notification`` bit. By
 	// default it is disabled as a build configuration.
-	struct TORRENT_EXPORT torrent_log_alert : torrent_alert
+	struct TORRENT_EXPORT torrent_log_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
 		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
@@ -2163,7 +2168,7 @@ namespace libtorrent
 	// for trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::peer_log_notification`` bit. By
 	// default it is disabled as a build configuration.
-	struct TORRENT_EXPORT peer_log_alert : peer_alert
+	struct TORRENT_EXPORT peer_log_alert TORRENT_FINAL : peer_alert
 	{
 		// describes whether this log refers to in-flow or out-flow of the
 		// peer. The exception is ``info`` which is neither incoming or outgoing.
@@ -2200,9 +2205,11 @@ namespace libtorrent
 		int m_str_idx;
 	};
 
+#endif
+
 	// posted if the local service discovery socket fails to start properly.
 	// it's categorized as ``error_notification``.
-	struct TORRENT_EXPORT lsd_error_alert : alert
+	struct TORRENT_EXPORT lsd_error_alert TORRENT_FINAL : alert
 	{
 		// internal
 		lsd_error_alert(aux::stack_allocator& alloc, error_code const& ec);
@@ -2274,7 +2281,7 @@ namespace libtorrent
 	};
 
 	// contains current DHT state. Posted in response to session::post_dht_stats().
-	struct TORRENT_EXPORT dht_stats_alert : alert
+	struct TORRENT_EXPORT dht_stats_alert TORRENT_FINAL : alert
 	{
 		// internal
 		dht_stats_alert(aux::stack_allocator& alloc
@@ -2298,7 +2305,7 @@ namespace libtorrent
 	// up for being serviced. This alert is only posted if
 	// the alert::incoming_request_notification flag is enabled in the alert
 	// mask.
-	struct TORRENT_EXPORT incoming_request_alert : peer_alert
+	struct TORRENT_EXPORT incoming_request_alert TORRENT_FINAL : peer_alert
 	{
 		// internal
 		incoming_request_alert(aux::stack_allocator& alloc
@@ -2314,7 +2321,7 @@ namespace libtorrent
 		peer_request req;
 	};
 
-	struct TORRENT_EXPORT dht_log_alert : alert
+	struct TORRENT_EXPORT dht_log_alert TORRENT_FINAL : alert
 	{
 		enum dht_module_t
 		{
@@ -2347,7 +2354,7 @@ namespace libtorrent
 	// This alert is posted every time a DHT message is sent or received. It is
 	// only posted if the ``alert::dht_log_notification`` alert category is
 	// enabled. It contains a verbatim copy of the message.
-	struct TORRENT_EXPORT dht_pkt_alert : alert
+	struct TORRENT_EXPORT dht_pkt_alert TORRENT_FINAL : alert
 	{
 		enum direction_t
 		{ incoming, outgoing };
@@ -2380,7 +2387,7 @@ namespace libtorrent
 		int m_size;
 	};
 
-	struct TORRENT_EXPORT dht_get_peers_reply_alert: alert {
+	struct TORRENT_EXPORT dht_get_peers_reply_alert TORRENT_FINAL : alert {
 
 		dht_get_peers_reply_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih
@@ -2404,7 +2411,7 @@ namespace libtorrent
 
 	// This is posted exactly once for every call to session_handle::dht_direct_request.
 	// If the request failed, response() will return a default constructed bdecode_node.
-	struct TORRENT_EXPORT dht_direct_response_alert: alert
+	struct TORRENT_EXPORT dht_direct_response_alert TORRENT_FINAL : alert
 	{
 		dht_direct_response_alert(aux::stack_allocator& alloc, void* userdata
 			, udp::endpoint const& addr, bdecode_node const& response);
