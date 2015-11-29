@@ -41,7 +41,8 @@ libtorrent::settings_pack settings()
 	const int mask = alert::all_categories
 		& ~(alert::progress_notification
 			| alert::performance_warning
-			| alert::stats_notification);
+			| alert::stats_notification
+			| alert::picker_log_notification);
 
 	settings_pack pack;
 	pack.set_bool(settings_pack::enable_lsd, false);

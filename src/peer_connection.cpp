@@ -3440,7 +3440,7 @@ namespace libtorrent
 			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
-				if (i->busy) 
+				if (i->busy)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "PIECE_PICKER"

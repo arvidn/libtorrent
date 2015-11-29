@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/request_blocks.hpp"
+#include "libtorrent/alert_manager.hpp"
 
 #include <vector>
 
@@ -131,7 +132,7 @@ namespace libtorrent
 		std::vector<int> const& suggested = c.suggested_pieces();
 		bitfield const* bits = &c.get_bitfield();
 		bitfield fast_mask;
-		
+
 		if (c.has_peer_choked())
 		{
 			// if we are choked we can only pick pieces from the
@@ -155,15 +156,23 @@ namespace libtorrent
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		p.pick_pieces(*bits, interesting_pieces
+		boost::uint32_t flags = p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_contiguous_blocks, c.peer_info_struct()
 			, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (t.alerts().should_post<picker_log_alert>()
+			&& !interesting_pieces.empty())
+		{
+			t.alerts().emplace_alert<picker_log_alert>(t.get_handle(), c.remote()
+				, c.pid(), flags, &interesting_pieces[0], int(interesting_pieces.size()));
+		}
 		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
 			, "prefer_contiguous: %d picked: %d"
 			, prefer_contiguous_blocks, int(interesting_pieces.size()));
+#else
+		TORRENT_UNUSED(flags);
 #endif
 
 		// if the number of pieces we have + the number of pieces

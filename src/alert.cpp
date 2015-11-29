@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/piece_picker.hpp" // for piece_block
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
@@ -1886,6 +1887,79 @@ namespace libtorrent {
 		TORRENT_ASSERT(!ec);
 		return ret;
 	}
+
+#ifndef TORRENT_DISABLE_LOGGING
+
+	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle h
+		, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
+		, piece_block const* blocks, int num_blocks)
+		: peer_alert(alloc, h, ep, peer_id)
+		, picker_flags(flags)
+		, m_array_idx(alloc.copy_buffer(reinterpret_cast<char const*>(blocks)
+			, num_blocks * sizeof(piece_block)))
+		, m_num_blocks(num_blocks)
+	{}
+
+	std::vector<piece_block> picker_log_alert::blocks() const
+	{
+		// we need to copy this array to make sure the structures are properly
+		// aigned, not just to have a nice API
+		std::vector<piece_block> ret;
+		ret.resize(m_num_blocks);
+
+		char const* start = m_alloc.ptr(m_array_idx);
+		memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+
+		return ret;
+	}
+
+	std::string picker_log_alert::message() const
+	{
+		static char const* const flag_names[] =
+		{
+			"partial_ratio ",
+			"prioritize_partials ",
+			"rarest_first_partials ",
+			"rarest_first ",
+			"reverse_rarest_first ",
+			"suggested_pieces ",
+			"prio_sequential_pieces ",
+			"sequential_pieces ",
+			"reverse_pieces ",
+			"time_critical ",
+			"random_pieces ",
+			"prefer_contiguous ",
+			"reverse_sequential ",
+			"backup1 ",
+			"backup2 ",
+			"end_game "
+		};
+
+		std::string ret = peer_alert::message();
+
+		boost::uint32_t flags = picker_flags;
+		int idx = 0;
+		ret += " picker_log [ ";
+		for (; flags != 0; flags >>= 1, ++idx)
+		{
+			if ((flags & 1) == 0) continue;
+			ret += flag_names[idx];
+		}
+		ret += "] ";
+
+		std::vector<piece_block> b = blocks();
+
+		for (int i = 0; i < int(b.size()); ++i)
+		{
+			char buf[50];
+			snprintf(buf, sizeof(buf), "(%d,%d) "
+				, b[i].piece_index, b[i].block_index);
+			ret += buf;
+		}
+		return ret;
+	}
+
+#endif // TORRENT_DISABLE_LOGGING
 
 } // namespace libtorrent
 
