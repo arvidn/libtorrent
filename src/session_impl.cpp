@@ -5311,13 +5311,19 @@ retry:
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
+	// TODO: perhaps this function should not exist when logging is disabled
 	void session_impl::on_port_map_log(
 		char const* msg, int map_transport)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 		// log message
 		if (m_alerts.should_post<portmap_log_alert>())
 			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
+#else
+		TORRENT_UNUSED(msg);
+		TORRENT_UNUSED(map_transport);
+#endif
 	}
 
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
@@ -6670,6 +6676,8 @@ retry:
 		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
 	}
 
+	// TODO: 2 perhaps DHT logging should be disabled by TORRENT_DISABLE_LOGGING
+	// too
 	TORRENT_FORMAT(3,4)
 	void session_impl::log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 	{
