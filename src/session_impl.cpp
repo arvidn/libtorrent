@@ -5311,6 +5311,7 @@ retry:
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
+	// TODO: perhaps this function should not exist when logging is disabled
 	void session_impl::on_port_map_log(
 		char const* msg, int map_transport)
 	{
@@ -5319,6 +5320,9 @@ retry:
 		// log message
 		if (m_alerts.should_post<portmap_log_alert>())
 			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
+#else
+		TORRENT_UNUSED(msg);
+		TORRENT_UNUSED(map_transport);
 #endif
 	}
 

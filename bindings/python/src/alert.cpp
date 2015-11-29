@@ -5,6 +5,7 @@
 #include <boost/python.hpp>
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/piece_picker.hpp> // for piece_block
 #include <memory>
 
 using namespace boost::python;
@@ -422,6 +423,8 @@ void bind_alert()
         .def_readonly("map_type", &portmap_alert::map_type)
         ;
 
+#ifndef TORRENT_DISABLE_LOGGING
+
     class_<portmap_log_alert, bases<alert>, noncopyable>(
         "portmap_log_alert", no_init)
         .def_readonly("map_type", &portmap_log_alert::map_type)
@@ -430,6 +433,8 @@ void bind_alert()
         .def_readonly("msg", &portmap_log_alert::msg)
 #endif
         ;
+
+#endif // TORRENT_DISABLE_LOGGING
 
     class_<fastresume_rejected_alert, bases<torrent_alert>, noncopyable>(
         "fastresume_rejected_alert", no_init)
@@ -665,6 +670,8 @@ void bind_alert()
         .add_property("ip", &dht_outgoing_get_peers_alert_ip)
         ;
 
+#ifndef TORRENT_DISABLE_LOGGING
+
     class_<log_alert, bases<alert>, noncopyable>(
        "log_alert", no_init)
         .def("msg", &log_alert::msg)
@@ -680,6 +687,14 @@ void bind_alert()
         .def("msg", &peer_log_alert::msg)
         ;
 
+    class_<picker_log_alert, bases<peer_alert>, noncopyable>(
+       "picker_log_alert", no_init)
+        .add_property("picker_flags", &picker_log_alert::picker_flags)
+        .def("blocks", &picker_log_alert::blocks)
+        ;
+
+#endif // TORRENT_DISABLE_LOGGING
+
     class_<lsd_error_alert, bases<alert>, noncopyable>(
        "lsd_error_alert", no_init)
         .def_readonly("error", &lsd_error_alert::error)
@@ -687,8 +702,8 @@ void bind_alert()
 
     class_<dht_stats_alert, bases<alert>, noncopyable>(
        "dht_stats_alert", no_init)
-		 .add_property("active_requests", &dht_stats_active_requests)
-		 .add_property("routing_table", &dht_stats_routing_table)
+       .add_property("active_requests", &dht_stats_active_requests)
+       .add_property("routing_table", &dht_stats_routing_table)
         ;
 
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
