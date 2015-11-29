@@ -839,7 +839,7 @@ namespace libtorrent
 	int peer_connection::picker_options() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		int ret = m_picker_options; 
+		int ret = m_picker_options;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
@@ -856,10 +856,14 @@ namespace libtorrent
 		}
 		else if (t->num_have() < m_settings.get_int(settings_pack::initial_picker_threshold))
 		{
-			// if we have fewer pieces than a certain threshols
+			// if we have fewer pieces than a certain threshold
 			// don't pick rare pieces, just pick random ones,
 			// and prioritize finishing them
 			ret |= piece_picker::prioritize_partials;
+		}
+		else
+		{
+			ret |= piece_picker::rarest_first;
 		}
 
 		if (m_snubbed)
