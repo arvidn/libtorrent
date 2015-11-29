@@ -32,9 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PIECE_PICKER_HPP_INCLUDED
 #define TORRENT_PIECE_PICKER_HPP_INCLUDED
 
-// this is really only useful for debugging unit tests
-//#define TORRENT_PICKER_LOG
-
 // heavy weight reference counting invariant checks
 //#define TORRENT_DEBUG_REFCOUNTS
 
@@ -293,7 +290,7 @@ namespace libtorrent
 		// this feature is used by web_peer_connection to request larger blocks
 		// at a time to mitigate limited pipelining and lack of keep-alive
 		// (i.e. higher overhead per request).
-		void pick_pieces(bitfield const& pieces
+		boost::uint32_t pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_contiguous_blocks, torrent_peer* peer
 			, int options, std::vector<int> const& suggested_pieces
@@ -450,9 +447,6 @@ namespace libtorrent
 		void check_peer_invariant(bitfield const& have, torrent_peer const* p) const;
 		void check_invariant(const torrent* t = 0) const;
 #endif
-#if defined TORRENT_PICKER_LOG || defined TORRENT_DEBUG
-		void print_pieces() const;
-#endif
 
 		// functor that compares indices on downloading_pieces
 		struct has_index
@@ -487,6 +481,10 @@ namespace libtorrent
 		bool is_piece_free(int piece, bitfield const& bitmask) const;
 		std::pair<int, int> expand_piece(int piece, int whole_pieces
 			, bitfield const& have, int options) const;
+
+		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
+		// unit tests
+		void print_pieces() const;
 
 		struct piece_pos
 		{

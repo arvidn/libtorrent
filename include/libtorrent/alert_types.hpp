@@ -72,6 +72,7 @@ namespace libtorrent
 	namespace aux {
 		struct stack_allocator;
 	}
+	struct piece_block;
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
 	// to its name. See peer_connection for the constants
@@ -795,7 +796,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT piece_finished_alert: torrent_alert
 	{
 		// internal
-		piece_finished_alert(aux::stack_allocator& alloc, 
+		piece_finished_alert(aux::stack_allocator& alloc,
 			torrent_handle const& h, int piece_num);
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
@@ -2426,6 +2427,61 @@ namespace libtorrent
 		aux::stack_allocator& m_alloc;
 		int m_response_idx;
 		int m_response_size;
+	};
+
+	// this is posted when one or more blocks are picked by the piece picker,
+	// assuming the verbose piece picker logging is enabled (see
+	// picker_log_notification).
+	struct TORRENT_EXPORT picker_log_alert : peer_alert
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+
+		// internal
+		picker_log_alert(aux::stack_allocator& alloc, torrent_handle h
+			, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
+			, piece_block const* blocks, int num_blocks);
+
+		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
+
+		static const int static_category = alert::picker_log_notification;
+		virtual std::string message() const TORRENT_OVERRIDE;
+
+#endif // TORRENT_DISABLE_LOGGING
+
+		enum picker_flags_t
+		{
+			// the ratio of partial pieces is too high. This forces a preference
+			// for picking blocks from partial pieces.
+			partial_ratio          = 0x1,
+			prioritize_partials    = 0x2,
+			rarest_first_partials  = 0x4,
+			rarest_first           = 0x8,
+			reverse_rarest_first   = 0x10,
+			suggested_pieces       = 0x20,
+			prio_sequential_pieces = 0x40,
+			sequential_pieces      = 0x80,
+			reverse_pieces         = 0x100,
+			time_critical          = 0x200,
+			random_pieces          = 0x400,
+			prefer_contiguous      = 0x800,
+			reverse_sequential     = 0x1000,
+			backup1                = 0x2000,
+			backup2                = 0x4000,
+			end_game               = 0x8000
+		};
+
+#ifndef TORRENT_DISABLE_LOGGING
+
+		// this is a bitmask of which features were enabled for this particular
+		// pick. The bits are defined in the picker_flags_t enum.
+		boost::uint32_t picker_flags;
+
+		std::vector<piece_block> blocks() const;
+
+	private:
+		int m_array_idx;
+		int m_num_blocks;
+#endif // TORRENT_DISABLE_LOGGING
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL

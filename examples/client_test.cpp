@@ -1563,6 +1563,7 @@ int main(int argc, char* argv[])
 		+ alert::torrent_log_notification
 		+ alert::peer_log_notification
 		+ alert::dht_log_notification
+		+ alert::picker_log_notification
 		));
 
 	libtorrent::session ses(settings);
