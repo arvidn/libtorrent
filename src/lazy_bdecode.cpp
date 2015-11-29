@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #include <cstring>
 #include <limits> // for numeric_limits
+#include <cstdio>
 
 namespace
 {
