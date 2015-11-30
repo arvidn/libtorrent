@@ -488,6 +488,11 @@ namespace libtorrent
 			return m_need_save_resume_data || m_ses.session_time() - m_last_saved_resume > 15 * 60;
 		}
 
+		void set_need_save_resume()
+		{
+			m_need_save_resume_data = true;
+		}
+
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);
 
