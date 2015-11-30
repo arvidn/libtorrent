@@ -663,7 +663,6 @@ namespace libtorrent
 		m_current_gauge_state = new_gauge_state;
 	}
 
-
 	void torrent::leave_seed_mode(bool skip_checking)
 	{
 		if (!m_seed_mode) return;
@@ -698,7 +697,7 @@ namespace libtorrent
 		m_verified.clear();
 		m_verifying.clear();
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 	}
 
 	void torrent::verified(int piece)
@@ -756,7 +755,7 @@ namespace libtorrent
 		if (p.flags & add_torrent_params::flag_super_seeding)
 		{
 			m_super_seeding = true;
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 		}
 
 		set_max_uploads(p.max_uploads, false);
@@ -3349,14 +3348,19 @@ namespace libtorrent
 			|| (downloaded >= 0 && m_downloaded != downloaded))
 			state_updated();
 
-		m_complete = complete;
-		m_incomplete = incomplete;
-		m_downloaded = downloaded;
+		if (m_complete != complete
+			|| m_incomplete != incomplete
+			|| m_downloaded != downloaded)
+		{
+			m_complete = complete;
+			m_incomplete = incomplete;
+			m_downloaded = downloaded;
 
-		update_auto_sequential();
+			update_auto_sequential();
 
-		// these numbers are cached in the resume data
-		m_need_save_resume_data = true;
+			// these numbers are cached in the resume data
+			set_need_save_resume();
+		}
 	}
 
 	void torrent::tracker_response(
@@ -4247,7 +4251,7 @@ namespace libtorrent
 			add_suggest_piece(index);
 		}
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 		state_updated();
 
 		if (m_ses.alerts().should_post<piece_finished_alert>())
@@ -4298,7 +4302,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		inc_stats_counter(counters::num_piece_passed);
 
@@ -4929,7 +4933,7 @@ namespace libtorrent
 		if (on == m_super_seeding) return;
 
 		m_super_seeding = on;
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		if (m_super_seeding) return;
 
@@ -5009,6 +5013,13 @@ namespace libtorrent
 		if (!j->buffer.resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), j->error.ec);
+			return;
+		}
+
+		if (!need_loaded())
+		{
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, m_error);
 			return;
 		}
 
@@ -5388,7 +5399,7 @@ namespace libtorrent
 		if (filter_updated)
 		{
 			// we need to save this new state
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 
 			update_peer_interest(was_finished);
 		}
@@ -5429,7 +5440,7 @@ namespace libtorrent
 		if (filter_updated)
 		{
 			// we need to save this new state
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 
 			update_peer_interest(was_finished);
 			remove_time_critical_pieces(pieces);
@@ -5816,7 +5827,7 @@ namespace libtorrent
 
 		if (!m_trackers.empty()) announce_with_tracker();
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 	}
 
 	void torrent::prioritize_udp_trackers()
@@ -7798,7 +7809,7 @@ namespace libtorrent
 			}
 		}
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		return true;
 	}
@@ -8600,7 +8611,7 @@ namespace libtorrent
 			if (m_super_seeding)
 			{
 				m_super_seeding = false;
-				m_need_save_resume_data = true;
+				set_need_save_resume();
 			}
 
 			if (is_finished() && m_state != torrent_status::finished)
@@ -8763,7 +8774,7 @@ namespace libtorrent
 
 			m_save_path = save_path;
 #endif
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 
 			if (alerts().should_post<storage_moved_alert>())
 			{
@@ -8783,7 +8794,7 @@ namespace libtorrent
 			if (alerts().should_post<storage_moved_alert>())
 				alerts().emplace_alert<storage_moved_alert>(get_handle(), j->buffer.string);
 			m_save_path = j->buffer.string;
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 			if (j->ret == piece_manager::need_full_check)
 				force_recheck();
 		}
@@ -9075,7 +9086,7 @@ namespace libtorrent
 		debug_log("*** set-sequential-download: %d", sd);
 #endif
 
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		state_updated();
 	}
@@ -9119,7 +9130,7 @@ namespace libtorrent
 #endif
 
 		if (state_update)
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 	}
 
 	void torrent::set_max_connections(int limit, bool state_update)
@@ -9142,13 +9153,13 @@ namespace libtorrent
 		}
 
 		if (state_update)
-			m_need_save_resume_data = true;
+			set_need_save_resume();
 	}
 
 	void torrent::set_upload_limit(int limit)
 	{
 		set_limit_impl(limit, peer_connection::upload_channel);
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-upload-limit: %d", limit);
 #endif
@@ -9157,7 +9168,7 @@ namespace libtorrent
 	void torrent::set_download_limit(int limit)
 	{
 		set_limit_impl(limit, peer_connection::download_channel);
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-download-limit: %d", limit);
 #endif
@@ -9316,7 +9327,7 @@ namespace libtorrent
 		state_updated();
 
 		// we need to save this new state as well
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		// recalculate which torrents should be
 		// paused
@@ -9483,13 +9494,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (!m_storage.get())
-		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, errors::destructing_torrent);
-			return;
-		}
-
 		if ((flags & torrent_handle::only_if_modified) && !m_need_save_resume_data)
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
@@ -9502,14 +9506,22 @@ namespace libtorrent
 		m_save_resume_flags = boost::uint8_t(flags);
 		state_updated();
 
-		TORRENT_ASSERT(m_storage);
 		if (m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
 		{
 			if (!need_loaded())
 			{
 				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-						, m_error);
+					, m_error);
+				return;
+			}
+
+			// storage may be NULL during shutdown
+			if (!m_storage)
+			{
+				TORRENT_ASSERT(m_abort);
+				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+					, boost::asio::error::operation_aborted);
 				return;
 			}
 
@@ -9519,7 +9531,9 @@ namespace libtorrent
 			return;
 		}
 
-		if ((flags & torrent_handle::flush_disk_cache))
+		// TODO: 3 this really needs to be moved to do_async_save_resume_data.
+		// flags need to be passed on
+		if ((flags & torrent_handle::flush_disk_cache) && m_storage.get())
 			m_ses.disk_thread().async_release_files(m_storage.get());
 
 		m_ses.queue_async_resume_data(shared_from_this());
@@ -9602,7 +9616,7 @@ namespace libtorrent
 		m_announce_to_lsd = false;
 
 		// we need to save this new state
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 		state_updated();
 
 		m_graceful_pause_mode = graceful;
@@ -9761,7 +9775,7 @@ namespace libtorrent
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 	}
 
 	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type
@@ -9771,7 +9785,7 @@ namespace libtorrent
 		// don't add duplicates
 		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
 		m_web_seeds.push_back(ent);
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 	}
 
 	void torrent::set_allow_peers(bool b, bool graceful)
@@ -9834,7 +9848,7 @@ namespace libtorrent
 		update_gauge();
 
 		// we need to save this new state
-		m_need_save_resume_data = true;
+		set_need_save_resume();
 
 		update_want_scrape();
 

@@ -853,11 +853,8 @@ void scan_dir(std::string const& dir_path
 		h.pause();
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
-		if (h.need_save_resume_data())
-		{
-			h.save_resume_data();
-			++num_outstanding_resume_data;
-		}
+		h.save_resume_data();
+		++num_outstanding_resume_data;
 
 		files.erase(i++);
 	}
@@ -1111,6 +1108,11 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		--num_outstanding_resume_data;
 		torrent_handle h = p->handle;
+		if (h.is_valid())
+		{
+			fprintf(stderr, "FAILED TO SAVE RESUME DATA: %s\n"
+				, h.status().name.c_str());
+		}
 		if (h.is_valid()
 			&& non_files.find(h) == non_files.end()
 			&& std::find_if(files.begin(), files.end()
