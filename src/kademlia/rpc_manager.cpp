@@ -308,14 +308,25 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
 #endif
 
-	if (m.message.dict_find_string_value("y") == "e") 
+	if (m.message.dict_find_string_value("y") == "e")
 	{
 		// It's an error.
 #ifndef TORRENT_DISABLE_LOGGING
-		bdecode_node err_ent = m.message.dict_find("e");
-		TORRENT_ASSERT(err_ent);
-		m_log->log(dht_logger::rpc_manager, "reply with error from %s: %s"
-			, print_endpoint(m.addr).c_str(), err_ent.list_string_value_at(1).c_str());
+		bdecode_node err = m.message.dict_find("e");
+		if (err && err.list_size() >= 2
+			&& err.list_at(0).type() == bdecode_node::int_t
+			&& err.list_at(1).type() == bdecode_node::string_t)
+		{
+			m_log->log(dht_logger::rpc_manager, "reply with error from %s: (%" PRId64 ") %s"
+				, print_endpoint(m.addr).c_str()
+				, err.list_int_value_at(0)
+				, err.list_string_value_at(1).c_str());
+		}
+		else
+		{
+			m_log->log(dht_logger::rpc_manager, "reply with (malformed) error from %s"
+				, print_endpoint(m.addr).c_str());
+		}
 #endif
 		// Logically, we should call o->reply(m) since we get a reply.
 		// a reply could be "response" or "error", here the reply is an "error".

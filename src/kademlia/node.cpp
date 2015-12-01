@@ -283,11 +283,22 @@ void node::incoming(msg const& m)
 		case 'e':
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node err = m.message.dict_find_list("e");
-			if (err && err.list_size() >= 2 && m_observer)
+			if (m_observer)
 			{
-				m_observer->log(dht_logger::node, "INCOMING ERROR: %s"
-					, err.list_string_value_at(1).c_str());
+				bdecode_node err = m.message.dict_find_list("e");
+				if (err && err.list_size() >= 2
+					&& err.list_at(0).type() == bdecode_node::int_t
+					&& err.list_at(1).type() == bdecode_node::string_t
+					&& m_observer)
+				{
+					m_observer->log(dht_logger::node, "INCOMING ERROR: (%" PRId64 ") %s"
+						, err.list_int_value_at(0)
+						, err.list_string_value_at(1).c_str());
+				}
+				else
+				{
+					m_observer->log(dht_logger::node, "INCOMING ERROR (malformed)");
+				}
 			}
 #endif
 			node_id id;
@@ -918,7 +929,7 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		reply["token"] = generate_token(m.addr, msg_keys[0].string_ptr());
-		
+
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
 		sha1_hash info_hash(msg_keys[0].string_ptr());

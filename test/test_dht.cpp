@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/ed25519.hpp"
 #include <numeric>
+#include <cstdarg>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -99,6 +100,8 @@ struct mock_socket : udp_socket_interface
 	bool has_quota() { return true; }
 	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
 	{
+		// TODO: ideally the mock_socket would contain this queue of packets, to
+		// make tests independent
 		g_sent_packets.push_back(std::make_pair(ep, msg));
 		return true;
 	}
@@ -274,10 +277,6 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-// this yields a lot of output. too much
-//	std::cerr << "sending: " <<  e << "\n";
-#endif
 
 #ifdef TORRENT_USE_VALGRIND
 	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
@@ -489,11 +488,21 @@ struct obs : dht::dht_observer
 	virtual void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
 	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
-	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE {}
+	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE
+	{
+		va_list v;
+		va_start(v, fmt);
+		char buf[1024];
+		vsnprintf(buf, sizeof(buf), fmt, v);
+		va_end(v);
+		m_log.push_back(buf);
+	}
 	virtual void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) TORRENT_OVERRIDE {}
 	virtual bool on_dht_request(char const* query, int query_len
 		, dht::msg const& request, entry& response) TORRENT_OVERRIDE { return false; }
+
+	std::vector<std::string> m_log;
 };
 
 dht_settings test_settings()
@@ -762,7 +771,7 @@ TORRENT_TEST(dht)
 		fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 		fprintf(stderr, "   invalid error response: %s\n", error_string);
 	}
-	
+
 	// a node with invalid node-id shouldn't be added to routing table.
 	TEST_EQUAL(node.size().get<0>(), nodes_num);
 
@@ -2280,7 +2289,7 @@ TORRENT_TEST(read_only_node)
 	mock_socket s;
 	obs observer;
 	counters cnt;
-    
+
 	dht::node node(&s, sett, node_id(0), &observer, cnt);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
@@ -2359,6 +2368,43 @@ TORRENT_TEST(read_only_node)
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);
+}
+
+TORRENT_TEST(invalid_error_msg)
+{
+	dht_settings sett = test_settings();
+	mock_socket s;
+	obs observer;
+	counters cnt;
+
+	dht::node node(&s, sett, node_id(0), &observer, cnt);
+	udp::endpoint source(address::from_string("10.0.0.1"), 20);
+
+	entry e;
+	e["y"] = "e";
+	e["e"].string() = "Malformed Error";
+	char msg_buf[1500];
+	int size = bencode(msg_buf, e);
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+
+	dht::msg m(decoded, source);
+	node.incoming(m);
+
+	bool found = false;
+	for (int i = 0; i < int(observer.m_log.size()); ++i)
+	{
+		if (observer.m_log[i].find("INCOMING ERROR")
+			&& observer.m_log[i].find("(malformed)"))
+			found = true;
+
+		printf("%s\n", observer.m_log[i].c_str());
+	}
+
+	TEST_EQUAL(found, false);
 }
 
 #endif

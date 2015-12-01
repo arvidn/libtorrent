@@ -7069,7 +7069,6 @@ retry:
 		{
 			va_list v;
 			va_start(v, fmt);
-
 			char usr[1024];
 			vsnprintf(usr, sizeof(usr), fmt, v);
 			va_end(v);
