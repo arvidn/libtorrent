@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/ed25519.hpp"
 #include <numeric>
+#include <cstdarg>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
