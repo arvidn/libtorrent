@@ -2395,7 +2395,7 @@ TORRENT_TEST(invalid_error_msg)
 	node.incoming(m);
 
 	bool found = false;
-	for (int i = 0; i < observer.m_log.size(); ++i)
+	for (int i = 0; i < int(observer.m_log.size()); ++i)
 	{
 		if (observer.m_log[i].find("INCOMING ERROR")
 			&& observer.m_log[i].find("(malformed)"))
