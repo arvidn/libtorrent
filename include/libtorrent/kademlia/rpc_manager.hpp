@@ -123,7 +123,7 @@ private:
 	typedef std::multimap<int, observer_ptr> transactions_t;
 #endif
 	transactions_t m_transactions;
-	
+
 	udp_socket_interface* m_sock;
 	dht_logger* m_log;
 	dht_settings const& m_settings;
