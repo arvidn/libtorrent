@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/platform_util.hpp"
 #include <boost/scoped_array.hpp>
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -174,21 +175,14 @@ namespace libtorrent
 		m_disk_cache.set_settings(m_settings, ec);
 		TORRENT_ASSERT(!ec);
 
-#if TORRENT_USE_RLIMIT
-		// ---- auto-cap open files ----
-
-		struct rlimit rl;
-		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
-		{
-			// deduct some margin for epoll/kqueue, log files,
-			// futexes, shared objects etc.
-			rl.rlim_cur -= 20;
-
-			// 80% of the available file descriptors should go to connections
-			// 20% goes towards regular files
-			m_file_pool.resize((std::min)(m_file_pool.size_limit(), int(rl.rlim_cur * 2 / 10)));
-		}
-#endif // TORRENT_USE_RLIMIT
+		// deduct some margin for epoll/kqueue, log files,
+		// futexes, shared objects etc.
+		// 80% of the available file descriptors should go to connections
+		// 20% goes towards regular files
+		const int max_files = (std::min)((std::max)(5
+				, (max_open_files() - 20) * 2 / 10)
+			, m_file_pool.size_limit());
+		m_file_pool.resize(max_files);
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -387,7 +381,7 @@ namespace libtorrent
 		// they are ready to be flushed. If so, flush them all,
 		// otherwise, hold off
 		bool range_full = true;
-		
+
 		cached_piece_entry* first_piece = NULL;
 		DLOG("try_flush_hashed: multi-piece: ");
 		for (int i = range_start; i < range_end; ++i)
