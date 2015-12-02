@@ -244,7 +244,11 @@ else()
 		foreach(CompilerFlag ${CompilerFlags})
 			string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
 		endforeach()
+		set(Boost_USE_MULTITHREADED ON)
+
+		set(Boost_USE_STATIC_RUNTIME ON)
 	endif()
+	set(Boost_USE_STATIC_LIBS ON)
 	add_library(torrent-rasterbar STATIC ${sources2})
 endif()
 
@@ -252,22 +256,19 @@ endif()
 if(NOT DEFINED Boost_INCLUDE_DIR OR NOT DEFINED Boost_LIBRARIES)
 	FIND_PACKAGE(Boost REQUIRED COMPONENTS system chrono random)
 endif()
-include_directories(${Boost_INCLUDE_DIR})
+include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 # this works around a bug in asio in boost-1.39
 #add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021  -D__USE_W32_SOCKETS -DWIN32_LEAN_AND_MEAN )
 
-if(NOT static_runtime)
-	add_definitions(-DBOOST_SYSTEM_DYN_LINK -DBOOST_CHRONO_DYN_LINK -DBOOST_RANDOM_DYN_LINK)
-endif()
-
 if (WIN32)
-	target_link_libraries(torrent-rasterbar wsock32 ws2_32)
+	target_link_libraries(torrent-rasterbar wsock32 ws2_32 Iphlpapi)
 	add_definitions(-D_WIN32_WINNT=0x0600)
 	# prevent winsock1 to be included
 	add_definitions(-DWIN32_LEAN_AND_MEAN)
 	if (MSVC)
+		add_definitions(-DBOOST_ALL_NO_LIB)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # multicore compilation
 	endif()
 endif()
