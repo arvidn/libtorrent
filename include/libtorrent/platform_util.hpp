@@ -5,6 +5,8 @@
 
 namespace libtorrent
 {
+	int max_open_files();
+
 	boost::uint64_t total_physical_ram();
 }
 

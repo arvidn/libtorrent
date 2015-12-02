@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
+#include <limits>
 
 #if TORRENT_USE_RLIMIT
 
@@ -48,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // capture this here where warnings are disabled (the macro generates warnings)
 const rlim_t rlimit_as = RLIMIT_AS;
+const rlim_t rlimit_nofile = RLIMIT_NOFILE;
 const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #ifdef __GNUC__
@@ -70,8 +72,33 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 namespace libtorrent
 {
 
+	int max_open_files()
+	{
+#if defined TORRENT_BUILD_SIMULATOR
+		return 256;
+#elif TORRENT_USE_RLIMIT
+
+		struct rlimit rl;
+		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
+		{
+			if (rl.rlim_cur == rlim_infinity)
+				return (std::numeric_limits<int>::max)();
+
+			return rl.rlim_cur;
+		}
+		return 1024;
+#else
+		// this seems like a reasonable limit for windows.
+		// http://blogs.msdn.com/b/oldnewthing/archive/2007/07/18/3926581.aspx
+		return 10000;
+#endif
+	}
+
 	boost::uint64_t total_physical_ram()
 	{
+#if defined TORRENT_BUILD_SIMULATOR
+		return boost::uint64_t(4) * 1024 * 1024 * 1024;
+#else
 		// figure out how much physical RAM there is in
 		// this machine. This is used for automatically
 		// sizing the disk cache size when it's set to
@@ -116,6 +143,7 @@ namespace libtorrent
 		}
 #endif
 		return ret;
+#endif // TORRENT_BUILD_SIMULATOR
 	}
 }
 

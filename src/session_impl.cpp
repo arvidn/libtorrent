@@ -114,6 +114,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/choker.hpp"
 #include "libtorrent/error.hpp"
+#include "libtorrent/platform_util.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -523,33 +524,19 @@ namespace aux {
 
 #endif // TORRENT_DISABLE_LOGGING
 
-#if TORRENT_USE_RLIMIT
 		// ---- auto-cap max connections ----
-
-		struct rlimit rl;
-		if (getrlimit(RLIMIT_NOFILE, &rl) == 0)
-		{
+		int max_files = max_open_files();
+		// deduct some margin for epoll/kqueue, log files,
+		// futexes, shared objects etc.
+		// 80% of the available file descriptors should go to connections
+		m_settings.set_int(settings_pack::connections_limit, (std::min)(
+			m_settings.get_int(settings_pack::connections_limit)
+			, (std::max)(5, (max_files - 20) * 8 / 10)));
+		// 20% goes towards regular files (see disk_io_thread)
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log(" max number of open files: %d", int(rl.rlim_cur));
-#endif
-			// deduct some margin for epoll/kqueue, log files,
-			// futexes, shared objects etc.
-			rl.rlim_cur -= 20;
+		session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
+		session_log("   max files: %d", max_files);
 
-			// 80% of the available file descriptors should go to connections
-			m_settings.set_int(settings_pack::connections_limit, (std::min)(
-				m_settings.get_int(settings_pack::connections_limit)
-				, int(rl.rlim_cur * 8 / 10)));
-			// 20% goes towards regular files (see disk_io_thread)
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
-			session_log("   max files: %d", int(rl.rlim_cur * 2 / 10));
-#endif
-		}
-#endif // TORRENT_USE_RLIMIT
-
-
-#ifndef TORRENT_DISABLE_LOGGING
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
@@ -6292,21 +6279,15 @@ retry:
 
 	void session_impl::update_connections_limit()
 	{
-		if (m_settings.get_int(settings_pack::connections_limit) <= 0)
-		{
-			m_settings.set_int(settings_pack::connections_limit, (std::numeric_limits<int>::max)());
-#if TORRENT_USE_RLIMIT
-			rlimit l;
-			if (getrlimit(RLIMIT_NOFILE, &l) == 0
-				&& l.rlim_cur != rlim_infinity)
-			{
-				m_settings.set_int(settings_pack::connections_limit
-					, l.rlim_cur - m_settings.get_int(settings_pack::file_pool_size));
-				if (m_settings.get_int(settings_pack::connections_limit) < 5)
-					m_settings.set_int(settings_pack::connections_limit, 5);
-			}
-#endif
-		}
+		int limit = m_settings.get_int(settings_pack::connections_limit);
+
+		if (limit <= 0)
+			limit = (std::numeric_limits<int>::max)();
+
+		limit = (std::max)(5, (std::min)(limit
+				, max_open_files() - 20 - m_settings.get_int(settings_pack::file_pool_size)));
+
+		m_settings.set_int(settings_pack::connections_limit, limit);
 
 		if (num_connections() > m_settings.get_int(settings_pack::connections_limit)
 			&& !m_torrents.empty())

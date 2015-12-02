@@ -56,25 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/sysctl.h>
 #endif
 
-#if TORRENT_USE_RLIMIT
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-#endif // __GNUC__
-
-#include <sys/resource.h>
-
-// capture this here where warnings are disabled (the macro generates warnings)
-const rlim_t rlimit_as = RLIMIT_AS;
-const rlim_t rlim_infinity = RLIM_INFINITY;
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
-
-#endif // TORRENT_USE_RLIMIT
-
 #ifdef TORRENT_LINUX
 #include <linux/unistd.h>
 #endif
