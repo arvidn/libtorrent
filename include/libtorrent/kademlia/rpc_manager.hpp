@@ -67,7 +67,7 @@ namespace libtorrent { namespace dht
 struct dht_logger;
 struct udp_socket_interface;
 
-struct null_observer : public observer
+struct TORRENT_EXTRA_EXPORT null_observer : public observer
 {
 	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
