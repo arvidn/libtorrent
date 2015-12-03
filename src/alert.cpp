@@ -1571,7 +1571,7 @@ namespace libtorrent {
 		return msg();
 	}
 
-	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
+	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, char const* log)
 		: torrent_alert(alloc, h)
 		, m_str_idx(alloc.copy_string(log))
@@ -1898,7 +1898,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle h
+	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
 		, piece_block const* blocks, int num_blocks)
 		: peer_alert(alloc, h, ep, peer_id)
