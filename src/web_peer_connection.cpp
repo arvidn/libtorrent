@@ -98,7 +98,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	if (!web.supports_keepalive) preferred_size *= 4;
 
 	prefer_contiguous_blocks((std::max)(preferred_size / tor->block_size(), 1));
-	
+
 	// we want large blocks as well, so
 	// we can request more bytes at once
 	// this setting will merge adjacent requests
@@ -196,7 +196,7 @@ void web_peer_connection::disconnect(error_code const& ec
 	peer_connection::disconnect(ec, op, error);
 	if (t) t->disconnect_web_seed(this);
 }
-	
+
 boost::optional<piece_block_progress>
 web_peer_connection::downloading_piece_progress() const
 {
@@ -948,7 +948,7 @@ void web_peer_connection::on_receive(error_code const& error
 				// block from the http receive buffer and then
 				// (if it completed) call incoming_piece() with
 				// m_piece as buffer.
-				
+
 				int piece_size = int(m_piece.size());
 				int copy_size = (std::min)((std::min)(front_request.length - piece_size
 					, recv_buffer.left()), int(range_end - range_start - m_received_body));
@@ -1061,7 +1061,7 @@ void web_peer_connection::on_receive(error_code const& error
 				m_received_body = 0;
 				m_chunk_pos = 0;
 				m_partial_chunk_header = 0;
-				
+
 				if (!t->need_loaded())
 				{
 					disconnect(errors::torrent_aborted, op_bittorrent);

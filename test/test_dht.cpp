@@ -2397,14 +2397,75 @@ TORRENT_TEST(invalid_error_msg)
 	bool found = false;
 	for (int i = 0; i < int(observer.m_log.size()); ++i)
 	{
-		if (observer.m_log[i].find("INCOMING ERROR")
-			&& observer.m_log[i].find("(malformed)"))
+		if (observer.m_log[i].find("INCOMING ERROR") != std::string::npos
+			&& observer.m_log[i].find("(malformed)") != std::string::npos)
 			found = true;
 
 		printf("%s\n", observer.m_log[i].c_str());
 	}
 
-	TEST_EQUAL(found, false);
+	TEST_EQUAL(found, true);
+}
+
+TORRENT_TEST(rpc_invalid_error_msg)
+{
+	dht_settings sett = test_settings();
+	mock_socket s;
+	obs observer;
+	counters cnt;
+
+	dht::routing_table table(node_id(), 8, sett, &observer);
+	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
+	dht::node node(&s, sett, node_id(0), &observer, cnt);
+
+	udp::endpoint source(address::from_string("10.0.0.1"), 20);
+
+	// we need this to create an entry for this transaction ID, otherwise the
+	// incoming message will just be dropped
+	entry req;
+	req["y"] = "q";
+	req["q"] = "bogus_query";
+	req["t"] = "\0\0\0\0";
+
+	g_sent_packets.clear();
+	boost::intrusive_ptr<traversal_algorithm> algo(new dht::traversal_algorithm(
+			node, node_id()));
+
+	observer_ptr o(new (rpc.allocate_observer()) null_observer(algo, source, node_id()));
+#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	rpc.invoke(req, source, o);
+
+	// here's the incoming (malformed) error message
+	entry err;
+	err["y"] = "e";
+	err["e"].string() = "Malformed Error";
+	err["t"] = g_sent_packets.begin()->second["t"].string();
+	char msg_buf[1500];
+	int size = bencode(msg_buf, err);
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf, msg_buf + size, decoded, ec);
+	if (ec) fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+
+	dht::msg m(decoded, source);
+	node_id nid;
+	rpc.incoming(m, &nid);
+
+	bool found = false;
+	for (int i = 0; i < int(observer.m_log.size()); ++i)
+	{
+		if (observer.m_log[i].find("reply with") != std::string::npos
+			&& observer.m_log[i].find("(malformed)") != std::string::npos
+			&& observer.m_log[i].find("error") != std::string::npos)
+			found = true;
+
+		printf("%s\n", observer.m_log[i].c_str());
+	}
+
+	TEST_EQUAL(found, true);
 }
 
 #endif

@@ -312,7 +312,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	{
 		// It's an error.
 #ifndef TORRENT_DISABLE_LOGGING
-		bdecode_node err = m.message.dict_find("e");
+		bdecode_node err = m.message.dict_find_list("e");
 		if (err && err.list_size() >= 2
 			&& err.list_at(0).type() == bdecode_node::int_t
 			&& err.list_at(1).type() == bdecode_node::string_t)
