@@ -57,7 +57,7 @@ struct traversal_algorithm;
 TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
 TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
 
-struct observer : boost::noncopyable
+struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 {
 	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
 	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
