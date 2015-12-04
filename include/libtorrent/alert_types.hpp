@@ -2123,7 +2123,7 @@ namespace libtorrent
 	// This alert is posted by some session wide event. Its main purpose is
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::session_log_notification`` bit.
-	// Furhtermore, it's by default disabled as a build configuration.
+	// Furthermore, it's by default disabled as a build configuration.
 	struct TORRENT_EXPORT log_alert TORRENT_FINAL : alert
 	{
 		// internal
@@ -2149,7 +2149,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_log_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
-		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle h
+		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, char const* log);
 
 		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
@@ -2444,7 +2444,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 
 		// internal
-		picker_log_alert(aux::stack_allocator& alloc, torrent_handle h
+		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
 			, piece_block const* blocks, int num_blocks);
 
@@ -2496,7 +2496,7 @@ namespace libtorrent
 #undef TORRENT_DEFINE_ALERT_PRIO
 #undef TORRENT_CLONE
 
-	enum { num_alert_types = 89 };
+	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
 }
 
 
