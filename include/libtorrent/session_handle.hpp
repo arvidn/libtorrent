@@ -414,7 +414,7 @@ namespace libtorrent
 		//
 		// boost::array<char,64>& signature
 		// 	the signature authenticating the current value. This may be zeroes
-		// 	if there is currently no value stored. The functon is expected to
+		// 	if there is currently no value stored. The function is expected to
 		// 	fill in this buffer with the signature of the new value to store.
 		// 	To generate the signature, you may want to use the
 		// 	``sign_mutable_item`` function.
@@ -723,7 +723,7 @@ namespace libtorrent
 		// ``peer_class_info`` object in the specified peer class. There is no
 		// option to only update a single property.
 		//
-		// A peer or torrent balonging to more than one class, the highest
+		// A peer or torrent belonging to more than one class, the highest
 		// priority among any of its classes is the one that is taken into
 		// account.
 		//
@@ -789,7 +789,7 @@ namespace libtorrent
 		//
 		// The optional second argument ``options`` can be used to delete all the
 		// files downloaded by this torrent. To do so, pass in the value
-		// ``session::delete_files``. The removal of the torrent is asyncronous,
+		// ``session::delete_files``. The removal of the torrent is asynchronous,
 		// there is no guarantee that adding the same torrent immediately after
 		// it was removed will not throw a libtorrent_exception exception. Once
 		// the torrent is deleted, a torrent_deleted_alert is posted.
@@ -959,7 +959,7 @@ namespace libtorrent
 		// the alert queue is full. Some alerts are considered mandatory and cannot
 		// be disabled by the ``alert_mask``. For instance,
 		// save_resume_data_alert and save_resume_data_failed_alert are always
-		// posted, regardelss of the alert mask.
+		// posted, regardless of the alert mask.
 		//
 		// To control which alerts are posted, set the alert_mask
 		// (settings_pack::alert_mask).
