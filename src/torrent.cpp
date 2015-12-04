@@ -6111,6 +6111,8 @@ namespace libtorrent
 			// disconnected. This will clear the graceful_pause_mode and post the
 			// torrent_paused_alert.
 			TORRENT_ASSERT(is_paused());
+
+			// this will post torrent_paused alert
 			set_allow_peers(false);
 		}
 
@@ -8180,7 +8182,7 @@ namespace libtorrent
 		if (m_connections.size() >= m_max_connections) return false;
 
 		// if we're paused, obviously we're not connecting to peers
-		if (is_paused() || m_abort) return false;
+		if (is_paused() || m_abort || m_graceful_pause_mode) return false;
 
 		if ((m_state == torrent_status::checking_files
 			|| m_state == torrent_status::checking_resume_data)
@@ -9609,7 +9611,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_allow_peers) return;
-		if (!graceful) set_allow_peers(false);
+		set_allow_peers(graceful ? true : false, graceful);
 
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -9619,11 +9621,9 @@ namespace libtorrent
 		set_need_save_resume();
 		state_updated();
 
-		m_graceful_pause_mode = graceful;
 		update_gauge();
 		update_want_peers();
 		update_want_scrape();
-
 	}
 
 	void torrent::do_pause()
