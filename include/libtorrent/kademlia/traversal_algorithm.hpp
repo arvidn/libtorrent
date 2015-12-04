@@ -58,7 +58,7 @@ class rpc_manager;
 class node;
 
 // this class may not be instantiated as a stack object
-struct traversal_algorithm : boost::noncopyable
+struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 {
 	void traverse(node_id const& id, udp::endpoint addr);
 	void finished(observer_ptr o);
