@@ -352,7 +352,7 @@ namespace libtorrent
 			upload_limit_too_low,
 
 			// This is the same warning as ``upload_limit_too_low`` but referring to the download
-			// limit instead of upload. This suggests that your download rate limit is mcuh lower
+			// limit instead of upload. This suggests that your download rate limit is much lower
 			// than your upload capacity. Your upload rate will suffer. To maximize upload rate,
 			// make sure your download rate limit is above 5% of your upload capacity.
 			download_limit_too_low,
