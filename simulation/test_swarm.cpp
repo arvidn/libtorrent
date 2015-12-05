@@ -85,3 +85,13 @@ TORRENT_TEST(shutdown)
 	simulate_swarm(early_shutdown);
 }
 
+// TODO: the swarm_suite is probably not a very good abstraction, it's not
+// configurable enough.
+
+// TODO: add test that makes sure a torrent in graceful pause mode won't make
+// outgoing connections
+// TODO: add test that makes sure a torrent in graceful pause mode won't accept
+// incoming connections
+// TODO: add test that makes sure a torrent in graceful pause mode only posts
+// the torrent_paused_alert once, and exactly once
+
