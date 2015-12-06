@@ -30,68 +30,230 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "swarm_suite.hpp"
+#include "setup_swarm.hpp"
 #include "test.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/session.hpp"
+
+using namespace libtorrent;
 
 TORRENT_TEST(seed_mode)
 {
 	// with seed mode
-	simulate_swarm(seed_mode);
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= add_torrent_params::flag_seed_mode;
+		}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{ return true; });
 }
 
 TORRENT_TEST(plain)
 {
-	simulate_swarm();
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{
+			if (ticks > 75)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			return true;
+		});
 }
 
 TORRENT_TEST(suggest)
 {
-	// with suggest pieces
-	simulate_swarm(suggest_read_cache);
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{
+			if (ticks > 75)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			return true;
+		});
 }
 
-TORRENT_TEST(utp)
+TORRENT_TEST(utp_only)
 {
-	simulate_swarm(utp_only);
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_bool(settings_pack::enable_incoming_utp, true);
+			pack.set_bool(settings_pack::enable_outgoing_utp, true);
+			pack.set_bool(settings_pack::enable_incoming_tcp, false);
+			pack.set_bool(settings_pack::enable_outgoing_tcp, false);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{
+			if (ticks > 75)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			return true;
+		});
+}
+
+void test_stop_start_download(swarm_test type, bool graceful)
+{
+	bool paused_once = false;
+	bool resumed = false;
+
+	setup_swarm(3, type
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session* ses) {
+
+			if (lt::alert_cast<lt::torrent_added_alert>(a))
+				add_extra_peers(ses);
+
+			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
+			{
+				TEST_EQUAL(resumed, false);
+				tp->handle.resume();
+				resumed = true;
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session* ses) -> bool
+		{
+			if (paused_once == false)
+			{
+				auto st = get_status(ses);
+				const bool limit_reached = (type == swarm_test::download)
+					? st.total_wanted_done > st.total_wanted / 2
+					: st.total_payload_upload >= 3 * 16 * 1024;
+
+				if (limit_reached)
+				{
+					auto h = ses->get_torrents()[0];
+					h.pause(graceful ? torrent_handle::graceful_pause : 0);
+					paused_once = true;
+				}
+			}
+
+			const int timeout = (type == swarm_test::upload) ? 64 : 20;
+
+			if (ticks > timeout)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (type == swarm_test::upload) return false;
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			return true;
+		});
+
+	TEST_EQUAL(paused_once, true);
+	TEST_EQUAL(resumed, true);
 }
 
 TORRENT_TEST(stop_start_download)
 {
-	simulate_swarm(stop_start_download | add_extra_peers);
+	test_stop_start_download(swarm_test::download, false);
 }
+
 TORRENT_TEST(stop_start_download_graceful)
 {
-	simulate_swarm(stop_start_download | graceful_pause | add_extra_peers);
+	test_stop_start_download(swarm_test::download, true);
 }
 
 TORRENT_TEST(stop_start_seed)
 {
-	simulate_swarm(stop_start_seed | add_extra_peers);
+	test_stop_start_download(swarm_test::upload, false);
 }
 
 TORRENT_TEST(stop_start_seed_graceful)
 {
-	simulate_swarm(stop_start_seed | graceful_pause | add_extra_peers);
+	test_stop_start_download(swarm_test::upload, true);
 }
 
 TORRENT_TEST(explicit_cache)
 {
-	// test explicit cache
-	simulate_swarm(suggest_read_cache | explicit_cache);
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+			pack.set_bool(settings_pack::explicit_read_cache, true);
+			pack.set_int(settings_pack::explicit_cache_interval, 5);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{
+			if (ticks > 75)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			return true;
+		});
 }
 
 TORRENT_TEST(shutdown)
 {
-	simulate_swarm(early_shutdown);
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{
+			if (completed_pieces(ses) == 0) return false;
+			TEST_EQUAL(is_seed(ses), false);
+			return true;
+		});
 }
-
-// TODO: the swarm_suite is probably not a very good abstraction, it's not
-// configurable enough.
 
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept
 // incoming connections
-// TODO: add test that makes sure a torrent in graceful pause mode only posts
-// the torrent_paused_alert once, and exactly once
 

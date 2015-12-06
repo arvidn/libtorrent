@@ -30,18 +30,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "swarm_suite.hpp"
+#include "setup_swarm.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "test.hpp"
 
-TORRENT_TEST(plain)
+using namespace libtorrent;
+
+TORRENT_TEST(super_seeding)
 {
-	// with super seeding
-	simulate_swarm(super_seeding);
+	setup_swarm(5, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= add_torrent_params::flag_super_seeding;
+		}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{ return true; });
 }
 
-TORRENT_TEST(strict)
+TORRENT_TEST(strict_super_seeding)
 {
-	// with strict super seeding
-	simulate_swarm(super_seeding | strict_super_seeding);
+	setup_swarm(5, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_bool(settings_pack::strict_super_seeding, true);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= add_torrent_params::flag_super_seeding;
+		}
+		// on alert
+		, [](lt::alert const* a, lt::session* ses) {}
+		// terminate
+		, [](int ticks, lt::session* ses) -> bool
+		{ return true; });
 }
 

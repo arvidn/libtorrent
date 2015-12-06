@@ -30,54 +30,52 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/io_service.hpp"
-#include "libtorrent/settings_pack.hpp"
-#include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/torrent_handle.hpp"
+#include "simulator/simulator.hpp"
+#include "libtorrent/address.hpp"
+#include <functional>
 
-#ifndef TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
-#define TORRENT_SWARM_SETUP_PROVIDER_HPP_INCLUDED
+#ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
+#define TORRENT_SETUP_SWARM_HPP_INCLUDED
 
 namespace libtorrent
 {
 	class alert;
 	class session;
+	struct add_torrent_params;
+	struct settings_pack;
+	struct torrent_handle;
+	struct torrent_status;
 }
 
-struct swarm_setup_provider
+namespace lt = libtorrent;
+
+enum class swarm_test { download, upload };
+
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session*)> on_alert
+	, std::function<int(int, lt::session*)> terminate);
+
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, sim::simulation& sim
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session*)> on_alert
+	, std::function<int(int, lt::session*)> terminate);
+
+bool is_seed(lt::session* ses);
+int completed_pieces(lt::session* ses);
+void add_extra_peers(lt::session* ses);
+lt::torrent_status get_status(lt::session* ses);
+
+struct dsl_config : sim::default_config
 {
-	// can be used to check expected end conditions
-	virtual void on_exit(std::vector<libtorrent::torrent_handle> const& torrents) {}
-
-	// called for every alert. if the simulation is done, return true
-	virtual bool on_alert(libtorrent::alert const* alert
-		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& handles
-		, libtorrent::session& ses) { return false; }
-
-	// called for every torrent that's added (and every session that's started).
-	// this is useful to give every session a unique save path and to make some
-	// sessions seeds and others downloaders
-	virtual libtorrent::add_torrent_params add_torrent(int idx) = 0;
-
-	// called for every torrent that's added once the torrent_handle comes back.
-	// can be used to set options on the torrent
-	virtual void on_torrent_added(int idx, libtorrent::torrent_handle h) {}
-
-	// called for every session that's created. Leaves an opportunity for the
-	// configuration object to add extensions etc.
-	virtual void on_session_added(int idx, libtorrent::session& ses) {}
-
-	// called for every session that's added
-	virtual libtorrent::settings_pack add_session(int idx) = 0;
-
-	// called once a second. if it returns true, the simulation is terminated
-	// by default, simulations end after 200 seconds
-	virtual bool tick(int t) { return t > 200; }
+	virtual sim::route incoming_route(lt::address ip) override;
+	virtual sim::route outgoing_route(lt::address ip) override;
 };
-
-void setup_swarm(int num_nodes, swarm_setup_provider& config);
-void setup_swarm(int num_nodes, sim::simulation& sim, swarm_setup_provider& config);
 
 #endif
 
