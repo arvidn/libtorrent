@@ -73,37 +73,7 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
-struct key_desc_t
-{
-	char const* name;
-	int type;
-	int size;
-	int flags;
-
-	enum {
-		// this argument is optional, parsing will not
-		// fail if it's not present
-		optional = 1,
-		// for dictionaries, the following entries refer
-		// to child nodes to this node, up until and including
-		// the next item that has the last_child flag set.
-		// these flags are nestable
-		parse_children = 2,
-		// this is the last item in a child dictionary
-		last_child = 4,
-		// the size argument refers to that the size
-		// has to be divisible by the number, instead
-		// of having that exact size
-		size_divisible = 8
-	};
-};
-
-bool TORRENT_EXTRA_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
-	, bdecode_node ret[], int size , char* error, int error_size);
-
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
-
-void incoming_error(entry& e, char const* msg, int error_code = 203);
 
 struct null_type {};
 

@@ -122,6 +122,7 @@ set(kademlia_sources
 	dht_storage
 	dos_blocker
 	dht_tracker
+	msg
 	node
 	node_entry
 	refresh

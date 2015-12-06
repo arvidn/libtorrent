@@ -694,6 +694,7 @@ SOURCES =
 KADEMLIA_SOURCES =
 	dht_storage
 	dht_tracker
+	msg
 	node
 	node_entry
 	refresh
