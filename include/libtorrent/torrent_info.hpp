@@ -219,6 +219,7 @@ namespace libtorrent
 		void rename_file(int index, std::string const& new_filename)
 		{
 			TORRENT_ASSERT(is_loaded());
+			if (m_files.file_name(index) == new_filename) return;
 			copy_on_write();
 			m_files.rename_file(index, new_filename);
 		}

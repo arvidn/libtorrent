@@ -831,244 +831,12 @@ namespace libtorrent
 #endif
 	}
 
-	void default_storage::write_resume_data(entry& rd, storage_error& ec) const
-	{
-		TORRENT_ASSERT(rd.type() == entry::dictionary_t);
-
-		entry::list_type& fl = rd["file sizes"].list();
-
-		if (m_part_file)
-		{
-			error_code ignore;
-			const_cast<part_file&>(*m_part_file).flush_metadata(ignore);
-		}
-
-		file_storage const& fs = files();
-		for (int i = 0; i < fs.num_files(); ++i)
-		{
-			boost::int64_t file_size = 0;
-			time_t file_time = 0;
-			boost::int64_t cache_state = m_stat_cache.get_filesize(i);
-			if (cache_state != stat_cache::not_in_cache)
-			{
-				if (cache_state >= 0)
-				{
-					file_size = cache_state;
-					file_time = m_stat_cache.get_filetime(i);
-				}
-			}
-			else
-			{
-				file_status s;
-				error_code error;
-				stat_file(fs.file_path(i, m_save_path), &s, error);
-				if (!error)
-				{
-					file_size = s.file_size;
-					file_time = s.mtime;
-				}
-				else if (error == error_code(boost::system::errc::no_such_file_or_directory
-					, generic_category()))
-				{
-					m_stat_cache.set_noexist(i);
-				}
-				else
-				{
-					ec.ec = error;
-					ec.file = i;
-					ec.operation = storage_error::stat;
-					m_stat_cache.set_error(i);
-				}
-			}
-
-			fl.push_back(entry(entry::list_t));
-			entry::list_type& p = fl.back().list();
-			p.push_back(entry(file_size));
-			p.push_back(entry(file_time));
-		}
-	}
-
 	bool default_storage::verify_resume_data(bdecode_node const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec)
 	{
-		// TODO: make this more generic to not just work if files have been
-		// renamed, but also if they have been merged into a single file for instance
-		// maybe use the same format as .torrent files and reuse some code from torrent_info
-		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files.list_size() == m_files.num_files())
-		{
-			m_mapped_files.reset(new file_storage(m_files));
-			for (int i = 0; i < m_files.num_files(); ++i)
-			{
-				std::string new_filename = mapped_files.list_string_value_at(i);
-				if (new_filename.empty()) continue;
-				m_mapped_files->rename_file(i, new_filename);
-			}
-		}
-
-		bdecode_node file_priority = rd.dict_find_list("file_priority");
-		if (file_priority && file_priority.list_size()
-			== files().num_files())
-		{
-			m_file_priority.resize(file_priority.list_size());
-			for (int i = 0; i < file_priority.list_size(); ++i)
-				m_file_priority[i] = boost::uint8_t(file_priority.list_int_value_at(i, 1));
-		}
-
-		bdecode_node file_sizes_ent = rd.dict_find_list("file sizes");
-		if (file_sizes_ent == 0)
-		{
-			ec.ec = errors::missing_file_sizes;
-			ec.file = -1;
-			ec.operation = storage_error::check_resume;
-			return false;
-		}
-
-		if (file_sizes_ent.list_size() == 0)
-		{
-			ec.ec = errors::no_files_in_resume_data;
-			return false;
-		}
-
 		file_storage const& fs = files();
-		if (file_sizes_ent.list_size() != fs.num_files())
-		{
-			ec.ec = errors::mismatching_number_of_files;
-			ec.file = -1;
-			ec.operation = storage_error::check_resume;
-			return false;
-		}
 
-		bool seed = false;
-		bdecode_node slots = rd.dict_find_list("slots");
-		if (slots)
-		{
-			if (int(slots.list_size()) == m_files.num_pieces())
-			{
-				seed = true;
-				for (int i = 0; i < slots.list_size(); ++i)
-				{
-					if (slots.list_int_value_at(i, -1) >= 0) continue;
-					seed = false;
-					break;
-				}
-			}
-		}
-		else if (bdecode_node pieces = rd.dict_find_string("pieces"))
-		{
-			if (int(pieces.string_length()) == m_files.num_pieces())
-			{
-				seed = true;
-				char const* p = pieces.string_ptr();
-				for (int i = 0; i < pieces.string_length(); ++i)
-				{
-					if ((p[i] & 1) == 1) continue;
-					seed = false;
-					break;
-				}
-			}
-		}
-		else
-		{
-			ec.ec = errors::missing_pieces;
-			ec.file = -1;
-			ec.operation = storage_error::check_resume;
-			return false;
-		}
-
-		for (int i = 0; i < file_sizes_ent.list_size(); ++i)
-		{
-			if (fs.pad_file_at(i)) continue;
-			bdecode_node e = file_sizes_ent.list_at(i);
-			if (e.type() != bdecode_node::list_t
-				|| e.list_size() < 2
-				|| e.list_at(0).type() != bdecode_node::int_t
-				|| e.list_at(1).type() != bdecode_node::int_t)
-			{
-				ec.ec = errors::missing_file_sizes;
-				ec.file = i;
-				ec.operation = storage_error::check_resume;
-				return false;
-			}
-
-			boost::int64_t expected_size = e.list_int_value_at(0);
-			time_t expected_time = e.list_int_value_at(1);
-
-			// if we're a seed, the expected size should match
-			// the actual full size according to the torrent
-			if (seed && expected_size < fs.file_size(i))
-			{
-				ec.ec = errors::mismatching_file_size;
-				ec.file = i;
-				ec.operation = storage_error::check_resume;
-				return false;
-			}
-
-			boost::int64_t file_size = m_stat_cache.get_filesize(i);
-			time_t file_time;
-			if (file_size >= 0)
-			{
-				file_time = m_stat_cache.get_filetime(i);
-			}
-			else
-			{
-				file_status s;
-				error_code error;
-				std::string file_path = fs.file_path(i, m_save_path);
-				stat_file(file_path, &s, error);
-				if (error)
-				{
-					if (error != boost::system::errc::no_such_file_or_directory)
-					{
-						m_stat_cache.set_error(i);
-						ec.ec = error;
-						ec.file = i;
-						ec.operation = storage_error::stat;
-						return false;
-					}
-					m_stat_cache.set_noexist(i);
-					if (expected_size != 0)
-					{
-						ec.ec = errors::mismatching_file_size;
-						ec.file = i;
-						ec.operation = storage_error::none;
-						return false;
-					}
-					file_size = 0;
-					file_time = 0;
-				}
-				else
-				{
-					file_size = s.file_size;
-					file_time = s.mtime;
-				}
-			}
-
-			if (expected_size > file_size)
-			{
-				ec.ec = errors::mismatching_file_size;
-				ec.file = i;
-				ec.operation = storage_error::none;
-				return false;
-			}
-
-			if (settings().get_bool(settings_pack::ignore_resume_timestamps)) continue;
-
-			// allow some slack, because of FAT volumes
-			if (expected_time != 0 &&
-				(file_time > expected_time + 5 * 60 || file_time < expected_time - 5))
-			{
-				ec.ec = errors::mismatching_file_timestamp;
-				ec.file = i;
-				ec.operation = storage_error::stat;
-				return false;
-			}
-		}
-
-		// TODO: 2 we probably need to do this unconditionally in this function.
-		// Even if the resume data file appears stale, we need to create these
-		// hard links, right?
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (links)
 		{
@@ -1103,6 +871,67 @@ namespace libtorrent
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
+
+		if (rd && rd.type() == bdecode_node::dict_t)
+		{
+			bdecode_node pieces = rd.dict_find_string("pieces");
+			if (pieces && pieces.type() == bdecode_node::string_t
+				&& int(pieces.string_length()) == fs.num_pieces())
+			{
+				char const* pieces_str = pieces.string_ptr();
+				// parse have bitmask. Verify that the files we expect to have
+				// actually do exist
+				for (int i = 0; i < fs.num_pieces(); ++i)
+				{
+					if ((pieces_str[i] & 1) == 0) continue;
+
+					std::vector<file_slice> f = fs.map_block(i, 0, 1);
+					TORRENT_ASSERT(!f.empty());
+
+					const int file_index = f[0].file_index;
+					boost::int64_t size = m_stat_cache.get_filesize(f[0].file_index);
+
+					if (size == stat_cache::not_in_cache)
+					{
+						file_status s;
+						error_code error;
+						std::string file_path = fs.file_path(file_index, m_save_path);
+						stat_file(file_path, &s, error);
+						size = s.file_size;
+						if (error)
+						{
+							if (error != boost::system::errc::no_such_file_or_directory)
+							{
+								m_stat_cache.set_error(i);
+								ec.ec = error;
+								ec.file = i;
+								ec.operation = storage_error::stat;
+								return false;
+							}
+							m_stat_cache.set_noexist(i);
+							ec.ec = errors::mismatching_file_size;
+							ec.file = i;
+							ec.operation = storage_error::stat;
+							return false;
+						}
+					}
+					if (size < 0)
+					{
+						ec.ec = errors::mismatching_file_size;
+						ec.file = i;
+						ec.operation = storage_error::check_resume;
+						return false;
+					}
+
+					// OK, this file existed, good. Now, skip all remaining pieces in
+					// this file. We're just sanity-checking whether the files exist
+					// or not.
+					peer_request pr = fs.map_file(file_index, 0
+						, fs.file_size(file_index) + 1);
+					i = (std::max)(i + 1, pr.piece);
+				}
+			}
+		}
 
 		return true;
 	}
@@ -1597,12 +1426,6 @@ namespace libtorrent
 	}
 #endif
 
-	// used in torrent_handle.cpp
-	void piece_manager::write_resume_data(entry& rd, storage_error& ec) const
-	{
-		m_storage->write_resume_data(rd, ec);
-	}
-
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
 		bool has_files = false;
@@ -1631,13 +1454,14 @@ namespace libtorrent
 	int piece_manager::check_init_storage(storage_error& ec)
 	{
 		storage_error se;
+		// initialize may clear the error we pass in and it's important to
+		// preserve the error code in ec, even when initialize() is successful
 		m_storage->initialize(se);
 		if (se)
 		{
 			ec = se;
 			return fatal_disk_error;
 		}
-
 		return no_error;
 	}
 

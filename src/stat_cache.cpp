@@ -38,6 +38,9 @@ namespace libtorrent
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() {}
 
+	// TODO: 4 improve this interface by fall back to the actual stat() call internally. Don't
+	// expose low-level functions to query the cache and set cache state. Also, we should
+	// probably cache the error_code too
 	void stat_cache::set_cache(int i, boost::int64_t size, time_t time)
 	{
 		TORRENT_ASSERT(i >= 0);
@@ -76,6 +79,7 @@ namespace libtorrent
 		return m_stat_cache[i].file_size;
 	}
 
+	// TODO: 4 file_time can probably be removed from the cache now
 	time_t stat_cache::get_filetime(int i) const
 	{
 		if (i >= int(m_stat_cache.size())) return not_in_cache;

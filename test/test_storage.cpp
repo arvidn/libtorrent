@@ -664,7 +664,7 @@ TORRENT_TEST(fastresume)
 		{
 			print_alerts(ses, "ses");
 			s = h.status();
-			if (s.progress == 1.0f) 
+			if (s.progress == 1.0f)
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
@@ -692,7 +692,6 @@ TORRENT_TEST(fastresume)
 		return;
 
 	std::cerr << resume.to_string() << "\n";
-	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	// make sure the fast resume check fails! since we removed the file
 	{
@@ -795,7 +794,6 @@ TORRENT_TEST(rename_file_fastresume)
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
-	TEST_CHECK(resume.dict().find("file sizes") != resume.dict().end());
 
 	std::cerr << resume.to_string() << "\n";
 

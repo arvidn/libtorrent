@@ -110,7 +110,7 @@ namespace libtorrent {
 #endif
 
 		bool pending() const;
-		void get_all(std::vector<alert*>& alerts, int& num_resume);
+		void get_all(std::vector<alert*>& alerts);
 
 		template <class T>
 		bool should_post() const
@@ -147,8 +147,6 @@ namespace libtorrent {
 		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
 #endif
 
-		int num_queued_resume() const;
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
@@ -178,9 +176,6 @@ namespace libtorrent {
 		// notification function will be called again the next time an alert is
 		// posted to the queue
 		boost::function<void()> m_notify;
-
-		// the number of resume data alerts  in the alert queue
-		int m_num_queued_resume;
 
 		// this is either 0 or 1, it indicates which m_alerts and m_allocations
 		// the alert_manager is allowed to use right now. This is swapped when

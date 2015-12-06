@@ -86,8 +86,6 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 		virtual void async_delete_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
-		virtual void async_save_resume_data(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 		virtual void async_set_file_priority(piece_manager* storage
 			, std::vector<boost::uint8_t> const& prio
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;

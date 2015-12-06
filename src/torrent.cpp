@@ -5036,35 +5036,6 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_save_resume_data(disk_io_job const* j)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		torrent_ref_holder h(this, "save_resume");
-		dec_refcount("save_resume");
-		m_ses.done_async_resume();
-
-		if (!j->buffer.resume_data)
-		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), j->error.ec);
-			return;
-		}
-
-		if (!need_loaded())
-		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-				, m_error);
-			return;
-		}
-
-		m_need_save_resume_data = false;
-		m_last_saved_resume = m_ses.session_time();
-		write_resume_data(*j->buffer.resume_data);
-		alerts().emplace_alert<save_resume_data_alert>(
-			boost::shared_ptr<entry>(j->buffer.resume_data), get_handle());
-		const_cast<disk_io_job*>(j)->buffer.resume_data = 0;
-		state_updated();
-	}
-
 	void torrent::on_file_renamed(disk_io_job const* j)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5521,10 +5492,6 @@ namespace libtorrent
 		// this call is only valid on torrents with metadata
 		if (!valid_metadata() || is_seed()) return;
 
-		// the vector need to have exactly one element for every file
-		// in the torrent
-		TORRENT_ASSERT(int(files.size()) == m_torrent_file->num_files());
-
 		int limit = int(files.size());
 		if (valid_metadata() && limit > m_torrent_file->num_files())
 			limit = m_torrent_file->num_files();
@@ -5545,7 +5512,7 @@ namespace libtorrent
 			m_file_priority[i] = 0;
 		}
 
-		// storage may be NULL during shutdown
+		// storage may be NULL during construction and shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			inc_refcount("file_priority");
@@ -6916,9 +6883,6 @@ namespace libtorrent
 			m_ses.insert_uuid_torrent(m_uuid.empty() ? m_url : m_uuid, me);
 		}
 
-		// TODO: make this more generic to not just work if files have been
-		// renamed, but also if they have been merged into a single file for instance
-		// maybe use the same format as .torrent files and reuse some code from torrent_info
 		// The mapped_files needs to be read both in the network thread
 		// and in the disk thread, since they both have their own mapped files structures
 		// which are kept in sync
@@ -6947,28 +6911,15 @@ namespace libtorrent
 			{
 				const int num_files = (std::min)(file_priority.list_size()
 					, m_torrent_file->num_files());
-				m_file_priority.resize(num_files, 4);
+				std::vector<int> file_prio(num_files);
 				for (int i = 0; i < num_files; ++i)
 				{
-					m_file_priority[i] = file_priority.list_int_value_at(i, 1);
+					file_prio[i] = file_priority.list_int_value_at(i, 1);
 					// this is suspicious, leave seed mode
-					if (m_file_priority[i] == 0) m_seed_mode = false;
-				}
-				// unallocated slots are assumed to be priority 1, so cut off any
-				// trailing ones
-				int end_range = num_files - 1;
-				for (; end_range >= 0; --end_range) if (m_file_priority[end_range] != 1) break;
-				m_file_priority.resize(end_range + 1, 4);
-
-				// initialize pad files to priority 0
-				file_storage const& fs = m_torrent_file->files();
-				for (int i = 0; i < (std::min)(fs.num_files(), end_range + 1); ++i)
-				{
-					if (!fs.pad_file_at(i)) continue;
-					m_file_priority[i] = 0;
+					if (file_prio[i] == 0) m_seed_mode = false;
 				}
 
-				update_piece_priorities();
+				prioritize_files(file_prio);
 			}
 		}
 
@@ -7275,9 +7226,6 @@ namespace libtorrent
 		}
 
 		// write renamed files
-		// TODO: 0 make this more generic to not just work if files have been
-		// renamed, but also if they have been merged into a single file for instance.
-		// using file_base
 		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
@@ -8766,7 +8714,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 
-		// stoage may be NULL during shutdown
+		// storage may be NULL during shutdown
 		if (!m_storage.get())
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
@@ -9558,58 +9506,30 @@ namespace libtorrent
 		m_save_resume_flags = boost::uint8_t(flags);
 		state_updated();
 
-		if (m_state == torrent_status::checking_files
-			|| m_state == torrent_status::checking_resume_data)
-		{
-			if (!need_loaded())
-			{
-				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-					, m_error);
-				return;
-			}
-
-			// storage may be NULL during shutdown
-			if (!m_storage)
-			{
-				TORRENT_ASSERT(m_abort);
-				alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
-					, boost::asio::error::operation_aborted);
-				return;
-			}
-
-			boost::shared_ptr<entry> rd(new entry);
-			write_resume_data(*rd);
-			alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
-			return;
-		}
-
-		// TODO: 3 this really needs to be moved to do_async_save_resume_data.
-		// flags need to be passed on
-		if ((flags & torrent_handle::flush_disk_cache) && m_storage.get())
-			m_ses.disk_thread().async_release_files(m_storage.get());
-
-		m_ses.queue_async_resume_data(shared_from_this());
-	}
-
-	bool torrent::do_async_save_resume_data()
-	{
 		if (!need_loaded())
 		{
-			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle(), m_error);
-			return false;
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, m_error);
+			return;
 		}
+/*
 		// storage may be NULL during shutdown
 		if (!m_storage)
 		{
 			TORRENT_ASSERT(m_abort);
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
 				, boost::asio::error::operation_aborted);
-			return false;
+			return;
 		}
-		inc_refcount("save_resume");
-		m_ses.disk_thread().async_save_resume_data(m_storage.get()
-			, boost::bind(&torrent::on_save_resume_data, shared_from_this(), _1));
-		return true;
+*/
+		if ((flags & torrent_handle::flush_disk_cache) && m_storage.get())
+			m_ses.disk_thread().async_release_files(m_storage.get());
+
+		state_updated();
+
+		boost::shared_ptr<entry> rd(new entry);
+		write_resume_data(*rd);
+		alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
 	}
 
 	bool torrent::should_check_files() const

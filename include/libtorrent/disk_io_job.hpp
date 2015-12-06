@@ -89,7 +89,6 @@ namespace libtorrent
 			, release_files
 			, delete_files
 			, check_fastresume
-			, save_resume_data
 			, rename_file
 			, stop_torrent
 			, cache_piece
@@ -151,8 +150,6 @@ namespace libtorrent
 		// for other jobs, it may point to other job-specific types
 		// for move_storage and rename_file this is a string allocated
 		// with malloc()
-		// an entry* for save_resume_data
-		// for aiocb_complete this points to the aiocb that completed
 		// for get_cache_info this points to a cache_status object which
 		// is filled in
 		union

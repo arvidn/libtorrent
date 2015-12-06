@@ -1038,7 +1038,6 @@ namespace libtorrent
 		&disk_io_thread::do_release_files,
 		&disk_io_thread::do_delete_files,
 		&disk_io_thread::do_check_fastresume,
-		&disk_io_thread::do_save_resume_data,
 		&disk_io_thread::do_rename_file,
 		&disk_io_thread::do_stop_torrent,
 		&disk_io_thread::do_cache_piece,
@@ -1904,23 +1903,6 @@ namespace libtorrent
 		add_fence_job(storage, j);
 	}
 
-	void disk_io_thread::async_save_resume_data(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
-	{
-#ifdef TORRENT_DEBUG
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
-		disk_io_job* j = allocate_job(disk_io_job::save_resume_data);
-		j->storage = storage->shared_from_this();
-		j->buffer.resume_data = NULL;
-		j->callback = handler;
-
-		add_fence_job(storage, j);
-	}
-
 	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
@@ -2599,22 +2581,6 @@ namespace libtorrent
 
 		boost::scoped_ptr<std::vector<std::string> > links(j->d.links);
 		return j->storage->check_fastresume(*rd, links.get(), j->error);
-	}
-
-	int disk_io_thread::do_save_resume_data(disk_io_job* j, jobqueue_t& completed_jobs)
-	{
-		// if this assert fails, something's wrong with the fence logic
-		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
-
-		mutex::scoped_lock l(m_cache_mutex);
-		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
-		l.unlock();
-
-		entry* resume_data = new entry(entry::dictionary_t);
-		j->storage->get_storage_impl()->write_resume_data(*resume_data, j->error);
-		TORRENT_ASSERT(j->buffer.resume_data == 0);
-		j->buffer.resume_data = resume_data;
-		return j->error ? -1 : 0;
 	}
 
 	int disk_io_thread::do_rename_file(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
