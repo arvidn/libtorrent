@@ -813,6 +813,7 @@ namespace libtorrent
 			, peer_request r, boost::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(disk_io_job const* j);
 		int request_timeout() const;
+		void check_graceful_pause();
 
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);

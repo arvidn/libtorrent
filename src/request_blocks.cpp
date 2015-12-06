@@ -73,6 +73,9 @@ namespace libtorrent
 		// initialized after we have the metadata
 		if (!t.are_files_checked()) return false;
 
+		// we don't want to request more blocks while trying to gracefully pause
+		if (t.graceful_pause()) return false;
+
 		TORRENT_ASSERT(c.peer_info_struct() != 0 || c.type() != peer_connection::bittorrent_connection);
 
 		bool time_critical_mode = t.num_time_critical_pieces() > 0;

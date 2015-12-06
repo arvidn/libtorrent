@@ -1234,13 +1234,14 @@ namespace libtorrent
 		}
 
 		if (t->is_paused()
+			&& t->is_auto_managed()
 			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
 			&& !t->is_aborted())
 		{
 			t->resume();
 		}
 
-		if (t->is_paused() || t->is_aborted())
+		if (t->is_paused() || t->is_aborted() || t->graceful_pause())
 		{
 			// paused torrents will not accept
 			// incoming connections unless they are auto managed
@@ -1509,6 +1510,9 @@ namespace libtorrent
 			if (i != m_suggested_pieces.end())
 				m_suggested_pieces.erase(i);
 		}
+
+		check_graceful_pause();
+		if (is_disconnecting()) return;
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
@@ -2942,11 +2946,31 @@ namespace libtorrent
 			t->verify_piece(p.piece);
 		}
 
+		check_graceful_pause();
+
 		if (is_disconnecting()) return;
 
 		if (request_a_block(*t, *this))
 			m_counters.inc_stats_counter(counters::incoming_piece_picks);
 		send_block_requests();
+	}
+
+	void peer_connection::check_graceful_pause()
+	{
+		// TODO: 3 instead of having to ask the torrent whether it's in graceful
+		// pause mode or not, the peers should keep that state (and the torrent
+		// should update them when it enters graceful pause). When a peer enters
+		// graceful pause mode, it should cancel all outstanding requests and
+		// clear its request queue.
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t || !t->graceful_pause()) return;
+
+		if (m_outstanding_bytes > 0) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "GRACEFUL_PAUSE", "NO MORE DOWNLOAD");
+#endif
+		disconnect(errors::torrent_paused, op_bittorrent);
 	}
 
 	void peer_connection::on_disk_write_complete(disk_io_job const* j
@@ -3803,23 +3827,9 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
-		if (t->graceful_pause() && m_outstanding_bytes == 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "GRACEFUL_PAUSE", "NO MORE DOWNLOAD");
-#endif
-			disconnect(errors::torrent_paused, op_bittorrent);
-
-			// if this was the last connection, post the alert
-			// TODO: it would be nice if none of this logic would leak outside of
-			// the torrent object)
-			if (t->num_peers() == 0)
-			{
-				if (t->alerts().should_post<torrent_paused_alert>())
-					t->alerts().emplace_alert<torrent_paused_alert>(t->get_handle());
-			}
-			return;
-		}
+		// TODO: 3 once peers are properly put in graceful pause mode, they can
+		// cancel all outstanding requests and this test can be removed.
+		if (t->graceful_pause()) return;
 
 		// we can't download pieces in these states
 		if (t->state() == torrent_status::checking_files
@@ -6126,6 +6136,9 @@ namespace libtorrent
 
 		if (m_extension_outstanding_bytes > 0)
 			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
+
+		check_graceful_pause();
+		if (m_disconnecting) return;
 
 		int num_loops = 0;
 		do
