@@ -49,9 +49,9 @@ TORRENT_TEST(seed_mode)
 			params.flags |= add_torrent_params::flag_seed_mode;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{ return true; });
 }
 
@@ -63,9 +63,9 @@ TORRENT_TEST(plain)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 75)
 			{
@@ -88,9 +88,9 @@ TORRENT_TEST(suggest)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 75)
 			{
@@ -116,9 +116,9 @@ TORRENT_TEST(utp_only)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 75)
 			{
@@ -137,11 +137,18 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 	setup_swarm(3, type
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack& pack) {
+			// this test will pause and resume the torrent immediately, we expect
+			// to reconnect immediately too, so disable the min reconnect time
+			// limit.
+			pack.set_int(settings_pack::min_reconnect_time, 0);
+		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params& params) {
+
+		}
 		// on alert
-		, [&](lt::alert const* a, lt::session* ses) {
+		, [&](lt::alert const* a, lt::session& ses) {
 
 			if (lt::alert_cast<lt::torrent_added_alert>(a))
 				add_extra_peers(ses);
@@ -149,12 +156,13 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
+				printf("\nSTART\n\n");
 				tp->handle.resume();
 				resumed = true;
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session* ses) -> bool
+		, [&](int ticks, lt::session& ses) -> bool
 		{
 			if (paused_once == false)
 			{
@@ -165,14 +173,16 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 				if (limit_reached)
 				{
-					auto h = ses->get_torrents()[0];
+					printf("\nSTOP\n\n");
+					auto h = ses.get_torrents()[0];
 					h.pause(graceful ? torrent_handle::graceful_pause : 0);
 					paused_once = true;
 				}
 			}
 
-			const int timeout = (type == swarm_test::upload) ? 64 : 20;
+			printf("tick: %d\n", ticks);
 
+			const int timeout = type == swarm_test::download ? 20 : 91;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");
@@ -198,6 +208,51 @@ TORRENT_TEST(stop_start_download_graceful)
 	test_stop_start_download(swarm_test::download, true);
 }
 
+TORRENT_TEST(stop_start_download_graceful_no_peers)
+{
+	bool paused_once = false;
+	bool resumed = false;
+
+	setup_swarm(1, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
+			{
+				TEST_EQUAL(resumed, false);
+				printf("\nSTART\n\n");
+				tp->handle.resume();
+				resumed = true;
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool
+		{
+			if (paused_once == false
+				&& ticks == 6)
+			{
+				printf("\nSTOP\n\n");
+				auto h = ses.get_torrents()[0];
+				h.pause(torrent_handle::graceful_pause);
+				paused_once = true;
+			}
+
+			printf("tick: %d\n", ticks);
+
+			// when there's only one node (i.e. no peers) we won't ever download
+			// the torrent. It's just a test to make sure we still get the
+			// torrent_paused_alert
+			return ticks > 60;
+		});
+
+	TEST_EQUAL(paused_once, true);
+	TEST_EQUAL(resumed, true);
+}
+
+
 TORRENT_TEST(stop_start_seed)
 {
 	test_stop_start_download(swarm_test::upload, false);
@@ -220,9 +275,9 @@ TORRENT_TEST(explicit_cache)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 75)
 			{
@@ -242,9 +297,9 @@ TORRENT_TEST(shutdown)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 			TEST_EQUAL(is_seed(ses), false);
@@ -256,4 +311,8 @@ TORRENT_TEST(shutdown)
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept
 // incoming connections
+// TODO: test allow-fast
+// TODO: test the different storage allocation modes
+// TODO: test contiguous buffers
+
 

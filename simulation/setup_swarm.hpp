@@ -55,21 +55,54 @@ void setup_swarm(int num_nodes
 	, swarm_test type
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
-	, std::function<void(lt::alert const*, lt::session*)> on_alert
-	, std::function<int(int, lt::session*)> terminate);
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate);
 
 void setup_swarm(int num_nodes
 	, swarm_test type
 	, sim::simulation& sim
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
-	, std::function<void(lt::alert const*, lt::session*)> on_alert
-	, std::function<int(int, lt::session*)> terminate);
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate);
 
-bool is_seed(lt::session* ses);
-int completed_pieces(lt::session* ses);
-void add_extra_peers(lt::session* ses);
-lt::torrent_status get_status(lt::session* ses);
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, sim::simulation& sim
+	, lt::settings_pack const& default_settings
+	, lt::add_torrent_params const& default_add_torrent
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate);
+
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, sim::simulation& sim
+	, lt::settings_pack const& default_settings
+	, lt::add_torrent_params const& default_add_torrent
+	, std::function<void(lt::session&)> init_session
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate);
+
+bool has_metadata(lt::session& ses);
+bool is_seed(lt::session& ses);
+int completed_pieces(lt::session& ses);
+void add_extra_peers(lt::session& ses);
+lt::torrent_status get_status(lt::session& ses);
+
+std::string save_path(int swarm_id, int idx);
+
+// construct an address from string
+lt::address addr(char const* str);
+
+// disable TCP and enable uTP
+void utp_only(lt::settings_pack& pack);
+
+// force encrypted connections
+void enable_enc(lt::settings_pack& pack);
 
 struct dsl_config : sim::default_config
 {

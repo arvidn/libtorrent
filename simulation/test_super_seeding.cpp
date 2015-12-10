@@ -47,9 +47,9 @@ TORRENT_TEST(super_seeding)
 			params.flags |= add_torrent_params::flag_super_seeding;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{ return true; });
 }
 
@@ -65,9 +65,9 @@ TORRENT_TEST(strict_super_seeding)
 			params.flags |= add_torrent_params::flag_super_seeding;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session* ses) {}
+		, [](lt::alert const* a, lt::session& ses) {}
 		// terminate
-		, [](int ticks, lt::session* ses) -> bool
+		, [](int ticks, lt::session& ses) -> bool
 		{ return true; });
 }
 

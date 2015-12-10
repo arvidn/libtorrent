@@ -4092,7 +4092,10 @@ namespace libtorrent
 
 		// we cannot do this in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
-		if (error > 0) m_failed = true;
+		if (error > 0)
+		{
+			m_failed = true;
+		}
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected, -1);
@@ -4144,7 +4147,7 @@ namespace libtorrent
 		if (ec == error_code(errors::timed_out)
 			|| ec == error::timed_out)
 			m_counters.inc_stats_counter(counters::transport_timeout_peers);
-		
+
 		if (ec == error_code(errors::timed_out_inactivity)
 			|| ec == error_code(errors::timed_out_no_request)
 			|| ec == error_code(errors::timed_out_no_interest))

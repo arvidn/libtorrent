@@ -259,15 +259,14 @@ namespace libtorrent { namespace
 				if (m_tp.num_tex_trackers() >= 50)
 					break;
 
+#ifndef TORRENT_DISABLE_LOGGING
+				m_pc.peer_log(peer_log_alert::info, "LT_TEX", "adding: %s", e.url.c_str());
+#endif
 				e.fail_limit = 1;
 				e.send_stats = false;
 				e.source = announce_entry::source_tex;
 				if (m_torrent.add_tracker(e))
 					m_tp.increment_tracker_counter();
-
-#ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::info, "LT_TEX", "added: %s", e.url.c_str());
-#endif
 			}
 			return true;
 		}

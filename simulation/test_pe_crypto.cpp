@@ -33,14 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/random.hpp"
 
 #include "setup_transfer.hpp"
-#include "swarm_config.hpp"
 #include "test.hpp"
+#include "settings.hpp"
+#include "setup_swarm.hpp"
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
@@ -49,18 +48,14 @@ namespace lt = libtorrent;
 
 char const* pe_policy(boost::uint8_t policy)
 {
-	using namespace libtorrent;
-
 	if (policy == settings_pack::pe_disabled) return "disabled";
 	else if (policy == settings_pack::pe_enabled) return "enabled";
 	else if (policy == settings_pack::pe_forced) return "forced";
 	return "unknown";
 }
 
-void display_settings(libtorrent::settings_pack const& s)
+void display_pe_settings(libtorrent::settings_pack const& s)
 {
-	using namespace libtorrent;
-
 	fprintf(stderr, "out_enc_policy - %s\tin_enc_policy - %s\n"
 		, pe_policy(s.get_int(settings_pack::out_enc_policy))
 		, pe_policy(s.get_int(settings_pack::in_enc_policy)));
@@ -72,108 +67,126 @@ void display_settings(libtorrent::settings_pack const& s)
 		, s.get_bool(settings_pack::prefer_rc4) ? "true": "false");
 }
 
-struct test_swarm_config : swarm_config
+void test_transfer(int enc_policy, int level, bool prefer_rc4)
 {
-	test_swarm_config(libtorrent::settings_pack::enc_policy policy
-		, libtorrent::settings_pack::enc_level level
-		, bool prefer_rc4)
-		: swarm_config()
-		, m_policy(policy)
-		, m_level(level)
-		, m_prefer_rc4(prefer_rc4)
-	{}
+	lt::settings_pack default_settings = settings();
+	default_settings.set_bool(settings_pack::prefer_rc4, prefer_rc4);
+	default_settings.set_int(settings_pack::in_enc_policy, enc_policy);
+	default_settings.set_int(settings_pack::out_enc_policy, enc_policy);
+	default_settings.set_int(settings_pack::allowed_enc_level, level);
+	display_pe_settings(default_settings);
 
-	// called for every session that's added
-	virtual libtorrent::settings_pack add_session(int idx) override
-	{
-		settings_pack s = swarm_config::add_session(idx);
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
 
-		fprintf(stderr, " session %d\n", idx);
-
-		s.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);
-		s.set_int(settings_pack::in_enc_policy, settings_pack::pe_enabled);
-		s.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
-
-		if (idx == 1)
-		{
-			s.set_int(settings_pack::out_enc_policy, m_policy);
-			s.set_int(settings_pack::in_enc_policy, m_policy);
-			s.set_int(settings_pack::allowed_enc_level, m_level);
-			s.set_bool(settings_pack::prefer_rc4, m_prefer_rc4);
+	lt::add_torrent_params default_add_torrent;
+	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
+	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_enabled);
+			pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_enabled);
+			pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+			pack.set_bool(settings_pack::prefer_rc4, false);
 		}
-
-		display_settings(s);
-
-		return s;
-	}
-
-private:
-	libtorrent::settings_pack::enc_policy m_policy;
-	libtorrent::settings_pack::enc_level m_level;
-	bool m_prefer_rc4;
-};
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{
+			if (ticks > 20)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			return is_seed(ses);
+		});
+}
 
 TORRENT_TEST(pe_disabled)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_disabled, settings_pack::pe_both, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_disabled, settings_pack::pe_plaintext, false);
 }
 
 TORRENT_TEST(forced_plaintext)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_forced, settings_pack::pe_both, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_forced, settings_pack::pe_plaintext, false);
 }
 
 TORRENT_TEST(forced_rc4)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_forced, settings_pack::pe_rc4, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_forced, settings_pack::pe_rc4, true);
 }
 
 TORRENT_TEST(forced_both)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_forced, settings_pack::pe_both, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_forced, settings_pack::pe_both, false);
 }
 
 TORRENT_TEST(forced_both_prefer_rc4)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_forced, settings_pack::pe_both, true);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_forced, settings_pack::pe_both, true);
 }
 
 TORRENT_TEST(enabled_plaintext)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_enabled, settings_pack::pe_plaintext, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_forced, settings_pack::pe_plaintext, false);
 }
 
 TORRENT_TEST(enabled_rc4)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_enabled, settings_pack::pe_rc4, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_enabled, settings_pack::pe_rc4, false);
 }
 
 TORRENT_TEST(enabled_both)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_enabled, settings_pack::pe_both, false);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_enabled, settings_pack::pe_both, false);
 }
 
 TORRENT_TEST(enabled_both_prefer_rc4)
 {
-	using namespace libtorrent;
-	test_swarm_config cfg(settings_pack::pe_enabled, settings_pack::pe_both, true);
-	setup_swarm(2, cfg);
+	test_transfer(settings_pack::pe_enabled, settings_pack::pe_both, true);
+}
+
+// make sure that a peer with encryption disabled cannot talk to a peer with
+// encryption forced
+TORRENT_TEST(disabled_failing)
+{
+	lt::settings_pack default_settings = settings();
+	default_settings.set_bool(settings_pack::prefer_rc4, false);
+	default_settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+	default_settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	default_settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+	display_pe_settings(default_settings);
+
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+
+	lt::add_torrent_params default_add_torrent;
+	default_add_torrent.flags &= ~lt::add_torrent_params::flag_paused;
+	default_add_torrent.flags &= ~lt::add_torrent_params::flag_auto_managed;
+	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+			pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+			pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+			pack.set_bool(settings_pack::prefer_rc4, true);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{
+			// this download should never succeed
+			TEST_CHECK(!is_seed(ses));
+			return ticks > 120;
+		});
 }
 #else
 TORRENT_TEST(disabled)

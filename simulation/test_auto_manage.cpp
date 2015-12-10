@@ -35,15 +35,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "swarm_config.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include <iostream>
 
 using namespace sim;
+using namespace libtorrent;
 
 const int num_torrents = 10;
+namespace lt = libtorrent;
 
 using sim::asio::ip::address_v4;
 
@@ -96,11 +97,11 @@ void run_test(Settings const& sett, Setup const& setup, Test const& test)
 TORRENT_TEST(dont_count_slow_torrents)
 {
 	run_test(
-		[](settings_pack& sett) {
+		[](lt::settings_pack& sett) {
 			// session settings
-			sett.set_bool(settings_pack::dont_count_slow_torrents, true);
-			sett.set_int(settings_pack::active_downloads, 1);
-			sett.set_int(settings_pack::active_seeds, 1);
+			sett.set_bool(lt::settings_pack::dont_count_slow_torrents, true);
+			sett.set_int(lt::settings_pack::active_downloads, 1);
+			sett.set_int(lt::settings_pack::active_seeds, 1);
 		},
 
 		[](lt::session& ses) {
@@ -108,8 +109,8 @@ TORRENT_TEST(dont_count_slow_torrents)
 			for (int i = 0; i < num_torrents; ++i)
 			{
 				lt::add_torrent_params params = create_torrent(i, false);
-				params.flags |= add_torrent_params::flag_auto_managed;
-				params.flags |= add_torrent_params::flag_paused;
+				params.flags |= lt::add_torrent_params::flag_auto_managed;
+				params.flags |= lt::add_torrent_params::flag_paused;
 				ses.async_add_torrent(params);
 			}
 		},

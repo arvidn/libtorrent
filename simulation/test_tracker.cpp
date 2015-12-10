@@ -33,11 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_swarm.hpp"
-#include "swarm_config.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/session.hpp"
 
 using namespace libtorrent;
 using namespace sim;
@@ -47,82 +47,6 @@ using chrono::duration_cast;
 
 // seconds
 const int duration = 10000;
-
-struct test_swarm_config : swarm_config
-{
-	test_swarm_config(int num_torrents, std::vector<std::string>* announces=NULL)
-		: swarm_config()
-		, m_announces(announces)
-		, m_num_torrents(num_torrents)
-	{}
-
-	void on_session_added(int idx, session& ses) override
-	{
-	}
-
-	virtual libtorrent::add_torrent_params add_torrent(int idx) override
-	{
-		add_torrent_params p = swarm_config::add_torrent(idx);
-
-		// add the tracker to the last torrent (if there's only one, it will be a
-		// seed from the start, if there are more than one, it will be a torrent
-		// that downloads the torrent and turns into a seed)
-		if (m_num_torrents - 1 == idx)
-		{
-			p.trackers.push_back("http://2.2.2.2:8080/announce");
-		}
-
-		return p;
-	}
-
-	bool on_alert(libtorrent::alert const* alert
-		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& handles
-		, libtorrent::session& ses) override
-	{
-		if (m_announces == NULL) return false;
-
-		char type = 0;
-		if (lt::alert_cast<lt::tracker_announce_alert>(alert))
-		{
-			type = 'A';
-		}
-		else if (lt::alert_cast<lt::tracker_error_alert>(alert))
-		{
-			type = 'E';
-		}
-		else if (lt::alert_cast<lt::tracker_warning_alert>(alert))
-		{
-			type = 'W';
-		}
-		else if (lt::alert_cast<lt::tracker_reply_alert>(alert))
-		{
-			type = 'R';
-		}
-		else
-		{
-			return false;
-		}
-
-		char msg[500];
-		snprintf(msg, sizeof(msg), "%c: %d %s", type
-			, int(duration_cast<chrono::seconds>(alert->timestamp().time_since_epoch()).count())
-			, alert->message().c_str());
-		m_announces->push_back(msg);
-
-		return false;
-	}
-
-	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
-	{
-	}
-
-	virtual bool tick(int t) override { return t > duration; }
-
-private:
-	std::vector<std::string>* m_announces;
-	int m_num_torrents;
-};
 
 void test_interval(int interval)
 {
@@ -152,19 +76,42 @@ void test_interval(int interval)
 		return sim::send_response(200, "OK", size) + response;
 	});
 
-	std::vector<std::string> announce_alerts;
-	test_swarm_config cfg(1, &announce_alerts);
-	setup_swarm(1, sim, cfg);
+	std::vector<int> announce_alerts;
+
+	lt::settings_pack default_settings = settings();
+	lt::add_torrent_params default_add_torrent;
+
+	setup_swarm(1, swarm_test::upload, sim, default_settings, default_add_torrent
+		// add session
+		, [](lt::settings_pack& pack) { }
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+
+			if (lt::alert_cast<lt::tracker_announce_alert>(a))
+			{
+				boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
+					a->timestamp() - start).count();
+
+				announce_alerts.push_back(seconds);
+			}
+		}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool { return ticks > duration; });
+
+	TEST_EQUAL(announce_alerts.size(), announces.size());
 
 	int counter = 0;
 	for (int i = 0; i < int(announces.size()); ++i)
 	{
 		TEST_EQUAL(announces[i], counter);
+		TEST_EQUAL(announce_alerts[i], counter);
 		counter += interval;
 		if (counter > duration + 1) counter = duration + 1;
 	}
-
-	// TODO: verify that announce_alerts seem right as well
 }
 
 TORRENT_TEST(event_completed)
@@ -173,38 +120,64 @@ TORRENT_TEST(event_completed)
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
 
-	lt::time_point start = lt::clock_type::now();
-
 	sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 	// listen on port 8080
 	sim::http_server http(web_server, 8080);
 
-	// the timestamps (in seconds) of all announces
-	std::vector<std::string> announces;
+	// the request strings of all announces
+	std::vector<std::pair<int, std::string>> announces;
 
 	const int interval = 500;
+	lt::time_point start = lt::clock_type::now();
 
 	http.register_handler("/announce"
-	, [&announces,interval,start](std::string method, std::string req
+	, [&](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		TEST_EQUAL(method, "GET");
-		announces.push_back(req);
+		int timestamp = chrono::duration_cast<lt::seconds>(
+			lt::clock_type::now() - start).count();
+		announces.push_back({timestamp, req});
 
 		char response[500];
 		int size = snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
 		return sim::send_response(200, "OK", size) + response;
 	});
 
-	test_swarm_config cfg(2);
-	setup_swarm(2, sim, cfg);
+	lt::settings_pack default_settings = settings();
+	lt::add_torrent_params default_add_torrent;
+
+	int completion = -1;
+
+	setup_swarm(2, swarm_test::download, sim, default_settings, default_add_torrent
+		// add session
+		, [](lt::settings_pack& pack) { }
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool
+		{
+			if (completion == -1 && is_seed(ses))
+			{
+				completion = chrono::duration_cast<lt::seconds>(
+					lt::clock_type::now() - start).count();
+			}
+
+			return ticks > duration;
+		});
 
 	// the first announce should be event=started, the second should be
 	// event=completed, then all but the last should have no event and the last
 	// be event=stopped.
 	for (int i = 0; i < int(announces.size()); ++i)
 	{
-		std::string const& str = announces[i];
+		std::string const& str = announces[i].second;
+		int timestamp = announces[i].first;
+
 		const bool has_start = str.find("&event=started")
 			!= std::string::npos;
 		const bool has_completed = str.find("&event=completed")
@@ -217,6 +190,7 @@ TORRENT_TEST(event_completed)
 
 		fprintf(stderr, "- %s\n", str.c_str());
 
+		// there is exactly 0 or 1 events.
 		TEST_EQUAL(int(has_start) + int(has_completed) + int(has_stopped)
 			, int(has_event));
 
@@ -226,8 +200,13 @@ TORRENT_TEST(event_completed)
 				TEST_CHECK(has_start);
 				break;
 			case 1:
+			{
+				// the announce should have come approximately the same time we
+				// completed
+				TEST_CHECK(abs(completion - timestamp) <= 1);
 				TEST_CHECK(has_completed);
 				break;
+			}
 			default:
 				if (i == int(announces.size()) - 1)
 				{

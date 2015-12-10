@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_swarm.hpp"
-#include "swarm_config.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
 #include "simulator/socks_server.hpp"

@@ -52,14 +52,6 @@ using namespace sim;
 
 namespace {
 
-	std::string save_path(int swarm_id, int idx)
-	{
-		char path[200];
-		snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
-			, swarm_id, idx);
-		return path;
-	}
-
 	int transfer_rate(lt::address ip)
 	{
 		// in order to get a heterogeneous network, the last digit in the IP
@@ -104,9 +96,22 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 	return sim::route().append(it->second);
 }
 
-void add_extra_peers(lt::session* ses)
+std::string save_path(int swarm_id, int idx)
 {
-	auto handles = ses->get_torrents();
+	char path[200];
+	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+		, swarm_id, idx);
+	return path;
+}
+
+lt::address addr(char const* str)
+{
+	return lt::address::from_string(str);
+}
+
+void add_extra_peers(lt::session& ses)
+{
+	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
 	auto h = handles[0];
 
@@ -114,45 +119,72 @@ void add_extra_peers(lt::session* ses)
 	{
 		char ep[30];
 		snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
-		h.connect_peer(lt::tcp::endpoint(
-			lt::address_v4::from_string(ep), 6881));
+		h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 	}
 }
 
-lt::torrent_status get_status(lt::session* ses)
+lt::torrent_status get_status(lt::session& ses)
 {
-	auto handles = ses->get_torrents();
+	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
 	auto h = handles[0];
 	return h.status();
 }
 
-bool is_seed(lt::session* ses)
+bool has_metadata(lt::session& ses)
 {
-	auto handles = ses->get_torrents();
+	auto handles = ses.get_torrents();
+	TEST_EQUAL(handles.size(), 1);
+	auto h = handles[0];
+	return h.status().has_metadata;
+}
+
+bool is_seed(lt::session& ses)
+{
+	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
 	auto h = handles[0];
 	return h.status().is_seeding;
 }
 
-int completed_pieces(lt::session* ses)
+int completed_pieces(lt::session& ses)
 {
-	auto handles = ses->get_torrents();
+	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
 	auto h = handles[0];
 	return h.status().num_pieces;
+}
+
+void utp_only(lt::settings_pack& p)
+{
+	using namespace libtorrent;
+	p.set_bool(settings_pack::enable_outgoing_tcp, false);
+	p.set_bool(settings_pack::enable_incoming_tcp, false);
+	p.set_bool(settings_pack::enable_outgoing_utp, true);
+	p.set_bool(settings_pack::enable_incoming_utp, true);
+}
+
+void enable_enc(lt::settings_pack& p)
+{
+	using namespace libtorrent;
+	p.set_bool(settings_pack::prefer_rc4, true);
+	p.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
+	p.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
+	p.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
 }
 
 void setup_swarm(int num_nodes
 	, swarm_test type
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
-	, std::function<void(lt::alert const*, lt::session*)> on_alert
-	, std::function<int(int, lt::session*)> terminate)
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate)
 {
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
-	setup_swarm(num_nodes, type, sim, new_session, add_torrent, on_alert, terminate);
+
+	setup_swarm(num_nodes, type, sim, new_session
+		, add_torrent, on_alert, terminate);
 }
 
 void setup_swarm(int num_nodes
@@ -160,10 +192,51 @@ void setup_swarm(int num_nodes
 	, sim::simulation& sim
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
-	, std::function<void(lt::alert const*, lt::session*)> on_alert
-	, std::function<int(int, lt::session*)> terminate)
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate)
 {
-	asio::io_service ios(sim, asio::ip::address_v4::from_string("0.0.0.0"));
+	lt::settings_pack pack = settings();
+
+	lt::add_torrent_params p;
+	p.flags &= ~lt::add_torrent_params::flag_paused;
+	p.flags &= ~lt::add_torrent_params::flag_auto_managed;
+
+	setup_swarm(num_nodes, type, sim, pack, p, new_session
+		, add_torrent, on_alert, terminate);
+}
+
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, sim::simulation& sim
+	, lt::settings_pack const& default_settings
+	, lt::add_torrent_params const& default_add_torrent
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate)
+{
+	setup_swarm(num_nodes, type, sim
+		, default_settings
+		, default_add_torrent
+		, [](lt::session&) {}
+		, new_session
+		, add_torrent
+		, on_alert
+		, terminate);
+}
+
+void setup_swarm(int num_nodes
+	, swarm_test type
+	, sim::simulation& sim
+	, lt::settings_pack const& default_settings
+	, lt::add_torrent_params const& default_add_torrent
+	, std::function<void(lt::session&)> init_session
+	, std::function<void(lt::settings_pack&)> new_session
+	, std::function<void(lt::add_torrent_params&)> add_torrent
+	, std::function<void(lt::alert const*, lt::session&)> on_alert
+	, std::function<int(int, lt::session&)> terminate)
+{
+	asio::io_service ios(sim, addr("0.0.0.0"));
 	lt::time_point start_time(lt::clock_type::now());
 
 	std::vector<boost::shared_ptr<lt::session> > nodes;
@@ -189,9 +262,9 @@ void setup_swarm(int num_nodes
 		char ep[30];
 		snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 		io_service.push_back(boost::make_shared<sim::asio::io_service>(
-			boost::ref(sim), asio::ip::address_v4::from_string(ep)));
+			boost::ref(sim), addr(ep)));
 
-		lt::settings_pack pack = settings();
+		lt::settings_pack pack = default_settings;
 
 		// make sure the sessions have different peer ids
 		lt::peer_id pid;
@@ -202,25 +275,19 @@ void setup_swarm(int num_nodes
 		boost::shared_ptr<lt::session> ses =
 			boost::make_shared<lt::session>(pack
 				, boost::ref(*io_service.back()));
+		init_session(*ses);
 		nodes.push_back(ses);
 
 		if (i > 0)
 		{
 			// the other sessions should not talk to each other
 			lt::ip_filter filter;
-			filter.add_rule(lt::address::from_string("0.0.0.0")
-				, lt::address::from_string("255.255.255.255"), lt::ip_filter::blocked);
-
-			filter.add_rule(lt::address::from_string("50.0.0.1")
-				, lt::address::from_string("50.0.0.1"), 0);
-
+			filter.add_rule(addr("0.0.0.0"), addr("255.255.255.255"), lt::ip_filter::blocked);
+			filter.add_rule(addr("50.0.0.1"), addr("50.0.0.1"), 0);
 			ses->set_ip_filter(filter);
 		}
 
-		lt::add_torrent_params p;
-		p.flags &= ~lt::add_torrent_params::flag_paused;
-		p.flags &= ~lt::add_torrent_params::flag_auto_managed;
-
+		lt::add_torrent_params p = default_add_torrent;
 		if (type == swarm_test::download)
 		{
 			// in download tests, session 0 is a downloader and every other session
@@ -269,16 +336,19 @@ void setup_swarm(int num_nodes
 						lt::torrent_handle h = at->handle;
 
 						// now, connect this torrent to all the others in the swarm
-						for (int k = 0; k < num_nodes; ++k)
+						// start at 1 to avoid self-connects
+						for (int k = 1; k < num_nodes; ++k)
 						{
+							// TODO: the pattern of creating an address from a format
+							// string and an integer is common. It should probably be
+							// factored out into its own function
 							char ep[30];
 							snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
-							h.connect_peer(lt::tcp::endpoint(
-								lt::address_v4::from_string(ep), 6881));
+							h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 						}
 					}
 
-					on_alert(a, ses);
+					on_alert(a, *ses);
 				}
 			});
 		});
@@ -290,13 +360,13 @@ void setup_swarm(int num_nodes
 	{
 		if (ec) return;
 
-		bool shut_down = terminate(tick, nodes[0].get());
+		bool shut_down = terminate(tick, *nodes[0]);
 
 		if (type == swarm_test::upload)
 		{
 			shut_down |= std::all_of(nodes.begin() + 1, nodes.end()
 				, [](boost::shared_ptr<lt::session> const& s)
-				{ return is_seed(s.get()); });
+				{ return is_seed(*s); });
 
 			if (tick > 70 * (num_nodes - 1) && !shut_down)
 			{
