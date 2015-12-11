@@ -187,7 +187,8 @@ struct bdecode_token
 		TORRENT_ASSERT(type != string || header_size >= 2);
 		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(next <= max_next_item);
-		TORRENT_ASSERT(header_size < 8);
+		// the string has 2 implied header bytes, to allow for longer prefixes
+		TORRENT_ASSERT(header_size < 8 || (type == string && header_size < 10));
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
