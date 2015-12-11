@@ -35,13 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <time.h>
 #include <vector>
+#include <string>
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/file_storage.hpp"
 
 namespace libtorrent
 {
@@ -50,36 +52,52 @@ namespace libtorrent
 		stat_cache();
 		~stat_cache();
 
-		void init(int num_files);
+		void reserve(int num_files);
 
-		enum
-		{
-			cache_error = -1,
-			not_in_cache = -2,
-			no_exist = -3
-		};
+		// returns the size of the file unless an error occurs, in which case ec
+		// is set to indicate the error
+		boost::int64_t get_filesize(int i, file_storage const& fs
+			, std::string const& save_path, error_code& ec);
 
-		// returns the size of the file or one
-		// of the enums, noent or not_in_cache
-		boost::int64_t get_filesize(int i) const;
-		time_t get_filetime(int i) const;
-
-		void set_cache(int i, boost::int64_t size, time_t time);
-		void set_noexist(int i);
-		void set_error(int i);
 		void set_dirty(int i);
 
 		void clear();
 
+		// internal
+		enum
+		{
+			not_in_cache = -1,
+			file_error = -2 // (first index in m_errors)
+		};
+
+		// internal
+		void set_cache(int i, boost::int64_t size);
+		void set_error(int i, error_code const& ec);
+
 	private:
+
+		// returns the index to the specified error. Either an existing one or a
+		// newly added entry
+		int add_error(error_code const& ec);
 
 		struct stat_cache_t
 		{
-			stat_cache_t(boost::int64_t s, time_t t = 0): file_size(s), file_time(t) {}
+			stat_cache_t(boost::int64_t s): file_size(s) {}
+
+			// the size of the file. Negative values have special meaning. -1 means
+			// not-in-cache (i.e. there's no data for this file in the cache).
+			// lower values (larger negative values) indicate that an error
+			// occurred while stat()ing the file. The positive value is an index
+			// into m_errors, that recorded the actual error.
 			boost::int64_t file_size;
-			time_t file_time;
 		};
+
+		// one entry per file
 		std::vector<stat_cache_t> m_stat_cache;
+
+		// These are the errors that have happened when stating files. Each entry
+		// that had an error, refers to an index into this vector.
+		std::vector<error_code> m_errors;
 	};
 }
 

@@ -509,7 +509,7 @@ namespace libtorrent
 
 	void default_storage::initialize(storage_error& ec)
 	{
-		m_stat_cache.init(files().num_files());
+		m_stat_cache.reserve(files().num_files());
 
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
@@ -540,25 +540,22 @@ namespace libtorrent
 			// ignore pad files
 			if (files().pad_file_at(file_index)) continue;
 
-			if (m_stat_cache.get_filesize(file_index) == stat_cache::not_in_cache)
+			error_code err;
+			boost::int64_t size = m_stat_cache.get_filesize(file_index, files()
+				, m_save_path, err);
+
+			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
-				file_status s;
-				std::string file_path = files().file_path(file_index, m_save_path);
-				stat_file(file_path, &s, ec.ec);
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
-				{
-					m_stat_cache.set_error(file_index);
-					ec.file = file_index;
-					ec.operation = storage_error::stat;
-					break;
-				}
-				m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
+				ec.file = file_index;
+				ec.operation = storage_error::stat;
+				ec.ec = err;
+				break;
 			}
 
 			// if the file already exists, but is larger than what
 			// it's supposed to be, truncate it
 			// if the file is empty, just create it either way.
-			if ((!ec && m_stat_cache.get_filesize(file_index) > files().file_size(file_index))
+			if ((!err && size > files().file_size(file_index))
 				|| files().file_size(file_index) == 0)
 			{
 				std::string file_path = files().file_path(file_index, m_save_path);
@@ -579,9 +576,14 @@ namespace libtorrent
 				ec.ec.clear();
 				file_handle f = open_file(file_index, file::read_write
 					| file::random_access, ec);
-				if (ec) return;
+				if (ec)
+				{
+					ec.file = file_index;
+					ec.operation = storage_error::fallocate;
+					return;
+				}
 
-				boost::int64_t size = files().file_size(file_index);
+				size = files().file_size(file_index);
 				f->set_size(size, ec.ec);
 				if (ec)
 				{
@@ -589,8 +591,6 @@ namespace libtorrent
 					ec.operation = storage_error::fallocate;
 					break;
 				}
-				size_t mtime = m_stat_cache.get_filetime(file_index);
-				m_stat_cache.set_cache(file_index, size, mtime);
 			}
 			ec.ec.clear();
 		}
@@ -609,48 +609,37 @@ namespace libtorrent
 
 	bool default_storage::has_any_file(storage_error& ec)
 	{
-		m_stat_cache.init(files().num_files());
+		m_stat_cache.reserve(files().num_files());
 
 		std::string file_path;
 		for (int i = 0; i < files().num_files(); ++i)
 		{
-			file_status s;
-			boost::int64_t cache_status = m_stat_cache.get_filesize(i);
-			if (cache_status < 0 && cache_status != stat_cache::no_exist)
+			boost::int64_t sz = m_stat_cache.get_filesize(
+				i, files(), m_save_path, ec.ec);
+
+			if (sz < 0)
 			{
-				file_path = files().file_path(i, m_save_path);
-				stat_file(file_path, &s, ec.ec);
-				boost::int64_t r = s.file_size;
-				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
-
-				if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
-				{
-					ec.ec.clear();
-					r = -3;
-				}
-				m_stat_cache.set_cache(i, r, s.mtime);
-
-				if (ec)
+				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					ec.file = i;
 					ec.operation = storage_error::stat;
 					m_stat_cache.clear();
 					return false;
 				}
+				// some files not existing is expected and not an error
+				ec.ec.clear();
 			}
 
-			// if we didn't find the file, check the next one
-			if (m_stat_cache.get_filesize(i) == stat_cache::no_exist) continue;
-
-			if (m_stat_cache.get_filesize(i) > 0)
-				return true;
+			if (sz > 0) return true;
 		}
 		file_status s;
 		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
 		if (!ec) return true;
 
+		// the part file not existing is expected
 		if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
 			ec.ec.clear();
+
 		if (ec)
 		{
 			ec.file = -1;
@@ -889,38 +878,26 @@ namespace libtorrent
 					TORRENT_ASSERT(!f.empty());
 
 					const int file_index = f[0].file_index;
-					boost::int64_t size = m_stat_cache.get_filesize(f[0].file_index);
+					error_code error;
+					boost::int64_t size = m_stat_cache.get_filesize(f[0].file_index
+						, fs, m_save_path, error);
 
-					if (size == stat_cache::not_in_cache)
+					if (size < 0)
 					{
-						file_status s;
-						error_code error;
-						std::string file_path = fs.file_path(file_index, m_save_path);
-						stat_file(file_path, &s, error);
-						size = s.file_size;
-						if (error)
+						if (error != boost::system::errc::no_such_file_or_directory)
 						{
-							if (error != boost::system::errc::no_such_file_or_directory)
-							{
-								m_stat_cache.set_error(i);
-								ec.ec = error;
-								ec.file = i;
-								ec.operation = storage_error::stat;
-								return false;
-							}
-							m_stat_cache.set_noexist(i);
+							ec.ec = error;
+							ec.file = i;
+							ec.operation = storage_error::stat;
+							return false;
+						}
+						else
+						{
 							ec.ec = errors::mismatching_file_size;
 							ec.file = i;
 							ec.operation = storage_error::stat;
 							return false;
 						}
-					}
-					if (size < 0)
-					{
-						ec.ec = errors::mismatching_file_size;
-						ec.file = i;
-						ec.operation = storage_error::check_resume;
-						return false;
 					}
 
 					// OK, this file existed, good. Now, skip all remaining pieces in
