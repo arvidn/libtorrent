@@ -2476,7 +2476,6 @@ namespace libtorrent
 		TORRENT_PIECE_PICKER_INVARIANT_CHECK;
 
 		std::vector<downloading_piece>::iterator i = find_dl_piece(block.piece_index);
-		TORRENT_ASSERT(i != m_downloads.end());
 		if (i == m_downloads.end()) return;
 
 		block_info& info = i->info[block.block_index];
