@@ -195,7 +195,7 @@ namespace libtorrent
 	};
 
 	// The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
-	// the torrent handle in its baseclass will always be invalid (since the torrent
+	// the torrent handle in its base class will always be invalid (since the torrent
 	// is already removed) it has the info hash as a member, to identify it.
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
 	// 
@@ -331,7 +331,7 @@ namespace libtorrent
 			// but it's limited by ``settings_pack::max_out_request_queue``. The queue length
 			// libtorrent is trying to achieve is determined by the download rate and the
 			// assumed round-trip-time (``settings_pack::request_queue_time``). The assumed
-			// rount-trip-time is not limited to just the network RTT, but also the remote disk
+			// round-trip-time is not limited to just the network RTT, but also the remote disk
 			// access time and message handling time. It defaults to 3 seconds. The target number
 			// of outstanding requests is set to fill the bandwidth-delay product (assumed RTT
 			// times download rate divided by number of bytes per request). When this alert
@@ -367,7 +367,7 @@ namespace libtorrent
 			// 
 			//   min(512, max(upload_rate * send_buffer_watermark_factor / 100, send_buffer_watermark))
 			// 
-			// If you receive this alert, you migth want to either increase your ``send_buffer_watermark``
+			// If you receive this alert, you might want to either increase your ``send_buffer_watermark``
 			// or ``send_buffer_watermark_factor``.
 			send_buffer_watermark_too_low,
 
@@ -511,7 +511,7 @@ namespace libtorrent
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// the data returned in the scrape response. These numbers
-		// may be -1 if the reponse was malformed.
+		// may be -1 if the response was malformed.
 		int incomplete;
 		int complete;
 	};
@@ -943,11 +943,11 @@ namespace libtorrent
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// If the error happened for a speific file, ``file`` is its path.
+		// If the error happened for a specific file, ``file`` is its path.
 		std::string file;
 #endif
 
-		// If the error happened for a speific file, this returns its path.
+		// If the error happened for a specific file, this returns its path.
 		char const* file_path() const;
 
 		// If the error happened in a specific disk operation this is a NULL
@@ -1786,10 +1786,10 @@ namespace libtorrent
 	};
 
 	// The incoming connection alert is posted every time we successfully accept
-	// an incoming connection, through any mean. The most straigh-forward ways
+	// an incoming connection, through any mean. The most straight-forward ways
 	// of accepting incoming connections are through the TCP listen socket and
 	// the UDP listen socket for uTP sockets. However, connections may also be
-	// accepted ofer a Socks5 or i2p listen socket, or via a torrent specific
+	// accepted offer a Socks5 or i2p listen socket, or via a torrent specific
 	// listen socket for SSL torrents.
 	struct TORRENT_EXPORT incoming_connection_alert TORRENT_FINAL : alert
 	{

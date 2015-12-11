@@ -249,7 +249,7 @@ namespace libtorrent
 		// bytes though. This is useful when reading and writing the last piece
 		// of a file in unbuffered mode.
 		// 
-		// The ``offset`` is aligned to 16 kiB boundries  *most of the time*, but
+		// The ``offset`` is aligned to 16 kiB boundaries  *most of the time*, but
 		// there are rare exceptions when it's not. Specifically if the read
 		// cache is disabled/or full and a peer requests unaligned data. Most
 		// clients request aligned data.
