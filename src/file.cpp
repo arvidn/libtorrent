@@ -1636,6 +1636,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 	}
 
+#if !TORRENT_USE_PREADV
 	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
 	{
 		int buf_size = bufs_size(bufs, num_bufs);
@@ -1672,6 +1673,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		num_bufs = 1;
 		return true;
 	}
+#endif // TORRENT_USE_PREADV
 
 	template <class Fun>
 	boost::int64_t iov(Fun f, handle_type fd, boost::int64_t file_offset, file::iovec_t const* bufs_in
