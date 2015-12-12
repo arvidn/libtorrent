@@ -9610,20 +9610,13 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (!m_allow_peers) return;
-		set_allow_peers(graceful ? true : false, graceful);
+		if (m_allow_peers)
+		{
+			// we need to save this new state
+			set_need_save_resume();
+		}
 
-		m_announce_to_dht = false;
-		m_announce_to_trackers = false;
-		m_announce_to_lsd = false;
-
-		// we need to save this new state
-		set_need_save_resume();
-		state_updated();
-
-		update_gauge();
-		update_want_peers();
-		update_want_scrape();
+		set_allow_peers(false, graceful);
 	}
 
 	void torrent::do_pause()
@@ -9699,20 +9692,14 @@ namespace libtorrent
 			// disconnect all peers with no outstanding data to receive
 			// and choke all remaining peers to prevent responding to new
 			// requests
-			bool update_ticks = false;
+			std::vector<peer_connection*> to_disconnect;
 			for (peer_iterator i = m_connections.begin();
-				i != m_connections.end();)
+				i != m_connections.end(); ++i)
 			{
-				peer_iterator j = i++;
-				boost::shared_ptr<peer_connection> p = (*j)->self();
+				peer_connection* p = *i;
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
-				if (p->is_disconnecting())
-				{
-					i = m_connections.erase(j);
-					update_ticks = true;
-					continue;
-				}
+				if (p->is_disconnecting()) continue;
 
 				if (p->outstanding_bytes() > 0)
 				{
@@ -9726,21 +9713,19 @@ namespace libtorrent
 					continue;
 				}
 
+				to_disconnect.push_back(p);
+			}
+			for (peer_iterator i = to_disconnect.begin(); i != to_disconnect.end(); ++i)
+			{
+				peer_connection* p = *i;
+
+				// since we're currently in graceful pause mode, the last peer to
+				// disconnect (assuming all peers end up begin disconnected here)
+				// will post the torrent_paused_alert
 #ifndef TORRENT_DISABLE_LOGGING
 				p->peer_log(peer_log_alert::info, "CLOSING_CONNECTION", "torrent_paused");
 #endif
 				p->disconnect(errors::torrent_paused, op_bittorrent);
-				i = j;
-			}
-			if (m_connections.empty())
-			{
-				if (alerts().should_post<torrent_paused_alert>())
-					alerts().emplace_alert<torrent_paused_alert>(get_handle());
-			}
-			if (update_ticks)
-			{
-				update_want_peers();
-				update_want_tick();
 			}
 		}
 
@@ -9792,12 +9777,20 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		// if there are no peers, there is no point in a graceful pause mode. In
+		// fact, the promise to post the torrent_paused_alert exactly once is
+		// maintained by the last peer to be disconnected in graceful pause mode,
+		// if there are no peers, we must not enter graceful pause mode, and post
+		// the torrent_paused_alert immediately instead.
+		if (m_connections.empty())
+			graceful = false;
+
 		if (m_allow_peers == b)
 		{
 			// there is one special case here. If we are
 			// currently in graceful pause mode, and we just turned into regular
 			// paused mode, we need to actually pause the torrent properly
-			if (m_allow_peers == true
+			if (m_allow_peers == false
 				&& m_graceful_pause_mode == true
 				&& graceful == false)
 			{
@@ -9812,21 +9805,28 @@ namespace libtorrent
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = graceful;
 
-		update_gauge();
-		update_want_scrape();
-		update_state_list();
-
 		if (!b)
 		{
 			m_announce_to_dht = false;
 			m_announce_to_trackers = false;
 			m_announce_to_lsd = false;
+		}
+
+		update_gauge();
+		update_want_scrape();
+		update_want_peers();
+		update_state_list();
+		state_updated();
+
+		if (!b)
+		{
 			do_pause();
 		}
 		else
 		{
 			do_resume();
 		}
+
 	}
 
 	void torrent::resume()

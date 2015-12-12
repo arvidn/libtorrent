@@ -12,7 +12,6 @@ project
 	<simulator>on
 	<library>/torrent//torrent/<export-extra>on
 	<library>/libtorrent_test//libtorrent_test
-	<source>swarm_suite.cpp
 	<source>setup_swarm.cpp
 	<source>setup_dht.cpp
 	<source>create_torrent.cpp

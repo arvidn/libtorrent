@@ -31,98 +31,126 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "setup_swarm.hpp"
-#include "swarm_config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
+#include "libtorrent/session.hpp"
 #include "test.hpp"
+#include "settings.hpp"
 
-enum flags
-{
-	no_metadata = 1
-};
-
-struct test_swarm_config : swarm_config
-{
-	test_swarm_config(int flags)
-		: swarm_config()
-		, m_flags(flags)
-	{}
-
-	void on_session_added(int idx, session& ses) override
-	{
-		ses.add_extension(create_lt_trackers_plugin);
-	}
-
-	virtual libtorrent::add_torrent_params add_torrent(int idx) override
-	{
-		add_torrent_params p = swarm_config::add_torrent(idx);
-
-		if (m_flags & no_metadata)
-		{
-			p.info_hash = sha1_hash("aaaaaaaaaaaaaaaaaaaa");
-			p.ti.reset();
-		}
-
-		// make sure neither peer has any content
-		// TODO: it would be more efficient to not create the content in the first
-		// place
-		p.save_path = save_path(1);
-
-		if (idx == 1)
-		{
-			p.trackers.push_back("http://test.non-existent.com/announce");
-		}
-
-		return p;
-	}
-
-	bool on_alert(libtorrent::alert const* alert
-		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& handles
-		, libtorrent::session& ses) override
-	{
-
-		if ((m_flags & no_metadata) == 0)
-		{
-			if (handles[0].trackers().size() == 1
-				&& handles[1].trackers().size() == 1)
-				return true;
-		}
-		return false;
-	}
-
-	virtual void on_exit(std::vector<torrent_handle> const& torrents) override
-	{
-		TEST_CHECK(torrents.size() > 0);
-
-		// a peer that does not have metadata should not exchange trackers, since
-		// it may be a private torrent
-		if (m_flags & no_metadata)
-		{
-			TEST_EQUAL(torrents[0].trackers().size(), 0);
-			TEST_EQUAL(torrents[1].trackers().size(), 1);
-		}
-		else
-		{
-			TEST_EQUAL(torrents[0].trackers().size(), 1);
-			TEST_EQUAL(torrents[1].trackers().size(), 1);
-		}
-	}
-
-private:
-	int m_flags;
-};
+using namespace libtorrent;
 
 TORRENT_TEST(plain)
 {
-	test_swarm_config cfg(0);
-	setup_swarm(2, cfg);
+	dsl_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	settings_pack pack = settings();
+
+	add_torrent_params p;
+	p.flags &= ~lt::add_torrent_params::flag_paused;
+	p.flags &= ~lt::add_torrent_params::flag_auto_managed;
+
+	// the default torrent has one tracker
+	// we remove this from session 0 (the one under test)
+	p.trackers.push_back("http://test.non-existent.com/announce");
+
+	bool connected = false;
+
+	setup_swarm(2, swarm_test::upload
+		, sim , pack, p
+		// init session
+		, [](lt::session& ses) {
+			ses.add_extension(&create_lt_trackers_plugin);
+		}
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+
+			// make sure neither peer has any content
+			// TODO: it would be more efficient to not create the content in the first
+			// place
+			params.save_path = save_path(test_counter(), 1);
+
+			// the test is whether this peer will receive the tracker or not
+			params.trackers.clear();
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+			if (alert_cast<lt::peer_connect_alert>(a))
+				connected = true;
+		}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool {
+			if (ticks > 10)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			return connected && ses.get_torrents()[0].trackers().size() > 0;
+		});
+
+	TEST_EQUAL(connected, true);
 }
 
 TORRENT_TEST(no_metadata)
 {
-	test_swarm_config cfg(no_metadata);
-	setup_swarm(2, cfg);
+	dsl_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	settings_pack pack = settings();
+
+	add_torrent_params p;
+	p.flags &= ~lt::add_torrent_params::flag_paused;
+	p.flags &= ~lt::add_torrent_params::flag_auto_managed;
+
+	// the default torrent has one tracker
+	// we remove this from session 0 (the one under test)
+	p.trackers.push_back("http://test.non-existent.com/announce");
+
+	bool connected = false;
+
+	setup_swarm(2, swarm_test::upload
+		, sim , pack, p
+		// init session
+		, [](lt::session& ses) {
+			ses.add_extension(&create_lt_trackers_plugin);
+		}
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+
+			// make sure neither peer has any content
+			// TODO: it would be more efficient to not create the content in the first
+			// place
+			params.save_path = save_path(test_counter(), 1);
+
+			// the test is whether this peer will receive the tracker or not
+			params.trackers.clear();
+
+			// if we don't have metadata, the other peer should not send the
+			// tracker to us
+			params.info_hash = sha1_hash("aaaaaaaaaaaaaaaaaaaa");
+			params.ti.reset();
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+			if (alert_cast<lt::peer_connect_alert>(a))
+				connected = true;
+		}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool {
+			if (ticks < 10)
+				return false;
+			TEST_EQUAL(ses.get_torrents()[0].trackers().size(), 0);
+			return true;
+		});
+
+	TEST_EQUAL(connected, true);
 }
 

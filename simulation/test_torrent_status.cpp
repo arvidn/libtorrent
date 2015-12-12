@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "swarm_config.hpp"
+#include "setup_swarm.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/alert_types.hpp"
 
@@ -40,73 +40,61 @@ using namespace sim;
 namespace lt = libtorrent;
 
 // this is a test for torrent_status time counters are correct
-struct test_swarm_config : swarm_config
-{
-	test_swarm_config()
-		: swarm_config()
-	{}
-
-	bool on_alert(libtorrent::alert const* alert
-		, int session_idx
-		, std::vector<libtorrent::torrent_handle> const& handles
-		, libtorrent::session& ses) override
-	{
-		if (torrent_added_alert const* ta = alert_cast<torrent_added_alert>(alert))
-		{
-			TEST_CHECK(!m_handle.is_valid());
-			m_start_time = lt::clock_type::now();
-			m_handle = ta->handle;
-		}
-		return false;
-	}
-
-	virtual void on_exit(std::vector<torrent_handle> const& torrents) override {}
-
-	virtual bool tick(int t) override
-	{
-		// once an hour, verify that the timers seem correct
-		if ((t % 3600) == 0)
-		{
-			lt::time_point now = lt::clock_type::now();
-			int since_start = total_seconds(now - m_start_time) - 1;
-			torrent_status st = m_handle.status();
-			TEST_EQUAL(st.active_time, since_start);
-			TEST_EQUAL(st.seeding_time, since_start);
-			TEST_EQUAL(st.finished_time, since_start);
-
-			TEST_EQUAL(st.last_scrape, -1);
-			TEST_EQUAL(st.time_since_upload, -1);
-
-			// checking the torrent counts as downloading
-			// eventually though, we've forgotten about it and go back to -1
-			if (since_start > 65000)
-			{
-				TEST_EQUAL(st.time_since_download, -1);
-			}
-			else
-			{
-				TEST_EQUAL(st.time_since_download, since_start);
-			}
-		}
-
-		// simulate 20 hours of uptime. Currently, the session_time and internal
-		// peer timestamps are 16 bits counting seconds, so they can only
-		// represent about 18 hours. The clock steps forward in 4 hour increments
-		// to stay within that range
-		return t > 20 * 60 * 60;
-	}
-
-private:
-	lt::time_point m_start_time;
-	lt::torrent_handle m_handle;
-};
-
 TORRENT_TEST(status_timers)
 {
-	sim::default_config network_cfg;
-	sim::simulation sim{network_cfg};
+	lt::time_point start_time;
+	lt::torrent_handle handle;
 
-	test_swarm_config cfg;
-	setup_swarm(1, sim, cfg);
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool
+		{
+
+			// simulate 20 hours of uptime. Currently, the session_time and internal
+			// peer timestamps are 16 bits counting seconds, so they can only
+			// represent about 18 hours. The clock steps forward in 4 hour increments
+			// to stay within that range
+			if (ticks > 20 * 60 * 60)
+				return true;
+
+			// once an hour, verify that the timers seem correct
+			if ((ticks % 3600) == 0)
+			{
+				lt::time_point now = lt::clock_type::now();
+				int since_start = total_seconds(now - start_time) - 1;
+				torrent_status st = handle.status();
+				TEST_EQUAL(st.active_time, since_start);
+				TEST_EQUAL(st.seeding_time, since_start);
+				TEST_EQUAL(st.finished_time, since_start);
+				TEST_EQUAL(st.last_scrape, -1);
+				TEST_EQUAL(st.time_since_upload, -1);
+
+				// checking the torrent counts as downloading
+				// eventually though, we've forgotten about it and go back to -1
+				if (since_start > 65000)
+				{
+					TEST_EQUAL(st.time_since_download, -1);
+				}
+				else
+				{
+					TEST_EQUAL(st.time_since_download, since_start);
+				}
+			}
+
+			return false;
+		});
 }
 

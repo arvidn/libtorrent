@@ -243,7 +243,8 @@ namespace libtorrent
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
-		// before actually closing all connections
+		// before actually closing all connections, When in graceful pause mode,
+		// m_allow_peers is also false.
 		bool m_graceful_pause_mode:1;
 
 		// state subscription. If set, a pointer to this torrent

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
+#include "setup_swarm.hpp"
 
 using namespace sim;
 
@@ -52,11 +53,6 @@ enum flags_t
 {
 	ipv6 = 1,
 };
-
-asio::ip::address addr(char const* str)
-{
-	return asio::ip::address::from_string(str);
-}
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
@@ -173,14 +169,11 @@ void run_test(
 	sim.run();
 }
 
-void enable_utp(lt::session& ses)
+void utp_only(lt::session& ses)
 {
 	using namespace libtorrent;
 	settings_pack p;
-	p.set_bool(settings_pack::enable_outgoing_tcp, false);
-	p.set_bool(settings_pack::enable_incoming_tcp, false);
-	p.set_bool(settings_pack::enable_outgoing_utp, true);
-	p.set_bool(settings_pack::enable_incoming_utp, true);
+	utp_only(p);
 	ses.apply_settings(p);
 }
 
@@ -188,10 +181,7 @@ void enable_enc(lt::session& ses)
 {
 	using namespace libtorrent;
 	settings_pack p;
-	p.set_bool(settings_pack::prefer_rc4, true);
-	p.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
-	p.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
-	p.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+	enable_enc(p);
 	ses.apply_settings(p);
 }
 
@@ -223,12 +213,6 @@ void set_proxy(lt::session& ses, int proxy_type, int flags = 0, bool proxy_peer_
 	p.set_bool(settings_pack::proxy_tracker_connections, true);
 
 	ses.apply_settings(p);
-}
-
-bool is_seed(lt::session& ses)
-{
-	lt::torrent_handle h = ses.get_torrents()[0];
-	return h.status().is_seeding;
 }
 
 TORRENT_TEST(socks4_tcp)
@@ -346,10 +330,6 @@ TORRENT_TEST(no_proxy_utp)
 	);
 }
 
-// TODO: test allow-fast
-// TODO: test the different storage allocation modes
-// TODO: test contiguous buffers
-
 // TODO: the socks server does not support UDP yet
 
 /*
@@ -358,7 +338,7 @@ TORRENT_TEST(encryption_utp)
 	using namespace libtorrent;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
-		{ enable_enc(ses0); enable_enc(ses1); enable_utp(ses0); },
+		{ enable_enc(ses0); enable_enc(ses1); utp_only(ses0); },
 		[](lt::session& ses, lt::alert const* alert) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), true);
@@ -373,7 +353,7 @@ TORRENT_TEST(socks5_utp)
 		[](lt::session& ses0, lt::session& ses1)
 		{
 			set_proxy(ses0, settings_pack::socks5);
-			enable_utp(ses0);
+			utp_only(ses0);
 			filter_ips(ses1);
 		},
 		[](lt::session& ses, lt::alert const* alert) {},
