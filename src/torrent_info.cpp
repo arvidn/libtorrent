@@ -1688,6 +1688,11 @@ namespace libtorrent
 			, auth, extra_headers));
 	}
 
+	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
+	{
+		m_web_seeds = seeds;
+	}
+
 	std::vector<sha1_hash> torrent_info::similar_torrents() const
 	{
 		std::vector<sha1_hash> ret;
