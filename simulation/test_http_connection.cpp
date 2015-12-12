@@ -386,7 +386,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	TEST_EQUAL(e, error_code());
 
 	TEST_EQUAL(counters.size(), expect_counters.size());
-	for (int i = 0; i < counters.size(); ++i)
+	for (int i = 0; i < int(counters.size()); ++i)
 	{
 		if (counters[i] != expect_counters[i]) fprintf(stderr, "i=%d\n", i);
 		TEST_EQUAL(counters[i], expect_counters[i]);
