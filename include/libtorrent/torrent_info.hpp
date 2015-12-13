@@ -70,7 +70,7 @@ namespace libtorrent
 	// the web_seed_entry holds information about a web seed (also known
 	// as URL seed or HTTP seed). It is essentially a URL with some state
 	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
-	struct web_seed_entry
+	struct TORRENT_EXPORT web_seed_entry
 	{
 		// http seeds are different from url seeds in the
 		// protocol they use. http seeds follows the original
