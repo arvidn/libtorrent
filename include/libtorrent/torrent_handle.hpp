@@ -1154,10 +1154,13 @@ namespace libtorrent
 		void set_max_connections(int max_connections) const;
 		int max_connections() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// sets a username and password that will be sent along in the HTTP-request
 		// of the tracker announce. Set this if the tracker requires authorization.
+		TORRENT_DEPRECATED
 		void set_tracker_login(std::string const& name
 			, std::string const& password) const;
+#endif
 
 		// Moves the file(s) that this torrent are currently seeding from or
 		// downloading to. If the given ``save_path`` is not located on the same
