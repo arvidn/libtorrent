@@ -11695,6 +11695,24 @@ namespace libtorrent
 		}
 	}
 
+	void torrent::stop_when_ready(bool b)
+	{
+		m_stop_when_ready = b;
+
+		// to avoid race condition, if we're already in a downloading state,
+		// trigger the stop-when-ready logic immediately.
+		if (m_stop_when_ready
+			&& is_downloading_state(m_state))
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("stop_when_ready triggered");
+#endif
+			auto_managed(false);
+			pause();
+			m_stop_when_ready = false;
+		}
+	}
+
 	void torrent::set_state(torrent_status::state_t s)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -11741,6 +11759,7 @@ namespace libtorrent
 			// either upload or download (for the purpose of this flag).
 			auto_managed(false);
 			pause();
+			m_stop_when_ready = false;
 		}
 
 		m_state = s;

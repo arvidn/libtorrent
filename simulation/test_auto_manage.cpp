@@ -656,6 +656,195 @@ TORRENT_TEST(stop_when_ready)
 			}
 		});
 }
+
+// This test makes sure that the fastresume check will still run, and
+// potentially fail, for stopped torrents. The actual checking of files won't
+// start until the torrent is un-paused/resumed though
+TORRENT_TEST(resume_reject_when_paused)
+{
+	run_test(
+		[](settings_pack& sett) {
+			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+		},
+
+		[](lt::session& ses) {
+			// add torrents
+			lt::add_torrent_params params = create_torrent(0, true);
+
+			// the torrent is not auto managed and paused. Once the resume data
+			// check completes, it will stay paused but the resume_rejected_alert
+			// will be posted
+			params.flags &= ~add_torrent_params::flag_auto_managed;
+			params.flags |= add_torrent_params::flag_paused;
+
+			// an empty dictionary will be rejected
+			params.resume_data = {'d', 'e'};
+			ses.async_add_torrent(params);
+		},
+
+		[](lt::session& ses) {
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
+
+			lt::time_point start_time = alerts[0]->timestamp();
+
+			int num_piece_finished = 0;
+			int resume_rejected = 0;
+			int state_changed = 0;
+
+			for (alert* a : alerts)
+			{
+				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+						- start_time).count())
+					, a->what()
+					, a->message().c_str());
+
+				if (alert_cast<piece_finished_alert>(a))
+					++num_piece_finished;
+
+				if (alert_cast<fastresume_rejected_alert>(a))
+					++resume_rejected;
+
+				if (auto sc = alert_cast<state_changed_alert>(a))
+				{
+					if (sc->state == torrent_status::checking_files)
+						++state_changed;
+				}
+			}
+
+			for (torrent_handle const& h : ses.get_torrents())
+			{
+				// the torrent should have been force-stopped. Force stopped means
+				// not auto-managed and paused.
+				torrent_status st = h.status();
+				TEST_CHECK(!st.auto_managed);
+				TEST_EQUAL(st.paused, true);
+				// it should be checking files, because the resume data should have
+				// failed validation.
+				TEST_EQUAL(st.state, torrent_status::checking_files);
+			}
+
+			TEST_EQUAL(num_piece_finished, 0);
+			TEST_EQUAL(resume_rejected, 1);
+			TEST_EQUAL(state_changed, 1);
+		});
+}
+
+// this test adds the torrent in paused state and no resume data. Expecting the
+// resume check to complete and just transition into checking state, but without
+// actually checking anything
+TORRENT_TEST(no_resume_when_paused)
+{
+	run_test(
+		[](settings_pack& sett) {
+			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+		},
+
+		[](lt::session& ses) {
+			// add torrents
+			lt::add_torrent_params params = create_torrent(0, true);
+
+			// the torrent is not auto managed and paused.
+			params.flags &= ~add_torrent_params::flag_auto_managed;
+			params.flags |= add_torrent_params::flag_paused;
+
+			ses.async_add_torrent(params);
+		},
+
+		[](lt::session& ses) {
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
+
+			lt::time_point start_time = alerts[0]->timestamp();
+
+			int num_piece_finished = 0;
+			int resume_rejected = 0;
+			int state_changed = 0;
+
+			for (alert* a : alerts)
+			{
+				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+						- start_time).count())
+					, a->what()
+					, a->message().c_str());
+
+				if (alert_cast<piece_finished_alert>(a))
+					++num_piece_finished;
+
+				if (alert_cast<fastresume_rejected_alert>(a))
+					++resume_rejected;
+
+				if (auto sc = alert_cast<state_changed_alert>(a))
+				{
+					if (sc->state == torrent_status::checking_files)
+						++state_changed;
+				}
+			}
+
+			for (torrent_handle const& h : ses.get_torrents())
+			{
+				// the torrent should have been force-stopped. Force stopped means
+				// not auto-managed and paused.
+				torrent_status st = h.status();
+				TEST_CHECK(!st.auto_managed);
+				TEST_EQUAL(st.paused, true);
+				// it should be checking files, because the resume data should have
+				// failed validation.
+				TEST_EQUAL(st.state, torrent_status::checking_files);
+			}
+
+			TEST_EQUAL(num_piece_finished, 0);
+			TEST_EQUAL(resume_rejected, 0);
+			TEST_EQUAL(state_changed, 1);
+		});
+}
+
+// this is just asserting that when the files are checked we do in fact get
+// piece_finished_alerts. The other tests rely on this assumption
+TORRENT_TEST(no_resume_when_started)
+{
+	run_test(
+		[](settings_pack& sett) {
+			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+		},
+
+		[](lt::session& ses) {
+			// add torrents
+			lt::add_torrent_params params = create_torrent(0, true);
+			ses.async_add_torrent(params);
+		},
+
+		[](lt::session& ses) {
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
+
+			lt::time_point start_time = alerts[0]->timestamp();
+
+			int num_piece_finished = 0;
+			int state_changed = 0;
+
+			for (alert* a : alerts)
+			{
+				fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+						- start_time).count())
+					, a->what()
+					, a->message().c_str());
+
+				if (alert_cast<piece_finished_alert>(a))
+					++num_piece_finished;
+
+				if (auto sc = alert_cast<state_changed_alert>(a))
+				{
+					if (sc->state == torrent_status::checking_files)
+						++state_changed;
+				}
+			}
+
+			TEST_EQUAL(num_piece_finished, 9);
+			TEST_EQUAL(state_changed, 1);
+		});
+}
+
 // TODO: assert that the torrent_paused_alert is posted when pausing
 //       downloading, seeding, checking torrents as well as the graceful pause
 // TODO: test limits of tracker, DHT and LSD announces

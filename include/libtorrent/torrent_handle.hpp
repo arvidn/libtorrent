@@ -234,6 +234,13 @@ namespace libtorrent
 	// 
 	struct TORRENT_EXPORT torrent_handle
 	{
+		// TODO: 3 consider replacing all the setters and getters for pause,
+		// resume, stop-when-ready, share-mode, upload-mode, super-seeding,
+		// apply-ip-filter, resolve-countries, pinned, sequential-download,
+		// seed-mode
+		// with just set_flags() and clear_flags() using the flags from
+		// add_torrent_params. Perhaps those flags should have a more generic
+		// name.
 		friend class invariant_access;
 		friend struct aux::session_impl;
 		friend class session;
@@ -474,6 +481,9 @@ namespace libtorrent
 		void replace_trackers(std::vector<announce_entry> const&) const;
 		void add_tracker(announce_entry const&) const;
 
+		// TODO: 3 unify url_seed and http_seed with just web_seed, using the
+		// web_seed_entry.
+
 		// ``add_url_seed()`` adds another url to the torrent's list of url
 		// seeds. If the given url already exists in that list, the call has no
 		// effect. The torrent will connect to the server and try to download
@@ -565,6 +575,24 @@ namespace libtorrent
 		// 
 		// *Force stopped* means auto-managed is set to false and it's paused. As
 		// if auto_manage(false) and pause() were called on the torrent.
+		// 
+		// Note that the torrent may transition into a downloading state while
+		// calling this function, and since the logic is edge triggered you may
+		// miss the edge. To avoid this race, if the torrent already is in a
+		// downloading state when this call is made, it will trigger the
+		// stop-when-ready immediately.
+		// 
+		// When the stop-when-ready logic fires, the flag is cleared. Any
+		// subsequent transitions between downloading and non-downloading states
+		// will not be affected, until this function is used to set it again.
+		// 
+		// The behavior is more robust when setting this flag as part of adding
+		// the torrent. See add_torrent_params.
+		// 
+		// The stop-when-ready flag fixes the inherent race condition of waiting
+		// for the state_changed_alert and then call pause(). The download/seeding
+		// will most likely start in between posting the alert and receiving the
+		// call to pause.
 		void stop_when_ready(bool b) const;
 
 		// Explicitly sets the upload mode of the torrent. In upload mode, the

@@ -327,7 +327,8 @@ void setup_swarm(int num_nodes
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
 					boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-					printf("%4d.%03d: %s\n", millis / 1000, millis % 1000
+					printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+						, a->what()
 						, a->message().c_str());
 
 					// if a torrent was added save the torrent handle
