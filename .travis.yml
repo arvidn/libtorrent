@@ -64,7 +64,9 @@ script:
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
-  - cd ..
+  - cd ../bindings/c
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
+  - cd ../..
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory

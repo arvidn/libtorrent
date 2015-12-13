@@ -37,68 +37,86 @@ enum tags
 {
 	TAG_END = 0,
 
-	SES_FINGERPRINT, // char const*, 2 character string
-	SES_LISTENPORT, // int
-	SES_LISTENPORT_END, // int
+	SES_FINGERPRINT, // char const*, 20 character string or shorter
 	SES_VERSION_MAJOR, // int
 	SES_VERSION_MINOR, // int
 	SES_VERSION_TINY, // int
 	SES_VERSION_TAG, // int
-	SES_FLAGS, // int
+	SES_LISTEN_INTERFACE, // char const* (ip/device and port)
+	SES_UPLOAD_RATE_LIMIT, // int
+	SES_DOWNLOAD_RATE_LIMIT, // int
+	SES_MAX_UPLOAD_SLOTS, // int
+	SES_MAX_CONNECTIONS, // int
+	SES_PROXY_HOSTNAME, // char const*
+	SES_PROXY_PORT, // int
+	SES_PROXY_TYPE, // int (proxy_type_t)
+	SES_PROXY_USERNAME, // char const*
+	SES_PROXY_PASSWORD, // char const*
+	SES_PROXY_DNS, // bool
+	SES_PROXY_PEER_CONNECTIONS, // bool
+	SES_PROXY_TRACKER_CONNECTIONS, // bool
 	SES_ALERT_MASK, // int
-	SES_LISTEN_INTERFACE, // char const*
+	SES_CACHE_SIZE, // int (specified in 16kiB blocks)
+	SES_READ_CACHE_LINE_SIZE, // int (specified in 16kiB blocks)
+	SES_WRITE_CACHE_LINE_SIZE, // int (specified in 16kiB blocks)
+	SES_ENABLE_UPNP, // bool
+	SES_ENABLE_NATPMP, // bool
+	SES_ENABLE_LSD, // bool
+	SES_ENABLE_DHT, // bool
+	SES_ENABLE_UTP_OUT, // bool
+	SES_ENABLE_UTP_IN, // bool
+	SES_ENABLE_TCP_OUT, // bool
+	SES_ENABLE_TCP_IN, // bool
+	SES_NO_ATIME_STORAGE, // bool
 
 	// === add_torrent tags ===
 
 	// identifying the torrent to add
 	TOR_FILENAME = 0x100, // char const*
 	TOR_TORRENT, // char const*, specify size of buffer with TOR_TORRENT_SIZE
-	TOR_TORRENT_SIZE, // int
+	TOR_TORRENT_SIZE, // int, the size of the buffer specified by TOR_TORRENT
 	TOR_INFOHASH, // char const*, must point to a 20 byte array
 	TOR_INFOHASH_HEX, // char const*, must point to a 40 byte string
 	TOR_MAGNETLINK, // char const*, url
-
 	TOR_TRACKER_URL, // char const*
+	TOR_WEB_SEED, // char const*
 	TOR_RESUME_DATA, // char const*
 	TOR_RESUME_DATA_SIZE, // int
 	TOR_SAVE_PATH, // char const*
 	TOR_NAME, // char const*
-	TOR_PAUSED, // int
-	TOR_AUTO_MANAGED, // int
-	TOR_DUPLICATE_IS_ERROR, // int
+	TOR_TRACKER_ID, // char const*
+	TOR_FLAGS, // int (torrent_flags_t)
 	TOR_USER_DATA, //void*
-	TOR_SEED_MODE, // int
-	TOR_OVERRIDE_RESUME_DATA, // int
-	TOR_STORAGE_MODE, // int
+	TOR_STORAGE_MODE, // int (storage_mode_t)
+	TOR_MAX_UPLOAD_SLOTS, // int
+	TOR_MAX_CONNECTIONS, // int
+	TOR_UPLOAD_RATE_LIMIT, // int
+	TOR_DOWNLOAD_RATE_LIMIT, // int
 
-	SET_UPLOAD_RATE_LIMIT = 0x200, // int
-	SET_DOWNLOAD_RATE_LIMIT, // int
-	SET_LOCAL_UPLOAD_RATE_LIMIT, // int
-	SET_LOCAL_DOWNLOAD_RATE_LIMIT, // int
-	SET_MAX_UPLOAD_SLOTS, // int
-	SET_MAX_CONNECTIONS, // int
-	SET_SEQUENTIAL_DOWNLOAD, // int, torrent only
-	SET_SUPER_SEEDING, // int, torrent only
-	SET_HALF_OPEN_LIMIT, // int, session only
-	SET_PEER_PROXY, // proxy_setting const*, session_only
-	SET_WEB_SEED_PROXY, // proxy_setting const*, session_only
-	SET_TRACKER_PROXY, // proxy_setting const*, session_only
-	SET_DHT_PROXY, // proxy_setting const*, session_only
-	SET_PROXY, // proxy_setting const*, session_only
-	SET_ALERT_MASK, // int, session_only
 };
 
-struct proxy_setting
+// used as argument to TOR_FLAGS tag
+enum torrent_flags_t
 {
-	char hostname[256];
-	int port;
-
-	char username[256];
-	char password[256];
-
-	int type;
+	flag_seed_mode = 0x001,
+	flag_override_resume_data = 0x002,
+	flag_upload_mode = 0x004,
+	flag_share_mode = 0x008,
+	flag_apply_ip_filter = 0x010,
+	flag_paused = 0x020,
+	flag_auto_managed = 0x040,
+	flag_duplicate_is_error = 0x080,
+	flag_merge_resume_trackers = 0x100,
+	flag_update_subscribe = 0x200,
+	flag_super_seeding = 0x400,
+	flag_sequential_download = 0x800,
+	flag_use_resume_save_path = 0x1000,
+	flag_pinned = 0x2000,
+	flag_merge_resume_http_seeds = 0x2000,
+	flag_stop_when_ready = 0x4000,
 };
 
+// alert categories
 enum category_t
 {
 	cat_error = 0x1,
@@ -116,6 +134,7 @@ enum category_t
 	cat_all_categories = 0xffffffff
 };
 
+// used as argument to TOR_PROXY_TYPE
 enum proxy_type_t
 {
 	proxy_none,
@@ -126,11 +145,11 @@ enum proxy_type_t
 	proxy_http_pw
 };
 
+// used as argument to TOR_STORAGE_MODE
 enum storage_mode_t
 {
 	storage_mode_allocate = 0,
-	storage_mode_sparse,
-	storage_mode_compact
+	storage_mode_sparse
 };
 
 enum state_t
@@ -144,7 +163,7 @@ enum state_t
 	allocating,
 	checking_resume_data
 };
-	
+
 struct torrent_status
 {
 	enum state_t state;
@@ -250,6 +269,8 @@ struct session_status
 //	std::vector<dht_lookup> active_requests;
 };
 
+struct session_t;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -266,8 +287,8 @@ extern "C"
 // terminated by TAG_END.
 
 // use SES_* tags in tag list
-void* session_create(int first_tag, ...);
-void session_close(void* ses);
+struct session_t* session_create(int first_tag, ...);
+void session_close(struct session_t* ses);
 
 // use TOR_* tags in tag list
 int session_add_torrent(void* ses, int first_tag, ...);
