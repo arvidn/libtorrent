@@ -491,7 +491,9 @@ void bind_torrent_handle()
         .def("max_uploads", _(&torrent_handle::max_uploads))
         .def("set_max_connections", _(&torrent_handle::set_max_connections))
         .def("max_connections", _(&torrent_handle::max_connections))
+#ifndef TORRENT_NO_DEPRECATE
         .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
+#endif
         .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = 0))
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("force_recheck", _(&torrent_handle::force_recheck))
