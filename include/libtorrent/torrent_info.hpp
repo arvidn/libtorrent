@@ -70,7 +70,7 @@ namespace libtorrent
 	// the web_seed_entry holds information about a web seed (also known
 	// as URL seed or HTTP seed). It is essentially a URL with some state
 	// associated with it. For more information, see `BEP 17`_ and `BEP 19`_.
-	struct web_seed_entry
+	struct TORRENT_EXPORT web_seed_entry
 	{
 		// http seeds are different from url seeds in the
 		// protocol they use. http seeds follows the original
@@ -285,6 +285,9 @@ namespace libtorrent
 		// url/http seeds. Currently, the only transport protocol supported for
 		// the url is http.
 		// 
+		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
+		// the ``seeds`` vector.
+		// 
 		// The ``extern_auth`` argument can be used for other athorization
 		// schemese than basic HTTP authorization. If set, it will override any
 		// username and password found in the URL itself. The string will be sent
@@ -301,8 +304,8 @@ namespace libtorrent
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
-		std::vector<web_seed_entry> const& web_seeds() const
-		{ return m_web_seeds; }
+		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
+		void set_web_seeds(std::vector<web_seed_entry> seeds);
 
 		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
 		// total number of bytes the torrent-file represents (all the files in

@@ -173,11 +173,52 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with an SSL cert
 // TODO: torrent with attributes (executable and hidden)
 // TODO: torrent_info::add_tracker
-// TODO: torrent_info::add_url_seed
-// TODO: torrent_info::add_http_seed
 // TODO: torrent_info::unload
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
+
+TORRENT_TEST(add_url_seed)
+{
+	torrent_info ti(sha1_hash("                   "));
+	TEST_EQUAL(ti.web_seeds().size(), 0);
+
+	ti.add_url_seed("http://test.com");
+
+	TEST_EQUAL(ti.web_seeds().size(), 1);
+	web_seed_entry we = ti.web_seeds()[0];
+	TEST_EQUAL(we.type, web_seed_entry::url_seed);
+	TEST_EQUAL(we.url, "http://test.com");
+}
+
+TORRENT_TEST(add_http_seed)
+{
+	torrent_info ti(sha1_hash("                   "));
+	TEST_EQUAL(ti.web_seeds().size(), 0);
+
+	ti.add_http_seed("http://test.com");
+
+	TEST_EQUAL(ti.web_seeds().size(), 1);
+	web_seed_entry we = ti.web_seeds()[0];
+	TEST_EQUAL(we.type, web_seed_entry::http_seed);
+	TEST_EQUAL(we.url, "http://test.com");
+}
+
+TORRENT_TEST(set_web_seeds)
+{
+	torrent_info ti(sha1_hash("                   "));
+	TEST_EQUAL(ti.web_seeds().size(), 0);
+
+	std::vector<web_seed_entry> seeds;
+	web_seed_entry e1("http://test1.com", web_seed_entry::url_seed);
+	seeds.push_back(e1);
+	web_seed_entry e2("http://test2com", web_seed_entry::http_seed);
+	seeds.push_back(e2);
+
+	ti.set_web_seeds(seeds);
+
+	TEST_EQUAL(ti.web_seeds().size(), 2);
+	TEST_CHECK(ti.web_seeds() == seeds);
+}
 
 TORRENT_TEST(sanitize_path)
 {
