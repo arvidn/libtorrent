@@ -732,9 +732,11 @@ namespace libtorrent
 		void dht_announce();
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		// sets the username and password that will be sent to
 		// the tracker
 		void set_tracker_login(std::string const& name, std::string const& pw);
+#endif
 
 		announce_entry* find_tracker(tracker_request const& r);
 
@@ -1252,8 +1254,11 @@ namespace libtorrent
 		std::vector<time_critical_piece> m_time_critical_pieces;
 
 		std::string m_trackerid;
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.1
 		std::string m_username;
 		std::string m_password;
+#endif
 
 		std::string m_save_path;
 

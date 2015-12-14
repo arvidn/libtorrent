@@ -447,11 +447,13 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL(clear_error);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{
 		TORRENT_ASYNC_CALL2(set_tracker_login, name, password);
 	}
+#endif
 
 	void torrent_handle::file_progress(std::vector<boost::int64_t>& progress, int flags) const
 	{

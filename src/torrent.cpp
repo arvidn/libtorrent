@@ -3215,7 +3215,9 @@ namespace libtorrent
 				}
 			}
 
+#ifndef TORRENT_NO_DEPRECATE
 			req.auth = tracker_login();
+#endif
 			req.key = tracker_key();
 
 #ifdef TORRENT_USE_OPENSSL
@@ -3282,7 +3284,9 @@ namespace libtorrent
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind |= tracker_request::scrape_request;
 		req.url = m_trackers[i].url;
+#ifndef TORRENT_NO_DEPRECATE
 		req.auth = tracker_login();
+#endif
 		req.key = tracker_key();
 		m_ses.queue_tracker_request(req, shared_from_this());
 	}
@@ -3695,6 +3699,7 @@ namespace libtorrent
 		update_tracker_timer(clock_type::now());
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent::set_tracker_login(
 		std::string const& name
 		, std::string const& pw)
@@ -3702,6 +3707,7 @@ namespace libtorrent
 		m_username = name;
 		m_password = pw;
 	}
+#endif
 
 #if TORRENT_USE_I2P
 	void torrent::on_i2p_resolve(error_code const& ec, char const* dest)
@@ -5060,12 +5066,13 @@ namespace libtorrent
 			alerts().emplace_alert<torrent_paused_alert>(get_handle());
 	}
 
-	// TODO: 2 the tracker login feature should probably be deprecated
+#ifndef TORRENT_NO_DEPRECATE
 	std::string torrent::tracker_login() const
 	{
 		if (m_username.empty() && m_password.empty()) return "";
 		return m_username + ":" + m_password;
 	}
+#endif
 
 	boost::uint32_t torrent::tracker_key() const
 	{

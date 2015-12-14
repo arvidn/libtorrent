@@ -128,7 +128,9 @@ namespace libtorrent
 
 		std::string url;
 		std::string trackerid;
+#ifndef TORRENT_NO_DEPRECATE
 		std::string auth;
+#endif
 
 		boost::shared_ptr<const ip_filter> filter;
 

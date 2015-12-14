@@ -225,7 +225,11 @@ namespace libtorrent
 			, tracker_req().event == tracker_request::stopped
 				? resolver_interface::prefer_cache
 				: resolver_interface::abort_on_shutdown
+#ifndef TORRENT_NO_DEPRECATE
 			, tracker_req().auth
+#else
+			, ""
+#endif
 #if TORRENT_USE_I2P
 			, tracker_req().i2pconn
 #endif
