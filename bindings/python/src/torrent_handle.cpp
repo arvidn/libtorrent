@@ -388,10 +388,13 @@ void bind_torrent_handle()
     void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
+    // deprecated in 1.1
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
     bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
     void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 #define _ allow_threads
 
@@ -429,12 +432,13 @@ void bind_torrent_handle()
         .def("queue_position_top", _(&torrent_handle::queue_position_top))
         .def("queue_position_bottom", _(&torrent_handle::queue_position_bottom))
 
+        // deprecated
+#ifndef TORRENT_NO_DEPRECATE
+        // resolve countries deprecated in 1.1
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
         .def("resolve_countries", _(resolve_countries0))
         .def("resolve_countries", _(resolve_countries1))
 #endif
-        // deprecated
-#ifndef TORRENT_NO_DEPRECATE
         .def("get_torrent_info", &get_torrent_info)
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))
@@ -466,7 +470,7 @@ void bind_torrent_handle()
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
-			  , (arg("seconds") = 0, arg("tracker_idx") = -1))
+            , (arg("seconds") = 0, arg("tracker_idx") = -1))
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif

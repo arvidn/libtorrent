@@ -560,6 +560,9 @@ namespace libtorrent
 			state_updated();
 		}
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.1
+
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		void resolve_countries(bool r);
 		bool resolving_countries() const;
@@ -569,6 +572,7 @@ namespace libtorrent
 			, std::vector<address> const& host_list
 			, boost::shared_ptr<peer_connection> p) const;
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT

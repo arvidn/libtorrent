@@ -238,9 +238,11 @@ namespace libtorrent
 		, m_seed_mode(false)
 		, m_super_seeding(false)
 		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
 		, m_resolve_countries(false)
+#endif
 #endif
 		, m_need_save_resume_data(true)
 		, m_seeding_time(0)
@@ -6599,7 +6601,7 @@ namespace libtorrent
 				, boost::int64_t(web->peer_info.prev_amount_upload) << 10);
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
-#ifndef TORRENT_DISABLE_LOGGING 
+#ifndef TORRENT_DISABLE_LOGGING
 			debug_log("web seed connection started: [%s] %s"
 				, print_endpoint(a).c_str(), web->url.c_str());
 #endif
@@ -6624,6 +6626,8 @@ namespace libtorrent
 		}
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.1
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	namespace
 	{
@@ -6749,7 +6753,7 @@ namespace libtorrent
 		int idx = 0;
 		while (idx < host_list.size() && !host_list[idx].is_v4())
 			++idx;
-			
+
 		if (idx >= host_list.size())
 		{
 			p->set_country("--");
@@ -6758,7 +6762,7 @@ namespace libtorrent
 
 		// country is an ISO 3166 country code
 		int country = host_list[idx].to_v4().to_ulong() & 0xffff;
-			
+
 		// look up the country code in the map
 		const int size = sizeof(country_map)/sizeof(country_map[0]);
 		country_entry tmp = {country, ""};
@@ -6780,6 +6784,7 @@ namespace libtorrent
 		p->set_country(j->name);
 	}
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 	void torrent::read_resume_data(bdecode_node const& rd)
 	{
@@ -7449,10 +7454,13 @@ namespace libtorrent
 			peer_info& p = v.back();
 
 			peer->get_peer_info(p);
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in 1.1
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 			if (resolving_countries())
 				resolve_peer_country(peer->self());
 #endif
+#endif // TORRENT_NO_DEPRECATE
 		}
 	}
 

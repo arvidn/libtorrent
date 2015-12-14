@@ -433,9 +433,6 @@ int print_peer_info(std::string& out
 	if (print_timers) out += "inactive wait timeout q-time ";
 	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-	out += "country ";
-#endif
 	if (print_peer_rate) out += "peer-rate est.rec.rate ";
 	out += "client \x1b[K\n";
 	++pos;
@@ -556,17 +553,6 @@ int print_peer_info(std::string& out
 			}
 		}
 
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		if (i->country[0] == 0)
-		{
-			out += " ..";
-		}
-		else
-		{
-			snprintf(str, sizeof(str), " %c%c", i->country[0], i->country[1]);
-			out += str;
-		}
-#endif
 		if (print_peer_rate)
 		{
 			bool unchoked = (i->flags & peer_info::choked) == 0;
@@ -1039,9 +1025,6 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			h.set_max_uploads(-1);
 			h.set_upload_limit(torrent_upload_limit);
 			h.set_download_limit(torrent_download_limit);
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-			h.resolve_countries(true);
-#endif
 
 			// if we have a peer specified, connect to it
 			if (!peer.empty())
