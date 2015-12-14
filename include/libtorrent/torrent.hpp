@@ -464,7 +464,7 @@ namespace libtorrent
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
 
-		void stop_when_ready(bool b) { m_stop_when_ready = b; }
+		void stop_when_ready(bool b);
 
 		int started() const { return m_started; }
 		void step_session_time(int seconds);
