@@ -83,9 +83,9 @@ namespace libtorrent
 		// work to do.
 		virtual void on_receive(error_code const& error
 			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
-			
-		std::string const& url() const { return m_url; }
-		
+
+		std::string const& url() const TORRENT_OVERRIDE { return m_url; }
+
 		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
 		virtual void disconnect(error_code const& ec
 			, operation_t op, int error = 0) TORRENT_OVERRIDE;
@@ -112,16 +112,16 @@ namespace libtorrent
 		std::deque<int> m_file_requests;
 
 		std::string m_url;
-	
+
 		web_seed_t* m_web;
-			
+
 		// this is used for intermediate storage of pieces
 		// that are received in more than one HTTP response
 		// TODO: 1 if we make this be a disk_buffer_holder instead
 		// we would save a copy sometimes
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
 		std::vector<char> m_piece;
-		
+
 		// the number of bytes received in the current HTTP
 		// response. used to know where in the buffer the
 		// next response starts

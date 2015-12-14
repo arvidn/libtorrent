@@ -5,10 +5,14 @@
 #ifndef GIL_070107_HPP
 # define GIL_070107_HPP
 
+#include <libtorrent/aux_/disable_warnings_push.hpp>
+
 # include <boost/python/make_function.hpp>
 # include <boost/python/def_visitor.hpp>
 # include <boost/python/signature.hpp>
 # include <boost/mpl/at.hpp>
+
+#include <libtorrent/aux_/disable_warnings_pop.hpp>
 
 //namespace libtorrent { namespace python {
 

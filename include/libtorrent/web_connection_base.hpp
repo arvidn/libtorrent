@@ -95,7 +95,7 @@ namespace libtorrent
 			, std::size_t bytes_transferred);
 
 		virtual std::string const& url() const = 0;
-		
+
 		bool in_handshake() const;
 
 		// the following functions appends messages
@@ -135,7 +135,7 @@ namespace libtorrent
 
 		// true if we're using ssl
 		bool m_ssl;
-				
+
 		// this has one entry per bittorrent request
 		std::deque<peer_request> m_requests;
 
@@ -146,7 +146,7 @@ namespace libtorrent
 
 		std::string m_external_auth;
 		web_seed_entry::headers_t m_extra_headers;
-			
+
 		http_parser m_parser;
 
 		int m_port;

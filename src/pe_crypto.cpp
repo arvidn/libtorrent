@@ -32,21 +32,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 #include <algorithm>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-#endif
 
 extern "C" {
 #include "libtorrent/tommath.h"
 }
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/pe_crypto.hpp"

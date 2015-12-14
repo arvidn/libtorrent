@@ -46,8 +46,12 @@ struct rc4 {
 void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
 unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/asio/buffer.hpp>
 #include <list>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/peer_id.hpp" // For sha1_hash

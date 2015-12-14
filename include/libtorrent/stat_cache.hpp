@@ -33,9 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STAT_CACHE_HPP
 #define TORRENT_STAT_CACHE_HPP
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <time.h>
 #include <vector>
 #include <boost/cstdint.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/config.hpp"
 
 namespace libtorrent

@@ -165,7 +165,7 @@ namespace libtorrent { namespace aux
 
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(boost::shared_ptr<peer_connection> const& c) = 0;
-		
+
 		virtual void queue_async_resume_data(boost::shared_ptr<torrent> const& t) = 0;
 		virtual void done_async_resume() = 0;
 		virtual void evict_torrent(torrent* t) = 0;
@@ -178,7 +178,7 @@ namespace libtorrent { namespace aux
 		virtual void ban_ip(address addr) = 0;
 
 		virtual boost::int64_t session_time() const = 0;
-	
+
 		virtual bool is_paused() const = 0;
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;
@@ -275,8 +275,6 @@ namespace libtorrent { namespace aux
 		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
 		virtual void sent_syn(bool ipv6) = 0;
 		virtual void received_synack(bool ipv6) = 0;
-
-		virtual int peak_up_rate() const = 0;
 
 		enum torrent_list_index
 		{

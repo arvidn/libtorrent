@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_CONFIG_HPP_INCLUDED
 #define TORRENT_CONFIG_HPP_INCLUDED
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #define _FILE_OFFSET_BITS 64
 
 #if !defined _MSC_VER || _MSC_VER >= 1600
@@ -43,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define __STDC_CONSTANT_MACROS 1
 #endif
 #endif
+
 
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
@@ -86,6 +89,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define PRIu32 "u"
 #endif
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // ======= GCC =========
 
