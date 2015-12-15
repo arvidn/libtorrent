@@ -835,13 +835,19 @@ namespace libtorrent
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.1
+
 		// Sets or gets the flag that derermines if countries should be resolved
 		// for the peers of this torrent. It defaults to false. If it is set to
 		// true, the peer_info structure for the peers in this torrent will have
 		// their ``country`` member set. See peer_info for more information on
 		// how to interpret this field.
+		TORRENT_DEPRECATED
 		void resolve_countries(bool r);
+		TORRENT_DEPRECATED
 		bool resolve_countries() const;
+#endif
 
 		// For SSL torrents, use this to specify a path to a .pem file to use as
 		// this client's certificate. The certificate must be signed by the

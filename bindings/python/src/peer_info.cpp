@@ -25,12 +25,14 @@ boost::int64_t get_download_queue_time(peer_info const& pi)
     return total_seconds(pi.download_queue_time);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 str get_country(peer_info const& pi)
 {
     return str(pi.country, 2);
 }
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 tuple get_local_endpoint(peer_info const& pi)
 {
@@ -85,13 +87,11 @@ void bind_peer_info()
         .def_readonly("receive_buffer_size", &peer_info::receive_buffer_size)
         .def_readonly("used_receive_buffer", &peer_info::used_receive_buffer)
         .def_readonly("num_hashfails", &peer_info::num_hashfails)
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
         .add_property("country", get_country)
 #endif
-#ifndef TORRENT_DISABLE_GEO_IP
-        .def_readonly("inet_as_name", &peer_info::inet_as_name)
-        .def_readonly("inet_as", &peer_info::inet_as)
-#endif
+#endif // TORRENT_NO_DEPRECATE
         .def_readonly("download_queue_length", &peer_info::download_queue_length)
         .def_readonly("upload_queue_length", &peer_info::upload_queue_length)
         .def_readonly("failcount", &peer_info::failcount)

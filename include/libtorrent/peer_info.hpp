@@ -46,10 +46,6 @@ namespace libtorrent
 	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info
 	{
-		// the name of the AS this peer is located in. This might be an empty
-		// string if there is no name in the geo ip database.
-		std::string inet_as_name;
-
 		// a string describing the software at the other end of the connection.
 		// In some cases this information is not available, then it will contain
 		// a string that may give away something about which software is running
@@ -255,9 +251,6 @@ namespace libtorrent
 		// turned out to fail the hash check.
 		int num_hashfails;
 
-		// the AS number the peer is located in.
-		int inet_as;
-
 		// this is the number of requests we have sent to this peer that we
 		// haven't got a response for yet
 		int download_queue_length;
@@ -349,7 +342,7 @@ namespace libtorrent
 		// are given in bytes per second. This number is reset to 0 on reconnect.
 		int download_rate_peak;
 		int upload_rate_peak;
-		
+
 		// the progress of the peer in the range [0, 1]. This is always 0 when
 		// floating point operations are diabled, instead use ``progress_ppm``.
 		float progress; // [0, 1]
@@ -378,7 +371,7 @@ namespace libtorrent
 		// bits for the read_state and write_state
 		enum bw_state
 		{
-			// The peer is not waiting for any external events to   
+			// The peer is not waiting for any external events to
 			// send or receive data.
 			bw_idle = 0,
 
@@ -405,6 +398,9 @@ namespace libtorrent
 		char read_state;
 		char write_state;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// country code deprecated in 1.1
+
 		// the two letter `ISO 3166 country code`__ for the country the peer is
 		// connected from. If the country hasn't been resolved yet, both chars
 		// are set to 0. If the resolution failed for some reason, the field is
@@ -416,7 +412,6 @@ namespace libtorrent
 		// __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
 		char country[2];
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the number of bytes per second we are allowed to send to or receive
 		// from this peer. It may be -1 if there's no local limit on the peer.
 		// The global limit and the torrent limit may also be enforced.
