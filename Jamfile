@@ -606,6 +606,7 @@ SOURCES =
 	proxy_base
 	puff
 	random
+	read_resume_data
 	receive_buffer
 	resolve_links
 	rss

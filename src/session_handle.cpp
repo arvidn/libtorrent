@@ -152,7 +152,7 @@ namespace libtorrent
 		return TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);
 	}
 
-	#ifndef BOOST_NO_EXCEPTIONS
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
 	{
 		error_code ec;
@@ -171,13 +171,11 @@ namespace libtorrent
 	void session_handle::async_add_torrent(add_torrent_params const& params)
 	{
 		add_torrent_params* p = new add_torrent_params(params);
-#ifndef TORRENT_NO_DEPRECATE
-		if (params.tracker_url)
-		{
-			p->trackers.push_back(params.tracker_url);
-			p->tracker_url = NULL;
-		}
-#endif
+#error all add_torrent() and async_add_torrent() function need to pass the \
+		add_torrent_params through a function that parses the resume vector and \
+		blends the results into the params object (unless deprecated functions \
+		are disabled)
+
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
@@ -217,11 +215,14 @@ namespace libtorrent
 		, void* userdata)
 	{
 		add_torrent_params p(sc);
-		p.tracker_url = tracker_url;
+		p.trackers.push_back(tracker_url);
 		p.info_hash = info_hash;
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
-		p.paused = paused;
+
+		if (paused) p.flags |= add_torrent_params::flag_paused;
+		else p.flags &= ~add_torrent_params::flag_paused;
+
 		p.userdata = userdata;
 		p.name = name;
 		if (resume_data.type() != entry::undefined_t)

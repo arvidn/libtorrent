@@ -237,7 +237,6 @@ namespace libtorrent
 		, m_auto_sequential(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
-		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
@@ -278,8 +277,6 @@ namespace libtorrent
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
-		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
-		, m_merge_resume_http_seeds((p.flags & add_torrent_params::flag_merge_resume_http_seeds) != 0)
 		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
@@ -357,6 +354,40 @@ namespace libtorrent
 			m_resume_data.reset(new resume_data_t);
 			m_resume_data->buf = p.resume_data;
 		}
+
+		int tier = 0;
+		std::vector<int>::const_iterator tier_iter = p.tracker_tiers.begin();
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+		{
+			if (tier_iter != p.tracker_tiers.end())
+				tier = *tier_iter++;
+
+			announce_entry e(*i);
+			e.fail_limit = 0;
+			e.source = announce_entry::source_magnet_link;
+			e.tier = tier;
+			m_trackers.push_back(e);
+			m_torrent_file->add_tracker(*i, tier);
+		}
+
+		if (settings().get_bool(settings_pack::prefer_udp_trackers))
+			prioritize_udp_trackers();
+
+
+		m_total_uploaded = p.total_uploaded;
+		m_total_downloaded = p.total_downloaded;
+
+		// the numeber of seconds this torrent has spent in started, finished and
+		// seeding state so far, respectively.
+		m_active_time = p.active_time;
+		m_finished_time = p.finished_time;
+		m_seeding_time = p.seeding_time;
+
+		m_added_time = p.added_time ? p.added_time : time(0);
+		m_completed_time = p.completed_time;
+		if (m_completed_time != 0 && m_completed_time < m_added_time)
+			m_completed_time = m_added_time;
 	}
 
 	void torrent::inc_stats_counter(int c, int value)
@@ -718,6 +749,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+#error why isn't this done in the constructor?
+
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
 			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
@@ -769,28 +802,6 @@ namespace libtorrent
 		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
 
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
-
-#ifndef TORRENT_NO_DEPRECATE
-		if (p.tracker_url && std::strlen(p.tracker_url) > 0)
-		{
-			m_trackers.push_back(announce_entry(p.tracker_url));
-			m_trackers.back().fail_limit = 0;
-			m_trackers.back().source = announce_entry::source_magnet_link;
-			m_torrent_file->add_tracker(p.tracker_url);
-		}
-#endif
-
-		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
-			, end(p.trackers.end()); i != end; ++i)
-		{
-			m_trackers.push_back(announce_entry(*i));
-			m_trackers.back().fail_limit = 0;
-			m_trackers.back().source = announce_entry::source_magnet_link;
-			m_torrent_file->add_tracker(*i);
-		}
-
-		if (settings().get_bool(settings_pack::prefer_udp_trackers))
-			prioritize_udp_trackers();
 
 		// if we don't have metadata, make this torrent pinned. The
 		// client may unpin it once we have metadata and it has had
@@ -1808,7 +1819,8 @@ namespace libtorrent
 	}
 
 	// this may not be called from a constructor because of the call to
-	// shared_from_this()
+	// shared_from_this(). It's either called when we start() the torrent, or at a
+	// later time if it's a magnet link, once the metadata is downloaded
 	void torrent::init()
 	{
 		INVARIANT_CHECK;
@@ -1883,10 +1895,6 @@ namespace libtorrent
 #endif
 				m_resume_data.reset();
 			}
-			else
-			{
-				read_resume_data(m_resume_data->node);
-			}
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -1927,6 +1935,7 @@ namespace libtorrent
 
 		// if we've already loaded file priorities, don't load piece priorities,
 		// they will interfere.
+#error we should get the piece priority from add_torrent_params instead
 		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
 		{
 			bdecode_node piece_priority = m_resume_data->node
@@ -6784,278 +6793,6 @@ namespace libtorrent
 #endif
 #endif // TORRENT_NO_DEPRECATE
 
-	void torrent::read_resume_data(bdecode_node const& rd)
-	{
-		m_total_uploaded = rd.dict_find_int_value("total_uploaded");
-		m_total_downloaded = rd.dict_find_int_value("total_downloaded");
-		m_active_time = rd.dict_find_int_value("active_time");
-		m_finished_time = rd.dict_find_int_value("finished_time");
-		m_seeding_time = rd.dict_find_int_value("seeding_time");
-		m_last_seen_complete = rd.dict_find_int_value("last_seen_complete");
-		m_complete = rd.dict_find_int_value("num_complete", 0xffffff);
-		m_incomplete = rd.dict_find_int_value("num_incomplete", 0xffffff);
-		m_downloaded = rd.dict_find_int_value("num_downloaded", 0xffffff);
-
-		if (!m_override_resume_data)
-		{
-			int up_limit_ = rd.dict_find_int_value("upload_rate_limit", -1);
-			if (up_limit_ != -1) set_upload_limit(up_limit_);
-
-			int down_limit_ = rd.dict_find_int_value("download_rate_limit", -1);
-			if (down_limit_ != -1) set_download_limit(down_limit_);
-
-			int max_connections_ = rd.dict_find_int_value("max_connections", -1);
-			if (max_connections_ != -1) set_max_connections(max_connections_);
-
-			int max_uploads_ = rd.dict_find_int_value("max_uploads", -1);
-			if (max_uploads_ != -1) set_max_uploads(max_uploads_);
-
-			int seed_mode_ = rd.dict_find_int_value("seed_mode", -1);
-			if (seed_mode_ != -1) m_seed_mode = seed_mode_ && m_torrent_file->is_valid();
-
-			int super_seeding_ = rd.dict_find_int_value("super_seeding", -1);
-			if (super_seeding_ != -1) super_seeding(super_seeding_ != 0);
-
-			int auto_managed_ = rd.dict_find_int_value("auto_managed", -1);
-			if (auto_managed_ != -1)
-			{
-				m_auto_managed = auto_managed_ != 0;
-
-				update_want_scrape();
-				update_state_list();
-			}
-
-			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
-			if (sequential_ != -1) set_sequential_download(sequential_ != 0);
-
-			int paused_ = rd.dict_find_int_value("paused", -1);
-			if (paused_ != -1)
-			{
-				set_allow_peers(paused_ == 0);
-				m_announce_to_dht = (paused_ == 0);
-				m_announce_to_trackers = (paused_ == 0);
-				m_announce_to_lsd = (paused_ == 0);
-
-				update_gauge();
-				update_want_peers();
-				update_want_scrape();
-				update_state_list();
-			}
-			int dht_ = rd.dict_find_int_value("announce_to_dht", -1);
-			if (dht_ != -1) m_announce_to_dht = (dht_ != 0);
-			int lsd_ = rd.dict_find_int_value("announce_to_lsd", -1);
-			if (lsd_ != -1) m_announce_to_lsd = (lsd_ != 0);
-			int track_ = rd.dict_find_int_value("announce_to_trackers", -1);
-			if (track_ != -1) m_announce_to_trackers = (track_ != 0);
-
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("loaded resume data: max-uploads: %d max-connections: %d "
-				"upload-limit: %d download-limit: %d paused: %d sequential-download: %d "
-				"super-seeding: %d auto-managed: %d"
-				, max_uploads_, max_connections_, up_limit_, down_limit_
-				, paused_, sequential_, super_seeding_, auto_managed_);
-#endif
-		}
-
-		int now = m_ses.session_time();
-		int tmp = rd.dict_find_int_value("last_scrape", -1);
-		m_last_scrape = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
-		tmp = rd.dict_find_int_value("last_download", -1);
-		m_last_download = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
-		tmp = rd.dict_find_int_value("last_upload", -1);
-		m_last_upload = tmp == -1 ? (std::numeric_limits<boost::int16_t>::min)() : now - tmp;
-
-		if (m_use_resume_save_path)
-		{
-			std::string p = rd.dict_find_string_value("save_path");
-			if (!p.empty())
-			{
-				m_save_path = p;
-#ifndef TORRENT_DISABLE_LOGGING
-				debug_log("loaded resume data: save-path: %s", m_save_path.c_str());
-#endif
-			}
-		}
-
-		m_url = rd.dict_find_string_value("url");
-		m_uuid = rd.dict_find_string_value("uuid");
-		m_source_feed_url = rd.dict_find_string_value("feed");
-
-		if (!m_uuid.empty() || !m_url.empty())
-		{
-			boost::shared_ptr<torrent> me(shared_from_this());
-
-			// insert this torrent in the uuid index
-			m_ses.insert_uuid_torrent(m_uuid.empty() ? m_url : m_uuid, me);
-		}
-
-		// The mapped_files needs to be read both in the network thread
-		// and in the disk thread, since they both have their own mapped files structures
-		// which are kept in sync
-		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files.list_size() == m_torrent_file->num_files())
-		{
-			for (int i = 0; i < m_torrent_file->num_files(); ++i)
-			{
-				std::string new_filename = mapped_files.list_string_value_at(i);
-				if (new_filename.empty()) continue;
-				m_torrent_file->rename_file(i, new_filename);
-			}
-		}
-
-		m_added_time = rd.dict_find_int_value("added_time", m_added_time);
-		m_completed_time = rd.dict_find_int_value("completed_time", m_completed_time);
-		if (m_completed_time != 0 && m_completed_time < m_added_time)
-			m_completed_time = m_added_time;
-
-		// load file priorities except if the add_torrent_param file was set to
-		// override resume data
-		if (!m_override_resume_data || m_file_priority.empty())
-		{
-			bdecode_node file_priority = rd.dict_find_list("file_priority");
-			if (file_priority)
-			{
-				const int num_files = (std::min)(file_priority.list_size()
-					, m_torrent_file->num_files());
-				std::vector<int> file_prio(num_files);
-				for (int i = 0; i < num_files; ++i)
-				{
-					file_prio[i] = file_priority.list_int_value_at(i, 1);
-					// this is suspicious, leave seed mode
-					if (file_prio[i] == 0) m_seed_mode = false;
-				}
-
-				prioritize_files(file_prio);
-			}
-		}
-
-		bdecode_node trackers = rd.dict_find_list("trackers");
-		if (trackers)
-		{
-			if (!m_merge_resume_trackers) m_trackers.clear();
-			int tier = 0;
-			for (int i = 0; i < trackers.list_size(); ++i)
-			{
-				bdecode_node tier_list = trackers.list_at(i);
-				if (!tier_list || tier_list.type() != bdecode_node::list_t)
-					continue;
-				for (int j = 0; j < tier_list.list_size(); ++j)
-				{
-					announce_entry e(tier_list.list_string_value_at(j));
-					if (std::find_if(m_trackers.begin(), m_trackers.end()
-						, boost::bind(&announce_entry::url, _1) == e.url) != m_trackers.end())
-						continue;
-					e.tier = tier;
-					e.fail_limit = 0;
-					m_trackers.push_back(e);
-				}
-				++tier;
-			}
-			std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
-				< boost::bind(&announce_entry::tier, _2));
-
-			if (settings().get_bool(settings_pack::prefer_udp_trackers))
-				prioritize_udp_trackers();
-		}
-
-		// if merge resume http seeds is not set, we need to clear whatever web
-		// seeds we loaded from the .torrent file, because we want whatever's in
-		// the resume file to take precedence. If there aren't even any fields in
-		// the resume data though, keep the ones from the torrent
-		bdecode_node url_list = rd.dict_find_list("url-list");
-		bdecode_node httpseeds = rd.dict_find_list("httpseeds");
-		if ((url_list || httpseeds) && !m_merge_resume_http_seeds)
-		{
-			m_web_seeds.clear();
-		}
-
-		if (url_list)
-		{
-			for (int i = 0; i < url_list.list_size(); ++i)
-			{
-				std::string url = url_list.list_string_value_at(i);
-				if (url.empty()) continue;
-				if (m_torrent_file->num_files() > 1 && url[url.size()-1] != '/') url += '/';
-				add_web_seed(url, web_seed_entry::url_seed);
-			}
-		}
-
-		if (httpseeds)
-		{
-			for (int i = 0; i < httpseeds.list_size(); ++i)
-			{
-				std::string url = httpseeds.list_string_value_at(i);
-				if (url.empty()) continue;
-				add_web_seed(url, web_seed_entry::http_seed);
-			}
-		}
-
-		if (m_torrent_file->is_merkle_torrent())
-		{
-			bdecode_node mt = rd.dict_find_string("merkle tree");
-			if (mt)
-			{
-				std::vector<sha1_hash> tree;
-				tree.resize(m_torrent_file->merkle_tree().size());
-				std::memcpy(&tree[0], mt.string_ptr()
-					, (std::min)(mt.string_length(), int(tree.size()) * 20));
-				if (mt.string_length() < int(tree.size()) * 20)
-					std::memset(&tree[0] + mt.string_length() / 20, 0
-						, tree.size() - mt.string_length() / 20);
-				m_torrent_file->set_merkle_tree(tree);
-			}
-			else
-			{
-				// TODO: 0 if this is a merkle torrent and we can't
-				// restore the tree, we need to wipe all the
-				// bits in the have array, but not necessarily
-				// we might want to do a full check to see if we have
-				// all the pieces. This is low priority since almost
-				// no one uses merkle torrents
-				TORRENT_ASSERT(false);
-			}
-		}
-
-		// updating some of the torrent state may have set need_save_resume_data.
-		// clear it here since we've just restored the resume data we already
-		// have. Nothing has changed from that state yet.
-		m_need_save_resume_data = false;
-
-		if (m_seed_mode)
-		{
-			// some sanity checking. Maybe we shouldn't be in seed mode anymore
-			bdecode_node pieces = rd.dict_find("pieces");
-			if (pieces && pieces.type() == bdecode_node::string_t
-				&& int(pieces.string_length()) == m_torrent_file->num_pieces())
-			{
-				char const* pieces_str = pieces.string_ptr();
-				for (int i = 0, end(pieces.string_length()); i < end; ++i)
-				{
-					// being in seed mode and missing a piece is not compatible.
-					// Leave seed mode if that happens
-					if ((pieces_str[i] & 1)) continue;
-					m_seed_mode = false;
-					break;
-				}
-			}
-
-			bdecode_node piece_priority = rd.dict_find_string("piece_priority");
-			if (piece_priority && piece_priority.string_length()
-				== m_torrent_file->num_pieces())
-			{
-				char const* p = piece_priority.string_ptr();
-				for (int i = 0; i < piece_priority.string_length(); ++i)
-				{
-					if (p[i] > 0) continue;
-					m_seed_mode = false;
-					break;
-				}
-			}
-
-			m_verified.resize(m_torrent_file->num_pieces(), false);
-		}
-	}
-
 	boost::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
 		if (!m_torrent_file->is_valid()) return boost::shared_ptr<const torrent_info>();
@@ -7372,9 +7109,6 @@ namespace libtorrent
 		ret["max_connections"] = max_connections();
 		ret["max_uploads"] = max_uploads();
 		ret["paused"] = is_torrent_paused();
-		ret["announce_to_dht"] = m_announce_to_dht;
-		ret["announce_to_trackers"] = m_announce_to_trackers;
-		ret["announce_to_lsd"] = m_announce_to_lsd;
 		ret["auto_managed"] = m_auto_managed;
 
 		// piece priorities and file priorities are mutually exclusive. If there

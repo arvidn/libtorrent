@@ -820,6 +820,18 @@ namespace libtorrent
 #endif
 	}
 
+	namespace
+	{
+		bool is_seed(char const* pieces, int const len)
+		{
+			for (int i = 0; i < len; ++i)
+			{
+				if ((pieces[i] & 1) == 0) return false;
+			}
+			return true;
+		}
+	}
+
 	bool default_storage::verify_resume_data(bdecode_node const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec)
@@ -868,6 +880,10 @@ namespace libtorrent
 				&& int(pieces.string_length()) == fs.num_pieces())
 			{
 				char const* pieces_str = pieces.string_ptr();
+
+				// TODO: this should just be a std::none_of()
+				bool const seed = is_seed(pieces_str, pieces.string_length());
+
 				// parse have bitmask. Verify that the files we expect to have
 				// actually do exist
 				for (int i = 0; i < fs.num_pieces(); ++i)
@@ -900,6 +916,16 @@ namespace libtorrent
 						}
 					}
 
+					if (seed && size != fs.file_size(i))
+					{
+						// the resume data indicates we're a seed, but this file has
+						// the wrong size. Reject the resume data
+						ec.ec = errors::mismatching_file_size;
+						ec.file = i;
+						ec.operation = storage_error::check_resume;
+						return false;
+					}
+
 					// OK, this file existed, good. Now, skip all remaining pieces in
 					// this file. We're just sanity-checking whether the files exist
 					// or not.
@@ -907,6 +933,13 @@ namespace libtorrent
 						, fs.file_size(file_index) + 1);
 					i = (std::max)(i + 1, pr.piece);
 				}
+			}
+			else
+			{
+				ec.ec = errors::missing_pieces;
+				ec.file = -1;
+				ec.operation = storage_error::check_resume;
+				return false;
 			}
 		}
 
