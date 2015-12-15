@@ -80,7 +80,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 {
 	INVARIANT_CHECK;
 
-	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
+	if (!settings().get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
 	shared_ptr<torrent> tor = pack.tor.lock();
@@ -315,7 +315,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+	int proxy_type = settings().get_int(settings_pack::proxy_type);
 	bool using_proxy = (proxy_type == settings_pack::http
 		|| proxy_type == settings_pack::http_pw) && !m_ssl;
 

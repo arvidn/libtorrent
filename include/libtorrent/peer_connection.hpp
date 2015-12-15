@@ -94,6 +94,7 @@ namespace libtorrent
 	namespace aux
 	{
 		struct session_interface;
+		struct torrent_container;
 	}
 
 	struct pending_block
@@ -156,14 +157,14 @@ namespace libtorrent
 	// argument pack passed to peer_connection constructor
 	struct peer_connection_args
 	{
-		aux::session_interface* ses;
+		aux::torrent_container* container;
 		aux::session_settings const* sett;
-		counters* stats_counters;
+		struct counters* stats_counters;
 		buffer_allocator_interface* allocator;
 		disk_interface* disk_thread;
 		io_service* ios;
 		boost::weak_ptr<torrent> tor;
-		boost::shared_ptr<socket_type> s;
+		boost::shared_ptr<socket_type> socket;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 	};
@@ -176,10 +177,12 @@ namespace libtorrent
 		// if tor is set, this is an outgoing connection
 		peer_connection_hot_members(
 			boost::weak_ptr<torrent> t
-			, aux::session_interface& ses
+			, counters& cnt
+			, aux::torrent_container& container
 			, aux::session_settings const& sett)
 			: m_torrent(t)
-			, m_ses(ses)
+			, m_counters(cnt)
+			, m_container(container)
 			, m_settings(sett)
 			, m_disconnecting(false)
 			, m_connecting(!t.expired())
@@ -190,6 +193,11 @@ namespace libtorrent
 			, m_corked(false)
 			, m_ignore_stats(false)
 		{}
+
+		aux::session_settings const& settings() const
+		{ return m_settings; }
+
+		aux::torrent_container& ses() const { return m_container; }
 
 	protected:
 
@@ -208,16 +216,14 @@ namespace libtorrent
 		// outlive their peers
 		boost::weak_ptr<torrent> m_torrent;
 
-	public:
+		struct counters& m_counters;
 
-		// a back reference to the session
-		// the peer belongs to.
-		aux::session_interface& m_ses;
+		// interface of the class holding all the torrents
+		// managing their shared state
+		aux::torrent_container& m_container;
 
 		// settings that apply to this peer
 		aux::session_settings const& m_settings;
-
-	protected:
 
 		// this is true if this connection has been added
 		// to the list of connections that will be closed.
@@ -273,6 +279,7 @@ namespace libtorrent
 		, public disk_observer
 		, public peer_connection_interface
 		, public boost::enable_shared_from_this<peer_connection>
+		, public single_threaded
 	{
 	friend class invariant_access;
 	friend class torrent;
@@ -818,9 +825,6 @@ namespace libtorrent
 		// be 0, in case the connection is incoming
 		// and hasn't been added to a torrent yet.
 		torrent_peer* m_peer_info;
-
-		// stats counters
-		counters& m_counters;
 
 		// the number of pieces this peer
 		// has. Must be the same as

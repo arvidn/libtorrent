@@ -62,6 +62,11 @@ namespace libtorrent
 {
 	class torrent;
 
+	namespace aux
+	{
+		struct torrent_container;
+	}
+
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
