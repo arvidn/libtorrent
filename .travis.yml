@@ -5,10 +5,10 @@ os:
   - osx
 
 env:
-  - variant=test_debug lang=cpp11 sim=1
-  - variant=test_debug lang=cpp98 sim=0
-  - variant=test_release lang=cpp11 sim=0
-  - variant=test_barebones lang=cpp11 sim=0
+  - variant=test_release lang=cpp11 sim=0 coverage=1
+  - variant=test_debug lang=cpp11 sim=1 coverage=0
+  - variant=test_debug lang=cpp98 sim=0 coverage=0
+  - variant=test_barebones lang=cpp11 sim=0 coverage=0
 
 git:
   submodules: false
@@ -45,10 +45,24 @@ before_install:
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc-${lang}"; fi
+  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+    export coverage_toolset=gcc-coverage;
+    pip install --user codecov;
+    else
+    export coverage_toolset=$toolset;
+    fi
   - 'echo "using toolset: " ${toolset}'
 
+after_success:
+  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+    cd test;
+    codecov --root .. --gcov-exec gcov-4.8;
+    fi
+
 install:
+  - g++-4.8 --version
   - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : coverage : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
   - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
 
 # osx builds need to disable the deprecated warning because of the openssl
@@ -61,21 +75,27 @@ install:
 
 script:
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target
+  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
+
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ..
+
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
   - bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib
+
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
+  - cd ../..
+
   - if [ $sim = "1" ]; then
-    cd ../../simulation;
-    bjam --hash -j2 crypto=built-in $toolset;
+    cd simulation;
+    bjam --hash -j2 crypto=built-in $coverage_toolset;
+    cd ..;
     fi
   - ccache --show-stats
 
