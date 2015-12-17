@@ -255,7 +255,7 @@ namespace libtorrent
 			// this generally improves disk performance.
 			no_atime = 0x8,
 
-			// open the file for random acces. This disables read-ahead
+			// open the file for random access. This disables read-ahead
 			// logic
 			random_access = 0x10,
 
