@@ -60,28 +60,6 @@ else
 
 VERSION = 1.1.0 ;
 
-rule coverage ( properties * )
-{
-	local result ;
-	if <test-coverage>on in $(properties)
-		&& ( <toolset>gcc in $(properties)
-		|| <toolset>darwin in $(properties)
-		|| <toolset>clang in $(properties) )
-	{
-		result += <cxxflags>-fprofile-arcs <cxxflags>-ftest-coverage ;
-
-		if <toolset>gcc in $(properties)
-		{
-			result += <linkflags>-lgcov ;
-		}
-		else
-		{
-			result += <linkflags>--coverage ;
-		}
-	}
-	return $(result) ;
-}
-
 # rule for linking the correct libraries depending
 # on features and target-os
 rule linking ( properties * )
@@ -506,8 +484,6 @@ feature boost-link : default static shared : propagated composite ;
 feature debug-iterators : off on : composite propagated link-incompatible ;
 feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
 
-feature test-coverage : off on : composite propagated link-incompatible ;
-
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
 feature.compose <fpic>off : <toolset>darwin:<cflags>-mdynamic-no-pic ;
@@ -736,7 +712,6 @@ local usage-requirements =
 # enable cancel support in asio
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 	<conditional>@linking
-	<conditional>@coverage
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
 	<toolset>msvc:<cflags>/Zc:forScope
