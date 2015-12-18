@@ -76,6 +76,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed win64 build (GetFileAttributesEx)
 	* fixed bug when deleting files for magnet links before they had metadata
 
 1.0.7 release

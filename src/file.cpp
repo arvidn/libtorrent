@@ -363,7 +363,7 @@ namespace libtorrent
 			f.resize(f.size() - 1);
 #endif
 		WIN32_FILE_ATTRIBUTE_DATA data;
-		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
+		if (!GetFileAttributesEx_(f.c_str(), GetFileExInfoStandard, &data))
 		{
 			ec.assign(GetLastError(), system_category());
 			return;
