@@ -8770,6 +8770,16 @@ namespace libtorrent
 			return;
 		}
 
+		// if we don't have metadata yet, we don't know anything about the file
+		// structure and we have to assume we don't have any file. Deleting files
+		// in this mode would cause us to (recursively) delete m_save_path, which
+		// is bad.
+		if (!valid_metadata())
+		{
+			alerts().emplace_alert<torrent_deleted_alert>(get_handle(), m_torrent_file->info_hash());
+			return;
+		}
+
 		// storage may be NULL during shutdown
 		if (m_storage.get())
 		{

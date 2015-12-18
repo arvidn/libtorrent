@@ -76,6 +76,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fixed bug when deleting files for magnet links before they had metadata
+
 1.0.7 release
 
 	* fix bug where loading settings via load_state() would not trigger all
