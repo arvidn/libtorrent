@@ -191,7 +191,7 @@ namespace libtorrent
 		std::string f = convert_to_native(inf);
 #endif
 		WIN32_FILE_ATTRIBUTE_DATA data;
-		if (!GetFileAttributesEx(f.c_str(), GetFileExInfoStandard, &data))
+		if (!GetFileAttributesEx_(f.c_str(), GetFileExInfoStandard, &data))
 		{
 			ec.assign(GetLastError(), get_system_category());
 			return;

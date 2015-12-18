@@ -1,4 +1,5 @@
 
+	* fixed win64 build (GetFileAttributesEx)
 	* fixed bug when deleting files for magnet links before they had metadata
 
 1.0.7 release
