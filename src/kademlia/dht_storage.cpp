@@ -279,7 +279,7 @@ namespace
 					int num_peers = m_map.begin()->second.peers.size();
 					table_t::iterator candidate = m_map.begin();
 					for (table_t::iterator i = m_map.begin()
-						 , end(m_map.end()); i != end; ++i)
+						, end(m_map.end()); i != end; ++i)
 					{
 						if (int(i->second.peers.size()) > num_peers) continue;
 						if (i->first == info_hash) continue;
@@ -303,7 +303,7 @@ namespace
 			if (!name.empty() && v->name.empty())
 			{
 				std::string tname = name;
-				if (tname.size() > 50) tname.resize(50);
+				if (tname.size() > 100) tname.resize(100);
 				v->name = tname;
 			}
 
@@ -315,6 +315,16 @@ namespace
 			if (i != v->peers.end())
 			{
 				v->peers.erase(i++);
+				m_counters.peers -= 1;
+			}
+			else if (v->peers.size() >= m_settings.max_peers)
+			{
+				// when we're at capacity, there's a 50/50 chance of dropping the
+				// announcing peer or an existing peer
+				if (random() & 1) return;
+				i = v->peers.lower_bound(peer);
+				if (i == v->peers.end()) --i;
+				i = v->peers.erase(i);
 				m_counters.peers -= 1;
 			}
 			v->peers.insert(i, peer);
@@ -475,19 +485,17 @@ namespace
 			for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
 			{
 				torrent_entry& t = i->second;
-				node_id const& key = i->first;
-				++i;
 				purge_peers(t.peers);
 
-				if (!t.peers.empty()) continue;
+				if (!t.peers.empty())
+				{
+					++i;
+					continue;
+				}
 
 				// if there are no more peers, remove the entry altogether
-				table_t::iterator it = m_map.find(key);
-				if (it != m_map.end())
-				{
-					m_map.erase(it);
-					m_counters.torrents -= 1;// peers is decreased by purge_peers
-				}
+				i = m_map.erase(i);
+				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
 
 			if (0 == m_settings.item_lifetime) return;
@@ -505,7 +513,7 @@ namespace
 					continue;
 				}
 				free(i->second.value);
-				m_immutable_table.erase(i++);
+				i = m_immutable_table.erase(i);
 				m_counters.immutable_data -= 1;
 			}
 
@@ -519,7 +527,7 @@ namespace
 				}
 				free(i->second.value);
 				free(i->second.salt);
-				m_mutable_table.erase(i++);
+				i = m_mutable_table.erase(i);
 				m_counters.mutable_data -= 1;
 			}
 		}

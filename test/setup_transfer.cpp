@@ -94,6 +94,14 @@ address rand_v4()
 	return address_v4(g_addr);
 }
 
+sha1_hash rand_hash()
+{
+	sha1_hash ret;
+	for (int i = 0; i < 20; ++i)
+		ret[i] = lt::random();
+	return ret;
+}
+
 #if TORRENT_USE_IPV6
 address rand_v6()
 {
