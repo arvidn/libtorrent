@@ -244,74 +244,74 @@ TORRENT_TEST(default_set_custom)
 TORRENT_TEST(peer_limit)
 {
 	dht_settings sett = test_settings();
-	sett.max_peers = 1337;
+	sett.max_peers = 42;
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 	TEST_CHECK(s.get() != NULL);
 
-	for (int i = 0; i < 10000; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		s->announce_peer(n1, tcp::endpoint(rand_v4(), lt::random())
 			, "torrent_name", false);
 		dht_storage_counters cnt = s->counters();
-		TEST_CHECK(cnt.peers <= 1337);
+		TEST_CHECK(cnt.peers <= 42);
 	}
 	dht_storage_counters cnt = s->counters();
-	TEST_EQUAL(cnt.peers, 1337);
+	TEST_EQUAL(cnt.peers, 42);
 }
 
 TORRENT_TEST(torrent_limit)
 {
 	dht_settings sett = test_settings();
-	sett.max_torrents = 1337;
+	sett.max_torrents = 42;
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 	TEST_CHECK(s.get() != NULL);
 
-	for (int i = 0; i < 10000; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), lt::random())
 			, "", false);
 		dht_storage_counters cnt = s->counters();
-		TEST_CHECK(cnt.torrents <= 1337);
+		TEST_CHECK(cnt.torrents <= 42);
 	}
 	dht_storage_counters cnt = s->counters();
-	TEST_EQUAL(cnt.torrents, 1337);
+	TEST_EQUAL(cnt.torrents, 42);
 }
 
 TORRENT_TEST(immutable_item_limit)
 {
 	dht_settings sett = test_settings();
-	sett.max_dht_items = 1337;
+	sett.max_dht_items = 42;
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 	TEST_CHECK(s.get() != NULL);
 
-	for (int i = 0; i < 10000; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		s->put_immutable_item(rand_hash(), "123", 3, rand_v4());
 		dht_storage_counters cnt = s->counters();
-		TEST_CHECK(cnt.immutable_data <= 1337);
+		TEST_CHECK(cnt.immutable_data <= 42);
 	}
 	dht_storage_counters cnt = s->counters();
-	TEST_EQUAL(cnt.immutable_data, 1337);
+	TEST_EQUAL(cnt.immutable_data, 42);
 }
 
 TORRENT_TEST(mutable_item_limit)
 {
 	dht_settings sett = test_settings();
-	sett.max_dht_items = 1337;
+	sett.max_dht_items = 42;
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 	TEST_CHECK(s.get() != NULL);
 
 	char public_key[item_pk_len];
 	char signature[item_sig_len];
-	for (int i = 0; i < 10000; ++i)
+	for (int i = 0; i < 200; ++i)
 	{
 		s->put_mutable_item(rand_hash(), "123", 3, signature, 1, public_key, "salt", 4, rand_v4());
 		dht_storage_counters cnt = s->counters();
-		TEST_CHECK(cnt.mutable_data <= 1337);
+		TEST_CHECK(cnt.mutable_data <= 42);
 	}
 	dht_storage_counters cnt = s->counters();
-	TEST_EQUAL(cnt.mutable_data, 1337);
+	TEST_EQUAL(cnt.mutable_data, 42);
 }
 
-
 #endif
+
