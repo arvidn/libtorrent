@@ -324,7 +324,7 @@ namespace
 				if (random() & 1) return;
 				i = v->peers.lower_bound(peer);
 				if (i == v->peers.end()) --i;
-				i = v->peers.erase(i);
+				v->peers.erase(i++);
 				m_counters.peers -= 1;
 			}
 			v->peers.insert(i, peer);
@@ -494,7 +494,7 @@ namespace
 				}
 
 				// if there are no more peers, remove the entry altogether
-				i = m_map.erase(i);
+				m_map.erase(i++);
 				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
 
@@ -513,7 +513,7 @@ namespace
 					continue;
 				}
 				free(i->second.value);
-				i = m_immutable_table.erase(i);
+				m_immutable_table.erase(i++);
 				m_counters.immutable_data -= 1;
 			}
 
@@ -527,7 +527,7 @@ namespace
 				}
 				free(i->second.value);
 				free(i->second.salt);
-				i = m_mutable_table.erase(i);
+				m_mutable_table.erase(i++);
 				m_counters.mutable_data -= 1;
 			}
 		}
