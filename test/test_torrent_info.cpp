@@ -161,7 +161,6 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
-// TODO: sanitize_append_path_element with all kinds of UTF-8 sequences, including invalid ones
 // TODO: torrents with a missing name
 // TODO: torrents with a zero-length name
 // TODO: torrents with a merkle tree and add_merkle_nodes
@@ -286,6 +285,11 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "..", 2);
+	TEST_EQUAL(path, "a");
+
+	path.clear();
 	sanitize_append_path_element(path, "/..", 3);
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
@@ -328,6 +332,201 @@ TORRENT_TEST(sanitize_path)
 	TEST_EQUAL(path, "c/c");
 #endif
 
+	path.clear();
+	sanitize_append_path_element(path, "\b", 1);
+	TEST_EQUAL(path, "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "\b", 1);
+	sanitize_append_path_element(path, "filename", 8);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "_\\filename");
+#else
+	TEST_EQUAL(path, "_/filename");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "filename", 8);
+	sanitize_append_path_element(path, "\b", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "filename\\_");
+#else
+	TEST_EQUAL(path, "filename/_");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "abc", 3);
+	sanitize_append_path_element(path, "", 0);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc\\_");
+#else
+	TEST_EQUAL(path, "abc/_");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "abc", 3);
+	sanitize_append_path_element(path, "   ", 3);
+	TEST_EQUAL(path, "abc");
+
+	path.clear();
+	sanitize_append_path_element(path, "", 0);
+	sanitize_append_path_element(path, "abc", 3);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "_\\abc");
+#else
+	TEST_EQUAL(path, "_/abc");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\b?filename=4", 12);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "__filename=4");
+#else
+	TEST_EQUAL(path, "_?filename=4");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "filename=4", 10);
+	TEST_EQUAL(path, "filename=4");
+
+	// valid 2-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc2\xa1", 10);
+	TEST_EQUAL(path, "filename\xc2\xa1");
+
+	// truncated 2-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc2", 9);
+	TEST_EQUAL(path, "filename_");
+
+	// valid 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2\x9f\xb9", 11);
+	TEST_EQUAL(path, "filename\xe2\x9f\xb9");
+
+	// truncated 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2\x9f", 10);
+	TEST_EQUAL(path, "filename_");
+
+	// truncated 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2", 9);
+	TEST_EQUAL(path, "filename_");
+
+	// valid 4-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92\x88", 12);
+	TEST_EQUAL(path, "filename\xf0\x9f\x92\x88");
+
+	// truncated 4-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92", 11);
+	TEST_EQUAL(path, "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf8\x9f\x9f\x9f\x9f" "foobar", 19);
+	TEST_EQUAL(path, "filename_____foobar");
+
+	// redundant (overlong) 2-byte sequence
+	// ascii code 0x2e encoded with a leading 0
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc0\xae", 10);
+	TEST_EQUAL(path, "filename_");
+
+	// redundant (overlong) 3-byte sequence
+	// ascii code 0x2e encoded with two leading 0s
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe0\x80\xae", 11);
+	TEST_EQUAL(path, "filename_");
+
+	// redundant (overlong) 4-byte sequence
+	// ascii code 0x2e encoded with three leading 0s
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x80\x80\xae", 12);
+	TEST_EQUAL(path, "filename_");
+}
+
+TORRENT_TEST(verify_encoding)
+{
+	// verify_encoding
+	std::string test = "\b?filename=4";
+	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(test == "\b?filename=4");
+
+	test = "filename=4";
+	TEST_CHECK(verify_encoding(test));
+	TEST_CHECK(test == "filename=4");
+
+	// valid 2-byte sequence
+	test = "filename\xc2\xa1";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xc2\xa1");
+
+	// truncated 2-byte sequence
+	test = "filename\xc2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 3-byte sequence
+	test = "filename\xe2\x9f\xb9";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xe2\x9f\xb9");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2\x9f";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// truncated 3-byte sequence
+	test = "filename\xe2";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// valid 4-byte sequence
+	test = "filename\xf0\x9f\x92\x88";
+	TEST_CHECK(verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
+
+	// truncated 4-byte sequence
+	test = "filename\xf0\x9f\x92";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename_____foobar");
+
+	// redundant (overlong) 2-byte sequence
+	// ascii code 0x2e encoded with a leading 0
+	test = "filename\xc0\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename__");
+
+	// redundant (overlong) 3-byte sequence
+	// ascii code 0x2e encoded with two leading 0s
+	test = "filename\xe0\x80\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename___");
+
+	// redundant (overlong) 4-byte sequence
+	// ascii code 0x2e encoded with three leading 0s
+	test = "filename\xf0\x80\x80\xae";
+	TEST_CHECK(!verify_encoding(test));
+	fprintf(stderr, "%s\n", test.c_str());
+	TEST_CHECK(test == "filename____");
 }
 
 TORRENT_TEST(parse)
@@ -374,88 +573,6 @@ TORRENT_TEST(parse)
 	torrent_info ti3(&buf[0], buf.size(), ec);
 	std::cerr << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
-
-	// verify_encoding
-	std::string test = "\b?filename=4";
-	TEST_CHECK(!verify_encoding(test, true));
-#ifdef TORRENT_WINDOWS
-	TEST_CHECK(test == "__filename=4");
-#else
-	TEST_CHECK(test == "_?filename=4");
-#endif
-
-	test = "filename=4";
-	TEST_CHECK(verify_encoding(test, true));
-	TEST_CHECK(test == "filename=4");
-
-	// valid 2-byte sequence
-	test = "filename\xc2\xa1";
-	TEST_CHECK(verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xc2\xa1");
-
-	// truncated 2-byte sequence
-	test = "filename\xc2";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
-
-	// valid 3-byte sequence
-	test = "filename\xe2\x9f\xb9";
-	TEST_CHECK(verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xe2\x9f\xb9");
-
-	// truncated 3-byte sequence
-	test = "filename\xe2\x9f";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
-
-	// truncated 3-byte sequence
-	test = "filename\xe2";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
-
-	// valid 4-byte sequence
-	test = "filename\xf0\x9f\x92\x88";
-	TEST_CHECK(verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
-
-	// truncated 4-byte sequence
-	test = "filename\xf0\x9f\x92";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
-
-	// 5-byte utf-8 sequence (not allowed)
-	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_____foobar");
-
-	// redundant (overlong) 2-byte sequence
-	// ascii code 0x2e encoded with a leading 0
-	test = "filename\xc0\xae";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename__");
-
-	// redundant (overlong) 3-byte sequence
-	// ascii code 0x2e encoded with two leading 0s
-	test = "filename\xe0\x80\xae";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename___");
-
-	// redundant (overlong) 4-byte sequence
-	// ascii code 0x2e encoded with three leading 0s
-	test = "filename\xf0\x80\x80\xae";
-	TEST_CHECK(!verify_encoding(test, true));
-	fprintf(stderr, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename____");
 
 	std::string root_dir = parent_path(current_working_directory());
 	for (int i = 0; i < int(sizeof(test_torrents)/sizeof(test_torrents[0])); ++i)

@@ -94,11 +94,8 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	// fixes invalid UTF-8 sequences and
-	// replaces characters that are invalid
-	// in paths
-	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target
-		, bool fix_paths)
+	// fixes invalid UTF-8 sequences
+	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target)
 	{
 		if (target.empty()) return true;
 
@@ -141,14 +138,6 @@ namespace libtorrent
 				// only pass in a single destination character slot. The last
 				// character will succeed though. Also, if the character was replaced,
 				// use our own replacement symbol (underscore).
-				codepoint = '_';
-				valid_encoding = false;
-			}
-
-			// if fix paths is true, also replace characters that are invalid
-			// in filenames
-			if (fix_paths && codepoint < 0x7f && !valid_path_character(codepoint))
-			{
 				codepoint = '_';
 				valid_encoding = false;
 			}
@@ -250,7 +239,14 @@ namespace libtorrent
 			if ((element[i] & 0x80) == 0)
 			{
 				// 1 byte
-				path += element[i];
+				if (valid_path_character(element[i]))
+				{
+					path += element[i];
+				}
+				else
+				{
+					path += '_';
+				}
 				last_len = 1;
 			}
 			else if ((element[i] & 0xe0) == 0xc0)
@@ -259,7 +255,13 @@ namespace libtorrent
 				if (element_len - i < 2
 					|| (element[i+1] & 0xc0) != 0x80)
 				{
-					path += '?';
+					path += '_';
+					last_len = 1;
+				}
+				else if ((element[i] & 0x1f) == 0)
+				{
+					// overlong sequences are invalid
+					path += '_';
 					last_len = 1;
 				}
 				else
@@ -278,7 +280,13 @@ namespace libtorrent
 					|| (element[i+2] & 0xc0) != 0x80
 					)
 				{
-					path += '?';
+					path += '_';
+					last_len = 1;
+				}
+				else if ((element[i] & 0x0f) == 0)
+				{
+					// overlong sequences are invalid
+					path += '_';
 					last_len = 1;
 				}
 				else
@@ -299,7 +307,14 @@ namespace libtorrent
 					|| (element[i+3] & 0xc0) != 0x80
 					)
 				{
-					path += '?';
+					path += '_';
+					last_len = 1;
+				}
+				else if ((element[i] & 0x07) == 0
+					&& (element[i+1] & 0x3f) == 0)
+				{
+					// overlong sequences are invalid
+					path += '_';
 					last_len = 1;
 				}
 				else
@@ -311,6 +326,11 @@ namespace libtorrent
 					last_len = 4;
 				}
 				i += 3;
+			}
+			else
+			{
+				path += '_';
+				last_len = 1;
 			}
 
 			added += last_len;
@@ -347,18 +367,20 @@ namespace libtorrent
 			return;
 		}
 
-		if (added == 0 && added_separator)
-		{
-			// remove the separator added at the beginning
-			path.erase(path.end()-1);
-			return;
-		}
-
 		// remove trailing spaces and dots. These aren't allowed in filenames on windows
 		for (int i = path.size() - 1; i >= 0; --i)
 		{
 			if (path[i] != ' ' && path[i] != '.') break;
 			path.resize(i);
+			--added;
+			TORRENT_ASSERT(added >= 0);
+		}
+
+		if (added == 0 && added_separator)
+		{
+			// remove the separator added at the beginning
+			path.erase(path.end()-1);
+			return;
 		}
 
 		if (path.empty()) path = "_";
@@ -405,8 +427,6 @@ namespace libtorrent
 			filename = p.string_ptr() + info_ptr_diff;
 			filename_len = p.string_length();
 			sanitize_append_path_element(path, p.string_ptr(), p.string_length());
-
-//			if (path.empty()) path = to_hex(files.info_hash().to_string());
 		}
 		else
 		{
@@ -451,7 +471,7 @@ namespace libtorrent
 		bdecode_node attr = dict.dict_find_string("attr");
 		if (attr)
 		{
-			for (int i = 0; i < attr.string_length(); ++i)	
+			for (int i = 0; i < attr.string_length(); ++i)
 			{
 				switch (attr.string_ptr()[i])
 				{
@@ -1604,7 +1624,7 @@ namespace libtorrent
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
 		verify_encoding(m_comment);
-	
+
 		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
 		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
 		verify_encoding(m_created_by);
