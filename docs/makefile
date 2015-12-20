@@ -55,6 +55,8 @@ FIGURES = \
 	disk_cache \
 	troubleshooting
 
+rst: $(TARGETS:=.rst) todo.html
+
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)

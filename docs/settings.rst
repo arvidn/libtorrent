@@ -1952,6 +1952,9 @@ usage. It defaults to 0. ``cache_expiry`` is the number of seconds
 from the last cached write to a piece in the write cache, to when
 it's forcefully flushed to disk. Default is 60 second.
 
+On 32 bit builds, the effective cache size will be limited to 3/4 of
+2 GiB to avoid exceeding the virtual address space limit.
+
 .. _explicit_cache_interval:
 
 .. raw:: html

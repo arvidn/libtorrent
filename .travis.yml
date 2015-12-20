@@ -5,7 +5,7 @@ os:
   - osx
 
 env:
-  - variant=test_release lang=cpp11 sim=0 coverage=1
+  - variant=test_release lang=cpp11 sim=0 coverage=1 docs=1
   - variant=test_debug lang=cpp11 sim=1 coverage=0
   - variant=test_debug lang=cpp98 sim=0 coverage=0
   - variant=test_barebones lang=cpp11 sim=0 coverage=0
@@ -36,6 +36,8 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
+    - python3-docutils
+    - python3-pygments
 
 before_install:
   - git submodule update --init --recursive
@@ -66,8 +68,14 @@ install:
   - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then rst2html --version; fi
 
 script:
+# disable invoking docutils for now, until we can have a modern version of it
+  - cd docs
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then make rst RST2HTML=rst2html; fi
+  - cd ..
+
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
 # if we're building with code coverage, report it as soon as possible
@@ -90,10 +98,10 @@ script:
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - cd ../..
 
+  - cd simulation
   - if [ $sim = "1" ]; then
-    cd simulation;
     bjam --hash -j2 crypto=built-in $coverage_toolset;
-    cd ..;
     fi
+  - cd ..
   - ccache --show-stats
 
