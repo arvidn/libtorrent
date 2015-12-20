@@ -114,13 +114,13 @@ namespace libtorrent
 		// should take for the other end to send all the pieces. i.e. the actual
 		// number of requests depends on the download rate and this number.
 		int request_queue_time;
-		
+
 		// the number of outstanding block requests a peer is allowed to queue up
 		// in the client. If a peer sends more requests than this (before the
 		// first one has been sent) the last request will be dropped. the higher
 		// this is, the faster upload speeds the client can get to a single peer.
 		int max_allowed_in_request_queue;
-		
+
 		// the maximum number of outstanding requests to send to a peer. This
 		// limit takes precedence over request_queue_time. i.e. no matter the
 		// download speed, the number of outstanding requests will never exceed
@@ -133,18 +133,18 @@ namespace libtorrent
 		// doing localized accesses and also to make it easier to identify bad
 		// peers if a piece fails the hash check.
 		int whole_pieces_threshold;
-		
+
 		// the number of seconds to wait for any activity on the peer wire before
 		// closing the connectiong due to time out. This defaults to 120 seconds,
 		// since that's what's specified in the protocol specification. After
 		// half the time out, a keep alive message is sent.
 		int peer_timeout;
-		
+
 		// same as peer_timeout, but only applies to url-seeds. this is usually
 		// set lower, because web servers are expected to be more reliable. This
 		// value defaults to 20 seconds.
 		int urlseed_timeout;
-		
+
 		// controls the pipelining with the web server. When using persistent
 		// connections to HTTP 1.1 servers, the client is allowed to send more
 		// requests before the first response is received. This number controls
@@ -154,7 +154,7 @@ namespace libtorrent
 
 		// time to wait until a new retry takes place
 		int urlseed_wait_retry;
-		
+
 		// sets the upper limit on the total number of files this session will
 		// keep open. The reason why files are left open at all is that some anti
 		// virus software hooks on every file close, and scans the file for
@@ -165,7 +165,7 @@ namespace libtorrent
 		// this limit and set the number of connections and the number of files
 		// limits so their sum is slightly below it.
 		int file_pool_size;
-		
+
 		// determines if connections from the same IP address as existing
 		// connections should be rejected or not. Multiple connections from the
 		// same IP address is not allowed by default, to prevent abusive behavior
@@ -179,7 +179,7 @@ namespace libtorrent
 		// retrieved from a peer source (other than DHT) the failcount is
 		// decremented by one, allowing another try.
 		int max_failcount;
-		
+
 		// the number of seconds to wait to reconnect to a peer. this time is
 		// multiplied with the failcount.
 		int min_reconnect_time;
@@ -401,11 +401,11 @@ namespace libtorrent
 			// download to trade with each other.
 			anti_leech
 		};
- 
+
 		// controls the seeding unchoke behavior. For options, see
 		// seed_choking_algorithm_t.
 		int seed_choking_algorithm;
-		
+
 		// specifies if parole mode should be used. Parole mode means that peers
 		// that participate in pieces that fail the hash check are put in a mode
 		// where they are only allowed to download whole pieces. If the whole
@@ -580,7 +580,7 @@ namespace libtorrent
 		// slots to, the default is false which gives preference to downloading
 		// torrents
 		bool auto_manage_prefer_seeds;
-		
+
 		// if true, torrents without any payload transfers are not subject to the
 		// ``active_seeds`` and ``active_downloads`` limits. This is intended to
 		// make it more likely to utilize all available bandwidth, and avoid
@@ -590,7 +590,7 @@ namespace libtorrent
 		// the number of seconds in between recalculating which torrents to
 		// activate and which ones to queue
 		int auto_manage_interval;
-	
+
 		// when a seeding torrent reaches either the share ratio (bytes up /
 		// bytes down) or the seed time ratio (seconds as seed / seconds as
 		// downloader) or the seed time limit (seconds as seed) it is considered
@@ -1116,7 +1116,7 @@ namespace libtorrent
 		// the number of SYN packets that are sent (and timed out) before
 		// giving up and closing the socket.
 		int utp_syn_resends;
-		
+
 		// the number of resent packets sent on a closed socket before giving up
 		int utp_fin_resends;
 
@@ -1335,7 +1335,7 @@ namespace libtorrent
 		// enables banning web seeds. By default, web seeds that send corrupt
 		// data are banned.
 		bool ban_web_seeds;
-		
+
 		// specifies the max number of bytes to receive into RAM buffers when
 		// downloading stuff over HTTP. Specifically when specifying a URL to a
 		// .torrent file when adding a torrent or when announcing to an HTTP
@@ -1393,6 +1393,7 @@ namespace libtorrent
 			, max_fail_count(20)
 			, max_torrents(2000)
 			, max_dht_items(700)
+			, max_peers(5000)
 			, max_torrent_search_reply(20)
 			, restrict_routing_ips(true)
 			, restrict_search_ips(true)
@@ -1435,6 +1436,9 @@ namespace libtorrent
 
 		// max number of items the DHT will store
 		int max_dht_items;
+
+		// the max number of peers to store per torrent (for the DHT)
+		int max_peers;
 
 		// the max number of torrents to return in a torrent search query to the
 		// DHT
@@ -1533,7 +1537,7 @@ namespace libtorrent
 			// and if an outgoing encrypted connection fails, a non- encrypted
 			// connection will be tried.
 			enabled,
-			
+
 			// only non-encrypted connections are allowed.
 			disabled
 		};
@@ -1543,7 +1547,7 @@ namespace libtorrent
 		{
 			// use only plaintext encryption
 			plaintext = 1,
-			// use only rc4 encryption 
+			// use only rc4 encryption
 			rc4 = 2,
 			// allow both
 			both = 3

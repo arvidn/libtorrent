@@ -59,6 +59,8 @@ EXPORT libtorrent::address rand_v6();
 EXPORT libtorrent::tcp::endpoint rand_tcp_ep();
 EXPORT libtorrent::udp::endpoint rand_udp_ep();
 
+EXPORT libtorrent::sha1_hash rand_hash();
+
 EXPORT std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s);
 
 EXPORT libtorrent::alert const* wait_for_alert(

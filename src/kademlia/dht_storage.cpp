@@ -279,7 +279,7 @@ namespace
 					int num_peers = m_map.begin()->second.peers.size();
 					table_t::iterator candidate = m_map.begin();
 					for (table_t::iterator i = m_map.begin()
-						 , end(m_map.end()); i != end; ++i)
+						, end(m_map.end()); i != end; ++i)
 					{
 						if (int(i->second.peers.size()) > num_peers) continue;
 						if (i->first == info_hash) continue;
@@ -303,7 +303,7 @@ namespace
 			if (!name.empty() && v->name.empty())
 			{
 				std::string tname = name;
-				if (tname.size() > 50) tname.resize(50);
+				if (tname.size() > 100) tname.resize(100);
 				v->name = tname;
 			}
 
@@ -314,6 +314,16 @@ namespace
 			std::set<peer_entry>::iterator i = v->peers.find(peer);
 			if (i != v->peers.end())
 			{
+				v->peers.erase(i++);
+				m_counters.peers -= 1;
+			}
+			else if (v->peers.size() >= m_settings.max_peers)
+			{
+				// when we're at capacity, there's a 50/50 chance of dropping the
+				// announcing peer or an existing peer
+				if (random() & 1) return;
+				i = v->peers.lower_bound(peer);
+				if (i == v->peers.end()) --i;
 				v->peers.erase(i++);
 				m_counters.peers -= 1;
 			}
@@ -413,10 +423,13 @@ namespace
 				{
 					// delete the least important one (i.e. the one
 					// the fewest peers are announcing)
+					// TODO: c++11 use a lambda here instead
 					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
 						, m_mutable_table.end()
 						, boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
+							, boost::bind(&dht_mutable_table_t::value_type::second, _1))
+						< boost::bind(&dht_immutable_item::num_announcers
+							, boost::bind(&dht_mutable_table_t::value_type::second, _2)));
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
 					free(j->second.salt);
@@ -475,19 +488,17 @@ namespace
 			for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
 			{
 				torrent_entry& t = i->second;
-				node_id const& key = i->first;
-				++i;
 				purge_peers(t.peers);
 
-				if (!t.peers.empty()) continue;
+				if (!t.peers.empty())
+				{
+					++i;
+					continue;
+				}
 
 				// if there are no more peers, remove the entry altogether
-				table_t::iterator it = m_map.find(key);
-				if (it != m_map.end())
-				{
-					m_map.erase(it);
-					m_counters.torrents -= 1;// peers is decreased by purge_peers
-				}
+				m_map.erase(i++);
+				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
 
 			if (0 == m_settings.item_lifetime) return;

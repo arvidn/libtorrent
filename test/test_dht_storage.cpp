@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/random.hpp"
 #include "libtorrent/ed25519.hpp"
 #include <numeric>
 
@@ -83,17 +84,16 @@ namespace
 	}
 }
 
-TORRENT_TEST(dht_storage)
+const sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+const sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+const sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+const sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+
+TORRENT_TEST(announce_peer)
 {
 	dht_settings sett = test_settings();
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
-
 	TEST_CHECK(s.get() != NULL);
-
-	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 	entry peers;
 	s->get_peers(n1, false, false, peers);
@@ -116,9 +116,16 @@ TORRENT_TEST(dht_storage)
 	s->announce_peer(n3, p4, "torrent_name2", false);
 	bool r = s->get_peers(n1, false, false, peers);
 	TEST_CHECK(!r);
+}
+
+TORRENT_TEST(put_immutable_item)
+{
+	dht_settings sett = test_settings();
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	TEST_CHECK(s.get() != NULL);
 
 	entry item;
-	r = s->get_immutable_item(n4, item);
+	bool r = s->get_immutable_item(n4, item);
 	TEST_CHECK(!r);
 
 	s->put_immutable_item(n4, "123", 3, address::from_string("124.31.75.21"));
@@ -141,7 +148,7 @@ TORRENT_TEST(dht_storage)
 	TEST_CHECK(r);
 }
 
-TORRENT_TEST(dht_storage_counters)
+TORRENT_TEST(counters)
 {
 	dht_settings sett = test_settings();
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
@@ -187,13 +194,14 @@ TORRENT_TEST(dht_storage_counters)
 	TEST_EQUAL(s->counters().mutable_data, 1);
 }
 
-TORRENT_TEST(dht_storage_set_custom)
+TORRENT_TEST(set_custom)
 {
 	g_storage_constructor_invoked = false;
 	settings_pack p;
 	p.set_bool(settings_pack::enable_dht, false);
 	lt::session ses(p);
 
+	TEST_EQUAL(g_storage_constructor_invoked, false);
 	bool r = ses.is_dht_running();
 	TEST_CHECK(!r);
 
@@ -206,7 +214,7 @@ TORRENT_TEST(dht_storage_set_custom)
 	TEST_EQUAL(g_storage_constructor_invoked, true);
 }
 
-TORRENT_TEST(dht_storage_default_set_custom)
+TORRENT_TEST(default_set_custom)
 {
 	g_storage_constructor_invoked = false;
 	settings_pack p;
@@ -233,4 +241,77 @@ TORRENT_TEST(dht_storage_default_set_custom)
 	TEST_EQUAL(g_storage_constructor_invoked, true);
 }
 
+TORRENT_TEST(peer_limit)
+{
+	dht_settings sett = test_settings();
+	sett.max_peers = 42;
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	TEST_CHECK(s.get() != NULL);
+
+	for (int i = 0; i < 200; ++i)
+	{
+		s->announce_peer(n1, tcp::endpoint(rand_v4(), lt::random())
+			, "torrent_name", false);
+		dht_storage_counters cnt = s->counters();
+		TEST_CHECK(cnt.peers <= 42);
+	}
+	dht_storage_counters cnt = s->counters();
+	TEST_EQUAL(cnt.peers, 42);
+}
+
+TORRENT_TEST(torrent_limit)
+{
+	dht_settings sett = test_settings();
+	sett.max_torrents = 42;
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	TEST_CHECK(s.get() != NULL);
+
+	for (int i = 0; i < 200; ++i)
+	{
+		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), lt::random())
+			, "", false);
+		dht_storage_counters cnt = s->counters();
+		TEST_CHECK(cnt.torrents <= 42);
+	}
+	dht_storage_counters cnt = s->counters();
+	TEST_EQUAL(cnt.torrents, 42);
+}
+
+TORRENT_TEST(immutable_item_limit)
+{
+	dht_settings sett = test_settings();
+	sett.max_dht_items = 42;
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	TEST_CHECK(s.get() != NULL);
+
+	for (int i = 0; i < 200; ++i)
+	{
+		s->put_immutable_item(rand_hash(), "123", 3, rand_v4());
+		dht_storage_counters cnt = s->counters();
+		TEST_CHECK(cnt.immutable_data <= 42);
+	}
+	dht_storage_counters cnt = s->counters();
+	TEST_EQUAL(cnt.immutable_data, 42);
+}
+
+TORRENT_TEST(mutable_item_limit)
+{
+	dht_settings sett = test_settings();
+	sett.max_dht_items = 42;
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	TEST_CHECK(s.get() != NULL);
+
+	char public_key[item_pk_len];
+	char signature[item_sig_len];
+	for (int i = 0; i < 200; ++i)
+	{
+		s->put_mutable_item(rand_hash(), "123", 3, signature, 1, public_key, "salt", 4, rand_v4());
+		dht_storage_counters cnt = s->counters();
+		TEST_CHECK(cnt.mutable_data <= 42);
+	}
+	dht_storage_counters cnt = s->counters();
+	TEST_EQUAL(cnt.mutable_data, 42);
+}
+
 #endif
+
