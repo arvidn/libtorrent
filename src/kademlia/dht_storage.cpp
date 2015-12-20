@@ -423,10 +423,13 @@ namespace
 				{
 					// delete the least important one (i.e. the one
 					// the fewest peers are announcing)
+					// TODO: c++11 use a lambda here instead
 					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
 						, m_mutable_table.end()
 						, boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_mutable_table_t::value_type::second, _1)));
+							, boost::bind(&dht_mutable_table_t::value_type::second, _1))
+						< boost::bind(&dht_immutable_item::num_announcers
+							, boost::bind(&dht_mutable_table_t::value_type::second, _2)));
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
 					free(j->second.salt);
