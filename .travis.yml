@@ -69,7 +69,7 @@ install:
   - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - rst2html --version
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then rst2html --version; fi
 
 script:
 # disable invoking docutils for now, until we can have a modern version of it
