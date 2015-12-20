@@ -8,7 +8,7 @@ libtorrent
     :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/master
 
 .. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=master
-    :target: https://codecov.io/github/arvidn/libtorrent?branch=master
+    :target: https://codecov.io/github/arvidn/libtorrent?branch=master&view=all#sort=missing&dir=desc
 
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
     :target: https://www.openhub.net/p/rasterbar-libtorrent?ref=sample

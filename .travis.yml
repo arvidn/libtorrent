@@ -53,12 +53,6 @@ before_install:
     fi
   - 'echo "using toolset: " ${toolset}'
 
-after_success:
-  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
-    cd test;
-    codecov --root .. --gcov-exec gcov-4.8;
-    fi
-
 install:
   - g++-4.8 --version
   - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
@@ -76,6 +70,10 @@ install:
 script:
   - cd test
   - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
+# if we're building with code coverage, report it as soon as possible
+  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+    codecov --root .. --gcov-exec gcov-4.8;
+    fi
 
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
