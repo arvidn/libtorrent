@@ -36,7 +36,6 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
-    - ditaa
     - python3-docutils
     - python3-pygments
 
