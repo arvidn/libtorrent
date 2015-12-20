@@ -7,9 +7,12 @@ f = open('../include/libtorrent/performance_counters.hpp')
 counter_type = ''
 
 for l in f:
+
+	# ignore anything after //
+	if '//' in l: l = l.split('//')[0]
+
 	l = l.strip()
 
-	if l.startswith('//'): continue
 	if l.startswith('#'): continue
 	if l == '': continue
 
