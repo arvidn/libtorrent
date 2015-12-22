@@ -43,10 +43,11 @@ inline libtorrent::aux::proxy_settings make_proxy_settings(
 	aux::proxy_settings ps;
 	ps.type = proxy_type;
 	ps.proxy_hostnames = false;
+	// this IP and ports are specific to test_http_connection.cpp
 	if (proxy_type != settings_pack::none)
 	{
 		ps.hostname = "50.50.50.50";
-		ps.port = 4444;
+		ps.port = proxy_type == settings_pack::http ? 4445 : 4444;
 		ps.username = "testuser";
 		ps.password = "testpass";
 	}

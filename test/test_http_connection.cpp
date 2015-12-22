@@ -207,20 +207,12 @@ void run_suite(std::string const& protocol
 	printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
 	if (h == 0 && h_errno == HOST_NOT_FOUND)
 	{
-		// if we're going through an http proxy, we won't get the same error as if the hostname
-		// resolution failed
-		if ((ps.type == settings_pack::http || ps.type == settings_pack::http_pw) && protocol != "https")
-			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, 502, 1, err(), ps);
-		else
-			run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
+		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}
 	if (ps.type != settings_pack::none)
 		stop_proxy(ps.port);
 	stop_web_server();
 }
-
-TORRENT_TEST(http) { run_suite("http", settings_pack::http); }
-TORRENT_TEST(http_pw) { run_suite("http", settings_pack::http_pw); }
 
 #ifdef TORRENT_USE_OPENSSL
 TORRENT_TEST(no_proxy_ssl) { run_suite("https", settings_pack::none); }
