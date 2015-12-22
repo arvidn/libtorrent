@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_swarm.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
+#include "simulator/http_proxy.hpp"
 #include "simulator/socks_server.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
@@ -221,7 +222,8 @@ void run_suite(lt::aux::proxy_settings ps)
 	// with socks5 we would be able to do this, assuming the socks server
 	// supported it, but the current socks implementation in libsimulator does
 	// not support IPv6
-	if (ps.type != settings_pack::socks5)
+	if (ps.type != settings_pack::socks5
+		&& ps.type != settings_pack::http)
 	{
 		run_test(ps, "http://[ff::dead:beef]:8080/test_file", 0, -1
 			, error_condition(boost::system::errc::address_family_not_supported, generic_category())
@@ -229,9 +231,17 @@ void run_suite(lt::aux::proxy_settings ps)
 	}
 
 	// there is no node at 10.0.0.10, this should fail with connection refused
-	run_test(ps, "http://10.0.0.10:8080/test_file", 0, -1,
-		error_condition(boost::system::errc::connection_refused, generic_category())
-		, {0,1});
+	if (ps.type != settings_pack::http)
+	{
+		run_test(ps, "http://10.0.0.10:8080/test_file", 0, -1,
+			error_condition(boost::system::errc::connection_refused, generic_category())
+			, {0,1});
+	}
+	else
+	{
+		run_test(ps, "http://10.0.0.10:8080/test_file", 0, 503,
+			error_condition(), {1,1});
+	}
 
 	// the try-next test in his case would test the socks proxy itself, whether
 	// it has robust retry behavior (which the simple test proxy that comes with
@@ -246,20 +256,23 @@ void run_suite(lt::aux::proxy_settings ps)
 			, error_condition(), { 1, 1, 1});
 	}
 
-	const error_condition expected_error = ps.proxy_hostnames
-		? error_condition(boost::system::errc::host_unreachable, generic_category())
-		: error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category());
+	// the http proxy does not support hostname lookups yet
+	if (ps.type != settings_pack::http)
+	{
+		const error_condition expected_error = ps.proxy_hostnames
+			? error_condition(boost::system::errc::host_unreachable, generic_category())
+			: error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category());
 
-	// make sure hostname lookup failures are passed through correctly
-	run_test(ps, "http://non-existent.com/test_file", 0, -1
-		, expected_error, { 0, 1});
+		// make sure hostname lookup failures are passed through correctly
+		run_test(ps, "http://non-existent.com/test_file", 0, -1
+			, expected_error, { 0, 1 });
+	}
 
 	// make sure we handle gzipped content correctly
 	run_test(ps, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
 
 // TODO: 2 test basic-auth
 // TODO: 2 test https
-
 }
 
 void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status
@@ -279,6 +292,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 
 	sim::http_server http(web_server, 8080);
 	sim::socks_server socks(proxy_ios, 4444, ps.type == settings_pack::socks4 ? 4 : 5);
+	sim::http_proxy http_p(proxy_ios, 4445);
 
 	char data_buffer[4000];
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
@@ -398,6 +412,13 @@ TORRENT_TEST(http_connection)
 	run_suite(ps);
 }
 
+TORRENT_TEST(http_connection_http)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::http);
+	ps.proxy_hostnames = true;
+	run_suite(ps);
+}
+
 TORRENT_TEST(http_connection_socks4)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks4);
@@ -417,9 +438,8 @@ TORRENT_TEST(http_connection_socks5_proxy_names)
 	run_suite(ps);
 }
 
-TORRENT_TEST(http_connection_socks_error)
+void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
 {
-	// if we set up to user a proxy that does not exist, expect failure!
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -430,12 +450,7 @@ TORRENT_TEST(http_connection_socks_error)
 
 	sim::http_server http(web_server, 8080);
 
-	lt::aux::proxy_settings ps;
-	ps.hostname = "50.50.50.50";
-	ps.port = 4444;
-	ps.username = "testuser";
-	ps.password = "testpass";
-	ps.type = settings_pack::socks5;
+	lt::aux::proxy_settings ps = make_proxy_settings(proxy_type);
 
 	char data_buffer[4000];
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
@@ -463,7 +478,20 @@ TORRENT_TEST(http_connection_socks_error)
 	TEST_EQUAL(e, error_code());
 }
 
-// TODO: test http proxy
+// if we set up to user a proxy that does not exist, expect failure!
+// if this doesn't fail, the other tests are invalid because the proxy may not
+// be exercised!
+TORRENT_TEST(http_connection_socks_error)
+{
+	test_proxy_failure(settings_pack::socks5);
+}
+
+TORRENT_TEST(http_connection_http_error)
+{
+	test_proxy_failure(settings_pack::http);
+}
+
+// TODO: test http proxy with password
 // TODO: test socks5 with password
 // TODO: test SSL
 // TODO: test keepalive
