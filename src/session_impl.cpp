@@ -4341,7 +4341,7 @@ retry:
 	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
 	{
 		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
-			, boost::bind(&compare_disconnect_torrent, _1, _2));
+			, &compare_disconnect_torrent);
 
 		TORRENT_ASSERT(i != m_torrents.end());
 		if (i == m_torrents.end()) return boost::shared_ptr<torrent>();
