@@ -270,7 +270,8 @@ def parse_class(lno, lines, filename):
 		state = 'private'
 		class_type = 'class'
 
-	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').strip()
+	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('TORRENT_FINAL', '').strip()
+
 
 	while lno < len(lines):
 		l = lines[lno].strip()
