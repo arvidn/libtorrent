@@ -55,15 +55,15 @@ FIGURES = \
 	disk_cache \
 	troubleshooting
 
-rst: $(TARGETS:=.rst) todo.html
-
 html: $(TARGETS:=.html) $(FIGURES:=.png) todo.html
+
+rst: $(TARGETS:=.rst) todo.html
 
 pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
-all: html
+all: html pdf
 
 settings.rst: ../include/libtorrent/settings_pack.hpp
 	python gen_settings_doc.py
