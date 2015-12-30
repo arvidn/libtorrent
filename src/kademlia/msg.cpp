@@ -36,8 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht {
 
+namespace dht_detail {
+
 bool verify_message(bdecode_node const& message, key_desc_t const desc[]
-					, bdecode_node ret[], int size, char* error, int error_size)
+	, bdecode_node ret[], int size, char* error, int error_size)
 {
 	// get a non-root bdecode_node that still
 	// points to the root. message should not be copied
@@ -128,6 +130,8 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 		}
 	}
 	return true;
+}
+
 }
 
 void incoming_error(entry& e, char const* msg, int error_code)

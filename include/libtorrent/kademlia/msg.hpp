@@ -87,14 +87,25 @@ struct key_desc_t
 	};
 };
 
-// verifies that a message has all the required
-// entries and returns them in ret
-bool TORRENT_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
-	, bdecode_node ret[], int size, char* error, int error_size);
-
 // generate an error response message
 void TORRENT_EXPORT incoming_error(entry& e, char const* msg, int error_code = 203);
 
+// given a redundent name to avoid clashing with libtorrent::detail
+namespace dht_detail {
+
+bool TORRENT_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
+	, bdecode_node ret[], int size, char* error, int error_size);
+
+}
+
+// verifies that a message has all the required
+// entries and returns them in ret
+template <int Size>
+bool verify_message(bdecode_node const& msg, key_desc_t const (&desc)[Size]
+	, bdecode_node (&ret)[Size], char* error, int error_size)
+{
+	return dht_detail::verify_message(msg, desc, ret, Size, error, error_size);
+}
 
 } }
 

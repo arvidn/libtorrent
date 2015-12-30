@@ -764,7 +764,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 	bdecode_node top_level[4];
 	char error_string[200];
-	if (!verify_message(m.message, top_desc, top_level, 4, error_string
+	if (!verify_message(m.message, top_desc, top_level, error_string
 		, sizeof(error_string)))
 	{
 		incoming_error(e, error_string);
@@ -816,7 +816,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[3];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
 			, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get_peers);
@@ -854,7 +854,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[1];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -880,7 +880,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[6];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, error_string);
@@ -943,7 +943,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[7];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, error_string);
@@ -1088,7 +1088,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
 			, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get);
