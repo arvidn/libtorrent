@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 struct bdecode_node;
-struct entry;
+class entry;
 
 namespace dht {
 
