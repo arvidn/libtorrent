@@ -334,11 +334,11 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 				{ "y", bdecode_node::string_t, 1, 0},
 			};
 
-			bdecode_node parsed[6];
+			bdecode_node parsed[5];
 			char error_string[200];
 
 //			fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			int ret = verify_message(response, desc, parsed, 5, error_string
+			int ret = verify_message(response, desc, parsed, error_string
 				, sizeof(error_string));
 			if (ret)
 			{
@@ -372,14 +372,15 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 				{ "y", bdecode_node::string_t, 1, 0 }
 			};
 
-			ret = verify_message(response, desc2, parsed, 1, error_string
+			bdecode_node parsed2[1];
+			ret = verify_message(response, desc2, parsed2, error_string
 				, sizeof(error_string));
 			if (ret)
 			{
-				if (parsed[0].string_value() != "r")
+				if (parsed2[0].string_value() != "r")
 					fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 
-				TEST_EQUAL(parsed[0].string_value(), "r");
+				TEST_EQUAL(parsed2[0].string_value(), "r");
 			}
 			else
 			{
@@ -408,7 +409,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		bdecode_node parsed[4];
 		char error_string[200];
 
-		int ret = verify_message(response, desc, parsed, 4, error_string
+		int ret = verify_message(response, desc, parsed, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
@@ -526,7 +527,6 @@ TORRENT_TEST(dht)
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
-	bdecode_node parsed[11];
 	char error_string[200];
 	bool ret;
 
@@ -541,14 +541,16 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node pong_keys[4];
+
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, pong_desc, parsed, 4, error_string
+	ret = dht::verify_message(response, pong_desc, pong_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		TEST_CHECK(parsed[1].string_value() == "10");
+		TEST_CHECK(pong_keys[0].string_value() == "r");
+		TEST_CHECK(pong_keys[1].string_value() == "10");
 	}
 	else
 	{
@@ -564,17 +566,19 @@ TORRENT_TEST(dht)
 		{"e", bdecode_node::list_t, 2, 0}
 	};
 
+	bdecode_node err_keys[2];
+
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
+	ret = dht::verify_message(response, err_desc, err_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "e");
-		if (parsed[1].list_at(0).type() == bdecode_node::int_t
-			&& parsed[1].list_at(1).type() == bdecode_node::string_t)
+		TEST_CHECK(err_keys[0].string_value() == "e");
+		if (err_keys[1].list_at(0).type() == bdecode_node::int_t
+			&& err_keys[1].list_at(1).type() == bdecode_node::string_t)
 		{
-			TEST_CHECK(parsed[1].list_at(1).string_value() == "missing 'target' key");
+			TEST_CHECK(err_keys[1].list_at(1).string_value() == "missing 'target' key");
 		}
 		else
 		{
@@ -598,15 +602,17 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node peer1_keys[4];
+
 	std::string token;
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
+	ret = dht::verify_message(response, peer1_desc, peer1_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		token = parsed[2].string_value();
+		TEST_CHECK(peer1_keys[0].string_value() == "r");
+		token = peer1_keys[2].string_value();
 //		fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
@@ -631,13 +637,15 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node ann_keys[3];
+
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, ann_desc, parsed, 3, error_string
+	ret = dht::verify_message(response, ann_desc, ann_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
+		TEST_CHECK(ann_keys[0].string_value() == "r");
 	}
 	else
 	{
@@ -654,13 +662,13 @@ TORRENT_TEST(dht)
 		send_dht_request(node, "get_peers", source, &response
 			, msg_args().info_hash("01010101010101010101"));
 
-		ret = dht::verify_message(response, peer1_desc, parsed, 4, error_string
+		ret = dht::verify_message(response, peer1_desc, peer1_keys, error_string
 			, sizeof(error_string));
 
 		if (ret)
 		{
-			TEST_CHECK(parsed[0].string_value() == "r");
-			token = parsed[2].string_value();
+			TEST_CHECK(peer1_keys[0].string_value() == "r");
+			token = peer1_keys[2].string_value();
 //			fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
@@ -693,19 +701,21 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node peer2_keys[5];
+
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer2_desc, parsed, 5, error_string
+	ret = dht::verify_message(response, peer2_desc, peer2_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
-		TEST_EQUAL(parsed[1].dict_find_string_value("n"), "test");
+		TEST_CHECK(peer2_keys[0].string_value() == "r");
+		TEST_EQUAL(peer2_keys[1].dict_find_string_value("n"), "test");
 
 		bloom_filter<256> downloaders;
 		bloom_filter<256> seeds;
-		downloaders.from_string(parsed[2].string_ptr());
-		seeds.from_string(parsed[3].string_ptr());
+		downloaders.from_string(peer2_keys[2].string_ptr());
+		seeds.from_string(peer2_keys[3].string_ptr());
 
 		fprintf(stderr, "seeds: %f\n", seeds.size());
 		fprintf(stderr, "downloaders: %f\n", downloaders.size());
@@ -749,16 +759,16 @@ TORRENT_TEST(dht)
 	send_dht_request(node, "find_node", source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
-	ret = dht::verify_message(response, err_desc, parsed, 2, error_string
+	ret = dht::verify_message(response, err_desc, err_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "e");
-		if (parsed[1].list_at(0).type() == bdecode_node::int_t
-			&& parsed[1].list_at(1).type() == bdecode_node::string_t)
+		TEST_CHECK(err_keys[0].string_value() == "e");
+		if (err_keys[1].list_at(0).type() == bdecode_node::int_t
+			&& err_keys[1].list_at(1).type() == bdecode_node::string_t)
 		{
-			TEST_CHECK(parsed[1].list_at(1).string_value() == "invalid node ID");
+			TEST_CHECK(err_keys[1].list_at(1).string_value() == "invalid node ID");
 		}
 		else
 		{
@@ -786,13 +796,15 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node nodes_keys[3];
+
 	fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, nodes_desc, parsed, 3, error_string
+	ret = dht::verify_message(response, nodes_desc, nodes_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
-		TEST_CHECK(parsed[0].string_value() == "r");
+		TEST_CHECK(nodes_keys[0].string_value() == "r");
 	}
 	else
 	{
@@ -878,11 +890,15 @@ TORRENT_TEST(dht)
 		{ "y", bdecode_node::string_t, 1, 0 }
 	};
 
+	bdecode_node desc2_keys[1];
+
 	key_desc_t desc_error[] =
 	{
 		{ "e", bdecode_node::list_t, 2, 0 },
 		{ "y", bdecode_node::string_t, 1, 0},
 	};
+
+	bdecode_node desc_error_keys[2];
 
 	// ==== get / put mutable items ===
 
@@ -934,12 +950,14 @@ TORRENT_TEST(dht)
 			{ "y", bdecode_node::string_t, 1, 0},
 		};
 
-		ret = verify_message(response, desc, parsed, 5, error_string
+		bdecode_node desc_keys[5];
+
+		ret = verify_message(response, desc, desc_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[4].string_value(), "r");
-			token = parsed[2].string_value();
+			TEST_EQUAL(desc_keys[4].string_value(), "r");
+			token = desc_keys[2].string_value();
 			fprintf(stderr, "get response: %s\n"
 				, print_entry(response).c_str());
 			fprintf(stderr, "got token: %s\n", to_hex(token).c_str());
@@ -968,13 +986,13 @@ TORRENT_TEST(dht)
 				.seq(seq)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc2, parsed, 1, error_string
+		ret = verify_message(response, desc2, desc2_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[0].string_value(), "r");
+			TEST_EQUAL(desc2_keys[0].string_value(), "r");
 		}
 		else
 		{
@@ -1000,7 +1018,9 @@ TORRENT_TEST(dht)
 			{ "y", bdecode_node::string_t, 1, 0},
 		};
 
-		ret = verify_message(response, desc3, parsed, 7, error_string
+		bdecode_node desc3_keys[7];
+
+		ret = verify_message(response, desc3, desc3_keys, error_string
 			, sizeof(error_string));
 		if (ret == 0)
 		{
@@ -1016,10 +1036,10 @@ TORRENT_TEST(dht)
 			char value[1020];
 			char* ptr = value;
 			int value_len = bencode(ptr, items[0].ent);
-			TEST_EQUAL(value_len, parsed[2].data_section().second);
-			TEST_CHECK(memcmp(parsed[2].data_section().first, value, value_len) == 0);
+			TEST_EQUAL(value_len, desc3_keys[2].data_section().second);
+			TEST_CHECK(memcmp(desc3_keys[2].data_section().first, value, value_len) == 0);
 
-			TEST_EQUAL(seq, parsed[3].int_value());
+			TEST_EQUAL(seq, desc3_keys[3].int_value());
 		}
 
 		// also test that invalid signatures fail!
@@ -1046,14 +1066,14 @@ TORRENT_TEST(dht)
 				.seq(seq)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc_error, parsed, 2, error_string
+		ret = verify_message(response, desc_error, desc_error_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
-			TEST_EQUAL(parsed[1].string_value(), "e");
+			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
 			// 206 is the code for invalid signature
-			TEST_EQUAL(parsed[0].list_int_value_at(0), 206);
+			TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), 206);
 		}
 		else
 		{
@@ -1113,13 +1133,13 @@ TORRENT_TEST(dht)
 				.cas(cas)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc2, parsed, 1, error_string
+		ret = verify_message(response, desc2, desc2_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[0].string_value(), "r");
+			TEST_EQUAL(desc2_keys[0].string_value(), "r");
 		}
 		else
 		{
@@ -1143,15 +1163,15 @@ TORRENT_TEST(dht)
 				.cas(cas)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc_error, parsed, 2, error_string
+		ret = verify_message(response, desc_error, desc_error_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
 			fprintf(stderr, "put response: %s\n"
 				, print_entry(response).c_str());
-			TEST_EQUAL(parsed[1].string_value(), "e");
+			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
 			// 301 is the error code for CAS hash mismatch
-			TEST_EQUAL(parsed[0].list_int_value_at(0), 301);
+			TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), 301);
 		}
 		else
 		{
@@ -1415,6 +1435,8 @@ TORRENT_TEST(dht)
 			{"info_hash", bdecode_node::string_t, 20, key_desc_t::optional | key_desc_t::last_child},
 	};
 
+	bdecode_node find_node_keys[7];
+
 	dht::key_desc_t get_peers_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
 		{"t", bdecode_node::string_t, 2, 0},
@@ -1424,6 +1446,8 @@ TORRENT_TEST(dht)
 			{"info_hash", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
 
+	bdecode_node get_peers_keys[6];
+
 	dht::key_desc_t get_item_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
 		{"t", bdecode_node::string_t, 2, 0},
@@ -1432,6 +1456,8 @@ TORRENT_TEST(dht)
 			{"id", bdecode_node::string_t, 20, 0},
 			{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
 	};
+
+	bdecode_node get_item_keys[6];
 
 
 	// bootstrap
@@ -1451,17 +1477,17 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, parsed, 7, error_string
+		ret = verify_message(response, find_node_desc, find_node_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_CHECK(parsed[2].string_value() == "find_node"
-				|| parsed[2].string_value() == "get_peers");
+			TEST_EQUAL(find_node_keys[0].string_value(), "q");
+			TEST_CHECK(find_node_keys[2].string_value() == "find_node"
+				|| find_node_keys[2].string_value() == "get_peers");
 
-			if (parsed[0].string_value() != "q"
-				|| (parsed[2].string_value() != "find_node"
-					&& parsed[2].string_value() != "get_peers")) break;
+			if (find_node_keys[0].string_value() != "q"
+				|| (find_node_keys[2].string_value() != "find_node"
+					&& find_node_keys[2].string_value() != "get_peers")) break;
 		}
 		else
 		{
@@ -1481,15 +1507,15 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, found_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, parsed, 7, error_string
+		ret = verify_message(response, find_node_desc, find_node_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_CHECK(parsed[2].string_value() == "find_node"
-				|| parsed[2].string_value() == "get_peers");
-			if (parsed[0].string_value() != "q" || (parsed[2].string_value() != "find_node"
-					&& parsed[2].string_value() == "get_peers")) break;
+			TEST_EQUAL(find_node_keys[0].string_value(), "q");
+			TEST_CHECK(find_node_keys[2].string_value() == "find_node"
+				|| find_node_keys[2].string_value() == "get_peers");
+			if (find_node_keys[0].string_value() != "q" || (find_node_keys[2].string_value() != "find_node"
+				&& find_node_keys[2].string_value() == "get_peers")) break;
 		}
 		else
 		{
@@ -1523,14 +1549,14 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, parsed, 6, error_string
+		ret = verify_message(response, get_peers_desc, get_peers_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get_peers");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get_peers") break;
+			TEST_EQUAL(get_peers_keys[0].string_value(), "q");
+			TEST_EQUAL(get_peers_keys[2].string_value(), "get_peers");
+			TEST_EQUAL(get_peers_keys[5].string_value(), target.to_string());
+			if (get_peers_keys[0].string_value() != "q" || get_peers_keys[2].string_value() != "get_peers") break;
 		}
 		else
 		{
@@ -1557,14 +1583,14 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, next_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, parsed, 6, error_string
+		ret = verify_message(response, get_peers_desc, get_peers_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get_peers");
-			TEST_EQUAL(parsed[5].string_value(), target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get_peers") break;
+			TEST_EQUAL(get_peers_keys[0].string_value(), "q");
+			TEST_EQUAL(get_peers_keys[2].string_value(), "get_peers");
+			TEST_EQUAL(get_peers_keys[5].string_value(), target.to_string());
+			if (get_peers_keys[0].string_value() != "q" || get_peers_keys[2].string_value() != "get_peers") break;
 		}
 		else
 		{
@@ -1618,14 +1644,14 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, parsed, 6, error_string
+		ret = verify_message(response, get_item_desc, get_item_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get");
-			TEST_EQUAL(parsed[5].string_value(), items[0].target.to_string());
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
+			TEST_EQUAL(get_item_keys[0].string_value(), "q");
+			TEST_EQUAL(get_item_keys[2].string_value(), "get");
+			TEST_EQUAL(get_item_keys[5].string_value(), items[0].target.to_string());
+			if (get_item_keys[0].string_value() != "q" || get_item_keys[2].string_value() != "get") break;
 		}
 		else
 		{
@@ -1664,13 +1690,13 @@ TORRENT_TEST(dht)
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, parsed, 6, error_string
+		ret = verify_message(response, get_item_desc, get_item_keys, error_string
 			, sizeof(error_string));
 		if (ret)
 		{
-			TEST_EQUAL(parsed[0].string_value(), "q");
-			TEST_EQUAL(parsed[2].string_value(), "get");
-			if (parsed[0].string_value() != "q" || parsed[2].string_value() != "get") break;
+			TEST_EQUAL(get_item_keys[0].string_value(), "q");
+			TEST_EQUAL(get_item_keys[2].string_value(), "get");
+			if (get_item_keys[0].string_value() != "q" || get_item_keys[2].string_value() != "get") break;
 		}
 		else
 		{
@@ -1714,6 +1740,8 @@ TORRENT_TEST(dht)
 			{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
 	};
 
+	bdecode_node put_immutable_item_keys[7];
+
 	dht::key_desc_t put_mutable_item_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
 		{"t", bdecode_node::string_t, 2, 0},
@@ -1727,6 +1755,8 @@ TORRENT_TEST(dht)
 			{"token", bdecode_node::string_t, 2, 0},
 			{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
 	};
+
+	bdecode_node put_mutable_item_keys[11];
 
 	// immutable put
 	g_sent_packets.clear();
@@ -1769,7 +1799,7 @@ TORRENT_TEST(dht)
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6, error_string
+			ret = verify_message(response, get_item_desc, get_item_keys, error_string
 				, sizeof(error_string));
 			if (!ret)
 			{
@@ -1798,18 +1828,19 @@ TORRENT_TEST(dht)
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, put_immutable_item_desc, parsed, 7
+			ret = verify_message(response, put_immutable_item_desc, put_immutable_item_keys
 				, error_string, sizeof(error_string));
 			if (ret)
 			{
-				TEST_EQUAL(parsed[0].string_value(), "q");
-				TEST_EQUAL(parsed[2].string_value(), "put");
-				std::pair<const char*, int>v = parsed[6].data_section();
+				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
+				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
+				std::pair<const char*, int>v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(std::string(v.first, v.second), flat_data);
 				char t[10];
 				snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(parsed[5].string_value(), t);
-				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+				TEST_EQUAL(put_immutable_item_keys[5].string_value(), t);
+				if (put_immutable_item_keys[0].string_value() != "q"
+					|| put_immutable_item_keys[2].string_value() != "put") continue;
 
 				if (i < loop) send_dht_response(node, response, nodes[i].ep());
 			}
@@ -1865,7 +1896,7 @@ TORRENT_TEST(dht)
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6, error_string
+			ret = verify_message(response, get_item_desc, get_item_keys, error_string
 				, sizeof(error_string));
 			if (!ret)
 			{
@@ -1895,22 +1926,23 @@ TORRENT_TEST(dht)
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, put_mutable_item_desc, parsed, 11
+			ret = verify_message(response, put_mutable_item_desc, put_mutable_item_keys
 				, error_string, sizeof(error_string));
 			if (ret)
 			{
-				TEST_EQUAL(parsed[0].string_value(), "q");
-				TEST_EQUAL(parsed[2].string_value(), "put");
-				TEST_EQUAL(parsed[6].string_value(), std::string(public_key, item_pk_len));
-				TEST_EQUAL(parsed[7].int_value(), seq);
-				TEST_EQUAL(parsed[8].string_value(), sig);
-				std::pair<const char*, int> v = parsed[10].data_section();
+				TEST_EQUAL(put_mutable_item_keys[0].string_value(), "q");
+				TEST_EQUAL(put_mutable_item_keys[2].string_value(), "put");
+				TEST_EQUAL(put_mutable_item_keys[6].string_value(), std::string(public_key, item_pk_len));
+				TEST_EQUAL(put_mutable_item_keys[7].int_value(), seq);
+				TEST_EQUAL(put_mutable_item_keys[8].string_value(), sig);
+				std::pair<const char*, int> v = put_mutable_item_keys[10].data_section();
 				TEST_EQUAL(v.second, itemv.second);
 				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
 				char t[10];
 				snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(parsed[9].string_value(), t);
-				if (parsed[0].string_value() != "q" || parsed[2].string_value() != "put") continue;
+				TEST_EQUAL(put_mutable_item_keys[9].string_value(), t);
+				if (put_mutable_item_keys[0].string_value() != "q"
+					|| put_mutable_item_keys[2].string_value() != "put") continue;
 
 				if (i < loop) send_dht_response(node, response, nodes[i].ep());
 			}
@@ -1979,7 +2011,7 @@ TORRENT_TEST(dht)
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, parsed, 6, error_string
+			ret = verify_message(response, get_item_desc, get_item_keys, error_string
 				, sizeof(error_string));
 			if (!ret)
 			{
@@ -2111,7 +2143,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	bool ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+	bool ret = verify_message(ent, msg_desc, msg_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
@@ -2129,7 +2161,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+	ret = verify_message(ent, msg_desc, msg_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
@@ -2148,7 +2180,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+	ret = verify_message(ent, msg_desc, msg_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
@@ -2158,7 +2190,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+	ret = verify_message(ent, msg_desc, msg_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
@@ -2168,7 +2200,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
 	fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, 7, error_string
+	ret = verify_message(ent, msg_desc, msg_keys, error_string
 		, sizeof(error_string));
 	TEST_CHECK(!ret);
 	fprintf(stderr, "%s\n", error_string);
@@ -2330,7 +2362,7 @@ TORRENT_TEST(read_only_node)
 	};
 
 	lazy_from_entry(g_sent_packets.front().second, request);
-	bool ret = verify_message(request, get_item_desc, parsed, 7, error_string
+	bool ret = verify_message(request, get_item_desc, parsed, error_string
 		, sizeof(error_string));
 
 	TEST_CHECK(ret);
@@ -2356,14 +2388,14 @@ TORRENT_TEST(read_only_node)
 
 	// both of them shouldn't have a 'ro' key.
 	lazy_from_entry(g_sent_packets.front().second, request);
-	ret = verify_message(request, get_item_desc, parsed, 7, error_string
+	ret = verify_message(request, get_item_desc, parsed, error_string
 		, sizeof(error_string));
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);
 
 	lazy_from_entry(g_sent_packets.back().second, request);
-	ret = verify_message(request, get_item_desc, parsed, 7, error_string
+	ret = verify_message(request, get_item_desc, parsed, error_string
 		, sizeof(error_string));
 
 	TEST_CHECK(ret);

@@ -745,110 +745,6 @@ void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
 	}
 }
 
-// verifies that a message has all the required
-// entries and returns them in ret
-bool verify_message(bdecode_node const& message, key_desc_t const desc[]
-	, bdecode_node ret[], int size , char* error, int error_size)
-{
-	// get a non-root bdecode_node that still
-	// points to the root. message should not be copied
-	bdecode_node msg = message.non_owning();
-
-	// clear the return buffer
-	for (int i = 0; i < size; ++i)
-		ret[i].clear();
-
-	// when parsing child nodes, this is the stack
-	// of bdecode_nodes to return to
-	bdecode_node stack[5];
-	int stack_ptr = -1;
-
-	if (msg.type() != bdecode_node::dict_t)
-	{
-		snprintf(error, error_size, "not a dictionary");
-		return false;
-	}
-	++stack_ptr;
-	stack[stack_ptr] = msg;
-	for (int i = 0; i < size; ++i)
-	{
-		key_desc_t const& k = desc[i];
-
-//		fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
-
-		ret[i] = msg.dict_find(k.name);
-		// none_t means any type
-		if (ret[i] && ret[i].type() != k.type && k.type != bdecode_node::none_t)
-			ret[i].clear();
-		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
-		{
-			// the key was not found, and it's not an optional key
-			snprintf(error, error_size, "missing '%s' key", k.name);
-			return false;
-		}
-
-		if (k.size > 0
-			&& ret[i]
-			&& k.type == bdecode_node::string_t)
-		{
-			bool invalid = false;
-			if (k.flags & key_desc_t::size_divisible)
-				invalid = (ret[i].string_length() % k.size) != 0;
-			else
-				invalid = ret[i].string_length() != k.size;
-
-			if (invalid)
-			{
-				// the string was not of the required size
-				ret[i].clear();
-				if ((k.flags & key_desc_t::optional) == 0)
-				{
-					snprintf(error, error_size, "invalid value for '%s'", k.name);
-					return false;
-				}
-			}
-		}
-		if (k.flags & key_desc_t::parse_children)
-		{
-			TORRENT_ASSERT(k.type == bdecode_node::dict_t);
-
-			if (ret[i])
-			{
-				++stack_ptr;
-				TORRENT_ASSERT(stack_ptr < int(sizeof(stack)/sizeof(stack[0])));
-				msg = ret[i];
-				stack[stack_ptr] = msg;
-			}
-			else
-			{
-				// skip all children
-				while (i < size && (desc[i].flags & key_desc_t::last_child) == 0) ++i;
-				// if this assert is hit, desc is incorrect
-				TORRENT_ASSERT(i < size);
-			}
-		}
-		else if (k.flags & key_desc_t::last_child)
-		{
-			TORRENT_ASSERT(stack_ptr > 0);
-			// this can happen if the specification passed
-			// in is unbalanced. i.e. contain more last_child
-			// nodes than parse_children
-			if (stack_ptr == 0) return false;
-			--stack_ptr;
-			msg = stack[stack_ptr];
-		}
-	}
-	return true;
-}
-
-void incoming_error(entry& e, char const* msg, int error_code)
-{
-	e["y"] = "e";
-	entry::list_type& l = e["e"].list();
-	l.push_back(entry(error_code));
-	l.push_back(entry(msg));
-}
-
 // build response
 void node::incoming_request(msg const& m, entry& e)
 {
@@ -868,7 +764,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 	bdecode_node top_level[4];
 	char error_string[200];
-	if (!verify_message(m.message, top_desc, top_level, 4, error_string
+	if (!verify_message(m.message, top_desc, top_level, error_string
 		, sizeof(error_string)))
 	{
 		incoming_error(e, error_string);
@@ -920,7 +816,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[3];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 3, error_string
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
 			, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get_peers);
@@ -958,7 +854,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[1];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 1, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -984,7 +880,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[6];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 6, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, error_string);
@@ -1047,7 +943,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[7];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 7, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, error_string);
@@ -1192,7 +1088,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, 2, error_string
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
 			, sizeof(error_string)))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get);
