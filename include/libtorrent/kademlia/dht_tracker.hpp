@@ -66,7 +66,7 @@ namespace libtorrent { namespace dht
 {
 	struct dht_tracker;
 
-	struct dht_tracker
+	struct dht_tracker TORRENT_FINAL
 		: udp_socket_interface
 		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>
@@ -74,7 +74,7 @@ namespace libtorrent { namespace dht
 		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
 			, dht_settings const& settings, counters& cnt
 			, dht_storage_constructor_type storage_constructor
-			, entry const* state = 0);
+			, entry const& state);
 		virtual ~dht_tracker();
 
 		void start(entry const& bootstrap
@@ -137,7 +137,7 @@ namespace libtorrent { namespace dht
 
 		void connection_timeout(error_code const& e);
 		void refresh_timeout(error_code const& e);
-		void tick(error_code const& e);
+		void refresh_key(error_code const& e);
 
 		// implements udp_socket_interface
 		virtual bool has_quota();
@@ -157,7 +157,6 @@ namespace libtorrent { namespace dht
 		std::vector<char> m_send_buf;
 		dos_blocker m_blocker;
 
-		time_point m_last_new_key;
 		deadline_timer m_timer;
 		deadline_timer m_connection_timer;
 		deadline_timer m_refresh_timer;

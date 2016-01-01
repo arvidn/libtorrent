@@ -49,7 +49,7 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	node_entry(udp::endpoint ep);
 	node_entry();
 	void update_rtt(int new_rtt);
-	
+
 	bool pinged() const { return timeout_count != 0xff; }
 	void set_pinged() { if (timeout_count == 0xff) timeout_count = 0; }
 	void timed_out() { if (pinged() && timeout_count < 0xfe) ++timeout_count; }

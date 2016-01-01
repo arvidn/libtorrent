@@ -475,7 +475,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 
 	if (m_sock->send_packet(e, target_addr, 1))
 	{
-		m_transactions.insert(std::make_pair(tid,o));
+		m_transactions.insert(std::make_pair(tid, o));
 #if TORRENT_USE_ASSERTS
 		o->m_was_sent = true;
 #endif

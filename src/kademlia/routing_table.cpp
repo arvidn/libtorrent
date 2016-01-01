@@ -582,11 +582,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 
 		table_t::iterator existing_bucket;
 		node_entry* existing = find_node(e.ep(), &existing_bucket);
-		if (!e.pinged() || existing == 0)
+		if (existing == 0)
 		{
-			// the new node is not pinged, or it's not an existing node
-			// we should ignore it, unless we allow duplicate IPs in our
-			// routing table
+			// the node we're trying to add is not a match with an existing node. we
+			// should ignore it, unless we allow duplicate IPs in our routing
+			// table. There could be a node with the same IP, but with a different
+			// port. m_ips just contain IP addresses, whereas the lookup we just
+			// performed was for full endpoints (address, port).
 			if (m_settings.restrict_routing_ips)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -598,16 +600,27 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				return failed_to_add;
 			}
 		}
-		else if (existing && existing->id == e.id)
+		else if (existing->id == e.id)
 		{
 			// if the node ID is the same, just update the failcount
-			// and be done with it
+			// and be done with it.
 			existing->timeout_count = 0;
-			existing->update_rtt(e.rtt);
-			existing->last_queried = e.last_queried;
+			if (e.pinged())
+			{
+				existing->update_rtt(e.rtt);
+				existing->last_queried = e.last_queried;
+			}
 			return node_added;
 		}
-		else if (existing)
+		else if (!e.pinged())
+		{
+			// this may be a routing table poison attack. If we haven't confirmed
+			// that this peer actually exist with this new node ID yet, ignore it.
+			// we definitely don't want to replace the existing entry with this one
+			if (m_settings.restrict_routing_ips)
+				return failed_to_add;
+		}
+		else
 		{
 			TORRENT_ASSERT(existing->id != e.id);
 			// this is the same IP and port, but with
@@ -620,8 +633,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
-	int bucket_index = std::distance(m_buckets.begin(), i);
-	int bucket_size_limit = bucket_limit(bucket_index);
+	int const bucket_index = std::distance(m_buckets.begin(), i);
+	int const bucket_size_limit = bucket_limit(bucket_index);
 
 	bucket_t::iterator j;
 
@@ -723,7 +736,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// can we split the bucket?
 	// only nodes that haven't failed can split the bucket, and we can only
 	// split the last bucket
-	const bool can_split = (boost::next(i) == m_buckets.end()
+	bool const can_split = (boost::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
 		&& e.fail_count() == 0
 		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
@@ -874,10 +887,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			*j = e;
 			m_ips.insert(e.addr().to_v4().to_bytes());
 #ifndef TORRENT_DISABLE_LOGGING
-			char hex_id[41];
-			to_hex(e.id.data(), sha1_hash::size, hex_id);
-			m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
-				, hex_id, print_address(e.addr()).c_str());
+			if (m_log)
+			{
+				char hex_id[41];
+				to_hex(e.id.data(), sha1_hash::size, hex_id);
+				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
+					, hex_id, print_address(e.addr()).c_str());
+			}
 #endif
 			return node_added;
 		}
@@ -931,8 +947,8 @@ void routing_table::split_bucket()
 {
 	INVARIANT_CHECK;
 
-	int bucket_index = m_buckets.size()-1;
-	int bucket_size_limit = bucket_limit(bucket_index);
+	int const bucket_index = m_buckets.size()-1;
+	int const bucket_size_limit = bucket_limit(bucket_index);
 	TORRENT_ASSERT(int(m_buckets.back().live_nodes.size()) >= bucket_size_limit);
 
 	// this is the last bucket, and it's full already. Split
@@ -946,10 +962,11 @@ void routing_table::split_bucket()
 
 	// move any node whose (160 - distane_exp(m_id, id)) >= (i - m_buckets.begin())
 	// to the new bucket
-	int new_bucket_size = bucket_limit(bucket_index + 1);
+	int const new_bucket_size = bucket_limit(bucket_index + 1);
 	for (bucket_t::iterator j = b.begin(); j != b.end();)
 	{
-		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
+		int const d = distance_exp(m_id, j->id);
+		if (d >= 159 - bucket_index)
 		{
 			++j;
 			continue;
@@ -1048,7 +1065,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
-		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
+		to_hex(nid.data(), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())
@@ -1069,7 +1086,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
-		to_hex(reinterpret_cast<char const*>(&nid[0]), 20, hex_id);
+		to_hex(nid.data(), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())

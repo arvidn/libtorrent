@@ -5516,7 +5516,7 @@ retry:
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters)
 			, m_dht_storage_constructor
-			, &startup_state);
+			, startup_state);
 
 		for (std::vector<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
 			, end(m_dht_router_nodes.end()); i != end; ++i)
@@ -6731,12 +6731,17 @@ retry:
 
 		// since we have a new external IP now, we need to
 		// restart the DHT with a new node ID
+
 #ifndef TORRENT_DISABLE_DHT
 		// TODO: 1 we only need to do this if our global IPv4 address has changed
 		// since the DHT (currently) only supports IPv4. Since restarting the DHT
 		// is kind of expensive, it would be nice to not do it unnecessarily
 		if (m_dht)
 		{
+			// TODO: 3 instead of restarting the whole DHT, change the external IP,
+			// node ID and re-jiggle the routing table in-place. A complete restart
+			// throws away all outstanding requests, which may be significant
+			// during bootstrap
 			entry s = m_dht->state();
 			int cur_state = 0;
 			int prev_state = 0;

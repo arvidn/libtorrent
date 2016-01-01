@@ -65,27 +65,21 @@ using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
 using libtorrent::detail::write_endpoint;
 
-enum
-{
-	key_refresh = 5 // generate a new write token key every 5 minutes
-};
-
-namespace
-{
-	const int tick_period = 1; // minutes
-}
-
 namespace libtorrent { namespace dht
 {
 	void incoming_error(entry& e, char const* msg);
 
 	namespace {
 
-	node_id extract_node_id(entry const* e)
+	// generate a new write token key every 5 minutes
+	time_duration const key_refresh
+		= duration_cast<time_duration>(minutes(5));
+
+	node_id extract_node_id(entry const& e)
 	{
-		if (e == 0 || e->type() != entry::dictionary_t) return (node_id::min)();
-		entry const* nid = e->find_key("node-id");
-		if (nid == 0 || nid->type() != entry::string_t || nid->string().length() != 20)
+		if (e.type() != entry::dictionary_t) return (node_id::min)();
+		entry const* nid = e.find_key("node-id");
+		if (nid == NULL || nid->type() != entry::string_t || nid->string().length() != 20)
 			return (node_id::min)();
 		return node_id(nid->string().c_str());
 	}
@@ -99,12 +93,11 @@ namespace libtorrent { namespace dht
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_constructor_type storage_constructor
-		, entry const* state)
+		, entry const& state)
 		: m_counters(cnt)
 		, m_dht(this, settings, extract_node_id(state), observer, cnt, storage_constructor)
 		, m_sock(sock)
 		, m_log(observer)
-		, m_last_new_key(clock_type::now() - minutes(int(key_refresh)))
 		, m_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
@@ -137,8 +130,7 @@ namespace libtorrent { namespace dht
 		}
 
 		error_code ec;
-		m_timer.expires_from_now(seconds(1), ec);
-		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
+		refresh_key(ec);
 
 		m_connection_timer.expires_from_now(seconds(1), ec);
 		m_connection_timer.async_wait(
@@ -203,29 +195,26 @@ namespace libtorrent { namespace dht
 			boost::bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
 
-	void dht_tracker::tick(error_code const& e)
+	void dht_tracker::refresh_key(error_code const& e)
 	{
 		if (e || m_abort) return;
 
 		error_code ec;
-		m_timer.expires_from_now(minutes(tick_period), ec);
-		m_timer.async_wait(boost::bind(&dht_tracker::tick, self(), _1));
+		m_timer.expires_from_now(key_refresh, ec);
+		m_timer.async_wait(boost::bind(&dht_tracker::refresh_key, self(), _1));
 
-		time_point now = clock_type::now();
-		if (now - minutes(int(key_refresh)) > m_last_new_key)
-		{
-			m_last_new_key = now;
-			m_dht.new_write_key();
+		m_dht.new_write_key();
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log(dht_logger::tracker, "*** new write key***");
+		m_log->log(dht_logger::tracker, "*** new write key***");
 #endif
-		}
+	}
 
+/*
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
 		m_dht.print_state(st);
 #endif
-	}
+*/
 
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)

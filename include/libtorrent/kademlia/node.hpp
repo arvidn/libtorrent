@@ -202,7 +202,7 @@ public:
 	counters& stats_counters() const { return m_counters; }
 
 	dht_observer* observer() const { return m_observer; }
-protected:
+private:
 
 	void send_single_refresh(udp::endpoint const& ep, int bucket
 		, node_id const& id = node_id());
@@ -213,7 +213,6 @@ protected:
 
 	libtorrent::dht_settings const& m_settings;
 
-private:
 	typedef libtorrent::mutex mutex_t;
 	mutex_t m_mutex;
 

@@ -51,6 +51,7 @@ node_id distance(node_id const& n1, node_id const& n2)
 {
 	node_id ret;
 	node_id::iterator k = ret.begin();
+	// TODO: 3 the XORing should be done at full words instead of bytes
 	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
 		, end(n1.end()); i != end; ++i, ++j, ++k)
 	{
@@ -62,6 +63,7 @@ node_id distance(node_id const& n1, node_id const& n2)
 // returns true if: distance(n1, ref) < distance(n2, ref)
 bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref)
 {
+	// TODO: 3 the XORing should be done at full words instead of bytes
 	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
 		, k = ref.begin(), end(n1.end()); i != end; ++i, ++j, ++k)
 	{
@@ -77,6 +79,8 @@ bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref)
 // useful for finding out which bucket a node belongs to
 int distance_exp(node_id const& n1, node_id const& n2)
 {
+	// TODO: 3 the xoring should be done at full words and _builtin_clz() could
+	// be used as the last step
 	int byte = node_id::size - 1;
 	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
 		, end(n1.end()); i != end; ++i, ++j, --byte)
@@ -87,7 +91,7 @@ int distance_exp(node_id const& n1, node_id const& n2)
 		// we have found the first non-zero byte
 		// return the bit-number of the first bit
 		// that differs
-		int bit = byte * 8;
+		int const bit = byte * 8;
 		for (int b = 7; b >= 0; --b)
 			if (t >= (1 << b)) return bit + b;
 		return bit;
