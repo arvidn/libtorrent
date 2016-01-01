@@ -98,7 +98,7 @@ namespace libtorrent { namespace dht
 		, m_dht(this, settings, extract_node_id(state), observer, cnt, storage_constructor)
 		, m_sock(sock)
 		, m_log(observer)
-		, m_timer(sock.get_io_service())
+		, m_key_refresh_timer(sock.get_io_service())
 		, m_connection_timer(sock.get_io_service())
 		, m_refresh_timer(sock.get_io_service())
 		, m_settings(settings)
@@ -145,7 +145,7 @@ namespace libtorrent { namespace dht
 	{
 		m_abort = true;
 		error_code ec;
-		m_timer.cancel(ec);
+		m_key_refresh_timer.cancel(ec);
 		m_connection_timer.cancel(ec);
 		m_refresh_timer.cancel(ec);
 		m_host_resolver.cancel();
@@ -200,8 +200,8 @@ namespace libtorrent { namespace dht
 		if (e || m_abort) return;
 
 		error_code ec;
-		m_timer.expires_from_now(key_refresh, ec);
-		m_timer.async_wait(boost::bind(&dht_tracker::refresh_key, self(), _1));
+		m_key_refresh_timer.expires_from_now(key_refresh, ec);
+		m_key_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_key, self(), _1));
 
 		m_dht.new_write_key();
 #ifndef TORRENT_DISABLE_LOGGING
