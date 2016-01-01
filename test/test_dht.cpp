@@ -1194,32 +1194,57 @@ TORRENT_TEST(dht)
 
 	// test kademlia functions
 
-	// this is a bit too expensive to do under valgrind
-#ifndef TORRENT_USE_VALGRIND
-	for (int i = 0; i < 160; i += 8)
-	{
-		for (int j = 0; j < 160; j += 8)
-		{
-			node_id a(0);
-			a[(159-i) / 8] = 1 << (i & 7);
-			node_id b(0);
-			b[(159-j) / 8] = 1 << (j & 7);
-			int dist = distance_exp(a, b);
+	// distance_exp
 
-			TEST_CHECK(dist >= 0 && dist < 160);
-			TEST_CHECK(dist == ((i == j)?0:(std::max)(i, j)));
+	TEST_EQUAL(distance_exp(
+			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
+			to_hash("0000000000000000000000000000000000000000"))
+		, 159);
 
-			for (int k = 0; k < 160; k += 8)
-			{
-				node_id c(0);
-				c[(159-k) / 8] = 1 << (k & 7);
+	TEST_EQUAL(distance_exp(
+			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
+			to_hash("7fffffffffffffffffffffffffffffffffffffff"))
+		, 159);
 
-				bool cmp = compare_ref(a, b, c);
-				TEST_CHECK(cmp == (distance(a, c) < distance(b, c)));
-			}
-		}
-	}
-#endif
+	TEST_EQUAL(distance_exp(
+			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
+			to_hash("ffffffffffffffffffffffffffffffffffffffff"))
+		, 0);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
+			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
+		, 0);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("8000000000000000000000000000000000000000"),
+			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
+		, 158);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("c000000000000000000000000000000000000000"),
+			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
+		, 157);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("e000000000000000000000000000000000000000"),
+			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
+		, 156);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("f000000000000000000000000000000000000000"),
+			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
+		, 155);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("f8f2340985723049587230495872304958703294"),
+			to_hash("f743589043r890f023980f90e203980d090c3840"))
+		, 155);
+
+	TEST_EQUAL(distance_exp(
+			to_hash("ffff740985723049587230495872304958703294"),
+			to_hash("ffff889043r890f023980f90e203980d090c3840"))
+		, 159 - 16);
 
 	{
 		// test kademlia routing table
@@ -2500,5 +2525,31 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	TEST_EQUAL(found, true);
 }
 
+// test bucket distribution
+TORRENT_TEST(node_id_bucket_distribution)
+{
+	int nodes_per_bucket[160] = {0};
+	dht::node_id reference_id = generate_id(rand_v4());
+	int const num_samples = 100000;
+	for (int i = 0; i < num_samples; ++i)
+	{
+		dht::node_id nid = generate_id(rand_v4());
+		int const bucket = 159 - distance_exp(reference_id, nid);
+		++nodes_per_bucket[bucket];
+	}
+
+	for (int i = 0; i < 25; ++i)
+	{
+		printf("%3d ", nodes_per_bucket[i]);
+	}
+	printf("\n");
+
+	int expected = num_samples / 2;
+	for (int i = 0; i < 25; ++i)
+	{
+		TEST_CHECK(std::abs(nodes_per_bucket[i] - expected) < num_samples / 20);
+		expected /= 2;
+	}
+}
 #endif
 

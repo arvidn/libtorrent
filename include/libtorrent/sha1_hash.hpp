@@ -231,7 +231,7 @@ namespace libtorrent
 		}
 
 		// returns a bit-wise negated copy of the sha1-hash
-		sha1_hash operator~()
+		sha1_hash operator~() const
 		{
 			sha1_hash ret;
 			for (int i = 0; i < number_size; ++i)

@@ -86,6 +86,9 @@ struct routing_table_node
 class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
 {
 public:
+	// TODO: 3 to improve memory locality and scanning performance, turn the
+	// routing table into a single vector with boundaries for the nodes instead.
+	// Perhaps replacement nodes should be in a separate vector.
 	typedef std::vector<routing_table_node> table_t;
 
 	routing_table(node_id const& id, int bucket_size
