@@ -44,7 +44,7 @@ namespace libtorrent
 	// sort. Only the unchoke slots first elements are sorted.
 	// the return value are the number of peers that should be unchoked. This
 	// is also the number of elements that are valid at the beginning of the
-	// peer list. Peers bayond this initial range are not sorted.
+	// peer list. Peers beyond this initial range are not sorted.
 	TORRENT_EXTRA_EXPORT int unchoke_sort(std::vector<peer_connection*>& peers
 		, int max_upload_rate, time_duration unchoke_interval
 		, aux::session_settings const& sett);

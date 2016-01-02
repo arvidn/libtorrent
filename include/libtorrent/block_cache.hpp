@@ -206,7 +206,7 @@ namespace libtorrent
 
 		// if this is set, we'll be calculating the hash
 		// for this piece. This member stores the interim
-		// state while we're calulcating the hash.
+		// state while we're calculating the hash.
 		partial_hash* hash;
 
 		// set to a unique identifier of a peer that last
