@@ -2325,11 +2325,18 @@ TORRENT_TEST(routing_table_extended)
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
+	// we can't add the nodes in straight 0,1,2,3 order. That way the routing
+	// table would get unbalanced and intermediate nodes would be dropped
+	std::vector<boost::uint8_t> node_id_prefix;
+	node_id_prefix.reserve(256);
+	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
+	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+
 	routing_table tbl(id, 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
 	{
 		add_and_replace(id, diff);
-		id[0] = i;
+		id[0] = node_id_prefix[i];
 		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
 	}
 	TEST_EQUAL(tbl.num_active_buckets(), 6);

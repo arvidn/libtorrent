@@ -634,7 +634,11 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
 	int const bucket_index = std::distance(m_buckets.begin(), i);
+	// compare against the max size of the next bucket. Otherwise we may wait too
+	// long to split, and lose nodes (in the case where lower-numbered buckets
+	// are larger)
 	int const bucket_size_limit = bucket_limit(bucket_index);
+	int const next_bucket_size_limit = bucket_limit(bucket_index + 1);
 
 	bucket_t::iterator j;
 
@@ -714,8 +718,20 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		}
 	}
 
+	// can we split the bucket?
+	// only nodes that haven't failed can split the bucket, and we can only
+	// split the last bucket
+	bool const can_split = (boost::next(i) == m_buckets.end()
+		&& m_buckets.size() < 159)
+		&& e.fail_count() == 0
+		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
+
 	// if there's room in the main bucket, just insert it
-	if (int(b.size()) < bucket_size_limit)
+	// if we can split the bucket (i.e. it's the last bucket) use the next
+	// bucket's size limit. This makes use split the low-numbered buckets split
+	// earlier when we have larger low buckets, to make it less likely that we
+	// lose nodes
+	if (int(b.size()) < (can_split ? next_bucket_size_limit : bucket_size_limit))
 	{
 		if (b.empty()) b.reserve(bucket_size_limit);
 		b.push_back(e);
@@ -732,14 +748,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// node with this prefix, remove the duplicate with the highest RTT.
 	// as the last replacement strategy, if the node we found matching our
 	// bit prefix has higher RTT than the new node, replace it.
-
-	// can we split the bucket?
-	// only nodes that haven't failed can split the bucket, and we can only
-	// split the last bucket
-	bool const can_split = (boost::next(i) == m_buckets.end()
-		&& m_buckets.size() < 159)
-		&& e.fail_count() == 0
-		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
 
 	if (e.pinged() && e.fail_count() == 0)
 	{
@@ -949,7 +957,7 @@ void routing_table::split_bucket()
 
 	int const bucket_index = m_buckets.size()-1;
 	int const bucket_size_limit = bucket_limit(bucket_index);
-	TORRENT_ASSERT(int(m_buckets.back().live_nodes.size()) >= bucket_size_limit);
+	TORRENT_ASSERT(int(m_buckets.back().live_nodes.size()) >= bucket_limit(bucket_index + 1));
 
 	// this is the last bucket, and it's full already. Split
 	// it by adding another bucket
