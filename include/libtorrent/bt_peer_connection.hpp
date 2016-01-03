@@ -358,7 +358,7 @@ private:
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// this is set to true after the encryption method has been
-		// succesfully negotiated (either plaintext or rc4), to signal
+		// successfully negotiated (either plaintext or rc4), to signal
 		// automatic encryption/decryption.
 		bool m_encrypted:1;
 
@@ -377,7 +377,7 @@ private:
 		// where in the send buffer actual payload
 		// data is located. This is currently
 		// only used to be able to gather statistics
-		// seperately on payload and protocol data.
+		// separately on payload and protocol data.
 		struct range
 		{
 			range(int s, int l)
