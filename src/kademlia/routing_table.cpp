@@ -683,40 +683,30 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (m_settings.restrict_routing_ips)
 	{
 		// don't allow multiple entries from IPs very close to each other
+		// TODO: 3 the call to compare_ip_cidr here is expensive. peel off some
+		// layers of abstraction here to make it quicker. Look at xoring and using _builtin_ctz()
 		j = std::find_if(b.begin(), b.end(), boost::bind(&compare_ip_cidr, _1, e));
-		if (j != b.end())
+		if (j == b.end())
 		{
-			// we already have a node in this bucket with an IP very
-			// close to this one. We know that it's not the same, because
-			// it claims a different node-ID. Ignore this to avoid attacks
-#ifndef TORRENT_DISABLE_LOGGING
-				char hex_id1[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
-				char hex_id2[41];
-				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
-				m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-					, hex_id1, print_address(e.addr()).c_str()
-					, hex_id2, print_address(j->addr()).c_str());
-#endif
-			return failed_to_add;
+			j = std::find_if(rb.begin(), rb.end(), boost::bind(&compare_ip_cidr, _1, e));
+			if (j == rb.end()) goto ip_ok;
 		}
 
-		j = std::find_if(rb.begin(), rb.end(), boost::bind(&compare_ip_cidr, _1, e));
-		if (j != rb.end())
-		{
-			// same thing but for the replacement bucket
+		// we already have a node in this bucket with an IP very
+		// close to this one. We know that it's not the same, because
+		// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-				char hex_id1[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id1);
-				char hex_id2[41];
-				to_hex(reinterpret_cast<char const*>(&j->id[0]), 20, hex_id2);
-				m_log->log(dht_logger::routing_table, "ignoring (replacement) node: %s %s existing node: %s %s"
-					, hex_id1, print_address(e.addr()).c_str()
-					, hex_id2, print_address(j->addr()).c_str());
+		char hex_id1[41];
+		to_hex(e.id.data(), 20, hex_id1);
+		char hex_id2[41];
+		to_hex(j->id.data(), 20, hex_id2);
+		m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
+			, hex_id1, print_address(e.addr()).c_str()
+			, hex_id2, print_address(j->addr()).c_str());
 #endif
-			return failed_to_add;
-		}
+		return failed_to_add;
 	}
+ip_ok:
 
 	// can we split the bucket?
 	// only nodes that haven't failed can split the bucket, and we can only
