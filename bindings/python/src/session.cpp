@@ -869,7 +869,7 @@ void bind_session()
     ;
 #endif
 
-    register_ptr_to_python<std::auto_ptr<alert> >();
+    register_ptr_to_python<boost::shared_ptr<alert> >();
 
     typedef void (*mem_preset2)(settings_pack& s);
     typedef void (*perf_preset2)(settings_pack& s);
