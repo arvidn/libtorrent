@@ -4,6 +4,8 @@ import libtorrent as lt
 
 import unittest
 import time
+import os
+import shutil
 
 # test torrent_info
 
@@ -28,7 +30,8 @@ class test_alerts(unittest.TestCase):
 		sett = lt.session_settings()
 		sett.alert_mask = 0xffffffff
 		ses.set_alert_mask(0xfffffff)
-		ti = lt.torrent_info('../../test/test_torrents/base.torrent');
+		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
+		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
 		time.sleep(1)
 		ses.remove_torrent(h)
