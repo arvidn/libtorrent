@@ -3,6 +3,9 @@
 import libtorrent as lt
 
 import unittest
+import time
+import os
+import shutil
 import binascii
 
 # test torrent_info
@@ -20,6 +23,23 @@ class test_torrent_info(unittest.TestCase):
 		self.assertEqual(f.file_path(0), 'test_torrent')
 		self.assertEqual(f.file_size(0), 1234)
 		self.assertEqual(info.total_size(), 1234)
+
+class test_alerts(unittest.TestCase):
+
+	def test_alert(self):
+
+		ses = lt.session()
+		sett = lt.session_settings()
+		sett.alert_mask = 0xffffffff
+		ses.set_alert_mask(0xfffffff)
+		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
+		ti = lt.torrent_info('base.torrent');
+		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
+		time.sleep(1)
+		ses.remove_torrent(h)
+		alerts = ses.pop_alerts()
+		for a in alerts:
+			print a.message()
 
 class test_bencoder(unittest.TestCase):
 
