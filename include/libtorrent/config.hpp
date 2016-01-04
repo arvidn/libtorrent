@@ -305,14 +305,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined MAXPATH
 #define TORRENT_MAX_PATH MAXPATH
 
-// posix
-#elif defined NAME_MAX
-#define TORRENT_MAX_PATH NAME_MAX
-
 // none of the above
 #else
 // this is the maximum number of characters in a
-// path element / filename on windows
+// path element / filename on windows and also on many filesystems commonly used
+// on linux
 #define TORRENT_MAX_PATH 255
 
 #ifdef _MSC_VER
