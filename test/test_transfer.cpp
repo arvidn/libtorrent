@@ -402,7 +402,8 @@ TORRENT_TEST(i2p)
 	test_transfer(settings_pack::i2p_proxy, settings_pack());
 	cleanup();
 }
-*/
+
+// this test is too flaky. Move it to a sim
 TORRENT_TEST(disk_full)
 {
 	using namespace libtorrent;
@@ -411,6 +412,7 @@ TORRENT_TEST(disk_full)
 
 	cleanup();
 }
+*/
 
 TORRENT_TEST(allow_fast)
 {
