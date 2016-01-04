@@ -173,7 +173,7 @@ namespace libtorrent
 
 			// determines if the torrent should be added in *share mode* or not.
 			// Share mode indicates that we are not interested in downloading the
-			// torrent, but merley want to improve our share ratio (i.e. increase
+			// torrent, but merely want to improve our share ratio (i.e. increase
 			// it). A torrent started in share mode will do its best to never
 			// download more than it uploads to the swarm. If the swarm does not
 			// have enough demand for upload capacity, the torrent will not
@@ -194,7 +194,7 @@ namespace libtorrent
 			// determines if the IP filter should apply to this torrent or not. By
 			// default all torrents are subject to filtering by the IP filter
 			// (i.e. this flag is set by default). This is useful if certain
-			// torrents needs to be excempt for some reason, being an auto-update
+			// torrents needs to be exempt for some reason, being an auto-update
 			// torrent for instance.
 			flag_apply_ip_filter = 0x010,
 
@@ -263,7 +263,7 @@ namespace libtorrent
 			// of web seeds (`BEP 17`_ and `BEP 19`_). When replacing web seeds
 			// (i.e. when this flag is not set), any web seeds passed in via
 			// add_torrent_params are also replaced. The default behavior is to
-			// have any web seeds in the resume data take presedence over whatever
+			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
 			flag_merge_resume_http_seeds = 0x2000,
 
@@ -284,7 +284,7 @@ namespace libtorrent
 		// for forward binary compatibility.
 		int version;
 		// torrent_info object with the torrent to add. Unless the url or
-		// info_hash is set, this is required to be initiazlied.
+		// info_hash is set, this is required to be initialized.
 		boost::shared_ptr<torrent_info> ti;
 
 #ifndef TORRENT_NO_DEPRECATE
