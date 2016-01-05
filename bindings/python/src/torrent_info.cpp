@@ -213,12 +213,12 @@ void bind_torrent_info()
 
     class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
+        .def("__init__", make_constructor(&bencoded_constructor0))
+        .def("__init__", make_constructor(&bencoded_constructor1))
         .def("__init__", make_constructor(&buffer_constructor0))
         .def("__init__", make_constructor(&buffer_constructor1))
         .def("__init__", make_constructor(&file_constructor0))
         .def("__init__", make_constructor(&file_constructor1))
-        .def("__init__", make_constructor(&bencoded_constructor0))
-        .def("__init__", make_constructor(&bencoded_constructor1))
         .def(init<torrent_info const&>((arg("ti"))))
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE

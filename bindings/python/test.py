@@ -28,10 +28,7 @@ class test_alerts(unittest.TestCase):
 
 	def test_alert(self):
 
-		ses = lt.session()
-		sett = lt.session_settings()
-		sett.alert_mask = 0xffffffff
-		ses.set_alert_mask(0xfffffff)
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
 		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
