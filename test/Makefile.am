@@ -1,7 +1,9 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
+benchmark_programs = \
+  bdecode_benchmark
+
 test_programs = \
-  bdecode_benchmark          \
   test_primitives            \
   test_recheck               \
   test_stat_cache            \
@@ -35,11 +37,11 @@ test_programs = \
   test_linked_list
 
 if ENABLE_TESTS
-check_PROGRAMS = $(test_programs)
+check_PROGRAMS = $(test_programs) $(benchmark_programs)
 noinst_LTLIBRARIES = libtest.la
 endif
 
-TESTS = $(check_PROGRAMS)
+TESTS = $(test_programs)
 
 EXTRA_DIST = Jamfile \
   test_torrents/base.torrent \
@@ -95,7 +97,7 @@ EXTRA_DIST = Jamfile \
   zeroes.gz \
   utf8_test.txt
 
-EXTRA_PROGRAMS = $(test_programs)
+EXTRA_PROGRAMS = $(test_programs) $(benchmark_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
@@ -167,6 +169,7 @@ test_privacy_SOURCES = test_privacy.cpp
 test_priority_SOURCES = test_priority.cpp
 test_auto_unchoke_SOURCES = test_auto_unchoke.cpp
 test_checking_SOURCES = test_checking.cpp
+test_enum_net_SOURCES = test_enum_net.cpp
 test_fast_extension_SOURCES = test_fast_extension.cpp
 test_http_connection_SOURCES = test_http_connection.cpp
 test_lsd_SOURCES = test_lsd.cpp
