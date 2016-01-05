@@ -182,9 +182,14 @@ dict dht_put_item(dht_put_alert const& alert)
 void bind_alert()
 {
     using boost::noncopyable;
+#ifndef TORRENT_NO_DEPRECATE
+    typedef boost::shared_ptr<alert> alert_holder;
+#else
+    typedef alert alert_holder;
+#endif
 
     {
-        scope alert_scope = class_<alert, boost::shared_ptr<alert>, noncopyable >("alert", no_init)
+        scope alert_scope = class_<alert, alert_holder, noncopyable >("alert", no_init)
             .def("message", &alert::message)
             .def("what", &alert::what)
             .def("category", &alert::category)

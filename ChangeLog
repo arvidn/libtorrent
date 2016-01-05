@@ -76,6 +76,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix long filename issue (on unixes)
+	* fixed performance bug in DHT torrent eviction
 	* fixed win64 build (GetFileAttributesEx)
 	* fixed bug when deleting files for magnet links before they had metadata
 

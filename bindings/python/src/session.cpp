@@ -98,9 +98,8 @@ namespace
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
 
-	void session_set_settings(lt::session& ses, dict const& sett_dict)
+	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
-		settings_pack p;
 		list iterkeys = (list)sett_dict.iterkeys();
 		for (int i = 0; i < boost::python::len(iterkeys); i++)
 		{
@@ -127,9 +126,20 @@ namespace
 			}
 			TORRENT_CATCH(...) {}
 		}
+	}
 
+	boost::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
+	{
+		settings_pack p;
+		make_settings_pack(p, sett);
+		return boost::make_shared<lt::session>(p, flags);
+	}
+
+	void session_set_settings(lt::session& ses, dict const& sett_dict)
+	{
+		settings_pack p;
+		make_settings_pack(p, sett_dict);
 		allow_threading_guard guard;
-
 		ses.apply_settings(p);
 	}
 
@@ -377,10 +387,21 @@ namespace
     }
 #endif
 
-    alert const* wait_for_alert(lt::session& s, int ms)
+#ifndef TORRENT_NO_DEPRECATE
+    boost::shared_ptr<alert const>
+#else
+    alert const*
+#endif
+    wait_for_alert(lt::session& s, int ms)
     {
         allow_threading_guard guard;
-        return s.wait_for_alert(milliseconds(ms));
+        alert const* a = s.wait_for_alert(milliseconds(ms));
+#ifndef TORRENT_NO_DEPRECATE
+        if (a == NULL) return boost::shared_ptr<alert>();
+        return boost::shared_ptr<alert>(a->clone().release());
+#else
+        return a;
+#endif
     }
 
     list get_torrents(lt::session& s)
@@ -472,7 +493,6 @@ namespace
 
         return object(boost::shared_ptr<alert>(a.release()));
     }
-#endif
 
     list pop_alerts(lt::session& ses)
     {
@@ -486,10 +506,28 @@ namespace
         for (std::vector<alert*>::iterator i = alerts.begin()
             , end(alerts.end()); i != end; ++i)
         {
-            ret.append(boost::shared_ptr<alert>(*i));
+            ret.append(boost::shared_ptr<alert>((*i)->clone().release()));
         }
         return ret;
     }
+#else
+    list pop_alerts(lt::session& ses)
+    {
+        std::vector<alert*> alerts;
+        {
+            allow_threading_guard guard;
+            ses.pop_alerts(&alerts);
+        }
+
+        list ret;
+        for (std::vector<alert*>::iterator i = alerts.begin()
+            , end(alerts.end()); i != end; ++i)
+        {
+            ret.append(boost::python::ptr(*i));
+        }
+        return ret;
+    }
+#endif
 
     void load_state(lt::session& ses, entry const& st)
 	 {
@@ -694,10 +732,11 @@ void bind_session()
     ;
 
     class_<lt::session, boost::noncopyable>("session", no_init)
-        .def(
-            init<settings_pack const&, int>((
-                arg("settings")
-                , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins))
+        .def("__init__", boost::python::make_constructor(&make_session
+                , default_call_policies()
+                , (arg("settings")
+                , arg("flags")=lt::session::start_default_features
+                    | lt::session::add_default_plugins))
         )
 #ifndef TORRENT_NO_DEPRECATE
         .def(
@@ -762,7 +801,11 @@ void bind_session()
         .def("load_state", &load_state)
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("pop_alerts", &pop_alerts)
-        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
+        .def("wait_for_alert", &wait_for_alert
+#ifdef TORRENT_NO_DEPRECATE
+            , return_internal_reference<>()
+#endif
+			)
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
         .def("pop_alert", &pop_alert)
@@ -868,8 +911,6 @@ void bind_session()
         .def("settings", &get_feed_settings)
     ;
 #endif
-
-    register_ptr_to_python<boost::shared_ptr<alert> >();
 
     typedef void (*mem_preset2)(settings_pack& s);
     typedef void (*perf_preset2)(settings_pack& s);
