@@ -405,8 +405,8 @@ namespace libtorrent
 			incoming_starts_queued_torrents,
 
 			// when set to true, the downloaded counter sent to trackers will
-			// include the actual number of payload bytes donwnloaded including
-			// redundant bytes. If set to false, it will not include any redundany
+			// include the actual number of payload bytes downloaded including
+			// redundant bytes. If set to false, it will not include any redundancy
 			// bytes
 			report_true_downloaded,
 
@@ -487,7 +487,7 @@ namespace libtorrent
 
 			// if this is true, the ``&ip=`` argument in tracker requests (unless
 			// otherwise specified) will be set to the intermediate IP address if
-			// the user is double NATed. If ther user is not double NATed, this
+			// the user is double NATed. If the user is not double NATed, this
 			// option does not have an affect
 			announce_double_nat,
 
@@ -510,7 +510,7 @@ namespace libtorrent
 			// ``connection_speed``, in case we're close to bump up against the
 			// limit of number of connections. The intention of this setting is to
 			// more evenly distribute our connection attempts over time, instead
-			// of attempting to connectin in batches, and timing them out in
+			// of attempting to connect in batches, and timing them out in
 			// batches.
 			smooth_connects,
 
@@ -647,7 +647,7 @@ namespace libtorrent
 			// unlikely to matter anyway
 			auto_sequential,
 
-			// if true, trackerconnections are made over the configured proxy, if
+			// if true, tracker connections are made over the configured proxy, if
 			// any.
 			proxy_tracker_connections,
 
@@ -1405,7 +1405,7 @@ namespace libtorrent
 			// ``async_write_some`` (i.e. send) on peer connection sockets. When
 			// seeding at extremely high rates, this may become a bottleneck, and
 			// setting this to 2 or more may parallelize that cost. When using SSL
-			// torrents, all encryption for outgoing traffic is done withint the
+			// torrents, all encryption for outgoing traffic is done within the
 			// socket send functions, and this will help parallelizing the cost of
 			// SSL encryption as well.
 			network_threads,
@@ -1428,7 +1428,7 @@ namespace libtorrent
 			// aggressive in hitting trackers.
 			tracker_backoff,
 
-			// when a seeding torrent reaches eaither the share ratio (bytes up /
+			// when a seeding torrent reaches either the share ratio (bytes up /
 			// bytes down) or the seed time ratio (seconds as seed / seconds as
 			// downloader) or the seed time limit (seconds as seed) it is
 			// considered done, and it will leave room for other torrents these
@@ -1502,7 +1502,7 @@ namespace libtorrent
 			// active by the queuing mechanism. A torrent whose download rate is
 			// less than ``inactive_down_rate`` and whose upload rate is less than
 			// ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
-			// considered inactive, and another queued torrent may be startert.
+			// considered inactive, and another queued torrent may be started.
 			// This logic is disabled if ``dont_count_slow_torrents`` is false.
 			inactive_down_rate,
 			inactive_up_rate,

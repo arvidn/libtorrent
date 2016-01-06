@@ -205,7 +205,7 @@ namespace libtorrent { namespace
 			{ return num_requests < rhs.num_requests; }
 		};
 
-		// this vector keeps track of how many times each meatdata
+		// this vector keeps track of how many times each metadata
 		// block has been requested and who we ended up getting it from
 		// std::numeric_limits<int>::max() means we have the piece
 		std::vector<metadata_piece> m_requested_metadata;
