@@ -102,6 +102,8 @@ void bind_torrent_status()
 #endif
         .def_readonly("errc", &torrent_status::errc)
         .def_readonly("error_file", &torrent_status::error_file)
+        .def_readonly("name", &torrent_status::name)
+        .def_readonly("save_path", &torrent_status::save_path)
         .def_readonly("priority", &torrent_status::priority)
         .def_readonly("added_time", &torrent_status::added_time)
         .def_readonly("completed_time", &torrent_status::completed_time)
