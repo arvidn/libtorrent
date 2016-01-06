@@ -6,8 +6,10 @@
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include "optional.hpp"
 #include <boost/version.hpp>
+#include "libtorrent/time.hpp"
 
 using namespace boost::python;
+namespace lt = libtorrent;
 
 #if BOOST_VERSION < 103400
 
@@ -24,6 +26,15 @@ object import(str name)
 
 object datetime_timedelta;
 object datetime_datetime;
+
+struct chrono_time_duration_to_python
+{
+    static PyObject* convert(lt::time_duration const& d)
+    {
+        return incref(object(lt::duration_cast<lt::milliseconds>(d).count()
+            / 1000.f).ptr());
+    }
+};
 
 struct time_duration_to_python
 {
@@ -74,6 +85,11 @@ void bind_datetime()
     to_python_converter<
         boost::posix_time::ptime
       , ptime_to_python
+    >();
+
+    to_python_converter<
+        lt::time_duration
+      , chrono_time_duration_to_python
     >();
 
     optional_to_python<boost::posix_time::ptime>();

@@ -34,9 +34,23 @@ class test_alerts(unittest.TestCase):
 		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
 		time.sleep(1)
 		ses.remove_torrent(h)
+		ses.wait_for_alert(1000) # milliseconds
 		alerts = ses.pop_alerts()
 		for a in alerts:
-			print a.message()
+			print(a.message())
+
+		st = h.status()
+		print(st.next_announce)
+		print(st.name)
+		print(st.errc.message())
+		print(st.pieces)
+		print(st.last_seen_complete)
+		print(st.completed_time)
+		print(st.progress)
+		print(st.num_pieces)
+		print(st.distributed_copies)
+		print(st.paused)
+		print(st.info_hash)
 
 class test_bencoder(unittest.TestCase):
 

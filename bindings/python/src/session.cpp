@@ -388,7 +388,7 @@ namespace
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
-    boost::shared_ptr<alert const>
+    boost::shared_ptr<alert>
 #else
     alert const*
 #endif
@@ -916,6 +916,7 @@ void bind_session()
     typedef void (*perf_preset2)(settings_pack& s);
 
 #ifndef TORRENT_NO_DEPRECATE
+
     typedef session_settings (*mem_preset1)();
     typedef session_settings (*perf_preset1)();
 
