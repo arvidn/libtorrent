@@ -31,8 +31,13 @@ struct chrono_time_duration_to_python
 {
     static PyObject* convert(lt::time_duration const& d)
     {
-        return incref(object(lt::duration_cast<lt::milliseconds>(d).count()
-            / 1000.f).ptr());
+        object result = datetime_timedelta(
+            0 // days
+          , 0 // seconds
+          , lt::total_microseconds(d)
+        );
+
+        return incref(result.ptr());
     }
 };
 
