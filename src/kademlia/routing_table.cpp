@@ -559,7 +559,7 @@ bool routing_table::add_node(node_entry e)
 routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-	INVARIANT_CHECK;
+//	INVARIANT_CHECK;
 #endif
 
 	// if we already have this (IP,port), don't do anything

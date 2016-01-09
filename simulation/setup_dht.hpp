@@ -31,32 +31,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/io_service.hpp"
+#ifndef TORRENT_SETUP_DHT_HPP_INCLUDED
+#define TORRENT_SETUP_DHT_HPP_INCLUDED
 
-namespace libtorrent {
-	class alert;
-	struct settings_pack;
-	struct add_torrent_params;
-	class session;
+#include <vector>
+#include "libtorrent/session_settings.hpp" // for dht_settings
+#include "libtorrent/performance_counters.hpp" // for counters
+
+namespace lt = libtorrent;
+
+namespace sim
+{
+	struct simulation;
 }
 
-struct network_setup_provider
+namespace libtorrent
 {
-	// can be used to check expected end conditions
-	virtual void on_exit() {}
+	struct dht_routing_bucket;
+}
 
-	// called for every alert. if the simulation is done, return true
-	virtual bool on_alert(libtorrent::alert const* alert, int session_idx)
-	{ return false; }
+struct dht_node;
 
-	virtual bool on_tick() = 0;
+void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt);
 
-	// called for every session that's added
-	virtual libtorrent::settings_pack add_session(int idx) = 0;
+struct dht_network
+{
+	dht_network(sim::simulation& sim, int num_nodes);
+	~dht_network();
 
-	// called for a session right after it has been created
-	virtual void setup_session(libtorrent::session& ses, int idx) = 0;
+	void stop();
+	std::vector<lt::udp::endpoint> router_nodes() const;
+
+private:
+
+	// used for all the nodes in the network
+	lt::counters m_cnt;
+	lt::dht_settings m_sett;
+	std::vector<dht_node> m_nodes;
 };
 
-void setup_dht(int num_nodes, network_setup_provider& config);
+#endif
 

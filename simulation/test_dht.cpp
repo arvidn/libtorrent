@@ -40,85 +40,89 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/socket_io.hpp"
+#include "setup_swarm.hpp"
+#include "setup_dht.hpp"
 
 namespace lt = libtorrent;
 
-struct network_config : network_setup_provider
+TORRENT_TEST(dht_bootstrap)
 {
-	network_config()
-		: m_start_time(lt::clock_type::now())
-		, m_ticks(0)
-	{}
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
 
-	virtual void on_exit() override final {}
+	dht_network dht(sim, 1000);
 
-	// called for every alert. if the simulation is done, return true
-	virtual bool on_alert(lt::alert const* alert
-		, int session_idx) override final
-	{
-		if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(alert))
+	int routing_table_depth = 0;
+	int num_nodes = 0;
+
+	setup_swarm(1, swarm_test::download, sim
+		// add session
+		, [](lt::settings_pack& pack) {
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses)
 		{
-			int bucket = 0;
-			for (std::vector<lt::dht_routing_bucket>::const_iterator i = p->routing_table.begin()
-				, end(p->routing_table.end()); i != end; ++i, ++bucket)
+			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
-				char const* progress_bar =
-					"################################"
-					"################################"
-					"################################"
-					"################################";
-				char const* short_progress_bar = "--------";
-				printf("%3d [%3d, %d] %s%s\n"
-					, bucket, i->num_nodes, i->num_replacements
-					, progress_bar + (128 - i->num_nodes)
-					, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
+				routing_table_depth = p->routing_table.size();
+				int c = 0;
+				for (auto const& b : p->routing_table)
+				{
+					c += b.num_nodes;
+					c += b.num_replacements;
+				}
+				num_nodes = c;
+				print_routing_table(p->routing_table);
 			}
 		}
+		// terminate?
+		, [&](int ticks, lt::session& ses) -> bool
+		{
+			if (ticks == 0)
+			{
+				lt::dht_settings sett;
+				sett.ignore_dark_internet = false;
+				ses.set_dht_settings(sett);
 
-		return false;
-	}
+				// bootstrap off of 8 of the nodes
+				lt::entry state;
+				lt::entry::list_type& nodes = state["dht state"]["nodes"].list();
+				for (auto const& n : dht.router_nodes())
+				{
+					std::string node;
+					std::back_insert_iterator<std::string> out(node);
+					lt::detail::write_endpoint(n, out);
+					nodes.push_back(lt::entry(node));
+				}
 
-	bool on_tick() override final
-	{
-		m_first_session->post_dht_stats();
-		if (++m_ticks > 80) return true;
-		return false;
-	}
+				std::vector<char> buf;
+				lt::bencode(std::back_inserter(buf), state);
+				lt::bdecode_node e;
+				lt::error_code ec;
+				lt::bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 
-	// called for every session that's added
-	virtual lt::settings_pack add_session(int idx) override final
-	{
-		lt::settings_pack pack = settings();
+				ses.load_state(e);
+				lt::settings_pack pack;
+				pack.set_bool(lt::settings_pack::enable_dht, true);
+				ses.apply_settings(pack);
+			}
+			if (ticks > 2)
+			{
+				printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
+				TEST_CHECK(routing_table_depth >= 8);
+				TEST_CHECK(num_nodes >= 74);
+				dht.stop();
+				return true;
+			}
+			ses.post_dht_stats();
+			return false;
+		});
 
-		pack.set_bool(lt::settings_pack::enable_dht, true);
+	sim.run();
 
-		return pack;
-	}
-
-	virtual void setup_session(lt::session& ses, int idx) override final
-	{
-		if (idx == 0) m_first_session = &ses;
-
-		// we have to do this since all of our simulated IP addresses are close to
-		// each other
-		lt::dht_settings sett;
-		sett.restrict_routing_ips = false;
-		sett.restrict_search_ips = false;
-		sett.privacy_lookups = false;
-		sett.extended_routing_table = false;
-		ses.set_dht_settings(sett);
-	}
-
-private:
-	lt::time_point m_start_time;
-	boost::shared_ptr<lt::torrent_info> m_ti;
-	lt::session* m_first_session;
-	int m_ticks;
-};
-
-TORRENT_TEST(dht)
-{
-	network_config cfg;
-	setup_dht(10, cfg);
 }
 
