@@ -132,6 +132,10 @@ public:
 	// the node will be ignored.
 	void heard_about(node_id const& id, udp::endpoint const& ep);
 
+	// change our node ID. This can be expensive since nodes must be moved around
+	// and potentially dropped
+	void update_node_id(node_id id);
+
 	node_entry const* next_refresh();
 
 	enum

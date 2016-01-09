@@ -115,8 +115,28 @@ node::node(udp_socket_interface* sock
 	TORRENT_ASSERT(m_storage.get() != NULL);
 }
 
-node::~node()
+node::~node() {}
+
+void node::update_node_id()
 {
+	// if we don't have an observer, we can't ask for the external IP (and our
+	// current node ID is likely not generated from an external address), so we
+	// can just stop here in that case.
+	if (!m_observer) return;
+
+	// it's possible that our external address hasn't actually changed. If our
+	// current ID is still valid, don't do anything.
+	if (verify_id(m_id, m_observer->external_address()))
+		return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer) m_observer->log(dht_logger::node
+		, "updating node ID (because external IP address changed)");
+#endif
+
+	m_id = generate_id(m_observer->external_address());
+
+	m_table.update_node_id(m_id);
 }
 
 bool node::verify_token(std::string const& token, char const* info_hash

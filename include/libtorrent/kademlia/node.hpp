@@ -104,7 +104,9 @@ public:
 		, dht_observer* observer, counters& cnt
 		, dht_storage_constructor_type storage_constructor = dht_default_storage_constructor);
 
-	virtual ~node();
+	~node();
+
+	void update_node_id();
 
 	void tick();
 	void bootstrap(std::vector<udp::endpoint> const& nodes
