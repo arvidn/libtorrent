@@ -403,7 +403,7 @@ namespace libtorrent
 	public:
 		// constructs the default_storage based on the give file_storage (fs).
 		// ``mapped`` is an optional argument (it may be NULL). If non-NULL it
-		// represents the file mappsing that have been made to the torrent before
+		// represents the file mapping that have been made to the torrent before
 		// adding it. That's where files are supposed to be saved and looked for
 		// on disk. ``save_path`` is the root save folder for this torrent.
 		// ``file_pool`` is the cache of file handles that the storage will use.

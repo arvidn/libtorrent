@@ -2558,5 +2558,43 @@ TORRENT_TEST(node_id_bucket_distribution)
 		expected /= 2;
 	}
 }
+
+TORRENT_TEST(dht_verify_node_address)
+{
+	obs observer;
+	// initial setup taken from dht test above
+	dht_settings s;
+	s.extended_routing_table = false;
+	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
+	const int bucket_size = 10;
+	dht::routing_table table(id, bucket_size, s, &observer);
+	std::vector<node_entry> nodes;
+	TEST_EQUAL(table.size().get<0>(), 0);
+
+	node_id tmp = id;
+	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(nodes.size(), 1);
+
+	// incorrect data, wrong id
+	table.node_seen(to_hash("0123456789abcdef01232456789abcdef0123456")
+		, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
+	table.find_node(id, nodes, 0, 10);
+
+	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(nodes.size(), 1);
+
+	// incorrect data, wrong IP
+	table.node_seen(tmp
+		, udp::endpoint(address::from_string("4.4.4.6"), 4), 10);
+	table.find_node(id, nodes, 0, 10);
+
+	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(nodes.size(), 1);
+}
 #endif
 
