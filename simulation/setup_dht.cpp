@@ -64,6 +64,13 @@ namespace {
 		return asio::ip::address_v4(lt::random());
 	}
 
+	asio::ip::address addr6_from_int(int idx)
+	{
+		asio::ip::address_v6::bytes_type bytes;
+		for (uint8_t& b : bytes) b = uint8_t(lt::random());
+		return asio::ip::address_v6(bytes);
+	}
+
 	// this is the node ID assigned to node 'idx'
 	dht::node_id id_from_addr(lt::address const& addr)
 	{
@@ -74,28 +81,27 @@ namespace {
 
 struct dht_node final : lt::dht::udp_socket_interface
 {
-	enum flags_t
-	{
-		add_dead_nodes = 1
-	};
-
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
 		, int idx, std::uint32_t flags)
-		: m_io_service(sim, addr_from_int(idx))
+		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 #if LIBSIMULATOR_USE_MOVE
 		, m_socket(m_io_service)
-		, m_dht(ipv4, this, sett, id_from_addr(m_io_service.get_ips().front())
+		, m_dht((flags & dht_network::bind_ipv6) ? ipv6 : ipv4
+			, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt, std::map<std::string, lt::dht::node*>())
 #else
 		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node(ipv4, this, sett, id_from_addr(m_io_service.get_ips().front())
+		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? ipv6 : ipv4
+			, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt, std::map<std::string, lt::dht::node*>()))
 #endif
-		, m_add_dead_nodes(flags & add_dead_nodes)
+		, m_add_dead_nodes(flags & dht_network::add_dead_nodes)
+		, m_ipv6(flags & dht_network::bind_ipv6)
 	{
 		error_code ec;
-		sock().open(asio::ip::udp::v4());
-		sock().bind(asio::ip::udp::endpoint(lt::address_v4::any(), 6881));
+		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
+		sock().bind(asio::ip::udp::endpoint(
+			m_ipv6 ? lt::address(lt::address_v6::any()) : lt::address(lt::address_v4::any()), 6881));
 
 		udp::socket::non_blocking_io ioc(true);
 		sock().io_control(ioc);
@@ -116,7 +122,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 	// reserving space in the vector before emplacing any nodes).
 	dht_node(dht_node&& n) noexcept
 		: m_socket(std::move(n.m_socket))
-		, m_dht(ipv4, this, n.m_dht.settings(), n.m_dht.nid()
+		, m_dht(n.m_ipv6 ? ipv6 : ipv4, this, n.m_dht.settings(), n.m_dht.nid()
 			, n.m_dht.observer(), n.m_dht.stats_counters()
 			, std::map<std::string, lt::dht::node*>())
 	{
@@ -217,7 +223,8 @@ struct dht_node final : lt::dht::udp_socket_interface
 				dht::node_id const mask = dht::generate_prefix_mask(bucket + 1);
 				dht::node_id target = dht::generate_random_id() & ~mask;
 				target |= id & mask;
-				dht().m_table.node_seen(target, rand_udp_ep(), (lt::random() % 300) + 10);
+				dht().m_table.node_seen(target, rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4)
+					, (lt::random() % 300) + 10);
 			}
 		}
 /*
@@ -256,10 +263,11 @@ private:
 #endif
 	lt::udp::endpoint m_ep;
 	bool m_add_dead_nodes;
+	bool m_ipv6;
 	char m_buffer[1300];
 };
 
-dht_network::dht_network(sim::simulation& sim, int num_nodes)
+dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags)
 {
 	m_sett.ignore_dark_internet = false;
 	m_sett.restrict_routing_ips = false;
@@ -273,7 +281,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes)
 	for (int i = 0; i < num_nodes; ++i)
 	{
 		// node 0 is the one we log
-		m_nodes.emplace_back(sim, m_sett, m_cnt, i, 0/*, dht_node::add_dead_nodes*/);
+		m_nodes.emplace_back(sim, m_sett, m_cnt, i, flags);
 		all_nodes.push_back(m_nodes.back().node_info());
 	}
 
