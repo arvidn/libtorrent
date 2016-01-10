@@ -291,6 +291,8 @@ namespace libtorrent { namespace dht
 		}
 
 		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
+		// remove this line/check once the DHT supports IPv6
+		if (!ep.address().is_v4()) return false;
 
 		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
 		// account for IP and UDP overhead

@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/address.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -68,13 +69,24 @@ size_t hash_value(libtorrent::address_v4::bytes_type ip)
 
 namespace libtorrent { namespace dht
 {
-
-template <typename T, typename K>
-void erase_one(T& container, K const& key)
+namespace
 {
-	typename T::iterator i = container.find(key);
-	TORRENT_ASSERT(i != container.end());
-	container.erase(i);
+	template <typename T, typename K>
+	void erase_one(T& container, K const& key)
+	{
+		typename T::iterator i = container.find(key);
+		TORRENT_ASSERT(i != container.end());
+		container.erase(i);
+	}
+
+	bool verify_node_address(dht_settings const& settings
+		, node_id const& id, address const& addr)
+	{
+		// only when the node_id pass the verification, add it to routing table.
+		if (settings.enforce_node_id && !verify_id(id, addr)) return false;
+
+		return true;
+	}
 }
 
 routing_table::routing_table(node_id const& id, int bucket_size
@@ -1125,8 +1137,7 @@ void routing_table::add_router_node(udp::endpoint router)
 // pinged == false)
 void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 {
-	// only when the node_id pass the verification, add it to routing table.
-	if (m_settings.enforce_node_id && !verify_id(id, ep.address())) return;
+	if (!verify_node_address(m_settings, id, ep.address())) return;
 	add_node(node_entry(id, ep));
 }
 
@@ -1137,6 +1148,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 // id)
 bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
 {
+	if (!verify_node_address(m_settings, id, ep.address())) return false;
 	return add_node(node_entry(id, ep, rtt, true));
 }
 
