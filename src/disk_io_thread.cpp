@@ -2341,7 +2341,7 @@ namespace libtorrent
 				return 0;
 			}
 		}
-	
+
 		if (pe == NULL && !m_settings.get_bool(settings_pack::use_read_cache))
 		{
 			l.unlock();
@@ -2468,6 +2468,7 @@ namespace libtorrent
 
 				if (ret < 0)
 				{
+					TORRENT_ASSERT(j->error.ec && j->error.operation != 0);
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 					l.lock();
 					break;
@@ -2481,6 +2482,7 @@ namespace libtorrent
 					ret = -1;
 					j->error.ec.assign(boost::asio::error::eof
 						, boost::asio::error::get_misc_category());
+					j->error.operation = storage_error::read;
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 					l.lock();
 					break;
