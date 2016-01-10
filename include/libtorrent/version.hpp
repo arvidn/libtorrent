@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	// returns the libtorrent version as string form in this format:
-	// "<major>.<minor>.<tiny>.<tag>.<revision>"
+	// "<major>.<minor>.<tiny>.<tag>"
 	TORRENT_EXPORT char const* version();
 
 }
