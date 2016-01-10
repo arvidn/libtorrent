@@ -1520,16 +1520,16 @@ namespace libtorrent
 		return new default_storage(params);
 	}
 
-	int disabled_storage::readv(file::iovec_t const*
-		, int, int, int, int, storage_error&)
+	int disabled_storage::readv(file::iovec_t const* bufs
+		, int num_bufs, int, int, int, storage_error&)
 	{
-		return 0;
+		return bufs_size(bufs, num_bufs);
 	}
 
-	int disabled_storage::writev(file::iovec_t const*
-		, int, int, int, int, storage_error&)
+	int disabled_storage::writev(file::iovec_t const* bufs
+		, int num_bufs, int, int, int, storage_error&)
 	{
-		return 0;
+		return bufs_size(bufs, num_bufs);
 	}
 
 	storage_interface* disabled_storage_constructor(storage_params const& params)
