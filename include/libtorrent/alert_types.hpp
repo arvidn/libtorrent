@@ -159,11 +159,8 @@ namespace libtorrent
 	#define TORRENT_CLONE(name) \
 		virtual std::auto_ptr<alert> clone_impl() const TORRENT_OVERRIDE \
 		{ return std::auto_ptr<alert>(new name(*this)); }
-	#define TORRENT_NOT_DISCARDABLE \
-		virtual bool discardable_impl() const TORRENT_OVERRIDE { return false; }
 #else
 	#define TORRENT_CLONE(name)
-	#define TORRENT_NOT_DISCARDABLE
 #endif
 
 #define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
@@ -215,7 +212,6 @@ namespace libtorrent
 		TORRENT_DEFINE_ALERT_PRIO(torrent_removed_alert, 4)
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 		sha1_hash info_hash;
 	};
 
@@ -238,7 +234,6 @@ namespace libtorrent
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		error_code ec;
 		boost::shared_array<char> buffer;
@@ -276,7 +271,6 @@ namespace libtorrent
 
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 #ifndef TORRENT_NO_DEPRECATE
 		std::string name;
 #endif
@@ -303,7 +297,6 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// refers to the index of the file that was supposed to be renamed,
 		// ``error`` is the error code returned from the filesystem.
@@ -977,7 +970,6 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
-		TORRENT_NOT_DISCARDABLE
 
 		sha1_hash info_hash;
 	};
@@ -995,8 +987,6 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-
-		TORRENT_NOT_DISCARDABLE
 
 		// tells you why it failed.
 		error_code error;
@@ -1023,8 +1013,6 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
-		TORRENT_NOT_DISCARDABLE
-
 		// points to the resume data.
 		boost::shared_ptr<entry> resume_data;
 	};
@@ -1042,8 +1030,6 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification
 			| alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-
-		TORRENT_NOT_DISCARDABLE
 
 		// the error code from the resume_data failure
 		error_code error;
@@ -1290,7 +1276,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 #if !defined(TORRENT_NO_DEPRECATE) && !defined(TORRENT_WINRT)
 		// the interface libtorrent attempted to listen on
@@ -1333,7 +1318,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
@@ -1780,7 +1764,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		error_code error;
 	};
@@ -1836,7 +1819,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// a copy of the parameters used when adding the torrent, it can be used
 		// to identify which invocation to ``async_add_torrent()`` caused this alert.
@@ -1860,7 +1842,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// contains the torrent status of all torrents that changed since last
 		// time this message was posted. Note that you can map a torrent status
@@ -1894,8 +1875,6 @@ namespace libtorrent
 		static const int static_category = alert::stats_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
-		TORRENT_NOT_DISCARDABLE
-
 		// An array are a mix of *counters* and *gauges*, which meanings can be
 		// queries via the session_stats_metrics() function on the session. The
 		// mapping from a specific metric to an index into this array is constant
@@ -1925,7 +1904,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 		sha1_hash old_ih;
@@ -1992,7 +1970,6 @@ namespace libtorrent
 		static const int static_category = alert::dht_notification;
 
 		virtual std::string message() const TORRENT_OVERRIDE;
-		TORRENT_NOT_DISCARDABLE
 
 		// the target hash of the immutable item. This must
 		// match the sha-1 hash of the bencoded form of ``item``.
@@ -2018,8 +1995,6 @@ namespace libtorrent
 
 		static const int static_category = alert::dht_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-
-		TORRENT_NOT_DISCARDABLE
 
 		// the public key that was looked up
 		boost::array<char, 32> key;
