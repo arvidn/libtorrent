@@ -57,13 +57,13 @@ class test_bencoder(unittest.TestCase):
 	def test_bencode(self):
 
 		encoded = lt.bencode({'a': 1, 'b': [1,2,3], 'c': 'foo'})
-		self.assertEqual(encoded, 'd1:ai1e1:bli1ei2ei3ee1:c3:fooe')
+		self.assertEqual(encoded, b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe')
 
 	def test_bdecode(self):
 
-		encoded = 'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
+		encoded = b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
 		decoded = lt.bdecode(encoded)
-		self.assertEqual(decoded, {'a': 1, 'b': [1,2,3], 'c': 'foo'})
+		self.assertEqual(decoded, {b'a': 1, b'b': [1,2,3], b'c': b'foo'})
 
 class test_sha1hash(unittest.TestCase):
 
@@ -74,6 +74,6 @@ class test_sha1hash(unittest.TestCase):
 
 
 if __name__ == '__main__':
-	print lt.__version__
+	print(lt.__version__)
 	unittest.main()
 

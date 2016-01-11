@@ -100,7 +100,7 @@ namespace
 
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
-		list iterkeys = (list)sett_dict.iterkeys();
+		list iterkeys = (list)sett_dict.keys();
 		for (int i = 0; i < boost::python::len(iterkeys); i++)
 		{
 			std::string key = extract<std::string>(iterkeys[i]);
@@ -583,6 +583,7 @@ namespace
 
 void bind_session()
 {
+    register_ptr_to_python<boost::shared_ptr<alert> >();
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*dht_get_immutable_item)(sha1_hash const&) = &lt::session::dht_get_item;
     sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
