@@ -163,6 +163,7 @@ namespace libtorrent
 		METRIC(net, on_lsd_peer_counter)
 		METRIC(net, on_udp_counter)
 		METRIC(net, on_accept_counter)
+		METRIC(net, on_disk_queue_counter)
 		METRIC(net, on_disk_counter)
 
 		// total number of bytes sent and received by the session
@@ -214,6 +215,10 @@ namespace libtorrent
 		METRIC(ses, num_queued_seeding_torrents)
 		METRIC(ses, num_queued_download_torrents)
 		METRIC(ses, num_error_torrents)
+
+		// the number of torrents that don't have the
+		// IP filter applied to them.
+		METRIC(ses, non_filter_torrents)
 
 		// the number of torrents that are currently loaded
 		METRIC(ses, num_loaded_torrents)
@@ -467,6 +472,7 @@ namespace libtorrent
 		METRIC(utp, num_utp_connected)
 		METRIC(utp, num_utp_fin_sent)
 		METRIC(utp, num_utp_close_wait)
+		METRIC(utp, num_utp_deleted)
 
 		// the buffer sizes accepted by
 		// socket send and receive calls respectively.

@@ -31,10 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/session_stats.hpp"
+#include "libtorrent/performance_counters.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -86,5 +89,20 @@ TORRENT_TEST(session)
 	// for the asynchronous call to set the alert
 	// mask completes, before it goes on to destruct
 	// the session object
+}
+
+TORRENT_TEST(session_stats)
+{
+	std::vector<stats_metric> stats = session_stats_metrics();
+	std::sort(stats.begin(), stats.end()
+		, boost::bind(&stats_metric::value_index, _1)
+		< boost::bind(&stats_metric::value_index, _2));
+
+	TEST_EQUAL(stats.size(), lt::counters::num_counters);
+	// make sure every stat index is represented in the stats_metric vector
+	for (int i = 0; i < int(stats.size()); ++i)
+	{
+		TEST_EQUAL(stats[i].value_index, i);
+	}
 }
 

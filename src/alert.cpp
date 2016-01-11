@@ -1633,9 +1633,20 @@ namespace libtorrent {
 
 	std::string session_stats_alert::message() const
 	{
+		// this specific output is parsed by tools/parse_session_stats.py
+		// if this is changed, that parser should also be changed
 		char msg[100];
-		snprintf(msg, sizeof(msg), "session stats (%d values)", int(sizeof(values)));
-		return msg;
+		snprintf(msg, sizeof(msg), "session stats (%d values): "
+			, int(sizeof(values)/sizeof(values[0])));
+		std::string ret = msg;
+		bool first = true;
+		for (int i = 0; i < sizeof(values)/sizeof(values[0]); ++i)
+		{
+			snprintf(msg, sizeof(msg), first ? "%" PRIu64 : ", %" PRIu64, values[i]);
+			first = false;
+			ret += msg;
+		}
+		return ret;
 	}
 
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&

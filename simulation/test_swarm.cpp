@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
 
 using namespace libtorrent;
 
@@ -77,6 +78,48 @@ TORRENT_TEST(plain)
 			return true;
 		});
 }
+
+TORRENT_TEST(session_stats)
+{
+	std::vector<stats_metric> stats = session_stats_metrics();
+	int const downloading_idx = find_metric_idx("ses.num_downloading_torrents");
+	TEST_CHECK(downloading_idx >= 0);
+	int const evicted_idx = find_metric_idx("ses.torrent_evicted_counter");
+	TEST_CHECK(evicted_idx >= 0);
+	int const incoming_extended_idx = find_metric_idx("ses.num_incoming_extended");
+	TEST_CHECK(incoming_extended_idx >= 0);
+
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [=](lt::alert const* a, lt::session& ses)
+		{
+			lt::session_stats_alert const* ss = lt::alert_cast<session_stats_alert>(a);
+			if (!ss) return;
+
+			// there's one downloading torrent
+			TEST_EQUAL(ss->values[downloading_idx], 1);
+			TEST_EQUAL(ss->values[evicted_idx], 0);
+			TEST_EQUAL(ss->values[incoming_extended_idx], 1);
+		}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{
+			ses.post_session_stats();
+			if (ticks > 75)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			return true;
+		});
+}
+
 
 TORRENT_TEST(suggest)
 {
