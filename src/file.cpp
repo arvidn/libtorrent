@@ -1263,9 +1263,6 @@ namespace libtorrent
 	file::file()
 		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
-		, m_sector_size(0)
-#endif
 	{
 #ifdef TORRENT_DISK_STATS
 		m_file_id = 0;
@@ -1275,9 +1272,6 @@ namespace libtorrent
 	file::file(std::string const& path, int mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
-		, m_sector_size(0)
-#endif
 	{
 #ifdef TORRENT_DISK_STATS
 		m_file_id = 0;
@@ -1565,9 +1559,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 #ifdef TORRENT_DISK_STATS
 		m_file_id = 0;
-#endif
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
-		m_sector_size = 0;
 #endif
 
 		if (!is_open()) return;

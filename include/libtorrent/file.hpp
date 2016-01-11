@@ -352,12 +352,7 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 
 		int m_open_mode;
-#if defined TORRENT_WINDOWS || defined TORRENT_LINUX
-		mutable int m_sector_size;
-#endif
 #if defined TORRENT_WINDOWS
-		mutable int m_cluster_size;
-
 		static bool has_manage_volume_privs;
 #endif
 
