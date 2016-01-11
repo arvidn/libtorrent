@@ -100,7 +100,7 @@ namespace
 
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
-		list iterkeys = (list)sett_dict.iterkeys();
+		list iterkeys = (list)sett_dict.keys();
 		for (int i = 0; i < boost::python::len(iterkeys); i++)
 		{
 			std::string key = extract<std::string>(iterkeys[i]);
