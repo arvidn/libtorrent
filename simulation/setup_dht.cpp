@@ -254,13 +254,8 @@ private:
 #endif
 	lt::udp::endpoint m_ep;
 	bool m_add_dead_nodes;
-	// since the simulation is single-threaded, only one socket at a time will
-	// actually be receiving a packet, so we can get away with just allocating
-	// one receive buffer, shared by all nodes
-	static char m_buffer[1300];
+	char m_buffer[1300];
 };
-
-char dht_node::m_buffer[1300];
 
 dht_network::dht_network(sim::simulation& sim, int num_nodes)
 {
