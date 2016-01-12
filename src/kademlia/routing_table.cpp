@@ -1024,6 +1024,38 @@ void routing_table::split_bucket()
 	}
 }
 
+void routing_table::update_node_id(node_id id)
+{
+	m_id = id;
+
+	m_ips.clear();
+
+	// pull all nodes out of the routing table, effectively emptying it
+	table_t old_buckets;
+	old_buckets.swap(m_buckets);
+
+	// then add them all back. First add the main nodes, then the replacement
+	// nodes
+	for (int i = 0; i < old_buckets.size(); ++i)
+	{
+		bucket_t const& bucket = old_buckets[i].live_nodes;
+		for (int j = 0; j < bucket.size(); ++j)
+		{
+			add_node(bucket[j]);
+		}
+	}
+
+	// now add back the replacement nodes
+	for (int i = 0; i < old_buckets.size(); ++i)
+	{
+		bucket_t const& bucket = old_buckets[i].replacements;
+		for (int j = 0; j < bucket.size(); ++j)
+		{
+			add_node(bucket[j]);
+		}
+	}
+}
+
 void routing_table::for_each_node(
 	void (*fun1)(void*, node_entry const&)
 	, void (*fun2)(void*, node_entry const&)

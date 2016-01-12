@@ -83,6 +83,16 @@ struct routing_table_node
 // 	bucket has failed, then it is put in the replacement
 // 	cache (just like in the paper).
 
+namespace impl
+{
+	template <typename F>
+	inline void forwarder(void* userdata, node_entry const& node)
+	{
+		F* f = reinterpret_cast<F*>(userdata);
+		(*f)(node);
+	}
+}
+
 class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
 {
 public:
@@ -132,6 +142,10 @@ public:
 	// the node will be ignored.
 	void heard_about(node_id const& id, udp::endpoint const& ep);
 
+	// change our node ID. This can be expensive since nodes must be moved around
+	// and potentially dropped
+	void update_node_id(node_id id);
+
 	node_entry const* next_refresh();
 
 	enum
@@ -155,6 +169,12 @@ public:
 		table_t::const_iterator i = m_buckets.begin();
 		std::advance(i, bucket);
 		return int(i->live_nodes.size());
+	}
+
+	template <typename F>
+	void for_each_node(F f)
+	{
+		for_each_node(&impl::forwarder<F>, &impl::forwarder<F>, reinterpret_cast<void*>(&f));
 	}
 
 	void for_each_node(void (*)(void*, node_entry const&)

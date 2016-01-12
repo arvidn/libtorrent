@@ -6736,25 +6736,7 @@ retry:
 		// restart the DHT with a new node ID
 
 #ifndef TORRENT_DISABLE_DHT
-		// TODO: 1 we only need to do this if our global IPv4 address has changed
-		// since the DHT (currently) only supports IPv4. Since restarting the DHT
-		// is kind of expensive, it would be nice to not do it unnecessarily
-		if (m_dht)
-		{
-			// TODO: 3 instead of restarting the whole DHT, change the external IP,
-			// node ID and re-jiggle the routing table in-place. A complete restart
-			// throws away all outstanding requests, which may be significant
-			// during bootstrap
-			entry s = m_dht->state();
-			int cur_state = 0;
-			int prev_state = 0;
-			entry* nodes1 = s.find_key("nodes");
-			if (nodes1 && nodes1->type() == entry::list_t) cur_state = nodes1->list().size();
-			entry* nodes2 = m_dht_state.find_key("nodes");
-			if (nodes2 && nodes2->type() == entry::list_t) prev_state = nodes2->list().size();
-			if (cur_state > prev_state) m_dht_state = s;
-			start_dht(m_dht_state);
-		}
+		if (m_dht) m_dht->update_node_id();
 #endif
 	}
 

@@ -113,8 +113,13 @@ namespace libtorrent { namespace dht
 
 	dht_tracker::~dht_tracker() {}
 
+	void dht_tracker::update_node_id()
+	{
+		m_dht.update_node_id();
+	}
+
 	// defined in node.cpp
-	extern void nop();
+	void nop();
 
 	void dht_tracker::start(entry const& bootstrap
 		, find_data::nodes_callback const& f)

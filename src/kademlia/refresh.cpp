@@ -58,10 +58,15 @@ bool bootstrap::invoke(observer_ptr o)
 	entry& a = e["a"];
 
 	e["q"] = "get_peers";
-	a["info_hash"] = target().to_string();
+	// in case our node id changes during the bootstrap, make sure to always use
+	// the current node id (rather than the target stored in the traversal
+	// algorithm)
+	node_id target = get_node().nid();
+	make_id_secret(target);
+	a["info_hash"] = target.to_string();
 
 //	e["q"] = "find_node";
-//	a["target"] = target().to_string();
+//	a["target"] = target.to_string();
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }

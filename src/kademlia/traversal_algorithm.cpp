@@ -180,7 +180,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 					char hex_id[41];
 					to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 					get_node().observer()->log(dht_logger::traversal
-						, "[%p] IGNORING result id: %s addr: %s type: %s"
+						, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
 						, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
 				}
 #endif
