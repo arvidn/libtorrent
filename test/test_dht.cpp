@@ -2346,6 +2346,62 @@ TORRENT_TEST(routing_table_extended)
 #endif
 }
 
+void inserter(std::set<node_id>* nodes, node_entry const& ne)
+{
+	nodes->insert(nodes->begin(), ne.id);
+}
+
+TORRENT_TEST(routing_table_set_id)
+{
+	dht_settings sett = test_settings();
+	sett.enforce_node_id = false;
+	sett.extended_routing_table = false;
+	obs observer;
+	node_id id = to_hash("0000000000000000000000000000000000000000");
+
+	// we can't add the nodes in straight 0,1,2,3 order. That way the routing
+	// table would get unbalanced and intermediate nodes would be dropped
+	std::vector<boost::uint8_t> node_id_prefix;
+	node_id_prefix.reserve(256);
+	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
+	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	routing_table tbl(id, 8, sett, &observer);
+	for (int i = 0; i < 256; ++i)
+	{
+		id[0] = node_id_prefix[i];
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+	}
+	TEST_EQUAL(tbl.num_active_buckets(), 6);
+
+	std::set<node_id> original_nodes;
+	tbl.for_each_node(boost::bind(&inserter, &original_nodes, _1));
+
+#if defined TORRENT_DEBUG
+	tbl.print_state(std::cerr);
+#endif
+
+	id = to_hash("ffffffffffffffffffffffffffffffffffffffff");
+
+	tbl.update_node_id(id);
+
+	TEST_CHECK(tbl.num_active_buckets() <= 4);
+	std::set<node_id> remaining_nodes;
+	tbl.for_each_node(boost::bind(&inserter, &remaining_nodes, _1));
+
+	std::set<node_id> intersection;
+	std::set_intersection(remaining_nodes.begin(), remaining_nodes.end()
+		, original_nodes.begin(), original_nodes.end()
+		, std::inserter(intersection, intersection.begin()));
+
+	// all remaining nodes also exist in the original nodes
+	TEST_EQUAL(intersection.size(), remaining_nodes.size());
+
+#if defined TORRENT_DEBUG
+	tbl.print_state(std::cerr);
+#endif
+}
+
+
 TORRENT_TEST(read_only_node)
 {
 	dht_settings sett = test_settings();
