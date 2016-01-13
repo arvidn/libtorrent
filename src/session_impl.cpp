@@ -93,6 +93,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
@@ -553,7 +554,24 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" *** session thread init");
+		if (m_alerts.should_post<log_alert>())
+		{
+			session_log(" *** session thread init");
+
+			// this specific output is parsed by tools/parse_session_stats.py
+			// if this is changed, that parser should also be changed
+			std::string stats_header = "session stats header: ";
+			std::vector<stats_metric> stats = session_stats_metrics();
+			std::sort(stats.begin(), stats.end()
+				, boost::bind(&stats_metric::value_index, _1)
+				< boost::bind(&stats_metric::value_index, _2));
+			for (int i = 0; i < stats.size(); ++i)
+			{
+				if (i > 0) stats_header += ", ";
+				stats_header += stats[i].name;
+			}
+			m_alerts.emplace_alert<log_alert>(stats_header.c_str());
+		}
 #endif
 
 		// this is where we should set up all async operations. This
@@ -4371,7 +4389,6 @@ retry:
 
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
-
 		m_alerts.emplace_alert<log_alert>(buf);
 	}
 #endif
