@@ -299,7 +299,7 @@ struct announce_item
 	sha1_hash target;
 	void gen()
 	{
-		num_peers = (rand() % 5) + 1;
+		num_peers = (rand() % 5) + 2;
 		ent["next"] = next.to_string();
 		ent["A"] = "a";
 		ent["B"] = "b";
@@ -417,13 +417,8 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		}
 	}
 
+	// TODO: check to make sure the "best" items are stored
 	TEST_EQUAL(items_num.size(), 4);
-
-	// items_num should contain 1,2 and 3
-	// #error this doesn't quite hold
-//	TEST_CHECK(items_num.find(1) != items_num.end());
-//	TEST_CHECK(items_num.find(2) != items_num.end());
-//	TEST_CHECK(items_num.find(3) != items_num.end());
 }
 
 int sum_distance_exp(int s, node_entry const& e, node_id const& ref)
