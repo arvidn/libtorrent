@@ -1,4 +1,5 @@
 
+	* fix support for symlinks on windows
 	* fix long filename issue (on unixes)
 	* fixed performance bug in DHT torrent eviction
 	* fixed win64 build (GetFileAttributesEx)

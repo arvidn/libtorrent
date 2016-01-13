@@ -177,26 +177,41 @@ namespace libtorrent
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS
-		// apparently windows doesn't expect paths
-		// to directories to ever end with a \ or /
-		if (!inf.empty() && (inf[inf.size() - 1] == '\\'
-			|| inf[inf.size() - 1] == '/'))
-			inf.resize(inf.size() - 1);
 
-#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-#define GetFileAttributesEx_ GetFileAttributesExW
-		std::wstring f = convert_to_wstring(inf);
-#else
-#define GetFileAttributesEx_ GetFileAttributesExA
-		std::string f = convert_to_native(inf);
+		std::string p = convert_separators(inf);
+#if TORRENT_USE_UNC_PATHS
+		// UNC paths must be absolute
+		// network paths are already UNC paths
+		if (inf.substr(0,2) == "\\\\") p = inf;
+		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
 #endif
-		WIN32_FILE_ATTRIBUTE_DATA data;
-		if (!GetFileAttributesEx_(f.c_str(), GetFileExInfoStandard, &data))
+
+#if TORRENT_USE_WSTRING
+#define CreateFile_ CreateFileW
+		std::wstring f = convert_to_wstring(p);
+#else
+#define CreateFile_ CreateFileA
+		std::string f = convert_to_native(p);
+#endif
+
+		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
+		HANDLE h = CreateFile_(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+		if (h == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), get_system_category());
+			TORRENT_ASSERT(ec);
 			return;
 		}
 
+		BY_HANDLE_FILE_INFORMATION data;
+		if (!GetFileInformationByHandle(h, &data))
+		{
+			ec.assign(GetLastError(), get_system_category());
+			TORRENT_ASSERT(ec);
+			CloseHandle(h);
+			return;
+		}
 		s->file_size = (boost::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
 		s->ctime = file_time_to_posix(data.ftCreationTime);
 		s->atime = file_time_to_posix(data.ftLastAccessTime);
@@ -206,7 +221,7 @@ namespace libtorrent
 			? file_status::directory
 			: (data.dwFileAttributes & FILE_ATTRIBUTE_DEVICE)
 			? file_status::character_special : file_status::regular_file;
-
+		CloseHandle(h);
 #else
 		
 		// posix version
