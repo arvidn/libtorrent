@@ -197,7 +197,7 @@ namespace
 		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
 		{
 			ret = -1;
-			break;
+			goto done;
 		}
 
 		for (int i = 0; i < num_bufs; ++i)
@@ -267,7 +267,7 @@ done:
 		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
 		{
 			ret = -1;
-			break;
+			goto done;
 		}
 
 		for (int i = 0; i < num_bufs; ++i)
