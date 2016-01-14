@@ -194,11 +194,19 @@ namespace
 			}
 		}
 
-		WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE);
+		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
+		{
+			ret = -1;
+			goto done;
+		}
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			WaitForSingleObject(ol[i].hEvent, INFINITE);
+			if (WaitForSingleObject(ol[i].hEvent, INFINITE) == WAIT_FAILED)
+			{
+				ret = -1;
+				break;
+			}
 			DWORD num_read;
 			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
 			{
@@ -256,11 +264,19 @@ done:
 			}
 		}
 
-		WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE);
+		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
+		{
+			ret = -1;
+			goto done;
+		}
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			WaitForSingleObject(ol[i].hEvent, INFINITE);
+			if (WaitForSingleObject(ol[i].hEvent, INFINITE) == WAIT_FAILED)
+			{
+				ret = -1;
+				break;
+			}
 			DWORD num_written;
 			if (GetOverlappedResult(fd, &ol[i], &num_written, FALSE) == FALSE)
 			{
