@@ -583,7 +583,6 @@ namespace
 
 void bind_session()
 {
-    register_ptr_to_python<boost::shared_ptr<alert> >();
 #ifndef TORRENT_DISABLE_DHT
     void (lt::session::*dht_get_immutable_item)(sha1_hash const&) = &lt::session::dht_get_item;
     sha1_hash (lt::session::*dht_put_immutable_item)(entry data) = &lt::session::dht_put_item;
