@@ -73,6 +73,15 @@ class test_sha1hash(unittest.TestCase):
 		self.assertEqual(h, str(s))
 
 
+class test_session(unittest.TestCase):
+	def test_post_session_stats(self):
+		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification})
+		s.post_session_stats()
+		a = s.wait_for_alert(1000)
+		self.assertTrue(isinstance(a, lt.session_stats_alert))
+		self.assertTrue(isinstance(a.values, dict))
+		self.assertTrue(len(a.values) > 0)
+
 if __name__ == '__main__':
 	print(lt.__version__)
 	unittest.main()
