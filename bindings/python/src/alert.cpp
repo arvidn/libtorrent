@@ -6,7 +6,6 @@
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/piece_picker.hpp> // for piece_block
-#include <libtorrent/performance_counters.hpp>
 #include <libtorrent/session_stats.hpp>
 #include <memory>
 
