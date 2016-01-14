@@ -6,6 +6,7 @@
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/piece_picker.hpp> // for piece_block
+#include <libtorrent/session_stats.hpp>
 #include <memory>
 
 using namespace boost::python;
@@ -175,6 +176,19 @@ dict dht_put_item(dht_put_alert const& alert)
         d["salt"] = alert.salt;
     } else {
         d["target"] = alert.target.to_string();
+    }
+    return d;
+}
+
+dict session_stats_values(session_stats_alert const& alert)
+{
+    std::vector<stats_metric> map = session_stats_metrics();
+    dict d;
+
+    for (std::vector<stats_metric>::const_iterator i = map.begin();
+       i != map.end(); ++i)
+    {
+        d[i->name] = alert.values[i->value_index];
     }
     return d;
 }
@@ -724,5 +738,9 @@ void bind_alert()
     class_<dht_put_alert, bases<alert>, noncopyable>(
        "dht_put_alert", no_init)
         .add_property("item", &dht_put_item)
+        ;
+    class_<session_stats_alert, bases<alert>, noncopyable>(
+        "session_stats_alert", no_init)
+        .add_property("values", &session_stats_values)
         ;
 }
