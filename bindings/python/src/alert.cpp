@@ -98,6 +98,10 @@ void bind_alert()
 {
     using boost::noncopyable;
 
+#ifndef _MSC_VER
+    register_ptr_to_python<boost::shared_ptr<alert> >();
+#endif
+
     {
         scope alert_scope = class_<alert, boost::shared_ptr<alert>, noncopyable >("alert", no_init)
             .def("message", &alert::message)
