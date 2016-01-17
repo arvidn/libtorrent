@@ -3219,7 +3219,9 @@ retry:
 					torrent& t = *want_scrape[m_next_scrape_torrent];
 					TORRENT_ASSERT(t.is_paused() && t.is_auto_managed());
 
-					t.scrape_tracker();
+					// false means it's not triggered by the user, but automatically
+					// by libtorrent
+					t.scrape_tracker(false);
 
 					++m_next_scrape_torrent;
 					if (m_next_scrape_torrent >= int(want_scrape.size()))

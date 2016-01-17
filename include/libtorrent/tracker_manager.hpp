@@ -99,6 +99,7 @@ namespace libtorrent
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
+			, triggered_manually(false)
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
 #endif
@@ -154,6 +155,11 @@ namespace libtorrent
 		address bind_ip;
 
 		bool send_stats;
+
+		// this is set to true if this request was triggered by a "manual" call to
+		// scrape_tracker() or force_reannounce()
+		bool triggered_manually;
+
 #ifdef TORRENT_USE_OPENSSL
 		boost::asio::ssl::context* ssl_ctx;
 #endif

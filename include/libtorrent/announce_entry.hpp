@@ -157,6 +157,9 @@ namespace libtorrent
 		// this is false the stats sent to this tracker will be 0
 		bool send_stats:1;
 
+		// internal
+		bool triggered_manually:1;
+
 		// reset announce counters and clears the started sent flag.
 		// The announce_entry will look like we've never talked to
 		// the tracker.
