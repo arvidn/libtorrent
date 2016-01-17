@@ -1,4 +1,5 @@
 
+	* fix bug where web seeds were not used for torrents added by URL
 	* fix support for symlinks on windows
 	* fix long filename issue (on unixes)
 	* fixed performance bug in DHT torrent eviction
