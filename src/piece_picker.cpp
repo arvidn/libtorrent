@@ -268,6 +268,7 @@ namespace libtorrent
 			TORRENT_ASSERT(p == prio);
 		}
 	}
+#endif // TORRENT_USE_INVARIANT_CHECKS
 
 #if defined TORRENT_PICKER_LOG
 	void piece_picker::print_pieces() const
@@ -294,7 +295,6 @@ namespace libtorrent
 		std::cerr << std::endl;
 	}
 #endif // TORRENT_PIECE_PICKER
-#endif // TORRENT_USE_INVARIANT_CHECKS
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void piece_picker::check_invariant(const torrent* t) const
@@ -1441,14 +1441,22 @@ namespace libtorrent
 	namespace
 	{
 		int append_blocks(std::vector<piece_block>& dst, std::vector<piece_block>& src
-			, int num_blocks)
+			, int num_blocks, int prefer_whole_pieces)
 		{
 			if (src.empty()) return num_blocks;
 			int to_copy;
-//			if (prefer_whole_pieces == 0)
+
+			// this is a hack to make prefer_whole_pieces still work decently
+			// during "prioritize_partials". When prioritize partials gets
+			// triggered (like during startup) we would otherwise just add the
+			// remaining blocks to the backup blocks, then if we don't find any
+			// higher priority blocks to pick, we'll get here to append the backup
+			// blocks. 32 is picked to form 512 kiB requests while requesting
+			// blocks from the same piece as other peers.
+			if (prefer_whole_pieces == 0)
 				to_copy = (std::min)(int(src.size()), num_blocks);
-//			else
-//				to_copy = int(src.size());
+			else
+				to_copy = (std::min)(32, int(src.size()));
 
 			dst.insert(dst.end()
 				, src.begin(), src.begin() + to_copy);
@@ -1464,7 +1472,7 @@ namespace libtorrent
 	// prefer_whole_pieces can be set if this peer should download
 	// whole pieces rather than trying to download blocks from the
 	// same piece as other peers.
-	//	the void* is the pointer to the policy::peer of the peer we're
+	// the void* is the pointer to the policy::peer of the peer we're
 	// picking pieces from. This is used when downloading whole pieces,
 	// to only pick from the same piece the same peer is downloading
 	// from. state is supposed to be set to fast if the peer is downloading
@@ -1561,11 +1569,11 @@ namespace libtorrent
 			}
 
 			num_blocks = append_blocks(interesting_blocks, backup_blocks
-				, num_blocks);
+				, num_blocks, prefer_whole_pieces);
 			if (num_blocks <= 0) return;
 
 			num_blocks = append_blocks(interesting_blocks, backup_blocks2
-				, num_blocks);
+				, num_blocks, prefer_whole_pieces);
 			if (num_blocks <= 0) return;
 		}
 
@@ -1822,10 +1830,11 @@ namespace libtorrent
 		}
 
 		num_blocks = append_blocks(interesting_blocks, backup_blocks
-			, num_blocks);
+			, num_blocks, prefer_whole_pieces);
 		if (num_blocks <= 0) return;
 
-		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
+		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks
+			, prefer_whole_pieces);
 		if (num_blocks <= 0) return;
 
 		// don't double-pick anything if the peer is on parole

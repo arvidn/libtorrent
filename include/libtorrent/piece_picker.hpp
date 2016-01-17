@@ -59,6 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #endif
 
+//#define TORRENT_PICKER_LOG
+
 namespace libtorrent
 {
 
