@@ -802,7 +802,7 @@ namespace libtorrent
 
 	void torrent_handle::scrape_tracker() const
 	{
-		TORRENT_ASYNC_CALL(scrape_tracker);
+		TORRENT_ASYNC_CALL1(scrape_tracker, true);
 	}
 
 	void torrent_handle::super_seeding(bool on) const

@@ -2887,16 +2887,17 @@ namespace libtorrent
 #if defined TORRENT_ASIO_DEBUGGING
 		complete_async("tracker::on_tracker_announce_disp");
 #endif
-		if (e) return;
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
+		t->m_waiting_tracker = false;
+
+		if (e) return;
 		t->on_tracker_announce();
 	}
 
 	void torrent::on_tracker_announce()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_waiting_tracker = false;
 		if (m_abort) return;
 		announce_with_tracker();
 	}
@@ -3148,14 +3149,15 @@ namespace libtorrent
 				, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
 				, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
 #endif
-			// if trackerid is not specified for tracker use default one, probably set explicitly
-			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
 				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
 				&& sent_announce
 				&& ae.tier <= tier
 				&& tier != INT_MAX)
 				continue;
+
+			// if trackerid is not specified for tracker use default one, probably set explicitly
+			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 
 			if (ae.tier > tier && sent_announce
 				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
@@ -3175,6 +3177,9 @@ namespace libtorrent
 				else if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
 			}
 
+			req.triggered_manually = ae.triggered_manually;
+			ae.triggered_manually = false;
+
 			req.bind_ip = bind_interface;
 
 			if (settings().get_bool(settings_pack::force_proxy))
@@ -3191,7 +3196,8 @@ namespace libtorrent
 					&& proxy_type == settings_pack::none)
 				{
 					ae.next_announce = now + minutes(10);
-					if (m_ses.alerts().should_post<anonymous_mode_alert>())
+					if (m_ses.alerts().should_post<anonymous_mode_alert>()
+						|| req.triggered_manually)
 					{
 						m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
 							, anonymous_mode_alert::tracker_not_anonymous, req.url);
@@ -3208,7 +3214,8 @@ namespace libtorrent
 					&& proxy_type != settings_pack::i2p_proxy)
 				{
 					ae.next_announce = now + minutes(10);
-					if (m_ses.alerts().should_post<anonymous_mode_alert>())
+					if (m_ses.alerts().should_post<anonymous_mode_alert>()
+						|| req.triggered_manually)
 					{
 						m_ses.alerts().emplace_alert<anonymous_mode_alert>(get_handle()
 							, anonymous_mode_alert::tracker_not_anonymous, req.url);
@@ -3268,7 +3275,7 @@ namespace libtorrent
 		update_tracker_timer(now);
 	}
 
-	void torrent::scrape_tracker()
+	void torrent::scrape_tracker(bool user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_last_scrape = m_ses.session_time();
@@ -3290,6 +3297,7 @@ namespace libtorrent
 		req.auth = tracker_login();
 #endif
 		req.key = tracker_key();
+		req.triggered_manually = user_triggered;
 		m_ses.queue_tracker_request(req, shared_from_this());
 	}
 
@@ -3327,7 +3335,11 @@ namespace libtorrent
 			update_scrape_state();
 		}
 
-		if (m_ses.alerts().should_post<scrape_reply_alert>())
+		// if this was triggered manually we need to post this unconditionally,
+		// since the client expects a response from its action, regardless of
+		// whether all tracker events have been enabled by the alert mask
+		if (m_ses.alerts().should_post<scrape_reply_alert>()
+			|| req.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<scrape_reply_alert>(
 				get_handle(), incomplete, complete, req.url);
@@ -3538,7 +3550,9 @@ namespace libtorrent
 
 		update_want_peers();
 
-		if (m_ses.alerts().should_post<tracker_reply_alert>())
+		// post unconditionally if the announce was triggered manually
+		if (m_ses.alerts().should_post<tracker_reply_alert>()
+			|| r.triggered_manually)
 		{
 			m_ses.alerts().emplace_alert<tracker_reply_alert>(
 				get_handle(), resp.peers.size() + resp.peers4.size()
@@ -3681,6 +3695,9 @@ namespace libtorrent
 		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
 	}
 
+	// this is the entry point for the client to force a re-announce. It's
+	// considered a client-initiated announce (as opposed to the regular ones,
+	// issued by libtorrent)
 	void torrent::force_tracker_request(time_point t, int tracker_idx)
 	{
 		if (is_paused()) return;
@@ -3688,7 +3705,10 @@ namespace libtorrent
 		{
 			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 				, end(m_trackers.end()); i != end; ++i)
+			{
 				i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
+				i->triggered_manually = true;
+			}
 		}
 		else
 		{
@@ -3697,6 +3717,7 @@ namespace libtorrent
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
 			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
+			e.triggered_manually = true;
 		}
 		update_tracker_timer(clock_type::now());
 	}
@@ -12139,6 +12160,7 @@ namespace libtorrent
 #endif
 		if (0 == (r.kind & tracker_request::scrape_request))
 		{
+			// announce request
 			announce_entry* ae = find_tracker(r);
 			if (ae)
 			{
@@ -12154,14 +12176,16 @@ namespace libtorrent
 
 				deprioritize_tracker(tracker_index);
 			}
-			if (m_ses.alerts().should_post<tracker_error_alert>())
+			if (m_ses.alerts().should_post<tracker_error_alert>()
+				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
 					, ae?ae->fails:0, response_code, r.url, ec, msg);
 			}
 		}
-		else if (0 != (r.kind & tracker_request::scrape_request))
+		else
 		{
+			// scrape request
 			if (response_code == 410)
 			{
 				// never talk to this tracker again
@@ -12169,7 +12193,11 @@ namespace libtorrent
 				if (ae) ae->fail_limit = 1;
 			}
 
-			if (m_ses.alerts().should_post<scrape_failed_alert>())
+			// if this was triggered manually we need to post this unconditionally,
+			// since the client expects a response from its action, regardless of
+			// whether all tracker events have been enabled by the alert mask
+			if (m_ses.alerts().should_post<scrape_failed_alert>()
+				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<scrape_failed_alert>(get_handle(), r.url, ec);
 			}

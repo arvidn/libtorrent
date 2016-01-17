@@ -1,3 +1,5 @@
+	* tracker response alerts from user initiated announces/scrapes are now
+	  posted regardless of alert mask
 	* improve DHT performance when changing external IP (primarily affects
 	  bootstrapping).
 	* add feature to stop torrents immediately after checking files is done

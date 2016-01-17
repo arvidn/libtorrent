@@ -62,6 +62,7 @@ namespace libtorrent
 		, start_sent(false)
 		, complete_sent(false)
 		, send_stats(true)
+		, triggered_manually(false)
 	{}
 
 	announce_entry::announce_entry()
@@ -79,6 +80,7 @@ namespace libtorrent
 		, start_sent(false)
 		, complete_sent(false)
 		, send_stats(true)
+		, triggered_manually(false)
 	{}
 
 	announce_entry::~announce_entry() {}
