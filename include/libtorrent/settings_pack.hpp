@@ -1248,11 +1248,15 @@ namespace libtorrent
 			deprecated4,
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``dht_upload_rate_limit`` sets the rate limit on the DHT. This is
 			// specified in bytes per second and defaults to 4000. For busy boxes
 			// with lots of torrents that requires more DHT traffic, this should
 			// be raised.
 			dht_upload_rate_limit,
+#else
+			deprecated7,
+#endif
 
 			// ``unchoke_slots_limit`` is the max number of unchoked peers in the
 			// session. The number of unchoke slots may be ignored depending on

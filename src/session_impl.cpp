@@ -438,7 +438,6 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
-		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
 
 		m_udp_socket.subscribe(&m_utp_socket_manager);
 		m_udp_socket.subscribe(this);
@@ -6067,10 +6066,15 @@ retry:
 			|| m_settings.get_int(settings_pack::unchoke_slots_limit) < 0;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::update_dht_upload_rate_limit()
 	{
-		m_udp_socket.set_rate_limit(m_settings.get_int(settings_pack::dht_upload_rate_limit));
+#ifndef TORRENT_DISABLE_DHT
+		m_dht_settings.upload_rate_limit
+			= m_settings.get_int(settings_pack::dht_upload_rate_limit);
+#endif
 	}
+#endif
 
 	void session_impl::update_disk_threads()
 	{

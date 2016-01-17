@@ -71,7 +71,7 @@ namespace libtorrent { namespace dht
 		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>
 	{
-		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
+		dht_tracker(dht_observer* observer, udp_socket& sock
 			, dht_settings const& settings, counters& cnt
 			, dht_storage_constructor_type storage_constructor
 			, entry const& state);
@@ -155,7 +155,7 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		node m_dht;
-		rate_limited_udp_socket& m_sock;
+		udp_socket& m_sock;
 		dht_logger* m_log;
 
 		std::vector<char> m_send_buf;
@@ -170,6 +170,10 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+
+		// state for the send rate limit
+		int m_send_quota;
+		time_point m_last_tick;
 	};
 }}
 

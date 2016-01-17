@@ -635,7 +635,9 @@ namespace libtorrent
 			void update_connection_speed();
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();
+#ifndef TORRENT_NO_DEPRECATE
 			void update_dht_upload_rate_limit();
+#endif
 			void update_disk_threads();
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
@@ -1031,7 +1033,7 @@ namespace libtorrent
 			// but for the udp port used by the DHT.
 			int m_external_udp_port;
 
-			rate_limited_udp_socket m_udp_socket;
+			udp_socket m_udp_socket;
 			libtorrent::utp_socket_manager m_utp_socket_manager;
 
 #ifdef TORRENT_USE_OPENSSL

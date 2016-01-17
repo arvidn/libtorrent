@@ -204,10 +204,6 @@ namespace libtorrent
 		// unchoke many peers
 		set.set_int(settings_pack::unchoke_slots_limit, 2000);
 
-		// we need more DHT capacity to ping more peers
-		// candidates before trying to connect
-		set.set_int(settings_pack::dht_upload_rate_limit, 20000);
-
 		// use 1 GB of cache
 		set.set_int(settings_pack::cache_size, 32768 * 2);
 		set.set_bool(settings_pack::use_read_cache, true);
