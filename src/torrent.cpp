@@ -479,7 +479,7 @@ namespace libtorrent
 		TORRENT_ASSERT(num_torrents == int(m_ses.m_torrents.size()));
 
 		// if the user added any trackers while downloading the
-		// .torrent file, serge them into the new tracker list
+		// .torrent file, merge them into the new tracker list
 		std::vector<announce_entry> new_trackers = m_torrent_file->trackers();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
@@ -604,6 +604,10 @@ namespace libtorrent
 				, boost::bind(&announce_entry::tier, _1) >= i->tier), *i);
 		}
 		m_trackers.swap(new_trackers);
+
+		// add the web seeds from the .torrent file
+		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
