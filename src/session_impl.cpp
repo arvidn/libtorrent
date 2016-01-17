@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2014, Arvid Norberg, Magnus Jonsson
+Copyright (c) 2006-2016, Arvid Norberg, Magnus Jonsson
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

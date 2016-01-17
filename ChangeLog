@@ -1,4 +1,6 @@
 
+1.0.8 release
+
 	* fix web seed request size
 	* fix bug where web seeds were not used for torrents added by URL
 	* fix support for symlinks on windows

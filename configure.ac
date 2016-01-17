@@ -5,7 +5,7 @@
 
 AC_PREREQ([2.63])
 
-AC_INIT([libtorrent-rasterbar],[1.0.7],[arvid@libtorrent.org],
+AC_INIT([libtorrent-rasterbar],[1.0.8],[arvid@libtorrent.org],
         [libtorrent-rasterbar],[http://www.libtorrent.org])
 AC_CONFIG_SRCDIR([src/torrent.cpp])
 AC_CONFIG_AUX_DIR([build-aux])
