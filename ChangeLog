@@ -80,6 +80,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix unhandled exception in DHT when receiving a DHT packet over IPv6
+
 1.0.8 release
 
 	* fix bug where web seeds were not used for torrents added by URL
