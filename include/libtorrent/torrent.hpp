@@ -192,7 +192,7 @@ namespace libtorrent
 		// the case there is no piece picker, see m_have_all.
 		boost::scoped_ptr<piece_picker> m_picker;
 
-		// TOOD: make this a raw pointer. perhaps keep the shared_ptr
+		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
 		boost::shared_ptr<torrent_info> m_torrent_file;
 
@@ -204,7 +204,7 @@ namespace libtorrent
 		// use sorted_insert() and sorted_find() on it. The GNU STL
 		// implementation on Darwin uses significantly less memory to
 		// represent a vector than a set, and this set is typically
-		// relaitvely small, and it's cheap to copy pointers.
+		// relatively small, and it's cheap to copy pointers.
 		std::vector<peer_connection*> m_connections;
 
 		// the scrape data from the tracker response, this

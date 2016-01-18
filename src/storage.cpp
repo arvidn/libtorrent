@@ -888,32 +888,6 @@ namespace libtorrent
 		}
 	}
 
-	int default_storage::sparse_end(int piece) const
-	{
-		TORRENT_ASSERT(piece >= 0);
-		TORRENT_ASSERT(piece < files().num_pieces());
-
-		boost::int64_t file_offset = boost::int64_t(piece) * files().piece_length();
-		int file_index = 0;
-
-		for (;;)
-		{
-			if (file_offset < files().file_size(file_index))
-				break;
-
-			file_offset -= files().file_size(file_index);
-			++file_index;
-			TORRENT_ASSERT(file_index != files().num_files());
-		}
-
-		error_code ec;
-		file_handle handle = open_file_impl(file_index, file::read_only, ec);
-		if (ec) return piece;
-
-		boost::int64_t data_start = handle->sparse_end(file_offset);
-		return int((data_start + files().piece_length() - 1) / files().piece_length());
-	}
-
 	bool default_storage::verify_resume_data(bdecode_node const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec)
