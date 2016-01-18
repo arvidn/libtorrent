@@ -345,12 +345,6 @@ namespace libtorrent
 		boost::uint32_t m_file_id;
 #endif
 
-#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
-		std::wstring m_path;
-#elif defined TORRENT_WINDOWS
-		std::string m_path;
-#endif // TORRENT_WINDOWS
-
 		int m_open_mode;
 #if defined TORRENT_WINDOWS
 		static bool has_manage_volume_privs;
