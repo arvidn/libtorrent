@@ -108,6 +108,8 @@ namespace libtorrent { namespace dht
 		, m_send_quota(settings.upload_rate_limit)
 		, m_last_tick(aux::time_now())
 	{
+		m_blocker.set_block_timer(m_settings.block_timeout);
+		m_blocker.set_rate_limit(m_settings.block_ratelimit);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "starting DHT tracker with node id: %s"
 			, to_hex(m_dht.nid().to_string()).c_str());
@@ -319,11 +321,17 @@ namespace libtorrent { namespace dht
 
 			int num = sizeof(class_a)/sizeof(class_a[0]);
 			if (std::find(class_a, class_a + num, b[0]) != class_a + num)
+			{
+				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 				return true;
+			}
 		}
 
 		if (!m_blocker.incoming(ep.address(), clock_type::now(), m_log))
+		{
+			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 			return true;
+		}
 
 		using libtorrent::entry;
 		using libtorrent::bdecode;
@@ -335,6 +343,7 @@ namespace libtorrent { namespace dht
 		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
+			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
 #endif
@@ -412,9 +421,15 @@ namespace libtorrent { namespace dht
 		time_point now = clock_type::now();
 		time_duration delta = now - m_last_tick;
 		m_last_tick = now;
+
 		// add any new quota we've accrued since last time
 		m_send_quota += boost::uint64_t(m_settings.upload_rate_limit)
 			* total_microseconds(delta) / 1000000;
+
+		// allow 3 seconds worth of burst
+		if (m_send_quota > 3 * m_settings.upload_rate_limit)
+			m_send_quota = 3 * m_settings.upload_rate_limit;
+
 		return m_send_quota > 0;
 	}
 
@@ -432,17 +447,6 @@ namespace libtorrent { namespace dht
 
 		// update the quota. We won't prevent the packet to be sent if we exceed
 		// the quota, we'll just (potentially) block the next incoming request.
-		time_point const now = clock_type::now();
-		time_duration const delta = now - m_last_tick;
-		m_last_tick = now;
-
-		// add any new quota we've accrued since last time
-		m_send_quota += boost::uint64_t(m_settings.upload_rate_limit)
-			* total_microseconds(delta) / 1000000;
-
-		// allow 3 seconds worth of burst
-		if (m_send_quota > 3 * m_settings.upload_rate_limit)
-			m_send_quota = 3 * m_settings.upload_rate_limit;
 
 		m_send_quota -= m_send_buf.size();
 

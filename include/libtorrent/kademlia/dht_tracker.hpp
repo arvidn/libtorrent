@@ -66,7 +66,7 @@ namespace libtorrent { namespace dht
 {
 	struct dht_tracker;
 
-	struct dht_tracker TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT dht_tracker TORRENT_FINAL
 		: udp_socket_interface
 		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>

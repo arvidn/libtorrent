@@ -217,6 +217,7 @@ namespace libtorrent
 			recv_redundant_bytes,
 
 			dht_messages_in,
+			dht_messages_in_dropped,
 			dht_messages_out,
 			dht_messages_out_dropped,
 			dht_bytes_in,
