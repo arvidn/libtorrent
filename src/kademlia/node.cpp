@@ -252,7 +252,7 @@ void node::incoming(msg const& m)
 		// want to open up a magnification opportunity
 //		entry e;
 //		incoming_error(e, "missing 'y' entry");
-//		m_sock.send_packet(e, m.addr, 0);
+//		m_sock.send_packet(e, m.addr);
 		return;
 	}
 
@@ -305,7 +305,7 @@ void node::incoming(msg const& m)
 
 			entry e;
 			incoming_request(m, e);
-			m_sock->send_packet(e, m.addr, 0);
+			m_sock->send_packet(e, m.addr);
 			break;
 		}
 		case 'e':

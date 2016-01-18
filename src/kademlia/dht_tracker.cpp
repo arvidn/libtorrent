@@ -418,9 +418,7 @@ namespace libtorrent { namespace dht
 		return m_send_quota > 0;
 	}
 
-	// TODO: 4 do we need the flags here?
-	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr
-		, int send_flags)
+	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr)
 	{
 		using libtorrent::bencode;
 		using libtorrent::entry;
@@ -449,7 +447,7 @@ namespace libtorrent { namespace dht
 		m_send_quota -= m_send_buf.size();
 
 		error_code ec;
-		m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, send_flags);
+		m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, 0);
 		if (ec)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);

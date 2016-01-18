@@ -144,9 +144,8 @@ namespace libtorrent { namespace dht
 		void refresh_key(error_code const& e);
 
 		// implements udp_socket_interface
-		virtual bool has_quota();
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
-			, int send_flags);
+		virtual bool has_quota() TORRENT_OVERRIDE;
+		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr) TORRENT_OVERRIDE;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every

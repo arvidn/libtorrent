@@ -73,10 +73,9 @@ namespace libtorrent
 		~udp_socket();
 
 		enum flags_t {
-			dont_drop = 1
-			, peer_connection = 2
-			, tracker_connection = 4
-			, dont_queue = 8
+			peer_connection = 1
+			, tracker_connection = 2
+			, dont_queue = 4
 		};
 
 		bool is_open() const

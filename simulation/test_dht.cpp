@@ -49,6 +49,7 @@ namespace lt = libtorrent;
 
 TORRENT_TEST(dht_bootstrap)
 {
+#ifndef TORRENT_DISABLE_DHT
 	sim::default_config cfg;
 	sim::simulation sim{cfg};
 
@@ -123,6 +124,8 @@ TORRENT_TEST(dht_bootstrap)
 		});
 
 	sim.run();
+
+#endif // TORRENT_DISABLE_DHT
 
 }
 

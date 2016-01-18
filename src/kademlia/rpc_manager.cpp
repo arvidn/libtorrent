@@ -297,7 +297,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		// attack.
 //		entry e;
 //		incoming_error(e, "invalid transaction id");
-//		m_sock->send_packet(e, m.addr, 0);
+//		m_sock->send_packet(e, m.addr);
 		return false;
 	}
 
@@ -473,7 +473,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 		, print_endpoint(target_addr).c_str());
 #endif
 
-	if (m_sock->send_packet(e, target_addr, 1))
+	if (m_sock->send_packet(e, target_addr))
 	{
 		m_transactions.insert(std::make_pair(tid, o));
 #if TORRENT_USE_ASSERTS
