@@ -367,6 +367,7 @@ namespace libtorrent
 			return;
 		}
 
+#ifdef TORRENT_WINDOWS
 		// remove trailing spaces and dots. These aren't allowed in filenames on windows
 		for (int i = path.size() - 1; i >= 0; --i)
 		{
@@ -375,6 +376,7 @@ namespace libtorrent
 			--added;
 			TORRENT_ASSERT(added >= 0);
 		}
+#endif
 
 		if (added == 0 && added_separator)
 		{

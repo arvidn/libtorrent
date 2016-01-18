@@ -219,13 +219,17 @@ TORRENT_TEST(set_web_seeds)
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
 
-TORRENT_TEST(sanitize_path)
+#ifdef TORRENT_WINDOWS
+#define SEPARATOR "\\"
+#else
+#define SEPARATOR "/"
+#endif
+
+TORRENT_TEST(sanitize_long_path)
 {
 	// test sanitize_append_path_element
 
 	std::string path;
-
-	path.clear();
 	sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
@@ -234,41 +238,89 @@ TORRENT_TEST(sanitize_path)
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 250);
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_" SEPARATOR
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+}
+
+TORRENT_TEST(sanitize_path_trailing_dots)
+{
+	std::string path;
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "abc...", 6);
+	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path,
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_\\"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
 #else
-	TEST_EQUAL(path,
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_/"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_.test");
+	TEST_EQUAL(path, "a" SEPARATOR "abc..." SEPARATOR "c");
 #endif
 
 	path.clear();
+	sanitize_append_path_element(path, "abc...", 6);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc");
+#else
+	TEST_EQUAL(path, "abc...");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "abc.", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc");
+#else
+	TEST_EQUAL(path, "abc.");
+#endif
+
+
+	path.clear();
+	sanitize_append_path_element(path, "a. . .", 6);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a");
+#else
+	TEST_EQUAL(path, "a. . .");
+#endif
+}
+
+TORRENT_TEST(sanitize_path_trailing_spaces)
+{
+	std::string path;
+	sanitize_append_path_element(path, "a", 1);
+	sanitize_append_path_element(path, "abc   ", 6);
+	sanitize_append_path_element(path, "c", 1);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
+#else
+	TEST_EQUAL(path, "a" SEPARATOR "abc   " SEPARATOR "c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "abc   ", 6);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc");
+#else
+	TEST_EQUAL(path, "abc   ");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "abc ", 4);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc");
+#else
+	TEST_EQUAL(path, "abc ");
+#endif
+}
+
+TORRENT_TEST(sanitize_path)
+{
+	std::string path;
 	sanitize_append_path_element(path, "/a/", 3);
 	sanitize_append_path_element(path, "b", 1);
 	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "a\\b\\c");
-#else
-	TEST_EQUAL(path, "a/b/c");
-#endif
-
-	path.clear();
-	sanitize_append_path_element(path, "a...", 4);
-	TEST_EQUAL(path, "a");
-
-	path.clear();
-	sanitize_append_path_element(path, "a   ", 4);
-	TEST_EQUAL(path, "a");
+	TEST_EQUAL(path, "a" SEPARATOR "b" SEPARATOR "c");
 
 	path.clear();
 	sanitize_append_path_element(path, "a...b", 5);
@@ -278,11 +330,7 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, "a", 1);
 	sanitize_append_path_element(path, "..", 2);
 	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "a\\c");
-#else
-	TEST_EQUAL(path, "a/c");
-#endif
+	TEST_EQUAL(path, "a" SEPARATOR "c");
 
 	path.clear();
 	sanitize_append_path_element(path, "a", 1);
@@ -307,9 +355,9 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, "c:", 2);
 	sanitize_append_path_element(path, "b", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\b");
+	TEST_EQUAL(path, "c" SEPARATOR "b");
 #else
-	TEST_EQUAL(path, "c:/b");
+	TEST_EQUAL(path, "c:" SEPARATOR "b");
 #endif
 
 	path.clear();
@@ -317,20 +365,16 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\c");
+	TEST_EQUAL(path, "c" SEPARATOR "c");
 #else
-	TEST_EQUAL(path, "c:/c");
+	TEST_EQUAL(path, "c:" SEPARATOR "c");
 #endif
 
 	path.clear();
 	sanitize_append_path_element(path, "\\c", 2);
 	sanitize_append_path_element(path, ".", 1);
 	sanitize_append_path_element(path, "c", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "c\\c");
-#else
-	TEST_EQUAL(path, "c/c");
-#endif
+	TEST_EQUAL(path, "c" SEPARATOR "c");
 
 	path.clear();
 	sanitize_append_path_element(path, "\b", 1);
@@ -339,43 +383,31 @@ TORRENT_TEST(sanitize_path)
 	path.clear();
 	sanitize_append_path_element(path, "\b", 1);
 	sanitize_append_path_element(path, "filename", 8);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "_\\filename");
-#else
-	TEST_EQUAL(path, "_/filename");
-#endif
+	TEST_EQUAL(path, "_" SEPARATOR "filename");
 
 	path.clear();
 	sanitize_append_path_element(path, "filename", 8);
 	sanitize_append_path_element(path, "\b", 1);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "filename\\_");
-#else
-	TEST_EQUAL(path, "filename/_");
-#endif
+	TEST_EQUAL(path, "filename" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc", 3);
 	sanitize_append_path_element(path, "", 0);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "abc\\_");
-#else
-	TEST_EQUAL(path, "abc/_");
-#endif
+	TEST_EQUAL(path, "abc" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc", 3);
 	sanitize_append_path_element(path, "   ", 3);
+#ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
+#else
+	TEST_EQUAL(path, "abc" SEPARATOR "   ");
+#endif
 
 	path.clear();
 	sanitize_append_path_element(path, "", 0);
 	sanitize_append_path_element(path, "abc", 3);
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(path, "_\\abc");
-#else
-	TEST_EQUAL(path, "_/abc");
-#endif
+	TEST_EQUAL(path, "_" SEPARATOR "abc");
 
 	path.clear();
 	sanitize_append_path_element(path, "\b?filename=4", 12);
@@ -529,7 +561,7 @@ TORRENT_TEST(verify_encoding)
 	TEST_CHECK(test == "filename____");
 }
 
-TORRENT_TEST(parse)
+TORRENT_TEST(parse_torrents)
 {
 	error_code ec;
 
@@ -657,25 +689,22 @@ TORRENT_TEST(parse)
 		}
 		else if (std::string(test_torrents[i].file) == "invalid_name3.torrent")
 		{
+			// windows does not allow trailing spaces in filenames
+#ifdef TORRENT_WINDOWS
 			TEST_EQUAL(ti->name(), "foobar");
+#else
+			TEST_EQUAL(ti->name(), "foobar ");
+#endif
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
-#ifdef TORRENT_WINDOWS
-			TEST_EQUAL(ti->files().file_path(0), "temp\\bar");
-#else
-			TEST_EQUAL(ti->files().file_path(0), "temp/bar");
-#endif
+			TEST_EQUAL(ti->files().file_path(0), "temp" SEPARATOR "bar");
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path2.torrent")
 		{
 			TEST_EQUAL(ti->num_files(), 1);
-#ifdef TORRENT_WINDOWS
-			TEST_EQUAL(ti->files().file_path(0), "temp\\abc....def\\bar");
-#else
-			TEST_EQUAL(ti->files().file_path(0), "temp/abc....def/bar");
-#endif
+			TEST_EQUAL(ti->files().file_path(0), "temp" SEPARATOR "abc....def" SEPARATOR "bar");
 		}
 		else if (std::string(test_torrents[i].file) == "slash_path3.torrent")
 		{
