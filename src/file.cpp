@@ -1376,10 +1376,10 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
-		m_path = convert_to_wstring(p);
+		std::wstring file_path = convert_to_wstring(p);
 #else
 #define CreateFile_ CreateFileA
-		m_path = convert_to_native(p);
+		std::string file_path = convert_to_native(p);
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
@@ -1396,7 +1396,7 @@ namespace libtorrent
 			| ((mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0)
 			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
-		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
+		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
@@ -1620,7 +1620,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 		CloseHandle(native_handle());
-		m_path.clear();
 #else
 		if (m_file_handle != INVALID_HANDLE_VALUE)
 			::close(m_file_handle);
@@ -2038,26 +2037,21 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		if ((m_open_mode & sparse) == 0)
 		{
-#if TORRENT_USE_WSTRING
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
-#else
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCSTR lpFileName, LPDWORD lpFileSizeHigh);
-#endif
+			typedef DWORD (WINAPI *GetFileInformationByHandleEx_t)(HANDLE hFile
+				, FILE_INFO_BY_HANDLE_CLASS FileInformationClass
+				, LPVOID lpFileInformation
+				, DWORD dwBufferSize);
 
-			static GetCompressedFileSize_t GetCompressedFileSize_ = NULL;
+			static GetFileInformationByHandleEx_t GetFileInformationByHandleEx_ = NULL;
 
 			static bool failed_kernel32 = false;
 
-			if ((GetCompressedFileSize_ == NULL) && !failed_kernel32)
+			if ((GetFileInformationByHandleEx_ == NULL) && !failed_kernel32)
 			{
 				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
 				if (kernel32)
 				{
-#if TORRENT_USE_WSTRING
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
-#else
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeA");
-#endif
+					GetFileInformationByHandleEx_ = (GetFileInformationByHandleEx_t)GetProcAddress(kernel32, "GetFileInformationByHandleEx");
 				}
 				else
 				{
@@ -2066,18 +2060,18 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 
 			offs.QuadPart = 0;
-			if (GetCompressedFileSize_)
+			if (GetFileInformationByHandleEx_)
 			{
 				// only allocate the space if the file
 				// is not fully allocated
-				DWORD high_dword = 0;
-				offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
-				offs.HighPart = high_dword;
-				if (offs.LowPart == INVALID_FILE_SIZE)
+				FILE_STANDARD_INFO inf;
+				if (GetFileInformationByHandleEx_(native_handle()
+					, FileStandardInfo, &inf, sizeof(inf)) == FALSE)
 				{
 					ec.assign(GetLastError(), system_category());
 					if (ec) return false;
 				}
+				offs = inf.AllocationSize;
 			}
 
 			if (offs.QuadPart != s)
