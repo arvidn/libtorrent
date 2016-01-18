@@ -1376,10 +1376,10 @@ namespace libtorrent
 
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
-		m_path = convert_to_wstring(p);
+		std::wstring file_path = convert_to_wstring(p);
 #else
 #define CreateFile_ CreateFileA
-		m_path = convert_to_native(p);
+		std::string file_path = convert_to_native(p);
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
@@ -1396,7 +1396,7 @@ namespace libtorrent
 			| ((mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0)
 			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
-		handle_type handle = CreateFile_(m_path.c_str(), m.rw_mode
+		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
@@ -1620,7 +1620,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 		CloseHandle(native_handle());
-		m_path.clear();
 #else
 		if (m_file_handle != INVALID_HANDLE_VALUE)
 			::close(m_file_handle);
@@ -1973,35 +1972,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		return ret;
 	}
-
-	void set_file_valid_data(HANDLE f, boost::int64_t size)
-	{
-		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
-		static SetFileValidData_t pSetFileValidData = NULL;
-		static bool failed_kernel32 = false;
-
-		if (pSetFileValidData == NULL && !failed_kernel32)
-		{
-			HMODULE k32 = LoadLibraryA("kernel32");
-			if (k32 == NULL)
-			{
-				failed_kernel32 = true;
-				return;
-			}
-			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
-			if (pSetFileValidData == NULL)
-			{
-				failed_kernel32 = true;
-				return;
-			}
-		}
-
-		TORRENT_ASSERT(pSetFileValidData);
-
-		// we don't necessarily expect to have enough
-		// privilege to do this, so ignore errors.
-		pSetFileValidData(f, size);
-	}
 #endif
 
 	bool file::set_size(boost::int64_t s, error_code& ec)
@@ -2036,58 +2006,13 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 		}
 
-		if ((m_open_mode & sparse) == 0)
-		{
-#if TORRENT_USE_WSTRING
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCWSTR lpFileName, LPDWORD lpFileSizeHigh);
-#else
-			typedef DWORD (WINAPI *GetCompressedFileSize_t)(LPCSTR lpFileName, LPDWORD lpFileSizeHigh);
-#endif
+		//if ((m_open_mode & sparse) == 0) {
+		//   NOTE: previously, there was an attempt here to fill with valid data
+		//   the sparse file, but the function SetFileValidData can't be used here
+		//   by MSDN documentation.
+		//   See https://msdn.microsoft.com/en-us/library/windows/desktop/aa365544(v=vs.85).aspx
+		// }
 
-			static GetCompressedFileSize_t GetCompressedFileSize_ = NULL;
-
-			static bool failed_kernel32 = false;
-
-			if ((GetCompressedFileSize_ == NULL) && !failed_kernel32)
-			{
-				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-				if (kernel32)
-				{
-#if TORRENT_USE_WSTRING
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeW");
-#else
-					GetCompressedFileSize_ = (GetCompressedFileSize_t)GetProcAddress(kernel32, "GetCompressedFileSizeA");
-#endif
-				}
-				else
-				{
-					failed_kernel32 = true;
-				}
-			}
-
-			offs.QuadPart = 0;
-			if (GetCompressedFileSize_)
-			{
-				// only allocate the space if the file
-				// is not fully allocated
-				DWORD high_dword = 0;
-				offs.LowPart = GetCompressedFileSize_(m_path.c_str(), &high_dword);
-				offs.HighPart = high_dword;
-				if (offs.LowPart == INVALID_FILE_SIZE)
-				{
-					ec.assign(GetLastError(), system_category());
-					if (ec) return false;
-				}
-			}
-
-			if (offs.QuadPart != s)
-			{
-				// if the user has permissions, avoid filling
-				// the file with zeroes, but just fill it with
-				// garbage instead
-				set_file_valid_data(m_file_handle, s);
-			}
-		}
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(native_handle(), &st) != 0)
@@ -2232,7 +2157,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		// return the offset to the next allocated region
 		return buffer.FileOffset.QuadPart;
-		
+
 #elif defined SEEK_DATA
 		// this is supported on solaris
 		boost::int64_t ret = lseek(native_handle(), start, SEEK_DATA);
