@@ -66,12 +66,12 @@ namespace libtorrent { namespace dht
 {
 	struct dht_tracker;
 
-	struct dht_tracker TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT dht_tracker TORRENT_FINAL
 		: udp_socket_interface
 		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>
 	{
-		dht_tracker(dht_observer* observer, rate_limited_udp_socket& sock
+		dht_tracker(dht_observer* observer, udp_socket& sock
 			, dht_settings const& settings, counters& cnt
 			, dht_storage_constructor_type storage_constructor
 			, entry const& state);
@@ -144,9 +144,8 @@ namespace libtorrent { namespace dht
 		void refresh_key(error_code const& e);
 
 		// implements udp_socket_interface
-		virtual bool has_quota();
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr
-			, int send_flags);
+		virtual bool has_quota() TORRENT_OVERRIDE;
+		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr) TORRENT_OVERRIDE;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every
@@ -155,7 +154,7 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		node m_dht;
-		rate_limited_udp_socket& m_sock;
+		udp_socket& m_sock;
 		dht_logger* m_log;
 
 		std::vector<char> m_send_buf;
@@ -170,6 +169,10 @@ namespace libtorrent { namespace dht
 
 		// used to resolve hostnames for nodes
 		udp::resolver m_host_resolver;
+
+		// state for the send rate limit
+		int m_send_quota;
+		time_point m_last_tick;
 	};
 }}
 

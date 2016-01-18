@@ -37,5 +37,6 @@ alias libtorrent-sims :
 	[ run test_trackers_extension.cpp ]
 	[ run test_tracker.cpp ]
 	[ run test_ip_filter.cpp ]
+	[ run test_dht_rate_limit.cpp ]
 	;
 

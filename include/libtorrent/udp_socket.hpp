@@ -73,10 +73,9 @@ namespace libtorrent
 		~udp_socket();
 
 		enum flags_t {
-			dont_drop = 1
-			, peer_connection = 2
-			, tracker_connection = 4
-			, dont_queue = 8
+			peer_connection = 1
+			, tracker_connection = 2
+			, dont_queue = 4
 		};
 
 		bool is_open() const
@@ -308,21 +307,6 @@ namespace libtorrent
 		int m_outstanding_resolve;
 		int m_outstanding_socks;
 #endif
-	};
-
-	struct rate_limited_udp_socket : public udp_socket
-	{
-		rate_limited_udp_socket(io_service& ios);
-		void set_rate_limit(int limit) { m_rate_limit = limit; }
-		bool send(udp::endpoint const& ep, char const* p, int len
-			, error_code& ec, int flags = 0);
-		bool has_quota();
-
-	private:
-
-		int m_rate_limit;
-		int m_quota;
-		time_point m_last_tick;
 	};
 }
 
