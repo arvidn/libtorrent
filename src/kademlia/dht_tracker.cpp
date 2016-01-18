@@ -500,6 +500,8 @@ namespace libtorrent { namespace dht
 		}
 
 		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
+		// remove this line/check once the DHT supports IPv6
+		if (!ep.address().is_v4()) return false;
 
 		// account for IP and UDP overhead
 		m_received_bytes += size + (ep.address().is_v6() ? 48 : 28);
