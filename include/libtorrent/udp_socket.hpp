@@ -66,7 +66,7 @@ namespace libtorrent
 		~udp_socket_observer() {}
 	};
 
-	class udp_socket : single_threaded
+	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
 		udp_socket(io_service& ios);
