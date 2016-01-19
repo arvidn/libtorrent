@@ -1406,6 +1406,7 @@ namespace libtorrent
 			, block_ratelimit(5)
 			, read_only(false)
 			, item_lifetime(0)
+			, upload_rate_limit(8000)
 		{}
 
 		// the maximum number of peers to send in a reply to ``get_peers``
@@ -1507,6 +1508,11 @@ namespace libtorrent
 		// the number of seconds a immutable/mutable item will be expired.
 		// default is 0, means never expires.
 		int item_lifetime;
+
+		// the number of bytes per second (on average) the DHT is allowed to send.
+		// If the incoming requests causes to many bytes to be sent in responses,
+		// incoming requests will be dropped until the quota has been replenished.
+		int upload_rate_limit;
 	};
 
 

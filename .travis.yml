@@ -16,6 +16,7 @@ git:
 branches:
   only:
     - master
+    - RC_1_1
     - RC_1_0
 
 # container-based builds

@@ -91,7 +91,7 @@ public:
 struct udp_socket_interface
 {
 	virtual bool has_quota() = 0;
-	virtual bool send_packet(entry& e, udp::endpoint const& addr, int flags) = 0;
+	virtual bool send_packet(entry& e, udp::endpoint const& addr) = 0;
 protected:
 	~udp_socket_interface() {}
 };

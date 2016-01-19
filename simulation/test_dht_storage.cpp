@@ -52,6 +52,8 @@ using namespace sim::asio;
 using sim::simulation;
 using sim::default_config;
 
+#ifndef TORRENT_DISABLE_DHT
+
 namespace
 {
 	dht_settings test_settings() {
@@ -98,8 +100,11 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 	sim.run(ec);
 }
 
+#endif // TORRENT_DISABLE_DHT
+
 TORRENT_TEST(dht_storage_counters)
 {
+#ifndef TORRENT_DISABLE_DHT
 	dht_settings sett = test_settings();
 	boost::shared_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
 
@@ -151,5 +156,6 @@ TORRENT_TEST(dht_storage_counters)
 	c.immutable_data = 0;
 	c.mutable_data = 0;
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
+#endif // TORRENT_DISABLE_DHT
 }
 

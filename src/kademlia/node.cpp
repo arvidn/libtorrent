@@ -252,7 +252,7 @@ void node::incoming(msg const& m)
 		// want to open up a magnification opportunity
 //		entry e;
 //		incoming_error(e, "missing 'y' entry");
-//		m_sock.send_packet(e, m.addr, 0);
+//		m_sock.send_packet(e, m.addr);
 		return;
 	}
 
@@ -303,9 +303,15 @@ void node::incoming(msg const& m)
 			// responds to 'query' messages that it receives.
 			if (m_settings.read_only) break;
 
+			if (!m_sock->has_quota())
+			{
+				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
+				return;
+			}
+
 			entry e;
 			incoming_request(m, e);
-			m_sock->send_packet(e, m.addr, 0);
+			m_sock->send_packet(e, m.addr);
 			break;
 		}
 		case 'e':
@@ -775,9 +781,6 @@ void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes)
 // build response
 void node::incoming_request(msg const& m, entry& e)
 {
-	if (!m_sock->has_quota())
-		return;
-
 	e = entry(entry::dictionary_t);
 	e["y"] = "r";
 	e["t"] = m.message.dict_find_string_value("t");

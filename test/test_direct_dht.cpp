@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
@@ -85,11 +85,11 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 
 }
 
-#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
+#endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 
 TORRENT_TEST(direct_dht_request)
 {
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 	settings_pack sp;
 	sp.set_bool(settings_pack::enable_lsd, false);
 	sp.set_bool(settings_pack::enable_natpmp, false);
@@ -134,5 +134,5 @@ TORRENT_TEST(direct_dht_request)
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
 		TEST_EQUAL(ra->userdata, (void*)123456);
 	}
-#endif // #ifndef TORRENT_DISABLE_EXTENSIONS
+#endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }

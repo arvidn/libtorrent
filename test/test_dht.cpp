@@ -95,10 +95,10 @@ static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
-struct mock_socket : udp_socket_interface
+struct mock_socket TORRENT_FINAL : udp_socket_interface
 {
-	bool has_quota() { return true; }
-	bool send_packet(entry& msg, udp::endpoint const& ep, int flags)
+	bool has_quota() TORRENT_OVERRIDE { return true; }
+	bool send_packet(entry& msg, udp::endpoint const& ep) TORRENT_OVERRIDE
 	{
 		// TODO: ideally the mock_socket would contain this queue of packets, to
 		// make tests independent

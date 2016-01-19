@@ -52,6 +52,8 @@ namespace lt = libtorrent;
 using namespace sim;
 using namespace libtorrent;
 
+#ifndef TORRENT_DISABLE_DHT
+
 namespace {
 
 	lt::time_point start_time;
@@ -155,7 +157,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 	}
 
 	bool has_quota() override { return true; }
-	bool send_packet(entry& e, udp::endpoint const& addr, int flags) override
+	bool send_packet(entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
 		// just a single send buffer
@@ -329,4 +331,5 @@ void dht_network::stop()
 	for (auto& n : m_nodes) n.stop();
 }
 
+#endif // TORRENT_DISABLE_DHT
 
