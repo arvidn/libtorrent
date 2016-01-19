@@ -395,6 +395,20 @@ namespace libtorrent
 		TORRENT_ASSERT(m_impl);
 		TORRENT_ASYNC_CALL(abort);
 
+#if defined TORRENT_ASIO_DEBUGGING
+		int counter = 0;
+		while (log_async())
+		{
+			sleep(1000);
+			++counter;
+			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
+				, counter);
+		}
+		async_dec_threads();
+
+		fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
+#endif
+
 		if (m_thread && m_thread.unique())
 			m_thread->join();
 	}
