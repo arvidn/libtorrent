@@ -156,6 +156,21 @@ namespace
 	// wrap the windows function in something that looks
 	// like preadv() and pwritev()
 
+	// windows only lets us wait for 64 handles at a time, so this function makes
+	// sure we wait for all of them, partially in sequence
+	int wait_for_multiple_handles(int num_handles, HANDLE* h)
+	{
+		int batch_size = (std::min)(num_bufs, MAXIMUM_WAIT_OBJECTS);
+		while (WaitForMultipleObjects(batch_size, h, TRUE, INFINITE) != WAIT_FAILED)
+		{
+			h += batch_size;
+			num_handles -= batch_size;
+			batch_size = (std::min)(num_bufs, MAXIMUM_WAIT_OBJECTS);
+			if (batch_size <= 0) return WAIT_OBJECT_0;
+		}
+		return WAIT_FAILED;
+	}
+
 	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
@@ -194,7 +209,7 @@ namespace
 			}
 		}
 
-		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
+		if (wait_for_multiple_objects(num_bufs, h) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
@@ -264,7 +279,7 @@ done:
 			}
 		}
 
-		if (WaitForMultipleObjects(num_bufs, h, TRUE, INFINITE) == WAIT_FAILED)
+		if (wait_for_multiple_objects(num_bufs, h) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
