@@ -70,7 +70,7 @@ const vm_purgable_t vm_purgable_nonvolatile = VM_PURGABLE_NONVOLATILE;
 	See slides: http://www-vlsi.stanford.edu/smart_memories/protected/meetings/spring2004/arc-fast.pdf
 
 	This cache has a few modifications to make it fit the bittorrent use
-	case better. It has a few more lists and it deferres the eviction
+	case better. It has a few more lists and it defers the eviction
 	of pieces.
 
 	read_lru1
@@ -437,7 +437,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	TORRENT_ASSERT(p);
 	TORRENT_ASSERT(p->in_use);
 
-	// move the piece into this queue. Whenever we have a cahe
+	// move the piece into this queue. Whenever we have a cache
 	// hit, we move the piece into the lru2 queue (i.e. the most
 	// frequently used piece). However, we only do that if the
 	// requester is different than the last one. This is to
@@ -1836,8 +1836,6 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 		|| !pe->marked_for_deletion
 		|| !pe->jobs.empty())
 		return false;
-
-	boost::shared_ptr<piece_manager> s = pe->storage;
 
 	DLOG(stderr, "[%p] block_cache maybe_free_piece "
 		"piece: %d refcount: %d marked_for_deletion: %d\n"
