@@ -452,8 +452,6 @@ namespace libtorrent
 
 	private:
 
-		int sparse_end(int start) const;
-
 		void delete_one_file(std::string const& p, error_code& ec);
 
 		void need_partfile();
