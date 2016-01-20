@@ -158,14 +158,14 @@ namespace
 
 	// windows only lets us wait for 64 handles at a time, so this function makes
 	// sure we wait for all of them, partially in sequence
-	int wait_for_multiple_handles(int num_handles, HANDLE* h)
+	int wait_for_multiple_objects(int num_handles, HANDLE* h)
 	{
-		int batch_size = (std::min)(num_bufs, MAXIMUM_WAIT_OBJECTS);
+		int batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
 		while (WaitForMultipleObjects(batch_size, h, TRUE, INFINITE) != WAIT_FAILED)
 		{
 			h += batch_size;
 			num_handles -= batch_size;
-			batch_size = (std::min)(num_bufs, MAXIMUM_WAIT_OBJECTS);
+			batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
 			if (batch_size <= 0) return WAIT_OBJECT_0;
 		}
 		return WAIT_FAILED;
