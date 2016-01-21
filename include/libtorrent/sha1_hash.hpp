@@ -73,7 +73,7 @@ namespace libtorrent
 		// the number of bytes of the number
 		static const int size = number_size * sizeof(boost::uint32_t);
 
-		// constructs an all-sero sha1-hash
+		// constructs an all-zero sha1-hash
 		sha1_hash() { clear(); }
 
 		// returns an all-F sha1-hash. i.e. the maximum value

@@ -451,7 +451,7 @@ namespace libtorrent
 			// ``no_recheck_incomplete_resume`` determines if the storage should
 			// check the whole files when resume data is incomplete or missing or
 			// whether it should simply assume we don't have any of the data. By
-			// default, this is determined by the existance of any of the files.
+			// default, this is determined by the existence of any of the files.
 			// By setting this setting to true, the files won't be checked, but
 			// will go straight to download mode.
 			no_recheck_incomplete_resume,
