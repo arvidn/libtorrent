@@ -334,6 +334,13 @@ namespace libtorrent
 		// returns a list of file_slice objects representing the portions of
 		// files the specified piece index, byte offset and size range overlaps.
 		// this is the inverse mapping of map_file().
+		//
+		// Preconditions of this function is that the input range is within the
+		// torrents address space. ``piece`` may not be negative and
+		// 
+		// 	``piece`` * piece_size + ``offset`` + ``size``
+		// 
+		// may not exceed the total size of the torrent.
 		std::vector<file_slice> map_block(int piece, boost::int64_t offset
 			, int size) const;
 
@@ -363,7 +370,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		reverse_iterator rend() const { return m_files.rend(); }
 		TORRENT_DEPRECATED
-		internal_file_entry const& internal_at(int index) const 
+		internal_file_entry const& internal_at(int index) const
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_files.size()));
