@@ -779,7 +779,6 @@ TORRENT_TEST(rename_file_fastresume)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
-			if (s.state == torrent_status::downloading) break;
 			if (s.state == torrent_status::seeding && renamed) break;
 			test_sleep(100);
 		}
