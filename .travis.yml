@@ -80,12 +80,13 @@ before_script:
 
   - cd test
   - bjam --hash -j2 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target testing.launcher=echo
+  - cd ..
 
-  - cd ../examples
+  - cd examples
   - bjam --hash -j2 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ..
 
-  - cd ../tools
+  - cd tools
   - bjam --hash -j2 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ..
 
