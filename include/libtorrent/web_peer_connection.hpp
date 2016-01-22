@@ -96,7 +96,12 @@ namespace libtorrent
 
 	private:
 
-		bool maybe_harvest_block();
+		void on_receive_padfile();
+		void incoming_payload(char const* buf, int len);
+		void incoming_zeroes(int len);
+		void handle_redirect(int bytes_left);
+		void handle_error(int bytes_left);
+		void maybe_harvest_piece();
 
 		// returns the block currently being
 		// downloaded. And the progress of that
@@ -105,30 +110,33 @@ namespace libtorrent
 		// will be invalid.
 		boost::optional<piece_block_progress> downloading_piece_progress() const TORRENT_OVERRIDE;
 
-		void handle_padfile(buffer::const_interval& recv_buffer);
+		void handle_padfile();
 
 		// this has one entry per http-request
 		// (might be more than the bt requests)
-		std::deque<int> m_file_requests;
+		struct file_request_t
+		{
+			int file_index;
+			int length;
+			boost::int64_t start;
+		};
+		std::deque<file_request_t> m_file_requests;
 
 		std::string m_url;
 
 		web_seed_t* m_web;
 
-		// this is used for intermediate storage of pieces
-		// that are received in more than one HTTP response
-		// TODO: 1 if we make this be a disk_buffer_holder instead
-		// we would save a copy sometimes
+		// this is used for intermediate storage of pieces to be delivered to the
+		// bittorrent engine
+		// TODO: 3 if we make this be a disk_buffer_holder instead
+		// we would save a copy
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
 		std::vector<char> m_piece;
 
-		// the number of bytes received in the current HTTP
-		// response. used to know where in the buffer the
+		// the number of bytes we've forwarded to the incoming_payload() function
+		// in the current HTTP response. used to know where in the buffer the
 		// next response starts
-		boost::int64_t m_received_body;
-
-		// position in the current range response
-		boost::int64_t m_range_pos;
+		int m_received_body;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -136,10 +144,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		boost::int64_t m_chunk_pos;
-
-		// the position in the current block
-		int m_block_pos;
+		int m_chunk_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
