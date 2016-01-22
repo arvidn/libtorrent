@@ -71,31 +71,50 @@ install:
   - ccache -V && ccache --show-stats && ccache --zero-stats
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then rst2html --version; fi
 
-script:
-# disable invoking docutils for now, until we can have a modern version of it
+# in before_script, we just _build_ everything. no running any tests, we do that
+# under script.
+before_script:
   - cd docs
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then make rst RST2HTML=rst2html; fi
   - cd ..
 
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
-# if we're building with code coverage, report it as soon as possible
-  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
-    codecov --root .. --gcov-exec gcov-4.8;
-    fi
+  - bjam --hash -j2 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target testing.execute=off
 
   - cd ../examples
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
+  - bjam --hash -j2 warnings-as-errors=on variant=$variant $toolset link=shared
+  - cd ..
+
+  - cd ../tools
+  - bjam --hash -j2 warnings-as-errors=on variant=$variant $toolset link=shared
   - cd ..
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib
+  - bjam --hash -j2 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib testing.execute=off
 
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
+  - bjam --hash -j2 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
+  - cd ../..
+
+  - cd simulation
+  - if [ $sim = "1" ]; then
+    bjam --hash -j2 crypto=built-in $coverage_toolset testing.execute=off;
+    fi
+  - cd ..
+
+# all binaries are supposed to have been built here. just run the tests
+script:
+  - cd test
+  - bjam --hash -j2 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
+# if we're building with code coverage, report it as soon as possible
+  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+    codecov --root .. --gcov-exec gcov-4.8;
+    fi
+
+  - cd bindings/python
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - cd ../..
 
