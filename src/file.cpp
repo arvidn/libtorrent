@@ -147,6 +147,25 @@ POSSIBILITY OF SUCH DAMAGE.
 // at least 64 bits wide
 BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
 
+#ifndef REPLACE_POSIX_FILE_FUNCTIONS
+#define posix_open ::open
+#define posix_mkdir ::mkdir
+#define posix_rename ::rename
+#define posix_remove ::remove
+#define posix_lstat ::lstat
+#define posix_stat ::stat
+#else
+extern "C"
+{
+int posix_open(const char* pathname, int flags, ...);
+int posix_mkdir(const char* pathname, mode_t mode);
+int posix_rename(const char *oldpath, const char *newpath);
+int posix_remove(const char *pathname);
+int posix_lstat(const char* path, struct ::stat* buf);
+int posix_stat(const char* path, struct ::stat* buf);
+}
+#endif // REPLACE_POSIX_FILE_FUNCTIONS
+
 #endif // posix part
 
 #if TORRENT_USE_PREADV
@@ -429,9 +448,9 @@ namespace libtorrent
 		struct stat ret;
 		int retval;
 		if (flags & dont_follow_links)
-			retval = ::lstat(f.c_str(), &ret);
+			retval = posix_lstat(f.c_str(), &ret);
 		else
-			retval = ::stat(f.c_str(), &ret);
+			retval = posix_stat(f.c_str(), &ret);
 		if (retval < 0)
 		{
 			ec.assign(errno, system_category());
@@ -465,7 +484,7 @@ namespace libtorrent
 #else
 		std::string const& f1 = convert_to_native(inf);
 		std::string const& f2 = convert_to_native(newf);
-		if (::rename(f1.c_str(), f2.c_str()) < 0)
+		if (posix_rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
 			ec.assign(errno, system_category());
@@ -507,7 +526,7 @@ namespace libtorrent
 			ec.assign(GetLastError(), system_category());
 #else
 		std::string n = convert_to_native(f);
-		int ret = mkdir(n.c_str(), 0777);
+		int ret = posix_mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
 #endif
@@ -641,7 +660,7 @@ namespace libtorrent
 		std::string f1 = convert_to_native(inf);
 		std::string f2 = convert_to_native(newf);
 
-		int infd = ::open(f1.c_str(), O_RDONLY);
+		int infd = posix_open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
 			ec.assign(errno, system_category());
@@ -654,7 +673,7 @@ namespace libtorrent
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		int outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
+		int outfd = posix_open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
 		if (outfd < 0)
 		{
 			close(infd);
@@ -1081,7 +1100,7 @@ namespace libtorrent
 		}
 #else // TORRENT_WINDOWS
 		std::string const& f = convert_to_native(inf);
-		if (::remove(f.c_str()) < 0)
+		if (posix_remove(f.c_str()) < 0)
 		{
 			ec.assign(errno, system_category());
 			return;
@@ -1464,7 +1483,7 @@ namespace libtorrent
 #endif
 			;
 
- 		handle_type handle = ::open(convert_to_native(path).c_str()
+ 		handle_type handle = posix_open(convert_to_native(path).c_str()
  			, mode_array[mode & rw_mask] | open_mode
 			, permissions);
 
@@ -1476,7 +1495,7 @@ namespace libtorrent
 		{
 			mode &= ~no_atime;
 			open_mode &= ~O_NOATIME;
-			handle = ::open(path.c_str(), mode_array[mode & rw_mask] | open_mode
+			handle = posix_open(path.c_str(), mode_array[mode & rw_mask] | open_mode
 				, permissions);
 		}
 #endif
