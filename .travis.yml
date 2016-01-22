@@ -114,6 +114,7 @@ script:
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     codecov --root .. --gcov-exec gcov-4.8;
     fi
+  - cd ..
 
   - cd bindings/python
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
