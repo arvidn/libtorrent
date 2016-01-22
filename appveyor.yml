@@ -132,13 +132,13 @@ build_script:
   )
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
-  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
+  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.launcher=echo
   ) else (
-  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
+  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.launcher=echo
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
-  & b2.exe --hash -j2 link=shared crypto=built-in %compiler% testing.execute=off
+  & b2.exe --hash -j2 link=shared crypto=built-in %compiler% testing.launcher=echo
   )
 
 test_script:
