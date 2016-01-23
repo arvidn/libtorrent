@@ -1169,15 +1169,19 @@ namespace libtorrent
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 
-			// std::string could be used for the query names if only all common implementations used SSO
-			// *glares at gcc*
-			struct extention_dht_query
+			// the union of all session extensions' implemented_features(). This is
+			// used to exclude callbacks to the session extensions.
+			boost::uint32_t m_session_extension_features;
+
+			// std::string could be used for the query names if only all common
+			// implementations used SSO *glares at gcc*
+			struct extension_dht_query
 			{
 				boost::uint8_t query_len;
 				boost::array<char, max_dht_query_length> query;
 				dht_extension_handler_t handler;
 			};
-			typedef std::vector<extention_dht_query> m_extension_dht_queries_t;
+			typedef std::vector<extension_dht_query> m_extension_dht_queries_t;
 			m_extension_dht_queries_t m_extension_dht_queries;
 #endif
 

@@ -208,6 +208,27 @@ namespace libtorrent
 		// hidden
 		virtual ~plugin() {}
 
+		// these are flags that can be returned by implemented_features()
+		// indicating which callbacks this plugin is interested in
+		enum feature_flags_t
+		{
+			// include this bit if your plugin needs to alter the order of the
+			// optimistic unchoke of peers. i.e. have the on_optimistic_unchoke()
+			// callback be called.
+			optimistic_unchoke_feature = 1,
+
+			// include this bit if your plugin needs to have on_tick() called
+			tick_feature = 2
+		};
+
+		// This function is expected to return a bitmask indicating which features
+		// this plugin implements. Some callbacks on this object may not be called
+		// unless the corresponding feature flag is returned here. Note that
+		// callbacks may still be called even if the corresponding feature is not
+		// specified in the return value here. See feature_flags_t for possible
+		// flags to return.
+		virtual boost::uint32_t implemented_features() { return 0; }
+
 		// this is called by the session every time a new torrent is added.
 		// The ``torrent*`` points to the internal torrent object created
 		// for the new torrent. The ``void*`` is the userdata pointer as
@@ -237,12 +258,13 @@ namespace libtorrent
 		// called once per second
 		virtual void on_tick() {}
 
-		// called when choosing peers to optimistically unchoke
-		// peer's will be unchoked in the order they appear in the given
-		// vector which is initially sorted by when they were last
-		// optimistically unchoked.
-		// if the plugin returns true then the ordering provided will be
-		// used and no other plugin will be allowed to change it.
+		// called when choosing peers to optimisticallly unchoke. peer's will be
+		// unchoked in the order they appear in the given vector. if
+		// the plugin returns true then the ordering provided will be used and no
+		// other plugin will be allowed to change it. If your plugin expects this
+		// to be called, make sure to include the flag
+		// ``optimistic_unchoke_feature`` in the return value from
+		// implemented_features().
 		virtual bool on_optimistic_unchoke(std::vector<peer_connection_handle>& /* peers */)
 		{ return false; }
 

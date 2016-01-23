@@ -284,7 +284,7 @@ namespace libtorrent
 		return "";
 	}
 #endif
-	
+
 	libtorrent::address torrent_peer::address() const
 	{
 #if TORRENT_USE_IPV6

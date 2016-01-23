@@ -430,6 +430,9 @@ namespace aux {
 		, m_download_connect_attempts(0)
 		, m_next_scrape_torrent(0)
 		, m_tick_residual(0)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_session_extension_features(0)
+#endif
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
@@ -921,6 +924,7 @@ namespace aux {
 		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
 		m_ses_extensions.push_back(p);
+		m_session_extension_features |= p->implemented_features();
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
@@ -931,6 +935,7 @@ namespace aux {
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
 		ext->added(session_handle(this));
+		m_session_extension_features |= ext->implemented_features();
 
 		// get any DHT queries the plugin would like to handle
 		// and record them in m_extension_dht_queries for lookup
@@ -942,7 +947,7 @@ namespace aux {
 		{
 			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
 			if (e->first.size() > max_dht_query_length) continue;
-			extention_dht_query registration;
+			extension_dht_query registration;
 			registration.query_len = e->first.size();
 			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
 			registration.handler = e->second;
@@ -3047,12 +3052,15 @@ retry:
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		if (m_session_extension_features & plugin::tick_feature)
 		{
-			TORRENT_TRY {
-				(*i)->on_tick();
-			} TORRENT_CATCH(std::exception&) {}
+			for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+				, end(m_ses_extensions.end()); i != end; ++i)
+			{
+				TORRENT_TRY {
+					(*i)->on_tick();
+				} TORRENT_CATCH(std::exception&) {}
+			}
 		}
 #endif
 
@@ -3764,24 +3772,32 @@ retry:
 	}
 
 	namespace {
-		struct last_optimistic_unchoke_cmp
+		bool last_optimistic_unchoke_cmp(torrent_peer const* const l
+			, torrent_peer const* const r)
 		{
-			bool operator()(peer_connection_handle const& l
-				, peer_connection_handle const& r)
-			{
-				return l.native_handle()->peer_info_struct()->last_optimistically_unchoked
-					< r.native_handle()->peer_info_struct()->last_optimistically_unchoked;
-			}
-		};
+			return l->last_optimistically_unchoked
+				< r->last_optimistically_unchoked;
+		}
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
+		INVARIANT_CHECK;
+
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<peer_connection_handle> opt_unchoke;
+		std::vector<torrent_peer*> opt_unchoke;
 
+		// collect the currently optimistically unchoked peers here, so we can
+		// choke them when we've found new optimistic unchoke candidates.
+		std::vector<torrent_peer*> prev_opt_unchoke;
+
+		// TODO: 3 it would probably make sense to have a separate list of peers
+		// that are eligible for optimistic unchoke, similar to the torrents
+		// perhaps this could even iterate over the pool allocators of
+		// torrent_peer objects. It could probably be done in a single pass and
+		// collect the n best candidates
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3790,89 +3806,122 @@ retry:
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
 			if (pi->web_seed) continue;
-			torrent* t = p->associated_torrent().lock().get();
-			if (!t) continue;
-			if (t->is_paused()) continue;
 
 			if (pi->optimistically_unchoked)
 			{
-				TORRENT_ASSERT(!p->is_choked());
-				opt_unchoke.push_back(peer_connection_handle(*i));
+				prev_opt_unchoke.push_back(pi);
 			}
+
+			torrent* t = p->associated_torrent().lock().get();
+			if (!t) continue;
+
+			// TODO: 3 peers should know whether their torrent is paused or not,
+			// instead of having to ask it over and over again
+			if (t->is_paused()) continue;
 
 			if (!p->is_connecting()
 				&& !p->is_disconnecting()
 				&& p->is_peer_interested()
 				&& t->free_upload_slots()
-				&& p->is_choked()
+				&& (p->is_choked() || pi->optimistically_unchoked)
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(peer_connection_handle(*i));
+				opt_unchoke.push_back(pi);
 			}
 		}
 
 		// find the peers that has been waiting the longest to be optimistically
 		// unchoked
 
-		// avoid having a bias towards peers that happen to be sorted first
-		std::random_shuffle(opt_unchoke.begin(), opt_unchoke.end(), randint);
-
-		// sort all candidates based on when they were last optimistically
-		// unchoked.
-		std::sort(opt_unchoke.begin(), opt_unchoke.end(), last_optimistic_unchoke_cmp());
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			if ((*i)->on_optimistic_unchoke(opt_unchoke))
-				break;
-		}
-#endif
-
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		int allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
+		if (num_opt_unchoke > int(opt_unchoke.size())) num_opt_unchoke =
+			int(opt_unchoke.size());
+
+		// find the n best optimistic unchoke candidates
+		std::partial_sort(opt_unchoke.begin()
+			, opt_unchoke.begin() + num_opt_unchoke
+			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
+
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (m_session_extension_features & plugin::optimistic_unchoke_feature)
+		{
+			// if there is an extension that wants to reorder the optimistic
+			// unchoke peers, first convert the vector into one containing
+			// peer_connection_handles, since that's the exported API
+			std::vector<peer_connection_handle> peers;
+			peers.reserve(opt_unchoke.size());
+			for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
+				, end(opt_unchoke.end()); i != end; ++i)
+			{
+				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
+			}
+			for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+				, end(m_ses_extensions.end()); i != end; ++i)
+			{
+				if ((*i)->on_optimistic_unchoke(peers))
+					break;
+			}
+			// then convert back to the internal torrent_peer pointers
+			opt_unchoke.clear();
+			for (std::vector<peer_connection_handle>::iterator i = peers.begin()
+				, end(peers.end()); i != end; ++i)
+			{
+				opt_unchoke.push_back(i->native_handle()->peer_info_struct());
+			}
+		}
+#endif
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		for (std::vector<peer_connection_handle>::iterator i = opt_unchoke.begin()
-			, end(opt_unchoke.end()); i != end; ++i)
+		std::vector<torrent_peer*>::iterator opt_unchoke_end = opt_unchoke.begin()
+			+ num_opt_unchoke;
+
+		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin();
+			i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = i->native_handle()->peer_info_struct();
-			if (num_opt_unchoke > 0)
+			torrent_peer* pi = *i;
+			if (pi->optimistically_unchoked)
 			{
-				--num_opt_unchoke;
-				if (!pi->optimistically_unchoked)
-				{
-					peer_connection* p = static_cast<peer_connection*>(pi->connection);
-					torrent* t = p->associated_torrent().lock().get();
-					bool ret = t->unchoke_peer(*p, true);
-					if (ret)
-					{
-						pi->optimistically_unchoked = true;
-						m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
-						pi->last_optimistically_unchoked = boost::uint16_t(session_time());
-					}
-					else
-					{
-						// we failed to unchoke it, increment the count again
-						++num_opt_unchoke;
-					}
-				}
+				TORRENT_ASSERT(!pi->connection->is_choked());
+				// remove this peer from prev_opt_unchoke, to prevent us from
+				// choking it later. This peer gets another round of optimistic
+				// unchoke
+				std::vector<torrent_peer*>::iterator existing =
+					std::find(prev_opt_unchoke.begin(), prev_opt_unchoke.end(), pi);
+				TORRENT_ASSERT(existing != prev_opt_unchoke.end());
+				prev_opt_unchoke.erase(existing);
 			}
 			else
 			{
-				if (pi->optimistically_unchoked)
+				peer_connection* p = static_cast<peer_connection*>(pi->connection);
+				TORRENT_ASSERT(p->is_choked());
+				boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+				bool ret = t->unchoke_peer(*p, true);
+				TORRENT_ASSERT(ret);
+				if (ret)
 				{
-					peer_connection* p = static_cast<peer_connection*>(pi->connection);
-					torrent* t = p->associated_torrent().lock().get();
-					pi->optimistically_unchoked = false;
-					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
-					t->choke_peer(*p);
+					pi->optimistically_unchoked = true;
+					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
+					pi->last_optimistically_unchoked = boost::uint16_t(session_time());
 				}
 			}
+		}
+
+		// now, choke all the previous optimistically unchoked peers
+		for (std::vector<torrent_peer*>::iterator i = prev_opt_unchoke.begin()
+			, end(prev_opt_unchoke.end()); i != end; ++i)
+		{
+			torrent_peer* pi = *i;
+			TORRENT_ASSERT(pi->optimistically_unchoked);
+			peer_connection* p = static_cast<peer_connection*>(pi->connection);
+			boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+			pi->optimistically_unchoked = false;
+			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
+			t->choke_peer(*p);
 		}
 	}
 
