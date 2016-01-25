@@ -2050,6 +2050,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 		}
 
+#if _WIN32_WINNT >= 0x0600 // only if Windows Vista or newer
 		if ((m_open_mode & sparse) == 0)
 		{
 			typedef DWORD (WINAPI *GetFileInformationByHandleEx_t)(HANDLE hFile
@@ -2097,6 +2098,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				set_file_valid_data(m_file_handle, s);
 			}
 		}
+#endif // if Windows Vista
 #else // NON-WINDOWS
 		struct stat st;
 		if (fstat(native_handle(), &st) != 0)
