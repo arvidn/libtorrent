@@ -363,8 +363,8 @@ TORRENT_TEST(ipv6_support)
 	TEST_EQUAL(v6_announces, 2);
 }
 
-template <typename Announce, typename Test>
-void announce_entry_test(Announce a, Test t)
+template <typename Announce, typename Test1, typename Test2>
+void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "/announce")
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -375,7 +375,7 @@ void announce_entry_test(Announce a, Test t)
 	// listen on port 8080
 	sim::http_server http(tracker_ios, 8080);
 
-	http.register_handler("/announce", a);
+	http.register_handler(url_path, a);
 
 	lt::session_proxy zombie;
 
@@ -393,26 +393,31 @@ void announce_entry_test(Announce a, Test t)
 	p.trackers.push_back("http://tracker.com:8080/announce");
 	ses->async_add_torrent(p);
 
-	// stop the torrent 5 seconds in
+	// run the test 5 seconds in
 	asio::high_resolution_timer t1(ios);
 	t1.expires_from_now(chrono::seconds(5));
-	t1.async_wait([&ses,&t](boost::system::error_code const& ec)
+	t1.async_wait([&ses,&test1](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 		TEST_EQUAL(torrents.size(), 1);
 		torrent_handle h = torrents.front();
+		test1(h);
+	});
 
-		std::vector<announce_entry> tr = h.trackers();
-
-		TEST_EQUAL(tr.size(), 1);
-		announce_entry const& ae = tr[0];
-		t(ae);
+	asio::high_resolution_timer t2(ios);
+	t2.expires_from_now(chrono::seconds(9));
+	t2.async_wait([&ses,&test2](boost::system::error_code const& ec)
+	{
+		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		torrent_handle h = torrents.front();
+		test2(h);
 	});
 
 	// then shut down 10 seconds in
-	asio::high_resolution_timer t2(ios);
-	t2.expires_from_now(chrono::seconds(10));
-	t2.async_wait([&ses,&zombie](boost::system::error_code const& ec)
+	asio::high_resolution_timer t3(ios);
+	t3.expires_from_now(chrono::seconds(10));
+	t3.async_wait([&ses,&zombie](boost::system::error_code const& ec)
 	{
 		zombie = ses->abort();
 		ses->set_alert_notify([]{});
@@ -420,6 +425,21 @@ void announce_entry_test(Announce a, Test t)
 	});
 
 	sim.run();
+}
+
+template <typename Announce, typename Test>
+void announce_entry_test(Announce a, Test t, char const* url_path = "/announce")
+{
+	tracker_test(a
+		, [&t] (torrent_handle h) {
+			std::vector<announce_entry> tr = h.trackers();
+
+			TEST_EQUAL(tr.size(), 1);
+			announce_entry const& ae = tr[0];
+			t(ae);
+		}
+		, [](torrent_handle){}
+		, url_path);
 }
 
 TORRENT_TEST(test_error)
@@ -467,7 +487,7 @@ TORRENT_TEST(test_warning)
 		});
 }
 
-TORRENT_TEST(test_scrape)
+TORRENT_TEST(test_scrape_data_in_announce)
 {
 	announce_entry_test(
 		[](std::string method, std::string req
@@ -491,6 +511,36 @@ TORRENT_TEST(test_scrape)
 			TEST_EQUAL(ae.scrape_incomplete, 2);
 			TEST_EQUAL(ae.scrape_downloaded, 3);
 		});
+}
+
+TORRENT_TEST(test_scrape)
+{
+	tracker_test(
+		[](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			int size = snprintf(response, sizeof(response),
+				"d5:filesd20:ababababababababababd8:completei1e10:downloadedi3e10:incompletei2eeee");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](torrent_handle h)
+		{
+			h.scrape_tracker();
+		}
+		, [](torrent_handle h)
+		{
+			std::vector<announce_entry> tr = h.trackers();
+
+			TEST_EQUAL(tr.size(), 1);
+			announce_entry const& ae = tr[0];
+			TEST_EQUAL(ae.scrape_incomplete, 2);
+			TEST_EQUAL(ae.scrape_complete, 1);
+			TEST_EQUAL(ae.scrape_downloaded, 3);
+		}
+		, "/scrape");
 }
 
 TORRENT_TEST(test_http_status)
