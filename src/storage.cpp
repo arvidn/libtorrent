@@ -1017,8 +1017,6 @@ namespace libtorrent
 				error_code error;
 				std::string file_path = fs.file_path(i, m_save_path);
 				stat_file(file_path, &s, error);
-				file_size = s.file_size;
-				file_time = s.mtime;
 				if (error)
 				{
 					if (error != boost::system::errc::no_such_file_or_directory)
@@ -1037,6 +1035,13 @@ namespace libtorrent
 						ec.operation = storage_error::none;
 						return false;
 					}
+					file_size = 0;
+					file_time = 0;
+				}
+				else
+				{
+					file_size = s.file_size;
+					file_time = s.mtime;
 				}
 			}
 
