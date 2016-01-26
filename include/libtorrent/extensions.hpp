@@ -237,9 +237,9 @@ namespace libtorrent
 		// called once per second
 		virtual void on_tick() {}
 
-		// called when choosing peers to optimisticly unchoke
+		// called when choosing peers to optimistically unchoke
 		// peer's will be unchoked in the order they appear in the given
-		// vector which is initiallity sorted by when they were last
+		// vector which is initially sorted by when they were last
 		// optimistically unchoked.
 		// if the plugin returns true then the ordering provided will be
 		// used and no other plugin will be allowed to change it.

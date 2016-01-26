@@ -850,9 +850,9 @@ namespace libtorrent
 			tcp::endpoint m_listen_interface;
 
 			// the network interfaces outgoing connections are opened through. If
-			// there is more then one, they are used in a round-robin fasion
+			// there is more then one, they are used in a round-robin fashion
 			// each element is a device name or IP address (in string form) and
-			// a port number. The port determins which port to bind the listen
+			// a port number. The port determines which port to bind the listen
 			// socket to, and the device or IP determines which network adapter
 			// to be used. If no adapter with the specified name exists, the listen
 			// socket fails.

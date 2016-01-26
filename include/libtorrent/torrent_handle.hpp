@@ -889,7 +889,7 @@ namespace libtorrent
 			, std::string const& dh_params);
 
 		// Returns the storage implementation for this torrent. This depends on the
-		// storage contructor function that was passed to add_torrent.
+		// storage constructor function that was passed to add_torrent.
 		storage_interface* get_storage_impl() const;
 
 		// Returns a pointer to the torrent_info object associated with this
