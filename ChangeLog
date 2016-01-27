@@ -1,4 +1,5 @@
 
+	* support SNI in https web seeds and trackers
 	* fix unhandled exception in DHT when receiving a DHT packet over IPv6
 
 1.0.8 release

@@ -90,9 +90,11 @@ namespace libtorrent
 		// of the certificate
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 		s.get<ssl_stream<t> >()->set_verify_callback(asio::ssl::rfc2818_verification(hostname), ec); \
-		ctx = SSL_get_SSL_CTX(s.get<ssl_stream<t> >()->native_handle()); \
+		ssl = s.get<ssl_stream<t> >()->native_handle(); \
+		ctx = SSL_get_SSL_CTX(ssl); \
 		break;
 
+		SSL* ssl = 0;
 		SSL_CTX* ctx = 0;
 
 		switch(s.type())
@@ -110,7 +112,13 @@ namespace libtorrent
 			SSL_CTX_set_tlsext_servername_callback(ctx, 0);
 			SSL_CTX_set_tlsext_servername_arg(ctx, 0);
 		}
-#endif // OPENSSL_VERSION_NUMBER
+
+		if (ssl)
+		{
+			SSL_set_tlsext_host_name(ssl, hostname.c_str());
+		}
+#endif
+
 
 #endif
 	}
