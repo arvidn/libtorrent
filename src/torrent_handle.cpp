@@ -800,9 +800,9 @@ namespace libtorrent
 		ses.disk_thread().files().get_status(&status, &t->storage());
 	}
 
-	void torrent_handle::scrape_tracker() const
+	void torrent_handle::scrape_tracker(int idx) const
 	{
-		TORRENT_ASYNC_CALL1(scrape_tracker, true);
+		TORRENT_ASYNC_CALL2(scrape_tracker, idx, true);
 	}
 
 	void torrent_handle::super_seeding(bool on) const

@@ -3220,7 +3220,7 @@ retry:
 
 					// false means it's not triggered by the user, but automatically
 					// by libtorrent
-					t.scrape_tracker(false);
+					t.scrape_tracker(-1, false);
 
 					++m_next_scrape_torrent;
 					if (m_next_scrape_torrent >= int(want_scrape.size()))
