@@ -1,4 +1,5 @@
 
+	* improve reliability of binding listen sockets
 	* support SNI in https web seeds and trackers
 	* fix unhandled exception in DHT when receiving a DHT packet over IPv6
 
