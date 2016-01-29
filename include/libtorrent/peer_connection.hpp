@@ -802,6 +802,8 @@ namespace libtorrent
 
 		virtual int timeout() const;
 
+		io_service& get_io_service() { return m_ios; }
+
 	private:
 		// explicitly disallow assignment, to silence msvc warning
 		peer_connection& operator=(peer_connection const&);

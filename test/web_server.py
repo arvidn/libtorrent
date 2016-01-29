@@ -101,7 +101,7 @@ class http_handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				filename = os.path.normpath(s.path[1:s.path.find('seed?') + 4])
 				print 'filename = %s' % filename
 				f = open(filename, 'rb')
-				f.seek(piece * 64 * 1024 + int(ranges[0]))
+				f.seek(piece * 32 * 1024 + int(ranges[0]))
 				data = f.read(int(ranges[1]) - int(ranges[0]) + 1)
 				f.close()
 
