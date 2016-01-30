@@ -419,7 +419,8 @@ namespace libtorrent
 		return m_files[index].name_len;
 	}
 
-	std::vector<file_slice> file_storage::map_block(int piece, boost::int64_t offset
+	std::vector<file_slice> file_storage::map_block(int const piece
+		, boost::int64_t const offset
 		, int size) const
 	{
 		TORRENT_ASSERT_PRECOND(num_files() > 0);
@@ -432,6 +433,10 @@ namespace libtorrent
 		target.offset = piece * boost::int64_t(m_piece_length) + offset;
 		TORRENT_ASSERT_PRECOND(boost::int64_t(target.offset + size) <= m_total_size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
+
+		// in case the size is past the end, fix it up
+		if (boost::int64_t(target.offset + size) > m_total_size)
+			size = m_total_size - target.offset;
 
 		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);

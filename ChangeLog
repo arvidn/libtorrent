@@ -1,6 +1,7 @@
 
 1.1.0 release
 
+	* allow specifying which tracker to scrape in scrape_tracker
 	* tracker response alerts from user initiated announces/scrapes are now
 	  posted regardless of alert mask
 	* improve DHT performance when changing external IP (primarily affects
@@ -83,6 +84,7 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* support SNI in https web seeds and trackers
 	* fix unhandled exception in DHT when receiving a DHT packet over IPv6
 
 1.0.8 release

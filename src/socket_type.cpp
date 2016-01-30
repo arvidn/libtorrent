@@ -98,9 +98,11 @@ namespace libtorrent
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 		s.get<ssl_stream<t> >()->set_verify_callback( \
 			boost::asio::ssl::rfc2818_verification(hostname), ec); \
-		ctx = SSL_get_SSL_CTX(s.get<ssl_stream<t> >()->native_handle()); \
+		ssl = s.get<ssl_stream<t> >()->native_handle(); \
+		ctx = SSL_get_SSL_CTX(ssl); \
 		break;
 
+		SSL* ssl = 0;
 		SSL_CTX* ctx = 0;
 
 		switch(s.type())
@@ -119,6 +121,14 @@ namespace libtorrent
 			aux::openssl_set_tlsext_servername_arg(ctx, 0);
 		}
 #endif // OPENSSL_VERSION_NUMBER
+
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+		if (ssl)
+		{
+			aux::openssl_set_tlsext_hostname(ssl, hostname.c_str());
+		}
+#endif
+
 #else
 		TORRENT_UNUSED(ec);
 		TORRENT_UNUSED(hostname);

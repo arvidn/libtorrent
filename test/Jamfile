@@ -60,6 +60,7 @@ lib libtorrent_test
 	swarm_suite.cpp
 	test_utils.cpp
 	settings.cpp
+	make_torrent.cpp
 
 	: # requirements
 	# this is used to determine whether

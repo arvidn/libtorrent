@@ -3279,15 +3279,15 @@ namespace libtorrent
 		update_tracker_timer(now);
 	}
 
-	void torrent::scrape_tracker(bool user_triggered)
+	void torrent::scrape_tracker(int idx, bool user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_last_scrape = m_ses.session_time();
 
 		if (m_trackers.empty()) return;
 
-		int i = m_last_working_tracker;
-		if (i == -1) i = 0;
+		if (idx < 0 || idx >= int(m_trackers.size())) idx = m_last_working_tracker;
+		if (idx < 0) idx = 0;
 
 		tracker_request req;
 		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
@@ -3296,7 +3296,7 @@ namespace libtorrent
 
 		req.info_hash = m_torrent_file->info_hash();
 		req.kind |= tracker_request::scrape_request;
-		req.url = m_trackers[i].url;
+		req.url = m_trackers[idx].url;
 #ifndef TORRENT_NO_DEPRECATE
 		req.auth = tracker_login();
 #endif

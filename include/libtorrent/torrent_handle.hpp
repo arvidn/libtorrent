@@ -1085,15 +1085,18 @@ namespace libtorrent
 		void force_reannounce(boost::posix_time::time_duration) const;
 #endif
 
-		// ``scrape_tracker()`` will send a scrape request to the tracker. A
-		// scrape request queries the tracker for statistics such as total number
-		// of incomplete peers, complete peers, number of downloads etc.
+		// ``scrape_tracker()`` will send a scrape request to a tracker. By
+		// default (``idx`` = -1) it will scrape the last working tracker. If
+		// ``idx`` is >= 0, the tracker with the specified index will scraped.
+		// 
+		// A scrape request queries the tracker for statistics such as total
+		// number of incomplete peers, complete peers, number of downloads etc.
 		// 
 		// This request will specifically update the ``num_complete`` and
 		// ``num_incomplete`` fields in the torrent_status struct once it
 		// completes. When it completes, it will generate a scrape_reply_alert.
 		// If it fails, it will generate a scrape_failed_alert.
-		void scrape_tracker() const;
+		void scrape_tracker(int idx = -1) const;
 
 		// ``set_upload_limit`` will limit the upload bandwidth used by this
 		// particular torrent to the limit you set. It is given as the number of
