@@ -114,7 +114,7 @@ namespace libtorrent
 	};
 #endif
 #endif
-	
+
 #ifdef TORRENT_WINDOWS
 
 #ifndef IPV6_PROTECTION_LEVEL
@@ -133,7 +133,21 @@ namespace libtorrent
 		size_t size(Protocol const&) const { return sizeof(m_value); }
 		int m_value;
 	};
-#endif
+
+	struct exclusive_address_use
+	{
+		exclusive_address_use(int enable): m_value(enable) {}
+		template<class Protocol>
+		int level(Protocol const&) const { return SOL_SOCKET; }
+		template<class Protocol>
+		int name(Protocol const&) const { return SO_EXCLUSIVEADDRUSE; }
+		template<class Protocol>
+		int const* data(Protocol const&) const { return &m_value; }
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_value); }
+		int m_value;
+	};
+#endif // TORRENT_WINDOWS
 
 #ifdef IPV6_TCLASS
 	struct traffic_class

@@ -2116,14 +2116,12 @@ namespace aux {
 			return;
 		}
 
-		// SO_REUSEADDR on windows is a bit special. It actually allows
-		// two active sockets to bind to the same port. That means we
-		// may end up binding to the same socket as some other random
-		// application. Don't do it!
-#ifndef TORRENT_WINDOWS
-		error_code err; // ignore errors here
-		s->sock->set_option(socket_acceptor::reuse_address(true), err);
+		// this is best-effort. ignore errors
+		error_code err;
+#ifdef TORRENT_WINDOWS
+		s->sock->set_option(exclusive_address_use(true), err);
 #endif
+		s->sock->set_option(socket_acceptor::reuse_address(true), err);
 
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == tcp::v6())
