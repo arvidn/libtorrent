@@ -1698,7 +1698,8 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op
+					, ec, sock_type);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("failed to open socket: %s: %s"
@@ -1773,7 +1774,7 @@ namespace aux {
 
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot to bind to interface [%s %d] \"%s : %s\": %s"
 				, device.c_str(), port, bind_ip.to_string(ec).c_str()
@@ -1792,7 +1793,7 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
@@ -1809,7 +1810,7 @@ namespace aux {
 			if (ec)
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+					m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("failed to get peer name \"%s\": %s"
 					, device.c_str(), ec.message().c_str());
@@ -2018,8 +2019,11 @@ retry:
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
+				m_alerts.emplace_alert<listen_failed_alert>(
+					m_listen_interface.address().to_string()
+					, m_listen_interface.port()
+					, listen_failed_alert::bind
+					, ec, listen_failed_alert::udp);
 			return;
 		}
 
@@ -2041,8 +2045,8 @@ retry:
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					error_code err;
-					m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ssl_bind_if)
-							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+					m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_if.address().to_string()
+						, ssl_port, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
 				}
 				ec.clear();
 			}
@@ -2068,8 +2072,10 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
+				m_alerts.emplace_alert<listen_failed_alert>(m_listen_interface.address().to_string()
+					, m_listen_interface.port()
+					, listen_failed_alert::bind
+					, ec, listen_failed_alert::udp);
 			}
 			return;
 		}
@@ -2283,8 +2289,10 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("i2p", listen_failed_alert::accept
-						, e, listen_failed_alert::i2p);
+				m_alerts.emplace_alert<listen_failed_alert>("i2p"
+					, m_listen_interface.port()
+					, listen_failed_alert::accept
+					, e, listen_failed_alert::i2p);
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
@@ -2422,7 +2430,8 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ep), listen_failed_alert::accept, e
+				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string()
+					, ep.port(), listen_failed_alert::accept, e
 					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp);
 			}
 			return;
@@ -2757,8 +2766,9 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5", listen_failed_alert::accept, e
-						, listen_failed_alert::socks5);
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, -1, listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
 			return;
 		}
 		open_new_incoming_socks_connection();
