@@ -1267,7 +1267,8 @@ namespace libtorrent
 		// internal
 		listen_failed_alert(
 			aux::stack_allocator& alloc
-			, std::string iface
+			, std::string const& iface
+			, int port
 			, int op
 			, error_code const& ec
 			, socket_type_t t);
@@ -1276,11 +1277,6 @@ namespace libtorrent
 
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
-
-#if !defined(TORRENT_NO_DEPRECATE) && !defined(TORRENT_WINRT)
-		// the interface libtorrent attempted to listen on
-		std::string interface;
-#endif
 
 		// the interface libtorrent attempted to listen on that failed.
 		char const* listen_interface() const;
@@ -1296,8 +1292,17 @@ namespace libtorrent
 		// the specific low level operation that failed. See op_t.
 		int operation;
 
+		// the port attempted to be opened for listening
+		int port;
+
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// the address and port libtorrent attempted to listen on
+		tcp::endpoint endpoint;
+#endif
+
 	private:
 		aux::stack_allocator const& m_alloc;
 		int m_interface_idx;

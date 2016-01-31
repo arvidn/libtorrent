@@ -786,21 +786,31 @@ namespace libtorrent {
 			"HTTPS",
 			"SSL/uTP"
 		};
+
+#ifndef TORRENT_NO_DEPRECATE
+		tcp::endpoint parse_interface(std::string const& iface, int port)
+		{
+			// ignore errors
+			error_code ec;
+			return tcp::endpoint(address::from_string(iface, ec), port);
+		}
+#endif
 	}
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
-		, std::string iface
+		, std::string const& iface
+		, int prt
 		, int op
 		, error_code const& ec
 		, socket_type_t t)
-		:
-#if !defined(TORRENT_NO_DEPRECATE) && !defined(TORRENT_WINRT)
-			interface(iface),
-#endif
-		error(ec)
+		: error(ec)
 		, operation(op)
+		, port(prt)
 		, sock_type(t)
+#ifndef TORRENT_NO_DEPRECATE
+		, endpoint(parse_interface(iface, prt))
+#endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
 	{}
