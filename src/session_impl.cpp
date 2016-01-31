@@ -1708,16 +1708,14 @@ namespace aux {
 			return ret;
 		}
 
-		// SO_REUSEADDR on windows is a bit special. It actually allows
-		// two active sockets to bind to the same port. That means we
-		// may end up binding to the same socket as some other random
-		// application. Don't do it!
-#ifndef TORRENT_WINDOWS
 		{
-			error_code err; // ignore errors here
+			// this is best-effort. ignore errors
+			error_code err;
+#ifdef TORRENT_WINDOWS
+			ret.sock->set_option(exclusive_address_use(true), err);
+#endif
 			ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
 		}
-#endif
 
 #if TORRENT_USE_IPV6
 		if (!ipv4)
@@ -1726,6 +1724,7 @@ namespace aux {
 #ifdef IPV6_V6ONLY
 			ret.sock->set_option(v6only(true), err);
 #endif
+
 #ifdef TORRENT_WINDOWS
 
 #ifndef PROTECTION_LEVEL_UNRESTRICTED
@@ -1733,7 +1732,7 @@ namespace aux {
 #endif
 			// enable Teredo on windows
 			ret.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
-#endif
+#endif // TORRENT_WINDOWS
 		}
 #endif // TORRENT_USE_IPV6
 
@@ -4893,6 +4892,9 @@ retry:
 		tcp::endpoint bind_ep(address_v4(), 0);
 		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
 		{
+#ifdef TORRENT_WINDOWS
+			s.set_option(exclusive_address_use(true), ec);
+#endif
 			s.set_option(tcp::acceptor::reuse_address(true), ec);
 			// ignore errors because the underlying socket may not
 			// be opened yet. This happens when we're routing through
