@@ -978,7 +978,12 @@ namespace libtorrent
 
 			time_point m_created;
 			boost::int64_t session_time() const TORRENT_OVERRIDE
-			{ return total_seconds(aux::time_now() - m_created); }
+			{
+				// +1 is here to make it possible to distinguish uninitialized (to
+				// 0) timestamps and timestamps of things that happend during the
+				// first second after the session was constructed
+				return total_seconds(aux::time_now() - m_created) + 1;
+			}
 
 			time_point m_last_tick;
 			time_point m_last_second_tick;

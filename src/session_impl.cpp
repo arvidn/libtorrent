@@ -3032,8 +3032,8 @@ retry:
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;
 
-		boost::int64_t session_time = total_seconds(now - m_created);
-		if (session_time > 65000)
+		boost::int64_t const stime = session_time();
+		if (stime > 65000)
 		{
 			// we're getting close to the point where our timestamps
 			// in torrent_peer are wrapping. We need to step all counters back
@@ -3835,7 +3835,7 @@ retry:
 		// unchoked
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		int allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
+		int const allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
 		if (num_opt_unchoke > int(opt_unchoke.size())) num_opt_unchoke =
 			int(opt_unchoke.size());
@@ -3844,7 +3844,6 @@ retry:
 		std::partial_sort(opt_unchoke.begin()
 			, opt_unchoke.begin() + num_opt_unchoke
 			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
-
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (m_session_extension_features & plugin::optimistic_unchoke_feature)
@@ -3884,8 +3883,14 @@ retry:
 			i != opt_unchoke_end; ++i)
 		{
 			torrent_peer* pi = *i;
+			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			if (pi->optimistically_unchoked)
 			{
+#ifndef TORRENT_DISABLE_LOGGING
+					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+						, "already unchoked | session-time: %d"
+						, pi->last_optimistically_unchoked);
+#endif
 				TORRENT_ASSERT(!pi->connection->is_choked());
 				// remove this peer from prev_opt_unchoke, to prevent us from
 				// choking it later. This peer gets another round of optimistic
@@ -3897,7 +3902,6 @@ retry:
 			}
 			else
 			{
-				peer_connection* p = static_cast<peer_connection*>(pi->connection);
 				TORRENT_ASSERT(p->is_choked());
 				boost::shared_ptr<torrent> t = p->associated_torrent().lock();
 				bool ret = t->unchoke_peer(*p, true);
@@ -3907,6 +3911,10 @@ retry:
 					pi->optimistically_unchoked = true;
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
 					pi->last_optimistically_unchoked = boost::uint16_t(session_time());
+#ifndef TORRENT_DISABLE_LOGGING
+					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+						, "session-time: %d", pi->last_optimistically_unchoked);
+#endif
 				}
 			}
 		}
@@ -3922,6 +3930,14 @@ retry:
 			pi->optimistically_unchoked = false;
 			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 			t->choke_peer(*p);
+		}
+
+		// if we have too many unchoked peers now, we need to trigger the regular
+		// choking logic to choke some
+		if (m_stats_counters[counters::num_unchoke_slots]
+			< m_stats_counters[counters::num_peers_up_unchoked_all])
+		{
+			m_unchoke_time_scaler = 0;
 		}
 	}
 
@@ -4076,6 +4092,8 @@ retry:
 
 		// build list of all peers that are
 		// unchokable.
+		// TODO: 3 there should be a pre-calculated list of all peers eligible for
+		// unchoking
 		std::vector<peer_connection*> peers;
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
@@ -4137,7 +4155,7 @@ retry:
 					, performance_alert::bittyrant_with_no_uplimit);
 		}
 
-		int allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, allowed_upload_slots);
@@ -4146,7 +4164,8 @@ retry:
 		session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
 			"eligible-peers: %d"
 			" max_upload_rate: %d"
-			" allowed-slots: %d ]", int(m_connections.size())
+			" allowed-slots: %d ]"
+			, int(m_connections.size())
 			, int(peers.size())
 			, max_upload_rate
 			, allowed_upload_slots);
@@ -4154,9 +4173,7 @@ retry:
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
-
-		// reserve some upload slots for optimistic unchokes
-		int unchoke_set_size = allowed_upload_slots;
+		int unchoke_set_size = allowed_upload_slots - num_opt_unchoke;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
