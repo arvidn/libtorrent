@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
+#include <boost/asio/ip/v6_only.hpp>
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -2098,7 +2099,7 @@ namespace aux {
 	}
 
 	void session_impl::setup_listener(listen_socket_t* s, tcp::endpoint ep
-		, int& retries, bool v6_only, int flags, error_code& ec)
+		, int& retries, int flags, error_code& ec)
 	{
 		int last_op = 0;
 		listen_failed_alert::socket_type_t sock_type = s->ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
@@ -2127,19 +2128,18 @@ namespace aux {
 		if (ep.protocol() == tcp::v6())
 		{
 			error_code err; // ignore errors here
-#ifdef IPV6_V6ONLY
-			s->sock->set_option(v6only(v6_only), err);
-#endif
-#ifdef TORRENT_WINDOWS
+			s->sock->set_option(asio::ip::v6_only(true), err);
+		}
+#endif // USE_IPV6
 
-#ifndef PROTECTION_LEVEL_UNRESTRICTED
-#define PROTECTION_LEVEL_UNRESTRICTED 10
-#endif
+#ifdef TORRENT_WINDOWS
+		{
+			error_code err; // ignore errors here
 			// enable Teredo on windows
 			s->sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
-#endif
 		}
-#endif
+#endif // TORRENT_WINDOWS
+
 		s->sock->bind(ep, ec);
 		while (ec && retries > 0)
 		{
@@ -2254,7 +2254,7 @@ retry:
 		
 			listen_socket_t s;
 			setup_listener(&s, tcp::endpoint(address_v4::any(), m_listen_interface.port())
-				, m_listen_port_retries, false, flags, ec);
+				, m_listen_port_retries, flags, ec);
 
 			if (s.sock)
 			{
@@ -2273,7 +2273,7 @@ retry:
 				listen_socket_t s;
 				s.ssl = true;
 				int retries = 10;
-				setup_listener(&s, ssl_interface, retries, false, flags, ec);
+				setup_listener(&s, ssl_interface, retries, flags, ec);
 
 				if (s.sock)
 				{
@@ -2282,38 +2282,6 @@ retry:
 				}
 			}
 #endif
-
-#if TORRENT_USE_IPV6
-			// only try to open the IPv6 port if IPv6 is installed
-			if (supports_ipv6())
-			{
-				setup_listener(&s, tcp::endpoint(address_v6::any(), m_listen_interface.port())
-					, m_listen_port_retries, true, flags, ec);
-
-				if (s.sock)
-				{
-					TORRENT_ASSERT(!m_abort);
-					m_listen_sockets.push_back(s);
-				}
-
-#ifdef TORRENT_USE_OPENSSL
-				if (m_settings.ssl_listen)
-				{
-					listen_socket_t s;
-					s.ssl = true;
-					int retries = 10;
-					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
-						, retries, false, flags, ec);
-
-					if (s.sock)
-					{
-						TORRENT_ASSERT(!m_abort);
-						m_listen_sockets.push_back(s);
-					}
-				}
-#endif // TORRENT_USE_OPENSSL
-			}
-#endif // TORRENT_USE_IPV6
 
 			// set our main IPv4 and IPv6 interfaces
 			// used to send to the tracker
@@ -2334,7 +2302,7 @@ retry:
 			// binds to the given interface
 
 			listen_socket_t s;
-			setup_listener(&s, m_listen_interface, m_listen_port_retries, false, flags, ec);
+			setup_listener(&s, m_listen_interface, m_listen_port_retries, flags, ec);
 
 			if (s.sock)
 			{
@@ -2353,7 +2321,7 @@ retry:
 				listen_socket_t s;
 				s.ssl = true;
 				int retries = 10;
-				setup_listener(&s, ssl_interface, retries, false, flags, ec);
+				setup_listener(&s, ssl_interface, retries, flags, ec);
 
 				if (s.sock)
 				{
