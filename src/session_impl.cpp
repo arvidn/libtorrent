@@ -2254,7 +2254,7 @@ retry:
 			setup_listener(&s, tcp::endpoint(address_v4::any(), m_listen_interface.port())
 				, m_listen_port_retries, flags, ec);
 
-			if (s.sock)
+			if (s.sock && !ec)
 			{
 				// update the listen_interface member with the
 				// actual port we ended up listening on, so that the other
@@ -2273,7 +2273,7 @@ retry:
 				int retries = 10;
 				setup_listener(&s, ssl_interface, retries, flags, ec);
 
-				if (s.sock)
+				if (s.sock && !ec)
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
@@ -2288,7 +2288,7 @@ retry:
 				setup_listener(&s, tcp::endpoint(address_v6::any(), m_listen_interface.port())
 					, m_listen_port_retries, flags, ec);
 
-				if (s.sock)
+				if (s.sock && !ec)
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
@@ -2303,7 +2303,7 @@ retry:
 					setup_listener(&s, tcp::endpoint(address_v6::any(), ssl_interface.port())
 						, retries, flags, ec);
 
-					if (s.sock)
+					if (s.sock && !ec)
 					{
 						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
@@ -2334,7 +2334,7 @@ retry:
 			listen_socket_t s;
 			setup_listener(&s, m_listen_interface, m_listen_port_retries, flags, ec);
 
-			if (s.sock)
+			if (s.sock && !ec)
 			{
 				TORRENT_ASSERT(!m_abort);
 				m_listen_sockets.push_back(s);
@@ -2353,7 +2353,7 @@ retry:
 				int retries = 10;
 				setup_listener(&s, ssl_interface, retries, flags, ec);
 
-				if (s.sock)
+				if (s.sock && !ec)
 				{
 					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
@@ -2378,7 +2378,7 @@ retry:
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.post_alert(listen_failed_alert(m_listen_interface
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp));
+					, listen_failed_alert::bind, ec, listen_failed_alert::tcp));
 			return;
 		}
 
