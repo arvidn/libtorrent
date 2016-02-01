@@ -896,7 +896,8 @@ namespace libtorrent
 			};
 
 			listen_socket_t setup_listener(std::string const& device
-				, bool ipv4, int port, int flags, error_code& ec);
+				, boost::asio::ip::tcp const& protocol, int port, int flags
+				, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			entry m_dht_state;

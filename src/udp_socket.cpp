@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/ip/v6_only.hpp>
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -822,9 +823,7 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		m_ipv4_sock.set_option(exclusive_address_use(true), err);
 #endif
 		m_ipv4_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
-#ifdef IPV6_V6ONLY
-		m_ipv6_sock.set_option(v6only(true), err);
-#endif
+		m_ipv6_sock.set_option(boost::asio::ip::v6_only(true), err);
 
 		m_ipv6_sock.bind(ep6, ec);
 		if (ec != error_code(boost::system::errc::address_not_available
