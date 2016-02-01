@@ -52,7 +52,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	// constructor function for the metadata transfer extension. This
-	// extension has been superceded by the ut_metadata extension and
+	// extension has been superseded by the ut_metadata extension and
 	// is deprecated. It can be either be passed in the
 	// add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
