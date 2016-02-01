@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/asio/ip/v6_only.hpp>
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -1683,7 +1684,7 @@ namespace aux {
 	enum { listen_no_system_port = 0x02 };
 
 	listen_socket_t session_impl::setup_listener(std::string const& device
-		, bool ipv4, int port, int flags, error_code& ec)
+		, boost::asio::ip::tcp const& protocol, int port, int flags, error_code& ec)
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
@@ -1693,7 +1694,7 @@ namespace aux {
 		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
 			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
 		ret.sock.reset(new tcp::acceptor(m_io_service));
-		ret.sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
+		ret.sock->open(protocol, ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
 		{
@@ -1718,25 +1719,18 @@ namespace aux {
 		}
 
 #if TORRENT_USE_IPV6
-		if (!ipv4)
+		if (protocol == boost::asio::ip::tcp::v6())
 		{
 			error_code err; // ignore errors here
-#ifdef IPV6_V6ONLY
-			ret.sock->set_option(v6only(true), err);
-#endif
-
+			ret.sock->set_option(boost::asio::ip::v6_only(true), err);
 #ifdef TORRENT_WINDOWS
-
-#ifndef PROTECTION_LEVEL_UNRESTRICTED
-#define PROTECTION_LEVEL_UNRESTRICTED 10
-#endif
 			// enable Teredo on windows
 			ret.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #endif // TORRENT_WINDOWS
 		}
 #endif // TORRENT_USE_IPV6
 
-		address bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+		address bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 			, device.c_str(), port, ec);
 
 		while (ec == error_code(error::address_in_use) && retries > 0)
@@ -1753,7 +1747,7 @@ namespace aux {
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			port += 1;
-			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1763,7 +1757,7 @@ namespace aux {
 			// instead of giving up, try let the OS pick a port
 			port = 0;
 			ec.clear();
-			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1857,13 +1851,13 @@ retry:
 		m_ipv4_interface = tcp::endpoint();
 
 		// TODO: instead of having a special case for this, just make the
-		// default listen interfaces be "0.0.0.0:6881,[::1]:6881" and use
+		// default listen interfaces be "0.0.0.0:6881,[::]:6881" and use
 		// the generic path. That would even allow for not listening at all.
 		if (m_listen_interfaces.empty())
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			listen_socket_t s = setup_listener("0.0.0.0", true
+			listen_socket_t s = setup_listener("0.0.0.0", boost::asio::ip::tcp::v4()
 				, m_listen_interface.port()
 				, flags, ec);
 
@@ -1881,7 +1875,7 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				s = setup_listener("0.0.0.0", true
+				s = setup_listener("0.0.0.0", boost::asio::ip::tcp::v4()
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
 
@@ -1897,7 +1891,8 @@ retry:
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				s = setup_listener("::1", false, m_listen_interface.port()
+				s = setup_listener("::", boost::asio::ip::tcp::v6()
+					, m_listen_interface.port()
 					, flags, ec);
 
 				if (!ec && s.sock)
@@ -1910,7 +1905,7 @@ retry:
 				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
 					s.ssl = true;
-					s = setup_listener("::1", false
+					s = setup_listener("::", boost::asio::ip::tcp::v6()
 						, m_settings.get_int(settings_pack::ssl_listen)
 						, flags | open_ssl_socket, ec);
 
@@ -1955,6 +1950,9 @@ retry:
 #else
 				const int first_family = 1;
 #endif
+				boost::asio::ip::tcp protocol[]
+					= { boost::asio::ip::tcp::v6(), boost::asio::ip::tcp::v4() };
+
 				for (int address_family = first_family; address_family < 2; ++address_family)
 				{
 					error_code err;
@@ -1964,8 +1962,8 @@ retry:
 						&& !is_any(test_family))
 						continue;
 
-					listen_socket_t s = setup_listener(device, address_family, port
-						, flags, ec);
+					listen_socket_t s = setup_listener(device, protocol[address_family]
+						, port, flags, ec);
 
 					if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
 					{
@@ -1990,7 +1988,8 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						listen_socket_t ssl_s = setup_listener(device, address_family
+						listen_socket_t ssl_s = setup_listener(device
+							, protocol[address_family]
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
 
@@ -4914,7 +4913,10 @@ retry:
 
 			if (ec) return bind_ep;
 
-			bind_ep.address(bind_to_device(m_io_service, s, remote_address.is_v4()
+			bind_ep.address(bind_to_device(m_io_service, s
+				, remote_address.is_v4()
+					? boost::asio::ip::tcp::v4()
+					: boost::asio::ip::tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
 			return bind_ep;
 		}
