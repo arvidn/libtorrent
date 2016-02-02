@@ -50,6 +50,7 @@ struct crypto_plugin;
 
 typedef boost::system::error_code error_code;
 
+// hidden
 struct TORRENT_EXPORT peer_connection_handle
 {
 	peer_connection_handle(boost::weak_ptr<peer_connection> impl)
@@ -113,11 +114,11 @@ struct TORRENT_EXPORT peer_connection_handle
 	time_point time_of_last_unchoke() const;
 
 	bool operator==(peer_connection_handle const& o) const
-	{ return m_connection.lock() == o.m_connection.lock(); }
+	{ return !(m_connection < o.m_connection) && !(o.m_connection < m_connection); }
 	bool operator!=(peer_connection_handle const& o) const
-	{ return m_connection.lock() != o.m_connection.lock(); }
+	{ return m_connection < o.m_connection || o.m_connection < m_connection; }
 	bool operator<(peer_connection_handle const& o) const
-	{ return m_connection.lock() < o.m_connection.lock(); }
+	{ return m_connection < o.m_connection; }
 
 	boost::shared_ptr<peer_connection> native_handle() const
 	{

@@ -236,7 +236,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<int(int, lt::session&)> terminate)
 {
-	asio::io_service ios(sim, addr("0.0.0.0"));
+	asio::io_service ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
 	std::vector<boost::shared_ptr<lt::session> > nodes;

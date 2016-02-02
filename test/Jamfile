@@ -56,6 +56,8 @@ lib libtorrent_test
 	dht_server.cpp
 	udp_tracker.cpp
 	peer_server.cpp
+	bittorrent_peer.cpp
+	print_alerts.cpp
 	web_seed_suite.cpp
 	swarm_suite.cpp
 	test_utils.cpp
