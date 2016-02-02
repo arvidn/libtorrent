@@ -1658,8 +1658,8 @@ namespace libtorrent
 
 		m_peer_interested = true;
 		if (is_disconnecting()) return;
-	
-		// if the peer is ready to download stuff, it must have metadata		
+
+		// if the peer is ready to download stuff, it must have metadata
 		m_has_metadata = true;
 
 		disconnect_if_redundant();
@@ -4619,10 +4619,14 @@ namespace libtorrent
 			return;
 		}
 
-		int download_rate = statistics().download_payload_rate();
+#ifndef TORRENT_DISABLE_LOGGING
+		int const previous_queue_size = m_desired_queue_size;
+#endif
+
+		int const download_rate = statistics().download_payload_rate();
 
 		// the desired download queue size
-		const int queue_time = m_settings.get_int(settings_pack::request_queue_time);
+		int const queue_time = m_settings.get_int(settings_pack::request_queue_time);
 
 		// when we're in slow-start mode we increase the desired queue size every
 		// time we receive a piece, no need to adjust it here (other than
@@ -4636,7 +4640,7 @@ namespace libtorrent
 			// the block size doesn't have to be 16. So we first query the
 			// torrent for it
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			const int block_size = t->block_size();
+			int const block_size = t->block_size();
 
 			TORRENT_ASSERT(block_size > 0);
 
@@ -4649,10 +4653,13 @@ namespace libtorrent
 			m_desired_queue_size = min_request_queue;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "UPDATE_QUEUE_SIZE"
-			, "dqs: %d max: %d dl: %d qt: %d snubbed: %d slow-start: %d"
-			, m_desired_queue_size, m_max_out_request_queue
-			, download_rate, queue_time, int(m_snubbed), int(m_slow_start));
+		if (previous_queue_size != m_desired_queue_size)
+		{
+			peer_log(peer_log_alert::info, "UPDATE_QUEUE_SIZE"
+				, "dqs: %d max: %d dl: %d qt: %d snubbed: %d slow-start: %d"
+				, m_desired_queue_size, m_max_out_request_queue
+				, download_rate, queue_time, int(m_snubbed), int(m_slow_start));
+		}
 #endif
 	}
 
@@ -5092,7 +5099,7 @@ namespace libtorrent
 
 		bool sent_a_piece = false;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t || t->is_aborted()) return;
+		if (!t || t->is_aborted() || m_requests.empty()) return;
 
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
@@ -6681,9 +6688,10 @@ namespace libtorrent
 			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
 
 		// in share mode we don't close redundant connections
-		if (m_settings.get_bool(settings_pack::close_redundant_connections) && !t->share_mode())
+		if (m_settings.get_bool(settings_pack::close_redundant_connections)
+			&& !t->share_mode())
 		{
-			bool ok_to_disconnect = 
+			bool const ok_to_disconnect =
 				can_disconnect(error_code(errors::upload_upload_connection))
 					|| can_disconnect(error_code(errors::uninteresting_upload_peer))
 					|| can_disconnect(error_code(errors::too_many_requests_when_choked))

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
-#define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+#ifndef PRINT_ALERTS_HPP
+#define PRINT_ALERTS_HPP
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#include "libtorrent/time.hpp"
+#include "libtorrent/session.hpp"
+#include "test.hpp" // for EXPORT
 
-#include "libtorrent/config.hpp"
+void EXPORT print_alerts(libtorrent::session* ses, libtorrent::time_point start_time);
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifndef TORRENT_NO_DEPRECATE
-
-namespace libtorrent
-{
-	struct torrent_plugin;
-	struct torrent_handle;
-
-#ifndef TORRENT_NO_DEPRECATE
-	// constructor function for the metadata transfer extension. This
-	// extension has been superseded by the ut_metadata extension and
-	// is deprecated. It can be either be passed in the
-	// add_torrent_params::extensions field, or
-	// via torrent_handle::add_extension().
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent_handle const&, void*);
 #endif
-}
-#endif
-
-#endif // TORRENT_DISABLE_EXTENSIONS
-
-#endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 

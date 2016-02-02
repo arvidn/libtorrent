@@ -819,7 +819,7 @@ namespace libtorrent
 			// the job and either write it to disk or insert it in the write
 			// cache. When this limit is reached, the peer connections will stop
 			// reading data from their sockets, until the disk thread catches up.
-			// Setting this too low will severly limit your download rate.
+			// Setting this too low will severely limit your download rate.
 			max_queued_disk_bytes,
 
 			// the number of seconds to wait for a handshake response from a peer.
@@ -1119,7 +1119,7 @@ namespace libtorrent
 			// read cache when a read cache miss occurs. Setting this to 0 is
 			// essentially the same thing as disabling read cache. The number of
 			// blocks read into the read cache is always capped by the piece
-			// boundry.
+			// boundary.
 			// 
 			// When a piece in the write cache has ``write_cache_line_size``
 			// contiguous blocks in it, they will be flushed. Setting this to 1
@@ -1186,7 +1186,7 @@ namespace libtorrent
 			// reciprocation rate.
 			// 
 			// ``increase_est_reciprocation_rate`` specifies how many percent the
-			// extimated reciprocation rate should be increased by each unchoke
+			// estimated reciprocation rate should be increased by each unchoke
 			// interval a peer is still choking us back. This defaults to 20%.
 			// This only applies to the BitTyrant choker.
 			// 
@@ -1200,7 +1200,7 @@ namespace libtorrent
 
 			// the max number of peers we accept from pex messages from a single
 			// peer. this limits the number of concurrent peers any of our peers
-			// claims to be connected to. If they clain to be connected to more
+			// claims to be connected to. If they claim to be connected to more
 			// than this, we'll ignore any peer that exceeds this limit
 			max_pex_peers,
 

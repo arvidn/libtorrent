@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/ip/v6_only.hpp>
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -789,6 +790,14 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	{
 		m_ipv4_sock.open(udp::v4(), ec);
 		if (ec) return;
+
+		// this is best-effort. ignore errors
+		error_code err;
+#ifdef TORRENT_WINDOWS
+		m_ipv4_sock.set_option(exclusive_address_use(true), err);
+#endif
+		m_ipv4_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
+
 		m_ipv4_sock.bind(ep, ec);
 		if (ec) return;
 		udp::socket::non_blocking_io ioc(true);
@@ -807,10 +816,15 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		if (is_any(ep.address())) ep6.address(address_v6::any());
 		m_ipv6_sock.open(udp::v6(), ec);
 		if (ec) return;
-#ifdef IPV6_V6ONLY
-		m_ipv6_sock.set_option(v6only(true), ec);
-		ec.clear();
+
+		// this is best-effort. ignore errors
+		error_code err;
+#ifdef TORRENT_WINDOWS
+		m_ipv4_sock.set_option(exclusive_address_use(true), err);
 #endif
+		m_ipv4_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
+		m_ipv6_sock.set_option(boost::asio::ip::v6_only(true), err);
+
 		m_ipv6_sock.bind(ep6, ec);
 		if (ec != error_code(boost::system::errc::address_not_available
 			, boost::system::generic_category()))

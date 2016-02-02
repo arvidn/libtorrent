@@ -94,7 +94,7 @@ namespace libtorrent
 		};
 
 		~bt_peer_connection();
-		
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		bool supports_encryption() const
 		{ return m_encrypted; }

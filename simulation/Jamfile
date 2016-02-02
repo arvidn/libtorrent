@@ -23,6 +23,7 @@ project
 	;
 
 alias libtorrent-sims :
+	[ run test_optimistic_unchoke.cpp ]
 	[ run test_transfer.cpp ]
 	[ run test_http_connection.cpp ]
 	[ run test_auto_manage.cpp ]

@@ -852,9 +852,9 @@ namespace libtorrent
 			tcp::endpoint m_listen_interface;
 
 			// the network interfaces outgoing connections are opened through. If
-			// there is more then one, they are used in a round-robin fasion
+			// there is more then one, they are used in a round-robin fashion
 			// each element is a device name or IP address (in string form) and
-			// a port number. The port determins which port to bind the listen
+			// a port number. The port determines which port to bind the listen
 			// socket to, and the device or IP determines which network adapter
 			// to be used. If no adapter with the specified name exists, the listen
 			// socket fails.
@@ -898,7 +898,8 @@ namespace libtorrent
 			};
 
 			listen_socket_t setup_listener(std::string const& device
-				, bool ipv4, int port, int flags, error_code& ec);
+				, boost::asio::ip::tcp const& protocol, int port, int flags
+				, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			entry m_dht_state;
@@ -979,7 +980,12 @@ namespace libtorrent
 
 			time_point m_created;
 			boost::int64_t session_time() const TORRENT_OVERRIDE
-			{ return total_seconds(aux::time_now() - m_created); }
+			{
+				// +1 is here to make it possible to distinguish uninitialized (to
+				// 0) timestamps and timestamps of things that happend during the
+				// first second after the session was constructed
+				return total_seconds(aux::time_now() - m_created) + 1;
+			}
 
 			time_point m_last_tick;
 			time_point m_last_second_tick;
@@ -1170,15 +1176,19 @@ namespace libtorrent
 			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
 			ses_extension_list_t m_ses_extensions;
 
-			// std::string could be used for the query names if only all common implementations used SSO
-			// *glares at gcc*
-			struct extention_dht_query
+			// the union of all session extensions' implemented_features(). This is
+			// used to exclude callbacks to the session extensions.
+			boost::uint32_t m_session_extension_features;
+
+			// std::string could be used for the query names if only all common
+			// implementations used SSO *glares at gcc*
+			struct extension_dht_query
 			{
 				boost::uint8_t query_len;
 				boost::array<char, max_dht_query_length> query;
 				dht_extension_handler_t handler;
 			};
-			typedef std::vector<extention_dht_query> m_extension_dht_queries_t;
+			typedef std::vector<extension_dht_query> m_extension_dht_queries_t;
 			m_extension_dht_queries_t m_extension_dht_queries;
 #endif
 

@@ -117,7 +117,8 @@ namespace libtorrent
 	// in case SO_BINDTODEVICE succeeded and we don't need to verify it).
 	template <class Socket>
 	address bind_to_device(io_service& ios, Socket& sock
-		, bool ipv4, char const* device_name, int port, error_code& ec)
+		, boost::asio::ip::tcp const& protocol
+		, char const* device_name, int port, error_code& ec)
 	{
 		tcp::endpoint bind_ep(address_v4::any(), port);
 
@@ -127,8 +128,8 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 			// this is to cover the case where "0.0.0.0" is considered any IPv4 or
 			// IPv6 address. If we're asking to be bound to an IPv6 address and
-			// providing 0.0.0.0 as the device, turn it into "::0"
-			if (ip == address_v4::any() && !ipv4)
+			// providing 0.0.0.0 as the device, turn it into "::"
+			if (ip == address_v4::any() && protocol == boost::asio::ip::tcp::v6())
 				ip = address_v6::any();
 #endif
 			bind_ep.address(ip);
@@ -160,7 +161,7 @@ namespace libtorrent
 				// (which must be of the same family as the address we're
 				// connecting to)
 				if (strcmp(ifs[i].name, device_name) != 0) continue;
-				if (ifs[i].interface_address.is_v4() != ipv4)
+				if (ifs[i].interface_address.is_v4() != (protocol == boost::asio::ip::tcp::v4()))
 					continue;
 
 				bind_ep.address(ifs[i].interface_address);

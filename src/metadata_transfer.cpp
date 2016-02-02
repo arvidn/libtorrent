@@ -219,7 +219,7 @@ namespace libtorrent { namespace
 			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 
-		void on_piece_pass(int)
+		void on_piece_pass(int) TORRENT_OVERRIDE
 		{
 			// if we became a seed, copy the metadata from
 			// the torrent before it is deallocated

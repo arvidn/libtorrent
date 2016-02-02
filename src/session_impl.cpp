@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/asio/ip/v6_only.hpp>
 
 #ifdef TORRENT_USE_VALGRIND
 #include <valgrind/memcheck.h>
@@ -429,6 +430,9 @@ namespace aux {
 		, m_download_connect_attempts(0)
 		, m_next_scrape_torrent(0)
 		, m_tick_residual(0)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		, m_session_extension_features(0)
+#endif
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
@@ -919,6 +923,7 @@ namespace aux {
 		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
 		m_ses_extensions.push_back(p);
+		m_session_extension_features |= p->implemented_features();
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
@@ -929,6 +934,7 @@ namespace aux {
 		m_ses_extensions.push_back(ext);
 		m_alerts.add_extension(ext);
 		ext->added(session_handle(this));
+		m_session_extension_features |= ext->implemented_features();
 
 		// get any DHT queries the plugin would like to handle
 		// and record them in m_extension_dht_queries for lookup
@@ -940,7 +946,7 @@ namespace aux {
 		{
 			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
 			if (e->first.size() > max_dht_query_length) continue;
-			extention_dht_query registration;
+			extension_dht_query registration;
 			registration.query_len = e->first.size();
 			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
 			registration.handler = e->second;
@@ -1682,7 +1688,7 @@ namespace aux {
 	enum { listen_no_system_port = 0x02 };
 
 	listen_socket_t session_impl::setup_listener(std::string const& device
-		, bool ipv4, int port, int flags, error_code& ec)
+		, boost::asio::ip::tcp const& protocol, int port, int flags, error_code& ec)
 	{
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
@@ -1692,12 +1698,13 @@ namespace aux {
 		listen_failed_alert::socket_type_t sock_type = (flags & open_ssl_socket)
 			? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp;
 		ret.sock.reset(new tcp::acceptor(m_io_service));
-		ret.sock->open(ipv4 ? tcp::v4() : tcp::v6(), ec);
+		ret.sock->open(protocol, ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op
+					, ec, sock_type);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("failed to open socket: %s: %s"
@@ -1706,36 +1713,28 @@ namespace aux {
 			return ret;
 		}
 
-		// SO_REUSEADDR on windows is a bit special. It actually allows
-		// two active sockets to bind to the same port. That means we
-		// may end up binding to the same socket as some other random
-		// application. Don't do it!
-#ifndef TORRENT_WINDOWS
 		{
-			error_code err; // ignore errors here
+			// this is best-effort. ignore errors
+			error_code err;
+#ifdef TORRENT_WINDOWS
+			ret.sock->set_option(exclusive_address_use(true), err);
+#endif
 			ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
 		}
-#endif
 
 #if TORRENT_USE_IPV6
-		if (!ipv4)
+		if (protocol == boost::asio::ip::tcp::v6())
 		{
 			error_code err; // ignore errors here
-#ifdef IPV6_V6ONLY
-			ret.sock->set_option(v6only(true), err);
-#endif
+			ret.sock->set_option(boost::asio::ip::v6_only(true), err);
 #ifdef TORRENT_WINDOWS
-
-#ifndef PROTECTION_LEVEL_UNRESTRICTED
-#define PROTECTION_LEVEL_UNRESTRICTED 10
-#endif
 			// enable Teredo on windows
 			ret.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
-#endif
+#endif // TORRENT_WINDOWS
 		}
 #endif // TORRENT_USE_IPV6
 
-		address bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+		address bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 			, device.c_str(), port, ec);
 
 		while (ec == error_code(error::address_in_use) && retries > 0)
@@ -1752,7 +1751,7 @@ namespace aux {
 			TORRENT_ASSERT_VAL(!ec, ec);
 			--retries;
 			port += 1;
-			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1762,7 +1761,7 @@ namespace aux {
 			// instead of giving up, try let the OS pick a port
 			port = 0;
 			ec.clear();
-			bind_ip = bind_to_device(m_io_service, *ret.sock, ipv4
+			bind_ip = bind_to_device(m_io_service, *ret.sock, protocol
 				, device.c_str(), port, ec);
 			last_op = listen_failed_alert::bind;
 		}
@@ -1772,10 +1771,11 @@ namespace aux {
 
 			// not even that worked, give up
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
+			error_code err;
 			session_log("cannot to bind to interface [%s %d] \"%s : %s\": %s"
-				, device.c_str(), port, bind_ip.to_string(ec).c_str()
+				, device.c_str(), port, bind_ip.to_string(err).c_str()
 				, ec.category().name(), ec.message().c_str());
 #endif
 			return ret;
@@ -1791,7 +1791,7 @@ namespace aux {
 		if (ec)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot listen on interface \"%s\": %s"
 				, device.c_str(), ec.message().c_str());
@@ -1808,7 +1808,7 @@ namespace aux {
 			if (ec)
 			{
 				if (m_alerts.should_post<listen_failed_alert>())
-					m_alerts.emplace_alert<listen_failed_alert>(device, last_op, ec, sock_type);
+					m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
 				session_log("failed to get peer name \"%s\": %s"
 					, device.c_str(), ec.message().c_str());
@@ -1856,13 +1856,13 @@ retry:
 		m_ipv4_interface = tcp::endpoint();
 
 		// TODO: instead of having a special case for this, just make the
-		// default listen interfaces be "0.0.0.0:6881,[::1]:6881" and use
+		// default listen interfaces be "0.0.0.0:6881,[::]:6881" and use
 		// the generic path. That would even allow for not listening at all.
 		if (m_listen_interfaces.empty())
 		{
 			// this means we should open two listen sockets
 			// one for IPv4 and one for IPv6
-			listen_socket_t s = setup_listener("0.0.0.0", true
+			listen_socket_t s = setup_listener("0.0.0.0", boost::asio::ip::tcp::v4()
 				, m_listen_interface.port()
 				, flags, ec);
 
@@ -1880,7 +1880,7 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 			if (m_settings.get_int(settings_pack::ssl_listen))
 			{
-				s = setup_listener("0.0.0.0", true
+				s = setup_listener("0.0.0.0", boost::asio::ip::tcp::v4()
 					, m_settings.get_int(settings_pack::ssl_listen)
 					, flags | open_ssl_socket, ec);
 
@@ -1896,7 +1896,8 @@ retry:
 			// only try to open the IPv6 port if IPv6 is installed
 			if (supports_ipv6())
 			{
-				s = setup_listener("::1", false, m_listen_interface.port()
+				s = setup_listener("::", boost::asio::ip::tcp::v6()
+					, m_listen_interface.port()
 					, flags, ec);
 
 				if (!ec && s.sock)
@@ -1909,7 +1910,7 @@ retry:
 				if (m_settings.get_int(settings_pack::ssl_listen))
 				{
 					s.ssl = true;
-					s = setup_listener("::1", false
+					s = setup_listener("::", boost::asio::ip::tcp::v6()
 						, m_settings.get_int(settings_pack::ssl_listen)
 						, flags | open_ssl_socket, ec);
 
@@ -1954,6 +1955,9 @@ retry:
 #else
 				const int first_family = 1;
 #endif
+				boost::asio::ip::tcp protocol[]
+					= { boost::asio::ip::tcp::v6(), boost::asio::ip::tcp::v4() };
+
 				for (int address_family = first_family; address_family < 2; ++address_family)
 				{
 					error_code err;
@@ -1963,8 +1967,8 @@ retry:
 						&& !is_any(test_family))
 						continue;
 
-					listen_socket_t s = setup_listener(device, address_family, port
-						, flags, ec);
+					listen_socket_t s = setup_listener(device, protocol[address_family]
+						, port, flags, ec);
 
 					if (ec == error_code(boost::system::errc::no_such_device, generic_category()))
 					{
@@ -1989,7 +1993,8 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 					if (m_settings.get_int(settings_pack::ssl_listen))
 					{
-						listen_socket_t ssl_s = setup_listener(device, address_family
+						listen_socket_t ssl_s = setup_listener(device
+							, protocol[address_family]
 							, m_settings.get_int(settings_pack::ssl_listen)
 							, flags | open_ssl_socket, ec);
 
@@ -2017,8 +2022,11 @@ retry:
 				goto retry;
 			}
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
+				m_alerts.emplace_alert<listen_failed_alert>(
+					m_listen_interface.address().to_string()
+					, m_listen_interface.port()
+					, listen_failed_alert::bind
+					, ec, listen_failed_alert::tcp);
 			return;
 		}
 
@@ -2040,8 +2048,8 @@ retry:
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					error_code err;
-					m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ssl_bind_if)
-							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+					m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_if.address().to_string()
+						, ssl_port, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
 				}
 				ec.clear();
 			}
@@ -2067,8 +2075,10 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(m_listen_interface)
-					, listen_failed_alert::bind, ec, listen_failed_alert::udp);
+				m_alerts.emplace_alert<listen_failed_alert>(m_listen_interface.address().to_string()
+					, m_listen_interface.port()
+					, listen_failed_alert::bind
+					, ec, listen_failed_alert::udp);
 			}
 			return;
 		}
@@ -2282,8 +2292,10 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("i2p", listen_failed_alert::accept
-						, e, listen_failed_alert::i2p);
+				m_alerts.emplace_alert<listen_failed_alert>("i2p"
+					, m_listen_interface.port()
+					, listen_failed_alert::accept
+					, e, listen_failed_alert::i2p);
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("cannot bind to port %d: %s"
 				, m_listen_interface.port(), e.message().c_str());
@@ -2421,7 +2433,8 @@ retry:
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(print_endpoint(ep), listen_failed_alert::accept, e
+				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string()
+					, ep.port(), listen_failed_alert::accept, e
 					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp);
 			}
 			return;
@@ -2592,8 +2605,9 @@ retry:
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
+				error_code err;
 				session_log("    rejected connection, not allowed local interface: %s"
-					, local.address().to_string(ec).c_str());
+					, local.address().to_string(err).c_str());
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
@@ -2756,8 +2770,9 @@ retry:
 		if (e)
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5", listen_failed_alert::accept, e
-						, listen_failed_alert::socks5);
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, -1, listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
 			return;
 		}
 		open_new_incoming_socks_connection();
@@ -3018,8 +3033,8 @@ retry:
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;
 
-		boost::int64_t session_time = total_seconds(now - m_created);
-		if (session_time > 65000)
+		boost::int64_t const stime = session_time();
+		if (stime > 65000)
 		{
 			// we're getting close to the point where our timestamps
 			// in torrent_peer are wrapping. We need to step all counters back
@@ -3038,12 +3053,15 @@ retry:
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		if (m_session_extension_features & plugin::tick_feature)
 		{
-			TORRENT_TRY {
-				(*i)->on_tick();
-			} TORRENT_CATCH(std::exception&) {}
+			for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
+				, end(m_ses_extensions.end()); i != end; ++i)
+			{
+				TORRENT_TRY {
+					(*i)->on_tick();
+				} TORRENT_CATCH(std::exception&) {}
+			}
 		}
 #endif
 
@@ -3755,24 +3773,32 @@ retry:
 	}
 
 	namespace {
-		struct last_optimistic_unchoke_cmp
+		bool last_optimistic_unchoke_cmp(torrent_peer const* const l
+			, torrent_peer const* const r)
 		{
-			bool operator()(peer_connection_handle const& l
-				, peer_connection_handle const& r)
-			{
-				return l.native_handle()->peer_info_struct()->last_optimistically_unchoked
-					< r.native_handle()->peer_info_struct()->last_optimistically_unchoked;
-			}
-		};
+			return l->last_optimistically_unchoked
+				< r->last_optimistically_unchoked;
+		}
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
 	{
+		INVARIANT_CHECK;
+
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<peer_connection_handle> opt_unchoke;
+		std::vector<torrent_peer*> opt_unchoke;
 
+		// collect the currently optimistically unchoked peers here, so we can
+		// choke them when we've found new optimistic unchoke candidates.
+		std::vector<torrent_peer*> prev_opt_unchoke;
+
+		// TODO: 3 it would probably make sense to have a separate list of peers
+		// that are eligible for optimistic unchoke, similar to the torrents
+		// perhaps this could even iterate over the pool allocators of
+		// torrent_peer objects. It could probably be done in a single pass and
+		// collect the n best candidates
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -3781,89 +3807,138 @@ retry:
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
 			if (pi->web_seed) continue;
-			torrent* t = p->associated_torrent().lock().get();
-			if (!t) continue;
-			if (t->is_paused()) continue;
 
 			if (pi->optimistically_unchoked)
 			{
-				TORRENT_ASSERT(!p->is_choked());
-				opt_unchoke.push_back(peer_connection_handle(*i));
+				prev_opt_unchoke.push_back(pi);
 			}
+
+			torrent* t = p->associated_torrent().lock().get();
+			if (!t) continue;
+
+			// TODO: 3 peers should know whether their torrent is paused or not,
+			// instead of having to ask it over and over again
+			if (t->is_paused()) continue;
 
 			if (!p->is_connecting()
 				&& !p->is_disconnecting()
 				&& p->is_peer_interested()
 				&& t->free_upload_slots()
-				&& p->is_choked()
+				&& (p->is_choked() || pi->optimistically_unchoked)
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(peer_connection_handle(*i));
+				opt_unchoke.push_back(pi);
 			}
 		}
 
 		// find the peers that has been waiting the longest to be optimistically
 		// unchoked
 
-		// avoid having a bias towards peers that happen to be sorted first
-		std::random_shuffle(opt_unchoke.begin(), opt_unchoke.end(), randint);
+		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
+		int const allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
+		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
+		if (num_opt_unchoke > int(opt_unchoke.size())) num_opt_unchoke =
+			int(opt_unchoke.size());
 
-		// sort all candidates based on when they were last optimistically
-		// unchoked.
-		std::sort(opt_unchoke.begin(), opt_unchoke.end(), last_optimistic_unchoke_cmp());
+		// find the n best optimistic unchoke candidates
+		std::partial_sort(opt_unchoke.begin()
+			, opt_unchoke.begin() + num_opt_unchoke
+			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		if (m_session_extension_features & plugin::optimistic_unchoke_feature)
 		{
-			if ((*i)->on_optimistic_unchoke(opt_unchoke))
-				break;
+			// if there is an extension that wants to reorder the optimistic
+			// unchoke peers, first convert the vector into one containing
+			// peer_connection_handles, since that's the exported API
+			std::vector<peer_connection_handle> peers;
+			peers.reserve(opt_unchoke.size());
+			for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
+				, end(opt_unchoke.end()); i != end; ++i)
+			{
+				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
+			}
+			for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
+				, end(m_ses_extensions.end()); i != end; ++i)
+			{
+				if ((*i)->on_optimistic_unchoke(peers))
+					break;
+			}
+			// then convert back to the internal torrent_peer pointers
+			opt_unchoke.clear();
+			for (std::vector<peer_connection_handle>::iterator i = peers.begin()
+				, end(peers.end()); i != end; ++i)
+			{
+				opt_unchoke.push_back(i->native_handle()->peer_info_struct());
+			}
 		}
 #endif
 
-		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		int allowed_unchoke_slots = m_stats_counters[counters::num_unchoke_slots];
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_unchoke_slots / 5);
-
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		for (std::vector<peer_connection_handle>::iterator i = opt_unchoke.begin()
-			, end(opt_unchoke.end()); i != end; ++i)
+		std::vector<torrent_peer*>::iterator opt_unchoke_end = opt_unchoke.begin()
+			+ num_opt_unchoke;
+
+		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin();
+			i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = i->native_handle()->peer_info_struct();
-			if (num_opt_unchoke > 0)
+			torrent_peer* pi = *i;
+			peer_connection* p = static_cast<peer_connection*>(pi->connection);
+			if (pi->optimistically_unchoked)
 			{
-				--num_opt_unchoke;
-				if (!pi->optimistically_unchoked)
-				{
-					peer_connection* p = static_cast<peer_connection*>(pi->connection);
-					torrent* t = p->associated_torrent().lock().get();
-					bool ret = t->unchoke_peer(*p, true);
-					if (ret)
-					{
-						pi->optimistically_unchoked = true;
-						m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
-						pi->last_optimistically_unchoked = boost::uint16_t(session_time());
-					}
-					else
-					{
-						// we failed to unchoke it, increment the count again
-						++num_opt_unchoke;
-					}
-				}
+#ifndef TORRENT_DISABLE_LOGGING
+					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+						, "already unchoked | session-time: %d"
+						, pi->last_optimistically_unchoked);
+#endif
+				TORRENT_ASSERT(!pi->connection->is_choked());
+				// remove this peer from prev_opt_unchoke, to prevent us from
+				// choking it later. This peer gets another round of optimistic
+				// unchoke
+				std::vector<torrent_peer*>::iterator existing =
+					std::find(prev_opt_unchoke.begin(), prev_opt_unchoke.end(), pi);
+				TORRENT_ASSERT(existing != prev_opt_unchoke.end());
+				prev_opt_unchoke.erase(existing);
 			}
 			else
 			{
-				if (pi->optimistically_unchoked)
+				TORRENT_ASSERT(p->is_choked());
+				boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+				bool ret = t->unchoke_peer(*p, true);
+				TORRENT_ASSERT(ret);
+				if (ret)
 				{
-					peer_connection* p = static_cast<peer_connection*>(pi->connection);
-					torrent* t = p->associated_torrent().lock().get();
-					pi->optimistically_unchoked = false;
-					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
-					t->choke_peer(*p);
+					pi->optimistically_unchoked = true;
+					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
+					pi->last_optimistically_unchoked = boost::uint16_t(session_time());
+#ifndef TORRENT_DISABLE_LOGGING
+					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+						, "session-time: %d", pi->last_optimistically_unchoked);
+#endif
 				}
 			}
+		}
+
+		// now, choke all the previous optimistically unchoked peers
+		for (std::vector<torrent_peer*>::iterator i = prev_opt_unchoke.begin()
+			, end(prev_opt_unchoke.end()); i != end; ++i)
+		{
+			torrent_peer* pi = *i;
+			TORRENT_ASSERT(pi->optimistically_unchoked);
+			peer_connection* p = static_cast<peer_connection*>(pi->connection);
+			boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+			pi->optimistically_unchoked = false;
+			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
+			t->choke_peer(*p);
+		}
+
+		// if we have too many unchoked peers now, we need to trigger the regular
+		// choking logic to choke some
+		if (m_stats_counters[counters::num_unchoke_slots]
+			< m_stats_counters[counters::num_peers_up_unchoked_all])
+		{
+			m_unchoke_time_scaler = 0;
 		}
 	}
 
@@ -4018,6 +4093,8 @@ retry:
 
 		// build list of all peers that are
 		// unchokable.
+		// TODO: 3 there should be a pre-calculated list of all peers eligible for
+		// unchoking
 		std::vector<peer_connection*> peers;
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
@@ -4079,7 +4156,7 @@ retry:
 					, performance_alert::bittyrant_with_no_uplimit);
 		}
 
-		int allowed_upload_slots = unchoke_sort(peers, max_upload_rate
+		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, allowed_upload_slots);
@@ -4088,7 +4165,8 @@ retry:
 		session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
 			"eligible-peers: %d"
 			" max_upload_rate: %d"
-			" allowed-slots: %d ]", int(m_connections.size())
+			" allowed-slots: %d ]"
+			, int(m_connections.size())
 			, int(peers.size())
 			, max_upload_rate
 			, allowed_upload_slots);
@@ -4096,9 +4174,7 @@ retry:
 
 		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
 		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
-
-		// reserve some upload slots for optimistic unchokes
-		int unchoke_set_size = allowed_upload_slots;
+		int unchoke_set_size = allowed_upload_slots - num_opt_unchoke;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
@@ -4882,6 +4958,9 @@ retry:
 		tcp::endpoint bind_ep(address_v4(), 0);
 		if (m_settings.get_int(settings_pack::outgoing_port) > 0)
 		{
+#ifdef TORRENT_WINDOWS
+			s.set_option(exclusive_address_use(true), ec);
+#endif
 			s.set_option(tcp::acceptor::reuse_address(true), ec);
 			// ignore errors because the underlying socket may not
 			// be opened yet. This happens when we're routing through
@@ -4901,7 +4980,10 @@ retry:
 
 			if (ec) return bind_ep;
 
-			bind_ep.address(bind_to_device(m_io_service, s, remote_address.is_v4()
+			bind_ep.address(bind_to_device(m_io_service, s
+				, remote_address.is_v4()
+					? boost::asio::ip::tcp::v4()
+					: boost::asio::ip::tcp::v6()
 				, ifname.c_str(), bind_ep.port(), ec));
 			return bind_ep;
 		}
@@ -5114,8 +5196,9 @@ retry:
 					if (strcmp(ifs[i].name, device_name) != 0) continue;
 					m_listen_interface.address(ifs[i].interface_address);
 #ifndef TORRENT_DISABLE_LOGGING
+					error_code err;
 					session_log("binding to %s"
-						, m_listen_interface.address().to_string(ec).c_str());
+						, m_listen_interface.address().to_string(err).c_str());
 #endif
 					found = true;
 					break;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_METADATA_TRANSFER_HPP_INCLUDED
-#define TORRENT_METADATA_TRANSFER_HPP_INCLUDED
+#include "print_alerts.hpp"
+#include "libtorrent/time.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "print_alerts.hpp"
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-
-#include "libtorrent/config.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifndef TORRENT_NO_DEPRECATE
-
-namespace libtorrent
+void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time)
 {
-	struct torrent_plugin;
-	struct torrent_handle;
+	using namespace libtorrent;
+	namespace lt = libtorrent;
 
-#ifndef TORRENT_NO_DEPRECATE
-	// constructor function for the metadata transfer extension. This
-	// extension has been superseded by the ut_metadata extension and
-	// is deprecated. It can be either be passed in the
-	// add_torrent_params::extensions field, or
-	// via torrent_handle::add_extension().
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin>
-	create_metadata_plugin(torrent_handle const&, void*);
+	if (ses == NULL) return;
+
+	std::vector<lt::alert*> alerts;
+	ses->pop_alerts(&alerts);
+
+	for (std::vector<lt::alert*>::iterator i = alerts.begin()
+		, end(alerts.end()); i != end; ++i)
+	{
+		alert* a = *i;
+#ifndef TORRENT_DISABLE_LOGGING
+		if (peer_log_alert* pla = alert_cast<peer_log_alert>(a))
+		{
+			// in order to keep down the amount of logging, just log actual peer
+			// messages
+			if (pla->direction != peer_log_alert::incoming_message
+				&& pla->direction != peer_log_alert::outgoing_message)
+			{
+				continue;
+			}
+		}
 #endif
+		lt::time_duration d = a->timestamp() - start_time;
+		boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+		printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+			, a->what()
+			, a->message().c_str());
+	}
+
 }
-#endif
-
-#endif // TORRENT_DISABLE_EXTENSIONS
-
-#endif // TORRENT_METADATA_TRANSFER_HPP_INCLUDED
 
