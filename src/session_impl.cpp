@@ -1774,8 +1774,9 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device, port, last_op, ec, sock_type);
 #ifndef TORRENT_DISABLE_LOGGING
+			error_code err;
 			session_log("cannot to bind to interface [%s %d] \"%s : %s\": %s"
-				, device.c_str(), port, bind_ip.to_string(ec).c_str()
+				, device.c_str(), port, bind_ip.to_string(err).c_str()
 				, ec.category().name(), ec.message().c_str());
 #endif
 			return ret;
@@ -2605,8 +2606,9 @@ retry:
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
+				error_code err;
 				session_log("    rejected connection, not allowed local interface: %s"
-					, local.address().to_string(ec).c_str());
+					, local.address().to_string(err).c_str());
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
@@ -5195,8 +5197,9 @@ retry:
 					if (strcmp(ifs[i].name, device_name) != 0) continue;
 					m_listen_interface.address(ifs[i].interface_address);
 #ifndef TORRENT_DISABLE_LOGGING
+					error_code err;
 					session_log("binding to %s"
-						, m_listen_interface.address().to_string(ec).c_str());
+						, m_listen_interface.address().to_string(err).c_str());
 #endif
 					found = true;
 					break;
