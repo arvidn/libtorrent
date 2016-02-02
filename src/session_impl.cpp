@@ -2026,7 +2026,7 @@ retry:
 					m_listen_interface.address().to_string()
 					, m_listen_interface.port()
 					, listen_failed_alert::bind
-					, ec, listen_failed_alert::udp);
+					, ec, listen_failed_alert::tcp);
 			return;
 		}
 
