@@ -829,7 +829,7 @@ namespace libtorrent
 			void open_new_incoming_socks_connection();
 
 			void setup_listener(listen_socket_t* s, tcp::endpoint ep, int& retries
-				, bool v6_only, int flags, error_code& ec);
+				, int flags, error_code& ec);
 
 			// the proxy used for bittorrent
 			proxy_settings m_proxy;

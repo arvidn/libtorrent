@@ -664,13 +664,8 @@ namespace libtorrent
 	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
-#if defined TORRENT_WINDOWS || defined TORRENT_MINGW
-		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
-			, boost::bind(&is_loopback, boost::bind(&ip_route::destination, _1)));
-#else
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
 			, boost::bind(&ip_route::destination, _1) == address());
-#endif
 		if (i == ret.end()) return address();
 		return i->gateway;
 	}
