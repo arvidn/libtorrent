@@ -563,6 +563,8 @@ AS_CASE(["$ARG_ENABLE_PYTHON_BINDING"],
 
       AS_IF([test -z "$BOOST_PYTHON_LIB"],
             [AC_MSG_ERROR([Boost.Python library not found. Try using --with-boost-python=lib.])])
+
+      BOOST_PYTHON_LIB="-l$BOOST_PYTHON_LIB"
     ],
   ["no"], [
       AC_MSG_RESULT([no])
