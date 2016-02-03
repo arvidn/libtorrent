@@ -239,6 +239,8 @@ namespace libtorrent
 			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			char if_string[100];
+
+			if (listen_interface == NULL) listen_interface = "0.0.0.0";
 			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
