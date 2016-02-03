@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 
-#if TORRENT_USE_IOSTREAM
 #include "libtorrent/hex.hpp" // to_hex, from_hex
+#if TORRENT_USE_IOSTREAM
 #include <iostream>
 #include <iomanip>
 #endif
