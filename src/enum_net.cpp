@@ -552,54 +552,55 @@ namespace libtorrent
 			GetAdaptersAddresses_t GetAdaptersAddresses = (GetAdaptersAddresses_t)GetProcAddress(
 				iphlp, "GetAdaptersAddresses");
 
-			if (GetAdaptersAddresses)
+			if (GetAdaptersAddresses == NULL)
 			{
-				PIP_ADAPTER_ADDRESSES adapter_addresses = 0;
-				ULONG out_buf_size = 0;
-				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
-				{
-					FreeLibrary(iphlp);
-					ec = asio::error::operation_not_supported;
-					return std::vector<ip_interface>();
-				}
-
-				adapter_addresses = (IP_ADAPTER_ADDRESSES*)malloc(out_buf_size);
-				if (!adapter_addresses)
-				{
-					FreeLibrary(iphlp);
-					ec = asio::error::no_memory;
-					return std::vector<ip_interface>();
-				}
-
-				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) == NO_ERROR)
-				{
-					for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
-						adapter != 0; adapter = adapter->Next)
-					{
-						ip_interface r;
-						strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-						r.name[sizeof(r.name)-1] = 0;
-						r.mtu = adapter->Mtu;
-						IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
-						while (unicast)
-						{
-							r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
-
-							ret.push_back(r);
-
-							unicast = unicast->Next;
-						}
-					}
-				}
-
-				// Free memory
-				free(adapter_addresses);
 				FreeLibrary(iphlp);
-				return ret;
+				ec = error_code(boost::system::errc::not_supported, generic_category());
+				return std::vector<ip_interface>();
 			}
+
+			ULONG buf_size = 10000;
+			std::vector<char> buffer(buf_size);
+			PIP_ADAPTER_ADDRESSES adapter_addresses
+				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+
+			DWORD r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+				| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+			if (r == ERROR_BUFFER_OVERFLOW)
+			{
+				buffer.resize(buf_size);
+				r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+			}
+
+			if (r != NO_ERROR)
+			{
+				FreeLibrary(iphlp);
+				ec = error_code(WSAGetLastError(), asio::error::system_category);
+				return std::vector<ip_interface>();
+			}
+
+			for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
+				adapter != 0; adapter = adapter->Next)
+			{
+				ip_interface r;
+				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				r.name[sizeof(r.name)-1] = 0;
+				r.mtu = adapter->Mtu;
+				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+				while (unicast)
+				{
+					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+
+					ret.push_back(r);
+
+					unicast = unicast->Next;
+				}
+			}
+
+			// Free memory
 			FreeLibrary(iphlp);
+			return ret;
 		}
 #endif
 
@@ -612,7 +613,7 @@ namespace libtorrent
 
 		INTERFACE_INFO buffer[30];
 		DWORD size;
-	
+
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
