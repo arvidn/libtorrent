@@ -351,7 +351,7 @@ namespace libtorrent
 		::_set_se_translator(straight_to_debugger);
 #endif
 
-		bool internal_executor = ios == NULL;
+		bool const internal_executor = ios == NULL;
 
 		if (internal_executor)
 		{

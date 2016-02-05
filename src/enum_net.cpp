@@ -434,14 +434,14 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			return ret;
 		}
 
 		ifaddrs *ifaddr;
 		if (getifaddrs(&ifaddr) == -1)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(s);
 			return ret;
 		}
@@ -481,7 +481,7 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			return ret;
 		}
 		ifconf ifc;
@@ -491,7 +491,7 @@ namespace libtorrent
 		ifc.ifc_buf = (char*)buf;
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(s);
 			return ret;
 		}
@@ -529,7 +529,7 @@ namespace libtorrent
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, siocgifmtu, &req) < 0)
 				{
-					ec = error_code(errno, boost::asio::error::system_category);
+					ec = error_code(errno, system_category());
 					close(s);
 					return ret;
 				}
@@ -552,7 +552,7 @@ namespace libtorrent
 					else
 #endif
 					{
-						ec = error_code(errno, boost::asio::error::system_category);
+						ec = error_code(errno, system_category());
 						close(s);
 						return ret;
 					}
@@ -581,61 +581,61 @@ namespace libtorrent
 			GetAdaptersAddresses_t GetAdaptersAddresses = (GetAdaptersAddresses_t)GetProcAddress(
 				iphlp, "GetAdaptersAddresses");
 
-			if (GetAdaptersAddresses)
+			if (GetAdaptersAddresses == NULL)
 			{
-				PIP_ADAPTER_ADDRESSES adapter_addresses = 0;
-				ULONG out_buf_size = 0;
-				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
-				{
-					FreeLibrary(iphlp);
-					ec = boost::asio::error::operation_not_supported;
-					return std::vector<ip_interface>();
-				}
-
-				adapter_addresses = (IP_ADAPTER_ADDRESSES*)malloc(out_buf_size);
-				if (!adapter_addresses)
-				{
-					FreeLibrary(iphlp);
-					ec = boost::asio::error::no_memory;
-					return std::vector<ip_interface>();
-				}
-
-				if (GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &out_buf_size) == NO_ERROR)
-				{
-					for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
-						adapter != 0; adapter = adapter->Next)
-					{
-						ip_interface r;
-						strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-						r.name[sizeof(r.name)-1] = 0;
-						r.mtu = adapter->Mtu;
-						IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
-						while (unicast)
-						{
-							r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
-
-							ret.push_back(r);
-
-							unicast = unicast->Next;
-						}
-					}
-				}
-
-				// Free memory
-				free(adapter_addresses);
 				FreeLibrary(iphlp);
-				return ret;
+				ec = error_code(boost::system::errc::not_supported, generic_category());
+				return std::vector<ip_interface>();
 			}
+
+			ULONG buf_size = 10000;
+			std::vector<char> buffer(buf_size);
+			PIP_ADAPTER_ADDRESSES adapter_addresses
+				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+
+			DWORD r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+				| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+			if (r == ERROR_BUFFER_OVERFLOW)
+			{
+				buffer.resize(buf_size);
+				r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+			}
+			if (r != NO_ERROR)
+			{
+				FreeLibrary(iphlp);
+				ec = error_code(WSAGetLastError(), system_category());
+				return std::vector<ip_interface>();
+			}
+
+			for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
+				adapter != 0; adapter = adapter->Next)
+			{
+				ip_interface r;
+				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+				r.name[sizeof(r.name)-1] = 0;
+				r.mtu = adapter->Mtu;
+				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+				while (unicast)
+				{
+					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+
+					ret.push_back(r);
+
+					unicast = unicast->Next;
+				}
+			}
+
+			// Free memory
 			FreeLibrary(iphlp);
+			return ret;
 		}
 #endif
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s == SOCKET_ERROR)
 		{
-			ec = error_code(WSAGetLastError(), boost::asio::error::system_category);
+			ec = error_code(WSAGetLastError(), system_category());
 			return ret;
 		}
 
@@ -645,7 +645,7 @@ namespace libtorrent
 		if (WSAIoctl(s, SIO_GET_INTERFACE_LIST, 0, 0, buffer,
 			sizeof(buffer), &size, 0, 0) != 0)
 		{
-			ec = error_code(WSAGetLastError(), boost::asio::error::system_category);
+			ec = error_code(WSAGetLastError(), system_category());
 			closesocket(s);
 			return ret;
 		}
@@ -755,14 +755,14 @@ namespace libtorrent
 		int s = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
 		if (s == -1)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
 
 		int n = write(s, &m, len);
 		if (n == -1)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -777,7 +777,7 @@ namespace libtorrent
 		n = read(s, &m, len);
 		if (n == -1)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(s);
 			return std::vector<ip_route>();
 		}
@@ -788,7 +788,7 @@ namespace libtorrent
 			std::cout << " rtm_type: " << ptr->rtm_type << std::endl;
 			if (ptr->rtm_errno)
 			{
-				ec = error_code(ptr->rtm_errno, boost::asio::error::system_category);
+				ec = error_code(ptr->rtm_errno, system_category());
 				return std::vector<ip_route>();
 			}
 			if (m.m_rtm.rtm_flags & RTF_UP == 0
@@ -844,7 +844,7 @@ namespace libtorrent
 	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 #endif
 	{
-		ec = error_code(errno, boost::asio::error::system_category);
+		ec = error_code(errno, system_category());
 		return std::vector<ip_route>();
 	}
 
@@ -866,7 +866,7 @@ namespace libtorrent
 	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
 #endif
 	{
-		ec = error_code(errno, boost::asio::error::system_category);
+		ec = error_code(errno, system_category());
 		return std::vector<ip_route>();
 	}
 
@@ -875,7 +875,7 @@ namespace libtorrent
 	int s = socket(AF_INET, SOCK_DGRAM, 0);
 	if (s < 0)
 	{
-		ec = error_code(errno, boost::asio::error::system_category);
+		ec = error_code(errno, system_category());
 		return std::vector<ip_route>();
 	}
 	rt_msghdr* rtm;
@@ -1067,7 +1067,7 @@ namespace libtorrent
 		int sock = socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
 		if (sock < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
 
@@ -1085,7 +1085,7 @@ namespace libtorrent
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(sock);
 			return std::vector<ip_route>();
 		}
@@ -1093,7 +1093,7 @@ namespace libtorrent
 		int len = read_nl_sock(sock, msg, BUFSIZE, seq, getpid());
 		if (len < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			close(sock);
 			return std::vector<ip_route>();
 		}
@@ -1101,7 +1101,7 @@ namespace libtorrent
 		int s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
-			ec = error_code(errno, boost::asio::error::system_category);
+			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
