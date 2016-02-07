@@ -787,14 +787,12 @@ namespace libtorrent {
 			"SSL/uTP"
 		};
 
-#ifndef TORRENT_NO_DEPRECATE
 		tcp::endpoint parse_interface(std::string const& iface, int port)
 		{
 			// ignore errors
 			error_code ec;
 			return tcp::endpoint(address::from_string(iface, ec), port);
 		}
-#endif
 	}
 
 	listen_failed_alert::listen_failed_alert(
@@ -808,9 +806,7 @@ namespace libtorrent {
 		, operation(op)
 		, port(prt)
 		, sock_type(t)
-#ifndef TORRENT_NO_DEPRECATE
 		, endpoint(parse_interface(iface, prt))
-#endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
 	{}
