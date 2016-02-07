@@ -1481,10 +1481,11 @@ namespace libtorrent
 		// its value until the piece picker is created
 		bool m_sequential_download:1;
 
-		// is false by default and set to
-		// true when the first tracker reponse
-		// is received
-		bool m_got_tracker_response:1;
+		// this is set if the auto_sequential setting is true and this swarm
+		// satisfies the criteria to be considered high-availability. i.e. if
+		// there's mostly seeds in the swarm, download the files sequentially
+		// for improved disk I/O performance.
+		bool m_auto_sequential:1;
 
 		// this means we haven't verified the file content
 		// of the files we're seeding. the m_verified bitfield
@@ -1561,11 +1562,11 @@ namespace libtorrent
 		// set to true if the session IP filter applies to this
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
-		
+
 		// if set to true, add tracker URLs loaded from resume
 		// data into this torrent instead of replacing them
 		bool m_merge_resume_trackers:1;
-		
+
 // ----
 
 		// the number of bytes of padding files
@@ -1662,12 +1663,6 @@ namespace libtorrent
 		// queuing mechanism's point of view. If a torrent doesn't transfer
 		// at high enough rates, it's inactive.
 		bool m_inactive:1;
-
-		// this is set if the auto_sequential setting is true and this swarm
-		// satisfies the criteria to be considered high-availability. i.e. if
-		// there's mostly seeds in the swarm, download the files sequentially
-		// for improved disk I/O performance.
-		bool m_auto_sequential:1;
 
 // ----
 
