@@ -134,7 +134,7 @@ class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
 {
 public:
 	upnp(io_service& ios
-		, address const& listen_interface, std::string const& user_agent
+		, std::string const& user_agent
 		, portmap_callback_t const& cb, log_callback_t const& lcb
 		, bool ignore_nonrouters);
 	~upnp();

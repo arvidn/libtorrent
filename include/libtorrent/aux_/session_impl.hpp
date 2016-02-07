@@ -124,11 +124,20 @@ namespace libtorrent
 
 	struct listen_socket_t
 	{
-		listen_socket_t(): external_port(0), ssl(false) {}
+		listen_socket_t()
+			: tcp_external_port(0)
+			, ssl(false)
+		{
+			tcp_port_mapping[0] = -1;
+			tcp_port_mapping[1] = -1;
+		}
 
 		// this is typically empty but can be set
 		// to the WAN IP address of NAT-PMP or UPnP router
 		address external_address;
+
+		// this is a cached local endpoint for the listen socket
+		tcp::endpoint local_endpoint;
 
 		// this is typically set to the same as the local
 		// listen port. In case a NAT port forward was
@@ -137,7 +146,10 @@ namespace libtorrent
 		// on the NAT box itself. This is the port that has
 		// to be published to peers, since this is the port
 		// the client is reachable through.
-		int external_port;
+		int tcp_external_port;
+
+		// 0 is natpmp 1 is upnp
+		int tcp_port_mapping[2];
 
 		// set to true if this is an SSL listen socket
 		bool ssl;
@@ -837,10 +849,6 @@ namespace libtorrent
 			// which interface to listen on
 			std::vector<std::pair<std::string, int> > m_listen_interfaces;
 
-			// keep this around until everything uses the list of interfaces
-			// instead.
-			tcp::endpoint m_listen_interface;
-
 			// the network interfaces outgoing connections are opened through. If
 			// there is more then one, they are used in a round-robin fashion
 			// each element is a device name or IP address (in string form) and
@@ -849,12 +857,6 @@ namespace libtorrent
 			// to be used. If no adapter with the specified name exists, the listen
 			// socket fails.
 			std::vector<std::string> m_outgoing_interfaces;
-
-			// if we're listening on an IPv6 interface
-			// this is one of the non local IPv6 interfaces
-			// on this machine
-			tcp::endpoint m_ipv6_interface;
-			tcp::endpoint m_ipv4_interface;
 
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
@@ -887,8 +889,7 @@ namespace libtorrent
 			};
 
 			listen_socket_t setup_listener(std::string const& device
-				, boost::asio::ip::tcp const& protocol, int port, int flags
-				, error_code& ec);
+				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 			entry m_dht_state;
@@ -1026,6 +1027,7 @@ namespace libtorrent
 
 			// see m_external_listen_port. This is the same
 			// but for the udp port used by the DHT.
+			// TODO: 3 once udp sockets are part of m_listen_sockets, remove this
 			int m_external_udp_port;
 
 			udp_socket m_udp_socket;
@@ -1046,18 +1048,18 @@ namespace libtorrent
 			boost::shared_ptr<upnp> m_upnp;
 			boost::shared_ptr<lsd> m_lsd;
 
+			// TODO: 3 once the udp socket is in listen_socket_t, these should
+			// move in there too
+			// 0 is natpmp 1 is upnp
+			int m_udp_mapping[2];
+#ifdef TORRENT_USE_OPENSSL
+			int m_ssl_udp_mapping[2];
+#endif
+
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP
 			// 2: UPnP
-			void remap_tcp_ports(boost::uint32_t mask, int tcp_port, int ssl_port);
-
-			// 0 is natpmp 1 is upnp
-			int m_tcp_mapping[2];
-			int m_udp_mapping[2];
-#ifdef TORRENT_USE_OPENSSL
-			int m_ssl_tcp_mapping[2];
-			int m_ssl_udp_mapping[2];
-#endif
+			void remap_ports(boost::uint32_t mask, listen_socket_t& s);
 
 			// the timer used to fire the tick
 			deadline_timer m_timer;

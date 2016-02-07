@@ -3058,8 +3058,7 @@ namespace libtorrent
 
 #endif
 
-	void torrent::announce_with_tracker(boost::uint8_t e
-		, address const& bind_interface)
+	void torrent::announce_with_tracker(boost::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -3182,8 +3181,6 @@ namespace libtorrent
 
 			req.triggered_manually = ae.triggered_manually;
 			ae.triggered_manually = false;
-
-			req.bind_ip = bind_interface;
 
 			if (settings().get_bool(settings_pack::force_proxy))
 			{
@@ -3574,6 +3571,8 @@ namespace libtorrent
 		// matches one of the listen interfaces, since that means this
 		// announce was the second one
 
+		// TODO: 3 instead of announcing once per IP version, announce once per
+		// listen interface (i.e. m_listen_sockets)
 		if (((!is_any(m_ses.get_ipv6_interface().address()) && tracker_ip.is_v4())
 			|| (!is_any(m_ses.get_ipv4_interface().address()) && tracker_ip.is_v6()))
 			&& r.bind_ip != m_ses.get_ipv4_interface().address()
