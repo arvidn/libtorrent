@@ -437,6 +437,7 @@ namespace libtorrent
 			enable_outgoing_tcp,
 			enable_incoming_tcp,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``ignore_resume_timestamps`` determines if the storage, when
 			// loading resume data files, should verify that the file modification
 			// time with the timestamps in the resume data. This defaults to
@@ -447,6 +448,10 @@ namespace libtorrent
 			// redownload potentially missed pieces than to go through the whole
 			// storage to look for them.
 			ignore_resume_timestamps,
+#else
+			// hidden
+			deprecated8,
+#endif
 
 			// ``no_recheck_incomplete_resume`` determines if the storage should
 			// check the whole files when resume data is incomplete or missing or

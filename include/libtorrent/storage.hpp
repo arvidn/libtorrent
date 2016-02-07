@@ -113,7 +113,6 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool verify_resume_data(bdecode_node const& rd
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
-//		virtual bool write_resume_data(entry& rd) const { return false; }
 //		virtual boost::int64_t physical_offset(int piece, int offset)
 //		{ return piece * m_files.piece_length() + offset; };
 //		virtual sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size)
@@ -314,16 +313,6 @@ namespace libtorrent
 			, std::vector<std::string> const* links
 			, storage_error& ec) = 0;
 
-		// This function should fill in resume data, the current state of the
-		// storage, in ``rd``. The default storage adds file timestamps and
-		// sizes.
-		// 
-		// Returning ``true`` indicates an error occurred.
-		// 
-		// If an error occurs, ``storage_error`` should be set to reflect it.
-		// 
-		virtual void write_resume_data(entry& rd, storage_error& ec) const = 0;
-
 		// This function should release all the file handles that it keeps open
 		// to files belonging to this storage. The default implementation just
 		// calls file_pool::release_files().
@@ -433,7 +422,6 @@ namespace libtorrent
 		virtual bool verify_resume_data(bdecode_node const& rd
 			, std::vector<std::string> const* links
 			, storage_error& error) TORRENT_OVERRIDE;
-		virtual void write_resume_data(entry& rd, storage_error& ec) const TORRENT_OVERRIDE;
 		virtual bool tick() TORRENT_OVERRIDE;
 
 		int readv(file::iovec_t const* bufs, int num_bufs
@@ -518,7 +506,6 @@ namespace libtorrent
 		virtual bool verify_resume_data(bdecode_node const&
 			, std::vector<std::string> const*
 			, storage_error&) TORRENT_OVERRIDE { return false; }
-		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
 	};
 
 	// this storage implementation always reads zeroes, and always discards
@@ -541,7 +528,6 @@ namespace libtorrent
 			, std::vector<std::string> const* /* links */
 			, storage_error&) TORRENT_OVERRIDE
 			{ return false; }
-		virtual void write_resume_data(entry&, storage_error&) const TORRENT_OVERRIDE {}
 		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
 		virtual void rename_file(int /* index */
 			, std::string const& /* new_filenamem */, storage_error&) TORRENT_OVERRIDE {}
@@ -660,8 +646,6 @@ namespace libtorrent
 		};
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
-
-		void write_resume_data(entry& rd, storage_error& ec) const;
 
 #ifdef TORRENT_DEBUG
 		void assert_torrent_refcount() const;

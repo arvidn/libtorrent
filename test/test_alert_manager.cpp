@@ -59,8 +59,7 @@ TORRENT_TEST(limit)
 	TEST_EQUAL(mgr.pending(), true);
 
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 500
 	TEST_EQUAL(alerts.size(), 500);
@@ -75,7 +74,7 @@ TORRENT_TEST(limit)
 
 	TEST_EQUAL(mgr.pending(), true);
 
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 600, the limit was 200
 	TEST_EQUAL(alerts.size(), 200);
@@ -96,8 +95,7 @@ TORRENT_TEST(priority_limit)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	// even though we posted 400, the limit was 100 for half of them and
 	// 200 for the other half, meaning we should have 200 alerts now
@@ -173,8 +171,7 @@ TORRENT_TEST(notify_function)
 	// however, if we pop all the alerts and post new ones, there will be
 	// and edge triggering the notify call
 	std::vector<alert*> alerts;
-	int num_resume;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	TEST_EQUAL(mgr.pending(), false);
 
@@ -258,8 +255,7 @@ TORRENT_TEST(wait_for_alert)
 	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
 
 	std::vector<alert*> alerts;
-	int num_resume = 0;
-	mgr.get_all(alerts, num_resume);
+	mgr.get_all(alerts);
 
 	start = clock_type::now();
 	thread posting_thread(boost::bind(&post_torrent_added, &mgr));
@@ -272,40 +268,6 @@ TORRENT_TEST(wait_for_alert)
 	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
 
 	posting_thread.join();
-}
-
-TORRENT_TEST(queued_resume)
-{
-	alert_manager mgr(100, 0xffffffff);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	for (int i = 0; i < 17; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	std::vector<alert*> alerts;
-	int num_resume = 0;
-	mgr.get_all(alerts, num_resume);
-	TEST_EQUAL(num_resume, 0);
-	TEST_EQUAL(alerts.size(), 17);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
-
-	error_code ec(boost::system::errc::no_such_file_or_directory
-		, generic_category());
-
-	for (int i = 0; i < 2; ++i)
-		mgr.emplace_alert<save_resume_data_failed_alert>(torrent_handle(), ec);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 2);
-
-	mgr.get_all(alerts, num_resume);
-	TEST_EQUAL(num_resume, 2);
-	TEST_EQUAL(alerts.size(), 2);
-
-	TEST_EQUAL(mgr.num_queued_resume(), 0);
 }
 
 TORRENT_TEST(alert_mask)

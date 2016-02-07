@@ -44,17 +44,10 @@ namespace libtorrent
 	alert_manager::alert_manager(int queue_limit, boost::uint32_t alert_mask)
 		: m_alert_mask(alert_mask)
 		, m_queue_size_limit(queue_limit)
-		, m_num_queued_resume(0)
 		, m_generation(0)
 	{}
 
 	alert_manager::~alert_manager() {}
-
-	int alert_manager::num_queued_resume() const
-	{
-		mutex::scoped_lock lock(m_mutex);
-		return m_num_queued_resume;
-	}
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
@@ -73,10 +66,6 @@ namespace libtorrent
 
 	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
 	{
-		if (a->type() == save_resume_data_failed_alert::alert_type
-			|| a->type() == save_resume_data_alert::alert_type)
-			++m_num_queued_resume;
-
 		if (m_alerts[m_generation].size() == 1)
 		{
 			lock.unlock();
@@ -102,6 +91,8 @@ namespace libtorrent
 		{
 			(*i)->on_alert(a);
 		}
+#else
+		TORRENT_UNUSED(a);
 #endif
 	}
 
@@ -168,17 +159,14 @@ namespace libtorrent
 	}
 #endif
 
-	void alert_manager::get_all(std::vector<alert*>& alerts, int& num_resume)
+	void alert_manager::get_all(std::vector<alert*>& alerts)
 	{
 		mutex::scoped_lock lock(m_mutex);
-		TORRENT_ASSERT(m_num_queued_resume <= m_alerts[m_generation].size());
 
 		alerts.clear();
 		if (m_alerts[m_generation].empty()) return;
 
 		m_alerts[m_generation].get_pointers(alerts);
-		num_resume = m_num_queued_resume;
-		m_num_queued_resume = 0;
 
 		// swap buffers
 		m_generation = (m_generation + 1) & 1;

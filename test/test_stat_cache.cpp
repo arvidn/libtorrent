@@ -42,39 +42,46 @@ TORRENT_TEST(stat_cache)
 
 	stat_cache sc;
 
-	sc.init(10);
-
-	for (int i = 0; i < 10; ++i)
+	file_storage fs;
+	for (int i = 0; i < 20; ++i)
 	{
-		TEST_CHECK(sc.get_filesize(i) == stat_cache::not_in_cache);
-		TEST_CHECK(sc.get_filetime(i) == stat_cache::not_in_cache);
+		char buf[50];
+		snprintf(buf, sizeof(buf), "test_torrent/test-%d", i);
+		fs.add_file(buf, (i + 1) * 10);
 	}
 
-	// out of bound accesses count as not-in-cache
-	TEST_CHECK(sc.get_filesize(10) == stat_cache::not_in_cache);
-	TEST_CHECK(sc.get_filesize(11) == stat_cache::not_in_cache);
+	std::string save_path = ".";
 
-	sc.set_error(3);
-	TEST_CHECK(sc.get_filesize(3) == stat_cache::cache_error);
+	sc.reserve(10);
 
-	sc.set_noexist(3);
-	TEST_CHECK(sc.get_filesize(3) == stat_cache::no_exist);
+	sc.set_error(3, error_code(boost::system::errc::permission_denied, generic_category()));
+	ec.clear();
+	TEST_EQUAL(sc.get_filesize(3, fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::permission_denied, generic_category()));
 
-	sc.set_cache(3, 101, 5555);
-	TEST_CHECK(sc.get_filesize(3) == 101);
-	TEST_CHECK(sc.get_filetime(3) == 5555);
+	sc.set_error(3, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
+	ec.clear();
+	TEST_EQUAL(sc.get_filesize(3, fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
 
-	sc.set_error(11);
-	TEST_CHECK(sc.get_filesize(10) == stat_cache::not_in_cache);
-	TEST_CHECK(sc.get_filesize(11) == stat_cache::cache_error);
+	ec.clear();
+	sc.set_cache(3, 101);
+	TEST_EQUAL(sc.get_filesize(3, fs, save_path, ec), 101);
+	TEST_CHECK(!ec);
 
-	sc.set_noexist(13);
-	TEST_CHECK(sc.get_filesize(12) == stat_cache::not_in_cache);
-	TEST_CHECK(sc.get_filesize(13) == stat_cache::no_exist);
+	sc.set_error(11, error_code(boost::system::errc::broken_pipe, generic_category()));
+	ec.clear();
+	TEST_EQUAL(sc.get_filesize(11, fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::broken_pipe, generic_category()));
 
-	sc.set_cache(15, 1000, 3000);
-	TEST_CHECK(sc.get_filesize(14) == stat_cache::not_in_cache);
-	TEST_CHECK(sc.get_filesize(15) == 1000);
-	TEST_CHECK(sc.get_filetime(15) == 3000);
+	ec.clear();
+	sc.set_error(13, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
+	TEST_EQUAL(sc.get_filesize(13, fs, save_path, ec), stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, generic_category()));
+
+	ec.clear();
+	sc.set_cache(15, 1000);
+	TEST_CHECK(sc.get_filesize(15, fs, save_path, ec) == 1000);
+	TEST_CHECK(!ec);
 }
 

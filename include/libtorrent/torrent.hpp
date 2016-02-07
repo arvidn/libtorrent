@@ -480,7 +480,6 @@ namespace libtorrent
 		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
 		void force_recheck();
 		void save_resume_data(int flags);
-		bool do_async_save_resume_data();
 
 		bool need_save_resume_data() const
 		{
@@ -1138,7 +1137,6 @@ namespace libtorrent
 		void on_files_deleted(disk_io_job const* j);
 		void on_torrent_paused(disk_io_job const* j);
 		void on_storage_moved(disk_io_job const* j);
-		void on_save_resume_data(disk_io_job const* j);
 		void on_file_renamed(disk_io_job const* j);
 		void on_cache_flushed(disk_io_job const* j);
 

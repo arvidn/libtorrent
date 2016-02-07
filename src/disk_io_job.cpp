@@ -62,8 +62,6 @@ namespace libtorrent
 	{
 		if (action == rename_file || action == move_storage)
 			free(buffer.string);
-		else if (action == save_resume_data)
-			delete static_cast<entry*>(buffer.resume_data);
 	}
 
 	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)

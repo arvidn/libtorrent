@@ -781,16 +781,6 @@ namespace libtorrent
 
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
 
-			// when saving resume data for many torrents, torrents are
-			// queued up in this list in order to not have too many of them
-			// outstanding at any given time, since the resume data may use
-			// a lot of memory.
-			std::list<boost::shared_ptr<torrent> > m_save_resume_queue;
-
-			// the number of save resume data disk jobs that are currently
-			// outstanding
-			int m_num_save_resume;
-
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that
 			// peer connections are destructed from the network thread,
@@ -1161,12 +1151,6 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
 #endif
-
-			// TODO: 2 the throttling of saving resume data could probably be
-			// factored out into a separate class
-			virtual void queue_async_resume_data(boost::shared_ptr<torrent> const& t) TORRENT_OVERRIDE;
-			virtual void done_async_resume() TORRENT_OVERRIDE;
-			void async_resume_dispatched();
 
 			// state for keeping track of external IPs
 			external_ip m_external_ip;

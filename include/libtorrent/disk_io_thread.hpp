@@ -317,8 +317,6 @@ namespace libtorrent
 			, bdecode_node const* resume_data
 			, std::vector<std::string>& links
 			, boost::function<void(disk_io_job const*)> const& handler);
-		void async_save_resume_data(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_rename_file(piece_manager* storage, int index, std::string const& name
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_stop_torrent(piece_manager* storage
@@ -414,7 +412,6 @@ namespace libtorrent
 		int do_release_files(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_check_fastresume(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_save_resume_data(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_rename_file(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_read_and_hash(disk_io_job* j, jobqueue_t& completed_jobs);

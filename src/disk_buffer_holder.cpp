@@ -52,7 +52,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block >= 0);
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
 		TORRENT_ASSERT(m_ref.storage == 0 || m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::save_resume_data);
 		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
 		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}
@@ -69,7 +68,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ref.block >= 0);
 		TORRENT_ASSERT(m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
 		TORRENT_ASSERT(m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::save_resume_data);
 		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
 		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}

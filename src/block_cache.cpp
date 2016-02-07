@@ -214,7 +214,6 @@ const char* const job_action_name[] =
 	"release_files",
 	"delete_files",
 	"check_fastresume",
-	"save_resume_data",
 	"rename_file",
 	"stop_torrent",
 	"cache_piece",

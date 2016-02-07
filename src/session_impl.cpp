@@ -379,7 +379,6 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_num_save_resume(0)
 		, m_work(io_service::work(m_io_service))
 		, m_max_queue_pos(-1)
 		, m_key(0)
@@ -640,58 +639,6 @@ namespace aux {
 		, session_interface::callback_t const& h)
 	{
 		m_host_resolver.async_resolve(host, flags, h);
-	}
-
-	void session_impl::queue_async_resume_data(boost::shared_ptr<torrent> const& t)
-	{
-		INVARIANT_CHECK;
-
-		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-
-		if (m_num_save_resume + m_alerts.num_queued_resume() >= loaded_limit
-			&& m_user_load_torrent
-			&& loaded_limit > 0)
-		{
-			TORRENT_ASSERT(t);
-			// do loaded torrents first, otherwise they'll just be
-			// evicted and have to be loaded again
-			if (t->is_loaded())
-				m_save_resume_queue.push_front(t);
-			else
-				m_save_resume_queue.push_back(t);
-			return;
-		}
-
-		if (t->do_async_save_resume_data())
-			++m_num_save_resume;
-	}
-
-	// this is called whenever a save_resume_data comes back
-	// from the disk thread
-	void session_impl::done_async_resume()
-	{
-		TORRENT_ASSERT(m_num_save_resume > 0);
-		--m_num_save_resume;
-	}
-
-	// this is called when one or all save resume alerts are
-	// popped off the alert queue
-	void session_impl::async_resume_dispatched()
-	{
-		INVARIANT_CHECK;
-
-		int num_queued_resume = m_alerts.num_queued_resume();
-
-		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-		while (!m_save_resume_queue.empty()
-			&& (m_num_save_resume + num_queued_resume < loaded_limit
-			|| loaded_limit == 0))
-		{
-			boost::shared_ptr<torrent> t = m_save_resume_queue.front();
-			m_save_resume_queue.erase(m_save_resume_queue.begin());
-			if (t->do_async_save_resume_data())
-				++m_num_save_resume;
-		}
 	}
 
 	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
@@ -6452,15 +6399,7 @@ retry:
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)
 	{
-		int num_resume = 0;
-		m_alerts.get_all(*alerts, num_resume);
-		if (num_resume > 0)
-		{
-			// we can only issue more resume data jobs from
-			// the network thread
-			m_io_service.post(boost::bind(&session_impl::async_resume_dispatched
-				, this));
-		}
+		m_alerts.get_all(*alerts);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -6891,11 +6830,6 @@ retry:
 	void session_impl::check_invariant() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-
-		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-		TORRENT_ASSERT(m_num_save_resume <= loaded_limit);
-//		if (m_num_save_resume < loaded_limit)
-//			TORRENT_ASSERT(m_save_resume_queue.empty());
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 

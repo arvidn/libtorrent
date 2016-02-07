@@ -32,19 +32,34 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/error_code.hpp"
+#include "libtorrent/file.hpp"
+
+#include <string>
 
 namespace libtorrent
 {
+	class file_storage;
+
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() {}
 
-	void stat_cache::set_cache(int i, boost::int64_t size, time_t time)
+	void stat_cache::set_cache(int i, boost::int64_t size)
 	{
 		TORRENT_ASSERT(i >= 0);
 		if (i >= int(m_stat_cache.size()))
 			m_stat_cache.resize(i + 1, not_in_cache);
 		m_stat_cache[i].file_size = size;
-		m_stat_cache[i].file_time = time;
+	}
+
+	void stat_cache::set_error(int i, error_code const& ec)
+	{
+		TORRENT_ASSERT(i >= 0);
+		if (i >= int(m_stat_cache.size()))
+			m_stat_cache.resize(i + 1, not_in_cache);
+
+		int error_index = add_error(ec);
+		m_stat_cache[i].file_size = file_error - error_index;
 	}
 
 	void stat_cache::set_dirty(int i)
@@ -54,36 +69,38 @@ namespace libtorrent
 		m_stat_cache[i].file_size = not_in_cache;
 	}
 
-	void stat_cache::set_noexist(int i)
+	boost::int64_t stat_cache::get_filesize(int i, file_storage const& fs
+		, std::string const& save_path, error_code& ec)
 	{
-		TORRENT_ASSERT(i >= 0);
-		if (i >= int(m_stat_cache.size()))
-			m_stat_cache.resize(i + 1, not_in_cache);
-		m_stat_cache[i].file_size = no_exist;
+		TORRENT_ASSERT(i < int(fs.num_files()));
+		if (i >= int(m_stat_cache.size())) m_stat_cache.resize(i + 1, not_in_cache);
+		boost::int64_t sz = m_stat_cache[i].file_size;
+		if (sz < not_in_cache)
+		{
+			ec = m_errors[-sz + file_error];
+			return file_error;
+		}
+		else if (sz == not_in_cache)
+		{
+			// query the filesystem
+			file_status s;
+			std::string file_path = fs.file_path(i, save_path);
+			stat_file(file_path, &s, ec);
+			if (ec)
+			{
+				set_error(i, ec);
+				sz = file_error;
+			}
+			else
+			{
+				set_cache(i, s.file_size);
+				sz = s.file_size;
+			}
+		}
+		return sz;
 	}
 
-	void stat_cache::set_error(int i)
-	{
-		TORRENT_ASSERT(i >= 0);
-		if (i >= int(m_stat_cache.size()))
-			m_stat_cache.resize(i + 1, not_in_cache);
-		m_stat_cache[i].file_size = cache_error;
-	}
-
-	boost::int64_t stat_cache::get_filesize(int i) const
-	{
-		if (i >= int(m_stat_cache.size())) return not_in_cache;
-		return m_stat_cache[i].file_size;
-	}
-
-	time_t stat_cache::get_filetime(int i) const
-	{
-		if (i >= int(m_stat_cache.size())) return not_in_cache;
-		if (m_stat_cache[i].file_size < 0) return m_stat_cache[i].file_size;
-		return m_stat_cache[i].file_time;
-	}
-
-	void stat_cache::init(int num_files)
+	void stat_cache::reserve(int num_files)
 	{
 		m_stat_cache.resize(num_files, not_in_cache);
 	}
@@ -91,7 +108,15 @@ namespace libtorrent
 	void stat_cache::clear()
 	{
 		std::vector<stat_cache_t>().swap(m_stat_cache);
+		std::vector<error_code>().swap(m_errors);
 	}
 
+	int stat_cache::add_error(error_code const& ec)
+	{
+		std::vector<error_code>::iterator i = std::find(m_errors.begin(), m_errors.end(), ec);
+		if (i != m_errors.end()) return i - m_errors.begin();
+		m_errors.push_back(ec);
+		return m_errors.size() - 1;
+	}
 }
 
