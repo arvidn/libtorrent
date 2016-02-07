@@ -101,7 +101,7 @@ EXTRA_PROGRAMS = $(test_programs) $(benchmark_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
-  test_utils.hpp settings.hpp
+  test_utils.hpp settings.hpp make_torrent.hpp
 
 libtest_la_SOURCES = main.cpp \
   test.cpp \
@@ -109,6 +109,7 @@ libtest_la_SOURCES = main.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
+  make_torrent.cpp \
   web_seed_suite.cpp \
   swarm_suite.cpp \
   test_utils.cpp \
