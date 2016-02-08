@@ -210,7 +210,7 @@ namespace libtorrent
 			bool m_posting_torrent_updates;
 #endif
 
-			void open_listen_port();
+			void reopen_listen_sockets();
 
 			torrent_peer_allocator_interface* get_peer_allocator() TORRENT_OVERRIDE
 			{ return &m_peer_allocator; }
@@ -848,8 +848,7 @@ namespace libtorrent
 			// socket to, and the device or IP determines which network adapter
 			// to be used. If no adapter with the specified name exists, the listen
 			// socket fails.
-			// TODO: should this be renamed m_outgoing_interfaces?
-			std::vector<std::string> m_net_interfaces;
+			std::vector<std::string> m_outgoing_interfaces;
 
 			// if we're listening on an IPv6 interface
 			// this is one of the non local IPv6 interfaces
@@ -877,7 +876,7 @@ namespace libtorrent
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
 			boost::uint16_t m_socks_listen_port;
 
-			// round-robin index into m_net_interfaces
+			// round-robin index into m_outgoing_interfaces
 			mutable boost::uint8_t m_interface_index;
 
 			void open_new_incoming_socks_connection();

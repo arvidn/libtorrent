@@ -631,7 +631,7 @@ namespace aux {
 		if (m_listen_sockets.empty())
 		{
 			update_listen_interfaces();
-			open_listen_port();
+			reopen_listen_sockets();
 		}
 	}
 
@@ -1603,7 +1603,7 @@ namespace aux {
 		if (reopen_listen_port)
 		{
 			error_code ec;
-			open_listen_port();
+			reopen_listen_sockets();
 		}
 	}
 
@@ -1774,7 +1774,7 @@ namespace aux {
 		return ret;
 	}
 
-	void session_impl::open_listen_port()
+	void session_impl::reopen_listen_sockets()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("open listen port");
@@ -4900,7 +4900,7 @@ retry:
 		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		// declared in string_util.hpp
-		parse_comma_separated_string(net_interfaces, m_net_interfaces);
+		parse_comma_separated_string(net_interfaces, m_outgoing_interfaces);
 	}
 
 	tcp::endpoint session_impl::bind_outgoing_socket(socket_type& s, address
@@ -4924,10 +4924,10 @@ retry:
 			bind_ep.port(next_port());
 		}
 
-		if (!m_net_interfaces.empty())
+		if (!m_outgoing_interfaces.empty())
 		{
-			if (m_interface_index >= m_net_interfaces.size()) m_interface_index = 0;
-			std::string const& ifname = m_net_interfaces[m_interface_index++];
+			if (m_interface_index >= m_outgoing_interfaces.size()) m_interface_index = 0;
+			std::string const& ifname = m_outgoing_interfaces[m_interface_index++];
 
 			if (ec) return bind_ep;
 
@@ -4971,11 +4971,11 @@ retry:
 		// we have specific outgoing interfaces specified. Make sure the
 		// local endpoint for this socket is bound to one of the allowed
 		// interfaces. the list can be a mixture of interfaces and IP
-		// addresses. first look for the address 
-		for (int i = 0; i < int(m_net_interfaces.size()); ++i)
+		// addresses.
+		for (int i = 0; i < int(m_outgoing_interfaces.size()); ++i)
 		{
 			error_code err;
-			address ip = address::from_string(m_net_interfaces[i].c_str(), err);
+			address ip = address::from_string(m_outgoing_interfaces[i].c_str(), err);
 			if (err) continue;
 			if (ip == addr) return true;
 		}
@@ -4988,9 +4988,9 @@ retry:
 		// if no device was found to have this address, we fail
 		if (device.empty()) return false;
 
-		for (int i = 0; i < int(m_net_interfaces.size()); ++i)
+		for (int i = 0; i < int(m_outgoing_interfaces.size()); ++i)
 		{
-			if (m_net_interfaces[i] == device) return true;
+			if (m_outgoing_interfaces[i] == device) return true;
 		}
 
 		return false;
