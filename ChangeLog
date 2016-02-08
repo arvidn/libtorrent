@@ -1,3 +1,4 @@
+1.0.9 release
 
 	* optimize enumeration of network interfaces on windows
 	* improve reliability of binding listen sockets
