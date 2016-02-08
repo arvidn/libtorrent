@@ -5924,7 +5924,7 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_udp_socket.unsubscribe(this);
-		m_ssl_udp_socket.unsubscribe(&m_utp_socket_manager);
+		m_ssl_udp_socket.unsubscribe(&m_ssl_utp_socket_manager);
 #endif
 
 		TORRENT_ASSERT(m_torrents.empty());
@@ -6048,6 +6048,8 @@ retry:
 	}
 #endif
 
+	// TODO: 2 this should be factored into the udp socket, so we only have the
+	// code once
 	void session_impl::update_peer_tos()
 	{
 		error_code ec;

@@ -6009,18 +6009,27 @@ namespace libtorrent
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, certificate);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use certificate file: %s", ec.message().c_str());
+#endif
 		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, private_key);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use private key file: %s", ec.message().c_str());
+#endif
 		m_ssl_ctx->use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, dh_params);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use DH file: %s", ec.message().c_str());
+#endif
 	}
 
 	void torrent::set_ssl_cert_buffer(std::string const& certificate
