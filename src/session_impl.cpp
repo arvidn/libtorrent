@@ -4780,6 +4780,10 @@ retry:
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
 			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
+
+		if (m_alerts.should_post<torrent_added_alert>())
+			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
+
 		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
 
@@ -4858,9 +4862,6 @@ retry:
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
-
-		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
@@ -5870,7 +5871,7 @@ retry:
 
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_udp_socket.unsubscribe(this);
-		m_ssl_udp_socket.unsubscribe(&m_utp_socket_manager);
+		m_ssl_udp_socket.unsubscribe(&m_ssl_utp_socket_manager);
 #endif
 
 		TORRENT_ASSERT(m_torrents.empty());
@@ -5994,6 +5995,8 @@ retry:
 	}
 #endif
 
+	// TODO: 2 this should be factored into the udp socket, so we only have the
+	// code once
 	void session_impl::update_peer_tos()
 	{
 		error_code ec;

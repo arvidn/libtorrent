@@ -234,7 +234,7 @@ namespace libtorrent
 		, m_last_working_tracker(-1)
 		, m_finished_time(0)
 		, m_sequential_download(false)
-		, m_got_tracker_response(false)
+		, m_auto_sequential(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
 		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
@@ -274,7 +274,6 @@ namespace libtorrent
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
-		, m_auto_sequential(false)
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
@@ -3565,7 +3564,6 @@ namespace libtorrent
 #endif
 				, r.url);
 		}
-		m_got_tracker_response = true;
 
 		// we're listening on an interface type that was not used
 		// when talking to the tracker. If there is a matching interface
@@ -5978,18 +5976,27 @@ namespace libtorrent
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, certificate);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use certificate file: %s", ec.message().c_str());
+#endif
 		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, private_key);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use private key file: %s", ec.message().c_str());
+#endif
 		m_ssl_ctx->use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, dh_params);
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** use DH file: %s", ec.message().c_str());
+#endif
 	}
 
 	void torrent::set_ssl_cert_buffer(std::string const& certificate

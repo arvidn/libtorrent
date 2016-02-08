@@ -149,7 +149,7 @@ def is_visible(desc):
 	return True
 
 def highlight_signature(s):
-	name = s.split('(')
+	name = s.split('(', 1)
 	name2 = name[0].split(' ')
 	if len(name2[-1]) == 0: return s
 
@@ -167,6 +167,9 @@ def highlight_signature(s):
 
 	# we also have to escape colons
 	name[1] = name[1].replace(':', '\\:')
+
+	# escape trailing underscores
+	name[1] = name[1].replace('_', '\\_')
 
 	# comments in signatures are italic
 	name[1] = name[1].replace('/\\*', '*/\\*')

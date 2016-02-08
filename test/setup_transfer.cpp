@@ -155,6 +155,8 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		time_point now = clock_type::now();
 		if (now > end) return NULL;
 
+		alert const* ret = NULL;
+
 		ses.wait_for_alert(end - now);
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
@@ -163,11 +165,12 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		{
 			fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
 				, (*i)->what(), (*i)->message().c_str());
-			if ((*i)->type() == type)
+			if ((*i)->type() == type && !ret)
 			{
-				return *i;
+				ret = *i;
 			}
 		}
+		if (ret) return ret;
 	}
 	return NULL;
 }

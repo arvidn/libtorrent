@@ -1298,10 +1298,8 @@ namespace libtorrent
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
 
-#ifndef TORRENT_NO_DEPRECATE
 		// the address and port libtorrent attempted to listen on
 		tcp::endpoint endpoint;
-#endif
 
 	private:
 		aux::stack_allocator const& m_alloc;

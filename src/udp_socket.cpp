@@ -820,9 +820,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		// this is best-effort. ignore errors
 		error_code err;
 #ifdef TORRENT_WINDOWS
-		m_ipv4_sock.set_option(exclusive_address_use(true), err);
+		m_ipv6_sock.set_option(exclusive_address_use(true), err);
 #endif
-		m_ipv4_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
+		m_ipv6_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
 		m_ipv6_sock.set_option(boost::asio::ip::v6_only(true), err);
 
 		m_ipv6_sock.bind(ep6, ec);
