@@ -105,12 +105,6 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
-	struct resume_data_t
-	{
-		std::vector<char> buf;
-		bdecode_node node;
-	};
-
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -1304,10 +1298,6 @@ namespace libtorrent
 		// set if there's an error on this torrent
 		error_code m_error;
 
-		// used if there is any resume data
-#error do we still need this?
-		boost::scoped_ptr<resume_data_t> m_resume_data;
-
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
 		// once the metadata is received this field will no
@@ -1494,7 +1484,9 @@ namespace libtorrent
 		// torrent.
 		bool m_super_seeding:1;
 
-#error a 1 bit hole here
+		// if this is set, whenever transitioning into a downloading/seeding state
+		// from a non-downloading/seeding state, the torrent is paused.
+		bool m_stop_when_ready:1;
 
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -1686,18 +1678,6 @@ namespace libtorrent
 		// flapping. If the state changes back during this period, we cancel the
 		// quarantine
 		bool m_pending_active_change:1;
-
-#error 2 missing bit here
-
-		// if this is set, whenever transitioning into a downloading/seeding state
-		// from a non-downloading/seeding state, the torrent is paused.
-		bool m_stop_when_ready:1;
-
-#if TORRENT_USE_ASSERTS
-	public:
-		// set to false until we've loaded resume data
-		bool m_resume_data_loaded;
-#endif
 	};
 
 	struct torrent_ref_holder

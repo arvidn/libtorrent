@@ -237,6 +237,7 @@ namespace libtorrent
 		, m_auto_sequential(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
+		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 		, m_resolving_country(false)
@@ -277,7 +278,6 @@ namespace libtorrent
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
 		, m_pending_active_change(false)
-		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -292,9 +292,6 @@ namespace libtorrent
 		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
-#if TORRENT_USE_ASSERTS
-		m_resume_data_loaded = false;
-#endif
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
 #endif
@@ -347,12 +344,6 @@ namespace libtorrent
 		{
 			m_verified.resize(m_torrent_file->num_pieces(), false);
 			m_verifying.resize(m_torrent_file->num_pieces(), false);
-		}
-
-		if (!p.resume_data.empty())
-		{
-			m_resume_data.reset(new resume_data_t);
-			m_resume_data->buf = p.resume_data;
 		}
 
 		int tier = 0;
@@ -822,23 +813,6 @@ namespace libtorrent
 		update_gauge();
 
 		m_file_progress.clear();
-
-		if (m_resume_data)
-		{
-			int pos;
-			error_code ec;
-			if (bdecode(&m_resume_data->buf[0], &m_resume_data->buf[0]
-					+ m_resume_data->buf.size(), m_resume_data->node, ec, &pos) != 0)
-			{
-				m_resume_data.reset();
-#ifndef TORRENT_DISABLE_LOGGING
-				debug_log("resume data rejected: %s pos: %d", ec.message().c_str(), pos);
-#endif
-				if (m_ses.alerts().should_post<fastresume_rejected_alert>())
-					m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-						, ec, "", static_cast<char const*>(0));
-			}
-		}
 
 		update_want_peers();
 		update_want_scrape();
@@ -1864,43 +1838,6 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
-		{
-			int ev = 0;
-			if (m_resume_data->node.dict_find_string_value("file-format")
-				!= "libtorrent resume file")
-			{
-				ev = errors::invalid_file_tag;
-			}
-
-			std::string info_hash = m_resume_data->node.dict_find_string_value("info-hash");
-			if (!ev && info_hash.empty())
-				ev = errors::missing_info_hash;
-
-			if (!ev && sha1_hash(info_hash) != m_torrent_file->info_hash())
-				ev = errors::mismatching_info_hash;
-
-			if (ev && m_ses.alerts().should_post<fastresume_rejected_alert>())
-			{
-				error_code ec = error_code(ev, get_libtorrent_category());
-				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-					, ec, "", static_cast<char const*>(0));
-			}
-
-			if (ev)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				debug_log("fastresume data rejected: %s"
-					, error_code(ev, get_libtorrent_category()).message().c_str());
-#endif
-				m_resume_data.reset();
-			}
-		}
-
-#if TORRENT_USE_ASSERTS
-		m_resume_data_loaded = true;
-#endif
-
 		construct_storage();
 
 		if (m_share_mode && valid_metadata())
@@ -1963,10 +1900,6 @@ namespace libtorrent
 		{
 			update_piece_priorities();
 		}
-
-#if TORRENT_USE_ASSERTS
-		m_resume_data_loaded = true;
-#endif
 
 		if (m_seed_mode)
 		{

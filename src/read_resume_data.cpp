@@ -66,6 +66,25 @@ namespace libtorrent
 	{
 		add_torrent_params ret;
 
+		if (rd.dict_find_string_value("file-format")
+			!= "libtorrent resume file")
+		{
+			ec = error_code(errors::invalid_file_tag, get_libtorrent_category());
+			return ret;
+		}
+
+		std::string info_hash = rd.dict_find_string_value("info-hash");
+		if (info_hash.empty())
+		{
+			ec = error_code(errors::missing_info_hash, get_libtorrent_category());
+			return ret;
+		}
+
+#error we need to verify the info-hash from the resume data \
+		matches the torrent_info object or the magnet link in the URL field. This \
+		can only be done reliably on the libtorrent side as the torrent is being \
+		added. i.e. the info_hash needs to be saved
+
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
 		ret.active_time = rd.dict_find_int_value("active_time");
