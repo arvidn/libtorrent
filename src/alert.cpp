@@ -818,7 +818,8 @@ namespace libtorrent {
 			"listen",
 			"get_socket_name",
 			"accept",
-			"enum_if"
+			"enum_if",
+			"bind_to_device"
 		};
 		char ret[300];
 		snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"

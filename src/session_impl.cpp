@@ -117,6 +117,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/choker.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/platform_util.hpp"
+#include "libtorrent/aux_/bind_to_device.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -1737,6 +1738,30 @@ namespace aux {
 		}
 #endif // TORRENT_USE_IPV6
 
+		if (!device.empty())
+		{
+			// we have an actual device we're interested in listening on, if we
+			// have SO_BINDTODEVICE functionality, use it now.
+#if TORRENT_HAS_BINDTODEVICE
+			ret.sock->set_option(bind_to_device(device.c_str()), ec);
+			if (ec)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				session_log("bind to device failed (device: %s): %s"
+					, device.c_str(), ec.message().c_str());
+#endif // TORRENT_DISABLE_LOGGING
+
+				last_op = listen_failed_alert::bind_to_device;
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
+						, last_op, ec, sock_type);
+				}
+				return ret;
+			}
+#endif
+		}
+
 		ret.sock->bind(bind_ep, ec);
 		last_op = listen_failed_alert::bind;
 
@@ -1876,7 +1901,7 @@ namespace aux {
 			address adr = address::from_string(device.c_str(), err);
 			if (!err)
 			{
-				listen_socket_t s = setup_listener(device, tcp::endpoint(adr, port)
+				listen_socket_t s = setup_listener("", tcp::endpoint(adr, port)
 					, flags | (ssl ? open_ssl_socket : 0), ec);
 
 				if (!ec && s.sock)
@@ -4910,7 +4935,7 @@ namespace aux {
 
 			if (ec) return bind_ep;
 
-			bind_ep.address(bind_to_device(m_io_service, s
+			bind_ep.address(bind_socket_to_device(m_io_service, s
 				, remote_address.is_v4()
 					? boost::asio::ip::tcp::v4()
 					: boost::asio::ip::tcp::v6()

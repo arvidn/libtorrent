@@ -177,6 +177,7 @@ namespace libtorrent
 		{
 			if (i != in.begin()) ret += ",";
 
+#if TORRENT_USE_IPV6
 			error_code ec;
 			address_v6::from_string(i->device, ec);
 			if (!ec)
@@ -187,6 +188,7 @@ namespace libtorrent
 				ret += "]";
 			}
 			else
+#endif
 			{
 				ret += i->device;
 			}
