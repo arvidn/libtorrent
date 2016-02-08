@@ -5283,6 +5283,10 @@ retry:
 
 		torrent_ptr.reset(new torrent(*this, m_listen_interface
 			, 16 * 1024, queue_pos, params, *ih));
+
+		if (m_alerts.should_post<torrent_added_alert>())
+			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
+
 		torrent_ptr->start();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -5320,9 +5324,6 @@ retry:
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
-
-		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.post_alert(torrent_added_alert(torrent_ptr->get_handle()));
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
