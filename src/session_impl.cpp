@@ -4834,6 +4834,10 @@ retry:
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
 			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
+
+		if (m_alerts.should_post<torrent_added_alert>())
+			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
+
 		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
 
@@ -4912,9 +4916,6 @@ retry:
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
-
-		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
