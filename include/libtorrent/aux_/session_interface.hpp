@@ -319,6 +319,7 @@ namespace libtorrent { namespace aux
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
 #ifdef TORRENT_USE_OPENSSL
+		virtual libtorrent::utp_socket_manager* ssl_utp_socket_manager() = 0;
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 

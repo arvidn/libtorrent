@@ -628,6 +628,11 @@ namespace libtorrent
 
 			libtorrent::utp_socket_manager* utp_socket_manager() TORRENT_OVERRIDE
 			{ return &m_utp_socket_manager; }
+#ifdef TORRENT_USE_OPENSSL
+			libtorrent::utp_socket_manager* ssl_utp_socket_manager() TORRENT_OVERRIDE
+			{ return &m_ssl_utp_socket_manager; }
+#endif
+
 			void inc_boost_connections() TORRENT_OVERRIDE { ++m_boost_connections; }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -637,6 +642,13 @@ namespace libtorrent
 			// update any rss feeds that need updating and
 			// recalculate m_next_rss_update
 			void update_rss_feeds();
+
+			void update_ssl_listen();
+			void update_dht_upload_rate_limit();
+			void update_local_download_rate();
+			void update_local_upload_rate();
+			void update_rate_limit_utp();
+			void update_ignore_rate_limits_on_local_network();
 #endif
 
 			void update_proxy();
@@ -647,9 +659,6 @@ namespace libtorrent
 			void update_connection_speed();
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();
-#ifndef TORRENT_NO_DEPRECATE
-			void update_dht_upload_rate_limit();
-#endif
 			void update_disk_threads();
 			void update_network_threads();
 			void update_cache_buffer_chunk_size();
@@ -674,12 +683,6 @@ namespace libtorrent
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();
-#ifndef TORRENT_NO_DEPRECATE
-			void update_local_download_rate();
-			void update_local_upload_rate();
-			void update_rate_limit_utp();
-			void update_ignore_rate_limits_on_local_network();
-#endif
 			void update_alert_mask();
 
 			void trigger_auto_manage() TORRENT_OVERRIDE;
@@ -847,7 +850,7 @@ namespace libtorrent
 			// the addresses or device names of the interfaces we are supposed to
 			// listen on. if empty, it means that we should let the os decide
 			// which interface to listen on
-			std::vector<std::pair<std::string, int> > m_listen_interfaces;
+			std::vector<listen_interface_t> m_listen_interfaces;
 
 			// the network interfaces outgoing connections are opened through. If
 			// there is more then one, they are used in a round-robin fashion

@@ -7629,6 +7629,9 @@ namespace libtorrent
 			if (is_ssl_torrent() && settings().get_int(settings_pack::ssl_listen) != 0)
 			{
 				userdata = m_ssl_ctx.get();
+				// if we're creating a uTP socket, since this is SSL now, make sure
+				// to pass in the corresponding utp socket manager
+				if (sm) sm = m_ses.ssl_utp_socket_manager();
 			}
 #endif
 

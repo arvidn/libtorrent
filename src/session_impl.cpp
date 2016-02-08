@@ -1256,6 +1256,9 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 		// SSL torrents use the SSL listen port
+		// TODO: 2 this need to be more thought through. There isn't necessarily
+		// just _one_ SSL listen port, which one we use depends on which interface
+		// we announce from.
 		if (req.ssl_ctx) req.listen_port = ssl_listen_port();
 		req.ssl_ctx = &m_ssl_ctx;
 #endif
@@ -1584,10 +1587,13 @@ namespace aux {
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool reopen_listen_port =
+#ifndef TORRENT_NO_DEPRECATE
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
-			|| (pack.has_val(settings_pack::listen_interfaces)
+			||
+#endif
+			(pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
@@ -1661,7 +1667,7 @@ namespace aux {
 			? listen_failed_alert::tcp_ssl
 			: listen_failed_alert::tcp;
 		ret.sock.reset(new tcp::acceptor(m_io_service));
-		ret.sock->open(bind_ep.address().is_v4() ? tcp::v4() : tcp::v6(), ec);
+		ret.sock->open(bind_ep.protocol(), ec);
 		last_op = listen_failed_alert::open;
 		if (ec)
 		{
@@ -1779,6 +1785,7 @@ namespace aux {
 				m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
 					, last_op, ec, sock_type);
 			}
+			ret.sock.reset();
 			return ret;
 		}
 		ret.local_endpoint = ret.sock->local_endpoint(ec);
@@ -1855,44 +1862,27 @@ namespace aux {
 
 		for (int i = 0; i < m_listen_interfaces.size(); ++i)
 		{
-			std::string const& device = m_listen_interfaces[i].first;
-			int const port = m_listen_interfaces[i].second;
+			std::string const& device = m_listen_interfaces[i].device;
+			int const port = m_listen_interfaces[i].port;
+			bool const ssl = m_listen_interfaces[i].ssl;
 
 			// now we have a device to bind to. This device may actually just be an
 			// IP address or a device name. In case it's a device name, we want to
 			// (potentially) end up binding a socket for each IP address associated
 			// with that device.
-			
+
 			// First, check to see if it's an IP address
 			error_code err;
 			address adr = address::from_string(device.c_str(), err);
 			if (!err)
 			{
 				listen_socket_t s = setup_listener(device, tcp::endpoint(adr, port)
-					, flags, ec);
+					, flags | (ssl ? open_ssl_socket : 0), ec);
 
 				if (!ec && s.sock)
 				{
-					TORRENT_ASSERT(!m_abort);
 					m_listen_sockets.push_back(s);
 				}
-
-#ifdef TORRENT_USE_OPENSSL
-				// TODO: 3 it would probably be better to specify if we want an SSL
-				// port open as another entry in the listen_interfaces (like in
-				// mongoose)
-				if (m_settings.get_int(settings_pack::ssl_listen))
-				{
-					listen_socket_t s = setup_listener(device
-						, tcp::endpoint(adr, m_settings.get_int(settings_pack::ssl_listen))
-						, flags | open_ssl_socket, ec);
-
-					if (!ec && s.sock)
-					{
-						m_listen_sockets.push_back(s);
-					}
-				}
-#endif // TORRENT_USE_OPENSSL
 			}
 			else
 			{
@@ -1923,36 +1913,13 @@ namespace aux {
 					if (device != ifs[k].name) continue;
 
 					listen_socket_t s = setup_listener(device
-						, tcp::endpoint(ifs[k].interface_address, port), flags, ec);
+						, tcp::endpoint(ifs[k].interface_address, port)
+						, flags | (ssl ? open_ssl_socket : 0), ec);
 
 					if (!ec && s.sock)
 					{
-						// update the listen_interface member with the
-						// actual port we ended up listening on, so that the other
-						// sockets can be bound to the same one
-						m_listen_interface.port(s.external_port);
-
-						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
 					}
-
-#ifdef TORRENT_USE_OPENSSL
-					// TODO: 3 it would probably be better to specify if we want an SSL
-					// port open as another entry in the listen_interfaces (like in
-					// mongoose)
-					if (m_settings.get_int(settings_pack::ssl_listen))
-					{
-						int const ssl_port = m_settings.get_int(settings_pack::ssl_listen);
-						listen_socket_t s = setup_listener(device
-							, tcp::endpoint(ifs[k].interface_address, port)
-							, flags | open_ssl_socket, ec);
-
-						if (!ec && s.sock)
-						{
-							m_listen_sockets.push_back(s);
-						}
-					}
-#endif // TORRENT_USE_OPENSSL
 				}
 			}
 		}
@@ -1965,80 +1932,99 @@ namespace aux {
 			return;
 		}
 
-		// TODO: 3 the udp socket(s) should be using the same generic
-		// mechanism and not be restricted to a single one
-		// we should open a one listen socket for each entry in the
-		// listen_interfaces list
-		// for now, remember the first successful port, and bind the UDP socket to
-		// that as well
-		udp::endpoint udp_bind_ep(m_listen_sockets.begin()->local_endpoint.address()
-			, m_listen_sockets.begin()->local_endpoint.port());
-		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+		// TODO: 3 this loop should be entirely merged with the one above and the
+		// udp sockets should be opened in parallel with the TCP ones, being held
+		// by listen_socket_t.
+		// until the UDP sockets fully honor the listen_interfaces setting, just
+		// create the two sockets based on the first matching (ssl vs. non-ssl)
+		// TCP socket
+#ifdef TORRENT_USE_OPENSSL
+		bool created_ssl_udp_socket = false;
+#endif
+		bool created_udp_socket = false;
+		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
+			, end(m_listen_sockets.end()); i != end; ++i)
+		{
+			listen_socket_t const& s = *i;
 
 #ifdef TORRENT_USE_OPENSSL
-		// TODO: 3 remove ssl_listen setting. Instead, specify the port in the
-		// listen_interfaces to have an "s" suffix. Just like mongoose
-		int const ssl_port = m_settings.get_int(settings_pack::ssl_listen);
-
-		// if ssl port is 0, we don't want to listen on an SSL port
-		if (ssl_port != 0)
-		{
-			udp::endpoint ssl_bind_ep(udp_bind_ep.address(), ssl_port);
-			do
+			if (!created_ssl_udp_socket && s.ssl)
 			{
-				ec.clear();
-				m_ssl_udp_socket.bind(ssl_bind_ep, ec);
-				if (ec)
+				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+				udp::endpoint bind_ep(s.local_endpoint.address(), s.local_endpoint.port());
+				do
 				{
-#ifndef TORRENT_DISABLE_LOGGING
-					session_log("SSL: cannot bind to UDP interface \"%s\": %s"
-						, print_endpoint(ssl_bind_ep).c_str(), ec.message().c_str());
-#endif
-					if (m_alerts.should_post<listen_failed_alert>())
+					ec.clear();
+					m_ssl_udp_socket.bind(bind_ep, ec);
+					if (ec)
 					{
-						error_code err;
-						m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_ep.address().to_string(err)
-							, tcp::endpoint(ssl_bind_ep.address(), ssl_bind_ep.port())
-							, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+#ifndef TORRENT_DISABLE_LOGGING
+						session_log("SSL: cannot bind to UDP interface \"%s\": %s"
+							, print_endpoint(bind_ep).c_str(), ec.message().c_str());
+#endif
+						if (m_alerts.should_post<listen_failed_alert>())
+						{
+							error_code err;
+							m_alerts.emplace_alert<listen_failed_alert>(bind_ep.address().to_string(err)
+								, tcp::endpoint(bind_ep.address(), bind_ep.port())
+								, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+						}
+						--retries;
+						bind_ep.port(bind_ep.port() + 1);
 					}
-					--retries;
-					ssl_bind_ep.port(ssl_bind_ep.port() + 1);
-				}
-				// TODO: 3 port map SSL udp socket here
-			} while (ec == error_code(error::address_in_use) && retries > 0);
-		}
-
-		retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+					else
+					{
+						created_ssl_udp_socket = true;
+						// TODO: 3 port map SSL udp socket here
+					}
+				} while (ec == error_code(error::address_in_use) && retries > 0);
+			}
 #endif // TORRENT_USE_OPENSSL
 
-		do
-		{
-			ec.clear();
-			m_udp_socket.bind(udp_bind_ep, ec);
-			if (ec)
+			if (!created_udp_socket && !s.ssl)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				session_log("cannot bind to UDP interface \"%s\": %s"
-					, print_endpoint(udp_bind_ep).c_str(), ec.message().c_str());
-#endif
-				if (m_alerts.should_post<listen_failed_alert>())
+				int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+				udp::endpoint bind_ep(s.local_endpoint.address(), s.local_endpoint.port());
+				do
 				{
-					error_code err;
-					m_alerts.emplace_alert<listen_failed_alert>(udp_bind_ep.address().to_string(err)
-						, tcp::endpoint(udp_bind_ep.address(), udp_bind_ep.port())
-						, listen_failed_alert::bind
-						, ec, listen_failed_alert::udp);
-				}
-				--retries;
-				udp_bind_ep.port(udp_bind_ep.port() + 1);
+					ec.clear();
+					m_udp_socket.bind(bind_ep, ec);
+					if (ec)
+					{
+#ifndef TORRENT_DISABLE_LOGGING
+						session_log("cannot bind to UDP interface \"%s\": %s"
+							, print_endpoint(bind_ep).c_str(), ec.message().c_str());
+#endif
+						if (m_alerts.should_post<listen_failed_alert>())
+						{
+							error_code err;
+							m_alerts.emplace_alert<listen_failed_alert>(bind_ep.address().to_string(err)
+								, tcp::endpoint(bind_ep.address(), bind_ep.port())
+								, listen_failed_alert::bind
+								, ec, listen_failed_alert::udp);
+						}
+						--retries;
+						bind_ep.port(bind_ep.port() + 1);
+					}
+					else
+					{
+						created_udp_socket = true;
+						m_external_udp_port = m_udp_socket.local_port();
+						maybe_update_udp_mapping(0, bind_ep.port(), bind_ep.port());
+						maybe_update_udp_mapping(1, bind_ep.port(), bind_ep.port());
+					}
+				} while (ec == error_code(error::address_in_use) && retries > 0);
 			}
-			else
-			{
-				m_external_udp_port = m_udp_socket.local_port();
-				maybe_update_udp_mapping(0, udp_bind_ep.port(), udp_bind_ep.port());
-				maybe_update_udp_mapping(1, udp_bind_ep.port(), udp_bind_ep.port());
-			}
-		} while (ec == error_code(error::address_in_use) && retries > 0);
+		}
+
+		// if we did not end up opening a udp socket, make sure we close any
+		// previous one
+#ifdef TORRENT_USE_OPENSSL
+		if (!created_ssl_udp_socket)
+			m_ssl_udp_socket.close();
+#endif
+		if (!created_udp_socket)
+			m_udp_socket.close();
 
 		// we made it! now post all the listen_succeeded_alerts
 
@@ -2061,18 +2047,20 @@ namespace aux {
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl_udp_socket.is_open())
 		{
+			error_code err;
 			if (m_alerts.should_post<listen_succeeded_alert>())
 				m_alerts.emplace_alert<listen_succeeded_alert>(
-					tcp::endpoint(ssl_bind_ep.address(), ssl_bind_ep.port())
+					m_ssl_udp_socket.local_endpoint(err)
 						, listen_succeeded_alert::utp_ssl);
 		}
 #endif
 
 		if (m_udp_socket.is_open())
 		{
+			error_code err;
 			if (m_alerts.should_post<listen_succeeded_alert>())
 				m_alerts.emplace_alert<listen_succeeded_alert>(
-					tcp::endpoint(udp_bind_ep.address(), udp_bind_ep.port())
+					m_udp_socket.local_endpoint(err)
 					, listen_succeeded_alert::udp);
 		}
 
@@ -5078,15 +5066,62 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.find(i_hash) == m_torrents.end());
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	namespace
+	{
+		listen_interface_t set_ssl_flag(listen_interface_t in)
+		{
+			in.ssl = true;
+			return in;
+		}
+	}
+
+	void session_impl::update_ssl_listen()
+	{
+		INVARIANT_CHECK;
+
+		// this function maps the previous functionality of just setting the ssl
+		// listen port in order to enable the ssl listen sockets, to the new
+		// mechanism where SSL sockets are specified in listen_interfaces.
+		std::vector<listen_interface_t> current_ifaces;
+		parse_listen_interfaces(m_settings.get_str(settings_pack::listen_interfaces)
+			, current_ifaces);
+		// these are the current interfaces we have, first remove all the SSL
+		// interfaces
+		current_ifaces.erase(std::remove_if(current_ifaces.begin(), current_ifaces.end()
+			, boost::bind(&listen_interface_t::ssl, _1)), current_ifaces.end());
+
+		int const ssl_listen_port = m_settings.get_int(settings_pack::ssl_listen);
+
+		// setting a port of 0 means to disable listening on SSL, so just update
+		// the interface list with the new list, and we're done
+		if (ssl_listen_port == 0)
+		{
+			m_settings.set_str(settings_pack::listen_interfaces
+				, print_listen_interfaces(current_ifaces));
+			return;
+		}
+
+		std::vector<listen_interface_t> new_ifaces;
+		std::transform(current_ifaces.begin(), current_ifaces.end()
+			, std::back_inserter(new_ifaces), &set_ssl_flag);
+
+		current_ifaces.insert(current_ifaces.end(), new_ifaces.begin(), new_ifaces.end());
+
+		m_settings.set_str(settings_pack::listen_interfaces
+			, print_listen_interfaces(current_ifaces));
+	}
+#endif // TORRENT_NO_DEPRECATE
+
 	void session_impl::update_listen_interfaces()
 	{
 		INVARIANT_CHECK;
 
 		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
-		std::vector<std::pair<std::string, int> > new_listen_interfaces;
+		std::vector<listen_interface_t> new_listen_interfaces;
 
 		// declared in string_util.hpp
-		parse_comma_separated_string_port(net_interfaces, new_listen_interfaces);
+		parse_listen_interfaces(net_interfaces, new_listen_interfaces);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("update listen interfaces: %s", net_interfaces.c_str());
@@ -5225,6 +5260,8 @@ namespace aux {
 		return m_listen_sockets.front().tcp_external_port;
 	}
 
+	// TODO: 2 this function should be removed and users need to deal with the
+	// more generic case of having multiple ssl ports
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
@@ -6500,7 +6537,7 @@ namespace aux {
 			}
 		}
 #ifdef TORRENT_USE_OPENSSL
-		if (m_ssl_udp_socket.is_open() && ssl_port > 0)
+		if (m_ssl_udp_socket.is_open())
 		{
 			error_code ec;
 			tcp::endpoint ep = m_ssl_udp_socket.local_endpoint(ec);
@@ -6551,7 +6588,7 @@ namespace aux {
 			}
 		}
 #ifdef TORRENT_USE_OPENSSL
-		if (m_ssl_udp_socket.is_open() && ssl_port > 0)
+		if (m_ssl_udp_socket.is_open())
 		{
 			error_code ec;
 			tcp::endpoint ep = m_ssl_udp_socket.local_endpoint(ec);

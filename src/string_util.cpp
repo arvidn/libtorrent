@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/parse_url.hpp"
+#include "libtorrent/address.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -168,11 +169,40 @@ namespace libtorrent
 		return static_cast<char*>(p) + (8 - offset);
 	}
 
+	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
+	{
+		std::string ret;
+		for (std::vector<listen_interface_t>::const_iterator i = in.begin()
+			, end(in.end()); i != end; ++i)
+		{
+			if (i != in.begin()) ret += ",";
+
+			error_code ec;
+			address_v6::from_string(i->device, ec);
+			if (!ec)
+			{
+				// IPv6 addresses must be wrapped in square brackets
+				ret += "[";
+				ret += i->device;
+				ret += "]";
+			}
+			else
+			{
+				ret += i->device;
+			}
+			ret += ":";
+			ret += to_string(i->port).elems;
+			if (i->ssl) ret += "s";
+		}
+
+		return ret;
+	}
+
 	// this parses the string that's used as the liste_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
-	void parse_comma_separated_string_port(std::string const& in
-		, std::vector<std::pair<std::string, int> >& out)
+	void parse_listen_interfaces(std::string const& in
+		, std::vector<listen_interface_t>& out)
 	{
 		out.clear();
 
@@ -193,7 +223,11 @@ namespace libtorrent
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = atoi(in.substr(colon + 1, end - colon - 1).c_str());
+				listen_interface_t iface;
+
+				std::string port_string = in.substr(colon + 1, end - colon - 1);
+				iface.ssl = !port_string.empty() && port_string[port_string.size()-1] == 's';
+				iface.port = atoi(port_string.c_str());
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
@@ -206,7 +240,8 @@ namespace libtorrent
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
-				out.push_back(std::make_pair(in.substr(start, soft_end - start), port));
+				iface.device = in.substr(start, soft_end - start);
+				out.push_back(iface);
 			}
 
 			start = end + 1;
