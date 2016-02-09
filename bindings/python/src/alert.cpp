@@ -198,7 +198,7 @@ void bind_alert()
     using boost::noncopyable;
 #ifndef TORRENT_NO_DEPRECATE
     typedef boost::shared_ptr<alert> alert_holder;
-#ifndef _MSC_VER
+#if BOOST_VERSION >= 106000
     register_ptr_to_python<boost::shared_ptr<alert> >();
 #endif
 #else
