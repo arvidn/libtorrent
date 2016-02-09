@@ -35,12 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_any() etc.
 
 using namespace libtorrent;
 
 address rand_v4()
 {
-	return address_v4((rand() << 16 | rand()) & 0xffffffff);
+	address_v4 ret;
+	do
+	{
+		ret = address_v4((rand() << 16 | rand()) & 0xffffffff);
+	} while (is_any(ret) || is_local(ret) || is_loopback(ret));
+	return ret;
 }
 
 udp::endpoint rand_ep()
@@ -81,7 +87,6 @@ void test_two_ips()
 	TEST_CHECK(new_ip);
 	for (int i = 0; i < 1000; ++i)
 	{
-		fprintf(stderr, "%d\n", i);
 		new_ip = ipv.cast_vote(addr2, 1, rand_v4());
 		TEST_CHECK(!new_ip);
 		new_ip = ipv.cast_vote(rand_v4(), 1, rand_v4());
