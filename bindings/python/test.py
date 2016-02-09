@@ -37,7 +37,7 @@ class test_alerts(unittest.TestCase):
 		ses.remove_torrent(h)
 		alerts = ses.pop_alerts()
 		for a in alerts:
-			print a.message()
+			print(a.message())
 
 class test_bencoder(unittest.TestCase):
 
@@ -54,6 +54,6 @@ class test_bencoder(unittest.TestCase):
 
 
 if __name__ == '__main__':
-	print lt.__version__
+	print(lt.__version__)
 	unittest.main()
 
