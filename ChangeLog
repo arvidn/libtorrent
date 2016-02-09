@@ -1,5 +1,6 @@
 1.0.9 release
 
+	* python binding fix for boost-1.60.0
 	* optimize enumeration of network interfaces on windows
 	* improve reliability of binding listen sockets
 	* support SNI in https web seeds and trackers

@@ -98,7 +98,7 @@ void bind_alert()
 {
     using boost::noncopyable;
 
-#ifndef _MSC_VER
+#if BOOST_VERSION >= 106000
     register_ptr_to_python<boost::shared_ptr<alert> >();
 #endif
 
