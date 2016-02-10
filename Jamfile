@@ -54,7 +54,7 @@ lib torrent-webui
 	src/$(SOURCES).cpp src/mongoose.c src/jsmn.c src/cdecode.c
 
 	: # requirements
-	<library>/torrent//torrent/<asio-debugging>on
+	<library>/torrent//torrent/<crypto>openssl
 	<library>zlib
 	<library>sqlite
 	<library>/boost/thread//boost_thread
