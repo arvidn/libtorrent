@@ -209,6 +209,9 @@ void test_ssl(int test_idx, bool use_utp)
 		ses2.status();
 	}
 
+	wait_for_alert(ses1, torrent_finished_alert::alert_type, "ses1");
+	wait_for_downloading(ses2, "ses2");
+
 	// connect the peers after setting the certificates
 	int port = 0;
 	if (test.use_ssl_ports)
@@ -219,7 +222,7 @@ void test_ssl(int test_idx, bool use_utp)
 	else
 		port = ses2.listen_port();
 
-	fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
+	fprintf(stderr, "\n\n%s: ses1: connecting peer port: %d\n\n\n"
 		, time_now_string(), port);
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 		, port));
@@ -263,7 +266,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 		if (st2.state != torrent_status::downloading)
 		{
-			static char const* state_str[] =	
+			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
