@@ -287,8 +287,8 @@ namespace libtorrent
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
 		// 
-		// The ``extern_auth`` argument can be used for other athorization
-		// schemese than basic HTTP authorization. If set, it will override any
+		// The ``extern_auth`` argument can be used for other authorization
+		// schemes than basic HTTP authorization. If set, it will override any
 		// username and password found in the URL itself. The string will be sent
 		// as the HTTP authorization header's value (without specifying "Basic").
 		// 

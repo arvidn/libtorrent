@@ -984,7 +984,7 @@ namespace libtorrent
 		// string containing one or more, comma separated, ip-address (either an
 		// IPv4 or IPv6 address). When specifying multiple interfaces, the
 		// torrent will round-robin which interface to use for each outgoing
-		// conneciton. This is useful for clients that are multi-homed.
+		// connection. This is useful for clients that are multi-homed.
 		void use_interface(const char* net_interface) const;
 
 		// Fills the specified ``std::vector<int>`` with the availability for
@@ -993,17 +993,17 @@ namespace libtorrent
 		// for all pieces is reported as 0.
 		// 
 		// The piece availability is the number of peers that we are connected
-		// that has advertized having a particular piece. This is the information
+		// that has advertised having a particular piece. This is the information
 		// that libtorrent uses in order to prefer picking rare pieces.
 		void piece_availability(std::vector<int>& avail) const;
 
-		// These functions are used to set and get the prioritiy of individual
+		// These functions are used to set and get the priority of individual
 		// pieces. By default all pieces have priority 4. That means that the
 		// random rarest first algorithm is effectively active for all pieces.
 		// You may however change the priority of individual pieces. There are 8
 		// priority levels. 0 means not to download the piece at all. Otherwise,
 		// lower priority values means less likely to be picked. Piece priority
-		// takes presedence over piece availability. Every priority-7 piece will
+		// takes precedence over piece availability. Every priority-7 piece will
 		// be attempted to be picked before a priority 6 piece and so on.
 		// 
 		// Piece priorities can not be changed for torrents that have not
