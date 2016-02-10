@@ -163,26 +163,25 @@ namespace libtorrent
 			// connections.
 			outgoing_interfaces,
 
-			// a comma-separated list of (IP or device name, port) pairs. These
+			// a comma-separated list of IP port-pairs. These
 			// are the listen ports that will be opened for accepting incoming uTP
 			// and TCP connections. It is possible to listen on multiple
-			// interfaces and multiple ports. Binding to port 0 will make the
-			// operating system pick the port. The default is "0.0.0.0:0", which
-			// binds to all interfaces on a port the OS picks.
+			// IPs and multiple ports. Binding to port 0 will make the
+			// operating system pick the port. The default is "0.0.0.0:6881", which
+			// binds to all interfaces on port 6881.
 			//
-			// if binding fails, the listen_failed_alert is posted, otherwise the
-			// listen_succeeded_alert.
+			// if binding fails, the listen_failed_alert is posted, potentially
+			// more than once. Once/if binding the listen socket(s) succeed,
+			// listen_succeeded_alert is posted.
 			//
-			// If the DHT is running, it will also have its socket rebound to the
-			// same port as the main listen port.
+			// Each port will attempt to open both a UDP and a TCP listen socket,
+			// to allow accepting uTP connections as well as TCP. If using the DHT,
+			// this will also make the DHT use the same UDP ports.
 			// 
-			// The reason why it's a good idea to run the DHT and the bittorrent
-			// socket on the same port is because that is an assumption that may
-			// be used to increase performance. One way to accelerate the
-			// connecting of peers on windows may be to first ping all peers with
-			// a DHT ping packet, and connect to those that responds first. On
-			// windows one can only connect to a few peers at a time because of a
-			// built in limitation (in XP Service pack 2).
+			// Note::
+			// 	The current support for opening arbitrary UDP sockets is limited.
+			// 	In this version of libtorrent, there will only ever be two UDP
+			// 	sockets, one for IPv4 and one for IPv6.
 			listen_interfaces,
 
 			// when using a poxy, this is the hostname where the proxy is running
