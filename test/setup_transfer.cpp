@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>
@@ -88,10 +89,13 @@ void init_rand_address()
 
 address rand_v4()
 {
-	do {
+	address_v4 ret;
+	do
+	{
 		g_addr += 0x3080ca;
-	} while (g_addr == 0);
-	return address_v4(g_addr);
+		ret = address_v4(g_addr);
+	} while (is_any(ret) || is_local(ret) || is_loopback(ret));
+	return ret;
 }
 
 sha1_hash rand_hash()
