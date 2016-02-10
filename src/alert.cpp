@@ -804,7 +804,6 @@ namespace libtorrent {
 		, socket_type_t t)
 		: error(ec)
 		, operation(op)
-		, port(prt)
 		, sock_type(t)
 		, endpoint(parse_interface(iface, prt))
 		, m_alloc(alloc)

@@ -1292,9 +1292,6 @@ namespace libtorrent
 		// the specific low level operation that failed. See op_t.
 		int operation;
 
-		// the port attempted to be opened for listening
-		int port;
-
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
 
