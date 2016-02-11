@@ -119,6 +119,7 @@ namespace libtorrent
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// If ``flag_override_resume_data`` is set, flags set for this torrent
 			// in this ``add_torrent_params`` object will take precedence over
 			// whatever states are saved in the resume data. For instance, the
@@ -132,6 +133,7 @@ namespace libtorrent
 			// If this flag is set, but file_priorities is empty, file priorities
 			// are still loaded from the resume data, if present.
 			flag_override_resume_data = 0x002,
+#endif
 
 			// If ``flag_upload_mode`` is set, the torrent will be initialized in
 			// upload-mode, which means it will not make any piece requests. This
@@ -199,16 +201,16 @@ namespace libtorrent
 			flag_auto_managed = 0x040,
 			flag_duplicate_is_error = 0x080,
 
-			// defaults to off and specifies whether tracker URLs loaded from
+#ifndef TORRENT_NO_DEPRECATE
+			// defaults to on and specifies whether tracker URLs loaded from
 			// resume data should be added to the trackers in the torrent or
 			// replace the trackers. When replacing trackers (i.e. this flag is not
 			// set), any trackers passed in via add_torrent_params are also
 			// replaced by any trackers in the resume data. The default behavior is
 			// to have the resume data override the .torrent file _and_ the
 			// trackers added in add_torrent_params.
-//#error this needs to change slightly. Should trackers be extracted from the \
-			.torrent file on the client side? when in that case?
 			flag_merge_resume_trackers = 0x100,
+#endif
 
 			// on by default and means that this torrent will be part of state
 			// updates when calling post_torrent_updates().
@@ -237,7 +239,8 @@ namespace libtorrent
 			// the torrent exempt from loading/unloading management.
 			flag_pinned = 0x2000,
 
-			// defaults to off and specifies whether web seed URLs loaded from
+#ifndef TORRENT_NO_DEPRECATE
+			// defaults to on and specifies whether web seed URLs loaded from
 			// resume data should be added to the ones in the torrent file or
 			// replace them. No distinction is made between the two different kinds
 			// of web seeds (`BEP 17`_ and `BEP 19`_). When replacing web seeds
@@ -245,17 +248,33 @@ namespace libtorrent
 			// add_torrent_params are also replaced. The default behavior is to
 			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
-//#error this needs to change slightly. Should web seeds be extracted from the \
-			.torrent file on the client side? when in that case?
 			flag_merge_resume_http_seeds = 0x2000,
+#endif
 
 			// the stop when ready flag. Setting this flag is equivalent to calling
 			// torrent_handle::stop_when_ready() immediately after the torrent is
 			// added.
 			flag_stop_when_ready = 0x4000,
 
+			// when this flag is set, the tracker list in the add_torrent_params
+			// object override any trackers from the torrent file. If the flag is
+			// not set, the trackers from the add_torrent_params object will be
+			// added to the list of trackers used by the torrent.
+			flag_override_trackers = 0x8000,
+
+			// If this flag is set, the web seeds from the add_torrent_params
+			// object will override any web seeds in the torrent file. If it's not
+			// set, web seeds in the add_torrent_params object will be added to the
+			// list of web seeds used by the torrent.
+			flag_override_web_seeds = 0x10000,
+
 			// internal
-			default_flags = flag_merge_resume_http_seeds | flag_merge_resume_trackers | flag_pinned | flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
+			default_flags = flag_pinned | flag_update_subscribe
+				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+#ifndef TORRENT_NO_DEPRECATE
+				| flag_merge_resume_http_seeds
+				| flag_merge_resume_trackers
+#endif
 		};
 
 		// filled in by the constructor and should be left untouched. It is used
@@ -291,17 +310,6 @@ namespace libtorrent
 		// 	paths. This means they must use backslashes as directory separators
 		// 	and may not contain the special directories "." or "..".
 		std::string save_path;
-
-#error do we still need this? what's left in the resume data that isn't parsed \
-		out into add_torrent_params? should it be moved to add_torrent_params?
-
-		// The optional parameter, ``resume_data`` can be given if up to date
-		// fast-resume data is available. The fast-resume data can be acquired
-		// from a running torrent by calling save_resume_data() on
-		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
-		// will be swapped into the running torrent instance with
-		// ``std::vector::swap()``.
-		std::vector<char> resume_data;
 
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.
@@ -419,6 +427,30 @@ namespace libtorrent
 		int num_complete;
 		int num_incomplete;
 		int num_downloaded;
+
+		// URLs can be added to these two lists to specify additional web
+		// seeds to be used by the torrent. If the ``flag_override_web_seeds``
+		// is set, these will be the _only_ ones to be used. i.e. any web seeds
+		// found in the .torrent file will be overridden.
+		// 
+		// http_seeds expects URLs to web servers implementing the original HTTP
+		// seed specification `BEP 17`_.
+		// 
+		// url_seeds expects URLs to regular web servers, aka "get right" style,
+		// specified in `BEP 19`_.
+		std::vector<std::string> http_seeds;
+		std::vector<std::string> url_seeds;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// The optional parameter, ``resume_data`` can be given if up to date
+		// fast-resume data is available. The fast-resume data can be acquired
+		// from a running torrent by calling save_resume_data() on
+		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
+		// will be swapped into the running torrent instance with
+		// ``std::vector::swap()``.
+		std::vector<char> resume_data;
+#endif
+
 	};
 }
 

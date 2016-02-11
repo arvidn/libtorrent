@@ -289,6 +289,7 @@ namespace libtorrent
 
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
+#error maybe m_need_save_resume_data should be another flag in add_torrent_params
 		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
@@ -313,17 +314,59 @@ namespace libtorrent
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : boost::make_shared<torrent_info>(info_hash));
 
-		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+		// --- WEB SEEDS ---
+
+		// if override web seed flag is set, don't load any web seeds from the
+		// torrent file.
+		if ((p.flags & add_torrent_params::flag_override_web_seeds) == 0)
+		{
+			std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
+			m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+		}
 
 		// add web seeds from add_torrent_params
+		bool const multi_file = m_torrent_file->is_valid()
+				&& m_torrent_file->num_files() > 1;
+
 		for (std::vector<std::string>::const_iterator i = p.url_seeds.begin()
 			, end(p.url_seeds.end()); i != end; ++i)
 		{
 			m_web_seeds.push_back(web_seed_t(*i, web_seed_entry::url_seed));
+
+			// correct URLs to end with a "/" for multi-file torrents
+			std::string& url = m_web_seeds.back().url;
+			if (multi_file && url[url.size()-1] != '/') url += '/';
+		}
+		for (std::vector<std::string>::const_iterator i = p.http_seeds.begin()
+			, end(p.http_seeds.end()); i != end; ++i)
+		{
+			m_web_seeds.push_back(web_seed_t(*i, web_seed_entry::http_seed));
 		}
 
-		m_trackers = m_torrent_file->trackers();
+		// --- TRACKERS ---
+
+		// if override trackers flag is set, don't load trackers from torrent file
+		if ((p.flags & add_torrent_params::flag_override_trackers) == 0)
+		{
+			m_trackers = m_torrent_file->trackers();
+		}
+
+		int tier = 0;
+		std::vector<int>::const_iterator tier_iter = p.tracker_tiers.begin();
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
+			, end(p.trackers.end()); i != end; ++i)
+		{
+			if (tier_iter != p.tracker_tiers.end())
+				tier = *tier_iter++;
+
+			announce_entry e(*i);
+			e.fail_limit = 0;
+			e.source = announce_entry::source_magnet_link;
+			e.tier = tier;
+			m_trackers.push_back(e);
+			m_torrent_file->add_tracker(*i, tier);
+		}
+
 		if (m_torrent_file->is_valid())
 		{
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0;
@@ -346,25 +389,8 @@ namespace libtorrent
 			m_verifying.resize(m_torrent_file->num_pieces(), false);
 		}
 
-		int tier = 0;
-		std::vector<int>::const_iterator tier_iter = p.tracker_tiers.begin();
-		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
-			, end(p.trackers.end()); i != end; ++i)
-		{
-			if (tier_iter != p.tracker_tiers.end())
-				tier = *tier_iter++;
-
-			announce_entry e(*i);
-			e.fail_limit = 0;
-			e.source = announce_entry::source_magnet_link;
-			e.tier = tier;
-			m_trackers.push_back(e);
-			m_torrent_file->add_tracker(*i, tier);
-		}
-
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
-
 
 		m_total_uploaded = p.total_uploaded;
 		m_total_downloaded = p.total_downloaded;
@@ -744,37 +770,35 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
-			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s"
+			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s"
 			"save-path: %s"
 			, torrent_file().name().c_str()
 			, p.max_uploads
 			, p.max_connections
 			, p.upload_limit
 			, p.download_limit
-			, (p.flags == add_torrent_params::flag_seed_mode)
+			, (p.flags & add_torrent_params::flag_seed_mode)
 				? "seed-mode " : ""
-			, (p.flags == add_torrent_params::flag_override_resume_data)
-				? "override-resume-data " : ""
-			, (p.flags == add_torrent_params::flag_upload_mode)
+			, (p.flags & add_torrent_params::flag_upload_mode)
 				? "upload-mode " : ""
-			, (p.flags == add_torrent_params::flag_share_mode)
+			, (p.flags & add_torrent_params::flag_share_mode)
 				? "share-mode " : ""
-			, (p.flags == add_torrent_params::flag_apply_ip_filter)
+			, (p.flags & add_torrent_params::flag_apply_ip_filter)
 				? "apply-ip-filter " : ""
-			, (p.flags == add_torrent_params::flag_paused)
+			, (p.flags & add_torrent_params::flag_paused)
 				? "paused " : ""
-			, (p.flags == add_torrent_params::flag_auto_managed)
+			, (p.flags & add_torrent_params::flag_auto_managed)
 				? "auto-managed " : ""
-			, (p.flags == add_torrent_params::flag_merge_resume_trackers)
-				? "merge-resume-trackers " : ""
-			, (p.flags == add_torrent_params::flag_update_subscribe)
+			, (p.flags & add_torrent_params::flag_update_subscribe)
 				? "update-subscribe " : ""
-			, (p.flags == add_torrent_params::flag_super_seeding)
+			, (p.flags & add_torrent_params::flag_super_seeding)
 				? "super-seeding " : ""
-			, (p.flags == add_torrent_params::flag_sequential_download)
+			, (p.flags & add_torrent_params::flag_sequential_download)
 				? "sequential-download " : ""
-			, (p.flags == add_torrent_params::flag_use_resume_save_path)
-				? "resume-save-path " : ""
+			, (p.flags & add_torrent_params::flag_override_trackers)
+				? "override-trackers"  : ""
+			, (p.flags & add_torrent_params::flag_override_web_seeds)
+				? "override-web-seeds " : ""
 			, p.save_path.c_str()
 			);
 #endif
@@ -2269,6 +2293,10 @@ namespace libtorrent
 
 		state_updated();
 
+#error instead of keeping m_resume_data as a member of torrent, we'll need an \
+		add_torrent_params member, to store resume_data until we need it. Unless, \
+		we don't support resume data for magnet links and URLs, that resolve later
+
 		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
@@ -2404,6 +2432,7 @@ namespace libtorrent
 			if (!j->error && m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 			{
 				// parse have bitmask
+#error get this from add_torrent_params
 				bdecode_node pieces = m_resume_data->node.dict_find("pieces");
 				if (pieces && pieces.type() == bdecode_node::string_t
 					&& int(pieces.string_length()) == m_torrent_file->num_pieces())
@@ -2423,30 +2452,12 @@ namespace libtorrent
 						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
 					}
 				}
-				else
-				{
-					bdecode_node slots = m_resume_data->node.dict_find("slots");
-					if (slots && slots.type() == bdecode_node::list_t)
-					{
-						for (int i = 0; i < slots.list_size(); ++i)
-						{
-							int piece = slots.list_int_value_at(i, -1);
-							if (piece >= 0)
-							{
-								need_picker();
-								m_picker->we_have(piece);
-								update_gauge();
-								inc_stats_counter(counters::num_piece_passed);
-								we_have(piece);
-							}
-						}
-					}
-				}
 
 				// parse unfinished pieces
 				int num_blocks_per_piece =
 					static_cast<int>(torrent_file().piece_length()) / block_size();
 
+#error get this from add_torrent_params
 				if (bdecode_node unfinished_ent
 					= m_resume_data->node.dict_find_list("unfinished"))
 				{

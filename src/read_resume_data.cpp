@@ -85,7 +85,7 @@ namespace libtorrent
 		can only be done reliably on the libtorrent side as the torrent is being \
 		added. i.e. the info_hash needs to be saved
 
-		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
+		ret.toal_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
 		ret.active_time = rd.dict_find_int_value("active_time");
 		ret.finished_time = rd.dict_find_int_value("finished_time");
@@ -160,7 +160,7 @@ namespace libtorrent
 			// resume data with an empty trackers list. Since we found a trackers
 			// list here, these should replace whatever we find in the .torrent
 			// file.
-			ret.flags &= ~add_torrent_params::flag_merge_resume_trackers;
+			ret.flags |= add_torrent_params::flag_override_trackers;
 
 			int tier = 0;
 			for (int i = 0; i < trackers.list_size(); ++i)
@@ -189,11 +189,11 @@ namespace libtorrent
 		// the resume data though, keep the ones from the torrent
 		bdecode_node url_list = rd.dict_find_list("url-list");
 		bdecode_node httpseeds = rd.dict_find_list("httpseeds");
-		if ((url_list || httpseeds) && !m_merge_resume_http_seeds)
+		if (url_list || httpseeds)
 		{
 			// since we found http seeds in the resume data, they should replace
-			// whatever web seeds are specified in the .torrent
-			ret.flags &= ~add_torrent_params::flag_merge_resume_http_seeds;
+			// whatever web seeds are specified in the .torrent, by default
+			ret.flags |= add_torrent_params::flag_override_http_seeds;
 		}
 
 		if (url_list)
@@ -203,9 +203,6 @@ namespace libtorrent
 				std::string url = url_list.list_string_value_at(i);
 				if (url.empty()) continue;
 				ret.url_seeds.push_back(url);
-
-#error this correction logic has to be moved to the torrent constructor now
-				if (m_torrent_file->num_files() > 1 && url[url.size()-1] != '/') url += '/';
 			}
 		}
 
@@ -215,7 +212,6 @@ namespace libtorrent
 			{
 				std::string url = httpseeds.list_string_value_at(i);
 				if (url.empty()) continue;
-#error add this field (merge with url_seeds?)
 				ret.http_seeds.push_back(url);
 			}
 		}
@@ -278,7 +274,11 @@ namespace libtorrent
 			}
 		}
 
-		m_verified.resize(m_torrent_file->num_pieces(), false);
+#error read "unfinished" pieces
+#error read "peers" list
+#error read "peers6" list
+#error read "banned_peers" list
+#error read "banned_peers6" list
 
 		return ret;
 	}
