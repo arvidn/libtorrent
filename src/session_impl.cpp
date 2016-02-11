@@ -1982,6 +1982,11 @@ retry:
 
 					if (!ec && s.sock)
 					{
+						// update the listen_interface member with the
+						// actual port we ended up listening on, so that the other
+						// sockets can be bound to the same one
+						m_listen_interface.port(s.external_port);
+
 						TORRENT_ASSERT(!m_abort);
 						m_listen_sockets.push_back(s);
 
