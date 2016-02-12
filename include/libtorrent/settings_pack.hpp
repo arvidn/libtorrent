@@ -178,10 +178,10 @@ namespace libtorrent
 			// to allow accepting uTP connections as well as TCP. If using the DHT,
 			// this will also make the DHT use the same UDP ports.
 			// 
-			// Note::
-			// 	The current support for opening arbitrary UDP sockets is limited.
-			// 	In this version of libtorrent, there will only ever be two UDP
-			// 	sockets, one for IPv4 and one for IPv6.
+			// .. note::
+			//   The current support for opening arbitrary UDP sockets is limited.
+			//   In this version of libtorrent, there will only ever be two UDP
+			//   sockets, one for IPv4 and one for IPv6.
 			listen_interfaces,
 
 			// when using a poxy, this is the hostname where the proxy is running
