@@ -115,6 +115,7 @@ namespace dht
 		virtual bool get_peers(sha1_hash const& info_hash
 			, bool noseed, bool scrape
 			, entry& peers) const = 0;
+
 		// This function is named announce_peer for consistency with the
 		// upper layers, but has nothing to do with networking. Its only
 		// responsibility is store the peer in such a way that it's returned
@@ -139,6 +140,7 @@ namespace dht
 		//
 		virtual bool get_immutable_item(sha1_hash const& target
 			, entry& item) const = 0;
+
 		// Store the item's data. This layer is only for storage.
 		// The authentication of the item is performed by the upper layer.
 		//
@@ -158,6 +160,7 @@ namespace dht
 		//
 		virtual bool get_mutable_item_seq(sha1_hash const& target
 			, boost::int64_t& seq) const = 0;
+
 		// This function retrieves the mutable stored in the DHT.
 		//
 		// For implementers:
@@ -166,7 +169,7 @@ namespace dht
 		// the following keys should be filled
 		// item["v"] - with the value no encoded.
 		// item["sig"] - with a string representation of the signature.
-		// item["k"] - with a string represnetation of the public key.
+		// item["k"] - with a string representation of the public key.
 		//
 		// returns true if the item is found and the data is returned
 		// inside the (entry) out parameter item.
@@ -174,6 +177,7 @@ namespace dht
 		virtual bool get_mutable_item(sha1_hash const& target
 			, boost::int64_t seq, bool force_fill
 			, entry& item) const = 0;
+
 		// Store the item's data. This layer is only for storage.
 		// The authentication of the item is performed by the upper layer.
 		//

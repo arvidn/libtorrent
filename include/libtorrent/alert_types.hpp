@@ -2009,14 +2009,14 @@ namespace libtorrent
 		// the sequence number of this item
 		boost::uint64_t seq;
 
-		// the salf, if any, used to lookup and store this item. If no
+		// the salt, if any, used to lookup and store this item. If no
 		// salt was used, this is an empty string
 		std::string salt;
 
 		// the data for this item
 		entry item;
 
-		// the last response for mutable date is authoritative.
+		// the last response for mutable data is authoritative.
 		bool authoritative;
 	};
 
