@@ -240,33 +240,31 @@ namespace libtorrent
 			TORRENT_ASSERT(false);
 		}
 
-#error add fields to add_torrent_params for these
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
-		bdecode_node pieces = rd.dict_find("pieces");
-		if (pieces && pieces.type() == bdecode_node::string_t
-			&& int(pieces.string_length()) == m_torrent_file->num_pieces())
+		if (bdecode_node pieces = rd.dict_find_string("pieces"))
 		{
 			char const* pieces_str = pieces.string_ptr();
+			ret.have_pieces.resize(pieces.string_length());
+			ret.verified_pieces.resize(pieces.string_length());
 			for (int i = 0, end(pieces.string_length()); i < end; ++i)
 			{
 				// being in seed mode and missing a piece is not compatible.
 				// Leave seed mode if that happens
-				if ((pieces_str[i] & 1)) continue;
-				m_seed_mode = false;
-				break;
+				if (pieces_str[i] & 1) ret.have_pieces.set_bit(i);
+				else ret.have_pieces.clear_bit(i);
+
+				if (pieces_str[i] & 2) ret.verified_pieces.set_bit(i);
+				else ret.verified_pieces.clear_bit(i);
 			}
 		}
 
-		bdecode_node piece_priority = rd.dict_find_string("piece_priority");
-		if (piece_priority && piece_priority.string_length()
-			== m_torrent_file->num_pieces())
+		if (bdecode_node piece_priority = rd.dict_find_string("piece_priority"))
 		{
-			char const* p = piece_priority.string_ptr();
+			char const* prio_str = piece_priority.string_ptr();
+			ret.piece_priorities.resize(piece_priority.string_length());
 			for (int i = 0; i < piece_priority.string_length(); ++i)
 			{
-				if (p[i] > 0) continue;
-				m_seed_mode = false;
-				break;
+				ret.piece_priorities[i] = prio_str[i];
 			}
 		}
 
@@ -278,12 +276,14 @@ namespace libtorrent
 				ret.peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
+#if TORRENT_USE_IPV6
 		if (bdecode_node peers_entry = rd.dict_find_string("peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 18)
 				ret.peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
+#endif
 
 		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers"))
 		{
@@ -292,14 +292,31 @@ namespace libtorrent
 				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 
+#if TORRENT_USE_IPV6
 		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 18)
 				ret.banned_peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
 		}
+#endif
 
-#error read "unfinished" pieces
+		// parse unfinished pieces
+		if (bdecode_node unfinished_entry = rd.dict_find_list("unfinished"))
+		{
+			for (int i = 0; i < unfinished_entry.list_size(); ++i)
+			{
+				bdecode_node e = unfinished_entry.list_at(i);
+				if (e.type() != bdecode_node::dict_t) continue;
+				int piece = e.dict_find_int_value("piece", -1);
+				if (piece < 0) continue;
+
+				bdecode_node bitmask = e.dict_find_string("bitmask");
+				if (bitmask || bitmask.string_length() == 0) continue;
+				bitfield& bf = ret.unfinished_pieces[piece];
+				bf.assign(bitmask.string_ptr(), bitmask.string_length());
+			}
+		}
 
 		return ret;
 	}

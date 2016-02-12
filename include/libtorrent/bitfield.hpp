@@ -171,6 +171,13 @@ namespace libtorrent
 			return *this;
 		}
 
+		void swap(bitfield& rhs)
+		{
+			boost::uint32_t* tmp = m_buf;
+			m_buf = rhs.m_buf;
+			rhs.m_buf = tmp;
+		}
+
 		// count the number of bits in the bitfield that are set to 1.
 		int count() const
 		{

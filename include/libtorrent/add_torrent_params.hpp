@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/version.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -440,8 +441,32 @@ namespace libtorrent
 		std::vector<std::string> http_seeds;
 		std::vector<std::string> url_seeds;
 
+		// peers to add to the torrent, to be tried to be connected to as
+		// bittorrent peers.
 		std::vector<tcp::endpoint> peers;
+
+		// peers banned from this torrent. The will not be connected to
 		std::vector<tcp::endpoint> banned_peers;
+
+		// this is a map of partially downloaded piece. The key is the piece index
+		// and the value is a bitfield where each bit represents a 16 kiB block.
+		// A set bit means we have that block.
+		std::map<int, bitfield> unfinished_pieces;
+
+		// this is a bitfield indicating which pieces we already have of this
+		// torrent.
+		bitfield have_pieces;
+
+		// when in seed_mode, pieces with a set bit in this bitfield have been
+		// verified to be valid. Other pieces will be verified the first time a
+		// peer requests it.
+		bitfield verified_pieces;
+
+		// this sets the priorities for each individual piece in the torrent. Each
+		// element in the vector represent the piece with the same index. If you
+		// set both file- and piece priorities, file priorities will take
+		// precedence.
+		std::vector<boost::uint8_t> piece_priorities;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// The optional parameter, ``resume_data`` can be given if up to date

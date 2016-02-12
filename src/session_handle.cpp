@@ -232,6 +232,11 @@ namespace libtorrent
 			atp.peers.swap(resume_data.peers);
 			atp.banned_peers.swap(resume_data.banned_peers);
 
+			atp.unfinished_pieces.swap(resume_data.unfinished_pieces);
+			atp.have_pieces.swap(resume_data.have_pieces);
+			atp.verified_pieces.swap(resume_data.verified_pieces);
+			atp.piece_priorities.swap(resume_data.piece_priorities);
+
 			if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
 			{
 				atp.download_limit = resume_data.download_limit;

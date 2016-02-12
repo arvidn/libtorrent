@@ -282,6 +282,9 @@ namespace libtorrent
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
 
+		// TODO: 3 we could probably get away with just saving a few fields here
+		m_add_torrent_params.reset(new add_torrent_params(p));
+
 		if (m_pinned)
 			inc_stats_counter(counters::num_pinned_torrents);
 
@@ -372,29 +375,6 @@ namespace libtorrent
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
-
-		// --- PEERS ---
-
-		for (std::vector<tcp::endpoint>::const_iterator i = p.peers.begin()
-			, end(p.peers.end()); i != end; ++i)
-		{
-			add_peer(*i , peer_info::resume_data);
-		}
-
-		for (std::vector<tcp::endpoint>::const_iterator i = p.banned_peers.begin()
-			, end(p.banned_peers.end()); i != end; ++i)
-		{
-			torrent_peer* peer = add_peer(*i, peer_info::resume_data);
-			if (peer) ban_peer(peer);
-		}
-
-		if (!p.peers.empty() || !p.banned_peers.empty())
-			update_want_peers();
-
-#ifndef TORRENT_DISABLE_LOGGING
-		if (m_peer_list && m_peer_list->num_peers() > 0)
-			debug_log("resume added peers (%d)", m_peer_list->num_peers());
-#endif
 
 		if (m_torrent_file->is_valid())
 		{
@@ -1925,25 +1905,16 @@ namespace libtorrent
 
 		// if we've already loaded file priorities, don't load piece priorities,
 		// they will interfere.
-#error we should get the piece priority from add_torrent_params instead
-		if (!m_seed_mode && m_resume_data && m_file_priority.empty())
+		if (!m_seed_mode && m_add_torrent_params && m_file_priority.empty())
 		{
-			bdecode_node piece_priority = m_resume_data->node
-				.dict_find_string("piece_priority");
-
-			if (piece_priority && piece_priority.string_length()
-				== m_torrent_file->num_pieces())
+			for (int i = 0; i < int(m_add_torrent_params->piece_priorities.size()); ++i)
 			{
-				char const* p = piece_priority.string_ptr();
-				for (int i = 0; i < piece_priority.string_length(); ++i)
-				{
-					int prio = p[i];
-					if (!has_picker() && prio == 4) continue;
-					need_picker();
-					m_picker->set_piece_priority(i, p[i]);
-				}
-				update_gauge();
+				int const prio = m_add_torrent_params->piece_priorities[i];
+				if (!has_picker() && prio == 4) continue;
+				need_picker();
+				m_picker->set_piece_priority(i, prio);
 			}
+			update_gauge();
 		}
 
 		// in case file priorities were passed in via the add_torrent_params
@@ -1958,7 +1929,7 @@ namespace libtorrent
 		{
 			m_have_all = true;
 			m_ses.get_io_service().post(boost::bind(&torrent::files_checked, shared_from_this()));
-			m_resume_data.reset();
+			m_add_torrent_params.reset();
 			update_gauge();
 			update_state_list();
 			return;
@@ -2093,6 +2064,7 @@ namespace libtorrent
 
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will gut links
+#error I don't think we need to pass in any resume-data anymore, do we?
 		m_ses.disk_thread().async_check_fastresume(
 			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
@@ -2316,22 +2288,51 @@ namespace libtorrent
 			pause();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
-			m_resume_data.reset();
+			m_add_torrent_params.reset();
 			return;
 		}
 
 		state_updated();
 
-#error instead of keeping m_resume_data as a member of torrent, we'll need an \
-		add_torrent_params member, to store resume_data until we need it. Unless, \
-		we don't support resume data for magnet links and URLs, that resolve later
+		if (m_add_torrent_params)
+		{
+			// --- PEERS ---
+
+			for (std::vector<tcp::endpoint>::const_iterator i
+				= m_add_torrent_params->peers.begin()
+				, end(m_add_torrent_params->peers.end()); i != end; ++i)
+			{
+				add_peer(*i , peer_info::resume_data);
+			}
+
+			for (std::vector<tcp::endpoint>::const_iterator i
+				= m_add_torrent_params->banned_peers.begin()
+				, end(m_add_torrent_params->banned_peers.end()); i != end; ++i)
+			{
+				torrent_peer* peer = add_peer(*i, peer_info::resume_data);
+				if (peer) ban_peer(peer);
+			}
+
+			if (!m_add_torrent_params->peers.empty()
+				|| !m_add_torrent_params->banned_peers.empty())
+			{
+				update_want_peers();
+			}
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (m_peer_list && m_peer_list->num_peers() > 0)
+				debug_log("resume added peers (%d)", m_peer_list->num_peers());
+#endif
+		}
 
 		// only report this error if the user actually provided resume data
-		if ((j->error || j->ret != 0) && m_resume_data
+		if ((j->error || j->ret != 0) && m_add_torrent_params
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
-			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), j->error.ec
-				, resolve_filename(j->error.file), j->error.operation_str());
+			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
+				, j->error.ec
+				, resolve_filename(j->error.file)
+				, j->error.operation_str());
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2355,79 +2356,70 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!j->error && m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
+			if (!j->error && m_add_torrent_params)
 			{
-				// parse have bitmask
-#error get this from add_torrent_params
-				bdecode_node pieces = m_resume_data->node.dict_find("pieces");
-				if (pieces && pieces.type() == bdecode_node::string_t
-					&& int(pieces.string_length()) == m_torrent_file->num_pieces())
-				{
-					char const* pieces_str = pieces.string_ptr();
-					for (int i = 0, end(pieces.string_length()); i < end; ++i)
-					{
-						if (pieces_str[i] & 1)
-						{
-							need_picker();
-							m_picker->we_have(i);
-							inc_stats_counter(counters::num_piece_passed);
-							update_gauge();
-							we_have(i);
-						}
+				// --- PIECES ---
 
-						if (m_seed_mode && (pieces_str[i] & 2)) m_verified.set_bit(i);
+				int const num_pieces = (std::min)(m_add_torrent_params->have_pieces.size()
+					, torrent_file().num_pieces());
+				for (int i = 0; i < num_pieces; ++i)
+				{
+					if (m_add_torrent_params->have_pieces[i] == false) continue;
+						need_picker();
+						m_picker->we_have(i);
+						inc_stats_counter(counters::num_piece_passed);
+						update_gauge();
+						we_have(i);
+				}
+
+				if (m_seed_mode)
+				{
+					int const num_pieces2 = (std::min)(m_add_torrent_params->verified_pieces.size()
+						, torrent_file().num_pieces());
+					for (int i = 0; i < num_pieces2; ++i)
+					{
+						if (m_add_torrent_params->verified_pieces[i] == false) continue;
+						m_verified.set_bit(i);
 					}
 				}
 
-				// parse unfinished pieces
-				int num_blocks_per_piece =
+				// --- UNFINISHED PIECES ---
+
+				int const num_blocks_per_piece =
 					static_cast<int>(torrent_file().piece_length()) / block_size();
 
-#error get this from add_torrent_params
-				if (bdecode_node unfinished_ent
-					= m_resume_data->node.dict_find_list("unfinished"))
+				for (std::map<int, bitfield>::const_iterator i
+					= m_add_torrent_params->unfinished_pieces.begin()
+					, end(m_add_torrent_params->unfinished_pieces.end()); i != end; ++i)
 				{
-					for (int i = 0; i < unfinished_ent.list_size(); ++i)
+					int const piece = i->first;
+					bitfield const& blocks = i->second;
+
+					if (piece < 0 || piece > torrent_file().num_pieces()) continue;
+
+					// being in seed mode and missing a piece is not compatible.
+					// Leave seed mode if that happens
+					if (m_seed_mode) leave_seed_mode(true);
+
+					if (has_picker() && m_picker->have_piece(piece))
 					{
-						bdecode_node e = unfinished_ent.list_at(i);
-						if (e.type() != bdecode_node::dict_t) continue;
-						int piece = e.dict_find_int_value("piece", -1);
-						if (piece < 0 || piece > torrent_file().num_pieces()) continue;
+						m_picker->we_dont_have(piece);
+						update_gauge();
+					}
 
-						// being in seed mode and missing a piece is not compatible.
-						// Leave seed mode if that happens
-						if (m_seed_mode) leave_seed_mode(true);
+					need_picker();
 
-						if (has_picker() && m_picker->have_piece(piece))
+					const int num_bits = (std::min)(num_blocks_per_piece, blocks.size());
+					for (int k = 0; k < num_bits; ++k)
+					{
+						if (blocks.get_bit(k))
 						{
-							m_picker->we_dont_have(piece);
-							update_gauge();
+							m_picker->mark_as_finished(piece_block(piece, k), 0);
 						}
-
-						std::string bitmask = e.dict_find_string_value("bitmask");
-						if (bitmask.empty()) continue;
-
-						need_picker();
-
-						const int num_bitmask_bytes = (std::max)(num_blocks_per_piece / 8, 1);
-						if (int(bitmask.size()) != num_bitmask_bytes) continue;
-						for (int k = 0; k < num_bitmask_bytes; ++k)
-						{
-							const boost::uint8_t bits = boost::uint8_t(bitmask[k]);
-							int num_bits = (std::min)(num_blocks_per_piece - k*8, 8);
-							for (int b = 0; b < num_bits; ++b)
-							{
-								const int block = k * 8 + b;
-								if (bits & (1 << b))
-								{
-									m_picker->mark_as_finished(piece_block(piece, block), 0);
-								}
-							}
-						}
-						if (m_picker->is_piece_finished(piece))
-						{
-							verify_piece(piece);
-						}
+					}
+					if (m_picker->is_piece_finished(piece))
+					{
+						verify_piece(piece);
 					}
 				}
 			}
@@ -2446,7 +2438,7 @@ namespace libtorrent
 		}
 
 		maybe_done_flushing();
-		m_resume_data.reset();
+		m_add_torrent_params.reset();
 
 		// restore m_need_save_resume_data to its state when we entered this
 		// function.
@@ -2507,7 +2499,7 @@ namespace libtorrent
 		if (m_auto_managed && !is_finished())
 			set_queue_position((std::numeric_limits<int>::max)());
 
-		m_resume_data.reset();
+		m_add_torrent_params.reset();
 
 		std::vector<std::string> links;
 		inc_refcount("force_recheck");
@@ -8551,9 +8543,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		// this fires during disconnecting peers
 //		if (is_paused()) TORRENT_ASSERT(num_peers() == 0 || m_graceful_pause_mode);
-
-		TORRENT_ASSERT(!m_resume_data || m_resume_data->node.type() == bdecode_node::dict_t
-			|| m_resume_data->node.type() == bdecode_node::none_t);
 
 		int seeds = 0;
 		int num_uploads = 0;

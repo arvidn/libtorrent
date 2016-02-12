@@ -1298,6 +1298,11 @@ namespace libtorrent
 		// set if there's an error on this torrent
 		error_code m_error;
 
+		// used if there is any resume data. Some of the information from the
+		// add_torrent_params struct are needed later in the torrent object's life
+		// cycle, and not in the constructor. So we need to save if away here
+		boost::scoped_ptr<add_torrent_params> m_add_torrent_params;
+
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
 		// once the metadata is received this field will no
