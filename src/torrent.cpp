@@ -367,6 +367,35 @@ namespace libtorrent
 			m_torrent_file->add_tracker(*i, tier);
 		}
 
+		std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
+			< boost::bind(&announce_entry::tier, _2));
+
+		if (settings().get_bool(settings_pack::prefer_udp_trackers))
+			prioritize_udp_trackers();
+
+		// --- PEERS ---
+
+		for (std::vector<tcp::endpoint>::const_iterator i = p.peers.begin()
+			, end(p.peers.end()); i != end; ++i)
+		{
+			add_peer(*i , peer_info::resume_data);
+		}
+
+		for (std::vector<tcp::endpoint>::const_iterator i = p.banned_peers.begin()
+			, end(p.banned_peers.end()); i != end; ++i)
+		{
+			torrent_peer* peer = add_peer(*i, peer_info::resume_data);
+			if (peer) ban_peer(peer);
+		}
+
+		if (!p.peers.empty() || !p.banned_peers.empty())
+			update_want_peers();
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (m_peer_list && m_peer_list->num_peers() > 0)
+			debug_log("resume added peers (%d)", m_peer_list->num_peers());
+#endif
+
 		if (m_torrent_file->is_valid())
 		{
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0;
@@ -2296,109 +2325,6 @@ namespace libtorrent
 #error instead of keeping m_resume_data as a member of torrent, we'll need an \
 		add_torrent_params member, to store resume_data until we need it. Unless, \
 		we don't support resume data for magnet links and URLs, that resolve later
-
-		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
-		{
-			using namespace libtorrent::detail; // for read_*_endpoint()
-
-			if (bdecode_node peers_entry = m_resume_data->node.dict_find_string("peers"))
-			{
-				int num_peers = peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
-				char const* ptr = peers_entry.string_ptr();
-				for (int i = 0; i < num_peers; ++i)
-				{
-					add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data);
-				}
-				update_want_peers();
-			}
-
-			if (bdecode_node banned_peers_entry
-				= m_resume_data->node.dict_find_string("banned_peers"))
-			{
-				int num_peers = banned_peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
-				char const* ptr = banned_peers_entry.string_ptr();
-				for (int i = 0; i < num_peers; ++i)
-				{
-					std::vector<torrent_peer*> peers;
-					torrent_peer* p = add_peer(read_v4_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data);
-					peers_erased(peers);
-					if (p) ban_peer(p);
-				}
-				update_want_peers();
-			}
-
-#if TORRENT_USE_IPV6
-			if (bdecode_node peers6_entry = m_resume_data->node.dict_find_string("peers6"))
-			{
-				int num_peers = peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
-				char const* ptr = peers6_entry.string_ptr();
-				for (int i = 0; i < num_peers; ++i)
-				{
-					add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data);
-				}
-				update_want_peers();
-			}
-
-			if (bdecode_node banned_peers6_entry = m_resume_data->node.dict_find_string("banned_peers6"))
-			{
-				int num_peers = banned_peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
-				char const* ptr = banned_peers6_entry.string_ptr();
-				for (int i = 0; i < num_peers; ++i)
-				{
-					torrent_peer* p = add_peer(read_v6_endpoint<tcp::endpoint>(ptr)
-						, peer_info::resume_data);
-					if (p) ban_peer(p);
-				}
-				update_want_peers();
-			}
-#endif
-
-			// parse out "peers" from the resume data and add them to the peer list
-			if (bdecode_node peers_entry = m_resume_data->node.dict_find_list("peers"))
-			{
-				for (int i = 0; i < peers_entry.list_size(); ++i)
-				{
-					bdecode_node e = peers_entry.list_at(i);
-					if (e.type() != bdecode_node::dict_t) continue;
-					std::string ip = e.dict_find_string_value("ip");
-					int port = e.dict_find_int_value("port");
-					if (ip.empty() || port == 0) continue;
-					error_code ec;
-					tcp::endpoint a(address::from_string(ip, ec), boost::uint16_t(port));
-					if (ec) continue;
-					add_peer(a, peer_info::resume_data);
-				}
-				update_want_peers();
-			}
-
-			// parse out "banned_peers" and add them as banned
-			if (bdecode_node banned_peers_entry = m_resume_data->node.dict_find_list("banned_peers"))
-			{
-				for (int i = 0; i < banned_peers_entry.list_size(); ++i)
-				{
-					bdecode_node e = banned_peers_entry.list_at(i);
-					if (e.type() != bdecode_node::dict_t) continue;
-					std::string ip = e.dict_find_string_value("ip");
-					int port = e.dict_find_int_value("port");
-					if (ip.empty() || port == 0) continue;
-					error_code ec;
-					tcp::endpoint a(address::from_string(ip, ec)
-						, boost::uint16_t(port));
-					if (ec) continue;
-					torrent_peer* p = add_peer(a, peer_info::resume_data);
-					if (p) ban_peer(p);
-				}
-				update_want_peers();
-			}
-		}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		if (m_peer_list && m_peer_list->num_peers() > 0)
-			debug_log("resume added peers (%d)", m_peer_list->num_peers());
-#endif
 
 		// only report this error if the user actually provided resume data
 		if ((j->error || j->ret != 0) && m_resume_data

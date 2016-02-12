@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/socket_io.hpp" // for read_*_endpoint()
 
 namespace libtorrent
 {
@@ -85,7 +86,7 @@ namespace libtorrent
 		can only be done reliably on the libtorrent side as the torrent is being \
 		added. i.e. the info_hash needs to be saved
 
-		ret.toal_uploaded = rd.dict_find_int_value("total_uploaded");
+		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
 		ret.active_time = rd.dict_find_int_value("active_time");
 		ret.finished_time = rd.dict_find_int_value("finished_time");
@@ -176,11 +177,6 @@ namespace libtorrent
 				}
 				++tier;
 			}
-			std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
-				< boost::bind(&announce_entry::tier, _2));
-
-			if (settings().get_bool(settings_pack::prefer_udp_trackers))
-				prioritize_udp_trackers();
 		}
 
 		// if merge resume http seeds is not set, we need to clear whatever web
@@ -193,7 +189,7 @@ namespace libtorrent
 		{
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
-			ret.flags |= add_torrent_params::flag_override_http_seeds;
+			ret.flags |= add_torrent_params::flag_override_web_seeds;
 		}
 
 		if (url_list)
@@ -274,11 +270,36 @@ namespace libtorrent
 			}
 		}
 
+		using namespace libtorrent::detail; // for read_*_endpoint()
+		if (bdecode_node peers_entry = rd.dict_find_string("peers"))
+		{
+			char const* ptr = peers_entry.string_ptr();
+			for (int i = 0; i < peers_entry.string_length(); i += 6)
+				ret.peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
+		}
+
+		if (bdecode_node peers_entry = rd.dict_find_string("peers6"))
+		{
+			char const* ptr = peers_entry.string_ptr();
+			for (int i = 0; i < peers_entry.string_length(); i += 18)
+				ret.peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
+		}
+
+		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers"))
+		{
+			char const* ptr = peers_entry.string_ptr();
+			for (int i = 0; i < peers_entry.string_length(); i += 6)
+				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
+		}
+
+		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers6"))
+		{
+			char const* ptr = peers_entry.string_ptr();
+			for (int i = 0; i < peers_entry.string_length(); i += 18)
+				ret.banned_peers.push_back(read_v6_endpoint<tcp::endpoint>(ptr));
+		}
+
 #error read "unfinished" pieces
-#error read "peers" list
-#error read "peers6" list
-#error read "banned_peers" list
-#error read "banned_peers6" list
 
 		return ret;
 	}

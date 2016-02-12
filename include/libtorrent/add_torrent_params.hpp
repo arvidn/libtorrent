@@ -38,11 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/version.hpp"
+#include "libtorrent/socket.hpp" // for tcp::endpoint
 
 namespace libtorrent
 {
@@ -295,9 +297,6 @@ namespace libtorrent
 		// iterating over the trackers.
 		std::vector<int> tracker_tiers;
 
-		// url seeds to be added to the torrent (`BEP 17`_).
-		std::vector<std::string> url_seeds;
-
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int> > dht_nodes;
@@ -440,6 +439,9 @@ namespace libtorrent
 		// specified in `BEP 19`_.
 		std::vector<std::string> http_seeds;
 		std::vector<std::string> url_seeds;
+
+		std::vector<tcp::endpoint> peers;
+		std::vector<tcp::endpoint> banned_peers;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// The optional parameter, ``resume_data`` can be given if up to date

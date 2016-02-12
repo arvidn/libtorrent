@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/read_resume_data.hpp"
+#endif
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -190,20 +194,20 @@ namespace libtorrent
 
 			if (!resume_data.url_seeds.empty())
 			{
-				atp.urk_seeds.insert(atp.url_seeds.end()
+				atp.url_seeds.insert(atp.url_seeds.end()
 					, resume_data.url_seeds.begin()
 					, resume_data.url_seeds.end());
 				if ((resume_data.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
-					atp.flags &= ~add_torrent_params::flag_override_web_seeds;
+					atp.flags |= add_torrent_params::flag_override_web_seeds;
 			}
 
 			if (!resume_data.http_seeds.empty())
 			{
-				atp.urk_seeds.insert(atp.http_seeds.end()
+				atp.url_seeds.insert(atp.http_seeds.end()
 					, resume_data.http_seeds.begin()
 					, resume_data.http_seeds.end());
 				if ((resume_data.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
-					atp.flags &= ~add_torrent_params::flag_override_web_seeds;
+					atp.flags |= add_torrent_params::flag_override_web_seeds;
 			}
 
 			atp.total_uploaded = resume_data.total_uploaded;
@@ -211,11 +215,11 @@ namespace libtorrent
 			atp.num_complete = resume_data.num_complete;
 			atp.num_incomplete = resume_data.num_incomplete;
 			atp.num_downloaded = resume_data.num_downloaded;
-			atp.total_uploaded = resume_data.total_uploaded
-			atp.total_downloaded = resume_data.total_downloaded
-			atp.active_time = resume_data.active_time
-			atp.finished_time = resume_data.finished_time
-			atp.seeding_time = resume_data.seeding_time
+			atp.total_uploaded = resume_data.total_uploaded;
+			atp.total_downloaded = resume_data.total_downloaded;
+			atp.active_time = resume_data.active_time;
+			atp.finished_time = resume_data.finished_time;
+			atp.seeding_time = resume_data.seeding_time;
 
 			atp.last_seen_complete = resume_data.last_seen_complete;
 			atp.url = resume_data.url;
@@ -225,10 +229,13 @@ namespace libtorrent
 			atp.added_time = resume_data.added_time;
 			atp.completed_time = resume_data.completed_time;
 
-			if ((atp.flags & flag_override_resume_data) == 0)
+			atp.peers.swap(resume_data.peers);
+			atp.banned_peers.swap(resume_data.banned_peers);
+
+			if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
 			{
 				atp.download_limit = resume_data.download_limit;
-				atp.uoload_limit = resume_data.upload_limit;
+				atp.upload_limit = resume_data.upload_limit;
 				atp.max_connections = resume_data.max_connections;
 				atp.max_uploads = resume_data.max_uploads;
 				atp.trackerid = resume_data.trackerid;
@@ -236,7 +243,7 @@ namespace libtorrent
 
 				boost::uint64_t const mask =
 					add_torrent_params::flag_seed_mode
-					| add_torrent_params::flagsuper_seeding
+					| add_torrent_params::flag_super_seeding
 					| add_torrent_params::flag_auto_managed
 					| add_torrent_params::flag_sequential_download
 					| add_torrent_params::flag_paused;
@@ -254,7 +261,7 @@ namespace libtorrent
 		error_code ec;
 #ifndef TORRENT_NO_DEPRECATE
 		add_torrent_params p = params;
-		handle_backwards_compatible_resume_data(params, ec);
+		handle_backwards_compatible_resume_data(p, ec);
 		if (ec) throw libtorrent_exception(ec);
 #else
 		add_torrent_params const& p = params;
@@ -286,7 +293,11 @@ namespace libtorrent
 		error_code ec;
 		handle_backwards_compatible_resume_data(*p, ec);
 #error what should we do about error handling here?
-		if (ec) return;
+		if (ec)
+		{
+			delete p;
+			return;
+		}
 #endif
 
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
@@ -312,7 +323,8 @@ namespace libtorrent
 			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
-		p.paused = paused;
+		if (paused) p.flags |= add_torrent_params::flag_paused;
+		else p.flags &= ~add_torrent_params::flag_paused;
 		return add_torrent(p);
 	}
 
