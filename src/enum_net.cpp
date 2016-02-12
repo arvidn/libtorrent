@@ -278,7 +278,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ifreq req;
 		memset(&req, 0, sizeof(req));
 		if_indextoname(rtm->rtm_index, req.ifr_name);
-		if (ioctl(s, siocgifmtu, &req) < 0) return false;
+
+		// ignore errors here. This is best-effort
+		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
 
 		return true;
@@ -465,10 +467,9 @@ namespace libtorrent
 					memset(&req, 0, sizeof(req));
 					// -1 to leave a null terminator
 					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
-					if (ioctl(s, siocgifmtu, &req) < 0)
-					{
-						continue;
-					}
+
+					// ignore errors here. This is best-effort
+					ioctl(s, siocgifmtu, &req);
 					iface.mtu = req.ifr_mtu;
 					ret.push_back(iface);
 				}
