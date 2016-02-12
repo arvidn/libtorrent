@@ -381,21 +381,22 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | especially useful when moving torrents with move_storage()   |
 |                          | since this will be updated.                                  |
 +--------------------------+--------------------------------------------------------------+
-| ``peers``                | list of dictionaries. Each dictionary has the following      |
-|                          | layout:                                                      |
-|                          |                                                              |
-|                          | +----------+-----------------------------------------------+ |
-|                          | | ``ip``   | string, the ip address of the peer. This is   | |
-|                          | |          | not a binary representation of the ip         | |
-|                          | |          | address, but the string representation. It    | |
-|                          | |          | may be an IPv6 string or an IPv4 string.      | |
-|                          | +----------+-----------------------------------------------+ |
-|                          | | ``port`` | integer, the listen port of the peer          | |
-|                          | +----------+-----------------------------------------------+ |
-|                          |                                                              |
-|                          | These are the local peers we were connected to when this     |
-|                          | fast-resume data was saved.                                  |
-|                          |                                                              |
+| ``peers``                | string. This string contains IPv4 and port pairs of peers we |
+|                          | were connected to last session. The endpoints are in compact |
+|                          | representation. 4 bytes IPv4 address followed by 2 bytes     |
+|                          | port. Hence, the length of this string should be divisible   |
+|                          | by 6.                                                        |
++--------------------------+--------------------------------------------------------------+
+| ``banned_peers``         | string. This string has the same format as ``peers`` but     |
+|                          | instead represent IPv4 peers that we have banned.            |
++--------------------------+--------------------------------------------------------------+
+| ``peers6``               | string. This string contains IPv6 and port pairs of peers we |
+|                          | were connected to last session. The endpoints are in compact |
+|                          | representation. 16 bytes IPv6 address followed by 2 bytes    |
+|                          | port. The length of this string should be divisible by 20.   |
++--------------------------+--------------------------------------------------------------+
+| ``banned_peers6``        | string. This string has the same format as ``peers6`` but    |
+|                          | instead represent IPv6 peers that we have banned.            |
 +--------------------------+--------------------------------------------------------------+
 | ``unfinished``           | list of dictionaries. Each dictionary represents an          |
 |                          | piece, and has the following layout:                         |
