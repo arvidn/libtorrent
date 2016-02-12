@@ -287,7 +287,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (!o)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_table.native_address(m.addr.address()))
+		if (m_table.native_endpoint(m.addr))
 		{
 			m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
 				, int(transaction_id.size()), print_endpoint(m.addr).c_str());
@@ -470,7 +470,7 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	node& n = o->algorithm()->get_node();
 	if (!n.native_address(o->target_addr()))
 	{
-		a["want"].list().push_back(entry(n.native_address_name()));
+		a["want"].list().push_back(entry(n.protocol_family_name()));
 	}
 
 	o->set_target(target_addr);

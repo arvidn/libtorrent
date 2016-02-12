@@ -617,9 +617,9 @@ void traversal_observer::reply(msg const& m)
 
 	// look for nodes
 #if TORRENT_USE_IPV6
-	address_type at = algorithm()->get_node().native_address_type();
+	udp protocol = algorithm()->get_node().protocol();
 #endif
-	char const* nodes_key = algorithm()->get_node().native_nodes_key();
+	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
 	bdecode_node n = r.dict_find_string(nodes_key);
 	if (n)
 	{
@@ -633,7 +633,7 @@ void traversal_observer::reply(msg const& m)
 			nodes += 20;
 			udp::endpoint ep;
 #if TORRENT_USE_IPV6
-			if (at == ipv6)
+			if (protocol == udp::v6())
 				ep = read_v6_endpoint<udp::endpoint>(nodes);
 			else
 #endif

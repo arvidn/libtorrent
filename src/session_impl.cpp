@@ -6779,15 +6779,15 @@ namespace aux {
 		set_external_address(ip, source_dht, source);
 	}
 
-	address session_impl::external_address(address_type at)
+	address session_impl::external_address(udp proto)
 	{
 #if !TORRENT_USE_IPV6
-		TORRENT_UNUSED(at);
+		TORRENT_UNUSED(proto);
 #endif
 
 		address addr;
 #if TORRENT_USE_IPV6
-		if (at == ipv6)
+		if (proto == udp::v6())
 			addr = address_v6();
 		else
 #endif

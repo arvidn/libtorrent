@@ -132,7 +132,7 @@ public:
 	// Perhaps replacement nodes should be in a separate vector.
 	typedef std::vector<routing_table_node> table_t;
 
-	routing_table(node_id const& id, address_type at
+	routing_table(node_id const& id, udp proto
 		, int bucket_size
 		, dht_settings const& settings
 		, dht_logger* log);
@@ -246,9 +246,12 @@ public:
 
 	bool native_address(address addr) const
 	{
-		return (addr.is_v4() && m_address_type == ipv4)
-			|| (addr.is_v6() && m_address_type == ipv6);
+		return (addr.is_v4() && m_protocol == udp::v4())
+			|| (addr.is_v6() && m_protocol == udp::v6());
 	}
+
+	bool native_endpoint(udp::endpoint ep) const
+	{ return ep.protocol() == m_protocol; }
 
 private:
 
@@ -277,7 +280,7 @@ private:
 	table_t m_buckets;
 
 	node_id m_id; // our own node id
-	address_type m_address_type; // address type to be stored
+	udp m_protocol; // protocol this table is for
 
 	// the last seen depth (i.e. levels in the routing table)
 	// it's mutable because it's updated by depth(), which is const

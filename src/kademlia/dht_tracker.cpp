@@ -97,10 +97,10 @@ namespace libtorrent { namespace dht
 		, dht_storage_constructor_type storage_constructor
 		, entry const& state)
 		: m_counters(cnt)
-		, m_dht(ipv4, this, settings, extract_node_id(state, "node-id")
+		, m_dht(udp::v4(), this, settings, extract_node_id(state, "node-id")
 			, observer, cnt, m_nodes, storage_constructor)
 #if TORRENT_USE_IPV6
-		, m_dht6(ipv6, this, settings, extract_node_id(state, "node-id6")
+		, m_dht6(udp::v6(), this, settings, extract_node_id(state, "node-id6")
 			, observer, cnt, m_nodes, storage_constructor)
 #endif
 		, m_send_fun(send_fun)
@@ -120,9 +120,9 @@ namespace libtorrent { namespace dht
 		m_blocker.set_block_timer(m_settings.block_timeout);
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);
 
-		m_nodes.insert(std::make_pair(m_dht.native_address_name(), &m_dht));
+		m_nodes.insert(std::make_pair(m_dht.protocol_family_name(), &m_dht));
 #if TORRENT_USE_IPV6
-		m_nodes.insert(std::make_pair(m_dht6.native_address_name(), &m_dht6));
+		m_nodes.insert(std::make_pair(m_dht6.protocol_family_name(), &m_dht6));
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -226,7 +226,7 @@ namespace libtorrent { namespace dht
 		time_duration d = n.connection_timeout();
 		error_code ec;
 #if TORRENT_USE_IPV6
-		deadline_timer& timer = n.native_address_type() == ipv4 ? m_connection_timer : m_connection_timer6;
+		deadline_timer& timer = n.protocol() == udp::v4() ? m_connection_timer : m_connection_timer6;
 #else
 		deadline_timer& timer = m_connection_timer;
 #endif

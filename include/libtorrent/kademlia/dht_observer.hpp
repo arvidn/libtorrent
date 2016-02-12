@@ -68,7 +68,7 @@ namespace libtorrent { namespace dht
 	{
 		virtual void set_external_address(address const& addr
 			, address const& source) = 0;
-		virtual address external_address(address_type at) = 0;
+		virtual address external_address(udp proto) = 0;
 		virtual void get_peers(sha1_hash const& ih) = 0;
 		virtual void outgoing_get_peers(sha1_hash const& target
 			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;

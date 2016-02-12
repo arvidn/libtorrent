@@ -73,9 +73,6 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
-extern char const* address_type_names[num_address_type];
-extern char const* address_type_keys[num_address_type];
-
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
 
 struct null_type {};
@@ -102,7 +99,7 @@ protected:
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(address_type at, udp_socket_interface* sock
+	node(udp proto, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt
 		, std::map<std::string, node*> const& nodes
@@ -209,18 +206,18 @@ public:
 
 	dht_observer* observer() const { return m_observer; }
 
-	address_type native_address_type() { return m_address_type; }
-	char const* native_address_name() { return address_type_names[m_address_type]; }
-	char const* native_nodes_key() { return address_type_keys[m_address_type]; }
+	udp protocol() { return m_protocol.protocol; }
+	char const* protocol_family_name() { return m_protocol.family_name; }
+	char const* protocol_nodes_key() { return m_protocol.nodes_key; }
 
 	bool native_address(udp::endpoint ep) const
-	{ return native_address(ep.address()); }
+	{ return ep.protocol().family() == m_protocol.protocol.family(); }
 	bool native_address(tcp::endpoint ep) const
-	{ return native_address(ep.address()); }
+	{ return ep.protocol().family() == m_protocol.protocol.family(); }
 	bool native_address(address addr) const
 	{
-		return (addr.is_v4() && m_address_type == ipv4)
-			|| (addr.is_v6() && m_address_type == ipv6);
+		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
+			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());
 	}
 
 private:
@@ -254,9 +251,18 @@ public:
 	std::map<std::string, node*> const& m_nodes;
 
 private:
+	struct protocol_descriptor
+	{
+		udp protocol;
+		char const* family_name;
+		char const* nodes_key;
+	};
+
+	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
+
 	dht_observer* m_observer;
 
-	address_type m_address_type;
+	protocol_descriptor const& m_protocol;
 
 	time_point m_last_tracker_tick;
 

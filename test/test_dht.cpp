@@ -479,7 +479,7 @@ struct obs : dht::dht_observer
 		, address const& source) TORRENT_OVERRIDE
 	{}
 
-	virtual address external_address(address_type at) TORRENT_OVERRIDE
+	virtual address external_address(udp proto) TORRENT_OVERRIDE
 	{
 		return address_v4::from_string("236.0.0.1");
 	}
@@ -523,8 +523,8 @@ void do_test_dht(address(&rand_addr)())
 	counters cnt;
 	udp::endpoint source(rand_addr(), 20);
 	std::map<std::string, node*> nodes;
-	dht::node node(source.protocol() == udp::v4() ? ipv4 : ipv6
-		, &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node(source.protocol(), &s, sett
+		, node_id(0), &observer, cnt, nodes);
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
@@ -1265,7 +1265,7 @@ void do_test_dht(address(&rand_addr)())
 		//	s.restrict_routing_ips = false;
 		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 		const int bucket_size = 10;
-		dht::routing_table table(id, source.protocol() == udp::v4() ? ipv4 : ipv6, bucket_size, s, &observer);
+		dht::routing_table table(id, source.protocol(), bucket_size, s, &observer);
 		std::vector<node_entry> nodes;
 		TEST_EQUAL(table.size().get<0>(), 0);
 
@@ -1515,7 +1515,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1587,7 +1587,7 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1682,7 +1682,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1728,7 +1728,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1815,7 +1815,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -1915,7 +1915,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -2017,7 +2017,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		dht::node node(ipv4, &s, sett, (node_id::min)(), &observer, cnt, nodes);
+		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes);
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 		node_entry nodes[num_test_nodes] =
@@ -2113,8 +2113,8 @@ TORRENT_TEST(dht_dual_stack)
 	obs observer;
 	counters cnt;
 	std::map<std::string, node*> nodes;
-	dht::node node4(ipv4, &s, sett, node_id(0), &observer, cnt, nodes);
-	dht::node node6(ipv6, &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node4(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node6(udp::v6(), &s, sett, node_id(0), &observer, cnt, nodes);
 	nodes.insert(std::make_pair("n4", &node4));
 	nodes.insert(std::make_pair("n6", &node6));
 
@@ -2419,7 +2419,7 @@ TORRENT_TEST(routing_table_uniform)
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
 
-	routing_table tbl(id, ipv4, 8, sett, &observer);
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 
 	// insert 256 nodes evenly distributed across the ID space.
 	// we expect to fill the top 5 buckets
@@ -2462,7 +2462,7 @@ TORRENT_TEST(routing_table_balance)
 	sett.extended_routing_table = false;
 	node_id id = to_hash("1234876923549721020394873245098347598635");
 
-	routing_table tbl(id, ipv4, 8, sett, &observer);
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 
 	// insert nodes in the routing table that will force it to split
 	// and make sure we don't end up with a table completely out of balance
@@ -2494,7 +2494,7 @@ TORRENT_TEST(routing_table_extended)
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
 	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 
-	routing_table tbl(id, ipv4, 8, sett, &observer);
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
 	{
 		add_and_replace(id, diff);
@@ -2527,7 +2527,7 @@ TORRENT_TEST(routing_table_set_id)
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
 	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
-	routing_table tbl(id, ipv4, 8, sett, &observer);
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
 	{
 		id[0] = node_id_prefix[i];
@@ -2573,7 +2573,7 @@ TORRENT_TEST(read_only_node)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 
-	dht::node node(ipv4, &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
 	msg_args args;
@@ -2661,7 +2661,7 @@ TORRENT_TEST(invalid_error_msg)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 
-	dht::node node(ipv4, &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 
 	entry e;
@@ -2699,9 +2699,9 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 
-	dht::routing_table table(node_id(), ipv4, 8, sett, &observer);
+	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
-	dht::node node(ipv4, &s, sett, node_id(0), &observer, cnt, nodes);
+	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes);
 
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 
@@ -2788,7 +2788,7 @@ TORRENT_TEST(dht_verify_node_address)
 	s.extended_routing_table = false;
 	node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 	const int bucket_size = 10;
-	dht::routing_table table(id, ipv4, bucket_size, s, &observer);
+	dht::routing_table table(id, udp::v4(), bucket_size, s, &observer);
 	std::vector<node_entry> nodes;
 	TEST_EQUAL(table.size().get<0>(), 0);
 

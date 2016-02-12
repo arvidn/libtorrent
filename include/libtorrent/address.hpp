@@ -61,8 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	enum address_type { ipv4, ipv6, num_address_type };
-
 #if defined TORRENT_BUILD_SIMULATOR
 	typedef sim::asio::ip::address address;
 	typedef sim::asio::ip::address_v4 address_v4;

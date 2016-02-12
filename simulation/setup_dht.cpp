@@ -86,12 +86,12 @@ struct dht_node final : lt::dht::udp_socket_interface
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 #if LIBSIMULATOR_USE_MOVE
 		, m_socket(m_io_service)
-		, m_dht((flags & dht_network::bind_ipv6) ? ipv6 : ipv4
+		, m_dht((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt, std::map<std::string, lt::dht::node*>())
 #else
 		, m_socket(new asio::ip::udp::socket(m_io_service))
-		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? ipv6 : ipv4
+		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt, std::map<std::string, lt::dht::node*>()))
 #endif
@@ -122,7 +122,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 	// reserving space in the vector before emplacing any nodes).
 	dht_node(dht_node&& n) noexcept
 		: m_socket(std::move(n.m_socket))
-		, m_dht(n.m_ipv6 ? ipv6 : ipv4, this, n.m_dht.settings(), n.m_dht.nid()
+		, m_dht(n.m_ipv6 ? udp::v6() : udp::v4(), this, n.m_dht.settings(), n.m_dht.nid()
 			, n.m_dht.observer(), n.m_dht.stats_counters()
 			, std::map<std::string, lt::dht::node*>())
 	{

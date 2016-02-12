@@ -69,17 +69,14 @@ namespace libtorrent { namespace dht
 
 using detail::write_endpoint;
 
-char const* address_type_names[num_address_type] = { "n4", "n6" };
-char const* address_type_keys[num_address_type] = { "nodes", "nodes6" };
-
 namespace {
 
 void nop() {}
 
-node_id calculate_node_id(node_id const& nid, dht_observer* observer, address_type at)
+node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protocol)
 {
 	address external_address;
-	if (observer) external_address = observer->external_address(at);
+	if (observer) external_address = observer->external_address(protocol);
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
@@ -96,19 +93,19 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer, address_ty
 
 } // anonymous namespace
 
-node::node(address_type at, udp_socket_interface* sock
+node::node(udp proto, udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid
 	, dht_observer* observer
 	, struct counters& cnt
 	, std::map<std::string, node*> const& nodes
 	, dht_storage_constructor_type storage_constructor)
 	: m_settings(settings)
-	, m_id(calculate_node_id(nid, observer, at))
-	, m_table(m_id, at, 8, settings, observer)
+	, m_id(calculate_node_id(nid, observer, proto))
+	, m_table(m_id, proto, 8, settings, observer)
 	, m_rpc(m_id, m_settings, m_table, sock, observer)
 	, m_nodes(nodes)
 	, m_observer(observer)
-	, m_address_type(at)
+	, m_protocol(map_protocol_to_descriptor(proto))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
@@ -132,7 +129,7 @@ void node::update_node_id()
 
 	// it's possible that our external address hasn't actually changed. If our
 	// current ID is still valid, don't do anything.
-	if (verify_id(m_id, m_observer->external_address(m_address_type)))
+	if (verify_id(m_id, m_observer->external_address(protocol())))
 		return;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -140,7 +137,7 @@ void node::update_node_id()
 		, "updating node ID (because external IP address changed)");
 #endif
 
-	m_id = generate_id(m_observer->external_address(m_address_type));
+	m_id = generate_id(m_observer->external_address(protocol()));
 
 	m_table.update_node_id(m_id);
 }
@@ -610,9 +607,9 @@ struct ping_observer : observer
 
 		// look for nodes
 #if TORRENT_USE_IPV6
-		address_type at = algorithm()->get_node().native_address_type();
+		udp protocol = algorithm()->get_node().protocol();
 #endif
-		char const* nodes_key = algorithm()->get_node().native_nodes_key();
+		char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
 		bdecode_node n = r.dict_find_string(nodes_key);
 		if (n)
 		{
@@ -626,7 +623,7 @@ struct ping_observer : observer
 				nodes += 20;
 				udp::endpoint ep;
 #if TORRENT_USE_IPV6
-				if (at == ipv6)
+				if (protocol == udp::v6())
 					ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
 				else
 #endif
@@ -1201,7 +1198,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	{
 		nodes_t n;
 		m_table.find_node(info_hash, n, 0);
-		write_nodes_entry(r[native_nodes_key()], n);
+		write_nodes_entry(r[protocol_nodes_key()], n);
 		return;
 	}
 
@@ -1221,8 +1218,24 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 			continue;
 		nodes_t n;
 		wanted_node->second->m_table.find_node(info_hash, n, 0);
-		write_nodes_entry(r[wanted_node->second->native_nodes_key()], n);
+		write_nodes_entry(r[wanted_node->second->protocol_nodes_key()], n);
 	}
+}
+
+node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
+{
+	static protocol_descriptor descriptors[] =
+		{ {udp::v4(), "n4", "nodes"}
+		, {udp::v6(), "n6", "nodes6"} };
+
+	for (int i = 0; i < sizeof(descriptors) / sizeof(protocol_descriptor); ++i)
+	{
+		if (descriptors[i].protocol == protocol)
+			return descriptors[i];
+	}
+
+	TORRENT_ASSERT(false);
+	throw std::out_of_range("unknown protocol");
 }
 
 } } // namespace libtorrent::dht

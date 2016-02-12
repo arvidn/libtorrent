@@ -124,7 +124,7 @@ void ip_set::erase(address addr)
 		erase_one(m_ip4s, addr.to_v4().to_bytes());
 }
 
-routing_table::routing_table(node_id const& id, address_type at, int bucket_size
+routing_table::routing_table(node_id const& id, udp proto, int bucket_size
 	, dht_settings const& settings
 	, dht_logger* log)
 	:
@@ -133,7 +133,7 @@ routing_table::routing_table(node_id const& id, address_type at, int bucket_size
 #endif
 	m_settings(settings)
 	, m_id(id)
-	, m_address_type(at)
+	, m_protocol(proto)
 	, m_depth(0)
 	, m_last_self_refresh(min_time())
 	, m_bucket_size(bucket_size)
@@ -611,7 +611,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #endif
 
 	// don't add if the address isn't the right type
-	if (!native_address(e.addr()))
+	if (!native_endpoint(e.ep()))
 		return failed_to_add;
 
 	// if we already have this (IP,port), don't do anything
