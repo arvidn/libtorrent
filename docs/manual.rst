@@ -393,7 +393,7 @@ The file format is a bencoded dictionary containing the following fields:
 | ``peers6``               | string. This string contains IPv6 and port pairs of peers we |
 |                          | were connected to last session. The endpoints are in compact |
 |                          | representation. 16 bytes IPv6 address followed by 2 bytes    |
-|                          | port. The length of this string should be divisible by 20.   |
+|                          | port. The length of this string should be divisible by 18.   |
 +--------------------------+--------------------------------------------------------------+
 | ``banned_peers6``        | string. This string has the same format as ``peers6`` but    |
 |                          | instead represent IPv6 peers that we have banned.            |
