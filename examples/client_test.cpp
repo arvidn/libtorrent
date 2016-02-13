@@ -588,13 +588,11 @@ int print_peer_info(std::string& out
 	return pos;
 }
 
-int listen_port = 6881;
 int allocation_mode = libtorrent::storage_mode_sparse;
 std::string save_path(".");
 int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
 std::string monitor_dir;
-std::string bind_to_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
@@ -1238,7 +1236,6 @@ int main(int argc, char* argv[])
 			"  -v <limit>            Set the max number of active downloads\n"
 			"  -^ <limit>            Set the max number of active seeds\n"
 			"\n NETWORK OPTIONS\n"
-			"  -p <port>             sets the listen port\n"
 #ifndef TORRENT_NO_DEPRECATE
 			"  -o <limit>            limits the number of simultaneous\n"
 			"                        half-open TCP connections to the\n"
@@ -1257,10 +1254,14 @@ int main(int argc, char* argv[])
 			"                        incoming TCP connections)\n"
 			"  -J                    Disable uTP connections (disable outgoing uTP and reject\n"
 			"                        incoming uTP connections)\n"
-			"  -b <IP>               sets IP of the interface to bind the\n"
+			"  -b <iface-list>       sets the listen interfaces string. This is a\n"
+			"                        comma separated list of IP:port pairs. Instead\n"
+			"                        of an IP, a network interface device name can\n"
+			"                        be specified\n"
 			"                        listen socket to\n"
-			"  -I <IP>               sets the IP of the interface to bind\n"
-			"                        outgoing peer connections to\n"
+			"  -I <iface-list>       sets the IPs or network interface devices to bind\n"
+			"                        outgoing peer connections to. This can be a\n"
+			"                        comma-separated list"
 #if TORRENT_USE_I2P
 			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
 #endif
@@ -1361,7 +1362,6 @@ int main(int argc, char* argv[])
 			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
 #endif
 			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
-			case 'p': listen_port = atoi(arg); break;
 			case 'k': high_performance_seed(settings); --i; break;
 			case 'j': settings.set_bool(settings_pack::use_disk_read_ahead, false); --i; break;
 			case 'z': settings.set_bool(settings_pack::disable_hash_checks, true); --i; break;
@@ -1386,7 +1386,7 @@ int main(int argc, char* argv[])
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = arg; break;
 			case 'Q': share_mode = true; --i; break;
-			case 'b': bind_to_interface = arg; break;
+			case 'b': settings.set_str(settings_pack::listen_interfaces, arg); break;
 			case 'w': settings.set_int(settings_pack::urlseed_wait_retry, atoi(arg)); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
@@ -1532,12 +1532,6 @@ int main(int argc, char* argv[])
 	if (ret < 0)
 		fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
-
-	if (bind_to_interface.empty()) bind_to_interface = "0.0.0.0";
-	char iface_str[100];
-	snprintf(iface_str, sizeof(iface_str), "%s:%d", bind_to_interface.c_str()
-		, listen_port);
-	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask, alert::all_categories

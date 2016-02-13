@@ -100,8 +100,11 @@ bool on_alert(alert const* a)
 	if (peer_disconnected_alert const* e = alert_cast<peer_disconnected_alert>(a))
 	{
 		++peer_disconnects;
-		if (e->error.category() == boost::asio::error::get_ssl_category())
+		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
 			++ssl_peer_disconnects;
+
+		fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
+			, peer_errors, ssl_peer_disconnects);
 	}
 
 	if (peer_error_alert const* e = alert_cast<peer_error_alert>(a))
@@ -109,8 +112,11 @@ bool on_alert(alert const* a)
 		++peer_disconnects;
 		++peer_errors;
 
-		if (e->error.category() == boost::asio::error::get_ssl_category())
+		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
 			++ssl_peer_disconnects;
+
+		fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
+			, peer_errors, ssl_peer_disconnects);
 	}
 	return false;
 }
@@ -132,11 +138,14 @@ void test_ssl(int test_idx, bool use_utp)
 	remove_all("tmp1_ssl", ec);
 	remove_all("tmp2_ssl", ec);
 
-	int ssl_port = 1024 + rand() % 50000;
+	int port = 1024 + rand() % 50000;
 	settings_pack sett;
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
+
+	char listen_iface[100];
+	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_incoming_utp, use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
 	sett.set_bool(settings_pack::enable_incoming_tcp, !use_utp);
@@ -147,14 +156,19 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	// if a peer fails once, don't try it again
 	sett.set_int(settings_pack::max_failcount, 1);
-	sett.set_int(settings_pack::ssl_listen, ssl_port);
 
 	libtorrent::session ses1(sett, 0);
 
+	// this +20 is here to use a different port as ses1
+	port += 20;
+
+	// the +20 below is the port we use for non-SSL connections
 	if (test.downloader_has_ssl_listen_port)
-		sett.set_int(settings_pack::ssl_listen, ssl_port + 20);
+		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d,0.0.0.0:%ds", port + 20, port);
 	else
-		sett.set_int(settings_pack::ssl_listen, 0);
+		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d", port + 20);
+
+	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 
 	libtorrent::session ses2(sett, 0);
 
@@ -213,15 +227,7 @@ void test_ssl(int test_idx, bool use_utp)
 	wait_for_downloading(ses2, "ses2");
 
 	// connect the peers after setting the certificates
-	int port = 0;
-	if (test.use_ssl_ports)
-		if (test.downloader_has_ssl_listen_port)
-			port = ses2.ssl_listen_port();
-		else
-			port = 13512;
-	else
-		port = ses2.listen_port();
-
+	if (test.use_ssl_ports == false) port += 20;
 	fprintf(stderr, "\n\n%s: ses1: connecting peer port: %d\n\n\n"
 		, time_now_string(), port);
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
@@ -541,12 +547,14 @@ void test_malicious_peer()
 	remove_all("tmp3_ssl", ec);
 
 	// set up session
-	int ssl_port = 1024 + rand() % 50000;
+	int port = 1024 + rand() % 50000;
 	settings_pack sett;
 	sett.set_int(settings_pack::alert_mask, alert_mask);
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
-	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
-	sett.set_int(settings_pack::ssl_listen, ssl_port);
+
+	char listen_iface[100];
+	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_upnp, false);
@@ -588,7 +596,7 @@ void test_malicious_peer()
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
-		bool success = try_connect(ses1, ssl_port, t, attacks[i].flags);
+		bool const success = try_connect(ses1, port, t, attacks[i].flags);
 		TEST_EQUAL(success, attacks[i].expect);
 	}
 }

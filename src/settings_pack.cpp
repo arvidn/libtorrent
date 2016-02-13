@@ -125,6 +125,12 @@ namespace libtorrent
 
 	using aux::session_impl;
 
+#if TORRENT_USE_IPV6
+#define DEFAULT_LISTEN_INTERFACE "0.0.0.0:6881,[::]:6881"
+#else
+#define DEFAULT_LISTEN_INTERFACE "0.0.0.0:6881"
+#endif
+
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
 	{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
@@ -132,13 +138,15 @@ namespace libtorrent
 		SET(mmap_cache, 0, 0),
 		SET(handshake_client_version, 0, 0),
 		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
-		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
+		SET_NOPREV(listen_interfaces, DEFAULT_LISTEN_INTERFACE, &session_impl::update_listen_interfaces),
 		SET_NOPREV(proxy_hostname, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
 		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET_NOPREV(peer_fingerprint, "-LT1100-", &session_impl::update_peer_fingerprint)
 	};
+
+#undef DEFAULT_LISTEN_INTERFACE
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
 	{
@@ -322,7 +330,7 @@ namespace libtorrent
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
 		SET(aio_max, 300, 0),
 		SET(network_threads, 0, &session_impl::update_network_threads),
-		SET(ssl_listen, 4433, 0),
+		DEPRECATED_SET(ssl_listen, 4433, &session_impl::update_ssl_listen),
 		SET(tracker_backoff, 250, 0),
 		SET_NOPREV(share_ratio_limit, 200, 0),
 		SET_NOPREV(seed_time_ratio_limit, 700, 0),

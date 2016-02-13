@@ -257,24 +257,34 @@ TORRENT_TEST(string)
 	TEST_EQUAL(list[5], "foobar");
 	TEST_EQUAL(list[6], "[::1]");
 
-	std::vector<std::pair<std::string, int> > list2;
-	parse_comma_separated_string_port("  a:4,b:35, c : 1000, d: 351 ,e \t:42,foobar:1337\n\r,[2001::1]:6881", list2);
+	std::vector<listen_interface_t> list2;
+	parse_listen_interfaces("  a:4,b:35, c : 1000s, d: 351 ,e \t:42,foobar:1337s\n\r,[2001::1]:6881", list2);
 	TEST_EQUAL(list2.size(), 7);
-	TEST_EQUAL(list2[0].first, "a");
-	TEST_EQUAL(list2[1].first, "b");
-	TEST_EQUAL(list2[2].first, "c");
-	TEST_EQUAL(list2[3].first, "d");
-	TEST_EQUAL(list2[4].first, "e");
-	TEST_EQUAL(list2[5].first, "foobar");
-	TEST_EQUAL(list2[6].first, "2001::1");
+	TEST_EQUAL(list2[0].device, "a");
+	TEST_EQUAL(list2[1].device, "b");
+	TEST_EQUAL(list2[2].device, "c");
+	TEST_EQUAL(list2[3].device, "d");
+	TEST_EQUAL(list2[4].device, "e");
+	TEST_EQUAL(list2[5].device, "foobar");
+	TEST_EQUAL(list2[6].device, "2001::1");
 
-	TEST_EQUAL(list2[0].second, 4);
-	TEST_EQUAL(list2[1].second, 35);
-	TEST_EQUAL(list2[2].second, 1000);
-	TEST_EQUAL(list2[3].second, 351);
-	TEST_EQUAL(list2[4].second, 42);
-	TEST_EQUAL(list2[5].second, 1337);
-	TEST_EQUAL(list2[6].second, 6881);
+	TEST_EQUAL(list2[0].port, 4);
+	TEST_EQUAL(list2[1].port, 35);
+	TEST_EQUAL(list2[2].port, 1000);
+	TEST_EQUAL(list2[3].port, 351);
+	TEST_EQUAL(list2[4].port, 42);
+	TEST_EQUAL(list2[5].port, 1337);
+	TEST_EQUAL(list2[6].port, 6881);
+
+	TEST_EQUAL(list2[0].ssl, false);
+	TEST_EQUAL(list2[1].ssl, false);
+	TEST_EQUAL(list2[2].ssl, true);
+	TEST_EQUAL(list2[3].ssl, false);
+	TEST_EQUAL(list2[4].ssl, false);
+	TEST_EQUAL(list2[5].ssl, true);
+	TEST_EQUAL(list2[6].ssl, false);
+
+	TEST_EQUAL(print_listen_interfaces(list2), "a:4,b:35,c:1000s,d:351,e:42,foobar:1337s,[2001::1]:6881");
 
 	// test string_tokenize
 

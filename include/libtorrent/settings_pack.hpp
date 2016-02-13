@@ -163,20 +163,29 @@ namespace libtorrent
 			// connections.
 			outgoing_interfaces,
 
-			// a comma-separated list of IP port-pairs. These
-			// are the listen ports that will be opened for accepting incoming uTP
-			// and TCP connections. It is possible to listen on multiple
-			// IPs and multiple ports. Binding to port 0 will make the
-			// operating system pick the port. The default is "0.0.0.0:6881", which
-			// binds to all interfaces on port 6881.
-			//
-			// if binding fails, the listen_failed_alert is posted, potentially
-			// more than once. Once/if binding the listen socket(s) succeed,
-			// listen_succeeded_alert is posted.
-			//
-			// Each port will attempt to open both a UDP and a TCP listen socket,
-			// to allow accepting uTP connections as well as TCP. If using the DHT,
-			// this will also make the DHT use the same UDP ports.
+			// a comma-separated list of (IP or device name, port) pairs. These are
+			// the listen ports that will be opened for accepting incoming uTP and
+			// TCP connections. It is possible to listen on multiple interfaces and
+			// multiple ports. Binding to port 0 will make the operating system
+			// pick the port. The default is "0.0.0.0:6881,[::]:6881", which binds
+			// to all interfaces on port 6881.
+			// 
+			// a port that has an "s" suffix will accept SSL connections. (note
+			// that SSL sockets are not enabled by default).
+			// 
+			// if binding fails, the listen_failed_alert is posted. If or once a
+			// socket binding succeeds, the listen_succeeded_alert is posted. There
+			// may be multiple failures before a success.
+			// 
+			// For example:
+			// ``[::1]:8888`` - will only accept connections on the IPv6 loopback
+			// address on port 8888.
+			// 
+			// ``eth0:4444,eth1:4444`` - will accept connections on port 4444 on
+			// any IP address bound to device ``eth0`` or ``eth1``.
+			// 
+			// ``[::]:0s`` - will accept SSL connections on a port chosen by the
+			// OS. And not accept non-SSL connections at all.
 			// 
 			// .. note::
 			//   The current support for opening arbitrary UDP sockets is limited.
@@ -1418,12 +1427,17 @@ namespace libtorrent
 			// SSL encryption as well.
 			network_threads,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``ssl_listen`` sets the listen port for SSL connections. If this is
 			// set to 0, no SSL listen port is opened. Otherwise a socket is
 			// opened on this port. This setting is only taken into account when
 			// opening the regular listen port, and won't re-open the listen
 			// socket simply by changing this setting.
 			ssl_listen,
+#else
+			// hidden
+			deprecated9,
+#endif
 
 			// ``tracker_backoff`` determines how aggressively to back off from
 			// retrying failing trackers. This value determines *x* in the

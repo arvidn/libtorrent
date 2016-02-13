@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/bind_to_device.hpp"
 
 namespace libtorrent
 {
@@ -93,22 +94,6 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT address get_default_gateway(io_service& ios, error_code& ec);
 
-#ifdef SO_BINDTODEVICE
-	struct bind_to_device_opt
-	{
-		bind_to_device_opt(char const* device): m_value(device) {}
-		template<class Protocol>
-		int level(Protocol const&) const { return SOL_SOCKET; }
-		template<class Protocol>
-		int name(Protocol const&) const { return SO_BINDTODEVICE; }
-		template<class Protocol>
-		const char* data(Protocol const&) const { return m_value; }
-		template<class Protocol>
-		size_t size(Protocol const&) const { return IFNAMSIZ; }
-		char const* m_value;
-	};
-#endif
-
 	// attempt to bind socket to the device with the specified name. For systems
 	// that don't support SO_BINDTODEVICE the socket will be bound to one of the
 	// IP addresses of the specified device. In this case it is necessary to
@@ -116,7 +101,7 @@ namespace libtorrent
 	// the returned address is the ip the socket was bound to (or address_v4::any()
 	// in case SO_BINDTODEVICE succeeded and we don't need to verify it).
 	template <class Socket>
-	address bind_to_device(io_service& ios, Socket& sock
+	address bind_socket_to_device(io_service& ios, Socket& sock
 		, boost::asio::ip::tcp const& protocol
 		, char const* device_name, int port, error_code& ec)
 	{
@@ -140,10 +125,10 @@ namespace libtorrent
 
 		ec.clear();
 
-#ifdef SO_BINDTODEVICE
+#if TORRENT_HAS_BINDTODEVICE
 		// try to use SO_BINDTODEVICE here, if that exists. If it fails,
 		// fall back to the mechanism we have below
-		sock.set_option(bind_to_device_opt(device_name), ec);
+		sock.set_option(aux::bind_to_device(device_name), ec);
 		if (ec)
 #endif
 		{

@@ -1268,7 +1268,7 @@ namespace libtorrent
 		listen_failed_alert(
 			aux::stack_allocator& alloc
 			, std::string const& iface
-			, int port
+			, tcp::endpoint const& ep
 			, int op
 			, error_code const& ec
 			, socket_type_t t);
@@ -1278,7 +1278,7 @@ namespace libtorrent
 		static const int static_category = alert::status_notification | alert::error_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
-		// the interface libtorrent attempted to listen on that failed.
+		// the network device libtorrent attempted to listen on, or the IP address
 		char const* listen_interface() const;
 
 		// the error the system returned
@@ -1286,7 +1286,7 @@ namespace libtorrent
 
 		enum op_t
 		{
-			parse_addr, open, bind, listen, get_peer_name, accept
+			parse_addr, open, bind, listen, get_socket_name, accept, enum_if, bind_to_device
 		};
 
 		// the specific low level operation that failed. See op_t.

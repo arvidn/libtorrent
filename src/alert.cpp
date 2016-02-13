@@ -786,26 +786,19 @@ namespace libtorrent {
 			"HTTPS",
 			"SSL/uTP"
 		};
-
-		tcp::endpoint parse_interface(std::string const& iface, int port)
-		{
-			// ignore errors
-			error_code ec;
-			return tcp::endpoint(address::from_string(iface, ec), port);
-		}
 	}
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, std::string const& iface
-		, int prt
+		, tcp::endpoint const& ep
 		, int op
 		, error_code const& ec
 		, socket_type_t t)
 		: error(ec)
 		, operation(op)
 		, sock_type(t)
-		, endpoint(parse_interface(iface, prt))
+		, endpoint(ep)
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
 	{}
@@ -823,11 +816,14 @@ namespace libtorrent {
 			"open",
 			"bind",
 			"listen",
-			"get_peer_name",
-			"accept"
+			"get_socket_name",
+			"accept",
+			"enum_if",
+			"bind_to_device"
 		};
 		char ret[300];
-		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
+		snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"
+			, print_endpoint(endpoint).c_str()
 			, listen_interface()
 			, op_str[operation]
 			, sock_type_str[sock_type]

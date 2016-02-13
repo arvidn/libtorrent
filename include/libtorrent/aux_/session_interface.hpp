@@ -246,6 +246,7 @@ namespace libtorrent { namespace aux
 
 		virtual void prioritize_connections(boost::weak_ptr<torrent> t) = 0;
 
+		// TODO: 3 these should go away!
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
 		virtual tcp::endpoint get_ipv4_interface() const = 0;
 
@@ -318,6 +319,7 @@ namespace libtorrent { namespace aux
 		virtual std::vector<block_info>& block_info_storage() = 0;
 
 #ifdef TORRENT_USE_OPENSSL
+		virtual libtorrent::utp_socket_manager* ssl_utp_socket_manager() = 0;
 		virtual boost::asio::ssl::context* ssl_ctx() = 0 ;
 #endif
 
