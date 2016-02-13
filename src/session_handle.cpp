@@ -239,6 +239,8 @@ namespace libtorrent
 
 			atp.merkle_tree.swap(resume_data.merkle_tree);
 
+			atp.renamed_files.swap(resume_data.renamed_files);
+
 			if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
 			{
 				atp.download_limit = resume_data.download_limit;
@@ -299,7 +301,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		error_code ec;
 		handle_backwards_compatible_resume_data(*p, ec);
-#error what should we do about error handling here?
+//TODO: 3 what should we do about error handling here?
 		if (ec)
 		{
 			delete p;

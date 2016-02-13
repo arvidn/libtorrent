@@ -795,7 +795,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-#error why isn't this done in the constructor?
+// TODO: 3 why isn't this done in the constructor?
 
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
@@ -1891,6 +1891,19 @@ namespace libtorrent
 			return;
 		}
 
+		// --- MAPPED FILES ---
+		if (m_add_torrent_params)
+		{
+			for (std::map<int, std::string>::const_iterator i
+				= m_add_torrent_params->renamed_files.begin()
+				, end(m_add_torrent_params->renamed_files.end());
+				i != end; ++i)
+			{
+				if (i->first < 0 || i->first >= m_torrent_file->num_files()) continue;
+				m_torrent_file->rename_file(i->first, i->second);
+			}
+		}
+
 		construct_storage();
 
 		if (m_share_mode && valid_metadata())
@@ -2084,7 +2097,8 @@ namespace libtorrent
 
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will gut links
-#error I don't think we need to pass in any resume-data anymore, do we?
+		// TODO: 4 we need to at least pass in the have-bitfield here.
+		// check_fastresume should probably be renamed check_files.
 		m_ses.disk_thread().async_check_fastresume(
 			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked

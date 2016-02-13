@@ -81,10 +81,10 @@ namespace libtorrent
 			return ret;
 		}
 
-#error we need to verify the info-hash from the resume data \
-		matches the torrent_info object or the magnet link in the URL field. This \
-		can only be done reliably on the libtorrent side as the torrent is being \
-		added. i.e. the info_hash needs to be saved
+//TODO: 4 we need to verify the info-hash from the resume data
+// matches the torrent_info object or the magnet link in the URL field. This
+// can only be done reliably on the libtorrent side as the torrent is being
+// added. i.e. the info_hash needs to be saved
 
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
@@ -118,18 +118,14 @@ namespace libtorrent
 		ret.uuid = rd.dict_find_string_value("uuid");
 		ret.source_feed_url = rd.dict_find_string_value("feed");
 
-#error add a field for this. The mapping has to happen in the torrent \
-		constructor probably, and passed on to the storage. possibly, the \
-		mapped_storage should be passed directly in when the storage is constructed
-
 		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
-		if (mapped_files && mapped_files.list_size() == m_torrent_file->num_files())
+		if (mapped_files)
 		{
-			for (int i = 0; i < m_torrent_file->num_files(); ++i)
+			for (int i = 0; i < mapped_files.list_size(); ++i)
 			{
 				std::string new_filename = mapped_files.list_string_value_at(i);
 				if (new_filename.empty()) continue;
-				m_torrent_file->rename_file(i, new_filename);
+				ret.renamed_files[i] = new_filename;
 			}
 		}
 

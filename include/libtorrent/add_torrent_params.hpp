@@ -473,6 +473,10 @@ namespace libtorrent
 		// first entry. See torrent_info::set_merkle_tree() for more info.
 		std::vector<sha1_hash> merkle_tree;
 
+		// this is a map of file indices in the torrent and new filenames to be
+		// applied before the torrent is added.
+		std::map<int, std::string> renamed_files;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
