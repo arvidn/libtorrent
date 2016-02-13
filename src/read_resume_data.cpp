@@ -215,29 +215,9 @@ namespace libtorrent
 		bdecode_node mt = rd.dict_find_string("merkle tree");
 		if (mt)
 		{
-#error add field for this
-			std::vector<sha1_hash> tree;
-			tree.resize(m_torrent_file->merkle_tree().size());
-			std::memcpy(&tree[0], mt.string_ptr()
-				, (std::min)(mt.string_length(), int(tree.size()) * 20));
-			if (mt.string_length() < int(tree.size()) * 20)
-				std::memset(&tree[0] + mt.string_length() / 20, 0
-					, tree.size() - mt.string_length() / 20);
-			m_torrent_file->set_merkle_tree(tree);
-		}
-
-
-#error this is the case where the torrent is a merkle torrent but the resume \
-		data does not contain the merkle tree, we need some kind of check in the \
-		torrent constructor and error reporting
-		{
-			// TODO: 0 if this is a merkle torrent and we can't
-			// restore the tree, we need to wipe all the
-			// bits in the have array, but not necessarily
-			// we might want to do a full check to see if we have
-			// all the pieces. This is low priority since almost
-			// no one uses merkle torrents
-			TORRENT_ASSERT(false);
+			ret.merkle_tree.resize(mt.string_length() / 20);
+			std::memcpy(&ret.merkle_tree[0], mt.string_ptr()
+				, int(ret.merkle_tree.size()) * 20);
 		}
 
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore

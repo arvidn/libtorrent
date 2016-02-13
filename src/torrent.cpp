@@ -283,6 +283,7 @@ namespace libtorrent
 		// being initialized, which happens after the constructor returns.
 
 		// TODO: 3 we could probably get away with just saving a few fields here
+		// TODO: 2 p should probably be moved in here
 		m_add_torrent_params.reset(new add_torrent_params(p));
 
 		if (m_pinned)
@@ -367,7 +368,6 @@ namespace libtorrent
 			e.source = announce_entry::source_magnet_link;
 			e.tier = tier;
 			m_trackers.push_back(e);
-			m_torrent_file->add_tracker(*i, tier);
 		}
 
 		std::sort(m_trackers.begin(), m_trackers.end(), boost::bind(&announce_entry::tier, _1)
@@ -375,6 +375,29 @@ namespace libtorrent
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			prioritize_udp_trackers();
+
+		// --- MERKLE TREE ---
+
+		if (m_torrent_file->is_valid()
+			&& m_torrent_file->is_merkle_torrent())
+		{
+			if (p.merkle_tree.size() == m_torrent_file->merkle_tree().size())
+			{
+				// TODO: 2 set_merkle_tree should probably take the vector as &&
+				std::vector<sha1_hash> tree(p.merkle_tree);
+				m_torrent_file->set_merkle_tree(tree);
+			}
+			else
+			{
+				// TODO: 0 if this is a merkle torrent and we can't
+				// restore the tree, we need to wipe all the
+				// bits in the have array, but not necessarily
+				// we might want to do a full check to see if we have
+				// all the pieces. This is low priority since almost
+				// no one uses merkle torrents
+				TORRENT_ASSERT(false);
+			}
+		}
 
 		if (m_torrent_file->is_valid())
 		{
@@ -397,9 +420,6 @@ namespace libtorrent
 			m_verified.resize(m_torrent_file->num_pieces(), false);
 			m_verifying.resize(m_torrent_file->num_pieces(), false);
 		}
-
-		if (settings().get_bool(settings_pack::prefer_udp_trackers))
-			prioritize_udp_trackers();
 
 		m_total_uploaded = p.total_uploaded;
 		m_total_downloaded = p.total_downloaded;

@@ -468,6 +468,11 @@ namespace libtorrent
 		// precedence.
 		std::vector<boost::uint8_t> piece_priorities;
 
+		// if this is a merkle tree torrent, and you're seeding, this field must
+		// be set. It is all the hashes in the binary tree, with the root as the
+		// first entry. See torrent_info::set_merkle_tree() for more info.
+		std::vector<sha1_hash> merkle_tree;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired

@@ -237,6 +237,8 @@ namespace libtorrent
 			atp.verified_pieces.swap(resume_data.verified_pieces);
 			atp.piece_priorities.swap(resume_data.piece_priorities);
 
+			atp.merkle_tree.swap(resume_data.merkle_tree);
+
 			if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
 			{
 				atp.download_limit = resume_data.download_limit;
