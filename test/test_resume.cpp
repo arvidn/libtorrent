@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/make_shared.hpp>
 
 #include "test.hpp"
+#include "settings.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
@@ -193,7 +194,8 @@ void default_tests(torrent_status const& s)
 
 TORRENT_TEST(piece_priorities)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
@@ -317,7 +319,8 @@ void test_seed_mode(bool file_prio, bool pieces_have, bool piece_prio
 	fprintf(stderr, "test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
 		, file_prio, pieces_have, piece_prio);
 
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	boost::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
@@ -397,7 +400,8 @@ TORRENT_TEST(seed_mode_preserve)
 
 TORRENT_TEST(resume_save_load)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_handle h = test_resume_flags(ses, 0, "123", "");
 
 	h.save_resume_data();
@@ -423,7 +427,8 @@ TORRENT_TEST(resume_save_load)
 
 TORRENT_TEST(resume_save_load_resume)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_handle h = test_resume_flags(ses, 0, "", "123");
 
 	h.save_resume_data();
@@ -452,7 +457,8 @@ TORRENT_TEST(file_priorities_resume_override)
 	// make sure that an empty file_priorities vector in add_torrent_params won't
 	// override the resume data file priorities, even when override resume data
 	// flag is set.
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	std::vector<int> file_priorities = test_resume_flags(ses,
 		add_torrent_params::flag_override_resume_data, "", "123").file_priorities();
 
@@ -464,7 +470,8 @@ TORRENT_TEST(file_priorities_resume_override)
 
 TORRENT_TEST(file_priorities_resume)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "", "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -475,7 +482,8 @@ TORRENT_TEST(file_priorities_resume)
 
 TORRENT_TEST(file_priorities1)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "010").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -488,7 +496,8 @@ TORRENT_TEST(file_priorities1)
 
 TORRENT_TEST(file_priorities2)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "123").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -499,7 +508,8 @@ TORRENT_TEST(file_priorities2)
 
 TORRENT_TEST(file_priorities3)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	std::vector<int> file_priorities = test_resume_flags(ses, 0, "4321").file_priorities();
 
 	TEST_EQUAL(file_priorities.size(), 3);
@@ -510,7 +520,8 @@ TORRENT_TEST(file_priorities3)
 
 TORRENT_TEST(plain)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 
 	torrent_status s = test_resume_flags(ses, 0).status();
 	default_tests(s);
@@ -533,7 +544,8 @@ TORRENT_TEST(plain)
 
 TORRENT_TEST(use_resume_save_path)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_use_resume_save_path).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -555,7 +567,8 @@ TORRENT_TEST(use_resume_save_path)
 
 TORRENT_TEST(override_resume_data)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_status s = test_resume_flags(ses
 		, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_paused).status();
@@ -580,7 +593,8 @@ TORRENT_TEST(override_resume_data)
 
 TORRENT_TEST(seed_mode)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_seed_mode).status();
 	default_tests(s);
@@ -603,7 +617,8 @@ TORRENT_TEST(seed_mode)
 
 TORRENT_TEST(upload_mode)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_upload_mode).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
@@ -625,7 +640,8 @@ TORRENT_TEST(upload_mode)
 
 TORRENT_TEST(share_mode)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_status s = test_resume_flags(ses
 		, add_torrent_params::flag_override_resume_data
 		| add_torrent_params::flag_share_mode).status();
@@ -649,7 +665,8 @@ TORRENT_TEST(share_mode)
 
 TORRENT_TEST(auto_managed)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	// resume data overrides the auto-managed flag
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_auto_managed).status();
 	default_tests(s);
@@ -672,7 +689,8 @@ TORRENT_TEST(auto_managed)
 
 TORRENT_TEST(paused)
 {
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	// resume data overrides the paused flag
 	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_paused).status();
 	default_tests(s);
@@ -701,7 +719,8 @@ TORRENT_TEST(url_seed_resume_data)
 {
 	// merge url seeds with resume data
 	fprintf(stderr, "flags: merge_resume_http_seeds\n");
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_handle h = test_resume_flags(ses,
 		add_torrent_params::flag_merge_resume_http_seeds);
 	std::set<std::string> us = h.url_seeds();
@@ -724,7 +743,8 @@ TORRENT_TEST(resume_override_torrent)
 {
 	// resume data overrides the .torrent_file
 	fprintf(stderr, "flags: no merge_resume_http_seed\n");
-	lt::session ses;
+	settings_pack sett = settings();
+	lt::session ses(sett);
 	torrent_handle h = test_resume_flags(ses,
 		add_torrent_params::flag_merge_resume_trackers);
 	std::set<std::string> us = h.url_seeds();
