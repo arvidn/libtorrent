@@ -66,8 +66,8 @@ namespace libtorrent
 		virtual void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>()) = 0;
-		virtual void async_check_fastresume(piece_manager* storage
-			, bdecode_node const* resume_data
+		virtual void async_check_files(piece_manager* storage
+			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
 			, boost::function<void(disk_io_job const*)> const& handler) = 0;
 #ifndef TORRENT_NO_DEPRECATE

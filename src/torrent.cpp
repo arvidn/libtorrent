@@ -293,7 +293,7 @@ namespace libtorrent
 
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
-#error maybe m_need_save_resume_data should be another flag in add_torrent_params
+//TODO: 4 maybe m_need_save_resume_data should be another flag in add_torrent_params
 		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
@@ -2096,15 +2096,14 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		inc_refcount("check_fastresume");
-		// async_check_fastresume will gut links
-		// TODO: 4 we need to at least pass in the have-bitfield here.
-		// check_fastresume should probably be renamed check_files.
-		m_ses.disk_thread().async_check_fastresume(
-			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
+		// async_check_files will gut links
+		// TODO: 4 check_fastresume should probably be renamed check_files.
+		m_ses.disk_thread().async_check_files(
+			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("init, async_check_fastresume");
+		debug_log("init, async_check_files");
 #endif
 
 		update_want_peers();
@@ -2537,7 +2536,7 @@ namespace libtorrent
 
 		std::vector<std::string> links;
 		inc_refcount("force_recheck");
-		m_ses.disk_thread().async_check_fastresume(m_storage.get(), NULL
+		m_ses.disk_thread().async_check_files(m_storage.get(), NULL
 			, links, boost::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
 	}

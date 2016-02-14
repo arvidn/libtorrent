@@ -54,6 +54,7 @@ namespace libtorrent
 	struct cached_piece_entry;
 	struct bdecode_node;
 	class torrent_info;
+	struct add_torrent_params;
 
 	struct block_cache_reference
 	{
@@ -156,8 +157,7 @@ namespace libtorrent
 		{
 			char* disk_block;
 			char* string;
-			entry* resume_data;
-			bdecode_node const* check_resume_data;
+			add_torrent_params const* check_resume_data;
 			std::vector<boost::uint8_t>* priorities;
 			torrent_info* torrent_file;
 		} buffer;

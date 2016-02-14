@@ -203,7 +203,7 @@ namespace libtorrent
 
 			if (!resume_data.http_seeds.empty())
 			{
-				atp.url_seeds.insert(atp.http_seeds.end()
+				atp.http_seeds.insert(atp.http_seeds.end()
 					, resume_data.http_seeds.begin()
 					, resume_data.http_seeds.end());
 				if ((resume_data.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
