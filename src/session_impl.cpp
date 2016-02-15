@@ -6607,7 +6607,7 @@ namespace aux {
 			error_code ec;
 			tcp::endpoint ep = m_udp_socket.local_endpoint(ec);
 			if (!ec) {
-				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[0]);
+				if (m_udp_mapping[1] != -1) m_upnp->delete_mapping(m_udp_mapping[1]);
 				m_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
 					, ep.port(), ep.port());
 			}
@@ -6618,7 +6618,7 @@ namespace aux {
 			error_code ec;
 			tcp::endpoint ep = m_ssl_udp_socket.local_endpoint(ec);
 			if (!ec) {
-				if (m_ssl_udp_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_udp_mapping[0]);
+				if (m_ssl_udp_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
 				m_ssl_udp_mapping[1] = m_upnp->add_mapping(upnp::udp
 					, ep.port(), ep.port());
 			}
