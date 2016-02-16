@@ -994,7 +994,7 @@ TORRENT_TEST(iovec_advance_bufs)
 	// 13 bytes
 	advance_bufs(iov, 13);
 
-	// make sure what's in 
+	// make sure what's in
 	int counter = 13;
 	for (int i = 0; i < end - iov; ++i)
 	{
