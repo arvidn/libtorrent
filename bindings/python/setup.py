@@ -9,15 +9,26 @@ import shutil
 import multiprocessing
 import subprocess
 
-def parse_cmd(cmdline, prefix, keep_prefix = False):
-	ret = []
-	for token in cmdline.split():
-		if token[:len(prefix)] == prefix:
-			if keep_prefix:
-				ret.append(token)
+class flags_parser:
+	def __init__(self):
+		self.include_dirs = []
+		self.library_dirs = []
+		self.libraries = []
+
+	def parse(self, args):
+		"""Parse out the -I -L -l directives and return a list of all other arguments"""
+		ret = []
+		for token in args.split():
+			prefix = token[:2]
+			if prefix == '-I':
+				self.include_dirs.append(token[2:])
+			elif prefix == '-L':
+				self.library_dirs.append(token[2:])
+			elif prefix == '-l':
+				self.libraries.append(token[2:])
 			else:
-				ret.append(token[len(prefix):])
-	return ret
+				ret.append(token)
+		return ret
 
 def arch():
 	if platform.system() != 'Darwin': return []
@@ -98,15 +109,19 @@ else:
 	source_list = [os.path.abspath(os.path.join(os.path.dirname(__file__), "src", s)) for s in source_list if s.endswith(".cpp")]
 
 	if extra_cmd:
+		flags = flags_parser()
+		# ldflags must be parsed first to ensure the correct library search path order
+		extra_link = flags.parse(ldflags)
+		extra_compile = flags.parse(extra_cmd)
+
 		ext = [Extension('libtorrent',
 			sources = source_list,
 			language='c++',
-			include_dirs = parse_cmd(extra_cmd, '-I'),
-			library_dirs = parse_cmd(extra_cmd, '-L'),
-			extra_link_args = ldflags.split() + arch(),
-			extra_compile_args = parse_cmd(extra_cmd, '-D', True) + arch() \
-				+ target_specific(),
-			libraries = ['torrent-rasterbar'] + parse_cmd(extra_cmd, '-l'))]
+			include_dirs = flags.include_dirs,
+			library_dirs = flags.library_dirs,
+			extra_link_args = extra_link + arch(),
+			extra_compile_args = extra_compile + arch() + target_specific(),
+			libraries = ['torrent-rasterbar'] + flags.libraries)]
 
 setup(name = 'python-libtorrent',
 	version = '1.1.0',
