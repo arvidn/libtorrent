@@ -872,7 +872,7 @@ namespace libtorrent
 			std::vector<file_slice> f = fs.map_block(i, 0, 1);
 			TORRENT_ASSERT(!f.empty());
 
-			const int file_index = f[0].file_index;
+			int const file_index = f[0].file_index;
 			error_code error;
 			boost::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
 				, fs, m_save_path, error);
@@ -895,7 +895,7 @@ namespace libtorrent
 				}
 			}
 
-			if (seed && size != fs.file_size(i))
+			if (seed && size != fs.file_size(file_index))
 			{
 				// the resume data indicates we're a seed, but this file has
 				// the wrong size. Reject the resume data

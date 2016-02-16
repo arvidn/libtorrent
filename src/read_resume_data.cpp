@@ -52,7 +52,7 @@ namespace libtorrent
 			, char const* name
 			, boost::uint64_t const flag)
 		{
-			if (n.dict_find_int_value(name, -1) == -1)
+			if (n.dict_find_int_value(name, 0) == 0)
 			{
 				current_flags &= ~flag;
 			}

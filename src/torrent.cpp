@@ -254,7 +254,7 @@ namespace libtorrent
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
 		, m_apply_ip_filter((p.flags & add_torrent_params::flag_apply_ip_filter) != 0)
-		, m_merge_resume_trackers((p.flags & add_torrent_params::flag_merge_resume_trackers) != 0)
+		, m_pending_active_change(false)
 		, m_padding(0)
 		, m_priority(0)
 		, m_incomplete(0xffffff)
@@ -277,7 +277,6 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
 		, m_progress_ppm(0)
-		, m_pending_active_change(false)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -294,7 +293,7 @@ namespace libtorrent
 		// if there is resume data already, we don't need to trigger the initial save
 		// resume data
 //TODO: 4 maybe m_need_save_resume_data should be another flag in add_torrent_params
-		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
+		if (!p.have_pieces.empty() /* && (p.flags & add_torrent_params::flag_override_resume_data) == 0 */ )
 			m_need_save_resume_data = false;
 
 #if TORRENT_USE_UNC_PATHS
@@ -401,7 +400,16 @@ namespace libtorrent
 
 		if (m_torrent_file->is_valid())
 		{
-			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0;
+			// setting file- or piece priorities for seed mode makes no sense. If a
+			// torrent ends up in seed mode by accident, it can be very confusing,
+			// so assume the seed mode flag is not intended and don't enable it in
+			// that case. Also, if the resume data says we're missing a piece, we
+			// can't be in seed-mode.
+			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
+				&& std::count(p.file_priorities.begin(), p.file_priorities.end(), 0) == 0
+				&& std::count(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == 0
+				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), 0) == 0;
+
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
 		}
@@ -1938,7 +1946,7 @@ namespace libtorrent
 
 		// if we've already loaded file priorities, don't load piece priorities,
 		// they will interfere.
-		if (!m_seed_mode && m_add_torrent_params && m_file_priority.empty())
+		if (m_add_torrent_params && m_file_priority.empty())
 		{
 			for (int i = 0; i < int(m_add_torrent_params->piece_priorities.size()); ++i)
 			{
@@ -2359,7 +2367,10 @@ namespace libtorrent
 		}
 
 		// only report this error if the user actually provided resume data
-		if ((j->error || j->ret != 0) && m_add_torrent_params
+		// (i.e. m_add_torrent_params->have_pieces)
+		if ((j->error || j->ret != 0)
+			&& m_add_torrent_params
+			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()

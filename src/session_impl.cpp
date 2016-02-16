@@ -4676,8 +4676,9 @@ namespace aux {
 
 		// we don't have a torrent file. If the user provided
 		// resume data, there may be some metadata in there
-		// TODO: this logic could probably be less spaghetti looking by being
-		// moved to a function with early exits
+		// TODO: 4 the logic of loading the .torrent file from the resume data
+		// should be moved into read_resume_data()
+/*
 		if ((!params.ti || !params.ti->is_valid())
 			&& !params.resume_data.empty())
 		{
@@ -4745,6 +4746,7 @@ namespace aux {
 			}
 #endif
 		}
+*/
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();

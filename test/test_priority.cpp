@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/read_resume_data.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>
 
@@ -68,13 +69,13 @@ bool on_alert(alert const* a)
 void cleanup()
 {
 	error_code ec;
-	remove_all("tmp1_priorities", ec);
-	remove_all("tmp2_priorities", ec);
-	remove_all("tmp1_priorities_moved", ec);
-	remove_all("tmp2_priorities_moved", ec);
+	remove_all("tmp1_priority", ec);
+	remove_all("tmp2_priority", ec);
+	remove_all("tmp1_priority_moved", ec);
+	remove_all("tmp2_priority_moved", ec);
 }
 
-void test_transfer(settings_pack const& sett)
+void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 {
 	// this allows shutting down the sessions in parallel
 	std::vector<session_proxy> sp;
@@ -285,11 +286,23 @@ done:
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
+#ifndef TORRENT_NO_DEPRECATE
+	if (test_deprecated)
+	{
+		p.resume_data = resume_data;
+	}
+	else
+#endif
+	{
+		error_code ec;
+		p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+		TEST_CHECK(!ec);
+	}
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.ti = t;
 	p.save_path = "tmp2_priority";
-	p.resume_data = resume_data;
+
 	tor2 = ses2.add_torrent(p, ec);
 	tor2.prioritize_pieces(priorities);
 	std::cout << "resetting priorities" << std::endl;
@@ -378,6 +391,16 @@ TORRENT_TEST(priority)
 	test_transfer(p);
 	cleanup();
 }
+
+#ifndef TORRENT_NO_DEPRECATE
+TORRENT_TEST(priority_deprecated)
+{
+	using namespace libtorrent;
+	settings_pack p;
+	test_transfer(p, true);
+	cleanup();
+}
+#endif
 
 // test to set piece and file priority on a torrent that doesn't have metadata
 // yet

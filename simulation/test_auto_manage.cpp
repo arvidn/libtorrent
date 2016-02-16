@@ -657,9 +657,9 @@ TORRENT_TEST(stop_when_ready)
 		});
 }
 
-// This test makes sure that the fastresume check will still run, and
-// potentially fail, for stopped torrents. The actual checking of files won't
-// start until the torrent is un-paused/resumed though
+// This test makes sure that the fastresume check will still run for stopped
+// torrents. The actual checking of files won't start until the torrent is
+// un-paused/resumed though
 TORRENT_TEST(resume_reject_when_paused)
 {
 	run_test(
@@ -672,13 +672,11 @@ TORRENT_TEST(resume_reject_when_paused)
 			lt::add_torrent_params params = create_torrent(0, true);
 
 			// the torrent is not auto managed and paused. Once the resume data
-			// check completes, it will stay paused but the resume_rejected_alert
-			// will be posted
+			// check completes, it will stay paused but the state_changed_alert
+			// will be posted, when it goes to check the files
 			params.flags &= ~add_torrent_params::flag_auto_managed;
 			params.flags |= add_torrent_params::flag_paused;
 
-			// an empty dictionary will be rejected
-			params.resume_data = {'d', 'e'};
 			ses.async_add_torrent(params);
 		},
 
@@ -689,7 +687,7 @@ TORRENT_TEST(resume_reject_when_paused)
 			lt::time_point start_time = alerts[0]->timestamp();
 
 			int num_piece_finished = 0;
-			int resume_rejected = 0;
+			int checking_files = 0;
 			int state_changed = 0;
 
 			for (alert* a : alerts)
@@ -702,13 +700,11 @@ TORRENT_TEST(resume_reject_when_paused)
 				if (alert_cast<piece_finished_alert>(a))
 					++num_piece_finished;
 
-				if (alert_cast<fastresume_rejected_alert>(a))
-					++resume_rejected;
-
 				if (auto sc = alert_cast<state_changed_alert>(a))
 				{
 					if (sc->state == torrent_status::checking_files)
-						++state_changed;
+						++checking_files;
+					++state_changed;
 				}
 			}
 
@@ -725,8 +721,12 @@ TORRENT_TEST(resume_reject_when_paused)
 			}
 
 			TEST_EQUAL(num_piece_finished, 0);
-			TEST_EQUAL(resume_rejected, 1);
+			// it should not actually check the files (since it's paused)
+			// if the files were checked, the state would change to downloading
+			// immediately, and state_changed would be 2. This asserts that's not
+			// the case.
 			TEST_EQUAL(state_changed, 1);
+			TEST_EQUAL(checking_files, 1);
 		});
 }
 

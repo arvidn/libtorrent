@@ -1559,10 +1559,12 @@ namespace libtorrent
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
 
-		// if set to true, add tracker URLs loaded from resume
-		// data into this torrent instead of replacing them
-		bool m_merge_resume_trackers:1;
-
+		// this is true when our effective inactive state is different from our
+		// actual inactive state. Whenever this state changes, there is a
+		// quarantine period until we change the effective state. This is to avoid
+		// flapping. If the state changes back during this period, we cancel the
+		// quarantine
+		bool m_pending_active_change:1;
 // ----
 
 		// the number of bytes of padding files
@@ -1676,13 +1678,6 @@ namespace libtorrent
 		// progress parts per million (the number of
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
-
-		// this is true when our effective inactive state is different from our
-		// actual inactive state. Whenever this state changes, there is a
-		// quarantine period until we change the effective state. This is to avoid
-		// flapping. If the state changes back during this period, we cancel the
-		// quarantine
-		bool m_pending_active_change:1;
 	};
 
 	struct torrent_ref_holder

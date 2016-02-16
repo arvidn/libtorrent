@@ -194,19 +194,25 @@ namespace libtorrent
 
 			if (!resume_data.url_seeds.empty())
 			{
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.url_seeds.clear();
+
 				atp.url_seeds.insert(atp.url_seeds.end()
 					, resume_data.url_seeds.begin()
 					, resume_data.url_seeds.end());
-				if ((resume_data.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
 					atp.flags |= add_torrent_params::flag_override_web_seeds;
 			}
 
 			if (!resume_data.http_seeds.empty())
 			{
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.http_seeds.clear();
+
 				atp.http_seeds.insert(atp.http_seeds.end()
 					, resume_data.http_seeds.begin()
 					, resume_data.http_seeds.end());
-				if ((resume_data.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
 					atp.flags |= add_torrent_params::flag_override_web_seeds;
 			}
 
@@ -248,7 +254,8 @@ namespace libtorrent
 				atp.max_connections = resume_data.max_connections;
 				atp.max_uploads = resume_data.max_uploads;
 				atp.trackerid = resume_data.trackerid;
-				atp.file_priorities = resume_data.file_priorities;
+				if (!resume_data.file_priorities.empty())
+					atp.file_priorities = resume_data.file_priorities;
 
 				boost::uint64_t const mask =
 					add_torrent_params::flag_seed_mode
@@ -259,6 +266,11 @@ namespace libtorrent
 
 				atp.flags &= ~mask;
 				atp.flags |= resume_data.flags & mask;
+			}
+			else
+			{
+				if (atp.file_priorities.empty())
+					atp.file_priorities = resume_data.file_priorities;
 			}
 		}
 	}
