@@ -37,12 +37,17 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
-    - python3-docutils
-    - python3-pygments
 
 before_install:
   - git submodule update --init --recursive
   - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && $docs = "1" ]]; then
+    brew install --quiet https://raw.githubusercontent.com/catap/homebrew/docutils/Library/Formula/docutils.rb;
+    mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
+    echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
+    sudo easy_install Pygments;
+    sudo easy_install -U aafigure;
+    fi'
 
 # disable simulations on OSX for now. It hangs on travis
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
@@ -69,12 +74,12 @@ install:
   - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then rst2html --version; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
 
 script:
 # disable invoking docutils for now, until we can have a modern version of it
   - cd docs
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "linux" ]]; then make rst RST2HTML=rst2html; fi
+  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py; fi
   - cd ..
 
   - cd test
