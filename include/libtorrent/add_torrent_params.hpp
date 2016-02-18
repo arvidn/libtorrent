@@ -55,9 +55,7 @@ namespace libtorrent
 	// session. The key fields when adding a torrent are:
 	//
 	// * ti - when you have a .torrent file
-	// * url - when you have a magnet link or http URL to the .torrent file
-	// * info_hash - when all you have is an info-hash (this is similar to a
-	//   magnet link)
+	// * url - when you have a magnet link
 	//
 	// one of those fields need to be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the
@@ -353,15 +351,7 @@ namespace libtorrent
 		// ``downloading_metadata`` state until the .torrent file has been
 		// downloaded. If there's any error while downloading, the torrent will
 		// be stopped and the torrent error state (``torrent_status::error``)
-		// will indicate what went wrong. The ``url`` may refer to a magnet link
-		// or a regular http URL.
-		// 
-		// If it refers to an HTTP URL, the info-hash for the added torrent will
-		// not be the true info-hash of the .torrent. Instead a placeholder,
-		// unique, info-hash is used which is later updated once the .torrent
-		// file has been downloaded.
-		// 
-		// Once the info-hash change happens, a torrent_update_alert is posted.
+		// will indicate what went wrong.
 		std::string url;
 
 		// if ``uuid`` is specified, it is used to find duplicates. If another

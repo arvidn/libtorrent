@@ -1583,6 +1583,7 @@ namespace libtorrent
 		std::vector<torrent_status> status;
 	};
 
+	// hidden
 	// When a torrent changes its info-hash, this alert is posted. This only happens in very
 	// specific cases. For instance, when a torrent is downloaded from a URL, the true info
 	// hash is not known immediately. First the .torrent file must be downloaded and parsed.
