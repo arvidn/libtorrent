@@ -120,24 +120,23 @@ connections.
 | listen_interfaces | string | "0.0.0.0:6881" |
 +-------------------+--------+----------------+
 
-a comma-separated list of (IP or device name, port) pairs. These
+a comma-separated list of IP port-pairs. These
 are the listen ports that will be opened for accepting incoming uTP
 and TCP connections. It is possible to listen on multiple
-interfaces and multiple ports. Binding to port 0 will make the
-operating system pick the port. The default is "0.0.0.0:0", which
-binds to all interfaces on a port the OS picks.
-if binding fails, the listen_failed_alert is posted, otherwise the
-listen_succeeded_alert.
-If the DHT is running, it will also have its socket rebound to the
-same port as the main listen port.
+IPs and multiple ports. Binding to port 0 will make the
+operating system pick the port. The default is "0.0.0.0:6881", which
+binds to all interfaces on port 6881.
+if binding fails, the listen_failed_alert is posted, potentially
+more than once. Once/if binding the listen socket(s) succeed,
+listen_succeeded_alert is posted.
+Each port will attempt to open both a UDP and a TCP listen socket,
+to allow accepting uTP connections as well as TCP. If using the DHT,
+this will also make the DHT use the same UDP ports.
 
-The reason why it's a good idea to run the DHT and the bittorrent
-socket on the same port is because that is an assumption that may
-be used to increase performance. One way to accelerate the
-connecting of peers on windows may be to first ping all peers with
-a DHT ping packet, and connect to those that responds first. On
-windows one can only connect to a few peers at a time because of a
-built in limitation (in XP Service pack 2).
+.. note::
+  The current support for opening arbitrary UDP sockets is limited.
+  In this version of libtorrent, there will only ever be two UDP
+  sockets, one for IPv4 and one for IPv6.
 
 .. _proxy_hostname:
 
@@ -706,8 +705,8 @@ can make us start the torrent and serve it.
 +------------------------+------+---------+
 
 when set to true, the downloaded counter sent to trackers will
-include the actual number of payload bytes donwnloaded including
-redundant bytes. If set to false, it will not include any redundany
+include the actual number of payload bytes downloaded including
+redundant bytes. If set to false, it will not include any redundancy
 bytes
 
 .. _strict_end_game_mode:
@@ -819,7 +818,7 @@ storage to look for them.
 ``no_recheck_incomplete_resume`` determines if the storage should
 check the whole files when resume data is incomplete or missing or
 whether it should simply assume we don't have any of the data. By
-default, this is determined by the existance of any of the files.
+default, this is determined by the existence of any of the files.
 By setting this setting to true, the files won't be checked, but
 will go straight to download mode.
 
@@ -882,7 +881,7 @@ set to true if uTP connections should be rate limited This option
 is *DEPRECATED*, please use set_peer_class_filter() instead.
 if this is true, the ``&ip=`` argument in tracker requests (unless
 otherwise specified) will be set to the intermediate IP address if
-the user is double NATed. If ther user is not double NATed, this
+the user is double NATed. If the user is not double NATed, this
 option does not have an affect
 
 .. _seeding_outgoing_connections:
@@ -938,7 +937,7 @@ connection attempts per second may be limited to below the
 ``connection_speed``, in case we're close to bump up against the
 limit of number of connections. The intention of this setting is to
 more evenly distribute our connection attempts over time, instead
-of attempting to connectin in batches, and timing them out in
+of attempting to connect in batches, and timing them out in
 batches.
 
 .. _always_send_user_agent:
@@ -1328,7 +1327,7 @@ unlikely to matter anyway
 | proxy_tracker_connections | bool | true    |
 +---------------------------+------+---------+
 
-if true, trackerconnections are made over the configured proxy, if
+if true, tracker connections are made over the configured proxy, if
 any.
 
 .. _tracker_completion_timeout:
@@ -1792,7 +1791,7 @@ This queue is only for waiting for the disk I/O thread to receive
 the job and either write it to disk or insert it in the write
 cache. When this limit is reached, the peer connections will stop
 reading data from their sockets, until the disk thread catches up.
-Setting this too low will severly limit your download rate.
+Setting this too low will severely limit your download rate.
 
 .. _handshake_timeout:
 
@@ -2384,7 +2383,7 @@ processes.
 read cache when a read cache miss occurs. Setting this to 0 is
 essentially the same thing as disabling read cache. The number of
 blocks read into the read cache is always capped by the piece
-boundry.
+boundary.
 
 When a piece in the write cache has ``write_cache_line_size``
 contiguous blocks in it, they will be flushed. Setting this to 1
@@ -2548,7 +2547,7 @@ set too low, you'll be too stingy and waste finding the true
 reciprocation rate.
 
 ``increase_est_reciprocation_rate`` specifies how many percent the
-extimated reciprocation rate should be increased by each unchoke
+estimated reciprocation rate should be increased by each unchoke
 interval a peer is still choking us back. This defaults to 20%.
 This only applies to the BitTyrant choker.
 
@@ -2571,7 +2570,7 @@ to the BitTyrant choker.
 
 the max number of peers we accept from pex messages from a single
 peer. this limits the number of concurrent peers any of our peers
-claims to be connected to. If they clain to be connected to more
+claims to be connected to. If they claim to be connected to more
 than this, we'll ignore any peer that exceeds this limit
 
 .. _tick_interval:
@@ -2980,7 +2979,7 @@ jobs.
 ``async_write_some`` (i.e. send) on peer connection sockets. When
 seeding at extremely high rates, this may become a bottleneck, and
 setting this to 2 or more may parallelize that cost. When using SSL
-torrents, all encryption for outgoing traffic is done withint the
+torrents, all encryption for outgoing traffic is done within the
 socket send functions, and this will help parallelizing the cost of
 SSL encryption as well.
 
@@ -3041,7 +3040,7 @@ aggressive in hitting trackers.
 | seed_time_ratio_limit | int  | 700     |
 +-----------------------+------+---------+
 
-when a seeding torrent reaches eaither the share ratio (bytes up /
+when a seeding torrent reaches either the share ratio (bytes up /
 bytes down) or the seed time ratio (seconds as seed / seconds as
 downloader) or the seed time limit (seconds as seed) it is
 considered done, and it will leave room for other torrents these
@@ -3219,7 +3218,7 @@ the download and upload rate limits for a torrent to be considered
 active by the queuing mechanism. A torrent whose download rate is
 less than ``inactive_down_rate`` and whose upload rate is less than
 ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
-considered inactive, and another queued torrent may be startert.
+considered inactive, and another queued torrent may be started.
 This logic is disabled if ``dont_count_slow_torrents`` is false.
 
 .. _proxy_type:
