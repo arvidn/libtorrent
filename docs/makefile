@@ -114,7 +114,7 @@ ifneq ($(STAGE),)
 endif
 
 %.png:%.diagram
-	aafigure -o $@ $?
+	aafigure --scale 0.6 -o $@ $?
 ifneq ($(STAGE),)
 	cp $@ $(WEB_PATH)/$@
 endif
