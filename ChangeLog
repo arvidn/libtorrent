@@ -1,6 +1,7 @@
 
 1.1.0 release
 
+	* deprecate support for adding torrents by HTTP URL
 	* allow specifying which tracker to scrape in scrape_tracker
 	* tracker response alerts from user initiated announces/scrapes are now
 	  posted regardless of alert mask
