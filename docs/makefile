@@ -120,5 +120,5 @@ ifneq ($(STAGE),)
 endif
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) settings.rst todo.html reference*.html reference*.rst
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(FIGURES:=.eps) settings.rst todo.html reference*.html reference*.rst stats_counters.rst manual.rst
 
