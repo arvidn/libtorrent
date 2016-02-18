@@ -17,7 +17,6 @@ nobase_include_HEADERS = \
   bandwidth_queue_entry.hpp    \
   bencode.hpp                  \
   bdecode.hpp                  \
-  bind_to_device.hpp           \
   bitfield.hpp                 \
   block_cache.hpp              \
   bloom_filter.hpp             \
@@ -161,6 +160,7 @@ nobase_include_HEADERS = \
   \
   aux_/alert_manager_variadic_emplace.hpp \
   aux_/allocating_handler.hpp       \
+  aux_/bind_to_device.hpp           \
   aux_/cpuid.hpp                    \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \
