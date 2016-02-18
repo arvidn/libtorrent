@@ -81,9 +81,11 @@ names = []
 types = []
 
 for l in f:
+	description_line = l.lstrip().startswith('// ')
+
 	l = l.strip()
 
-	if l.startswith('// '):
+	if description_line == True:
 		if len(names) > 0:
 			render_section(names, description, types)
 			description = ''
