@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/read_resume_data.hpp"
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -687,16 +688,23 @@ void add_torrent(libtorrent::session& ses
 
 	printf("[%d] %s\n", counter++, torrent.c_str());
 
+	error_code ec;
 	add_torrent_params p;
+
+	std::vector<char> resume_data;
+	std::string filename = path_append(save_path, path_append(".resume"
+		, leaf_path(torrent) + ".resume"));
+	load_file(filename, resume_data, ec);
+	if (!ec)
+	{
+		p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+		if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+	}
+	ec.clear();
+
 	if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-
-	std::string filename = path_append(save_path, path_append(".resume"
-		, leaf_path(torrent) + ".resume"));
-
-	error_code ec;
-	load_file(filename, p.resume_data, ec);
 
 	p.url = path_to_url(torrent);
 	p.save_path = save_path;
@@ -1604,14 +1612,7 @@ int main(int argc, char* argv[])
 			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
-			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-			if (disable_storage) p.storage = disabled_storage_constructor;
-			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-			p.save_path = save_path;
-			p.storage_mode = (storage_mode_t)allocation_mode;
-			p.url = *i;
 
-			std::vector<char> buf;
 			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 			{
 				add_torrent_params tmp;
@@ -1623,8 +1624,22 @@ int main(int argc, char* argv[])
 				std::string filename = path_append(save_path, path_append(".resume"
 					, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-				load_file(filename, p.resume_data, ec);
+				std::vector<char> resume_data;
+				load_file(filename, resume_data, ec);
+				if (!ec)
+				{
+					p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+					if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+				}
+				ec.clear();
 			}
+
+			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+			if (disable_storage) p.storage = disabled_storage_constructor;
+			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+			p.save_path = save_path;
+			p.storage_mode = (storage_mode_t)allocation_mode;
+			p.url = *i;
 
 			printf("adding URL: %s\n", i->c_str());
 			ses.async_add_torrent(p);
@@ -1746,14 +1761,6 @@ int main(int argc, char* argv[])
 					scanf("%4095s", url);
 
 					add_torrent_params p;
-					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-					if (disable_storage) p.storage = disabled_storage_constructor;
-					if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-					p.save_path = save_path;
-					p.storage_mode = (storage_mode_t)allocation_mode;
-					p.url = url;
-
-					std::vector<char> buf;
 					if (std::strstr(url, "magnet:") == url)
 					{
 						add_torrent_params tmp;
@@ -1764,8 +1771,22 @@ int main(int argc, char* argv[])
 						std::string filename = path_append(save_path, path_append(".resume"
 								, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-						load_file(filename, p.resume_data, ec);
+						std::vector<char> resume_data;
+						load_file(filename, resume_data, ec);
+						if (!ec)
+						{
+							p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+							if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+						}
+						ec.clear();
 					}
+
+					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
+					if (disable_storage) p.storage = disabled_storage_constructor;
+					if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
+					p.save_path = save_path;
+					p.storage_mode = (storage_mode_t)allocation_mode;
+					p.url = url;
 
 					printf("adding URL: %s\n", url);
 					ses.async_add_torrent(p);
@@ -2168,7 +2189,7 @@ int main(int argc, char* argv[])
 				std::vector<boost::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<pool_file_status> file_status;
-			 	h.file_status(file_status);
+				h.file_status(file_status);
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
 				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
@@ -2281,7 +2302,7 @@ int main(int argc, char* argv[])
 	ses.pause();
 	printf("saving resume data\n");
 	std::vector<torrent_status> temp;
- 	ses.get_torrent_status(&temp, &yes, 0);
+	ses.get_torrent_status(&temp, &yes, 0);
 	for (std::vector<torrent_status>::iterator i = temp.begin();
 		i != temp.end(); ++i)
 	{
