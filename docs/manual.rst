@@ -356,11 +356,12 @@ fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to async_add_torrent() and
-add_torrent(), and it will skip the time consuming checks. It may have to do
+To use the fast-resume data you pass it to read_resume_data(), which will return
+an add_torrent_params object. Fields of this object can then be altered before
+passing it to async_add_torrent() or add_torrent().
+The session will then skip the time consuming checks. It may have to do
 the checking anyway, if the fast-resume data is corrupt or doesn't fit the
-storage for that torrent, then it will not trust the fast-resume data and just
-do the checking.
+storage for that torrent.
 
 file format
 -----------
