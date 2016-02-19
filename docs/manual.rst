@@ -485,6 +485,13 @@ The file format is a bencoded dictionary containing the following fields:
 | ``banned_peers6``        | string. This string has the same format as ``peers6`` but    |
 |                          | instead represent IPv6 peers that we have banned.            |
 +--------------------------+--------------------------------------------------------------+
+| ``info``                 | If this field is present, it should be the info-dictionary   |
+|                          | of the torrent this resume data is for. Its SHA-1 hash must  |
+|                          | match the one in the ``info-hash`` field. When present,      |
+|                          | the torrent is loaded from here, meaning the torrent can be  |
+|                          | added purely from resume data (no need to load the .torrent  |
+|                          | file separately). This may have performance advantages.      |
++--------------------------+--------------------------------------------------------------+
 | ``unfinished``           | list of dictionaries. Each dictionary represents an          |
 |                          | piece, and has the following layout:                         |
 |                          |                                                              |
