@@ -1378,7 +1378,6 @@ int main(int argc, char* argv[])
 				break;
 			case 'a':
 				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
-				else if (strcmp(arg, "full") == 0) allocation_mode = storage_mode_allocate;
 				else if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
 				break;
 			case 's': save_path = arg; break;

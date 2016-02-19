@@ -1887,6 +1887,7 @@ namespace libtorrent
 		boost::uint64_t values[counters::num_counters];
 	};
 
+	// hidden
 	// When a torrent changes its info-hash, this alert is posted. This only
 	// happens in very specific cases. For instance, when a torrent is
 	// downloaded from a URL, the true info hash is not known immediately. First

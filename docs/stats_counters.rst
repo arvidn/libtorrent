@@ -415,6 +415,8 @@ the number of optimistically unchoked peers.
 
 .. _net.on_accept_counter:
 
+.. _net.on_disk_queue_counter:
+
 .. _net.on_disk_counter:
 
 .. raw:: html
@@ -426,27 +428,30 @@ the number of optimistically unchoked peers.
 	<a name="net.on_lsd_peer_counter"></a>
 	<a name="net.on_udp_counter"></a>
 	<a name="net.on_accept_counter"></a>
+	<a name="net.on_disk_queue_counter"></a>
 	<a name="net.on_disk_counter"></a>
 
-+-------------------------+---------+
-| name                    | type    |
-+=========================+=========+
-| net.on_read_counter     | counter |
-+-------------------------+---------+
-| net.on_write_counter    | counter |
-+-------------------------+---------+
-| net.on_tick_counter     | counter |
-+-------------------------+---------+
-| net.on_lsd_counter      | counter |
-+-------------------------+---------+
-| net.on_lsd_peer_counter | counter |
-+-------------------------+---------+
-| net.on_udp_counter      | counter |
-+-------------------------+---------+
-| net.on_accept_counter   | counter |
-+-------------------------+---------+
-| net.on_disk_counter     | counter |
-+-------------------------+---------+
++---------------------------+---------+
+| name                      | type    |
++===========================+=========+
+| net.on_read_counter       | counter |
++---------------------------+---------+
+| net.on_write_counter      | counter |
++---------------------------+---------+
+| net.on_tick_counter       | counter |
++---------------------------+---------+
+| net.on_lsd_counter        | counter |
++---------------------------+---------+
+| net.on_lsd_peer_counter   | counter |
++---------------------------+---------+
+| net.on_udp_counter        | counter |
++---------------------------+---------+
+| net.on_accept_counter     | counter |
++---------------------------+---------+
+| net.on_disk_queue_counter | counter |
++---------------------------+---------+
+| net.on_disk_counter       | counter |
++---------------------------+---------+
 
 
 These counters count the number of times the
@@ -655,6 +660,22 @@ belong to multiple of these, the most prominent
 in picked. For instance, a torrent with an error
 counts as an error-torrent, regardless of its other
 state.
+
+.. _ses.non_filter_torrents:
+
+.. raw:: html
+
+	<a name="ses.non_filter_torrents"></a>
+
++-------------------------+---------+
+| name                    | type    |
++=========================+=========+
+| ses.non_filter_torrents | counter |
++-------------------------+---------+
+
+
+the number of torrents that don't have the
+IP filter applied to them.
 
 .. _ses.num_loaded_torrents:
 
@@ -1780,6 +1801,8 @@ has occurred.
 
 .. _utp.num_utp_close_wait:
 
+.. _utp.num_utp_deleted:
+
 .. raw:: html
 
 	<a name="utp.num_utp_idle"></a>
@@ -1787,6 +1810,7 @@ has occurred.
 	<a name="utp.num_utp_connected"></a>
 	<a name="utp.num_utp_fin_sent"></a>
 	<a name="utp.num_utp_close_wait"></a>
+	<a name="utp.num_utp_deleted"></a>
 
 +------------------------+---------+
 | name                   | type    |
@@ -1800,6 +1824,8 @@ has occurred.
 | utp.num_utp_fin_sent   | counter |
 +------------------------+---------+
 | utp.num_utp_close_wait | counter |
++------------------------+---------+
+| utp.num_utp_deleted    | counter |
 +------------------------+---------+
 
 
