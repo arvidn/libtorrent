@@ -68,6 +68,8 @@ namespace libtorrent
 
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
+		// TODO: 4 where is "allocation" read?
+
 		add_torrent_params ret;
 
 		if (rd.dict_find_string_value("file-format")
@@ -115,6 +117,7 @@ namespace libtorrent
 
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
+
 		ret.active_time = rd.dict_find_int_value("active_time");
 		ret.finished_time = rd.dict_find_int_value("finished_time");
 		ret.seeding_time = rd.dict_find_int_value("seeding_time");
