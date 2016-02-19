@@ -89,6 +89,8 @@ namespace libtorrent
 			return ret;
 		}
 
+		ret.info_hash.assign(info_hash);
+
 		// TODO: 4 add unit test for this, and all other fields of the resume data
 		bdecode_node info = rd.dict_find_dict("info");
 		if (info)
@@ -101,7 +103,7 @@ namespace libtorrent
 			// if url is set, the info_hash is not actually the info-hash of the
 			// torrent, but the hash of the URL, until we have the full torrent
 			// only require the info-hash to match if we actually passed in one
-			if (resume_ih == sha1_hash(info_hash))
+			if (resume_ih == ret.info_hash)
 			{
 				ret.ti = boost::make_shared<torrent_info>(resume_ih);
 
@@ -112,11 +114,6 @@ namespace libtorrent
 				}
 			}
 		}
-
-//TODO: 4 we need to verify the info-hash from the resume data
-// matches the torrent_info object or the magnet link in the URL field. This
-// can only be done reliably on the libtorrent side as the torrent is being
-// added. i.e. the info_hash needs to be saved
 
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
