@@ -486,11 +486,8 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | +-------------+--------------------------------------------+ |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
-| ``allocation``           | The allocation mode for the storage. Can be either ``full``  |
-|                          | or ``compact``. If this is full, the file sizes and          |
-|                          | timestamps are disregarded. Pieces are assumed not to have   |
-|                          | moved around even if the files have been modified after the  |
-|                          | last resume data checkpoint.                                 |
+| ``allocation``           | The allocation mode for the storage. Can be either           |
+|                          | ``allocate`` or ``sparse``.                                  |
 +--------------------------+--------------------------------------------------------------+
 
 storage allocation

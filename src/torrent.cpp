@@ -2105,7 +2105,6 @@ namespace libtorrent
 
 		inc_refcount("check_fastresume");
 		// async_check_files will gut links
-		// TODO: 4 check_fastresume should probably be renamed check_files.
 		m_ses.disk_thread().async_check_files(
 			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
@@ -6713,6 +6712,8 @@ namespace libtorrent
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 		ret["libtorrent-version"] = LIBTORRENT_VERSION;
+		ret["allocation"] = m_storage_mode == storage_mode_allocate
+			? "allocate" : "sparse";
 
 		ret["total_uploaded"] = m_total_uploaded;
 		ret["total_downloaded"] = m_total_downloaded;

@@ -68,9 +68,12 @@ namespace libtorrent
 
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
-		// TODO: 4 where is "allocation" read?
-
 		add_torrent_params ret;
+		if (bdecode_node alloc = rd.dict_find_string("allocation"))
+		{
+			ret.storage_mode = (alloc.string_value() == "allocate"
+				|| alloc.string_value() == "full") ? storage_mode_allocate : storage_mode_sparse;
+		}
 
 		if (rd.dict_find_string_value("file-format")
 			!= "libtorrent resume file")
