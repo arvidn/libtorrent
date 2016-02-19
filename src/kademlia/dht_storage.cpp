@@ -152,7 +152,7 @@ namespace
 		}
 	}
 
-	// return true of the first argument is a better canidate for removal, i.e.
+	// return true of the first argument is a better candidate for removal, i.e.
 	// less important to keep
 	struct immutable_item_comparator
 	{

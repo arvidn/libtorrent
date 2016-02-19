@@ -290,7 +290,7 @@ namespace libtorrent
 
 	public:
 		// in debug mode this is set to false by bdecode to indicate that the
-		// program has not yet queried the type of this entry, and sould not
+		// program has not yet queried the type of this entry, and should not
 		// assume that it has a certain type. This is asserted in the accessor
 		// functions. This does not apply if exceptions are used.
 		mutable boost::uint8_t m_type_queried:1;
