@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 #include <boost/bind.hpp>
+#include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -42,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint()
+#include "libtorrent/hasher.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 namespace libtorrent
 {
@@ -75,10 +78,34 @@ namespace libtorrent
 		}
 
 		std::string info_hash = rd.dict_find_string_value("info-hash");
-		if (info_hash.empty())
+		if (info_hash.size() != 20)
 		{
 			ec = error_code(errors::missing_info_hash, get_libtorrent_category());
 			return ret;
+		}
+
+		// TODO: 4 add unit test for this, and all other fields of the resume data
+		bdecode_node info = rd.dict_find_dict("info");
+		if (info)
+		{
+			// verify the info-hash of the metadata stored in the resume file matches
+			// the torrent we're loading
+			std::pair<char const*, int> buf = info.data_section();
+			sha1_hash resume_ih = hasher(buf.first, buf.second).final();
+
+			// if url is set, the info_hash is not actually the info-hash of the
+			// torrent, but the hash of the URL, until we have the full torrent
+			// only require the info-hash to match if we actually passed in one
+			if (resume_ih == sha1_hash(info_hash))
+			{
+				ret.ti = boost::make_shared<torrent_info>(resume_ih);
+
+				error_code err;
+				if (!ret.ti->parse_info_section(info, err, 0))
+				{
+					ec = err;
+				}
+			}
 		}
 
 //TODO: 4 we need to verify the info-hash from the resume data
