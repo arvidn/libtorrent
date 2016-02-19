@@ -271,9 +271,16 @@ namespace libtorrent
 			// list of web seeds used by the torrent.
 			flag_override_web_seeds = 0x10000,
 
+			// if this flag is set (which it is by default) the torrent will be
+			// considered needing to save its resume data immediately as it's
+			// added. New torrents that don't have any resume data should do that.
+			// This flag is cleared by a successful call to read_resume_data()
+			flag_need_save_resume = 0x20000,
+
 			// internal
 			default_flags = flag_pinned | flag_update_subscribe
 				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+				| flag_need_save_resume
 #ifndef TORRENT_NO_DEPRECATE
 				| flag_merge_resume_http_seeds
 				| flag_merge_resume_trackers

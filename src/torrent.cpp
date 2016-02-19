@@ -244,7 +244,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 #endif
-		, m_need_save_resume_data(true)
+		, m_need_save_resume_data(p.flags & add_torrent_params::flag_need_save_resume)
 		, m_seeding_time(0)
 		, m_max_uploads((1<<24)-1)
 		, m_save_resume_flags(0)
@@ -289,12 +289,6 @@ namespace libtorrent
 			inc_stats_counter(counters::num_pinned_torrents);
 
 		inc_stats_counter(counters::num_loaded_torrents);
-
-		// if there is resume data already, we don't need to trigger the initial save
-		// resume data
-//TODO: 4 maybe m_need_save_resume_data should be another flag in add_torrent_params
-		if (!p.have_pieces.empty() /* && (p.flags & add_torrent_params::flag_override_resume_data) == 0 */ )
-			m_need_save_resume_data = false;
 
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);

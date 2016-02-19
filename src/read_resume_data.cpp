@@ -327,6 +327,8 @@ namespace libtorrent
 			}
 		}
 
+		ret.flags &= ~add_torrent_params::flag_need_save_resume;
+
 		return ret;
 	}
 
