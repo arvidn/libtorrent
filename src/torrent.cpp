@@ -797,6 +797,16 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+#ifndef TORRENT_NO_DEPRECATE
+		if (m_add_torrent_params
+			&& m_add_torrent_params->internal_resume_data_error
+			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
+		{
+			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
+				, m_add_torrent_params->internal_resume_data_error, "", "");
+		}
+#endif
+
 // TODO: 3 why isn't this done in the constructor?
 
 #ifndef TORRENT_DISABLE_LOGGING

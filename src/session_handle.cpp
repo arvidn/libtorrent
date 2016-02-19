@@ -159,17 +159,18 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	namespace
 	{
-		void handle_backwards_compatible_resume_data(add_torrent_params& atp
-			, error_code& ec)
+		void handle_backwards_compatible_resume_data(add_torrent_params& atp)
 		{
 			// if there's no resume data set, there's nothing to do. It's either
 			// using the previous API without resume data, or the resume data has
 			// already been parsed out into the add_torrent_params struct.
 			if (atp.resume_data.empty()) return;
 
+			error_code ec;
 			add_torrent_params resume_data
 				= read_resume_data(&atp.resume_data[0], atp.resume_data.size(), ec);
 
+			resume_data.internal_resume_data_error = ec;
 			if (ec) return;
 
 			// now, merge resume_data into atp according to the merge flags
@@ -279,14 +280,13 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
 	{
-		error_code ec;
 #ifndef TORRENT_NO_DEPRECATE
 		add_torrent_params p = params;
-		handle_backwards_compatible_resume_data(p, ec);
-		if (ec) throw libtorrent_exception(ec);
+		handle_backwards_compatible_resume_data(p);
 #else
 		add_torrent_params const& p = params;
 #endif
+		error_code ec;
 		torrent_handle r = TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
 		return r;
@@ -298,8 +298,7 @@ namespace libtorrent
 		ec.clear();
 #ifndef TORRENT_NO_DEPRECATE
 		add_torrent_params p = params;
-		handle_backwards_compatible_resume_data(p, ec);
-		if (ec) return torrent_handle();
+		handle_backwards_compatible_resume_data(p);
 #else
 		add_torrent_params const& p = params;
 #endif
@@ -311,14 +310,7 @@ namespace libtorrent
 		add_torrent_params* p = new add_torrent_params(params);
 
 #ifndef TORRENT_NO_DEPRECATE
-		error_code ec;
-		handle_backwards_compatible_resume_data(*p, ec);
-//TODO: 3 what should we do about error handling here?
-		if (ec)
-		{
-			delete p;
-			return;
-		}
+		handle_backwards_compatible_resume_data(*p);
 #endif
 
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
