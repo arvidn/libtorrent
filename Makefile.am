@@ -93,6 +93,8 @@ DOCS_PAGES = \
   docs/udp_tracker_protocol.rst   \
   docs/utp.rst                    \
   docs/streaming.rst              \
+  docs/tutorial.rst               \
+  docs/tutorial.html              \
   docs/reference-Alerts.html      \
   docs/reference-Bdecoding.html   \
   docs/reference-Bencoding.html   \

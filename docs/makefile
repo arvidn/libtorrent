@@ -44,6 +44,7 @@ TARGETS = index \
 	tuning \
 	hacking \
 	streaming \
+	tutorial \
 	$(REFERENCE_TARGETS)
 
 FIGURES = \

@@ -310,15 +310,13 @@ namespace libtorrent {
 
 // When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
 // more specific alert type, in order to query it for more information.
-template <class T>
-T* alert_cast(alert* a)
+template <class T> T* alert_cast(alert* a)
 {
 	if (a == 0) return 0;
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
 	return 0;
 }
-template <class T>
-T const* alert_cast(alert const* a)
+template <class T> T const* alert_cast(alert const* a)
 {
 	if (a == 0) return 0;
 	if (a->type() == T::alert_type) return static_cast<T const*>(a);

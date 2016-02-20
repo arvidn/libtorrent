@@ -37,7 +37,10 @@ The basic usage is as follows:
 * save session state (see save_state())
 * destruct session object
 
-Each class and function is described in this manual.
+Each class and function is described in this manual, you may want to have a
+look at the tutorial_ as well.
+
+.. _tutorial: tutorial.html
 
 For a description on how to create torrent files, see create_torrent.
 
