@@ -165,6 +165,7 @@ test-suite libtorrent :
 	[ run test_fast_extension.cpp ]
 	[ run test_privacy.cpp ]
 	[ run test_recheck.cpp ]
+	[ run test_read_resume.cpp ]
 	[ run test_resume.cpp ]
 	[ run test_ssl.cpp ]
 	[ run test_tracker.cpp ]

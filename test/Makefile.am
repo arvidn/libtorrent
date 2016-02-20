@@ -19,6 +19,7 @@ test_programs = \
   test_pex                   \
   test_read_piece            \
   test_resume                \
+  test_read_resume           \
   test_ssl                   \
   test_storage               \
   test_time_critical         \

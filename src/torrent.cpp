@@ -402,7 +402,7 @@ namespace libtorrent
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
 				&& std::count(p.file_priorities.begin(), p.file_priorities.end(), 0) == 0
 				&& std::count(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == 0
-				&& p.have_pieces.count() == 0;
+				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), 0) == 0;
 
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));

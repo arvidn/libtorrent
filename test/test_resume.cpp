@@ -89,8 +89,6 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["total_downloaded"] = 1338;
 	rd["active_time"] = 1339;
 	rd["seeding_time"] = 1340;
-	rd["num_seeds"] = 1341;
-	rd["num_downloaders"] = 1342;
 	rd["upload_rate_limit"] = 1343;
 	rd["download_rate_limit"] = 1344;
 	rd["max_connections"] = 1345;
