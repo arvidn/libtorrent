@@ -4092,7 +4092,7 @@ namespace libtorrent
 				}
 				fputs("\n", stderr);
 			}
-			
+
 			fputs("downloading pieces:\n", stderr);
 
 			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
@@ -5864,7 +5864,7 @@ namespace libtorrent
 	{
 		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
 			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
-		if (k != m_trackers.end()) 
+		if (k != m_trackers.end())
 		{
 			k->source |= url.source;
 			return false;
@@ -6690,7 +6690,7 @@ namespace libtorrent
 		// must be ordered in increasing order
 		static const country_entry country_map[] =
 		{
-			  {  4,  "AF"}, {  8,  "AL"}, { 10,  "AQ"}, { 12,  "DZ"}, { 16,  "AS"}
+			{  4,  "AF"}, {  8,  "AL"}, { 10,  "AQ"}, { 12,  "DZ"}, { 16,  "AS"}
 			, { 20,  "AD"}, { 24,  "AO"}, { 28,  "AG"}, { 31,  "AZ"}, { 32,  "AR"}
 			, { 36,  "AU"}, { 40,  "AT"}, { 44,  "BS"}, { 48,  "BH"}, { 50,  "BD"}
 			, { 51,  "AM"}, { 52,  "BB"}, { 56,  "BE"}, { 60,  "BM"}, { 64,  "BT"}
@@ -7211,24 +7211,42 @@ namespace libtorrent
 		// for the piece
 		// bit 0: set if we have the piece
 		// bit 1: set if we have verified the piece (in seed mode)
-		entry::string_type& pieces = ret["pieces"].string();
-		pieces.resize(m_torrent_file->num_pieces());
-		if (!has_picker())
-		{
-			std::memset(&pieces[0], m_have_all, pieces.size());
-		}
-		else if (has_picker())
-		{
-			for (int i = 0, end(pieces.size()); i < end; ++i)
-				pieces[i] = m_picker->have_piece(i) ? 1 : 0;
-		}
+		bool const is_checking = state() == torrent_status::checking_files;
+		bool const has_checked = state() == torrent_status::downloading
+			|| state() == torrent_status::finished
+			|| state() == torrent_status::seeding;
 
-		if (m_seed_mode)
+		// if we are checking, only save the have_pieces bitfield up to the piece
+		// we have actually checked. This allows us to resume the checking when we
+		// load this torrent up again. If we have not completed checking nor is
+		// currently checking, don't save any pieces from the have_pieces
+		// bitfield.
+		int const max_piece
+			= is_checking ? m_num_checked_pieces
+			: has_checked ? m_torrent_file->num_pieces()
+			: 0;
+
+		if (max_piece > 0)
 		{
-			TORRENT_ASSERT(m_verified.size() == pieces.size());
-			TORRENT_ASSERT(m_verifying.size() == pieces.size());
-			for (int i = 0, end(pieces.size()); i < end; ++i)
-				pieces[i] |= m_verified[i] ? 2 : 0;
+			entry::string_type& pieces = ret["pieces"].string();
+			pieces.resize(max_piece);
+			if (!has_picker())
+			{
+				std::memset(&pieces[0], m_have_all, pieces.size());
+			}
+			else if (has_picker())
+			{
+				for (int i = 0, end(pieces.size()); i < end; ++i)
+					pieces[i] = m_picker->have_piece(i) ? 1 : 0;
+			}
+
+			if (m_seed_mode)
+			{
+				TORRENT_ASSERT(m_verified.size() == pieces.size());
+				TORRENT_ASSERT(m_verifying.size() == pieces.size());
+				for (int i = 0, end(pieces.size()); i < end; ++i)
+					pieces[i] |= m_verified[i] ? 2 : 0;
+			}
 		}
 
 		// write renamed files
@@ -8328,7 +8346,7 @@ namespace libtorrent
 
 		lhs_transferred /= lhs_time_connected + 1;
 		rhs_transferred /= (rhs_time_connected + 1);
-		if (lhs_transferred != rhs_transferred)	
+		if (lhs_transferred != rhs_transferred)
 			return lhs_transferred < rhs_transferred;
 
 		// prefer to disconnect peers that chokes us
@@ -9487,7 +9505,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	// this is an async operation triggered by the client	
+	// this is an async operation triggered by the client
 	// TODO: add a flag to ignore stats, and only care about resume data for
 	// content. For unchanged files, don't trigger a load of the metadata
 	// just to save an empty resume data file
@@ -10715,7 +10733,7 @@ namespace libtorrent
 			if (info[k].num_peers > timed_out)
 				continue;
 
-			busy_blocks[busy_count].peers = info[k].num_peers; 
+			busy_blocks[busy_count].peers = info[k].num_peers;
 			busy_blocks[busy_count].index = k;
 			++busy_count;
 
@@ -11485,7 +11503,7 @@ namespace libtorrent
 			fp.clear();
 			return;
 		}
-	
+
 		if (!need_loaded()) return;
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
