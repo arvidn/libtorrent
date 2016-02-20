@@ -13,6 +13,7 @@
 #include <libtorrent/extensions.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/read_resume_data.hpp>
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
@@ -196,11 +197,13 @@ namespace
             p.name = extract<std::string>(params["name"]);
         p.save_path = extract<std::string>(params["save_path"]);
 
+#ifndef TORRENT_NO_DEPRECATE
         if (params.has_key("resume_data"))
         {
             std::string resume = extract<std::string>(params["resume_data"]);
             p.resume_data.assign(resume.begin(), resume.end());
         }
+#endif
         if (params.has_key("storage_mode"))
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
 
@@ -219,32 +222,8 @@ namespace
             for(int i = 0; i < n; i++)
                 p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
         }
-#ifndef TORRENT_NO_DEPRECATE
-        std::string url;
-        if (params.has_key("tracker_url"))
-            p.trackers.push_back(extract<std::string>(params["tracker_url"]));
-        if (params.has_key("seed_mode"))
-            p.seed_mode = params["seed_mode"];
-        if (params.has_key("upload_mode"))
-            p.upload_mode = params["upload_mode"];
-        if (params.has_key("share_mode"))
-            p.upload_mode = params["share_mode"];
-        if (params.has_key("override_resume_data"))
-            p.override_resume_data = params["override_resume_data"];
-        if (params.has_key("apply_ip_filter"))
-            p.apply_ip_filter = params["apply_ip_filter"];
-        if (params.has_key("paused"))
-            p.paused = params["paused"];
-        if (params.has_key("auto_managed"))
-            p.auto_managed = params["auto_managed"];
-        if (params.has_key("duplicate_is_error"))
-            p.duplicate_is_error = params["duplicate_is_error"];
-        if (params.has_key("merge_resume_trackers"))
-            p.merge_resume_trackers = params["merge_resume_trackers"];
-#endif
         if (params.has_key("flags"))
             p.flags = extract<boost::uint64_t>(params["flags"]);
-
         if (params.has_key("trackerid"))
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
@@ -578,6 +557,17 @@ namespace
                          , salt);
     }
 #endif
+
+    add_torrent_params read_resume_data_wrapper(bytes const& b)
+    {
+        error_code ec;
+        add_torrent_params p = read_resume_data(&b.arr[0], b.arr.size(), ec);
+#ifndef BOOST_NO_EXCEPTIONS
+        if (ec) throw libtorrent_exception(ec);
+#endif
+        return p;
+    }
+
 } // namespace unnamed
 
 
@@ -679,20 +669,25 @@ void bind_session()
 
     enum_<add_torrent_params::flags_t>("add_torrent_params_flags_t")
         .value("flag_seed_mode", add_torrent_params::flag_seed_mode)
-        .value("flag_override_resume_data", add_torrent_params::flag_override_resume_data)
         .value("flag_upload_mode", add_torrent_params::flag_upload_mode)
         .value("flag_share_mode", add_torrent_params::flag_share_mode)
         .value("flag_apply_ip_filter", add_torrent_params::flag_apply_ip_filter)
         .value("flag_paused", add_torrent_params::flag_paused)
         .value("flag_auto_managed", add_torrent_params::flag_auto_managed)
         .value("flag_duplicate_is_error", add_torrent_params::flag_duplicate_is_error)
-        .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
         .value("flag_update_subscribe", add_torrent_params::flag_update_subscribe)
         .value("flag_super_seeding", add_torrent_params::flag_super_seeding)
         .value("flag_sequential_download", add_torrent_params::flag_sequential_download)
+        .value("flag_pinned", add_torrent_params::flag_pinned)
+        .value("flag_stop_when_ready", add_torrent_params::flag_stop_when_ready)
+        .value("flag_override_trackers", add_torrent_params::flag_override_trackers)
+        .value("flag_override_web_seeds", add_torrent_params::flag_override_web_seeds)
+#ifndef TORRENT_NO_DEPRECATE
+        .value("flag_override_resume_data", add_torrent_params::flag_override_resume_data)
+        .value("flag_merge_resume_trackers", add_torrent_params::flag_merge_resume_trackers)
         .value("flag_use_resume_save_path", add_torrent_params::flag_use_resume_save_path)
         .value("flag_merge_resume_http_seeds", add_torrent_params::flag_merge_resume_http_seeds)
-        .value("flag_stop_when_ready", add_torrent_params::flag_stop_when_ready)
+#endif
     ;
     class_<cache_status>("cache_status")
 #ifndef TORRENT_NO_DEPRECATE
@@ -928,6 +923,7 @@ void bind_session()
 
     def("high_performance_seed", (perf_preset2)high_performance_seed);
     def("min_memory_usage", (mem_preset2)min_memory_usage);
+    def("read_resume_data", read_resume_data_wrapper);
 
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";

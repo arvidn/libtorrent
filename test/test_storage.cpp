@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
+#include "settings.hpp"
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -43,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/read_resume_data.hpp"
 
 #include <boost/make_shared.hpp>
 #include <boost/utility.hpp>
@@ -467,9 +469,9 @@ void test_check_files(std::string const& test_path
 	libtorrent::mutex lock;
 
 	bool done = false;
-	bdecode_node frd;
+	add_torrent_params frd;
 	std::vector<std::string> links;
-	io.async_check_fastresume(pm.get(), &frd, links
+	io.async_check_files(pm.get(), &frd, links
 		, boost::bind(&on_check_resume_data, _1, &done));
 	io.submit_jobs();
 	ios.reset();
@@ -614,7 +616,7 @@ void run_test(bool unbuffered)
 	test_rename(test_path);
 }
 
-TORRENT_TEST(fastresume)
+void test_fastresume(bool const test_deprecated)
 {
 	std::string test_path = current_working_directory();
 	error_code ec;
@@ -635,17 +637,7 @@ TORRENT_TEST(fastresume)
 
 	entry resume;
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
-		pack.set_bool(settings_pack::enable_natpmp, false);
-		pack.set_bool(settings_pack::enable_upnp, false);
-		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
+		settings_pack pack = settings();
 		lt::session ses(pack);
 
 		error_code ec;
@@ -695,26 +687,30 @@ TORRENT_TEST(fastresume)
 
 	// make sure the fast resume check fails! since we removed the file
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
-		pack.set_bool(settings_pack::enable_natpmp, false);
-		pack.set_bool(settings_pack::enable_upnp, false);
-		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
+		settings_pack pack = settings();
 		lt::session ses(pack);
 
+		std::vector<char> resume_data;
+		bencode(std::back_inserter(resume_data), resume);
+
 		add_torrent_params p;
+#ifndef TORRENT_NO_DEPRECATE
+		if (test_deprecated)
+		{
+			p.resume_data = resume_data;
+		}
+		else
+#endif
+		{
+			p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+			TEST_CHECK(!ec);
+		}
+
 		p.flags &= ~add_torrent_params::flag_paused;
 		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_compact;
-		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
@@ -728,13 +724,26 @@ TORRENT_TEST(fastresume)
 		<< "': " << ec.message() << std::endl;
 }
 
+TORRENT_TEST(fastresume)
+{
+	test_fastresume(false);
+}
+
+#ifndef TORRENT_NO_DEPRECATE
+TORRENT_TEST(fastresume_deprecated)
+{
+	test_fastresume(true);
+}
+#endif
+
+
 bool got_file_rename_alert(alert const* a)
 {
 	return alert_cast<libtorrent::file_renamed_alert>(a)
 		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
 }
 
-TORRENT_TEST(rename_file_fastresume)
+void test_rename_file_fastresume(bool test_deprecated)
 {
 	std::string test_path = current_working_directory();
 	error_code ec;
@@ -752,17 +761,7 @@ TORRENT_TEST(rename_file_fastresume)
 
 	entry resume;
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
-		pack.set_bool(settings_pack::enable_natpmp, false);
-		pack.set_bool(settings_pack::enable_upnp, false);
-		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
+		settings_pack pack = settings();
 		lt::session ses(pack);
 
 		add_torrent_params p;
@@ -799,24 +798,27 @@ TORRENT_TEST(rename_file_fastresume)
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
-		const int mask = alert::all_categories
-			& ~(alert::progress_notification
-				| alert::performance_warning
-				| alert::stats_notification);
-
-		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
-		pack.set_bool(settings_pack::enable_natpmp, false);
-		pack.set_bool(settings_pack::enable_upnp, false);
-		pack.set_bool(settings_pack::enable_dht, false);
-		pack.set_int(settings_pack::alert_mask, mask);
+		settings_pack pack = settings();
 		lt::session ses(pack);
 
 		add_torrent_params p;
+		std::vector<char> resume_data;
+		bencode(std::back_inserter(resume_data), resume);
+
+#ifndef TORRENT_NO_DEPRECATE
+		if (test_deprecated)
+		{
+			p.resume_data = resume_data;
+		}
+		else
+#endif
+		{
+			p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+			TEST_CHECK(!ec);
+		}
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_compact;
-		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		torrent_status stat;
@@ -845,6 +847,18 @@ TORRENT_TEST(rename_file_fastresume)
 		std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
 }
+
+TORRENT_TEST(rename_file_fastresume)
+{
+	test_rename_file_fastresume(false);
+}
+
+#ifndef TORRENT_NO_DEPRECATE
+TORRENT_TEST(rename_file_fastresume_deprecated)
+{
+	test_rename_file_fastresume(true);
+}
+#endif
 
 void alloc_iov(file::iovec_t* iov, int num_bufs)
 {
@@ -980,7 +994,7 @@ TORRENT_TEST(iovec_advance_bufs)
 	// 13 bytes
 	advance_bufs(iov, 13);
 
-	// make sure what's in 
+	// make sure what's in
 	int counter = 13;
 	for (int i = 0; i < end - iov; ++i)
 	{

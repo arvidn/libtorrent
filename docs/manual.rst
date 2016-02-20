@@ -356,11 +356,12 @@ fast-resume data. The fast-resume data also contains information about which
 blocks, in the unfinished pieces, were downloaded, so it will not have to
 start from scratch on the partially downloaded pieces.
 
-To use the fast-resume data you simply give it to async_add_torrent() and
-add_torrent(), and it will skip the time consuming checks. It may have to do
+To use the fast-resume data you pass it to read_resume_data(), which will return
+an add_torrent_params object. Fields of this object can then be altered before
+passing it to async_add_torrent() or add_torrent().
+The session will then skip the time consuming checks. It may have to do
 the checking anyway, if the fast-resume data is corrupt or doesn't fit the
-storage for that torrent, then it will not trust the fast-resume data and just
-do the checking.
+storage for that torrent.
 
 file format
 -----------
@@ -371,29 +372,13 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file-format``          | string: "libtorrent resume file"                             |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
-| ``file-version``         | integer: 1                                                   |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
-| ``blocks per piece``     | integer, the number of blocks per piece. Must be: piece_size |
-|                          | / (16 * 1024). Clamped to be within the range [1, 256]. It   |
-|                          | is the number of blocks per (normal sized) piece. Usually    |
-|                          | each block is 16 * 1024 bytes in size. But if piece size is  |
-|                          | greater than 4 megabytes, the block size will increase.      |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
 | ``pieces``               | A string with piece flags, one character per piece.          |
 |                          | Bit 1 means we have that piece.                              |
 |                          | Bit 2 means we have verified that this piece is correct.     |
 |                          | This only applies when the torrent is in seed_mode.          |
-+--------------------------+--------------------------------------------------------------+
-| ``slots``                | list of integers. The list maps slots to piece indices. It   |
-|                          | tells which piece is on which slot. If piece index is -2 it  |
-|                          | means it is free, that there's no piece there. If it is -1,  |
-|                          | means the slot isn't allocated on disk yet. The pieces have  |
-|                          | to meet the following requirement:                           |
 +--------------------------+--------------------------------------------------------------+
 | ``total_uploaded``       | integer. The number of bytes that have been uploaded in      |
 |                          | total for this torrent.                                      |
@@ -406,14 +391,6 @@ The file format is a bencoded dictionary containing the following fields:
 +--------------------------+--------------------------------------------------------------+
 | ``seeding_time``         | integer. The number of seconds this torrent has been active  |
 |                          | and seeding.                                                 |
-+--------------------------+--------------------------------------------------------------+
-| ``num_seeds``            | integer. An estimate of the number of seeds on this torrent  |
-|                          | when the resume data was saved. This is scrape data or based |
-|                          | on the peer list if scrape data is unavailable.              |
-+--------------------------+--------------------------------------------------------------+
-| ``num_downloaders``      | integer. An estimate of the number of downloaders on this    |
-|                          | torrent when the resume data was last saved. This is used as |
-|                          | an initial estimate until we acquire up-to-date scrape info. |
 +--------------------------+--------------------------------------------------------------+
 | ``upload_rate_limit``    | integer. In case this torrent has a per-torrent upload rate  |
 |                          | limit, this is that limit. In bytes per second.              |
@@ -509,20 +486,8 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | +-------------+--------------------------------------------+ |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
-| ``file sizes``           | list where each entry corresponds to a file in the file list |
-|                          | in the metadata. Each entry has a list of two values, the    |
-|                          | first value is the size of the file in bytes, the second     |
-|                          | is the time stamp when the last time someone wrote to it.    |
-|                          | This information is used to compare with the files on disk.  |
-|                          | All the files must match exactly this information in order   |
-|                          | to consider the resume data as current. Otherwise a full     |
-|                          | re-check is issued.                                          |
-+--------------------------+--------------------------------------------------------------+
-| ``allocation``           | The allocation mode for the storage. Can be either ``full``  |
-|                          | or ``compact``. If this is full, the file sizes and          |
-|                          | timestamps are disregarded. Pieces are assumed not to have   |
-|                          | moved around even if the files have been modified after the  |
-|                          | last resume data checkpoint.                                 |
+| ``allocation``           | The allocation mode for the storage. Can be either           |
+|                          | ``allocate`` or ``sparse``.                                  |
 +--------------------------+--------------------------------------------------------------+
 
 storage allocation

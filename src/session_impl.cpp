@@ -4615,10 +4615,6 @@ namespace aux {
 	{
 		TORRENT_ASSERT(!p.save_path.empty());
 
-#ifndef TORRENT_NO_DEPRECATE
-		p.update_flags();
-#endif
-
 		add_torrent_params params = p;
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
@@ -4677,78 +4673,6 @@ namespace aux {
 			ih = &tmp;
 		}
 		else ih = &params.info_hash;
-
-		// we don't have a torrent file. If the user provided
-		// resume data, there may be some metadata in there
-		// TODO: this logic could probably be less spaghetti looking by being
-		// moved to a function with early exits
-		if ((!params.ti || !params.ti->is_valid())
-			&& !params.resume_data.empty())
-		{
-			int pos;
-			error_code err;
-			bdecode_node root;
-			bdecode_node info;
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("adding magnet link with resume data");
-#endif
-			if (bdecode(&params.resume_data[0], &params.resume_data[0]
-					+ params.resume_data.size(), root, err, &pos) == 0
-				&& root.type() == bdecode_node::dict_t
-				&& (info = root.dict_find_dict("info")))
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				session_log("found metadata in resume data");
-#endif
-				// verify the info-hash of the metadata stored in the resume file matches
-				// the torrent we're loading
-
-				std::pair<char const*, int> buf = info.data_section();
-				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
-
-				// if url is set, the info_hash is not actually the info-hash of the
-				// torrent, but the hash of the URL, until we have the full torrent
-				// only require the info-hash to match if we actually passed in one
-				if (resume_ih == params.info_hash
-					|| !params.url.empty()
-					|| params.info_hash.is_all_zeros())
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					session_log("info-hash matched");
-#endif
-					params.ti = boost::make_shared<torrent_info>(resume_ih);
-
-					if (params.ti->parse_info_section(info, err, 0))
-					{
-#ifndef TORRENT_DISABLE_LOGGING
-						session_log("successfully loaded metadata from resume file");
-#endif
-						// make the info-hash be the one in the resume file
-						params.info_hash = resume_ih;
-						ih = &params.info_hash;
-					}
-					else
-					{
-#ifndef TORRENT_DISABLE_LOGGING
-						session_log("failed to load metadata from resume file: %s"
-							, err.message().c_str());
-#endif
-					}
-				}
-#ifndef TORRENT_DISABLE_LOGGING
-				else
-				{
-					session_log("metadata info-hash failed");
-				}
-#endif
-			}
-#ifndef TORRENT_DISABLE_LOGGING
-			else
-			{
-				session_log("no metadata found (\"%s\")", err.message().c_str());
-			}
-#endif
-		}
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();

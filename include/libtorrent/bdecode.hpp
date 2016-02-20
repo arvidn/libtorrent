@@ -411,7 +411,7 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // produced by this function does not copy any data out of the buffer, but
 // simply produces references back into it.
 TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
-	, error_code& ec, int* error_pos = 0, int depth_limit = 100
+	, error_code& ec, int* error_pos = NULL, int depth_limit = 100
 	, int token_limit = 1000000);
 
 }

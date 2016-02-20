@@ -820,7 +820,7 @@ namespace libtorrent
 #endif
 	}
 
-	bool default_storage::verify_resume_data(bdecode_node const& rd
+	bool default_storage::verify_resume_data(add_torrent_params const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec)
 	{
@@ -861,55 +861,57 @@ namespace libtorrent
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-		if (rd && rd.type() == bdecode_node::dict_t)
+		bool const seed = rd.have_pieces.all_set();
+
+		// parse have bitmask. Verify that the files we expect to have
+		// actually do exist
+		for (int i = 0; i < rd.have_pieces.size(); ++i)
 		{
-			bdecode_node pieces = rd.dict_find_string("pieces");
-			if (pieces && pieces.type() == bdecode_node::string_t
-				&& int(pieces.string_length()) == fs.num_pieces())
+			if (rd.have_pieces.get_bit(i) == false) continue;
+
+			std::vector<file_slice> f = fs.map_block(i, 0, 1);
+			TORRENT_ASSERT(!f.empty());
+
+			int const file_index = f[0].file_index;
+			error_code error;
+			boost::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
+				, fs, m_save_path, error);
+
+			if (size < 0)
 			{
-				char const* pieces_str = pieces.string_ptr();
-				// parse have bitmask. Verify that the files we expect to have
-				// actually do exist
-				for (int i = 0; i < fs.num_pieces(); ++i)
+				if (error != boost::system::errc::no_such_file_or_directory)
 				{
-					if ((pieces_str[i] & 1) == 0) continue;
-
-					std::vector<file_slice> f = fs.map_block(i, 0, 1);
-					TORRENT_ASSERT(!f.empty());
-
-					const int file_index = f[0].file_index;
-					error_code error;
-					boost::int64_t size = m_stat_cache.get_filesize(f[0].file_index
-						, fs, m_save_path, error);
-
-					if (size < 0)
-					{
-						if (error != boost::system::errc::no_such_file_or_directory)
-						{
-							ec.ec = error;
-							ec.file = i;
-							ec.operation = storage_error::stat;
-							return false;
-						}
-						else
-						{
-							ec.ec = errors::mismatching_file_size;
-							ec.file = i;
-							ec.operation = storage_error::stat;
-							return false;
-						}
-					}
-
-					// OK, this file existed, good. Now, skip all remaining pieces in
-					// this file. We're just sanity-checking whether the files exist
-					// or not.
-					peer_request pr = fs.map_file(file_index, 0
-						, fs.file_size(file_index) + 1);
-					i = (std::max)(i + 1, pr.piece);
+					ec.ec = error;
+					ec.file = i;
+					ec.operation = storage_error::stat;
+					return false;
+				}
+				else
+				{
+					ec.ec = errors::mismatching_file_size;
+					ec.file = i;
+					ec.operation = storage_error::stat;
+					return false;
 				}
 			}
-		}
 
+			if (seed && size != fs.file_size(file_index))
+			{
+				// the resume data indicates we're a seed, but this file has
+				// the wrong size. Reject the resume data
+				ec.ec = errors::mismatching_file_size;
+				ec.file = i;
+				ec.operation = storage_error::check_resume;
+				return false;
+			}
+
+			// OK, this file existed, good. Now, skip all remaining pieces in
+			// this file. We're just sanity-checking whether the files exist
+			// or not.
+			peer_request pr = fs.map_file(file_index, 0
+				, fs.file_size(file_index) + 1);
+			i = (std::max)(i + 1, pr.piece);
+		}
 		return true;
 	}
 
@@ -1451,29 +1453,14 @@ namespace libtorrent
 	// torrent. The storage must create hard links (or copy) those files. If
 	// any file does not exist or is inaccessible, the disk job must fail.
 	int piece_manager::check_fastresume(
-		bdecode_node const& rd
+		add_torrent_params const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
 		// if we don't have any resume data, return
-		if (rd.type() == bdecode_node::none_t) return check_no_fastresume(ec);
-
-		if (rd.type() != bdecode_node::dict_t)
-		{
-			ec.ec = errors::not_a_dictionary;
-			return check_no_fastresume(ec);
-		}
-
-		int block_size = (std::min)(16 * 1024, m_files.piece_length());
-		int blocks_per_piece = int(rd.dict_find_int_value("blocks per piece", -1));
-		if (blocks_per_piece != -1
-			&& blocks_per_piece != m_files.piece_length() / block_size)
-		{
-			ec.ec = errors::invalid_blocks_per_piece;
-			return check_no_fastresume(ec);
-		}
+		if (rd.have_pieces.empty()) return check_no_fastresume(ec);
 
 		if (!m_storage->verify_resume_data(rd, links, ec))
 			return check_no_fastresume(ec);

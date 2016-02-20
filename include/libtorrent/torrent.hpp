@@ -105,12 +105,6 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
-	struct resume_data_t
-	{
-		std::vector<char> buf;
-		bdecode_node node;
-	};
-
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -989,7 +983,6 @@ namespace libtorrent
 		torrent_handle get_handle();
 
 		void write_resume_data(entry& rd) const;
-		void read_resume_data(bdecode_node const& rd);
 
 		void seen_complete() { m_last_seen_complete = time(0); }
 		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }
@@ -1305,8 +1298,10 @@ namespace libtorrent
 		// set if there's an error on this torrent
 		error_code m_error;
 
-		// used if there is any resume data
-		boost::scoped_ptr<resume_data_t> m_resume_data;
+		// used if there is any resume data. Some of the information from the
+		// add_torrent_params struct are needed later in the torrent object's life
+		// cycle, and not in the constructor. So we need to save if away here
+		boost::scoped_ptr<add_torrent_params> m_add_torrent_params;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
@@ -1494,9 +1489,9 @@ namespace libtorrent
 		// torrent.
 		bool m_super_seeding:1;
 
-		// this is set when we don't want to load seed_mode,
-		// paused or auto_managed from the resume data
-		const bool m_override_resume_data:1;
+		// if this is set, whenever transitioning into a downloading/seeding state
+		// from a non-downloading/seeding state, the torrent is paused.
+		bool m_stop_when_ready:1;
 
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
@@ -1564,10 +1559,12 @@ namespace libtorrent
 		// torrent or not. Defaults to true.
 		bool m_apply_ip_filter:1;
 
-		// if set to true, add tracker URLs loaded from resume
-		// data into this torrent instead of replacing them
-		bool m_merge_resume_trackers:1;
-
+		// this is true when our effective inactive state is different from our
+		// actual inactive state. Whenever this state changes, there is a
+		// quarantine period until we change the effective state. This is to avoid
+		// flapping. If the state changes back during this period, we cancel the
+		// quarantine
+		bool m_pending_active_change:1;
 // ----
 
 		// the number of bytes of padding files
@@ -1681,32 +1678,6 @@ namespace libtorrent
 		// progress parts per million (the number of
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
-
-		// this is true when our effective inactive state is different from our
-		// actual inactive state. Whenever this state changes, there is a
-		// quarantine period until we change the effective state. This is to avoid
-		// flapping. If the state changes back during this period, we cancel the
-		// quarantine
-		bool m_pending_active_change:1;
-
-		// if this is set, accept the save path saved in the resume data, if
-		// present
-		bool m_use_resume_save_path:1;
-
-		// if set to true, add web seed URLs loaded from resume
-		// data into this torrent instead of replacing the ones from the .torrent
-		// file
-		bool m_merge_resume_http_seeds:1;
-
-		// if this is set, whenever transitioning into a downloading/seeding state
-		// from a non-downloading/seeding state, the torrent is paused.
-		bool m_stop_when_ready:1;
-
-#if TORRENT_USE_ASSERTS
-	public:
-		// set to false until we've loaded resume data
-		bool m_resume_data_loaded;
-#endif
 	};
 
 	struct torrent_ref_holder

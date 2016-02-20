@@ -36,6 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/read_resume_data.hpp"
+#endif
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -152,11 +156,138 @@ namespace libtorrent
 		return TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);
 	}
 
-	#ifndef BOOST_NO_EXCEPTIONS
+#ifndef TORRENT_NO_DEPRECATE
+	namespace
+	{
+		void handle_backwards_compatible_resume_data(add_torrent_params& atp)
+		{
+			// if there's no resume data set, there's nothing to do. It's either
+			// using the previous API without resume data, or the resume data has
+			// already been parsed out into the add_torrent_params struct.
+			if (atp.resume_data.empty()) return;
+
+			error_code ec;
+			add_torrent_params resume_data
+				= read_resume_data(&atp.resume_data[0], atp.resume_data.size(), ec);
+
+			resume_data.internal_resume_data_error = ec;
+			if (ec) return;
+
+			// now, merge resume_data into atp according to the merge flags
+			if (atp.flags & add_torrent_params::flag_use_resume_save_path
+				&& !resume_data.save_path.empty())
+			{
+				atp.save_path = resume_data.save_path;
+			}
+
+			if (!resume_data.trackers.empty())
+			{
+				atp.tracker_tiers.resize(atp.trackers.size(), 0);
+				atp.trackers.insert(atp.trackers.end()
+					, resume_data.trackers.begin()
+					, resume_data.trackers.end());
+				atp.tracker_tiers.insert(atp.tracker_tiers.end()
+					, resume_data.tracker_tiers.begin()
+					, resume_data.tracker_tiers.end());
+				if ((resume_data.flags & add_torrent_params::flag_merge_resume_trackers) == 0)
+					atp.flags |= add_torrent_params::flag_override_trackers;
+			}
+
+			if (!resume_data.url_seeds.empty())
+			{
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.url_seeds.clear();
+
+				atp.url_seeds.insert(atp.url_seeds.end()
+					, resume_data.url_seeds.begin()
+					, resume_data.url_seeds.end());
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.flags |= add_torrent_params::flag_override_web_seeds;
+			}
+
+			if (!resume_data.http_seeds.empty())
+			{
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.http_seeds.clear();
+
+				atp.http_seeds.insert(atp.http_seeds.end()
+					, resume_data.http_seeds.begin()
+					, resume_data.http_seeds.end());
+				if ((atp.flags & add_torrent_params::flag_merge_resume_http_seeds) == 0)
+					atp.flags |= add_torrent_params::flag_override_web_seeds;
+			}
+
+			atp.total_uploaded = resume_data.total_uploaded;
+			atp.total_downloaded = resume_data.total_downloaded;
+			atp.num_complete = resume_data.num_complete;
+			atp.num_incomplete = resume_data.num_incomplete;
+			atp.num_downloaded = resume_data.num_downloaded;
+			atp.total_uploaded = resume_data.total_uploaded;
+			atp.total_downloaded = resume_data.total_downloaded;
+			atp.active_time = resume_data.active_time;
+			atp.finished_time = resume_data.finished_time;
+			atp.seeding_time = resume_data.seeding_time;
+
+			atp.last_seen_complete = resume_data.last_seen_complete;
+			atp.url = resume_data.url;
+			atp.uuid = resume_data.uuid;
+			atp.source_feed_url = resume_data.source_feed_url;
+
+			atp.added_time = resume_data.added_time;
+			atp.completed_time = resume_data.completed_time;
+
+			atp.peers.swap(resume_data.peers);
+			atp.banned_peers.swap(resume_data.banned_peers);
+
+			atp.unfinished_pieces.swap(resume_data.unfinished_pieces);
+			atp.have_pieces.swap(resume_data.have_pieces);
+			atp.verified_pieces.swap(resume_data.verified_pieces);
+			atp.piece_priorities.swap(resume_data.piece_priorities);
+
+			atp.merkle_tree.swap(resume_data.merkle_tree);
+
+			atp.renamed_files.swap(resume_data.renamed_files);
+
+			if ((atp.flags & add_torrent_params::flag_override_resume_data) == 0)
+			{
+				atp.download_limit = resume_data.download_limit;
+				atp.upload_limit = resume_data.upload_limit;
+				atp.max_connections = resume_data.max_connections;
+				atp.max_uploads = resume_data.max_uploads;
+				atp.trackerid = resume_data.trackerid;
+				if (!resume_data.file_priorities.empty())
+					atp.file_priorities = resume_data.file_priorities;
+
+				boost::uint64_t const mask =
+					add_torrent_params::flag_seed_mode
+					| add_torrent_params::flag_super_seeding
+					| add_torrent_params::flag_auto_managed
+					| add_torrent_params::flag_sequential_download
+					| add_torrent_params::flag_paused;
+
+				atp.flags &= ~mask;
+				atp.flags |= resume_data.flags & mask;
+			}
+			else
+			{
+				if (atp.file_priorities.empty())
+					atp.file_priorities = resume_data.file_priorities;
+			}
+		}
+	}
+#endif
+
+#ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
 	{
+#ifndef TORRENT_NO_DEPRECATE
+		add_torrent_params p = params;
+		handle_backwards_compatible_resume_data(p);
+#else
+		add_torrent_params const& p = params;
+#endif
 		error_code ec;
-		torrent_handle r = TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
+		torrent_handle r = TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
 		if (ec) throw libtorrent_exception(ec);
 		return r;
 	}
@@ -165,19 +296,23 @@ namespace libtorrent
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
 		ec.clear();
-		return TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, params, boost::ref(ec));
+#ifndef TORRENT_NO_DEPRECATE
+		add_torrent_params p = params;
+		handle_backwards_compatible_resume_data(p);
+#else
+		add_torrent_params const& p = params;
+#endif
+		return TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
 	}
 
 	void session_handle::async_add_torrent(add_torrent_params const& params)
 	{
 		add_torrent_params* p = new add_torrent_params(params);
+
 #ifndef TORRENT_NO_DEPRECATE
-		if (params.tracker_url)
-		{
-			p->trackers.push_back(params.tracker_url);
-			p->tracker_url = NULL;
-		}
+		handle_backwards_compatible_resume_data(*p);
 #endif
+
 		TORRENT_ASYNC_CALL1(async_add_torrent, p);
 	}
 
@@ -201,7 +336,8 @@ namespace libtorrent
 			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
-		p.paused = paused;
+		if (paused) p.flags |= add_torrent_params::flag_paused;
+		else p.flags &= ~add_torrent_params::flag_paused;
 		return add_torrent(p);
 	}
 
@@ -217,11 +353,14 @@ namespace libtorrent
 		, void* userdata)
 	{
 		add_torrent_params p(sc);
-		p.tracker_url = tracker_url;
+		p.trackers.push_back(tracker_url);
 		p.info_hash = info_hash;
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
-		p.paused = paused;
+
+		if (paused) p.flags |= add_torrent_params::flag_paused;
+		else p.flags &= ~add_torrent_params::flag_paused;
+
 		p.userdata = userdata;
 		p.name = name;
 		if (resume_data.type() != entry::undefined_t)

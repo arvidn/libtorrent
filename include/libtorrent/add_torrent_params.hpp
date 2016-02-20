@@ -35,11 +35,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/version.hpp"
+#include "libtorrent/socket.hpp" // for tcp::endpoint
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent
 {
@@ -75,53 +81,26 @@ namespace libtorrent
 		// data for the torrent. For more information, see the ``storage`` field.
 		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: version(LIBTORRENT_VERSION_NUM)
-#ifndef TORRENT_NO_DEPRECATE
-			, tracker_url(0)
-#endif
 			, storage_mode(storage_mode_sparse)
 			, storage(sc)
 			, userdata(0)
-#ifndef TORRENT_NO_DEPRECATE
-			, flags(flag_ignore_flags | default_flags)
-#else
 			, flags(default_flags)
-#endif
 			, max_uploads(-1)
 			, max_connections(-1)
 			, upload_limit(-1)
 			, download_limit(-1)
-#ifndef TORRENT_NO_DEPRECATE
-			, seed_mode(false)
-			, override_resume_data(false)
-			, upload_mode(false)
-			, share_mode(false)
-			, apply_ip_filter(true)
-			, paused(true)
-			, auto_managed(true)
-			, duplicate_is_error(false)
-			, merge_resume_trackers(false)
-#endif
-		{
-		}
-
-#ifndef TORRENT_NO_DEPRECATE
-		void update_flags() const
-		{
-			if (flags != (flag_ignore_flags | default_flags)) return;
-
-			boost::uint64_t& f = const_cast<boost::uint64_t&>(flags);
-			f = flag_update_subscribe;
-			if (seed_mode) f |= flag_seed_mode;
-			if (override_resume_data) f |= flag_override_resume_data;
-			if (upload_mode) f |= flag_upload_mode;
-			if (share_mode) f |= flag_share_mode;
-			if (apply_ip_filter) f |= flag_apply_ip_filter;
-			if (paused) f |= flag_paused;
-			if (auto_managed) f |= flag_auto_managed;
-			if (duplicate_is_error) f |= flag_duplicate_is_error;
-			if (merge_resume_trackers) f |= flag_merge_resume_trackers;
-		}
-#endif
+			, total_uploaded(0)
+			, total_downloaded(0)
+			, active_time(0)
+			, finished_time(0)
+			, seeding_time(0)
+			, added_time(0)
+			, completed_time(0)
+			, last_seen_complete(0)
+			, num_complete(-1)
+			, num_incomplete(-1)
+			, num_downloaded(-1)
+		{}
 
 		// values for the ``flags`` field
 		enum flags_t
@@ -143,6 +122,7 @@ namespace libtorrent
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// If ``flag_override_resume_data`` is set, flags set for this torrent
 			// in this ``add_torrent_params`` object will take precedence over
 			// whatever states are saved in the resume data. For instance, the
@@ -156,6 +136,7 @@ namespace libtorrent
 			// If this flag is set, but file_priorities is empty, file priorities
 			// are still loaded from the resume data, if present.
 			flag_override_resume_data = 0x002,
+#endif
 
 			// If ``flag_upload_mode`` is set, the torrent will be initialized in
 			// upload-mode, which means it will not make any piece requests. This
@@ -223,7 +204,8 @@ namespace libtorrent
 			flag_auto_managed = 0x040,
 			flag_duplicate_is_error = 0x080,
 
-			// defaults to off and specifies whether tracker URLs loaded from
+#ifndef TORRENT_NO_DEPRECATE
+			// defaults to on and specifies whether tracker URLs loaded from
 			// resume data should be added to the trackers in the torrent or
 			// replace the trackers. When replacing trackers (i.e. this flag is not
 			// set), any trackers passed in via add_torrent_params are also
@@ -231,6 +213,7 @@ namespace libtorrent
 			// to have the resume data override the .torrent file _and_ the
 			// trackers added in add_torrent_params.
 			flag_merge_resume_trackers = 0x100,
+#endif
 
 			// on by default and means that this torrent will be part of state
 			// updates when calling post_torrent_updates().
@@ -247,17 +230,20 @@ namespace libtorrent
 			// the torrent handle immediately after adding it.
 			flag_sequential_download = 0x800,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if this flag is set, the save path from the resume data file, if
 			// present, is honored. This defaults to not being set, in which
 			// case the save_path specified in add_torrent_params is always used.
 			flag_use_resume_save_path = 0x1000,
+#endif
 
 			// indicates that this torrent should never be unloaded from RAM, even
 			// if unloading torrents are allowed in general. Setting this makes
 			// the torrent exempt from loading/unloading management.
 			flag_pinned = 0x2000,
 
-			// defaults to off and specifies whether web seed URLs loaded from
+#ifndef TORRENT_NO_DEPRECATE
+			// defaults to on and specifies whether web seed URLs loaded from
 			// resume data should be added to the ones in the torrent file or
 			// replace them. No distinction is made between the two different kinds
 			// of web seeds (`BEP 17`_ and `BEP 19`_). When replacing web seeds
@@ -266,17 +252,38 @@ namespace libtorrent
 			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
 			flag_merge_resume_http_seeds = 0x2000,
+#endif
 
 			// the stop when ready flag. Setting this flag is equivalent to calling
 			// torrent_handle::stop_when_ready() immediately after the torrent is
 			// added.
 			flag_stop_when_ready = 0x4000,
 
-			// internal
-			default_flags = flag_pinned | flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
+			// when this flag is set, the tracker list in the add_torrent_params
+			// object override any trackers from the torrent file. If the flag is
+			// not set, the trackers from the add_torrent_params object will be
+			// added to the list of trackers used by the torrent.
+			flag_override_trackers = 0x8000,
 
+			// If this flag is set, the web seeds from the add_torrent_params
+			// object will override any web seeds in the torrent file. If it's not
+			// set, web seeds in the add_torrent_params object will be added to the
+			// list of web seeds used by the torrent.
+			flag_override_web_seeds = 0x10000,
+
+			// if this flag is set (which it is by default) the torrent will be
+			// considered needing to save its resume data immediately as it's
+			// added. New torrents that don't have any resume data should do that.
+			// This flag is cleared by a successful call to read_resume_data()
+			flag_need_save_resume = 0x20000,
+
+			// internal
+			default_flags = flag_pinned | flag_update_subscribe
+				| flag_auto_managed | flag_paused | flag_apply_ip_filter
+				| flag_need_save_resume
 #ifndef TORRENT_NO_DEPRECATE
-			, flag_ignore_flags = 0x80000000
+				| flag_merge_resume_http_seeds
+				| flag_merge_resume_trackers
 #endif
 		};
 
@@ -287,39 +294,29 @@ namespace libtorrent
 		// info_hash is set, this is required to be initialized.
 		boost::shared_ptr<torrent_info> ti;
 
-#ifndef TORRENT_NO_DEPRECATE
-		char const* tracker_url;
-#endif
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.
 		std::vector<std::string> trackers;
 
-		// url seeds to be added to the torrent (`BEP 17`_).
-		std::vector<std::string> url_seeds;
+		// the tiers the URLs in ``trackers`` belong to. Trackers belonging to
+		// different tiers may be treated differently, as defined by the multi
+		// tracker extension. This is optional, if not specified trackers are
+		// assumed to be part of tier 0, or whichever the last tier was as
+		// iterating over the trackers.
+		std::vector<int> tracker_tiers;
 
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int> > dht_nodes;
 		std::string name;
 
-		// the path where the torrent is or will be stored. Note that this may
-		// also be stored in resume data. If you want the save path saved in
-		// the resume data to be used, you need to set the
-		// flag_use_resume_save_path flag.
+		// the path where the torrent is or will be stored.
 		//
 		// .. note::
 		// 	On windows this path (and other paths) are interpreted as UNC
 		// 	paths. This means they must use backslashes as directory separators
 		// 	and may not contain the special directories "." or "..".
 		std::string save_path;
-
-		// The optional parameter, ``resume_data`` can be given if up to date
-		// fast-resume data is available. The fast-resume data can be acquired
-		// from a running torrent by calling save_resume_data() on
-		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
-		// will be swapped into the running torrent instance with
-		// ``std::vector::swap()``.
-		std::vector<char> resume_data;
 
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.
@@ -398,16 +395,109 @@ namespace libtorrent
 		int upload_limit;
 		int download_limit;
 
+		// the total number of bytes uploaded and downloaded by this torrent so
+		// far.
+		boost::int64_t total_uploaded;
+		boost::int64_t total_downloaded;
+
+		// the numeber of seconds this torrent has spent in started, finished and
+		// seeding state so far, respectively.
+		int active_time;
+		int finished_time;
+		int seeding_time;
+
+		// if set to a non-zero value, this is the posix time of when this torrent
+		// was first added, including previous runs/sessions. If set to zero, the
+		// internal added_time will be set to the time of when add_torrent() is
+		// called.
+		time_t added_time;
+		time_t completed_time;
+
+		// if set to non-zero, initializes the time (expressed in posix time) when
+		// we last saw a seed or peers that together formed a complete copy of the
+		// torrent. If left set to zero, the internal counterpart to this field
+		// will be updated when we see a seed or a distributed copies >= 1.0.
+		time_t last_seen_complete;
+
+		// these field can be used to initialize the torrent's cached scrape data.
+		// The scrape data is high level metadata about the current state of the
+		// swarm, as returned by the tracker (either when announcing to it or by
+		// sending a specific scrape request). ``num_complete`` is the number of
+		// peers in the swarm that are seeds, or have every piece in the torrent.
+		// ``num_inomplete`` is the number of peers in the swarm that do not have
+		// every piece. ``num_downloaded`` is the number of times the torrent has
+		// been downloaded (not initiated, but the number of times a download has
+		// completed).
+		// 
+		// Leaving any of these values set to -1 indicates we don't know, or we
+		// have not received any scrape data.
+		int num_complete;
+		int num_incomplete;
+		int num_downloaded;
+
+		// URLs can be added to these two lists to specify additional web
+		// seeds to be used by the torrent. If the ``flag_override_web_seeds``
+		// is set, these will be the _only_ ones to be used. i.e. any web seeds
+		// found in the .torrent file will be overridden.
+		// 
+		// http_seeds expects URLs to web servers implementing the original HTTP
+		// seed specification `BEP 17`_.
+		// 
+		// url_seeds expects URLs to regular web servers, aka "get right" style,
+		// specified in `BEP 19`_.
+		std::vector<std::string> http_seeds;
+		std::vector<std::string> url_seeds;
+
+		// peers to add to the torrent, to be tried to be connected to as
+		// bittorrent peers.
+		std::vector<tcp::endpoint> peers;
+
+		// peers banned from this torrent. The will not be connected to
+		std::vector<tcp::endpoint> banned_peers;
+
+		// this is a map of partially downloaded piece. The key is the piece index
+		// and the value is a bitfield where each bit represents a 16 kiB block.
+		// A set bit means we have that block.
+		std::map<int, bitfield> unfinished_pieces;
+
+		// this is a bitfield indicating which pieces we already have of this
+		// torrent.
+		bitfield have_pieces;
+
+		// when in seed_mode, pieces with a set bit in this bitfield have been
+		// verified to be valid. Other pieces will be verified the first time a
+		// peer requests it.
+		bitfield verified_pieces;
+
+		// this sets the priorities for each individual piece in the torrent. Each
+		// element in the vector represent the piece with the same index. If you
+		// set both file- and piece priorities, file priorities will take
+		// precedence.
+		std::vector<boost::uint8_t> piece_priorities;
+
+		// if this is a merkle tree torrent, and you're seeding, this field must
+		// be set. It is all the hashes in the binary tree, with the root as the
+		// first entry. See torrent_info::set_merkle_tree() for more info.
+		std::vector<sha1_hash> merkle_tree;
+
+		// this is a map of file indices in the torrent and new filenames to be
+		// applied before the torrent is added.
+		std::map<int, std::string> renamed_files;
+
 #ifndef TORRENT_NO_DEPRECATE
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
-		bool share_mode;
-		bool apply_ip_filter;
-		bool paused;
-		bool auto_managed;
-		bool duplicate_is_error;
-		bool merge_resume_trackers;
+		// The optional parameter, ``resume_data`` can be given if up to date
+		// fast-resume data is available. The fast-resume data can be acquired
+		// from a running torrent by calling save_resume_data() on
+		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
+		// will be swapped into the running torrent instance with
+		// ``std::vector::swap()``.
+		std::vector<char> resume_data;
+
+		// to support the deprecated use case of reading the resume data into
+		// resume_data field and getting a reject alert, any parse failure is
+		// communicated forward into libtorrent via this field. If this is set, a
+		// fastresume_rejected_alert will be posted.
+		error_code internal_resume_data_error;
 #endif
 
 	};

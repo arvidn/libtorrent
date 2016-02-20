@@ -1879,8 +1879,8 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 	}
 
-	void disk_io_thread::async_check_fastresume(piece_manager* storage
-		, bdecode_node const* resume_data
+	void disk_io_thread::async_check_files(piece_manager* storage
+		, add_torrent_params const* resume_data
 		, std::vector<std::string>& links
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
@@ -2575,8 +2575,8 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
-		bdecode_node const* rd = j->buffer.check_resume_data;
-		bdecode_node tmp;
+		add_torrent_params const* rd = j->buffer.check_resume_data;
+		add_torrent_params tmp;
 		if (rd == NULL) rd = &tmp;
 
 		boost::scoped_ptr<std::vector<std::string> > links(j->d.links);

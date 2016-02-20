@@ -110,7 +110,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool rename_file(int file, std::string const& new_name)
 //		{ assert(false); return false; }
 //		virtual bool move_storage(std::string const& save_path) { return false; }
-//		virtual bool verify_resume_data(bdecode_node const& rd
+//		virtual bool verify_resume_data(add_torrent_params const& rd
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
 //		virtual boost::int64_t physical_offset(int piece, int offset)
@@ -151,6 +151,7 @@ namespace libtorrent
 	struct cache_status;
 	namespace aux { struct session_settings; }
 	struct cached_piece_entry;
+	struct add_torrent_params;
 
 	TORRENT_EXTRA_EXPORT std::vector<std::pair<boost::int64_t, std::time_t> > get_filesizes(
 		file_storage const& t
@@ -309,7 +310,7 @@ namespace libtorrent
 		// the absolute path to a file identical to the corresponding file in this
 		// torrent. The storage must create hard links (or copy) those files. If
 		// any file does not exist or is inaccessible, the disk job must fail.
-		virtual bool verify_resume_data(bdecode_node const& rd
+		virtual bool verify_resume_data(add_torrent_params const& rd
 			, std::vector<std::string> const* links
 			, storage_error& ec) = 0;
 
@@ -419,7 +420,7 @@ namespace libtorrent
 		virtual void initialize(storage_error& ec) TORRENT_OVERRIDE;
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) TORRENT_OVERRIDE;
-		virtual bool verify_resume_data(bdecode_node const& rd
+		virtual bool verify_resume_data(add_torrent_params const& rd
 			, std::vector<std::string> const* links
 			, storage_error& error) TORRENT_OVERRIDE;
 		virtual bool tick() TORRENT_OVERRIDE;
@@ -503,7 +504,7 @@ namespace libtorrent
 		virtual int writev(file::iovec_t const* bufs, int num_bufs, int piece
 			, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
 
-		virtual bool verify_resume_data(bdecode_node const&
+		virtual bool verify_resume_data(add_torrent_params const&
 			, std::vector<std::string> const*
 			, storage_error&) TORRENT_OVERRIDE { return false; }
 	};
@@ -524,7 +525,7 @@ namespace libtorrent
 			, storage_error&) TORRENT_OVERRIDE {}
 		virtual int move_storage(std::string const& /* save_path */
 			, int /* flags */, storage_error&) TORRENT_OVERRIDE { return 0; }
-		virtual bool verify_resume_data(bdecode_node const& /* rd */
+		virtual bool verify_resume_data(add_torrent_params const& /* rd */
 			, std::vector<std::string> const* /* links */
 			, storage_error&) TORRENT_OVERRIDE
 			{ return false; }
@@ -656,7 +657,7 @@ namespace libtorrent
 		// the error message indicates that the fast resume data was rejected
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
-		int check_fastresume(bdecode_node const& rd
+		int check_fastresume(add_torrent_params const& rd
 			, std::vector<std::string> const* links
 			, storage_error& error);
 
