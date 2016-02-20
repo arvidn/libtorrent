@@ -402,7 +402,7 @@ namespace libtorrent
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
 				&& std::count(p.file_priorities.begin(), p.file_priorities.end(), 0) == 0
 				&& std::count(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == 0
-				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), 0) == 0;
+				&& p.have_pieces.count() == 0;
 
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
@@ -2388,17 +2388,31 @@ namespace libtorrent
 			debug_log("fastresume data rejected: ret: %d (%d) %s"
 				, j->ret, j->error.ec.value(), j->error.ec.message().c_str());
 		}
-#ifndef TORRENT_DISABLE_LOGGING
 		else
+		{
 			debug_log("fastresume data accepted");
+		}
 #endif
-#endif
+
+		bool should_start_full_check = j->ret != 0;
+
+		// if we got a partial pieces bitfield, it means we were in the middle of
+		// checking this torrent. pick it up where we left off
+		if (!should_start_full_check
+			&& m_add_torrent_params
+			&& m_add_torrent_params->have_pieces.size() > 0
+			&& m_add_torrent_params->have_pieces.size() < m_torrent_file->num_pieces())
+		{
+			m_checking_piece = m_num_checked_pieces
+				= m_add_torrent_params->have_pieces.size();
+			should_start_full_check = true;
+		}
 
 		// if ret != 0, it means we need a full check. We don't necessarily need
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (j->ret == 0)
+		if (!should_start_full_check)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
@@ -2577,6 +2591,10 @@ namespace libtorrent
 		}
 		else
 		{
+			m_progress_ppm = 0;
+			m_checking_piece = 0;
+			m_num_checked_pieces = 0;
+
 			set_state(torrent_status::checking_files);
 			if (m_auto_managed) pause(true);
 			if (should_check_files()) start_checking();
