@@ -25,7 +25,7 @@ namespace {
 
         allow_threading_guard guard;
 
-		  p.url = uri;
+        p.url = uri;
 
 #ifndef BOOST_NO_EXCEPTIONS
         return s.add_torrent(p);
@@ -63,8 +63,10 @@ namespace {
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
 		ret["url"] = p.url;
+#ifndef TORRENT_NO_DEPRECATE
 		ret["uuid"] = p.uuid;
 		ret["source_feed_url"] = p.source_feed_url;
+#endif
 		ret["flags"] = p.flags;
 		return ret;
 	}

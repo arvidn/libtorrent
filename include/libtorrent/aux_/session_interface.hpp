@@ -190,7 +190,10 @@ namespace libtorrent { namespace aux
 			, peer_connection* pc) = 0;
 		virtual void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 			, std::string uuid) = 0;
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 		virtual void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) = 0;
+#endif
 		virtual void set_queue_position(torrent* t, int p) = 0;
 		virtual int num_torrents() const = 0;
 

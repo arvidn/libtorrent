@@ -266,7 +266,10 @@ namespace libtorrent
 #endif
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const TORRENT_OVERRIDE;
+#ifndef TORRENT_NO_DEPRECATE
+			//deprecated in 1.2
 			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
+#endif
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 			std::vector<boost::shared_ptr<torrent> > find_collection(
 				std::string const& collection) const TORRENT_OVERRIDE;
@@ -276,8 +279,11 @@ namespace libtorrent
 
 			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
 				, std::string uuid) TORRENT_OVERRIDE;
+#ifndef TORRENT_NO_DEPRECATE
+			//deprecated in 1.2
 			void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) TORRENT_OVERRIDE
 			{ m_uuids.insert(std::make_pair(uuid, t)); }
+#endif
 			boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) TORRENT_OVERRIDE;
 			void set_queue_position(torrent* t, int p) TORRENT_OVERRIDE;
@@ -794,7 +800,10 @@ namespace libtorrent
 			// list.
 			linked_list<torrent> m_torrent_lru;
 
+#ifndef TORRENT_NO_DEPRECATE
+			//deprecated in 1.2
 			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+#endif
 
 			// peer connections are put here when disconnected to avoid
 			// race conditions with the disk thread. It's important that

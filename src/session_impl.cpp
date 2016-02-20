@@ -4243,7 +4243,12 @@ namespace aux {
 		, std::string uuid)
 	{
 		m_torrents.insert(std::make_pair(ih, t));
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 		if (!uuid.empty()) m_uuids.insert(std::make_pair(uuid, t));
+#else
+		TORRENT_UNUSED(uuid);
+#endif
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 	}
@@ -4340,6 +4345,8 @@ namespace aux {
 	}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
+	//deprecated in 1.2
 	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -4349,6 +4356,7 @@ namespace aux {
 		if (i != m_uuids.end()) return i->second;
 		return boost::weak_ptr<torrent>();
 	}
+#endif
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::vector<boost::shared_ptr<torrent> > session_impl::find_collection(
@@ -4662,6 +4670,8 @@ namespace aux {
 		sha1_hash const* ih = 0;
 		sha1_hash tmp;
 		if (params.ti) ih = &params.ti->info_hash();
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 		else if (!params.url.empty())
 		{
 			// in order to avoid info-hash collisions, for
@@ -4672,10 +4682,13 @@ namespace aux {
 			tmp = hasher(&params.url[0], params.url.size()).final();
 			ih = &tmp;
 		}
+#endif
 		else ih = &params.info_hash;
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
 		// if we still can't find the torrent, look for it by url
 		if (!torrent_ptr && !params.url.empty())
@@ -4686,17 +4699,21 @@ namespace aux {
 			if (i != m_torrents.end())
 				torrent_ptr = i->second;
 		}
+#endif
 
 		if (torrent_ptr)
 		{
 			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
 			{
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
 					torrent_ptr->set_uuid(params.uuid);
 				if (!params.url.empty() && torrent_ptr->url().empty())
 					torrent_ptr->set_url(params.url);
 				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
 					torrent_ptr->set_source_feed_url(params.source_feed_url);
+#endif
 				return torrent_handle(torrent_ptr);
 			}
 
@@ -4787,9 +4804,13 @@ namespace aux {
 #endif
 		}
 #endif // TORRENT_HAS_BOOST_UNORDERED
+
+#ifndef TORRENT_NO_DEPRECATE
+		//deprecated in 1.2
 		if (!params.uuid.empty() || !params.url.empty())
 			m_uuids.insert(std::make_pair(params.uuid.empty()
 				? params.url : params.uuid, torrent_ptr));
+#endif
 
 		// recalculate auto-managed torrents sooner (or put it off)
 		// if another torrent will be added within one second from now
@@ -4941,6 +4962,8 @@ namespace aux {
 
 	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
 	{
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
@@ -4948,10 +4971,13 @@ namespace aux {
 				= m_uuids.find(tptr->uuid());
 			if (j != m_uuids.end()) m_uuids.erase(j);
 		}
+#endif
 
 		torrent_map::iterator i =
 			m_torrents.find(tptr->torrent_file().info_hash());
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// this torrent might be filed under the URL-hash
 		if (i == m_torrents.end() && !tptr->url().empty())
 		{
@@ -4959,6 +4985,7 @@ namespace aux {
 			sha1_hash urlhash = hasher(&url[0], url.size()).final();
 			i = m_torrents.find(urlhash);
 		}
+#endif
 
 		if (i == m_torrents.end()) return;
 

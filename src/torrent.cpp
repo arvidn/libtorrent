@@ -196,9 +196,12 @@ namespace libtorrent
 		, m_inactivity_timer(ses.get_io_service())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		, m_url(p.url)
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
+#endif
 		, m_stats_counters(ses.stats_counters())
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
@@ -412,7 +415,10 @@ namespace libtorrent
 			if (!p.name.empty()) m_name.reset(new std::string(p.name));
 		}
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		if (!m_url.empty() && m_uuid.empty()) m_uuid = m_url;
+#endif
 
 		TORRENT_ASSERT(is_single_thread());
 		m_file_priority = p.file_priorities;
@@ -441,161 +447,8 @@ namespace libtorrent
 	void torrent::inc_stats_counter(int c, int value)
 	{ m_ses.stats_counters().inc_stats_counter(c, value); }
 
-#if 0
-
-	// NON BOTTLED VERSION. SUPPORTS PROGRESS REPORTING
-
-	// since this download is not bottled, this callback will
-	// be called every time we receive another piece of the
-	// .torrent file
-	void torrent::on_torrent_download(error_code const& ec
-		, http_parser const& parser
-		, char const* data, int size)
-	{
-		if (m_abort) return;
-
-		if (ec && ec != boost::asio::error::eof)
-		{
-			set_error(ec, error_file_url);
-			pause();
-			return;
-		}
-
-		if (size > 0)
-		{
-			m_torrent_file_buf.insert(m_torrent_file_buf.end(), data, data + size);
-			if (parser.content_length() > 0)
-				set_progress_ppm(boost::int64_t(m_torrent_file_buf.size())
-					* 1000000 / parser.content_length());
-		}
-
-		if (parser.header_finished() && parser.status_code() != 200)
-		{
-			set_error(error_code(parser.status_code(), get_http_category()), error_file_url);
-			pause();
-			return;
-		}
-
-		if (!ec) return;
-
-		// if this was received with chunked encoding, we need to strip out
-		// the chunk headers
-		size = parser.collapse_chunk_headers((char*)&m_torrent_file_buf[0], m_torrent_file_buf.size());
-		m_torrent_file_buf.resize(size);
-
-		std::string const& encoding = parser.header("content-encoding");
-		if ((encoding == "gzip" || encoding == "x-gzip") && m_torrent_file_buf.size())
-		{
-			std::vector<char> buf;
-			error_code ec;
-			inflate_gzip(&m_torrent_file_buf[0], m_torrent_file_buf.size()
-				, buf, 4 * 1024 * 1024, ex);
-			if (ec)
-			{
-				set_error(ec, error_file_url);
-				pause();
-				std::vector<char>().swap(m_torrent_file_buf);
-				return;
-			}
-			m_torrent_file_buf.swap(buf);
-		}
-
-		// we're done!
-		error_code e;
-		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(
-			&m_torrent_file_buf[0], m_torrent_file_buf.size(), e));
-		if (e)
-		{
-			set_error(e, error_file_url);
-			pause();
-			std::vector<char>().swap(m_torrent_file_buf);
-			return;
-		}
-		std::vector<char>().swap(m_torrent_file_buf);
-
-		// update our torrent_info object and move the
-		// torrent from the old info-hash to the new one
-		// as we replace the torrent_info object
-#if TORRENT_USE_ASSERTS
-		int num_torrents = m_ses.m_torrents.size();
-#endif
-		// we're about to erase the session's reference to this
-		// torrent, create another reference
-		boost::shared_ptr<torrent> me(shared_from_this());
-
-		m_ses.remove_torrent_impl(me, 0);
-
-		m_torrent_file = tf;
-
-		// now, we might already have this torrent in the session.
-		boost::shared_ptr<torrent> t = m_ses.find_torrent(m_torrent_file->info_hash()).lock();
-		if (t)
-		{
-			if (!m_uuid.empty() && t->uuid().empty())
-				t->set_uuid(m_uuid);
-			if (!m_url.empty() && t->url().empty())
-				t->set_url(m_url);
-			if (!m_source_feed_url.empty() && t->source_feed_url().empty())
-				t->set_source_feed_url(m_source_feed_url);
-
-			// insert this torrent in the uuid index
-			if (!m_uuid.empty() || !m_url.empty())
-			{
-				m_ses.insert_uuid_torrent(m_uuid.empty() ? m_url : m_uuid, t);
-			}
-
-			// TODO: if the existing torrent doesn't have metadata, insert
-			// the metadata we just downloaded into it.
-
-			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), error_file_url);
-			abort();
-			return;
-		}
-
-		m_ses.insert_torrent(m_torrent_file->info_hash(), me, m_uuid);
-
-		TORRENT_ASSERT(num_torrents == int(m_ses.m_torrents.size()));
-
-		// if the user added any trackers while downloading the
-		// .torrent file, merge them into the new tracker list
-		std::vector<announce_entry> new_trackers = m_torrent_file->trackers();
-		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
-		{
-			// if we already have this tracker, ignore it
-			if (std::find_if(new_trackers.begin(), new_trackers.end()
-				, boost::bind(&announce_entry::url, _1) == i->url) != new_trackers.end())
-				continue;
-
-			// insert the tracker ordered by tier
-			new_trackers.insert(std::find_if(new_trackers.begin(), new_trackers.end()
-				, boost::bind(&announce_entry::tier, _1) >= i->tier), *i);
-		}
-		m_trackers.swap(new_trackers);
-
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		hasher h;
-		h.update("req2", 4);
-		h.update((char*)&m_torrent_file->info_hash()[0], 20);
-		// this is SHA1("req2" + info-hash), used for
-		// encrypted hand shakes
-		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
-#endif
-
-		if (m_ses.alerts().should_post<metadata_received_alert>())
-		{
-			m_ses.alerts().emplace_alert<metadata_received_alert>(
-				get_handle());
-		}
-
-		state_updated();
-
-		set_state(torrent_status::downloading);
-
-		init();
-	}
-#else // if 0
-
+#ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.2
 	void torrent::on_torrent_download(error_code const& ec
 		, http_parser const& parser, char const* data, int size)
 	{
@@ -707,7 +560,7 @@ namespace libtorrent
 		init();
 	}
 
-#endif // if 0
+#endif // TORRENT_NO_DEPRECATE
 
 	int torrent::current_stats_state() const
 	{
@@ -857,7 +710,9 @@ namespace libtorrent
 		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
 		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
+#endif
 
 		// if we don't have metadata, make this torrent pinned. The
 		// client may unpin it once we have metadata and it has had
@@ -884,12 +739,16 @@ namespace libtorrent
 		update_want_tick();
 		update_state_list();
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
 			// we need to download the .torrent file from m_url
 			start_download_url();
 		}
-		else if (m_torrent_file->is_valid())
+		else
+#endif
+		if (m_torrent_file->is_valid())
 		{
 			init();
 		}
@@ -906,6 +765,8 @@ namespace libtorrent
 #endif
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.2
 	void torrent::start_download_url()
 	{
 		TORRENT_ASSERT(!m_url.empty());
@@ -929,6 +790,7 @@ namespace libtorrent
 			, 5, settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}
+#endif
 
 	void torrent::set_apply_ip_filter(bool b)
 	{
@@ -964,10 +826,13 @@ namespace libtorrent
 		if (!m_announce_to_dht) return false;
 		if (!m_allow_peers) return false;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// if we don't have the metadata, and we're waiting
 		// for a web server to serve it to us, no need to announce
 		// because the info-hash is just the URL hash
 		if (!m_torrent_file->is_valid() && !m_url.empty()) return false;
+#endif
 
 		// don't announce private torrents
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return false;
@@ -2907,8 +2772,11 @@ namespace libtorrent
 			if (!m_allow_peers)
 				debug_log("DHT: torrent paused, no DHT announce");
 
+#ifndef TORRENT_NO_DEPRECATE
+			// deprecated in 1.2
 			if (!m_torrent_file->is_valid() && !m_url.empty())
 				debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
+#endif
 
 			if (m_torrent_file->is_valid() && m_torrent_file->priv())
 				debug_log("DHT: private torrent, no DHT announce");
@@ -6759,9 +6627,12 @@ namespace libtorrent
 
 		ret["save_path"] = m_save_path;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		if (!m_url.empty()) ret["url"] = m_url;
 		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
 		if (!m_source_feed_url.empty()) ret["feed"] = m_source_feed_url;
+#endif
 
 		const sha1_hash& info_hash = torrent_file().info_hash();
 		ret["info-hash"] = info_hash.to_string();
@@ -8944,12 +8815,15 @@ namespace libtorrent
 		update_want_peers();
 		update_state_list();
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// if we haven't downloaded the metadata from m_url, try again
 		if (!m_url.empty() && !m_torrent_file->is_valid())
 		{
 			start_download_url();
 			return;
 		}
+#endif
 		// if the error happened during initialization, try again now
 		if (!m_connections_initialized && valid_metadata()) init();
 		if (!checking_files && should_check_files())
@@ -8958,7 +8832,10 @@ namespace libtorrent
 	std::string torrent::resolve_filename(int file) const
 	{
 		if (file == torrent_status::error_file_none) return "";
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		if (file == torrent_status::error_file_url) return m_url;
+#endif
 		if (file == torrent_status::error_file_ssl_ctx) return "SSL Context";
 		if (file == torrent_status::error_file_metadata) return "metadata (from user load function)";
 
@@ -9653,6 +9530,8 @@ namespace libtorrent
 #endif
 			return;
 		}
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		if (!m_torrent_file->is_valid() && !m_url.empty())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -9660,6 +9539,7 @@ namespace libtorrent
 #endif
 			return;
 		}
+#endif
 		if (m_announcing) return;
 
 		m_announcing = true;

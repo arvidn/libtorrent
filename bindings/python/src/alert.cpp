@@ -101,8 +101,10 @@ dict get_params(add_torrent_alert const& alert)
     ret["flags"] = p.flags;
     ret["trackerid"] = p.trackerid;
     ret["url"] = p.url;
+#ifndef TORRENT_NO_DEPRECATE
     ret["source_feed_url"] = p.source_feed_url;
     ret["uuid"] = p.uuid;
+#endif
     return ret;
 }
 
@@ -677,11 +679,13 @@ void bind_alert()
        .add_property("params", &get_params)
        ;
 
+#ifndef TORRENT_NO_DEPRECATE
     class_<torrent_update_alert, bases<torrent_alert>, noncopyable>(
        "torrent_update_alert", no_init)
         .def_readonly("old_ih", &torrent_update_alert::old_ih)
         .def_readonly("new_ih", &torrent_update_alert::new_ih)
         ;
+#endif
 
     class_<dht_outgoing_get_peers_alert, bases<alert>, noncopyable>(
        "dht_outgoing_get_peers_alert", no_init)
