@@ -248,13 +248,13 @@ namespace libtorrent
 			if (is_any(i->destination) && i->destination.is_v4() == remote.is_v4())
 			{
 				best = &*i;
-				continue;
+				break;
 			}
 
 			if (match_addr_mask(remote, i->destination, i->netmask))
 			{
 				best = &*i;
-				continue;
+				break;
 			}
 		}
 
