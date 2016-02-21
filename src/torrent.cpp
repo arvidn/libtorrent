@@ -2412,7 +2412,7 @@ namespace libtorrent
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (!should_start_full_check)
+		if (j->ret == 0)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
@@ -2484,10 +2484,9 @@ namespace libtorrent
 					}
 				}
 			}
-
-			files_checked();
 		}
-		else
+
+		if (should_start_full_check)
 		{
 			// either the fastresume data was rejected or there are
 			// some files
@@ -2496,6 +2495,10 @@ namespace libtorrent
 
 			// start the checking right away (potentially)
 			m_ses.trigger_auto_manage();
+		}
+		else
+		{
+			files_checked();
 		}
 
 		maybe_done_flushing();
