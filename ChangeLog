@@ -87,6 +87,7 @@
 
 1.0.9 release
 
+	* fix issue in checking outgoing interfaces (when that option is enabled)
 	* python binding fix for boost-1.60.0
 	* optimize enumeration of network interfaces on windows
 	* improve reliability of binding listen sockets
