@@ -118,6 +118,7 @@ when a torrent completes.
 .. _`async_add_torrent()`: reference-Core.html#add_torrent()
 .. _torrent_handle: reference-Core.html#torrent_handle
 .. _`pop_alerts()`: reference-Core.html#pop_alerts()
+.. _`alert`: reference-Alerts.html#alert
 .. _`alert_cast<>`: reference-Alerts.html#alert_cast()
 .. _torrent_finished_alert: reference-Alerts.html#torrent-finished-alert
 
