@@ -5891,7 +5891,11 @@ retry:
 	void session_impl::maybe_update_udp_mapping(int nat, bool ssl, int local_port, int external_port)
 	{
 		int local, external, protocol;
+#ifdef TORRENT_USE_OPENSSL
 		int* mapping = ssl ? m_ssl_udp_mapping : m_udp_mapping;
+#else
+		int* mapping = m_udp_mapping;
+#endif
 		if (nat == 0 && m_natpmp)
 		{
 			if (mapping[nat] != -1)
