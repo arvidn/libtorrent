@@ -335,7 +335,7 @@ namespace libtorrent
 				, std::vector<address> const& addresses, int port);
 #endif
 
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
+			void maybe_update_udp_mapping(int nat, bool ssl, int local_port, int external_port);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			torrent const* find_encrypted_torrent(
