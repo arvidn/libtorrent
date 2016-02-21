@@ -90,7 +90,7 @@ install:
     & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
   )
 - cd %ROOT_DIRECTORY%
-- set BOOST_ROOT=c:\Libraries\boost
+- set BOOST_ROOT=c:\Libraries\boost_1_59_0
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
@@ -117,10 +117,27 @@ build_script:
 - if not defined x64 (
   cd %ROOT_DIRECTORY%\examples
   & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
+  cd %ROOT_DIRECTORY%\tools
+  & b2.exe --hash -j2 %compiler% variant=%variant% linkflags=%linkflags% include=%include% link=shared
   & cd %ROOT_DIRECTORY%\bindings\python
   & b2.exe --hash -j2 %compiler% stage_module install-dependencies=on variant=%variant% libtorrent-link=shared linkflags=%linkflags% include=%include%
-  & python test.py
   & if defined python_package ( python setup.py --bjam bdist_msi )
+  )
+- cd %ROOT_DIRECTORY%\tools
+- if defined x64 (
+  b2.exe --hash -j2 address-model=64 %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  ) else (
+  b2.exe --hash -j2 address-model=32 %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  )
+- cd %ROOT_DIRECTORY%\test
+- if defined x64 (
+  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
+  ) else (
+  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
+  )
+- if defined sim (
+  cd %ROOT_DIRECTORY%\simulation
+  & b2.exe --hash -j2 link=shared crypto=built-in %compiler% testing.execute=off
   )
 
 test_script:
@@ -129,6 +146,10 @@ test_script:
   b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   ) else (
   b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  )
+- if not defined x64 (
+  cd %ROOT_DIRECTORY%\bindings\python
+  & python test.py
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
