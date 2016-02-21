@@ -2659,6 +2659,10 @@ namespace libtorrent
 		}
 		else
 		{
+			m_progress_ppm = 0;
+			m_checking_piece = 0;
+			m_num_checked_pieces = 0;
+
 			set_state(torrent_status::checking_files);
 			if (m_auto_managed) pause(true);
 			if (should_check_files()) start_checking();
