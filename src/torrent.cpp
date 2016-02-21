@@ -7079,12 +7079,12 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::get_full_peer_list(std::vector<peer_list_entry>& v) const
+	void torrent::get_full_peer_list(std::vector<peer_list_entry>* v) const
 	{
-		v.clear();
+		v->clear();
 		if (!m_peer_list) return;
 
-		v.reserve(m_peer_list->num_peers());
+		v->reserve(m_peer_list->num_peers());
 		for (peer_list::const_iterator i = m_peer_list->begin_peer();
 			i != m_peer_list->end_peer(); ++i)
 		{
@@ -7093,13 +7093,13 @@ namespace libtorrent
 			e.flags = (*i)->banned ? peer_list_entry::banned : 0;
 			e.failcount = (*i)->failcount;
 			e.source = (*i)->source;
-			v.push_back(e);
+			v->push_back(e);
 		}
 	}
 
-	void torrent::get_peer_info(std::vector<peer_info>& v)
+	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{
-		v.clear();
+		v->clear();
 		for (peer_iterator i = begin();
 			i != end(); ++i)
 		{
@@ -7110,8 +7110,8 @@ namespace libtorrent
 			// not be included in this list
 			if (peer->associated_torrent().expired()) continue;
 
-			v.push_back(peer_info());
-			peer_info& p = v.back();
+			v->push_back(peer_info());
+			peer_info& p = v->back();
 
 			peer->get_peer_info(p);
 #ifndef TORRENT_NO_DEPRECATE

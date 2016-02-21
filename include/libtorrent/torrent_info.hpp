@@ -52,6 +52,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/announce_entry.hpp"
+#endif
+
 namespace libtorrent
 {
 	class peer_connection;

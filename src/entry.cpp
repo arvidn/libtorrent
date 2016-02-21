@@ -156,10 +156,11 @@ namespace libtorrent
 
 	entry::~entry() { destruct(); }
 
-	void entry::operator=(const entry& e)
+	entry& entry::operator=(const entry& e)
 	{
 		destruct();
 		copy(e);
+		return *this;
 	}
 
 	entry::integer_type& entry::integer()
@@ -321,7 +322,7 @@ namespace libtorrent
 	}
 
 	// convert a bdecode_node into an old skool entry
-	void entry::operator=(bdecode_node const& e)
+	entry& entry::operator=(bdecode_node const& e)
 	{
 		switch (e.type())
 		{
@@ -355,11 +356,12 @@ namespace libtorrent
 				destruct();
 				break;
 		}
+		return *this;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	// convert a lazy_entry into an old skool entry
-	void entry::operator=(lazy_entry const& e)
+	entry& entry::operator=(lazy_entry const& e)
 	{
 		switch (e.type())
 		{
@@ -393,10 +395,11 @@ namespace libtorrent
 				destruct();
 				break;
 		}
+		return *this;
 	}
 #endif
 
-	void entry::operator=(dictionary_type const& v)
+	entry& entry::operator=(dictionary_type const& v)
 	{
 		destruct();
 		new(data) dictionary_type(v);
@@ -404,9 +407,10 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
+		return *this;
 	}
 
-	void entry::operator=(string_type const& v)
+	entry& entry::operator=(string_type const& v)
 	{
 		destruct();
 		new(data) string_type(v);
@@ -414,9 +418,10 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
+		return *this;
 	}
 
-	void entry::operator=(list_type const& v)
+	entry& entry::operator=(list_type const& v)
 	{
 		destruct();
 		new(data) list_type(v);
@@ -424,9 +429,10 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
+		return *this;
 	}
 
-	void entry::operator=(integer_type const& v)
+	entry& entry::operator=(integer_type const& v)
 	{
 		destruct();
 		new(data) integer_type(v);
@@ -434,6 +440,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
+		return *this;
 	}
 
 	bool entry::operator==(entry const& e) const

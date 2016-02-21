@@ -59,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/announce_entry.hpp"
 
+#if TORRENT_COMPLETE_TYPES_REQUIRED
+#include "libtorrent/peer_info.hpp" // for peer_list_entry
+#endif
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -818,12 +822,12 @@ namespace libtorrent
 
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
-		TORRENT_SYNC_CALL1(get_full_peer_list, boost::ref(v));
+		TORRENT_SYNC_CALL1(get_full_peer_list, &v);
 	}
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
-		TORRENT_SYNC_CALL1(get_peer_info, boost::ref(v));
+		TORRENT_SYNC_CALL1(get_peer_info, &v);
 	}
 
 	void torrent_handle::get_download_queue(std::vector<partial_piece_info>& queue) const

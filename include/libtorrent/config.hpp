@@ -96,6 +96,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined __GNUC__
 
+#ifdef _GLIBCXX_CONCEPT_CHECKS
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#endif
+
 // deprecation markup is only enabled when libtorrent
 // headers are included by clients, not while building
 // libtorrent itself
@@ -112,6 +116,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // seem to allow boost::array in unions
 #define TORRENT_BROKEN_UNIONS 1
 
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
+
 // ======= MSVC =========
 
 #elif defined BOOST_MSVC
@@ -123,6 +129,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable:4251)
 // '_vsnprintf': This function or variable may be unsafe
 #pragma warning(disable:4996)
+
+#if (defined(_MSC_VER) && _MSC_VER < 1310)
+#define TORRENT_COMPLETE_TYPES_REQUIRED 1
+#endif
 
 // deprecation markup is only enabled when libtorrent
 // headers are included by clients, not while building
@@ -300,7 +310,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== SOLARIS ===
 #elif defined sun || defined __sun
 #define TORRENT_SOLARIS
-#define TORRENT_COMPLETE_TYPES_REQUIRED 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1

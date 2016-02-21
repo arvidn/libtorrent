@@ -203,20 +203,17 @@ namespace libtorrent
 		ipv4_peer(ipv4_peer const& p);
 
 		address_v4 addr;
-	private:
-		ipv4_peer& operator=(ipv4_peer const&);
 	};
 
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
 		i2p_peer(char const* destination, bool connectable, int src);
+		i2p_peer(const i2p_peer&);
 		~i2p_peer();
+		i2p_peer& operator=(i2p_peer const&);
 
 		char* destination;
-	private:
-		i2p_peer(const i2p_peer&);
-		i2p_peer& operator=(i2p_peer const&);
 	};
 #endif
 
@@ -226,10 +223,6 @@ namespace libtorrent
 		ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
 
 		const address_v6::bytes_type addr;
-	private:
-		// explicitly disallow assignment, to silence msvc warning
-		ipv6_peer& operator=(ipv6_peer const&);
-		ipv6_peer(ipv6_peer const&);
 	};
 #endif
 

@@ -259,6 +259,19 @@ namespace libtorrent
 
 	i2p_peer::~i2p_peer()
 	{ free(destination); }
+
+	i2p_peer::i2p_peer(const i2p_peer& rhs)
+		: torrent_peer(rhs.port, rhs.connectable, rhs.source)
+		, destination(allocate_string_copy(rhs.destination))
+	{}
+
+	i2p_peer& i2p_peer::operator=(i2p_peer const& rhs)
+	{
+		char* tmp = allocate_string_copy(rhs.destination);
+		free(destination);
+		destination = tmp;
+		return *this;
+	}
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_IPV6
