@@ -150,14 +150,14 @@ namespace libtorrent
 		// copies the structure of the right hand side into this
 		// entry.
 #ifndef TORRENT_NO_DEPRECATE
-		void operator=(lazy_entry const&);
+		entry& operator=(lazy_entry const&);
 #endif
-		void operator=(bdecode_node const&);
-		void operator=(entry const&);
-		void operator=(dictionary_type const&);
-		void operator=(string_type const&);
-		void operator=(list_type const&);
-		void operator=(integer_type const&);
+		entry& operator=(bdecode_node const&);
+		entry& operator=(entry const&);
+		entry& operator=(dictionary_type const&);
+		entry& operator=(string_type const&);
+		entry& operator=(list_type const&);
+		entry& operator=(integer_type const&);
 
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object
@@ -261,7 +261,7 @@ namespace libtorrent
 
 		void to_string_impl(std::string& out, int indent) const;
 
-#if (defined(_MSC_VER) && _MSC_VER < 1310) || TORRENT_COMPLETE_TYPES_REQUIRED
+#if TORRENT_COMPLETE_TYPES_REQUIRED
 		// workaround for msvc-bug.
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		// and sizeof(list<char>) == sizeof(list<entry>)

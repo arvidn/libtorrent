@@ -482,7 +482,8 @@ feature.compose <deprecated-functions>off : <define>TORRENT_NO_DEPRECATE ;
 feature boost-link : default static shared : propagated composite ;
 
 feature debug-iterators : off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG ;
+feature.compose <debug-iterators>on : <define>_SCL_SECURE=1 <define>_GLIBCXX_DEBUG
+	<define>_GLIBCXX_DEBUG_PEDANTIC ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cflags>-fPIC ;
