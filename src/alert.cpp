@@ -1355,6 +1355,7 @@ namespace libtorrent {
 		return names[op];
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_update_alert::torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
 		, sha1_hash const& old_hash, sha1_hash const& new_hash)
 		: torrent_alert(alloc, h)
@@ -1371,7 +1372,6 @@ namespace libtorrent {
 		return torrent_alert::message() + msg;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	rss_item_alert::rss_item_alert(aux::stack_allocator&, feed_handle h
 		, feed_item const& i)
 		: handle(h)

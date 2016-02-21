@@ -362,16 +362,6 @@ namespace libtorrent
 		// will indicate what went wrong. The ``url`` may be set to a magnet link.
 		std::string url;
 
-		// if ``uuid`` is specified, it is used to find duplicates. If another
-		// torrent is already running with the same UUID as the one being added,
-		// it will be considered a duplicate. This is mainly useful for RSS feed
-		// items which has UUIDs specified.
-		std::string uuid;
-
-		// should point to the URL of the RSS feed this torrent comes from, if it
-		// comes from an RSS feed.
-		std::string source_feed_url;
-
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
 		boost::uint64_t flags;
@@ -485,6 +475,17 @@ namespace libtorrent
 		std::map<int, std::string> renamed_files;
 
 #ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.2
+		// if ``uuid`` is specified, it is used to find duplicates. If another
+		// torrent is already running with the same UUID as the one being added,
+		// it will be considered a duplicate. This is mainly useful for RSS feed
+		// items which has UUIDs specified.
+		std::string uuid;
+
+		// should point to the URL of the RSS feed this torrent comes from, if it
+		// comes from an RSS feed.
+		std::string source_feed_url;
+
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
 		// from a running torrent by calling save_resume_data() on
@@ -498,6 +499,13 @@ namespace libtorrent
 		// communicated forward into libtorrent via this field. If this is set, a
 		// fastresume_rejected_alert will be posted.
 		error_code internal_resume_data_error;
+#else
+		// hidden
+		// to maintain ABI compatibility
+		std::string deprecated1;
+		std::string deprecated2;
+		std::vector<char> deprecated3;
+		error_code deprecated4;
 #endif
 
 	};

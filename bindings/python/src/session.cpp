@@ -228,10 +228,12 @@ namespace
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
             p.url = extract<std::string>(params["url"]);
+#ifndef TORRENT_NO_DEPRECATE
         if (params.has_key("source_feed_url"))
             p.source_feed_url = extract<std::string>(params["source_feed_url"]);
         if (params.has_key("uuid"))
             p.uuid = extract<std::string>(params["uuid"]);
+#endif
 
         if (params.has_key("file_priorities"))
         {

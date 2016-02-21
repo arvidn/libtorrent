@@ -963,12 +963,15 @@ namespace libtorrent
 
 		boost::shared_ptr<const torrent_info> get_torrent_copy();
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		std::string const& uuid() const { return m_uuid; }
 		void set_uuid(std::string const& s) { m_uuid = s; }
 		std::string const& url() const { return m_url; }
 		void set_url(std::string const& s) { m_url = s; }
 		std::string const& source_feed_url() const { return m_source_feed_url; }
 		void set_source_feed_url(std::string const& s) { m_source_feed_url = s; }
+#endif
 
 		std::vector<announce_entry> const& trackers() const
 		{ return m_trackers; }
@@ -1030,8 +1033,10 @@ namespace libtorrent
 		// a return value of false indicates an error
 		bool set_metadata(char const* metadata_buf, int metadata_size);
 
+#ifndef TORRENT_NO_DEPRECATE
 		void on_torrent_download(error_code const& ec, http_parser const& parser
 			, char const* data, int size);
+#endif
 
 		int sequence_number() const { return m_sequence_number; }
 
@@ -1256,6 +1261,9 @@ namespace libtorrent
 
 		std::string m_save_path;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
+
 		// if we don't have the metadata, this is a url to
 		// the torrent file
 		std::string m_url;
@@ -1267,10 +1275,7 @@ namespace libtorrent
 		// if this torrent was added by an RSS feed, this is the
 		// URL to that feed
 		std::string m_source_feed_url;
-
-		// this is used as temporary storage while downloading
-		// the .torrent file from m_url
-//		std::vector<char> m_torrent_file_buf;
+#endif
 
 		// this is a list of all pieces that we have announced
 		// as having, without actually having yet. If we receive

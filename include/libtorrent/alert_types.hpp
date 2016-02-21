@@ -1887,6 +1887,7 @@ namespace libtorrent
 		boost::uint64_t values[counters::num_counters];
 	};
 
+#ifndef TORRENT_NO_DEPRECATE
 	// hidden
 	// When a torrent changes its info-hash, this alert is posted. This only
 	// happens in very specific cases. For instance, when a torrent is
@@ -1911,7 +1912,6 @@ namespace libtorrent
 		sha1_hash new_ih;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
 	// This alert is posted every time a new RSS item (i.e. torrent) is received
 	// from an RSS feed.
 	// 

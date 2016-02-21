@@ -145,8 +145,11 @@ namespace libtorrent
 		ret.save_path = rd.dict_find_string_value("save_path");
 
 		ret.url = rd.dict_find_string_value("url");
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		ret.uuid = rd.dict_find_string_value("uuid");
 		ret.source_feed_url = rd.dict_find_string_value("feed");
+#endif
 
 		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files)
