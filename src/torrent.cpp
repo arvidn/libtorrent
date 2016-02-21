@@ -6752,9 +6752,6 @@ namespace libtorrent
 		// bit 0: set if we have the piece
 		// bit 1: set if we have verified the piece (in seed mode)
 		bool const is_checking = state() == torrent_status::checking_files;
-		bool const has_checked = state() == torrent_status::downloading
-			|| state() == torrent_status::finished
-			|| state() == torrent_status::seeding;
 
 		// if we are checking, only save the have_pieces bitfield up to the piece
 		// we have actually checked. This allows us to resume the checking when we
@@ -6763,7 +6760,7 @@ namespace libtorrent
 		// bitfield.
 		int const max_piece
 			= is_checking ? m_num_checked_pieces
-			: has_checked ? m_torrent_file->num_pieces()
+			: m_files_checked ? m_torrent_file->num_pieces()
 			: 0;
 
 		if (max_piece > 0)

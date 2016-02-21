@@ -6,14 +6,14 @@
    <div id="librarySidebar">
 
 * download_
-* `download python binding`_
 * features_
-* contributing_
-* `building libtorrent`_
+* tutorial_
 * examples_
-* `library overview`_
+* overview_
 * `reference documentation`_
-* `troubleshooting issues`_
+* contributing_
+* building_
+* troubleshooting_
 * `tuning`_
 * screenshot_
 * `mailing list`_ (archive_)
@@ -58,14 +58,14 @@ libtorrent
 ==========
 
 .. _download: https://github.com/arvidn/libtorrent/releases
-.. _`download python binding`: https://sourceforge.net/projects/libtorrent/files/py-libtorrent/
 .. _features: features.html
+.. _tutorial: tutorial.html
 .. _contributing: contributing.html
-.. _`building libtorrent`: building.html
+.. _building: building.html
 .. _examples: examples.html
-.. _`library overview`: manual-ref.html
+.. _overview: manual-ref.html
 .. _`reference documentation`: reference.html
-.. _`troubleshooting issues`: troubleshooting.html
+.. _troubleshooting: troubleshooting.html
 .. _`tuning`: tuning.html
 .. _screenshot: client_test.png
 .. _`uTP`: utp.html
@@ -103,7 +103,6 @@ The main goals of libtorrent are:
 * to be cpu efficient
 * to be memory efficient
 * to be very easy to use
-
 
 Donate
 ======
@@ -147,9 +146,9 @@ list or posted to the `bug tracker`_.
 Acknowledgements
 ================
 
-Written by Arvid Norberg. Copyright |copy| 2003-2015
+Written by Arvid Norberg. Copyright |copy| 2003-2016
 
-Contributions by Magnus Jonsson, Daniel Wallin and Cory Nelson
+Contributions by Steven Siloti, Magnus Jonsson, Daniel Wallin and Cory Nelson
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
 

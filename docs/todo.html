@@ -349,8 +349,8 @@ unchoking</h2><h4>../src/session_impl.cpp:4105</h4><pre style="background: #f6f6
 				if (pi &amp;&amp; pi-&gt;optimistically_unchoked)
 				{
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
-</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">../src/torrent.cpp:9593</a></td><td>this really needs to be moved to do_async_save_resume_data. flags need to be passed on</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>this really needs to be moved to do_async_save_resume_data.
-flags need to be passed on</h2><h4>../src/torrent.cpp:9593</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				alerts().emplace_alert&lt;save_resume_data_failed_alert&gt;(get_handle()
+</pre></td></tr><tr style="background: #fcc"><td>relevance&nbsp;3</td><td><a href="javascript:expand(7)">../src/torrent.cpp:9611</a></td><td>this really needs to be moved to do_async_save_resume_data. flags need to be passed on</td></tr><tr id="7" style="display: none;" colspan="3"><td colspan="3"><h2>this really needs to be moved to do_async_save_resume_data.
+flags need to be passed on</h2><h4>../src/torrent.cpp:9611</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				alerts().emplace_alert&lt;save_resume_data_failed_alert&gt;(get_handle()
 					, m_error);
 				return;
 			}
@@ -2579,9 +2579,9 @@ session host resolver interface</h2><h4>../src/torrent.cpp:4941</h4><pre style="
 		// disable super seeding for all peers
 		for (peer_iterator i = begin(); i != end(); ++i)
 		{
-</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(52)">../src/torrent.cpp:8109</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it perhaps this logic should be disabled if we have too many idle peers (with some definition of idle)</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it
+</pre></td></tr><tr style="background: #cfc"><td>relevance&nbsp;2</td><td><a href="javascript:expand(52)">../src/torrent.cpp:8127</a></td><td>if peer is a really good peer, maybe we shouldn't disconnect it perhaps this logic should be disabled if we have too many idle peers (with some definition of idle)</td></tr><tr id="52" style="display: none;" colspan="3"><td colspan="3"><h2>if peer is a really good peer, maybe we shouldn't disconnect it
 perhaps this logic should be disabled if we have too many idle peers
-(with some definition of idle)</h2><h4>../src/torrent.cpp:8109</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#ifndef TORRENT_DISABLE_LOGGING
+(with some definition of idle)</h2><h4>../src/torrent.cpp:8127</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("incoming peer (%d)", int(m_connections.size()));
 #endif
 
@@ -4341,9 +4341,9 @@ it may pose an issue when downgrading though</h2><h4>../src/torrent.cpp:7227</h4
 
 		// write have bitmask
 		// the pieces string has one byte per piece. Each
-</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(87)">../src/torrent.cpp:8453</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="87" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
+</pre></td></tr><tr style="background: #ccf"><td>relevance&nbsp;1</td><td><a href="javascript:expand(87)">../src/torrent.cpp:8471</a></td><td>should disconnect all peers that have the pieces we have not just seeds. It would be pretty expensive to check all pieces for all peers though</td></tr><tr id="87" style="display: none;" colspan="3"><td colspan="3"><h2>should disconnect all peers that have the pieces we have
 not just seeds. It would be pretty expensive to check all pieces
-for all peers though</h2><h4>../src/torrent.cpp:8453</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
+for all peers though</h2><h4>../src/torrent.cpp:8471</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
 
@@ -8392,25 +8392,25 @@ no one uses merkle torrents</h2><h4>../src/torrent.cpp:7059</h4><pre style="back
 			if (piece_priority &amp;&amp; piece_priority.string_length()
 				== m_torrent_file-&gt;num_pieces())
 			{
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(222)">../src/torrent.cpp:7285</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="222" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(222)">../src/torrent.cpp:7303</a></td><td>make this more generic to not just work if files have been renamed, but also if they have been merged into a single file for instance. using file_base</td></tr><tr id="222" style="display: none;" colspan="3"><td colspan="3"><h2>make this more generic to not just work if files have been
 renamed, but also if they have been merged into a single file for instance.
-using file_base</h2><h4>../src/torrent.cpp:7285</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		pieces.resize(m_torrent_file-&gt;num_pieces());
-		if (!has_picker())
-		{
-			std::memset(&amp;pieces[0], m_have_all, pieces.size());
-		}
-		else if (has_picker())
-		{
-			for (int i = 0, end(pieces.size()); i &lt; end; ++i)
-				pieces[i] = m_picker-&gt;have_piece(i) ? 1 : 0;
-		}
+using file_base</h2><h4>../src/torrent.cpp:7303</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">			if (!has_picker())
+			{
+				std::memset(&amp;pieces[0], m_have_all, pieces.size());
+			}
+			else if (has_picker())
+			{
+				for (int i = 0, end(pieces.size()); i &lt; end; ++i)
+					pieces[i] = m_picker-&gt;have_piece(i) ? 1 : 0;
+			}
 
-		if (m_seed_mode)
-		{
-			TORRENT_ASSERT(m_verified.size() == pieces.size());
-			TORRENT_ASSERT(m_verifying.size() == pieces.size());
-			for (int i = 0, end(pieces.size()); i &lt; end; ++i)
-				pieces[i] |= m_verified[i] ? 2 : 0;
+			if (m_seed_mode)
+			{
+				TORRENT_ASSERT(m_verified.size() == pieces.size());
+				TORRENT_ASSERT(m_verifying.size() == pieces.size());
+				for (int i = 0, end(pieces.size()); i &lt; end; ++i)
+					pieces[i] |= m_verified[i] ? 2 : 0;
+			}
 		}
 
 		// write renamed files
@@ -8445,9 +8445,9 @@ using file_base</h2><h4>../src/torrent.cpp:7285</h4><pre style="background: #f6f
 			{
 				error_code ec;
 				torrent_peer const* p = *i;
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(223)">../src/torrent.cpp:9541</a></td><td>add a flag to ignore stats, and only care about resume data for content. For unchanged files, don't trigger a load of the metadata just to save an empty resume data file</td></tr><tr id="223" style="display: none;" colspan="3"><td colspan="3"><h2>add a flag to ignore stats, and only care about resume data for
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(223)">../src/torrent.cpp:9559</a></td><td>add a flag to ignore stats, and only care about resume data for content. For unchanged files, don't trigger a load of the metadata just to save an empty resume data file</td></tr><tr id="223" style="display: none;" colspan="3"><td colspan="3"><h2>add a flag to ignore stats, and only care about resume data for
 content. For unchanged files, don't trigger a load of the metadata
-just to save an empty resume data file</h2><h4>../src/torrent.cpp:9541</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_complete != 0xffffff) seeds = m_complete;
+just to save an empty resume data file</h2><h4>../src/torrent.cpp:9559</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">		if (m_complete != 0xffffff) seeds = m_complete;
 		else seeds = m_peer_list ? m_peer_list-&gt;num_seeds() : 0;
 
 		if (m_incomplete != 0xffffff) downloaders = m_incomplete;
@@ -8466,7 +8466,7 @@ just to save an empty resume data file</h2><h4>../src/torrent.cpp:9541</h4><pre 
 		return ret;
 	}
 
-	// this is an async operation triggered by the client	
+	// this is an async operation triggered by the client
 <div style="background: #ffff00" width="100%">	void torrent::save_resume_data(int flags)
 </div>	{
 		TORRENT_ASSERT(is_single_thread());
@@ -8498,8 +8498,8 @@ just to save an empty resume data file</h2><h4>../src/torrent.cpp:9541</h4><pre 
 			{
 				alerts().emplace_alert&lt;save_resume_data_failed_alert&gt;(get_handle()
 					, m_error);
-</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(224)">../src/torrent.cpp:11168</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="224" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
-directly into the right place</h2><h4>../src/torrent.cpp:11168</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
+</pre></td></tr><tr style="background: #ccc"><td>relevance&nbsp;0</td><td><a href="javascript:expand(224)">../src/torrent.cpp:11186</a></td><td>instead of resorting the whole list, insert the peers directly into the right place</td></tr><tr id="224" style="display: none;" colspan="3"><td colspan="3"><h2>instead of resorting the whole list, insert the peers
+directly into the right place</h2><h4>../src/torrent.cpp:11186</h4><pre style="background: #f6f6f6; border: solid 1px #ddd;">				printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}

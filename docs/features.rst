@@ -21,7 +21,7 @@ the library.
 features
 ========
 
-libtorrent is under active development. It is an ongoing project. Its
+libtorrent is an ongoing project under active development. Its
 current state supports and includes the following features:
 
 extensions
@@ -59,24 +59,22 @@ extensions
 disk management
 ---------------
 
-* uses a separate disk I/O thread to not have the disk ever block on network or
-  client interaction. (see threads_).
-* uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
-  to make optimal use of disk bandwidth capacity
-* supports verifying the SHA-1 hash of pieces in multiple threads, to take full
+* can use multipled disk I/O threads to not have the disk block network or
+  client interaction.
+* supports verifying the SHA-1 hash of pieces in multiple threads, to take
   advantage of multi core machines.
 * supports files > 2 gigabytes.
-* fast resume support, a way to get rid of the costly piece check at the
+* fast resume support, a way to avoid the costly piece check at the
   start of a resumed torrent. Saves the storage state, piece_picker state
-  as well as all local peers in a separate fast-resume file.
+  as well as all local peers in a fast-resume file.
 * has an adjustable read and write disk cache for improved disk throughput.
 * queues torrents for file check, instead of checking all of them in parallel.
 * does not have any requirements on the piece order in a torrent that it
   resumes. This means it can resume a torrent downloaded by any client.
 * seed mode, where the files on disk are assumed to be complete, and each
   piece's hash is verified the first time it is requested.
-
-.. _threads: manualref.html#threads
+* implements an ARC disk cache, tuned for performing well under bittorrent work
+  loads
 
 network
 -------

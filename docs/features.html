@@ -79,7 +79,7 @@ the library.</p>
 </div>
 <div class="section" id="features">
 <h1>features</h1>
-<p>libtorrent is under active development. It is an ongoing project. Its
+<p>libtorrent is an ongoing project under active development. Its
 current state supports and includes the following features:</p>
 <div class="section" id="extensions">
 <h2>extensions</h2>
@@ -113,22 +113,22 @@ ratio rather than downloading the torrent.</li>
 <div class="section" id="disk-management">
 <h2>disk management</h2>
 <ul class="simple">
-<li>uses a separate disk I/O thread to not have the disk ever block on network or
-client interaction. (see <a class="reference external" href="manualref.html#threads">threads</a>).</li>
-<li>uses asynchronous disk I/O when available (overlapped I/O, kaio, and posix-aio)
-to make optimal use of disk bandwidth capacity</li>
-<li>supports verifying the SHA-1 hash of pieces in multiple threads, to take full
+<li>can use multipled disk I/O threads to not have the disk block network or
+client interaction.</li>
+<li>supports verifying the SHA-1 hash of pieces in multiple threads, to take
 advantage of multi core machines.</li>
 <li>supports files &gt; 2 gigabytes.</li>
-<li>fast resume support, a way to get rid of the costly piece check at the
+<li>fast resume support, a way to avoid the costly piece check at the
 start of a resumed torrent. Saves the storage state, piece_picker state
-as well as all local peers in a separate fast-resume file.</li>
+as well as all local peers in a fast-resume file.</li>
 <li>has an adjustable read and write disk cache for improved disk throughput.</li>
 <li>queues torrents for file check, instead of checking all of them in parallel.</li>
 <li>does not have any requirements on the piece order in a torrent that it
 resumes. This means it can resume a torrent downloaded by any client.</li>
 <li>seed mode, where the files on disk are assumed to be complete, and each
 piece's hash is verified the first time it is requested.</li>
+<li>implements an ARC disk cache, tuned for performing well under bittorrent work
+loads</li>
 </ul>
 </div>
 <div class="section" id="network">
