@@ -2040,7 +2040,7 @@ retry:
 		}
 
 #ifdef TORRENT_USE_OPENSSL
-		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
+		int const ssl_port = m_settings.get_int(settings_pack::ssl_listen);
 		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
 
 		// if ssl port is 0, we don't want to listen on an SSL port
@@ -2070,6 +2070,8 @@ retry:
 		}
 		else
 		{
+			m_ssl_udp_socket.close();
+
 			// if there are mappings for the SSL socket, delete them now
 			if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
 			{
@@ -2081,7 +2083,6 @@ retry:
 				m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
 				m_ssl_udp_mapping[1] = -1;
 			}
-		
 		}
 #endif // TORRENT_USE_OPENSSL
 
@@ -2193,7 +2194,11 @@ retry:
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_tcp_mapping[0]);
+			if (m_ssl_tcp_mapping[0] != -1)
+			{
+				m_natpmp->delete_mapping(m_ssl_tcp_mapping[0]);
+				m_ssl_tcp_mapping[0] = -1;
+			}
 			if (ssl_port > 0) m_ssl_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
 				, ssl_port, ssl_port);
 #endif
@@ -2203,7 +2208,11 @@ retry:
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_tcp_mapping[1]);
+			if (m_ssl_tcp_mapping[1] != -1)
+			{
+				m_upnp->delete_mapping(m_ssl_tcp_mapping[1]);
+				m_ssl_tcp_mapping[1] = -1;
+			}
 			if (ssl_port > 0) m_ssl_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
 				, ssl_port, ssl_port);
 #endif
@@ -5378,6 +5387,11 @@ retry:
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
+
+		// honor the SSL listen port being disabled
+		if (m_settings.get_int(settings_pack::ssl_listen) == 0)
+			return 0;
+
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
@@ -6636,7 +6650,7 @@ retry:
 				, this, _1, 0));
 		m_natpmp->start();
 
-		int ssl_port = ssl_listen_port();
+		int const ssl_port = ssl_listen_port();
 
 		if (m_listen_interface.port() > 0)
 		{
