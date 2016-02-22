@@ -709,9 +709,7 @@ void add_torrent(libtorrent::session& ses
 	p.url = path_to_url(torrent);
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
-	p.flags |= add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
-	p.flags |= add_torrent_params::flag_auto_managed;
 	p.userdata = (void*)strdup(torrent.c_str());
 	ses.async_add_torrent(p);
 	files.insert(std::pair<const std::string, torrent_handle>(torrent, torrent_handle()));
@@ -1346,9 +1344,7 @@ int main(int argc, char* argv[])
 				p.info_hash = info_hash;
 				p.save_path = save_path;
 				p.storage_mode = (storage_mode_t)allocation_mode;
-				p.flags |= add_torrent_params::flag_paused;
 				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
-				p.flags |= add_torrent_params::flag_auto_managed;
 				p.flags |= add_torrent_params::flag_pinned;
 				magnet_links.push_back(p);
 				continue;
