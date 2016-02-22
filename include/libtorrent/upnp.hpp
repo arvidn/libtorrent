@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 
 #include <boost/function/function1.hpp>
-#include <boost/function/function4.hpp>
+#include <boost/function/function5.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -100,9 +100,7 @@ namespace libtorrent
 // int: external port
 // std::string: error message
 // an empty string as error means success
-// a port-mapping index of -1 means it's
-// an informational log message
-typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
 struct parse_state

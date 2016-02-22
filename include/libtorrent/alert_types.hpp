@@ -1366,7 +1366,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT portmap_alert TORRENT_FINAL : alert
 	{
 		// internal
-		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t);
+		portmap_alert(aux::stack_allocator& alloc, int i, int port, int t, int protocol);
 
 		TORRENT_DEFINE_ALERT(portmap_alert, 51)
 
@@ -1382,6 +1382,15 @@ namespace libtorrent
 
 		// 0 for NAT-PMP and 1 for UPnP.
 		int map_type;
+
+		enum protocol_t
+		{
+			tcp,
+			udp
+		};
+
+		// the protocol this mapping was for. one of protocol_t enums
+		int protocol;
 	};
 
 #ifndef TORRENT_DISABLE_LOGGING

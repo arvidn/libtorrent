@@ -5446,7 +5446,7 @@ retry:
 	}
 
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
-		, error_code const& ec, int map_transport)
+		, int protocol, error_code const& ec, int map_transport)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -5457,7 +5457,8 @@ retry:
 			m_external_udp_port = port;
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 			return;
 		}
 
@@ -5476,7 +5477,8 @@ retry:
 			}
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 			return;
 		}
 
@@ -5490,7 +5492,8 @@ retry:
 		{
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 		}
 	}
 
@@ -5888,12 +5891,14 @@ retry:
 
 #endif
 
-	void session_impl::maybe_update_udp_mapping(int nat, bool ssl, int local_port, int external_port)
+	void session_impl::maybe_update_udp_mapping(int const nat, bool const ssl
+		, int const local_port, int const external_port)
 	{
 		int local, external, protocol;
 #ifdef TORRENT_USE_OPENSSL
 		int* mapping = ssl ? m_ssl_udp_mapping : m_udp_mapping;
 #else
+		TORRENT_UNUSED(ssl);
 		int* mapping = m_udp_mapping;
 #endif
 		if (nat == 0 && m_natpmp)
@@ -6626,7 +6631,7 @@ retry:
 		// into the session_impl.
 		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, 0)
+				, this, _1, _2, _3, _4, _5, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
 		m_natpmp->start();
@@ -6663,7 +6668,7 @@ retry:
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, 1)
+				, this, _1, _2, _3, _4, _5, 1)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));

@@ -1044,9 +1044,10 @@ void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == none) continue;
+		int const proto = i->protocol;
 		i->protocol = none;
 		l.unlock();
-		m_callback(i - m_mappings.begin(), address(), 0, ec);
+		m_callback(i - m_mappings.begin(), address(), 0, proto, ec);
 		l.lock();
 	}
 
@@ -1375,7 +1376,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == -1)
 	{
 		l.unlock();
-		m_callback(mapping, d.external_ip, m.external_port, error_code());
+		m_callback(mapping, d.external_ip, m.external_port, m.protocol, error_code());
 		l.lock();
 		if (d.lease_duration > 0)
 		{
@@ -1417,8 +1418,9 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 		error_string += ": ";
 		error_string += e->msg;
 	}
+	const int proto = m_mappings[mapping].protocol;
 	l.unlock();
-	m_callback(mapping, address(), 0, error_code(code, get_upnp_category()));
+	m_callback(mapping, address(), 0, proto, error_code(code, get_upnp_category()));
 	l.lock();
 }
 
@@ -1471,8 +1473,10 @@ void upnp::on_upnp_unmap_response(error_code const& e
 			, boost::bind(&find_error_code, _1, _2, boost::ref(s)));
 	}
 
+	int const proto = m_mappings[mapping].protocol;
+
 	l.unlock();
-	m_callback(mapping, address(), 0, p.status_code() != 200
+	m_callback(mapping, address(), 0, proto, p.status_code() != 200
 		? error_code(p.status_code(), get_http_category())
 		: error_code(s.error_code, get_upnp_category()));
 	l.lock();

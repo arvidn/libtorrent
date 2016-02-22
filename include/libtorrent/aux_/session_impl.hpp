@@ -354,7 +354,7 @@ namespace libtorrent
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
 			void on_port_mapping(int mapping, address const& ip, int port
-				, error_code const& ec, int nat_transport);
+				, int protocol, error_code const& ec, int nat_transport);
 
 			bool is_aborted() const TORRENT_OVERRIDE { return m_abort; }
 			bool is_paused() const TORRENT_OVERRIDE { return m_paused; }
