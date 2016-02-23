@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function/function1.hpp>
-#include <boost/function/function4.hpp>
+#include <boost/function/function5.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -54,7 +54,7 @@ namespace libtorrent
 // int: port mapping index
 // int: external port
 // std::string: error message
-typedef boost::function<void(int, address, int, error_code const&)> portmap_callback_t;
+typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
 class natpmp : public boost::enable_shared_from_this<natpmp>

@@ -2040,7 +2040,7 @@ retry:
 		}
 
 #ifdef TORRENT_USE_OPENSSL
-		int ssl_port = m_settings.get_int(settings_pack::ssl_listen);
+		int const ssl_port = m_settings.get_int(settings_pack::ssl_listen);
 		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
 
 		// if ssl port is 0, we don't want to listen on an SSL port
@@ -2062,7 +2062,27 @@ retry:
 				}
 				ec.clear();
 			}
-			// TODO: 3 port map SSL udp socket here
+			else
+			{
+				maybe_update_udp_mapping(0, true, ssl_port, ssl_port);
+				maybe_update_udp_mapping(1, true, ssl_port, ssl_port);
+			}
+		}
+		else
+		{
+			m_ssl_udp_socket.close();
+
+			// if there are mappings for the SSL socket, delete them now
+			if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
+			{
+				m_natpmp->delete_mapping(m_ssl_udp_mapping[0]);
+				m_ssl_udp_mapping[0] = -1;
+			}
+			if (m_ssl_udp_mapping[1] != -1 && m_upnp)
+			{
+				m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
+				m_ssl_udp_mapping[1] = -1;
+			}
 		}
 #endif // TORRENT_USE_OPENSSL
 
@@ -2094,8 +2114,8 @@ retry:
 		else
 		{
 			m_external_udp_port = m_udp_socket.local_port();
-			maybe_update_udp_mapping(0, m_listen_interface.port(), m_listen_interface.port());
-			maybe_update_udp_mapping(1, m_listen_interface.port(), m_listen_interface.port());
+			maybe_update_udp_mapping(0, false, m_listen_interface.port(), m_listen_interface.port());
+			maybe_update_udp_mapping(1, false, m_listen_interface.port(), m_listen_interface.port());
 		}
 
 		// we made it! now post all the listen_succeeded_alerts
@@ -2174,7 +2194,11 @@ retry:
 			if (m_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_tcp_mapping[0]);
 			m_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_tcp_mapping[0] != -1) m_natpmp->delete_mapping(m_ssl_tcp_mapping[0]);
+			if (m_ssl_tcp_mapping[0] != -1)
+			{
+				m_natpmp->delete_mapping(m_ssl_tcp_mapping[0]);
+				m_ssl_tcp_mapping[0] = -1;
+			}
 			if (ssl_port > 0) m_ssl_tcp_mapping[0] = m_natpmp->add_mapping(natpmp::tcp
 				, ssl_port, ssl_port);
 #endif
@@ -2184,7 +2208,11 @@ retry:
 			if (m_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_tcp_mapping[1]);
 			m_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp, tcp_port, tcp_port);
 #ifdef TORRENT_USE_OPENSSL
-			if (m_ssl_tcp_mapping[1] != -1) m_upnp->delete_mapping(m_ssl_tcp_mapping[1]);
+			if (m_ssl_tcp_mapping[1] != -1)
+			{
+				m_upnp->delete_mapping(m_ssl_tcp_mapping[1]);
+				m_ssl_tcp_mapping[1] = -1;
+			}
 			if (ssl_port > 0) m_ssl_tcp_mapping[1] = m_upnp->add_mapping(upnp::tcp
 				, ssl_port, ssl_port);
 #endif
@@ -5359,6 +5387,11 @@ retry:
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
+
+		// honor the SSL listen port being disabled
+		if (m_settings.get_int(settings_pack::ssl_listen) == 0)
+			return 0;
+
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
@@ -5427,7 +5460,7 @@ retry:
 	}
 
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
-		, error_code const& ec, int map_transport)
+		, int protocol, error_code const& ec, int map_transport)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -5438,7 +5471,8 @@ retry:
 			m_external_udp_port = port;
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 			return;
 		}
 
@@ -5457,7 +5491,8 @@ retry:
 			}
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 			return;
 		}
 
@@ -5471,7 +5506,8 @@ retry:
 		{
 			if (m_alerts.should_post<portmap_alert>())
 				m_alerts.emplace_alert<portmap_alert>(mapping, port
-					, map_transport);
+					, map_transport, protocol == natpmp::udp
+					? portmap_alert::udp : portmap_alert::tcp);
 		}
 	}
 
@@ -5869,38 +5905,45 @@ retry:
 
 #endif
 
-	void session_impl::maybe_update_udp_mapping(int nat, int local_port, int external_port)
+	void session_impl::maybe_update_udp_mapping(int const nat, bool const ssl
+		, int const local_port, int const external_port)
 	{
 		int local, external, protocol;
+#ifdef TORRENT_USE_OPENSSL
+		int* mapping = ssl ? m_ssl_udp_mapping : m_udp_mapping;
+#else
+		TORRENT_UNUSED(ssl);
+		int* mapping = m_udp_mapping;
+#endif
 		if (nat == 0 && m_natpmp)
 		{
-			if (m_udp_mapping[nat] != -1)
+			if (mapping[nat] != -1)
 			{
-				if (m_natpmp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				if (m_natpmp->get_mapping(mapping[nat], local, external, protocol))
 				{
 					// we already have a mapping. If it's the same, don't do anything
 					if (local == local_port && external == external_port && protocol == natpmp::udp)
 						return;
 				}
-				m_natpmp->delete_mapping(m_udp_mapping[nat]);
+				m_natpmp->delete_mapping(mapping[nat]);
 			}
-			m_udp_mapping[nat] = m_natpmp->add_mapping(natpmp::udp
+			mapping[nat] = m_natpmp->add_mapping(natpmp::udp
 				, local_port, external_port);
 			return;
 		}
 		else if (nat == 1 && m_upnp)
 		{
-			if (m_udp_mapping[nat] != -1)
+			if (mapping[nat] != -1)
 			{
-				if (m_upnp->get_mapping(m_udp_mapping[nat], local, external, protocol))
+				if (m_upnp->get_mapping(mapping[nat], local, external, protocol))
 				{
 					// we already have a mapping. If it's the same, don't do anything
 					if (local == local_port && external == external_port && protocol == natpmp::udp)
 						return;
 				}
-				m_upnp->delete_mapping(m_udp_mapping[nat]);
+				m_upnp->delete_mapping(mapping[nat]);
 			}
-			m_udp_mapping[nat] = m_upnp->add_mapping(upnp::udp
+			mapping[nat] = m_upnp->add_mapping(upnp::udp
 				, local_port, external_port);
 			return;
 		}
@@ -6602,12 +6645,12 @@ retry:
 		// into the session_impl.
 		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, 0)
+				, this, _1, _2, _3, _4, _5, 0)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
 		m_natpmp->start();
 
-		int ssl_port = ssl_listen_port();
+		int const ssl_port = ssl_listen_port();
 
 		if (m_listen_interface.port() > 0)
 		{
@@ -6639,7 +6682,7 @@ retry:
 			, m_listen_interface.address()
 			, m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, 1)
+				, this, _1, _2, _3, _4, _5, 1)
 			, boost::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));

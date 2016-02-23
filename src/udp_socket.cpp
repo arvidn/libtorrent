@@ -78,7 +78,7 @@ udp_socket::udp_socket(io_service& ios)
 	, m_queue_packets(false)
 	, m_tunnel_packets(false)
 	, m_force_proxy(false)
-	, m_abort(false)
+	, m_abort(true)
 	, m_outstanding_ops(0)
 #if TORRENT_USE_IPV6
 	, m_v6_write_subscribed(false)
@@ -307,7 +307,11 @@ void udp_socket::on_read(error_code const& ec, udp::socket* s)
 		}
 		return;
 	}
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 
 	CHECK_MAGIC;
 
@@ -493,7 +497,11 @@ void udp_socket::on_read_impl(udp::endpoint const& ep
 			return;
 		}
 
-		if (m_abort) return;
+		if (m_abort)
+		{
+			close_impl();
+			return;
+		}
 
 		return;
 	}
@@ -516,7 +524,11 @@ void udp_socket::on_read_impl(udp::endpoint const& ep
 
 void udp_socket::setup_read(udp::socket* s)
 {
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 
 #if TORRENT_USE_IPV6
 	if (s == &m_ipv6_sock)
@@ -774,17 +786,13 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
-	TORRENT_ASSERT(m_abort == false);
-	if (m_abort)
-	{
-		ec = boost::asio::error::operation_aborted;
-		return;
-	}
+	m_abort = false;
 
 	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
 #if TORRENT_USE_IPV6
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 #endif
+	ec.clear();
 
 	if (ep.address().is_v4())
 	{
@@ -858,7 +866,11 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 
 	m_proxy_settings = ps;
 
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 
 	if (ps.type == settings_pack::socks5
 		|| ps.type == settings_pack::socks5_pw)
@@ -880,6 +892,19 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	}
 }
 
+void udp_socket::close_impl()
+{
+	if (m_outstanding_ops == 0)
+	{
+		error_code ec;
+		m_ipv4_sock.close(ec);
+#if TORRENT_USE_IPV6
+		m_ipv6_sock.close(ec);
+#endif
+		m_socks5_sock.close(ec);
+	}
+}
+
 void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
 #if defined TORRENT_ASIO_DEBUGGING
@@ -897,7 +922,12 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
 
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
+
 	CHECK_MAGIC;
 
 	if (e == boost::asio::error::operation_aborted) return;
@@ -976,7 +1006,11 @@ void udp_socket::on_connect_timeout(error_code const& ec)
 
 	m_queue_packets = false;
 
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
@@ -1009,7 +1043,11 @@ void udp_socket::on_connected(error_code const& e)
 
 	if (e == boost::asio::error::operation_aborted) return;
 
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 
 	if (e)
 	{
@@ -1068,7 +1106,11 @@ void udp_socket::handshake1(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 	if (e)
 	{
@@ -1104,7 +1146,11 @@ void udp_socket::handshake2(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 
 	if (e)
@@ -1185,7 +1231,11 @@ void udp_socket::handshake3(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 	if (e)
 	{
@@ -1221,7 +1271,11 @@ void udp_socket::handshake4(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 	if (e)
 	{
@@ -1287,7 +1341,11 @@ void udp_socket::connect1(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 	if (e)
 	{
@@ -1394,7 +1452,11 @@ void udp_socket::hung_up(error_code const& e)
 		+ m_outstanding_timeout
 		+ m_outstanding_resolve
 		+ m_outstanding_socks);
-	if (m_abort) return;
+	if (m_abort)
+	{
+		close_impl();
+		return;
+	}
 	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 

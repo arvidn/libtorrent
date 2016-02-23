@@ -774,6 +774,8 @@ namespace libtorrent {
 
 		static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
 
+		static char const* const protocol_str[] = {"TCP", "UDP"};
+
 		static char const* const socket_type_str[] = {
 			"null",
 			"TCP",
@@ -911,15 +913,16 @@ namespace libtorrent {
 			+ ": " + convert_from_native(error.message());
 	}
 
-	portmap_alert::portmap_alert(aux::stack_allocator&, int i, int port, int t)
-		: mapping(i), external_port(port), map_type(t)
+	portmap_alert::portmap_alert(aux::stack_allocator&, int i, int port, int t
+		, int proto)
+		: mapping(i), external_port(port), map_type(t), protocol(proto)
 	{}
 
 	std::string portmap_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %u"
-			, nat_type_str[map_type], external_port);
+		snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %s/%u"
+			, nat_type_str[map_type], protocol_str[protocol], external_port);
 		return ret;
 	}
 
