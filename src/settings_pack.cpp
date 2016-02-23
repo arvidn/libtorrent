@@ -125,12 +125,6 @@ namespace libtorrent
 
 	using aux::session_impl;
 
-#if TORRENT_USE_IPV6
-#define DEFAULT_LISTEN_INTERFACE "0.0.0.0:6881,[::]:6881"
-#else
-#define DEFAULT_LISTEN_INTERFACE "0.0.0.0:6881"
-#endif
-
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
 	{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
@@ -138,15 +132,17 @@ namespace libtorrent
 		SET(mmap_cache, 0, 0),
 		SET(handshake_client_version, 0, 0),
 		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
-		SET_NOPREV(listen_interfaces, DEFAULT_LISTEN_INTERFACE, &session_impl::update_listen_interfaces),
+#if !TORRENT_USE_IPV6
+		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
+#else
+		SET_NOPREV(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
+#endif
 		SET_NOPREV(proxy_hostname, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
 		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET_NOPREV(peer_fingerprint, "-LT1100-", &session_impl::update_peer_fingerprint)
 	};
-
-#undef DEFAULT_LISTEN_INTERFACE
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
 	{
