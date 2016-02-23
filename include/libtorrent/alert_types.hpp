@@ -1942,8 +1942,7 @@ namespace libtorrent
 
 		TORRENT_DEFINE_ALERT(dht_error_alert, 73)
 
-		static const int static_category = alert::error_notification
-			| alert::dht_notification;
+		static const int static_category = alert::error_notification | alert::dht_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
 
 		// the error code

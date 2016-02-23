@@ -662,9 +662,8 @@ namespace libtorrent
 			only_if_modified = 4
 		};
 
-		// ``save_resume_data()`` generates fast-resume data and returns it as an
-		// entry. This entry is suitable for being bencoded. For more information
-		// about how fast-resume works, see fast-resume_.
+		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
+		// this torrent.
 		// 
 		// The ``flags`` argument is a bitmask of flags ORed together. see
 		// save_resume_flags_t
@@ -676,9 +675,7 @@ namespace libtorrent
 		// The fast resume data will be empty in the following cases:
 		// 
 		//	1. The torrent handle is invalid.
-		//	2. The torrent is checking (or is queued for checking) its storage, it
-		//	   will obviously not be ready to write resume data.
-		//	3. The torrent hasn't received valid metadata and was started without
+		//	2. The torrent hasn't received valid metadata and was started without
 		//	   metadata (see libtorrent's metadata-from-peers_ extension)
 		// 
 		// Note that by the time you receive the fast resume data, it may already
