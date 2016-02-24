@@ -5387,11 +5387,6 @@ retry:
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
-
-		// honor the SSL listen port being disabled
-		if (m_settings.get_int(settings_pack::ssl_listen) == 0)
-			return 0;
-
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on

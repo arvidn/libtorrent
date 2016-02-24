@@ -7698,7 +7698,7 @@ namespace libtorrent
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl_torrent() && settings().get_int(settings_pack::ssl_listen) != 0)
+			if (is_ssl_torrent())
 			{
 				userdata = m_ssl_ctx.get();
 			}
