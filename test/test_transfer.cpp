@@ -127,8 +127,6 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	, bool test_disk_full = false
 	, storage_mode_t storage_mode = storage_mode_sparse)
 {
-	static int listen_port = 0;
-
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
 	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s\n\n\n"
@@ -160,7 +158,6 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:49075");
 	lt::session ses2(pack);
-	listen_port += 10;
 
 	int proxy_port = 0;
 	if (proxy_type)
@@ -183,6 +180,10 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
 		ses1.apply_settings(pack);
 		ses2.apply_settings(pack);
+
+		// ses1 is connecting to ses2, so only ses1 should be using the proxy
+		pack.set_int(settings_pack::proxy_type, settings_pack::none);
+		ses1.apply_settings(pack);
 	}
 
 	pack = sett;
