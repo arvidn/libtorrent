@@ -78,14 +78,7 @@ namespace libtorrent
 			, dont_queue = 4
 		};
 
-		bool is_open() const
-		{
-			return m_ipv4_sock.is_open()
-#if TORRENT_USE_IPV6
-				|| m_ipv6_sock.is_open()
-#endif
-				;
-		}
+		bool is_open() const { return m_abort == false; }
 		io_service& get_io_service() { return m_ipv4_sock.get_io_service(); }
 
 		void subscribe(udp_socket_observer* o);
@@ -143,7 +136,7 @@ namespace libtorrent
 
 		udp::endpoint proxy_addr() const { return m_proxy_addr; }
 
-	protected:
+	private:
 
 		struct queued_packet
 		{
@@ -169,11 +162,11 @@ namespace libtorrent
 				;
 		}
 
-	private:
-
 		// non-copyable
 		udp_socket(udp_socket const&);
 		udp_socket& operator=(udp_socket const&);
+
+		void close_impl();
 
 		// observers on this udp socket
 		std::vector<udp_socket_observer*> m_observers;

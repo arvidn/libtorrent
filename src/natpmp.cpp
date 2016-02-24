@@ -185,10 +185,11 @@ void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == none) continue;
+		int const proto = i->protocol;
 		i->protocol = none;
 		int index = i - m_mappings.begin();
 		l.unlock();
-		m_callback(index, address(), 0, ec);
+		m_callback(index, address(), 0, proto, ec);
 		l.lock();
 	}
 	close_impl(l);
@@ -563,15 +564,18 @@ void natpmp::on_reply(error_code const& e
 		if (result >= 1 && result <= 5) ev = errors[result - 1];
 
 		m->expires = aux::time_now() + hours(2);
+		int const proto = m->protocol;
 		l.unlock();
-		m_callback(index, address(), 0, error_code(ev, get_libtorrent_category()));
+		m_callback(index, address(), 0, proto
+			, error_code(ev, get_libtorrent_category()));
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
 	{
+		int const proto = m->protocol;
 		l.unlock();
-		m_callback(index, m_external_ip, m->external_port,
-			error_code(errors::no_error, get_libtorrent_category()));
+		m_callback(index, m_external_ip, m->external_port, proto
+			, error_code(errors::no_error, get_libtorrent_category()));
 		l.lock();
 	}
 

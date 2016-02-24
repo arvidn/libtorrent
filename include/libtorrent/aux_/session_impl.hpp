@@ -353,7 +353,7 @@ namespace libtorrent
 				, std::vector<address> const& addresses, int port);
 #endif
 
-			void maybe_update_udp_mapping(int nat, int local_port, int external_port);
+			void maybe_update_udp_mapping(int nat, bool ssl, int local_port, int external_port);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			torrent const* find_encrypted_torrent(
@@ -372,7 +372,7 @@ namespace libtorrent
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
 			void on_port_mapping(int mapping, address const& ip, int port
-				, error_code const& ec, int nat_transport);
+				, int protocol, error_code const& ec, int nat_transport);
 
 			bool is_aborted() const TORRENT_OVERRIDE { return m_abort; }
 			bool is_paused() const TORRENT_OVERRIDE { return m_paused; }

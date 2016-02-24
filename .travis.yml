@@ -91,6 +91,9 @@ script:
 
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
+  - if [[ lang == "cpp11" ]]; then
+    bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared bt-get bt-get2;
+    fi
   - cd ..
 
 # build libtorrent separately and install it in a temporary (well known) dir
