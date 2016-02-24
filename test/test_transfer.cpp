@@ -169,6 +169,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		pack.set_str(settings_pack::proxy_password, "testpass");
 		pack.set_int(settings_pack::proxy_type, proxy_type);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
+		pack.set_bool(settings_pack::force_proxy, true);
 
 		// test resetting the proxy in quick succession.
 		// specifically the udp_socket connecting to a new
@@ -176,13 +177,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		// in progress.
 		pack.set_str(settings_pack::proxy_hostname, "5.6.7.8");
 		ses1.apply_settings(pack);
-
 		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
-		ses1.apply_settings(pack);
-		ses2.apply_settings(pack);
-
-		// ses1 is connecting to ses2, so only ses1 should be using the proxy
-		pack.set_int(settings_pack::proxy_type, settings_pack::none);
 		ses1.apply_settings(pack);
 	}
 

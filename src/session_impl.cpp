@@ -2221,7 +2221,7 @@ retry:
 
 	void session_impl::open_new_incoming_socks_connection()
 	{
-		int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+		int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
 
 		if (proxy_type != settings_pack::socks5
 			&& proxy_type != settings_pack::socks5_pw
@@ -2231,7 +2231,7 @@ retry:
 		if (m_socks_listen_socket) return;
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
-		bool ret = instantiate_connection(m_io_service, proxy()
+		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, NULL, NULL, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
