@@ -841,10 +841,16 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		error_code ec;
 		int port = 0;
 		if (use_ssl_ports)
+		{
 			port = ses2->ssl_listen_port();
+			fprintf(stderr, "%s: ses2->ssl_listen_port(): %d\n", time_now_string(), port);
+		}
 
 		if (port == 0)
+		{
 			port = ses2->listen_port();
+			fprintf(stderr, "%s: ses2->listen_port(): %d\n", time_now_string(), port);
+		}
 
 		fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
