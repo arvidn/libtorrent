@@ -937,6 +937,8 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 	received_bytes(len, 0);
 	m_received_body += len;
 
+	if (is_disconnecting()) return;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::incoming_message, "INCOMING_PAYLOAD", "%d bytes", len);
 #endif
@@ -944,6 +946,8 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 	// deliver all complete bittorrent requests to the bittorrent engine
 	while (len > 0)
 	{
+		if (m_requests.empty()) return;
+
 		TORRENT_ASSERT(!m_requests.empty());
 		peer_request const& front_request = m_requests.front();
 		int const piece_size = int(m_piece.size());

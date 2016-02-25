@@ -7178,7 +7178,7 @@ namespace libtorrent
 
 			void* userdata = 0;
 #ifdef TORRENT_USE_OPENSSL
-			if (is_ssl_torrent() && settings().get_int(settings_pack::ssl_listen) != 0)
+			if (is_ssl_torrent())
 			{
 				userdata = m_ssl_ctx.get();
 				// if we're creating a uTP socket, since this is SSL now, make sure
@@ -9157,6 +9157,16 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
+
+		// this torrent may be about to consider itself inactive. If so, we want
+		// to prevent it from doing so, since it's being paused unconditionally
+		// now. An illustrative example of this is a torrent that completes
+		// downloading when active_seeds = 0. It completes, it gets paused and it
+		// should not come back to life again.
+		if (m_pending_active_change)
+		{
+			m_inactivity_timer.cancel();
+		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()

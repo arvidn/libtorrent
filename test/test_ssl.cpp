@@ -219,8 +219,8 @@ void test_ssl(int test_idx, bool use_utp)
 	{
 		// this will cause a round-trip to the main thread, and make sure the
 		// previous async. calls have completed
-		ses1.status();
-		ses2.status();
+		ses1.listen_port();
+		ses2.listen_port();
 	}
 
 	wait_for_alert(ses1, torrent_finished_alert::alert_type, "ses1");

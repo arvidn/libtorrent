@@ -845,6 +845,79 @@ TORRENT_TEST(no_resume_when_started)
 		});
 }
 
+// when setting active_seeds to 0, any completed torrent should be paused
+TORRENT_TEST(pause_completed_torrents)
+{
+	run_test(
+		[](settings_pack& sett) {
+			// session settings
+			sett.set_bool(settings_pack::dont_count_slow_torrents, true);
+			sett.set_int(settings_pack::active_downloads, 1);
+			sett.set_int(settings_pack::active_seeds, 0);
+		},
+
+		[](lt::session& ses) {
+			// add torrent
+			lt::add_torrent_params params = create_torrent(0, true);
+			params.flags |= add_torrent_params::flag_auto_managed;
+			params.flags |= add_torrent_params::flag_paused;
+			ses.async_add_torrent(params);
+		},
+
+		[](lt::session& ses) {
+			// verify result
+			// the torrent should have been paused immediately as it completed,
+			// since we don't allow any seeding torrents
+
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
+
+			lt::time_point start_time = alerts[0]->timestamp();
+
+			int num_started = 0;
+			int num_finished = 0;
+			int num_paused = 0;
+			lt::time_point finished;
+			lt::time_point paused;
+			for (alert* a : alerts)
+			{
+				printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+						- start_time).count()), a->message().c_str());
+				if (alert_cast<torrent_resumed_alert>(a))
+					++num_started;
+				if (alert_cast<torrent_finished_alert>(a))
+				{
+					++num_finished;
+					finished = a->timestamp();
+				}
+				if (alert_cast<torrent_paused_alert>(a))
+				{
+					++num_paused;
+					paused = a->timestamp();
+				}
+			}
+
+			TEST_EQUAL(num_started, 1);
+			TEST_EQUAL(num_finished, 1);
+			TEST_EQUAL(num_paused, 1);
+
+			if (num_finished > 0 && num_paused > 0)
+			{
+				TEST_CHECK(paused >= finished);
+				TEST_CHECK(paused - finished < chrono::milliseconds(1));
+			}
+
+			num_paused = 0;
+			for (torrent_handle const& h : ses.get_torrents())
+			{
+				TEST_CHECK(h.status().auto_managed);
+				num_paused += h.status().paused;
+			}
+			TEST_EQUAL(num_paused, 1);
+		});
+}
+
+
 // TODO: assert that the torrent_paused_alert is posted when pausing
 //       downloading, seeding, checking torrents as well as the graceful pause
 // TODO: test limits of tracker, DHT and LSD announces

@@ -2165,7 +2165,7 @@ namespace aux {
 
 	void session_impl::open_new_incoming_socks_connection()
 	{
-		int proxy_type = m_settings.get_int(settings_pack::proxy_type);
+		int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
 
 		if (proxy_type != settings_pack::socks5
 			&& proxy_type != settings_pack::socks5_pw
@@ -2175,7 +2175,7 @@ namespace aux {
 		if (m_socks_listen_socket) return;
 
 		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
-		bool ret = instantiate_connection(m_io_service, proxy()
+		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, NULL, NULL, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
@@ -5270,11 +5270,6 @@ namespace aux {
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
-
-		// honor the SSL listen port being disabled
-		if (m_settings.get_int(settings_pack::ssl_listen) == 0)
-			return 0;
-
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
