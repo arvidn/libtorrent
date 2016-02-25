@@ -223,13 +223,13 @@ div.contents {
 
 #librarySidebar {
     float: left;
-    width: 150px;
+    width: 170px;
 }
 
 #libraryBody {
     border-left: solid 1px #eee;
     padding-left: 10px;
-    margin-left: 158px;
+    margin-left: 178px;
     margin-right: 10px;
 }
 
