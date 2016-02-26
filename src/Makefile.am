@@ -103,6 +103,7 @@ libtorrent_rasterbar_la_SOURCES = \
   puff.cpp                        \
   random.cpp                      \
   receive_buffer.cpp              \
+  read_resume_data.cpp            \
   request_blocks.cpp              \
   resolve_links.cpp               \
   resolver.cpp                    \
