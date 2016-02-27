@@ -327,6 +327,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
+			void start_dht_deprecated(entry const& startup_state);
 #endif
 			void on_dht_announce(error_code const& e);
 			void on_dht_name_lookup(error_code const& e

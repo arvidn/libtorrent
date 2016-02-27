@@ -5704,6 +5704,12 @@ retry:
 		if (!m_dht) return entry();
 		return m_dht->state();
 	}
+
+	void session_impl::start_dht_deprecated(entry const& startup_state)
+	{
+		m_settings.set_bool(settings_pack::enable_dht, true);
+		start_dht(startup_state);
+	}
 #endif
 
 	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
