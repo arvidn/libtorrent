@@ -468,7 +468,7 @@ namespace libtorrent
 	void session_handle::start_dht(entry const& startup_state)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(start_dht, startup_state);
+		TORRENT_ASYNC_CALL1(start_dht_deprecated, startup_state);
 #else
 		TORRENT_UNUSED(startup_state);
 #endif
