@@ -2823,8 +2823,6 @@ get_out:
 			if (num_blocks <= 0) return 0;
 		}
 
-		TORRENT_ASSERT(num_blocks >= 0 || prefer_contiguous_blocks > 0);
-
 		if (num_blocks <= 0) return 0;
 		if (options & on_parole) return num_blocks;
 
