@@ -264,4 +264,25 @@ TORRENT_TEST(torrent)
 
 }
 
+TORRENT_TEST(rename_file)
+{
+	file_storage fs;
+
+	fs.add_file("test3/tmp1", 0);
+	fs.add_file("test3/tmp2", 0);
+	libtorrent::create_torrent t(fs, 128 * 1024, 6);
+
+	std::vector<char> tmp;
+	std::back_insert_iterator<std::vector<char> > out(tmp);
+	bencode(out, t.generate());
+	error_code ec;
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
+
+	TEST_EQUAL(info->files().file_path(0), "test3/tmp1");
+
+	// move "test3/tmp1" -> "tmp1"
+	info->rename_file(0, "tmp1");
+
+	TEST_EQUAL(info->files().file_path(0), "tmp1");
+}
 
