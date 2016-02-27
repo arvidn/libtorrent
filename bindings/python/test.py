@@ -33,6 +33,8 @@ class test_alerts(unittest.TestCase):
 		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
+		st = h.status()
+		self.assertEqual(st.save_path, os.getcwd())
 		time.sleep(1)
 		ses.remove_torrent(h)
 		alerts = ses.pop_alerts()
