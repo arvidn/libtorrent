@@ -31,7 +31,8 @@ class test_alerts(unittest.TestCase):
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
 		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 		ti = lt.torrent_info('base.torrent');
-		h = ses.add_torrent({'ti': ti, 'save_path': '.'})
+		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+		st = h.status()
 		time.sleep(1)
 		ses.remove_torrent(h)
 		ses.wait_for_alert(1000) # milliseconds
@@ -39,9 +40,8 @@ class test_alerts(unittest.TestCase):
 		for a in alerts:
 			print(a.message())
 
-		st = h.status()
 		print(st.next_announce)
-		print(st.name)
+		self.assertEqual(st.name, 'temp')
 		print(st.errc.message())
 		print(st.pieces)
 		print(st.last_seen_complete)
@@ -51,6 +51,7 @@ class test_alerts(unittest.TestCase):
 		print(st.distributed_copies)
 		print(st.paused)
 		print(st.info_hash)
+		self.assertEqual(st.save_path, os.getcwd())
 
 class test_bencoder(unittest.TestCase):
 
