@@ -77,22 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_TYPEID
-#include <typeinfo>
-#endif
-#endif // TORRENT_NO_DEPRECATE
-
-#ifndef TORRENT_MAX_ALERT_TYPES
-#define TORRENT_MAX_ALERT_TYPES 15
-#endif
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef BOOST_NO_TYPEID
-#include <typeinfo>
-#endif
-#endif
-
 namespace libtorrent {
 
 	// The ``alert`` class is the base class that specific messages are derived from.
@@ -216,9 +200,6 @@ namespace libtorrent {
 		alert();
 		// hidden
 		virtual ~alert();
-#if __cplusplus >= 201103L
-		alert(alert const&) = default;
-#endif
 
 		// a timestamp is automatically created in the constructor
 		time_point timestamp() const;
@@ -301,8 +282,15 @@ namespace libtorrent {
 
 #endif // TORRENT_NO_DEPRECATE
 
+	protected:
+#if __cplusplus >= 201103L
+		alert(alert const&) = default;
+#else
+		alert(alert const&);
+#endif
+
 	private:
-		// explicitly disallow assignment, to silence msvc warning
+		// explicitly disallow assignment and copyconstruction
 		alert& operator=(alert const&);
 
 		time_point m_timestamp;
