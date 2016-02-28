@@ -376,9 +376,13 @@ FILE* g_log_file = 0;
 
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
-	const int table_size = 18;
+#ifdef _WIN32
+	int const table_size = 2;
+#else
+	int const table_size = 18;
+#endif
 
-	double piece_per_char = p.size() / double(width);
+	double const piece_per_char = p.size() / double(width);
 	static std::string bar;
 	bar.clear();
 	bar.reserve(width * 6);
@@ -400,9 +404,13 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int color = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
-		char buf[10];
-		snprintf(buf, 10, "48;5;%d", 232 + color);
-		bar += esc(buf);
+		char buf[40];
+#ifdef _WIN32
+		snprintf(buf, sizeof(buf), "\x1b[4%dm", color ? 7 : 0);
+#else
+		snprintf(buf, sizeof(buf), "\x1b[48;5;%dm", 232 + color);
+#endif
+		bar += buf;
 		bar += " ";
 	}
 	bar += esc("0");

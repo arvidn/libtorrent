@@ -88,7 +88,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 	bar.clear();
 	bar.reserve(size_t(width + 10));
 
-	int progress_chars = (progress * width + 500) / 1000;
+	int const progress_chars = (progress * width + 500) / 1000;
 
 	if (caption.empty())
 	{
