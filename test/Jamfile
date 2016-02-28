@@ -193,8 +193,8 @@ test-suite libtorrent :
 	[ run test_priority.cpp ]
 
 # turn these tests into simulations
-#	[ run test_upnp.cpp ]
-#	[ run test_lsd.cpp ]
+	[ run test_upnp.cpp ]
+	[ run test_lsd.cpp ]
 	;
 
 # these are the tests run on appveyor, while the flapping ones are being
