@@ -52,10 +52,10 @@ First, let's extend the example to print out messages from the bittorrent engine
 about progress and events happening under the hood. libtorrent has a mechanism
 referred to as *alerts* to communicate back information to the client application.
 
-Clients can poll libtorrents for new alerts via the `pop_alerts()`_ call on the
-session object. This call fills in a vector of alert pointers with all new
-alerts since the last call to this function. The pointers are owned by the
-session object at will become invalidated by the next call to `pop_alerts()`_.
+Clients can poll a session for new alerts via the `pop_alerts()`_ call. This
+function fills in a vector of alert pointers with all new alerts since the last
+call to this function. The pointers are owned by the session object at will
+become invalidated by the next call to `pop_alerts()`_.
 
 The alerts form a class hierarchy with alert_ as the root class. Each specific
 kind of alert may include additional state, specific to the kind of message. All
@@ -183,10 +183,10 @@ resuming torrents
 
 Since bittorrent downloads pieces of files in random order, it's not trivial to
 resume a partial download. When resuming a download, the bittorrent engine must
-restore the state of the downloading torrent, specifically, which parts of the
+restore the state of the downloading torrent, specifically which parts of the
 file(s) are downloaded. There are two approaches to doing this:
 
-1. read every piece of the downloaded files from disk and compare it against the
+1. read every piece of the downloaded files from disk and compare it against its
    expected hash.
 2. save to disk the state of which pieces (and partial pieces) are downloaded,
    and load it back in again when resuming.
@@ -197,8 +197,14 @@ employ (1) by default.
 To save resume data, call `save_resume_data()`_ on the torrent_handle_ object.
 This will ask libtorrent to generate the resume data and post it back in
 a save_resume_data_alert_. If generating the resume data fails for any reason,
-a save_resume_data_failed_alert_ is posted instead. Exactly one of those alerts
-will be posted for every call to `save_resume_data()`_.
+a save_resume_data_failed_alert_ is posted instead.
+
+Exactly one of those alerts will be posted for every call to
+`save_resume_data()`_. This is an important property when shutting down a
+session with multiple torrents, every resume alert must be handled before
+resuming with shut down. Any torrent may fail to save resume data, so the client
+would need to keep a count of the outstanding resume files, decremented on
+either save_resume_data_alert_ or save_resume_data_failed_alert_.
 
 The save_resume_data_alert_ looks something like this:
 
@@ -212,9 +218,12 @@ The save_resume_data_alert_ looks something like this:
 		boost::shared_ptr<entry> resume_data;
 	};
 
-``resume_data`` points to an entry_ object. This represents a node or a tree
-of nodes in a bencoded_ structure, which is the native encoding scheme in
+``resume_data`` points to an entry_ object. This represents a node or a tree of
+nodes in a bencoded_ structure, which is the native encoding scheme in
 bittorrent. It can be encoded into a byte buffer or file using `bencode()`_.
+
+When adding a torrent with resume data, set the `add_torrent_params::resume_data`_
+to contain the bencoded buffer of the resume data.
 
 example
 -------
@@ -229,6 +238,41 @@ Here's an updated version of the above example with the following updates:
 	:code: c++
 	:tab-width: 2
 	:start-after: */
+
+torrent files
+-------------
+
+To add torrent files to a session (as opposed to a magnet link), it must first
+be loaded into a torrent_info_ object.
+
+The torrent_info_ object can be created either by filename a buffer or a
+bencoded structure. When adding by filename, there's a sanity check limit on the
+size of the file, for adding arbitrarily large torrents, load the file outside
+of the constructor.
+
+The torrent_info_ object provides an opportunity to query information about the
+.torrent file as well as mutating it before adding it to the session.
+
+bencoding
+---------
+
+bencoded_ structures is the default data storage format used by bittorrent, such
+as .torrent files, tracker announce and scrape responses and some wire protocol
+extensions. libtorrent provides an efficient framework for decoding bencoded
+data through `bdecode()`_ function.
+
+There are two separate mechanisms for *encoding* and *decoding*. When decoding,
+use the `bdecode()`_ function that returns a bdecode_node_. When encoding, use
+`bencode()`_ taking an entry_ object.
+
+The key property of `bdecode()`_ is that it does not copy any data out of the
+buffer that was parsed. It builds the tree structures of references pointing
+into the buffer. The buffer must stay alive and valid for as long as the
+bdecode_node_ is in use.
+
+For performance details on `bdecode()`_, see the `blog post about it`__.
+
+__ http://blog.libtorrent.org/2015/03/bdecode-parsers/
 
 .. _session: reference-Core.html#session
 .. _session_handle: reference-Core.html#session_handle
@@ -258,4 +302,9 @@ Here's an updated version of the above example with the following updates:
 .. _bencoded: https://en.wikipedia.org/wiki/Bencode
 .. _entry: reference-Bencoding.html#entry
 .. _`bencode()`: reference-Bencoding.html#bencode()
+.. _torrent_info: reference-Core.html#torrent_info
+.. _`add_torrent_params::resume_data`: reference-Core.html#resume_data
+.. _`bdecode()`: reference-Bdecoding.html#bdecode()
+.. _bdecode_node: reference-Bdecoding.html#bdecode-node
+
 

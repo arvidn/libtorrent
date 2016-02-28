@@ -2182,7 +2182,7 @@ int main(int argc, char* argv[])
 				std::vector<boost::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<pool_file_status> file_status;
-			 	h.file_status(file_status);
+				h.file_status(file_status);
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
 				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
@@ -2295,7 +2295,7 @@ int main(int argc, char* argv[])
 	ses.pause();
 	printf("saving resume data\n");
 	std::vector<torrent_status> temp;
- 	ses.get_torrent_status(&temp, &yes, 0);
+	ses.get_torrent_status(&temp, &yes, 0);
 	for (std::vector<torrent_status>::iterator i = temp.begin();
 		i != temp.end(); ++i)
 	{
