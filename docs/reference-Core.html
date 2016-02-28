@@ -42,22 +42,22 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.7</td></tr>
+<td>1.0.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#disk-buffer-holder" id="id190">disk_buffer_holder</a></li>
-<li><a class="reference internal" href="#hasher" id="id191">hasher</a></li>
-<li><a class="reference internal" href="#peer-info" id="id192">peer_info</a></li>
-<li><a class="reference internal" href="#peer-request" id="id193">peer_request</a></li>
-<li><a class="reference internal" href="#block-info" id="id194">block_info</a></li>
-<li><a class="reference internal" href="#partial-piece-info" id="id195">partial_piece_info</a></li>
-<li><a class="reference internal" href="#torrent-handle" id="id196">torrent_handle</a></li>
-<li><a class="reference internal" href="#torrent-status" id="id197">torrent_status</a></li>
-<li><a class="reference internal" href="#announce-entry" id="id198">announce_entry</a></li>
-<li><a class="reference internal" href="#torrent-info" id="id199">torrent_info</a></li>
+<li><a class="reference internal" href="#disk-buffer-holder" id="id191">disk_buffer_holder</a></li>
+<li><a class="reference internal" href="#hasher" id="id192">hasher</a></li>
+<li><a class="reference internal" href="#peer-info" id="id193">peer_info</a></li>
+<li><a class="reference internal" href="#peer-request" id="id194">peer_request</a></li>
+<li><a class="reference internal" href="#block-info" id="id195">block_info</a></li>
+<li><a class="reference internal" href="#partial-piece-info" id="id196">partial_piece_info</a></li>
+<li><a class="reference internal" href="#torrent-handle" id="id197">torrent_handle</a></li>
+<li><a class="reference internal" href="#torrent-status" id="id198">torrent_status</a></li>
+<li><a class="reference internal" href="#announce-entry" id="id199">announce_entry</a></li>
+<li><a class="reference internal" href="#torrent-info" id="id200">torrent_info</a></li>
 </ul>
 </div>
 <a name="disk_buffer_holder"></a><div class="section" id="disk-buffer-holder">
@@ -3552,6 +3552,15 @@ void <strong>parse_magnet_uri</strong> (std::string const&amp; uri, add_torrent_
 std::size_t <strong>hash_value</strong> (torrent_status const&amp; ts);
 </pre>
 <p>allows <a class="reference external" href="reference-Core.html#torrent_handle">torrent_handle</a> to be used in unordered_map and unordered_set.</p>
+<a name="version()"></a></div>
+<div class="section" id="version">
+<h2>version()</h2>
+<p>Declared in &quot;<a class="reference external" href="../include/libtorrent/version.hpp">libtorrent/version.hpp</a>&quot;</p>
+<pre class="literal-block">
+char const* <strong>version</strong> ();
+</pre>
+<p>returns the libtorrent version as string form in this format:
+&quot;&lt;major&gt;.&lt;minor&gt;.&lt;tiny&gt;.&lt;tag&gt;.&lt;revision&gt;&quot;</p>
 <a name="sign_mutable_item()"></a></div>
 <div class="section" id="sign-mutable-item">
 <h2>sign_mutable_item()</h2>

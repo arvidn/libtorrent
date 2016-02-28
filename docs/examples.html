@@ -42,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.7</td></tr>
+<td>1.0.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -66,10 +66,10 @@ instructions for how to use it <a class="reference external" href="client_test.h
 <h2>simple client</h2>
 <p>This is a simple client. It doesn't have much output to keep it simple:</p>
 <pre class="code c++ literal-block">
-<span class="comment preproc">#include &lt;stdlib.h&gt;
-#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/session.hpp&quot;
+<span class="comment preproc">#include</span> <span class="comment preprocfile">&lt;stdlib.h&gt;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/entry.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/bencode.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/session.hpp&quot;</span><span class="comment preproc">
 </span>
 <span class="keyword type">int</span> <span class="name function">main</span><span class="punctuation">(</span><span class="keyword type">int</span> <span class="name">argc</span><span class="punctuation">,</span> <span class="keyword type">char</span><span class="operator">*</span> <span class="name">argv</span><span class="punctuation">[])</span>
 <span class="punctuation">{</span>
@@ -116,17 +116,17 @@ instructions for how to use it <a class="reference external" href="client_test.h
 <h2>make_torrent</h2>
 <p>Shows how to create a torrent from a directory tree:</p>
 <pre class="code c++ literal-block">
-<span class="comment preproc">#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/torrent_info.hpp&quot;
-#include &quot;libtorrent/file.hpp&quot;
-#include &quot;libtorrent/storage.hpp&quot;
-#include &quot;libtorrent/hasher.hpp&quot;
-#include &quot;libtorrent/create_torrent.hpp&quot;
-#include &quot;libtorrent/file.hpp&quot;
-#include &quot;libtorrent/file_pool.hpp&quot;
+<span class="comment preproc">#include</span> <span class="comment preprocfile">&quot;libtorrent/entry.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/bencode.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/torrent_info.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/file.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/storage.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/hasher.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/create_torrent.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/file.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/file_pool.hpp&quot;</span><span class="comment preproc">
 </span>
-<span class="comment preproc">#include &lt;boost/bind.hpp&gt;
+<span class="comment preproc">#include</span> <span class="comment preprocfile">&lt;boost/bind.hpp&gt;</span><span class="comment preproc">
 </span>
 <span class="keyword">using</span> <span class="keyword">namespace</span> <span class="name">libtorrent</span><span class="punctuation">;</span>
 
@@ -255,7 +255,7 @@ instructions for how to use it <a class="reference external" href="client_test.h
   <span class="punctuation">}</span>
 
 <span class="comment preproc">#ifndef BOOST_NO_EXCEPTIONS
-</span>  <span class="name">try</span>
+</span>  <span class="keyword">try</span>
   <span class="punctuation">{</span>
 <span class="comment preproc">#endif
 </span>    <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">std</span><span class="operator">::</span><span class="name">string</span><span class="operator">&gt;</span> <span class="name">web_seeds</span><span class="punctuation">;</span>
@@ -433,11 +433,11 @@ instructions for how to use it <a class="reference external" href="client_test.h
 <p>This is an example of a program that will take a torrent-file as a parameter and
 print information about it to std out:</p>
 <pre class="code c++ literal-block">
-<span class="comment preproc">#include &quot;libtorrent/entry.hpp&quot;
-#include &quot;libtorrent/bencode.hpp&quot;
-#include &quot;libtorrent/torrent_info.hpp&quot;
-#include &quot;libtorrent/lazy_entry.hpp&quot;
-#include &quot;libtorrent/magnet_uri.hpp&quot;
+<span class="comment preproc">#include</span> <span class="comment preprocfile">&quot;libtorrent/entry.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/bencode.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/torrent_info.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/lazy_entry.hpp&quot;</span><span class="comment preproc">
+#include</span> <span class="comment preprocfile">&quot;libtorrent/magnet_uri.hpp&quot;</span><span class="comment preproc">
 </span>
 <span class="keyword type">int</span> <span class="name function">load_file</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">string</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">filename</span><span class="punctuation">,</span> <span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">char</span><span class="operator">&gt;&amp;</span> <span class="name">v</span><span class="punctuation">,</span> <span class="name">libtorrent</span><span class="operator">::</span><span class="name">error_code</span><span class="operator">&amp;</span> <span class="name">ec</span><span class="punctuation">,</span> <span class="keyword type">int</span> <span class="name">limit</span> <span class="operator">=</span> <span class="literal number integer">8000000</span><span class="punctuation">)</span>
 <span class="punctuation">{</span>

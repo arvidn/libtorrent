@@ -42,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.7</td></tr>
+<td>1.0.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -980,7 +980,9 @@ determined, it's set to 1024 (= 16 MiB).</p>
 blocks that are allocated at a time when the pool needs to grow can be
 specified in <tt class="docutils literal">cache_buffer_chunk_size</tt>. This defaults to 16 blocks.
 Lower numbers saves memory at the expense of more heap allocations. It
-must be at least 1.</p>
+must be at least 1. When built in 32 bit mode, the effective cache size
+will be capped at 3/4 of 2 GiB. This is to avoid exceeding the virtual
+address space limitations.</p>
 </dd>
 </dl>
 <a name="cache_buffer_chunk_size"></a><dl class="docutils">

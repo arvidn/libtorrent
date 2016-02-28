@@ -42,20 +42,20 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.7</td></tr>
+<td>1.0.9</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
 <p class="topic-title first">Table of contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#add-torrent-params" id="id176">add_torrent_params</a></li>
-<li><a class="reference internal" href="#cache-status" id="id177">cache_status</a></li>
-<li><a class="reference internal" href="#session-proxy" id="id178">session_proxy</a></li>
-<li><a class="reference internal" href="#id41" id="id179">session</a></li>
-<li><a class="reference internal" href="#dht-lookup" id="id180">dht_lookup</a></li>
-<li><a class="reference internal" href="#dht-routing-bucket" id="id181">dht_routing_bucket</a></li>
-<li><a class="reference internal" href="#utp-status" id="id182">utp_status</a></li>
-<li><a class="reference internal" href="#session-status" id="id183">session_status</a></li>
+<li><a class="reference internal" href="#add-torrent-params" id="id175">add_torrent_params</a></li>
+<li><a class="reference internal" href="#cache-status" id="id176">cache_status</a></li>
+<li><a class="reference internal" href="#session-proxy" id="id177">session_proxy</a></li>
+<li><a class="reference internal" href="#id40" id="id178">session</a></li>
+<li><a class="reference internal" href="#dht-lookup" id="id179">dht_lookup</a></li>
+<li><a class="reference internal" href="#dht-routing-bucket" id="id180">dht_routing_bucket</a></li>
+<li><a class="reference internal" href="#utp-status" id="id181">utp_status</a></li>
+<li><a class="reference internal" href="#session-status" id="id182">session_status</a></li>
 </ul>
 </div>
 <a name="add_torrent_params"></a><div class="section" id="add-torrent-params">
@@ -65,9 +65,7 @@
 <a class="reference external" href="reference-Session.html#session">session</a>. The key fields when adding a torrent are:</p>
 <ul class="simple">
 <li>ti - when you have a .torrent file</li>
-<li>url - when you have a magnet link or http URL to the .torrent file</li>
-<li>info_hash - when all you have is an info-hash (this is similar to a
-magnet link)</li>
+<li>url - when you have a magnet link</li>
 </ul>
 <p>one of those fields need to be set. Another mandatory field is
 <tt class="docutils literal">save_path</tt>. The <a class="reference external" href="reference-Session.html#add_torrent_params">add_torrent_params</a> object is passed into one of the
@@ -383,18 +381,11 @@ instead of this.</dd>
 </dl>
 <a name="url"></a><dl class="docutils">
 <dt>url</dt>
-<dd><p class="first">If you specify a <tt class="docutils literal">url</tt>, the torrent will be set in
+<dd>If you specify a <tt class="docutils literal">url</tt>, the torrent will be set in
 <tt class="docutils literal">downloading_metadata</tt> state until the .torrent file has been
 downloaded. If there's any error while downloading, the torrent will
 be stopped and the torrent error state (<tt class="docutils literal"><span class="pre">torrent_status::error</span></tt>)
-will indicate what went wrong. The <tt class="docutils literal">url</tt> may refer to a magnet link
-or a regular http URL.</p>
-<p>If it refers to an HTTP URL, the info-hash for the added torrent will
-not be the true info-hash of the .torrent. Instead a placeholder,
-unique, info-hash is used which is later updated once the .torrent
-file has been downloaded.</p>
-<p class="last">Once the info-hash change happens, a <a class="reference external" href="reference-Alerts.html#torrent_update_alert">torrent_update_alert</a> is posted.</p>
-</dd>
+will indicate what went wrong.</dd>
 </dl>
 <a name="uuid"></a><dl class="docutils">
 <dt>uuid</dt>
@@ -471,7 +462,7 @@ struct cache_status
    int read_queue_size;
 };
 </pre>
-<a name="cache_status()"></a><div class="section" id="id28">
+<a name="cache_status()"></a><div class="section" id="id27">
 <h2>cache_status()</h2>
 <pre class="literal-block">
 <strong>cache_status</strong> ();
@@ -593,7 +584,7 @@ class session_proxy
    <strong>session_proxy</strong> ();
 };
 </pre>
-<a name="session_proxy()"></a><div class="section" id="id39">
+<a name="session_proxy()"></a><div class="section" id="id38">
 <h2>session_proxy()</h2>
 <pre class="literal-block">
 <strong>session_proxy</strong> ();
@@ -602,7 +593,7 @@ class session_proxy
 implementation object.</p>
 <a name="session"></a></div>
 </div>
-<div class="section" id="id41">
+<div class="section" id="id40">
 <h1>session</h1>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/session.hpp">libtorrent/session.hpp</a>&quot;</p>
 <p>The <a class="reference external" href="reference-Session.html#session">session</a> holds all state that spans multiple torrents. Among other
@@ -741,7 +732,7 @@ class session: public boost::noncopyable
    };
 };
 </pre>
-<a name="session()"></a><div class="section" id="id45">
+<a name="session()"></a><div class="section" id="id44">
 <h2>session()</h2>
 <pre class="literal-block">
 <strong>session</strong> (fingerprint const&amp; print = fingerprint(&quot;LT&quot;
@@ -775,7 +766,7 @@ pass 0 as the flags parameter.</p>
 <p>The <tt class="docutils literal">alert_mask</tt> is the same mask that you would send to
 <a class="reference external" href="reference-Session.html#set_alert_mask()">set_alert_mask()</a>.</p>
 <a name="~session()"></a></div>
-<div class="section" id="id47">
+<div class="section" id="id46">
 <h2>~session()</h2>
 <pre class="literal-block">
 <strong>~session</strong> ();
@@ -1063,7 +1054,7 @@ void <strong>dht_get_item</strong> (sha1_hash const&amp; target);
 <p>query the DHT for an immutable item at the <tt class="docutils literal">target</tt> hash.
 the result is posted as a <a class="reference external" href="reference-Alerts.html#dht_immutable_item_alert">dht_immutable_item_alert</a>.</p>
 <a name="dht_get_item()"></a></div>
-<div class="section" id="id102">
+<div class="section" id="id101">
 <h2>dht_get_item()</h2>
 <pre class="literal-block">
 void <strong>dht_get_item</strong> (boost::array&lt;char, 32&gt; key
@@ -1085,7 +1076,7 @@ the returned hash is the key that is to be used to look the item
 up agan. It's just the sha-1 hash of the bencoded form of the
 structure.</p>
 <a name="dht_put_item()"></a></div>
-<div class="section" id="id104">
+<div class="section" id="id103">
 <h2>dht_put_item()</h2>
 <pre class="literal-block">
 void <strong>dht_put_item</strong> (boost::array&lt;char, 32&gt; key
