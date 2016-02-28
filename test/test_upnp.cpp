@@ -119,12 +119,12 @@ struct callback_info
 
 std::list<callback_info> callbacks;
 
-void callback(int mapping, address const& ip, int port, error_code const& err)
+void callback(int mapping, address const& ip, int port, int protocol, error_code const& err)
 {
 	callback_info info = {mapping, port, err};
 	callbacks.push_back(info);
 	std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
-		<< ", error: \"" << err.message() << "\"\n";
+		<< ", proto: " << protocol << ", error: \"" << err.message() << "\"\n";
 }
 
 void run_upnp_test(char const* root_filename, char const* router_model, char const* control_name, int igd_version)
