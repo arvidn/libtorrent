@@ -80,6 +80,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	// The ``alert`` class is the base class that specific messages are derived from.
+	// alert types are not copyable, and cannot be constructed by the client. The
+	// pointers returned by libtorrent are short lived (the details are described
+	// under session_handle::pop_alerts())
 	class TORRENT_EXPORT alert
 	{
 	public:
@@ -283,10 +286,10 @@ namespace libtorrent {
 #endif // TORRENT_NO_DEPRECATE
 
 	protected:
+		// the alert is not copyable (but for backwards compatibility reasons it
+		// retains the ability to clone itself, for now).
 #if __cplusplus >= 201103L
-		alert(alert const&) = default;
-#else
-		alert(alert const&);
+		alert(alert const& rhs) = default;
 #endif
 
 	private:

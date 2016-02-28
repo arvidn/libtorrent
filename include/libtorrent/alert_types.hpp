@@ -163,7 +163,25 @@ namespace libtorrent
 	#define TORRENT_CLONE(name)
 #endif
 
+	// we can only use = default in C++11
+	// the purpose of this is just to make all alert types non-copyable from user
+	// code. The heterogeneous queue does not yet have an emplace_back(), so it
+	// still needs to copy alerts, but the important part is that it's not
+	// copyable for clients.
+	// TODO: Once the backwards compatibility of clone() is removed, and once
+	// C++11 is required, this can be simplified to just say = delete
+#if __cplusplus >= 201103L
+	#define TORRENT_PROTECTED_CCTOR(name) \
+	protected: \
+		template <class T> friend struct heterogeneous_queue; \
+		name(name const&) = default; \
+	public:
+#else
+	#define TORRENT_PROTECTED_CCTOR(name)
+#endif
+
 #define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
+	TORRENT_PROTECTED_CCTOR(name) \
 	static const int priority = prio; \
 	static const int alert_type = seq; \
 	virtual int type() const TORRENT_OVERRIDE { return alert_type; } \
