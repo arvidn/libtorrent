@@ -233,7 +233,7 @@ namespace libtorrent
 		SET(max_failcount, 3, &session_impl::update_max_failcount),
 		SET(min_reconnect_time, 60, 0),
 		SET(peer_connect_timeout, 15, 0),
-		SET(connection_speed, 6, &session_impl::update_connection_speed),
+		SET(connection_speed, 10, &session_impl::update_connection_speed),
 		SET(inactivity_timeout, 600, 0),
 		SET(unchoke_interval, 15, 0),
 		SET(optimistic_unchoke_interval, 30, 0),
