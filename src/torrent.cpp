@@ -1258,6 +1258,8 @@ namespace libtorrent
 		TORRENT_UNUSED(j);
 		TORRENT_UNUSED(b);
 
+		if (m_abort) return;
+
 		update_gauge();
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
@@ -2325,6 +2327,8 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_abort) return;
+
 		state_updated();
 
 		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
@@ -2647,6 +2651,8 @@ namespace libtorrent
 		dec_refcount("force_recheck");
 		state_updated();
 
+		if (m_abort) return;
+
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
@@ -2726,6 +2732,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		dec_refcount("start_checking");
+
+		if (m_abort) return;
 
 		if (j->ret == piece_manager::disk_check_aborted)
 		{
@@ -3041,6 +3049,7 @@ namespace libtorrent
 			, int(peers.size()));
 #endif
 
+		if (m_abort) return;
 		if (peers.empty()) return;
 
 		if (m_ses.alerts().should_post<dht_reply_alert>())
@@ -3752,7 +3761,7 @@ namespace libtorrent
 		if (ec)
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
 #endif
-		if (ec || m_ses.is_aborted()) return;
+		if (ec || m_abort || m_ses.is_aborted()) return;
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
@@ -3778,7 +3787,7 @@ namespace libtorrent
 			debug_log("peer name lookup error: %s", e.message().c_str());
 #endif
 
-		if (e || host_list.empty() || m_ses.is_aborted()) return;
+		if (e || m_abort || host_list.empty() || m_ses.is_aborted()) return;
 
 		// TODO: add one peer per IP the hostname resolves to
 		tcp::endpoint host(host_list.front(), port);
@@ -4123,6 +4132,8 @@ namespace libtorrent
 		torrent_ref_holder h(this, "verify_piece");
 
 		dec_refcount("verify_piece");
+
+		if (m_abort) return;
 
 		int ret = j->ret;
 		if (settings().get_bool(settings_pack::disable_hash_checks))
@@ -10555,6 +10566,7 @@ namespace libtorrent
 		update_want_peers();
 	}
 
+	// TODO: 2 this should probably be removed
 	void torrent::refresh_explicit_cache(int cache_size)
 	{
 		TORRENT_ASSERT(is_single_thread());
