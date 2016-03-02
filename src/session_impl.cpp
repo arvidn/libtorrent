@@ -3438,7 +3438,7 @@ retry:
 			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
 		};
 
-		v |= v >> 1; // first round down to one less than a power of 2 
+		v |= v >> 1; // first round down to one less than a power of 2
 		v |= v >> 2;
 		v |= v >> 4;
 		v |= v >> 8;
@@ -5058,7 +5058,7 @@ retry:
 		// we have specific outgoing interfaces specified. Make sure the
 		// local endpoint for this socket is bound to one of the allowed
 		// interfaces. the list can be a mixture of interfaces and IP
-		// addresses. first look for the address 
+		// addresses. first look for the address
 		for (int i = 0; i < int(m_net_interfaces.size()); ++i)
 		{
 			error_code err;
