@@ -2287,11 +2287,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	// keep track of the number of resume data
-	// alerts to wait for
-	int num_paused = 0;
-	int num_failed = 0;
-
 	ses.pause();
 	printf("saving resume data\n");
 	std::vector<torrent_status> temp;
@@ -2334,38 +2329,12 @@ int main(int argc, char* argv[])
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			torrent_paused_alert* tp = alert_cast<torrent_paused_alert>(*i);
-			if (tp)
+			if (!::handle_alert(ses, *i, files, non_files))
 			{
-				++num_paused;
-				printf("\rleft: %d failed: %d pause: %d "
-					, num_outstanding_resume_data, num_failed, num_paused);
-				continue;
+				// if we didn't handle the alert, print it to the log
+				std::string event_string;
+				print_alert(*i, event_string);
 			}
-
-			if (alert_cast<save_resume_data_failed_alert>(*i))
-			{
-				++num_failed;
-				--num_outstanding_resume_data;
-				printf("\rleft: %d failed: %d pause: %d "
-					, num_outstanding_resume_data, num_failed, num_paused);
-				continue;
-			}
-
-			save_resume_data_alert* rd = alert_cast<save_resume_data_alert>(*i);
-			if (!rd) continue;
-			--num_outstanding_resume_data;
-			printf("\rleft: %d failed: %d pause: %d "
-				, num_outstanding_resume_data, num_failed, num_paused);
-
-			if (!rd->resume_data) continue;
-
-			torrent_handle h = rd->handle;
-			torrent_status st = h.status(torrent_handle::query_save_path);
-			std::vector<char> out;
-			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(path_append(st.save_path, path_append(".resume"
-				, leaf_path(hash_to_filename[st.info_hash]) + ".resume")), out);
 		}
 	}
 
