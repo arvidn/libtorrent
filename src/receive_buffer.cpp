@@ -194,29 +194,41 @@ buffer::interval receive_buffer::mutable_buffer()
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int bytes)
+void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int const bytes)
 {
-	using namespace boost;
+	namespace asio = boost::asio;
+
+	// bytes is the number of bytes we just received, and m_recv_pos has
+	// already been adjusted for these bytes. The receive pos immediately
+	// before we received these bytes was (m_recv_pos - bytes)
+
+	int const last_recv_pos = m_recv_pos - bytes;
 	TORRENT_ASSERT(bytes <= m_recv_pos);
 
-	int regular_buf_size = regular_buffer_size();
+	// the number of bytes in the current packet that are received into
+	// a regular receive buffer (as opposed to a disk cache buffer)
+	int const regular_buf_size = regular_buffer_size();
+
 	TORRENT_ASSERT(regular_buf_size >= 0);
 	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_pos)
 	{
+		// we just received into a regular disk buffer
 		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start
-			+ m_recv_pos - bytes, bytes));
+			+ last_recv_pos, bytes));
 	}
-	else if (m_recv_pos - bytes >= regular_buf_size)
+	else if (last_recv_pos >= regular_buf_size)
 	{
-		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get() + m_recv_pos
-			- regular_buf_size - bytes, bytes));
+		// we only received into a disk buffer
+		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
+			+ last_recv_pos - regular_buf_size, bytes));
 	}
 	else
 	{
-		TORRENT_ASSERT(m_recv_pos - bytes < regular_buf_size);
+		// we received into a regular and a disk buffer
+		TORRENT_ASSERT(last_recv_pos < regular_buf_size);
 		TORRENT_ASSERT(m_recv_pos > regular_buf_size);
-		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start + m_recv_pos - bytes
-			, regular_buf_size - (m_recv_start + m_recv_pos - bytes)));
+		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start + last_recv_pos
+			, regular_buf_size - last_recv_pos));
 		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
 			, m_recv_pos - regular_buf_size));
 	}
