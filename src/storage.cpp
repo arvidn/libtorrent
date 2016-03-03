@@ -443,7 +443,7 @@ namespace libtorrent
 		file_storage const& fs = files();
 		for (int i = 0; i < int(prio.size()); ++i)
 		{
-			int old_prio = m_file_priority[i];
+			int const old_prio = m_file_priority[i];
 			int new_prio = prio[i];
 			if (old_prio == 0 && new_prio != 0)
 			{
@@ -882,14 +882,14 @@ namespace libtorrent
 				if (error != boost::system::errc::no_such_file_or_directory)
 				{
 					ec.ec = error;
-					ec.file = i;
+					ec.file = file_index;
 					ec.operation = storage_error::stat;
 					return false;
 				}
 				else
 				{
 					ec.ec = errors::mismatching_file_size;
-					ec.file = i;
+					ec.file = file_index;
 					ec.operation = storage_error::stat;
 					return false;
 				}
@@ -900,7 +900,7 @@ namespace libtorrent
 				// the resume data indicates we're a seed, but this file has
 				// the wrong size. Reject the resume data
 				ec.ec = errors::mismatching_file_size;
-				ec.file = i;
+				ec.file = file_index;
 				ec.operation = storage_error::check_resume;
 				return false;
 			}
@@ -908,7 +908,7 @@ namespace libtorrent
 			// OK, this file existed, good. Now, skip all remaining pieces in
 			// this file. We're just sanity-checking whether the files exist
 			// or not.
-			peer_request pr = fs.map_file(file_index, 0
+			peer_request const pr = fs.map_file(file_index, 0
 				, fs.file_size(file_index) + 1);
 			i = (std::max)(i + 1, pr.piece);
 		}
