@@ -4195,6 +4195,7 @@ retry:
 
 		int const allowed_upload_slots = unchoke_sort(peers, max_upload_rate
 			, unchoke_interval, m_settings);
+
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, allowed_upload_slots);
 
@@ -6140,9 +6141,7 @@ retry:
 
 	void session_impl::update_unchoke_limit()
 	{
-		int unchoke_limit = m_settings.get_int(settings_pack::unchoke_slots_limit);
-
-		int allowed_upload_slots = unchoke_limit;
+		int allowed_upload_slots = m_settings.get_int(settings_pack::unchoke_slots_limit);
 
 		if (allowed_upload_slots < 0)
 			allowed_upload_slots = (std::numeric_limits<int>::max)();
