@@ -89,7 +89,7 @@ namespace libtorrent
 		// a call related to bittorrent protocol encryption failed
 		op_encryption,
 
-		// an attempt to  connect a socket failed
+		// an attempt to connect a socket failed
 		op_connect,
 
 		// establishing an SSL connection failed
