@@ -473,7 +473,7 @@ namespace libtorrent
 #endif
 			sett.get_str(settings_pack::mmap_cache).empty())
 		{
-			int cache_size = sett.get_int(settings_pack::cache_size);
+			int const cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
 			{
 				boost::uint64_t phys_ram = total_physical_ram();

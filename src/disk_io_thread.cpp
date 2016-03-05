@@ -1143,21 +1143,6 @@ namespace libtorrent
 			return;
 		}
 
-#if TORRENT_USE_ASSERTS
-		// TODO: it should clear the hash state even when there's an error, right?
-		if (j->action == disk_io_job::hash && !j->error.ec)
-		{
-			// a hash job should never return without clearing pe->hash
-			l.lock();
-			cached_piece_entry* pe = m_disk_cache.find_piece(j);
-			if (pe != NULL)
-			{
-				TORRENT_PIECE_ASSERT(pe->hash == NULL, pe);
-			}
-			l.unlock();
-		}
-#endif
-
 		if (ret == defer_handler) return;
 
 		j->ret = ret;
@@ -2251,10 +2236,10 @@ namespace libtorrent
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int block_size = m_disk_cache.block_size();
-		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		int file_flags = file_flags_for_job(j);
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const block_size = m_disk_cache.block_size();
+		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		int const file_flags = file_flags_for_job(j);
 
 		file::iovec_t iov;
 		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
@@ -2275,7 +2260,7 @@ namespace libtorrent
 
 			if (!j->error.ec)
 			{
-				boost::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+				boost::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
 				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -2302,8 +2287,8 @@ namespace libtorrent
 		if (m_settings.get_int(settings_pack::cache_size) == 0)
 			return do_uncached_hash(j);
 
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int file_flags = file_flags_for_job(j);
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const file_flags = file_flags_for_job(j);
 
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -2391,7 +2376,7 @@ namespace libtorrent
 
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		
+
 		// keep track of which blocks we have locked by incrementing
 		// their refcounts. This is used to decrement only these blocks
 		// later.
