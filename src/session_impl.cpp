@@ -2069,83 +2069,96 @@ retry:
 #ifdef TORRENT_USE_OPENSSL
 		int const ssl_port = m_settings.get_int(settings_pack::ssl_listen);
 		udp::endpoint ssl_bind_if(m_listen_interface.address(), ssl_port);
+		tcp::endpoint ssl_bind_ep(m_listen_interface.address(), ssl_port);
 
 		// if ssl port is 0, we don't want to listen on an SSL port
 		if (ssl_port != 0)
 		{
-			// TODO: 2 use bind_to_device in udp_socket
-			m_ssl_udp_socket.bind(ssl_bind_if, ec);
-			if (ec)
+			// if the socket is already open with the port we want, just leave it
+			error_code err;
+			if (!m_ssl_udp_socket.is_open()
+				|| m_ssl_udp_socket.local_endpoint(err) != ssl_bind_ep
+				|| err)
 			{
-#ifndef TORRENT_DISABLE_LOGGING
-				session_log("SSL: cannot bind to UDP interface \"%s\": %s"
-					, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
-#endif
-				if (m_alerts.should_post<listen_failed_alert>())
+				m_ssl_udp_socket.bind(ssl_bind_if, ec);
+				if (ec)
 				{
-					error_code err;
-					m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_if.address().to_string()
-						, ssl_port, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+#ifndef TORRENT_DISABLE_LOGGING
+					session_log("SSL: cannot bind to UDP interface \"%s\": %s"
+						, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+#endif
+					if (m_alerts.should_post<listen_failed_alert>())
+					{
+						m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_if.address().to_string()
+							, ssl_port, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
+					}
+					ec.clear();
 				}
-				ec.clear();
+				else
+				{
+					maybe_update_udp_mapping(0, true, ssl_port, ssl_port);
+					maybe_update_udp_mapping(1, true, ssl_port, ssl_port);
+				}
 			}
 			else
 			{
-				maybe_update_udp_mapping(0, true, ssl_port, ssl_port);
-				maybe_update_udp_mapping(1, true, ssl_port, ssl_port);
-			}
-		}
-		else
-		{
-			m_ssl_udp_socket.close();
+				m_ssl_udp_socket.close();
 
-			// if there are mappings for the SSL socket, delete them now
-			if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
-			{
-				m_natpmp->delete_mapping(m_ssl_udp_mapping[0]);
-				m_ssl_udp_mapping[0] = -1;
-			}
-			if (m_ssl_udp_mapping[1] != -1 && m_upnp)
-			{
-				m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
-				m_ssl_udp_mapping[1] = -1;
+				// if there are mappings for the SSL socket, delete them now
+				if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
+				{
+					m_natpmp->delete_mapping(m_ssl_udp_mapping[0]);
+					m_ssl_udp_mapping[0] = -1;
+				}
+				if (m_ssl_udp_mapping[1] != -1 && m_upnp)
+				{
+					m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
+					m_ssl_udp_mapping[1] = -1;
+				}
 			}
 		}
 #endif // TORRENT_USE_OPENSSL
 
-		// TODO: 2 use bind_to_device in udp_socket
-		m_udp_socket.bind(udp::endpoint(m_listen_interface.address()
-			, m_listen_interface.port()), ec);
-		if (ec)
+		udp::endpoint const udp_bind_ep(m_listen_interface.address()
+			, m_listen_interface.port());
+
+		// if the socket is already open with the port we want, just leave it
+		error_code err;
+		if (!m_udp_socket.is_open()
+			|| m_udp_socket.local_endpoint(err) != m_listen_interface
+			|| err)
 		{
+			m_udp_socket.bind(udp_bind_ep, ec);
+			if (ec)
+			{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("cannot bind to UDP interface \"%s\": %s"
-				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
+				session_log("cannot bind to UDP interface \"%s\": %s"
+					, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-			if (m_alerts.should_post<listen_failed_alert>())
-			{
-				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(m_listen_interface.address().to_string()
-					, m_listen_interface.port()
-					, listen_failed_alert::bind
-					, ec, listen_failed_alert::udp);
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					m_alerts.emplace_alert<listen_failed_alert>(m_listen_interface.address().to_string()
+						, m_listen_interface.port()
+						, listen_failed_alert::bind
+						, ec, listen_failed_alert::udp);
+				}
+				if (listen_port_retries > 0)
+				{
+					m_listen_interface.port(m_listen_interface.port() + 1);
+					// update the actual port m_listen_interface was derived from also
+					if (!m_listen_interfaces.empty())
+						m_listen_interfaces[0].second += 1;
+					--listen_port_retries;
+					goto retry;
+				}
+				return;
 			}
-			if (listen_port_retries > 0)
+			else
 			{
-				m_listen_interface.port(m_listen_interface.port() + 1);
-				// update the actual port m_listen_interface was derived from also
-				if (!m_listen_interfaces.empty())
-					m_listen_interfaces[0].second += 1;
-				--listen_port_retries;
-				goto retry;
+				m_external_udp_port = m_udp_socket.local_port();
+				maybe_update_udp_mapping(0, false, m_listen_interface.port(), m_listen_interface.port());
+				maybe_update_udp_mapping(1, false, m_listen_interface.port(), m_listen_interface.port());
 			}
-			return;
-		}
-		else
-		{
-			m_external_udp_port = m_udp_socket.local_port();
-			maybe_update_udp_mapping(0, false, m_listen_interface.port(), m_listen_interface.port());
-			maybe_update_udp_mapping(1, false, m_listen_interface.port(), m_listen_interface.port());
 		}
 
 		// we made it! now post all the listen_succeeded_alerts
@@ -2159,9 +2172,9 @@ retry:
 
 			if (!m_alerts.should_post<listen_succeeded_alert>()) continue;
 
-			error_code err;
-			tcp::endpoint bind_ep = i->sock->local_endpoint(err);
-			if (err) continue;
+			error_code error;
+			tcp::endpoint bind_ep = i->sock->local_endpoint(error);
+			if (error) continue;
 
 			m_alerts.emplace_alert<listen_succeeded_alert>(bind_ep, socket_type);
 		}
@@ -2171,8 +2184,7 @@ retry:
 		{
 			if (m_alerts.should_post<listen_succeeded_alert>())
 				m_alerts.emplace_alert<listen_succeeded_alert>(
-					tcp::endpoint(ssl_bind_if.address(), ssl_bind_if.port())
-						, listen_succeeded_alert::utp_ssl);
+					ssl_bind_ep, listen_succeeded_alert::utp_ssl);
 		}
 #endif
 
