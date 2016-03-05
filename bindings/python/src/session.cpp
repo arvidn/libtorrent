@@ -529,18 +529,18 @@ namespace
     }
 #endif
 
-    void load_state(lt::session& ses, entry const& st)
-	 {
-		 allow_threading_guard guard;
+	void load_state(lt::session& ses, entry const& st, boost::uint32_t flags)
+	{
+		allow_threading_guard guard;
 
-		 std::vector<char> buf;
-		 bencode(std::back_inserter(buf), st);
-		 bdecode_node e;
-		 error_code ec;
-		 bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-		 TORRENT_ASSERT(!ec);
-		 ses.load_state(e);
-	 }
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), st);
+		bdecode_node e;
+		error_code ec;
+		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		TORRENT_ASSERT(!ec);
+		ses.load_state(e, flags);
+	}
 
 #ifndef TORRENT_DISABLE_DHT
     void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
@@ -799,7 +799,7 @@ void bind_session()
         .def("get_pe_settings", allow_threads(&lt::session::get_pe_settings))
 #endif
 #endif
-        .def("load_state", &load_state)
+        .def("load_state", &load_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("pop_alerts", &pop_alerts)
         .def("wait_for_alert", &wait_for_alert
@@ -888,8 +888,8 @@ void bind_session()
         .value("save_dht_settings", lt::session::save_dht_settings)
         .value("save_dht_state", lt::session::save_dht_state)
         .value("save_encryption_settings", lt::session:: save_encryption_settings)
-        .value("save_as_map", lt::session::save_as_map)
 #ifndef TORRENT_NO_DEPRECATE
+        .value("save_as_map", lt::session::save_as_map)
         .value("save_i2p_proxy", lt::session::save_i2p_proxy)
         .value("save_proxy", lt::session::save_proxy)
         .value("save_dht_proxy", lt::session::save_dht_proxy)

@@ -102,11 +102,12 @@ namespace libtorrent
 		TORRENT_SYNC_CALL2(save_state, &e, flags);
 	}
 
-	void session_handle::load_state(bdecode_node const& e)
+	void session_handle::load_state(bdecode_node const& e
+		, boost::uint32_t const flags)
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
-		TORRENT_SYNC_CALL1(load_state, &e);
+		TORRENT_SYNC_CALL2(load_state, &e, flags);
 	}
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
@@ -505,7 +506,8 @@ namespace libtorrent
 	void session_handle::load_country_db(wchar_t const*) {}
 #endif // TORRENT_USE_WSTRING
 
-	void session_handle::load_state(entry const& ses_state)
+	void session_handle::load_state(entry const& ses_state
+		, boost::uint32_t const flags)
 	{
 		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
@@ -521,7 +523,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		if (ret != 0) throw libtorrent_exception(ec);
 #endif
-		TORRENT_SYNC_CALL1(load_state, &e);
+		TORRENT_SYNC_CALL2(load_state, &e, flags);
 	}
 
 	entry session_handle::state() const
@@ -531,7 +533,8 @@ namespace libtorrent
 		return ret;
 	}
 
-	void session_handle::load_state(lazy_entry const& ses_state)
+	void session_handle::load_state(lazy_entry const& ses_state
+		, boost::uint32_t const flags)
 	{
 		if (ses_state.type() == lazy_entry::none_t) return;
 		std::pair<char const*, int> buf = ses_state.data_section();
@@ -546,7 +549,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		if (ret != 0) throw libtorrent_exception(ec);
 #endif
-		TORRENT_SYNC_CALL1(load_state, &e);
+		TORRENT_SYNC_CALL2(load_state, &e, flags);
 	}
 #endif // TORRENT_NO_DEPRECATE
 

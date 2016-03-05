@@ -92,13 +92,11 @@ namespace libtorrent
 			save_dht_state =    0x004,
 
 			// save pe_settings
-			save_encryption_settings = 0x020,
-
-			// internal
-			save_as_map =       0x040
+			save_encryption_settings = 0x020
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
+			save_as_map =       0x040,
 			// saves RSS feeds
 			save_feeds =        0x080,
 			save_proxy =        0x008,
@@ -118,11 +116,11 @@ namespace libtorrent
 		// ``load_state`` expects a bdecode_node which can be built from a bencoded
 		// buffer with bdecode().
 		//
-		// The ``flags`` arguments passed in to ``save_state`` can be used to
-		// filter which parts of the session state to save. By default, all state
-		// is saved (except for the individual torrents). see save_state_flags_t
+		// The ``flags`` argument is used to filter which parts of the session
+		// state to save or load. By default, all state is saved/restored (except
+		// for the individual torrents). see save_state_flags_t
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
-		void load_state(bdecode_node const& e);
+		void load_state(bdecode_node const& e, boost::uint32_t flags = 0xffffffff);
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with
@@ -547,12 +545,14 @@ namespace libtorrent
 		// deprecated in 0.15
 		// use load_state and save_state instead
 		TORRENT_DEPRECATED
-		void load_state(entry const& ses_state);
+		void load_state(entry const& ses_state
+			, boost::uint32_t flags = 0xffffffff);
 		TORRENT_DEPRECATED
 		entry state() const;
 		// deprecated in 1.1
 		TORRENT_DEPRECATED
-		void load_state(lazy_entry const& ses_state);
+		void load_state(lazy_entry const& ses_state
+			, boost::uint32_t flags = 0xffffffff);
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well

@@ -1,6 +1,7 @@
 
 1.1.0 release
 
+	* support filtering which parts of session state are loaded by load_state()
 	* deprecate support for adding torrents by HTTP URL
 	* allow specifying which tracker to scrape in scrape_tracker
 	* tracker response alerts from user initiated announces/scrapes are now
