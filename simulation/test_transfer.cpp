@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "create_torrent.hpp"
 #include "settings.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -192,6 +193,39 @@ void filter_ips(lt::session& ses)
 	filter.add_rule(asio::ip::address_v4::from_string("50.0.0.1")
 		, asio::ip::address_v4::from_string("50.0.0.2"), ip_filter::blocked);
 	ses.set_ip_filter(filter);
+}
+
+void set_cache_size(lt::session& ses, int val)
+{
+	using namespace libtorrent;
+	settings_pack pack;
+	pack.set_int(settings_pack::cache_size, val);
+	ses.apply_settings(pack);
+}
+
+int get_cache_size(lt::session& ses)
+{
+	using namespace libtorrent;
+	std::vector<stats_metric> stats = session_stats_metrics();
+	int const read_cache_idx = find_metric_idx("disk.read_cache_blocks");
+	int const write_cache_idx = find_metric_idx("disk.write_cache_blocks");
+	TEST_CHECK(read_cache_idx >= 0);
+	TEST_CHECK(write_cache_idx >= 0);
+	ses.set_alert_notify([](){});
+	ses.post_session_stats();
+	std::vector<alert*> alerts;
+	ses.pop_alerts(&alerts);
+	int cache_size = -1;
+	for (auto const a : alerts)
+	{
+		if (auto const* st = alert_cast<session_stats_alert>(a))
+		{
+			cache_size = st->values[read_cache_idx];
+			cache_size += st->values[write_cache_idx];
+			break;
+		}
+	}
+	return cache_size;
 }
 
 void set_proxy(lt::session& ses, int proxy_type, int flags = 0, bool proxy_peer_connections = true)
@@ -391,3 +425,19 @@ TORRENT_TEST(no_proxy_utp_banned)
 	);
 }
 
+TORRENT_TEST(auto_disk_cache_size)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) { set_cache_size(ses0, -1); },
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+
+			int const cache_size = get_cache_size(*ses[0]);
+			printf("cache size: %d\n", cache_size);
+			// this assumes the test torrent is at least 4 blocks
+			TEST_CHECK(cache_size > 4);
+		}
+	);
+}

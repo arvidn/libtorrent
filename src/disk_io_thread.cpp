@@ -1188,7 +1188,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		if (!m_settings.get_bool(settings_pack::use_read_cache)
+		if (m_settings.get_bool(settings_pack::use_read_cache) == false
 			|| m_settings.get_int(settings_pack::cache_size) == 0)
 		{
 			// we're not using a cache. This is the simple path
@@ -1462,7 +1462,7 @@ namespace libtorrent
 		// should we put this write job in the cache?
 		// if we don't use the cache we shouldn't.
 		if (m_settings.get_bool(settings_pack::use_write_cache)
-				&& m_settings.get_int(settings_pack::cache_size) > 0)
+			&& m_settings.get_int(settings_pack::cache_size) != 0)
 		{
 			mutex::scoped_lock l(m_cache_mutex);
 
@@ -1578,7 +1578,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->action == disk_io_job::read);
 
 		if (m_settings.get_bool(settings_pack::use_read_cache)
-			&& m_settings.get_int(settings_pack::cache_size) > 0)
+			&& m_settings.get_int(settings_pack::cache_size) != 0)
 		{
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
@@ -1691,7 +1691,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer.disk_block));
 		l_.unlock();
 #endif
-		if (m_settings.get_int(settings_pack::cache_size) > 0
+		if (m_settings.get_int(settings_pack::cache_size) != 0
 			&& m_settings.get_bool(settings_pack::use_write_cache))
 		{
 			TORRENT_ASSERT((r.start % m_disk_cache.block_size()) == 0);
@@ -2327,7 +2327,7 @@ namespace libtorrent
 			}
 		}
 
-		if (pe == NULL && !m_settings.get_bool(settings_pack::use_read_cache))
+		if (pe == NULL && m_settings.get_bool(settings_pack::use_read_cache) == false)
 		{
 			l.unlock();
 			// if there's no piece in the cache, and the read cache is disabled
@@ -2635,7 +2635,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer.disk_block == 0);
-		
+
 		if (m_settings.get_int(settings_pack::cache_size) == 0
 			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
 			return 0;
@@ -3463,7 +3463,7 @@ namespace libtorrent
 
 				if (j->action == disk_io_job::read
 					&& m_settings.get_bool(settings_pack::use_read_cache)
-					&& m_settings.get_int(settings_pack::cache_size) > 0)
+					&& m_settings.get_int(settings_pack::cache_size) != 0)
 				{
 					int state = prep_read_job_impl(j, false);
 					switch (state)

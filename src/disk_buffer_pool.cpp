@@ -371,11 +371,14 @@ namespace libtorrent
 #else
 			if (m_using_pool_allocator)
 			{
-				ret = static_cast<char*>(m_pool.malloc());
-				int effective_block_size = m_cache_buffer_chunk_size
+				int const effective_block_size
+					= m_in_use >= m_max_use
+					? 20 // use small increments once we've exceeded the cache size
+					: m_cache_buffer_chunk_size
 					? m_cache_buffer_chunk_size
 					: (std::max)(m_max_use / 10, 1);
 				m_pool.set_next_size(effective_block_size);
+				ret = static_cast<char*>(m_pool.malloc());
 			}
 			else
 			{
@@ -453,7 +456,9 @@ namespace libtorrent
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
 		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool);
+		// if the chunk size is set to 1, there's no point in creating a pool
+		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool)
+			&& (m_cache_buffer_chunk_size != 1);
 		// if there are no allocated blocks, it's OK to switch allocator
 		if (m_in_use == 0)
 			m_using_pool_allocator = m_want_pool_allocator;
@@ -476,7 +481,7 @@ namespace libtorrent
 			int const cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
 			{
-				boost::uint64_t phys_ram = total_physical_ram();
+				boost::uint64_t const phys_ram = total_physical_ram();
 				if (phys_ram == 0) m_max_use = 1024;
 				else m_max_use = phys_ram / 8 / m_block_size;
 
@@ -500,6 +505,8 @@ namespace libtorrent
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();
 			}
+			if (m_cache_buffer_chunk_size > m_max_use)
+				m_cache_buffer_chunk_size = m_max_use;
 		}
 
 #if TORRENT_USE_ASSERTS
