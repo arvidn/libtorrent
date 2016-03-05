@@ -441,3 +441,20 @@ TORRENT_TEST(auto_disk_cache_size)
 		}
 	);
 }
+
+TORRENT_TEST(disable_disk_cache)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) { set_cache_size(ses0, 0); },
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+
+			int const cache_size = get_cache_size(*ses[0]);
+			printf("cache size: %d\n", cache_size);
+			TEST_EQUAL(cache_size, 0);
+		}
+	);
+}
+
