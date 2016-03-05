@@ -3284,7 +3284,6 @@ namespace libtorrent
 			if (!m_recv_buffer.packet_finished()) return;
 			recv_buffer = m_recv_buffer.get();
 
-
 #ifndef TORRENT_DISABLE_LOGGING
 			std::string extensions;
 			extensions.resize(8 * 8);

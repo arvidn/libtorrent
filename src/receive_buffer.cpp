@@ -54,8 +54,12 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
 	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(!m_disk_recv_buffer);
-	m_recv_buffer.resize(m_recv_pos + size);
-	return boost::asio::buffer(&m_recv_buffer[m_recv_pos], size);
+	// this is unintuitive, but we used to use m_recv_pos in this function when
+	// we should have used m_recv_end. perhaps they always happen to be equal
+	TORRENT_ASSERT(m_recv_pos == m_recv_end);
+
+	m_recv_buffer.resize(m_recv_end + size);
+	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
 int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, int size)
@@ -64,41 +68,48 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, i
 	TORRENT_ASSERT(m_recv_pos >= 0);
 	TORRENT_ASSERT(m_packet_size > 0);
 
+	// normalize() must be called before receiving more data
+	TORRENT_ASSERT(m_recv_start == 0);
+
+	// this is unintuitive, but we used to use m_recv_pos in this function when
+	// we should have used m_recv_end. perhaps they always happen to be equal
+	TORRENT_ASSERT(m_recv_pos == m_recv_end);
+
 	int num_bufs;
-	int regular_buf_size = regular_buffer_size();
+	int const regular_buf_size = regular_buffer_size();
 
 	if (int(m_recv_buffer.size()) < regular_buf_size)
 		m_recv_buffer.resize(round_up8(regular_buf_size));
 
-	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_pos + size)
+	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_end + size)
 	{
 		// only receive into regular buffer
-		TORRENT_ASSERT(m_recv_pos + size <= int(m_recv_buffer.size()));
-		vec[0] = boost::asio::buffer(&m_recv_buffer[m_recv_pos], size);
+		TORRENT_ASSERT(m_recv_end + size <= int(m_recv_buffer.size()));
+		vec[0] = boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 		num_bufs = 1;
 	}
-	else if (m_recv_pos >= regular_buf_size)
+	else if (m_recv_end >= regular_buf_size)
 	{
 		// only receive into disk buffer
-		TORRENT_ASSERT(m_recv_pos - regular_buf_size >= 0);
-		TORRENT_ASSERT(m_recv_pos - regular_buf_size + size <= m_disk_recv_buffer_size);
-		vec[0] = boost::asio::buffer(m_disk_recv_buffer.get() + m_recv_pos - regular_buf_size, size);
+		TORRENT_ASSERT(m_recv_end - regular_buf_size >= 0);
+		TORRENT_ASSERT(m_recv_end - regular_buf_size + size <= m_disk_recv_buffer_size);
+		vec[0] = boost::asio::buffer(m_disk_recv_buffer.get() + m_recv_end - regular_buf_size, size);
 		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 		num_bufs = 1;
 	}
 	else
 	{
 		// receive into both regular and disk buffer
-		TORRENT_ASSERT(size + m_recv_pos > regular_buf_size);
-		TORRENT_ASSERT(m_recv_pos < regular_buf_size);
+		TORRENT_ASSERT(size + m_recv_end > regular_buf_size);
+		TORRENT_ASSERT(m_recv_end < regular_buf_size);
 		TORRENT_ASSERT(size - regular_buf_size
-			+ m_recv_pos <= m_disk_recv_buffer_size);
+			+ m_recv_end <= m_disk_recv_buffer_size);
 
-		vec[0] = boost::asio::buffer(&m_recv_buffer[m_recv_pos]
-			, regular_buf_size - m_recv_pos);
+		vec[0] = boost::asio::buffer(&m_recv_buffer[0] + m_recv_end
+			, regular_buf_size - m_recv_end);
 		vec[1] = boost::asio::buffer(m_disk_recv_buffer.get()
-			, size - regular_buf_size + m_recv_pos);
+			, size - regular_buf_size + m_recv_end);
 		TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
 			+ boost::asio::buffer_size(vec[1])> 0);
 		num_bufs = 2;
@@ -109,9 +120,9 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, i
 
 int receive_buffer::advance_pos(int bytes)
 {
-	int packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-	int limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
-	int sub_transferred = (std::min)(bytes, limit);
+	int const packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
+	int const limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
+	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
 	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 	return sub_transferred;
@@ -174,7 +185,8 @@ buffer::const_interval receive_buffer::get() const
 		TORRENT_ASSERT(m_recv_pos == 0);
 		return buffer::interval(0,0);
 	}
-	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
+
+	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()) - m_recv_start);
 	return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
@@ -194,34 +206,48 @@ buffer::interval receive_buffer::mutable_buffer()
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int bytes)
+// TODO: 2 should this take a boost::array<..., 2> instead? it could return the
+// number of buffers added, just like reserve.
+void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int const bytes)
 {
-	using namespace boost;
+	namespace asio = boost::asio;
+
+	// bytes is the number of bytes we just received, and m_recv_pos has
+	// already been adjusted for these bytes. The receive pos immediately
+	// before we received these bytes was (m_recv_pos - bytes)
+
+	int const last_recv_pos = m_recv_pos - bytes;
 	TORRENT_ASSERT(bytes <= m_recv_pos);
 
-	int regular_buf_size = regular_buffer_size();
+	// the number of bytes in the current packet that are being received into a
+	// regular receive buffer (as opposed to a disk cache buffer)
+	int const regular_buf_size = regular_buffer_size();
+
 	TORRENT_ASSERT(regular_buf_size >= 0);
 	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_pos)
 	{
+		// we just received into a regular disk buffer
 		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start
-			+ m_recv_pos - bytes, bytes));
+			+ last_recv_pos, bytes));
 	}
-	else if (m_recv_pos - bytes >= regular_buf_size)
+	else if (last_recv_pos >= regular_buf_size)
 	{
-		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get() + m_recv_pos
-			- regular_buf_size - bytes, bytes));
+		// we only received into a disk buffer
+		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
+			+ last_recv_pos - regular_buf_size, bytes));
 	}
 	else
 	{
-		TORRENT_ASSERT(m_recv_pos - bytes < regular_buf_size);
+		// we received into a regular and a disk buffer
+		TORRENT_ASSERT(last_recv_pos < regular_buf_size);
 		TORRENT_ASSERT(m_recv_pos > regular_buf_size);
-		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start + m_recv_pos - bytes
-			, regular_buf_size - (m_recv_start + m_recv_pos - bytes)));
+		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start + last_recv_pos
+			, regular_buf_size - last_recv_pos));
 		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
 			, m_recv_pos - regular_buf_size));
 	}
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	int vec_bytes = 0;
 	for (std::vector<asio::mutable_buffer>::iterator i = vec.begin();
 		i != vec.end(); ++i)

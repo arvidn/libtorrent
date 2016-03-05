@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-struct receive_buffer
+struct TORRENT_EXTRA_EXPORT receive_buffer
 {
 	friend struct crypto_receive_buffer;
 
@@ -58,6 +58,7 @@ struct receive_buffer
 	int packet_bytes_remaining() const
 	{
 		TORRENT_ASSERT(m_recv_start == 0);
+		TORRENT_ASSERT(m_packet_size > 0);
 		return m_packet_size - m_recv_pos;
 	}
 
@@ -67,13 +68,19 @@ struct receive_buffer
 	int pos() const { return m_recv_pos; }
 	int capacity() const { return m_recv_buffer.capacity() + m_disk_recv_buffer_size; }
 
-	int regular_buffer_size() const { return m_packet_size - m_disk_recv_buffer_size; }
+	int regular_buffer_size() const
+	{
+		TORRENT_ASSERT(m_packet_size > 0);
+		return m_packet_size - m_disk_recv_buffer_size;
+	}
 
 	// regular buffer only
 	boost::asio::mutable_buffer reserve(int size);
 	// with possible disk buffer usage
 	int reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, int size);
 
+	// tell the buffer we just receved more bytes at the end of it. This will
+	// advance the end cursor
 	void received(int bytes_transferred)
 	{
 		TORRENT_ASSERT(m_packet_size > 0);
@@ -82,9 +89,14 @@ struct receive_buffer
 			+ m_disk_recv_buffer_size));
 	}
 
+	// tell the buffer we consumed some bytes of it. This will advance the read
+	// cursor
 	int advance_pos(int bytes);
+
+	// has the read cursor reached the end cursor?
 	bool pos_at_end() { return m_recv_pos == m_recv_end; }
 
+	// make the buffer size dividible by 8 bytes (RC4 block size)
 	void clamp_size();
 
 	void set_soft_packet_size(int size) { m_soft_packet_size = size; }
@@ -94,6 +106,8 @@ struct receive_buffer
 	// offset = the offset into the receive buffer where to remove `size` bytes
 	void cut(int size, int packet_size, int offset = 0);
 
+	// return the interval between the start of the buffer to the read cursor.
+	// This is the "current" packet.
 	buffer::const_interval get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
