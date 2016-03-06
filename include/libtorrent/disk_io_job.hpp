@@ -136,7 +136,11 @@ namespace libtorrent
 			in_progress = 0x20,
 
 			// turns into file::coalesce_buffers in the file operation
-			coalesce_buffers = 0x40
+			coalesce_buffers = 0x40,
+
+			// the disk cache was enabled when this job was issued, it should use
+			// the disk cache once it's handled by a disk thread
+			use_disk_cache = 0x80
 		};
 
 		// for write jobs, returns true if its block

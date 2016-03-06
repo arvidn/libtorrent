@@ -606,6 +606,7 @@ std::string bind_to_interface = "";
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
+int cache_size = 1024;
 
 bool share_mode = false;
 bool disable_storage = false;
@@ -1296,6 +1297,7 @@ int main(int argc, char* argv[])
 	namespace lt = libtorrent;
 
 	settings_pack settings;
+	settings.set_int(settings_pack::cache_size, cache_size);
 	settings.set_int(settings_pack::active_loaded_limit, 20);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
@@ -1450,9 +1452,9 @@ int main(int argc, char* argv[])
 				}
 #endif // TORRENT_USE_I2P
 			case 'C':
-				settings.set_int(settings_pack::cache_size, atoi(arg));
-				settings.set_bool(settings_pack::use_read_cache, atoi(arg) > 0);
-				settings.set_int(settings_pack::cache_buffer_chunk_size, atoi(arg) / 100);
+				cache_size = atoi(arg);
+				settings.set_int(settings_pack::cache_size, cache_size);
+				settings.set_int(settings_pack::cache_buffer_chunk_size, 0);
 				break;
 			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
 			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
@@ -1923,6 +1925,13 @@ int main(int argc, char* argv[])
 				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
+				if (c == 'C')
+				{
+					cache_size = (cache_size == 0) ? -1 : 0;
+					settings_pack p;
+					p.set_int(settings_pack::cache_size, cache_size);
+					ses.apply_settings(p);
+				}
 				if (c == 'h')
 				{
 					clear_screen();
@@ -1933,7 +1942,7 @@ int main(int argc, char* argv[])
 						"[q] quit client                                 [m] add magnet link\n"
 						"\n"
 						"TORRENT ACTIONS\n"
-						"[p] pause/unpause selected torrent\n"
+						"[p] pause/unpause selected torrent              [C] toggle disk cache\n"
 						"[s] toggle sequential download                  [j] force recheck\n"
 						"[space] toggle session pause                    [c] clear error\n"
 						"[v] scrape                                      [D] delete torrent and data\n"
