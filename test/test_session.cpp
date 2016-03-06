@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/bdecode.hpp"
+#include "libtorrent/bencode.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -105,4 +107,107 @@ TORRENT_TEST(session_stats)
 		TEST_EQUAL(stats[i].value_index, i);
 	}
 }
+#if __cplusplus >= 201103L
+
+template <typename Set, typename Save, typename Default, typename Load>
+void test_save_restore(Set setup, Save s, Default d, Load l)
+{
+	entry st;
+	{
+		settings_pack p;
+		setup(p);
+		lt::session ses(p);
+		s(ses, st);
+	}
+
+	{
+		settings_pack p;
+		d(p);
+		lt::session ses(p);
+		// the loading function takes a bdecode_node, so we have to transform the
+		// entry
+		printf("%s\n", st.to_string().c_str());
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), st);
+		bdecode_node state;
+		error_code ec;
+		int ret = bdecode(buf.data(), buf.data() + buf.size()
+			, state, ec, nullptr, 100, 1000);
+		TEST_EQUAL(ret, 0);
+		if (ec)
+		{
+			printf("bdecode: %s\n", ec.message().c_str());
+			printf("%s\n", std::string(buf.data(), buf.size()).c_str());
+		}
+		TEST_CHECK(!ec);
+		l(ses, state);
+	}
+}
+
+TORRENT_TEST(save_restore_state)
+{
+	test_save_restore(
+		[](settings_pack& p) {
+			// set the cache size
+			p.set_int(settings_pack::cache_size, 1337);
+		},
+		[](lt::session& ses, entry& st) {
+			ses.save_state(st);
+		},
+		[](settings_pack& p) {
+			p.set_int(settings_pack::cache_size, 90);
+		},
+		[](lt::session& ses, bdecode_node& st) {
+			ses.load_state(st);
+			// make sure we loaded the cache size correctly
+			settings_pack sett = ses.get_settings();
+			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 1337);
+		});
+}
+
+TORRENT_TEST(save_restore_state_save_filter)
+{
+	test_save_restore(
+		[](settings_pack& p) {
+			// set the cache size
+			p.set_int(settings_pack::cache_size, 1337);
+		},
+		[](lt::session& ses, entry& st) {
+			// save everything _but_ the settings
+			ses.save_state(st, ~session::save_settings);
+		},
+		[](settings_pack& p) {
+			p.set_int(settings_pack::cache_size, 90);
+		},
+		[](lt::session& ses, bdecode_node& st) {
+			ses.load_state(st);
+			// make sure whatever we loaded did not include the cache size
+			settings_pack sett = ses.get_settings();
+			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 90);
+		});
+}
+
+TORRENT_TEST(save_restore_state_load_filter)
+{
+	test_save_restore(
+		[](settings_pack& p) {
+			// set the cache size
+			p.set_int(settings_pack::cache_size, 1337);
+		},
+		[](lt::session& ses, entry& st) {
+			// save everything
+			ses.save_state(st);
+		},
+		[](settings_pack& p) {
+			p.set_int(settings_pack::cache_size, 90);
+		},
+		[](lt::session& ses, bdecode_node& st) {
+			// load everything _but_ the settings
+			ses.load_state(st, ~session::save_settings);
+			settings_pack sett = ses.get_settings();
+			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 90);
+		});
+}
+
+#endif
 

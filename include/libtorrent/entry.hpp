@@ -229,7 +229,7 @@ namespace libtorrent
 		// The const version of ``operator[]`` will only return a reference to an
 		// existing element at the given key. If the key is not found, it will
 		// throw ``libtorrent::type_error``.
- 		entry& operator[](char const* key);
+		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
 #ifndef BOOST_NO_EXCEPTIONS
 		const entry& operator[](char const* key) const;

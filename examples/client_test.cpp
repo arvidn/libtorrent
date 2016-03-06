@@ -1576,6 +1576,9 @@ int main(int argc, char* argv[])
 	}
 
 	ses.set_ip_filter(loaded_ip_filter);
+	ses.set_load_function(&load_torrent);
+
+	error_code ec;
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
@@ -1593,18 +1596,15 @@ int main(int argc, char* argv[])
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bitcomet.com"), 6881));
 	}
-#endif
-
-	ses.set_load_function(&load_torrent);
 
 	std::vector<char> in;
-	error_code ec;
 	if (load_file(".ses_state", in, ec) == 0)
 	{
 		bdecode_node e;
 		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
-			ses.load_state(e);
+			ses.load_state(e, session::save_dht_state);
 	}
+#endif
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
 		, end(magnet_links.end()); i != end; ++i)
@@ -2348,15 +2348,19 @@ int main(int argc, char* argv[])
 	}
 
 	if (g_log_file) fclose(g_log_file);
+
+	// we're just saving the DHT state
+#ifndef TORRENT_DISABLE_DHT
 	printf("\nsaving session state\n");
 	{
 		entry session_state;
-		ses.save_state(session_state);
+		ses.save_state(session_state, session::save_dht_state);
 
 		std::vector<char> out;
 		bencode(std::back_inserter(out), session_state);
 		save_file(".ses_state", out);
 	}
+#endif
 
 	printf("closing session");
 
