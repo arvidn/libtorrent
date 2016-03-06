@@ -481,9 +481,35 @@ namespace libtorrent
 			int const cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
 			{
-				boost::uint64_t const phys_ram = total_physical_ram();
+				boost::uint64_t phys_ram = total_physical_ram();
 				if (phys_ram == 0) m_max_use = 1024;
-				else m_max_use = phys_ram / 8 / m_block_size;
+				else
+				{
+					// this is the logic to calculate the automatic disk cache size
+					// based on the amount of physical RAM.
+					// The more physical RAM, the smaller portion of it is allocated
+					// for the cache.
+
+					// we take a 30th of everything exceeding 4 GiB
+					// a 20th of everything exceeding 1 GiB
+					// and a 10th of everything below a GiB
+
+					boost::int64_t const gb = 1024 * 1024 * 1024;
+
+					boost::int64_t result = 0;
+					if (phys_ram > 4 * gb)
+					{
+						result += (phys_ram - 4 * gb) / 30;
+						phys_ram = 4 * gb;
+					}
+					if (phys_ram > 1 * gb)
+					{
+						result += (phys_ram - 1 * gb) / 20;
+						phys_ram = 1 * gb;
+					}
+					result += phys_ram / 10;
+					m_max_use = result / m_block_size;
+				}
 
 				if (sizeof(void*) == 4)
 				{
