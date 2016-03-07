@@ -113,3 +113,45 @@ TORRENT_TEST(checking_no_cache)
 			TEST_EQUAL(tor[0].status().is_seeding, true);
 		});
 }
+
+TORRENT_TEST(checking_limit_volatile)
+{
+	run_test(
+		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			p.set_int(lt::settings_pack::cache_size, 300);
+			p.set_int(lt::settings_pack::cache_size_volatile, 2);
+		},
+		[](lt::session& ses) {
+			int cache = get_cache_size(ses);
+			// the cache fits 300 blocks, but only allows two volatile blocks
+			TEST_EQUAL(cache, 2);
+
+			std::vector<lt::torrent_handle> tor = ses.get_torrents();
+			TEST_EQUAL(tor.size(), 1);
+
+			TEST_EQUAL(tor[0].status().is_seeding, true);
+		});
+}
+
+TORRENT_TEST(checking_volatile_limit_cache_size)
+{
+	run_test(
+		[](lt::add_torrent_params& atp, lt::settings_pack& p) {
+			atp.flags |= lt::add_torrent_params::flag_auto_managed;
+			p.set_int(lt::settings_pack::cache_size, 10);
+			p.set_int(lt::settings_pack::cache_size_volatile, 300);
+		},
+		[](lt::session& ses) {
+			int cache = get_cache_size(ses);
+			// the cache allows 300 volatile blocks, but only fits 2 blocks
+			TEST_CHECK(cache > 0);
+			TEST_CHECK(cache <= 10);
+
+			std::vector<lt::torrent_handle> tor = ses.get_torrents();
+			TEST_EQUAL(tor.size(), 1);
+
+			TEST_EQUAL(tor[0].status().is_seeding, true);
+		});
+}
+

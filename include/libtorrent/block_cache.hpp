@@ -449,6 +449,9 @@ namespace libtorrent
 		// that couldn't be
 		int try_evict_blocks(int num, cached_piece_entry* ignore = 0);
 
+		// try to evict a single volatile piece, if there is one.
+		void try_evict_one_volatile();
+
 		// if there are any dirty blocks
 		void clear(tailqueue<disk_io_job>& jobs);
 
@@ -507,9 +510,18 @@ namespace libtorrent
 		// this is determined by being a fraction of the cache size
 		int m_ghost_size;
 
+		// the is the max number of volatile read cache blocks are allowed in the
+		// cache. Once this is reached, other volatile blocks will start to be
+		// evicted.
+		int m_max_volatile_blocks;
+
+		// the number of blocks (buffers) allocated by volatile pieces.
+		boost::uint32_t m_volatile_size;
+
 		// the number of blocks in the cache
 		// that are in the read cache
 		boost::uint32_t m_read_cache_size;
+
 		// the number of blocks in the cache
 		// that are in the write cache
 		boost::uint32_t m_write_cache_size;

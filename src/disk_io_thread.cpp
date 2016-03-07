@@ -2328,16 +2328,6 @@ namespace libtorrent
 			}
 		}
 
-		if (pe == NULL && m_settings.get_bool(settings_pack::use_read_cache) == false)
-		{
-			l.unlock();
-			// if there's no piece in the cache, and the read cache is disabled
-			// it means it's already been flushed to disk, and there's no point
-			// in reading it into the cache, since we're not using read cache
-			// so just use the uncached version
-			return do_uncached_hash(j);
-		}
-
 		if (pe == NULL)
 		{
 			int cache_state = (j->flags & disk_io_job::volatile_read)
@@ -2399,6 +2389,9 @@ namespace libtorrent
 
 			locked_blocks[num_locked_blocks++] = i;
 		}
+
+		// to keep the cache footprint low, try to evict a volatile piece
+		m_disk_cache.try_evict_one_volatile();
 
 		l.unlock();
 
@@ -2670,7 +2663,7 @@ namespace libtorrent
 		int block_size = m_disk_cache.block_size();
 		int piece_size = j->storage->files()->piece_size(j->piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		
+
 		file::iovec_t iov;
 		int ret = 0;
 		int offset = 0;
@@ -3598,6 +3591,5 @@ namespace libtorrent
 	{
 	}
 #endif
-		
 }
 
