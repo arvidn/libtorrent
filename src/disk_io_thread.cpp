@@ -573,7 +573,7 @@ namespace libtorrent
 
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
-		
+
 		int iov_len = 0;
 		// the blocks we're flushing
 		int num_flushing = 0;
@@ -2839,17 +2839,17 @@ namespace libtorrent
 		if (no_pieces == false)
 		{
 			int block_size = m_disk_cache.block_size();
-   
+
 			if (storage)
 			{
 				ret->pieces.reserve(storage->num_pieces());
-   
+
 				for (boost::unordered_set<cached_piece_entry*>::iterator i
 					= storage->cached_pieces().begin(), end(storage->cached_pieces().end());
 					i != end; ++i)
 				{
 					TORRENT_ASSERT((*i)->storage.get() == storage);
-   
+
 					if ((*i)->cache_state == cached_piece_entry::read_lru2_ghost
 						|| (*i)->cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
@@ -2860,10 +2860,10 @@ namespace libtorrent
 			else
 			{
 				ret->pieces.reserve(m_disk_cache.num_pieces());
-   
+
 				std::pair<block_cache::iterator, block_cache::iterator> range
 					= m_disk_cache.all_pieces();
-   
+
 				for (block_cache::iterator i = range.first; i != range.second; ++i)
 				{
 					if (i->cache_state == cached_piece_entry::read_lru2_ghost

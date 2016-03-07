@@ -2682,7 +2682,10 @@ namespace libtorrent
 
 		int num_outstanding = settings().get_int(settings_pack::checking_mem_usage) * block_size()
 			/ m_torrent_file->piece_length();
-		if (num_outstanding <= 0) num_outstanding = 1;
+		// if we only keep a single read operation in-flight at a time, we suffer
+		// significant performance degradation. Always keep at least two jobs
+		// outstanding
+		if (num_outstanding < 2) num_outstanding = 2;
 
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed
