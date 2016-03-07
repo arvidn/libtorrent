@@ -2879,7 +2879,9 @@ namespace libtorrent
 		{
 			// if we're auto managed. assume we need to be paused until the auto
 			// managed logic runs again (which is triggered further down)
-			pause();
+			// setting flags to 0 prevents the disk cache from being evicted as a
+			// result of this
+			set_allow_peers(false, 0);
 		}
 
 		// we're done checking! (this should cause a call to trigger_auto_manage)
@@ -9706,10 +9708,11 @@ namespace libtorrent
 			set_need_save_resume();
 		}
 
-		set_allow_peers(false, graceful);
+		int const flags = graceful ? flag_graceful_pause : 0;
+		set_allow_peers(false, flags | flag_clear_disk_cache);
 	}
 
-	void torrent::do_pause()
+	void torrent::do_pause(bool const clear_disk_cache)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
@@ -9773,7 +9776,7 @@ namespace libtorrent
 		{
 			// this will make the storage close all
 			// files and flush all cached data
-			if (m_storage.get())
+			if (m_storage.get() && clear_disk_cache)
 			{
 				TORRENT_ASSERT(m_storage);
 				m_ses.disk_thread().async_stop_torrent(m_storage.get()
@@ -9873,7 +9876,7 @@ namespace libtorrent
 		set_need_save_resume();
 	}
 
-	void torrent::set_allow_peers(bool b, bool graceful)
+	void torrent::set_allow_peers(bool b, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9883,7 +9886,7 @@ namespace libtorrent
 		// if there are no peers, we must not enter graceful pause mode, and post
 		// the torrent_paused_alert immediately instead.
 		if (m_connections.empty())
-			graceful = false;
+			flags &= ~flag_graceful_pause;
 
 		if (m_allow_peers == b)
 		{
@@ -9892,9 +9895,9 @@ namespace libtorrent
 			// paused mode, we need to actually pause the torrent properly
 			if (m_allow_peers == false
 				&& m_graceful_pause_mode == true
-				&& graceful == false)
+				&& (flags & flag_graceful_pause) == 0)
 			{
-				m_graceful_pause_mode = graceful;
+				m_graceful_pause_mode = false;
 				update_gauge();
 				do_pause();
 			}
@@ -9903,7 +9906,7 @@ namespace libtorrent
 
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
-			m_graceful_pause_mode = graceful;
+			m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
 
 		if (!b)
 		{
@@ -9920,7 +9923,7 @@ namespace libtorrent
 
 		if (!b)
 		{
-			do_pause();
+			do_pause(flags & flag_clear_disk_cache);
 		}
 		else
 		{

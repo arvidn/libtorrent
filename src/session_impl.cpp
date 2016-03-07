@@ -3741,7 +3741,8 @@ retry:
 				t->log_to_all_peers("auto manager pausing torrent");
 #endif
 			// use graceful pause for auto-managed torrents
-			t->set_allow_peers(false, true);
+			t->set_allow_peers(false, torrent::flag_graceful_pause
+				| torrent::flag_clear_disk_cache);
 			t->set_announce_to_dht(false);
 			t->set_announce_to_trackers(false);
 			t->set_announce_to_lsd(false);
