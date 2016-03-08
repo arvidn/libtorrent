@@ -3695,6 +3695,7 @@ namespace libtorrent
 			avail_vec.push_back(i);
 		}
 
+		if (avail_vec.empty()) return -1;
 		return avail_vec[random() % avail_vec.size()];
 	}
 
