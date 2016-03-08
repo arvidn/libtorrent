@@ -453,7 +453,13 @@ namespace libtorrent
 		void flush_cache();
 		void pause(bool graceful = false);
 		void resume();
-		void set_allow_peers(bool b, bool graceful_pause = false);
+
+		enum pause_flags_t
+		{
+			flag_graceful_pause = 1,
+			flag_clear_disk_cache = 2
+		};
+		void set_allow_peers(bool b, int flags = flag_clear_disk_cache);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
@@ -462,7 +468,7 @@ namespace libtorrent
 
 		int started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause();
+		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
 
 		int finished_time() const;

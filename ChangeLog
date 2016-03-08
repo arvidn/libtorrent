@@ -7,6 +7,7 @@
 
 1.1.0 release
 
+	* support filtering which parts of session state are loaded by load_state()
 	* deprecate support for adding torrents by HTTP URL
 	* allow specifying which tracker to scrape in scrape_tracker
 	* tracker response alerts from user initiated announces/scrapes are now
@@ -90,6 +91,8 @@
 	* added support for asynchronous disk I/O
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
+
+	* fix division by zero in super-seeding logic
 
 1.0.9 release
 

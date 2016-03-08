@@ -923,8 +923,11 @@ int utp_stream::read_buffer_size() const
 void utp_stream::on_close_reason(void* self, boost::uint16_t close_reason)
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
-	TORRENT_ASSERT(s->m_impl);
-	s->m_incoming_close_reason = close_reason;
+
+	// it's possible the socket has been unlinked already, in which case m_impl
+	// will be NULL
+	if (s->m_impl)
+		s->m_incoming_close_reason = close_reason;
 }
 
 void utp_stream::on_read(void* self, size_t bytes_transferred

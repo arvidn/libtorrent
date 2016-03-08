@@ -96,7 +96,11 @@ void session_view::render()
 	snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
 		"disk queue: %s | %s cache w: %3d%% r: %3d%% "
 		"size: w: %s r: %s total: %s       %s\x1b[K"
+#ifdef _WIN32
+		, esc("40")
+#else
 		, esc("48;5;238")
+#endif
 		, esc("1")
 		, add_suffix(m_cnt[0][m_wasted_bytes_idx]).c_str()
 		, color(add_suffix(upload_rate, "/s"), col_red).c_str()

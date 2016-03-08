@@ -98,6 +98,7 @@ namespace libtorrent
 // int: port-mapping index
 // address: external address as queried from router
 // int: external port
+// int: protocol (UDP, TCP)
 // std::string: error message
 // an empty string as error means success
 typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;

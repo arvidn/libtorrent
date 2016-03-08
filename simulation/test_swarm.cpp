@@ -97,7 +97,7 @@ TORRENT_TEST(session_stats)
 		// on alert
 		, [=](lt::alert const* a, lt::session& ses)
 		{
-			lt::session_stats_alert const* ss = lt::alert_cast<session_stats_alert>(a);
+			auto const* ss = lt::alert_cast<session_stats_alert>(a);
 			if (!ss) return;
 
 			// there's one downloading torrent

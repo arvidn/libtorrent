@@ -345,6 +345,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
+			void start_dht_deprecated(entry const& startup_state);
 #endif
 			void on_dht_announce(error_code const& e);
 			void on_dht_name_lookup(error_code const& e
@@ -512,7 +513,7 @@ namespace libtorrent
 			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) TORRENT_OVERRIDE;
 
 			void save_state(entry* e, boost::uint32_t flags) const;
-			void load_state(bdecode_node const* e);
+			void load_state(bdecode_node const* e, boost::uint32_t flags);
 
 			bool has_connection(peer_connection* p) const TORRENT_OVERRIDE;
 			void insert_peer(boost::shared_ptr<peer_connection> const& c) TORRENT_OVERRIDE;

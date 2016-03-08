@@ -229,7 +229,7 @@ namespace libtorrent
 		// The const version of ``operator[]`` will only return a reference to an
 		// existing element at the given key. If the key is not found, it will
 		// throw ``libtorrent::type_error``.
- 		entry& operator[](char const* key);
+		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
 #ifndef BOOST_NO_EXCEPTIONS
 		const entry& operator[](char const* key) const;
@@ -290,7 +290,7 @@ namespace libtorrent
 
 	public:
 		// in debug mode this is set to false by bdecode to indicate that the
-		// program has not yet queried the type of this entry, and sould not
+		// program has not yet queried the type of this entry, and should not
 		// assume that it has a certain type. This is asserted in the accessor
 		// functions. This does not apply if exceptions are used.
 		mutable boost::uint8_t m_type_queried:1;

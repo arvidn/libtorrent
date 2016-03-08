@@ -43,12 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/torrent_status.hpp>
 
 namespace lt = libtorrent;
+using clock_t = std::chrono::monotonic_clock;
 
 // return the name of a torrent status enum
 char const* state(lt::torrent_status::state_t s)
 {
-	switch(s)
-	{
+	switch(s) {
 		case lt::torrent_status::checking_files: return "checking";
 		case lt::torrent_status::downloading_metadata: return "dl metadata";
 		case lt::torrent_status::downloading: return "downloading";
@@ -74,8 +74,8 @@ int main(int argc, char const* argv[])
 		| lt::alert::status_notification);
 
 	lt::session ses(pack);
-
 	lt::add_torrent_params atp;
+	std::chrono::time_point last_save_resume = clock_t::now();
 
 	// load resume data from disk and pass it in as we add the magnet link
 	std::ifstream ifs(".resume_file", std::ios_base::binary);
@@ -134,9 +134,15 @@ int main(int argc, char const* argv[])
 		// state output for the torrent
 		ses.post_torrent_updates();
 
-		// TODO: 3 call save_resume_data() once every 30 seconds or so
+		// save resume data once every 30 seconds
+		if (clock_t::now() - last_save_resume > seconds(30)) {
+			h.save_resume_data();
+		}
 	}
-	done:
+
+	// TODO: ideally we should save resume data here
+
+done:
 	std::cout << "\ndone, shutting down" << std::endl;
 }
 

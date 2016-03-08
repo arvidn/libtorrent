@@ -355,10 +355,10 @@ namespace libtorrent
 
 		// the total number of blocks run through SHA-1 hashing
 		METRIC(disk, num_blocks_hashed)
-		
+
 		// the number of blocks read from the disk cache
 		METRIC(disk, num_blocks_cache_hits)
-		
+
 		// the number of disk I/O operation for reads and writes. One disk
 		// operation may transfer more then one block.
 		METRIC(disk, num_write_ops)

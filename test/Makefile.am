@@ -18,6 +18,7 @@ test_programs = \
   test_pe_crypto             \
   test_pex                   \
   test_read_piece            \
+  test_receive_buffer        \
   test_resume                \
   test_read_resume           \
   test_ssl                   \

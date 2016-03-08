@@ -55,12 +55,20 @@ const int mask = alert::all_categories & ~(alert::performance_warning | alert::s
 
 void wait_for_complete(lt::session& ses, torrent_handle h)
 {
-	for (int i = 0; i < 70; ++i)
+	int last_progress = 0;
+	clock_type::time_point last_change = clock_type::now();
+	for (int i = 0; i < 400; ++i)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
 		fprintf(stderr, "%f %%\n", st.progress_ppm / 10000.f);
 		if (st.progress_ppm == 1000000) return;
+		if (st.progress_ppm != last_progress)
+		{
+			last_progress = st.progress_ppm;
+			last_change = clock_type::now();
+		}
+		if (clock_type::now() - last_change > seconds(10)) break;
 		test_sleep(500);
 	}
 	TEST_ERROR("torrent did not finish");
@@ -107,3 +115,4 @@ TORRENT_TEST(recheck)
 	TEST_CHECK(st1.progress_ppm <= 1000000);
 	wait_for_complete(ses1, tor1);
 }
+

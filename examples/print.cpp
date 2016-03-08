@@ -88,7 +88,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 	bar.clear();
 	bar.reserve(size_t(width + 10));
 
-	int progress_chars = (progress * width + 500) / 1000;
+	int const progress_chars = (progress * width + 500) / 1000;
 
 	if (caption.empty())
 	{
@@ -108,14 +108,21 @@ std::string const& progress_bar(int progress, int width, color_code c
 
 		caption.resize(size_t(width), ' ');
 
+#ifdef _WIN32
+		char const* background = "40";
+#else
+		char const* background = "48;5;238";
+#endif
+
 		char str[256];
 		if (flags & progress_invert)
-			snprintf(str, sizeof(str), "\x1b[48;5;238m\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
-				, caption.substr(0, progress_chars).c_str(), c, tc
+			snprintf(str, sizeof(str), "\x1b[%sm\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
+				, background, caption.substr(0, progress_chars).c_str(), c, tc
 				, caption.substr(progress_chars).c_str());
 		else
-			snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[48;5;238m\x1b[37m%s\x1b[49;39m"
-				, c, tc, caption.substr(0, progress_chars).c_str(), caption.substr(progress_chars).c_str());
+			snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[%sm\x1b[37m%s\x1b[49;39m"
+				, c, tc, caption.substr(0, progress_chars).c_str(), background
+				, caption.substr(progress_chars).c_str());
 		bar = str;
 	}
 	return bar;
@@ -208,7 +215,7 @@ void terminal_size(int* terminal_width, int* terminal_height)
 }
 
 #ifdef _WIN32
-void apply_ansi_code(int* attributes, bool* reverse, int code)
+void apply_ansi_code(int* attributes, bool* reverse, bool* support_chaining, int code)
 {
 	static const int color_table[8] =
 	{
@@ -224,8 +231,8 @@ void apply_ansi_code(int* attributes, bool* reverse, int code)
 
 	enum
 	{
-		foreground_mask = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE,
-		background_mask = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE
+		foreground_mask = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+		background_mask = BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE | BACKGROUND_INTENSITY
 	};
 
 	static const int fg_mask[2] = {foreground_mask, background_mask};
@@ -233,14 +240,29 @@ void apply_ansi_code(int* attributes, bool* reverse, int code)
 	static const int fg_shift[2] = { 0, 4};
 	static const int bg_shift[2] = { 4, 0};
 
+	// default foreground
+	if (code == 39) code = 37;
+
+	// default background
+	if (code == 49) code = 40;
+
 	if (code == 0)
 	{
 		// reset
 		*attributes = color_table[7];
 		*reverse = false;
+		*support_chaining = true;
+	}
+	else if (code == 1)
+	{
+		// intensity
+		*attributes |= *reverse ? BACKGROUND_INTENSITY : FOREGROUND_INTENSITY;
+		*support_chaining = true;
 	}
 	else if (code == 7)
 	{
+		// reverse video
+		*support_chaining = true;
 		if (*reverse) return;
 		*reverse = true;
 		int fg_col = *attributes & foreground_mask;
@@ -254,12 +276,14 @@ void apply_ansi_code(int* attributes, bool* reverse, int code)
 		// foreground color
 		*attributes &= ~fg_mask[*reverse];
 		*attributes |= color_table[code - 30] << fg_shift[*reverse];
+		*support_chaining = true;
 	}
 	else if (code >= 40 && code <= 47)
 	{
-		// foreground color
+		// background color
 		*attributes &= ~bg_mask[*reverse];
 		*attributes |= color_table[code - 40] << bg_shift[*reverse];
+		*support_chaining = true;
 	}
 }
 #endif
@@ -288,14 +312,15 @@ void print(char const* buf)
 				CONSOLE_SCREEN_BUFFER_INFO sbi;
 				if (GetConsoleScreenBufferInfo(out, &sbi))
 				{
-					COORD pos = sbi.dwCursorPosition;
-					int width = sbi.dwSize.X;
-					int run = width - pos.X;
+					COORD const pos = sbi.dwCursorPosition;
+					int const width = sbi.dwSize.X;
+					int const run = width - pos.X;
 					DWORD n;
 					FillConsoleOutputAttribute(out, 0x7, run, pos, &n);
 					FillConsoleOutputCharacter(out, ' ', run, pos, &n);
 				}
 				++buf;
+				start = buf;
 				continue;
 			}
 			else if (*start == 'J')
@@ -312,18 +337,30 @@ void print(char const* buf)
 					FillConsoleOutputCharacter(out, ' ', run, pos, &n);
 				}
 				++buf;
+				start = buf;
 				continue;
 			}
-		one_more:
+one_more:
 			while (*buf != 'm' && *buf != ';' && *buf != 0) ++buf;
+
+			// this is where we handle reset, color and reverse codes
 			if (*buf == 0) break;
 			int code = atoi(start);
-			apply_ansi_code(&current_attributes, &reverse, code);
-			if (*buf == ';')
+			bool support_chaining = false;
+			apply_ansi_code(&current_attributes, &reverse, &support_chaining, code);
+			if (support_chaining)
 			{
-				++buf;
-				start = buf;
-				goto one_more;
+				if (*buf == ';')
+				{
+					++buf;
+					start = buf;
+					goto one_more;
+				}
+			}
+			else
+			{
+				// ignore codes with multiple fields for now
+				while (*buf != 'm' && *buf != 0) ++buf;
 			}
 			SetConsoleTextAttribute(out, current_attributes);
 			++buf; // skip 'm'

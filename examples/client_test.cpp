@@ -377,9 +377,13 @@ FILE* g_log_file = 0;
 
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
-	const int table_size = 18;
+#ifdef _WIN32
+	int const table_size = 2;
+#else
+	int const table_size = 18;
+#endif
 
-	double piece_per_char = p.size() / double(width);
+	double const piece_per_char = p.size() / double(width);
 	static std::string bar;
 	bar.clear();
 	bar.reserve(width * 6);
@@ -401,9 +405,13 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int color = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
-		char buf[10];
-		snprintf(buf, 10, "48;5;%d", 232 + color);
-		bar += esc(buf);
+		char buf[40];
+#ifdef _WIN32
+		snprintf(buf, sizeof(buf), "\x1b[4%dm", color ? 7 : 0);
+#else
+		snprintf(buf, sizeof(buf), "\x1b[48;5;%dm", 232 + color);
+#endif
+		bar += buf;
 		bar += " ";
 	}
 	bar += esc("0");
@@ -597,6 +605,7 @@ std::string monitor_dir;
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
+int cache_size = 1024;
 
 bool share_mode = false;
 bool disable_storage = false;
@@ -1295,6 +1304,7 @@ int main(int argc, char* argv[])
 	namespace lt = libtorrent;
 
 	settings_pack settings;
+	settings.set_int(settings_pack::cache_size, cache_size);
 	settings.set_int(settings_pack::active_loaded_limit, 20);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
@@ -1446,9 +1456,9 @@ int main(int argc, char* argv[])
 				}
 #endif // TORRENT_USE_I2P
 			case 'C':
-				settings.set_int(settings_pack::cache_size, atoi(arg));
-				settings.set_bool(settings_pack::use_read_cache, atoi(arg) > 0);
-				settings.set_int(settings_pack::cache_buffer_chunk_size, atoi(arg) / 100);
+				cache_size = atoi(arg);
+				settings.set_int(settings_pack::cache_size, cache_size);
+				settings.set_int(settings_pack::cache_buffer_chunk_size, 0);
 				break;
 			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
 			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
@@ -1564,6 +1574,9 @@ int main(int argc, char* argv[])
 	}
 
 	ses.set_ip_filter(loaded_ip_filter);
+	ses.set_load_function(&load_torrent);
+
+	error_code ec;
 
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings dht;
@@ -1581,18 +1594,15 @@ int main(int argc, char* argv[])
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bitcomet.com"), 6881));
 	}
-#endif
-
-	ses.set_load_function(&load_torrent);
 
 	std::vector<char> in;
-	error_code ec;
 	if (load_file(".ses_state", in, ec) == 0)
 	{
 		bdecode_node e;
 		if (bdecode(&in[0], &in[0] + in.size(), e, ec) == 0)
-			ses.load_state(e);
+			ses.load_state(e, session::save_dht_state);
 	}
+#endif
 
 	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
 		, end(magnet_links.end()); i != end; ++i)
@@ -1926,6 +1936,13 @@ int main(int argc, char* argv[])
 				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
+				if (c == 'C')
+				{
+					cache_size = (cache_size == 0) ? -1 : 0;
+					settings_pack p;
+					p.set_int(settings_pack::cache_size, cache_size);
+					ses.apply_settings(p);
+				}
 				if (c == 'h')
 				{
 					clear_screen();
@@ -1936,7 +1953,7 @@ int main(int argc, char* argv[])
 						"[q] quit client                                 [m] add magnet link\n"
 						"\n"
 						"TORRENT ACTIONS\n"
-						"[p] pause/unpause selected torrent\n"
+						"[p] pause/unpause selected torrent              [C] toggle disk cache\n"
 						"[s] toggle sequential download                  [j] force recheck\n"
 						"[space] toggle session pause                    [c] clear error\n"
 						"[v] scrape                                      [D] delete torrent and data\n"
@@ -2290,11 +2307,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	// keep track of the number of resume data
-	// alerts to wait for
-	int num_paused = 0;
-	int num_failed = 0;
-
 	ses.pause();
 	printf("saving resume data\n");
 	std::vector<torrent_status> temp;
@@ -2337,51 +2349,29 @@ int main(int argc, char* argv[])
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			torrent_paused_alert* tp = alert_cast<torrent_paused_alert>(*i);
-			if (tp)
+			if (!::handle_alert(ses, *i, files, non_files))
 			{
-				++num_paused;
-				printf("\rleft: %d failed: %d pause: %d "
-					, num_outstanding_resume_data, num_failed, num_paused);
-				continue;
+				// if we didn't handle the alert, print it to the log
+				std::string event_string;
+				print_alert(*i, event_string);
 			}
-
-			if (alert_cast<save_resume_data_failed_alert>(*i))
-			{
-				++num_failed;
-				--num_outstanding_resume_data;
-				printf("\rleft: %d failed: %d pause: %d "
-					, num_outstanding_resume_data, num_failed, num_paused);
-				continue;
-			}
-
-			save_resume_data_alert* rd = alert_cast<save_resume_data_alert>(*i);
-			if (!rd) continue;
-			--num_outstanding_resume_data;
-			printf("\rleft: %d failed: %d pause: %d "
-				, num_outstanding_resume_data, num_failed, num_paused);
-
-			if (!rd->resume_data) continue;
-
-			torrent_handle h = rd->handle;
-			torrent_status st = h.status(torrent_handle::query_save_path);
-			std::vector<char> out;
-			bencode(std::back_inserter(out), *rd->resume_data);
-			save_file(path_append(st.save_path, path_append(".resume"
-				, leaf_path(hash_to_filename[st.info_hash]) + ".resume")), out);
 		}
 	}
 
 	if (g_log_file) fclose(g_log_file);
+
+	// we're just saving the DHT state
+#ifndef TORRENT_DISABLE_DHT
 	printf("\nsaving session state\n");
 	{
 		entry session_state;
-		ses.save_state(session_state);
+		ses.save_state(session_state, session::save_dht_state);
 
 		std::vector<char> out;
 		bencode(std::back_inserter(out), session_state);
 		save_file(".ses_state", out);
 	}
+#endif
 
 	printf("closing session");
 

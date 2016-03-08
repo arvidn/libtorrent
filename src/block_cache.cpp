@@ -1082,7 +1082,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				// the first pass, only evict blocks that have been
 				// hashed
 				if (pass == 0 && pe->hash)
-				  	end = pe->hash->offset / block_size();
+					end = pe->hash->offset / block_size();
 
 				// go through the blocks and evict the ones
 				// that are not dirty and not referenced

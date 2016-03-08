@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "create_torrent.hpp"
 #include "settings.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -44,15 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
 #include "setup_swarm.hpp"
+#include "utils.hpp"
 
 using namespace sim;
 
 namespace lt = libtorrent;
-
-enum flags_t
-{
-	ipv6 = 1,
-};
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
@@ -62,8 +59,6 @@ void run_test(
 	, int flags = 0)
 {
 	using namespace libtorrent;
-
-	lt::time_point start_time = lt::clock_type::now();
 
 	const bool use_ipv6 = flags & ipv6;
 
@@ -112,32 +107,15 @@ void run_test(
 	setup(*ses[0], *ses[1]);
 
 	// only monitor alerts for session 0 (the downloader)
-	ses[0]->set_alert_notify([&] { ios0.post([&] {
-		std::vector<lt::alert*> alerts;
-		ses[0]->pop_alerts(&alerts);
-
-		for (lt::alert const* a : alerts)
+	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
+		if (auto ta = alert_cast<lt::torrent_added_alert>(a))
 		{
-			printf("%-3d [0] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-				- start_time).count()), a->message().c_str());
-			if (auto ta = alert_cast<lt::torrent_added_alert>(a))
-			{
-				ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
-			}
-			// call the user handler
-			on_alert(*ses[0], a);
+			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 		}
-	} ); } );
+		on_alert(ses, a);
+	});
 
-	ses[1]->set_alert_notify([&] { ios0.post([&] {
-		std::vector<lt::alert*> alerts;
-		ses[1]->pop_alerts(&alerts);
-		for (lt::alert const* a : alerts)
-		{
-			printf("%-3d [1] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-				- start_time).count()), a->message().c_str());
-		}
-	} ); } );
+	print_alerts(*ses[1]);
 
 	// the first peer is a downloader, the second peer is a seed
 	lt::add_torrent_params params = create_torrent(1);
@@ -167,52 +145,6 @@ void run_test(
 	});
 
 	sim.run();
-}
-
-void utp_only(lt::session& ses)
-{
-	using namespace libtorrent;
-	settings_pack p;
-	utp_only(p);
-	ses.apply_settings(p);
-}
-
-void enable_enc(lt::session& ses)
-{
-	using namespace libtorrent;
-	settings_pack p;
-	enable_enc(p);
-	ses.apply_settings(p);
-}
-
-void filter_ips(lt::session& ses)
-{
-	using namespace libtorrent;
-	ip_filter filter;
-	filter.add_rule(asio::ip::address_v4::from_string("50.0.0.1")
-		, asio::ip::address_v4::from_string("50.0.0.2"), ip_filter::blocked);
-	ses.set_ip_filter(filter);
-}
-
-void set_proxy(lt::session& ses, int proxy_type, int flags = 0, bool proxy_peer_connections = true)
-{
-	// apply the proxy settings to session 0
-	using namespace libtorrent;
-	settings_pack p;
-	p.set_int(settings_pack::proxy_type, proxy_type);
-	if (proxy_type == settings_pack::socks4)
-		p.set_int(settings_pack::proxy_port, 4444);
-	else
-		p.set_int(settings_pack::proxy_port, 5555);
-	if (flags & ipv6)
-		p.set_str(settings_pack::proxy_hostname, "2001::2");
-	else
-		p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
-	p.set_bool(settings_pack::proxy_hostnames, true);
-	p.set_bool(settings_pack::proxy_peer_connections, proxy_peer_connections);
-	p.set_bool(settings_pack::proxy_tracker_connections, true);
-
-	ses.apply_settings(p);
 }
 
 TORRENT_TEST(socks4_tcp)
@@ -387,6 +319,39 @@ TORRENT_TEST(no_proxy_utp_banned)
 		[](lt::session& ses, lt::alert const* alert) {},
 		[](std::shared_ptr<lt::session> ses[2]) {
 			TEST_EQUAL(is_seed(*ses[0]), false);
+		}
+	);
+}
+
+TORRENT_TEST(auto_disk_cache_size)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) { set_cache_size(ses0, -1); },
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+
+			int const cache_size = get_cache_size(*ses[0]);
+			printf("cache size: %d\n", cache_size);
+			// this assumes the test torrent is at least 4 blocks
+			TEST_CHECK(cache_size > 4);
+		}
+	);
+}
+
+TORRENT_TEST(disable_disk_cache)
+{
+	using namespace libtorrent;
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) { set_cache_size(ses0, 0); },
+		[](lt::session& ses, lt::alert const* alert) {},
+		[](std::shared_ptr<lt::session> ses[2]) {
+			TEST_EQUAL(is_seed(*ses[0]), true);
+
+			int const cache_size = get_cache_size(*ses[0]);
+			printf("cache size: %d\n", cache_size);
+			TEST_EQUAL(cache_size, 0);
 		}
 	);
 }

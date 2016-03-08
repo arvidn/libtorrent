@@ -1173,6 +1173,8 @@ namespace libtorrent
 		TORRENT_UNUSED(j);
 		TORRENT_UNUSED(b);
 
+		if (m_abort) return;
+
 		update_gauge();
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
@@ -2201,6 +2203,8 @@ namespace libtorrent
 			return;
 		}
 
+		if (m_abort) return;
+
 		state_updated();
 
 		if (m_add_torrent_params)
@@ -2447,6 +2451,8 @@ namespace libtorrent
 		dec_refcount("force_recheck");
 		state_updated();
 
+		if (m_abort) return;
+
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
 			handle_disk_error(j);
@@ -2476,7 +2482,10 @@ namespace libtorrent
 
 		int num_outstanding = settings().get_int(settings_pack::checking_mem_usage) * block_size()
 			/ m_torrent_file->piece_length();
-		if (num_outstanding <= 0) num_outstanding = 1;
+		// if we only keep a single read operation in-flight at a time, we suffer
+		// significant performance degradation. Always keep at least two jobs
+		// outstanding
+		if (num_outstanding < 2) num_outstanding = 2;
 
 		// we might already have some outstanding jobs, if we were paused and
 		// resumed quickly, before the outstanding jobs completed
@@ -2526,6 +2535,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		dec_refcount("start_checking");
+
+		if (m_abort) return;
 
 		if (j->ret == piece_manager::disk_check_aborted)
 		{
@@ -2668,7 +2679,9 @@ namespace libtorrent
 		{
 			// if we're auto managed. assume we need to be paused until the auto
 			// managed logic runs again (which is triggered further down)
-			pause();
+			// setting flags to 0 prevents the disk cache from being evicted as a
+			// result of this
+			set_allow_peers(false, 0);
 		}
 
 		// we're done checking! (this should cause a call to trigger_auto_manage)
@@ -2844,6 +2857,7 @@ namespace libtorrent
 			, int(peers.size()));
 #endif
 
+		if (m_abort) return;
 		if (peers.empty()) return;
 
 		if (m_ses.alerts().should_post<dht_reply_alert>())
@@ -3554,7 +3568,7 @@ namespace libtorrent
 		if (ec)
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
 #endif
-		if (ec || m_ses.is_aborted()) return;
+		if (ec || m_abort || m_ses.is_aborted()) return;
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
@@ -3580,7 +3594,7 @@ namespace libtorrent
 			debug_log("peer name lookup error: %s", e.message().c_str());
 #endif
 
-		if (e || host_list.empty() || m_ses.is_aborted()) return;
+		if (e || m_abort || host_list.empty() || m_ses.is_aborted()) return;
 
 		// TODO: add one peer per IP the hostname resolves to
 		tcp::endpoint host(host_list.front(), port);
@@ -3925,6 +3939,8 @@ namespace libtorrent
 		torrent_ref_holder h(this, "verify_piece");
 
 		dec_refcount("verify_piece");
+
+		if (m_abort) return;
 
 		int ret = j->ret;
 		if (settings().get_bool(settings_pack::disable_hash_checks))
@@ -4788,6 +4804,9 @@ namespace libtorrent
 		// seeded by any peer
 		TORRENT_ASSERT(m_super_seeding);
 
+		if (!need_loaded())
+			return -1;
+
 		// do a linear search from the first piece
 		int min_availability = 9999;
 		std::vector<int> avail_vec;
@@ -4820,6 +4839,7 @@ namespace libtorrent
 			avail_vec.push_back(i);
 		}
 
+		if (avail_vec.empty()) return -1;
 		return avail_vec[random() % avail_vec.size()];
 	}
 
@@ -9150,10 +9170,11 @@ namespace libtorrent
 			set_need_save_resume();
 		}
 
-		set_allow_peers(false, graceful);
+		int const flags = graceful ? flag_graceful_pause : 0;
+		set_allow_peers(false, flags | flag_clear_disk_cache);
 	}
 
-	void torrent::do_pause()
+	void torrent::do_pause(bool const clear_disk_cache)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
@@ -9217,7 +9238,7 @@ namespace libtorrent
 		{
 			// this will make the storage close all
 			// files and flush all cached data
-			if (m_storage.get())
+			if (m_storage.get() && clear_disk_cache)
 			{
 				TORRENT_ASSERT(m_storage);
 				m_ses.disk_thread().async_stop_torrent(m_storage.get()
@@ -9317,7 +9338,7 @@ namespace libtorrent
 		set_need_save_resume();
 	}
 
-	void torrent::set_allow_peers(bool b, bool graceful)
+	void torrent::set_allow_peers(bool b, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9327,7 +9348,7 @@ namespace libtorrent
 		// if there are no peers, we must not enter graceful pause mode, and post
 		// the torrent_paused_alert immediately instead.
 		if (m_connections.empty())
-			graceful = false;
+			flags &= ~flag_graceful_pause;
 
 		if (m_allow_peers == b)
 		{
@@ -9336,9 +9357,9 @@ namespace libtorrent
 			// paused mode, we need to actually pause the torrent properly
 			if (m_allow_peers == false
 				&& m_graceful_pause_mode == true
-				&& graceful == false)
+				&& (flags & flag_graceful_pause) == 0)
 			{
-				m_graceful_pause_mode = graceful;
+				m_graceful_pause_mode = false;
 				update_gauge();
 				do_pause();
 			}
@@ -9347,7 +9368,7 @@ namespace libtorrent
 
 		m_allow_peers = b;
 		if (!m_ses.is_paused())
-			m_graceful_pause_mode = graceful;
+			m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
 
 		if (!b)
 		{
@@ -9364,7 +9385,7 @@ namespace libtorrent
 
 		if (!b)
 		{
-			do_pause();
+			do_pause(flags & flag_clear_disk_cache);
 		}
 		else
 		{
@@ -10016,6 +10037,7 @@ namespace libtorrent
 		update_want_peers();
 	}
 
+	// TODO: 2 this should probably be removed
 	void torrent::refresh_explicit_cache(int cache_size)
 	{
 		TORRENT_ASSERT(is_single_thread());

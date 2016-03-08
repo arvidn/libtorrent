@@ -133,14 +133,14 @@ namespace libtorrent
 		// when seeding, prefer the peer we're uploading the fastest to
 		c1 = lhs->uploaded_in_last_round();
 		c2 = rhs->uploaded_in_last_round();
-	
+
 		// take torrent priority into account
 		c1 *= prio1;
 		c2 *= prio2;
 
 		if (c1 > c2) return true;
 		if (c2 > c1) return false;
-		
+
 		// prioritize the one that has waited the longest to be unchoked
 		// the round-robin unchoker relies on this logic. Don't change it
 		// without moving this into that unchoker logic
@@ -200,7 +200,7 @@ namespace libtorrent
 			? t2_total - rhs->num_have_pieces() : rhs->num_have_pieces()) * 1000 / t2_total;
 		if (score1 > score2) return true;
 		if (score2 > score1) return false;
-		
+
 		// prioritize the one that has waited the longest to be unchoked
 		// the round-robin unchoker relies on this logic. Don't change it
 		// without moving this into that unchoker logic
@@ -215,7 +215,7 @@ namespace libtorrent
 
 		c1 = lhs->uploaded_in_last_round();
 		c2 = rhs->uploaded_in_last_round();
-		
+
 		// take torrent priority into account
 		c1 *= lhs->get_priority(peer_connection::upload_channel);
 		c2 *= rhs->get_priority(peer_connection::upload_channel);
@@ -256,7 +256,18 @@ namespace libtorrent
 		, time_duration unchoke_interval
 		, aux::session_settings const& sett)
 	{
+#if TORRENT_USE_ASSERTS
+		for (std::vector<peer_connection*>::iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
+		{
+			TORRENT_ASSERT((*i)->self());
+			TORRENT_ASSERT((*i)->associated_torrent().lock());
+		}
+#endif
+
 		int upload_slots = sett.get_int(settings_pack::unchoke_slots_limit);
+		if (upload_slots < 0)
+			upload_slots = (std::numeric_limits<int>::max)();
 
 		// ==== BitTyrant ====
 		//

@@ -573,7 +573,7 @@ namespace libtorrent
 
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
-		
+
 		int iov_len = 0;
 		// the blocks we're flushing
 		int num_flushing = 0;
@@ -1142,21 +1142,6 @@ namespace libtorrent
 			return;
 		}
 
-#if TORRENT_USE_ASSERTS
-		// TODO: it should clear the hash state even when there's an error, right?
-		if (j->action == disk_io_job::hash && !j->error.ec)
-		{
-			// a hash job should never return without clearing pe->hash
-			l.lock();
-			cached_piece_entry* pe = m_disk_cache.find_piece(j);
-			if (pe != NULL)
-			{
-				TORRENT_PIECE_ASSERT(pe->hash == NULL, pe);
-			}
-			l.unlock();
-		}
-#endif
-
 		if (ret == defer_handler) return;
 
 		j->ret = ret;
@@ -1202,16 +1187,11 @@ namespace libtorrent
 
 	int disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		if (!m_settings.get_bool(settings_pack::use_read_cache)
-			|| m_settings.get_int(settings_pack::cache_size) == 0)
+		if ((j->flags & disk_io_job::use_disk_cache) == 0)
 		{
 			// we're not using a cache. This is the simple path
 			// just read straight from the file
 			int ret = do_uncached_read(j);
-
-			mutex::scoped_lock l(m_cache_mutex);
-			cached_piece_entry* pe = m_disk_cache.find_piece(j);
-			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return ret;
 		}
 
@@ -1475,8 +1455,7 @@ namespace libtorrent
 
 		// should we put this write job in the cache?
 		// if we don't use the cache we shouldn't.
-		if (m_settings.get_bool(settings_pack::use_write_cache)
-				&& m_settings.get_int(settings_pack::cache_size) > 0)
+		if (j->flags & disk_io_job::use_disk_cache)
 		{
 			mutex::scoped_lock l(m_cache_mutex);
 
@@ -1592,7 +1571,7 @@ namespace libtorrent
 		TORRENT_ASSERT(j->action == disk_io_job::read);
 
 		if (m_settings.get_bool(settings_pack::use_read_cache)
-			&& m_settings.get_int(settings_pack::cache_size) > 0)
+			&& m_settings.get_int(settings_pack::cache_size) != 0)
 		{
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
@@ -1629,7 +1608,7 @@ namespace libtorrent
 				j->error.operation = storage_error::read;
 				return 0;
 			}
-
+			j->flags |= disk_io_job::use_disk_cache;
 			if (pe->outstanding_read)
 			{
 				TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
@@ -1705,10 +1684,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer.disk_block));
 		l_.unlock();
 #endif
-		if (m_settings.get_int(settings_pack::cache_size) > 0
+		if (m_settings.get_int(settings_pack::cache_size) != 0
 			&& m_settings.get_bool(settings_pack::use_write_cache))
 		{
 			TORRENT_ASSERT((r.start % m_disk_cache.block_size()) == 0);
+			j->flags |= disk_io_job::use_disk_cache;
 
 			if (storage->is_blocked(j))
 			{
@@ -1797,6 +1777,12 @@ namespace libtorrent
 			return;
 		}
 		l.unlock();
+
+		if (m_settings.get_bool(settings_pack::use_read_cache)
+			&& m_settings.get_int(settings_pack::cache_size) != 0)
+		{
+			j->flags |= disk_io_job::use_disk_cache;
+		}
 
 		add_job(j);
 	}
@@ -2233,10 +2219,10 @@ namespace libtorrent
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int block_size = m_disk_cache.block_size();
-		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		int file_flags = file_flags_for_job(j);
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const block_size = m_disk_cache.block_size();
+		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		int const file_flags = file_flags_for_job(j);
 
 		file::iovec_t iov;
 		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
@@ -2257,7 +2243,7 @@ namespace libtorrent
 
 			if (!j->error.ec)
 			{
-				boost::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+				boost::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
 				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -2281,11 +2267,11 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		if (m_settings.get_int(settings_pack::cache_size) == 0)
+		if ((j->flags & disk_io_job::use_disk_cache) == 0)
 			return do_uncached_hash(j);
 
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int file_flags = file_flags_for_job(j);
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const file_flags = file_flags_for_job(j);
 
 		mutex::scoped_lock l(m_cache_mutex);
 
@@ -2324,7 +2310,7 @@ namespace libtorrent
 			}
 		}
 
-		if (pe == NULL && !m_settings.get_bool(settings_pack::use_read_cache))
+		if (pe == NULL && m_settings.get_bool(settings_pack::use_read_cache) == false)
 		{
 			l.unlock();
 			// if there's no piece in the cache, and the read cache is disabled
@@ -2373,7 +2359,7 @@ namespace libtorrent
 
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		
+
 		// keep track of which blocks we have locked by incrementing
 		// their refcounts. This is used to decrement only these blocks
 		// later.
@@ -2616,7 +2602,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->buffer.disk_block == 0);
-		
+
 		if (m_settings.get_int(settings_pack::cache_size) == 0
 			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
 			return 0;
@@ -2819,17 +2805,17 @@ namespace libtorrent
 		if (no_pieces == false)
 		{
 			int block_size = m_disk_cache.block_size();
-   
+
 			if (storage)
 			{
 				ret->pieces.reserve(storage->num_pieces());
-   
+
 				for (boost::unordered_set<cached_piece_entry*>::iterator i
 					= storage->cached_pieces().begin(), end(storage->cached_pieces().end());
 					i != end; ++i)
 				{
 					TORRENT_ASSERT((*i)->storage.get() == storage);
-   
+
 					if ((*i)->cache_state == cached_piece_entry::read_lru2_ghost
 						|| (*i)->cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
@@ -2840,10 +2826,10 @@ namespace libtorrent
 			else
 			{
 				ret->pieces.reserve(m_disk_cache.num_pieces());
-   
+
 				std::pair<block_cache::iterator, block_cache::iterator> range
 					= m_disk_cache.all_pieces();
-   
+
 				for (block_cache::iterator i = range.first; i != range.second; ++i)
 				{
 					if (i->cache_state == cached_piece_entry::read_lru2_ghost
@@ -3444,7 +3430,7 @@ namespace libtorrent
 
 				if (j->action == disk_io_job::read
 					&& m_settings.get_bool(settings_pack::use_read_cache)
-					&& m_settings.get_int(settings_pack::cache_size) > 0)
+					&& m_settings.get_int(settings_pack::cache_size) != 0)
 				{
 					int state = prep_read_job_impl(j, false);
 					switch (state)

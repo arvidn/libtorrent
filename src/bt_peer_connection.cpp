@@ -808,7 +808,7 @@ namespace libtorrent
 		// we support FAST extension
 		*(ptr + 7) |= 0x04;
 
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifndef TORRENT_DISABLE_LOGGING
 		std::string bitmask;
 		for (int k = 0; k < 8; ++k)
 		{
@@ -3284,8 +3284,7 @@ namespace libtorrent
 			if (!m_recv_buffer.packet_finished()) return;
 			recv_buffer = m_recv_buffer.get();
 
-
-#ifndef TORRENT_DISABLE_LOGGING	
+#ifndef TORRENT_DISABLE_LOGGING
 			std::string extensions;
 			extensions.resize(8 * 8);
 			for (int i=0; i < 8; ++i)
@@ -3461,7 +3460,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HANDSHAKE");
+			peer_log(peer_log_alert::incoming_message, "HANDSHAKE", "connection ready");
 #endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct())
