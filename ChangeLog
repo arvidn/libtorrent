@@ -86,6 +86,8 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix division by zero in super-seeding logic
+
 1.0.9 release
 
 	* fix issue in checking outgoing interfaces (when that option is enabled)

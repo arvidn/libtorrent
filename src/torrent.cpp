@@ -5002,6 +5002,9 @@ namespace libtorrent
 		// seeded by any peer
 		TORRENT_ASSERT(m_super_seeding);
 
+		if (!need_loaded())
+			return -1;
+
 		// do a linear search from the first piece
 		int min_availability = 9999;
 		std::vector<int> avail_vec;
@@ -5034,6 +5037,7 @@ namespace libtorrent
 			avail_vec.push_back(i);
 		}
 
+		if (avail_vec.empty()) return -1;
 		return avail_vec[random() % avail_vec.size()];
 	}
 
