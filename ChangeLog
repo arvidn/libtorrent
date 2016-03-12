@@ -7,6 +7,8 @@
 
 1.1.0 release
 
+	* improve robustness and performance of uTP PMTU discovery
+	* fix duplicate ACK issue in uTP
 	* support filtering which parts of session state are loaded by load_state()
 	* deprecate support for adding torrents by HTTP URL
 	* allow specifying which tracker to scrape in scrape_tracker

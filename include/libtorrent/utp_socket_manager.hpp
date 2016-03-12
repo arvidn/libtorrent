@@ -95,6 +95,17 @@ namespace libtorrent
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
+		void restrict_mtu(int mtu)
+		{
+			m_restrict_mtu[m_mtu_idx] = mtu;
+			m_mtu_idx = (m_mtu_idx + 1) % m_restrict_mtu.size();
+		}
+
+		int restrict_mtu() const
+		{
+			return *std::max_element(m_restrict_mtu.begin(), m_restrict_mtu.end());
+		}
+
 		// used to keep stats of uTP events
 		// the counter is the enum from ``counters``.
 		void inc_stats_counter(int counter, int delta = 1);
@@ -153,6 +164,9 @@ namespace libtorrent
 
 		// stats counters
 		counters& m_counters;
+
+		boost::array<int, 3> m_restrict_mtu;
+		int m_mtu_idx;
 
 		// this is  passed on to the instantiate connection
 		// if this is non-null it will create SSL connections over uTP
