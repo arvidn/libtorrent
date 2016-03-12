@@ -134,10 +134,11 @@ bool get_piece(libtorrent::bitfield const& p, int index)
 	return p.get_bit(index);
 }
 
-std::string piece_matrix(libtorrent::bitfield const& p, int width)
+std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
 {
 	// print two rows of pieces at a time
 	int piece = 0;
+	++*height;
 	std::string ret;
 	ret.reserve((p.size() + width * 2 - 1) / width / 2 * 4);
 	while (piece < p.size())
@@ -175,6 +176,7 @@ std::string piece_matrix(libtorrent::bitfield const& p, int width)
 			piece += 2;
 		}
 		ret += '\n';
+		++*height;
 		piece += width * 2; // skip another row, as we've already printed it
 	}
 	return ret;

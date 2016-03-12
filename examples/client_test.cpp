@@ -2121,7 +2121,9 @@ int main(int argc, char* argv[])
 
 			if (print_matrix)
 			{
-				print(piece_matrix(s.pieces, terminal_width).c_str());
+				int height = 0;
+				print(piece_matrix(s.pieces, terminal_width, &height).c_str());
+				pos += height;
 			}
 
 			if (print_downloads)
