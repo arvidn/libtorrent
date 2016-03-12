@@ -2,6 +2,7 @@
 #define PRINT_HPP_
 
 #include <string>
+#include "libtorrent/bitfield.hpp"
 
 enum color_code
 {
@@ -36,6 +37,7 @@ void clear_screen();
 void clear_rows(int y1, int y2);
 
 void terminal_size(int* terminal_width, int* terminal_height);
+std::string piece_matrix(libtorrent::bitfield const& p, int width);
 
 void print(char const* str);
 
