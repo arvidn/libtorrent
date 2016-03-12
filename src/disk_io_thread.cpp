@@ -1458,10 +1458,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
 
-		// should we put this write job in the cache?
-		// if we don't use the cache we shouldn't.
-		if (j->flags & disk_io_job::use_disk_cache)
-		{
 			mutex::scoped_lock l(m_cache_mutex);
 
 			cached_piece_entry* pe = m_disk_cache.find_piece(j);
@@ -1512,7 +1508,6 @@ namespace libtorrent
 
 				return defer_handler;
 			}
-		}
 
 		// ok, we should just perform this job right now.
 		return do_uncached_write(j);
@@ -1575,9 +1570,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(j->action == disk_io_job::read);
 
-		if (m_settings.get_bool(settings_pack::use_read_cache)
-			&& m_settings.get_int(settings_pack::cache_size) != 0)
-		{
 			int ret = m_disk_cache.try_read(j);
 			if (ret >= 0)
 			{
@@ -1605,7 +1597,19 @@ namespace libtorrent
 				return 2;
 			}
 
+			if (!m_settings.get_bool(settings_pack::use_read_cache)
+				|| m_settings.get_int(settings_pack::cache_size) == 0)
+			{
+				// if the read cache is disabled then we can skip going through the cache
+				// but only if there is no existing piece entry. Otherwise there may be a
+				// partial hit on one-or-more dirty buffers so we must use the cache
+				// to avoid reading bogus data from storage
+				if (m_disk_cache.find_piece(j) == NULL)
+					return 1;
+			}
+
 			cached_piece_entry* pe = m_disk_cache.allocate_piece(j, cached_piece_entry::read_lru1);
+
 			if (pe == NULL)
 			{
 				j->ret = -1;
@@ -1625,7 +1629,7 @@ namespace libtorrent
 			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
 #endif
 			pe->outstanding_read = 1;
-		}
+
 		return 1;
 	}
 
@@ -1689,11 +1693,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer.disk_block));
 		l_.unlock();
 #endif
-		if (m_settings.get_int(settings_pack::cache_size) != 0
-			&& m_settings.get_bool(settings_pack::use_write_cache))
-		{
+
 			TORRENT_ASSERT((r.start % m_disk_cache.block_size()) == 0);
-			j->flags |= disk_io_job::use_disk_cache;
 
 			if (storage->is_blocked(j))
 			{
@@ -1734,7 +1735,6 @@ namespace libtorrent
 			// issued a flush job or not), we're done.
 			if (dpe) return;
 			l.unlock();
-		}
 
 		add_job(j);
 		buffer.release();
@@ -1782,13 +1782,6 @@ namespace libtorrent
 			return;
 		}
 		l.unlock();
-
-		if (m_settings.get_bool(settings_pack::use_read_cache)
-			&& m_settings.get_int(settings_pack::cache_size) != 0)
-		{
-			j->flags |= disk_io_job::use_disk_cache;
-		}
-
 		add_job(j);
 	}
 
@@ -2290,9 +2283,6 @@ namespace libtorrent
 	int disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		INVARIANT_CHECK;
-
-		if ((j->flags & disk_io_job::use_disk_cache) == 0)
-			return do_uncached_hash(j);
 
 		int const piece_size = j->storage->files()->piece_size(j->piece);
 		int const file_flags = file_flags_for_job(j);
@@ -3462,9 +3452,7 @@ namespace libtorrent
 			{
 				disk_io_job* j = new_jobs.pop_front();
 
-				if (j->action == disk_io_job::read
-					&& m_settings.get_bool(settings_pack::use_read_cache)
-					&& m_settings.get_int(settings_pack::cache_size) != 0)
+				if (j->action == disk_io_job::read)
 				{
 					int state = prep_read_job_impl(j, false);
 					switch (state)
