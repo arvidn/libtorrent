@@ -2618,7 +2618,13 @@ namespace libtorrent
 			return;
 		}
 
-		if (exceeded)
+		// every peer is entitled to have two disk blocks allocated at any given
+		// time, regardless of whether the cache size is exceeded or not. If this
+		// was not the case, when the cache size setting is very small, most peers
+		// would be blocked most of the time, because the disk cache would
+		// continously be in exceeded state. Only rarely would it actually drop
+		// down to 0 and unblock all peers.
+		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 				m_counters.inc_stats_counter(counters::num_peers_down_disk);
@@ -4548,7 +4554,9 @@ namespace libtorrent
 			return false;
 		}
 
-		if (exceeded)
+		// to understand why m_outstanding_writing_bytes is here, see comment by
+		// the other call to allocate_disk_buffer()
+		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
