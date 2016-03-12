@@ -17,8 +17,9 @@ set(ENV{PKG_CONFIG_PATH} "${PKG_CONFIG_CHANGED_PATH}")
 
 find_package(LibtorrentRasterbar REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(OpenSSL REQUIRED)
 
-include_directories(${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+include_directories(${LibtorrentRasterbar_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 add_definitions(${LibtorrentRasterbar_DEFINITIONS})
 
 set(single_file_examples
