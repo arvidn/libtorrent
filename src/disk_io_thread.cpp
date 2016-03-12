@@ -2905,6 +2905,9 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 
 		if (pe == NULL) return 0;
+
+		pe->outstanding_flush = 0;
+
 		if (pe->num_dirty == 0) return 0;
 
 		// if multiple threads are flushing this piece, this assert may fire
@@ -2942,8 +2945,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(l.locked());
 
-//		TORRENT_PIECE_ASSERT(pe->outstanding_flush == 1, pe);
-		pe->outstanding_flush = 0;
 		--pe->piece_refcount;
 
 		m_disk_cache.maybe_free_piece(pe);
