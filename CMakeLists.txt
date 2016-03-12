@@ -61,6 +61,7 @@ set(sources
 	puff
 	random
 	receive_buffer
+	read_resume_data
 	request_blocks
 	resolve_links
 	resolver
