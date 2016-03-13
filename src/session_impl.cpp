@@ -5116,7 +5116,8 @@ retry:
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle(), tptr->info_hash());
+		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
+			, tptr->info_hash());
 
 		remove_torrent_impl(tptr, options);
 
@@ -5124,7 +5125,8 @@ retry:
 		tptr->set_queue_position(-1);
 	}
 
-	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
+	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr
+		, int options)
 	{
 		// remove from uuid list
 		if (!tptr->uuid().empty())
@@ -5148,9 +5150,9 @@ retry:
 		if (i == m_torrents.end()) return;
 
 		torrent& t = *i->second;
-		if (options & session::delete_files)
+		if (options)
 		{
-			if (!t.delete_files())
+			if (!t.delete_files(options))
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
 					m_alerts.emplace_alert<torrent_delete_failed_alert>(t.get_handle()

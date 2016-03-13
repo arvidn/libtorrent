@@ -1817,6 +1817,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_delete_files(piece_manager* storage
+		, int const options
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 #ifdef TORRENT_DEBUG
@@ -1857,6 +1858,7 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage->shared_from_this();
 		j->callback = handler;
+		j->buffer.delete_options = options;
 		add_fence_job(storage, j);
 
 		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
@@ -2548,7 +2550,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		TORRENT_ASSERT(j->buffer.string == 0);
+		TORRENT_ASSERT(j->buffer.delete_options != 0);
 		INVARIANT_CHECK;
 
 		// if this assert fails, something's wrong with the fence logic
@@ -2563,7 +2565,7 @@ namespace libtorrent
 			, completed_jobs, l);
 		l.unlock();
 
-		j->storage->get_storage_impl()->delete_files(j->error);
+		j->storage->get_storage_impl()->delete_files(j->buffer.delete_options, j->error);
 		return j->error ? -1 : 0;
 	}
 

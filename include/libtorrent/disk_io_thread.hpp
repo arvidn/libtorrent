@@ -311,7 +311,7 @@ namespace libtorrent
 		void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>());
-		void async_delete_files(piece_manager* storage
+		void async_delete_files(piece_manager* storage, int options
 			, boost::function<void(disk_io_job const*)> const& handler);
 		void async_check_fastresume(piece_manager* storage
 			, bdecode_node const* resume_data

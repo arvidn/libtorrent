@@ -72,7 +72,7 @@ struct test_storage_impl : storage_interface
 	virtual void release_files(storage_error& ec) {}
 	virtual void rename_file(int index, std::string const& new_filenamem
 		, storage_error& ec) {}
-	virtual void delete_files(storage_error& ec) {}
+	virtual void delete_files(int, storage_error& ec) {}
 	virtual void finalize_file(int, storage_error&) {}
 };
 
@@ -81,7 +81,7 @@ static void nop() {}
 #if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
 #define INITIALIZE_JOB(j) j.in_use = true;
 #else
-#define INITIALIZE_JOB(j) 
+#define INITIALIZE_JOB(j)
 #endif
 
 #define TEST_SETUP \

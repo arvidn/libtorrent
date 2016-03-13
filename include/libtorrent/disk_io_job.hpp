@@ -167,6 +167,7 @@ namespace libtorrent
 			bdecode_node const* check_resume_data;
 			std::vector<boost::uint8_t>* priorities;
 			torrent_info* torrent_file;
+			int delete_options;
 		} buffer;
 
 		// the disk storage this job applies to (if applicable)
