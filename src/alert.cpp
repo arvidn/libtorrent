@@ -861,8 +861,9 @@ namespace libtorrent {
 			"accept"
 		};
 		char ret[300];
-		snprintf(ret, sizeof(ret), "listening on %s failed: [%s] [%s] %s"
+		snprintf(ret, sizeof(ret), "listening on %s : %s failed: [%s] [%s] %s"
 			, listen_interface()
+			, print_endpoint(endpoint).c_str()
 			, op_str[operation]
 			, sock_type_str[sock_type]
 			, convert_from_native(error.message()).c_str());
