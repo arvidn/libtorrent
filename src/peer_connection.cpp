@@ -1709,15 +1709,7 @@ namespace libtorrent
 		else if (m_ses.preemptive_unchoke())
 		{
 			// if the peer is choked and we have upload slots left,
-			// then unchoke it. Another condition that has to be met
-			// is that the torrent doesn't keep track of the individual
-			// up/down ratio for each peer (ratio == 0) or (if it does
-			// keep track) this particular connection isn't a leecher.
-			// If the peer was choked because it was leeching, don't
-			// unchoke it again.
-			// The exception to this last condition is if we're a seed.
-			// In that case we don't care if people are leeching, they
-			// can't pay for their downloads anyway.
+			// then unchoke it.
 
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			TORRENT_ASSERT(t);

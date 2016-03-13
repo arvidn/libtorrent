@@ -3578,7 +3578,7 @@ namespace libtorrent
 		int next_barrier = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)
-			peer_log(peer_log_alert::outgoing_message, "SEND_BARRIER"
+			peer_log(peer_log_alert::outgoing, "SEND_BARRIER"
 				, "encrypted block s = %d", next_barrier);
 #endif
 		return next_barrier;

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/socket.hpp" // for TORRENT_HAS_DONT_FRAGMENT
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
@@ -59,8 +60,11 @@ namespace libtorrent
 		, m_last_if_update(min_time())
 		, m_sock_buf_size(0)
 		, m_counters(cnt)
+		, m_mtu_idx(0)
 		, m_ssl_context(ssl_context)
-	{}
+	{
+		m_restrict_mtu.fill(65536);
+	}
 
 	utp_socket_manager::~utp_socket_manager()
 	{
@@ -128,7 +132,6 @@ namespace libtorrent
 			// the address field in the SOCKS header
 			if (addr.is_v4()) mtu -= 4;
 			else mtu -= 16;
-
 		}
 		else
 		{
@@ -136,7 +139,7 @@ namespace libtorrent
 			else mtu -= TORRENT_IPV6_HEADER;
 		}
 
-		utp_mtu = mtu;
+		utp_mtu = (std::min)(mtu, restrict_mtu());
 	}
 
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
@@ -159,12 +162,18 @@ namespace libtorrent
 #ifdef TORRENT_HAS_DONT_FRAGMENT
 		error_code tmp;
 		if (flags & utp_socket_manager::dont_fragment)
+		{
 			m_sock.set_option(libtorrent::dont_fragment(true), tmp);
+			TORRENT_ASSERT_VAL(!tmp, tmp.message());
+		}
 #endif
 		m_sock.send(ep, p, len, ec);
 #ifdef TORRENT_HAS_DONT_FRAGMENT
 		if (flags & utp_socket_manager::dont_fragment)
+		{
 			m_sock.set_option(libtorrent::dont_fragment(false), tmp);
+			TORRENT_ASSERT_VAL(!tmp, tmp.message());
+		}
 #endif
 	}
 

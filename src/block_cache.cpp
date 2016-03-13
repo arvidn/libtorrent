@@ -1216,7 +1216,9 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 	, int iov_len, disk_io_job* j, int flags)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	TORRENT_ASSERT(pe);
 	TORRENT_ASSERT(pe->in_use);
