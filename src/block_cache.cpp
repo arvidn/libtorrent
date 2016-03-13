@@ -49,20 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#if TORRENT_USE_PURGABLE_CONTROL
-#include <mach/mach.h>
-// see comments at:
-// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
-
-const vm_purgable_t vm_purgable_set_state = VM_PURGABLE_SET_STATE;
-const vm_purgable_t vm_purgable_nonvolatile = VM_PURGABLE_NONVOLATILE;
-
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 /*
 
 	The disk cache mimics ARC (adaptive replacement cache).
@@ -1381,40 +1367,9 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 				TORRENT_UNUSED(ret); // suppress warning
 				TORRENT_ASSERT(ret);
 			}
-			else
-			{
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-				// volatile read blocks are group 0, regular reads are group 1
-				int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
-				kern_return_t ret = vm_purgable_control(
-					mach_task_self(),
-					reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-					vm_purgable_set_state,
-					&state);
-#ifdef TORRENT_DEBUG
-//				if ((random() % 200) == 0) ret = 1;
-#endif
-				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-				{
-					fprintf(stderr, "insert_blocks(piece=%d block=%d): "
-						"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-						, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-					free_buffer(pe->blocks[block].buf);
-					pe->blocks[block].buf = NULL;
-					--pe->num_blocks;
-					--m_read_cache_size;
-					if (j->flags & disk_io_job::volatile_read) --m_volatile_size;
-				}
-#endif
-			}
 		}
 
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		TORRENT_ASSERT(pe->blocks[block].buf != NULL
-			|| (flags & blocks_inc_refcount) == 0);
-#else
 		TORRENT_ASSERT(pe->blocks[block].buf != NULL);
-#endif
 	}
 
 	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost, pe);
@@ -1431,36 +1386,6 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
 	{
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		// we're adding the first refcount to this block, first make sure
-		// its still here. It's only volatile if it's not dirty and has refcount == 0
-		if (!pe->blocks[block].dirty)
-		{
-			int state = vm_purgable_nonvolatile;
-			kern_return_t ret = vm_purgable_control(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				vm_purgable_set_state,
-				&state);
-#ifdef TORRENT_DEBUG
-//			if ((random() % 200) == 0) ret = 1;
-#endif
-			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-			{
-				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): "
-					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-
-				free_buffer(pe->blocks[block].buf);
-				pe->blocks[block].buf = NULL;
-				--pe->num_blocks;
-				--m_read_cache_size;
-				if (pe->cache_state == cached_piece_entry::volatile_read_lru)
-					--m_volatile_size;
-				return false;
-			}
-		}
-#endif
 		++pe->pinned;
 		++m_pinned_blocks;
 	}
@@ -1498,36 +1423,6 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		--pe->pinned;
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
-
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		// we're removing the last refcount to this block, first make sure
-		// its still here. It's only volatile if it's not dirty and has refcount == 0
-		if (!pe->blocks[block].dirty)
-		{
-			// group 0 is the first one to be reclaimed
-			int state = VM_PURGABLE_VOLATILE | VM_VOLATILE_GROUP_1;
-			kern_return_t ret = vm_purgable_control(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				vm_purgable_set_state,
-				&state);
-#ifdef TORRENT_DEBUG
-//			if ((random() % 200) == 0) ret = 1;
-#endif
-			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-			{
-				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): "
-					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-				free_buffer(pe->blocks[block].buf);
-				pe->blocks[block].buf = NULL;
-				--pe->num_blocks;
-				--m_read_cache_size;
-				if (pe->cache_state == cached_piece_entry::volatile_read_lru)
-					--m_volatile_size;
-			}
-		}
-#endif
 	}
 #if TORRENT_USE_ASSERTS
 	switch (reason)
