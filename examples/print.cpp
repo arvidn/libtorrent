@@ -128,6 +128,153 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
+bool get_piece(libtorrent::bitfield const& p, int index)
+{
+	if (index < 0 || index >= p.size()) return false;
+	return p.get_bit(index);
+}
+
+#ifndef _WIN32
+#define USE_BLOCK_CHARS 1
+#endif
+
+#if USE_BLOCK_CHARS
+// this function uses the block characters that splits up the glyph in 4
+// segments and provide all combinations of a segment lit or not. This allows us
+// to print 4 pieces per character.
+std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+{
+	// print two rows of pieces at a time
+	int piece = 0;
+	++*height;
+	std::string ret;
+	ret.reserve((p.size() + width * 2 - 1) / width / 2 * 4);
+	while (piece < p.size())
+	{
+		for (int i = 0; i < width; ++i)
+		{
+			// each character has 4 pieces. store them in a byte to use for lookups
+			int const c = get_piece(p, piece)
+				| (get_piece(p, piece+1) << 1)
+				| (get_piece(p, width*2+piece) << 2)
+				| (get_piece(p, width*2+piece+1) << 3);
+
+			// we have 4 bits, 16 different combinations
+			static char const* const chars[] =
+			{
+				" ",      // no bit is set             0000
+				"\u2598", // upper left                0001
+				"\u259d", // upper right               0010
+				"\u2580", // both top bits             0011
+				"\u2596", // lower left                0100
+				"\u258c", // both left bits            0101
+				"\u259e", // upper right, lower left   0110
+				"\u259b", // left and upper sides      0111
+				"\u2597", // lower right               1000
+				"\u259a", // lower right, upper left   1001
+				"\u2590", // right side                1010
+				"\u259c", // lower right, top side     1011
+				"\u2584", // both lower bits           1100
+				"\u2599", // both lower, top left      1101
+				"\u259f", // both lower, top right     1110
+				"\x1b[7m \x1b[27m" // all bits are set (full block)
+			};
+
+			ret += chars[c];
+			piece += 2;
+		}
+		ret += '\n';
+		++*height;
+		piece += width * 2; // skip another row, as we've already printed it
+	}
+	return ret;
+}
+#elif USE_BRAILLE
+// the braille characters have 8 dots per character. in four rows and two
+// columns. This lets us print 8 pieces per character
+std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+{
+	// print 4 rows of pieces at a time
+	int piece = 0;
+	++*height;
+	std::string ret;
+	ret.reserve((p.size() + width * 4 - 1) / width / 4 * 4);
+	while (piece < p.size())
+	{
+		for (int i = 0; i < width; ++i)
+		{
+			// each character has 8 pieces. store them in a byte to use for lookups
+			// the ordering of these bits
+			char c[4];
+			// the ordering of these bits are carefully chosen to match the
+			// ordering of the braille characters in the unicode codepoint space
+			// this is the bit assignment per dot:
+			// 0  3
+			// 1  4
+			// 2  5
+			// 6  7
+			c[0] = '\xe2';
+			c[1] = '\xa0';
+			c[2] = '\x80';
+			c[3] = '\0';
+
+			c[2] |= get_piece(p, piece)
+				| (get_piece(p, width*2+piece) << 1)
+				| (get_piece(p, width*4+piece) << 2)
+				| (get_piece(p, piece+1) << 3)
+				| (get_piece(p, width*2+piece+1) << 4)
+				| (get_piece(p, width*4+piece+1) << 5);
+
+			c[1] |= get_piece(p, width*8+piece)
+				| (get_piece(p, width*8+piece) << 1);
+
+			ret += c;
+			piece += 2;
+		}
+		ret += '\n';
+		++*height;
+		piece += width * 4; // skip all 4 rows we just printed
+	}
+	return ret;
+}
+#else
+// on MS-DOS terminals, we only have block characters for upper half and lower
+// half. This lets us print two pieces per character.
+std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+{
+	// print two rows of pieces at a time
+	int piece = 0;
+	++*height;
+	std::string ret;
+	ret.reserve((p.size() + width * 2 - 1) / width);
+	while (piece < p.size())
+	{
+		for (int i = 0; i < width; ++i)
+		{
+			// each character has 8 pieces. store them in a byte to use for lookups
+			// the ordering of these bits
+			int const c = get_piece(p, piece)
+				| (get_piece(p, width*2+piece) << 1);
+
+			static char const* const chars[] =
+			{
+				" ",    // no piece     00
+				"\xdf", // top piece    01
+				"\xdc", // bottom piece 10
+				"\xdb"  // both pieces  11
+			};
+
+			ret += chars[c];
+			++piece;
+		}
+		ret += '\n';
+		++*height;
+		piece += width * 2; // skip another row, as we've already printed it
+	}
+	return ret;
+}
+#endif
+
 void set_cursor_pos(int x, int y)
 {
 #ifdef _WIN32
