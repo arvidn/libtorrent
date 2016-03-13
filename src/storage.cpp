@@ -816,6 +816,11 @@ namespace libtorrent
 			if (error && !ec) { ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 		}
 
+		// if there's a part file open, make sure to destruct it to have it
+		// release the underlying part file. Otherwise we may not be able to
+		// delete it
+		if (m_part_file) m_part_file.reset();
+
 		error_code error;
 		remove(combine_path(m_save_path, m_part_file_name), error);
 		DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", static_cast<void*>(this)
