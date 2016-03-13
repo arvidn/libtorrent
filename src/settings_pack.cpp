@@ -340,7 +340,8 @@ namespace libtorrent
 		SET(inactive_up_rate, 2048, 0),
 		SET_NOPREV(proxy_type, settings_pack::none, &session_impl::update_proxy),
 		SET_NOPREV(proxy_port, 0, &session_impl::update_proxy),
-		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge)
+		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge),
+		SET_NOPREV(cache_size_volatile, 256, 0)
 	};
 
 #undef SET

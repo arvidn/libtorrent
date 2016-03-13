@@ -1518,6 +1518,16 @@ namespace libtorrent
 			// .. _i2p: http://www.i2p2.de
 			i2p_port,
 
+			// this determines the max number of volatile disk cache blocks. If the
+			// number of volatile blocks exceed this limit, other volatile blocks
+			// will start to be evicted. A disk cache block is volatile if it has
+			// low priority, and should be one of the first blocks to be evicted
+			// under pressure. For instance, blocks pulled into the cache as the
+			// result of calculating a piece hash are volatile. These blocks don't
+			// represent potential interest among peers, so the value of keeping
+			// them in the cache is limited.
+			cache_size_volatile,
+
 			max_int_setting_internal
 		};
 
