@@ -939,6 +939,8 @@ namespace libtorrent
 			kick_hasher(pe, l);
 			num -= try_flush_hashed(pe, 1, completed_jobs, l);
 			--pe->piece_refcount;
+
+			m_disk_cache.maybe_free_piece(pe);
 		}
 
 		// when the write cache is under high pressure, it is likely
