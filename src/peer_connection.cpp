@@ -137,6 +137,7 @@ namespace libtorrent
 		, m_last_choke(min_time())
 		, m_last_receive(aux::time_now())
 		, m_last_sent(aux::time_now())
+		, m_last_sent_payload(aux::time_now())
 		, m_requested(min_time())
 		, m_remote_dl_update(aux::time_now())
 		, m_connect(aux::time_now())
@@ -4824,10 +4825,13 @@ namespace libtorrent
 			return;
 		}
 
-		// disconnect peers that we unchoked, but
-		// they didn't send a request within 60 seconds.
+		// disconnect peers that we unchoked, but they didn't send a request in
+		// the last 60 seconds, and we haven't been working on servicing a request
+		// for more than 60 seconds.
 		// but only if we're a seed
-		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
+		d = now - (std::min)((std::max)(m_last_unchoke, m_last_incoming_request)
+			, m_last_sent_payload);
+
 		if (may_timeout
 			&& !m_connecting
 			&& m_requests.empty()
@@ -5220,6 +5224,7 @@ namespace libtorrent
 					, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r, clock_type::now()), this);
 			}
+			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
 
 			if (m_requests.empty())

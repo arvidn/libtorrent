@@ -937,6 +937,10 @@ namespace libtorrent
 		time_point m_last_receive;
 		time_point m_last_sent;
 
+		// the last time we filled our send buffer with payload
+		// this is used for timeouts
+		time_point m_last_sent_payload;
+
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
 		// specific request was made. Since requests can be handled out-of-order,
