@@ -4829,7 +4829,7 @@ namespace libtorrent
 		// the last 60 seconds, and we haven't been working on servicing a request
 		// for more than 60 seconds.
 		// but only if we're a seed
-		d = now - (std::min)((std::max)(m_last_unchoke, m_last_incoming_request)
+		d = now - (std::max)((std::max)(m_last_unchoke, m_last_incoming_request)
 			, m_last_sent_payload);
 
 		if (may_timeout

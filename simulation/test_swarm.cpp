@@ -109,7 +109,7 @@ TORRENT_TEST(session_stats)
 		, [](int ticks, lt::session& ses) -> bool
 		{
 			ses.post_session_stats();
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
