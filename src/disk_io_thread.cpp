@@ -160,6 +160,7 @@ namespace libtorrent
 		, m_last_file_check(clock_type::now())
 		, m_file_pool(40)
 		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this))
+		, m_cache_check_state(cache_check_idle)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 		, m_last_disk_aio_performance_warning(min_time())
@@ -1126,7 +1127,20 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
 		mutex::scoped_lock l(m_cache_mutex);
-		check_cache_level(l, completed_jobs);
+		if (m_cache_check_state == cache_check_idle)
+		{
+			m_cache_check_state = cache_check_active;
+			while (m_cache_check_state != cache_check_idle)
+			{
+				check_cache_level(l, completed_jobs);
+				TORRENT_ASSERT(l.locked());
+				--m_cache_check_state;
+			}
+		}
+		else
+		{
+			m_cache_check_state = cache_check_reinvoke;
+		}
 		l.unlock();
 
 		if (ret == retry_job)
