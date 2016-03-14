@@ -65,7 +65,9 @@ static struct utp_logger
 	FILE* utp_log_file;
 	mutex utp_log_mutex;
 
-	utp_logger() : utp_log_file(NULL) {}
+	utp_logger() : utp_log_file(NULL) {
+		utp_log_file = fopen("utp.log", "w+");
+	}
 	~utp_logger()
 	{
 		if (utp_log_file) fclose(utp_log_file);

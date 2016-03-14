@@ -68,7 +68,7 @@ TORRENT_TEST(plain)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
@@ -109,7 +109,7 @@ TORRENT_TEST(session_stats)
 		, [](int ticks, lt::session& ses) -> bool
 		{
 			ses.post_session_stats();
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
@@ -135,7 +135,7 @@ TORRENT_TEST(suggest)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
@@ -163,7 +163,7 @@ TORRENT_TEST(utp_only)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
@@ -322,7 +322,7 @@ TORRENT_TEST(explicit_cache)
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 75)
+			if (ticks > 80)
 			{
 				TEST_ERROR("timeout");
 				return true;
