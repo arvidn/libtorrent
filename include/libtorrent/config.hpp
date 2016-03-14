@@ -169,8 +169,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # endif
 #include <AvailabilityMacros.h>
 
-#define TORRENT_USE_PURGABLE_CONTROL 1
-
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 // on OSX, use the built-in common crypto for built-in
 # if !defined TORRENT_USE_OPENSSL && !defined TORRENT_USE_GCRYPT
@@ -609,10 +607,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_HAS_BOOST_UNORDERED
 #define TORRENT_HAS_BOOST_UNORDERED 1
-#endif
-
-#ifndef TORRENT_USE_PURGABLE_CONTROL
-#define TORRENT_USE_PURGABLE_CONTROL 0
 #endif
 
 #if !defined TORRENT_IOV_MAX

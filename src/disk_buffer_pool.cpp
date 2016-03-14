@@ -60,12 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/unistd.h>
 #endif
 
-#if TORRENT_USE_PURGABLE_CONTROL
-#include <mach/mach.h>
-// see comments at:
-// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
@@ -355,18 +349,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-#if TORRENT_USE_PURGABLE_CONTROL
-			kern_return_t res = vm_allocate(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t*>(&ret),
-				0x4000,
-				VM_FLAGS_PURGABLE |
-				VM_FLAGS_ANYWHERE);
-			if (res != KERN_SUCCESS)
-				ret = NULL;
-#else
 			ret = page_aligned_allocator::malloc(m_block_size);
-#endif // TORRENT_USE_PURGABLE_CONTROL
 
 #else
 			if (m_using_pool_allocator)
@@ -641,15 +624,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-#if TORRENT_USE_PURGABLE_CONTROL
-		vm_deallocate(
-			mach_task_self(),
-			reinterpret_cast<vm_address_t>(buf),
-			0x4000
-			);
-#else
 		page_aligned_allocator::free(buf);
-#endif // TORRENT_USE_PURGABLE_CONTROL
 
 #else
 		if (m_using_pool_allocator)
