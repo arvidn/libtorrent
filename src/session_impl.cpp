@@ -2057,6 +2057,9 @@ retry:
 			if (listen_port_retries > 0)
 			{
 				m_listen_interface.port(m_listen_interface.port() + 1);
+				// update the actual port m_listen_interface was derived from also
+				if (!m_listen_interfaces.empty())
+					m_listen_interfaces[0].second += 1;
 				--listen_port_retries;
 				goto retry;
 			}
@@ -2130,6 +2133,9 @@ retry:
 			if (listen_port_retries > 0)
 			{
 				m_listen_interface.port(m_listen_interface.port() + 1);
+				// update the actual port m_listen_interface was derived from also
+				if (!m_listen_interfaces.empty())
+					m_listen_interfaces[0].second += 1;
 				--listen_port_retries;
 				goto retry;
 			}
