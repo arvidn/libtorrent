@@ -339,8 +339,10 @@ namespace libtorrent
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) = 0;
 
-		// This function should delete all files and directories belonging to
-		// this storage.
+		// This function should delete some or all of the storage for this torrent.
+		// The ``options`` parameter specifies whether to delete all files or just
+		// the partfile. ``options`` are set to the same value as the options
+		// passed to session::remove_torrent().
 		// 
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		// 
@@ -360,7 +362,7 @@ namespace libtorrent
 		//		void release_memory();
 		//	};
 		// 
-		virtual void delete_files(storage_error& ec) = 0;
+		virtual void delete_files(int options, storage_error& ec) = 0;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// This function is called each time a file is completely downloaded. The
@@ -426,7 +428,7 @@ namespace libtorrent
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) TORRENT_OVERRIDE;
 		virtual void release_files(storage_error& ec) TORRENT_OVERRIDE;
-		virtual void delete_files(storage_error& ec) TORRENT_OVERRIDE;
+		virtual void delete_files(int options, storage_error& ec) TORRENT_OVERRIDE;
 		virtual void initialize(storage_error& ec) TORRENT_OVERRIDE;
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) TORRENT_OVERRIDE;
@@ -506,7 +508,7 @@ namespace libtorrent
 			, storage_error&) TORRENT_OVERRIDE {}
 		virtual void rename_file(int, std::string const&, storage_error&) TORRENT_OVERRIDE {}
 		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
-		virtual void delete_files(storage_error&) TORRENT_OVERRIDE {}
+		virtual void delete_files(int, storage_error&) TORRENT_OVERRIDE {}
 		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
 		virtual int move_storage(std::string const&, int, storage_error&) TORRENT_OVERRIDE { return 0; }
 
@@ -545,7 +547,7 @@ namespace libtorrent
 		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
 		virtual void rename_file(int /* index */
 			, std::string const& /* new_filenamem */, storage_error&) TORRENT_OVERRIDE {}
-		virtual void delete_files(storage_error&) TORRENT_OVERRIDE {}
+		virtual void delete_files(int, storage_error&) TORRENT_OVERRIDE {}
 	};
 
 	struct disk_io_thread;

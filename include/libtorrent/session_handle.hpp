@@ -767,7 +767,11 @@ namespace libtorrent
 		enum options_t
 		{
 			// delete the files belonging to the torrent from disk.
-			delete_files = 1
+			// including the part-file, if there is one
+			delete_files = 1,
+
+			// delete just the part-file associated with this torrent
+			delete_partfile = 2
 		};
 
 		// flags to be passed in to the session constructor

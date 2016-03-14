@@ -354,7 +354,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, combine_path("_folder3", "test5.tmp"))), &st, ec);
 	TEST_EQUAL(st.file_size, 8);
 
-	s->delete_files(se);
+	s->delete_files(session::delete_files, se);
 	if (se) print_error("delete_files", 0, se.ec);
 
 	if (se)
@@ -664,7 +664,7 @@ TORRENT_TEST(fastresume)
 		{
 			print_alerts(ses, "ses");
 			s = h.status();
-			if (s.progress == 1.0f) 
+			if (s.progress == 1.0f)
 			{
 				std::cout << "progress: 1.0f" << std::endl;
 				break;

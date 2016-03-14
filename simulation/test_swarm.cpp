@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
+#include "libtorrent/file.hpp"
 
 using namespace libtorrent;
 
@@ -348,6 +349,68 @@ TORRENT_TEST(shutdown)
 			TEST_EQUAL(is_seed(ses), false);
 			return true;
 		});
+}
+
+TORRENT_TEST(delete_files)
+{
+	std::string save_path;
+
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [&save_path](int ticks, lt::session& ses) -> bool
+		{
+			if (completed_pieces(ses) == 0) return false;
+
+			auto h = ses.get_torrents()[0];
+			save_path = h.status().save_path;
+			ses.remove_torrent(h, session::delete_files);
+			return true;
+		});
+
+	// assert the file is no longer there
+	file_status st;
+	error_code ec;
+	stat_file(combine_path(save_path, "temporary"), &st, ec);
+	printf("expecting \"%s/temporary\" to NOT exist [%s | %s]\n"
+		, save_path.c_str()
+		, ec.category().name()
+		, ec.message().c_str());
+	TEST_EQUAL(ec, error_code(boost::system::errc::no_such_file_or_directory, system_category()));
+}
+
+TORRENT_TEST(delete_partfile)
+{
+	std::string save_path;
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack) {}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [&save_path](int ticks, lt::session& ses) -> bool
+		{
+			if (completed_pieces(ses) == 0) return false;
+
+			auto h = ses.get_torrents()[0];
+			save_path = h.status().save_path;
+			ses.remove_torrent(h, session::delete_partfile);
+			return true;
+		});
+	// assert the file *is* still there
+	file_status st;
+	error_code ec;
+	stat_file(combine_path(save_path, "temporary"), &st, ec);
+	printf("expecting \"%s/temporary\" to exist [%s]\n", save_path.c_str()
+		, ec.message().c_str());
+	TEST_CHECK(!ec);
 }
 
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
