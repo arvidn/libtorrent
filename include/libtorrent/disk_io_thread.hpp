@@ -550,6 +550,13 @@ namespace libtorrent
 		// disk cache
 		mutable mutex m_cache_mutex;
 		block_cache m_disk_cache;
+		enum
+		{
+			cache_check_idle,
+			cache_check_active,
+			cache_check_reinvoke
+		};
+		int m_cache_check_state;
 
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
