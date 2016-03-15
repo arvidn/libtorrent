@@ -53,7 +53,7 @@ namespace libtorrent
 	namespace gzip_errors
 	{
 		// libtorrent uses boost.system's ``error_code`` class to represent errors. libtorrent has
-		// its own error category get_gzip_category() whith the error codes defined by error_code_enum.
+		// its own error category get_gzip_category() with the error codes defined by error_code_enum.
 		enum error_code_enum
 		{
 			// Not an error
