@@ -2048,18 +2048,21 @@ retry:
 			session_log("cannot bind TCP listen socket to interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-			if (listen_port_retries > 0)
-			{
-				m_listen_interface.port(m_listen_interface.port() + 1);
-				--listen_port_retries;
-				goto retry;
-			}
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(
 					m_listen_interface.address().to_string()
 					, m_listen_interface.port()
 					, listen_failed_alert::bind
 					, ec, listen_failed_alert::tcp);
+			if (listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				// update the actual port m_listen_interface was derived from also
+				if (!m_listen_interfaces.empty())
+					m_listen_interfaces[0].second += 1;
+				--listen_port_retries;
+				goto retry;
+			}
 			return;
 		}
 
@@ -2119,12 +2122,6 @@ retry:
 			session_log("cannot bind to UDP interface \"%s\": %s"
 				, print_endpoint(m_listen_interface).c_str(), ec.message().c_str());
 #endif
-			if (listen_port_retries > 0)
-			{
-				m_listen_interface.port(m_listen_interface.port() + 1);
-				--listen_port_retries;
-				goto retry;
-			}
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
@@ -2132,6 +2129,15 @@ retry:
 					, m_listen_interface.port()
 					, listen_failed_alert::bind
 					, ec, listen_failed_alert::udp);
+			}
+			if (listen_port_retries > 0)
+			{
+				m_listen_interface.port(m_listen_interface.port() + 1);
+				// update the actual port m_listen_interface was derived from also
+				if (!m_listen_interfaces.empty())
+					m_listen_interfaces[0].second += 1;
+				--listen_port_retries;
+				goto retry;
 			}
 			return;
 		}
