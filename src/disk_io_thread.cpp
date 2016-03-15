@@ -1087,19 +1087,6 @@ namespace libtorrent
 		TORRENT_ASSERT(j->next == 0);
 		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-		mutex::scoped_lock l(m_cache_mutex);
-
-		check_cache_level(l, completed_jobs);
-
-		DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
-			, job_action_name[j->action]
-			, (j->flags & disk_io_job::fence) ? "fence ": ""
-			, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
-			, j->piece, j->d.io.offset
-			, j->storage ? j->storage->num_outstanding_jobs() : -1);
-
-		l.unlock();
-
 		boost::shared_ptr<piece_manager> storage = j->storage;
 
 		// TODO: instead of doing this. pass in the settings to each storage_interface
@@ -1122,6 +1109,20 @@ namespace libtorrent
 		TORRENT_ASSERT(ret != -1 || (j->error.ec && j->error.operation != 0));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
+
+		{
+			mutex::scoped_lock l(m_cache_mutex);
+
+			check_cache_level(l, completed_jobs);
+
+			DLOG("performed job: %s ( %s%s) piece: %d offset: %d outstanding: %d ret: %d\n"
+				, job_action_name[j->action]
+				, (j->flags & disk_io_job::fence) ? "fence ": ""
+				, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
+				, j->piece, j->d.io.offset
+				, j->storage ? j->storage->num_outstanding_jobs() : -1
+				, ret);
+		}
 
 		if (ret == retry_job)
 		{
