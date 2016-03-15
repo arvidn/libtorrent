@@ -180,7 +180,7 @@ namespace libtorrent
 		}
 #endif
 
-		// returns true if we can announec to this tracker now.
+		// returns true if we can announce to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
 		// argument is necessary because once we become a seed, we
 		// need to announce right away, even if the re-announce timer

@@ -394,7 +394,7 @@ namespace libtorrent
 
 		// store the given bencoded data as an immutable item in the DHT.
 		// the returned hash is the key that is to be used to look the item
-		// up agan. It's just the sha-1 hash of the bencoded form of the
+		// up again. It's just the sha-1 hash of the bencoded form of the
 		// structure.
 		sha1_hash dht_put_item(entry data);
 

@@ -135,7 +135,7 @@ namespace libtorrent
 		enum { max_refcount = (1 << 30) - 1 };
 
 		// the number of references to this buffer. These references
-		// might be in outstanding asyncronous requests or in peer
+		// might be in outstanding asynchronous requests or in peer
 		// connection send buffers. We can't free the buffer until
 		// all references are gone and refcount reaches 0. The buf
 		// pointer in this struct doesn't count as a reference and
