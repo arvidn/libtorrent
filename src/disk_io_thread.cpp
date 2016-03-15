@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg
+Copyright (c) 2007-2016, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1208,14 +1208,6 @@ namespace libtorrent
 
 	int disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		if ((j->flags & disk_io_job::use_disk_cache) == 0)
-		{
-			// we're not using a cache. This is the simple path
-			// just read straight from the file
-			int ret = do_uncached_read(j);
-			return ret;
-		}
-
 		int block_size = m_disk_cache.block_size();
 		int piece_size = j->storage->files()->piece_size(j->piece);
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
@@ -1232,26 +1224,8 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == NULL)
 		{
-			// this isn't supposed to happen. The piece is supposed
-			// to be allocated when the read job is posted to the
-			// queue, and have 'outstanding_read' set to 1
-			TORRENT_ASSERT(false);
-
-			int cache_state = (j->flags & disk_io_job::volatile_read)
-				? cached_piece_entry::volatile_read_lru
-				: cached_piece_entry::read_lru1;
-			pe = m_disk_cache.allocate_piece(j, cache_state);
-			if (pe == NULL)
-			{
-				j->error.ec = error::no_memory;
-				j->error.operation = storage_error::alloc_cache_piece;
-				m_disk_cache.free_iovec(iov, iov_len);
-				return -1;
-			}
-#if TORRENT_USE_ASSERTS
-			pe->piece_log.push_back(piece_log_t(piece_log_t::set_outstanding_jobs));
-#endif
-			pe->outstanding_read = 1;
+			l.unlock();
+			return do_uncached_read(j);
 		}
 		TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
 
@@ -1633,7 +1607,6 @@ namespace libtorrent
 			j->error.operation = storage_error::read;
 			return 0;
 		}
-		j->flags |= disk_io_job::use_disk_cache;
 		if (pe->outstanding_read)
 		{
 			TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);

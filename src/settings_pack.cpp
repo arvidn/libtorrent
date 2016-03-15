@@ -150,7 +150,7 @@ namespace libtorrent
 		SET(upnp_ignore_nonrouters, false, 0),
 		SET(use_parole_mode, true, 0),
 		SET(use_read_cache, true, 0),
-		SET(use_write_cache, true, 0),
+		DEPRECATED_SET(use_write_cache, true, 0),
 		SET(dont_flush_write_cache, false, 0),
 		SET(explicit_read_cache, false, 0),
 		SET(coalesce_reads, false, 0),
@@ -603,14 +603,14 @@ namespace libtorrent
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
 		}
-	
+
 		for (std::vector<std::pair<boost::uint16_t, int> >::const_iterator i = pack->m_ints.begin()
 			, end(pack->m_ints.end()); i != end; ++i)
 		{
 			// disregard setting indices that are not int types
 			if ((i->first & settings_pack::type_mask) != settings_pack::int_type_base)
 				continue;
-		
+
 			// ignore settings that are out of bounds
 			int index = i->first & settings_pack::index_mask;
 			if (index < 0 || index >= settings_pack::num_int_settings)
@@ -629,7 +629,7 @@ namespace libtorrent
 			// disregard setting indices that are not bool types
 			if ((i->first & settings_pack::type_mask) != settings_pack::bool_type_base)
 				continue;
-		
+
 			// ignore settings that are out of bounds
 			int index = i->first & settings_pack::index_mask;
 			if (index < 0 || index >= settings_pack::num_bool_settings)
