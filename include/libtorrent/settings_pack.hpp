@@ -259,14 +259,16 @@ namespace libtorrent
 			// passes the hash check, it is taken out of parole mode.
 			use_parole_mode,
 
-			// enable and disable caching of read blocks and blocks to be written
-			// to disk respsectively. the purpose of the read cache is partly
-			// read-ahead of requests but also to avoid reading blocks back from
-			// the disk multiple times for popular pieces. the write cache purpose
-			// is to hold off writing blocks to disk until they have been hashed,
-			// to avoid having to read them back in again.
+			// enable and disable caching of blocks read from disk. the purpose of
+			// the read cache is partly read-ahead of requests but also to avoid
+			// reading blocks back from the disk multiple times for popular
+			// pieces.
 			use_read_cache,
+#ifndef TORRENT_NO_DEPRECATED
 			use_write_cache,
+#else
+			deprecated7,
+#endif
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
