@@ -1070,6 +1070,14 @@ namespace libtorrent
 	// a disk job is executed
 	void disk_io_thread::check_cache_level(mutex::scoped_lock& l, jobqueue_t& completed_jobs)
 	{
+		// when the read cache is disabled, always try to evict all read cache
+		// blocks
+		if (!m_settings.get_bool(settings_pack::use_read_cache))
+		{
+			int const evict = m_disk_cache.read_cache_size();
+			m_disk_cache.try_evict_blocks(evict);
+		}
+
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0)
 		{
@@ -2338,6 +2346,10 @@ namespace libtorrent
 				m_disk_cache.maybe_free_piece(pe);
 				return 0;
 			}
+		}
+		else if (m_settings.get_bool(settings_pack::use_read_cache) == false)
+		{
+			return do_uncached_hash(j);
 		}
 
 		if (pe == NULL)

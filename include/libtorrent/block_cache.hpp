@@ -466,6 +466,7 @@ namespace libtorrent
 		void dec_block_refcount(cached_piece_entry* pe, int block, int reason);
 
 		int pinned_blocks() const { return m_pinned_blocks; }
+		int read_cache_size() const { return m_read_cache_size; }
 
 #if TORRENT_USE_ASSERTS
 		void mark_deleted(file_storage const& fs);
