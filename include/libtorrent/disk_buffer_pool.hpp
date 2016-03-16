@@ -135,7 +135,7 @@ namespace libtorrent
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
 		// TODO: try to remove the observers, only using the async_allocate handlers
-		std::vector<boost::shared_ptr<disk_observer> > m_observers;
+		std::vector<boost::weak_ptr<disk_observer> > m_observers;
 
 		// these handlers are executed when a new buffer is available
 		std::vector<handler_t> m_handlers;
