@@ -1095,17 +1095,6 @@ namespace aux {
 			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
 		}
 
-		m_download_rate.close();
-		m_upload_rate.close();
-
-		// TODO: 3 closing the udp socket here means that
-		// the uTP connections cannot be closed gracefully
-		m_udp_socket.close();
-		m_external_udp_port = 0;
-#ifdef TORRENT_USE_OPENSSL
-		m_ssl_udp_socket.close();
-#endif
-
 		// we need to give all the sockets an opportunity to actually have their handlers
 		// called and cancelled before we continue the shutdown. This is a bit
 		// complicated, if there are no "undead" peers, it's safe tor resume the
@@ -1121,6 +1110,15 @@ namespace aux {
 
 	void session_impl::abort_stage2()
 	{
+		m_download_rate.close();
+		m_upload_rate.close();
+
+		m_udp_socket.close();
+		m_external_udp_port = 0;
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_udp_socket.close();
+#endif
+
 		// it's OK to detach the threads here. The disk_io_thread
 		// has an internal counter and won't release the network
 		// thread until they're all dead (via m_work).
@@ -5007,7 +5005,8 @@ namespace aux {
 		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
-		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle(), tptr->info_hash());
+		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
+			, tptr->info_hash());
 
 		remove_torrent_impl(tptr, options);
 
@@ -5015,7 +5014,8 @@ namespace aux {
 		tptr->set_queue_position(-1);
 	}
 
-	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options)
+	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr
+		, int options)
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
@@ -5045,9 +5045,9 @@ namespace aux {
 		if (i == m_torrents.end()) return;
 
 		torrent& t = *i->second;
-		if (options & session::delete_files)
+		if (options)
 		{
-			if (!t.delete_files())
+			if (!t.delete_files(options))
 			{
 				if (m_alerts.should_post<torrent_delete_failed_alert>())
 					m_alerts.emplace_alert<torrent_delete_failed_alert>(t.get_handle()

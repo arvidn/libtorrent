@@ -49,20 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#if TORRENT_USE_PURGABLE_CONTROL
-#include <mach/mach.h>
-// see comments at:
-// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
-
-const vm_purgable_t vm_purgable_set_state = VM_PURGABLE_SET_STATE;
-const vm_purgable_t vm_purgable_nonvolatile = VM_PURGABLE_NONVOLATILE;
-
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 /*
 
 	The disk cache mimics ARC (adaptive replacement cache).
@@ -365,6 +351,8 @@ block_cache::block_cache(int block_size, io_service& ios
 	: disk_buffer_pool(block_size, ios, trigger_trim)
 	, m_last_cache_op(cache_miss)
 	, m_ghost_size(8)
+	, m_max_volatile_blocks(100)
+	, m_volatile_size(0)
 	, m_read_cache_size(0)
 	, m_write_cache_size(0)
 	, m_send_buffer_blocks(0)
@@ -553,6 +541,84 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 #endif
 }
 
+void block_cache::try_evict_one_volatile()
+{
+	INVARIANT_CHECK;
+
+	DLOG(stderr, "[%p] try_evict_one_volatile\n", static_cast<void*>(this));
+
+	if (m_volatile_size < m_max_volatile_blocks) return;
+
+	linked_list<cached_piece_entry>* piece_list = &m_lru[cached_piece_entry::volatile_read_lru];
+
+	for (list_iterator<cached_piece_entry> i = piece_list->iterate(); i.get();)
+	{
+		cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+		TORRENT_PIECE_ASSERT(pe->in_use, pe);
+		i.next();
+
+		if (pe->ok_to_evict())
+		{
+#ifdef TORRENT_DEBUG
+			for (int j = 0; j < pe->blocks_in_piece; ++j)
+				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
+#endif
+			TORRENT_PIECE_ASSERT(pe->refcount == 0, pe);
+			move_to_ghost(pe);
+			continue;
+		}
+
+		TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
+
+		// someone else is using this piece
+		if (pe->refcount > 0) continue;
+
+		// some blocks are pinned in this piece, skip it
+		if (pe->pinned > 0) continue;
+
+		char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+		int num_to_delete = 0;
+
+		// go through the blocks and evict the ones that are not dirty and not
+		// referenced
+		for (int j = 0; j < pe->blocks_in_piece; ++j)
+		{
+			cached_block_entry& b = pe->blocks[j];
+
+			TORRENT_PIECE_ASSERT(b.dirty == false, pe);
+			TORRENT_PIECE_ASSERT(b.pending == false, pe);
+
+			if (b.buf == 0 || b.refcount > 0 || b.dirty || b.pending) continue;
+
+			to_delete[num_to_delete++] = b.buf;
+			b.buf = NULL;
+			TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
+			--pe->num_blocks;
+			TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
+			--m_read_cache_size;
+			TORRENT_PIECE_ASSERT(m_volatile_size > 0, pe);
+			--m_volatile_size;
+		}
+
+		if (pe->ok_to_evict())
+		{
+#ifdef TORRENT_DEBUG
+			for (int j = 0; j < pe->blocks_in_piece; ++j)
+				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
+#endif
+			move_to_ghost(pe);
+		}
+
+		if (num_to_delete == 0) return;
+
+		DLOG(stderr, "[%p]    removed %d blocks\n", static_cast<void*>(this)
+			, num_to_delete);
+
+		free_multiple_buffers(to_delete, num_to_delete);
+		return;
+	}
+}
+
 cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_state)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -569,8 +635,8 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 	cached_piece_entry* p = find_piece(j);
 	if (p == 0)
 	{
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		cached_piece_entry pe;
 		pe.piece = j->piece;
@@ -817,7 +883,13 @@ void block_cache::free_block(cached_piece_entry* pe, int block)
 	{
 		TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
 		--m_read_cache_size;
+		if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+		{
+			--m_volatile_size;
+		}
 	}
+
+
 	TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 	--pe->num_blocks;
 	free_buffer(b.buf);
@@ -857,6 +929,12 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 		}
 		if (pe->num_blocks == 0) break;
 	}
+
+	if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+	{
+		m_volatile_size -= num_to_delete;
+	}
+
 	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
 	if (pe->ok_to_evict(true))
@@ -1014,6 +1092,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			// go through the blocks and evict the ones that are not dirty and not
 			// referenced
+			int removed = 0;
 			for (int j = 0; j < pe->blocks_in_piece && num > 0; ++j)
 			{
 				cached_block_entry& b = pe->blocks[j];
@@ -1024,9 +1103,15 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				b.buf = NULL;
 				TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 				--pe->num_blocks;
-				TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
-				--m_read_cache_size;
+				++removed;
 				--num;
+			}
+
+			TORRENT_PIECE_ASSERT(m_read_cache_size >= removed, pe);
+			m_read_cache_size -= removed;
+			if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+			{
+				m_volatile_size -= removed;
 			}
 
 			if (pe->ok_to_evict())
@@ -1086,6 +1171,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				// go through the blocks and evict the ones
 				// that are not dirty and not referenced
+				int removed = 0;
 				for (int j = 0; j < end && num > 0; ++j)
 				{
 					cached_block_entry& b = pe->blocks[j];
@@ -1096,9 +1182,15 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 					b.buf = NULL;
 					TORRENT_PIECE_ASSERT(pe->num_blocks > 0, pe);
 					--pe->num_blocks;
-					TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
-					--m_read_cache_size;
+					++removed;
 					--num;
+				}
+
+				TORRENT_PIECE_ASSERT(m_read_cache_size >= removed, pe);
+				m_read_cache_size -= removed;
+				if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+				{
+					m_volatile_size -= removed;
 				}
 
 				if (pe->ok_to_evict())
@@ -1215,7 +1307,9 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
 	, int iov_len, disk_io_job* j, int flags)
 {
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
+#endif
 
 	TORRENT_ASSERT(pe);
 	TORRENT_ASSERT(pe->in_use);
@@ -1264,6 +1358,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;
+			if (j->flags & disk_io_job::volatile_read) ++m_volatile_size;
 
 			if (flags & blocks_inc_refcount)
 			{
@@ -1271,39 +1366,9 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 				TORRENT_UNUSED(ret); // suppress warning
 				TORRENT_ASSERT(ret);
 			}
-			else
-			{
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-				// volatile read blocks are group 0, regular reads are group 1
-				int state = VM_PURGABLE_VOLATILE | ((j->flags & disk_io_job::volatile_read) ? VM_VOLATILE_GROUP_0 : VM_VOLATILE_GROUP_1);
-				kern_return_t ret = vm_purgable_control(
-					mach_task_self(),
-					reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-					vm_purgable_set_state,
-					&state);
-#ifdef TORRENT_DEBUG
-//				if ((random() % 200) == 0) ret = 1;
-#endif
-				if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-				{
-					fprintf(stderr, "insert_blocks(piece=%d block=%d): "
-						"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-						, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-					free_buffer(pe->blocks[block].buf);
-					pe->blocks[block].buf = NULL;
-					--pe->num_blocks;
-					--m_read_cache_size;
-				}
-#endif
-			}
 		}
 
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		TORRENT_ASSERT(pe->blocks[block].buf != NULL
-			|| (flags & blocks_inc_refcount) == 0);
-#else
 		TORRENT_ASSERT(pe->blocks[block].buf != NULL);
-#endif
 	}
 
 	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost, pe);
@@ -1320,34 +1385,6 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount < cached_block_entry::max_refcount, pe);
 	if (pe->blocks[block].refcount == 0)
 	{
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		// we're adding the first refcount to this block, first make sure
-		// its still here. It's only volatile if it's not dirty and has refcount == 0
-		if (!pe->blocks[block].dirty)
-		{
-			int state = vm_purgable_nonvolatile;
-			kern_return_t ret = vm_purgable_control(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				vm_purgable_set_state,
-				&state);
-#ifdef TORRENT_DEBUG
-//			if ((random() % 200) == 0) ret = 1;
-#endif
-			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-			{
-				fprintf(stderr, "inc_block_refcount(piece=%d block=%d): "
-					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-
-				free_buffer(pe->blocks[block].buf);
-				pe->blocks[block].buf = NULL;
-				--pe->num_blocks;
-				--m_read_cache_size;
-				return false;
-			}
-		}
-#endif
 		++pe->pinned;
 		++m_pinned_blocks;
 	}
@@ -1385,34 +1422,6 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		--pe->pinned;
 		TORRENT_PIECE_ASSERT(m_pinned_blocks > 0, pe);
 		--m_pinned_blocks;
-
-#if TORRENT_USE_PURGABLE_CONTROL && defined TORRENT_DISABLE_POOL_ALLOCATOR
-		// we're removing the last refcount to this block, first make sure
-		// its still here. It's only volatile if it's not dirty and has refcount == 0
-		if (!pe->blocks[block].dirty)
-		{
-			// group 0 is the first one to be reclaimed
-			int state = VM_PURGABLE_VOLATILE | VM_VOLATILE_GROUP_1;
-			kern_return_t ret = vm_purgable_control(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t>(pe->blocks[block].buf),
-				vm_purgable_set_state,
-				&state);
-#ifdef TORRENT_DEBUG
-//			if ((random() % 200) == 0) ret = 1;
-#endif
-			if (ret != KERN_SUCCESS || (state & VM_PURGABLE_EMPTY))
-			{
-				fprintf(stderr, "dec_block_refcount(piece=%d block=%d): "
-					"vm_purgable_control failed: %d state & VM_PURGABLE_EMPTY: %d\n"
-					, pe->piece, block, ret, state & VM_PURGABLE_EMPTY);
-				free_buffer(pe->blocks[block].buf);
-				pe->blocks[block].buf = NULL;
-				--pe->num_blocks;
-				--m_read_cache_size;
-			}
-		}
-#endif
 	}
 #if TORRENT_USE_ASSERTS
 	switch (reason)
@@ -1475,6 +1484,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 	// and free them all in one go
 	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
+	int removed_clean = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
 		if (pe->blocks[i].buf == 0) continue;
@@ -1494,9 +1504,15 @@ void block_cache::free_piece(cached_piece_entry* pe)
 		}
 		else
 		{
-			TORRENT_PIECE_ASSERT(m_read_cache_size > 0, pe);
-			--m_read_cache_size;
+			++removed_clean;
 		}
+	}
+
+	TORRENT_PIECE_ASSERT(m_read_cache_size >= removed_clean, pe);
+	m_read_cache_size -= removed_clean;
+	if (pe->cache_state == cached_piece_entry::volatile_read_lru)
+	{
+		m_volatile_size -= num_to_delete;
 	}
 	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 	update_cache_state(pe);
@@ -1504,12 +1520,13 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
 {
-	int piece_size = p.storage->files()->piece_size(p.piece);
-	int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+	int const piece_size = p.storage->files()->piece_size(p.piece);
+	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	int ret = 0;
 
 	TORRENT_PIECE_ASSERT(p.in_use, &p);
 
+	int removed_clean = 0;
 	for (int i = 0; i < blocks_in_piece; ++i)
 	{
 		if (p.blocks[i].buf == 0) continue;
@@ -1529,10 +1546,17 @@ int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf
 		}
 		else
 		{
-			TORRENT_ASSERT(m_read_cache_size > 0);
-			--m_read_cache_size;
+			++removed_clean;
 		}
 	}
+
+	TORRENT_ASSERT(m_read_cache_size >= removed_clean);
+	m_read_cache_size -= removed_clean;
+	if (p.cache_state == cached_piece_entry::volatile_read_lru)
+	{
+		m_volatile_size -= removed_clean;
+	}
+
 	update_cache_state(&p);
 	return ret;
 }
@@ -1577,6 +1601,8 @@ void block_cache::set_settings(aux::session_settings const& sett, error_code& ec
 
 	m_ghost_size = (std::max)(8, sett.get_int(settings_pack::cache_size)
 		/ (std::max)(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
+
+	m_max_volatile_blocks = sett.get_int(settings_pack::cache_size_volatile);
 	disk_buffer_pool::set_settings(sett, ec);
 }
 
@@ -1724,8 +1750,9 @@ void block_cache::check_invariant() const
 // -1: block not in cache
 // -2: out of memory
 
-int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
-	, bool expect_no_fail)
+int block_cache::copy_from_piece(cached_piece_entry* const pe
+	, disk_io_job* const j
+	, bool const expect_no_fail)
 {
 	INVARIANT_CHECK;
 	TORRENT_UNUSED(expect_no_fail);
@@ -1738,13 +1765,13 @@ int block_cache::copy_from_piece(cached_piece_entry* pe, disk_io_job* j
 	int block_offset = j->d.io.offset & (block_size()-1);
 	int buffer_offset = 0;
 	int size = j->d.io.buffer_size;
-	int blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
+	int const blocks_to_read = block_offset > 0 && (size > block_size() - block_offset) ? 2 : 1;
 	TORRENT_PIECE_ASSERT(size <= block_size(), pe);
-	const int start_block = block;
+	int const start_block = block;
 
 #if TORRENT_USE_ASSERTS
-	int piece_size = j->storage->files()->piece_size(j->piece);
-	int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+	int const piece_size = j->storage->files()->piece_size(j->piece);
+	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
 #endif
 

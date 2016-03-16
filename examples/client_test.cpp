@@ -174,6 +174,7 @@ bool print_trackers = false;
 bool print_peers = false;
 bool print_log = false;
 bool print_downloads = false;
+bool print_matrix = false;
 bool print_file_progress = false;
 bool show_pad_files = false;
 bool show_dht_status = false;
@@ -378,9 +379,10 @@ FILE* g_log_file = 0;
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 {
 #ifdef _WIN32
-	int const table_size = 2;
+	int const table_size = 5;
 #else
 	int const table_size = 18;
+	width *= 2; // we only print one character for every two "slots"
 #endif
 
 	double const piece_per_char = p.size() / double(width);
@@ -397,6 +399,10 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 
 	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
 	double piece = 0;
+
+	// we print two blocks at a time, so calculate the color in pair
+	int color[2];
+	int last_color[2] = { -1, -1};
 	for (int i = 0; i < width; ++i, piece += piece_per_char)
 	{
 		int num_pieces = 0;
@@ -404,15 +410,31 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
-		int color = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
+		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
 		char buf[40];
-#ifdef _WIN32
-		snprintf(buf, sizeof(buf), "\x1b[4%dm", color ? 7 : 0);
+		color[i & 1] = c;
+
+#ifndef _WIN32
+		if ((i & 1) == 1)
+		{
+			// now, print color[0] and [1]
+			// bg determines whether we're settings foreground or background color
+			static int const bg[] = { 38, 48};
+			for (int i = 0; i < 2; ++i)
+			{
+				if (color[i] != last_color[i])
+				{
+					snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
+					last_color[i] = color[i];
+					bar += buf;
+				}
+			}
+			bar += "\u258C";
+		}
 #else
-		snprintf(buf, sizeof(buf), "\x1b[48;5;%dm", 232 + color);
+		static char const table[] = {' ', '\xb0', '\xb1', '\xb2', '\xdb'};
+		bar += table[c];
 #endif
-		bar += buf;
-		bar += " ";
 	}
 	bar += esc("0");
 	bar += "]";
@@ -1924,6 +1946,7 @@ int main(int argc, char* argv[])
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'l') print_log = !print_log;
 				if (c == 'd') print_downloads = !print_downloads;
+				if (c == 'y') print_matrix = !print_matrix;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'P') show_pad_files = !show_pad_files;
 				if (c == 'g') show_dht_status = !show_dht_status;
@@ -1967,8 +1990,8 @@ int main(int argc, char* argv[])
 						"[i] toggle show peers                           [d] toggle show downloading pieces\n"
 						"[u] show uTP stats                              [f] toggle show files\n"
 						"[g] show DHT                                    [x] toggle disk cache stats\n"
-						"[t] show trackers                               [l] show alert log\n"
-						"[P] show pad files (in file list)\n"
+						"[t] show trackers                               [l] toggle show log\n"
+						"[P] show pad files (in file list)               [y] toggle show piece matrix\n"
 						"\n"
 						"COLUMN OPTIONS\n"
 						"[1] toggle IP column                            [2]\n"
@@ -2105,6 +2128,13 @@ int main(int argc, char* argv[])
 					out += str;
 					pos += 1;
 				}
+			}
+
+			if (print_matrix)
+			{
+				int height = 0;
+				print(piece_matrix(s.pieces, terminal_width, &height).c_str());
+				pos += height;
 			}
 
 			if (print_downloads)

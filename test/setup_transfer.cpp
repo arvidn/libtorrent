@@ -363,9 +363,9 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	} while (a);
 	if (!downloading_done)
 	{
-		fprintf(stderr, "did not receive a state_changed_alert indicating "
+		fprintf(stderr, "%s: did not receive a state_changed_alert indicating "
 			"the torrent is downloading. waited: %d ms\n"
-			, int(total_milliseconds(clock_type::now() - start)));
+			, name, int(total_milliseconds(clock_type::now() - start)));
 	}
 }
 

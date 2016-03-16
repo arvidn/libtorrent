@@ -268,14 +268,16 @@ namespace libtorrent
 			// passes the hash check, it is taken out of parole mode.
 			use_parole_mode,
 
-			// enable and disable caching of read blocks and blocks to be written
-			// to disk respsectively. the purpose of the read cache is partly
-			// read-ahead of requests but also to avoid reading blocks back from
-			// the disk multiple times for popular pieces. the write cache purpose
-			// is to hold off writing blocks to disk until they have been hashed,
-			// to avoid having to read them back in again.
+			// enable and disable caching of blocks read from disk. the purpose of
+			// the read cache is partly read-ahead of requests but also to avoid
+			// reading blocks back from the disk multiple times for popular
+			// pieces.
 			use_read_cache,
+#ifndef TORRENT_NO_DEPRECATED
 			use_write_cache,
+#else
+			deprecated7,
+#endif
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
@@ -1540,6 +1542,16 @@ namespace libtorrent
 			// 
 			// .. _i2p: http://www.i2p2.de
 			i2p_port,
+
+			// this determines the max number of volatile disk cache blocks. If the
+			// number of volatile blocks exceed this limit, other volatile blocks
+			// will start to be evicted. A disk cache block is volatile if it has
+			// low priority, and should be one of the first blocks to be evicted
+			// under pressure. For instance, blocks pulled into the cache as the
+			// result of calculating a piece hash are volatile. These blocks don't
+			// represent potential interest among peers, so the value of keeping
+			// them in the cache is limited.
+			cache_size_volatile,
 
 			max_int_setting_internal
 		};

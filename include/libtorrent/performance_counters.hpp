@@ -335,7 +335,7 @@ namespace libtorrent
 			num_loaded_torrents,
 			num_pinned_torrents,
 
-			// these counter indices deliberatly
+			// these counter indices deliberately
 			// match the order of socket type IDs
 			// defined in socket_type.hpp.
 			num_tcp_peers,

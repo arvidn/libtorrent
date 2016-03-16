@@ -743,9 +743,10 @@ namespace libtorrent
 			ec.clear();
 	}
 
-	void default_storage::delete_files(storage_error& ec)
+	void default_storage::delete_files(int const options, storage_error& ec)
 	{
-		DFLOG(stderr, "[%p] delete_files\n", static_cast<void*>(this));
+		DFLOG(stderr, "[%p] delete_files [%x]\n", static_cast<void*>(this)
+			, options);
 
 #if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
@@ -764,53 +765,69 @@ namespace libtorrent
 		// make sure we don't have the files open
 		m_pool.release(this);
 
+		// if there's a part file open, make sure to destruct it to have it
+		// release the underlying part file. Otherwise we may not be able to
+		// delete it
+		if (m_part_file) m_part_file.reset();
+
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
-#if TORRENT_USE_ASSERTS
-		m_pool.mark_deleted(m_files);
-#endif
-		// delete the files from disk
-		std::set<std::string> directories;
-		typedef std::set<std::string>::iterator iter_t;
-		for (int i = 0; i < files().num_files(); ++i)
+		if (options == session::delete_files)
 		{
-			std::string fp = files().file_path(i);
-			bool complete = is_complete(fp);
-			std::string p = complete ? fp : combine_path(m_save_path, fp);
-			if (!complete)
+#if TORRENT_USE_ASSERTS
+			m_pool.mark_deleted(m_files);
+#endif
+			// delete the files from disk
+			std::set<std::string> directories;
+			typedef std::set<std::string>::iterator iter_t;
+			for (int i = 0; i < files().num_files(); ++i)
 			{
-				std::string bp = parent_path(fp);
-				std::pair<iter_t, bool> ret;
-				ret.second = true;
-				while (ret.second && !bp.empty())
+				std::string fp = files().file_path(i);
+				bool complete = is_complete(fp);
+				std::string p = complete ? fp : combine_path(m_save_path, fp);
+				if (!complete)
 				{
-					ret = directories.insert(combine_path(m_save_path, bp));
-					bp = parent_path(bp);
+					std::string bp = parent_path(fp);
+					std::pair<iter_t, bool> ret;
+					ret.second = true;
+					while (ret.second && !bp.empty())
+					{
+						ret = directories.insert(combine_path(m_save_path, bp));
+						bp = parent_path(bp);
+					}
 				}
+				delete_one_file(p, ec.ec);
+				if (ec) { ec.file = i; ec.operation = storage_error::remove; }
 			}
-			delete_one_file(p, ec.ec);
-			if (ec) { ec.file = i; ec.operation = storage_error::remove; }
+
+			// remove the directories. Reverse order to delete
+			// subdirectories first
+
+			for (std::set<std::string>::reverse_iterator i = directories.rbegin()
+				, end(directories.rend()); i != end; ++i)
+			{
+				error_code error;
+				delete_one_file(*i, error);
+				if (error && !ec) { ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
+			}
 		}
 
-		// remove the directories. Reverse order to delete
-		// subdirectories first
-
-		for (std::set<std::string>::reverse_iterator i = directories.rbegin()
-			, end(directories.rend()); i != end; ++i)
+		if (options == session::delete_files
+			|| options == session::delete_partfile)
 		{
 			error_code error;
-			delete_one_file(*i, error);
-			if (error && !ec) { ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
+			remove(combine_path(m_save_path, m_part_file_name), error);
+			DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", static_cast<void*>(this)
+				, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
+			if (error && error != boost::system::errc::no_such_file_or_directory)
+			{
+				ec.file = -1;
+				ec.ec = error;
+				ec.operation = storage_error::remove;
+			}
 		}
-
-		error_code error;
-		remove(combine_path(m_save_path, m_part_file_name), error);
-		DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", static_cast<void*>(this)
-			, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
-		if (error != boost::system::errc::no_such_file_or_directory && !error)
-		{ ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
 			, ec.ec.message().c_str());

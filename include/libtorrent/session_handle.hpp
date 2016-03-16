@@ -394,7 +394,7 @@ namespace libtorrent
 
 		// store the given bencoded data as an immutable item in the DHT.
 		// the returned hash is the key that is to be used to look the item
-		// up agan. It's just the sha-1 hash of the bencoded form of the
+		// up again. It's just the sha-1 hash of the bencoded form of the
 		// structure.
 		sha1_hash dht_put_item(entry data);
 
@@ -767,7 +767,11 @@ namespace libtorrent
 		enum options_t
 		{
 			// delete the files belonging to the torrent from disk.
-			delete_files = 1
+			// including the part-file, if there is one
+			delete_files = 1,
+
+			// delete just the part-file associated with this torrent
+			delete_partfile = 2
 		};
 
 		// flags to be passed in to the session constructor

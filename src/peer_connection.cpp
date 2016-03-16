@@ -137,6 +137,7 @@ namespace libtorrent
 		, m_last_choke(min_time())
 		, m_last_receive(aux::time_now())
 		, m_last_sent(aux::time_now())
+		, m_last_sent_payload(aux::time_now())
 		, m_requested(min_time())
 		, m_remote_dl_update(aux::time_now())
 		, m_connect(aux::time_now())
@@ -1709,15 +1710,7 @@ namespace libtorrent
 		else if (m_ses.preemptive_unchoke())
 		{
 			// if the peer is choked and we have upload slots left,
-			// then unchoke it. Another condition that has to be met
-			// is that the torrent doesn't keep track of the individual
-			// up/down ratio for each peer (ratio == 0) or (if it does
-			// keep track) this particular connection isn't a leecher.
-			// If the peer was choked because it was leeching, don't
-			// unchoke it again.
-			// The exception to this last condition is if we're a seed.
-			// In that case we don't care if people are leeching, they
-			// can't pay for their downloads anyway.
+			// then unchoke it.
 
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			TORRENT_ASSERT(t);
@@ -2618,7 +2611,13 @@ namespace libtorrent
 			return;
 		}
 
-		if (exceeded)
+		// every peer is entitled to have two disk blocks allocated at any given
+		// time, regardless of whether the cache size is exceeded or not. If this
+		// was not the case, when the cache size setting is very small, most peers
+		// would be blocked most of the time, because the disk cache would
+		// continously be in exceeded state. Only rarely would it actually drop
+		// down to 0 and unblock all peers.
+		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 				m_counters.inc_stats_counter(counters::num_peers_down_disk);
@@ -4548,7 +4547,9 @@ namespace libtorrent
 			return false;
 		}
 
-		if (exceeded)
+		// to understand why m_outstanding_writing_bytes is here, see comment by
+		// the other call to allocate_disk_buffer()
+		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
@@ -4832,10 +4833,13 @@ namespace libtorrent
 			return;
 		}
 
-		// disconnect peers that we unchoked, but
-		// they didn't send a request within 60 seconds.
+		// disconnect peers that we unchoked, but they didn't send a request in
+		// the last 60 seconds, and we haven't been working on servicing a request
+		// for more than 60 seconds.
 		// but only if we're a seed
-		d = now - (std::max)(m_last_unchoke, m_last_incoming_request);
+		d = now - (std::max)((std::max)(m_last_unchoke, m_last_incoming_request)
+			, m_last_sent_payload);
+
 		if (may_timeout
 			&& !m_connecting
 			&& m_requests.empty()
@@ -5228,6 +5232,7 @@ namespace libtorrent
 					, boost::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r, clock_type::now()), this);
 			}
+			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
 
 			if (m_requests.empty())

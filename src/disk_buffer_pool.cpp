@@ -60,18 +60,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <linux/unistd.h>
 #endif
 
-#if TORRENT_USE_PURGABLE_CONTROL
-#include <mach/mach.h>
-// see comments at:
-// http://www.opensource.apple.com/source/xnu/xnu-792.13.8/osfmk/vm/vm_object.c
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
+	namespace {
+
 	// this is posted to the network thread
-	static void watermark_callback(std::vector<boost::shared_ptr<disk_observer> >* cbs
+	void watermark_callback(std::vector<boost::weak_ptr<disk_observer> >* cbs
 		, std::vector<disk_buffer_pool::handler_t>* handlers)
 	{
 		if (handlers)
@@ -84,12 +80,17 @@ namespace libtorrent
 
 		if (cbs != NULL)
 		{
-			for (std::vector<boost::shared_ptr<disk_observer> >::iterator i = cbs->begin()
+			for (std::vector<boost::weak_ptr<disk_observer> >::iterator i = cbs->begin()
 				, end(cbs->end()); i != end; ++i)
-				(*i)->on_disk();
+			{
+				boost::shared_ptr<disk_observer> o = i->lock();
+				if (o) o->on_disk();
+			}
 			delete cbs;
 		}
 	}
+
+	} // anonymous namespace
 
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
 		, boost::function<void()> const& trigger_trim)
@@ -189,7 +190,7 @@ namespace libtorrent
 		{
 			l.unlock();
 			m_ios.post(boost::bind(&watermark_callback
-				, static_cast<std::vector<boost::shared_ptr<disk_observer> >*>(NULL)
+				, static_cast<std::vector<boost::weak_ptr<disk_observer> >*>(NULL)
 				, slice));
 			return;
 		}
@@ -201,13 +202,13 @@ namespace libtorrent
 		{
 			l.unlock();
 			m_ios.post(boost::bind(&watermark_callback
-				, static_cast<std::vector<boost::shared_ptr<disk_observer> >*>(NULL)
+				, static_cast<std::vector<boost::weak_ptr<disk_observer> >*>(NULL)
 				, handlers));
 			return;
 		}
 
-		std::vector<boost::shared_ptr<disk_observer> >* cbs
-			= new std::vector<boost::shared_ptr<disk_observer> >();
+		std::vector<boost::weak_ptr<disk_observer> >* cbs
+			= new std::vector<boost::weak_ptr<disk_observer> >();
 		m_observers.swap(*cbs);
 		l.unlock();
 		m_ios.post(boost::bind(&watermark_callback, cbs, handlers));
@@ -355,18 +356,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-#if TORRENT_USE_PURGABLE_CONTROL
-			kern_return_t res = vm_allocate(
-				mach_task_self(),
-				reinterpret_cast<vm_address_t*>(&ret),
-				0x4000,
-				VM_FLAGS_PURGABLE |
-				VM_FLAGS_ANYWHERE);
-			if (res != KERN_SUCCESS)
-				ret = NULL;
-#else
 			ret = page_aligned_allocator::malloc(m_block_size);
-#endif // TORRENT_USE_PURGABLE_CONTROL
 
 #else
 			if (m_using_pool_allocator)
@@ -641,15 +631,7 @@ namespace libtorrent
 		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-#if TORRENT_USE_PURGABLE_CONTROL
-		vm_deallocate(
-			mach_task_self(),
-			reinterpret_cast<vm_address_t>(buf),
-			0x4000
-			);
-#else
 		page_aligned_allocator::free(buf);
-#endif // TORRENT_USE_PURGABLE_CONTROL
 
 #else
 		if (m_using_pool_allocator)

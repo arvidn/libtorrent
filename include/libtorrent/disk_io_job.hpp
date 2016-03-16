@@ -136,11 +136,7 @@ namespace libtorrent
 			in_progress = 0x20,
 
 			// turns into file::coalesce_buffers in the file operation
-			coalesce_buffers = 0x40,
-
-			// the disk cache was enabled when this job was issued, it should use
-			// the disk cache once it's handled by a disk thread
-			use_disk_cache = 0x80
+			coalesce_buffers = 0x40
 		};
 
 		// for write jobs, returns true if its block
@@ -164,6 +160,7 @@ namespace libtorrent
 			add_torrent_params const* check_resume_data;
 			std::vector<boost::uint8_t>* priorities;
 			torrent_info* torrent_file;
+			int delete_options;
 		} buffer;
 
 		// the disk storage this job applies to (if applicable)

@@ -511,7 +511,7 @@ namespace libtorrent
 			// a block or piece boundary.
 			flag_pad_file = 1,
 
-			// this file is hiddent (sets the hidden attribute
+			// this file is hidden (sets the hidden attribute
 			// on windows)
 			flag_hidden = 2,
 
@@ -534,7 +534,7 @@ namespace libtorrent
 		int file_index_at_offset(boost::int64_t offset) const;
 
 		// low-level function. returns a pointer to the internal storage for
-		// the filename. This string may not be null terinated!
+		// the filename. This string may not be null terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
 		char const* file_name_ptr(int index) const;
 		int file_name_len(int index) const;
@@ -637,7 +637,7 @@ namespace libtorrent
 		// this is always the root directory
 		std::string m_name;
 
-		// the sum of all filesizes
+		// the sum of all file sizes
 		boost::int64_t m_total_size;
 
 		// the number of files. This is used when

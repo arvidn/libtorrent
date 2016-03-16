@@ -258,7 +258,7 @@ namespace libtorrent
 		// called once per second
 		virtual void on_tick() {}
 
-		// called when choosing peers to optimisticallly unchoke. peer's will be
+		// called when choosing peers to optimistically unchoke. peer's will be
 		// unchoked in the order they appear in the given vector. if
 		// the plugin returns true then the ordering provided will be used and no
 		// other plugin will be allowed to change it. If your plugin expects this
@@ -414,7 +414,7 @@ namespace libtorrent
 		virtual bool on_extension_handshake(bdecode_node const&) { return true; }
 
 		// returning true from any of the message handlers
-		// indicates that the plugin has handeled the message.
+		// indicates that the plugin has handled the message.
 		// it will break the plugin chain traversing and not let
 		// anyone else handle the message, including the default
 		// handler.
@@ -470,7 +470,7 @@ namespace libtorrent
 		virtual void on_piece_pass(int /*index*/) {}
 		virtual void on_piece_failed(int /*index*/) {}
 
-		// called aproximately once every second
+		// called approximately once every second
 		virtual void tick() {}
 
 		// called each time a request message is to be sent. If true
@@ -491,7 +491,7 @@ namespace libtorrent
 		// are now ready to be sent to the lower layer. This must be at least
 		// as large as the number of bytes passed in and may be larger if there
 		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is retrived from the passed in vector. The
+		// The additional data is retrieved from the passed in vector. The
 		// vector must be cleared if no additional data is to be inserted.
 		virtual int encrypt(std::vector<boost::asio::mutable_buffer>& /*send_vec*/) = 0;
 

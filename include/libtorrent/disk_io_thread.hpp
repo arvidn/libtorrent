@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2007-2016, Arvid Norberg
+Copyright (c) 2007-2016, Arvid Norberg, Steven Siloti
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -311,7 +311,7 @@ namespace libtorrent
 		void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>()) TORRENT_OVERRIDE;
-		void async_delete_files(piece_manager* storage
+		void async_delete_files(piece_manager* storage, int options
 			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
 		void async_check_files(piece_manager* storage
 			, add_torrent_params const* resume_data
@@ -547,6 +547,13 @@ namespace libtorrent
 		// disk cache
 		mutable mutex m_cache_mutex;
 		block_cache m_disk_cache;
+		enum
+		{
+			cache_check_idle,
+			cache_check_active,
+			cache_check_reinvoke
+		};
+		int m_cache_check_state;
 
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to

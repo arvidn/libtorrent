@@ -71,7 +71,7 @@ struct test_storage_impl : storage_interface
 	virtual void release_files(storage_error& ec) TORRENT_OVERRIDE {}
 	virtual void rename_file(int index, std::string const& new_filenamem
 		, storage_error& ec) TORRENT_OVERRIDE {}
-	virtual void delete_files(storage_error& ec) TORRENT_OVERRIDE {}
+	virtual void delete_files(int, storage_error& ec) TORRENT_OVERRIDE {}
 #ifndef TORRENT_NO_DEPRECATE
 	virtual void finalize_file(int, storage_error&) TORRENT_OVERRIDE {}
 #endif
