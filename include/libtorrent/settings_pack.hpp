@@ -346,11 +346,15 @@ namespace libtorrent
 			// out. This is the traditional definition of super seeding.
 			strict_super_seeding,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if this is set to true, the memory allocated for the disk cache
 			// will be locked in physical RAM, never to be swapped out. Every time
 			// a disk buffer is allocated and freed, there will be the extra
 			// overhead of a system call.
 			lock_disk_cache,
+#else
+			deprecated8,
+#endif
 
 			// when set to true, all data downloaded from peers will be assumed to
 			// be correct, and not tested to match the hashes in the torrent this

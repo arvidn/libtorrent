@@ -149,7 +149,6 @@ namespace libtorrent
 		mutable mutex m_pool_mutex;
 
 		int m_cache_buffer_chunk_size;
-		bool m_lock_disk_cache;
 
 #if TORRENT_HAVE_MMAP
 		// the file descriptor of the cache mmap file

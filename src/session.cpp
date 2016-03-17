@@ -218,9 +218,6 @@ namespace libtorrent
 		// 30 seconds expiration to save cache
 		// space for active pieces
 		set.set_int(settings_pack::cache_expiry, 30);
-		// this is expensive and could add significant
-		// delays when freeing a large number of buffers
-		set.set_bool(settings_pack::lock_disk_cache, false);
 
 		// in case the OS we're running on doesn't support
 		// readv/writev, allocate contiguous buffers for
