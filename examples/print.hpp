@@ -30,6 +30,8 @@ enum { progress_invert = 1};
 std::string const& progress_bar(int progress, int width, color_code c = col_green
 	, char fill = '#', char bg = '-', std::string caption = "", int flags = 0);
 
+std::string const& piece_bar(libtorrent::bitfield const& p, int width);
+
 void set_cursor_pos(int x, int y);
 
 void clear_screen();

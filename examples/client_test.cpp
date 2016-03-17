@@ -376,71 +376,6 @@ bool yes(libtorrent::torrent_status const&)
 
 FILE* g_log_file = 0;
 
-std::string const& piece_bar(libtorrent::bitfield const& p, int width)
-{
-#ifdef _WIN32
-	int const table_size = 5;
-#else
-	int const table_size = 18;
-	width *= 2; // we only print one character for every two "slots"
-#endif
-
-	double const piece_per_char = p.size() / double(width);
-	static std::string bar;
-	bar.clear();
-	bar.reserve(width * 6);
-	bar += "[";
-	if (p.size() == 0)
-	{
-		for (int i = 0; i < width; ++i) bar += ' ';
-		bar += "]";
-		return bar;
-	}
-
-	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
-	double piece = 0;
-
-	// we print two blocks at a time, so calculate the color in pair
-	int color[2];
-	int last_color[2] = { -1, -1};
-	for (int i = 0; i < width; ++i, piece += piece_per_char)
-	{
-		int num_pieces = 0;
-		int num_have = 0;
-		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
-		for (int k = int(piece); k < end; ++k, ++num_pieces)
-			if (p[k]) ++num_have;
-		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
-		char buf[40];
-		color[i & 1] = c;
-
-#ifndef _WIN32
-		if ((i & 1) == 1)
-		{
-			// now, print color[0] and [1]
-			// bg determines whether we're settings foreground or background color
-			static int const bg[] = { 38, 48};
-			for (int i = 0; i < 2; ++i)
-			{
-				if (color[i] != last_color[i])
-				{
-					snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
-					last_color[i] = color[i];
-					bar += buf;
-				}
-			}
-			bar += "\u258C";
-		}
-#else
-		static char const table[] = {' ', '\xb0', '\xb1', '\xb2', '\xdb'};
-		bar += table[c];
-#endif
-	}
-	bar += esc("0");
-	bar += "]";
-	return bar;
-}
-
 int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
@@ -698,6 +633,17 @@ std::string path_to_url(std::string f)
 		}
 	}
 	return ret;
+}
+
+void print_settings(int const start, int const num
+	, char const* const fmt)
+{
+	for (int i = start; i < start + num; ++i)
+	{
+		char const* name = libtorrent::name_for_setting(i);
+		if (!name || name[0] == '\0') continue;
+		printf(fmt, name);
+	}
 }
 
 // monitored_dir is true if this torrent is added because
@@ -1247,78 +1193,30 @@ int main(int argc, char* argv[])
 			"                        previous command line options, so be sure to specify this first\n"
 			"  -G                    Add torrents in seed-mode (i.e. assume all pieces\n"
 			"                        are present and check hashes on-demand)\n"
-			"  -E <num-threads>      specify how many hashing threads to use\n"
+			"\n LIBTORRENT SETTINGS\n"
+			"  --<name-of-setting>=<value>\n"
+			"                        set the libtorrent setting <name> to <value>\n"
+			"  --list-settings       print all libtorrent settings and exit\n"
 			"\n BITTORRENT OPTIONS\n"
-			"  -c <limit>            sets the max number of connections\n"
 			"  -T <limit>            sets the max number of connections per torrent\n"
 			"  -U <rate>             sets per-torrent upload rate\n"
 			"  -D <rate>             sets per-torrent download rate\n"
-			"  -d <rate>             limits the download rate\n"
-			"  -u <rate>             limits the upload rate\n"
-			"  -S <limit>            limits the upload slots\n"
-			"  -A <num pieces>       allowed pieces set size\n"
-			"  -H                    Don't start DHT\n"
-			"  -X                    Don't start local peer discovery\n"
-			"  -n                    announce to trackers in all tiers\n"
-			"  -W <num peers>        Set the max number of peers to keep in the peer list\n"
-			"  -B <seconds>          sets the peer timeout\n"
 			"  -Q                    enables share mode. Share mode attempts to maximize\n"
 			"                        share ratio rather than downloading\n"
-			"  -K                    enable piece suggestions of read cache\n"
 			"  -r <IP:port>          connect to specified peer\n"
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			"  -e                    force encrypted bittorrent connections\n"
-#endif
-			"\n QUEING OPTIONS\n"
-			"  -v <limit>            Set the max number of active downloads\n"
-			"  -^ <limit>            Set the max number of active seeds\n"
 			"\n NETWORK OPTIONS\n"
-#ifndef TORRENT_NO_DEPRECATE
-			"  -o <limit>            limits the number of simultaneous\n"
-			"                        half-open TCP connections to the\n"
-			"                        given number.\n"
-#endif
-			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -x <file>             loads an emule IP-filter file\n"
-			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
-			"  -L <user:passwd>      Use the specified username and password for the\n"
-			"                        proxy specified by -P\n"
-			"  -h                    allow multiple connections from the same IP\n"
-			"  -M                    Disable TCP/uTP bandwidth balancing\n"
-			"  -N                    Do not attempt to use UPnP and NAT-PMP to forward ports\n"
 			"  -Y                    Rate limit local peers\n"
-			"  -y                    Disable TCP connections (disable outgoing TCP and reject\n"
-			"                        incoming TCP connections)\n"
-			"  -J                    Disable uTP connections (disable outgoing uTP and reject\n"
-			"                        incoming uTP connections)\n"
-			"  -b <iface-list>       sets the listen interfaces string. This is a\n"
-			"                        comma separated list of IP:port pairs. Instead\n"
-			"                        of an IP, a network interface device name can\n"
-			"                        be specified\n"
-			"                        listen socket to\n"
-			"  -I <iface-list>       sets the IPs or network interface devices to bind\n"
-			"                        outgoing peer connections to. This can be a\n"
-			"                        comma-separated list"
 #if TORRENT_USE_I2P
 			"  -i <i2p-host>         the hostname to an I2P SAM bridge to use\n"
 #endif
-			"  -l <limit>            sets the listen socket queue size\n"
 			"\n DISK OPTIONS\n"
 			"  -a <mode>             sets the allocation mode. [sparse|allocate]\n"
-			"  -R <num blocks>       number of blocks per read cache line\n"
-			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
-			"  -j                    disable disk read-ahead\n"
-			"  -z                    disable piece hash checks (used for benchmarking)\n"
-			"  -Z <file>             mmap the disk cache to the specified file, should be an SSD\n"
 			"  -0                    disable disk I/O, read garbage and don't flush to disk\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
 			"MAGNETURL is a magnet link\n"
-			"URL is a url to a torrent file\n"
-			"\n"
-			"Example for running benchmark:\n\n"
-			"  client_test -k -z -N -h -H -M -l 2000 -S 1000 -T 1000 -c 1000 test.torrent\n");
-			;
+			"\n") ;
 		return 0;
 	}
 
@@ -1331,9 +1229,6 @@ int main(int argc, char* argv[])
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	int refresh_delay = 500;
-#ifndef TORRENT_DISABLE_DHT
-	bool start_dht = true;
-#endif
 	bool rate_limit_locals = false;
 
 	std::deque<std::string> events;
@@ -1386,6 +1281,62 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
+		if (strcmp(argv[i], "--list-settings") == 0)
+		{
+			// print all libtorrent settings and exit
+			print_settings(settings_pack::string_type_base
+				, settings_pack::num_string_settings
+				, "%s=<string>\n");
+			print_settings(settings_pack::bool_type_base
+				, settings_pack::num_bool_settings
+				, "%s=<bool>\n");
+			print_settings(settings_pack::int_type_base
+				, settings_pack::num_int_settings
+				, "%s=<int>\n");
+			return 0;
+		}
+
+		// maybe this is an assignment of a libtorrent setting
+		if (argv[i][1] == '-' && strchr(argv[i], '=') != NULL)
+		{
+			char const* equal = strchr(argv[i], '=');
+			char const* start = argv[i]+2;
+			// +2 is to skip the --
+			std::string const key(start, equal - start);
+			char const* value = equal + 1;
+
+			int const sett_name = setting_by_name(key);
+			if (sett_name < 0)
+			{
+				fprintf(stderr, "unknown setting: \"%s\"\n", key.c_str());
+				return 1;
+			}
+
+			switch (sett_name & settings_pack::type_mask)
+			{
+				case settings_pack::string_type_base:
+					settings.set_str(sett_name, value);
+					break;
+				case settings_pack::bool_type_base:
+					if (strcmp(value, "0") == 0
+						|| strcmp(value, "1") == 0)
+					{
+						settings.set_bool(sett_name, atoi(value));
+					}
+					else
+					{
+						fprintf(stderr, "invalid value for \"%s\". expected 0 or 1\n"
+							, key.c_str());
+						return 1;
+					}
+					break;
+				case settings_pack::int_type_base:
+					settings.set_int(sett_name, atoi(value));
+					break;
+			}
+			continue;
+		}
+
 		// if there's a flag but no argument following, ignore it
 		if (argc == i) continue;
 		char const* arg = argv[i+1];
@@ -1394,60 +1345,15 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
-#ifndef TORRENT_NO_DEPRECATE
-			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
-#endif
-			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
 			case 'k': high_performance_seed(settings); --i; break;
-			case 'j': settings.set_bool(settings_pack::use_disk_read_ahead, false); --i; break;
-			case 'z': settings.set_bool(settings_pack::disable_hash_checks, true); --i; break;
-			case 'K': settings.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache); --i; break;
-			case 'B': settings.set_int(settings_pack::peer_timeout, atoi(arg)); break;
-			case 'n': settings.set_bool(settings_pack::announce_to_all_tiers, true); --i; break;
 			case 'G': seed_mode = true; --i; break;
-			case 'E': settings.set_int(settings_pack::hashing_threads, atoi(arg)); break;
-			case 'd': settings.set_int(settings_pack::download_rate_limit, atoi(arg) * 1000); break;
-			case 'u': settings.set_int(settings_pack::upload_rate_limit, atoi(arg) * 1000); break;
-			case 'S':
-				settings.set_int(settings_pack::unchoke_slots_limit, atoi(arg));
-				settings.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
-				break;
-			case 'a':
-				if (strcmp(arg, "allocate") == 0) allocation_mode = storage_mode_allocate;
-				else if (strcmp(arg, "sparse") == 0) allocation_mode = storage_mode_sparse;
-				break;
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
 			case 'm': monitor_dir = arg; break;
 			case 'Q': share_mode = true; --i; break;
-			case 'b': settings.set_str(settings_pack::listen_interfaces, arg); break;
-			case 'w': settings.set_int(settings_pack::urlseed_wait_retry, atoi(arg)); break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
-			case 'H':
-#ifndef TORRENT_DISABLE_DHT
-				start_dht = false;
-#endif
-				settings.set_bool(settings_pack::enable_dht, false);
-				--i;
-				break;
-			case 'l': settings.set_int(settings_pack::listen_queue_size, atoi(arg)); break;
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			case 'e':
-				{
-					settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);
-					settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
-					settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_rc4);
-					settings.set_bool(settings_pack::prefer_rc4, true);
-					--i;
-					break;
-				}
-#endif
-			case 'W':
-				settings.set_int(settings_pack::max_peerlist_size, atoi(arg));
-				settings.set_int(settings_pack::max_paused_peerlist_size, atoi(arg) / 2);
-				break;
 			case 'x':
 				{
 					FILE* filter = fopen(arg, "r");
@@ -1466,93 +1372,14 @@ int main(int argc, char* argv[])
 					}
 				}
 				break;
-			case 'c': settings.set_int(settings_pack::connections_limit, atoi(arg)); break;
 			case 'T': max_connections_per_torrent = atoi(arg); break;
-#if TORRENT_USE_I2P
-			case 'i':
-				{
-					settings.set_str(settings_pack::i2p_hostname, arg);
-					settings.set_int(settings_pack::i2p_port, 7656);
-					settings.set_int(settings_pack::proxy_type, settings_pack::i2p_proxy);
-					break;
-				}
-#endif // TORRENT_USE_I2P
-			case 'C':
-				cache_size = atoi(arg);
-				settings.set_int(settings_pack::cache_size, cache_size);
-				settings.set_int(settings_pack::cache_buffer_chunk_size, 0);
-				break;
-			case 'A': settings.set_int(settings_pack::allowed_fast_set_size, atoi(arg)); break;
-			case 'R': settings.set_int(settings_pack::read_cache_line_size, atoi(arg)); break;
-			case 'M': settings.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp); --i; break;
-			case 'y':
-				settings.set_bool(settings_pack::enable_outgoing_tcp, false);
-				settings.set_bool(settings_pack::enable_incoming_tcp, false);
-				--i;
-				break;
-			case 'J':
-				settings.set_bool(settings_pack::enable_outgoing_utp, false);
-				settings.set_bool(settings_pack::enable_incoming_utp, false);
-				--i;
-				break;
 			case 'r': peer = arg; break;
-			case 'P':
-				{
-					char* port = (char*) strrchr(arg, ':');
-					if (port == 0)
-					{
-						fprintf(stderr, "invalid proxy hostname, no port found\n");
-						break;
-					}
-					*port++ = 0;
-					settings.set_str(settings_pack::proxy_hostname, arg);
-					settings.set_int(settings_pack::proxy_port, atoi(port));
-					if (atoi(port) == 0) {
-						fprintf(stderr, "invalid proxy port\n");
-						break;
-					}
-					if (settings.get_int(settings_pack::proxy_type) == settings_pack::none)
-						settings.set_int(settings_pack::proxy_type, settings_pack::socks5);
-				}
-				break;
-			case 'L':
-				{
-					char* pw = (char*) strchr(arg, ':');
-					if (pw == 0)
-					{
-						fprintf(stderr, "invalid proxy username and password specified\n");
-						break;
-					}
-					*pw++ = 0;
-					settings.set_str(settings_pack::proxy_username, arg);
-					settings.set_str(settings_pack::proxy_password, pw);
-					settings.set_int(settings_pack::proxy_type, settings_pack::socks5_pw);
-				}
-				break;
-			case 'I': settings.set_str(settings_pack::outgoing_interfaces, arg); break;
-			case 'N':
-				settings.set_bool(settings_pack::enable_upnp, false);
-				settings.set_bool(settings_pack::enable_natpmp, false);
-				--i;
-				break;
 			case 'Y':
 				{
 					--i;
 					rate_limit_locals = true;
 					break;
 				}
-			case 'X': settings.set_bool(settings_pack::enable_lsd, false); --i; break;
-			case 'Z':
-				settings.set_str(settings_pack::mmap_cache, arg);
-				settings.set_bool(settings_pack::contiguous_recv_buffer, false);
-				break;
-			case 'v': settings.set_int(settings_pack::active_downloads, atoi(arg));
-				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
-				break;
-			case '^':
-				settings.set_int(settings_pack::active_seeds, atoi(arg));
-				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
-				break;
 			case '0': disable_storage = true; --i;
 		}
 		++i; // skip the argument
@@ -1605,10 +1432,8 @@ int main(int argc, char* argv[])
 	dht.privacy_lookups = true;
 	ses.set_dht_settings(dht);
 
-	if (start_dht)
+	if (settings.get_bool(settings_pack::enable_dht))
 	{
-		settings.set_bool(settings_pack::use_dht_as_fallback, false);
-
 		ses.add_dht_router(std::make_pair(
 			std::string("router.bittorrent.com"), 6881));
 		ses.add_dht_router(std::make_pair(
