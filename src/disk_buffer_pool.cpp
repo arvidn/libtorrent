@@ -67,17 +67,8 @@ namespace libtorrent
 	namespace {
 
 	// this is posted to the network thread
-	void watermark_callback(std::vector<boost::weak_ptr<disk_observer> >* cbs
-		, std::vector<disk_buffer_pool::handler_t>* handlers)
+	void watermark_callback(std::vector<boost::weak_ptr<disk_observer> >* cbs)
 	{
-		if (handlers)
-		{
-			for (std::vector<disk_buffer_pool::handler_t>::iterator i = handlers->begin()
-				, end(handlers->end()); i != end; ++i)
-				i->callback(i->buffer);
-			delete handlers;
-		}
-
 		if (cbs != NULL)
 		{
 			for (std::vector<boost::weak_ptr<disk_observer> >::iterator i = cbs->begin()
@@ -147,7 +138,7 @@ namespace libtorrent
 		mutex::scoped_lock l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - (m_observers.size() + m_handlers.size())*2));
+			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()*2));
 
 		if (m_in_use + num_needed > m_max_use)
 			ret = (std::max)(ret, int(m_in_use + num_needed - m_max_use));
@@ -169,49 +160,11 @@ namespace libtorrent
 
 		m_exceeded_max_size = false;
 
-		// if slice is non-NULL, only some of the handlers got a buffer
-		// back, and the slice should be posted back to the network thread
-		std::vector<handler_t>* slice = NULL;
-
-		for (std::vector<handler_t>::iterator i = m_handlers.begin()
-			, end(m_handlers.end()); i != end; ++i)
-		{
-			i->buffer = allocate_buffer_impl(l, i->category);
-			if (!m_exceeded_max_size || i == end - 1) continue;
-
-			// only some of the handlers got buffers. We need to slice the vector
-			slice = new std::vector<handler_t>();
-			slice->insert(slice->end(), m_handlers.begin(), i + 1);
-			m_handlers.erase(m_handlers.begin(), i + 1);
-			break;
-		}
-
-		if (slice != NULL)
-		{
-			l.unlock();
-			m_ios.post(boost::bind(&watermark_callback
-				, static_cast<std::vector<boost::weak_ptr<disk_observer> >*>(NULL)
-				, slice));
-			return;
-		}
-
-		std::vector<handler_t>* handlers = new std::vector<handler_t>();
-		handlers->swap(m_handlers);
-
-		if (m_exceeded_max_size)
-		{
-			l.unlock();
-			m_ios.post(boost::bind(&watermark_callback
-				, static_cast<std::vector<boost::weak_ptr<disk_observer> >*>(NULL)
-				, handlers));
-			return;
-		}
-
 		std::vector<boost::weak_ptr<disk_observer> >* cbs
 			= new std::vector<boost::weak_ptr<disk_observer> >();
 		m_observers.swap(*cbs);
 		l.unlock();
-		m_ios.post(boost::bind(&watermark_callback, cbs, handlers));
+		m_ios.post(boost::bind(&watermark_callback, cbs));
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -250,25 +203,6 @@ namespace libtorrent
 		return is_disk_buffer(buffer, l);
 	}
 #endif
-
-	char* disk_buffer_pool::async_allocate_buffer(char const* category
-		, boost::function<void(char*)> const& handler)
-	{
-		mutex::scoped_lock l(m_pool_mutex);
-		if (m_exceeded_max_size)
-		{
-			m_handlers.push_back(handler_t());
-			handler_t& h = m_handlers.back();
-			h.category = category;
-			h.callback = handler;
-			h.buffer = NULL;
-			return NULL;
-		}
-
-		char* ret = allocate_buffer_impl(l, category);
-
-		return ret;
-	}
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{

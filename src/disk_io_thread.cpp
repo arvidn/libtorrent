@@ -261,10 +261,6 @@ namespace libtorrent
 		}
 	}
 
-	char* disk_io_thread::async_allocate_disk_buffer(char const* category
-		, boost::function<void(char*)> const& handler)
-	{ return m_disk_cache.async_allocate_buffer(category, handler); }
-
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);

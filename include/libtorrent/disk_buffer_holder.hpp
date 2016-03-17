@@ -58,8 +58,6 @@ namespace libtorrent
 		virtual char* allocate_disk_buffer(bool& exceeded
 			, boost::shared_ptr<disk_observer> o
 			, char const* category) = 0;
-		virtual char* async_allocate_disk_buffer(char const* category
-			, boost::function<void(char*)> const& handler) = 0;
 	protected:
 		~buffer_allocator_interface() {}
 	};
