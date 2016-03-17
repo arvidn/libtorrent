@@ -278,7 +278,7 @@ TORRENT_TEST(rename_file)
 	error_code ec;
 	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
 
-	TEST_EQUAL(info->files().file_path(0), "test3/tmp1");
+	TEST_EQUAL(info->files().file_path(0), combine_path("test3","tmp1"));
 
 	// move "test3/tmp1" -> "tmp1"
 	info->rename_file(0, "tmp1");
