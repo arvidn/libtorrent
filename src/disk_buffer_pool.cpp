@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
 
-#if TORRENT_USE_MLOCK && !defined TORRENT_WINDOWS
+#if TORRENT_HAVE_MMAP
 #include <sys/mman.h>
 #endif
 
@@ -93,7 +93,6 @@ namespace libtorrent
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 		, m_cache_buffer_chunk_size(0)
-		, m_lock_disk_cache(false)
 #if TORRENT_HAVE_MMAP
 		, m_cache_fd(-1)
 		, m_cache_pool(0)
@@ -329,16 +328,6 @@ namespace libtorrent
 			m_exceeded_max_size = true;
 			m_trigger_cache_trim();
 		}
-#if TORRENT_USE_MLOCK
-		if (m_lock_disk_cache)
-		{
-#ifdef TORRENT_WINDOWS
-			VirtualLock(ret, m_block_size);
-#else
-			mlock(ret, m_block_size);
-#endif
-		}
-#endif // TORRENT_USE_MLOCK
 
 		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
@@ -378,7 +367,6 @@ namespace libtorrent
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
 		// proportional to the total disk cache size)
 		m_cache_buffer_chunk_size = sett.get_int(settings_pack::cache_buffer_chunk_size);
-		m_lock_disk_cache = sett.get_bool(settings_pack::lock_disk_cache);
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// if the chunk size is set to 1, there's no point in creating a pool
 		m_want_pool_allocator = sett.get_bool(settings_pack::use_disk_cache_pool)
@@ -528,17 +516,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		TORRENT_ASSERT(l.locked());
 		TORRENT_UNUSED(l);
-
-#if TORRENT_USE_MLOCK
-		if (m_lock_disk_cache)
-		{
-#ifdef TORRENT_WINDOWS
-			VirtualUnlock(buf, m_block_size);
-#else
-			munlock(buf, m_block_size);
-#endif
-		}
-#endif
 
 #if TORRENT_HAVE_MMAP
 		if (m_cache_pool)

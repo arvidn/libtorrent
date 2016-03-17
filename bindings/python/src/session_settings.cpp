@@ -99,9 +99,7 @@ void bind_session_settings()
         .def_readwrite("strict_super_seeding", &session_settings::strict_super_seeding)
         .def_readwrite("seeding_piece_quota", &session_settings::seeding_piece_quota)
         .def_readwrite("max_sparse_regions", &session_settings::max_sparse_regions)
-#ifndef TORRENT_DISABLE_MLOCK
         .def_readwrite("lock_disk_cache", &session_settings::lock_disk_cache)
-#endif
         .def_readwrite("max_rejects", &session_settings::max_rejects)
         .def_readwrite("recv_socket_buffer_size", &session_settings::recv_socket_buffer_size)
         .def_readwrite("send_socket_buffer_size", &session_settings::send_socket_buffer_size)
