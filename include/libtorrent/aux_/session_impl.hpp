@@ -563,8 +563,6 @@ namespace libtorrent
 			char* allocate_disk_buffer(bool& exceeded
 				, boost::shared_ptr<disk_observer> o
 				, char const* category) TORRENT_OVERRIDE;
-			char* async_allocate_disk_buffer(char const* category
-				, boost::function<void(char*)> const& handler) TORRENT_OVERRIDE;
 			void reclaim_block(block_cache_reference ref) TORRENT_OVERRIDE;
 
 			bool exceeded_cache_use() const

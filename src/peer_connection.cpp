@@ -6289,28 +6289,6 @@ namespace libtorrent
 			// cache space right now
 
 			if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
-/*
-			// if we already have a disk buffer, we might as well use it
-			// if contiguous recv buffer is true, don't apply this logic, but
-			// actually wait until we try to allocate a buffer and exceed the limit
-			if (m_disk_recv_buffer == NULL
-				&& !m_settings.get_bool(settings_pack::contiguous_recv_buffer))
-			{
-				m_disk_recv_buffer.reset(m_ses.async_allocate_disk_buffer("receive buffer",
-					boost::bind(&peer_connection::on_allocate_disk_buffer, self(), _1, #error buffer_size)));
-
-				if (m_disk_recv_buffer == NULL)
-				{
-					m_counters.inc_stats_counter(counters::num_peers_down_disk);
-					const_cast<peer_connection*>(this)->m_channel_state[download_channel] |= peer_info::bw_disk;
-
-#ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
-#endif
-					return false;
-				}
-			}
-*/
 		}
 
 		return !m_connecting && !m_disconnecting;

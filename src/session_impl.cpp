@@ -6924,12 +6924,6 @@ retry:
 		return m_disk_thread.allocate_disk_buffer(category);
 	}
 
-	char* session_impl::async_allocate_disk_buffer(char const* category
-		, boost::function<void(char*)> const& handler)
-	{
-		return m_disk_thread.async_allocate_disk_buffer(category, handler);
-	}
-
 	void session_impl::free_disk_buffer(char* buf)
 	{
 		m_disk_thread.free_disk_buffer(buf);
