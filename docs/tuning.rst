@@ -332,12 +332,12 @@ and ``settings_pack::active_seeds``.
 SHA-1 hashing
 -------------
 
-When downloading at very high rates, it is possible to have the CPU be the bottleneck
-for passing every downloaded byte through SHA-1. In order to enable calculating SHA-1
-hashes in parallel, on multi-core systems, set ``settings_pack::hashing_threads``
-to the number of threads libtorrent should start to do SHA-1 hashing. This defaults
-to 1, and only if that thread is close to saturating one core does it make sense to
-increase the number of threads.
+When downloading at very high rates, it is possible to have the CPU be the
+bottleneck for passing every downloaded byte through SHA-1. In order to enable
+calculating SHA-1 hashes in parallel, on multi-core systems, set
+``settings_pack::aio_threads`` to the number of threads libtorrent should
+perform I/O and do SHA-1 hashing in. Only if that thread is close to saturating
+one core does it make sense to increase the number of threads.
 
 scalability
 ===========

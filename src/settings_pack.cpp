@@ -316,7 +316,7 @@ namespace libtorrent
 		SET(torrent_connect_boost, 10, 0),
 		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
 		SET(max_metadata_size, 3 * 1024 * 10240, 0),
-		SET(hashing_threads, 1, 0),
+		DEPRECATED_SET(hashing_threads, 1, 0),
 		SET(checking_mem_usage, 256, 0),
 		SET(predictive_piece_announce, 0, 0),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),

@@ -1387,6 +1387,9 @@ namespace libtorrent
 			// received by the metadata extension, i.e. magnet links.
 			max_metadata_size,
 
+#ifndef TORRENT_NO_DEPRECATE
+			// DEPRECTED: use aio_threads instead
+
 			// ``hashing_threads`` is the number of threads to use for piece hash
 			// verification. It defaults to 1. For very high download rates, on
 			// machines with multiple cores, this could be incremented. Setting it
@@ -1394,6 +1397,9 @@ namespace libtorrent
 			// any benefit of setting it to the number of cores. If it's set to 0,
 			// hashing is done in the disk thread.
 			hashing_threads,
+#else
+			deprecated9,
+#endif
 
 			// the number of blocks to keep outstanding at any given time when
 			// checking torrents. Higher numbers give faster re-checks but uses
