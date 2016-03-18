@@ -98,13 +98,6 @@ namespace libtorrent
 
 		void set_settings(aux::session_settings const& sett, error_code& ec);
 
-		struct handler_t
-		{
-			char* buffer; // argument to the callback
-			char const* category; // category of allocation
-			boost::function<void(char*)> callback;
-		};
-
 	protected:
 
 		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
