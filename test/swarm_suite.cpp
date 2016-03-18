@@ -48,13 +48,12 @@ void test_swarm(int flags)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s%s ===\n\n\n"
+	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
 		, (flags & super_seeding) ? "super-seeding ": ""
 		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & seed_mode) ? "seed-mode ": ""
 		, (flags & time_critical) ? "time-critical ": ""
 		, (flags & suggest) ? "suggest ": ""
-		, (flags & explicit_cache) ? "explicit-cache ": ""
 		);
 
 	// in case the previous run was terminated
@@ -88,15 +87,6 @@ void test_swarm(int flags)
 
 	if (flags & suggest)
 		pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
-
-	if (flags & explicit_cache)
-		pack.set_bool(settings_pack::explicit_read_cache, true);
-
-	if (flags & explicit_cache)
-	{
-		pack.set_bool(settings_pack::explicit_read_cache, true);
-		pack.set_int(settings_pack::explicit_cache_interval, 5);
-	}
 
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all

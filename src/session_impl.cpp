@@ -393,8 +393,10 @@ namespace aux {
 		, m_optimistic_unchoke_time_scaler(0)
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
+#ifndef TORRENT_NO_DEPRECATED
 		, m_next_explicit_cache_torrent(0)
 		, m_cache_rotation_timer(0)
+#endif
 		, m_next_suggest_torrent(0)
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
@@ -3333,6 +3335,7 @@ retry:
 			++m_next_suggest_torrent;
 		}
 
+#ifndef TORRENT_NO_DEPRECATED
 		// --------------------------------------------------------------
 		// refresh explicit disk read cache
 		// --------------------------------------------------------------
@@ -3368,6 +3371,7 @@ retry:
 				least_recently_refreshed->second->refresh_explicit_cache(cache_size);
 			++m_next_explicit_cache_torrent;
 		}
+#endif
 
 		// --------------------------------------------------------------
 		// connect new peers

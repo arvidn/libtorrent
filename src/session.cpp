@@ -231,7 +231,6 @@ namespace libtorrent
 		// download rate
 		set.set_int(settings_pack::max_queued_disk_bytes, 7 * 1024 * 1024);
 
-		set.set_bool(settings_pack::explicit_read_cache, false);
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.set_int(settings_pack::allowed_fast_set_size, 0);
