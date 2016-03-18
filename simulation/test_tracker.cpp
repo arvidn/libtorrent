@@ -363,8 +363,17 @@ TORRENT_TEST(ipv6_support)
 	TEST_EQUAL(v6_announces, 2);
 }
 
-template <typename Announce, typename Test1, typename Test2>
-void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "/announce")
+// this runs a simulation of a torrent with tracker(s), making sure the request
+// received by the tracker matches the expectation.
+// The Setup function is run first, giving the test an opportunity to add
+// trackers to the torrent. It's expected to return the number of seconds to
+// wait until test2 is called.
+// The Announce function is called on http requests. Test1 is run on the session
+// 5 seconds after startup. The tracker is running at 10.0.0.2 (or tracker.com)
+// port 8080.
+template <typename Setup, typename Announce, typename Test1, typename Test2>
+void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
+	, char const* url_path = "/announce")
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -390,7 +399,7 @@ void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "
 	p.name = "test-torrent";
 	p.save_path = ".";
 	p.info_hash.assign("abababababababababab");
-	p.trackers.push_back("http://tracker.com:8080/announce");
+	int const delay = setup(p);
 	ses->async_add_torrent(p);
 
 	// run the test 5 seconds in
@@ -405,7 +414,7 @@ void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "
 	});
 
 	asio::high_resolution_timer t2(ios);
-	t2.expires_from_now(chrono::seconds(9));
+	t2.expires_from_now(chrono::seconds(5 + delay));
 	t2.async_wait([&ses,&test2](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
@@ -416,7 +425,7 @@ void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "
 
 	// then shut down 10 seconds in
 	asio::high_resolution_timer t3(ios);
-	t3.expires_from_now(chrono::seconds(10));
+	t3.expires_from_now(chrono::seconds(10 + delay));
 	t3.async_wait([&ses,&zombie](boost::system::error_code const& ec)
 	{
 		zombie = ses->abort();
@@ -425,6 +434,16 @@ void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "
 	});
 
 	sim.run();
+}
+
+template <typename Announce, typename Test1, typename Test2>
+void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "/announce")
+{
+	tracker_test([](lt::add_torrent_params& p) {
+		p.trackers.push_back("http://tracker.com:8080/announce");
+		return 5;
+	},
+	a, test1, test2, url_path);
 }
 
 template <typename Announce, typename Test>
@@ -607,6 +626,74 @@ TORRENT_TEST(test_invalid_bencoding)
 				, get_bdecode_category()));
 			TEST_EQUAL(ae.fails, 1);
 		});
+}
+
+TORRENT_TEST(try_next)
+{
+// test that we move on to try the next tier if the first one fails
+
+	bool got_announce = false;
+	tracker_test(
+		[](lt::add_torrent_params& p)
+		{
+		// TODO: 3 use tracker_tiers here to put the trackers in different tiers
+			p.trackers.push_back("udp://failing-tracker.com/announce");
+			p.trackers.push_back("http://failing-tracker.com/announce");
+
+			// this is the working tracker
+			p.trackers.push_back("http://tracker.com:8080/announce");
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+			TEST_EQUAL(method, "GET");
+
+			char response[500];
+			// respond with an empty peer list
+			int size = snprintf(response, sizeof(response), "d5:peers0:e");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h)
+		{
+			torrent_status st = h.status();
+			TEST_EQUAL(st.current_tracker, "http://tracker.com:8080/announce");
+
+			std::vector<announce_entry> tr = h.trackers();
+
+			TEST_EQUAL(tr.size(), 3);
+
+			for (int i = 0; i < tr.size(); ++i)
+			{
+				fprintf(stderr, "tracker \"%s\"\n", tr[i].url.c_str());
+				if (tr[i].url == "http://tracker.com:8080/announce")
+				{
+					TEST_EQUAL(tr[i].fails, 0);
+					TEST_EQUAL(tr[i].verified, true);
+				}
+				else if (tr[i].url == "http://failing-tracker.com/announce")
+				{
+					TEST_CHECK(tr[i].fails >= 1);
+					TEST_EQUAL(tr[i].verified, false);
+					TEST_EQUAL(tr[i].last_error
+						, error_code(boost::asio::error::host_not_found));
+				}
+				else if (tr[i].url == "udp://failing-tracker.com/announce")
+				{
+					TEST_CHECK(tr[i].fails >= 1);
+					TEST_EQUAL(tr[i].verified, false);
+					TEST_EQUAL(tr[i].last_error
+						, error_code(boost::asio::error::host_not_found));
+				}
+				else
+				{
+					TEST_ERROR(("unexpected tracker URL: " + tr[i].url).c_str());
+				}
+			}
+		});
+	TEST_EQUAL(got_announce, true);
 }
 
 // TODO: test external IP
