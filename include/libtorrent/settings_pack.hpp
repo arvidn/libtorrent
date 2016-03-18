@@ -276,7 +276,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATED
 			use_write_cache,
 #else
-			deprecated7,
+			deprecated11,
 #endif
 
 			// this will make the disk cache never flush a write piece if it would
@@ -362,7 +362,7 @@ namespace libtorrent
 			// overhead of a system call.
 			lock_disk_cache,
 #else
-			deprecated8,
+			deprecated10,
 #endif
 
 			// when set to true, all data downloaded from peers will be assumed to
