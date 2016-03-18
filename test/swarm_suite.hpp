@@ -39,7 +39,6 @@ enum test_flags_t
 	seed_mode = 4,
 	time_critical = 8,
 	suggest = 16,
-	explicit_cache = 32
 };
 
 void EXPORT test_swarm(int flags = 0);
