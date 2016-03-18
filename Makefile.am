@@ -10,10 +10,6 @@ DOCS_IMAGES = \
   docs/cwnd_thumb.png             \
   docs/delays.png                 \
   docs/delays_thumb.png           \
-  docs/disk_access.png            \
-  docs/disk_buffer_before_optimization.png  \
-  docs/disk_buffer.png            \
-  docs/disk_buffer_sample.png     \
   docs/disk_io.png                \
   docs/hacking.html               \
   docs/im_thumb.jpg               \
@@ -28,8 +24,6 @@ DOCS_IMAGES = \
   docs/write_disk_buffers.png     \
   docs/write_disk_buffers.diagram \
   docs/ziptorrent_thumb.gif       \
-  docs/disk_access_elevator.png   \
-  docs/disk_access_no_elevator.png\
   docs/ip_id_v4.png               \
   docs/ip_id_v6.png               \
   docs/hash_distribution.png      \

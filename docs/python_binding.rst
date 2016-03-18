@@ -98,13 +98,12 @@ a list of entries.
 ``create_torrent::add_node()`` takes two arguments, one string and one integer,
 instead of a pair. The string is the address and the integer is the port.
 
-``session::set_settings()`` not only accepts a ``session_settings`` object, but also
-a dictionary with keys matching the names of the members of the ``session_settings`` struct.
-When calling ``set_settings``, the dictionary does not need to have every settings set,
-keys that are not present, are set to their default value.
+``session::apply_settings()`` accepts a dictionary with keys matching the names
+of settings in settings_pack.
+When calling ``apply_settings``, the dictionary does not need to have every settings set,
+keys that are not present are not updated.
 
-For backwards compatibility, ``session::settings()`` still returns a ``session_settings``
-struct. To get a python dictionary of the settings, call ``session::get_settings``.
+To get a python dictionary of the settings, call ``session::get_settings``.
 
 .. _`library reference`: reference.html
 

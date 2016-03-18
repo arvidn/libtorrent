@@ -865,7 +865,7 @@ namespace libtorrent
 
 		// this is the limit on the number of outstanding requests
 		// we have to this peer. This is initialized to the settings
-		// in the session_settings structure. But it may be lowered
+		// in the settings_pack. But it may be lowered
 		// if the peer is known to require a smaller limit (like BitComet).
 		// or if the extended handshake sets a limit.
 		// web seeds also has a limit on the queue size.

@@ -81,7 +81,7 @@ namespace libtorrent
 		// saved when calling save_state().
 		enum save_state_flags_t
 		{
-			// saves settings (i.e. the session_settings)
+			// saves settings (i.e. the settings_pack)
 			save_settings =     0x001,
 
 			// saves dht_settings
@@ -844,7 +844,7 @@ namespace libtorrent
 		// aren't working or fail, will automatically be disabled and packets
 		// will flow without using any proxy. If you want to enforce using a
 		// proxy, even when the proxy doesn't work, enable anonymous_mode in
-		// session_settings.
+		// settings_pack.
 		TORRENT_DEPRECATED
 		void set_proxy(proxy_settings const& s);
 		TORRENT_DEPRECATED
@@ -957,7 +957,7 @@ namespace libtorrent
 		// The alert queue in the session will not grow indefinitely. Make sure
 		// to pop periodically to not miss notifications. To control the max
 		// number of alerts that's queued by the session, see
-		// ``session_settings::alert_queue_size``.
+		// ``settings_pack::alert_queue_size``.
 		//
 		// Some alerts are considered so important that they are posted even when
 		// the alert queue is full. Some alerts are considered mandatory and cannot

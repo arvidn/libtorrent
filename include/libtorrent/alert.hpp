@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // alerts (warnings, messages and errors from libtorrent). If no alerts have
 // been posted by libtorrent pop_alerts() will return an empty list.
 // 
-// By default, only errors are reported. session_settings::alert_mask can be
+// By default, only errors are reported. settings_pack::alert_mask can be
 // used to specify which kinds of events should be reported. The alert mask is
 // comprised by bits from the category_t enum.
 // 

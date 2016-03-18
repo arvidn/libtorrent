@@ -598,7 +598,7 @@ namespace libtorrent
 		// Explicitly sets the upload mode of the torrent. In upload mode, the
 		// torrent will not request any pieces. If the torrent is auto managed,
 		// it will automatically be taken out of upload mode periodically (see
-		// ``session_settings::optimistic_disk_retry``). Torrents are
+		// ``settings_pack::optimistic_disk_retry``). Torrents are
 		// automatically put in upload mode whenever they encounter a disk write
 		// error.
 		// 
@@ -1101,7 +1101,7 @@ namespace libtorrent
 		// ``set_download_limit`` works the same way but for download bandwidth
 		// instead of upload bandwidth. Note that setting a higher limit on a
 		// torrent then the global limit
-		// (``session_settings::upload_rate_limit``) will not override the global
+		// (``settings_pack::upload_rate_limit``) will not override the global
 		// rate limit. The torrent can never upload more than the global rate
 		// limit.
 		// 
@@ -1170,7 +1170,7 @@ namespace libtorrent
 		// at the same time on this torrent. If you set this to -1, there will be
 		// no limit. This defaults to infinite. The primary setting controlling
 		// this is the global unchoke slots limit, set by unchoke_slots_limit in
-		// session_settings.
+		// settings_pack.
 		// 
 		// ``max_uploads()`` returns the current settings.
 		void set_max_uploads(int max_uploads) const;
@@ -1182,7 +1182,7 @@ namespace libtorrent
 		// must be at least 2. The default is unlimited number of connections. If
 		// -1 is given to the function, it means unlimited. There is also a
 		// global limit of the number of connections, set by
-		// ``connections_limit`` in session_settings.
+		// ``connections_limit`` in settings_pack.
 		// 
 		// ``max_connections()`` returns the current settings.
 		void set_max_connections(int max_connections) const;

@@ -136,7 +136,7 @@ namespace libtorrent
 			// 
 			// Since this setting sets a hard upper limit on cache usage, it
 			// cannot be combined with
-			// ``session_settings::contiguous_recv_buffer``, since that feature
+			// ``settings_pack::contiguous_recv_buffer``, since that feature
 			// treats the ``cache_size`` setting as a soft (but still pretty hard)
 			// limit. The result of combining the two is peers being disconnected
 			// after failing to allocate more disk buffers.

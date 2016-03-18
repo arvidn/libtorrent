@@ -385,7 +385,7 @@ namespace
         allow_threading_guard guard;
         s.start_upnp();
     }
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 #ifndef TORRENT_NO_DEPRECATE
     boost::shared_ptr<alert>
@@ -792,7 +792,7 @@ void bind_session()
         .def("settings", &session_get_settings)
         .def("get_settings", &session_get_settings)
 #endif
-        .def("set_settings", &session_set_settings)
+        .def("apply_settings", &session_set_settings)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
