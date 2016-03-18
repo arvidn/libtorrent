@@ -168,7 +168,7 @@ namespace libtorrent
 		SET(announce_to_all_tiers, false, 0),
 		SET(prefer_udp_trackers, true, 0),
 		SET(strict_super_seeding, false, 0),
-		SET(lock_disk_cache, false, 0),
+		DEPRECATED_SET(lock_disk_cache, false, 0),
 		SET(disable_hash_checks, false, 0),
 		SET(allow_i2p_mixed, false, 0),
 		SET(low_prio_disk, true, 0),

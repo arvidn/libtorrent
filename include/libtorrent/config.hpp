@@ -151,7 +151,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // ==== AMIGA ===
 #if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
 #define TORRENT_AMIGA
-#define TORRENT_USE_MLOCK 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_USE_BOOST_THREAD 0
 #define TORRENT_USE_IOSTREAM 0
@@ -319,7 +318,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_MLOCK 0
 #define TORRENT_USE_BEOS_ATOMIC 1
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
@@ -337,7 +335,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_SYSCTL 1
-#define TORRENT_USE_MLOCK 0
 #define TORRENT_USE_IPV6 0
 #define TORRENT_ICONV_ARG (const char**)
 #define TORRENT_USE_WRITEV 0
@@ -572,10 +569,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_IPV6
 #define TORRENT_USE_IPV6 1
-#endif
-
-#ifndef TORRENT_USE_MLOCK
-#define TORRENT_USE_MLOCK 1
 #endif
 
 // if preadv() exists, we assume pwritev() does as well
