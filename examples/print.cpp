@@ -134,6 +134,71 @@ bool get_piece(libtorrent::bitfield const& p, int index)
 	return p.get_bit(index);
 }
 
+std::string const& piece_bar(libtorrent::bitfield const& p, int width)
+{
+#ifdef _WIN32
+	int const table_size = 5;
+#else
+	int const table_size = 18;
+	width *= 2; // we only print one character for every two "slots"
+#endif
+
+	double const piece_per_char = p.size() / double(width);
+	static std::string bar;
+	bar.clear();
+	bar.reserve(width * 6);
+	bar += "[";
+	if (p.size() == 0)
+	{
+		for (int i = 0; i < width; ++i) bar += ' ';
+		bar += "]";
+		return bar;
+	}
+
+	// the [piece, piece + pieces_per_char) range is the pieces that are represented by each character
+	double piece = 0;
+
+	// we print two blocks at a time, so calculate the color in pair
+	int color[2];
+	int last_color[2] = { -1, -1};
+	for (int i = 0; i < width; ++i, piece += piece_per_char)
+	{
+		int num_pieces = 0;
+		int num_have = 0;
+		int end = (std::max)(int(piece + piece_per_char), int(piece) + 1);
+		for (int k = int(piece); k < end; ++k, ++num_pieces)
+			if (p[k]) ++num_have;
+		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
+		char buf[40];
+		color[i & 1] = c;
+
+#ifndef _WIN32
+		if ((i & 1) == 1)
+		{
+			// now, print color[0] and [1]
+			// bg determines whether we're settings foreground or background color
+			static int const bg[] = { 38, 48};
+			for (int i = 0; i < 2; ++i)
+			{
+				if (color[i] != last_color[i])
+				{
+					snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
+					last_color[i] = color[i];
+					bar += buf;
+				}
+			}
+			bar += "\u258C";
+		}
+#else
+		static char const table[] = {' ', '\xb0', '\xb1', '\xb2', '\xdb'};
+		bar += table[c];
+#endif
+	}
+	bar += esc("0");
+	bar += "]";
+	return bar;
+}
+
 #ifndef _WIN32
 // this function uses the block characters that splits up the glyph in 4
 // segments and provide all combinations of a segment lit or not. This allows us
