@@ -28,7 +28,7 @@ digraph no_download {
 	node_upload_mode [label="Is the torrent in upload mode?\n(torrent_status::upload_mode)"];
 	node_bwstate [label="What is the peer read_state set to?\n(peer_info::read_state)"];
 
-	node_dl_limit [label="There is a download rate limit in affect on your peers.\nDo you have a download rate limit set?\n(session_settings::download_rate_limit)"];
+	node_dl_limit [label="There is a download rate limit in affect on your peers.\nDo you have a download rate limit set?\n(settings_pack::download_rate_limit)"];
 
 	node_dl_disk [label="Peers are blocked waiting on the disk.\nThis typically means your disk is overloaded"];
 
@@ -36,7 +36,7 @@ digraph no_download {
 
 // end states
 
-	node_end_queued [label="This means the torrent is 'queued'. i.e. it will\nbe started once the torrents in front of it\ncompletes downloading. To know the queue\norder, see torrent_status::queue_position. To\nconfigure the number of simultaneous downloads,\nsee session_settings::active_limit and\nsession_settings::active_downloads."];
+	node_end_queued [label="This means the torrent is 'queued'. i.e. it will\nbe started once the torrents in front of it\ncompletes downloading. To know the queue\norder, see torrent_status::queue_position. To\nconfigure the number of simultaneous downloads,\nsee settings_pack::active_limit and\nsettings_pack::active_downloads."];
 
 	node_end_stopped [label="This means the torrent is\n'stopped'. To start it call\ntorrent_handle::resume()."];
 

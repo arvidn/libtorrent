@@ -119,7 +119,7 @@ libtorrent starts 3 to 5 threads.
  * The third thread is the SHA-1 hash thread. By default there's only one hash thread,
    but on multi-core machines downloading at very high rates, libtorrent can be configured
    to start any number of hashing threads, to take full use of multi core systems.
-   (see ``session_settings::hashing_threads``).
+   (see ``settings_pack::aio_threads``).
 
  * The fourth and fifth threads are spawned by asio on systems that don't support
    asynchronous host name resolution, in order to simulate non-blocking ``getaddrinfo()``.
