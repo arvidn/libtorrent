@@ -114,7 +114,7 @@ namespace libtorrent
 			// files, to keep the impact down for clients that don't support
 			// them.
 			optimize_alignment = 1,
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 			// same as optimize_alignment, for backwards compatibility
 			optimize = 1,
 #endif
@@ -158,8 +158,8 @@ namespace libtorrent
 		// If a ``pad_size_limit`` is specified (other than -1), any file larger than
 		// the specified number of bytes will be preceeded by a pad file to align it
 		// with the start of a piece. The pad_file_limit is ignored unless the
-		// ``optimize`` flag is passed. Typically it doesn't make sense to set this
-		// any lower than 4kiB.
+		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
+		// to set this any lower than 4kiB.
 		// 
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
@@ -175,7 +175,8 @@ namespace libtorrent
 		// eligible files are aligned to. The default is -1, which means the
 		// piece size of the torrent.
 		create_torrent(file_storage& fs, int piece_size = 0
-			, int pad_file_limit = -1, int flags = optimize, int alignment = -1);
+			, int pad_file_limit = -1, int flags = optimize_alignment
+			, int alignment = -1);
 		create_torrent(torrent_info const& ti);
 
 		// internal
@@ -302,7 +303,7 @@ namespace libtorrent
 	private:
 
 		file_storage& m_files;
-		// if m_info_dict is initialized, it is 
+		// if m_info_dict is initialized, it is
 		// used instead of m_files to generate
 		// the info dictionary
 		entry m_info_dict;

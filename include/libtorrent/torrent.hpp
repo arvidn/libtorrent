@@ -676,7 +676,7 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>& v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 		void refresh_explicit_cache(int cache_size);
 #endif
 
