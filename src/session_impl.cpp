@@ -2092,6 +2092,7 @@ retry:
 						m_alerts.emplace_alert<listen_failed_alert>(ssl_bind_if.address().to_string()
 							, ssl_port, listen_failed_alert::bind, ec, listen_failed_alert::utp_ssl);
 					}
+					m_ssl_udp_socket.close();
 					ec.clear();
 				}
 				else
@@ -2100,21 +2101,21 @@ retry:
 					maybe_update_udp_mapping(1, true, ssl_port, ssl_port);
 				}
 			}
-			else
-			{
-				m_ssl_udp_socket.close();
+		}
+		else
+		{
+			m_ssl_udp_socket.close();
 
-				// if there are mappings for the SSL socket, delete them now
-				if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
-				{
-					m_natpmp->delete_mapping(m_ssl_udp_mapping[0]);
-					m_ssl_udp_mapping[0] = -1;
-				}
-				if (m_ssl_udp_mapping[1] != -1 && m_upnp)
-				{
-					m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
-					m_ssl_udp_mapping[1] = -1;
-				}
+			// if there are mappings for the SSL socket, delete them now
+			if (m_ssl_udp_mapping[0] != -1 && m_natpmp)
+			{
+				m_natpmp->delete_mapping(m_ssl_udp_mapping[0]);
+				m_ssl_udp_mapping[0] = -1;
+			}
+			if (m_ssl_udp_mapping[1] != -1 && m_upnp)
+			{
+				m_upnp->delete_mapping(m_ssl_udp_mapping[1]);
+				m_ssl_udp_mapping[1] = -1;
 			}
 		}
 #endif // TORRENT_USE_OPENSSL
@@ -2142,6 +2143,7 @@ retry:
 						, listen_failed_alert::bind
 						, ec, listen_failed_alert::udp);
 				}
+				m_udp_socket.close();
 				if (listen_port_retries > 0)
 				{
 					m_listen_interface.port(m_listen_interface.port() + 1);
@@ -2166,7 +2168,7 @@ retry:
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
-			listen_succeeded_alert::socket_type_t socket_type = i->ssl
+			listen_succeeded_alert::socket_type_t const socket_type = i->ssl
 				? listen_succeeded_alert::tcp_ssl
 				: listen_succeeded_alert::tcp;
 
