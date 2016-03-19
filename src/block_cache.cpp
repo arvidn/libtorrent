@@ -203,8 +203,8 @@ const char* const job_action_name[] =
 	"save_resume_data",
 	"rename_file",
 	"stop_torrent",
-	"cache_piece",
 #ifndef TORRENT_NO_DEPRECATE
+	"cache_piece",
 	"finalize_file",
 #endif
 	"flush_piece",
@@ -217,6 +217,12 @@ const char* const job_action_name[] =
 	"tick_storage",
 	"resolve_links"
 };
+
+#if __cplusplus >= 201103L
+// make sure the job names array covers all the job IDs
+static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
+	== disk_io_job::num_job_ids, "disk-job-action and action-name-array mismatch");
+#endif
 
 #if TORRENT_USE_ASSERTS
 
@@ -359,9 +365,6 @@ block_cache::block_cache(int block_size, io_service& ios
 	, m_send_buffer_blocks(0)
 	, m_pinned_blocks(0)
 {
-	// make sure the job names array covers all the job IDs
-	TORRENT_ASSERT(sizeof(job_action_name)/sizeof(job_action_name[0])
-		== disk_io_job::num_job_ids);
 }
 
 // returns:

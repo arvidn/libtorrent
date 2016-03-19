@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 				case 'p':
 					++i;
 					pad_file_limit = atoi(argv[i]);
-					flags |= create_torrent::optimize;
+					flags |= create_torrent::optimize_alignment;
 					break;
 				case 's':
 					++i;

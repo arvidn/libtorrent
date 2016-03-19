@@ -393,7 +393,7 @@ namespace aux {
 		, m_optimistic_unchoke_time_scaler(0)
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 		, m_next_explicit_cache_torrent(0)
 		, m_cache_rotation_timer(0)
 #endif
@@ -3335,7 +3335,7 @@ retry:
 			++m_next_suggest_torrent;
 		}
 
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 		// --------------------------------------------------------------
 		// refresh explicit disk read cache
 		// --------------------------------------------------------------

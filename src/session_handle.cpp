@@ -1013,7 +1013,7 @@ namespace libtorrent
 		p.set_bool(settings_pack::enable_natpmp, false);
 		apply_settings(p);
 	}
-#endif // TORRENT_NO_DEPRECATED
+#endif // TORRENT_NO_DEPRECATE
 
 	int session_handle::add_port_mapping(session::protocol_type t, int external_port, int local_port)
 	{

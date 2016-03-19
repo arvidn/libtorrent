@@ -103,7 +103,8 @@ void test_checking(int flags = read_only_files)
 		, file_sizes, num_files);
 
 	add_files(fs, combine_path("tmp1_checking", "test_torrent_dir"));
-	libtorrent::create_torrent t(fs, piece_size, 0x4000, libtorrent::create_torrent::optimize);
+	libtorrent::create_torrent t(fs, piece_size, 0x4000
+		, libtorrent::create_torrent::optimize_alignment);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_checking", ec);
