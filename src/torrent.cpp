@@ -10037,6 +10037,7 @@ namespace libtorrent
 		update_want_peers();
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	// TODO: 2 this should probably be removed
 	void torrent::refresh_explicit_cache(int cache_size)
 	{
@@ -10135,6 +10136,7 @@ namespace libtorrent
 			}
 		}
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	void torrent::sent_bytes(int bytes_payload, int bytes_protocol)
 	{

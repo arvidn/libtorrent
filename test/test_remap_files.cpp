@@ -410,7 +410,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	add_files(fs1, combine_path("tmp1_remap3", "test_torrent_dir"));
 	libtorrent::create_torrent ct(fs1, piece_size, 0x4000
-		, libtorrent::create_torrent::optimize);
+		, libtorrent::create_torrent::optimize_alignment);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(ct, "tmp1_remap3", ec);

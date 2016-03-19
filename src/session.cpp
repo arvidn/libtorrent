@@ -97,7 +97,6 @@ namespace libtorrent
 		set.set_int(settings_pack::checking_mem_usage, 2);
 
 		// don't use any extra threads to do SHA-1 hashing
-		set.set_int(settings_pack::hashing_threads, 0);
 		set.set_int(settings_pack::network_threads, 0);
 		set.set_int(settings_pack::aio_threads, 1);
 
@@ -227,7 +226,6 @@ namespace libtorrent
 		// download rate
 		set.set_int(settings_pack::max_queued_disk_bytes, 7 * 1024 * 1024);
 
-		set.set_bool(settings_pack::explicit_read_cache, false);
 		// prevent fast pieces to interfere with suggested pieces
 		// since we unchoke everyone, we don't need fast pieces anyway
 		set.set_int(settings_pack::allowed_fast_set_size, 0);
@@ -270,11 +268,6 @@ namespace libtorrent
 		// don't retry peers if they fail once. Let them
 		// connect to us if they want to
 		set.set_int(settings_pack::max_failcount, 1);
-
-		// we're likely to have more than 4 cores on a high
-		// performance machine. One core is needed for the
-		// network thread
-		set.set_int(settings_pack::hashing_threads, 4);
 
 		// the number of threads to use to call async_write_some
 		// and read_some on peer sockets

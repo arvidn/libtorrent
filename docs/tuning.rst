@@ -12,8 +12,8 @@ libtorrent manual
 tuning libtorrent
 =================
 
-libtorrent expose most constants used in the bittorrent engine for
-customization through the ``session_settings``. This makes it possible to
+libtorrent expose most parameters used in the bittorrent engine for
+customization through the ``settings_pack``. This makes it possible to
 test and tweak the parameters for certain algorithms to make a client
 that fits a wide range of needs. From low memory embedded devices to
 servers seeding thousands of torrents. The default settings in libtorrent
@@ -27,7 +27,7 @@ reducing memory footprint
 =========================
 
 These are things you can do to reduce the memory footprint of libtorrent. You get
-some of this by basing your default ``session_settings`` on the ``min_memory_usage()``
+some of this by basing your default ``settings_pack`` on the ``min_memory_usage()``
 setting preset function.
 
 Keep in mind that lowering memory usage will affect performance, always profile
@@ -58,9 +58,9 @@ disable disk cache
 
 The bulk of the memory libtorrent will use is used for the disk cache. To save
 the absolute most amount of memory, you can disable the cache by setting
-``session_settings::cache_size`` to 0. You might want to consider using the cache
+``settings_pack::cache_size`` to 0. You might want to consider using the cache
 but just disable caching read operations. You do this by settings
-``session_settings::use_read_cache`` to false. This is the main factor in how much
+``settings_pack::use_read_cache`` to false. This is the main factor in how much
 memory will be used by the client. Keep in mind that you will degrade performance
 by disabling the cache. You should benchmark the disk access in order to make an
 informed trade-off.
@@ -94,8 +94,8 @@ connection, and might be worth considering if you have a very large number of
 peer connections. This memory will not be visible in your process, this sets
 the amount of kernel memory is used for your sockets.
 
-Change this by setting ``session_settings::recv_socket_buffer_size`` and
-``session_settings::send_socket_buffer_size``.
+Change this by setting ``settings_pack::recv_socket_buffer_size`` and
+``settings_pack::send_socket_buffer_size``.
 
 peer list size
 --------------
@@ -109,7 +109,7 @@ large number of paused torrents (that are popular) it will be even more
 significant.
 
 If you're short of memory, you should consider lowering the limit. 500 is probably
-enough. You can do this by setting ``session_settings::max_peerlist_size`` to
+enough. You can do this by setting ``settings_pack::max_peerlist_size`` to
 the max number of peers you want in a torrent's peer list. This limit applies per
 torrent. For 5 torrents, the total number of peers in peerlists will be 5 times
 the setting.
@@ -117,7 +117,7 @@ the setting.
 You should also lower the same limit but for paused torrents. It might even make sense
 to set that even lower, since you only need a few peers to start up while waiting
 for the tracker and DHT to give you fresh ones. The max peer list size for paused
-torrents is set by ``session_settings::max_paused_peerlist_size``.
+torrents is set by ``settings_pack::max_paused_peerlist_size``.
 
 The drawback of lowering this number is that if you end up in a position where
 the tracker is down for an extended period of time, your only hope of finding live
@@ -132,7 +132,7 @@ The send buffer watermark controls when libtorrent will ask the disk I/O thread
 to read blocks from disk, and append it to a peer's send buffer.
 
 When the send buffer has fewer than or equal number of bytes as
-``session_settings::send_buffer_watermark``, the peer will ask the disk I/O thread
+``settings_pack::send_buffer_watermark``, the peer will ask the disk I/O thread
 for more data to send. The trade-off here is between wasting memory by having too
 much data in the send buffer, and hurting send rate by starving out the socket,
 waiting for the disk read operation to complete.
@@ -156,7 +156,7 @@ the whole piece in one read call, then hashes it.
 The second option is to optimize for memory usage instead, where a single buffer
 is allocated, and the piece is read one block at a time, hashing it as each
 block is read from the file. For low memory environments, this latter approach
-is recommended. Change this by settings ``session_settings::optimize_hashing_for_speed``
+is recommended. Change this by settings ``settings_pack::optimize_hashing_for_speed``
 to false. This will significantly reduce peak memory usage, especially for
 torrents with very large pieces.
 
@@ -200,7 +200,7 @@ processes that might be of higher importance to the end-user, you can introduce 
 between the disc accesses. This is a direct tradeoff between how fast you can check a
 torrent and how soft you will hit the disk.
 
-You control this by setting the ``session_settings::file_checks_delay_per_block`` to greater
+You control this by setting the ``settings_pack::file_checks_delay_per_block`` to greater
 than zero. This number is the number of milliseconds to sleep between each read of 16 kiB.
 
 The sleeps are not necessarily in between each 16 kiB block (it might be read in larger chunks),
@@ -221,7 +221,7 @@ purpose of this is because of anti-virus software that hooks on file-open and fi
 scan the file. Anti-virus software that does that will significantly increase the cost of
 opening and closing files. However, for a high performance seed, the file open/close might
 be so frequent that it becomes a significant cost. It might therefore be a good idea to allow
-a large file descriptor cache. Adjust this though ``session_settings::file_pool_size``.
+a large file descriptor cache. Adjust this though ``settings_pack::file_pool_size``.
 
 Don't forget to set a high rlimit for file descriptors in your process as well. This limit
 must be high enough to keep all connections and files open.
@@ -230,58 +230,33 @@ disk cache
 ----------
 
 You typically want to set the cache size to as high as possible. The
-``session_settings::cache_size`` is specified in 16 kiB blocks. Since you're seeding,
-the cache would be useless unless you also set ``session_settings::use_read_cache``
+``settings_pack::cache_size`` is specified in 16 kiB blocks. Since you're seeding,
+the cache would be useless unless you also set ``settings_pack::use_read_cache``
 to true.
 
 In order to increase the possibility of read cache hits, set the
-``session_settings::cache_expiry`` to a large number. This won't degrade anything as
+``settings_pack::cache_expiry`` to a large number. This won't degrade anything as
 long as the client is only seeding, and not downloading any torrents.
 
-In order to increase the disk cache hit rate, you can enable suggest messages based on
-what's in the read cache. To do this, set ``session_settings::suggest_mode`` to
-``session_settings::suggest_read_cache``. This will send suggest messages to peers
-for the most recently used pieces in the read cache. This is especially useful if you
-also enable explicit read cache, by settings ``session_settings::explicit_read_cache``
-to the number of pieces to keep in the cache. The explicit read cache will make the
-disk read cache stick, and not be evicted by cache misses. The explicit read cache
-will automatically pull in the rarest pieces in the read cache.
-
-Assuming that you seed much more data than you can keep in the cache, to a large
-numbers of peers (so that the read cache wouldn't be useful anyway), this may be a
-good idea.
-
-When peers first connect, libtorrent will send them a number of allow-fast messages,
-which lets the peers download certain pieces even when they are choked, since peers
-are choked by default, this often triggers immediate requests for those pieces. In the
-case of using explicit read cache and suggesting those pieces, allowing fast pieces
-should be disabled, to not systematically trigger requests for pieces that are not cached
-for all peers. You can turn off allow-fast by settings ``session_settings::allowed_fast_set_size``
-to 0.
-
-As an alternative to the explicit cache and suggest messages, there's a *guided cache*
-mode. This means the size of the read cache line that's stored in the cache is determined
-based on the upload rate to the peer that triggered the read operation. The idea being
-that slow peers don't use up a disproportional amount of space in the cache. This
-is enabled through ``session_settings::guided_read_cache``.
+There's a *guided cache* mode. This means the size of the read cache line that's
+stored in the cache is determined based on the upload rate to the peer that
+triggered the read operation. The idea being that slow peers don't use up a
+disproportional amount of space in the cache. This is enabled through
+``settings_pack::guided_read_cache``.
 
 In cases where the assumption is that the cache is only used as a read-ahead, and that no
 other peer will ever request the same block while it's still in the cache, the read
 cache can be set to be *volatile*. This means that every block that is requested out of
 the read cache is removed immediately. This saves a significant amount of cache space
-which can be used as read-ahead for other peers. This mode should **never** be combined
-with either ``explicit_read_cache`` or ``suggest_read_cache``, since those uses opposite
-strategies for the read cache. You don't want to on one hand attract peers to request
-the same pieces, and on the other hand assume that they won't request the same pieces
-and drop them when the first peer requests it. To enable volatile read cache, set
-``session_settings::volatile_read_cache`` to true.
+which can be used as read-ahead for other peers. To enable volatile read cache, set
+``settings_pack::volatile_read_cache`` to true.
 
 SSD as level 2 cache
 --------------------
 
 It is possible to introduce a second level of cache, below the RAM disk cache. This is done
-by setting ``session_settings::mmap_cache`` to a file path pointing to the SSD drive, and
-increasing the ``session_settings::cache_size`` to the number of 16 kiB blocks would fit
+by setting ``settings_pack::mmap_cache`` to a file path pointing to the SSD drive, and
+increasing the ``settings_pack::cache_size`` to the number of 16 kiB blocks would fit
 on the drive (or less).
 
 This will allocate disk buffers (for reading and writing) from a memory region that has
@@ -305,7 +280,7 @@ throttle TCP to avoid it taking over all bandwidth. This balances the bandwidth 
 between the two protocols. When running on a network where the bandwidth is in such an
 abundance that it's virtually infinite, this algorithm is no longer necessary, and might
 even be harmful to throughput. It is adviced to experiment with the
-``session_setting::mixed_mode_algorithm``, setting it to ``session_settings::prefer_tcp``.
+``session_setting::mixed_mode_algorithm``, setting it to ``settings_pack::prefer_tcp``.
 This setting entirely disables the balancing and unthrottles all connections. On a typical
 home connection, this would mean that none of the benefits of uTP would be preserved
 (the modem's send buffer would be full at all times) and uTP connections would for the most
@@ -324,7 +299,7 @@ enough to not draining the socket's send buffer before the disk operation comple
 The watermark is bound to a max value, to avoid buffer sizes growing out of control.
 The default max send buffer size might not be enough to sustain very high upload rates,
 and you might have to increase it. It's specified in bytes in
-``session_settings::send_buffer_watermark``.
+``settings_pack::send_buffer_watermark``.
 
 peers
 -----
@@ -336,33 +311,33 @@ infinite, ``session::set_upload_rate_limit()``, passing 0 means infinite.
 When dealing with a large number of peers, it might be a good idea to have slightly
 stricter timeouts, to get rid of lingering connections as soon as possible.
 
-There are a couple of relevant settings: ``session_settings::request_timeout``,
-``session_settings::peer_timeout`` and ``session_settings::inactivity_timeout``.
+There are a couple of relevant settings: ``settings_pack::request_timeout``,
+``settings_pack::peer_timeout`` and ``settings_pack::inactivity_timeout``.
 
 For seeds that are critical for a delivery system, you most likely want to allow
 multiple connections from the same IP. That way two people from behind the same NAT
 can use the service simultaneously. This is controlled by
-``session_settings::allow_multiple_connections_per_ip``.
+``settings_pack::allow_multiple_connections_per_ip``.
 
 In order to always unchoke peers, turn off automatic unchoke
-``session_settings::auto_upload_slots`` and set the number of upload slots to a large
+``settings_pack::auto_upload_slots`` and set the number of upload slots to a large
 number via ``session::set_max_uploads()``, or use -1 (which means infinite).
 
 torrent limits
 --------------
 
-To seed thousands of torrents, you need to increase the ``session_settings::active_limit``
-and ``session_settings::active_seeds``.
+To seed thousands of torrents, you need to increase the ``settings_pack::active_limit``
+and ``settings_pack::active_seeds``.
 
 SHA-1 hashing
 -------------
 
-When downloading at very high rates, it is possible to have the CPU be the bottleneck
-for passing every downloaded byte through SHA-1. In order to enable calculating SHA-1
-hashes in parallel, on multi-core systems, set ``session_settings::hashing_threads``
-to the number of threads libtorrent should start to do SHA-1 hashing. This defaults
-to 1, and only if that thread is close to saturating one core does it make sense to
-increase the number of threads.
+When downloading at very high rates, it is possible to have the CPU be the
+bottleneck for passing every downloaded byte through SHA-1. In order to enable
+calculating SHA-1 hashes in parallel, on multi-core systems, set
+``settings_pack::aio_threads`` to the number of threads libtorrent should
+perform I/O and do SHA-1 hashing in. Only if that thread is close to saturating
+one core does it make sense to increase the number of threads.
 
 scalability
 ===========
@@ -415,19 +390,7 @@ the disk I/O. The following table is an overview of these files and what they me
 +--------------------------+--------------------------------------------------------------+
 | filename                 | description                                                  |
 +==========================+==============================================================+
-| ``disk_io_thread.log``   | This is a log of which operation the disk I/O thread is      |
-|                          | engaged in, with timestamps. This tells you what the thread  |
-|                          | is spending its time doing.                                  |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
-| ``disk_buffers.log``     | This log keeps track of what the buffers allocated from the  |
-|                          | disk buffer pool are used for. There are 5 categories.       |
-|                          | receive buffer, send buffer, write cache, read cache and     |
-|                          | temporary hash storage. This is key when optimizing memory   |
-|                          | usage.                                                       |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
-| ``disk_access.log``      | This is a low level log of read and write operations, with   |
+| ``file_access.log``      | This is a low level log of read and write operations, with   |
 |                          | timestamps and file offsets. The file offsets are byte       |
 |                          | offsets in the torrent (not in any particular file, in the   |
 |                          | case of a multi-file torrent). This can be used as an        |
@@ -437,106 +400,12 @@ the disk I/O. The following table is an overview of these files and what they me
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
 
-
-disk_io_thread.log
-''''''''''''''''''
-
-The structure of this log is simple. For each line, there are two columns, a timestamp and
-the operation that was started. There is a special operation called ``idle`` which means
-it looped back to the top and started waiting for new jobs. If there are more jobs to
-handle immediately, the ``idle`` state is still there, but the timestamp is the same as the
-next job that is handled.
-
-Some operations have a 3:rd column with an optional parameter. ``read`` and ``write`` tells
-you the number of bytes that were requested to be read or written. ``flushing`` tells you
-the number of bytes that were flushed from the disk cache.
-
-This is an example excerpt from a log::
-
-	3702 idle
-	3706 check_fastresume
-	3707 idle
-	4708 save_resume_data
-	4708 idle
-	8230 read 16384
-	8255 idle
-	8431 read 16384
-
-The script to parse this log and generate a graph is called ``parse_disk_log.py``. It takes
-the log file as the first command line argument, and produces a file: ``disk_io.png``.
-The time stamp is in milliseconds since start.
-
-You can pass in a second, optional, argument to specify the window size it will average
-the time measurements over. The default is 5 seconds. For long test runs, it might be interesting
-to increase that number. It is specified as a number of seconds.
-
-.. image:: disk_io.png
-
-This is an example graph generated by the parse script.
-
-disk_buffers.log
-''''''''''''''''
-
-The disk buffer log tells you where the buffer memory is used. The log format has a time stamp,
-the name of the buffer usage which use-count changed, colon, and the new number of blocks that are
-in use for this particular key. For example::
-
-	23671 write cache: 18
-	23671 receive buffer: 3
-	24153 receive buffer: 2
-	24153 write cache: 19
-	24154 receive buffer: 3
-	24198 receive buffer: 2
-	24198 write cache: 20
-	24202 receive buffer: 3
-	24305 send buffer: 0
-	24305 send buffer: 1
-	24909 receive buffer: 2
-	24909 write cache: 21
-	24910 receive buffer: 3
-
-The time stamp is in milliseconds since start.
-
-To generate a graph, use ``parse_disk_buffer_log.py``. It takes the log file as the first
-command line argument. It generates ``disk_buffer.png``.
-
-.. image:: disk_buffer_sample.png
-
-This is an example graph generated by the parse script.
-
-disk_access.log
+file_access.log
 '''''''''''''''
 
-*The disk access log is now binary*
-
-The disc access log has three fields. The timestamp (milliseconds since start), operation
-and offset. The offset is the absolute offset within the torrent (not within a file). This
-log is only useful when you're downloading a single torrent, otherwise the offsets will not
-be unique.
-
-In order to easily plot this directly in gnuplot, without parsing it, there are two lines
-associated with each read or write operation. The first one is the offset where the operation
-started, and the second one is where the operation ended.
-
-Example::
-
-	15437 read 301187072
-	15437 read_end 301203456
-	16651 read 213385216
-	16680 read_end 213647360
-	25879 write 249036800
-	25879 write_end 249298944
-	26811 read 325582848
-	26943 read_end 325844992
-	36736 read 367001600
-	36766 read_end 367263744
-
-The disk access log does not have any good visualization tool yet. There is however a gnuplot
-file, ``disk_access.gnuplot`` which assumes ``disk_access.log`` is in the current directory.
-
-.. image:: disk_access.png
-
-The density of the disk seeks tells you how hard the drive has to work.
+The disk access log is a binary file that can be parsed and converted to human
+readable by the script ``tools/parse_access_log.py``. This tool produces a
+graphical representation of the disk access and requires ``gnuplot``.
 
 understanding the disk threads
 ==============================

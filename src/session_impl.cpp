@@ -393,8 +393,10 @@ namespace aux {
 		, m_optimistic_unchoke_time_scaler(0)
 		, m_disconnect_time_scaler(90)
 		, m_auto_scrape_time_scaler(180)
+#ifndef TORRENT_NO_DEPRECATE
 		, m_next_explicit_cache_torrent(0)
 		, m_cache_rotation_timer(0)
+#endif
 		, m_next_suggest_torrent(0)
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
@@ -2107,15 +2109,15 @@ namespace aux {
 		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
-			listen_succeeded_alert::socket_type_t socket_type = i->ssl
+			listen_succeeded_alert::socket_type_t const socket_type = i->ssl
 				? listen_succeeded_alert::tcp_ssl
 				: listen_succeeded_alert::tcp;
 
 			if (!m_alerts.should_post<listen_succeeded_alert>()) continue;
 
-			error_code err;
-			tcp::endpoint bind_ep = i->sock->local_endpoint(err);
-			if (err) continue;
+			error_code error;
+			tcp::endpoint bind_ep = i->sock->local_endpoint(error);
+			if (error) continue;
 
 			m_alerts.emplace_alert<listen_succeeded_alert>(bind_ep, socket_type);
 		}
@@ -3273,6 +3275,7 @@ namespace aux {
 			++m_next_suggest_torrent;
 		}
 
+#ifndef TORRENT_NO_DEPRECATE
 		// --------------------------------------------------------------
 		// refresh explicit disk read cache
 		// --------------------------------------------------------------
@@ -3308,6 +3311,7 @@ namespace aux {
 				least_recently_refreshed->second->refresh_explicit_cache(cache_size);
 			++m_next_explicit_cache_torrent;
 		}
+#endif
 
 		// --------------------------------------------------------------
 		// connect new peers

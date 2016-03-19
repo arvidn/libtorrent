@@ -451,6 +451,7 @@ namespace libtorrent
 		// once we want to calculate the piece hash
 		bool dont_flush_write_cache;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// defaults to 0. If set to something greater than 0, the disk read cache
 		// will not be evicted by cache misses and will explicitly be controlled
 		// based on the rarity of pieces. Rare pieces are more likely to be
@@ -468,6 +469,7 @@ namespace libtorrent
 		// the cache, so that subsequent refreshes only swaps in pieces that are
 		// rarer than whatever is in the cache at the time.
 		int explicit_cache_interval;
+#endif
 
 		// the buffer modes to use for reading and writing. Set
 		// session_settings::disk_io_read_mode and disk_io_write_mode to one of

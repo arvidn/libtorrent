@@ -136,7 +136,7 @@ namespace libtorrent
 			// 
 			// Since this setting sets a hard upper limit on cache usage, it
 			// cannot be combined with
-			// ``session_settings::contiguous_recv_buffer``, since that feature
+			// ``settings_pack::contiguous_recv_buffer``, since that feature
 			// treats the ``cache_size`` setting as a soft (but still pretty hard)
 			// limit. The result of combining the two is peers being disconnected
 			// after failing to allocate more disk buffers.
@@ -273,7 +273,7 @@ namespace libtorrent
 			// reading blocks back from the disk multiple times for popular
 			// pieces.
 			use_read_cache,
-#ifndef TORRENT_NO_DEPRECATED
+#ifndef TORRENT_NO_DEPRECATE
 			use_write_cache,
 #else
 			deprecated11,
@@ -284,6 +284,7 @@ namespace libtorrent
 			// hash
 			dont_flush_write_cache,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``explicit_read_cache`` defaults to 0. If set to something greater
 			// than 0, the disk read cache will not be evicted by cache misses and
 			// will explicitly be controlled based on the rarity of pieces. Rare
@@ -293,6 +294,9 @@ namespace libtorrent
 			// actual read cache can't fit as many, it will essentially be
 			// clamped.
 			explicit_read_cache,
+#else
+			deprecated12,
+#endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
 			// Only used where writev/readv cannot be used will use more RAM but
@@ -938,6 +942,7 @@ namespace libtorrent
 			cache_buffer_chunk_size,
 			cache_expiry,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``explicit_cache_interval`` is the number of seconds in between
 			// each refresh of a part of the explicit read cache. Torrents take
 			// turns in refreshing and this is the time in between each torrent
@@ -947,6 +952,9 @@ namespace libtorrent
 			// subsequent refreshes only swaps in pieces that are rarer than
 			// whatever is in the cache at the time.
 			explicit_cache_interval,
+#else
+			deprecated13,
+#endif
 
 			// determines how files are opened when they're in read only mode
 			// versus read and write mode. The options are:
@@ -1397,6 +1405,9 @@ namespace libtorrent
 			// received by the metadata extension, i.e. magnet links.
 			max_metadata_size,
 
+#ifndef TORRENT_NO_DEPRECATE
+			// DEPRECTED: use aio_threads instead
+
 			// ``hashing_threads`` is the number of threads to use for piece hash
 			// verification. It defaults to 1. For very high download rates, on
 			// machines with multiple cores, this could be incremented. Setting it
@@ -1404,6 +1415,9 @@ namespace libtorrent
 			// any benefit of setting it to the number of cores. If it's set to 0,
 			// hashing is done in the disk thread.
 			hashing_threads,
+#else
+			deprecated14,
+#endif
 
 			// the number of blocks to keep outstanding at any given time when
 			// checking torrents. Higher numbers give faster re-checks but uses

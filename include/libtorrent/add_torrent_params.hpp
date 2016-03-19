@@ -169,7 +169,7 @@ namespace libtorrent
 			// priorities for torrents in share mode, it will make it not work.
 			// 
 			// The share mode has one setting, the share ratio target, see
-			// ``session_settings::share_mode_target`` for more info.
+			// ``settings_pack::share_mode_target`` for more info.
 			flag_share_mode = 0x008,
 
 			// determines if the IP filter should apply to this torrent or not. By

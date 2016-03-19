@@ -282,7 +282,7 @@ namespace libtorrent
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
-		sett.set_int(settings_pack::hashing_threads, 2);
+		sett.set_int(settings_pack::aio_threads, 2);
 
 		// TODO: this should probably be optional
 		alert_manager dummy2(0, 0);

@@ -233,7 +233,7 @@ namespace libtorrent
 
 		// the number of seconds until the current front piece request will time
 		// out. This timeout can be adjusted through
-		// ``session_settings::request_timeout``.
+		// ``settings_pack::request_timeout``.
 		// -1 means that there is not outstanding request.
 		int request_timeout;
 
@@ -317,7 +317,7 @@ namespace libtorrent
 
 		// the number of bytes this peer has pending in the disk-io thread.
 		// Downloaded and waiting to be written to disk. This is what is capped
-		// by ``session_settings::max_queued_disk_bytes``.
+		// by ``settings_pack::max_queued_disk_bytes``.
 		int pending_disk_bytes;
 
 		// number of outstanding bytes to read

@@ -198,7 +198,7 @@ void bind_create_torrent()
         .def(init<file_storage&>())
         .def(init<torrent_info const&>(arg("ti")))
         .def(init<file_storage&, int, int, int>((arg("storage"), arg("piece_size") = 0
-            , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize))))
+            , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize_alignment))))
 
         .def("generate", &create_torrent::generate)
 
@@ -220,7 +220,10 @@ void bind_create_torrent()
         ;
 
     enum_<create_torrent::flags_t>("create_torrent_flags_t")
+#ifndef TORRENT_NO_DEPRECATE
         .value("optimize", create_torrent::optimize)
+#endif
+        .value("optimize_alignment", create_torrent::optimize_alignment)
         .value("merkle", create_torrent::merkle)
         .value("modification_time", create_torrent::modification_time)
         .value("symlinks", create_torrent::symlinks)

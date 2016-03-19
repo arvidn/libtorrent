@@ -47,6 +47,8 @@ before_install:
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
     sudo easy_install Pygments;
     sudo easy_install -U aafigure;
+    brew install --quiet graphviz;
+    brew install --quiet Homebrew/python/pillow;
     fi'
 
 # disable simulations on OSX for now. It hangs on travis
