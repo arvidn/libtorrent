@@ -271,10 +271,6 @@ namespace libtorrent
 			// leaving running applications in the page cache
 			no_cache = 0x40,
 
-			// this corresponds to Linux' O_DIRECT flag
-			// and may impose alignment restrictions
-			direct_io = 0x80,
-
 			// this is only used for readv/writev flags
 			coalesce_buffers = 0x100,
 
