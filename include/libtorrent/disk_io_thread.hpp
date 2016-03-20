@@ -94,7 +94,7 @@ namespace libtorrent
 		bool need_readback;
 	};
 
-	typedef tailqueue<disk_io_job> jobqueue_t;
+	using jobqueue_t = tailqueue<disk_io_job>;
 
 	// this struct holds a number of statistics counters
 	// relevant for the disk io thread and disk cache.
@@ -334,12 +334,11 @@ namespace libtorrent
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
 		disk_buffer_holder allocate_disk_buffer(char const* category) override
 		{
-			bool exceed = false;
-			return allocate_disk_buffer(exceed, std::shared_ptr<disk_observer>(), category);
+			return allocate_disk_buffer(std::shared_ptr<disk_observer>(), category);
 		}
 
 		void trigger_cache_trim();
-		disk_buffer_holder allocate_disk_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
+		disk_buffer_holder allocate_disk_buffer(std::shared_ptr<disk_observer> o
 			, char const* category) override;
 
 		void update_stats_counters(counters& c) const override;
@@ -371,7 +370,7 @@ namespace libtorrent
 		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
 
 		void maybe_issue_queued_read_jobs(cached_piece_entry* pe,
-			jobqueue_t& completed_jobs);
+			jobqueue_t& completed_jobs, bool clear_outstanding = true);
 		status_t do_read(disk_io_job* j, jobqueue_t& completed_jobs);
 		status_t do_uncached_read(disk_io_job* j);
 
@@ -488,7 +487,7 @@ namespace libtorrent
 
 		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
-		void try_flush_write_blocks(int num, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		int try_flush_write_blocks(int num, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
 		void maybe_flush_write_blocks();
 		void execute_job(disk_io_job* j);
@@ -520,6 +519,7 @@ namespace libtorrent
 		disk_io_thread_pool m_generic_threads;
 		job_queue m_hash_io_jobs;
 		disk_io_thread_pool m_hash_threads;
+		jobqueue_t m_waiting_for_buffer;
 
 		aux::session_settings m_settings;
 

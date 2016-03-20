@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2009-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,29 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ALLOCATOR_HPP_INCLUDED
-#define TORRENT_ALLOCATOR_HPP_INCLUDED
-
-#include "libtorrent/config.hpp"
-
-#include <cstddef>
-#include <cstdint>
-
-namespace libtorrent
+struct pool_allocator
 {
-	TORRENT_EXTRA_EXPORT int page_size();
+public:
 
-	// these allocation functions are meant to be used for large memory
-	// allocations (large means at least megabytes). The memory area that's
-	// allocated is page aligned. This is primarily meant for allocating the disk
-	// cache, which also means the allocation may be marked no to be included in
-	// coredumps etc.
-	TORRENT_EXTRA_EXPORT char* page_allocate(std::int64_t bytes);
-	TORRENT_EXTRA_EXPORT void page_free(char* block, std::int64_t size);
+	pool_allocator(char* buffer, boost::int64_t length);
 
-	// indicate we won't be needing the content in this region. Allow the kernel
-	// to recycle the physical memory behind it.
-	TORRENT_EXTRA_EXPORT void page_dont_need(char* block, std::int64_t size);
-}
+	char* allocate();
+	void deallocate(char* buf);
 
-#endif
+	void compact(move_t cp);
+
+private:
+
+	char* m_buffer;
+	int m_num_slots;
+
+	// the mask is mapped to used indices from left to right. MSB in first
+	// word corresponds to the first entry in m_pool. The LSB in the first word
+	// corresponds to the 32nd entry in m_pool.
+	std::unique_ptr<std::uint32_t[]> m_mask;
+};
+

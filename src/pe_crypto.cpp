@@ -220,7 +220,6 @@ namespace libtorrent
 			int produce = 0;
 			int packet_size = 0;
 			std::tie(consume, produce, packet_size) = m_dec_handler->decrypt(wr_buf);
-			TORRENT_ASSERT(packet_size || produce);
 			TORRENT_ASSERT(packet_size >= 0);
 			bytes_transferred = produce;
 			if (packet_size)

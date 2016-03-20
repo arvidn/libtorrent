@@ -2463,8 +2463,9 @@ namespace libtorrent
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 #if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
+		m_piece_fragments.push_back(bytes);
 		m_received_in_piece += bytes;
+		TORRENT_ASSERT(m_received_in_piece <= 0x4000);
 #endif
 
 		// progress of this torrent increased
@@ -2588,30 +2589,24 @@ namespace libtorrent
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		bool exceeded = false;
+
+		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_disk) == 0);
+
 		disk_buffer_holder buffer
-			= m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer");
+			= m_allocator.allocate_disk_buffer(self(), "receive buffer");
 
+		// this may fail if the disk buffer queue is full. it's not a fatal
+		// error, we just need to wait for a buffer to become available
 		if (!buffer)
-		{
-			disconnect(errors::no_memory, op_alloc_recvbuf);
-			return;
-		}
-
-		// every peer is entitled to have two disk blocks allocated at any given
-		// time, regardless of whether the cache size is exceeded or not. If this
-		// was not the case, when the cache size setting is very small, most peers
-		// would be blocked most of the time, because the disk cache would
-		// continuously be in exceeded state. Only rarely would it actually drop
-		// down to 0 and unblock all peers.
-		if (exceeded && m_outstanding_writing_bytes > 0)
 		{
 			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
 				m_counters.inc_stats_counter(counters::num_peers_down_disk);
+
 			m_channel_state[download_channel] |= peer_info::bw_disk;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
+			peer_log(peer_log_alert::info, "DISK", "stalled on disk buffer queue");
 #endif
+			return;
 		}
 
 		std::memcpy(buffer.get(), data, p.length);
@@ -2655,8 +2650,10 @@ namespace libtorrent
 			if (e->on_piece(p, {data.get(), size_t(p.length)}))
 			{
 #if TORRENT_USE_ASSERTS
-				TORRENT_ASSERT(m_received_in_piece == p.length);
-				m_received_in_piece = 0;
+				TORRENT_ASSERT(m_received_in_piece >= p.length);
+				m_piece_fragments.clear();
+				m_received_in_piece -= p.length;
+				TORRENT_ASSERT(m_received_in_piece == 0);
 #endif
 				return;
 			}
@@ -2692,14 +2689,21 @@ namespace libtorrent
 			return;
 		}
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
+
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(m_received_in_piece >= p.length);
+		m_piece_fragments.clear();
+		m_received_in_piece -= p.length;
+		TORRENT_ASSERT(m_received_in_piece == 0);
+#endif
+
 		// if we're already seeding, don't bother,
 		// just ignore it
 		if (t->is_seed())
 		{
-#if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(m_received_in_piece == p.length);
-			m_received_in_piece = 0;
-#endif
 			if (!m_download_queue.empty())
 			{
 				m_download_queue.erase(m_download_queue.begin());
@@ -2736,10 +2740,6 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "The block we just got was not in the request queue");
 #endif
-#if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
-			m_received_in_piece = 0;
-#endif
 			t->add_redundant_bytes(p.length, waste_reason::piece_unknown);
 
 			// the bytes of the piece we just completed have been deducted from
@@ -2754,10 +2754,6 @@ namespace libtorrent
 			return;
 		}
 
-#if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
-		m_received_in_piece = 0;
-#endif
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
@@ -4298,12 +4294,9 @@ namespace libtorrent
 					m_request_queue.pop_back();
 				}
 			}
-			else
-			{
-				m_download_queue.clear();
-				m_request_queue.clear();
-				m_outstanding_bytes = 0;
-			}
+			m_download_queue.clear();
+			m_request_queue.clear();
+			m_outstanding_bytes = 0;
 			m_queued_time_critical = 0;
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -5346,7 +5339,7 @@ namespace libtorrent
 
 		if (channel == download_channel)
 		{
-			return (std::max)((std::max)(m_outstanding_bytes
+			return std::max(std::max(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(std::int64_t(m_statistics.download_rate()) * 2
 					/ (1000 / tick_interval)));
@@ -5583,6 +5576,9 @@ namespace libtorrent
 	void peer_connection::on_disk()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		if (m_disconnecting) return;
+
+		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_disk);
 		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
 		std::shared_ptr<peer_connection> me(self());
 
@@ -5591,6 +5587,19 @@ namespace libtorrent
 #endif
 		m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
 		m_channel_state[download_channel] &= ~peer_info::bw_disk;
+
+		// we can _only_ get here by trying to allocate a disk buffer (and
+		// failing). This means that right now, there's a disk block
+		// still sitting in the receive buffer
+
+		error_code ec;
+		// we didn't actually receive any more bytes, we just want to kick the
+		// connection to pick up what we have already received. Passing a non-zero
+		// number of bytes here would make our download accounting be off
+		on_receive(ec, 0);
+
+		TORRENT_ASSERT(!m_recv_buffer.packet_finished()
+			|| (m_channel_state[download_channel] & peer_info::bw_disk));
 		setup_receive();
 	}
 
@@ -5900,6 +5909,17 @@ namespace libtorrent
 		do {
 			sub_transferred = m_recv_buffer.advance_pos(bytes);
 			on_receive(error, sub_transferred);
+
+			if (m_channel_state[download_channel] & peer_info::bw_disk)
+			{
+				// this means we're blocked by the disk. We have a piece in our
+				// receive buffer, but we weren't able to allocate a disk buffer
+				// to copy it into
+				// we cannot reset the receive buffer now, we have to wait until
+				// the disk thread tells us there's more space
+				return;
+			}
+
 			bytes -= sub_transferred;
 			TORRENT_ASSERT(sub_transferred > 0);
 			if (m_disconnecting) return;
@@ -5958,18 +5978,8 @@ namespace libtorrent
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
 
-		bool bw_limit = m_quota[download_channel] > 0;
-
-		if (!bw_limit) return false;
-
-		if (m_outstanding_bytes > 0)
-		{
-			// if we're expecting to download piece data, we might not
-			// want to read from the socket in case we're out of disk
-			// cache space right now
-
-			if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
-		}
+		if (m_quota[download_channel] <= 0) return false;
+		if (m_channel_state[download_channel] & peer_info::bw_disk) return false;
 
 		return !m_connecting && !m_disconnecting;
 	}

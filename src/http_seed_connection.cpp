@@ -224,7 +224,6 @@ namespace libtorrent
 		{
 			span<char const> recv_buffer = m_recv_buffer.get();
 
-			if (bytes_transferred == 0) break;
 			TORRENT_ASSERT(int(recv_buffer.size()) > 0);
 
 			TORRENT_ASSERT(!m_requests.empty());
@@ -437,6 +436,14 @@ namespace libtorrent
 
 			m_requests.pop_front();
 			incoming_piece(front_request, recv_buffer.begin());
+			if (m_channel_state[download_channel] & peer_info::bw_disk)
+			{
+				// this means we're blocked by the disk. We have a piece in our
+				// receive buffer, but we weren't able to allocate a disk buffer
+				// to copy it into
+				return;
+			}
+
 			if (associated_torrent().expired()) return;
 
 			int size_to_cut = m_body_start + front_request.length;
@@ -452,6 +459,8 @@ namespace libtorrent
 			if (m_response_left > 0) continue;
 			TORRENT_ASSERT(m_response_left == 0);
 			m_parser.reset();
+
+			if (bytes_transferred == 0) break;
 		}
 	}
 

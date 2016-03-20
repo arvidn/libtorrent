@@ -550,6 +550,12 @@ namespace libtorrent
 		void incoming_dont_have(int piece_index);
 		void incoming_bitfield(bitfield const& bits);
 		void incoming_request(peer_request const& r);
+
+		// incoming_piece may fail to make means progress forwarding this data to
+		// the disk thread pool. Once a buffer may have freed up, the on_disk()
+		// function will be called. This condition can be detected by inspecting
+		// the m_channel_state bits for the download channel, it will have its
+		// bw_disk bit set.
 		void incoming_piece(peer_request const& p, disk_buffer_holder data);
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_piece_fragment(int bytes);
@@ -1201,6 +1207,7 @@ namespace libtorrent
 		// async write job on the socket
 		bool m_socket_is_writing = false;
 		bool is_single_thread() const;
+		std::vector<int> m_piece_fragments;
 #endif
 	};
 

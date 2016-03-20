@@ -1056,6 +1056,13 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 			m_requests.pop_front();
 
 			incoming_piece(front_request_copy, &m_piece[0]);
+			if (m_channel_state[download_channel] & peer_info::bw_disk)
+			{
+				// this means we're blocked by the disk. We have a piece in our
+				// receive buffer, but we weren't able to allocate a disk buffer
+				// to copy it into
+				return;
+			}
 
 			m_piece.clear();
 		}
@@ -1089,6 +1096,13 @@ void web_peer_connection::incoming_zeroes(int len)
 		incoming_piece_fragment(copy_size);
 
 		maybe_harvest_piece();
+		if (m_channel_state[download_channel] & peer_info::bw_disk)
+		{
+			// this means we're blocked by the disk. We have a piece in our
+			// receive buffer, but we weren't able to allocate a disk buffer
+			// to copy it into
+			return;
+		}
 	}
 }
 
@@ -1109,6 +1123,14 @@ void web_peer_connection::maybe_harvest_piece()
 	m_requests.pop_front();
 
 	incoming_piece(front_request, &m_piece[0]);
+	if (m_channel_state[download_channel] & peer_info::bw_disk)
+	{
+		// this means we're blocked by the disk. We have a piece in our
+		// receive buffer, but we weren't able to allocate a disk buffer
+		// to copy it into
+		return;
+	}
+
 	m_piece.clear();
 }
 
@@ -1149,6 +1171,13 @@ void web_peer_connection::handle_padfile()
 			file_size -= pad_size;
 
 			incoming_zeroes(pad_size);
+			if (m_channel_state[download_channel] & peer_info::bw_disk)
+			{
+				// this means we're blocked by the disk. We have a piece in our
+				// receive buffer, but we weren't able to allocate a disk buffer
+				// to copy it into
+				return;
+			}
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))

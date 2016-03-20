@@ -6647,11 +6647,11 @@ namespace aux {
 		m_disk_thread.free_disk_buffer(buf);
 	}
 
-	disk_buffer_holder session_impl::allocate_disk_buffer(bool& exceeded
-		, std::shared_ptr<disk_observer> o
+	disk_buffer_holder session_impl::allocate_disk_buffer(
+		std::shared_ptr<disk_observer> o
 		, char const* category)
 	{
-		return m_disk_thread.allocate_disk_buffer(exceeded, o, category);
+		return m_disk_thread.allocate_disk_buffer(o, category);
 	}
 
 	char* session_impl::allocate_buffer()

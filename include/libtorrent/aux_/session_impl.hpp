@@ -623,8 +623,7 @@ namespace libtorrent
 			// implements buffer_allocator_interface
 			void free_disk_buffer(char* buf) override;
 			disk_buffer_holder allocate_disk_buffer(char const* category) override;
-			disk_buffer_holder allocate_disk_buffer(bool& exceeded
-				, std::shared_ptr<disk_observer> o
+			disk_buffer_holder allocate_disk_buffer(std::shared_ptr<disk_observer> o
 				, char const* category) override;
 			void reclaim_blocks(span<block_cache_reference> refs) override;
 			void do_reclaim_blocks();

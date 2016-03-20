@@ -48,7 +48,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	int packet_size() const { return m_packet_size; }
 	int packet_bytes_remaining() const
 	{
-		TORRENT_ASSERT(m_recv_start == 0);
+//		TORRENT_ASSERT(m_recv_start == 0);
 		TORRENT_ASSERT(m_packet_size > 0);
 		return m_packet_size - m_recv_pos;
 	}
