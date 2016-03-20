@@ -1408,7 +1408,6 @@ namespace libtorrent
 		DWORD flags = ((mode & random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
 			| FILE_FLAG_OVERLAPPED
-			| ((mode & direct_io) ? FILE_FLAG_NO_BUFFERING : 0)
 			| ((mode & no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
@@ -1456,16 +1455,13 @@ namespace libtorrent
 #ifdef O_NOATIME
 			| ((mode & no_atime) ? O_NOATIME : 0)
 #endif
-#ifdef O_DIRECT
-			| ((mode & direct_io) ? O_DIRECT : 0)
-#endif
 #ifdef O_SYNC
 			| ((mode & no_cache) ? O_SYNC: 0)
 #endif
 			;
 
- 		handle_type handle = ::open(convert_to_native(path).c_str()
- 			, mode_array[mode & rw_mask] | open_mode
+		handle_type handle = ::open(convert_to_native(path).c_str()
+			, mode_array[mode & rw_mask] | open_mode
 			, permissions);
 
 #ifdef O_NOATIME
@@ -1668,12 +1664,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 
 #if !TORRENT_USE_PREADV
-	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs
+		, file::iovec_t* tmp)
 	{
-		int buf_size = bufs_size(bufs, num_bufs);
-		// this is page aligned since it's used in APIs which
-		// are likely to require that (depending on OS)
-		char* buf = static_cast<char*>(page_aligned_allocator::malloc(buf_size));
+		int const buf_size = bufs_size(bufs, num_bufs);
+		char* buf = static_cast<char*>(malloc(buf_size));
 		if (!buf) return false;
 		tmp->iov_base = buf;
 		tmp->iov_len = buf_size;
@@ -1682,20 +1677,18 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return true;
 	}
 
-	void coalesce_read_buffers_end(file::iovec_t const* bufs, int num_bufs, char* buf, bool copy)
+	void coalesce_read_buffers_end(file::iovec_t const* bufs, int const num_bufs
+		, char* const buf, bool const copy)
 	{
 		if (copy) scatter_copy(bufs, num_bufs, buf);
-		page_aligned_allocator::free(buf);
+		free(buf);
 	}
 
-	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs, file::iovec_t* tmp)
+	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs
+		, file::iovec_t* tmp)
 	{
-		// coalesce buffers means allocate a temporary buffer and
-		// issue a single write operation instead of using a vector
-		// operation
-		int buf_size = 0;
-		for (int i = 0; i < num_bufs; ++i) buf_size += bufs[i].iov_len;
-		char* buf = static_cast<char*>(page_aligned_allocator::malloc(buf_size));
+		int const buf_size = bufs_size(bufs, num_bufs);
+		char* buf = static_cast<char*>(malloc(buf_size));
 		if (!buf) return false;
 		gather_copy(bufs, num_bufs, buf);
 		tmp->iov_base = buf;
@@ -2243,7 +2236,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		// return the offset to the next allocated region
 		return buffer.FileOffset.QuadPart;
-		
+
 #elif defined SEEK_DATA
 		// this is supported on solaris
 		boost::int64_t ret = lseek(native_handle(), start, SEEK_DATA);
