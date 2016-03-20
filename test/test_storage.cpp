@@ -169,7 +169,7 @@ typedef boost::shared_array<char> buf_ptr;
 
 buf_ptr new_piece(int size)
 {
-	buf_ptr ret(page_aligned_allocator::malloc(size), &page_aligned_allocator::free);
+	buf_ptr ret(static_cast<char*>(malloc(size)), &free);
 	std::generate(ret.get(), ret.get() + size, random_byte);
 	return ret;
 }
@@ -209,7 +209,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 		, unbuffered ? settings_pack::disable_os_cache
 		: settings_pack::enable_os_cache);
 
-	char* piece = page_aligned_allocator::malloc(piece_size);
+	char* piece = static_cast<char*>(malloc(piece_size));
 
 	{ // avoid having two storages use the same files
 	file_pool fp;
@@ -290,7 +290,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	s->release_files(ec);
 	}
 
-	page_aligned_allocator::free(piece);
+	free(piece);
 }
 
 void test_remove(std::string const& test_path, bool unbuffered)
