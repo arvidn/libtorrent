@@ -168,9 +168,6 @@ def main():
     parser.add_option('-s', '--save-path',
         type='string', help='the path where the downloaded file/folder should be placed.')
 
-    parser.add_option('-a', '--allocation-mode',
-        type='string', help='sets mode used for allocating the downloaded files on disk. Possible options are [full | compact]')
-
     parser.add_option('-r', '--proxy-host',
         type='string', help='sets HTTP proxy host and port (separated by \':\')')
 
@@ -179,7 +176,6 @@ def main():
       , max_download_rate=0
       , max_upload_rate=0
       , save_path='.'
-      , allocation_mode='compact'
       , proxy_host=''
     )
 
@@ -195,8 +191,6 @@ def main():
         options.max_upload_rate = -1
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
-
-    compact_allocation = options.allocation_mode == 'compact'
 
     settings = lt.session_settings()
     settings.user_agent = 'python_client/' + lt.version
