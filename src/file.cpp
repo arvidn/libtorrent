@@ -1827,8 +1827,16 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int ret = iov(&::preadv, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
 
+		// there's no point in coalescing single buffer writes
+		if (num_bufs == 1)
+		{
+			flags &= ~file::coalesce_buffers;
+		}
+
 		file::iovec_t tmp;
-		if (flags & file::coalesce_buffers)
+		file::iovec_t const* const orig_bufs = bufs;
+		int const orig_num_bufs = num_bufs;
+		if ((flags & file::coalesce_buffers))
 		{
 			if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
 				// ok, that failed, don't coalesce this read
@@ -1841,8 +1849,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int ret = iov(&::read, native_handle(), file_offset, bufs, num_bufs, ec);
 #endif
 
-		if (flags & file::coalesce_buffers)
-			coalesce_read_buffers_end(bufs, num_bufs
+		if ((flags & file::coalesce_buffers))
+			coalesce_read_buffers_end(orig_bufs, orig_num_bufs
 				, static_cast<char*>(tmp.iov_base), !ec);
 
 #endif
@@ -1876,6 +1884,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, num_bufs, ec);
 #else
+
+		// there's no point in coalescing single buffer writes
+		if (num_bufs == 1)
+		{
+			flags &= ~file::coalesce_buffers;
+		}
 
 		file::iovec_t tmp;
 		if (flags & file::coalesce_buffers)

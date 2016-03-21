@@ -230,7 +230,9 @@ namespace libtorrent
 			, m_flags(flags)
 		{}
 
-		int file_op(int file_index, boost::int64_t file_offset, int size
+		int file_op(int const file_index
+			, boost::int64_t const file_offset
+			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
 			TORRENT_OVERRIDE TORRENT_FINAL
 		{
@@ -314,12 +316,14 @@ namespace libtorrent
 
 	struct read_fileop : fileop
 	{
-		read_fileop(default_storage& st, int flags)
+		read_fileop(default_storage& st, int const flags)
 			: m_storage(st)
 			, m_flags(flags)
 		{}
 
-		int file_op(int file_index, boost::int64_t file_offset, int size
+		int file_op(int const file_index
+			, boost::int64_t const file_offset
+			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
 			TORRENT_OVERRIDE TORRENT_FINAL
 		{
@@ -396,7 +400,7 @@ namespace libtorrent
 
 	private:
 		default_storage& m_storage;
-		int m_flags;
+		int const m_flags;
 	};
 
 	default_storage::default_storage(storage_params const& params)

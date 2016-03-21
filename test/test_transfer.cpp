@@ -228,7 +228,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 32 * 1024, 13, false);
 	file.close();
 
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
@@ -420,6 +420,30 @@ TORRENT_TEST(allow_fast)
 
 	cleanup();
 }
+
+TORRENT_TEST(coalesce_reads)
+{
+	using namespace libtorrent;
+	// test allowed fast
+	settings_pack p;
+	p.set_int(settings_pack::read_cache_line_size, 16);
+	p.set_bool(settings_pack::coalesce_reads, true);
+	test_transfer(0, p, false);
+
+	cleanup();
+}
+
+TORRENT_TEST(coalesce_writes)
+{
+	using namespace libtorrent;
+	// test allowed fast
+	settings_pack p;
+	p.set_bool(settings_pack::coalesce_writes, true);
+	test_transfer(0, p, false);
+
+	cleanup();
+}
+
 
 TORRENT_TEST(allocate)
 {

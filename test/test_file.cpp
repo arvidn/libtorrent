@@ -360,3 +360,35 @@ TORRENT_TEST(hard_link)
 		fprintf(stderr, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 }
 
+TORRENT_TEST(coalesce_buffer)
+{
+	error_code ec;
+	file f;
+	TEST_CHECK(f.open("test_file", file::read_write, ec));
+	if (ec)
+		fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_EQUAL(ec, error_code());
+	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+	file::iovec_t b[2] = {{(void*)"test", 4}, {(void*)"foobar", 6}};
+	TEST_EQUAL(f.writev(0, b, 2, ec, file::coalesce_buffers), 4 + 6);
+	if (ec)
+		fprintf(stderr, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+	TEST_CHECK(!ec);
+	char test_buf1[5] = {0};
+	char test_buf2[7] = {0};
+	b[0].iov_base = test_buf1;
+	b[0].iov_len = 4;
+	b[1].iov_base = test_buf2;
+	b[1].iov_len = 6;
+	TEST_EQUAL(f.readv(0, b, 2, ec), 4 + 6);
+	if (ec)
+	{
+		fprintf(stderr, "readv failed: [%s] %s\n"
+			, ec.category().name(), ec.message().c_str());
+	}
+	TEST_EQUAL(ec, error_code());
+	TEST_CHECK(strcmp(test_buf1, "test") == 0);
+	TEST_CHECK(strcmp(test_buf2, "foobar") == 0);
+	f.close();
+}
+

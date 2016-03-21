@@ -133,10 +133,7 @@ namespace libtorrent
 
 			// this job is currently being performed, or it's hanging
 			// on a cache piece that may be flushed soon
-			in_progress = 0x20,
-
-			// turns into file::coalesce_buffers in the file operation
-			coalesce_buffers = 0x40
+			in_progress = 0x20
 		};
 
 		// for write jobs, returns true if its block
