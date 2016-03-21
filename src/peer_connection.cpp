@@ -5701,21 +5701,6 @@ namespace libtorrent
 		setup_receive();
 	}
 
-	void peer_connection::on_allocate_disk_buffer(char* buffer, int buffer_size)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_disk);
-
-		m_recv_buffer.assign_disk_buffer(buffer, buffer_size);
-
-		m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
-		m_channel_state[download_channel] &= ~peer_info::bw_disk;
-
-		setup_receive();
-	}
-
 	void peer_connection::setup_receive()
 	{
 		TORRENT_ASSERT(is_single_thread());
