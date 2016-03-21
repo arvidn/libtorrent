@@ -153,17 +153,6 @@ namespace libtorrent
 	namespace aux { struct session_settings; }
 	struct cached_piece_entry;
 
-	TORRENT_EXTRA_EXPORT std::vector<std::pair<boost::int64_t, std::time_t> > get_filesizes(
-		file_storage const& t
-		, std::string const& p);
-
-	TORRENT_EXTRA_EXPORT bool match_filesizes(
-		file_storage const& t
-		, std::string const& p
-		, std::vector<std::pair<boost::int64_t, std::time_t> > const& sizes
-		, bool compact_mode
-		, std::string* error = 0);
-
 	TORRENT_EXTRA_EXPORT int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target);
 	TORRENT_EXTRA_EXPORT void advance_bufs(file::iovec_t*& bufs, int bytes);
 	TORRENT_EXTRA_EXPORT void clear_bufs(file::iovec_t const* bufs, int num_bufs);

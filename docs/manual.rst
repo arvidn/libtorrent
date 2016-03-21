@@ -522,7 +522,7 @@ The file format is a bencoded dictionary containing the following fields:
 |                          | re-check is issued.                                          |
 +--------------------------+--------------------------------------------------------------+
 | ``allocation``           | The allocation mode for the storage. Can be either ``full``  |
-|                          | or ``compact``. If this is full, the file sizes and          |
+|                          | or ``sparse``. If this is full, the file sizes and           |
 |                          | timestamps are disregarded. Pieces are assumed not to have   |
 |                          | moved around even if the files have been modified after the  |
 |                          | last resume data checkpoint.                                 |
@@ -540,16 +540,6 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
 
 2. The *sparse allocation*, sparse files are used, and pieces are downloaded
    directly to where they belong. This is the recommended (and default) mode.
-
-In previous versions of libtorrent, a 3rd mode was supported, *compact
-allocation*. Support for this is deprecated and will be removed in future
-versions of libtorrent. It's still described in here for completeness.
-
-The allocation mode is selected when a torrent is started. It is passed as an
-argument to session::add_torrent() or session::async_add_torrent().
-
-The decision to use full allocation or compact allocation typically depends on
-whether any files have priority 0 and if the filesystem supports sparse files.
 
 sparse allocation
 -----------------

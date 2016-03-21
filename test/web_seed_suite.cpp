@@ -139,9 +139,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	p.flags |= add_torrent_params::flag_sequential_download;
 	p.ti = torrent_file;
 	p.save_path = save_path;
-#ifndef TORRENT_NO_DEPRECATE
-	p.storage_mode = storage_mode_compact;
-#endif
 	torrent_handle th = ses.add_torrent(p, ec);
 	printf("adding torrent, save_path = \"%s\" cwd = \"%s\" torrent = \"%s\"\n"
 		, save_path.c_str(), current_working_directory().c_str()

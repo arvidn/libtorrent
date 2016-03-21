@@ -55,14 +55,7 @@ namespace libtorrent
 
 		// All pieces will be written to the place where they belong and sparse files
 		// will be used. This is the recommended, and default mode.
-		storage_mode_sparse,
-
-		// internal
-		internal_storage_mode_compact_deprecated
-#ifndef TORRENT_NO_DEPRECATE
-		, // comma here to avoid compiler warning
-		storage_mode_compact = internal_storage_mode_compact_deprecated
-#endif
+		storage_mode_sparse
 	};
 
 	// see default_storage::default_storage()
@@ -78,7 +71,7 @@ namespace libtorrent
 		std::vector<boost::uint8_t> const* priorities; // optional
 		torrent_info const* info; // optional
 	};
-	
+
 	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
 
 	// the constructor function for the regular file storage. This is the
