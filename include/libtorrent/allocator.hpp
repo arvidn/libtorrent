@@ -53,29 +53,6 @@ namespace libtorrent
 #endif
 	};
 
-	struct TORRENT_EXTRA_EXPORT aligned_holder
-	{
-		aligned_holder(): m_buf(0) {}
-		aligned_holder(int size): m_buf(page_aligned_allocator::malloc(size)) {}
-		~aligned_holder() { if (m_buf) page_aligned_allocator::free(m_buf); }
-		char* get() const { return m_buf; }
-		void reset(char* buf = 0)
-		{
-			if (m_buf) page_aligned_allocator::free(m_buf);
-			m_buf = buf;
-		}
-		void swap(aligned_holder& h)
-		{
-			char* tmp = m_buf;
-			m_buf = h.m_buf;
-			h.m_buf =  tmp;
-		}
-	private:
-		aligned_holder(aligned_holder const&);
-		aligned_holder& operator=(aligned_holder const&);
-		char* m_buf;
-	};
-
 }
 
 #endif

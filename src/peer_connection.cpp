@@ -2212,6 +2212,9 @@ namespace libtorrent
 		m_counters.inc_stats_counter(counters::piece_requests);
 
 #ifndef TORRENT_DISABLE_LOGGING
+		const bool valid_piece_index
+			= r.piece >= 0 && r.piece < int(t->torrent_file().num_pieces());
+
 		peer_log(peer_log_alert::incoming_message, "REQUEST"
 			, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
 #endif
@@ -2222,9 +2225,6 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 			++m_num_invalid_requests;
 #ifndef TORRENT_DISABLE_LOGGING
-			const bool valid_piece_index
-				= r.piece >= 0 && r.piece < int(t->torrent_file().num_pieces());
-
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "piece not superseeded "
 				"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
 				, m_peer_interested
@@ -2306,7 +2306,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "peer is not interested "
 				" t: %d n: %d block_limit: %d"
-				, int(t->torrent_file().piece_size(r.piece))
+				, valid_piece_index
+					? int(t->torrent_file().piece_size(r.piece)) : -1
 				, t->torrent_file().num_pieces()
 				, t->block_size());
 			peer_log(peer_log_alert::info, "INTERESTED", "artificial incoming INTERESTED message");
@@ -2346,7 +2347,8 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "INVALID_REQUEST"
 				, "i: %d t: %d n: %d h: %d block_limit: %d"
 				, m_peer_interested
-				, int(t->torrent_file().piece_size(r.piece))
+				, valid_piece_index
+					? int(t->torrent_file().piece_size(r.piece)) : -1
 				, t->torrent_file().num_pieces()
 				, t->has_piece_passed(r.piece)
 				, t->block_size());
