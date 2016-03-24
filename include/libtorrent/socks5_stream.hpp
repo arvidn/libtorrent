@@ -141,6 +141,19 @@ public:
 	}
 #endif
 
+#ifndef BOOST_NO_EXCEPTIONS
+	endpoint_type local_endpoint() const
+	{
+		return m_local_endpoint;
+	}
+#endif
+
+	endpoint_type local_endpoint(error_code&) const
+	{
+		return m_local_endpoint;
+	}
+
+
 	// TODO: 2 add async_connect() that takes a hostname and port as well
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -194,6 +207,11 @@ private:
 	std::string m_user;
 	std::string m_password;
 	std::string m_dst_name;
+
+	// when listening via a socks proxy, this is the IP and port our listen
+	// socket bound to
+	endpoint_type m_local_endpoint;
+
 	int m_version;
 
 	// the socks command to send for this connection (connect, bind,
