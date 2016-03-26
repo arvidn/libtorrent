@@ -111,6 +111,8 @@ public:
 
 	void set_dst_name(std::string const& host)
 	{
+		// TODO: 3 re-enable this assert and fix callers
+/*
 #if TORRENT_USE_ASSERTS
 		error_code ec;
 		address::from_string(host, ec);
@@ -119,6 +121,7 @@ public:
 		// async_connect instead
 		TORRENT_ASSERT(ec);
 #endif
+*/
 		m_dst_name = host;
 		if (m_dst_name.size() > 255)
 			m_dst_name.resize(255);

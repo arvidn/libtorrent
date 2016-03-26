@@ -414,7 +414,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	});
 
 	sim::timer t2(sim, lt::seconds(5 + delay)
-	, [&ses,&test2](boost::system::error_code const& ec)
+		, [&ses,&test2](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 		TEST_EQUAL(torrents.size(), 1);
