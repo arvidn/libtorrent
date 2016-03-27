@@ -37,10 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/proxy_base.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
@@ -98,7 +100,7 @@ public:
 
 	void set_command(int c)
 	{
-		TORRENT_ASSERT(c >= socks5_connect && c <=socks5_udp_associate);
+		TORRENT_ASSERT(c >= socks5_connect && c <= socks5_udp_associate);
 		m_command = c;
 	}
 
@@ -109,19 +111,43 @@ public:
 		m_password = password;
 	}
 
+	template <typename Handler>
+	void async_accept(Handler const& handler)
+	{
+		TORRENT_ASSERT(m_listen == 1);
+		TORRENT_ASSERT(m_command == socks5_bind);
+
+		// to avoid unnecessary copying of the handler,
+		// store it in a shaed_ptr
+		error_code e;
+		connect1(e, boost::make_shared<handler_type>(handler));
+	}
+
+	template <typename Handler>
+	void async_listen(tcp::endpoint const& ep, Handler const& handler)
+	{
+		m_command = socks5_bind;
+
+		m_remote_endpoint = ep;
+
+		// to avoid unnecessary copying of the handler,
+		// store it in a shaed_ptr
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("socks5_stream::name_lookup");
+#endif
+		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
+		m_resolver.async_resolve(q, boost::bind(
+			&socks5_stream::name_lookup, this, _1, _2, h));
+	}
+
 	void set_dst_name(std::string const& host)
 	{
-		// TODO: 3 re-enable this assert and fix callers
-/*
-#if TORRENT_USE_ASSERTS
-		error_code ec;
-		address::from_string(host, ec);
 		// if this assert trips, set_dst_name() is called wth an IP address rather
 		// than a hostname. Instead, resolve the IP into an address and pass it to
 		// async_connect instead
-		TORRENT_ASSERT(ec);
-#endif
-*/
+		TORRENT_ASSERT(!is_ip_address(host.c_str()));
 		m_dst_name = host;
 		if (m_dst_name.size() > 255)
 			m_dst_name.resize(255);
@@ -160,8 +186,8 @@ public:
 	{
 		// make sure we don't try to connect to INADDR_ANY. binding is fine,
 		// and using a hostname is fine on SOCKS version 5.
-		TORRENT_ASSERT(m_command == socks5_bind
-			|| endpoint.address() != address()
+		TORRENT_ASSERT(m_command != socks5_bind);
+		TORRENT_ASSERT(endpoint.address() != address()
 			|| (!m_dst_name.empty() && m_version == 5));
 
 		m_remote_endpoint = endpoint;

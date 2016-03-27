@@ -98,6 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_ip_address
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 
@@ -6572,7 +6573,10 @@ namespace libtorrent
 			return;
 		}
 
-		bool proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames);
+		bool const is_ip = is_ip_address(hostname.c_str());
+		if (is_ip) a.address(address::from_string(hostname.c_str(), ec));
+		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
+			&& !is_ip;
 
 		if (proxy_hostnames
 			&& (s->get<socks5_stream>()

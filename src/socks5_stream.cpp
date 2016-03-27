@@ -438,14 +438,12 @@ namespace libtorrent
 					if (m_listen == 0)
 					{
 						m_local_endpoint = parse_endpoint(m_buffer, m_version);
-#if defined TORRENT_ASIO_DEBUGGING
-						add_outstanding_async("socks5_stream::connect1");
-#endif
 						m_listen = 1;
-						connect1(e, h);
-						return;
 					}
-					m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					else
+					{
+						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					}
 					std::vector<char>().swap(m_buffer);
 					(*h)(e);
 				}
@@ -497,15 +495,12 @@ namespace libtorrent
 					if (m_listen == 0)
 					{
 						m_local_endpoint = parse_endpoint(m_buffer, m_version);
-
-#if defined TORRENT_ASIO_DEBUGGING
-						add_outstanding_async("socks5_stream::connect1");
-#endif
 						m_listen = 1;
-						connect1(e, h);
-						return;
 					}
-					m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					else
+					{
+						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					}
 					std::vector<char>().swap(m_buffer);
 					(*h)(e);
 				}
@@ -542,13 +537,12 @@ namespace libtorrent
 			if (m_listen == 0)
 			{
 				m_local_endpoint = parse_endpoint(m_buffer, m_version);
-
 				m_listen = 1;
-				connect1(e, h);
-				return;
 			}
-
-			m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+			else
+			{
+				m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+			}
 		}
 		std::vector<char>().swap(m_buffer);
 		(*h)(e);

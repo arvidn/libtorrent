@@ -2276,21 +2276,80 @@ retry:
 
 		if (m_socks_listen_socket) return;
 
-		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
+		m_socks_listen_socket = boost::make_shared<socket_type>(boost::ref(m_io_service));
 		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, NULL, NULL, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
 #if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_socks_listen");
+#endif
+		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
+
+		m_socks_listen_port = m_listen_interface.port();
+		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
+		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
+			, boost::bind(&session_impl::on_socks_listen, this
+				, m_socks_listen_socket, _1));
+	}
+
+	void session_impl::on_socks_listen(boost::shared_ptr<socket_type> const& sock
+		, error_code const& e)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_socks_listen");
+#endif
+
+		TORRENT_ASSERT(sock == m_socks_listen_socket || !m_socks_listen_socket);
+
+		if (e)
+		{
+			m_socks_listen_socket.reset();
+			if (e == boost::asio::error::operation_aborted) return;
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, -1, listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
+			return;
+		}
+
+		error_code ec;
+		tcp::endpoint ep = sock->local_endpoint(ec);
+		TORRENT_ASSERT(!ec);
+		TORRENT_UNUSED(ec);
+
+		if (m_alerts.should_post<listen_succeeded_alert>())
+			m_alerts.emplace_alert<listen_succeeded_alert>(
+				ep, listen_succeeded_alert::socks5);
+
+#if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_socks_accept");
 #endif
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
-		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
-		m_socks_listen_port = m_listen_interface.port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
-		s.async_connect(tcp::endpoint(address_v4::any(), m_socks_listen_port)
-			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
+		s.async_accept(boost::bind(&session_impl::on_socks_accept, this
+				, m_socks_listen_socket, _1));
+	}
+
+	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
+		, error_code const& e)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_socks_accept");
+#endif
+		TORRENT_ASSERT(s == m_socks_listen_socket || !m_socks_listen_socket);
+		m_socks_listen_socket.reset();
+		if (e == boost::asio::error::operation_aborted) return;
+		if (e)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, -1, listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
+			return;
+		}
+		open_new_incoming_socks_connection();
+		incoming_connection(s);
 	}
 
 	void session_impl::update_i2p_bridge()
@@ -2840,26 +2899,6 @@ retry:
 	{
 		error_code ec;
 		set_socket_buffer_size(s, m_settings, ec);
-	}
-
-	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
-		, error_code const& e)
-	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_socks_accept");
-#endif
-		m_socks_listen_socket.reset();
-		if (e == boost::asio::error::operation_aborted) return;
-		if (e)
-		{
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, -1, listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
-			return;
-		}
-		open_new_incoming_socks_connection();
-		incoming_connection(s);
 	}
 
 	// if cancel_with_cq is set, the peer connection is

@@ -112,17 +112,24 @@ void run_test(Setup const& setup
 TORRENT_TEST(socks5_tcp_accept)
 {
 	using namespace libtorrent;
+	bool incoming_connection = false;
 	run_test(
 		[](lt::session& ses)
 		{
 			set_proxy(ses, settings_pack::socks5);
 		},
-		[](lt::session& ses, lt::alert const* alert) {},
+		[&](lt::session& ses, lt::alert const* alert) {
+			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
+			{
+				TEST_EQUAL(a->socket_type, 2);
+				incoming_connection = true;
+			}
+		},
 		[](sim::simulation& sim, lt::session& ses
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
-
-// test connecting to the client via its socks5 listen port
+			// test connecting to the client via its socks5 listen port
+		// TODO: maybe we could use peer_conn here instead
 			fake_peer peer1(sim, "60.0.0.0");
 			fake_peer peer2(sim, "60.0.0.1");
 
@@ -139,6 +146,102 @@ TORRENT_TEST(socks5_tcp_accept)
 			sim.run();
 		}
 	);
+
+	TEST_EQUAL(incoming_connection, true);
 }
 
+TORRENT_TEST(socks4_tcp_accept)
+{
+	using namespace libtorrent;
+	bool incoming_connection = false;
+	run_test(
+		[](lt::session& ses)
+		{
+			set_proxy(ses, settings_pack::socks4);
+		},
+		[&](lt::session& ses, lt::alert const* alert) {
+			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
+			{
+				TEST_EQUAL(a->socket_type, 2);
+				TEST_EQUAL(a->ip.address(), addr("60.0.0.0"))
+				incoming_connection = true;
+			}
+		},
+		[](sim::simulation& sim, lt::session& ses
+			, boost::shared_ptr<lt::torrent_info> ti)
+		{
+			fake_peer peer1(sim, "60.0.0.0");
 
+			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const& ec)
+			{
+				peer1.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
+			});
+
+			sim.run();
+		}
+	);
+
+	TEST_EQUAL(incoming_connection, true);
+}
+
+// make sure a listen_succeeded_alert is issued when successfully listening on
+// incoming connections via a socks5 proxy
+TORRENT_TEST(socks4_tcp_listen_alert)
+{
+	using namespace libtorrent;
+	bool listen_alert = false;
+	run_test(
+		[](lt::session& ses)
+		{
+			set_proxy(ses, settings_pack::socks4);
+		},
+		[&](lt::session& ses, lt::alert const* alert) {
+			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
+			{
+				if (a->sock_type == listen_succeeded_alert::socks5)
+				{
+					TEST_EQUAL(a->endpoint.address(), addr("50.50.50.50"));
+					TEST_EQUAL(a->endpoint.port(), 6881);
+					listen_alert = true;
+				}
+			}
+		},
+		[](sim::simulation& sim, lt::session& ses
+			, boost::shared_ptr<lt::torrent_info> ti)
+		{
+			sim.run();
+		}
+	);
+
+	TEST_EQUAL(listen_alert, true);
+}
+
+TORRENT_TEST(socks5_tcp_listen_alert)
+{
+	using namespace libtorrent;
+	bool listen_alert = false;
+	run_test(
+		[](lt::session& ses)
+		{
+			set_proxy(ses, settings_pack::socks5);
+		},
+		[&](lt::session& ses, lt::alert const* alert) {
+			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
+			{
+				if (a->sock_type == listen_succeeded_alert::socks5)
+				{
+					TEST_EQUAL(a->endpoint.address(), addr("50.50.50.50"));
+					TEST_EQUAL(a->endpoint.port(), 6881);
+					listen_alert = true;
+				}
+			}
+		},
+		[](sim::simulation& sim, lt::session& ses
+			, boost::shared_ptr<lt::torrent_info> ti)
+		{
+			sim.run();
+		}
+	);
+
+	TEST_EQUAL(listen_alert, true);
+}
