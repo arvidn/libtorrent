@@ -62,7 +62,8 @@ struct choke_state
 TORRENT_TEST(optimistic_unchoke)
 {
 	int const num_nodes = 20;
-	lt::time_duration const test_duration = libtorrent::seconds(num_nodes * 30 + 4);
+	lt::time_duration const test_duration
+		= libtorrent::seconds(num_nodes * 90);
 
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -83,8 +84,7 @@ TORRENT_TEST(optimistic_unchoke)
 
 	session_proxy proxy;
 
-	auto ses = std::make_shared<lt::session>(
-		std::ref(pack), std::ref(ios));
+	auto ses = std::make_shared<lt::session>(std::ref(pack), std::ref(ios));
 	ses->async_add_torrent(atp);
 
 	std::vector<std::shared_ptr<sim::asio::io_service> > io_service;
@@ -92,7 +92,7 @@ TORRENT_TEST(optimistic_unchoke)
 
 	print_alerts(*ses);
 
-	sim::timer t(sim, lt::seconds(2), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const& ec)
 	{
 		for (int i = 0; i < num_nodes; ++i)
 		{
@@ -148,6 +148,7 @@ TORRENT_TEST(optimistic_unchoke)
 		{
 			p->abort();
 		}
+		ses->set_alert_notify([]{});
 		proxy = ses->abort();
 		ses.reset();
 	});
@@ -157,11 +158,16 @@ TORRENT_TEST(optimistic_unchoke)
 	std::int64_t const duration_ms = lt::duration_cast<lt::milliseconds>(test_duration).count();
 	std::int64_t const average_unchoke_time = duration_ms / num_nodes;
 	printf("EXPECT: %" PRId64 " ms\n", average_unchoke_time);
-	for (auto const& cs : peer_choke_state)
+	for (auto& cs : peer_choke_state)
 	{
-		std::int64_t unchoke_duration = lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count();
+		if (!cs.choked)
+		{
+			cs.choked = true;
+			cs.unchoke_duration += lt::clock_type::now() - cs.last_unchoke;
+		}
+		std::int64_t const unchoke_duration = lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count();
 		printf("%" PRId64 " ms\n", unchoke_duration);
-		TEST_CHECK(std::abs(unchoke_duration - average_unchoke_time) < 1000);
+		TEST_CHECK(std::abs(unchoke_duration - average_unchoke_time) < 1500);
 	}
 }
 
