@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_swarm.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/http_server.hpp"
+#include "simulator/utils.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/session.hpp"
@@ -323,7 +324,6 @@ TORRENT_TEST(ipv6_support)
 
 		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 
-
 		lt::add_torrent_params p;
 		p.name = "test-torrent";
 		p.save_path = ".";
@@ -334,9 +334,8 @@ TORRENT_TEST(ipv6_support)
 		ses->async_add_torrent(p);
 
 		// stop the torrent 5 seconds in
-		asio::high_resolution_timer stop(ios);
-		stop.expires_from_now(chrono::seconds(5));
-		stop.async_wait([&ses](boost::system::error_code const& ec)
+		sim::timer t1(sim, lt::seconds(5)
+			, [&ses](boost::system::error_code const& ec)
 		{
 			std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 			for (auto const& t : torrents)
@@ -346,9 +345,8 @@ TORRENT_TEST(ipv6_support)
 		});
 
 		// then shut down 10 seconds in
-		asio::high_resolution_timer terminate(ios);
-		terminate.expires_from_now(chrono::seconds(10));
-		terminate.async_wait([&ses,&zombie](boost::system::error_code const& ec)
+		sim::timer t2(sim, lt::seconds(10)
+			, [&ses,&zombie](boost::system::error_code const& ec)
 		{
 			zombie = ses->abort();
 			ses->set_alert_notify([]{});
@@ -403,9 +401,8 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	ses->async_add_torrent(p);
 
 	// run the test 5 seconds in
-	asio::high_resolution_timer t1(ios);
-	t1.expires_from_now(chrono::seconds(5));
-	t1.async_wait([&ses,&test1](boost::system::error_code const& ec)
+	sim::timer t1(sim, lt::seconds(5)
+		, [&ses,&test1](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 		TEST_EQUAL(torrents.size(), 1);
@@ -413,9 +410,8 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 		test1(h);
 	});
 
-	asio::high_resolution_timer t2(ios);
-	t2.expires_from_now(chrono::seconds(5 + delay));
-	t2.async_wait([&ses,&test2](boost::system::error_code const& ec)
+	sim::timer t2(sim, lt::seconds(5 + delay)
+	, [&ses,&test2](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 		TEST_EQUAL(torrents.size(), 1);
@@ -424,9 +420,8 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	});
 
 	// then shut down 10 seconds in
-	asio::high_resolution_timer t3(ios);
-	t3.expires_from_now(chrono::seconds(10 + delay));
-	t3.async_wait([&ses,&zombie](boost::system::error_code const& ec)
+	sim::timer t3(sim, lt::seconds(10 + delay)
+		, [&ses,&zombie](boost::system::error_code const& ec)
 	{
 		zombie = ses->abort();
 		ses->set_alert_notify([]{});

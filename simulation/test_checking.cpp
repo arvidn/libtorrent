@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "simulator/simulator.hpp"
+#include "simulator/utils.hpp"
 
 #include "test.hpp"
 #include "settings.hpp"
@@ -63,9 +64,7 @@ void run_test(Setup const& setup, Test const& test)
 
 	print_alerts(*ses);
 
-	lt::deadline_timer timer(*ios);
-	timer.expires_from_now(lt::seconds(6));
-	timer.async_wait([&](lt::error_code const& ec)
+	sim::timer t(sim, lt::seconds(6), [&](boost::system::error_code const& ec)
 	{
 		test(*ses);
 

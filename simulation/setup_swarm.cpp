@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "setup_swarm.hpp"
 #include "setup_transfer.hpp" // for create_torrent
+#include "utils.hpp"
 
 namespace lt = libtorrent;
 using namespace sim;
@@ -102,11 +103,6 @@ std::string save_path(int swarm_id, int idx)
 	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
-}
-
-lt::address addr(char const* str)
-{
-	return lt::address::from_string(str);
 }
 
 void add_extra_peers(lt::session& ses)
