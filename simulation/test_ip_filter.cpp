@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "simulator/simulator.hpp"
+#include "simulator/utils.hpp"
+#include "utils.hpp" // for print_alerts
 
 using namespace sim;
 
@@ -85,8 +87,6 @@ void run_test(Setup const& setup
 	, HandleAlerts const& on_alert
 	, Test const& test)
 {
-	const lt::time_point start_time = lt::clock_type::now();
-
 	// setup the simulation
 	sim::default_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -114,22 +114,11 @@ void run_test(Setup const& setup
 	// the alert notification function is called from within libtorrent's
 	// context. It's not OK to talk to libtorrent in there, post it back out and
 	// then ask for alerts.
-	ses->set_alert_notify([&] { ios.post([&] {
-		std::vector<lt::alert*> alerts;
-		ses->pop_alerts(&alerts);
-		// call the user handler
-		for (auto const a : alerts)
-		{
-			printf("%-3d %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-				- start_time).count()), a->message().c_str());
+	print_alerts(*ses, [=](lt::session& ses, lt::alert const* a) {
+		on_alert(ses, a);
+	});
 
-			on_alert(*ses, a);
-		}
-	} ); } );
-
-	lt::deadline_timer timer(ios);
-	timer.expires_from_now(lt::seconds(60));
-	timer.async_wait([&](lt::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
 	{
 		test(*ses, test_peers);
 

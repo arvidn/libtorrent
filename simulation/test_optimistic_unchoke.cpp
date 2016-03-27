@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "create_torrent.hpp"
 #include "bittorrent_peer.hpp"
 #include "settings.hpp"
-#include "print_alerts.hpp"
+#include "utils.hpp"
+#include "simulator/utils.hpp"
 
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -61,7 +62,7 @@ struct choke_state
 TORRENT_TEST(optimistic_unchoke)
 {
 	int const num_nodes = 20;
-	lt::time_duration const test_duration = libtorrent::seconds(1201);
+	lt::time_duration const test_duration = libtorrent::seconds(num_nodes * 30 + 4);
 
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -82,31 +83,25 @@ TORRENT_TEST(optimistic_unchoke)
 
 	session_proxy proxy;
 
-	boost::shared_ptr<lt::session> ses = boost::make_shared<lt::session>(
-		boost::ref(pack), boost::ref(ios));
+	auto ses = std::make_shared<lt::session>(
+		std::ref(pack), std::ref(ios));
 	ses->async_add_torrent(atp);
 
-	std::vector<boost::shared_ptr<sim::asio::io_service> > io_service;
-	std::vector<boost::shared_ptr<peer_conn> > peers;
+	std::vector<std::shared_ptr<sim::asio::io_service> > io_service;
+	std::vector<std::shared_ptr<peer_conn> > peers;
 
-	ses->set_alert_notify([&]() {
-		// this function is called inside libtorrent and we cannot perform work
-		// immediately in it. We have to notify the outside to pull all the alerts
-		ios.post(boost::bind(&print_alerts, ses.get(), start_time));
-	});
+	print_alerts(*ses);
 
-	lt::deadline_timer timer(ios);
-	timer.expires_from_now(libtorrent::seconds(2));
-	timer.async_wait([&](error_code const& ec)
+	sim::timer t(sim, lt::seconds(2), [&](boost::system::error_code const& ec)
 	{
 		for (int i = 0; i < num_nodes; ++i)
 		{
 			// create a new io_service
 			char ep[30];
 			snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-			io_service.push_back(boost::make_shared<sim::asio::io_service>(
-				boost::ref(sim), addr(ep)));
-			peers.push_back(boost::make_shared<peer_conn>(boost::ref(*io_service.back())
+			io_service.push_back(std::make_shared<sim::asio::io_service>(
+				std::ref(sim), addr(ep)));
+			peers.push_back(std::make_shared<peer_conn>(std::ref(*io_service.back())
 				, [&,i](int msg, char const* bug, int len)
 				{
 					choke_state& cs = peer_choke_state[i];
@@ -136,7 +131,7 @@ TORRENT_TEST(optimistic_unchoke)
 					char const* msg_str[] = {"choke", "unchoke"};
 
 					lt::time_duration d = lt::clock_type::now() - start_time;
-					boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+					std::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
 					printf("\x1b[35m%4d.%03d: [%d] %s (%d ms)\x1b[0m\n"
 						, millis / 1000, millis % 1000, i, msg_str[msg]
 						, int(lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count()));
@@ -147,9 +142,7 @@ TORRENT_TEST(optimistic_unchoke)
 		}
 	});
 
-	lt::deadline_timer end_timer(ios);
-	timer.expires_from_now(test_duration);
-	timer.async_wait([&](error_code const& ec)
+	sim::timer t2(sim, test_duration, [&](boost::system::error_code const& ec)
 	{
 		for (auto& p : peers)
 		{
@@ -161,12 +154,12 @@ TORRENT_TEST(optimistic_unchoke)
 
 	sim.run();
 
-	boost::int64_t const duration_ms = lt::duration_cast<lt::milliseconds>(test_duration).count();
-	boost::int64_t const average_unchoke_time = duration_ms / num_nodes;
+	std::int64_t const duration_ms = lt::duration_cast<lt::milliseconds>(test_duration).count();
+	std::int64_t const average_unchoke_time = duration_ms / num_nodes;
 	printf("EXPECT: %" PRId64 " ms\n", average_unchoke_time);
 	for (auto const& cs : peer_choke_state)
 	{
-		boost::int64_t unchoke_duration = lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count();
+		std::int64_t unchoke_duration = lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count();
 		printf("%" PRId64 " ms\n", unchoke_duration);
 		TEST_CHECK(std::abs(unchoke_duration - average_unchoke_time) < 1000);
 	}
