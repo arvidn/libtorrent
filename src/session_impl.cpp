@@ -5465,7 +5465,7 @@ retry:
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			return m_socks_listen_port;
+			return m_socks_listen_socket->local_endpoint().port();
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can

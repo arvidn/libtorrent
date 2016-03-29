@@ -3154,7 +3154,7 @@ namespace libtorrent
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
-			?0:settings().get_int(settings_pack::num_want);
+			? 0 : settings().get_int(settings_pack::num_want);
 
 		time_point now = clock_type::now();
 

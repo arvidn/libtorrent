@@ -68,7 +68,7 @@ void test_interval(int interval)
 	std::vector<int> announces;
 
 	http.register_handler("/announce"
-	, [&announces,interval,start](std::string method, std::string req
+		, [&announces,interval,start](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(

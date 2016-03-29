@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "simulator/http_server.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
@@ -50,14 +51,12 @@ using namespace libtorrent;
 
 namespace lt = libtorrent;
 
-using sim::asio::ip::address_v4;
-
 std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
 {
 	char ep[30];
 	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, asio::ip::address_v4::from_string(ep)));
+		sim, address_v4::from_string(ep)));
 }
 
 // this is the general template for these tests. create the session with custom
@@ -245,3 +244,62 @@ TORRENT_TEST(socks5_tcp_listen_alert)
 
 	TEST_EQUAL(listen_alert, true);
 }
+
+TORRENT_TEST(socks5_tcp_announce)
+{
+	using namespace libtorrent;
+	int tracker_port = -1;
+	int alert_port = -1;
+	run_test(
+		[](lt::session& ses)
+		{
+			set_proxy(ses, settings_pack::socks5);
+
+			lt::add_torrent_params params;
+			params.info_hash = sha1_hash("abababababababababab");
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+			params.save_path = ".";
+			ses.async_add_torrent(params);
+		},
+		[&alert_port](lt::session& ses, lt::alert const* alert) {
+			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
+			{
+				if (a->sock_type == listen_succeeded_alert::socks5)
+				{
+					alert_port = a->endpoint.port();
+				}
+			}
+		},
+		[&tracker_port](sim::simulation& sim, lt::session& ses
+			, boost::shared_ptr<lt::torrent_info> ti)
+		{
+			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			// listen on port 8080
+			sim::http_server http(web_server, 8080);
+
+			http.register_handler("/announce"
+				, [&tracker_port](std::string method, std::string req
+				, std::map<std::string, std::string>&)
+			{
+				if (req.find("&event=started") != std::string::npos)
+				{
+					int port_pos = req.find("&port=");
+					TEST_CHECK(port_pos != std::string::npos);
+					if (port_pos != std::string::npos)
+					{
+						tracker_port = atoi(req.c_str() + port_pos + 6);
+					}
+				}
+
+				return sim::send_response(200, "OK", 27) + "d8:intervali1800e5:peers0:e";
+			});
+
+			sim.run();
+		}
+	);
+
+	TEST_EQUAL(alert_port, tracker_port);
+	TEST_CHECK(alert_port != -1);
+	TEST_CHECK(tracker_port != -1);
+}
+
