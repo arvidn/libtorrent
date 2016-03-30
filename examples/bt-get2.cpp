@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/torrent_status.hpp>
 
 namespace lt = libtorrent;
-using clock_t = std::chrono::monotonic_clock;
+using clk = std::chrono::steady_clock;
 
 // return the name of a torrent status enum
 char const* state(lt::torrent_status::state_t s)
@@ -75,7 +75,7 @@ int main(int argc, char const* argv[])
 
 	lt::session ses(pack);
 	lt::add_torrent_params atp;
-	std::chrono::time_point last_save_resume = clock_t::now();
+	clk::time_point last_save_resume = clk::now();
 
 	// load resume data from disk and pass it in as we add the magnet link
 	std::ifstream ifs(".resume_file", std::ios_base::binary);
@@ -135,7 +135,7 @@ int main(int argc, char const* argv[])
 		ses.post_torrent_updates();
 
 		// save resume data once every 30 seconds
-		if (clock_t::now() - last_save_resume > seconds(30)) {
+		if (clk::now() - last_save_resume > std::chrono::seconds(30)) {
 			h.save_resume_data();
 		}
 	}
