@@ -707,7 +707,6 @@ void test_fastresume(bool const test_deprecated)
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
-		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
@@ -816,7 +815,6 @@ void test_rename_file_fastresume(bool test_deprecated)
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_sparse;
-		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		torrent_status stat;
