@@ -480,10 +480,6 @@ void test_check_files(std::string const& test_path
 	io.set_num_threads(0);
 }
 
-#ifdef TORRENT_NO_DEPRECATE
-#define storage_mode_compact storage_mode_sparse
-#endif
-
 // TODO: 2 split this test up into smaller parts
 void run_test(bool unbuffered)
 {
@@ -533,7 +529,7 @@ void run_test(bool unbuffered)
 	std::cerr << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
-	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
+	run_storage_tests(info, fs, test_path, storage_mode_sparse, unbuffered);
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
@@ -577,7 +573,7 @@ void run_test(bool unbuffered)
 
 	std::cerr << "=== test 3 ===" << std::endl;
 
-	run_storage_tests(info, fs, test_path, storage_mode_compact, unbuffered);
+	run_storage_tests(info, fs, test_path, storage_mode_sparse, unbuffered);
 
 	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
@@ -610,7 +606,7 @@ void run_test(bool unbuffered)
 
 	std::cerr << "=== test 6 ===" << std::endl;
 	test_check_files(test_path, storage_mode_sparse, unbuffered);
-	test_check_files(test_path, storage_mode_compact, unbuffered);
+	test_check_files(test_path, storage_mode_sparse, unbuffered);
 
 	std::cerr << "=== test 7 ===" << std::endl;
 	test_rename(test_path);
@@ -645,7 +641,7 @@ void test_fastresume(bool const test_deprecated)
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
-		p.storage_mode = storage_mode_compact;
+		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(p, ec);
 		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
 		if (!exists(combine_path(p.save_path, "temporary")))
@@ -710,7 +706,8 @@ void test_fastresume(bool const test_deprecated)
 		p.flags &= ~add_torrent_params::flag_auto_managed;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
-		p.storage_mode = storage_mode_compact;
+		p.storage_mode = storage_mode_sparse;
+		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
@@ -767,7 +764,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		add_torrent_params p;
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
-		p.storage_mode = storage_mode_compact;
+		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		h.rename_file(0, "testing_renamed_files");
@@ -818,7 +815,8 @@ void test_rename_file_fastresume(bool test_deprecated)
 		}
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
-		p.storage_mode = storage_mode_compact;
+		p.storage_mode = storage_mode_sparse;
+		bencode(std::back_inserter(p.resume_data), resume);
 		torrent_handle h = ses.add_torrent(p, ec);
 
 		torrent_status stat;

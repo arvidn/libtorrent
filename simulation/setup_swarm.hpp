@@ -95,9 +95,6 @@ lt::torrent_status get_status(lt::session& ses);
 
 std::string save_path(int swarm_id, int idx);
 
-// construct an address from string
-lt::address addr(char const* str);
-
 // disable TCP and enable uTP
 void utp_only(lt::settings_pack& pack);
 

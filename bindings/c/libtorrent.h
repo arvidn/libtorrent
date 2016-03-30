@@ -129,8 +129,7 @@ enum proxy_type_t
 enum storage_mode_t
 {
 	storage_mode_allocate = 0,
-	storage_mode_sparse,
-	storage_mode_compact
+	storage_mode_sparse
 };
 
 enum state_t
@@ -144,7 +143,7 @@ enum state_t
 	allocating,
 	checking_resume_data
 };
-	
+
 struct torrent_status
 {
 	enum state_t state;

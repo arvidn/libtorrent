@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
+#include "simulator/utils.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
 
@@ -128,9 +129,7 @@ void run_test(
 	params.save_path = save_path(1);
 	ses[1]->async_add_torrent(params);
 
-	lt::deadline_timer timer(ios0);
-	timer.expires_from_now(lt::seconds(60));
-	timer.async_wait([&](lt::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
 	{
 		test(ses);
 

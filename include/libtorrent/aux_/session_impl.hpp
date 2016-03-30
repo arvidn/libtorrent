@@ -694,6 +694,10 @@ namespace libtorrent
 
 		private:
 
+			// return the settings value for int setting "n", if the value is
+			// negative, return INT_MAX
+			int get_int_setting(int n) const;
+
 			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
 
 			peer_class_pool m_classes;

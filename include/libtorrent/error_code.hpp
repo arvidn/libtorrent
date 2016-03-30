@@ -365,7 +365,7 @@ namespace libtorrent
 			// The 'blocks per piece' entry is invalid in the resume data file
 			invalid_blocks_per_piece,
 			// The resume file is missing the 'slots' entry, which is required
-			// for torrents with compact allocation
+			// for torrents with compact allocation. *DEPRECATED*
 			missing_slots,
 			// The resume file contains more slots than the torrent
 			too_many_slots,
@@ -376,7 +376,7 @@ namespace libtorrent
 			// The pieces on disk needs to be re-ordered for the specified
 			// allocation mode. This happens if you specify sparse allocation
 			// and the files on disk are using compact storage. The pieces needs
-			// to be moved to their right position
+			// to be moved to their right position. *DEPRECATED*
 			pieces_need_reorder,
 			// this error is returned when asking to save resume data and
 			// specifying the flag to only save when there's anything new to save

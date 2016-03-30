@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
+#include "simulator/utils.hpp"
 #include <iostream>
 
 using namespace sim;
@@ -80,9 +81,8 @@ void run_test(Settings const& sett, Setup const& setup, Test const& test)
 
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
-	lt::deadline_timer timer(*ios);
-	timer.expires_from_now(lt::seconds((num_torrents + 1) * 60));
-	timer.async_wait([&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds((num_torrents + 1) * 60)
+		, [&](boost::system::error_code const& ec)
 	{
 		test(*ses);
 

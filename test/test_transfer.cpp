@@ -455,14 +455,3 @@ TORRENT_TEST(allocate)
 	cleanup();
 }
 
-#ifndef TORRENT_NO_DEPRECATE
-TORRENT_TEST(compact)
-{
-	using namespace libtorrent;
-	fprintf(stderr, "compact mode\n");
-	test_transfer(0, settings_pack(), false, storage_mode_compact);
-
-	cleanup();
-}
-#endif
-

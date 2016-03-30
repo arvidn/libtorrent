@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <functional>
+#include "libtorrent/address.hpp"
 
 namespace libtorrent
 {
@@ -39,6 +40,9 @@ namespace libtorrent
 }
 
 namespace lt = libtorrent;
+
+// construct an address from string
+lt::address addr(char const* str);
 
 void utp_only(lt::session& ses);
 void enable_enc(lt::session& ses);

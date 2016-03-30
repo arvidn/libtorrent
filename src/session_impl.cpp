@@ -3699,6 +3699,13 @@ namespace aux {
 		}
 	}
 
+	int session_impl::get_int_setting(int n) const
+	{
+		int const v = settings().get_int(n);
+		if (v < 0) return (std::numeric_limits<int>::max)();
+		return v;
+	}
+
 	void session_impl::recalculate_auto_managed_torrents()
 	{
 		INVARIANT_CHECK;
@@ -3719,28 +3726,13 @@ namespace aux {
 
 		// these counters are set to the number of torrents
 		// of each kind we're allowed to have active
-		int downloading_limit = settings().get_int(settings_pack::active_downloads);
-		int seeding_limit = settings().get_int(settings_pack::active_seeds);
-		int checking_limit = settings().get_int(settings_pack::active_checking);
-		int dht_limit = settings().get_int(settings_pack::active_dht_limit);
-		int tracker_limit = settings().get_int(settings_pack::active_tracker_limit);
-		int lsd_limit = settings().get_int(settings_pack::active_lsd_limit);
-		int hard_limit = settings().get_int(settings_pack::active_limit);
-
-		if (downloading_limit == -1)
-			downloading_limit = (std::numeric_limits<int>::max)();
-		if (seeding_limit == -1)
-			seeding_limit = (std::numeric_limits<int>::max)();
-		if (checking_limit == -1)
-			checking_limit = (std::numeric_limits<int>::max)();
-		if (hard_limit == -1)
-			hard_limit = (std::numeric_limits<int>::max)();
-		if (dht_limit == -1)
-			dht_limit = (std::numeric_limits<int>::max)();
-		if (lsd_limit == -1)
-			lsd_limit = (std::numeric_limits<int>::max)();
-		if (tracker_limit == -1)
-			tracker_limit = (std::numeric_limits<int>::max)();
+		int downloading_limit = get_int_setting(settings_pack::active_downloads);
+		int seeding_limit = get_int_setting(settings_pack::active_seeds);
+		int checking_limit = get_int_setting(settings_pack::active_checking);
+		int dht_limit = get_int_setting(settings_pack::active_dht_limit);
+		int tracker_limit = get_int_setting(settings_pack::active_tracker_limit);
+		int lsd_limit = get_int_setting(settings_pack::active_lsd_limit);
+		int hard_limit = get_int_setting(settings_pack::active_limit);
 
 		// if hard_limit is <= 0, all torrents in these lists should be paused.
 		// The order is not relevant
@@ -3808,7 +3800,9 @@ namespace aux {
 		// that are eligible for optimistic unchoke, similar to the torrents
 		// perhaps this could even iterate over the pool allocators of
 		// torrent_peer objects. It could probably be done in a single pass and
-		// collect the n best candidates
+		// collect the n best candidates. maybe just a queue of peers would make
+		// even more sense, just pick the next peer in the queue for unchoking. It
+		// would be O(1).
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
@@ -4097,8 +4091,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		time_point now = aux::time_now();
-		time_duration unchoke_interval = now - m_last_choke;
+		time_point const now = aux::time_now();
+		time_duration const unchoke_interval = now - m_last_choke;
 		m_last_choke = now;
 
 		// build list of all peers that are
@@ -4112,8 +4106,8 @@ namespace aux {
 			boost::shared_ptr<peer_connection> p = *i;
 			TORRENT_ASSERT(p);
 			++i;
-			torrent* t = p->associated_torrent().lock().get();
-			torrent_peer* pi = p->peer_info_struct();
+			torrent* const t = p->associated_torrent().lock().get();
+			torrent_peer* const pi = p->peer_info_struct();
 
 			if (p->ignore_unchoke_slots() || t == 0 || pi == 0
 				|| pi->web_seed || t->is_paused())
@@ -4183,8 +4177,11 @@ namespace aux {
 			, allowed_upload_slots);
 #endif
 
-		int num_opt_unchoke = m_settings.get_int(settings_pack::num_optimistic_unchoke_slots);
-		if (num_opt_unchoke == 0) num_opt_unchoke = (std::max)(1, allowed_upload_slots / 5);
+		int const unchoked_counter_optimistic
+			= m_stats_counters[counters::num_peers_up_unchoked_optimistic];
+		int const num_opt_unchoke = (unchoked_counter_optimistic == 0)
+			? (std::max)(1, allowed_upload_slots / 5) : unchoked_counter_optimistic;
+
 		int unchoke_set_size = allowed_upload_slots - num_opt_unchoke;
 
 		// go through all the peers and unchoke the first ones and choke
@@ -6060,10 +6057,7 @@ namespace aux {
 
 	void session_impl::update_unchoke_limit()
 	{
-		int allowed_upload_slots = m_settings.get_int(settings_pack::unchoke_slots_limit);
-
-		if (allowed_upload_slots < 0)
-			allowed_upload_slots = (std::numeric_limits<int>::max)();
+		int const allowed_upload_slots = get_int_setting(settings_pack::unchoke_slots_limit);
 
 		m_stats_counters.set_value(counters::num_unchoke_slots
 			, allowed_upload_slots);
@@ -7035,9 +7029,9 @@ namespace aux {
 				settings_pack::num_optimistic_unchoke_slots));
 		}
 
-		int unchoked_counter_all = m_stats_counters[counters::num_peers_up_unchoked_all];
-		int unchoked_counter = m_stats_counters[counters::num_peers_up_unchoked];
-		int unchoked_counter_optimistic
+		int const unchoked_counter_all = m_stats_counters[counters::num_peers_up_unchoked_all];
+		int const unchoked_counter = m_stats_counters[counters::num_peers_up_unchoked];
+		int const unchoked_counter_optimistic
 			= m_stats_counters[counters::num_peers_up_unchoked_optimistic];
 
 		TORRENT_ASSERT_VAL(unchoked_counter_all == unchokes_all, unchokes_all);

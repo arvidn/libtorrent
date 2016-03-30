@@ -506,16 +506,6 @@ There are two modes in which storage (files on disk) are allocated in libtorrent
 2. The *sparse allocation*, sparse files are used, and pieces are downloaded
    directly to where they belong. This is the recommended (and default) mode.
 
-In previous versions of libtorrent, a 3rd mode was supported, *compact
-allocation*. Support for this is deprecated and will be removed in future
-versions of libtorrent. It's still described in here for completeness.
-
-The allocation mode is selected when a torrent is started. It is passed as an
-argument to session::add_torrent() or session::async_add_torrent().
-
-The decision to use full allocation or compact allocation typically depends on
-whether any files have priority 0 and if the filesystem supports sparse files.
-
 sparse allocation
 -----------------
 
