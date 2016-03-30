@@ -93,7 +93,7 @@ script:
 
   - cd ../examples
   - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared
-  - if [[ lang == "cpp11" ]]; then
+  - if [[ $lang == "cpp11" ]]; then
     bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared bt-get bt-get2;
     fi
   - cd ..
