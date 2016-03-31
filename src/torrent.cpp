@@ -5493,6 +5493,8 @@ namespace libtorrent
 			TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
 		}
 		update_gauge();
+		update_want_tick();
+
 		if (filter_updated)
 		{
 			// we need to save this new state
