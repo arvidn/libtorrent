@@ -36,6 +36,13 @@ class test_torrent_info(unittest.TestCase):
 		self.assertEqual(f.file_size(0), 1234)
 		self.assertEqual(info.total_size(), 1234)
 
+	def test_metadata(self):
+		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
+		ti = lt.torrent_info('base.torrent');
+
+		self.assertTrue(len(ti.metadata()) != 0)
+		self.assertTrue(len(ti.hash_for_piece(0)) != 0)
+
 class test_alerts(unittest.TestCase):
 
 	def test_alert(self):
