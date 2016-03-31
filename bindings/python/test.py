@@ -8,7 +8,19 @@ import os
 import shutil
 import binascii
 
-# test torrent_info
+class test_torrent_handle(unittest.TestCase):
+
+	def test_torrent_handle(self):
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
+		ti = lt.torrent_info('url_seed_multi.torrent');
+		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+
+		h.prioritize_files([0,1])
+		self.assertEqual(h.file_priorities(), [0,1])
+
+		h.prioritize_pieces([0])
+		self.assertEqual(h.piece_priorities(), [0])
 
 class test_torrent_info(unittest.TestCase):
 
@@ -23,6 +35,13 @@ class test_torrent_info(unittest.TestCase):
 		self.assertEqual(f.file_path(0), 'test_torrent')
 		self.assertEqual(f.file_size(0), 1234)
 		self.assertEqual(info.total_size(), 1234)
+
+	def test_metadata(self):
+		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
+		ti = lt.torrent_info('base.torrent');
+
+		self.assertTrue(len(ti.metadata()) != 0)
+		self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
 class test_alerts(unittest.TestCase):
 
@@ -75,6 +94,7 @@ class test_sha1hash(unittest.TestCase):
 
 
 class test_session(unittest.TestCase):
+
 	def test_post_session_stats(self):
 		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification})
 		s.post_session_stats()
@@ -82,6 +102,7 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
+
 
 if __name__ == '__main__':
 	print(lt.__version__)
