@@ -8,14 +8,15 @@
 #include <libtorrent/piece_picker.hpp> // for piece_block
 #include <libtorrent/session_stats.hpp>
 #include <memory>
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
 
-std::string get_buffer(read_piece_alert const& rpa)
+bytes get_buffer(read_piece_alert const& rpa)
 {
-    return rpa.buffer ? std::string(rpa.buffer.get(), rpa.size)
-       : std::string();
+    return rpa.buffer ? bytes(rpa.buffer.get(), rpa.size)
+       : bytes();
 }
 
 tuple endpoint_to_tuple(tcp::endpoint const& ep)
@@ -267,7 +268,7 @@ void bind_alert()
 
     class_<torrent_removed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_removed_alert", no_init)
-        .def_readonly("info_hash", &torrent_removed_alert::info_hash) 
+        .def_readonly("info_hash", &torrent_removed_alert::info_hash)
         ;
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
