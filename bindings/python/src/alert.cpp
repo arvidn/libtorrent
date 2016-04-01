@@ -6,14 +6,15 @@
 #include <libtorrent/alert.hpp>
 #include <libtorrent/alert_types.hpp>
 #include <memory>
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
 
-std::string get_buffer(read_piece_alert const& rpa)
+bytes get_buffer(read_piece_alert const& rpa)
 {
-    return rpa.buffer ? std::string(rpa.buffer.get(), rpa.size)
-       : std::string();
+    return rpa.buffer ? bytes(rpa.buffer.get(), rpa.size)
+       : bytes();
 }
 
 tuple endpoint_to_tuple(tcp::endpoint const& ep)
