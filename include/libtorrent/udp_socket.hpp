@@ -114,25 +114,34 @@ namespace libtorrent
 		template <class SocketOption>
 		void get_option(SocketOption const& opt, error_code& ec)
 		{
-			m_ipv4_sock.get_option(opt, ec);
 #if TORRENT_USE_IPV6
-			m_ipv6_sock.get_option(opt, ec);
+			if (opt.level(udp::v6()) == IPPROTO_IPV6)
+				m_ipv6_sock.get_option(opt, ec);
+			else
 #endif
+				m_ipv4_sock.get_option(opt, ec);
 		}
 
 		template <class SocketOption>
 		void set_option(SocketOption const& opt, error_code& ec)
 		{
-			m_ipv4_sock.set_option(opt, ec);
+			if (opt.level(udp::v4()) != IPPROTO_IPV6)
+				m_ipv4_sock.set_option(opt, ec);
 #if TORRENT_USE_IPV6
-			m_ipv6_sock.set_option(opt, ec);
+			if (opt.level(udp::v6()) != IPPROTO_IP)
+				m_ipv6_sock.set_option(opt, ec);
 #endif
 		}
 
 		template <class SocketOption>
 		void get_option(SocketOption& opt, error_code& ec)
 		{
-			m_ipv4_sock.get_option(opt, ec);
+#if TORRENT_USE_IPV6
+			if (opt.level(udp::v6()) == IPPROTO_IPV6)
+				m_ipv6_sock.get_option(opt, ec);
+			else
+#endif
+				m_ipv4_sock.get_option(opt, ec);
 		}
 
 		udp::endpoint proxy_addr() const { return m_proxy_addr; }
