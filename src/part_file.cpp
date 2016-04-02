@@ -301,8 +301,10 @@ namespace libtorrent
 
 	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
 	{
+		mutex::scoped_lock l(m_mutex);
+
 		int piece = offset / m_piece_size;
-		int end = ((offset + size) + m_piece_size - 1) / m_piece_size;
+		int const end = ((offset + size) + m_piece_size - 1) / m_piece_size;
 
 		boost::scoped_array<char> buf;
 
@@ -311,30 +313,49 @@ namespace libtorrent
 		for (; piece < end; ++piece)
 		{
 			boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
-			int block_to_copy = (std::min)(m_piece_size - piece_offset, size);
+			int const block_to_copy = (std::min)(m_piece_size - piece_offset, size);
 			if (i != m_piece_map.end())
 			{
+				int const slot = i->second;
 				open_file(file::read_only, ec);
 				if (ec) return;
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
-				boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(i->second) * m_piece_size;
-				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
+				boost::int64_t const slot_offset = boost::int64_t(m_header_size)
+					+ boost::int64_t(slot) * m_piece_size;
+
+				// don't hold the lock during disk I/O
+				l.unlock();
+
+				file::iovec_t const v = { buf.get(), size_t(block_to_copy) };
 				int ret = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == block_to_copy);
 				if (ec || ret != block_to_copy) return;
-
 
 				ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == block_to_copy);
 				if (ec || ret != block_to_copy) return;
 
+				// we're done with the disk I/O, grab the lock again to update
+				// the slot map
+				l.lock();
+
 				if (block_to_copy == m_piece_size)
 				{
-					m_free_slots.push_back(i->second);
-					m_piece_map.erase(i);
-					m_dirty_metadata = true;
+					// since we released the lock, it's technically possible that
+					// another thread removed this slot map entry, and invalidated
+					// our iterator. Now that we hold the lock again, perform
+					// another lookup to be sure.
+					boost::unordered_map<int, int>::iterator j = m_piece_map.find(piece);
+					if (j != m_piece_map.end())
+					{
+						// if the slot moved, that's really suspicious
+						TORRENT_ASSERT(j->second == slot);
+						m_free_slots.push_back(j->second);
+						m_piece_map.erase(j);
+						m_dirty_metadata = true;
+					}
 				}
 			}
 			file_offset += block_to_copy;
