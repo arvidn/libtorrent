@@ -21,6 +21,10 @@ class test_torrent_handle(unittest.TestCase):
 		h.prioritize_pieces([0])
 		self.assertEqual(h.piece_priorities(), [0])
 
+      # also test the overload that takes a list of piece->priority mappings
+		h.prioritize_pieces([(0, 1)])
+		self.assertEqual(h.piece_priorities(), [1])
+
 class test_torrent_info(unittest.TestCase):
 
 	def test_bencoded_constructor(self):
