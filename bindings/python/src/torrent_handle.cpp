@@ -4,6 +4,7 @@
 
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
+#include <boost/python/stl_iterator.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
@@ -163,25 +164,9 @@ void prioritize_pieces(torrent_handle& info, object o)
 void prioritize_files(torrent_handle& info, object o)
 {
    std::vector<int> result;
-   try
-   {
-      object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
-      while( 1 )
-      {
-#if PY_MAJOR_VERSION >= 3
-         object obj = extract<object>( iter_obj.attr( "__next__" )() );
-#else
-         object obj = extract<object>( iter_obj.attr( "next" )() );
-#endif
-         result.push_back(extract<int const>( obj ));
-      }
-   }
-   catch( error_already_set )
-   {
-      PyErr_Clear();
-      info.prioritize_files(result);
-      return;
-   }
+   stl_input_iterator<int const> begin(o), end;
+   result.insert(result.begin(), begin, end);
+   info.prioritize_files(result);
 }
 
 list file_priorities(torrent_handle& handle)
