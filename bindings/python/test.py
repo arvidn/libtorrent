@@ -12,7 +12,6 @@ class test_torrent_handle(unittest.TestCase):
 
 	def test_torrent_handle(self):
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
-		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
 		ti = lt.torrent_info('url_seed_multi.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 
@@ -37,7 +36,6 @@ class test_torrent_info(unittest.TestCase):
 		self.assertEqual(info.total_size(), 1234)
 
 	def test_metadata(self):
-		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 		ti = lt.torrent_info('base.torrent');
 
 		self.assertTrue(len(ti.metadata()) != 0)
@@ -48,7 +46,6 @@ class test_alerts(unittest.TestCase):
 	def test_alert(self):
 
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
-		shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 		st = h.status()
@@ -106,5 +103,7 @@ class test_session(unittest.TestCase):
 
 if __name__ == '__main__':
 	print(lt.__version__)
+	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
+	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 	unittest.main()
 
