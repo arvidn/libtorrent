@@ -4098,14 +4098,13 @@ namespace libtorrent
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed())
+		if (!has_picker())
 		{
 			pieces->clear();
 			pieces->resize(m_torrent_file->num_pieces(), 1);
 			return;
 		}
 
-		TORRENT_ASSERT(m_picker.get());
 		m_picker->piece_priorities(*pieces);
 	}
 
