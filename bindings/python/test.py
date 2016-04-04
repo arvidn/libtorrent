@@ -73,6 +73,25 @@ class test_alerts(unittest.TestCase):
 		print(st.info_hash)
 		self.assertEqual(st.save_path, os.getcwd())
 
+	def test_pop_alerts(self):
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+
+		ses.async_add_torrent({"ti": lt.torrent_info("base.torrent"), "save_path": "."})
+# this will cause an error (because of duplicate torrents) and the
+# torrent_info object created here will be deleted once the alert goes out
+# of scope. When that happens, it will decrement the python object, to allow
+# it to release the object.
+# we're trying to catch the error described in this post, with regards to
+# torrent_info.
+# https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
+		ses.async_add_torrent({"ti": lt.torrent_info("base.torrent"), "save_path": "."})
+		time.sleep(1)
+		for i in range(0, 10):
+			alerts = ses.pop_alerts()
+			for a in alerts:
+				print(a.message())
+			time.sleep(0.1)
+
 class test_bencoder(unittest.TestCase):
 
 	def test_bencode(self):

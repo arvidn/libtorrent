@@ -207,7 +207,16 @@ namespace
     {
         // torrent_info objects are always held by a shared_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
-            p.ti = extract<boost::shared_ptr<torrent_info> >(params["ti"]);
+        {
+           // make a copy here. We don't want to end up holding a python-owned
+           // object inside libtorrent. If the last reference goes out of scope
+           // on the C++ side, it will end up freeing the python object
+           // without holding the GIL and likely crash.
+           // https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
+           p.ti = boost::make_shared<torrent_info>(
+              extract<torrent_info const&>(params["ti"]));
+        }
+
 
         if (params.has_key("info_hash"))
             p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr);
@@ -439,20 +448,20 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
-	 {
-	 	cache_status ret;
-		s.get_cache_info(&ret, h, flags);
-		return ret;
-	 }
+    cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
+    {
+       cache_status ret;
+       s.get_cache_info(&ret, h, flags);
+       return ret;
+    }
 
 #ifndef TORRENT_NO_DEPRECATE
-	 cache_status get_cache_status(lt::session& s)
-	 {
-	 	cache_status ret;
-		s.get_cache_info(&ret);
-		return ret;
-	 }
+    cache_status get_cache_status(lt::session& s)
+    {
+       cache_status ret;
+       s.get_cache_info(&ret);
+       return ret;
+    }
 
     dict get_utp_stats(session_status const& st)
     {
