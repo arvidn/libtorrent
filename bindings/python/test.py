@@ -104,6 +104,23 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
 
+	def test_deprecated_settings(self):
+
+		# this detects whether libtorrent was built with deprecated APIs
+		if hasattr(lt, 'version'):
+			s = lt.session({})
+			sett = lt.session_settings()
+			sett.num_want = 10;
+			s.set_settings(sett)
+			s.set_settings({'num_want': 33})
+			self.assertEqual(s.get_settings()['num_want'], 33)
+
+	def test_apply_settings(self):
+
+		s = lt.session({})
+		s.apply_settings({'num_want': 66})
+		self.assertEqual(s.get_settings()['num_want'], 66)
+
 
 if __name__ == '__main__':
 	print(lt.__version__)
