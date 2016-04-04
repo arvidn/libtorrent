@@ -190,7 +190,7 @@ namespace libtorrent
 		// 
 		// ``orig_files()`` returns the original (unmodified) file storage for
 		// this torrent. This is used by the web server connection, which needs
-		// to request files with the original names. Filename may be chaged using
+		// to request files with the original names. Filename may be changed using
 		// ``torrent_info::rename_file()``.
 		// 
 		// For more information on the file_storage object, see the separate
