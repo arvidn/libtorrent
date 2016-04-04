@@ -73,7 +73,7 @@ namespace libtorrent
 		// this torrent_peer. i.e. These are only updated
 		// when the connection is closed. For the
 		// total amount of upload and download
-		// we'll have to add thes figures with the
+		// we'll have to add these figures with the
 		// statistics from the peer_connection.
 		// since these values don't need to be stored
 		// with byte-precision, they specify the number
@@ -115,7 +115,7 @@ namespace libtorrent
 		// this torrent_peer has
 		unsigned failcount:5; // [0, 31]
 
-		// incoming peers (that don't advertize their listen port)
+		// incoming peers (that don't advertise their listen port)
 		// will not be considered connectable. Peers that
 		// we have a listen port for will be assumed to be.
 		bool connectable:1;
@@ -188,7 +188,7 @@ namespace libtorrent
 		bool supports_holepunch:1;
 		// this is set to one for web seeds. Web seeds
 		// are not stored in the policy m_peers list,
-		// and are excempt from connect candidate bookkeeping
+		// and are exempt from connect candidate bookkeeping
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
 		bool web_seed:1;

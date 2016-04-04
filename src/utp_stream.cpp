@@ -65,9 +65,7 @@ static struct utp_logger
 	FILE* utp_log_file;
 	mutex utp_log_mutex;
 
-	utp_logger() : utp_log_file(NULL) {
-		utp_log_file = fopen("utp.log", "w+");
-	}
+	utp_logger() : utp_log_file(NULL) {}
 	~utp_logger()
 	{
 		if (utp_log_file) fclose(utp_log_file);
@@ -504,7 +502,7 @@ public:
 	// this is what we'll send back
 	boost::uint32_t m_reply_micro;
 
-	// this is the advertized receive window the other end sent
+	// this is the advertised receive window the other end sent
 	// we'll never have more un-acked bytes in flight
 	// if this ever gets set to zero, we'll try one packet every
 	// second until the window opens up again
@@ -618,7 +616,7 @@ public:
 	// this is a counter of how many times the current m_acked_seq_nr
 	// has been ACKed. If it's ACKed more than 3 times, we assume the
 	// packet with the next sequence number has been lost, and we trigger
-	// a re-send. Ovbiously an ACK only counts as a duplicate as long as
+	// a re-send. Obviously an ACK only counts as a duplicate as long as
 	// we have outstanding packets following it.
 	boost::uint8_t m_duplicate_acks;
 
@@ -680,7 +678,7 @@ public:
 	// this is true while the socket is in slow start mode. It's
 	// only in slow-start during the start-up phase. Slow start
 	// (contrary to what its name suggest) means that we're growing
-	// the congestion window (cwnd) exponetially rather than linearly.
+	// the congestion window (cwnd) exponentially rather than linearly.
 	// this is done at startup of a socket in order to find its
 	// link capacity faster. This behaves similar to TCP slow start
 	bool m_slow_start:1;

@@ -64,10 +64,10 @@ namespace libtorrent
 #endif
 
 #if TORRENT_UTP_LOG
-	bool is_utp_stream_logging();
+	TORRENT_EXPORT bool is_utp_stream_logging();
 
 	// This function should be used at the very beginning and very end of your program.
-	void set_utp_stream_logging(bool enable);
+	TORRENT_EXPORT void set_utp_stream_logging(bool enable);
 #endif
 
 	TORRENT_EXTRA_EXPORT bool compare_less_wrap(boost::uint32_t lhs
@@ -90,8 +90,8 @@ namespace libtorrent
 	};
 
 	// internal: the point of the bif_endian_int is two-fold
-	// one purpuse is to not have any alignment requirements
-	// so that any byffer received from the network can be cast
+	// one purpose is to not have any alignment requirements
+	// so that any buffer received from the network can be cast
 	// to it and read as an integer of various sizes without
 	// triggering a bus error. The other purpose is to convert
 	// from network byte order to host byte order when read and
