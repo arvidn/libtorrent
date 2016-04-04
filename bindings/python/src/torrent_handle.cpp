@@ -122,51 +122,44 @@ list get_peer_info(torrent_handle const& handle)
     return result;
 }
 
+namespace
+{
+   template <typename T>
+   T extract_fn(object o)
+   {
+      return boost::python::extract<T>(o);
+   }
+}
+
 void prioritize_pieces(torrent_handle& info, object o)
 {
-   std::vector<int> result;
-   std::vector<std::pair<int, int> > piece_list;
-   try
+   stl_input_iterator<object> begin(o), end;
+   if (begin == end) return;
+
+   // determine which overload should be selected. the one taking a list of
+   // priorities or the one taking a list of piece -> priority mappings
+   bool const is_piece_list = extract<std::pair<int, int> >(*begin).check();
+
+   if (is_piece_list)
    {
-      object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
-      while( 1 )
-      {
-#if PY_MAJOR_VERSION >= 3
-         object obj = extract<object>( iter_obj.attr( "__next__" )() );
-#else
-         object obj = extract<object>( iter_obj.attr( "next" )() );
-#endif
-         extract<int const> val1(obj);
-         if (val1.check())
-         {
-            result.push_back(val1);
-            continue;
-         }
-         extract<std::pair<int, int> > val2(obj);
-         if (val2.check())
-         {
-            piece_list.push_back(val2);
-            continue;
-         }
-      }
+      std::vector<std::pair<int, int> > piece_list;
+      std::transform(begin, end, std::back_inserter(piece_list)
+         , &extract_fn<std::pair<int, int> >);
+      info.prioritize_pieces(piece_list);
    }
-   catch( error_already_set )
+   else
    {
-      PyErr_Clear();
-      if (result.size())
-         info.prioritize_pieces(result);
-      else
-         info.prioritize_pieces(piece_list);
-      return;
+      std::vector<int> priority_vector;
+      std::transform(begin, end, std::back_inserter(priority_vector)
+         , &extract_fn<int>);
+      info.prioritize_pieces(priority_vector);
    }
 }
 
 void prioritize_files(torrent_handle& info, object o)
 {
-   std::vector<int> result;
    stl_input_iterator<int const> begin(o), end;
-   result.insert(result.begin(), begin, end);
-   info.prioritize_files(result);
+   info.prioritize_files(std::vector<int> (begin, end));
 }
 
 list file_priorities(torrent_handle& handle)
