@@ -135,7 +135,26 @@ namespace
 		return boost::make_shared<lt::session>(p, flags);
 	}
 
-	void session_set_settings(lt::session& ses, dict const& sett_dict)
+#ifndef TORRENT_NO_DEPRECATE
+	void session_set_settings(lt::session& ses, object const& sett)
+	{
+		extract<session_settings> old_settings(sett);
+		if (old_settings.check())
+		{
+			allow_threading_guard guard;
+			ses.set_settings(old_settings);
+		}
+		else
+		{
+			settings_pack p;
+			make_settings_pack(p, extract<dict>(sett));
+			allow_threading_guard guard;
+			ses.apply_settings(p);
+		}
+	}
+#endif
+
+	void session_apply_settings(lt::session& ses, dict const& sett_dict)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett_dict);
@@ -782,14 +801,11 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("add_feed", &add_feed)
         .def("status", allow_threads(&lt::session::status))
-        .def("set_settings", &lt::session::set_settings)
-        .def("settings", &lt::session::settings)
-        .def("get_settings", &session_get_settings)
-#else
         .def("settings", &session_get_settings)
-        .def("get_settings", &session_get_settings)
+        .def("set_settings", &session_set_settings)
 #endif
-        .def("apply_settings", &session_set_settings)
+        .def("get_settings", &session_get_settings)
+        .def("apply_settings", &session_apply_settings)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
@@ -803,7 +819,7 @@ void bind_session()
 #ifdef TORRENT_NO_DEPRECATE
             , return_internal_reference<>()
 #endif
-			)
+        )
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
         .def("pop_alert", &pop_alert)
