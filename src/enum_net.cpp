@@ -551,55 +551,52 @@ namespace libtorrent
 			GetAdaptersAddresses_t GetAdaptersAddresses = (GetAdaptersAddresses_t)GetProcAddress(
 				iphlp, "GetAdaptersAddresses");
 
-			if (GetAdaptersAddresses == NULL)
+			if (GetAdaptersAddresses)
 			{
-				FreeLibrary(iphlp);
-				ec = error_code(boost::system::errc::not_supported, generic_category());
-				return std::vector<ip_interface>();
-			}
+				ULONG buf_size = 10000;
+				std::vector<char> buffer(buf_size);
+				PIP_ADAPTER_ADDRESSES adapter_addresses
+					= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 
-			ULONG buf_size = 10000;
-			std::vector<char> buffer(buf_size);
-			PIP_ADAPTER_ADDRESSES adapter_addresses
-				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
-
-			DWORD r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-				| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
-			if (r == ERROR_BUFFER_OVERFLOW)
-			{
-				buffer.resize(buf_size);
-				r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+				DWORD r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
-			}
-
-			if (r != NO_ERROR)
-			{
-				FreeLibrary(iphlp);
-				ec = error_code(WSAGetLastError(), asio::error::system_category);
-				return std::vector<ip_interface>();
-			}
-
-			for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
-				adapter != 0; adapter = adapter->Next)
-			{
-				ip_interface r;
-				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
-				r.name[sizeof(r.name)-1] = 0;
-				r.mtu = adapter->Mtu;
-				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
-				while (unicast)
+				if (r == ERROR_BUFFER_OVERFLOW)
 				{
-					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
-
-					ret.push_back(r);
-
-					unicast = unicast->Next;
+					buffer.resize(buf_size);
+					r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+						| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
 				}
-			}
 
-			// Free memory
+				if (r != NO_ERROR)
+				{
+					FreeLibrary(iphlp);
+					ec = error_code(WSAGetLastError(), asio::error::system_category);
+					return std::vector<ip_interface>();
+				}
+
+				for (PIP_ADAPTER_ADDRESSES adapter = adapter_addresses;
+					adapter != 0; adapter = adapter->Next)
+				{
+					ip_interface r;
+					strncpy(r.name, adapter->AdapterName, sizeof(r.name));
+					r.name[sizeof(r.name)-1] = 0;
+					r.mtu = adapter->Mtu;
+					IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+					while (unicast)
+					{
+						r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+
+						ret.push_back(r);
+
+						unicast = unicast->Next;
+					}
+				}
+
+				// Free memory
+				FreeLibrary(iphlp);
+				return ret;
+			}
 			FreeLibrary(iphlp);
-			return ret;
 		}
 #endif
 
