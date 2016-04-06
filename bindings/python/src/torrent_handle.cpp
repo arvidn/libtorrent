@@ -125,7 +125,11 @@ void prioritize_pieces(torrent_handle& info, object o)
       object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
       while( 1 )
       {
+#if PY_MAJOR_VERSION >= 3
+         object obj = extract<object>( iter_obj.attr( "__next__" )() );
+#else
          object obj = extract<object>( iter_obj.attr( "next" )() );
+#endif
          result.push_back(extract<int const>( obj ));
       }
    }
@@ -145,7 +149,11 @@ void prioritize_files(torrent_handle& info, object o)
       object iter_obj = object( handle<>( PyObject_GetIter( o.ptr() ) ));
       while( 1 )
       {
+#if PY_MAJOR_VERSION >= 3
+         object obj = extract<object>( iter_obj.attr( "__next__" )() );
+#else
          object obj = extract<object>( iter_obj.attr( "next" )() );
+#endif
          result.push_back(extract<int const>( obj ));
       }
    }

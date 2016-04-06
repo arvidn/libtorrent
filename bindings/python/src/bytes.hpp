@@ -9,7 +9,14 @@
 
 struct bytes
 {
+    bytes(char const* s, int len): arr(s, len) {}
     bytes(std::string const& s): arr(s) {}
+#if __cplusplus >= 201103L
+    bytes(std::string&& s): arr(std::move(s)) {}
+    bytes(bytes const&) = default;
+    bytes(bytes&&) = default;
+    bytes& operator=(bytes&&) = default;
+#endif
     bytes() {}
     std::string arr;
 };
