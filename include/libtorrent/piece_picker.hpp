@@ -588,7 +588,7 @@ namespace libtorrent
 			// recorded as piece_downloading_reverse, which really means the same
 			// as piece_downloading, it just saves space to also indicate that it
 			// has a bit lower priority. The reverse bit is only relevant if the
-			// state is piece_downloadin.
+			// state is piece_downloading.
 			boost::uint32_t download_state : 3;
 
 			// TODO: 2 having 8 priority levels is probably excessive. It should
@@ -660,7 +660,7 @@ namespace libtorrent
 			// +---+---+---+
 			// this '3' is called prio_factor
 			//
-			// the manually set priority takes presedence over the availability
+			// the manually set priority takes precedence over the availability
 			// by multiplying availability by priority.
 
 			int priority(piece_picker const* picker) const
@@ -774,7 +774,7 @@ namespace libtorrent
 		mutable std::vector<int> m_priority_boundries;
 
 		// each piece that's currently being downloaded has an entry in this list
-		// with block allocations. i.e. it says wich parts of the piece that is
+		// with block allocations. i.e. it says which parts of the piece that is
 		// being downloaded. This list is ordered by piece index to make lookups
 		// efficient there are as many buckets as there are piece states. See
 		// piece_pos::state_t. The only download state that does not have a
