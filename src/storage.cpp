@@ -1209,8 +1209,12 @@ namespace libtorrent
 			e.clear();
 			rename(old_path, new_path, e);
 			// if the source file doesn't exist. That's not a problem
+			// we just ignore that file
 			if (e == boost::system::errc::no_such_file_or_directory)
 				e.clear();
+
+			// on OSX, the error when trying to rename a file across different
+			// volumes is EXDEV, which will make it fall back to copying.
 
 			if (e)
 			{
@@ -1218,6 +1222,15 @@ namespace libtorrent
 				{
 					if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
 					continue;
+				}
+
+				if (e == boost::system::errc::invalid_argument
+					|| e == boost::system::errc::permission_denied)
+				{
+					ec.ec = e;
+					ec.file = i->second;
+					ec.operation = storage_error::rename;
+					break;
 				}
 
 				if (e != boost::system::errc::no_such_file_or_directory)
