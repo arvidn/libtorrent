@@ -1441,10 +1441,9 @@ namespace libtorrent
 	namespace
 	{
 		int append_blocks(std::vector<piece_block>& dst, std::vector<piece_block>& src
-			, int num_blocks, int prefer_whole_pieces)
+			, int num_blocks, int prefer_whole_pieces = 0)
 		{
 			if (src.empty()) return num_blocks;
-			int to_copy;
 
 			// this is a hack to make prefer_whole_pieces still work decently
 			// during "prioritize_partials". When prioritize partials gets
@@ -1453,14 +1452,13 @@ namespace libtorrent
 			// higher priority blocks to pick, we'll get here to append the backup
 			// blocks. 32 is picked to form 512 kiB requests while requesting
 			// blocks from the same piece as other peers.
-			if (prefer_whole_pieces == 0)
-				to_copy = (std::min)(int(src.size()), num_blocks);
-			else
-				to_copy = (std::min)(32, int(src.size()));
+			int const to_copy = (prefer_whole_pieces == 0)
+				? (std::min)(int(src.size()), num_blocks)
+				: (std::min)(32, int(src.size()));
 
 			dst.insert(dst.end()
 				, src.begin(), src.begin() + to_copy);
-			src.clear();
+			src.erase(src.begin(), src.begin() + to_copy);
 			return num_blocks - to_copy;
 		}
 	}
@@ -1829,12 +1827,10 @@ namespace libtorrent
 			if (done) break;
 		}
 
-		num_blocks = append_blocks(interesting_blocks, backup_blocks
-			, num_blocks, prefer_whole_pieces);
+		num_blocks = append_blocks(interesting_blocks, backup_blocks, num_blocks);
 		if (num_blocks <= 0) return;
 
-		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks
-			, prefer_whole_pieces);
+		num_blocks = append_blocks(interesting_blocks, backup_blocks2, num_blocks);
 		if (num_blocks <= 0) return;
 
 		// don't double-pick anything if the peer is on parole
@@ -1853,7 +1849,7 @@ namespace libtorrent
 		{
 			if (!pieces[i->index]) continue;
 			if (piece_priority(i->index) == 0) continue;
-				
+
 			if ((options & time_critical_mode) && piece_priority(i->index) != 7)
 				continue;
 
@@ -1868,15 +1864,25 @@ namespace libtorrent
 					, piece_block(i->index, j));
 				if (k != interesting_blocks.end()) continue;
 
+				fprintf(stderr, "expected to have picked: (%d, %d)\n", i->index, j);
+
 				fprintf(stderr, "interesting blocks:\n");
 				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
 					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
-				fprintf(stderr, "\nnum_blocks: %d\n", num_blocks);
-				
+				fprintf(stderr, "backup blocks:\n");
+				for (k = backup_blocks.begin(); k != backup_blocks.end(); ++k)
+					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
+				fprintf(stderr, "backup blocks2:\n");
+				for (k = backup_blocks2.begin(); k != backup_blocks2.end(); ++k)
+					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
+				fprintf(stderr, "\nnum_blocks: %d prefer_whole_pieces: %d temp: %d "
+					"options: 0x%x\n"
+					, num_blocks, prefer_whole_pieces, int(temp.size()), options);
+
 				for (std::vector<downloading_piece>::const_iterator l = m_downloads.begin()
 					, end(m_downloads.end()); l != end; ++l)
 				{
-					fprintf(stderr, "%d : ", l->index);
+					fprintf(stderr, "%d (prio: %d): ", l->index, piece_priority(l->index));
 					int num_blocks_in_piece = blocks_in_piece(l->index);
 					for (int m = 0; m < num_blocks_in_piece; ++m)
 						fprintf(stderr, "%d", l->info[m].state);
