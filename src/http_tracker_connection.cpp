@@ -204,6 +204,19 @@ namespace libtorrent
 					// source IP to determine our origin
 					url += "&ip=" + print_address(m_ses.listen_address());
 				}
+
+#if TORRENT_USE_IPV6
+				if (tracker_req().ipv6 != address_v6() && !i2p)
+				{
+					error_code err;
+					std::string const ip = tracker_req().ipv6.to_string(err);
+					if (!err)
+					{
+						url += "&ipv6=";
+						url += ip;
+					}
+				}
+#endif
 			}
 		}
 
