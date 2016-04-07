@@ -183,19 +183,21 @@ namespace libtorrent
 				{
 					url += "&ip=" + escape_string(announce_ip.c_str(), announce_ip.size());
 				}
-// TODO: support this somehow
-/*				else if (settings.get_bool(settings_pack::announce_double_nat)
-					&& is_local(m_ses.listen_address()))
-				{
-					// only use the global external listen address here
-					// if it turned out to be on a local network
-					// since otherwise the tracker should use our
-					// source IP to determine our origin
-					url += "&ip=" + print_address(m_ses.listen_address());
-				}
-*/
 			}
 		}
+
+#if TORRENT_USE_IPV6
+		if (tracker_req().ipv6 != address_v6() && !i2p)
+		{
+			error_code err;
+			std::string const ip = tracker_req().ipv6.to_string(err);
+			if (!err)
+			{
+				url += "&ipv6=";
+				url += ip;
+			}
+		}
+#endif
 
 		m_tracker_connection.reset(new http_connection(get_io_service(), m_man.host_resolver()
 			, boost::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)

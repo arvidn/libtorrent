@@ -150,6 +150,9 @@ namespace libtorrent
 
 		boost::uint32_t key;
 		int num_want;
+#if TORRENT_USE_IPV6
+		address_v6 ipv6;
+#endif
 		sha1_hash info_hash;
 		peer_id pid;
 		address bind_ip;
