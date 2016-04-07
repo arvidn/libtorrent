@@ -127,6 +127,9 @@ namespace libtorrent
 		std::string trackerid;
 		boost::uint32_t key;
 		int num_want;
+#if TORRENT_USE_IPV6
+		address_v6 ipv6;
+#endif
 		address bind_ip;
 		bool send_stats;
 		bool apply_ip_filter;
