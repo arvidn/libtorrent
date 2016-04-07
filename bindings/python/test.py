@@ -46,6 +46,11 @@ class test_torrent_info(unittest.TestCase):
 		self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
 	def test_iterable_files(self):
+
+		# this detects whether libtorrent was built with deprecated APIs
+		# the file_strage object is only iterable for backwards compatibility
+		if not hasattr(lt, 'version'): return
+
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
 		ti = lt.torrent_info('url_seed_multi.torrent');
 		files = ti.files()
