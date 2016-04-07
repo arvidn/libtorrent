@@ -3140,7 +3140,19 @@ namespace libtorrent
 		if (req.downloaded < 0) req.downloaded = 0;
 
 		req.event = e;
-		error_code ec;
+
+#if TORRENT_USE_IPV6
+		// since sending our IPv6 address to the tracker may be sensitive. Only
+		// do that if we're not in anonymous mode and if it's a private torrent
+		if (!settings().get_bool(settings_pack::anonymous_mode)
+			&& m_torrent_file
+			&& m_torrent_file->priv())
+		{
+			tcp::endpoint ep;
+			ep = m_ses.get_ipv6_interface();
+			if (ep != tcp::endpoint()) req.ipv6 = ep.address().to_v6();
+		}
+#endif
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
