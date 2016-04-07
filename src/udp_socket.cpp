@@ -748,6 +748,13 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
 #endif
 
+#ifdef TORRENT_WINDOWS
+	// closing a socket on windows may not immediately release the port it's
+	// bound to. This sleep is believed to make it more likely to be able to
+	// rebind a new socket to the same port again immediately below
+	Sleep(100);
+#endif
+
 	if (ep.address().is_v4())
 	{
 		m_ipv4_sock.open(udp::v4(), ec);
@@ -795,7 +802,10 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 #if TORRENT_USE_ASSERTS
 	m_started = true;
 #endif
-	m_bind_port = ep.port();
+
+	error_code err;
+	udp::endpoint const lep = m_ipv4_sock.local_endpoint(ec);
+	m_bind_port = lep.port();
 }
 
 void udp_socket::set_proxy_settings(proxy_settings const& ps)
