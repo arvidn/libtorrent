@@ -28,7 +28,7 @@
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

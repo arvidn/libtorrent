@@ -21,6 +21,7 @@ EXTRA_DIST = \
   src/module.cpp            \
   src/optional.hpp          \
   src/peer_info.cpp         \
+  src/boost_python.hpp      \
   src/session.cpp           \
   src/session_settings.cpp  \
   src/string.cpp            \

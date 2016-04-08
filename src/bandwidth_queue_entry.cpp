@@ -30,7 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/bandwidth_queue_entry.hpp"
 #include <cstring>
 #include <algorithm>

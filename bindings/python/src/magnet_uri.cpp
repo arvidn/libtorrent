@@ -2,7 +2,7 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt
 
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
@@ -17,23 +17,23 @@ extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 namespace {
 
 #ifndef TORRENT_NO_DEPRECATE
-    torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
-    {
-        add_torrent_params p;
+	torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
+	{
+		add_torrent_params p;
 
-        dict_to_add_torrent_params(params, p);
+		dict_to_add_torrent_params(params, p);
 
-        allow_threading_guard guard;
+		allow_threading_guard guard;
 
-		  p.url = uri;
+		p.url = uri;
 
 #ifndef BOOST_NO_EXCEPTIONS
-        return s.add_torrent(p);
+		return s.add_torrent(p);
 #else
-        error_code ec;
-        return s.add_torrent(p, ec);
+		error_code ec;
+		return s.add_torrent(p, ec);
 #endif
-    }
+	}
 #endif
 
 	dict parse_magnet_uri_wrap(std::string const& uri)
@@ -76,10 +76,10 @@ namespace {
 void bind_magnet_uri()
 {
 #ifndef TORRENT_NO_DEPRECATE
-    def("add_magnet_uri", &_add_magnet_uri);
+	def("add_magnet_uri", &_add_magnet_uri);
 #endif
-    def("make_magnet_uri", make_magnet_uri0);
-    def("make_magnet_uri", make_magnet_uri1);
-    def("parse_magnet_uri", parse_magnet_uri_wrap);
+	def("make_magnet_uri", make_magnet_uri0);
+	def("make_magnet_uri", make_magnet_uri1);
+	def("parse_magnet_uri", parse_magnet_uri_wrap);
 }
 
