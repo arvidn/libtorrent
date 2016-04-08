@@ -1164,8 +1164,6 @@ namespace libtorrent
 			, resolve_filename(j->error.file).c_str());
 #endif
 
-		TORRENT_ASSERT(j->piece >= 0);
-
 		if (j->action == disk_io_job::write)
 		{
 			piece_block block_finished(j->piece, j->d.io.offset / block_size());

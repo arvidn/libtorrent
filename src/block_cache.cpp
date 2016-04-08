@@ -1734,7 +1734,6 @@ void block_cache::check_invariant() const
 				TORRENT_PIECE_ASSERT(!p.blocks[k].pending, &p);
 				TORRENT_PIECE_ASSERT(p.blocks[k].refcount == 0, &p);
 			}
-			TORRENT_PIECE_ASSERT(p.blocks[k].refcount >= 0, &p);
 			num_refcount += p.blocks[k].refcount;
 		}
 		TORRENT_PIECE_ASSERT(num_blocks == p.num_blocks, &p);
