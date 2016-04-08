@@ -3326,7 +3326,6 @@ get_out:
 
 			info.peer = peer;
 			if (info.state == block_info::state_requested) --i->requested;
-			TORRENT_ASSERT(i->requested >= 0);
 			if (info.state == block_info::state_writing
 				|| info.state == block_info::state_finished)
 				return false;
@@ -3486,7 +3485,6 @@ get_out:
 		info.peer = peer;
 		TORRENT_ASSERT(info.state == block_info::state_writing
 			|| peer == 0);
-		TORRENT_ASSERT(i->writing >= 0);
 		if (info.state == block_info::state_writing)
 		{
 			--i->writing;
