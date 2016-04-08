@@ -81,6 +81,8 @@ http_connection::http_connection(io_service& ios
 	, m_connect_handler(ch)
 	, m_filter_handler(fh)
 	, m_timer(ios)
+	, m_read_timeout(seconds(5))
+	, m_completion_timeout(seconds(5))
 	, m_limiter_timer(ios)
 	, m_last_receive(aux::time_now())
 	, m_start_time(aux::time_now())

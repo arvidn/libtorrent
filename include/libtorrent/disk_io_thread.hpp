@@ -350,7 +350,7 @@ namespace libtorrent
 		void clear_piece(piece_manager* storage, int index) TORRENT_OVERRIDE;
 
 		// implements buffer_allocator_interface
-		void reclaim_block(block_cache_reference ref);
+		void reclaim_block(block_cache_reference ref) TORRENT_OVERRIDE;
 		void free_disk_buffer(char* buf) TORRENT_OVERRIDE { m_disk_cache.free_buffer(buf); }
 		char* allocate_disk_buffer(char const* category) TORRENT_OVERRIDE
 		{
@@ -375,7 +375,8 @@ namespace libtorrent
 		block_cache* cache() { return &m_disk_cache; }
 
 #if TORRENT_USE_ASSERTS
-		bool is_disk_buffer(char* buffer) const { return m_disk_cache.is_disk_buffer(buffer); }
+		bool is_disk_buffer(char* buffer) const TORRENT_OVERRIDE
+		{ return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 
 		enum thread_type_t {
@@ -386,7 +387,7 @@ namespace libtorrent
 		void thread_fun(int thread_id, thread_type_t type
 			, boost::shared_ptr<io_service::work> w);
 
-		file_pool& files() { return m_file_pool; }
+		virtual file_pool& files() TORRENT_OVERRIDE { return m_file_pool; }
 
 		io_service& get_io_service() { return m_ios; }
 

@@ -163,9 +163,9 @@ namespace libtorrent {
 		const static int header_size = (sizeof(header_t) + sizeof(uintptr_t)
 			- 1) / sizeof(uintptr_t);
 
-		void grow_capacity(int size)
+		void grow_capacity(int const size)
 		{
-			int amount_to_grow = (std::max)(size + header_size
+			int const amount_to_grow = (std::max)(size + header_size
 				, (std::max)(m_capacity * 3 / 2, 128));
 
 			uintptr_t* new_storage = new uintptr_t[m_capacity + amount_to_grow];

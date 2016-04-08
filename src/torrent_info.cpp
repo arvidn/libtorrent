@@ -376,7 +376,6 @@ namespace libtorrent
 			--added;
 			TORRENT_ASSERT(added >= 0);
 		}
-#endif
 
 		if (added == 0 && added_separator)
 		{
@@ -384,6 +383,7 @@ namespace libtorrent
 			path.erase(path.end()-1);
 			return;
 		}
+#endif
 
 		if (path.empty()) path = "_";
 	}
@@ -1346,7 +1346,7 @@ namespace libtorrent
 			error_code ec;
 			bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
-				if (ec) return bdecode_node();
+			if (ec) return bdecode_node();
 		}
 		return m_info_dict.dict_find(key);
 	}

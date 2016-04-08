@@ -39,6 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/create_torrent.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 using namespace libtorrent;
 using namespace sim;
@@ -397,7 +400,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	p.name = "test-torrent";
 	p.save_path = ".";
 	p.info_hash.assign("abababababababababab");
-	int const delay = setup(p);
+	int const delay = setup(p, *ses);
 	ses->async_add_torrent(p);
 
 	// run the test 5 seconds in
@@ -434,7 +437,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 template <typename Announce, typename Test1, typename Test2>
 void tracker_test(Announce a, Test1 test1, Test2 test2, char const* url_path = "/announce")
 {
-	tracker_test([](lt::add_torrent_params& p) {
+	tracker_test([](lt::add_torrent_params& p, lt::session&) {
 		p.trackers.push_back("http://tracker.com:8080/announce");
 		return 5;
 	},
@@ -629,7 +632,7 @@ TORRENT_TEST(try_next)
 
 	bool got_announce = false;
 	tracker_test(
-		[](lt::add_torrent_params& p)
+		[](lt::add_torrent_params& p, lt::session&)
 		{
 		// TODO: 3 use tracker_tiers here to put the trackers in different tiers
 			p.trackers.push_back("udp://failing-tracker.com/announce");
@@ -689,6 +692,113 @@ TORRENT_TEST(try_next)
 			}
 		});
 	TEST_EQUAL(got_announce, true);
+}
+
+boost::shared_ptr<torrent_info> make_torrent(bool priv)
+{
+	file_storage fs;
+	fs.add_file("foobar", 13241);
+	create_torrent ct(fs);
+
+	ct.add_tracker("http://tracker.com:8080/announce");
+
+	for (int i = 0; i < ct.num_pieces(); ++i)
+		ct.set_hash(i, sha1_hash(0));
+
+	ct.set_priv(priv);
+
+	entry e = ct.generate();
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), e);
+	error_code ec;
+	return boost::make_shared<torrent_info>(buf.data(), buf.size(), ec);
+}
+
+// make sure we _do_ send our IPv6 address to trackers for private torrents
+TORRENT_TEST(tracker_ipv6_argument)
+{
+	bool got_announce = false;
+	bool got_ipv6 = false;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::anonymous_mode, false);
+			ses.apply_settings(pack);
+			p.ti = make_torrent(true);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+			int pos = req.find("&ipv6=");
+			TEST_CHECK(pos != std::string::npos);
+			got_ipv6 = pos != std::string::npos;
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+	TEST_EQUAL(got_announce, true);
+	TEST_EQUAL(got_ipv6, true);
+}
+
+// make sure we do _not_ send our IPv6 address to trackers for non-private
+// torrents
+TORRENT_TEST(tracker_ipv6_argument_non_private)
+{
+	bool got_announce = false;
+	bool got_ipv6 = false;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::anonymous_mode, false);
+			ses.apply_settings(pack);
+			p.ti = make_torrent(false);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+			int pos = req.find("&ipv6=");
+			TEST_CHECK(pos == std::string::npos);
+			got_ipv6 = pos != std::string::npos;
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+	TEST_EQUAL(got_announce, true);
+	TEST_EQUAL(got_ipv6, false);
+}
+
+TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
+{
+	bool got_announce = false;
+	bool got_ipv6 = false;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::anonymous_mode, true);
+			ses.apply_settings(pack);
+			p.ti = make_torrent(true);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+			int pos = req.find("&ipv6=");
+			TEST_CHECK(pos == std::string::npos);
+			got_ipv6 = pos != std::string::npos;
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+	TEST_EQUAL(got_announce, true);
+	TEST_EQUAL(got_ipv6, false);
 }
 
 // TODO: test external IP

@@ -468,7 +468,7 @@ namespace libtorrent
 		if (::rename(f1.c_str(), f2.c_str()) < 0)
 #endif
 		{
-			ec.assign(errno, system_category());
+			ec.assign(errno, generic_category());
 			return;
 		}
 	}

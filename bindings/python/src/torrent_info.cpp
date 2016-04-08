@@ -4,7 +4,7 @@
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 #include <boost/shared_ptr.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -90,15 +90,14 @@ namespace
         ti.set_merkle_tree(h);
     }
 
-    std::string hash_for_piece(torrent_info const& ti, int i)
+    bytes hash_for_piece(torrent_info const& ti, int i)
     {
-        return ti.hash_for_piece(i).to_string();
+        return bytes(ti.hash_for_piece(i).to_string());
     }
 
-    std::string metadata(torrent_info const& ti)
+    bytes metadata(torrent_info const& ti)
     {
-        std::string result(ti.metadata().get(), ti.metadata_size());
-        return result;
+        return bytes(ti.metadata().get(), ti.metadata_size());
     }
 
     list map_block(torrent_info& ti, int piece, boost::int64_t offset, int size)

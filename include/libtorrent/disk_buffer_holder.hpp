@@ -64,11 +64,11 @@ namespace libtorrent
 
 	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
 	// when it's destructed, unless it's released. ``release`` returns the disk
-	// buffer and transferres ownership and responsibility to free it to the caller.
+	// buffer and transfers ownership and responsibility to free it to the caller.
 	// 
 	// A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
 	// 
-	// ``buffer()`` returns the pointer without transferring responsibility. If
+	// ``get()`` returns the pointer without transferring responsibility. If
 	// this buffer has been released, ``buffer()`` will return 0.
 	struct TORRENT_EXPORT disk_buffer_holder
 	{

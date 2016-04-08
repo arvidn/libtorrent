@@ -4,7 +4,7 @@
 
 #include <libtorrent/peer_info.hpp>
 #include <libtorrent/bitfield.hpp>
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 #include <boost/python/iterator.hpp>
 
 using namespace boost::python;

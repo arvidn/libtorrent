@@ -1893,21 +1893,15 @@ namespace libtorrent
 	namespace
 	{
 		int append_blocks(std::vector<piece_block>& dst, std::vector<piece_block>& src
-			, int num_blocks)
+			, int const num_blocks)
 		{
 			if (src.empty()) return num_blocks;
-			int to_copy;
-//			if (prefer_contiguous_blocks == 0)
-				to_copy = (std::min)(int(src.size()), num_blocks);
-//			else
-//				to_copy = int(src.size());
+			int const to_copy = (std::min)(int(src.size()), num_blocks);
 
-			dst.insert(dst.end()
-				, src.begin(), src.begin() + to_copy);
-			src.clear();
+			dst.insert(dst.end(), src.begin(), src.begin() + to_copy);
+			src.erase(src.begin(), src.begin() + to_copy);
 			return num_blocks - to_copy;
 		}
-
 	}
 
 	// lower availability comes first. This is a less-than comparison, it returns
@@ -2338,8 +2332,7 @@ get_out:
 #endif
 
 		ret |= picker_log_alert::backup1;
-		num_blocks = append_blocks(interesting_blocks, backup_blocks
-			, num_blocks);
+		num_blocks = append_blocks(interesting_blocks, backup_blocks, num_blocks);
 		if (num_blocks <= 0) return ret;
 
 		ret |= picker_log_alert::backup2;
@@ -2390,7 +2383,7 @@ get_out:
 			// we either don't have this piece, or we've already requested from it
 			if (!pieces[dp.index]) continue;
 
-			// if we already have the piece, obviously we should not have 
+			// if we already have the piece, obviously we should not have
 			// since this is a partial piece in the piece_downloading state, we
 			// should not already have it
 			TORRENT_ASSERT(!m_piece_map[dp.index].have());
@@ -3333,7 +3326,6 @@ get_out:
 
 			info.peer = peer;
 			if (info.state == block_info::state_requested) --i->requested;
-			TORRENT_ASSERT(i->requested >= 0);
 			if (info.state == block_info::state_writing
 				|| info.state == block_info::state_finished)
 				return false;
@@ -3493,7 +3485,6 @@ get_out:
 		info.peer = peer;
 		TORRENT_ASSERT(info.state == block_info::state_writing
 			|| peer == 0);
-		TORRENT_ASSERT(i->writing >= 0);
 		if (info.state == block_info::state_writing)
 		{
 			--i->writing;

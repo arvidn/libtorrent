@@ -124,11 +124,11 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	, std::string const& test_path
 	, aux::session_settings& set)
 {
-	fs.add_file("temp_storage/test1.tmp", 8);
-	fs.add_file("temp_storage/folder1/test2.tmp", 8);
-	fs.add_file("temp_storage/folder2/test3.tmp", 0);
-	fs.add_file("temp_storage/_folder3/test4.tmp", 0);
-	fs.add_file("temp_storage/_folder3/subfolder/test5.tmp", 8);
+	fs.add_file(combine_path("temp_storage", "test1.tmp"), 8);
+	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 8);
+	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
+	fs.add_file(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
+	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 8);
 	libtorrent::create_torrent t(fs, 4, -1, 0);
 
 	char buf_[4] = {0, 0, 0, 0};
@@ -1261,5 +1261,31 @@ TORRENT_TEST(readwritev_zero_size_files)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
+}
+
+TORRENT_TEST(move_storage_into_self)
+{
+	aux::session_settings set;
+	file_storage fs;
+	std::vector<char> buf;
+	file_pool fp;
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
+	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf
+		, current_working_directory()
+		, set);
+
+	file::iovec_t b = {&buf[0], 4};
+	storage_error se;
+	s->writev(&b, 1, 2, 0, 0, se);
+
+	s->move_storage(combine_path("temp_storage", "folder1"), 0, se);
+
+	printf("move error: %s\n", se.ec.message().c_str());
+#ifdef _WIN32
+	TEST_EQUAL(se.ec, boost::system::errc::permission_denied);
+#else
+	TEST_EQUAL(se.ec, boost::system::errc::invalid_argument);
+#endif
 }
 

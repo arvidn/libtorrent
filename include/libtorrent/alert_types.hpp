@@ -240,7 +240,7 @@ namespace libtorrent
 	// of the piece. ``piece`` is the piece index that was read. ``size`` is the
 	// number of bytes that was read.
 	// 
-	// If the operation fails, ec will indicat what went wrong.
+	// If the operation fails, ec will indicate what went wrong.
 	struct TORRENT_EXPORT read_piece_alert TORRENT_FINAL : torrent_alert
 	{
 		// internal
@@ -1469,11 +1469,11 @@ namespace libtorrent
 		error_code error;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// If the error happend to a specific file, ``file`` is the path to it.
+		// If the error happened to a specific file, ``file`` is the path to it.
 		std::string file;
 #endif
 
-		// If the error happend to a specific file, this returns the path to it.
+		// If the error happened to a specific file, this returns the path to it.
 		char const* file_path() const;
 
 		// If the error happened in a disk operation. a NULL-terminated string of
@@ -2226,7 +2226,7 @@ namespace libtorrent
 	};
 
 	// holds statistics about a current dht_lookup operation.
-	// a DHT lookup is the travesal of nodes, looking up a
+	// a DHT lookup is the traversal of nodes, looking up a
 	// set of target nodes in the DHT for retrieving and possibly
 	// storing information in the DHT
 	struct TORRENT_EXPORT dht_lookup

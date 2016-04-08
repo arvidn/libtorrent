@@ -29,7 +29,7 @@
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -136,7 +136,26 @@ namespace
 		return boost::make_shared<lt::session>(p, flags);
 	}
 
-	void session_set_settings(lt::session& ses, dict const& sett_dict)
+#ifndef TORRENT_NO_DEPRECATE
+	void session_set_settings(lt::session& ses, object const& sett)
+	{
+		extract<session_settings> old_settings(sett);
+		if (old_settings.check())
+		{
+			allow_threading_guard guard;
+			ses.set_settings(old_settings);
+		}
+		else
+		{
+			settings_pack p;
+			make_settings_pack(p, extract<dict>(sett));
+			allow_threading_guard guard;
+			ses.apply_settings(p);
+		}
+	}
+#endif
+
+	void session_apply_settings(lt::session& ses, dict const& sett_dict)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett_dict);
@@ -189,7 +208,16 @@ namespace
     {
         // torrent_info objects are always held by a shared_ptr in the python binding
         if (params.has_key("ti") && params.get("ti") != boost::python::object())
-            p.ti = extract<boost::shared_ptr<torrent_info> >(params["ti"]);
+        {
+           // make a copy here. We don't want to end up holding a python-owned
+           // object inside libtorrent. If the last reference goes out of scope
+           // on the C++ side, it will end up freeing the python object
+           // without holding the GIL and likely crash.
+           // https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
+           p.ti = boost::make_shared<torrent_info>(
+              extract<torrent_info const&>(params["ti"]));
+        }
+
 
         if (params.has_key("info_hash"))
             p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr);
@@ -401,20 +429,20 @@ namespace
         return ret;
     }
 
-	 cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
-	 {
-	 	cache_status ret;
-		s.get_cache_info(&ret, h, flags);
-		return ret;
-	 }
+    cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
+    {
+       cache_status ret;
+       s.get_cache_info(&ret, h, flags);
+       return ret;
+    }
 
 #ifndef TORRENT_NO_DEPRECATE
-	 cache_status get_cache_status(lt::session& s)
-	 {
-	 	cache_status ret;
-		s.get_cache_info(&ret);
-		return ret;
-	 }
+    cache_status get_cache_status(lt::session& s)
+    {
+       cache_status ret;
+       s.get_cache_info(&ret);
+       return ret;
+    }
 
     dict get_utp_stats(session_status const& st)
     {
@@ -779,14 +807,11 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("add_feed", &add_feed)
         .def("status", allow_threads(&lt::session::status))
-        .def("set_settings", &lt::session::set_settings)
-        .def("settings", &lt::session::settings)
-        .def("get_settings", &session_get_settings)
-#else
         .def("settings", &session_get_settings)
-        .def("get_settings", &session_get_settings)
+        .def("set_settings", &session_set_settings)
 #endif
-        .def("apply_settings", &session_set_settings)
+        .def("get_settings", &session_get_settings)
+        .def("apply_settings", &session_apply_settings)
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_ENCRYPTION
         .def("set_pe_settings", allow_threads(&lt::session::set_pe_settings))
@@ -800,7 +825,7 @@ void bind_session()
 #ifdef TORRENT_NO_DEPRECATE
             , return_internal_reference<>()
 #endif
-			)
+        )
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
         .def("pop_alert", &pop_alert)
