@@ -5,7 +5,7 @@
 #ifndef OPTIONAL_070108_HPP
 # define OPTIONAL_070108_HPP
 
-# include <boost/python.hpp>
+# include "boost_python.hpp"
 # include <boost/optional.hpp>
 
 template <class T>

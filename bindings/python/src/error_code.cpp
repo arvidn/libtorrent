@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/upnp.hpp>
 #include <libtorrent/socks5_stream.hpp>
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;

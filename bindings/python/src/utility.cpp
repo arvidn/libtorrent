@@ -4,7 +4,7 @@
 
 #include <libtorrent/identify_client.hpp>
 #include <libtorrent/bencode.hpp>
-#include <boost/python.hpp>
+#include "boost_python.hpp"
 #include "bytes.hpp"
 
 using namespace boost::python;
