@@ -88,12 +88,12 @@ struct key_desc_t
 };
 
 // generate an error response message
-void TORRENT_EXPORT incoming_error(entry& e, char const* msg, int error_code = 203);
+void incoming_error(entry& e, char const* msg, int error_code = 203);
 
 // given a redundant name to avoid clashing with libtorrent::detail
 namespace dht_detail {
 
-bool TORRENT_EXPORT verify_message(bdecode_node const& msg, key_desc_t const desc[]
+TORRENT_EXPORT bool verify_message(bdecode_node const& msg, key_desc_t const desc[]
 	, bdecode_node ret[], int size, char* error, int error_size);
 
 }
