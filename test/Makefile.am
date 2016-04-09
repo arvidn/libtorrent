@@ -178,6 +178,7 @@ test_lsd_SOURCES = test_lsd.cpp
 test_pe_crypto_SOURCES = test_pe_crypto.cpp
 test_pex_SOURCES = test_pex.cpp
 test_read_piece_SOURCES = test_read_piece.cpp
+test_receive_buffer_SOURCES = test_receive_buffer.cpp
 test_storage_SOURCES = test_storage.cpp
 test_time_critical_SOURCES = test_time_critical.cpp
 test_resume_SOURCES = test_resume.cpp
