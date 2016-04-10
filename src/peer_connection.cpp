@@ -2993,6 +2993,15 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_outstanding_writing_bytes >= 0);
 
+		// every peer is entitled to allocate a disk buffer if it has no writes outstanding
+		// see the comment in incoming_piece
+		if (m_outstanding_writing_bytes == 0
+			&& m_channel_state[download_channel] & peer_info::bw_disk)
+		{
+			m_counters.inc_stats_counter(counters::num_peers_down_disk, -1);
+			m_channel_state[download_channel] &= ~peer_info::bw_disk;
+		}
+
 		// flush send buffer at the end of
 		// this burst of disk events
 //		m_ses.cork_burst(this);
