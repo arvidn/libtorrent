@@ -245,16 +245,13 @@ Build features:
 |                          | * ``shared`` - links dynamically against the boost |
 |                          |   libraries.                                       |
 +--------------------------+----------------------------------------------------+
-| ``logging``              | * ``off`` - logging alerts disabled.               |
-|                          | * ``on`` - default. logging alerts available,      |
-|                          |   still need to be enabled by the alert mask. The  |
+| ``logging``              | * ``off`` - logging alerts disabled. The           |
 |                          |   reason to disable logging is to keep the binary  |
-|                          |   size down.                                       |
+|                          |   size low where that matters.                     |
+|                          | * ``on`` - default. logging alerts available,      |
+|                          |   still need to be enabled by the alert mask.      |
 +--------------------------+----------------------------------------------------+
-| ``dht``                  | * ``on`` - build with support for tracker less     |
-|                          |   torrents and DHT support.                        |
-|                          | * ``logging`` - build with DHT support and verbose |
-|                          |   logging of the DHT protocol traffic.             |
+| ``dht``                  | * ``on`` - build with DHT support                  |
 |                          | * ``off`` - build without DHT support.             |
 +--------------------------+----------------------------------------------------+
 | ``asserts``              | * ``auto`` - asserts are on if in debug mode       |
