@@ -78,7 +78,7 @@ unit_test_t* current_test = NULL;
 void output_test_log_to_terminal()
 {
 	if (current_test == NULL || old_stdout == -1 || old_stderr == -1
-		|| !redirect_output)
+		|| !redirect_output || current_test->output == NULL)
 		return;
 
 	fflush(stdout);
@@ -299,14 +299,25 @@ EXPORT int main(int argc, char const* argv[])
 			fflush(stdout);
 			fflush(stderr);
 
-			t.output = tmpfile();
-			int ret1 = dup2(fileno(t.output), fileno(stdout));
-			dup2(fileno(t.output), fileno(stderr));
-			if (ret1 < 0 )
+			FILE* f = tmpfile();
+			if (f != NULL)
 			{
-				fprintf(stderr, "failed to redirect output: (%d) %s\n"
-					, errno, strerror(errno));
-				continue;
+				int ret1 = dup2(fileno(f), fileno(stdout));
+				dup2(fileno(f), fileno(stderr));
+				if (ret1 >= 0)
+				{
+					t.output = f;
+				}
+				else
+				{
+					fprintf(stderr, "failed to redirect output: (%d) %s\n"
+						, errno, strerror(errno));
+				}
+			}
+			else
+			{
+				fprintf(stderr, "failed to create temporary file for redirecting "
+					"output: (%d) %s\n", errno, strerror(errno));
 			}
 		}
 
@@ -350,7 +361,7 @@ EXPORT int main(int argc, char const* argv[])
 		total_failures += _g_test_failures;
 		++num_run;
 
-		if (redirect_output)
+		if (redirect_output && t.output)
 		{
 			fclose(t.output);
 		}

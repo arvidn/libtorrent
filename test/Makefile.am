@@ -30,12 +30,21 @@ test_programs = \
   test_utp                   \
   test_session               \
   test_web_seed              \
+  test_web_seed_ban          \
+  test_web_seed_chunked      \
+  test_web_seed_http         \
+  test_web_seed_http_pw      \
+  test_web_seed_redirect     \
+  test_web_seed_socks4       \
+  test_web_seed_socks5       \
   test_web_seed_socks5_no_peers \
+  test_web_seed_socks5_pw    \
   test_url_seed              \
   test_remap_files           \
   test_enum_net              \
   test_file_progress         \
-  test_linked_list
+  test_linked_list           \
+  test_direct_dht
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs) $(benchmark_programs)
@@ -101,13 +110,17 @@ EXTRA_DIST = Jamfile \
   mutable_test_torrents/test3.torrent \
   mutable_test_torrents/test3_pad_files.torrent \
   zeroes.gz \
-  utf8_test.txt
+  utf8_test.txt \
+  web_server.py \
+  socks.py \
+  http.py
 
 EXTRA_PROGRAMS = $(test_programs) $(benchmark_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
-  test_utils.hpp settings.hpp make_torrent.hpp
+  test_utils.hpp settings.hpp make_torrent.hpp bittorrent_peer.hpp \
+  print_alerts.hpp
 
 libtest_la_SOURCES = main.cpp \
   test.cpp \
@@ -115,11 +128,13 @@ libtest_la_SOURCES = main.cpp \
   dht_server.cpp \
   udp_tracker.cpp \
   peer_server.cpp \
+  bittorrent_peer.cpp \
   make_torrent.cpp \
   web_seed_suite.cpp \
   swarm_suite.cpp \
   test_utils.cpp \
-  settings.cpp
+  settings.cpp \
+  print_alerts.cpp
 
 test_primitives_SOURCES = \
   test_primitives.cpp \
@@ -195,11 +210,20 @@ enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp
 test_web_seed_SOURCES = test_web_seed.cpp
+test_web_seed_ban_SOURCES = test_web_seed_ban.cpp
+test_web_seed_chunked_SOURCES = test_web_seed_chunked.cpp
+test_web_seed_http_SOURCES = test_web_seed_http.cpp
+test_web_seed_http_pw_SOURCES = test_web_seed_http_pw.cpp
+test_web_seed_redirect_SOURCES = test_web_seed_redirect.cpp
+test_web_seed_socks4_SOURCES = test_web_seed_socks4.cpp
+test_web_seed_socks5_SOURCES = test_web_seed_socks5.cpp
 test_web_seed_socks5_no_peers_SOURCES = test_web_seed_socks5_no_peers.cpp
+test_web_seed_socks5_pw_SOURCES = test_web_seed_socks5_pw.cpp
 test_url_seed_SOURCES = test_url_seed.cpp
 test_remap_files_SOURCES = test_remap_files.cpp
 test_file_progress_SOURCES = test_file_progress.cpp
 test_linked_list_SOURCES = test_linked_list.cpp
+test_direct_dht_SOURCES = test_direct_dht.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 

@@ -23,8 +23,8 @@ chmod a-x docs/*.rst docs/*.htm* src/*.cpp include/libtorrent/*.hpp
 
 ./autotool.sh
 ./configure --enable-python-binding --enable-examples=yes --enable-encryption --enable-tests=yes --with-boost-system=mt --with-boost-chrono=mt --with-boost-random=mt --with-boost-python=mt
-make V=1 -j8 check distcheck
+make V=1 -j8 distcheck
 
 ./configure --enable-python-binding --enable-examples=yes --enable-encryption --with-boost-system=mt --with-boost-chrono=mt --with-boost-random=mt --with-boost-python=mt
-make V=1 -j8 distcheck
+make V=1 -j8 dist
 
