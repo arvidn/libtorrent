@@ -194,6 +194,22 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
+list dht_get_peers_reply_alert_peers(dht_get_peers_reply_alert const& a)
+{
+    list result;
+
+    std::vector<tcp::endpoint> v;
+    a.peers(v);
+
+    for (std::vector<tcp::endpoint>::const_iterator i = v.begin();
+         i != v.end(); ++i)
+    {
+        result.append(endpoint_to_tuple(*i));
+    }
+
+    return result;
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -239,10 +255,16 @@ void bind_alert()
             .value("progress_notification", alert::progress_notification)
             .value("ip_block_notification", alert::ip_block_notification)
             .value("performance_warning", alert::performance_warning)
+            .value("dht_notification", alert::dht_notification)
             .value("stats_notification", alert::stats_notification)
             .value("session_log_notification", alert::session_log_notification)
             .value("torrent_log_notification", alert::torrent_log_notification)
             .value("peer_log_notification", alert::peer_log_notification)
+            .value("incoming_request_notification", alert::incoming_request_notification)
+            .value("dht_log_notification", alert::dht_log_notification)
+            .value("dht_operation_notification", alert::dht_operation_notification)
+            .value("port_mapping_log_notification", alert::port_mapping_log_notification)
+            .value("picker_log_notification", alert::picker_log_notification)
             // deliberately not INT_MAX. Arch linux crash while throwing an exception
             .value("all_categories", (alert::category_t)0xfffffff)
             ;
@@ -744,5 +766,12 @@ void bind_alert()
     class_<session_stats_alert, bases<alert>, noncopyable>(
         "session_stats_alert", no_init)
         .add_property("values", &session_stats_values)
+        ;
+
+    class_<dht_get_peers_reply_alert, bases<alert>, noncopyable>(
+        "dht_get_peers_reply_alert", no_init)
+        .def_readonly("info_hash", &dht_get_peers_reply_alert::info_hash)
+        .def("num_peers", &dht_get_peers_reply_alert::num_peers)
+        .add_property("peers", &dht_get_peers_reply_alert_peers)
         ;
 }
