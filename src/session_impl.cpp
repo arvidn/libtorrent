@@ -3025,6 +3025,9 @@ namespace aux {
 		m_last_tick = now;
 
 		m_utp_socket_manager.tick(now);
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_utp_socket_manager.tick(now);
+#endif
 
 		// only tick the following once per second
 		if (now - m_last_second_tick < seconds(1)) return;

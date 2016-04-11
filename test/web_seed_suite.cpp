@@ -232,8 +232,8 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 					, int(cnt["disk.disk_blocks_in_use"]));
 				test_sleep(100);
 			}
-			TEST_CHECK(std::abs(cnt["disk.disk_blocks_in_use"]
-				- (torrent_file->total_size() + 0x3fff) / 0x4000) <= 2);
+			TEST_CHECK(std::abs(int(cnt["disk.disk_blocks_in_use"]
+				- (torrent_file->total_size() + 0x3fff) / 0x4000)) <= 2);
 		}
 	}
 
