@@ -1033,7 +1033,7 @@ namespace libtorrent
 			// 
 			// ``active_loaded_limit`` is the number of torrents that are allowed
 			// to be *loaded* at any given time. Note that a torrent can be active
-			// even though it's not loaded. if an unloaded torrents finds a peer
+			// even though it's not loaded. If an unloaded torrents finds a peer
 			// that wants to access it, the torrent will be loaded on demand,
 			// using a user-supplied callback function. If the feature of
 			// unloading torrents is not enabled, this setting have no effect. If
