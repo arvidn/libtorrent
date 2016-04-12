@@ -680,6 +680,55 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
 #endif // TORRENT_NO_DEPRECATE
 
+    class_<add_torrent_params>("add_torrent_params")
+        .def_readwrite("version", &add_torrent_params::version)
+        .def_readwrite("ti", &add_torrent_params::ti)
+        .def_readwrite("trackers", &add_torrent_params::trackers)
+        .def_readwrite("tracker_tiers", &add_torrent_params::tracker_tiers)
+        .def_readwrite("dht_nodes", &add_torrent_params::dht_nodes)
+        .def_readwrite("name", &add_torrent_params::name)
+        .def_readwrite("save_path", &add_torrent_params::save_path)
+        .def_readwrite("storage_mode", &add_torrent_params::storage_mode)
+        .def_readwrite("storage", &add_torrent_params::storage)
+        .def_readwrite("file_priorities", &add_torrent_params::file_priorities)
+        .def_readwrite("trackerid", &add_torrent_params::trackerid)
+        .def_readwrite("url", &add_torrent_params::url)
+        .def_readwrite("flags", &add_torrent_params::flags)
+        .def_readwrite("info_hash", &add_torrent_params::info_hash)
+        .def_readwrite("max_uploads", &add_torrent_params::max_uploads)
+        .def_readwrite("max_connections", &add_torrent_params::max_connections)
+        .def_readwrite("upload_limit", &add_torrent_params::upload_limit)
+        .def_readwrite("download_limit", &add_torrent_params::download_limit)
+        .def_readwrite("total_uploaded", &add_torrent_params::total_uploaded)
+        .def_readwrite("total_downloaded", &add_torrent_params::total_downloaded)
+        .def_readwrite("active_time", &add_torrent_params::active_time)
+        .def_readwrite("finished_time", &add_torrent_params::finished_time)
+        .def_readwrite("seeding_time", &add_torrent_params::seeding_time)
+        .def_readwrite("added_time", &add_torrent_params::added_time)
+        .def_readwrite("completed_time", &add_torrent_params::completed_time)
+        .def_readwrite("last_seen_complete", &add_torrent_params::last_seen_complete)
+        .def_readwrite("num_complete", &add_torrent_params::num_complete)
+        .def_readwrite("num_incomplete", &add_torrent_params::num_incomplete)
+        .def_readwrite("num_downloaded", &add_torrent_params::num_downloaded)
+        .def_readwrite("http_seeds", &add_torrent_params::http_seeds)
+        .def_readwrite("url_seeds", &add_torrent_params::url_seeds)
+        .def_readwrite("peers", &add_torrent_params::peers)
+        .def_readwrite("banned_peers", &add_torrent_params::banned_peers)
+        .def_readwrite("unfinished_pieces", &add_torrent_params::unfinished_pieces)
+        .def_readwrite("have_pieces", &add_torrent_params::have_pieces)
+        .def_readwrite("verified_pieces", &add_torrent_params::verified_pieces)
+        .def_readwrite("piece_priorities", &add_torrent_params::piece_priorities)
+        .def_readwrite("merkle_tree", &add_torrent_params::merkle_tree)
+        .def_readwrite("renamed_files", &add_torrent_params::renamed_files)
+
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("uuid", &add_torrent_params::uuid)
+        .def_readwrite("source_feed_url", &add_torrent_params::source_feed_url)
+        .def_readwrite("resume_data", &add_torrent_params::resume_data)
+#endif
+      ;
+
+
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
@@ -791,6 +840,8 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
+        .def("async_add_torrent", &lt::session::async_add_torrent)
+        .def("add_torrent", allow_threads((lt::torrent_handle (session_handle::*)(add_torrent_params const&))&lt::session::add_torrent))
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
         .def(

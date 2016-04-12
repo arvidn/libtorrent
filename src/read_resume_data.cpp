@@ -89,6 +89,8 @@ namespace libtorrent
 			return ret;
 		}
 
+		ret.name = rd.dict_find_string_value("name");
+
 		ret.info_hash.assign(info_hash);
 
 		// TODO: 4 add unit test for this, and all other fields of the resume data

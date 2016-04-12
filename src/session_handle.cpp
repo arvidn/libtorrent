@@ -281,6 +281,8 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params)
 	{
+		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
 #ifndef TORRENT_NO_DEPRECATE
 		add_torrent_params p = params;
 		handle_backwards_compatible_resume_data(p);
@@ -296,6 +298,8 @@ namespace libtorrent
 
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params, error_code& ec)
 	{
+		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
 		ec.clear();
 #ifndef TORRENT_NO_DEPRECATE
 		add_torrent_params p = params;
@@ -308,6 +312,8 @@ namespace libtorrent
 
 	void session_handle::async_add_torrent(add_torrent_params const& params)
 	{
+		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
 		add_torrent_params* p = new add_torrent_params(params);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -353,6 +359,8 @@ namespace libtorrent
 		, storage_constructor_type sc
 		, void* userdata)
 	{
+		TORRENT_ASSERT_PRECOND(!save_path.empty());
+
 		add_torrent_params p(sc);
 		p.trackers.push_back(tracker_url);
 		p.info_hash = info_hash;
