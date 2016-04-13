@@ -31,14 +31,19 @@ class test_torrent_handle(unittest.TestCase):
 			'info-hash': 'abababababababababab',
 			'name': 'test',
 			'save_path': '.',
-			'file_priorities': [0, 1, 1]})
+			'peers': '\x01\x01\x01\x01\x00\x01\x02\x02\x02\x02\x00\x02',
+			'file_priority': [0, 1, 1]})
 		tp = lt.read_resume_data(resume_data)
 
 		self.assertEqual(tp.name, 'test')
 		self.assertEqual(tp.info_hash, lt.sha1_hash('abababababababababab'))
+		self.assertEqual(tp.file_priorities, [0, 1, 1])
+		self.assertEqual(tp.peers, [('1.1.1.1', 1), ('2.2.2.2', 2)])
 
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
 		h = ses.add_torrent(tp)
+
+		h.connect_peer(('3.3.3.3', 3))
 
 		for i in range(0, 10):
 			alerts = ses.pop_alerts()

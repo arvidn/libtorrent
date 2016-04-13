@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/read_resume_data.hpp>
+#include <libtorrent/error_code.hpp>
 
 namespace lt = libtorrent;
 using clk = std::chrono::steady_clock;
@@ -74,14 +76,16 @@ int main(int argc, char const* argv[])
 		| lt::alert::status_notification);
 
 	lt::session ses(pack);
-	lt::add_torrent_params atp;
 	clk::time_point last_save_resume = clk::now();
 
 	// load resume data from disk and pass it in as we add the magnet link
 	std::ifstream ifs(".resume_file", std::ios_base::binary);
 	ifs.unsetf(std::ios_base::skipws);
-	atp.resume_data.assign(std::istream_iterator<char>(ifs)
-		, std::istream_iterator<char>());
+	std::vector<char> buf{std::istream_iterator<char>(ifs)
+		, std::istream_iterator<char>()};
+
+	lt::error_code ec;
+	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], buf.size(), ec);
 	atp.url = argv[1];
 	atp.save_path = "."; // save in current dir
 	ses.async_add_torrent(atp);

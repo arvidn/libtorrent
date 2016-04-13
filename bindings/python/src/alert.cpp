@@ -19,42 +19,10 @@ bytes get_buffer(read_piece_alert const& rpa)
        : bytes();
 }
 
-tuple endpoint_to_tuple(tcp::endpoint const& ep)
-{
-    return boost::python::make_tuple(ep.address().to_string(), ep.port());
-}
-
-tuple endpoint_to_tuple(udp::endpoint const& ep)
-{
-    return boost::python::make_tuple(ep.address().to_string(), ep.port());
-}
-
-
-tuple peer_alert_ip(peer_alert const& pa)
-{
-    return endpoint_to_tuple(pa.ip);
-}
-
-std::string peer_blocked_alert_ip(peer_blocked_alert const& pa)
-{
-    error_code ec;
-    return pa.ip.to_string(ec);
-}
-
 std::string dht_announce_alert_ip(dht_announce_alert const& pa)
 {
     error_code ec;
     return pa.ip.to_string(ec);
-}
-
-tuple incoming_connection_alert_ip(incoming_connection_alert const& ica)
-{
-    return endpoint_to_tuple(ica.ip);
-}
-
-tuple dht_outgoing_get_peers_alert_ip(dht_outgoing_get_peers_alert const& a)
-{
-    return endpoint_to_tuple(a.ip);
 }
 
 std::string external_ip_alert_ip(external_ip_alert const& eia)
@@ -282,7 +250,8 @@ void bind_alert()
 
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init)
-        .add_property("ip", &peer_alert_ip)
+        .add_property("ip", make_getter(&peer_alert::ip
+            , return_value_policy<return_by_value>()))
         .def_readonly("pid", &peer_alert::pid)
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
@@ -469,7 +438,8 @@ void bind_alert()
 
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
         "peer_blocked_alert", no_init)
-        .add_property("ip", &peer_blocked_alert_ip)
+        .add_property("ip", make_getter(&peer_blocked_alert::ip
+            , return_value_policy<return_by_value>()))
         ;
 
     class_<scrape_reply_alert, bases<tracker_alert>, noncopyable>(
@@ -494,7 +464,9 @@ void bind_alert()
 
     class_<external_ip_alert, bases<alert>, noncopyable>(
         "external_ip_alert", no_init)
-        .add_property("external_address", &external_ip_alert_ip)
+        .add_property("external_address"
+           , make_getter(&external_ip_alert::external_address
+              , return_value_policy<return_by_value>()))
         ;
 
     class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
@@ -667,11 +639,12 @@ void bind_alert()
     class_<incoming_connection_alert, bases<alert>, noncopyable>(
         "incoming_connection_alert", no_init)
         .def_readonly("socket_type", &incoming_connection_alert::socket_type)
-        .add_property("ip", &incoming_connection_alert_ip)
+        .add_property("ip", make_getter(&incoming_connection_alert::ip
+            , return_value_policy<return_by_value>()))
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-        .def_readonly("error", &torrent_need_cert_alert::error) 
+        .def_readonly("error", &torrent_need_cert_alert::error)
         ;
 
     class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(
@@ -692,7 +665,8 @@ void bind_alert()
        "dht_outgoing_get_peers_alert", no_init)
         .def_readonly("info_hash", &dht_outgoing_get_peers_alert::info_hash)
         .def_readonly("obfuscated_info_hash", &dht_outgoing_get_peers_alert::obfuscated_info_hash)
-        .add_property("ip", &dht_outgoing_get_peers_alert_ip)
+        .add_property("ip", make_getter(&dht_outgoing_get_peers_alert::ip
+            , return_value_policy<return_by_value>()))
         ;
 
 #ifndef TORRENT_DISABLE_LOGGING
