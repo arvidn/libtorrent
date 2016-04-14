@@ -177,7 +177,7 @@ namespace libtorrent { namespace aux
 		virtual port_filter const& get_port_filter() const = 0;
 		virtual void ban_ip(address addr) = 0;
 
-		virtual boost::int64_t session_time() const = 0;
+		virtual boost::uint16_t session_time() const = 0;
 
 		virtual bool is_paused() const = 0;
 		virtual bool is_aborted() const = 0;
