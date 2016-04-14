@@ -37,23 +37,3 @@ options are available. For python bindings, see `the python docs`__.
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
 
-pull request checklist
-......................
-
-When creating a pull request, please consider the following checklist:
-
-* make sure both travis-CI and appveyor builds are green. Note that on gcc and
-  clang warnings are treated as errors. Some tests may be flapping, if so,
-  please issue a rebuild of the specific build configuration. (I'm working on
-  making all tests deterministic)
-* If adding a user-facing feature, please add brief entry to ``ChangeLog``
-* Add a unit test to confirm the new behavior or feature. Don't forget negative
-  tests (i.e. failure cases) and please pay as much care to tests as you would
-  production code.
-* rebase on top of master periodically
-* if your patch is against the current stable release branch, please also
-  forward-port the patch to master (at the time of this writing, automatic
-  merge in git does not work, possibly because the branch was created in svn)
-* if your patch adds a new .cpp file, please make sure it's added to the
-  appropriate ``Jamfile``, ``Makefile.am`` and ``CMakeList.txt``. If it's adding
-  a header file, make sure it's added to ``include/libtorrent/Makefile.am``.
