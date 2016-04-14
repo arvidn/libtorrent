@@ -172,7 +172,7 @@ namespace libtorrent
 				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
 				// close the file before we open it with
-				// the new read/write privilages, since windows may
+				// the new read/write privileges, since windows may
 				// file opening a file twice. However, since there may
 				// be outstanding operations on it, we can't close the
 				// file, we can only delete our reference to it.

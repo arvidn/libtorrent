@@ -213,7 +213,7 @@ namespace libtorrent
 			// connections should be rejected or not. Multiple connections from
 			// the same IP address is not allowed by default, to prevent abusive
 			// behavior by peers. It may be useful to allow such connections in
-			// cases where simulations are run on the same machie, and all peers
+			// cases where simulations are run on the same machine, and all peers
 			// in a swarm has the same IP address.
 			allow_multiple_connections_per_ip = bool_type_base,
 

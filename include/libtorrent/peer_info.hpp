@@ -344,7 +344,7 @@ namespace libtorrent
 		int upload_rate_peak;
 
 		// the progress of the peer in the range [0, 1]. This is always 0 when
-		// floating point operations are diabled, instead use ``progress_ppm``.
+		// floating point operations are disabled, instead use ``progress_ppm``.
 		float progress; // [0, 1]
 
 		// indicates the download progress of the peer in the range [0, 1000000]
