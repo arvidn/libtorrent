@@ -772,6 +772,6 @@ void bind_alert()
         "dht_get_peers_reply_alert", no_init)
         .def_readonly("info_hash", &dht_get_peers_reply_alert::info_hash)
         .def("num_peers", &dht_get_peers_reply_alert::num_peers)
-        .add_property("peers", &dht_get_peers_reply_alert_peers)
+        .def("peers", &dht_get_peers_reply_alert_peers)
         ;
 }
