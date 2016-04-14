@@ -70,19 +70,15 @@ if '--bjam' in sys.argv:
 	if not '--help' in sys.argv \
 		and not '--help-commands' in sys.argv:
 
-		toolset = ''
 		file_ext = '.so'
 
 		if platform.system() == 'Windows':
-			# msvc 9.0 (2008) is the official windows compiler for python 2.6
-			# http://docs.python.org/whatsnew/2.6.html#build-and-c-api-changes
-			toolset = ' msvc-9.0'
 			file_ext = '.pyd'
 
 		parallel_builds = ' -j%d' % multiprocessing.cpu_count()
 
 		# build libtorrent using bjam and build the installer with distutils
-		cmdline = 'b2 libtorrent-link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + toolset + parallel_builds
+		cmdline = 'b2 libtorrent-link=static boost-link=static release optimization=space stage_module --abbreviate-paths' + parallel_builds
 		print(cmdline)
 		if os.system(cmdline) != 0:
 			print('build failed')
