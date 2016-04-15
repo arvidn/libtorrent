@@ -135,7 +135,7 @@ namespace libtorrent
 		int whole_pieces_threshold;
 
 		// the number of seconds to wait for any activity on the peer wire before
-		// closing the connectiong due to time out. This defaults to 120 seconds,
+		// closing the connection due to time out. This defaults to 120 seconds,
 		// since that's what's specified in the protocol specification. After
 		// half the time out, a keep alive message is sent.
 		int peer_timeout;
@@ -170,7 +170,7 @@ namespace libtorrent
 		// connections should be rejected or not. Multiple connections from the
 		// same IP address is not allowed by default, to prevent abusive behavior
 		// by peers. It may be useful to allow such connections in cases where
-		// simulations are run on the same machie, and all peers in a swarm has
+		// simulations are run on the same machine, and all peers in a swarm has
 		// the same IP address.
 		bool allow_multiple_connections_per_ip;
 
@@ -280,7 +280,7 @@ namespace libtorrent
 		//
 		// When this limit is reached, the peer connections will stop reading
 		// data from their sockets, until the disk thread catches up. Setting
-		// this too low will severly limit your download rate.
+		// this too low will severely limit your download rate.
 		int max_queued_disk_bytes;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -497,7 +497,7 @@ namespace libtorrent
 		// from growing its file cache indefinitely. Since some OSes only allow
 		// aligned files to be opened in unbuffered mode, It is recommended to
 		// make the largest file in a torrent the first file (with offset 0) or
-		// use pad files to align all files to piece boundries.
+		// use pad files to align all files to piece boundaries.
 		int disk_io_write_mode;
 		int disk_io_read_mode;
 
@@ -634,7 +634,7 @@ namespace libtorrent
 		int peer_turnover_interval;
 
 		// the percentage of peers to disconnect every
-		// turnoever interval (if we're at the peer limit)
+		// turnover interval (if we're at the peer limit)
 		// defaults to 4%
 		// this is specified in percent
 		float peer_turnover;
@@ -760,7 +760,7 @@ namespace libtorrent
 		// complete and needs to be verified against the piece hash. This happens
 		// if some blocks were flushed to the disk out of order. Everything that
 		// is flushed in order is hashed as it goes along. Optimizing for speed
-		// will allocate space to fit all the the remaingin, unhashed, part of
+		// will allocate space to fit all the remaining, unhashed, part of
 		// the piece, reads the data into it in a single call and hashes it. This
 		// is the default. If ``optimizing_hashing_for_speed`` is false, a single
 		// block will be allocated (16 kB), and the unhashed parts of the piece
@@ -785,7 +785,7 @@ namespace libtorrent
 			lru,
 
 			// will flush the largest sequences of contiguous blocks from the
-			// write cache, regarless of the piece's last use time.
+			// write cache, regardless of the piece's last use time.
 			largest_contiguous,
 
 			// will prioritize flushing blocks that will avoid having to read them
@@ -802,7 +802,7 @@ namespace libtorrent
 		// the number of blocks to read into the read cache when a read cache
 		// miss occurs. Setting this to 0 is essentially the same thing as
 		// disabling read cache. The number of blocks read into the read cache is
-		// always capped by the piece boundry.
+		// always capped by the piece boundary.
 		// 
 		// When a piece in the write cache has ``write_cache_line_size``
 		// contiguous blocks in it, they will be flushed. Setting this to 1
@@ -929,7 +929,7 @@ namespace libtorrent
 		// waste finding the true reciprocation rate.
 		int default_est_reciprocation_rate;
 
-		// specifies how many percent the extimated reciprocation rate should be
+		// specifies how many percent the estimated reciprocation rate should be
 		// increased by each unchoke interval a peer is still choking us back.
 		// This defaults to 20%. This only applies to the BitTyrant choker.
 		int increase_est_reciprocation_rate;
@@ -950,8 +950,8 @@ namespace libtorrent
 		bool incoming_starts_queued_torrents;
 
 		// when set to true, the downloaded counter sent to trackers will include
-		// the actual number of payload bytes donwnloaded including redundant
-		// bytes. If set to false, it will not include any redundany bytes
+		// the actual number of payload bytes downloaded including redundant
+		// bytes. If set to false, it will not include any redundancy bytes
 		bool report_true_downloaded;
 
 		// defaults to true, and controls when a block may be requested twice. If
@@ -981,7 +981,7 @@ namespace libtorrent
 
 		// the max number of peers we accept from pex messages from a single peer.
 		// this limits the number of concurrent peers any of our peers claims to
-		// be connected to. If they clain to be connected to more than this, we'll
+		// be connected to. If they claim to be connected to more than this, we'll
 		// ignore any peer that exceeds this limit
 		int max_pex_peers;
 
@@ -998,7 +998,7 @@ namespace libtorrent
 		// determines if the storage should check the whole files when resume
 		// data is incomplete or missing or whether it should simply assume we
 		// don't have any of the data. By default, this is determined by the
-		// existance of any of the files. By setting this setting to true, the
+		// existence of any of the files. By setting this setting to true, the
 		// files won't be checked, but will go straight to download mode.
 		bool no_recheck_incomplete_resume;
 
@@ -1216,7 +1216,7 @@ namespace libtorrent
 		bool seeding_outgoing_connections;
 
 		// if true (which is the default), libtorrent will not connect to any
-		// peers on priviliged ports (<= 1023). This can mitigate using
+		// peers on privileged ports (<= 1023). This can mitigate using
 		// bittorrent swarms for certain DDoS attacks.
 		bool no_connect_privileged_ports;
 
@@ -1233,7 +1233,7 @@ namespace libtorrent
 		// second may be limited to below the ``connection_speed``, in case we're
 		// close to bump up against the limit of number of connections. The
 		// intention of this setting is to more evenly distribute our connection
-		// attempts over time, instead of attempting to connectin in batches, and
+		// attempts over time, instead of attempting to connect in batches, and
 		// timing them out in batches.
 		bool smooth_connects;
 
