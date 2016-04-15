@@ -982,12 +982,15 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slots();
 
 			time_point m_created;
-			boost::int64_t session_time() const TORRENT_OVERRIDE
+			boost::uint16_t session_time() const TORRENT_OVERRIDE
 			{
 				// +1 is here to make it possible to distinguish uninitialized (to
 				// 0) timestamps and timestamps of things that happend during the
 				// first second after the session was constructed
-				return total_seconds(aux::time_now() - m_created) + 1;
+				boost::int64_t const ret = total_seconds(aux::time_now() - m_created) + 1;
+				TORRENT_ASSERT(ret >= 0);
+				TORRENT_ASSERT(ret <= (std::numeric_limits<boost::uint16_t>::max)());
+				return static_cast<boost::uint16_t>(ret);
 			}
 
 			time_point m_last_tick;
