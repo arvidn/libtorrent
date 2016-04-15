@@ -680,6 +680,59 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
 #endif // TORRENT_NO_DEPRECATE
 
+#define PROP(val) \
+    make_getter(val, return_value_policy<return_by_value>()), \
+    make_setter(val, return_value_policy<return_by_value>())
+
+    class_<add_torrent_params>("add_torrent_params")
+        .def_readwrite("version", &add_torrent_params::version)
+        .def_readwrite("ti", &add_torrent_params::ti)
+        .add_property("trackers", PROP(&add_torrent_params::trackers))
+        .add_property("tracker_tiers", PROP(&add_torrent_params::tracker_tiers))
+        .add_property("dht_nodes", PROP(&add_torrent_params::dht_nodes))
+        .def_readwrite("name", &add_torrent_params::name)
+        .def_readwrite("save_path", &add_torrent_params::save_path)
+        .def_readwrite("storage_mode", &add_torrent_params::storage_mode)
+//        .def_readwrite("storage", &add_torrent_params::storage)
+        .add_property("file_priorities", PROP(&add_torrent_params::file_priorities))
+        .def_readwrite("trackerid", &add_torrent_params::trackerid)
+        .def_readwrite("url", &add_torrent_params::url)
+        .def_readwrite("flags", &add_torrent_params::flags)
+        .def_readwrite("info_hash", &add_torrent_params::info_hash)
+        .def_readwrite("max_uploads", &add_torrent_params::max_uploads)
+        .def_readwrite("max_connections", &add_torrent_params::max_connections)
+        .def_readwrite("upload_limit", &add_torrent_params::upload_limit)
+        .def_readwrite("download_limit", &add_torrent_params::download_limit)
+        .def_readwrite("total_uploaded", &add_torrent_params::total_uploaded)
+        .def_readwrite("total_downloaded", &add_torrent_params::total_downloaded)
+        .def_readwrite("active_time", &add_torrent_params::active_time)
+        .def_readwrite("finished_time", &add_torrent_params::finished_time)
+        .def_readwrite("seeding_time", &add_torrent_params::seeding_time)
+        .def_readwrite("added_time", &add_torrent_params::added_time)
+        .def_readwrite("completed_time", &add_torrent_params::completed_time)
+        .def_readwrite("last_seen_complete", &add_torrent_params::last_seen_complete)
+        .def_readwrite("num_complete", &add_torrent_params::num_complete)
+        .def_readwrite("num_incomplete", &add_torrent_params::num_incomplete)
+        .def_readwrite("num_downloaded", &add_torrent_params::num_downloaded)
+        .add_property("http_seeds", PROP(&add_torrent_params::http_seeds))
+        .add_property("url_seeds", PROP(&add_torrent_params::url_seeds))
+        .add_property("peers", PROP(&add_torrent_params::peers))
+        .add_property("banned_peers", PROP(&add_torrent_params::banned_peers))
+        .add_property("unfinished_pieces", PROP(&add_torrent_params::unfinished_pieces))
+        .add_property("have_pieces", PROP(&add_torrent_params::have_pieces))
+        .add_property("verified_pieces", PROP(&add_torrent_params::verified_pieces))
+        .add_property("piece_priorities", PROP(&add_torrent_params::piece_priorities))
+        .add_property("merkle_tree", PROP(&add_torrent_params::merkle_tree))
+        .add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
+
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("uuid", &add_torrent_params::uuid)
+        .def_readwrite("source_feed_url", &add_torrent_params::source_feed_url)
+        .def_readwrite("resume_data", &add_torrent_params::resume_data)
+#endif
+      ;
+
+
     enum_<storage_mode_t>("storage_mode_t")
         .value("storage_mode_allocate", storage_mode_allocate)
         .value("storage_mode_sparse", storage_mode_sparse)
@@ -791,6 +844,8 @@ void bind_session()
 #endif // TORRENT_DISABLE_DHT
         .def("add_torrent", &add_torrent)
         .def("async_add_torrent", &async_add_torrent)
+        .def("async_add_torrent", &lt::session::async_add_torrent)
+        .def("add_torrent", allow_threads((lt::torrent_handle (session_handle::*)(add_torrent_params const&))&lt::session::add_torrent))
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
         .def(

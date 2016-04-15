@@ -1,5 +1,6 @@
 	* added new read_resume_data() function, initializing add_torrent_params
 	* removed deprecated fields from add_torrent_params
+	* deprecate "resume_data" field in add_torrent_params
 	* improved support for bind-to-device
 	* deprecated ssl_listen, SSL sockets are specified in listen_interfaces now
 	* improved support for listening on multiple sockets and interfaces

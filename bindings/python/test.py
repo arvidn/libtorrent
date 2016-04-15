@@ -21,9 +21,35 @@ class test_torrent_handle(unittest.TestCase):
 		h.prioritize_pieces([0])
 		self.assertEqual(h.piece_priorities(), [0])
 
-      # also test the overload that takes a list of piece->priority mappings
+		# also test the overload that takes a list of piece->priority mappings
 		h.prioritize_pieces([(0, 1)])
 		self.assertEqual(h.piece_priorities(), [1])
+
+	def test_read_resume_data(self):
+
+		resume_data = lt.bencode({'file-format': 'libtorrent resume file',
+			'info-hash': 'abababababababababab',
+			'name': 'test',
+			'save_path': '.',
+			'peers': '\x01\x01\x01\x01\x00\x01\x02\x02\x02\x02\x00\x02',
+			'file_priority': [0, 1, 1]})
+		tp = lt.read_resume_data(resume_data)
+
+		self.assertEqual(tp.name, 'test')
+		self.assertEqual(tp.info_hash, lt.sha1_hash('abababababababababab'))
+		self.assertEqual(tp.file_priorities, [0, 1, 1])
+		self.assertEqual(tp.peers, [('1.1.1.1', 1), ('2.2.2.2', 2)])
+
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		h = ses.add_torrent(tp)
+
+		h.connect_peer(('3.3.3.3', 3))
+
+		for i in range(0, 10):
+			alerts = ses.pop_alerts()
+			for a in alerts:
+				print(a.message())
+			time.sleep(0.1)
 
 class test_torrent_info(unittest.TestCase):
 

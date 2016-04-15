@@ -301,19 +301,6 @@ void set_metadata(torrent_handle& handle, std::string const& buf)
    handle.set_metadata(buf.c_str(), buf.size());
 }
 
-namespace
-{
-    tcp::endpoint tuple_to_endpoint(tuple const& t)
-    {
-        return tcp::endpoint(address::from_string(extract<std::string>(t[0])), extract<int>(t[1]));
-    }
-}
-
-void connect_peer(torrent_handle& th, tuple ip, int source)
-{
-    th.connect_peer(tuple_to_endpoint(ip), source);
-}
-
 #ifndef TORRENT_NO_DEPRECATE
 #if BOOST_VERSION > 104200
 
@@ -335,16 +322,6 @@ boost::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 }
 
 #endif
-
-void set_peer_upload_limit(torrent_handle& th, tuple const& ip, int limit)
-{
-    th.set_peer_upload_limit(tuple_to_endpoint(ip), limit);
-}
-
-void set_peer_download_limit(torrent_handle& th, tuple const& ip, int limit)
-{
-    th.set_peer_download_limit(tuple_to_endpoint(ip), limit);
-}
 
 #endif // TORRENT_NO_DEPRECAE
 
@@ -471,18 +448,18 @@ void bind_torrent_handle()
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_peer_upload_limit", &set_peer_upload_limit)
-        .def("set_peer_download_limit", &set_peer_download_limit)
+        .def("set_peer_upload_limit", &torrent_handle::set_peer_upload_limit)
+        .def("set_peer_download_limit", &torrent_handle::set_peer_download_limit)
         .def("set_ratio", _(&torrent_handle::set_ratio))
         .def("save_path", _(&torrent_handle::save_path))
 #endif
-        .def("connect_peer", &connect_peer)
-        .def("set_max_uploads", _(&torrent_handle::set_max_uploads))
+        .def("connect_peer", &torrent_handle::connect_peer, (arg("endpoint"), arg("source")=0, arg("flags")=0xd))
+        .def("set_max_uploads", &torrent_handle::set_max_uploads)
         .def("max_uploads", _(&torrent_handle::max_uploads))
-        .def("set_max_connections", _(&torrent_handle::set_max_connections))
+        .def("set_max_connections", &torrent_handle::set_max_connections)
         .def("max_connections", _(&torrent_handle::max_connections))
 #ifndef TORRENT_NO_DEPRECATE
-        .def("set_tracker_login", _(&torrent_handle::set_tracker_login))
+        .def("set_tracker_login", &torrent_handle::set_tracker_login)
 #endif
         .def("move_storage", _(move_storage0), (arg("path"), arg("flags") = 0))
         .def("info_hash", _(&torrent_handle::info_hash))
