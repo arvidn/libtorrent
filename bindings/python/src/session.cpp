@@ -810,7 +810,7 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def("add_feed", &add_feed)
         .def("status", allow_threads(&lt::session::status))
-        .def("settings", &session_get_settings)
+        .def("settings", &lt::session::settings)
         .def("set_settings", &session_set_settings)
 #endif
         .def("get_settings", &session_get_settings)
