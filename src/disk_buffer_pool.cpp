@@ -423,7 +423,14 @@ namespace libtorrent
 					m_max_use = result / m_block_size;
 				}
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4127 ) /* warning C4127: conditional expression is constant */
+#endif // _MSC_VER
 				if (sizeof(void*) == 4)
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER
 				{
 					// 32 bit builds should  capped below 2 GB of memory, even
 					// when more actual ram is available, because we're still

@@ -529,8 +529,13 @@ namespace libtorrent
 			size_t ret = 5381;
 			int c;
 
-			while ((c = *s1++))
+			for (;;)
+			{
+				c = *s1++;
+				if (c == 0)
+					break;
 				ret = (ret * 33) ^ to_lower(c);
+			}
 
 			return ret;
 		}
@@ -1287,7 +1292,7 @@ namespace libtorrent
 			m_merkle_tree[0].assign(root_hash.string_ptr());
 		}
 
-		m_private = info.dict_find_int_value("private", 0);
+		m_private = (info.dict_find_int_value("private", 0) != 0);
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		bdecode_node similar = info.dict_find_list("similar");

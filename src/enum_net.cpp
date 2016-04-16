@@ -594,16 +594,16 @@ namespace libtorrent
 			PIP_ADAPTER_ADDRESSES adapter_addresses
 				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 
-			DWORD r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+			DWORD res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 				| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
-			if (r == ERROR_BUFFER_OVERFLOW)
+			if (res == ERROR_BUFFER_OVERFLOW)
 			{
 				buffer.resize(buf_size);
 				adapter_addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
-				r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
+				res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
 			}
-			if (r != NO_ERROR)
+			if (res != NO_ERROR)
 			{
 				FreeLibrary(iphlp);
 				ec = error_code(WSAGetLastError(), system_category());

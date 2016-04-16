@@ -2118,7 +2118,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	}
 	else if (ec)
 	{
-		TORRENT_ASSERT(stack_alloced != bool(payload_size));
+		TORRENT_ASSERT(stack_alloced != (payload_size != 0));
 		m_error = ec;
 		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
@@ -2511,7 +2511,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	bool ret = m_read_handler || m_write_handler || m_connect_handler;
 
 	// calling the callbacks with m_userdata being 0 will just crash
-	TORRENT_ASSERT((ret && bool(m_userdata)) || !ret);
+	TORRENT_ASSERT((ret && (m_userdata != NULL)) || !ret);
 
 	bool read = m_read_handler;
 	bool write = m_write_handler;

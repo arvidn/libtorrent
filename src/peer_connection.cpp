@@ -3955,7 +3955,8 @@ namespace libtorrent
 			for (extension_list_t::iterator i = m_extensions.begin()
 				, end(m_extensions.end()); i != end; ++i)
 			{
-				if ((handled = (*i)->write_request(r))) break;
+				handled = (*i)->write_request(r);
+				if (handled) break;
 			}
 			if (is_disconnecting()) return;
 			if (!handled)

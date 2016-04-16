@@ -418,7 +418,7 @@ namespace libtorrent
 					for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack->set_bool(settings_pack::bool_type_base + k, val.int_value());
+						pack->set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
 						break;
 					}
 				}

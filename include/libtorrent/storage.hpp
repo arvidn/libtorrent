@@ -680,7 +680,7 @@ namespace libtorrent
 	// what to do when it's actually touching the file
 	struct fileop
 	{
-		virtual int file_op(int file_index, boost::int64_t file_offset, int size
+		virtual int file_op(int const file_index, boost::int64_t const file_offset, int const size
 			, file::iovec_t const* bufs, storage_error& ec) = 0;
 	};
 

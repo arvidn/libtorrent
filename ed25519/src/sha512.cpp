@@ -275,8 +275,11 @@ int sha512(const unsigned char *message, size_t message_len, unsigned char *out)
 {
     sha512_context ctx;
     int ret;
-    if ((ret = sha512_init(&ctx))) return ret;
-    if ((ret = sha512_update(&ctx, message, message_len))) return ret;
-    if ((ret = sha512_final(&ctx, out))) return ret;
+    ret = sha512_init(&ctx);
+    if (ret) return ret;
+    ret = sha512_update(&ctx, message, message_len);
+    if (ret) return ret;
+    ret = sha512_final(&ctx, out);
+    if (ret) return ret;
     return 0;
 }

@@ -67,7 +67,7 @@ namespace libtorrent { namespace aux
 #if TORRENT_HAS_SSE
 		unsigned int cpui[4];
 		cpuid(cpui, 1);
-		return cpui[2] & (1 << 20);
+		return (cpui[2] & (1 << 20)) != 0;
 #else
 		return false;
 #endif
@@ -78,7 +78,7 @@ namespace libtorrent { namespace aux
 #if TORRENT_HAS_SSE
 		unsigned int cpui[4];
 		cpuid(cpui, 1);
-		return cpui[2] & (1 << 23);
+		return (cpui[2] & (1 << 23)) != 0;
 #else
 		return false;
 #endif

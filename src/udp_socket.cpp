@@ -1183,9 +1183,11 @@ void udp_socket::handshake2(error_code const& e)
 		// start sub-negotiation
 		p = &m_tmp_buf[0];
 		write_uint8(1, p);
-		write_uint8(m_proxy_settings.username.size(), p);
+		TORRENT_ASSERT(m_proxy_settings.username.size() < 0x100);
+		write_uint8((uint8_t)m_proxy_settings.username.size(), p);
 		write_string(m_proxy_settings.username, p);
-		write_uint8(m_proxy_settings.password.size(), p);
+		TORRENT_ASSERT(m_proxy_settings.password.size() < 0x100);
+		write_uint8((uint8_t)m_proxy_settings.password.size(), p);
 		write_string(m_proxy_settings.password, p);
 		TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 #if defined TORRENT_ASIO_DEBUGGING
