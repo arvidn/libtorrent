@@ -111,7 +111,7 @@ script:
 
   - cd simulation
   - if [ $sim = "1" ]; then
-    bjam --hash -j2 crypto=built-in $coverage_toolset;
+    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
     fi
   - cd ..
   - ccache --show-stats
