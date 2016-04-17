@@ -194,9 +194,11 @@ namespace libtorrent
 			m_buffer.resize(m_user.size() + m_password.size() + 3);
 			p = &m_buffer[0];
 			write_uint8(1, p);
-			write_uint8(m_user.size(), p);
+			TORRENT_ASSERT(m_user.size() < 0x100);
+			write_uint8(uint8_t(m_user.size()), p);
 			write_string(m_user, p);
-			write_uint8(m_password.size(), p);
+			TORRENT_ASSERT(m_password.size() < 0x100);
+			write_uint8(uint8_t(m_password.size()), p);
 			write_string(m_password, p);
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -275,8 +277,8 @@ namespace libtorrent
 			if (!m_dst_name.empty())
 			{
 				write_uint8(3, p); // address type
-				TORRENT_ASSERT(m_dst_name.size() <= 255);
-				write_uint8(m_dst_name.size(), p);
+				TORRENT_ASSERT(m_dst_name.size() < 0x100);
+				write_uint8(uint8_t(m_dst_name.size()), p);
 				std::copy(m_dst_name.begin(), m_dst_name.end(), p);
 				p += m_dst_name.size();
 			}

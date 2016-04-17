@@ -780,9 +780,9 @@ namespace libtorrent
 			// we don't care about the last character, since it's OK for it
 			// to be a slash or a back slash
 			bool found = false;
-			for (int i = 2; i < int(f.size()) - 1; ++i)
+			for (int j = 2; j < int(f.size()) - 1; ++j)
 			{
-				if (f[i] != '\\' && f[i] != '/') continue;
+				if (f[j] != '\\' && f[j] != '/') continue;
 				// there is a directory separator in here,
 				// i.e. this is not the root
 				found = true;

@@ -2279,7 +2279,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(j->action));
 #endif
-			m_disk_cache.cache_hit(pe, j->requester, j->flags & disk_io_job::volatile_read);
+			m_disk_cache.cache_hit(pe, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
 
 			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 			++pe->piece_refcount;

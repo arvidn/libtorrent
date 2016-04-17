@@ -490,7 +490,7 @@ observer::~observer()
 	// reported back to the traversal_algorithm as
 	// well. If it wasn't sent, it cannot have been
 	// reported back
-	TORRENT_ASSERT(m_was_sent == bool(flags & flag_done) || m_was_abandoned);
+	TORRENT_ASSERT(m_was_sent == ((flags & flag_done) != 0) || m_was_abandoned);
 	TORRENT_ASSERT(!m_in_constructor);
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(m_in_use);

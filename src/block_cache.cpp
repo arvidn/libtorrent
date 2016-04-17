@@ -396,7 +396,7 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 #if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
-	cache_hit(p, j->requester, j->flags & disk_io_job::volatile_read);
+	cache_hit(p, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
 
 	ret = copy_from_piece(p, j, expect_no_fail);
 	if (ret < 0) return ret;

@@ -62,7 +62,7 @@ namespace libtorrent
 	{
 		// file prio is only supported on vista and up
 		// so load the functions dynamically
-		typedef enum _FILE_INFO_BY_HANDLE_CLASS {
+		typedef enum {
 			FileBasicInfo,
 			FileStandardInfo,
 			FileNameInfo,
@@ -78,20 +78,20 @@ namespace libtorrent
 			FileIoPriorityHintInfo,
 			FileRemoteProtocolInfo,
 			MaximumFileInfoByHandleClass
-		} FILE_INFO_BY_HANDLE_CLASS, *PFILE_INFO_BY_HANDLE_CLASS;
+		} FILE_INFO_BY_HANDLE_CLASS_LOCAL;
 
-		typedef enum _PRIORITY_HINT {
+		typedef enum {
 			IoPriorityHintVeryLow = 0,
 			IoPriorityHintLow,
 			IoPriorityHintNormal,
 			MaximumIoPriorityHintType
-		} PRIORITY_HINT;
+		} PRIORITY_HINT_LOCAL;
 
-		typedef struct _FILE_IO_PRIORITY_HINT_INFO {
-			PRIORITY_HINT PriorityHint;
-		} FILE_IO_PRIORITY_HINT_INFO, *PFILE_IO_PRIORITY_HINT_INFO;
+		typedef struct {
+			PRIORITY_HINT_LOCAL PriorityHint;
+		} FILE_IO_PRIORITY_HINT_INFO_LOCAL;
 
-		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
+		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
 		static SetFileInformationByHandle_t SetFileInformationByHandle = NULL;
 
 		static bool failed_kernel_load = false;
@@ -117,7 +117,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(SetFileInformationByHandle);
 
-		FILE_IO_PRIORITY_HINT_INFO io_hint;
+		FILE_IO_PRIORITY_HINT_INFO_LOCAL io_hint;
 		io_hint.PriorityHint = IoPriorityHintLow;
 		SetFileInformationByHandle(f->native_handle(),
 			FileIoPriorityHintInfo, &io_hint, sizeof(io_hint));

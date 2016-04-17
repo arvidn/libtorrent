@@ -166,8 +166,12 @@ namespace libtorrent { namespace
 					// use that port. But only if we didn't connect to the peer.
 					// if we connected to it, use the port we know works
 					torrent_peer *pi = 0;
-					if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
-						remote.port(pi->port);
+					if (!p->is_outgoing())
+					{
+						pi = peer->peer_info_struct();
+						if ((pi != NULL) && (pi->port > 0))
+							remote.port(pi->port);
+					}
 
 					// no supported flags to set yet
 					// 0x01 - peer supports encryption
@@ -578,8 +582,12 @@ namespace libtorrent { namespace
 				tcp::endpoint remote = peer->remote();
 
 				torrent_peer *pi = 0;
-				if (!p->is_outgoing() && (pi = peer->peer_info_struct()) && pi->port > 0)
-					remote.port(pi->port);
+				if (!p->is_outgoing())
+				{
+					pi = peer->peer_info_struct();
+					if ((pi != NULL) && (pi->port > 0))
+						remote.port(pi->port);
+				}
 
 				// i->first was added since the last time
 				if (remote.address().is_v4())

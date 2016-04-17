@@ -187,7 +187,13 @@ namespace libtorrent
 #endif
 
 		int next_barrier = 0;
-		if (iovec.empty() || (next_barrier = m_send_barriers.front().enc_handler->encrypt(iovec)))
+		bool process_barrier = iovec.empty();
+		if (!process_barrier)
+		{
+			next_barrier = m_send_barriers.front().enc_handler->encrypt(iovec);
+			process_barrier = (next_barrier != 0);
+		}
+		if (process_barrier)
 		{
 			if (m_send_barriers.front().next != INT_MAX)
 			{

@@ -518,8 +518,8 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
 #if TORRENT_USE_WSTRING
-		std::wstring f = convert_to_wstring(m_save_path);
-		int drive_type = GetDriveTypeW(f.c_str());
+		std::wstring file_name = convert_to_wstring(m_save_path);
+		int drive_type = GetDriveTypeW(file_name.c_str());
 #else
 		int drive_type = GetDriveTypeA(m_save_path.c_str());
 #endif
@@ -1630,7 +1630,7 @@ namespace libtorrent
 	bool disk_job_fence::has_fence() const
 	{
 		mutex::scoped_lock l(m_mutex);
-		return m_has_fence;
+		return m_has_fence != 0;
 	}
 
 	int disk_job_fence::num_blocked() const

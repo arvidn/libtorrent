@@ -247,7 +247,7 @@ namespace libtorrent
 		, m_resolve_countries(false)
 #endif
 #endif
-		, m_need_save_resume_data(p.flags & add_torrent_params::flag_need_save_resume)
+		, m_need_save_resume_data((p.flags & add_torrent_params::flag_need_save_resume) != 0)
 		, m_seeding_time(0)
 		, m_max_uploads((1<<24)-1)
 		, m_save_resume_flags(0)
@@ -273,7 +273,7 @@ namespace libtorrent
 		, m_num_seeds(0)
 		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
 		, m_storage_tick(0)
-		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
+		, m_auto_managed((p.flags & add_torrent_params::flag_auto_managed) != 0)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
@@ -405,7 +405,7 @@ namespace libtorrent
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
 				&& std::count(p.file_priorities.begin(), p.file_priorities.end(), 0) == 0
 				&& std::count(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == 0
-				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), 0) == 0;
+				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), false) == 0;
 
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
@@ -9397,7 +9397,7 @@ namespace libtorrent
 
 		if (!b)
 		{
-			do_pause(flags & flag_clear_disk_cache);
+			do_pause((flags & flag_clear_disk_cache) != 0);
 		}
 		else
 		{

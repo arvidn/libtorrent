@@ -58,9 +58,14 @@ namespace libtorrent
 		char *p = &ret.back();
 		*p = '\0';
 		boost::uint64_t un = n;
-		// TODO: warning C4146: unary minus operator applied to unsigned type,
-		// result still unsigned
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type */
+#endif // _MSC_VER
 		if (n < 0)  un = -un;
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif // _MSC_VER
 		do {
 			*--p = '0' + un % 10;
 			un /= 10;

@@ -745,25 +745,25 @@ namespace aux {
 				val = settings.dict_find_int("max_torrent_search_reply");
 				if (val) m_dht_settings.max_torrent_search_reply = val.int_value();
 				val = settings.dict_find_int("restrict_routing_ips");
-				if (val) m_dht_settings.restrict_routing_ips = val.int_value();
+				if (val) m_dht_settings.restrict_routing_ips = (val.int_value() != 0);
 				val = settings.dict_find_int("restrict_search_ips");
-				if (val) m_dht_settings.restrict_search_ips = val.int_value();
+				if (val) m_dht_settings.restrict_search_ips = (val.int_value() != 0);
 				val = settings.dict_find_int("extended_routing_table");
-				if (val) m_dht_settings.extended_routing_table = val.int_value();
+				if (val) m_dht_settings.extended_routing_table = (val.int_value() != 0);
 				val = settings.dict_find_int("aggressive_lookups");
-				if (val) m_dht_settings.aggressive_lookups = val.int_value();
+				if (val) m_dht_settings.aggressive_lookups = (val.int_value() != 0);
 				val = settings.dict_find_int("privacy_lookups");
-				if (val) m_dht_settings.privacy_lookups = val.int_value();
+				if (val) m_dht_settings.privacy_lookups = (val.int_value() != 0);
 				val = settings.dict_find_int("enforce_node_id");
-				if (val) m_dht_settings.enforce_node_id = val.int_value();
+				if (val) m_dht_settings.enforce_node_id = (val.int_value() != 0);
 				val = settings.dict_find_int("ignore_dark_internet");
-				if (val) m_dht_settings.ignore_dark_internet = val.int_value();
+				if (val) m_dht_settings.ignore_dark_internet = (val.int_value() != 0);
 				val = settings.dict_find_int("block_timeout");
 				if (val) m_dht_settings.block_timeout = val.int_value();
 				val = settings.dict_find_int("block_ratelimit");
 				if (val) m_dht_settings.block_ratelimit = val.int_value();
 				val = settings.dict_find_int("read_only");
-				if (val) m_dht_settings.read_only = val.int_value();
+				if (val) m_dht_settings.read_only = (val.int_value() != 0);
 				val = settings.dict_find_int("item_lifetime");
 				if (val) m_dht_settings.item_lifetime = val.int_value();
 			}
@@ -919,7 +919,7 @@ namespace aux {
 			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
 			if (e->first.size() > max_dht_query_length) continue;
 			extension_dht_query registration;
-			registration.query_len = e->first.size();
+			registration.query_len = uint8_t(e->first.size());
 			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
 			registration.handler = e->second;
 			m_extension_dht_queries.push_back(registration);
@@ -1685,7 +1685,7 @@ namespace aux {
 #endif
 
 		listen_socket_t ret;
-		ret.ssl = flags & open_ssl_socket;
+		ret.ssl = (flags & open_ssl_socket) != 0;
 		int last_op = 0;
 		listen_failed_alert::socket_type_t const sock_type
 			= (flags & open_ssl_socket)
@@ -3474,7 +3474,7 @@ namespace aux {
 
 	bool session_impl::has_dht() const
 	{
-		return m_dht.get();
+		return m_dht.get() != NULL;
 	}
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)

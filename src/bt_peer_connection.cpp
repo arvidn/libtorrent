@@ -1239,6 +1239,12 @@ namespace libtorrent
 				p.length = m_recv_buffer.packet_size() - header_size;
 			}
 		}
+		else
+		{
+			p.piece = 0;
+			p.start = 0;
+			p.length = 0;
+		}
 
 		if (recv_pos <= header_size)
 		{
