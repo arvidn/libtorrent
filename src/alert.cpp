@@ -1893,7 +1893,7 @@ namespace libtorrent {
 			tcp::endpoint endp = peers[i];
 			std::size_t size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
-			detail::write_uint8((uint8_t)size, ptr);
+			detail::write_uint8(uint8_t(size), ptr);
 			memcpy(ptr, endp.data(), size);
 			ptr += size;
 		}

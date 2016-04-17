@@ -88,7 +88,7 @@ namespace libtorrent
 		else
 		{
 			TORRENT_ASSERT(m_peer_classes.size() < 0x100);
-			ret = (peer_class_t)m_peer_classes.size();
+			ret = peer_class_t(m_peer_classes.size());
 			m_peer_classes.push_back(boost::shared_ptr<peer_class>());
 		}
 

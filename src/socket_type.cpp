@@ -72,9 +72,9 @@ namespace libtorrent
 
 	bool is_utp(socket_type const& s)
 	{
-		return (s.get<utp_stream>() != NULL)
+		return s.get<utp_stream>() != NULL
 #ifdef TORRENT_USE_OPENSSL
-			|| (s.get<ssl_stream<utp_stream> >() != NULL)
+			|| s.get<ssl_stream<utp_stream> >() != NULL
 #endif
 			;
 	}
@@ -82,9 +82,9 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 	bool is_i2p(socket_type const& s)
 	{
-		return (s.get<i2p_stream>() != NULL)
+		return s.get<i2p_stream>() != NULL
 #ifdef TORRENT_USE_OPENSSL
-			|| (s.get<ssl_stream<i2p_stream> >() != NULL)
+			|| s.get<ssl_stream<i2p_stream> >() != NULL
 #endif
 			;
 	}

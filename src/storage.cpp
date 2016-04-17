@@ -1630,7 +1630,7 @@ namespace libtorrent
 	bool disk_job_fence::has_fence() const
 	{
 		mutex::scoped_lock l(m_mutex);
-		return m_has_fence != NULL;
+		return m_has_fence != 0;
 	}
 
 	int disk_job_fence::num_blocked() const

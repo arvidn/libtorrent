@@ -919,7 +919,7 @@ namespace aux {
 			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
 			if (e->first.size() > max_dht_query_length) continue;
 			extension_dht_query registration;
-			registration.query_len = (uint8_t)e->first.size();
+			registration.query_len = uint8_t(e->first.size());
 			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
 			registration.handler = e->second;
 			m_extension_dht_queries.push_back(registration);
