@@ -165,11 +165,10 @@ namespace libtorrent { namespace
 					// if the peer has told us which port its listening on,
 					// use that port. But only if we didn't connect to the peer.
 					// if we connected to it, use the port we know works
-					torrent_peer *pi = 0;
 					if (!p->is_outgoing())
 					{
-						pi = peer->peer_info_struct();
-						if ((pi != NULL) && (pi->port > 0))
+						torrent_peer const* const pi = peer->peer_info_struct();
+						if (pi != NULL && pi->port > 0)
 							remote.port(pi->port);
 					}
 
@@ -581,11 +580,10 @@ namespace libtorrent { namespace
 
 				tcp::endpoint remote = peer->remote();
 
-				torrent_peer *pi = 0;
 				if (!p->is_outgoing())
 				{
-					pi = peer->peer_info_struct();
-					if ((pi != NULL) && (pi->port > 0))
+					torrent_peer const* const pi = peer->peer_info_struct();
+					if (pi != NULL && pi->port > 0)
 						remote.port(pi->port);
 				}
 
