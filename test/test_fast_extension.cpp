@@ -759,7 +759,7 @@ TORRENT_TEST(dont_have)
 		TEST_CHECK(dont_have);
 		if (!dont_have) return;
 
-		lt_dont_have = dont_have.int_value();
+		lt_dont_have = int(dont_have.int_value());
 	}
 	print_session_log(*ses);
 
@@ -822,7 +822,7 @@ TORRENT_TEST(invalid_metadata_request)
 
 	extensions = read_extension_handshake(s, recv_buffer, sizeof(recv_buffer));
 
-	int ut_metadata = extensions["m"]["ut_metadata"].integer();
+	int ut_metadata = int(extensions["m"]["ut_metadata"].integer());
 
 	log("ut_metadata: %d", ut_metadata);
 

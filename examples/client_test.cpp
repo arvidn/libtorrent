@@ -430,10 +430,10 @@ int print_peer_info(std::string& out
 		snprintf(str, sizeof(str)
 			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
-			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
-			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
-			, esc("31"), add_suffix(i->up_speed, "/s").c_str(), add_suffix(i->total_upload).c_str()
-			, add_suffix(i->upload_rate_peak, "/s").c_str(), esc("0")
+			, esc("32"), add_suffix(float(i->down_speed), "/s").c_str()
+			, add_suffix(float(i->total_download)).c_str(), add_suffix(float(i->download_rate_peak), "/s").c_str()
+			, esc("31"), add_suffix(float(i->up_speed), "/s").c_str(), add_suffix(float(i->total_upload)).c_str()
+			, add_suffix(float(i->upload_rate_peak), "/s").c_str(), esc("0")
 
 			, temp // sent requests and target number of outstanding reqs.
 			, i->timed_out_requests
@@ -499,8 +499,8 @@ int print_peer_info(std::string& out
 			out += str;
 		}
 		snprintf(str, sizeof(str), "%s|%s %5d "
-			, add_suffix(i->pending_disk_bytes).c_str()
-			, add_suffix(i->pending_disk_read_bytes).c_str()
+			, add_suffix(float(i->pending_disk_bytes)).c_str()
+			, add_suffix(float(i->pending_disk_read_bytes)).c_str()
 			, i->rtt);
 		out += str;
 
@@ -524,8 +524,8 @@ int print_peer_info(std::string& out
 			bool unchoked = (i->flags & peer_info::choked) == 0;
 
 			snprintf(str, sizeof(str), " %s %s"
-				, add_suffix(i->remote_dl_rate, "/s").c_str()
-				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
+				, add_suffix(float(i->remote_dl_rate), "/s").c_str()
+				, unchoked ? add_suffix(float(i->estimated_reciprocation_rate), "/s").c_str() : "      ");
 			out += str;
 		}
 		out += " ";
@@ -1122,7 +1122,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		char chr = '+';
 		if (index >= 0)
 			chr = (index < 10)?'0' + index:'A' + index - 10;
-		bool snubbed = index >= 0 ? peers[index].flags & peer_info::snubbed : false;
+		bool snubbed = index >= 0 ? ((peers[index].flags & peer_info::snubbed) != 0) : false;
 
 		char const* color = "";
 
@@ -1321,7 +1321,7 @@ int main(int argc, char* argv[])
 					if (strcmp(value, "0") == 0
 						|| strcmp(value, "1") == 0)
 					{
-						settings.set_bool(sett_name, atoi(value));
+						settings.set_bool(sett_name, atoi(value) != 0);
 					}
 					else
 					{
@@ -1849,7 +1849,7 @@ int main(int argc, char* argv[])
 					events.push_back(event_string);
 					if (events.size() >= 20) events.pop_front();
 				}
-			} TORRENT_CATCH(std::exception& e) {}
+			} TORRENT_CATCH(std::exception& ) {}
 		}
 		alerts.clear();
 
@@ -2074,7 +2074,7 @@ int main(int argc, char* argv[])
 						{
 							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
 								, ti->files().file_name(i).c_str()
-								, add_suffix(ti->files().file_size(i)).c_str());
+								, add_suffix(float(ti->files().file_size(i))).c_str());
 							out += str;
 							pos += 1;
 						}
@@ -2082,7 +2082,7 @@ int main(int argc, char* argv[])
 					}
 
 					int progress = ti->files().file_size(i) > 0
-						?file_progress[i] * 1000 / ti->files().file_size(i):1000;
+						? int(file_progress[i] * 1000 / ti->files().file_size(i)) : 1000;
 
 					bool complete = file_progress[i] == ti->files().file_size(i);
 
@@ -2119,7 +2119,7 @@ int main(int argc, char* argv[])
 					snprintf(str, sizeof(str), "%s %7s p: %d ",
 						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
-						, add_suffix(file_progress[i]).c_str()
+						, add_suffix(float(file_progress[i])).c_str()
 						, file_prio[i]);
 
 					p += file_progress_width + 13;

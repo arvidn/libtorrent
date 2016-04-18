@@ -322,13 +322,13 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 		, name.c_str()
 		, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
 		, selection
-		, color(add_suffix(s.download_rate, "/s"), col_green).c_str()
-		, color(add_suffix(s.total_download), col_green).c_str()
-		, color(add_suffix(s.upload_rate, "/s"), col_red).c_str()
-		, color(add_suffix(s.total_upload), col_red).c_str()
+		, color(add_suffix(float(s.download_rate), "/s"), col_green).c_str()
+		, color(add_suffix(float(s.total_download)), col_green).c_str()
+		, color(add_suffix(float(s.upload_rate), "/s"), col_red).c_str()
+		, color(add_suffix(float(s.total_upload)), col_red).c_str()
 		, s.num_peers - s.num_seeds, s.num_seeds
-		, color(add_suffix(s.all_time_download), col_green).c_str()
-		, color(add_suffix(s.all_time_upload), col_red).c_str()
+		, color(add_suffix(float(s.all_time_download)), col_green).c_str()
+		, color(add_suffix(float(s.all_time_upload)), col_red).c_str()
 		, s.need_save_resume?'S':' ');
 
 	// if this is the selected torrent, restore the background color

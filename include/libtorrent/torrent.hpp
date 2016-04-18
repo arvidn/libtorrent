@@ -1080,7 +1080,7 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-		void update_last_upload() { m_last_upload = m_ses.session_time(); }
+		void update_last_upload() { m_last_upload = int16_t(m_ses.session_time()); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }

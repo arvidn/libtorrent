@@ -128,10 +128,10 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
-bool get_piece(libtorrent::bitfield const& p, int index)
+int get_piece(libtorrent::bitfield const& p, int index)
 {
-	if (index < 0 || index >= p.size()) return false;
-	return p.get_bit(index);
+	if (index < 0 || index >= p.size()) return 0;
+	return p.get_bit(index) ? 1 : 0;
 }
 
 std::string const& piece_bar(libtorrent::bitfield const& p, int width)
@@ -169,7 +169,9 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
+#ifndef _WIN32
 		char buf[40];
+#endif
 		color[i & 1] = c;
 
 #ifndef _WIN32
@@ -292,7 +294,7 @@ void set_cursor_pos(int x, int y)
 {
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD c = {x, y};
+	COORD c = {SHORT(x), SHORT(y)};
 	SetConsoleCursorPosition(out, c);
 #else
 	printf("\033[%d;%dH", y + 1, x + 1);
@@ -322,7 +324,7 @@ void clear_rows(int y1, int y2)
 #ifdef _WIN32
 	HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	COORD c = {0, y1};
+	COORD c = {0, SHORT(y1)};
 	SetConsoleCursorPosition(out, c);
 	CONSOLE_SCREEN_BUFFER_INFO si;
 	GetConsoleScreenBufferInfo(out, &si);

@@ -130,7 +130,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 			++counter;
 			bool ret = p->mark_as_downloading(piece_block(i, j), tmp_peer);
 			TEST_CHECK(ret == true);
-			TEST_CHECK(p->is_requested(piece_block(i, j)) == bool(blocks & (1 << j)));
+			TEST_CHECK(p->is_requested(piece_block(i, j)) == ((blocks & (1 << j)) != 0));
 			p->mark_as_writing(piece_block(i, j), tmp_peer);
 			TEST_CHECK(!p->is_finished(piece_block(i, j)));
 			// trying to mark a block as requested after it has been completed
@@ -139,8 +139,8 @@ boost::shared_ptr<piece_picker> setup_picker(
 			TEST_CHECK(ret == false);
 			p->mark_as_finished(piece_block(i, j), tmp_peer);
 
-			TEST_CHECK(p->is_downloaded(piece_block(i, j)) == bool(blocks & (1 << j)));
-			TEST_CHECK(p->is_finished(piece_block(i, j)) == bool(blocks & (1 << j)));
+			TEST_CHECK(p->is_downloaded(piece_block(i, j)) == ((blocks & (1 << j)) != 0));
+			TEST_CHECK(p->is_finished(piece_block(i, j)) == ((blocks & (1 << j)) != 0));
 		}
 
 		piece_picker::downloading_piece st;

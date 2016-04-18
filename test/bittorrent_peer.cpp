@@ -124,7 +124,7 @@ void peer_conn::on_handshake2(error_code const& ec, size_t bytes_transferred)
 	// buffer is the full 68 byte handshake
 	// look at the extension bits
 
-	fast_extension = ((char*)buffer)[27] & 4;
+	fast_extension = (((char*)buffer)[27] & 4) != 0;
 
 	if (m_mode == uploader)
 	{
@@ -262,7 +262,7 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	end_time = clock_type::now();
 	char tmp[1024];
 	snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
-	int time = total_milliseconds(end_time - start_time);
+	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
 	float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
 	float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;

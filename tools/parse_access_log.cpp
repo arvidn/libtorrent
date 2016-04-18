@@ -96,8 +96,8 @@ int main(int argc, char* argv[])
 
 		if (first_timestamp == 0) first_timestamp = op.timestamp;
 
-		bool write = op.event & 1;
-		bool complete = op.event & 2;
+		bool write = (op.event & 1) != 0;
+		bool complete = (op.event & 2) != 0;
 		FILE* out_file = 0;
 		if (complete)
 		{

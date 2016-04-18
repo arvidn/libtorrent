@@ -64,7 +64,7 @@ namespace
 		dht_settings sett;
 		sett.max_torrents = 2;
 		sett.max_dht_items = 2;
-		sett.item_lifetime = seconds(120 * 60).count();
+		sett.item_lifetime = int(seconds(120 * 60).count());
 		return sett;
 	}
 
