@@ -63,7 +63,7 @@ namespace aux {
 		// set to authenticate with the proxy.
 		std::string hostname;
 
-		// when using a proy type that requires authentication, the username
+		// when using a proxy type that requires authentication, the username
 		// and password fields must be set to the credentials for the proxy.
 		std::string username;
 		std::string password;
@@ -128,7 +128,7 @@ namespace aux {
 		// This is only supported by SOCKS5 and HTTP.
 		bool proxy_hostnames;
 
-		// determines whether or not to excempt peer and web seed connections
+		// determines whether or not to exempt peer and web seed connections
 		// from using the proxy. This defaults to true, i.e. peer connections are
 		// proxied by default.
 		bool proxy_peer_connections;
