@@ -1037,7 +1037,7 @@ struct test_fileop : fileop
 
 		std::vector<char>& file = m_file_data[file_index];
 
-		if (offset + write_size > int(file.size()))
+		if (offset + write_size > file.size())
 		{
 			file.resize(offset + write_size);
 		}
