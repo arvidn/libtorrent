@@ -21,7 +21,11 @@ char const* esc(char const* code);
 
 std::string to_string(int v, int width);
 
-std::string add_suffix(float val, char const* suffix = 0);
+std::string add_suffix_float(float val, char const* suffix);
+
+template<class T> std::string add_suffix(T val, char const* suffix = 0) {
+	return add_suffix_float(float(val), suffix);
+}
 
 std::string color(std::string const& s, color_code c);
 

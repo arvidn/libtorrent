@@ -48,7 +48,7 @@ std::string to_string(int v, int width)
 	return buf;
 }
 
-std::string add_suffix(float val, char const* suffix)
+std::string add_suffix_float(float val, char const* suffix)
 {
 	if (val < 0.001f)
 	{

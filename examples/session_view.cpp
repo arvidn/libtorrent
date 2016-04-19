@@ -80,9 +80,9 @@ void session_view::render()
 		"                                      %s\x1b[K"
 		, esc("48;5;238")
 		, esc("1")
-		, add_suffix(float(m_cnt[0][m_failed_bytes_idx])).c_str()
-		, color(add_suffix(float(download_rate), "/s"), col_green).c_str()
-		, color(add_suffix(float(m_cnt[0][m_recv_payload_idx])), col_green).c_str()
+		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
+		, color(add_suffix(download_rate, "/s"), col_green).c_str()
+		, color(add_suffix(m_cnt[0][m_recv_payload_idx]), col_green).c_str()
 		, color(to_string(int(m_cnt[0][m_limiter_up_queue_idx]), 3), col_red).c_str()
 		, color(to_string(int(m_cnt[0][m_limiter_down_queue_idx]), 3), col_green).c_str()
 		, int(m_cnt[0][m_num_peers_idx])
@@ -102,18 +102,18 @@ void session_view::render()
 		, esc("48;5;238")
 #endif
 		, esc("1")
-		, add_suffix(float(m_cnt[0][m_wasted_bytes_idx])).c_str()
-		, color(add_suffix(float(upload_rate), "/s"), col_red).c_str()
-		, color(add_suffix(float(m_cnt[0][m_sent_payload_idx])), col_red).c_str()
+		, add_suffix(m_cnt[0][m_wasted_bytes_idx]).c_str()
+		, color(add_suffix(upload_rate, "/s"), col_red).c_str()
+		, color(add_suffix(m_cnt[0][m_sent_payload_idx]), col_red).c_str()
 		, color(to_string(int(m_cnt[0][m_queued_reads_idx]), 3), col_red).c_str()
 		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
 			/ (std::max)(boost::uint64_t(1), m_cnt[0][m_blocks_written_idx]))
 		, int(m_cnt[0][m_cache_hit_idx] * 100
 			/ (std::max)(boost::uint64_t(1), m_cnt[0][m_num_blocks_read_idx]))
-		, add_suffix(float(m_cnt[0][m_writes_cache_idx] * 16 * 1024)).c_str()
-		, add_suffix(float(m_cnt[0][m_reads_cache_idx] * 16 * 1024)).c_str()
-		, add_suffix(float(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024)).c_str()
+		, add_suffix(m_cnt[0][m_writes_cache_idx] * 16 * 1024).c_str()
+		, add_suffix(m_cnt[0][m_reads_cache_idx] * 16 * 1024).c_str()
+		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
 		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);
