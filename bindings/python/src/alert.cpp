@@ -198,8 +198,7 @@ list dht_get_peers_reply_alert_peers(dht_get_peers_reply_alert const& a)
 {
     list result;
 
-    std::vector<tcp::endpoint> v;
-    a.peers(v);
+    std::vector<tcp::endpoint> v(a.peers());
 
     for (std::vector<tcp::endpoint>::const_iterator i = v.begin();
          i != v.end(); ++i)
