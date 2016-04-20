@@ -167,7 +167,7 @@ namespace libtorrent
 			TORRENT_ASSERT_VAL(!tmp, tmp.message());
 		}
 #endif
-		m_sock.send(ep, p, len, ec);
+		m_sock.send(ep, p, len, ec, udp_socket::peer_connection);
 #ifdef TORRENT_HAS_DONT_FRAGMENT
 		if (flags & utp_socket_manager::dont_fragment)
 		{

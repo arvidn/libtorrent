@@ -36,16 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
-#include "libtorrent/aux_/cpuid.hpp"
 
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
 #include <boost/cstdint.hpp> // uint32_t
 #include <algorithm> // for min()
-
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
 
 namespace libtorrent
 {
@@ -116,21 +111,7 @@ namespace libtorrent
 		}
 
 		// returns true if all bits in the bitfield are set
-		bool all_set() const
-		{
-			const int words = size() / 32;
-			for (int i = 0; i < words; ++i)
-			{
-				if (m_buf[i] != 0xffffffff) return false;
-			}
-			int rest = size() & 31;
-			if (rest > 0)
-			{
-				boost::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
-				if ((m_buf[words] & mask) != mask) return false;
-			}
-			return true;
-		}
+		bool all_set() const;
 
 		bool none_set() const
 		{
@@ -179,46 +160,7 @@ namespace libtorrent
 		}
 
 		// count the number of bits in the bitfield that are set to 1.
-		int count() const
-		{
-			int ret = 0;
-			const int words = num_words();
-#if TORRENT_HAS_SSE
-			if (aux::mmx_support)
-			{
-				for (int i = 0; i < words; ++i)
-				{
-#ifdef __GNUC__
-					ret += __builtin_popcount(m_buf[i]);
-#else
-					ret += _mm_popcnt_u32(m_buf[i]);
-#endif
-				}
-
-				return ret;
-			}	
-#endif // TORRENT_HAS_SSE
-
-			for (int i = 0; i < words; ++i)
-			{
-				boost::uint32_t v = m_buf[i];
-				// from:
-				// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-				static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
-				static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
-
-				boost::uint32_t c = v - ((v >> 1) & B[0]);
-				c = ((c >> S[1]) & B[1]) + (c & B[1]);
-				c = ((c >> S[2]) + c) & B[2];
-				c = ((c >> S[3]) + c) & B[3];
-				c = ((c >> S[4]) + c) & B[4];
-				ret += c;
-			}
-
-			TORRENT_ASSERT(ret <= size());
-			TORRENT_ASSERT(ret >= 0);
-			return ret;
-		}
+		int count() const;
 
 		struct const_iterator
 		{
@@ -284,66 +226,9 @@ namespace libtorrent
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.
-		void resize(int bits, bool val)
-		{
-			if (bits == size()) return;
+		void resize(int bits, bool val);
 
-			int s = size();
-			int b = size() & 31;
-			resize(bits);
-			if (s >= size()) return;
-			int old_size_words = (s + 31) / 32;
-			int new_size_words = num_words();
-			if (val)
-			{
-				if (old_size_words && b) m_buf[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
-				if (old_size_words < new_size_words)
-					std::memset(m_buf + old_size_words, 0xff
-						, size_t((new_size_words - old_size_words) * 4));
-				clear_trailing_bits();
-			}
-			else
-			{
-				if (old_size_words < new_size_words)
-					std::memset(m_buf + old_size_words, 0x00
-						, size_t((new_size_words - old_size_words) * 4));
-			}
-			TORRENT_ASSERT(size() == bits);
-		}
-
-		void resize(int bits)
-		{
-			if (bits == size()) return;
-
-			TORRENT_ASSERT(bits >= 0);
-			// +1 because the first word is the size (in bits)
-			const int b = (bits + 31) / 32;
-			if (m_buf)
-			{
-				boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-				if (tmp == NULL) throw std::bad_alloc();
-#endif
-				m_buf = tmp + 1;
-				m_buf[-1] = bits;
-			}
-			else if (bits > 0)
-			{
-				boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::malloc((b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-				if (tmp == NULL) throw std::bad_alloc();
-#endif
-				m_buf = tmp + 1;
-				m_buf[-1] = bits;
-			}
-			else if (m_buf != NULL)
-			{
-				std::free(m_buf-1);
-				m_buf = NULL;
-			}
-			clear_trailing_bits();
-			TORRENT_ASSERT(size() == bits);
-		}
+		void resize(int bits);
 
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()

@@ -43,6 +43,7 @@ libtorrent_rasterbar_la_SOURCES = \
   bandwidth_manager.cpp           \
   bandwidth_queue_entry.cpp       \
   bdecode.cpp                     \
+  bitfield.cpp                    \
   bloom_filter.cpp                \
   broadcast_socket.cpp            \
   block_cache.cpp                 \

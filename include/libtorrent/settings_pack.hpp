@@ -222,7 +222,7 @@ namespace libtorrent
 			// connections should be rejected or not. Multiple connections from
 			// the same IP address is not allowed by default, to prevent abusive
 			// behavior by peers. It may be useful to allow such connections in
-			// cases where simulations are run on the same machie, and all peers
+			// cases where simulations are run on the same machine, and all peers
 			// in a swarm has the same IP address.
 			allow_multiple_connections_per_ip = bool_type_base,
 
@@ -1047,7 +1047,7 @@ namespace libtorrent
 			// 
 			// ``active_loaded_limit`` is the number of torrents that are allowed
 			// to be *loaded* at any given time. Note that a torrent can be active
-			// even though it's not loaded. if an unloaded torrents finds a peer
+			// even though it's not loaded. If an unloaded torrents finds a peer
 			// that wants to access it, the torrent will be loaded on demand,
 			// using a user-supplied callback function. If the feature of
 			// unloading torrents is not enabled, this setting have no effect. If

@@ -6,6 +6,11 @@
 	* improved support for listening on multiple sockets and interfaces
 	* resume data no longer has timestamps of files
 
+1.1.1 release
+
+	* Added missing alert categories in python binding
+	* Added dht_get_peers_reply_alert alert in python binding
+
 1.1.0 release
 
 	* improve robustness and performance of uTP PMTU discovery

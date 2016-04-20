@@ -663,7 +663,7 @@ TORRENT_TEST(try_next)
 
 			TEST_EQUAL(tr.size(), 3);
 
-			for (int i = 0; i < tr.size(); ++i)
+			for (int i = 0; i < int(tr.size()); ++i)
 			{
 				fprintf(stderr, "tracker \"%s\"\n", tr[i].url.c_str());
 				if (tr[i].url == "http://tracker.com:8080/announce")
@@ -734,7 +734,7 @@ TORRENT_TEST(tracker_ipv6_argument)
 			got_announce = true;
 			bool const stop_event = req.find("&event=stopped") != std::string::npos;
 			// stop events don't need to advertise the IPv6 address
-			int pos = req.find("&ipv6=");
+			std::string::size_type pos = req.find("&ipv6=");
 			TEST_CHECK(pos != std::string::npos || stop_event);
 			got_ipv6 |= pos != std::string::npos;
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
@@ -764,7 +764,7 @@ TORRENT_TEST(tracker_ipv6_argument_non_private)
 			, std::map<std::string, std::string>& headers)
 		{
 			got_announce = true;
-			int pos = req.find("&ipv6=");
+			std::string::size_type pos = req.find("&ipv6=");
 			TEST_CHECK(pos == std::string::npos);
 			got_ipv6 |= pos != std::string::npos;
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
@@ -792,7 +792,7 @@ TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
 			, std::map<std::string, std::string>& headers)
 		{
 			got_announce = true;
-			int pos = req.find("&ipv6=");
+			std::string::size_type pos = req.find("&ipv6=");
 			TEST_CHECK(pos == std::string::npos);
 			got_ipv6 |= pos != std::string::npos;
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";

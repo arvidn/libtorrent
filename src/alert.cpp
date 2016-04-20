@@ -1236,6 +1236,11 @@ namespace libtorrent {
 		return torrent_alert::message() + msg;
 	}
 
+	char const* torrent_error_alert::filename() const
+	{
+		return m_alloc.ptr(m_file_idx);
+	}
+
 	torrent_added_alert::torrent_added_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
@@ -1778,11 +1783,7 @@ namespace libtorrent {
 
 	char const* file_error_alert::filename() const
 	{
-#ifndef TORRENT_NO_DEPRECATE
-		return file.c_str();
-#else
 		return m_alloc.ptr(m_file_idx);
-#endif
 	}
 
 	std::string file_error_alert::message() const
@@ -1913,17 +1914,24 @@ namespace libtorrent {
 		return m_num_peers;
 	}
 
-	void dht_get_peers_reply_alert::peers(std::vector<tcp::endpoint>& peers) const
-	{
-		peers.resize(m_num_peers);
+#ifndef TORRENT_NO_DEPRECATE
+	void dht_get_peers_reply_alert::peers(std::vector<tcp::endpoint> &v) const {
+		std::vector<tcp::endpoint> p(peers());
+		v.reserve(p.size());
+		std::copy(p.begin(), p.end(), std::back_inserter(v));
+    }
+#endif
+	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
+		std::vector<tcp::endpoint> peers(m_num_peers);
 
 		const char *ptr = m_alloc.ptr(m_peers_idx);
 		for (int i = 0; i < m_num_peers; i++) {
-
 			std::size_t size = detail::read_uint8(ptr);
 			memcpy(peers[i].data(), ptr, size);
 			ptr += size;
 		}
+
+		return peers;
 	}
 
 	dht_direct_response_alert::dht_direct_response_alert(

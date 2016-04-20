@@ -2403,7 +2403,12 @@ namespace libtorrent
 		sha1_hash info_hash;
 
 		int num_peers() const;
-		void peers(std::vector<tcp::endpoint>& peers) const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
+		void peers(std::vector<tcp::endpoint>& v) const;
+#endif
+		std::vector<tcp::endpoint> peers() const;
 
 	private:
 		aux::stack_allocator& m_alloc;

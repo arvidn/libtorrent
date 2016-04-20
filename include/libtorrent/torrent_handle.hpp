@@ -215,7 +215,7 @@ namespace libtorrent
 	// 	made synchronously. This means it has to wait for the main thread to
 	// 	complete the query before it can return. This might potentially be
 	// 	expensive if done from within a GUI thread that needs to stay
-	// 	responsive. Try to avoid quering for information you don't need, and
+	// 	responsive. Try to avoid querying for information you don't need, and
 	// 	try to do it in as few calls as possible. You can get most of the
 	// 	interesting information about a torrent from the
 	// 	torrent_handle::status() call.
@@ -227,7 +227,7 @@ namespace libtorrent
 	// 
 	// .. warning::
 	// 	All operations on a torrent_handle may throw libtorrent_exception
-	// 	exception, in case the handle is no longer refering to a torrent.
+	// 	exception, in case the handle is no longer referring to a torrent.
 	// 	There is one exception is_valid() will never throw. Since the torrents
 	// 	are processed by a background thread, there is no guarantee that a
 	// 	handle will remain valid between two calls.
@@ -285,7 +285,7 @@ namespace libtorrent
 		// specified piece before calling this function.
 		// 
 		// When the read operation is completed, it is passed back through an
-		// alert, read_piece_alert. Since this alert is a reponse to an explicit
+		// alert, read_piece_alert. Since this alert is a response to an explicit
 		// call, it will always be posted, regardless of the alert mask.
 		// 
 		// Note that if you read multiple pieces, the read operations are not
@@ -397,7 +397,7 @@ namespace libtorrent
 		// To query the priority of a torrent, use the
 		// ``torrent_handle::status()`` call.
 		// 
-		// Torrents with higher priority will not nececcarily get as much
+		// Torrents with higher priority will not necessarily get as much
 		// bandwidth as they can consume, even if there's is more quota. Other
 		// peers will still be weighed in when bandwidth is being distributed.
 		// With other words, bandwidth is not distributed strictly in order of
@@ -709,7 +709,7 @@ namespace libtorrent
 		//   resume data saved when they complete and on exit, since their
 		//   statistics might be updated.
 		// 
-		//	In full allocation mode the reume data is never invalidated by
+		//	In full allocation mode the resume data is never invalidated by
 		//	subsequent writes to the files, since pieces won't move around. This
 		//	means that you don't need to pause before writing resume data in full
 		//	or sparse mode. If you don't, however, any data written to disk after
@@ -835,7 +835,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1
 
-		// Sets or gets the flag that derermines if countries should be resolved
+		// Sets or gets the flag that determines if countries should be resolved
 		// for the peers of this torrent. It defaults to false. If it is set to
 		// true, the peer_info structure for the peers in this torrent will have
 		// their ``country`` member set. See peer_info for more information on

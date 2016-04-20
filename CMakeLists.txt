@@ -14,6 +14,7 @@ set(sources
 	bandwidth_manager
 	bandwidth_queue_entry
 	bdecode
+	bitfield
 	block_cache
 	bloom_filter
 	chained_buffer

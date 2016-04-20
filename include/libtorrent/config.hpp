@@ -226,6 +226,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
+#define TORRENT_USE_PREADV 0
+#define TORRENT_USE_PREAD 1
 #define TORRENT_ANDROID
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_ICONV 0
