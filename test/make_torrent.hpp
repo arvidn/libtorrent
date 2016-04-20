@@ -30,10 +30,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef MAKE_TORRENT_HPP
+#define MAKE_TORRENT_HPP
+
 #include "libtorrent/torrent_info.hpp"
 #include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
+#include "test.hpp"
 
 enum flags_t
 {
@@ -56,7 +60,10 @@ struct torrent_args
 	std::string m_http_seed;
 };
 
-boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(torrent_args const& args);
+EXPORT boost::shared_ptr<libtorrent::torrent_info>
+	make_test_torrent(torrent_args const& args);
 
-void generate_files(libtorrent::torrent_info const& ti, std::string const& path, bool random = false);
+EXPORT void generate_files(libtorrent::torrent_info const& ti, std::string const& path, bool random = false);
+
+#endif
 
