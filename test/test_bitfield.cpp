@@ -171,7 +171,7 @@ TORRENT_TEST(bitfield)
 
 	for (int i = 0; i < 4; ++i)
 	{
-		b[i] = 0xc0;
+		b[i] = char(0xc0);
 		test1.assign(b + i, 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 2);
@@ -181,7 +181,7 @@ TORRENT_TEST(bitfield)
 	for (int i = 0; i < 4; ++i)
 	{
 		memset(b + i, 0xff, 5);
-		b[i + 5] = 0xc0;
+		b[i + 5] = char(0xc0);
 		test1.assign(b + i, 32 + 8 + 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);

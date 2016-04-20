@@ -130,13 +130,13 @@ void print_string(std::string& output, std::string str)
 	}
 
 	const bool random_string = g_seed > 0 && g_seed <= 1000;
-	const int str_seed = g_seed - 1;
+	const int str_seed = int(g_seed) - 1;
 	g_seed -= 1000;
 	if (random_string)
 	{
 		static mt19937 random_engine(str_seed);
 		uniform_int_distribution<boost::uint8_t> d(0, 255);
-		for (int i = 0; i < str.size(); ++i)
+		for (int i = 0; i < int(str.size()); ++i)
 			str[i] = d(random_engine);
 
 		print_ascii_number(output, str.size());

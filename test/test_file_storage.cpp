@@ -46,7 +46,7 @@ void setup_test_storage(file_storage& st)
 	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
 
 	st.set_piece_length(0x4000);
-	st.set_num_pieces((st.total_size() + st.piece_length() - 1) / 0x4000);
+	st.set_num_pieces((int(st.total_size()) + st.piece_length() - 1) / 0x4000);
 
 	TEST_EQUAL(st.file_name(0), "a");
 	TEST_EQUAL(st.file_name(1), "b");

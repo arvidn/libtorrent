@@ -52,7 +52,7 @@ TORRENT_TEST(init)
 	fs.add_file("torrent/6", 100000);
 	fs.add_file("torrent/7", 30);
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
 
 	for (int idx = 0; idx < fs.num_pieces(); ++idx)
 	{
@@ -84,7 +84,7 @@ TORRENT_TEST(init2)
 	fs.add_file("torrent/1", 100000);
 	fs.add_file("torrent/2", 10);
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	fs.set_num_pieces((int(fs.total_size()) + piece_size - 1) / piece_size);
 
 	for (int idx = 0; idx < fs.num_pieces(); ++idx)
 	{

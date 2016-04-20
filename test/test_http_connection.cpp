@@ -143,7 +143,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 void write_test_file()
 {
-	std::srand(std::time(0));
+	std::srand(unsigned(std::time(0)));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	error_code ec;
 	file test_file("test_file", file::write_only, ec);
@@ -171,8 +171,8 @@ void run_suite(std::string const& protocol
 	// starting the web server will also generate test_file.gz (from test_file)
 	// so it has to happen after we write test_file
 	int port = start_web_server(protocol == "https"
-		, flags & flag_chunked_encoding
-		, flags & flag_keepalive);
+		, (flags & flag_chunked_encoding) != 0
+		, (flags & flag_keepalive) != 0);
 
 	aux::proxy_settings ps;
 	ps.hostname = "127.0.0.1";

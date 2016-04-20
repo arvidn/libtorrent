@@ -70,10 +70,10 @@ void session_view::render()
 
 	float seconds = (m_timestamp[0] - m_timestamp[1]) / 1000000.f;
 
-	int download_rate = (m_cnt[0][m_recv_payload_idx] - m_cnt[1][m_recv_payload_idx])
-		/ seconds;
-	int upload_rate = (m_cnt[0][m_sent_payload_idx] - m_cnt[1][m_sent_payload_idx])
-		/ seconds;
+	int download_rate = int((m_cnt[0][m_recv_payload_idx] - m_cnt[1][m_recv_payload_idx])
+		/ seconds);
+	int upload_rate = int((m_cnt[0][m_sent_payload_idx] - m_cnt[1][m_sent_payload_idx])
+		/ seconds);
 
 	pos += snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
 		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d "
@@ -83,8 +83,8 @@ void session_view::render()
 		, add_suffix(m_cnt[0][m_failed_bytes_idx]).c_str()
 		, color(add_suffix(download_rate, "/s"), col_green).c_str()
 		, color(add_suffix(m_cnt[0][m_recv_payload_idx]), col_green).c_str()
-		, color(to_string(m_cnt[0][m_limiter_up_queue_idx], 3), col_red).c_str()
-		, color(to_string(m_cnt[0][m_limiter_down_queue_idx], 3), col_green).c_str()
+		, color(to_string(int(m_cnt[0][m_limiter_up_queue_idx]), 3), col_red).c_str()
+		, color(to_string(int(m_cnt[0][m_limiter_down_queue_idx]), 3), col_green).c_str()
 		, int(m_cnt[0][m_num_peers_idx])
 		, int(m_cnt[0][m_unchoked_idx])
 		, int(m_cnt[0][m_unchoke_slots_idx])
@@ -105,8 +105,8 @@ void session_view::render()
 		, add_suffix(m_cnt[0][m_wasted_bytes_idx]).c_str()
 		, color(add_suffix(upload_rate, "/s"), col_red).c_str()
 		, color(add_suffix(m_cnt[0][m_sent_payload_idx]), col_red).c_str()
-		, color(to_string(m_cnt[0][m_queued_reads_idx], 3), col_red).c_str()
-		, color(to_string(m_cnt[0][m_queued_writes_idx], 3), col_green).c_str()
+		, color(to_string(int(m_cnt[0][m_queued_reads_idx]), 3), col_red).c_str()
+		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
 			/ (std::max)(boost::uint64_t(1), m_cnt[0][m_blocks_written_idx]))
 		, int(m_cnt[0][m_cache_hit_idx] * 100
@@ -159,7 +159,7 @@ void session_view::render()
 		if (mru_size > 0)
 		{
 			pos += snprintf(str + pos, sizeof(str) - pos, "%s"
-				, progress_bar(m_cnt[0][m_mru_ghost_idx] * 1000 / mru_size
+				, progress_bar(int(m_cnt[0][m_mru_ghost_idx] * 1000 / mru_size)
 					, mru_size * (m_width-8) / arc_size, col_yellow, '-', '#'
 					, mru_caption, progress_invert).c_str());
 		}
@@ -167,7 +167,7 @@ void session_view::render()
 		if (mfu_size)
 		{
 			pos += snprintf(str + pos, sizeof(str) - pos, "%s"
-				, progress_bar(m_cnt[0][m_mfu_size_idx] * 1000 / mfu_size
+				, progress_bar(int(m_cnt[0][m_mfu_size_idx] * 1000 / mfu_size)
 					, mfu_size * (m_width-8) / arc_size, col_green, '#', '-'
 					, mfu_caption).c_str());
 		}

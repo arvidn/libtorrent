@@ -194,7 +194,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	}
 	else
 	{
-		TEST_EQUAL(num_udp_announces(), prev_udp_announces + bool(flags & expect_udp_connection));
+		TEST_EQUAL(num_udp_announces(), prev_udp_announces + ((flags & expect_udp_connection) != 0 ? 1 : 0));
 	}
 
 	if (flags & expect_possible_udp_connection)

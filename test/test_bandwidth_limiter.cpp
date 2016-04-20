@@ -205,12 +205,12 @@ void test_equal_connections(int num, int limit)
 
 		std::cerr << (*i)->m_quota / sample_time
 			<< " target: " << (limit / num) << " eps: " << err << std::endl;
-		TEST_CHECK(close_to((*i)->m_quota / sample_time, limit / num, err));
+		TEST_CHECK(close_to((*i)->m_quota / sample_time, float(limit) / num, err));
 	}
 	sum /= sample_time;
 	std::cerr << "sum: " << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 50));
+	TEST_CHECK(close_to(sum, float(limit), 50));
 }
 
 void test_connections_variable_rate(int num, int limit, int torrent_limit)
@@ -246,12 +246,12 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 
 		std::cerr << (*i)->m_quota / sample_time
 			<< " target: " << limit << " eps: " << err << std::endl;
-		TEST_CHECK(close_to((*i)->m_quota / sample_time, limit, err));
+		TEST_CHECK(close_to((*i)->m_quota / sample_time, float(limit), err));
 	}
 	sum /= sample_time;
 	std::cerr << "sum: " << sum << " target: " << (limit * num) << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit * num, limit * 0.3f * num));
+	TEST_CHECK(close_to(sum, float(limit) * num, limit * 0.3f * num));
 }
 
 void test_single_peer(int limit, bool torrent_limit)
@@ -279,7 +279,7 @@ void test_single_peer(int limit, bool torrent_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 1000));
+	TEST_CHECK(close_to(sum, float(limit), 1000));
 }
 
 void test_torrents(int num, int limit1, int limit2, int global_limit)
@@ -320,7 +320,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit1 << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit1, 1000));
+	TEST_CHECK(close_to(sum, float(limit1), 1000));
 
 	sum = 0.f;
 	for (connections_t::iterator i = v2.begin()
@@ -331,7 +331,7 @@ void test_torrents(int num, int limit1, int limit2, int global_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit2 << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit2, 1000));
+	TEST_CHECK(close_to(sum, float(limit2), 1000));
 }
 
 void test_torrents_variable_rate(int num, int limit, int global_limit)
@@ -370,7 +370,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 1000));
+	TEST_CHECK(close_to(sum, float(limit), 1000));
 
 	sum = 0.f;
 	for (connections_t::iterator i = v2.begin()
@@ -381,7 +381,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 1000));
+	TEST_CHECK(close_to(sum, float(limit), 1000));
 }
 
 void test_peer_priority(int limit, bool torrent_limit)
@@ -414,11 +414,11 @@ void test_peer_priority(int limit, bool torrent_limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 50));
+	TEST_CHECK(close_to(sum, float(limit), 50));
 
 	std::cerr << "non-prioritized rate: " << p->m_quota / sample_time
 		<< " target: " << (limit / 200 / 10) << std::endl;
-	TEST_CHECK(close_to(p->m_quota / sample_time, limit / 200 / 10, 5));
+	TEST_CHECK(close_to(p->m_quota / sample_time, float(limit) / 200 / 10, 5));
 }
 
 void test_no_starvation(int limit)
@@ -450,11 +450,11 @@ void test_no_starvation(int limit)
 	sum /= sample_time;
 	std::cerr << sum << " target: " << limit << std::endl;
 	TEST_CHECK(sum > 0);
-	TEST_CHECK(close_to(sum, limit, 50));
+	TEST_CHECK(close_to(sum, float(limit), 50));
 
 	std::cerr << "non-prioritized rate: " << p->m_quota / sample_time
 		<< " target: " << (limit / 200 / num_peers) << std::endl;
-	TEST_CHECK(close_to(p->m_quota / sample_time, limit / 200 / num_peers, 5));
+	TEST_CHECK(close_to(p->m_quota / sample_time, float(limit) / 200 / num_peers, 5));
 }
 
 TORRENT_TEST(equal_connection)

@@ -286,7 +286,7 @@ struct peer_conn
 		// buffer is the full 68 byte handshake
 		// look at the extension bits
 
-		fast_extension = ((char*)buffer)[27] & 4;
+		fast_extension = (((char*)buffer)[27] & 4) != 0;
 
 		if (seed)
 		{
@@ -421,7 +421,7 @@ struct peer_conn
 		end_time = clock_type::now();
 		char tmp[1024];
 		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
-		int time = total_milliseconds(end_time - start_time);
+		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
 		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
@@ -1079,7 +1079,7 @@ int main(int argc, char* argv[])
 		, end(conns.end()); i != end; ++i)
 	{
 		peer_conn* p = *i;
-		int time = total_milliseconds(p->end_time - p->start_time);
+		int time = int(total_milliseconds(p->end_time - p->start_time));
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;

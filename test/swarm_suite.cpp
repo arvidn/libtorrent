@@ -96,7 +96,7 @@ void test_swarm(int flags)
 	int port = lt::random() % 100;
 	char iface[50];
 	snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
-	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
 
@@ -107,8 +107,8 @@ void test_swarm(int flags)
 
 	snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
-	pack.set_int(settings_pack::download_rate_limit, rate_limit / 2);
-	pack.set_int(settings_pack::upload_rate_limit, rate_limit);
+	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 2));
+	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	lt::session ses2(pack);
 
 	snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
@@ -166,7 +166,7 @@ void test_swarm(int flags)
 			++count_dl_rates3;
 		}
 
-		print_ses_rate(i, &st1, &st2, &st3);
+		print_ses_rate(float(i), &st1, &st2, &st3);
 
 		if (st2.is_seeding && st3.is_seeding) break;
 		test_sleep(1000);

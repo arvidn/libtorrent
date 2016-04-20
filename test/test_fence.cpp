@@ -14,12 +14,13 @@ TORRENT_TEST(empty_fence)
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
-	int ret = 0;
+	int ret_int = 0;
+	bool ret = false;
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we don't have any outstanding jobs
 	// we need to post this job
-	TEST_CHECK(ret == disk_job_fence::fence_post_fence);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_fence);
 
 	ret = fence.is_blocked(&test_job[7]);
 	TEST_CHECK(ret == true);
@@ -50,6 +51,7 @@ TORRENT_TEST(job_fence)
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
+	int ret_int = 0;
 	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
 	ret = fence.is_blocked(&test_job[0]);
@@ -68,10 +70,10 @@ TORRENT_TEST(job_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add a fence job
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
 
 	ret = fence.is_blocked(&test_job[7]);
 	TEST_CHECK(ret == true);
@@ -123,7 +125,8 @@ TORRENT_TEST(double_fence)
 	disk_io_job test_job[10];
 
 	// issue 5 jobs. None of them should be blocked by a fence
-	int ret = 0;
+	int ret_int = 0;
+	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
 	ret = fence.is_blocked(&test_job[0]);
 	TEST_CHECK(ret == false);
@@ -141,16 +144,16 @@ TORRENT_TEST(double_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add two fence jobs
-	ret = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
 
-	ret = fence.raise_fence(&test_job[7], &test_job[8], cnt);
+	ret_int = fence.raise_fence(&test_job[7], &test_job[8], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret == disk_job_fence::fence_post_none);
-	fprintf(stderr, "ret: %d\n", ret);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
+	fprintf(stderr, "ret: %d\n", ret_int);
 
 	ret = fence.is_blocked(&test_job[9]);
 	TEST_CHECK(ret == true);

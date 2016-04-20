@@ -39,7 +39,7 @@ namespace libtorrent
 	{
 		static const time_point start = clock_type::now();
 		static char ret[200];
-		int t = total_milliseconds(clock_type::now() - start);
+		int t = int(total_milliseconds(clock_type::now() - start));
 		int h = t / 1000 / 60 / 60;
 		t -= h * 60 * 60 * 1000;
 		int m = t / 1000 / 60;

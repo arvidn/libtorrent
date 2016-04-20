@@ -1122,7 +1122,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		char chr = '+';
 		if (index >= 0)
 			chr = (index < 10)?'0' + index:'A' + index - 10;
-		bool snubbed = index >= 0 ? peers[index].flags & peer_info::snubbed : false;
+		bool snubbed = index >= 0 ? ((peers[index].flags & peer_info::snubbed) != 0) : false;
 
 		char const* color = "";
 
@@ -1321,7 +1321,7 @@ int main(int argc, char* argv[])
 					if (strcmp(value, "0") == 0
 						|| strcmp(value, "1") == 0)
 					{
-						settings.set_bool(sett_name, atoi(value));
+						settings.set_bool(sett_name, atoi(value) != 0);
 					}
 					else
 					{
@@ -1849,7 +1849,7 @@ int main(int argc, char* argv[])
 					events.push_back(event_string);
 					if (events.size() >= 20) events.pop_front();
 				}
-			} TORRENT_CATCH(std::exception& e) {}
+			} TORRENT_CATCH(std::exception& ) {}
 		}
 		alerts.clear();
 
@@ -2082,7 +2082,7 @@ int main(int argc, char* argv[])
 					}
 
 					int progress = ti->files().file_size(i) > 0
-						?file_progress[i] * 1000 / ti->files().file_size(i):1000;
+						? int(file_progress[i] * 1000 / ti->files().file_size(i)) : 1000;
 
 					bool complete = file_progress[i] == ti->files().file_size(i);
 

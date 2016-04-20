@@ -154,7 +154,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	for (int i = 0; i < fs.num_files(); ++i)
 	{
 		if (fs.file_flags(i) & file_storage::flag_pad_file)
-			pad_file_size += fs.file_size(i);
+			pad_file_size += int(fs.file_size(i));
 	}
 
 	peer_disconnects = 0;
