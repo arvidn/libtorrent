@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // mutex locked. And they are always called from the libtorrent network thread. In
 // case portions of your plugin are called from other threads, typically the main
 // thread, you cannot use any of the member functions on the internal structures
-// in libtorrent, since those require the mutex to be locked. Futhermore, you would
+// in libtorrent, since those require the mutex to be locked. Furthermore, you would
 // also need to have a mutex on your own shared data within the plugin, to make
 // sure it is not accessed at the same time from the libtorrent thread (through a
 // callback). See `boost thread's mutex`_. If you need to send out a message from
@@ -71,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // sending in ``tick()``.
 // 
 // Since the plugin interface gives you easy access to internal structures, it
-// is not supported as a stable API. Plugins should be considered spcific to a
+// is not supported as a stable API. Plugins should be considered specific to a
 // specific version of libtorrent. Although, in practice the internals mostly
 // don't change that dramatically.
 // 
@@ -150,7 +150,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // of simply allocating a new instance as a copy of ``*this`` is all that's
 // expected.
 // 
-// The static category is required for checking wether or not the category
+// The static category is required for checking whether or not the category
 // for a specific alert is enabled or not, without instantiating the alert.
 // The ``category`` virtual function is the run-time equivalence.
 // 

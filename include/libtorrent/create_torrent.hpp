@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/allocator.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -49,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/config.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -68,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //    and set the piece hashes.
 // 4. The torrent is bencoded into a file or buffer.
 //
-// If there are a lot of files and or deep directoy hierarchies to
+// If there are a lot of files and or deep directory hierarchies to
 // traverse, step one can be time consuming.
 // 
 // Typically step 3 is by far the most time consuming step, since it
@@ -156,7 +154,7 @@ namespace libtorrent
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
 		// 
 		// If a ``pad_size_limit`` is specified (other than -1), any file larger than
-		// the specified number of bytes will be preceeded by a pad file to align it
+		// the specified number of bytes will be preceded by a pad file to align it
 		// with the start of a piece. The pad_file_limit is ignored unless the
 		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
 		// to set this any lower than 4kiB.
@@ -267,7 +265,7 @@ namespace libtorrent
 
 		// Sets and queries the private flag of the torrent.
 		// Torrents with the private flag set ask clients to not use any other
-		// sources than the tracker for peers, and to not advertize itself publicly,
+		// sources than the tracker for peers, and to not advertise itself publicly,
 		// apart from the tracker.
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
@@ -382,17 +380,17 @@ namespace libtorrent
 	}
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
-	// refers to a diretory, files will be added recursively from the directory.
+	// refers to a directory, files will be added recursively from the directory.
 	// 
 	// If specified, the predicate ``p`` is called once for every file and directory that
-	// is encountered. files for which ``p`` returns true are added, and directories for
+	// is encountered. Files for which ``p`` returns true are added, and directories for
 	// which ``p`` returns true are traversed. ``p`` must have the following signature::
 	// 
 	// 	bool Pred(std::string const& p);
 	// 
 	// The path that is passed in to the predicate is the full path of the file or
 	// directory. If no predicate is specified, all files are added, and all directories
-	// are traveresed.
+	// are traversed.
 	// 
 	// The ".." directory is never traversed.
 	// 
