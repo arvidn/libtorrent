@@ -57,7 +57,7 @@ namespace libtorrent
 	{
 		// libtorrent uses boost.system's ``error_code`` class to represent
 		// errors. libtorrent has its own error category
-		// get_libtorrent_category() whith the error codes defined by
+		// get_libtorrent_category() with the error codes defined by
 		// error_code_enum.
 		enum error_code_enum
 		{
@@ -111,7 +111,7 @@ namespace libtorrent
 			invalid_entry_type,
 			// The specified URI does not contain a valid info-hash
 			missing_info_hash_in_uri,
-			// One of the files in the torrent was unexpectadly small. This
+			// One of the files in the torrent was unexpectedly small. This
 			// might be caused by files being changed by an external process
 			file_too_short,
 			// The URL used an unknown protocol. Currently ``http`` and
@@ -122,7 +122,7 @@ namespace libtorrent
 			url_parse_error,
 			// The peer sent a 'piece' message of length 0
 			peer_sent_empty_piece,
-			// A bencoded structure was currupt and failed to be parsed
+			// A bencoded structure was corrupt and failed to be parsed
 			parse_failed,
 			// The fast resume file was missing or had an invalid file version
 			// tag
@@ -216,7 +216,7 @@ namespace libtorrent
 			invalid_reject,
 			// The peer sent an invalid allow fast-message
 			invalid_allow_fast,
-			// The peer sent an invalid extesion message ID
+			// The peer sent an invalid extension message ID
 			invalid_extended,
 			// The peer sent an invalid message ID
 			invalid_message,
@@ -260,7 +260,7 @@ namespace libtorrent
 			// The web seed redirected to a path that no longer matches the
 			// .torrent directory structure
 			invalid_redirection,
-			// The connection was closed becaused it redirected to a different
+			// The connection was closed because it redirected to a different
 			// URL
 			redirecting,
 			// The HTTP range header is invalid
@@ -314,7 +314,7 @@ namespace libtorrent
 			// This happens for magnet links before they have downloaded the
 			// metadata, and also torrents added by URL.
 			no_metadata,
-			// The peer sent an invalid ``dont_have`` message. The dont have
+			// The peer sent an invalid ``dont_have`` message. The don't have
 			// message is an extension to allow peers to advertise that the
 			// no longer has a piece they previously had.
 			invalid_dont_have,

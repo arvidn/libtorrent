@@ -34,12 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CREATE_TORRENT_HPP_INCLUDED
 
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/utf8.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
