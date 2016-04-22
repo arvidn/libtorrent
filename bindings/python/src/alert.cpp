@@ -164,21 +164,6 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
-list dht_get_peers_reply_alert_peers(dht_get_peers_reply_alert const& a)
-{
-    list result;
-
-    std::vector<tcp::endpoint> v(a.peers());
-
-    for (std::vector<tcp::endpoint>::const_iterator i = v.begin();
-         i != v.end(); ++i)
-    {
-        result.append(endpoint_to_tuple(*i));
-    }
-
-    return result;
-}
-
 void bind_alert()
 {
     using boost::noncopyable;
@@ -745,10 +730,12 @@ void bind_alert()
         .add_property("values", &session_stats_values)
         ;
 
+    std::vector<tcp::endpoint> (dht_get_peers_reply_alert::*peers)() const = &dht_get_peers_reply_alert::peers;
+
     class_<dht_get_peers_reply_alert, bases<alert>, noncopyable>(
         "dht_get_peers_reply_alert", no_init)
         .def_readonly("info_hash", &dht_get_peers_reply_alert::info_hash)
         .def("num_peers", &dht_get_peers_reply_alert::num_peers)
-        .def("peers", &dht_get_peers_reply_alert_peers)
+        .def("peers", peers)
         ;
 }
