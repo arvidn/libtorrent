@@ -141,9 +141,7 @@ namespace libtorrent
 
 	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("on_close_socket");
-#endif
+		COMPLETE_ASYNC("on_close_socket");
 		error_code ec;
 		s->close(ec);
 	}

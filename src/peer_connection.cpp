@@ -400,9 +400,7 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing, "ASYNC_CONNECT", "dst: %s"
 			, print_endpoint(m_remote).c_str());
 #endif
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("peer_connection::on_connection_complete");
-#endif
+		ADD_OUTSTANDING_ASYNC("peer_connection::on_connection_complete");
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (t)
@@ -5670,9 +5668,7 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing, "ASYNC_WRITE", "bytes: %d", amount_to_send);
 #endif
 		std::vector<boost::asio::const_buffer> const& vec = m_send_buffer.build_iovec(amount_to_send);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("peer_connection::on_send_data");
-#endif
+		ADD_OUTSTANDING_ASYNC("peer_connection::on_send_data");
 
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(!m_socket_is_writing);
@@ -5790,9 +5786,7 @@ namespace libtorrent
 			peer_log(peer_log_alert::incoming, "ASYNC_READ");
 #endif
 
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("peer_connection::on_receive_data_nb");
-#endif
+			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data_nb");
 			m_socket->async_read_some(null_buffers(), make_read_handler(
 				boost::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
 			return 0;
@@ -5822,9 +5816,7 @@ namespace libtorrent
 #endif
 
 			// utp sockets aren't thread safe...
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("peer_connection::on_receive_data");
-#endif
+			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 			if (is_utp(*m_socket))
 			{
 				if (num_bufs == 1)
@@ -5977,9 +5969,7 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("peer_connection::on_receive_data_nb");
-#endif
+		COMPLETE_ASYNC("peer_connection::on_receive_data_nb");
 
 		// leave this bit set until we're done looping, reading from the socket.
 		// that way we don't trigger any async read calls until the end of this
@@ -6073,9 +6063,7 @@ namespace libtorrent
 		}
 		else
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("peer_connection::on_receive_data");
-#endif
+			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 			socket_job j;
 			j.type = socket_job::read_job;
 			j.recv_buf = boost::asio::buffer_cast<char*>(buffer);
@@ -6103,9 +6091,7 @@ namespace libtorrent
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("peer_connection::on_receive_data");
-#endif
+		COMPLETE_ASYNC("peer_connection::on_receive_data");
 
 		// leave this bit set until we're done looping, reading from the socket.
 		// that way we don't trigger any async read calls until the end of this
@@ -6294,9 +6280,7 @@ namespace libtorrent
 	void peer_connection::on_connection_complete(error_code const& e)
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("peer_connection::on_connection_complete");
-#endif
+		COMPLETE_ASYNC("peer_connection::on_connection_complete");
 
 #if !defined TORRENT_DISABLE_LOGGING || defined TORRENT_USE_OPENSSL
 		time_point completed = clock_type::now();
@@ -6471,9 +6455,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("peer_connection::on_send_data");
-#endif
+		COMPLETE_ASYNC("peer_connection::on_send_data");
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
 		boost::shared_ptr<peer_connection> me(self());

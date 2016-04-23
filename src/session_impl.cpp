@@ -588,9 +588,7 @@ namespace aux {
 		error_code ec;
 		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_lsd_announce");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
@@ -2204,9 +2202,7 @@ namespace aux {
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_socks_accept");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_socks_accept");
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
 		m_socks_listen_port = 2000 + random() % 60000;
@@ -2276,9 +2272,7 @@ namespace aux {
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_i2p_accept");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_i2p_accept");
 		i2p_stream& s = *m_i2p_listen_socket->get<i2p_stream>();
 		s.set_command(i2p_stream::cmd_accept);
 		s.set_session_id(m_i2p_conn.session_id());
@@ -2290,9 +2284,7 @@ namespace aux {
 	void session_impl::on_i2p_accept(boost::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_i2p_accept");
-#endif
+		COMPLETE_ASYNC("session_impl::on_i2p_accept");
 		m_i2p_listen_socket.reset();
 		if (e == boost::asio::error::operation_aborted) return;
 		if (e)
@@ -2356,9 +2348,7 @@ namespace aux {
 			str = c->get<tcp::socket>();
 		}
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_accept_connection");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_accept_connection");
 
 #ifdef TORRENT_USE_OPENSSL
 		TORRENT_ASSERT(ssl == is_ssl(*c));
@@ -2372,9 +2362,7 @@ namespace aux {
 	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
 		, weak_ptr<tcp::acceptor> listen_socket, error_code const& e, bool ssl)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_accept_connection");
-#endif
+		COMPLETE_ASYNC("session_impl::on_accept_connection");
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
@@ -2455,9 +2443,7 @@ namespace aux {
 
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("session_impl::ssl_handshake");
-#endif
+			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 			s->get<ssl_stream<tcp::socket> >()->async_accept_handshake(
 				boost::bind(&session_impl::ssl_handshake, this, _1, s));
 			m_incoming_sockets.insert(s);
@@ -2477,9 +2463,7 @@ namespace aux {
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::ssl_handshake");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 		s->get<ssl_stream<utp_stream> >()->async_accept_handshake(
 			boost::bind(&session_impl::ssl_handshake, this, _1, s));
 		m_incoming_sockets.insert(s);
@@ -2493,9 +2477,7 @@ namespace aux {
 
 	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::ssl_handshake");
-#endif
+		COMPLETE_ASYNC("session_impl::ssl_handshake");
 		TORRENT_ASSERT(is_ssl(*s));
 
 		m_incoming_sockets.erase(s);
@@ -2769,9 +2751,7 @@ namespace aux {
 	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_socks_accept");
-#endif
+		COMPLETE_ASYNC("session_impl::on_socks_accept");
 		m_socks_listen_socket.reset();
 		if (e == boost::asio::error::operation_aborted) return;
 		if (e)
@@ -2953,9 +2933,7 @@ namespace aux {
 
 	void session_impl::on_tick(error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_tick");
-#endif
+		COMPLETE_ASYNC("session_impl::on_tick");
 		m_stats_counters.inc_stats_counter(counters::on_tick_counter);
 
 		TORRENT_ASSERT(is_single_thread());
@@ -3012,9 +2990,7 @@ namespace aux {
 			std::abort();
 		}
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_tick");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
 		m_timer.async_wait(make_tick_handler(boost::bind(&session_impl::on_tick, this, _1)));
@@ -3495,9 +3471,7 @@ namespace aux {
 		// timer interval short until all torrents have been announced.
 		if (m_dht_torrents.size() == 1)
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("session_impl::on_dht_announce");
-#endif
+			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 			error_code ec;
 			m_dht_announce_timer.expires_from_now(seconds(0), ec);
 			m_dht_announce_timer.async_wait(
@@ -3507,9 +3481,7 @@ namespace aux {
 
 	void session_impl::on_dht_announce(error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_dht_announce");
-#endif
+		COMPLETE_ASYNC("session_impl::on_dht_announce");
 		TORRENT_ASSERT(is_single_thread());
 		if (e)
 		{
@@ -3548,9 +3520,7 @@ namespace aux {
 			delay = (std::min)(4, delay);
 		}
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_announce");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
@@ -3586,18 +3556,14 @@ namespace aux {
 
 	void session_impl::on_lsd_announce(error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_lsd_announce");
-#endif
+		COMPLETE_ASYNC("session_impl::on_lsd_announce");
 		m_stats_counters.inc_stats_counter(counters::on_lsd_counter);
 		TORRENT_ASSERT(is_single_thread());
 		if (e) return;
 
 		if (m_abort) return;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_lsd_announce");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		// announce on local network every 5 minutes
 		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
@@ -5634,9 +5600,7 @@ namespace aux {
 
 	void session_impl::add_dht_node_name(std::pair<std::string, int> const& node)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_name_lookup");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_name_lookup");
 		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
 			, boost::bind(&session_impl::on_dht_name_lookup
 				, this, _1, _2, node.second));
@@ -5645,9 +5609,7 @@ namespace aux {
 	void session_impl::on_dht_name_lookup(error_code const& e
 		, std::vector<address> const& addresses, int port)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_dht_name_lookup");
-#endif
+		COMPLETE_ASYNC("session_impl::on_dht_name_lookup");
 
 		if (e)
 		{
@@ -5667,9 +5629,7 @@ namespace aux {
 
 	void session_impl::add_dht_router(std::pair<std::string, int> const& node)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_router_name_lookup");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_router_name_lookup");
 		++m_outstanding_router_lookups;
 		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
 			, boost::bind(&session_impl::on_dht_router_name_lookup
@@ -5679,9 +5639,7 @@ namespace aux {
 	void session_impl::on_dht_router_name_lookup(error_code const& e
 		, std::vector<address> const& addresses, int port)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_dht_router_name_lookup");
-#endif
+		COMPLETE_ASYNC("session_impl::on_dht_router_name_lookup");
 		--m_outstanding_router_lookups;
 
 		if (e)
@@ -6263,9 +6221,7 @@ namespace aux {
 			return;
 		}
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_dht_announce");
-#endif
+		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		error_code ec;
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);

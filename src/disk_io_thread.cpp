@@ -169,9 +169,7 @@ namespace libtorrent
 		, m_magic(0x1337)
 #endif
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("disk_io_thread::work");
-#endif
+		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 		error_code ec;
 		m_disk_cache.set_settings(m_settings, ec);
 		TORRENT_ASSERT(!ec);
@@ -3282,9 +3280,7 @@ namespace libtorrent
 
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("disk_io_thread::work");
-#endif
+		COMPLETE_ASYNC("disk_io_thread::work");
 		w.reset();
 
 		TORRENT_ASSERT(m_magic == 0x1337);

@@ -109,9 +109,7 @@ namespace libtorrent
 		}
 		else
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("udp_tracker_connection::name_lookup");
-#endif
+			ADD_OUTSTANDING_ASYNC("udp_tracker_connection::name_lookup");
 			// when stopping, pass in the prefer cache flag, because we
 			// don't want to get stuck on DNS lookups when shutting down
 			// if we can avoid it
@@ -177,9 +175,7 @@ namespace libtorrent
 	void udp_tracker_connection::name_lookup(error_code const& error
 		, std::vector<address> const& addresses, int port)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("udp_tracker_connection::name_lookup");
-#endif
+		COMPLETE_ASYNC("udp_tracker_connection::name_lookup");
 		if (m_abort) return;
 		if (error == boost::asio::error::operation_aborted) return;
 		if (error || addresses.empty())

@@ -2702,9 +2702,7 @@ namespace libtorrent
 	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
 		, error_code const& e)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("tracker::on_tracker_announce_disp");
-#endif
+		COMPLETE_ASYNC("tracker::on_tracker_announce_disp");
 		boost::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
 		t->m_waiting_tracker = false;
@@ -3324,9 +3322,7 @@ namespace libtorrent
 				// to do the name lookup
 				if (boost::algorithm::ends_with(i->hostname, ".b32.i2p"))
 				{
-#if defined TORRENT_ASIO_DEBUGGING
-					add_outstanding_async("torrent::on_i2p_resolve");
-#endif
+					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i->hostname.c_str()
 						, boost::bind(&torrent::on_i2p_resolve
 						, shared_from_this(), _1, _2));
@@ -3343,9 +3339,7 @@ namespace libtorrent
 			else
 #endif
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("torrent::on_peer_name_lookup");
-#endif
+				ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
 				m_ses.async_resolve(i->hostname, resolver_interface::abort_on_shutdown
 					, boost::bind(&torrent::on_peer_name_lookup
 						, shared_from_this(), _1, _2, i->port));
@@ -3571,9 +3565,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("torrent::on_i2p_resolve");
-#endif
+		COMPLETE_ASYNC("torrent::on_i2p_resolve");
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec)
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
@@ -3595,9 +3587,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("torrent::on_peer_name_lookup");
-#endif
+		COMPLETE_ASYNC("torrent::on_peer_name_lookup");
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (e)
@@ -9546,9 +9536,7 @@ namespace libtorrent
 		error_code ec;
 		boost::weak_ptr<torrent> self(shared_from_this());
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("tracker::on_tracker_announce_disp");
-#endif
+		ADD_OUTSTANDING_ASYNC("tracker::on_tracker_announce_disp");
 		m_tracker_timer.expires_at(next_announce, ec);
 		m_tracker_timer.async_wait(boost::bind(&torrent::on_tracker_announce_disp, self, _1));
 	}

@@ -151,9 +151,7 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 		return;
 	}
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("upnp::resend_request");
-#endif
+	ADD_OUTSTANDING_ASYNC("upnp::resend_request");
 	++m_retry_count;
 	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&upnp::resend_request
@@ -257,9 +255,7 @@ bool upnp::get_mapping(int index, int& local_port, int& external_port, int& prot
 
 void upnp::resend_request(error_code const& ec)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("upnp::resend_request");
-#endif
+	COMPLETE_ASYNC("upnp::resend_request");
 	if (ec) return;
 
 	boost::shared_ptr<upnp> me(self());
@@ -548,9 +544,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	if (m_ignore_non_routers)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("upnp::map_timer");
-#endif
+		ADD_OUTSTANDING_ASYNC("upnp::map_timer");
 		// check back in in a little bit to see if we have seen any
 		// devices at one of our default routes. If not, we want to override
 		// ignoring them and use them instead (better than not working).
@@ -562,9 +556,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 void upnp::map_timer(error_code const& ec)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("upnp::map_timer");
-#endif
+	COMPLETE_ASYNC("upnp::map_timer");
 	if (ec) return;
 	if (m_closing) return;
 
@@ -1383,9 +1375,7 @@ void upnp::on_upnp_map_response(error_code const& e
 			if (next_expire < aux::time_now()
 				|| next_expire > m.expires)
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("upnp::on_expire");
-#endif
+				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 				error_code ec;
 				m_refresh_timer.expires_at(m.expires, ec);
 				m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
@@ -1485,9 +1475,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 void upnp::on_expire(error_code const& ec)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("upnp::on_expire");
-#endif
+	COMPLETE_ASYNC("upnp::on_expire");
 	if (ec) return;
 
 	time_point now = aux::time_now();
@@ -1518,9 +1506,7 @@ void upnp::on_expire(error_code const& ec)
 	}
 	if (next_expire != max_time())
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("upnp::on_expire");
-#endif
+		ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 		error_code e;
 		m_refresh_timer.expires_at(next_expire, e);
 		m_refresh_timer.async_wait(boost::bind(&upnp::on_expire, self(), _1));
