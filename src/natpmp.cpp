@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -49,9 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-
-#include <boost/asio/ip/host_name.hpp>
 
 //#define NATPMP_LOG
 
@@ -59,9 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #endif
 
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 using namespace libtorrent;
 
@@ -124,9 +121,7 @@ void natpmp::start()
 		return;
 	}
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("natpmp::on_reply");
-#endif
+	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request(l);
@@ -376,9 +371,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 	}
 	else
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("natpmp::resend_request");
-#endif
+		ADD_OUTSTANDING_ASYNC("natpmp::resend_request");
 		// linear back-off instead of exponential
 		++m_retry_count;
 		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
@@ -388,9 +381,7 @@ void natpmp::send_map_request(int i, mutex::scoped_lock& l)
 
 void natpmp::resend_request(int i, error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("natpmp::resend_request");
-#endif
+	COMPLETE_ASYNC("natpmp::resend_request");
 	if (e) return;
 	mutex::scoped_lock l(m_mutex);
 	if (m_currently_mapping != i) return;
@@ -414,9 +405,7 @@ void natpmp::on_reply(error_code const& e
 {
 	mutex::scoped_lock l(m_mutex);
 
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("natpmp::on_reply");
-#endif
+	COMPLETE_ASYNC("natpmp::on_reply");
 
 	using namespace libtorrent::detail;
 	if (e)
@@ -428,9 +417,7 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("natpmp::on_reply");
-#endif
+	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	// make a copy of the response packet buffer
 	// to avoid overwriting it in the next receive call
 	char msg_buf[16];
@@ -645,9 +632,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 		error_code ec;
 		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
 
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("natpmp::mapping_expired");
-#endif
+		ADD_OUTSTANDING_ASYNC("natpmp::mapping_expired");
 		m_refresh_timer.expires_from_now(min_expire - now, ec);
 		m_refresh_timer.async_wait(boost::bind(&natpmp::mapping_expired, self(), _1, min_index));
 		m_next_refresh = min_index;
@@ -656,9 +641,7 @@ void natpmp::update_expiration_timer(mutex::scoped_lock& l)
 
 void natpmp::mapping_expired(error_code const& e, int i)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("natpmp::mapping_expired");
-#endif
+	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e) return;
 	mutex::scoped_lock l(m_mutex);
 	char msg[200];

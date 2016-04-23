@@ -41,10 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/random.hpp"
-
-#if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -252,9 +249,7 @@ void http_connection::start(std::string const& hostname, int port
 	error_code ec;
 	m_timer.expires_from_now((std::min)(
 		m_read_timeout, m_completion_timeout), ec);
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_timeout");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	m_timer.async_wait(boost::bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(me), _1));
 	m_called = false;
@@ -273,9 +268,7 @@ void http_connection::start(std::string const& hostname, int port
 	if (m_sock.is_open() && m_hostname == hostname && m_port == port
 		&& m_ssl == ssl && m_bind_addr == bind_addr)
 	{
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_write");
-#endif
+		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, me, _1));
 	}
@@ -389,9 +382,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			if (hostname.length() < 516) // Base64 encoded  destination with optional .i2p
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("http_connection::on_i2p_resolve");
-#endif
+				ADD_OUTSTANDING_ASYNC("http_connection::on_i2p_resolve");
 				i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
 					, me, _1, _2));
 			}
@@ -411,9 +402,7 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 		{
-#if defined TORRENT_ASIO_DEBUGGING
-			add_outstanding_async("http_connection::on_resolve");
-#endif
+			ADD_OUTSTANDING_ASYNC("http_connection::on_resolve");
 			m_resolver.async_resolve(hostname, m_resolve_flags
 				, boost::bind(&http_connection::on_resolve
 				, me, _1, _2));
@@ -426,9 +415,7 @@ void http_connection::start(std::string const& hostname, int port
 void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	, error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_timeout");
-#endif
+	COMPLETE_ASYNC("http_connection::on_timeout");
 	boost::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 
@@ -461,9 +448,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 		if (!c->m_sock.is_open()) return;
 	}
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_timeout");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	error_code ec;
 	c->m_timer.expires_at((std::min)(
 		c->m_last_receive + c->m_read_timeout
@@ -505,9 +490,7 @@ void http_connection::connect_i2p_tracker(char const* destination)
 	m_sock.get<i2p_stream>()->set_command(i2p_stream::cmd_connect);
 	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
 #endif
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_connect");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
 	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
@@ -515,9 +498,7 @@ void http_connection::connect_i2p_tracker(char const* destination)
 void http_connection::on_i2p_resolve(error_code const& e
 	, char const* destination)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_i2p_resolve");
-#endif
+	COMPLETE_ASYNC("http_connection::on_i2p_resolve");
 	if (e)
 	{
 		callback(e);
@@ -530,9 +511,7 @@ void http_connection::on_i2p_resolve(error_code const& e
 void http_connection::on_resolve(error_code const& e
 	, std::vector<address> const& addresses)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_resolve");
-#endif
+	COMPLETE_ASYNC("http_connection::on_resolve");
 	if (e)
 	{
 		callback(e);
@@ -614,9 +593,7 @@ void http_connection::connect()
 	tcp::endpoint target_address = m_endpoints[m_next_ep];
 	++m_next_ep;
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_connect");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
 	TORRENT_ASSERT(!m_connecting);
 	m_connecting = true;
 	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
@@ -625,9 +602,7 @@ void http_connection::connect()
 
 void http_connection::on_connect(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_connect");
-#endif
+	COMPLETE_ASYNC("http_connection::on_connect");
 	TORRENT_ASSERT(m_connecting);
 	m_connecting = false;
 
@@ -636,9 +611,7 @@ void http_connection::on_connect(error_code const& e)
 	if (!e)
 	{
 		if (m_connect_handler) m_connect_handler(*this);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_write");
-#endif
+		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -692,9 +665,7 @@ void http_connection::callback(error_code e, char* data, int size)
 
 void http_connection::on_write(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_write");
-#endif
+	COMPLETE_ASYNC("http_connection::on_write");
 
 	if (e == boost::asio::error::operation_aborted) return;
 
@@ -717,17 +688,13 @@ void http_connection::on_write(error_code const& e)
 		{
 			if (!m_limiter_timer_active)
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
+				ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 				on_assign_bandwidth(error_code());
 			}
 			return;
 		}
 	}
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -737,9 +704,7 @@ void http_connection::on_write(error_code const& e)
 void http_connection::on_read(error_code const& e
 	, std::size_t bytes_transferred)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_read");
-#endif
+	COMPLETE_ASYNC("http_connection::on_read");
 
 	if (m_rate_limit)
 	{
@@ -874,17 +839,13 @@ void http_connection::on_read(error_code const& e
 		{
 			if (!m_limiter_timer_active)
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
+				ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 				on_assign_bandwidth(error_code());
 			}
 			return;
 		}
 	}
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -893,9 +854,7 @@ void http_connection::on_read(error_code const& e
 
 void http_connection::on_assign_bandwidth(error_code const& e)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("http_connection::on_assign_bandwidth");
-#endif
+	COMPLETE_ASYNC("http_connection::on_assign_bandwidth");
 	if ((e == boost::asio::error::operation_aborted
 		&& m_limiter_timer_active)
 		|| !m_sock.is_open())
@@ -916,9 +875,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 
 	if (!m_sock.is_open()) return;
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_read");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
 		, boost::bind(&http_connection::on_read
@@ -927,9 +884,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_from_now(milliseconds(250), ec);
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
+	ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 	m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
@@ -943,9 +898,7 @@ void http_connection::rate_limit(int limit)
 		error_code ec;
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_from_now(milliseconds(250), ec);
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("http_connection::on_assign_bandwidth");
-#endif
+		ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
 		m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}

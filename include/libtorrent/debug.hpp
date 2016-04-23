@@ -164,6 +164,14 @@ namespace libtorrent
 	}
 }
 
+#define ADD_OUTSTANDING_ASYNC(x) add_outstanding_async(x)
+#define COMPLETE_ASYNC(x) complete_async(x)
+
+#else
+
+#define ADD_OUTSTANDING_ASYNC(x) do {} while(0)
+#define COMPLETE_ASYNC(x) do {} while(0)
+
 #endif // TORRENT_ASIO_DEBUGGING
 
 namespace libtorrent

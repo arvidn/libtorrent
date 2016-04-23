@@ -60,10 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
-
-#ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/debug.hpp"
-#endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

@@ -37,10 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
-
-#if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -187,9 +184,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	if (m_disabled) return;
 #endif
 
-#if defined TORRENT_ASIO_DEBUGGING
-	add_outstanding_async("lsd::resend_announce");
-#endif
+	ADD_OUTSTANDING_ASYNC("lsd::resend_announce");
 	m_broadcast_timer.expires_from_now(seconds(2 * retry_count), ec);
 	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1
 		, ih, listen_port, retry_count));
@@ -198,9 +193,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	, int listen_port, int retry_count)
 {
-#if defined TORRENT_ASIO_DEBUGGING
-	complete_async("lsd::resend_announce");
-#endif
+	COMPLETE_ASYNC("lsd::resend_announce");
 	if (e) return;
 
 	announce_impl(info_hash, listen_port, false, retry_count);
