@@ -1179,16 +1179,18 @@ namespace libtorrent
 		stat_file(save_path, &s, e);
 		if (e == boost::system::errc::no_such_file_or_directory)
 		{
-			create_directories(save_path, ec.ec);
-			if (ec)
+			create_directories(save_path, e);
+			if (e)
 			{
+				ec.ec = e;
 				ec.file = -1;
 				ec.operation = storage_error::mkdir;
 				return piece_manager::fatal_disk_error;
 			}
 		}
-		else if (ec)
+		else if (e)
 		{
+			ec.ec = e;
 			ec.file = -1;
 			ec.operation = storage_error::mkdir;
 			return piece_manager::fatal_disk_error;
