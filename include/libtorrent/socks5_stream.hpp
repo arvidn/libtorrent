@@ -42,9 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/assert.hpp"
-#if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
 
 namespace libtorrent {
 namespace socks_error {

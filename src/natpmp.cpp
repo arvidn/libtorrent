@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 #include <boost/bind.hpp>
+#include <boost/asio/ip/host_name.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -49,9 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-
-#include <boost/asio/ip/host_name.hpp>
 
 //#define NATPMP_LOG
 
@@ -59,9 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #endif
 
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 using namespace libtorrent;
 

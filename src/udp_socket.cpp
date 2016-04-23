@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/debug.hpp"
 
 #include <stdlib.h>
 #include <boost/bind.hpp>
@@ -49,10 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/ip/v6_only.hpp>
-
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 using namespace libtorrent;
 

@@ -43,9 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-#if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/debug.hpp"
-#endif
 
 namespace libtorrent
 {
