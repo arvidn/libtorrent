@@ -340,7 +340,7 @@ TORRENT_TEST(make_magnet_uri)
 	buf.push_back('\0');
 	printf("%s\n", &buf[0]);
 	error_code ec;
-	torrent_info ti(&buf[0], buf.size(), ec);
+	torrent_info ti(&buf[0], int(buf.size()), ec);
 
 	TEST_EQUAL(al.size(), ti.trackers().size());
 
@@ -367,7 +367,7 @@ TORRENT_TEST(make_magnet_uri2)
 	buf.push_back('\0');
 	printf("%s\n", &buf[0]);
 	error_code ec;
-	torrent_info ti(&buf[0], buf.size(), ec);
+	torrent_info ti(&buf[0], int(buf.size()), ec);
 
 	std::string magnet = make_magnet_uri(ti);
 	printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));

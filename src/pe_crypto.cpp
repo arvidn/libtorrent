@@ -174,7 +174,7 @@ namespace libtorrent
 					to_process = 0;
 					break;
 				}
-				to_process -= boost::asio::buffer_size(*i);
+				to_process -= int(boost::asio::buffer_size(*i));
 			}
 			TORRENT_ASSERT(to_process == 0);
 		}
@@ -230,7 +230,7 @@ namespace libtorrent
 			std::vector<boost::asio::mutable_buffer> wr_buf;
 			recv_buffer.mutable_buffers(wr_buf, bytes_transferred);
 			int packet_size = 0;
-			int produce = bytes_transferred;
+			int produce = int(bytes_transferred);
 			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
 			TORRENT_ASSERT(packet_size || produce);
 			TORRENT_ASSERT(packet_size >= 0);
@@ -326,7 +326,7 @@ namespace libtorrent
 			i != buf.end(); ++i)
 		{
 			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
-			int len = boost::asio::buffer_size(*i);
+			int len = int(boost::asio::buffer_size(*i));
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
@@ -354,7 +354,7 @@ namespace libtorrent
 			i != buf.end(); ++i)
 		{
 			unsigned char* pos = boost::asio::buffer_cast<unsigned char*>(*i);
-			int len = boost::asio::buffer_size(*i);
+			int len = int(boost::asio::buffer_size(*i));
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);

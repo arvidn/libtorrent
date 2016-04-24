@@ -441,6 +441,6 @@ namespace libtorrent
 	int tracker_manager::num_requests() const
 	{
 		mutex_t::scoped_lock l(m_mutex);
-		return m_http_conns.size() + m_udp_conns.size();
+		return int(m_http_conns.size() + m_udp_conns.size());
 	}
 }

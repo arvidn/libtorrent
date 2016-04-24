@@ -69,7 +69,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 		std::string name = "test_file-1";
 		if (ent.find("name=") != std::string::npos)
 		{
-			int pos = ent.find("name=") + 5;
+			int pos = int(ent.find("name=") + 5);
 			name = ent.substr(pos, ent.find(',', pos));
 		}
 		info["name"] = name;
@@ -103,7 +103,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 			std::string name = filename;
 			if (ent.find("name=") != std::string::npos)
 			{
-				int pos = ent.find("name=") + 5;
+				int pos = int(ent.find("name=") + 5);
 				name = ent.substr(pos, ent.find(',', pos));
 			}
 			file_entry["path"].list().push_back(name);
@@ -160,7 +160,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	fwrite(&tmp[0], 1, tmp.size(), f);
 	fclose(f);
 
-	return boost::make_shared<torrent_info>(&tmp[0], tmp.size());
+	return boost::make_shared<torrent_info>(&tmp[0], int(tmp.size()));
 }
 
 void generate_files(libtorrent::torrent_info const& ti, std::string const& path

@@ -507,11 +507,11 @@ void udp_socket::on_read_impl(udp::endpoint const& ep
 		{
 			// if the source IP doesn't match the proxy's, ignore the packet
 			if (ep == m_udp_proxy_addr)
-				unwrap(e, m_buf, bytes_transferred);
+				unwrap(e, m_buf, int(bytes_transferred));
 		}
 		else if (!m_force_proxy) // block incoming packets that aren't coming via the proxy
 		{
-			call_handler(e, ep, m_buf, bytes_transferred);
+			call_handler(e, ep, m_buf, int(bytes_transferred));
 		}
 
 	} TORRENT_CATCH (std::exception&) {}
@@ -616,7 +616,7 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	int hostlen = (std::min)(strlen(hostname), size_t(255));
+	int hostlen = int((std::min)(strlen(hostname), size_t(255)));
 	write_uint8(hostlen, h); // hostname len
 	memcpy(h, hostname, hostlen);
 	h += hostlen;
@@ -1424,12 +1424,12 @@ void udp_socket::drain_queue()
 		if (p.hostname)
 		{
 			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0]
-				, p.buf.size(), ec, p.flags | dont_queue);
+				, int(p.buf.size()), ec, p.flags | dont_queue);
 			free(p.hostname);
 		}
 		else
 		{
-			udp_socket::send(p.ep, &p.buf[0], p.buf.size(), ec, p.flags | dont_queue);
+			udp_socket::send(p.ep, &p.buf[0], int(p.buf.size()), ec, p.flags | dont_queue);
 		}
 		m_queue.pop_front();
 	}

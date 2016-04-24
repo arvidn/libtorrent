@@ -158,7 +158,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	error_code ec;
 	std::string address = addr.address().to_string(ec);
 	if (ec) return false;
-	h1.update(&address[0], address.length());
+	h1.update(&address[0], int(address.length()));
 	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
 	h1.update(reinterpret_cast<char const*>(info_hash), sha1_hash::size);
 
@@ -167,7 +167,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 		return true;
 
 	hasher h2;
-	h2.update(&address[0], address.length());
+	h2.update(&address[0], int(address.length()));
 	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
 	h2.update(info_hash, sha1_hash::size);
 	h = h2.final();
@@ -184,7 +184,7 @@ std::string node::generate_token(udp::endpoint const& addr, char const* info_has
 	error_code ec;
 	std::string address = addr.address().to_string(ec);
 	TORRENT_ASSERT(!ec);
-	h.update(&address[0], address.length());
+	h.update(&address[0], int(address.length()));
 	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
 	h.update(info_hash, sha1_hash::size);
 

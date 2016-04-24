@@ -180,7 +180,7 @@ namespace libtorrent
 			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
 		{
 			// the +1 is to skip the trailing '/' (or '\')
-			int offset = m_name.size()
+			int offset = int(m_name.size())
 				+ (m_name.size() == branch_len?0:1);
 			branch_path += offset;
 			branch_len -= offset;
@@ -199,7 +199,7 @@ namespace libtorrent
 		if (p == m_paths.rend())
 		{
 			// no, we don't. add it
-			e.path_index = m_paths.size();
+			e.path_index = int(m_paths.size());
 			TORRENT_ASSERT(branch_path[0] != '/');
 
 			// trim trailing slashes
@@ -659,7 +659,7 @@ namespace libtorrent
 
 		if (!m_name.empty())
 		{
-			process_string_lowercase(crc, m_name.c_str(), m_name.size());
+			process_string_lowercase(crc, m_name.c_str(), int(m_name.size()));
 			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
 			crc.process_byte(TORRENT_SEPARATOR);
 		}
@@ -667,7 +667,7 @@ namespace libtorrent
 		for (int i = 0; i != int(m_paths.size()); ++i)
 		{
 			std::string const& p = m_paths[i];
-			process_path_lowercase(table, crc, p.c_str(), p.size());
+			process_path_lowercase(table, crc, p.c_str(), int(p.size()));
 		}
 	}
 
@@ -689,7 +689,7 @@ namespace libtorrent
 			// -1 means no path
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
@@ -699,14 +699,14 @@ namespace libtorrent
 		{
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
 			std::string const& p = m_paths[fe.path_index];
 			if (!p.empty())
 			{
-				process_string_lowercase(crc, p.c_str(), p.size());
+				process_string_lowercase(crc, p.c_str(), int(p.size()));
 				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
@@ -716,11 +716,11 @@ namespace libtorrent
 		{
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), save_path.size());
+				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, m_name.c_str(), m_name.size());
+			process_string_lowercase(crc, m_name.c_str(), int(m_name.size()));
 			TORRENT_ASSERT(m_name.size() > 0);
 			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
 			crc.process_byte(TORRENT_SEPARATOR);
@@ -728,7 +728,7 @@ namespace libtorrent
 			std::string const& p = m_paths[fe.path_index];
 			if (!p.empty())
 			{
-				process_string_lowercase(crc, p.c_str(), p.size());
+				process_string_lowercase(crc, p.c_str(), int(p.size()));
 				TORRENT_ASSERT(p.size() > 0);
 				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
@@ -1049,7 +1049,7 @@ namespace libtorrent
 		, int& pad_file_counter)
 	{
 		int cur_index = i - m_files.begin();
-		int index = m_files.size();
+		int index = int(m_files.size());
 		m_files.push_back(internal_file_entry());
 		++m_num_files;
 		internal_file_entry& e = m_files.back();

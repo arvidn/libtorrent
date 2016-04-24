@@ -2053,7 +2053,7 @@ namespace libtorrent
 	bool torrent::load(std::vector<char>& buffer)
 	{
 		error_code ec;
-		m_torrent_file->load(&buffer[0], buffer.size(), ec);
+		m_torrent_file->load(&buffer[0], int(buffer.size()), ec);
 		if (ec)
 		{
 			set_error(ec, torrent_status::error_file_metadata);
@@ -6795,7 +6795,7 @@ namespace libtorrent
 			}
 			else if (has_picker())
 			{
-				for (int i = 0, end(pieces.size()); i < end; ++i)
+				for (int i = 0, end(int(pieces.size())); i < end; ++i)
 					pieces[i] = m_picker->have_piece(i) ? 1 : 0;
 			}
 
@@ -6803,7 +6803,7 @@ namespace libtorrent
 			{
 				TORRENT_ASSERT(m_verified.size() == pieces.size());
 				TORRENT_ASSERT(m_verifying.size() == pieces.size());
-				for (int i = 0, end(pieces.size()); i < end; ++i)
+				for (int i = 0, end(int(pieces.size())); i < end; ++i)
 					pieces[i] |= m_verified[i] ? 2 : 0;
 			}
 		}
@@ -6945,7 +6945,7 @@ namespace libtorrent
 				// write file priorities
 				entry::list_type& file_priority = ret["file_priority"].list();
 				file_priority.clear();
-				for (int i = 0, end(m_file_priority.size()); i < end; ++i)
+				for (int i = 0, end(int(m_file_priority.size())); i < end; ++i)
 					file_priority.push_back(m_file_priority[i]);
 			}
 		}
@@ -6966,7 +6966,7 @@ namespace libtorrent
 				entry::string_type& piece_priority = ret["piece_priority"].string();
 				piece_priority.resize(m_torrent_file->num_pieces());
 
-				for (int i = 0, end(piece_priority.size()); i < end; ++i)
+				for (int i = 0, end(int(piece_priority.size())); i < end; ++i)
 					piece_priority[i] = m_picker->piece_priority(i);
 			}
 		}
@@ -10554,7 +10554,7 @@ namespace libtorrent
 
 		// remove the bottom 10% of peers from the candidate set.
 		// this is just to remove outliers that might stall downloads
-		int new_size = (peers.size() * 9 + 9) / 10;
+		int new_size = int((peers.size() * 9 + 9) / 10);
 		TORRENT_ASSERT(new_size <= int(peers.size()));
 		peers.resize(new_size);
 

@@ -2250,7 +2250,7 @@ namespace libtorrent
 			}
 
 			offset += block_size;
-			h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
+			h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
 		}
 
 		m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
@@ -2389,8 +2389,8 @@ namespace libtorrent
 				++next_locked_block;
 				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
-				ph->offset += iov.iov_len;
-				ph->h.update(pe->blocks[i].buf, iov.iov_len);
+				ph->offset += int(iov.iov_len);
+				ph->h.update(pe->blocks[i].buf, int(iov.iov_len));
 			}
 			else
 			{
@@ -2461,8 +2461,8 @@ namespace libtorrent
 				}
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
-				ph->offset += iov.iov_len;
-				ph->h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
+				ph->offset += int(iov.iov_len);
+				ph->h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
 
 				l.lock();
 				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
@@ -3542,7 +3542,7 @@ namespace libtorrent
 		}
 
 		if (!to_delete.empty())
-			free_jobs(&to_delete[0], to_delete.size());
+			free_jobs(&to_delete[0], int(to_delete.size()));
 
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.

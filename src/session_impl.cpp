@@ -791,9 +791,9 @@ namespace aux {
 				val = settings.dict_find_int("type");
 				if (val) m_settings.set_int(settings_pack::proxy_type, val.int_value());
 				val = settings.dict_find_int("proxy_hostnames");
-				if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val.int_value());
+				if (val) m_settings.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
 				val = settings.dict_find_int("proxy_peer_connections");
-				if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val.int_value());
+				if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 				val = settings.dict_find_string("hostname");
 				if (val) m_settings.set_str(settings_pack::proxy_hostname, val.string_value());
 				val = settings.dict_find_string("password");
@@ -809,7 +809,7 @@ namespace aux {
 		{
 			bdecode_node val;
 			val = settings.dict_find_int("prefer_rc4");
-			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val.int_value());
+			if (val) m_settings.set_bool(settings_pack::prefer_rc4, val.int_value() != 0);
 			val = settings.dict_find_int("out_enc_policy");
 			if (val) m_settings.set_int(settings_pack::out_enc_policy, val.int_value());
 			val = settings.dict_find_int("in_enc_policy");
@@ -2420,7 +2420,7 @@ namespace aux {
 						i->second->disconnect_peers(1, e);
 					}
 
-					m_settings.set_int(settings_pack::connections_limit, m_connections.size());
+					m_settings.set_int(settings_pack::connections_limit, int(m_connections.size()));
 				}
 				// try again, but still alert the user of the problem
 				async_accept(listener, ssl);
@@ -3283,7 +3283,7 @@ namespace aux {
 			else
 			{
 				cache_size = cache_size * least_recently_refreshed->second->num_peers()
-					/ m_connections.size();
+					/ int(m_connections.size());
 			}
 
 			if (least_recently_refreshed != m_torrents.end())
@@ -4702,7 +4702,7 @@ namespace aux {
 			// just a URL, set the temporary info-hash to the
 			// hash of the URL. This will be changed once we
 			// have the actual .torrent file
-			tmp = hasher(&params.url[0], params.url.size()).final();
+			tmp = hasher(&params.url[0], int(params.url.size())).final();
 			ih = &tmp;
 		}
 #endif
@@ -5007,7 +5007,7 @@ namespace aux {
 		if (i == m_torrents.end() && !tptr->url().empty())
 		{
 			std::string const& url = tptr->url();
-			sha1_hash urlhash = hasher(&url[0], url.size()).final();
+			sha1_hash urlhash = hasher(&url[0], int(url.size())).final();
 			i = m_torrents.find(urlhash);
 		}
 #endif
@@ -5436,7 +5436,7 @@ namespace aux {
 		s.disk_write_queue = m_stats_counters[counters::num_peers_down_disk];
 		s.disk_read_queue = m_stats_counters[counters::num_peers_up_disk];
 
-		s.has_incoming_connections = m_stats_counters[counters::has_incoming_connections];
+		s.has_incoming_connections = m_stats_counters[counters::has_incoming_connections] != 0;
 
 		// total
 		s.download_rate = m_stat.download_rate();
@@ -6211,7 +6211,7 @@ namespace aux {
 			return;
 		}
 
-		m_dht_interval_update_torrents = m_torrents.size();
+		m_dht_interval_update_torrents = int(m_torrents.size());
 
 		if (m_abort)
 		{
@@ -6319,7 +6319,7 @@ namespace aux {
 			int to_disconnect = num_connections() - m_settings.get_int(settings_pack::connections_limit);
 
 			int last_average = 0;
-			int average = m_settings.get_int(settings_pack::connections_limit) / m_torrents.size();
+			int average = int(m_settings.get_int(settings_pack::connections_limit) / m_torrents.size());
 
 			// the number of slots that are unused by torrents
 			int extra = m_settings.get_int(settings_pack::connections_limit) % m_torrents.size();
@@ -6461,7 +6461,7 @@ namespace aux {
 		{
 			alerts->push_back((*i)->clone().release());
 		}
-		m_alert_pointer_pos = m_alert_pointers.size();
+		m_alert_pointer_pos = int(m_alert_pointers.size());
 	}
 #endif
 
@@ -6473,8 +6473,8 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
-		m_settings.set_int(settings_pack::alert_queue_size, queue_size_limit_);
-		return m_alerts.set_alert_queue_size_limit(queue_size_limit_);
+		m_settings.set_int(settings_pack::alert_queue_size, int(queue_size_limit_));
+		return m_alerts.set_alert_queue_size_limit(int(queue_size_limit_));
 	}
 #endif
 

@@ -2650,7 +2650,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
 {
   mp_int  M[TAB_SIZE], res;
   mp_digit buf, mp;
-  int     err, bitbuf, bitcpy, bitcnt, mode, digidx, x, y, winsize;
+  int     err, bitbuf, bitcpy, bitcnt, mode, digidx, x, y, winsize, winsize_shift, winsize_minus_shift;
 
   /* use a pointer to the reduction algorithm.  This allows us to use
    * one of many reduction algorithms without modding the guts of
@@ -2682,6 +2682,9 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
   }
 #endif
 
+  winsize_shift = 1 << winsize;
+  winsize_minus_shift = 1 << (winsize - 1);
+
   /* init M array */
   /* init first cell */
   if ((err = mp_init(&M[1])) != MP_OKAY) {
@@ -2689,9 +2692,9 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
   }
 
   /* now init the second half of the array */
-  for (x = 1<<(winsize-1); x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift; x < winsize_shift; x++) {
     if ((err = mp_init(&M[x])) != MP_OKAY) {
-      for (y = 1<<(winsize-1); y < x; y++) {
+      for (y = winsize_minus_shift; y < x; y++) {
         mp_clear (&M[y]);
       }
       mp_clear(&M[1]);
@@ -2784,21 +2787,21 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
   }
 
   /* compute the value at M[1<<(winsize-1)] by squaring M[1] (winsize-1) times */
-  if ((err = mp_copy (&M[1], &M[1 << (winsize - 1)])) != MP_OKAY) {
+  if ((err = mp_copy (&M[1], &M[winsize_minus_shift])) != MP_OKAY) {
     goto LBL_RES;
   }
 
   for (x = 0; x < (winsize - 1); x++) {
-    if ((err = mp_sqr (&M[1 << (winsize - 1)], &M[1 << (winsize - 1)])) != MP_OKAY) {
+    if ((err = mp_sqr (&M[winsize_minus_shift], &M[winsize_minus_shift])) != MP_OKAY) {
       goto LBL_RES;
     }
-    if ((err = redux (&M[1 << (winsize - 1)], P, mp)) != MP_OKAY) {
+    if ((err = redux (&M[winsize_minus_shift], P, mp)) != MP_OKAY) {
       goto LBL_RES;
     }
   }
 
   /* create upper table */
-  for (x = (1 << (winsize - 1)) + 1; x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift + 1; x < winsize_shift; x++) {
     if ((err = mp_mul (&M[x - 1], &M[1], &M[x])) != MP_OKAY) {
       goto LBL_RES;
     }
@@ -2895,7 +2898,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
 
       /* get next bit of the window */
       bitbuf <<= 1;
-      if ((bitbuf & (1 << winsize)) != 0) {
+      if ((bitbuf & winsize_shift) != 0) {
         /* then multiply */
         if ((err = mp_mul (&res, &M[1], &res)) != MP_OKAY) {
           goto LBL_RES;
@@ -2925,7 +2928,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
 LBL_RES:mp_clear (&res);
 LBL_M:
   mp_clear(&M[1]);
-  for (x = 1<<(winsize-1); x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift; x < winsize_shift; x++) {
     mp_clear (&M[x]);
   }
   return err;
@@ -8881,7 +8884,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
 {
   mp_int  M[TAB_SIZE], res, mu;
   mp_digit buf;
-  int     err, bitbuf, bitcpy, bitcnt, mode, digidx, x, y, winsize;
+  int     err, bitbuf, bitcpy, bitcnt, mode, digidx, x, y, winsize, winsize_shift, winsize_minus_shift;
   int (*redux)(mp_int*,mp_int*,mp_int*);
 
   /* find window size */
@@ -8907,17 +8910,19 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
        winsize = 5;
     }
 #endif
+  winsize_shift = 1 << winsize;
+  winsize_minus_shift = 1 << (winsize - 1);
 
   /* init M array */
   /* init first cell */
   if ((err = mp_init(&M[1])) != MP_OKAY) {
      return err; 
   }
-
+     
   /* now init the second half of the array */
-  for (x = 1<<(winsize-1); x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift; x < winsize_shift; x++) {
     if ((err = mp_init(&M[x])) != MP_OKAY) {
-      for (y = 1<<(winsize-1); y < x; y++) {
+      for (y = winsize_minus_shift; y < x; y++) {
         mp_clear (&M[y]);
       }
       mp_clear(&M[1]);
@@ -8957,19 +8962,19 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
   /* compute the value at M[1<<(winsize-1)] by squaring 
    * M[1] (winsize-1) times 
    */
-  if ((err = mp_copy (&M[1], &M[1 << (winsize - 1)])) != MP_OKAY) {
+  if ((err = mp_copy (&M[1], &M[winsize_minus_shift])) != MP_OKAY) {
     goto LBL_MU;
   }
 
   for (x = 0; x < (winsize - 1); x++) {
     /* square it */
-    if ((err = mp_sqr (&M[1 << (winsize - 1)], 
-                       &M[1 << (winsize - 1)])) != MP_OKAY) {
+    if ((err = mp_sqr (&M[winsize_minus_shift], 
+                       &M[winsize_minus_shift])) != MP_OKAY) {
       goto LBL_MU;
     }
 
     /* reduce modulo P */
-    if ((err = redux (&M[1 << (winsize - 1)], P, &mu)) != MP_OKAY) {
+    if ((err = redux (&M[winsize_minus_shift], P, &mu)) != MP_OKAY) {
       goto LBL_MU;
     }
   }
@@ -8977,7 +8982,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
   /* create upper table, that is M[x] = M[x-1] * M[1] (mod P)
    * for x = (2**(winsize - 1) + 1) to (2**winsize - 1)
    */
-  for (x = (1 << (winsize - 1)) + 1; x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift + 1; x < winsize_shift; x++) {
     if ((err = mp_mul (&M[x - 1], &M[1], &M[x])) != MP_OKAY) {
       goto LBL_MU;
     }
@@ -9079,7 +9084,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
       }
 
       bitbuf <<= 1;
-      if ((bitbuf & (1 << winsize)) != 0) {
+      if ((bitbuf & winsize_shift) != 0) {
         /* then multiply */
         if ((err = mp_mul (&res, &M[1], &res)) != MP_OKAY) {
           goto LBL_RES;
@@ -9097,7 +9102,7 @@ LBL_RES:mp_clear (&res);
 LBL_MU:mp_clear (&mu);
 LBL_M:
   mp_clear(&M[1]);
-  for (x = 1<<(winsize-1); x < (1 << winsize); x++) {
+  for (x = winsize_minus_shift; x < winsize_shift; x++) {
     mp_clear (&M[x]);
   }
   return err;

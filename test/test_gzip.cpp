@@ -48,7 +48,7 @@ TORRENT_TEST(gzip)
 	TEST_CHECK(!ec);
 
 	std::vector<char> inflated;
-	inflate_gzip(&zipped[0], zipped.size(), inflated, 1000000, ec);
+	inflate_gzip(&zipped[0], int(zipped.size()), inflated, 1000000, ec);
 
 	if (ec) {
 		fprintf(stderr, "failed to unzip: %s\n", ec.message().c_str());

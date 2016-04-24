@@ -222,7 +222,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 {
 	using namespace libtorrent::detail;
 
-	int num_pieces = strlen(bits);
+	int num_pieces = int(strlen(bits));
 	int packet_size = (num_pieces+7)/8 + 5;
 	char* msg = (char*)TORRENT_ALLOCA(char, packet_size);
 	memset(msg, 0, packet_size);
@@ -301,7 +301,7 @@ void send_extension_handshake(tcp::socket& s, entry const& e)
 	using namespace libtorrent::detail;
 
 	char* ptr = &buf[0];
-	write_uint32(buf.size() - 4, ptr);
+	write_uint32(int(buf.size()) - 4, ptr);
 	write_uint8(20, ptr);
 	write_uint8(0, ptr);
 
@@ -367,7 +367,7 @@ void send_ut_metadata_msg(tcp::socket& s, int ut_metadata_msg, int type, int pie
 	using namespace libtorrent::detail;
 
 	char* ptr = &buf[0];
-	write_uint32(buf.size() - 4, ptr);
+	write_uint32(int(buf.size()) - 4, ptr);
 	write_uint8(20, ptr);
 	write_uint8(ut_metadata_msg, ptr);
 

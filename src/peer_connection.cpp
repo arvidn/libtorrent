@@ -628,7 +628,7 @@ namespace libtorrent
 #endif
 		x.append(t->torrent_file().info_hash().data(), 20);
 
-		sha1_hash hash = hasher(x.c_str(), x.size()).final();
+		sha1_hash hash = hasher(x.c_str(), int(x.size())).final();
 		for (;;)
 		{
 			char* p = hash.data();
@@ -5031,7 +5031,7 @@ namespace libtorrent
 
 		// time out the last request eligible
 		// block in the queue
-		int i = m_download_queue.size() - 1;
+		int i = int(m_download_queue.size()) - 1;
 		for (; i >= 0; --i)
 		{
 			if (!m_download_queue[i].timed_out
@@ -5560,8 +5560,8 @@ namespace libtorrent
 				i != vec.rend(); ++i)
 			{
 				m_send_buffer.prepend_buffer(boost::asio::buffer_cast<char*>(*i)
-					, boost::asio::buffer_size(*i)
-					, boost::asio::buffer_size(*i)
+					, int(boost::asio::buffer_size(*i))
+					, int(boost::asio::buffer_size(*i))
 					, &nop
 					, NULL);
 			}
@@ -5844,7 +5844,7 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 					j.recv_buf = boost::asio::buffer_cast<char*>(vec[0]);
-					j.buf_size = boost::asio::buffer_size(vec[0]);
+					j.buf_size = int(boost::asio::buffer_size(vec[0]));
 				}
 				else
 				{
@@ -6022,7 +6022,7 @@ namespace libtorrent
 		{
 			if (buffer_size > m_quota[download_channel])
 			{
-				request_bandwidth(download_channel, buffer_size);
+				request_bandwidth(download_channel, int(buffer_size));
 				buffer_size = m_quota[download_channel];
 			}
 			// we're already waiting to get some more
@@ -6038,7 +6038,7 @@ namespace libtorrent
 
 		if (buffer_size > 2097152) buffer_size = 2097152;
 
-		boost::asio::mutable_buffer buffer = m_recv_buffer.reserve(buffer_size);
+		boost::asio::mutable_buffer buffer = m_recv_buffer.reserve(int(buffer_size));
 		TORRENT_ASSERT(m_recv_buffer.normalized());
 
 		// utp sockets aren't thread safe...
@@ -6067,7 +6067,7 @@ namespace libtorrent
 			socket_job j;
 			j.type = socket_job::read_job;
 			j.recv_buf = boost::asio::buffer_cast<char*>(buffer);
-			j.buf_size = boost::asio::buffer_size(buffer);
+			j.buf_size = int(boost::asio::buffer_size(buffer));
 			j.peer = self();
 			m_ses.post_socket_job(j);
 			return;
@@ -6128,7 +6128,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		int bytes_in_loop = bytes_transferred;
+		int bytes_in_loop = int(bytes_transferred);
 
 		if (error)
 		{
@@ -6146,7 +6146,7 @@ namespace libtorrent
 		TORRENT_ASSERT(bytes_transferred > 0);
 
 		m_counters.inc_stats_counter(counters::on_read_counter);
-		m_ses.received_buffer(bytes_transferred);
+		m_ses.received_buffer(int(bytes_transferred));
 
 		if (m_extension_outstanding_bytes > 0)
 			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
@@ -6163,7 +6163,7 @@ namespace libtorrent
 #endif
 			// correct the dl quota usage, if not all of the buffer was actually read
 			TORRENT_ASSERT(int(bytes_transferred) <= m_quota[download_channel]);
-			m_quota[download_channel] -= bytes_transferred;
+			m_quota[download_channel] -= int(bytes_transferred);
 
 			if (m_disconnecting)
 			{
@@ -6172,9 +6172,9 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(bytes_transferred > 0);
-			m_recv_buffer.received(bytes_transferred);
+			m_recv_buffer.received(int(bytes_transferred));
 
-			int bytes = bytes_transferred;
+			int bytes = int(bytes_transferred);
 			int sub_transferred = 0;
 			do {
 // TODO: The stats checks can not be honored when authenticated encryption is in use
@@ -6221,7 +6221,7 @@ namespace libtorrent
 				disconnect(ec, op_sock_read);
 				return;
 			}
-			bytes_in_loop += bytes_transferred;
+			bytes_in_loop += int(bytes_transferred);
 			++num_loops;
 		}
 		while (bytes_transferred > 0);
@@ -6437,7 +6437,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_counters.inc_stats_counter(counters::on_write_counter);
-		m_ses.sent_buffer(bytes_transferred);
+		m_ses.sent_buffer(int(bytes_transferred));
 
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_socket_is_writing);
@@ -6462,7 +6462,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_channel_state[upload_channel] & peer_info::bw_network);
 
-		m_send_buffer.pop_front(bytes_transferred);
+		m_send_buffer.pop_front(int(bytes_transferred));
 
 		time_point now = clock_type::now();
 
@@ -6471,7 +6471,7 @@ namespace libtorrent
 		{
 			if (i->send_buffer_offset == pending_block::not_in_buffer) continue;
 			boost::int32_t offset = i->send_buffer_offset;
-			offset -= bytes_transferred;
+			offset -= int(bytes_transferred);
 			if (offset < 0)
 				i->send_buffer_offset = pending_block::not_in_buffer;
 			else
@@ -6481,12 +6481,12 @@ namespace libtorrent
 		m_channel_state[upload_channel] &= ~peer_info::bw_network;
 
 		TORRENT_ASSERT(int(bytes_transferred) <= m_quota[upload_channel]);
-		m_quota[upload_channel] -= bytes_transferred;
+		m_quota[upload_channel] -= int(bytes_transferred);
 
-		trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+		trancieve_ip_packet(int(bytes_transferred), m_remote.address().is_v6());
 
 		if (m_send_barrier != INT_MAX)
-			m_send_barrier -= bytes_transferred;
+			m_send_barrier -= int(bytes_transferred);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "WROTE"

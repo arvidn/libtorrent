@@ -361,7 +361,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 	char* ptr = (char*)buffer;
 	int msg = read_uint8(ptr);
 
-	m_on_msg(msg, ptr, bytes_transferred);
+	m_on_msg(msg, ptr, int(bytes_transferred));
 
 	switch (m_mode)
 	{

@@ -286,6 +286,10 @@ rule warnings ( properties * )
 		result += <cflags>/wd4244 ;
 # disable warning C4512: assignment operator could not be generated
 		result += <cflags>/wd4512 ;
+# disable warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
+		result += <cflags>/wd4251 ;
+# disable warning C4275: non – DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+		result += <cflags>/wd4275 ;
 	}
 
 	return $(result) ;

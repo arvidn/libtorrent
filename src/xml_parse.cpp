@@ -70,7 +70,7 @@ namespace libtorrent
 				{
 					token = xml_parse_error;
 					start = "unexpected end of file";
-					callback(token, start, strlen(start), NULL, 0);
+					callback(token, start, int(strlen(start)), NULL, 0);
 					break;
 				}
 
@@ -93,7 +93,7 @@ namespace libtorrent
 			{
 				token = xml_parse_error;
 				start = "unexpected end of file";
-				callback(token, start, strlen(start), NULL, 0);
+				callback(token, start, int(strlen(start)), NULL, 0);
 				break;
 			}
 
@@ -170,7 +170,7 @@ namespace libtorrent
 				{
 					token = xml_parse_error;
 					start = "unquoted attribute value";
-					callback(token, start, strlen(start), NULL, 0);
+					callback(token, start, int(strlen(start)), NULL, 0);
 					break;
 				}
 				char quote = *i;
@@ -182,7 +182,7 @@ namespace libtorrent
 				{
 					token = xml_parse_error;
 					start = "missing end quote on attribute";
-					callback(token, start, strlen(start), NULL, 0);
+					callback(token, start, int(strlen(start)), NULL, 0);
 					break;
 				}
 				const int val_len = i - val_start;

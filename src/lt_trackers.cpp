@@ -235,7 +235,7 @@ namespace libtorrent { namespace
 				if (e.url.empty()) continue;
 
 				// ignore urls with binary data in them
-				if (need_encoding(e.url.c_str(), e.url.size())) continue;
+				if (need_encoding(e.url.c_str(), int(e.url.size()))) continue;
 
 				// ignore invalid URLs
 				error_code err;
@@ -304,11 +304,11 @@ namespace libtorrent { namespace
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
+			detail::write_uint32(1 + 1 + int(tex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
 			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
+			m_pc.send_buffer(&tex_msg[0], int(tex_msg.size()));
 			m_pc.setup_send();
 		}
 
@@ -340,11 +340,11 @@ namespace libtorrent { namespace
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + tex_msg.size(), ptr);
+			detail::write_uint32(1 + 1 + int(tex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
 			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&tex_msg[0], tex_msg.size());
+			m_pc.send_buffer(&tex_msg[0], int(tex_msg.size()));
 			m_pc.setup_send();
 
 			return true;

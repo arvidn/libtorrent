@@ -106,7 +106,7 @@ struct test_storage : default_storage
 		}
 
 		for (int i = 0; i < num_bufs; ++i)
-			m_written += bufs[i].iov_len;
+			m_written += int(bufs[i].iov_len);
 		l.unlock();
 		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
 	}

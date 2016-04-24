@@ -421,7 +421,7 @@ void crypto_receive_buffer::mutable_buffers(
 	std::vector<boost::asio::mutable_buffer>& vec
 	, std::size_t bytes_transfered)
 {
-	int pending_decryption = bytes_transfered;
+	int pending_decryption = int(bytes_transfered);
 	if (m_recv_pos != INT_MAX)
 	{
 		pending_decryption = m_connection_buffer.packet_size() - m_recv_pos;

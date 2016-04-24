@@ -172,7 +172,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		{
 			// we're about to replace a different restart piece
 			// buffer. So it was wasted download
-			if (t) t->add_redundant_bytes(m_web->restart_piece.size()
+			if (t) t->add_redundant_bytes(int(m_web->restart_piece.size())
 				, torrent::piece_closing);
 		}
 		m_web->restart_piece.swap(m_piece);
@@ -206,12 +206,12 @@ web_peer_connection::downloading_piece_progress() const
 	piece_block_progress ret;
 
 	ret.piece_index = m_requests.front().piece;
-	ret.bytes_downloaded = m_piece.size();
+	ret.bytes_downloaded = int(m_piece.size());
 	// this is used to make sure that the block_index stays within
 	// bounds. If the entire piece is downloaded, the block_index
 	// would otherwise point to one past the end
 	int correction = m_piece.size() ? -1 : 0;
-	ret.block_index = (m_requests.front().start + m_piece.size() + correction) / t->block_size();
+	ret.block_index = int((m_requests.front().start + m_piece.size() + correction) / t->block_size());
 	TORRENT_ASSERT(ret.block_index < int(piece_block::invalid.block_index));
 	TORRENT_ASSERT(ret.piece_index < int(piece_block::invalid.piece_index));
 
@@ -300,12 +300,12 @@ void web_peer_connection::write_request(peer_request const& r)
 			TORRENT_UNUSED(front);
 #endif
 
-			req.start += m_piece.size();
-			req.length -= m_piece.size();
+			req.start += int(m_piece.size());
+			req.length -= int(m_piece.size());
 
 			// just to keep the accounting straight for the upper layer.
 			// it doesn't know we just re-wrote the request
-			incoming_piece_fragment(m_piece.size());
+			incoming_piece_fragment(int(m_piece.size()));
 			m_web->restart_request.piece = -1;
 		}
 
@@ -388,7 +388,7 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifdef TORRENT_WINDOWS
 				convert_path_to_posix(path);
 #endif
-				request += escape_path(path.c_str(), path.length());
+				request += escape_path(path.c_str(), int(path.length()));
 			}
 			else
 			{
@@ -400,7 +400,7 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifdef TORRENT_WINDOWS
 				convert_path_to_posix(path);
 #endif
-				request += escape_path(path.c_str(), path.length());
+				request += escape_path(path.c_str(), int(path.length()));
 			}
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
@@ -434,7 +434,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-	send_buffer(request.c_str(), request.size(), message_type_request);
+	send_buffer(request.c_str(), int(request.size()), message_type_request);
 }
 
 namespace {
@@ -608,7 +608,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 #ifdef TORRENT_WINDOWS
 		convert_path_to_posix(path);
 #endif
-		path = escape_path(path.c_str(), path.length());
+		path = escape_path(path.c_str(), int(path.length()));
 		size_t i = location.rfind(path);
 		if (i == std::string::npos)
 		{
@@ -641,7 +641,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 	if (error)
 	{
-		received_bytes(0, bytes_transferred);
+		received_bytes(0, int(bytes_transferred));
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ERROR"
 			, "web_peer_connection error: %s", error.message().c_str());

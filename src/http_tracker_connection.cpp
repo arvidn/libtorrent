@@ -158,7 +158,7 @@ namespace libtorrent
 			{
 				std::string id = tracker_req().trackerid;
 				url += "&trackerid=";
-				url += escape_string(id.c_str(), id.length());
+				url += escape_string(id.c_str(), int(id.length()));
 			}
 
 #if TORRENT_USE_I2P
@@ -181,7 +181,7 @@ namespace libtorrent
 				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
-					url += "&ip=" + escape_string(announce_ip.c_str(), announce_ip.size());
+					url += "&ip=" + escape_string(announce_ip.c_str(), int(announce_ip.size()));
 				}
 			}
 		}
@@ -238,7 +238,7 @@ namespace libtorrent
 			);
 
 		// the url + 100 estimated header size
-		sent_bytes(url.size() + 100);
+		sent_bytes(int(url.size()) + 100);
 
 #ifndef TORRENT_DISABLE_LOGGING
 

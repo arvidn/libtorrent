@@ -369,7 +369,7 @@ namespace libtorrent
 
 #ifdef TORRENT_WINDOWS
 		// remove trailing spaces and dots. These aren't allowed in filenames on windows
-		for (int i = path.size() - 1; i >= 0; --i)
+		for (int i = int(path.size()) - 1; i >= 0; --i)
 		{
 			if (path[i] != ' ' && path[i] != '.') break;
 			path.resize(i);
@@ -440,7 +440,7 @@ namespace libtorrent
 				return false;
 			}
 
-			int preallocate = path.size();
+			int preallocate = int(path.size());
 			for (int i = 0, end(p.list_size()); i < end; ++i)
 			{
 				bdecode_node e = p.list_at(i);

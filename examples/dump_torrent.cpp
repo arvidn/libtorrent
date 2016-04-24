@@ -84,7 +84,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 		return 0;
 	}
 
-	r = fread(&v[0], 1, v.size(), f);
+	r = int(fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());

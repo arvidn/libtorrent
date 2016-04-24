@@ -698,7 +698,7 @@ void test_fastresume(bool const test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+			p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 			TEST_CHECK(!ec);
 		}
 
@@ -809,7 +809,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+			p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 			TEST_CHECK(!ec);
 		}
 		p.ti = boost::make_shared<torrent_info>(boost::cref(*t));
@@ -1118,7 +1118,7 @@ int count_bufs(file::iovec_t const* bufs, int bytes)
 	if (bytes == 0) return 0;
 	for (file::iovec_t const* i = bufs;; ++i, ++count)
 	{
-		size += i->iov_len;
+		size += int(i->iov_len);
 		if (size >= bytes) return count;
 	}
 }

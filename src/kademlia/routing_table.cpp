@@ -122,8 +122,8 @@ void routing_table::status(std::vector<dht_routing_bucket>& s) const
 		, end(m_buckets.end()); i != end; ++i)
 	{
 		dht_routing_bucket b;
-		b.num_nodes = i->live_nodes.size();
-		b.num_replacements = i->replacements.size();
+		b.num_nodes = int(i->live_nodes.size());
+		b.num_replacements = int(i->replacements.size());
 		s.push_back(b);
 	}
 }
@@ -140,8 +140,8 @@ void routing_table::status(session_status& s) const
 		, end(m_buckets.end()); i != end; ++i)
 	{
 		dht_routing_bucket b;
-		b.num_nodes = i->live_nodes.size();
-		b.num_replacements = i->replacements.size();
+		b.num_nodes = int(i->live_nodes.size());
+		b.num_replacements = int(i->replacements.size());
 #ifndef TORRENT_NO_DEPRECATE
 		b.last_active = 0;
 #endif
@@ -158,14 +158,14 @@ boost::tuple<int, int, int> routing_table::size() const
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		nodes += i->live_nodes.size();
+		nodes += int(i->live_nodes.size());
 		for (bucket_t::const_iterator k = i->live_nodes.begin()
 			, end2(i->live_nodes.end()); k != end2; ++k)
 		{
 			if (k->confirmed()) ++confirmed;
 		}
 
-		replacements += i->replacements.size();
+		replacements += int(i->replacements.size());
 	}
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
@@ -177,7 +177,7 @@ boost::int64_t routing_table::num_global_nodes() const
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		deepest_size = i->live_nodes.size(); // + i->replacements.size();
+		deepest_size = int(i->live_nodes.size()); // + i->replacements.size();
 		if (deepest_size < m_bucket_size) break;
 		// this bucket is full
 		++deepest_bucket;
@@ -192,7 +192,7 @@ boost::int64_t routing_table::num_global_nodes() const
 int routing_table::depth() const
 {
 	if (m_depth >= int(m_buckets.size()))
-		m_depth = m_buckets.size() - 1;
+		m_depth = int(m_buckets.size()) - 1;
 
 	if (m_depth < 0) return m_depth;
 
@@ -398,7 +398,7 @@ node_entry const* routing_table::next_refresh()
 	node_entry* candidate = NULL;
 
 	// this will have a bias towards pinging nodes close to us first.
-	int idx = m_buckets.size() - 1;
+	int idx = int(m_buckets.size()) - 1;
 	for (table_t::reverse_iterator i = m_buckets.rbegin()
 		, end(m_buckets.rend()); i != end; ++i, --idx)
 	{
@@ -445,7 +445,7 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 {
 //	TORRENT_ASSERT(id != m_id);
 
-	int num_buckets = m_buckets.size();
+	int num_buckets = int(m_buckets.size());
 	if (num_buckets == 0)
 	{
 		m_buckets.push_back(routing_table_node());
@@ -558,7 +558,7 @@ bool routing_table::add_node(node_entry e)
 
 		// if the new bucket still has too many nodes in it, we need to keep
 		// splitting
-		if (m_buckets.back().live_nodes.size() > bucket_limit(m_buckets.size()-1))
+		if (m_buckets.back().live_nodes.size() > bucket_limit(int(m_buckets.size()) - 1))
 			continue;
 
 		s = add_node_impl(e);
@@ -838,7 +838,7 @@ ip_ok:
 			// have a unique prefix
 
 			// find node entries with duplicate prefixes in O(1)
-			std::vector<bucket_t::iterator> prefix(1 << (8 - mask_shift), b.end());
+			std::vector<bucket_t::iterator> prefix(int(1 << (8 - mask_shift)), b.end());
 			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
 
 			// the begin iterator from this object is used as a placeholder
@@ -957,7 +957,7 @@ void routing_table::split_bucket()
 {
 	INVARIANT_CHECK;
 
-	int const bucket_index = m_buckets.size()-1;
+	int const bucket_index = int(m_buckets.size()) - 1;
 	int const bucket_size_limit = bucket_limit(bucket_index);
 	TORRENT_ASSERT(int(m_buckets.back().live_nodes.size()) >= bucket_limit(bucket_index + 1));
 
@@ -1300,7 +1300,7 @@ void routing_table::check_invariant() const
 
 bool routing_table::is_full(int bucket) const
 {
-	int num_buckets = m_buckets.size();
+	int num_buckets = int(m_buckets.size());
 	if (num_buckets == 0) return false;
 	if (bucket >= num_buckets) return false;
 

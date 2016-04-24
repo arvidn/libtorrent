@@ -1004,7 +1004,7 @@ void utp_stream::add_read_buffer(void* buf, size_t len)
 	TORRENT_ASSERT(len > 0);
 	TORRENT_ASSERT(buf);
 	m_impl->m_read_buffer.push_back(utp_socket_impl::iovec_t(buf, len));
-	m_impl->m_read_buffer_size += len;
+	m_impl->m_read_buffer_size += int(len);
 
 		UTP_LOGV("%8p: add_read_buffer %d bytes\n", static_cast<void*>(m_impl), int(len));
 }
@@ -1030,7 +1030,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 #endif
 
 	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t(const_cast<void*>(buf), len));
-	m_impl->m_write_buffer_size += len;
+	m_impl->m_write_buffer_size += int(len);
 
 #ifdef TORRENT_DEBUG
 	write_buffer_size = 0;
@@ -1067,7 +1067,7 @@ void utp_stream::issue_read()
 	// have some data in the read buffer, move it into the
 	// client's buffer right away
 
-	m_impl->m_read += read_some(false);
+	m_impl->m_read += int(read_some(false));
 	m_impl->maybe_trigger_receive_callback();
 }
 

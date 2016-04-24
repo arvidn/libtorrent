@@ -192,8 +192,8 @@ struct udp_tracker
 		error_code ec;
 		udp::endpoint from;
 		m_socket.async_receive_from(
-			boost::asio::buffer(buffer, sizeof(buffer)), from, 0
-			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], sizeof(buffer)));
+			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
+			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
 		m_ios.run(ec);
 

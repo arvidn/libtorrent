@@ -149,7 +149,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), piece.size()) == 0);
 			TEST_CHECK(rpa->size == info->piece_size(0));
 			TEST_CHECK(rpa->piece == 0);
-			TEST_CHECK(hasher(&piece[0], piece.size()).final() == info->hash_for_piece(0));
+			TEST_CHECK(hasher(&piece[0], int(piece.size())).final() == info->hash_for_piece(0));
 		}
 	}
 }

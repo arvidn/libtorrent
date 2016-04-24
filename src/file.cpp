@@ -197,7 +197,7 @@ namespace
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			DWORD num_read;
-			if (ReadFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_read, &ol[i]) == FALSE
+			if (ReadFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_read, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
 #ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
@@ -267,7 +267,7 @@ done:
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			DWORD num_written;
-			if (WriteFile(fd, bufs[i].iov_base, bufs[i].iov_len, &num_written, &ol[i]) == FALSE
+			if (WriteFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_written, &ol[i]) == FALSE
 				&& GetLastError() != ERROR_IO_PENDING
 #ifdef ERROR_CANT_WAIT
 				&& GetLastError() != ERROR_CANT_WAIT
@@ -720,7 +720,7 @@ namespace libtorrent
 
 	std::string extension(std::string const& f)
 	{
-		for (int i = f.size() - 1; i >= 0; --i)
+		for (int i = int(f.size()) - 1; i >= 0; --i)
 		{
 			if (f[i] == '/') break;
 #ifdef TORRENT_WINDOWS
@@ -746,7 +746,7 @@ namespace libtorrent
 
 	void replace_extension(std::string& f, std::string const& ext)
 	{
-		for (int i = f.size() - 1; i >= 0; --i)
+		for (int i = int(f.size()) - 1; i >= 0; --i)
 		{
 			if (f[i] == '/') break;
 #ifdef TORRENT_WINDOWS
@@ -802,7 +802,7 @@ namespace libtorrent
 		if (f.empty()) return false;
 		if (is_root_path(f)) return false;
 
-		int len = f.size() - 1;
+		int len = int(f.size()) - 1;
 		// if the last character is / or \ ignore it
 		if (f[len] == '/' || f[len] == '\\') --len;
 		while (len >= 0)
@@ -824,7 +824,7 @@ namespace libtorrent
 #endif
 		if (f == "/") return "";
 
-		int len = f.size();
+		int len = int(f.size());
 		// if the last character is / or \ ignore it
 		if (f[len-1] == '/' || f[len-1] == '\\') --len;
 		while (len > 0)
@@ -886,7 +886,7 @@ namespace libtorrent
 
 	void append_path(std::string& branch, std::string const& leaf)
 	{
-		append_path(branch, leaf.c_str(), leaf.size());
+		append_path(branch, leaf.c_str(), int(leaf.size()));
 	}
 
 	void append_path(std::string& branch
@@ -927,7 +927,7 @@ namespace libtorrent
 		bool need_sep = lhs[lhs.size()-1] != '/';
 #endif
 		std::string ret;
-		int target_size = lhs.size() + rhs.size() + 2;
+		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
 		target_size = snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
 			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());

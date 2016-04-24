@@ -89,7 +89,7 @@ namespace libtorrent
 		if (!name.empty())
 		{
 			ret += "&dn=";
-			ret += escape_string(name.c_str(), name.length());
+			ret += escape_string(name.c_str(), int(name.length()));
 		}
 
 		std::vector<announce_entry> const& tr = info.trackers();
@@ -97,7 +97,7 @@ namespace libtorrent
 		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), i->url.length());
+			ret += escape_string(i->url.c_str(), int(i->url.length()));
 		}
 
 		std::vector<web_seed_entry> const& seeds = info.web_seeds();
@@ -107,7 +107,7 @@ namespace libtorrent
 			if (i->type != web_seed_entry::url_seed) continue;
 
 			ret += "&ws=";
-			ret += escape_string(i->url.c_str(), i->url.length());
+			ret += escape_string(i->url.c_str(), int(i->url.length()));
 		}
 
 		return ret;

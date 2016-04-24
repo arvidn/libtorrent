@@ -56,7 +56,7 @@ const int blocks_per_piece = 4;
 
 bitfield string2vec(char const* have_str)
 {
-	const int num_pieces = strlen(have_str);
+	const int num_pieces = int(strlen(have_str));
 	bitfield have(num_pieces, false);
 	for (int i = 0; i < num_pieces; ++i)
 		if (have_str[i] != ' ') have.set_bit(i);
@@ -91,7 +91,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	, char const* priority
 	, char const* partial)
 {
-	const int num_pieces = strlen(availability);
+	const int num_pieces = int(strlen(availability));
 	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
 	boost::shared_ptr<piece_picker> p(new piece_picker);

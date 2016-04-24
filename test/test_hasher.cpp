@@ -67,7 +67,7 @@ TORRENT_TEST(hasher)
 	{
 		hasher h;
 		for (int i = 0; i < repeat_count[test]; ++i)
-			h.update(test_array[test], std::strlen(test_array[test]));
+			h.update(test_array[test], int(std::strlen(test_array[test])));
 
 		sha1_hash result;
 		from_hex(result_array[test], 40, (char*)&result[0]);

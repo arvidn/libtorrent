@@ -204,7 +204,7 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
 #endif
 
-		send_buffer(request.c_str(), request.size(), message_type_request);
+		send_buffer(request.c_str(), int(request.size()), message_type_request);
 	}
 
 	// --------------------------
@@ -218,7 +218,7 @@ namespace libtorrent
 
 		if (error)
 		{
-			received_bytes(0, bytes_transferred);
+			received_bytes(0, int(bytes_transferred));
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ERROR"
 				, "http_seed_connection error: %s", error.message().c_str());
@@ -239,7 +239,7 @@ namespace libtorrent
 			TORRENT_ASSERT(!m_requests.empty());
 			if (m_requests.empty())
 			{
-				received_bytes(0, bytes_transferred);
+				received_bytes(0, int(bytes_transferred));
 				disconnect(errors::http_error, op_bittorrent, 2);
 				return;
 			}
@@ -261,7 +261,7 @@ namespace libtorrent
 
 				if (parse_error)
 				{
-					received_bytes(0, bytes_transferred);
+					received_bytes(0, int(bytes_transferred));
 					disconnect(errors::http_parse_error, op_bittorrent, 2);
 					return;
 				}
@@ -293,7 +293,7 @@ namespace libtorrent
 						t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), url()
 							, error_msg);
 					}
-					received_bytes(0, bytes_transferred);
+					received_bytes(0, int(bytes_transferred));
 					disconnect(error_code(m_parser.status_code(), get_http_category()), op_bittorrent, 1);
 					return;
 				}
@@ -313,7 +313,7 @@ namespace libtorrent
 					// this means we got a redirection request
 					// look for the location header
 					std::string location = m_parser.header("location");
-					received_bytes(0, bytes_transferred);
+					received_bytes(0, int(bytes_transferred));
 
 					if (location.empty())
 					{
@@ -341,14 +341,14 @@ namespace libtorrent
 				m_response_left = atol(m_parser.header("content-length").c_str());
 				if (m_response_left == -1)
 				{
-					received_bytes(0, bytes_transferred);
+					received_bytes(0, int(bytes_transferred));
 					// we should not try this server again.
 					t->remove_web_seed(this, errors::no_content_length, op_bittorrent, 2);
 					return;
 				}
 				if (m_response_left != front_request.length)
 				{
-					received_bytes(0, bytes_transferred);
+					received_bytes(0, int(bytes_transferred));
 					// we should not try this server again.
 					t->remove_web_seed(this, errors::invalid_range, op_bittorrent, 2);
 					return;
@@ -410,7 +410,7 @@ namespace libtorrent
 				}
 			}
 
-			int payload = bytes_transferred;
+			int payload = int(bytes_transferred);
 			if (payload > m_response_left) payload = int(m_response_left);
 			if (payload > front_request.length) payload = front_request.length;
 			received_bytes(payload, 0);
@@ -427,7 +427,7 @@ namespace libtorrent
 				peer_log(peer_log_alert::info, "CONNECT", "retrying in %d seconds", retry_time);
 #endif
 
-				received_bytes(0, bytes_transferred);
+				received_bytes(0, int(bytes_transferred));
 				// temporarily unavailable, retry later
 				t->retry_web_seed(this, retry_time);
 				disconnect(error_code(m_parser.status_code(), get_http_category()), op_bittorrent, 1);

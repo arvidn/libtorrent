@@ -510,7 +510,7 @@ namespace libtorrent
 			if (line_len > limit) return -1;
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				line_len += 4 + e.dict_at(i).first.size();
+				line_len += 4 + int(e.dict_at(i).first.size());
 				if (line_len > limit) return -1;
 				int ret = line_longer_than(*e.dict_at(i).second, limit - line_len);
 				if (ret == -1) return -1;
@@ -644,7 +644,7 @@ namespace libtorrent
 				{
 					if (i == 0 && one_liner) ret += " ";
 					std::pair<std::string, lazy_entry const*> ent = e.dict_at(i);
-					print_string(ret, ent.first.c_str(), ent.first.size(), true);
+					print_string(ret, ent.first.c_str(), int(ent.first.size()), true);
 					ret += ": ";
 					ret += print_entry(*ent.second, single_line, indent + 2);
 					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);

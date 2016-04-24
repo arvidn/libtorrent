@@ -621,7 +621,7 @@ namespace libtorrent
 			int num_nodes = merkle_num_nodes(num_leafs);
 			int first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
-			int num_pieces = m_piece_hash.size();
+			int num_pieces = int(m_piece_hash.size());
 			for (int i = 0; i < num_pieces; ++i)
 				m_merkle_tree[first_leaf + i] = m_piece_hash[i];
 			sha1_hash filler(0);
@@ -662,7 +662,7 @@ namespace libtorrent
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), info);
-		m_info_hash = hasher(&buf[0], buf.size()).final();
+		m_info_hash = hasher(&buf[0], int(buf.size())).final();
 
 		return dict;
 	}

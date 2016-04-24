@@ -204,7 +204,7 @@ namespace libtorrent
 		if (m_free_block_infos.empty())
 		{
 			// we need to allocate more space in m_block_info
-			block_index = m_block_info.size() / m_blocks_per_piece;
+			block_index = int(m_block_info.size() / m_blocks_per_piece);
 			TORRENT_ASSERT((m_block_info.size() % m_blocks_per_piece) == 0);
 			m_block_info.resize(m_block_info.size() + m_blocks_per_piece);
 		}
@@ -304,17 +304,17 @@ namespace libtorrent
 	{
 		int ret = 0;
 		for (int k = 0; k < piece_pos::num_download_categories; ++k)
-			ret += m_downloads[k].size();
+			ret += int(m_downloads[k].size());
 		return ret;
 	}
 
 	void piece_picker::get_download_queue_sizes(int* partial
 		, int* full, int* finished, int* zero_prio) const
 	{
-		*partial = m_downloads[piece_pos::piece_downloading].size();
-		*full = m_downloads[piece_pos::piece_full].size();
-		*finished = m_downloads[piece_pos::piece_finished].size();
-		*zero_prio = m_downloads[piece_pos::piece_zero_prio].size();
+		*partial = int(m_downloads[piece_pos::piece_downloading].size());
+		*full = int(m_downloads[piece_pos::piece_full].size());
+		*finished = int(m_downloads[piece_pos::piece_finished].size());
+		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
 	piece_picker::block_info* piece_picker::blocks_for_piece(
@@ -792,7 +792,7 @@ namespace libtorrent
 	std::pair<int, int> piece_picker::distributed_copies() const
 	{
 		TORRENT_ASSERT(m_seeds >= 0);
-		const int num_pieces = m_piece_map.size();
+		const int num_pieces = int(m_piece_map.size());
 
 		if (num_pieces == 0) return std::make_pair(1, 0);
 		int min_availability = piece_pos::max_peer_count;
@@ -852,7 +852,7 @@ namespace libtorrent
 		if (priority < 0) return;
 
 		if (int(m_priority_boundries.size()) <= priority)
-			m_priority_boundries.resize(priority + 1, m_pieces.size());
+			m_priority_boundries.resize(priority + 1, int(m_pieces.size()));
 
 		TORRENT_ASSERT(int(m_priority_boundries.size()) >= priority);
 
@@ -984,7 +984,7 @@ namespace libtorrent
 		}
 
 		if (int(m_priority_boundries.size()) <= new_priority)
-			m_priority_boundries.resize(new_priority + 1, m_pieces.size());
+			m_priority_boundries.resize(new_priority + 1, int(m_pieces.size()));
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "update " << index << " (" << priority << "->" << new_priority << ")" << std::endl;
@@ -2189,7 +2189,7 @@ namespace libtorrent
 			// front of the list
 			if ((options & reverse) && (options & time_critical_mode) == 0)
 			{
-				for (int i = m_priority_boundries.size() - 1; i >= 0; --i)
+				for (int i = int(m_priority_boundries.size()) - 1; i >= 0; --i)
 				{
 					int start = (i == 0) ? 0 : m_priority_boundries[i - 1];
 					int end = m_priority_boundries[i];
