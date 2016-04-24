@@ -431,7 +431,9 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	// wait for the torrent to be ready
 	wait_for_downloading(*ses, "ses");
 
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+	int const port = ses->listen_port();
+	fprintf(stderr, "listen port: %d\n", port);
+	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), port), ec);
 	if (ec) TEST_ERROR(ec.message());
 
 	print_session_log(*ses);

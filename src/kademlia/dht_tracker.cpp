@@ -90,21 +90,22 @@ namespace libtorrent { namespace dht
 	// class that puts the networking and the kademlia node in a single
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(dht_observer* observer
-		, udp_socket& sock
+		, io_service& ios
+		, send_fun_t const& send_fun
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_constructor_type storage_constructor
 		, entry const& state)
 		: m_counters(cnt)
 		, m_dht(this, settings, extract_node_id(state), observer, cnt, storage_constructor)
-		, m_sock(sock)
+		, m_send_fun(send_fun)
 		, m_log(observer)
-		, m_key_refresh_timer(sock.get_io_service())
-		, m_connection_timer(sock.get_io_service())
-		, m_refresh_timer(sock.get_io_service())
+		, m_key_refresh_timer(ios)
+		, m_connection_timer(ios)
+		, m_refresh_timer(ios)
 		, m_settings(settings)
 		, m_abort(false)
-		, m_host_resolver(sock.get_io_service())
+		, m_host_resolver(ios)
 		, m_send_quota(settings.upload_rate_limit)
 		, m_last_tick(aux::time_now())
 	{
@@ -277,29 +278,26 @@ namespace libtorrent { namespace dht
 		m_dht.direct_request(ep, e, f);
 	}
 
-	// translate bittorrent kademlia message into the generice kademlia message
-	// used by the library
-	bool dht_tracker::incoming_packet(error_code const& ec
-		, udp::endpoint const& ep, char const* buf, int size)
+	void dht_tracker::incoming_error(error_code const& ec, udp::endpoint const& ep)
 	{
-		if (ec)
-		{
-			if (ec == boost::asio::error::connection_refused
-				|| ec == boost::asio::error::connection_reset
-				|| ec == boost::asio::error::connection_aborted
+		if (ec == boost::asio::error::connection_refused
+			|| ec == boost::asio::error::connection_reset
+			|| ec == boost::asio::error::connection_aborted
 #ifdef WIN32
-				|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
-				|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
-				|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())
-				|| ec == error_code(ERROR_CONNECTION_ABORTED, system_category())
+			|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
+			|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
+			|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())
+			|| ec == error_code(ERROR_CONNECTION_ABORTED, system_category())
 #endif
-				)
-			{
-				m_dht.unreachable(ep);
-			}
-			return false;
+			)
+		{
+			m_dht.unreachable(ep);
 		}
+	}
 
+	bool dht_tracker::incoming_packet( udp::endpoint const& ep
+		, char const* buf, int size)
+	{
 		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
 		// remove this line/check once the DHT supports IPv6
 		if (!ep.address().is_v4()) return false;
@@ -316,7 +314,7 @@ namespace libtorrent { namespace dht
 
 			// these are class A networks not available to the public
 			// if we receive messages from here, that seems suspicious
-			boost::uint8_t class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
+			static boost::uint8_t const class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
 				, 26, 28, 29, 30, 33, 34, 48, 51, 56 };
 
 			int num = sizeof(class_a)/sizeof(class_a[0]);
@@ -451,7 +449,7 @@ namespace libtorrent { namespace dht
 		m_send_quota -= m_send_buf.size();
 
 		error_code ec;
-		m_sock.send(addr, &m_send_buf[0], int(m_send_buf.size()), ec, 0);
+		m_send_fun(addr, aux::array_view<char const>(&m_send_buf[0], m_send_buf.size()), ec, 0);
 		if (ec)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);

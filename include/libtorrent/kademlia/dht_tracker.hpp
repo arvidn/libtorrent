@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
 {
@@ -68,10 +69,14 @@ namespace libtorrent { namespace dht
 
 	struct TORRENT_EXTRA_EXPORT dht_tracker TORRENT_FINAL
 		: udp_socket_interface
-		, udp_socket_observer
 		, boost::enable_shared_from_this<dht_tracker>
 	{
-		dht_tracker(dht_observer* observer, udp_socket& sock
+		typedef boost::function<void(udp::endpoint const&
+			, aux::array_view<char const>, error_code&, int)> send_fun_t;
+
+		dht_tracker(dht_observer* observer
+			, io_service& ios
+			, send_fun_t const& send_fun
 			, dht_settings const& settings, counters& cnt
 			, dht_storage_constructor_type storage_constructor
 			, entry const& state);
@@ -129,10 +134,8 @@ namespace libtorrent { namespace dht
 			, std::vector<dht_lookup>& requests);
 		void update_stats_counters(counters& c) const;
 
-		// translate bittorrent kademlia message into the generic kademlia message
-		// used by the library
-		virtual bool incoming_packet(error_code const& ec
-			, udp::endpoint const&, char const* buf, int size);
+		void incoming_error(error_code const& ec, udp::endpoint const&);
+		bool incoming_packet(udp::endpoint const&, char const* buf, int size);
 
 	private:
 
@@ -154,7 +157,7 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		node m_dht;
-		udp_socket& m_sock;
+		send_fun_t m_send_fun;
 		dht_logger* m_log;
 
 		std::vector<char> m_send_buf;

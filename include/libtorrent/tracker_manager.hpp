@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/function.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -62,8 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp" // peer_entry
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
-#include "libtorrent/udp_socket.hpp" // for udp_socket_observer
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/thread.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
 {
@@ -272,8 +274,7 @@ namespace libtorrent
 
 		int m_completion_timeout;
 
-		typedef mutex mutex_t;
-		mutable mutex_t m_mutex;
+		mutable mutex m_mutex;
 
 		// used for timeouts
 		// this is set when the request has been sent
@@ -314,10 +315,9 @@ namespace libtorrent
 		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
-		virtual bool on_receive(error_code const&, udp::endpoint const&
+		virtual bool on_receive(udp::endpoint const&
 			, char const* /* buf */, int /* size */) { return false; }
-		virtual bool on_receive_hostname(error_code const&
-			, char const* /* hostname */
+		virtual bool on_receive_hostname(char const* /* hostname */
 			, char const* /* buf */, int /* size */) { return false; }
 
 		boost::shared_ptr<tracker_connection> shared_from_this()
@@ -341,12 +341,19 @@ namespace libtorrent
 	};
 
 	class TORRENT_EXTRA_EXPORT tracker_manager TORRENT_FINAL
-		: public udp_socket_observer
-		, boost::noncopyable
+		: boost::noncopyable
 	{
 	public:
 
-		tracker_manager(udp_socket& sock
+		typedef boost::function<void(udp::endpoint const&
+			, aux::array_view<char const>
+			, error_code&, int)> send_fun_t;
+		typedef boost::function<void(char const*, int
+			, aux::array_view<char const>
+			, error_code&, int)> send_fun_hostname_t;
+
+		tracker_manager(send_fun_t const& send_fun
+			, send_fun_hostname_t const& send_fun_hostname
 			, counters& stats_counters
 			, resolver_interface& resolver
 			, aux::session_settings const& sett
@@ -370,26 +377,31 @@ namespace libtorrent
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
-		virtual bool incoming_packet(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size) TORRENT_OVERRIDE;
+		void incoming_error(error_code const& ec, udp::endpoint const& ep);
+		bool incoming_packet(udp::endpoint const& ep, char const* buf, int size);
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
-		virtual bool incoming_packet(error_code const& e, char const* hostname
-			, char const* buf, int size) TORRENT_OVERRIDE;
+		// TODO: 3 make sure the udp_socket supports passing on string-hostnames
+		// too, and that this function is used
+		bool incoming_packet(char const* hostname, char const* buf, int size);
 
 		void update_transaction_id(
 			boost::shared_ptr<udp_tracker_connection> c
 			, boost::uint64_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
-		udp_socket& get_udp_socket() { return m_udp_socket; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
+
+		void send_hostname(char const* hostname, int port, aux::array_view<char const> p
+			, error_code& ec, int flags = 0);
+
+		void send(udp::endpoint const& ep, aux::array_view<char const> p
+			, error_code& ec, int flags = 0);
 
 	private:
 
-		typedef mutex mutex_t;
-		mutable mutex_t m_mutex;
+		mutable mutex m_mutex;
 
 		// maps transactionid to the udp_tracker_connection
 		// TODO: this should be unique_ptr in the future
@@ -400,7 +412,8 @@ namespace libtorrent
 		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
 		http_conns_t m_http_conns;
 
-		class udp_socket& m_udp_socket;
+		send_fun_t m_send_fun;
+		send_fun_hostname_t m_send_fun_hostname;
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;

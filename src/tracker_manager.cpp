@@ -60,6 +60,8 @@ namespace
 
 namespace libtorrent
 {
+	using namespace libtorrent::aux;
+
 	timeout_handler::timeout_handler(io_service& ios)
 		: m_completion_timeout(0)
 		, m_start_time(clock_type::now())
@@ -191,9 +193,8 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 
-	// TODO: 2 some of these arguments could probably be moved to the
-	// tracker request itself. like the ip_filter and settings
-	tracker_manager::tracker_manager(class udp_socket& sock
+	tracker_manager::tracker_manager(send_fun_t const& send_fun
+		, send_fun_hostname_t const& send_fun_hostname
 		, counters& stats_counters
 		, resolver_interface& resolver
 		, aux::session_settings const& sett
@@ -201,7 +202,8 @@ namespace libtorrent
 		, aux::session_logger& ses
 #endif
 		)
-		: m_udp_socket(sock)
+		: m_send_fun(send_fun)
+		, m_send_fun_hostname(send_fun_hostname)
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)
@@ -231,7 +233,7 @@ namespace libtorrent
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 		http_conns_t::iterator i = std::find_if(m_http_conns.begin()
 			, m_http_conns.end()
@@ -266,7 +268,7 @@ namespace libtorrent
 		, tracker_request req
 		, boost::weak_ptr<request_callback> c)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
 		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
 		if (m_abort && req.event != tracker_request::stopped) return;
@@ -309,8 +311,8 @@ namespace libtorrent
 				, "", 0));
 	}
 
-	bool tracker_manager::incoming_packet(error_code const& e
-		, udp::endpoint const& ep, char const* buf, int size)
+	bool tracker_manager::incoming_packet(udp::endpoint const& ep
+		, char const* buf, int size)
 	{
 		// ignore packets smaller than 8 bytes
 		if (size < 8)
@@ -343,11 +345,19 @@ namespace libtorrent
 
 		boost::shared_ptr<tracker_connection> p = i->second;
 		// on_receive() may remove the tracker connection from the list
-		return p->on_receive(e, ep, buf, size);
+		return p->on_receive(ep, buf, size);
 	}
 
-	bool tracker_manager::incoming_packet(error_code const& e
-		, char const* hostname, char const* buf, int size)
+	void tracker_manager::incoming_error(error_code const& ec
+		, udp::endpoint const& ep)
+	{
+		TORRENT_UNUSED(ec);
+		TORRENT_UNUSED(ep);
+		// TODO: 2 implement
+	}
+
+	bool tracker_manager::incoming_packet(char const* hostname
+		, char const* buf, int size)
 	{
 		// ignore packets smaller than 8 bytes
 		if (size < 16) return false;
@@ -374,13 +384,26 @@ namespace libtorrent
 
 		boost::shared_ptr<tracker_connection> p = i->second;
 		// on_receive() may remove the tracker connection from the list
-		return p->on_receive_hostname(e, hostname, buf, size);
+		return p->on_receive_hostname(hostname, buf, size);
+	}
+
+	void tracker_manager::send_hostname(char const* hostname, int const port
+		, array_view<char const> p, error_code& ec, int const flags)
+	{
+		m_send_fun_hostname(hostname, port, p, ec, flags);
+	}
+
+	void tracker_manager::send(udp::endpoint const& ep
+		, array_view<char const> p
+		, error_code& ec, int const flags)
+	{
+		m_send_fun(ep, p, ec, flags);
 	}
 
 	void tracker_manager::abort_all_requests(bool all)
 	{
 		// removes all connections except 'event=stopped'-requests
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 
 		m_abort = true;
 		http_conns_t close_http_connections;
@@ -434,13 +457,13 @@ namespace libtorrent
 	
 	bool tracker_manager::empty() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		return m_http_conns.empty() && m_udp_conns.empty();
 	}
 
 	int tracker_manager::num_requests() const
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		mutex::scoped_lock l(m_mutex);
 		return m_http_conns.size() + m_udp_conns.size();
 	}
 }

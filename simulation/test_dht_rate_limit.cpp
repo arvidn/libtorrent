@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#if !defined TORRENT_DISABLE_DHT
-
 #include "test.hpp"
 
 #include "simulator/simulator.hpp"
@@ -41,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <functional>
@@ -49,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 using namespace sim;
+
+#if !defined TORRENT_DISABLE_DHT
 
 struct obs : dht::dht_observer
 {
@@ -100,8 +101,22 @@ TORRENT_TEST(dht_rate_limit)
 	counters cnt;
 	entry state;
 	boost::shared_ptr<lt::dht::dht_tracker> dht = boost::make_shared<lt::dht::dht_tracker>(
-		&o, sock, dhtsett, cnt, dht::dht_default_storage_constructor, state);
-	sock.subscribe(dht.get());
+		&o, boost::ref(dht_ios), boost::bind(&udp_socket::send, &sock, _1, _2, _3, _4)
+		, dhtsett, cnt, dht::dht_default_storage_constructor, state);
+
+	bool stop = false;
+	std::function<void(error_code const&, size_t)> on_read
+		= [&](error_code const& ec, size_t bytes)
+	{
+		if (ec) return;
+		udp_socket::packet p;
+		error_code err;
+		int const num = sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err);
+		if (num) dht->incoming_packet(p.from, p.data.data(), p.data.size());
+		if (stop || err) return;
+		sock.async_read(on_read);
+	};
+	sock.async_read(on_read);
 
 	// sender
 	int num_packets_sent = 0;
@@ -120,7 +135,7 @@ TORRENT_TEST(dht_rate_limit)
 			timer.async_wait([&](error_code const& ec)
 			{
 				dht->stop();
-				sock.unsubscribe(dht.get());
+				stop = true;
 				sender_sock.close();
 				sock.close();
 			});
