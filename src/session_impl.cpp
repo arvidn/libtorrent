@@ -3205,7 +3205,7 @@ namespace aux {
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;
 
-		boost::int64_t const stime = session_time();
+		boost::int32_t const stime = session_time();
 		if (stime > 65000)
 		{
 			// we're getting close to the point where our timestamps
