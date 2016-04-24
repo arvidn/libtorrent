@@ -43,7 +43,7 @@ struct test_torrent_t
 {
 	char const* filename1;
 	char const* filename2;
-	int expected_matches;
+	std::string::size_type expected_matches;
 };
 
 static test_torrent_t test_torrents[] = {
