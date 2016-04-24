@@ -253,7 +253,7 @@ namespace libtorrent
 			// this file has the executable attribute set.
 			attribute_executable = 4,
 
-			// this file is a symbilic link. It should have a link
+			// this file is a symbolic link. It should have a link
 			// target string associated with it.
 			attribute_symlink = 8
 		};
@@ -269,7 +269,7 @@ namespace libtorrent
 		// being added. This memory is *borrowed*, i.e. it is the caller's
 		// responsibility to make sure it stays valid throughout the lifetime
 		// of this file_storage object or any copy of it. The same thing applies
-		// to ``filehash``, wich is an optional pointer to a 20 byte binary
+		// to ``filehash``, which is an optional pointer to a 20 byte binary
 		// SHA-1 hash of the file.
 		// 
 		// if ``filename`` is NULL, the filename from ``path`` is used and not

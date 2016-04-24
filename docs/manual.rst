@@ -750,7 +750,7 @@ class*. There are a few default peer classes that are always created:
 
 * global - all peers belong to this class, except peers on the local network
 * local peers - all peers on the local network belongs to this class TCP peers
-* - all peers connected over TCP belong to this class
+* tcp class - all peers connected over TCP belong to this class
 
 The TCP peers class is used by the uTP/TCP balancing logic, if it's enabled, to
 throttle TCP peers. The global and local classes are used to adjust the global

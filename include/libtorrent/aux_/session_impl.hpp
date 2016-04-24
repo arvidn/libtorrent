@@ -1006,7 +1006,7 @@ namespace libtorrent
 				// +1 is here to make it possible to distinguish uninitialized (to
 				// 0) timestamps and timestamps of things that happend during the
 				// first second after the session was constructed
-				boost::int64_t const ret = total_seconds(aux::time_now() - m_created) + 1;
+				boost::int64_t const ret = total_seconds(clock_type::now() - m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
 				TORRENT_ASSERT(ret <= (std::numeric_limits<boost::uint16_t>::max)());
 				return static_cast<boost::uint16_t>(ret);

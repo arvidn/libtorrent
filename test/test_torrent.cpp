@@ -261,7 +261,18 @@ TORRENT_TEST(torrent)
 		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0));
 		test_running_torrent(info, 0);
 	}
+}
 
+TORRENT_TEST(torrent_total_size_zero)
+{
+	file_storage fs;
+
+	fs.add_file("test_torrent_dir2/tmp1", 0);
+	libtorrent::create_torrent t(fs);
+
+	error_code ec;
+	set_piece_hashes(t, ".", ec);
+	TEST_CHECK(ec);
 }
 
 TORRENT_TEST(rename_file)
