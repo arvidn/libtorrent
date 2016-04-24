@@ -1,6 +1,10 @@
-For general contribution guidelines, see `www.contribution-guide.org`__
+For general contribution guidelines, see `www.contribution-guide.org`__.
 
 .. __: http://www.contribution-guide.org/
+
+For general code style, see `c++ core guidelines`__.
+
+.. __: http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines
 
 bug reporting checklist
 .......................

@@ -1,3 +1,5 @@
+	* overhauled listen socket and UDP socket handling, improving multi-home
+	  support and bind-to-device
 	* added new read_resume_data() function, initializing add_torrent_params
 	* removed deprecated fields from add_torrent_params
 	* deprecate "resume_data" field in add_torrent_params
