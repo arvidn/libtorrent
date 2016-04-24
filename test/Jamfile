@@ -73,7 +73,7 @@ lib libtorrent_test
 	<target-os>windows:<library>advapi32
 	<conditional>@link_libtorrent
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
-# disable warning C4275: non – DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
 	<debug-iterators>on
 
@@ -97,7 +97,7 @@ project
 	<conditional>@link_test
 	<conditional>@link_libtorrent
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
-# disable warning C4275: non – DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
 	: default-build
 	<threading>multi

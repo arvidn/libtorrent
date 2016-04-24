@@ -18,6 +18,8 @@ project
 	<source>utils.cpp
 	: default-build
 	<threading>multi
+# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+	<toolset>msvc:<cflags>/wd4275
 	<invariant-checks>full
 	<debug-iterators>on
 	<picker-debugging>on
