@@ -325,9 +325,10 @@ namespace libtorrent
 		, m_include_symlinks((flags & symlinks) != 0)
 	{
 		TORRENT_ASSERT(fs.num_files() > 0);
+		TORRENT_ASSERT(fs.total_size() > 0);
 
 		// return instead of crash in release mode
-		if (fs.num_files() == 0) return;
+		if (fs.num_files() == 0 || fs.total_size() == 0) return;
 
 		if (!m_multifile && has_parent_path(m_files.file_path(0))) m_multifile = true;
 
@@ -386,6 +387,10 @@ namespace libtorrent
 		, m_include_symlinks(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
+		TORRENT_ASSERT(ti.num_pieces() > 0);
+		TORRENT_ASSERT(ti.num_files() > 0);
+		TORRENT_ASSERT(ti.total_size() > 0);
+
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());

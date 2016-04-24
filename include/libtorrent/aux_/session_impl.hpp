@@ -755,7 +755,7 @@ namespace libtorrent
 
 			// the peer class all TCP peers belong to by default
 			// all tcp peer connections are subject to these
-			// bandwidth limits. Local peers are excempted
+			// bandwidth limits. Local peers are exempted
 			// from this limit. The purpose is to be able to
 			// throttle TCP that passes over the internet
 			// bottleneck (i.e. modem) to avoid starving out
@@ -920,7 +920,7 @@ namespace libtorrent
 			int m_auto_manage_time_scaler;
 
 			// works like unchoke_time_scaler but it
-			// is only decresed when the unchoke set
+			// is only decreased when the unchoke set
 			// is recomputed, and when it reaches zero,
 			// the optimistic unchoke is moved to another peer.
 			// TODO: replace this by a proper asio timer
@@ -985,7 +985,7 @@ namespace libtorrent
 			boost::uint16_t session_time() const TORRENT_OVERRIDE
 			{
 				// +1 is here to make it possible to distinguish uninitialized (to
-				// 0) timestamps and timestamps of things that happend during the
+				// 0) timestamps and timestamps of things that happened during the
 				// first second after the session was constructed
 				boost::int64_t const ret = total_seconds(aux::time_now() - m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
@@ -1049,7 +1049,7 @@ namespace libtorrent
 			libtorrent::utp_socket_manager m_utp_socket_manager;
 
 #ifdef TORRENT_USE_OPENSSL
-			// used for uTP connectons over SSL
+			// used for uTP connections over SSL
 			udp_socket m_ssl_udp_socket;
 			libtorrent::utp_socket_manager m_ssl_utp_socket_manager;
 #endif
