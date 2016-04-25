@@ -165,30 +165,44 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		if (m_node.settings().restrict_search_ips
 			&& !(flags & observer::flag_initial))
 		{
-			// mask the lower octet
-			boost::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
-			prefix4 &= 0xffffff00;
-
-			if (m_peer4_prefixes.count(prefix4) > 0)
+#if TORRENT_USE_IPV6
+			if (o->target_addr().is_v6())
 			{
-				// we already have a node in this search with an IP very
-				// close to this one. We know that it's not the same, because
-				// it claims a different node-ID. Ignore this to avoid attacks
-#ifndef TORRENT_DISABLE_LOGGING
-				if (get_node().observer())
-				{
-					char hex_id[41];
-					to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
-					get_node().observer()->log(dht_logger::traversal
-						, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
-						, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
-				}
+				address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
+				address_v6::bytes_type::const_iterator prefix_it = addr_bytes.begin();
+				boost::uint64_t prefix6 = detail::read_uint64(prefix_it);
+
+				if (m_peer6_prefixes.insert(prefix6).second)
+					goto add_result;
+			}
+			else
 #endif
-				return;
+			{
+				// mask the lower octet
+				boost::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
+				prefix4 &= 0xffffff00;
+
+				if (m_peer4_prefixes.insert(prefix4).second)
+					goto add_result;
 			}
 
-			m_peer4_prefixes.insert(prefix4);
+			// we already have a node in this search with an IP very
+			// close to this one. We know that it's not the same, because
+			// it claims a different node-ID. Ignore this to avoid attacks
+#ifndef TORRENT_DISABLE_LOGGING
+			if (get_node().observer())
+			{
+				char hex_id[41];
+				to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+				get_node().observer()->log(dht_logger::traversal
+					, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
+					, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
+			}
+#endif
+			return;
 		}
+
+	add_result:
 
 		TORRENT_ASSERT((o->flags & observer::flag_no_id)
 			|| std::find_if(m_results.begin(), m_results.end()
@@ -600,8 +614,13 @@ void traversal_observer::reply(msg const& m)
 			, print_endpoint(target_ep()).c_str(), algorithm()->name());
 	}
 #endif
+
 	// look for nodes
-	bdecode_node n = r.dict_find_string("nodes");
+#if TORRENT_USE_IPV6
+	udp protocol = algorithm()->get_node().protocol();
+#endif
+	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
+	bdecode_node n = r.dict_find_string(nodes_key);
 	if (n)
 	{
 		char const* nodes = n.string_ptr();
@@ -612,7 +631,14 @@ void traversal_observer::reply(msg const& m)
 			node_id id;
 			std::copy(nodes, nodes + 20, id.begin());
 			nodes += 20;
-			algorithm()->traverse(id, read_v4_endpoint<udp::endpoint>(nodes));
+			udp::endpoint ep;
+#if TORRENT_USE_IPV6
+			if (protocol == udp::v6())
+				ep = read_v6_endpoint<udp::endpoint>(nodes);
+			else
+#endif
+				ep = read_v4_endpoint<udp::endpoint>(nodes);
+			algorithm()->traverse(id, ep);
 		}
 	}
 

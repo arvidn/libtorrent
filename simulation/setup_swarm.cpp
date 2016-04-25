@@ -255,10 +255,14 @@ void setup_swarm(int num_nodes
 	for (int i = 0; i < num_nodes; ++i)
 	{
 		// create a new io_service
+		std::vector<asio::ip::address> ips;
 		char ep[30];
 		snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+		ips.push_back(addr(ep));
+		snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
+		ips.push_back(addr(ep));
 		io_service.push_back(boost::make_shared<sim::asio::io_service>(
-			boost::ref(sim), addr(ep)));
+			boost::ref(sim), ips));
 
 		lt::settings_pack pack = default_settings;
 

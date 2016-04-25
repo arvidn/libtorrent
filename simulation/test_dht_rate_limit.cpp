@@ -56,8 +56,13 @@ struct obs : dht::dht_observer
 	virtual void set_external_address(address const& addr
 		, address const& source) TORRENT_OVERRIDE
 	{}
-	virtual address external_address() TORRENT_OVERRIDE
-	{ return address_v4::from_string("40.30.20.10"); }
+	virtual address external_address(udp proto) TORRENT_OVERRIDE
+	{
+		if (proto == udp::v4())
+			return address_v4::from_string("40.30.20.10");
+		else
+			return address_v6();
+	}
 	virtual void get_peers(sha1_hash const& ih) TORRENT_OVERRIDE {}
 	virtual void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}

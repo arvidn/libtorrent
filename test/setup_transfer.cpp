@@ -124,10 +124,10 @@ tcp::endpoint rand_tcp_ep()
 	return tcp::endpoint(rand_v4(), g_port + 1024);
 }
 
-udp::endpoint rand_udp_ep()
+udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)())
 {
 	g_port = (g_port + 1) % 14037;
-	return udp::endpoint(rand_v4(), g_port + 1024);
+	return udp::endpoint(rand_addr(), g_port + 1024);
 }
 
 std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)

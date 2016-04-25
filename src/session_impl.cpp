@@ -6779,9 +6779,20 @@ namespace aux {
 		set_external_address(ip, source_dht, source);
 	}
 
-	address session_impl::external_address()
+	address session_impl::external_address(udp proto)
 	{
-		return m_external_ip.external_address(address_v4());
+#if !TORRENT_USE_IPV6
+		TORRENT_UNUSED(proto);
+#endif
+
+		address addr;
+#if TORRENT_USE_IPV6
+		if (proto == udp::v6())
+			addr = address_v6();
+		else
+#endif
+			addr = address_v4();
+		return m_external_ip.external_address(addr);
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)

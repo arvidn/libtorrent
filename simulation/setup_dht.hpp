@@ -56,7 +56,13 @@ void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt);
 
 struct dht_network
 {
-	dht_network(sim::simulation& sim, int num_nodes);
+	enum flags_t
+	{
+		add_dead_nodes = 1,
+		bind_ipv6 = 2
+	};
+
+	dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flags = 0);
 	~dht_network();
 
 	void stop();

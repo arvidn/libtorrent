@@ -241,7 +241,13 @@ namespace
 			}
 			else
 			{
-				int num = (std::min)(int(v.peers.size()), m_settings.max_peers_reply);
+				int max = m_settings.max_peers_reply;
+				// if these are IPv6 peers their addresses are 4x the size of IPv4
+				// so reduce the max peers 4 fold to compensate
+				// max_peers_reply should probably be specified in bytes
+				if (!v.peers.empty() && v.peers.begin()->addr.protocol() == tcp::v6())
+					max /= 4;
+				int num = (std::min)(int(v.peers.size()), max);
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 				std::string endpoint;

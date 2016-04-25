@@ -99,9 +99,10 @@ protected:
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(udp_socket_interface* sock
+	node(udp proto, udp_socket_interface* sock
 		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt
+		, std::map<std::string, node*> const& nodes
 		, dht_storage_constructor_type storage_constructor = dht_default_storage_constructor);
 
 	~node();
@@ -204,6 +205,21 @@ public:
 	counters& stats_counters() const { return m_counters; }
 
 	dht_observer* observer() const { return m_observer; }
+
+	udp protocol() { return m_protocol.protocol; }
+	char const* protocol_family_name() { return m_protocol.family_name; }
+	char const* protocol_nodes_key() { return m_protocol.nodes_key; }
+
+	bool native_address(udp::endpoint ep) const
+	{ return ep.protocol().family() == m_protocol.protocol.family(); }
+	bool native_address(tcp::endpoint ep) const
+	{ return ep.protocol().family() == m_protocol.protocol.family(); }
+	bool native_address(address addr) const
+	{
+		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
+			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());
+	}
+
 private:
 
 	void send_single_refresh(udp::endpoint const& ep, int bucket
@@ -224,14 +240,29 @@ private:
 
 	void incoming_request(msg const& h, entry& e);
 
+	void write_nodes_entries(sha1_hash const& info_hash
+		, bdecode_node const& want, entry& r);
+
 	node_id m_id;
 
 public:
 	routing_table m_table;
 	rpc_manager m_rpc;
+	std::map<std::string, node*> const& m_nodes;
 
 private:
+	struct protocol_descriptor
+	{
+		udp protocol;
+		char const* family_name;
+		char const* nodes_key;
+	};
+
+	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
+
 	dht_observer* m_observer;
+
+	protocol_descriptor const& m_protocol;
 
 	time_point m_last_tracker_tick;
 
