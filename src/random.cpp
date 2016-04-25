@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#if !TORRENT_THREADSAFE_STATIC
-#include "libtorrent/thread.hpp"
-#endif
-
 namespace libtorrent
 {
 	using boost::random::random_device;
@@ -63,33 +59,11 @@ namespace libtorrent
 
 #else
 
-#if !TORRENT_THREADSAFE_STATIC
-	// because local statics are not atomic pre c++11
-	// do it manually, probably at a higher cost
-	namespace
-	{
-		static mutex random_device_mutex;
-		static random_device* dev = NULL;
-		static mt19937* rnd = NULL;
-	}
-#endif
-
 	boost::uint32_t random()
 	{
-#if TORRENT_THREADSAFE_STATIC
 		static random_device dev;
 		static mt19937 random_engine(dev());
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);
-#else
-		mutex::scoped_lock l(random_device_mutex);
-
-		if (dev == NULL)
-		{
-			dev = new random_device();
-			rnd = new mt19937((*dev)());
-		}
-		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(*rnd);
-#endif
 	}
 
 #endif // TORRENT_BUILD_SIMULATOR

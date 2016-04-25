@@ -595,16 +595,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif
 
-// whether function-local static variables are thread safe. In c++11 and later
-// they are (except msvc)
-#ifndef TORRENT_THREADSAFE_STATIC
-#if __cplusplus < 199711L || (defined _MSC_VER && _MSC_VER <= 1800)
-#define TORRENT_THREADSAFE_STATIC 0
-#else
-#define TORRENT_THREADSAFE_STATIC 1
-#endif
-#endif
-
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
 #endif
