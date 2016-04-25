@@ -197,7 +197,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (error) return;
-		sent_bytes(0, bytes_transferred);
+		sent_bytes(0, int(bytes_transferred));
 	}
 
 

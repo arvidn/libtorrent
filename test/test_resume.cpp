@@ -158,7 +158,7 @@ torrent_handle test_resume_flags(lt::session& ses, int flags
 #endif
 	{
 		error_code ec;
-		p = read_resume_data(&rd[0], rd.size(), ec);
+		p = read_resume_data(&rd[0], int(rd.size()), ec);
 		TEST_CHECK(!ec);
 	}
 
@@ -237,7 +237,7 @@ void test_piece_priorities(bool test_deprecated = false)
 #endif
 		{
 			error_code ec;
-			p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+			p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 			TEST_CHECK(!ec);
 			p.ti = ti;
 			p.save_path = ".";
@@ -753,7 +753,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 #endif
 	{
 		error_code ec;
-		p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 		TEST_CHECK(!ec);
 		p.ti = ti;
 		p.save_path = ".";
@@ -839,7 +839,7 @@ void test_seed_mode(bool const file_prio, bool const pieces_have, bool const pie
 #endif
 	{
 		error_code ec;
-		p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 		TEST_CHECK(!ec);
 		p.ti = ti;
 		p.save_path = ".";

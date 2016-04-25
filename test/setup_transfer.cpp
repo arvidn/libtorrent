@@ -225,7 +225,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 		return 0;
 	}
 
-	r = fread(&v[0], 1, v.size(), f);
+	r = int(fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -671,7 +671,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
 
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
-	sha1_hash ph = hasher(&piece[0], piece.size()).final();
+	sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
 	for (int i = 0; i < num; ++i)
 		t.set_hash(i, ph);
 
@@ -680,7 +680,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		while (total_size > 0)
 		{
 			file->write(&piece[0], (std::min)(int(piece.size()), total_size));
-			total_size -= piece.size();
+			total_size -= int(piece.size());
 		}
 	}
 

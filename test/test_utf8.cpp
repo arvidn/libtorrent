@@ -43,7 +43,7 @@ using namespace libtorrent;
 void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 {
 	if (utf8_source_len == -1)
-		utf8_source_len = strlen(utf8_source);
+		utf8_source_len = int(strlen(utf8_source));
 
 	// utf8 -> utf16 -> utf32 -> utf8
 	{
@@ -178,7 +178,7 @@ TORRENT_TEST(utf8)
 
 	// test lower level conversions
 
-	verify_transforms(&utf8_source[0], utf8_source.size());
+	verify_transforms(&utf8_source[0], int(utf8_source.size()));
 
 	verify_transforms("\xc3\xb0");
 	verify_transforms("\xed\x9f\xbf");

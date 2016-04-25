@@ -113,7 +113,7 @@ void test_checking(int flags = read_only_files)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
 		, to_hex(ti->info_hash().to_string()).c_str());

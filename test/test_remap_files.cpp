@@ -124,8 +124,8 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	}
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
-	boost::shared_ptr<torrent_info> t2(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], int(buf.size()), ec));
+	boost::shared_ptr<torrent_info> t2(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	// remap the files to a single one
 	file_storage st;
@@ -419,7 +419,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
-	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], buf.size(), ec));
+	boost::shared_ptr<torrent_info> t(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	int num_new_files = 3;
 

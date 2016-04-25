@@ -446,7 +446,7 @@ namespace libtorrent { namespace dht
 		// update the quota. We won't prevent the packet to be sent if we exceed
 		// the quota, we'll just (potentially) block the next incoming request.
 
-		m_send_quota -= m_send_buf.size();
+		m_send_quota -= int(m_send_buf.size());
 
 		error_code ec;
 		m_send_fun(addr, aux::array_view<char const>(&m_send_buf[0], m_send_buf.size()), ec, 0);
@@ -455,7 +455,7 @@ namespace libtorrent { namespace dht
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-				, m_send_buf.size(), addr);
+				, int(m_send_buf.size()), addr);
 #endif
 			return false;
 		}
@@ -467,7 +467,7 @@ namespace libtorrent { namespace dht
 		m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-			, m_send_buf.size(), addr);
+			, int(m_send_buf.size()), addr);
 #endif
 		return true;
 	}

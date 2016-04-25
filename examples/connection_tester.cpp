@@ -583,7 +583,7 @@ struct peer_conn
 				{
 					int piece = read_uint32(ptr);
 					int start = read_uint32(ptr);
-					int size = bytes_transferred - 9;
+					int size = int(bytes_transferred) - 9;
 					verify_piece(piece, start, ptr, size);
 				}
 				++blocks_received;

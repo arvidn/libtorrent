@@ -117,8 +117,8 @@ public:
 	void incoming(msg const& m);
 
 #ifndef TORRENT_NO_DEPRECATE
-	int num_torrents() const { return m_storage->num_torrents(); }
-	int num_peers() const { return m_storage->num_peers(); }
+	int num_torrents() const { return int(m_storage->num_torrents()); }
+	int num_peers() const { return int(m_storage->num_peers()); }
 #endif
 
 	int bucket_size(int bucket);

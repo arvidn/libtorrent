@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 	{
 		char entry[21];
 		char* ptr = entry;
-		int ret = fread(&entry, 1, sizeof(entry), log_file);
+		int ret = int(fread(&entry, 1, sizeof(entry), log_file));
 		if (ret != sizeof(entry)) break;
 
 		file_op op;

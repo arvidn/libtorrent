@@ -144,7 +144,7 @@ namespace libtorrent {
 			return 0;
 		}
 
-		const int mask = (m_capacity - 1);
+		const int mask = int(m_capacity - 1);
 		return m_storage[idx & mask];
 	}
 
@@ -184,7 +184,7 @@ namespace libtorrent {
 		if (compare_less_wrap(idx, m_first, 0xffff))
 			return 0;
 
-		const int mask = (m_capacity - 1);
+		const int mask = int(m_capacity - 1);
 		void* old_value = m_storage[idx & mask];
 		m_storage[idx & mask] = 0;
 

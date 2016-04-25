@@ -247,7 +247,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 		return 0;
 	}
 
-	r = fread(&v[0], 1, v.size(), f);
+	r = int(fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -383,7 +383,7 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 		, peers.end(), boost::bind(&peer_info::ip, _1) == addr);
 	if (i == peers.end()) return -1;
 
-	return i - peers.begin();
+	return int(i - peers.begin());
 }
 
 // returns the number of lines printed
@@ -674,7 +674,7 @@ void add_torrent(libtorrent::session& ses
 	load_file(filename, resume_data, ec);
 	if (!ec)
 	{
-		p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 		if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
 	ec.clear();
@@ -746,7 +746,7 @@ std::vector<std::string> list_dir(std::string path
 
 bool filter_fun(std::string const& p)
 {
-	for (int i = p.size() - 1; i >= 0; --i)
+	for (int i = int(p.size()) - 1; i >= 0; --i)
 	{
 		if (p[i] == '/') break;
 #ifdef TORRENT_WINDOWS
@@ -864,7 +864,7 @@ int save_file(std::string const& filename, std::vector<char>& v)
 	if (f == NULL)
 		return -1;
 
-	int w = fwrite(&v[0], 1, v.size(), f);
+	int w = int(fwrite(&v[0], 1, v.size(), f));
 	fclose(f);
 
 	if (w < 0) return -1;
@@ -1111,7 +1111,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	char str[1024];
 	assert(pp == 0 || cs == 0 || cs->piece == pp->piece_index);
 	int piece = pp ? pp->piece_index : cs->piece;
-	int num_blocks = pp ? pp->blocks_in_piece : cs->blocks.size();
+	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
 
 	snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
@@ -1481,7 +1481,7 @@ int main(int argc, char* argv[])
 				load_file(filename, resume_data, ec);
 				if (!ec)
 				{
-					p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+					p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 					if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
 				}
 				ec.clear();
@@ -1628,7 +1628,7 @@ int main(int argc, char* argv[])
 						load_file(filename, resume_data, ec);
 						if (!ec)
 						{
-							p = read_resume_data(&resume_data[0], resume_data.size(), ec);
+							p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 							if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
 						}
 						ec.clear();
@@ -1989,7 +1989,7 @@ int main(int argc, char* argv[])
 
 					print_piece(pp, &*i, peers, &s, out);
 
-					int num_blocks = pp ? pp->blocks_in_piece : i->blocks.size();
+					int num_blocks = pp ? pp->blocks_in_piece : int(i->blocks.size());
 					p += num_blocks + 8;
 					bool continuous_mode = 8 + num_blocks > terminal_width;
 					if (continuous_mode)

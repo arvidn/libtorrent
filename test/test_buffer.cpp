@@ -194,7 +194,7 @@ int copy_buffers(T const& b, char* target)
 	{
 		memcpy(target, boost::asio::buffer_cast<char const*>(*i), boost::asio::buffer_size(*i));
 		target += boost::asio::buffer_size(*i);
-		copied += boost::asio::buffer_size(*i);
+		copied += int(boost::asio::buffer_size(*i));
 	}
 	return copied;
 }

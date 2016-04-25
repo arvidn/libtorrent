@@ -1,5 +1,9 @@
 /* Start: bn_error.c */
 #include "libtorrent/tommath.h"
+#ifdef _MSC_VER
+// disable warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+#pragma warning(disable: 4334)
+#endif
 #ifdef BN_ERROR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *

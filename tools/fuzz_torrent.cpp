@@ -333,7 +333,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 		return 0;
 	}
 
-	r = fread(&v[0], 1, v.size(), f);
+	r = int(fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -388,7 +388,7 @@ int main(int argc, char const* argv[])
 			render_variant(test_buffer, e);
 
 			libtorrent::error_code ec;
-			libtorrent::torrent_info t(test_buffer.c_str(), test_buffer.size(), ec);
+			libtorrent::torrent_info t(test_buffer.c_str(), int(test_buffer.size()), ec);
 
 			// TODO: add option to save to file unconditionally (to test other clients)
 			/*

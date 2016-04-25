@@ -374,7 +374,7 @@ namespace libtorrent
 			typedef boost::asio::ip::address_v4::bytes_type bytes_t;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
-			for (int i = sizeof(bytes_t)/8-1; i > 0; --i)
+			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{
@@ -392,7 +392,7 @@ namespace libtorrent
 			typedef boost::asio::ip::address_v6::bytes_type bytes_t;
 			bytes_t b;
 			std::memset(&b[0], 0xff, b.size());
-			for (int i = sizeof(bytes_t)/8-1; i > 0; --i)
+			for (int i = int(sizeof(bytes_t)) / 8 - 1; i > 0; --i)
 			{
 				if (bits < 8)
 				{

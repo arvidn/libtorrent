@@ -85,7 +85,7 @@ TORRENT_TEST(web_seed_redirect)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	boost::shared_ptr<torrent_info> torrent_file(new torrent_info(&buf[0]
-		, buf.size(), ec));
+		, int(buf.size()), ec));
 
 	{
 		settings_pack settings;

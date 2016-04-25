@@ -81,7 +81,7 @@ TORRENT_TEST(bitfield)
 	TEST_CHECK(test1.all_set() == false);
 	test1.clear_bit(2);
 	TEST_EQUAL(test1.count(), 2);
-	int distance = std::distance(test1.begin(), test1.end());
+	int distance = int(std::distance(test1.begin(), test1.end()));
 	printf("distance: %d\n", distance);
 	TEST_CHECK(distance == 10);
 

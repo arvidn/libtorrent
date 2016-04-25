@@ -1243,7 +1243,7 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 		drain_piece_bufs(pe, bufs);
 	}
 
-	if (!bufs.empty()) free_multiple_buffers(&bufs[0], bufs.size());
+	if (!bufs.empty()) free_multiple_buffers(&bufs[0], int(bufs.size()));
 
 	// clear lru lists
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)

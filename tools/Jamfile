@@ -28,6 +28,8 @@ rule link_libtorrent ( properties * )
 project tools
    : requirements
 	<threading>multi
+# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
+	<toolset>msvc:<cflags>/wd4275
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static

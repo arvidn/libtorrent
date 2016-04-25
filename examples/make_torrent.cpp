@@ -95,7 +95,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 		return 0;
 	}
 
-	r = fread(&v[0], 1, v.size(), f);
+	r = int(fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -119,7 +119,7 @@ std::string branch_path(std::string const& f)
 #endif
 	if (f == "/") return "";
 
-	int len = f.size();
+	int len = int(f.size());
 	// if the last character is / or \ ignore it
 	if (f[len-1] == '/' || f[len-1] == '\\') --len;
 	while (len > 0)
@@ -421,7 +421,7 @@ int main(int argc, char* argv[])
 					, merklefile.c_str(), errno, strerror(errno));
 				return 1;
 			}
-			int ret = fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output);
+			int ret = int(fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output));
 			if (ret != int(t.merkle_tree().size()))
 			{
 				fprintf(stderr, "failed to write %s: (%d) %s\n"

@@ -1364,7 +1364,7 @@ TORRENT_TEST(dht)
 		std::vector<node_entry> temp;
 
 		std::generate(tmp.begin(), tmp.end(), random_byte);
-		table.find_node(tmp, temp, 0, nodes.size() * 2);
+		table.find_node(tmp, temp, 0, int(nodes.size()) * 2);
 		printf("returned-all: %d\n", int(temp.size()));
 		TEST_EQUAL(temp.size(), nodes.size());
 
@@ -1805,7 +1805,7 @@ TORRENT_TEST(dht)
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), put_data);
 		sha1_hash target = item_target_id(
-			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
+			std::pair<char const*, int>(flat_data.c_str(), int(flat_data.size())));
 
 		node.put_item(target, put_data, boost::bind(&put_immutable_item_cb, _1, loop));
 

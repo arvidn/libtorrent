@@ -66,7 +66,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	bool packet_finished() const { return m_packet_size <= m_recv_pos; }
 	int pos() const { return m_recv_pos; }
-	int capacity() const { return m_recv_buffer.capacity() + m_disk_recv_buffer_size; }
+	int capacity() const { return int(m_recv_buffer.capacity()) + m_disk_recv_buffer_size; }
 
 	int regular_buffer_size() const
 	{

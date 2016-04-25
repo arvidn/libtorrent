@@ -71,7 +71,7 @@ TORRENT_TEST(mutable_torrents)
 	entry tor = t.generate();
 	bencode(out, tor);
 
-	torrent_info ti(&tmp[0], tmp.size());
+	torrent_info ti(&tmp[0], int(tmp.size()));
 
 	std::vector<sha1_hash> similar;
 	similar.push_back(sha1_hash("abababababababababab"));
@@ -578,7 +578,7 @@ TORRENT_TEST(parse_torrents)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti(&buf[0], buf.size(), ec);
+	torrent_info ti(&buf[0], int(buf.size()), ec);
 	std::cerr << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
@@ -590,7 +590,7 @@ TORRENT_TEST(parse_torrents)
 	torrent["info"] = info;
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti2(&buf[0], buf.size(), ec);
+	torrent_info ti2(&buf[0], int(buf.size()), ec);
 	std::cerr << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(ti2.name(), "ctest1test2test3");
@@ -602,7 +602,7 @@ TORRENT_TEST(parse_torrents)
 	torrent["info"] = info;
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
-	torrent_info ti3(&buf[0], buf.size(), ec);
+	torrent_info ti3(&buf[0], int(buf.size()), ec);
 	std::cerr << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
@@ -805,7 +805,7 @@ void test_resolve_duplicates(int test_case)
 	entry tor = t.generate();
 	bencode(out, tor);
 
-	torrent_info ti(&tmp[0], tmp.size());
+	torrent_info ti(&tmp[0], int(tmp.size()));
 
 	char const* filenames[4][4] =
 	{

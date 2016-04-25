@@ -147,22 +147,22 @@ TORRENT_TEST(string)
 
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";
-	TEST_EQUAL(escape_string(test_string, strlen(test_string))
+	TEST_EQUAL(escape_string(test_string, int(strlen(test_string)))
 		, "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
 
 	// escape_path
-	TEST_EQUAL(escape_path(test_string, strlen(test_string))
+	TEST_EQUAL(escape_path(test_string, int(strlen(test_string)))
 		, "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
 
 	error_code ec;
-	TEST_CHECK(unescape_string(escape_path(test_string, strlen(test_string)), ec) == test_string);
+	TEST_CHECK(unescape_string(escape_path(test_string, int(strlen(test_string))), ec) == test_string);
 	TEST_CHECK(!ec);
 	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";
-	TEST_CHECK(need_encoding(test_string, strlen(test_string)) == true);
-	TEST_CHECK(need_encoding(test_string2, strlen(test_string2)) == false);
+	TEST_CHECK(need_encoding(test_string, int(strlen(test_string))) == true);
+	TEST_CHECK(need_encoding(test_string2, int(strlen(test_string2))) == false);
 	TEST_CHECK(need_encoding("\n", 1) == true);
 
 	// maybe_url_encode
@@ -172,9 +172,9 @@ TORRENT_TEST(string)
 	TEST_EQUAL(maybe_url_encode("?&"), "?&");
 
 	// unescape_string
-	TEST_CHECK(unescape_string(escape_string(test_string, strlen(test_string)), ec)
+	TEST_CHECK(unescape_string(escape_string(test_string, int(strlen(test_string))), ec)
 		== test_string);
-	std::cerr << unescape_string(escape_string(test_string, strlen(test_string)), ec) << std::endl;
+	std::cerr << unescape_string(escape_string(test_string, int(strlen(test_string))), ec) << std::endl;
 	// prematurely terminated string
 	unescape_string("%", ec);
 	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));

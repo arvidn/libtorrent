@@ -129,7 +129,7 @@ namespace libtorrent
 		for (;;)
 		{
 			*target = *bufs;
-			size += bufs->iov_len;
+			size += int(bufs->iov_len);
 			if (size >= bytes)
 			{
 				target->iov_len -= size - bytes;
@@ -146,7 +146,7 @@ namespace libtorrent
 		int size = 0;
 		for (;;)
 		{
-			size += bufs->iov_len;
+			size += int(bufs->iov_len);
 			if (size >= bytes)
 			{
 				bufs->iov_base = reinterpret_cast<char*>(bufs->iov_base)
@@ -173,7 +173,7 @@ namespace libtorrent
 		if (bytes == 0) return 0;
 		for (file::iovec_t const* i = bufs;; ++i, ++count)
 		{
-			size += i->iov_len;
+			size += int(i->iov_len);
 			if (size >= bytes) return count;
 		}
 	}
@@ -1370,7 +1370,7 @@ namespace libtorrent
 		for (int i = 0; i < num_bufs; ++i)
 		{
 			memset(bufs[i].iov_base, 0, bufs[i].iov_len);
-			ret += bufs[i].iov_len;
+			ret += int(bufs[i].iov_len);
 		}
 		return 0;
 	}
@@ -1380,7 +1380,7 @@ namespace libtorrent
 	{
 		int ret = 0;
 		for (int i = 0; i < num_bufs; ++i)
-			ret += bufs[i].iov_len;
+			ret += int(bufs[i].iov_len);
 		return 0;
 	}
 

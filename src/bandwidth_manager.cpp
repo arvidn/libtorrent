@@ -73,7 +73,7 @@ namespace libtorrent
 
 	int bandwidth_manager::queue_size() const
 	{
-		return m_queue.size();
+		return int(m_queue.size());
 	}
 
 	boost::int64_t bandwidth_manager::queued_bytes() const

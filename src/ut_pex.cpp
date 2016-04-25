@@ -496,11 +496,11 @@ namespace libtorrent { namespace
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + pex_msg.size(), ptr);
+			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
 			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
+			m_pc.send_buffer(&pex_msg[0], int(pex_msg.size()));
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
@@ -608,11 +608,11 @@ namespace libtorrent { namespace
 			char msg[6];
 			char* ptr = msg;
 
-			detail::write_uint32(1 + 1 + pex_msg.size(), ptr);
+			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
 			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
-			m_pc.send_buffer(&pex_msg[0], pex_msg.size());
+			m_pc.send_buffer(&pex_msg[0], int(pex_msg.size()));
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);

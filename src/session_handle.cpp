@@ -169,7 +169,7 @@ namespace libtorrent
 
 			error_code ec;
 			add_torrent_params resume_data
-				= read_resume_data(&atp.resume_data[0], atp.resume_data.size(), ec);
+				= read_resume_data(&atp.resume_data[0], int(atp.resume_data.size()), ec);
 
 			resume_data.internal_resume_data_error = ec;
 			if (ec) return;
@@ -550,7 +550,7 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), data);
-		sha1_hash ret = hasher(&buf[0], buf.size()).final();
+		sha1_hash ret = hasher(&buf[0], int(buf.size())).final();
 
 #ifndef TORRENT_DISABLE_DHT
 		TORRENT_ASYNC_CALL2(dht_put_immutable_item, data, ret);

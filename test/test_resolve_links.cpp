@@ -43,7 +43,7 @@ struct test_torrent_t
 {
 	char const* filename1;
 	char const* filename2;
-	int expected_matches;
+	std::string::size_type expected_matches;
 };
 
 static test_torrent_t test_torrents[] = {
@@ -108,7 +108,7 @@ TORRENT_TEST(resolve_links)
 
 		std::vector<resolve_links::link_t> const& links = l.get_links();
 
-		int num_matches = std::count_if(links.begin(), links.end()
+		std::string::size_type num_matches = std::count_if(links.begin(), links.end()
 			, boost::bind(&resolve_links::link_t::ti, _1));
 
 		// some debug output in case the test fails

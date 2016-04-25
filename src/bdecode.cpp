@@ -750,7 +750,7 @@ namespace libtorrent
 			switch (t)
 			{
 				case 'd':
-					stack[sp++] = ret.m_tokens.size();
+					stack[sp++] = int(ret.m_tokens.size());
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the dictionary in the buffer
@@ -759,7 +759,7 @@ namespace libtorrent
 					++start;
 					break;
 				case 'l':
-					stack[sp++] = ret.m_tokens.size();
+					stack[sp++] = int(ret.m_tokens.size());
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the list in the buffer
@@ -933,7 +933,7 @@ done:
 			if (line_len > limit) return -1;
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				line_len += 4 + e.dict_at(i).first.size();
+				line_len += 4 + int(e.dict_at(i).first.size());
 				if (line_len > limit) return -1;
 				int ret = line_longer_than(e.dict_at(i).second, limit - line_len);
 				if (ret == -1) return -1;
@@ -1070,7 +1070,7 @@ done:
 				{
 					if (i == 0 && one_liner) ret += " ";
 					std::pair<std::string, bdecode_node> ent = e.dict_at(i);
-					print_string(ret, ent.first.c_str(), ent.first.size(), true);
+					print_string(ret, ent.first.c_str(), int(ent.first.size()), true);
 					ret += ": ";
 					ret += print_entry(ent.second, single_line, indent + 2);
 					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);

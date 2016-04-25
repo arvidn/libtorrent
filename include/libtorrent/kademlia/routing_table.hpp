@@ -163,7 +163,7 @@ public:
 
 	int bucket_size(int bucket) const
 	{
-		int num_buckets = m_buckets.size();
+		int num_buckets = int(m_buckets.size());
 		if (num_buckets == 0) return 0;
 		if (bucket >= num_buckets) bucket = num_buckets - 1;
 		table_t::const_iterator i = m_buckets.begin();
@@ -194,7 +194,7 @@ public:
 	// we have
 	int depth() const;
 
-	int num_active_buckets() const { return m_buckets.size(); }
+	int num_active_buckets() const { return int(m_buckets.size()); }
 
 	void replacement_cache(bucket_t& nodes) const;
 

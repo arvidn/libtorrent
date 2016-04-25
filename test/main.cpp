@@ -91,7 +91,7 @@ void output_test_log_to_terminal()
 	char buf[4096];
 	int size = 0;
 	do {
-		size = fread(buf, 1, sizeof(buf), current_test->output);
+		size = int(fread(buf, 1, sizeof(buf), current_test->output));
 		if (size > 0) fwrite(buf, 1, size, stderr);
 	} while (size > 0);
 }

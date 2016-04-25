@@ -116,7 +116,7 @@ namespace libtorrent
 		std::vector<error_code>::iterator i = std::find(m_errors.begin(), m_errors.end(), ec);
 		if (i != m_errors.end()) return i - m_errors.begin();
 		m_errors.push_back(ec);
-		return m_errors.size() - 1;
+		return int(m_errors.size()) - 1;
 	}
 }
 

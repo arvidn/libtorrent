@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DEBUG_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/assert.hpp"
 
 #if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
 #include <pthread.h>
@@ -41,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_ASIO_DEBUGGING
 
-#include "libtorrent/assert.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 
@@ -169,8 +169,8 @@ namespace libtorrent
 
 #else
 
-#define ADD_OUTSTANDING_ASYNC(x) do {} while(0)
-#define COMPLETE_ASYNC(x) do {} while(0)
+#define ADD_OUTSTANDING_ASYNC(x) do {} TORRENT_WHILE_0
+#define COMPLETE_ASYNC(x) do {} TORRENT_WHILE_0
 
 #endif // TORRENT_ASIO_DEBUGGING
 

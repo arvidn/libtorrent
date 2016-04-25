@@ -60,7 +60,7 @@ int print_failures()
 	int longest_name = 0;
 	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
-		int len = strlen(_g_unit_tests[i].name);
+		int len = int(strlen(_g_unit_tests[i].name));
 		if (len > longest_name) longest_name = len;
 	}
 

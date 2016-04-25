@@ -53,7 +53,7 @@ namespace libtorrent { namespace aux
 		int copy_string(char const* str)
 		{
 			int ret = int(m_storage.size());
-			int len = strlen(str);
+			int len = int(strlen(str));
 			m_storage.resize(ret + len + 1);
 			strcpy(&m_storage[ret], str);
 			return ret;

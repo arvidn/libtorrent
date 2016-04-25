@@ -116,8 +116,8 @@ void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), e);
 	++seq;
-	sign_mutable_item(std::pair<char const*, int>(&buf[0], buf.size())
-		, std::pair<char const*, int>(&salt[0], salt.size())
+	sign_mutable_item(std::pair<char const*, int>(&buf[0], int(buf.size()))
+		, std::pair<char const*, int>(&salt[0], int(salt.size()))
 		, seq
 		, public_key
 		, private_key
@@ -142,7 +142,7 @@ int dump_key(char *filename)
 	}
 
 	unsigned char seed[32];
-	int size = fread(seed, 1, 32, f);
+	int size = int(fread(seed, 1, 32, f));
 	if (size != 32)
 	{
 		fprintf(stderr, "invalid key file.\n");
@@ -175,7 +175,7 @@ int generate_key(char* filename)
 		return 1;
 	}
 
-	int size = fwrite(seed, 1, 32, f);
+	int size = int(fwrite(seed, 1, 32, f));
 	if (size != 32)
 	{
 		fprintf(stderr, "failed to write key file.\n");
@@ -368,7 +368,7 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		int len = strlen(argv[0]);
+		int len = int(strlen(argv[0]));
 		if (len != 64)
 		{
 			fprintf(stderr, "public key is expected to be 64 hex digits\n");

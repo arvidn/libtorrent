@@ -1880,14 +1880,14 @@ namespace libtorrent {
 		, std::vector<tcp::endpoint> const& peers)
 		: info_hash(ih)
 		, m_alloc(alloc)
-		, m_num_peers(peers.size())
+		, m_num_peers(int(peers.size()))
 	{
 		std::size_t total_size = m_num_peers; // num bytes for sizes
 		for (int i = 0; i < m_num_peers; i++) {
 			total_size += peers[i].size();
 		}
 
-		m_peers_idx = alloc.allocate(total_size);
+		m_peers_idx = alloc.allocate(int(total_size));
 
 		char *ptr = alloc.ptr(m_peers_idx);
 		for (int i = 0; i < m_num_peers; i++) {

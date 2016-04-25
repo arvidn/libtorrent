@@ -465,8 +465,8 @@ void feed::load_state(bdecode_node const& rd)
 	}
 
 	m_settings.url = rd.dict_find_string_value("url");
-	m_settings.auto_download = rd.dict_find_int_value("auto_download");
-	m_settings.auto_map_handles = rd.dict_find_int_value("auto_map_handles");
+	m_settings.auto_download = rd.dict_find_int_value("auto_download") != 0;
+	m_settings.auto_map_handles = rd.dict_find_int_value("auto_map_handles") != 0;
 	m_settings.default_ttl = rd.dict_find_int_value("default_ttl");
 
 	e = rd.dict_find_dict("add_params");

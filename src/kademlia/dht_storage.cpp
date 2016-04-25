@@ -102,7 +102,7 @@ namespace
 		void operator()(std::pair<libtorrent::sha1_hash
 			, torrent_entry> const& t)
 		{
-			*count += t.second.peers.size();
+			*count += int(t.second.peers.size());
 		}
 	};
 #endif
@@ -276,14 +276,14 @@ namespace
 				{
 					// we need to remove some. Remove the ones with the
 					// fewest peers
-					int num_peers = m_map.begin()->second.peers.size();
+					int num_peers = int(m_map.begin()->second.peers.size());
 					table_t::iterator candidate = m_map.begin();
 					for (table_t::iterator i = m_map.begin()
 						, end(m_map.end()); i != end; ++i)
 					{
 						if (int(i->second.peers.size()) > num_peers) continue;
 						if (i->first == info_hash) continue;
-						num_peers = i->second.peers.size();
+						num_peers = int(i->second.peers.size());
 						candidate = i;
 					}
 					m_map.erase(candidate);

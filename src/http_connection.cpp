@@ -680,7 +680,7 @@ void http_connection::on_write(error_code const& e)
 	std::string().swap(m_sendbuffer);
 	m_recvbuffer.resize(4096);
 
-	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	int amount_to_read = int(m_recvbuffer.size()) - m_read_pos;
 	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
 	{
 		amount_to_read = m_download_quota;
@@ -708,7 +708,7 @@ void http_connection::on_read(error_code const& e
 
 	if (m_rate_limit)
 	{
-		m_download_quota -= bytes_transferred;
+		m_download_quota -= int(bytes_transferred);
 		TORRENT_ASSERT(m_download_quota >= 0);
 	}
 
@@ -733,7 +733,7 @@ void http_connection::on_read(error_code const& e
 			data = &m_recvbuffer[0] + m_parser.body_start();
 			size = m_parser.get_body().left();
 		}
-		callback(ec, data, size);
+		callback(ec, data, int(size));
 		return;
 	}
 
@@ -744,7 +744,7 @@ void http_connection::on_read(error_code const& e
 		return;
 	}
 
-	m_read_pos += bytes_transferred;
+	m_read_pos += int(bytes_transferred);
 	TORRENT_ASSERT(m_read_pos <= int(m_recvbuffer.size()));
 
 	if (m_bottled || !m_parser.header_finished())
@@ -831,7 +831,7 @@ void http_connection::on_read(error_code const& e
 		callback(error_code(boost::system::errc::file_too_large, generic_category()));
 		return;
 	}
-	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	int amount_to_read = int(m_recvbuffer.size()) - m_read_pos;
 	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
 	{
 		amount_to_read = m_download_quota;
@@ -869,7 +869,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 
 	m_download_quota = m_rate_limit / 4;
 
-	int amount_to_read = m_recvbuffer.size() - m_read_pos;
+	int amount_to_read = int(m_recvbuffer.size()) - m_read_pos;
 	if (amount_to_read > m_download_quota)
 		amount_to_read = m_download_quota;
 
