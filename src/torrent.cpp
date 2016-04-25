@@ -1439,7 +1439,6 @@ namespace libtorrent
 
 		if (m_abort)
 		{
-			piece_block block_finished(p.piece, p.start / block_size());
 			return;
 		}
 
@@ -12303,4 +12302,3 @@ namespace libtorrent
 #endif
 
 }
-
