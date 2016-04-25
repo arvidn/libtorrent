@@ -39,35 +39,50 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/array_view.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#include <boost/function.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
-	class udp_socket;
 	class utp_stream;
 	struct utp_socket_impl;
 	struct counters;
 
-	typedef boost::function<void(boost::shared_ptr<socket_type> const&)> incoming_utp_callback_t;
-
-	struct utp_socket_manager TORRENT_FINAL : udp_socket_observer
+	struct utp_socket_manager TORRENT_FINAL
 	{
-		utp_socket_manager(aux::session_settings const& sett, udp_socket& s
-			, counters& cnt, void* ssl_context, incoming_utp_callback_t cb);
+		typedef boost::function<void(udp::endpoint const&
+			, aux::array_view<char const>
+			, error_code&, int)> send_fun_t;
+
+		typedef boost::function<void(boost::shared_ptr<socket_type> const&)>
+			incoming_utp_callback_t;
+
+		utp_socket_manager(send_fun_t const& send_fun
+			, incoming_utp_callback_t const& cb
+			, io_service& ios
+			, aux::session_settings const& sett
+			, counters& cnt, void* ssl_context
+			);
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		virtual bool incoming_packet(error_code const& ec, udp::endpoint const& ep
-			, char const* p, int size) TORRENT_OVERRIDE;
-		virtual bool incoming_packet(error_code const&, char const*, char const*, int) TORRENT_OVERRIDE
-		{ return false; }
-		virtual void writable() TORRENT_OVERRIDE;
+		bool incoming_packet(udp::endpoint const& ep, char const* p, int size);
 
-		virtual void socket_drained() TORRENT_OVERRIDE;
+		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
+		// called once the socket is writeable again
+		void writable();
+
+		// when the upper layer has drained the underlying UDP socket, this is
+		// called, and uTP sockets will send their ACKs. This ensures ACKs at
+		// least coalese packets returned during the same wakeup
+		void socket_drained();
 
 		void tick(time_point now);
-
-		tcp::endpoint local_endpoint(address const& remote, error_code& ec) const;
-		int local_port(error_code& ec) const;
 
 		// flags for send_packet
 		enum { dont_fragment = 1 };
@@ -89,8 +104,7 @@ namespace libtorrent
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
-		void set_sock_buf(int size);
-		int num_sockets() const { return int(m_utp_sockets.size()); }
+		int num_sockets() const { return m_utp_sockets.size(); }
 
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
@@ -114,7 +128,7 @@ namespace libtorrent
 		// explicitly disallow assignment, to silence msvc warning
 		utp_socket_manager& operator=(utp_socket_manager const&);
 
-		udp_socket& m_sock;
+		send_fun_t m_send_fun;
 		incoming_utp_callback_t m_cb;
 
 		// replace with a hash-map
@@ -164,6 +178,8 @@ namespace libtorrent
 
 		// stats counters
 		counters& m_counters;
+
+		io_service& m_ios;
 
 		boost::array<int, 3> m_restrict_mtu;
 		int m_mtu_idx;

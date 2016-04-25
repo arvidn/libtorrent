@@ -160,6 +160,7 @@ nobase_include_HEADERS = \
   tommath_superclass.h              \
   \
   aux_/alert_manager_variadic_emplace.hpp \
+  aux_/array_view.hpp               \
   aux_/allocating_handler.hpp       \
   aux_/bind_to_device.hpp           \
   aux_/cpuid.hpp                    \

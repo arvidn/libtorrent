@@ -3410,7 +3410,7 @@ namespace libtorrent
 				// the tracker did resolve to a different type of address, so announce
 				// to that as well
 
-				// TODO 2: there's a bug when removing a torrent or shutting down the session,
+				// TODO 3: there's a bug when removing a torrent or shutting down the session,
 				// where the second announce is skipped (in this case, the one to the IPv6
 				// name). This should be fixed by generalizing the tracker list structure to
 				// separate the IPv6 and IPv4 addresses as conceptually separate trackers,
@@ -8975,21 +8975,21 @@ namespace libtorrent
 
 		if (m_started < seconds && !is_paused())
 		{
-			int lost_seconds = seconds - m_started;
+			int const lost_seconds = seconds - m_started;
 			m_active_time += lost_seconds;
 		}
 		m_started = clamped_subtract(m_started, seconds);
 
 		if (m_became_seed < seconds && is_seed())
 		{
-			int lost_seconds = seconds - m_became_seed;
+			int const lost_seconds = seconds - m_became_seed;
 			m_seeding_time += lost_seconds;
 		}
 		m_became_seed = clamped_subtract(m_became_seed, seconds);
 
 		if (m_finished_time < seconds && is_finished())
 		{
-			int lost_seconds = seconds - m_became_finished;
+			int const lost_seconds = seconds - m_became_finished;
 			m_finished_time += lost_seconds;
 		}
 		m_became_finished = clamped_subtract(m_became_finished, seconds);
@@ -9021,8 +9021,8 @@ namespace libtorrent
 
 		int ret = 0;
 
-		boost::int64_t fin_time = finished_time();
-		boost::int64_t download_time = int(active_time()) - fin_time;
+		boost::int64_t const fin_time = finished_time();
+		boost::int64_t const download_time = int(active_time()) - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized

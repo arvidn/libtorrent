@@ -94,10 +94,8 @@ namespace libtorrent
 		void timeout(error_code const& error);
 		void start_announce();
 
-		bool on_receive(error_code const& e, udp::endpoint const& ep
-			, char const* buf, int size);
-		bool on_receive_hostname(error_code const& e, char const* hostname
-			, char const* buf, int size);
+		bool on_receive(udp::endpoint const& ep, char const* buf, int size);
+		bool on_receive_hostname(char const* hostname, char const* buf, int size);
 		bool on_connect_response(char const* buf, int size);
 		bool on_announce_response(char const* buf, int size);
 		bool on_scrape_response(char const* buf, int size);

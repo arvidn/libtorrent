@@ -44,6 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 #include <stdlib.h>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/array.hpp>
 #include <boost/system/system_error.hpp>
@@ -51,84 +54,193 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/read.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 
-using namespace libtorrent;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#if defined TORRENT_ASIO_DEBUGGING
+#include "libtorrent/debug.hpp"
+#endif
+
+namespace libtorrent {
+
+using namespace libtorrent::aux;
+
+// this class hold the state of the SOCKS5 connection to maintain the UDP
+// ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
+//
+// 1. since its asynchronous functions may refer to it after the udp_socket has
+//    been destructed, it needs to be held by a shared_ptr
+// 2. since using a sokcs proxy is assumed to be a less common case, it makes
+//    the common case cheaper by not allocating this space unconditionally
+struct socks5 : boost::enable_shared_from_this<socks5>
+{
+	socks5(io_service& ios)
+		: m_socks5_sock(ios)
+		, m_resolver(ios)
+		, m_timer(ios)
+		, m_abort(false)
+		, m_active(false)
+	{}
+
+	void start(aux::proxy_settings const& ps);
+	void close();
+
+	bool active() const { return m_active; }
+	udp::endpoint target() const { return m_udp_proxy_addr; }
+
+private:
+
+	boost::shared_ptr<socks5> self() { return shared_from_this(); }
+
+	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
+	void on_connect_timeout(error_code const& ec);
+	void on_connected(error_code const& ec);
+	void handshake1(error_code const& e);
+	void handshake2(error_code const& e);
+	void handshake3(error_code const& e);
+	void handshake4(error_code const& e);
+	void socks_forward_udp();
+	void connect1(error_code const& e);
+	void connect2(error_code const& e);
+	void hung_up(error_code const& e);
+
+	tcp::socket m_socks5_sock;
+	tcp::resolver m_resolver;
+	deadline_timer m_timer;
+	char m_tmp_buf[270];
+
+	aux::proxy_settings m_proxy_settings;
+
+	// this is the endpoint the proxy server lives at.
+	// when performing a UDP associate, we get another
+	// endpoint (presumably on the same IP) where we're
+	// supposed to send UDP packets.
+	udp::endpoint m_proxy_addr;
+
+	// this is where UDP packets that are to be forwarded
+	// are sent. The result from UDP ASSOCIATE is stored
+	// in here.
+	udp::endpoint m_udp_proxy_addr;
+
+	// set to true when we've been asked to shut down
+	bool m_abort;
+
+	// set to true once the tunnel is established
+	bool m_active;
+};
+
+#ifdef TORRENT_HAS_DONT_FRAGMENT
+struct set_dont_frag
+{
+	set_dont_frag(udp::socket& sock, bool const df)
+		: m_socket(sock)
+		, m_df(df)
+	{
+		if (!m_df) return;
+		error_code ignore_errors;
+		m_socket.set_option(libtorrent::dont_fragment(true), ignore_errors);
+		TORRENT_ASSERT_VAL(!ignore_errors, ignore_errors.message());
+	}
+
+	~set_dont_frag()
+	{
+		if (!m_df) return;
+		error_code ignore_errors;
+		m_socket.set_option(libtorrent::dont_fragment(false), ignore_errors);
+		TORRENT_ASSERT_VAL(!ignore_errors, ignore_errors.message());
+	}
+
+private:
+	udp::socket& m_socket;
+	bool const m_df;
+};
+#else
+struct set_dont_frag
+{ set_dont_frag(udp::socket&, int) {} };
+#endif
 
 udp_socket::udp_socket(io_service& ios)
-	: m_observers_locked(false)
-	, m_ipv4_sock(ios)
-	, m_timer(ios)
-	, m_buf_size(0)
-	, m_new_buf_size(0)
-	, m_buf(0)
-#if TORRENT_USE_IPV6
-	, m_ipv6_sock(ios)
-#endif
+	: m_socket(ios)
+	, m_buf_size(1500)
+	, m_buf(NULL)
 	, m_bind_port(0)
-	, m_v4_outstanding(0)
-	, m_restart_v4(0)
-#if TORRENT_USE_IPV6
-	, m_v6_outstanding(0)
-	, m_restart_v6(false)
-#endif
-	, m_socks5_sock(ios)
-	, m_resolver(ios)
-	, m_queue_packets(false)
-	, m_tunnel_packets(false)
 	, m_force_proxy(false)
 	, m_abort(true)
-	, m_outstanding_ops(0)
-#if TORRENT_USE_IPV6
-	, m_v6_write_subscribed(false)
-#endif
-	, m_v4_write_subscribed(false)
 {
-#if TORRENT_USE_ASSERTS
-	m_magic = 0x1337;
-	m_started = false;
-	m_outstanding_when_aborted = -1;
-	m_outstanding_connect = 0;
-	m_outstanding_timeout = 0;
-	m_outstanding_resolve = 0;
-	m_outstanding_socks = 0;
-#endif
-
-	m_buf_size = 2048;
-	m_new_buf_size = m_buf_size;
 	m_buf = static_cast<char*>(malloc(m_buf_size));
 }
 
 udp_socket::~udp_socket()
 {
 	free(m_buf);
-#if TORRENT_USE_IPV6
-	TORRENT_ASSERT_VAL(m_v6_outstanding == 0, m_v6_outstanding);
-#endif
-	TORRENT_ASSERT_VAL(m_v4_outstanding == 0, m_v4_outstanding);
-	TORRENT_ASSERT(m_magic == 0x1337);
-	TORRENT_ASSERT(m_observers_locked == false);
-#if TORRENT_USE_ASSERTS
-	m_magic = 0;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops == 0);
 }
 
-#if TORRENT_USE_ASSERTS
-	#define CHECK_MAGIC check_magic_ cm_(m_magic)
-	struct check_magic_
-	{
-		check_magic_(int& m_): m(m_) { TORRENT_ASSERT(m == 0x1337); }
-		~check_magic_() { TORRENT_ASSERT(m == 0x1337); }
-		int& m;
-	};
-#else
-	#define CHECK_MAGIC do {} TORRENT_WHILE_0
-#endif
-
-void udp_socket::send_hostname(char const* hostname, int port
-	, char const* p, int len, error_code& ec, int flags)
+int udp_socket::read(array_view<packet> pkts, error_code& ec)
 {
-	CHECK_MAGIC;
+	int const num = pkts.size();
+	int ret = 0;
+	packet p;
 
+	while (ret < num)
+	{
+		int const len = m_socket.receive_from(boost::asio::buffer(m_buf, m_buf_size)
+			, p.from, 0, ec);
+
+		if (ec == error::would_block
+			|| ec == error::try_again
+			|| ec == error::operation_aborted
+			|| ec == error::bad_descriptor)
+		{
+			return ret;
+		}
+
+		if (ec == error::interrupted)
+		{
+			continue;
+		}
+
+		if (ec)
+		{
+			// SOCKS5 cannot wrap ICMP errors. And even if it could, they certainly
+			// would not arrive as unwrapped (regular) ICMP errors. If we're using
+			// a proxy we must ignore these
+			if (m_force_proxy
+				|| (m_socks5_connection
+				&&  m_socks5_connection->active())) continue;
+
+			p.error = ec;
+			p.data = array_view<char>();
+		}
+		else
+		{
+			p.data = array_view<char>(m_buf, len);
+
+			// support packets coming from the SOCKS5 proxy
+			if (m_socks5_connection && m_socks5_connection->active())
+			{
+				// if the source IP doesn't match the proxy's, ignore the packet
+				if (p.from != m_socks5_connection->target()) continue;
+				if (!unwrap(p.from, p.data)) continue;
+			}
+			// block incoming packets that aren't coming via the proxy
+			// if force proxy mode is enabled
+			else if (m_force_proxy) continue;
+		}
+
+		pkts[ret] = p;
+		++ret;
+
+		// we only have a single buffer for now, so we can only return a
+		// single packet. In the future though, we could attempt to drain
+		// the socket here, or maybe even use recvmmsg()
+		break;
+	}
+
+	return ret;
+}
+
+void udp_socket::send_hostname(char const* hostname, int const port
+	, array_view<char const> p, error_code& ec, int const flags)
+{
 	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
@@ -138,39 +250,28 @@ void udp_socket::send_hostname(char const* hostname, int port
 		return;
 	}
 
-	if (m_tunnel_packets)
+	if (m_socks5_connection && m_socks5_connection->active())
 	{
 		// send udp packets through SOCKS5 server
-		wrap(hostname, port, p, len, ec);
+		wrap(hostname, port, p, ec, flags);
 		return;
 	}
 
-	// this function is only supported when we're using a proxy
-	if (!m_queue_packets && !m_force_proxy)
+	if (m_force_proxy)
 	{
-		address target = address::from_string(hostname, ec);
-		if (!ec) send(udp::endpoint(target, port), p, len, ec, 0);
+		ec = error_code(boost::system::errc::permission_denied, generic_category());
 		return;
 	}
 
-	if (m_queue.size() > 1000 || (flags & dont_queue)) return;
-
-	m_queue.push_back(queued_packet());
-	queued_packet& qp = m_queue.back();
-	qp.ep.port(port);
-
+	// the overload that takes a hostname is really only supported when we're
+	// using a proxy
 	address target = address::from_string(hostname, ec);
-	if (ec) qp.ep.address(target);
-	else qp.hostname = allocate_string_copy(hostname);
-	qp.buf.insert(qp.buf.begin(), p, p + len);
-	qp.flags = 0;
+	if (!ec) send(udp::endpoint(target, port), p, ec, flags);
 }
 
-void udp_socket::send(udp::endpoint const& ep, char const* p, int len
-	, error_code& ec, int flags)
+void udp_socket::send(udp::endpoint const& ep, array_view<char const> p
+	, error_code& ec, int const flags)
 {
-	CHECK_MAGIC;
-
 	TORRENT_ASSERT(is_single_thread());
 
 	// if the sockets are closed, the udp_socket is closing too
@@ -186,401 +287,26 @@ void udp_socket::send(udp::endpoint const& ep, char const* p, int len
 		|| (flags & (tracker_connection | peer_connection)) == 0
 		;
 
-	if (allow_proxy)
+	if (allow_proxy && m_socks5_connection && m_socks5_connection->active())
 	{
-		if (m_tunnel_packets)
-		{
-			// send udp packets through SOCKS5 server
-			wrap(ep, p, len, ec);
-			return;
-		}
-
-		if (m_queue_packets)
-		{
-			if (m_queue.size() > 1000 || (flags & dont_queue)) return;
-
-			m_queue.push_back(queued_packet());
-			queued_packet& qp = m_queue.back();
-			qp.ep = ep;
-			qp.hostname = 0;
-			qp.flags = flags;
-			qp.buf.insert(qp.buf.begin(), p, p + len);
-			return;
-		}
+		// send udp packets through SOCKS5 server
+		wrap(ep, p, ec, flags);
+		return;
 	}
 
 	if (m_force_proxy) return;
 
-#if TORRENT_USE_IPV6
-	if (ep.address().is_v6() && m_ipv6_sock.is_open())
-		m_ipv6_sock.send_to(boost::asio::buffer(p, len), ep, 0, ec);
-	else
-#endif
-		m_ipv4_sock.send_to(boost::asio::buffer(p, len), ep, 0, ec);
+	// set the DF flag for the socket and clear it again in the destructor
+	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+		&& ep.protocol() == udp::v4());
 
-	if (ec == error::would_block || ec == error::try_again)
-	{
-#if TORRENT_USE_IPV6
-		if (ep.address().is_v6() && m_ipv6_sock.is_open())
-		{
-			if (!m_v6_write_subscribed)
-			{
-				m_ipv6_sock.async_send(null_buffers()
-					, boost::bind(&udp_socket::on_writable, this, _1, &m_ipv6_sock));
-				m_v6_write_subscribed = true;
-			}
-		}
-		else
-#endif
-		{
-			if (!m_v4_write_subscribed)
-			{
-				m_ipv4_sock.async_send(null_buffers()
-					, boost::bind(&udp_socket::on_writable, this, _1, &m_ipv4_sock));
-				m_v4_write_subscribed = true;
-			}
-		}
-	}
+	m_socket.send_to(boost::asio::buffer(p.data(), p.size()), ep, 0, ec);
 }
 
-void udp_socket::on_writable(error_code const& ec, udp::socket* s)
+void udp_socket::wrap(udp::endpoint const& ep, array_view<char const> p
+	, error_code& ec, int const flags)
 {
-#if TORRENT_USE_IPV6
-	if (s == &m_ipv6_sock)
-		m_v6_write_subscribed = false;
-	else
-#else
-		TORRENT_UNUSED(s);
-#endif
-		m_v4_write_subscribed = false;
-
-	if (ec == boost::asio::error::operation_aborted) return;
-
-	call_writable_handler();
-}
-
-// called whenever the socket is readable
-void udp_socket::on_read(error_code const& ec, udp::socket* s)
-{
-	COMPLETE_ASYNC("udp_socket::on_read");
-
-	TORRENT_ASSERT(m_magic == 0x1337);
-	TORRENT_ASSERT(is_single_thread());
-
-#if TORRENT_USE_IPV6
-	if (s == &m_ipv6_sock)
-	{
-		TORRENT_ASSERT(m_v6_outstanding > 0);
-		--m_v6_outstanding;
-	}
-	else
-#else
-		TORRENT_UNUSED(s);
-#endif
-	{
-		TORRENT_ASSERT(m_v4_outstanding > 0);
-		--m_v4_outstanding;
-	}
-
-	if (ec == boost::asio::error::operation_aborted)
-	{
-#if TORRENT_USE_IPV6
-		if (s == &m_ipv6_sock)
-		{
-			if (m_restart_v6) {
-				--m_restart_v6;
-				setup_read(s);
-			}
-		}
-		else
-#endif
-		{
-			if (m_restart_v4) {
-				--m_restart_v4;
-				setup_read(s);
-			}
-		}
-		return;
-	}
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-
-	CHECK_MAGIC;
-
-	for (;;)
-	{
-		error_code err;
-		udp::endpoint ep;
-		size_t bytes_transferred = s->receive_from(boost::asio::buffer(m_buf, m_buf_size), ep, 0, err);
-
-		// TODO: it would be nice to detect this on posix systems also
-#ifdef TORRENT_WINDOWS
-		if ((err == error_code(ERROR_MORE_DATA, system_category())
-			|| err == error_code(WSAEMSGSIZE, system_category()))
-			&& m_buf_size < 65536)
-		{
-			// if this function fails to allocate memory, m_buf_size
-			// is set to 0. In that case, don't issue the async_read().
-			set_buf_size(m_buf_size * 2);
-			if (m_buf_size == 0) return;
-			continue;
-		}
-#endif
-
-		if (err == boost::asio::error::would_block || err == boost::asio::error::try_again) break;
-		on_read_impl(ep, err, bytes_transferred);
-
-		// found on iOS, socket will be disconnected when app goes backgroud. try to reopen it.
-		if (err == boost::asio::error::not_connected || err == boost::asio::error::bad_descriptor)
-		{
-			ep = s->local_endpoint(err);
-			if (!err) {
-				bind(ep, err);
-			}
-			return;
-		}
-	}
-	call_drained_handler();
-	setup_read(s);
-}
-
-void udp_socket::call_handler(error_code const& ec, udp::endpoint const& ep, char const* buf, int size)
-{
-	m_observers_locked = true;
-	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin();
-		i != m_observers.end();)
-	{
-		bool ret = false;
-		TORRENT_TRY {
-			ret = (*i)->incoming_packet(ec, ep, buf, size);
-		} TORRENT_CATCH (std::exception&) {}
-		if (*i == NULL) i = m_observers.erase(i);
-		else ++i;
-		if (ret) break;
-	}
-	if (!m_added_observers.empty())
-	{
-		m_observers.insert(m_observers.end(), m_added_observers.begin(), m_added_observers.end());
-		m_added_observers.clear();
-	}
-	m_observers_locked = false;
-	if (m_new_buf_size != m_buf_size)
-		set_buf_size(m_new_buf_size);
-}
-
-void udp_socket::call_handler(error_code const& ec, const char* host, char const* buf, int size)
-{
-	m_observers_locked = true;
-	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin();
-		i != m_observers.end();)
-	{
-		bool ret = false;
-		TORRENT_TRY {
-			ret = (*i)->incoming_packet(ec, host, buf, size);
-		} TORRENT_CATCH (std::exception&) {}
-		if (*i == NULL) i = m_observers.erase(i);
-		else ++i;
-		if (ret) break;
-	}
-	if (!m_added_observers.empty())
-	{
-		m_observers.insert(m_observers.end(), m_added_observers.begin(), m_added_observers.end());
-		m_added_observers.clear();
-	}
-	m_observers_locked = false;
-	if (m_new_buf_size != m_buf_size)
-		set_buf_size(m_new_buf_size);
-}
-
-void udp_socket::call_drained_handler()
-{
-	m_observers_locked = true;
-	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin();
-		i != m_observers.end();)
-	{
-		TORRENT_TRY {
-			(*i)->socket_drained();
-		} TORRENT_CATCH (std::exception&) {}
-		if (*i == NULL) i = m_observers.erase(i);
-		else ++i;
-	}
-	if (!m_added_observers.empty())
-	{
-		m_observers.insert(m_observers.end(), m_added_observers.begin(), m_added_observers.end());
-		m_added_observers.clear();
-	}
-	m_observers_locked = false;
-	if (m_new_buf_size != m_buf_size)
-		set_buf_size(m_new_buf_size);
-}
-
-void udp_socket::call_writable_handler()
-{
-	m_observers_locked = true;
-	for (std::vector<udp_socket_observer*>::iterator i = m_observers.begin();
-		i != m_observers.end();)
-	{
-		TORRENT_TRY {
-			(*i)->writable();
-		} TORRENT_CATCH (std::exception&) {}
-		if (*i == NULL) i = m_observers.erase(i);
-		else ++i;
-	}
-	if (!m_added_observers.empty())
-	{
-		m_observers.insert(m_observers.end(), m_added_observers.begin(), m_added_observers.end());
-		m_added_observers.clear();
-	}
-	m_observers_locked = false;
-	if (m_new_buf_size != m_buf_size)
-		set_buf_size(m_new_buf_size);
-}
-
-void udp_socket::subscribe(udp_socket_observer* o)
-{
-	TORRENT_ASSERT(std::find(m_observers.begin(), m_observers.end(), o) == m_observers.end());
-	if (m_observers_locked)
-		m_added_observers.push_back(o);
-	else
-		m_observers.push_back(o);
-}
-
-void udp_socket::unsubscribe(udp_socket_observer* o)
-{
-	std::vector<udp_socket_observer*>::iterator i = std::find(m_observers.begin(), m_observers.end(), o);
-	if (i == m_observers.end()) return;
-	if (m_observers_locked)
-		*i = NULL;
-	else
-		m_observers.erase(i);
-}
-
-void udp_socket::on_read_impl(udp::endpoint const& ep
-	, error_code const& e, std::size_t bytes_transferred)
-{
-	TORRENT_ASSERT(m_magic == 0x1337);
-	TORRENT_ASSERT(is_single_thread());
-
-	if (e)
-	{
-		call_handler(e, ep, 0, 0);
-
-		// don't stop listening on recoverable errors
-		if (e != boost::asio::error::host_unreachable
-			&& e != boost::asio::error::fault
-			&& e != boost::asio::error::connection_reset
-			&& e != boost::asio::error::connection_refused
-			&& e != boost::asio::error::connection_aborted
-			&& e != boost::asio::error::operation_aborted
-			&& e != boost::asio::error::network_reset
-			&& e != boost::asio::error::network_unreachable
-#ifdef WIN32
-			// ERROR_MORE_DATA means the same thing as EMSGSIZE
-			&& e != error_code(ERROR_MORE_DATA, system_category())
-			&& e != error_code(ERROR_HOST_UNREACHABLE, system_category())
-			&& e != error_code(ERROR_PORT_UNREACHABLE, system_category())
-			&& e != error_code(ERROR_RETRY, system_category())
-			&& e != error_code(ERROR_NETWORK_UNREACHABLE, system_category())
-			&& e != error_code(ERROR_CONNECTION_REFUSED, system_category())
-			&& e != error_code(ERROR_CONNECTION_ABORTED, system_category())
-#endif
-			&& e != boost::asio::error::message_size)
-		{
-			return;
-		}
-
-		if (m_abort)
-		{
-			close_impl();
-			return;
-		}
-
-		return;
-	}
-
-	TORRENT_TRY {
-
-		if (m_tunnel_packets)
-		{
-			// if the source IP doesn't match the proxy's, ignore the packet
-			if (ep == m_udp_proxy_addr)
-				unwrap(e, m_buf, int(bytes_transferred));
-		}
-		else if (!m_force_proxy) // block incoming packets that aren't coming via the proxy
-		{
-			call_handler(e, ep, m_buf, int(bytes_transferred));
-		}
-
-	} TORRENT_CATCH (std::exception&) {}
-}
-
-void udp_socket::setup_read(udp::socket* s)
-{
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-
-#if TORRENT_USE_IPV6
-	if (s == &m_ipv6_sock)
-	{
-		if (m_v6_outstanding)
-		{
-			++m_restart_v6;
-			m_ipv6_sock.cancel();
-			return;
-		}
-		++m_v6_outstanding;
-	}
-	else
-#endif
-	{
-		if (m_v4_outstanding)
-		{
-			++m_restart_v4;
-			m_ipv4_sock.cancel();
-			return;
-		}
-		++m_v4_outstanding;
-	}
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_read");
-
-	udp::endpoint ep;
-	TORRENT_TRY
-	{
-#if TORRENT_USE_IPV6
-		if (s == &m_ipv6_sock)
-		{
-			s->async_receive_from(null_buffers()
-				, ep, make_read_handler6(boost::bind(&udp_socket::on_read, this, _1, s)));
-		}
-		else
-#endif
-		{
-			s->async_receive_from(null_buffers()
-				, ep, make_read_handler4(boost::bind(&udp_socket::on_read, this, _1, s)));
-		}
-	}
-	TORRENT_CATCH(boost::system::system_error& e)
-	{
-#ifdef BOOST_NO_EXCEPTIONS
-		// dummy
-		error_code ec;
-		boost::system::system_error e(ec);
-#endif
-		get_io_service().post(boost::bind(&udp_socket::on_read
-			, this, e.code(), s));
-	}
-}
-
-void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_code& ec)
-{
-	CHECK_MAGIC;
+	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
 
 	char header[25];
@@ -593,21 +319,19 @@ void udp_socket::wrap(udp::endpoint const& ep, char const* p, int len, error_cod
 
 	boost::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header, h - header);
-	iovec[1] = boost::asio::const_buffer(p, len);
+	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
-#if TORRENT_USE_IPV6
-	if (m_udp_proxy_addr.address().is_v4() && m_ipv4_sock.is_open())
-#endif
-		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#if TORRENT_USE_IPV6
-	else
-		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-#endif
+	// set the DF flag for the socket and clear it again in the destructor
+	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+		&& ep.protocol() == udp::v4());
+
+	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
-void udp_socket::wrap(char const* hostname, int port, char const* p, int len, error_code& ec)
+void udp_socket::wrap(char const* hostname, int const port, array_view<char const> p
+	, error_code& ec, int const flags)
 {
-	CHECK_MAGIC;
+	TORRENT_UNUSED(flags);
 	using namespace libtorrent::detail;
 
 	char header[270];
@@ -616,7 +340,7 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	int hostlen = int((std::min)(strlen(hostname), size_t(255)));
+	int hostlen = (std::min)(strlen(hostname), size_t(255));
 	write_uint8(hostlen, h); // hostname len
 	memcpy(h, hostname, hostlen);
 	h += hostlen;
@@ -624,57 +348,61 @@ void udp_socket::wrap(char const* hostname, int port, char const* p, int len, er
 
 	boost::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header, h - header);
-	iovec[1] = boost::asio::const_buffer(p, len);
+	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
-#if TORRENT_USE_IPV6
-	if (m_udp_proxy_addr.address().is_v6() && m_ipv6_sock.is_open())
-		m_ipv6_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
-	else
-#endif
-		m_ipv4_sock.send_to(iovec, m_udp_proxy_addr, 0, ec);
+	// set the DF flag for the socket and clear it again in the destructor
+	set_dont_frag df(m_socket, (flags & dont_fragment) != 0
+		&& m_socket.local_endpoint(ec).protocol() == udp::v4());
+
+	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
 // unwrap the UDP packet from the SOCKS5 header
-void udp_socket::unwrap(error_code const& e, char const* buf, int size)
+// buf is an in-out parameter. It will be updated
+// return false if the packet should be ignored. It's not a valid Socks5 UDP
+// forwarded packet
+bool udp_socket::unwrap(udp::endpoint& from, array_view<char>& buf)
 {
-	CHECK_MAGIC;
 	using namespace libtorrent::detail;
 
 	// the minimum socks5 header size
-	if (size <= 10) return;
+	int const size = buf.size();
+	if (size <= 10) return false;
 
-	char const* p = buf;
+	char* p = buf.data();
 	p += 2; // reserved
-	int frag = read_uint8(p);
+	int const frag = read_uint8(p);
 	// fragmentation is not supported
-	if (frag != 0) return;
+	if (frag != 0) return false;
 
-	udp::endpoint sender;
-
-	int atyp = read_uint8(p);
+	int const atyp = read_uint8(p);
 	if (atyp == 1)
 	{
 		// IPv4
-		sender = read_v4_endpoint<udp::endpoint>(p);
+		from = read_v4_endpoint<udp::endpoint>(p);
 	}
 #if TORRENT_USE_IPV6
 	else if (atyp == 4)
 	{
 		// IPv6
-		sender = read_v6_endpoint<udp::endpoint>(p);
+		from = read_v6_endpoint<udp::endpoint>(p);
 	}
 #endif
 	else
 	{
-		int len = read_uint8(p);
-		if (len > (buf + size) - p) return;
+		int const len = read_uint8(p);
+		if (len > buf.end() - p) return false;
 		std::string hostname(p, p + len);
+		error_code ec;
+		address addr = address::from_string(hostname, ec);
+		// we only support "hostnames" that are a dotted decimal IP
+		if (ec) return false;
 		p += len;
-		call_handler(e, hostname.c_str(), p, size - (p - buf));
-		return;
+		from = udp::endpoint(addr, read_uint16(p));
 	}
 
-	call_handler(e, sender, p, size - (p - buf));
+	buf = array_view<char>(p, size - (p - buf.data()));
+	return true;
 }
 
 #if !defined BOOST_ASIO_ENABLE_CANCELIO && defined TORRENT_WINDOWS
@@ -684,259 +412,113 @@ void udp_socket::unwrap(error_code const& e, char const* buf, int size)
 void udp_socket::close()
 {
 	TORRENT_ASSERT(is_single_thread());
-	TORRENT_ASSERT(m_magic == 0x1337);
 
 	error_code ec;
-	m_ipv4_sock.close(ec);
+	m_socket.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
-#if TORRENT_USE_IPV6
-	m_ipv6_sock.close(ec);
-	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
-#endif
-	m_socks5_sock.close(ec);
-	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
-	m_resolver.cancel();
-	m_timer.cancel();
+	if (m_socks5_connection)
+	{
+		m_socks5_connection->close();
+		m_socks5_connection.reset();
+	}
 	m_abort = true;
-
-#if TORRENT_USE_ASSERTS
-	m_outstanding_when_aborted = num_outstanding();
-#endif
-}
-
-void udp_socket::set_buf_size(int s)
-{
-	TORRENT_ASSERT(is_single_thread());
-
-	if (m_observers_locked)
-	{
-		// we can't actually reallocate the buffer while
-		// it's being used by the observers, we have to
-		// do that once we're done iterating over them
-		m_new_buf_size = s;
-		return;
-	}
-
-	if (s == m_buf_size) return;
-
-	bool no_mem = false;
-	char* tmp = static_cast<char*>(realloc(m_buf, s));
-	if (tmp != 0)
-	{
-		m_buf = tmp;
-		m_buf_size = s;
-		m_new_buf_size = s;
-	}
-	else
-	{
-		no_mem = true;
-	}
-
-	if (no_mem)
-	{
-		free(m_buf);
-		m_buf = 0;
-		m_buf_size = 0;
-		m_new_buf_size = 0;
-		udp::endpoint ep;
-		call_handler(error::no_memory, ep, 0, 0);
-		close();
-	}
-
-	int size = m_buf_size;
-
-	// don't shrink the size of the receive buffer
-	error_code ec;
-	boost::asio::socket_base::receive_buffer_size recv_size;
-	m_ipv4_sock.get_option(recv_size, ec);
-	if (!ec) size = (std::max)(recv_size.value(), size);
-#if TORRENT_USE_IPV6
-	m_ipv6_sock.get_option(recv_size, ec);
-	if (!ec) size = (std::max)(recv_size.value(), size);
-#endif
-
-	error_code ignore_errors;
-	// set the internal buffer sizes as well
-	m_ipv4_sock.set_option(boost::asio::socket_base::receive_buffer_size(size)
-		, ignore_errors);
-#if TORRENT_USE_IPV6
-	m_ipv6_sock.set_option(boost::asio::socket_base::receive_buffer_size(size)
-		, ignore_errors);
-#endif
 }
 
 void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 {
-	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
 	m_abort = false;
 
-	if (m_ipv4_sock.is_open()) m_ipv4_sock.close(ec);
-#if TORRENT_USE_IPV6
-	if (m_ipv6_sock.is_open()) m_ipv6_sock.close(ec);
-#endif
+	if (m_socket.is_open()) m_socket.close(ec);
 	ec.clear();
 
 	if (ep.address().is_v4())
 	{
-		m_ipv4_sock.open(udp::v4(), ec);
+		m_socket.open(udp::v4(), ec);
 		if (ec) return;
-
-		// this is best-effort. ignore errors
-		error_code err;
-#ifdef TORRENT_WINDOWS
-		m_ipv4_sock.set_option(exclusive_address_use(true), err);
-#endif
-		m_ipv4_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
-
-		m_ipv4_sock.bind(ep, ec);
-		if (ec) return;
-		udp::socket::non_blocking_io ioc(true);
-		m_ipv4_sock.io_control(ioc, ec);
-		if (ec) return;
-		setup_read(&m_ipv4_sock);
 	}
-
 #if TORRENT_USE_IPV6
-	// TODO: 2 the udp_socket should really just be a single socket, and the
-	// session should support having more than one, just like with TCP sockets
-	// for now, just make bind failures non-fatal
-	if (supports_ipv6() && (ep.address().is_v6() || is_any(ep.address())))
+	else if (ep.address().is_v6())
 	{
-		udp::endpoint ep6 = ep;
-		if (is_any(ep.address())) ep6.address(address_v6::any());
-		m_ipv6_sock.open(udp::v6(), ec);
+		m_socket.open(udp::v6(), ec);
 		if (ec) return;
-
-		// this is best-effort. ignore errors
 		error_code err;
-#ifdef TORRENT_WINDOWS
-		m_ipv6_sock.set_option(exclusive_address_use(true), err);
-#endif
-		m_ipv6_sock.set_option(boost::asio::socket_base::reuse_address(true), err);
-		m_ipv6_sock.set_option(boost::asio::ip::v6_only(true), err);
+		m_socket.set_option(boost::asio::ip::v6_only(true), err);
 
-		m_ipv6_sock.bind(ep6, ec);
-		if (ec != error_code(boost::system::errc::address_not_available
-			, boost::system::generic_category()))
-		{
-			if (ec) return;
-			udp::socket::non_blocking_io ioc(true);
-			m_ipv6_sock.io_control(ioc, ec);
-			if (ec) return;
-			setup_read(&m_ipv6_sock);
-		}
-		else
-		{
-			ec.clear();
-		}
+#ifdef TORRENT_WINDOWS
+		// enable Teredo on windows
+		m_socket.set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
+#endif // TORRENT_WINDOWS
 	}
 #endif
-#if TORRENT_USE_ASSERTS
-	m_started = true;
+
+	// this is best-effort. ignore errors
+	error_code err;
+#ifdef TORRENT_WINDOWS
+	m_socket.set_option(exclusive_address_use(true), err);
 #endif
+	m_socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+
+	m_socket.bind(ep, ec);
+	if (ec) return;
+	udp::socket::non_blocking_io ioc(true);
+	m_socket.io_control(ioc, ec);
+	if (ec) return;
+
 	m_bind_port = ep.port();
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 {
-	CHECK_MAGIC;
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	m_socks5_sock.close(ec);
-	m_tunnel_packets = false;
+	if (m_socks5_connection)
+	{
+		m_socks5_connection->close();
+		m_socks5_connection.reset();
+	}
 
 	m_proxy_settings = ps;
 
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
+	if (m_abort) return;
 
 	if (ps.type == settings_pack::socks5
 		|| ps.type == settings_pack::socks5_pw)
 	{
-		m_queue_packets = true;
 		// connect to socks5 server and open up the UDP tunnel
 
-		// TODO: use the system resolver_interface here
-		tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
-		++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-		++m_outstanding_resolve;
-#endif
-		ADD_OUTSTANDING_ASYNC("udp_socket::on_name_lookup");
-		m_resolver.async_resolve(q, boost::bind(
-			&udp_socket::on_name_lookup, this, _1, _2));
+		m_socks5_connection = boost::make_shared<socks5>(boost::ref(m_socket.get_io_service()));
+		m_socks5_connection->start(ps);
 	}
 }
 
-void udp_socket::close_impl()
+// ===================== SOCKS 5 =========================
+
+void socks5::start(aux::proxy_settings const& ps)
 {
-	if (m_outstanding_ops == 0)
-	{
-		error_code ec;
-		m_ipv4_sock.close(ec);
-#if TORRENT_USE_IPV6
-		m_ipv6_sock.close(ec);
-#endif
-		m_socks5_sock.close(ec);
-	}
+	m_proxy_settings = ps;
+
+	// TODO: use the system resolver_interface here
+	tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
+	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
+	m_resolver.async_resolve(q, boost::bind(
+		&socks5::on_name_lookup, self(), _1, _2));
 }
 
-void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
+void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 {
-	COMPLETE_ASYNC("udp_socket::on_name_lookup");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_resolve > 0);
-	--m_outstanding_resolve;
-#endif
+	COMPLETE_ASYNC("socks5::on_name_lookup");
 
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-
-	CHECK_MAGIC;
+	if (m_abort) return;
 
 	if (e == boost::asio::error::operation_aborted) return;
 
-	TORRENT_ASSERT(is_single_thread());
-
-	if (e)
-	{
-		if (m_force_proxy)
-		{
-			call_handler(e, udp::endpoint(), 0, 0);
-		}
-		else
-		{
-			// if we can't connect to the proxy, and
-			// we're not in privacy mode, try to just
-			// not use a proxy
-			m_proxy_settings = aux::proxy_settings();
-			m_tunnel_packets = false;
-		}
-
-		drain_queue();
-		return;
-	}
+	if (e) return;
 
 	m_proxy_addr.address(i->endpoint().address());
 	m_proxy_addr.port(i->endpoint().port());
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_connected");
 
 	error_code ec;
 	m_socks5_sock.open(m_proxy_addr.address().is_v4()?tcp::v4():tcp::v6(), ec);
@@ -944,95 +526,40 @@ void udp_socket::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 	// enable keepalives
 	m_socks5_sock.set_option(boost::asio::socket_base::keep_alive(true), ec);
 
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_connect;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::on_connected");
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
-		, boost::bind(&udp_socket::on_connected, this, _1));
+		, boost::bind(&socks5::on_connected, self(), _1));
 
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_timeout;
-#endif
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_connect_timeout");
+	ADD_OUTSTANDING_ASYNC("socks5::on_connect_timeout");
 	m_timer.expires_from_now(seconds(10));
-	m_timer.async_wait(boost::bind(&udp_socket::on_connect_timeout
-		, this, _1));
+	m_timer.async_wait(boost::bind(&socks5::on_connect_timeout
+		, self(), _1));
 }
 
-void udp_socket::on_connect_timeout(error_code const& ec)
+void socks5::on_connect_timeout(error_code const& ec)
 {
-	COMPLETE_ASYNC("udp_socket::on_connect_timeout");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_timeout > 0);
-	--m_outstanding_timeout;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
+	COMPLETE_ASYNC("socks5::on_connect_timeout");
 
 	if (ec == boost::asio::error::operation_aborted) return;
 
-	m_queue_packets = false;
-
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-
-	CHECK_MAGIC;
-	TORRENT_ASSERT(is_single_thread());
+	if (m_abort) return;
 
 	error_code ignore;
 	m_socks5_sock.close(ignore);
 }
 
-void udp_socket::on_connected(error_code const& e)
+void socks5::on_connected(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::on_connected");
-
-	TORRENT_ASSERT(is_single_thread());
-
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_connect > 0);
-	--m_outstanding_connect;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	CHECK_MAGIC;
+	COMPLETE_ASYNC("socks5::on_connected");
 
 	m_timer.cancel();
 
 	if (e == boost::asio::error::operation_aborted) return;
 
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
+	if (m_abort) return;
 
-	if (e)
-	{
-		// we failed to connect to the proxy, if we don't have force_proxy set,
-		// drain the queue over the UDP socket
-		if (!m_force_proxy)
-		{
-			drain_queue();
-		}
-
-		call_handler(e, udp::endpoint(), 0, 0);
-		return;
-	}
+	// we failed to connect to the proxy
+	if (e) return;
 
 	using namespace libtorrent::detail;
 
@@ -1052,80 +579,30 @@ void udp_socket::on_connected(error_code const& e)
 		write_uint8(2, p); // username/password
 	}
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_handshake1");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::on_handshake1");
 	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&udp_socket::handshake1, this, _1));
+		, boost::bind(&socks5::handshake1, self(), _1));
 }
 
-void udp_socket::handshake1(error_code const& e)
+void socks5::handshake1(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::on_handshake1");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
+	COMPLETE_ASYNC("socks5::on_handshake1");
+	if (m_abort) return;
+	if (e) return;
 
-	TORRENT_ASSERT(is_single_thread());
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_handshake2");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::on_handshake2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&udp_socket::handshake2, this, _1));
+		, boost::bind(&socks5::handshake2, self(), _1));
 }
 
-void udp_socket::handshake2(error_code const& e)
+void socks5::handshake2(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::on_handshake2");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
+	COMPLETE_ASYNC("socks5::on_handshake2");
+	if (m_abort) return;
 
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
+	if (e) return;
 
 	using namespace libtorrent::detail;
-
-	TORRENT_ASSERT(is_single_thread());
 
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p);
@@ -1135,7 +612,6 @@ void udp_socket::handshake2(error_code const& e)
 	{
 		error_code ec;
 		m_socks5_sock.close(ec);
-		drain_queue();
 		return;
 	}
 
@@ -1149,7 +625,6 @@ void udp_socket::handshake2(error_code const& e)
 		{
 			error_code ec;
 			m_socks5_sock.close(ec);
-			drain_queue();
 			return;
 		}
 
@@ -1163,85 +638,34 @@ void udp_socket::handshake2(error_code const& e)
 		write_uint8(uint8_t(m_proxy_settings.password.size()), p);
 		write_string(m_proxy_settings.password, p);
 		TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
-		ADD_OUTSTANDING_ASYNC("udp_socket::on_handshake3");
-		++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-		++m_outstanding_socks;
-#endif
+		ADD_OUTSTANDING_ASYNC("socks5::on_handshake3");
 		boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-			, boost::bind(&udp_socket::handshake3, this, _1));
+			, boost::bind(&socks5::handshake3, self(), _1));
 	}
 	else
 	{
-		drain_queue();
 		error_code ec;
 		m_socks5_sock.close(ec);
 		return;
 	}
 }
 
-void udp_socket::handshake3(error_code const& e)
+void socks5::handshake3(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::on_handshake3");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
+	COMPLETE_ASYNC("socks5::on_handshake3");
+	if (m_abort) return;
+	if (e) return;
 
-	TORRENT_ASSERT(is_single_thread());
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::on_handshake4");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::on_handshake4");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&udp_socket::handshake4, this, _1));
+		, boost::bind(&socks5::handshake4, self(), _1));
 }
 
-void udp_socket::handshake4(error_code const& e)
+void socks5::handshake4(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::on_handshake4");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
-
-	TORRENT_ASSERT(is_single_thread());
+	COMPLETE_ASYNC("socks5::on_handshake4");
+	if (m_abort) return;
+	if (e) return;
 
 	using namespace libtorrent::detail;
 
@@ -1249,18 +673,13 @@ void udp_socket::handshake4(error_code const& e)
 	int version = read_uint8(p);
 	int status = read_uint8(p);
 
-	if (version != 1 || status != 0)
-	{
-		drain_queue();
-		return;
-	}
+	if (version != 1 || status != 0) return;
 
 	socks_forward_udp(/*l*/);
 }
 
-void udp_socket::socks_forward_udp()
+void socks5::socks_forward_udp()
 {
-	CHECK_MAGIC;
 	using namespace libtorrent::detail;
 
 	// send SOCKS5 UDP command
@@ -1273,78 +692,28 @@ void udp_socket::socks_forward_udp()
 	write_uint32(0, p); // 0.0.0.0
 	write_uint16(0, p); // :0
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
-	ADD_OUTSTANDING_ASYNC("udp_socket::connect1");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::connect1");
 	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&udp_socket::connect1, this, _1));
+		, boost::bind(&socks5::connect1, self(), _1));
 }
 
-void udp_socket::connect1(error_code const& e)
+void socks5::connect1(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::connect1");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
+	COMPLETE_ASYNC("socks5::connect1");
+	if (m_abort) return;
+	if (e) return;
 
-	TORRENT_ASSERT(is_single_thread());
-
-	ADD_OUTSTANDING_ASYNC("udp_socket::connect2");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::connect2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&udp_socket::connect2, this, _1));
+		, boost::bind(&socks5::connect2, self(), _1));
 }
 
-void udp_socket::connect2(error_code const& e)
+void socks5::connect2(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::connect2");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
+	COMPLETE_ASYNC("socks5::connect2");
 
-	if (m_abort)
-	{
-		m_queue.clear();
-		return;
-	}
-	CHECK_MAGIC;
-	if (e)
-	{
-		drain_queue();
-		return;
-	}
-
-	TORRENT_ASSERT(is_single_thread());
+	if (m_abort) return;
+	if (e) return;
 
 	using namespace libtorrent::detail;
 
@@ -1354,11 +723,7 @@ void udp_socket::connect2(error_code const& e)
 	++p; // RESERVED
 	int atyp = read_uint8(p); // address type
 
-	if (version != 5 || status != 0)
-	{
-		drain_queue();
-		return;
-	}
+	if (version != 5 || status != 0) return;
 
 	if (atyp == 1)
 	{
@@ -1368,70 +733,38 @@ void udp_socket::connect2(error_code const& e)
 	else
 	{
 		// in this case we need to read more data from the socket
+		// no IPv6 support for UDP socks5
 		TORRENT_ASSERT(false);
-		drain_queue();
 		return;
 	}
 
-	m_tunnel_packets = true;
-	drain_queue();
+	// we're done!
+	m_active = true;
 
-	ADD_OUTSTANDING_ASYNC("udp_socket::hung_up");
-	++m_outstanding_ops;
-#if TORRENT_USE_ASSERTS
-	++m_outstanding_socks;
-#endif
+	ADD_OUTSTANDING_ASYNC("socks5::hung_up");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&udp_socket::hung_up, this, _1));
+		, boost::bind(&socks5::hung_up, self(), _1));
 }
 
-void udp_socket::hung_up(error_code const& e)
+void socks5::hung_up(error_code const& e)
 {
-	COMPLETE_ASYNC("udp_socket::hung_up");
-#if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(m_outstanding_socks > 0);
-	--m_outstanding_socks;
-#endif
-	TORRENT_ASSERT(m_outstanding_ops > 0);
-	--m_outstanding_ops;
-	TORRENT_ASSERT(m_outstanding_ops == m_outstanding_connect
-		+ m_outstanding_timeout
-		+ m_outstanding_resolve
-		+ m_outstanding_socks);
-	if (m_abort)
-	{
-		close_impl();
-		return;
-	}
-	CHECK_MAGIC;
-	TORRENT_ASSERT(is_single_thread());
+	COMPLETE_ASYNC("socks5::hung_up");
+	m_active = false;
 
 	if (e == boost::asio::error::operation_aborted || m_abort) return;
 
 	// the socks connection was closed, re-open it
-	set_proxy_settings(m_proxy_settings);
+	start(m_proxy_settings);
 }
 
-void udp_socket::drain_queue()
+void socks5::close()
 {
-	m_queue_packets = false;
+	m_abort = true;
+	error_code ec;
+	m_socks5_sock.close(ec);
+	m_resolver.cancel();
+	m_timer.cancel();
+}
 
-	// forward all packets that were put in the queue
-	while (!m_queue.empty())
-	{
-		queued_packet const& p = m_queue.front();
-		error_code ec;
-		if (p.hostname)
-		{
-			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0]
-				, int(p.buf.size()), ec, p.flags | dont_queue);
-			free(p.hostname);
-		}
-		else
-		{
-			udp_socket::send(p.ep, &p.buf[0], int(p.buf.size()), ec, p.flags | dont_queue);
-		}
-		m_queue.pop_front();
-	}
 }
 

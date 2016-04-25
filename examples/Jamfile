@@ -32,8 +32,6 @@ exe upnp_test : upnp_test.cpp ;
 
 explicit stage_client_test ;
 explicit stage_connection_tester ;
-explicit bt-get ;
-explicit bt-get2 ;
 
 install stage_client_test : client_test : <location>. ;
 install stage_connection_tester : connection_tester : <location>. ;

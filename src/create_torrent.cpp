@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/utf8.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_to_wstring
@@ -259,6 +260,12 @@ namespace libtorrent
 		if (t.files().num_files() == 0)
 		{
 			ec = error_code(errors::no_files_in_torrent, get_libtorrent_category());
+			return;
+		}
+
+		if (t.files().total_size() == 0)
+		{
+			ec = error_code(errors::torrent_invalid_length, get_libtorrent_category());
 			return;
 		}
 
