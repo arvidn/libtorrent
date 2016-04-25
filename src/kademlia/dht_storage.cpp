@@ -228,7 +228,7 @@ namespace
 				bloom_filter<256> seeds;
 
 				for (std::set<peer_entry>::const_iterator peer_it = v.peers.begin()
-					 , end(v.peers.end()); peer_it != end; ++peer_it)
+					, end(v.peers.end()); peer_it != end; ++peer_it)
 				{
 					sha1_hash iphash;
 					hash_address(peer_it->addr.address(), iphash);

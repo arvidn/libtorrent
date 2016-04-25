@@ -1031,6 +1031,7 @@ namespace libtorrent
 				// skip the file we just put in place, so we put the pad
 				// file after it
 				++i;
+				if (i == m_files.end()) break;
 
 				// tail-padding is enabled, and the offset after this file is not
 				// aligned and it's not the last file. The last file must be padded

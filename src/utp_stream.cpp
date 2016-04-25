@@ -2111,7 +2111,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	}
 	else if (ec)
 	{
-		TORRENT_ASSERT(stack_alloced != (payload_size != 0));
+		TORRENT_ASSERT(stack_alloced != bool(payload_size != 0));
 		m_error = ec;
 		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();

@@ -5,9 +5,10 @@ os:
   - osx
 
 env:
-  - variant=test_release sim=0 coverage=1 docs=1
-  - variant=test_debug sim=1 coverage=0
-  - variant=test_barebones sim=0 coverage=0
+  - variant=test_release coverage=1 docs=1
+  - variant=test_debug sim=1
+  - variant=test_barebones
+  - analyze=1
 
 git:
   submodules: false
@@ -36,11 +37,12 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-4.8
+    - cppcheck
 
 before_install:
   - git submodule update --init --recursive
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && $docs = "1" ]]; then
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$variant" != "" ]]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$docs" = "1" ]]; then
     brew install --quiet https://raw.githubusercontent.com/catap/homebrew/docutils/Library/Formula/docutils.rb;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
@@ -54,7 +56,7 @@ before_install:
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin"; export sim="0"; fi
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc"; fi
-  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
+  - if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
     export coverage_toolset=gcc-coverage;
     pip install --user codecov;
     else
@@ -72,41 +74,75 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
-  - ccache -V && ccache --show-stats && ccache --zero-stats
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
+  - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
+  - if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
 
 script:
-# disable invoking docutils for now, until we can have a modern version of it
-  - cd docs
-  - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then make RST2HTML=rst2html.py; fi
-  - cd ..
+  - 'if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then
+    cd docs;
+    make RST2HTML=rst2html.py;
+    cd ..;
+    fi'
 
-  - cd test
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
-# if we're building with code coverage, report it as soon as possible
-  - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
-    codecov --root .. --gcov-exec gcov-4.8;
-    fi
-
-  - cd ../examples
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared bt-get bt-get2;
-  - cd ..
+# if variant is not set, we do not want to build anything
+# if we are building with code coverage, report it as soon as possible
+  - 'if [ "$variant" != "" ]; then
+      cd test;
+      bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target;
+      if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
+        codecov --root .. --gcov-exec gcov-4.8;
+      fi;
+      cd ../examples;
+      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared bt-get bt-get2;
+      cd ..;
+    fi'
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
-# as the main library, so we can't stage them to the same directory
-  - bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib
-
-  - cd bindings/python
+# as the main library, so we cannot stage them to the same directory
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
-  - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
-  - cd ../..
+  - 'if [ "$variant" != "" ]; then
+      bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib;
+      cd bindings/python;
+      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
+      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+      cd ../..;
+    fi'
 
-  - cd simulation
-  - if [ $sim = "1" ]; then
-    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
-    fi
-  - cd ..
-  - ccache --show-stats
+# simulation
+  - 'if [ "$variant" != "" ]; then
+      cd simulation;
+      if [ "$sim" == "1" ]; then
+        bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
+      fi;
+      cd ..;
+    fi'
+
+# run cppcheck if enabled
+  - 'if [[ "$analyze" == "1" ]]; then
+       if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+         cppcheck --version;
+         find src -type f | grep ".*\.cpp$" >cppcheck.files;
+         cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
+           -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
+           -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
+           -UTORRENT_DISABLE_MUTABLE_TORRENTS -UTORRENT_DISABLE_LOGGING
+           -UTORRENT_DEBUG_BUFFERS -UTORRENT_EXPORT_EXTRA
+           --suppress=preprocessorErrorDirective
+           --suppress=syntaxError
+           --template "{file}({line}): {severity} ({id}): {message}"
+           --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
+           --file-list=cppcheck.files 2> cppcheck.txt;
+         if [ -s cppcheck.txt ]; then
+           echo "   ======= CPPCHECK ERRORS =====";
+           cat cppcheck.txt;
+           exit 1;
+         fi;
+       fi;
+       if [[ $TRAVIS_OS_NAME == "osx" ]]; then
+         echo "nothing here yet";
+       fi;
+     fi'
+
+  - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 

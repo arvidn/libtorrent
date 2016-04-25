@@ -5997,10 +5997,10 @@ namespace aux {
 		if (f != NULL)
 		{
 			time_point m = min_time();
-			if (_wakeups.size() > 0) m = _wakeups[0].timestamp;
+			if (!_wakeups.empty()) m = _wakeups[0].timestamp;
 			time_point prev = m;
 			boost::uint64_t prev_csw = 0;
-			if (_wakeups.size() > 0) prev_csw = _wakeups[0].context_switches;
+			if (!_wakeups.empty()) prev_csw = _wakeups[0].context_switches;
 			fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
 			for (int i = 0; i < _wakeups.size(); ++i)
 			{

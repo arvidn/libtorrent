@@ -856,7 +856,7 @@ namespace libtorrent
 
 		bdecode_node e;
 		error_code ec;
-		if (tmp.size() == 0 || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
+		if (tmp.empty() || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw invalid_torrent_file(ec);
@@ -926,7 +926,7 @@ namespace libtorrent
 		if (ret < 0) throw invalid_torrent_file(ec);
 
 		bdecode_node e;
-		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			throw invalid_torrent_file(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
@@ -954,7 +954,7 @@ namespace libtorrent
 		if (ret < 0) throw invalid_torrent_file(ec);
 
 		bdecode_node e;
-		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			throw invalid_torrent_file(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
@@ -1019,7 +1019,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		bdecode_node e;
-		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
 
@@ -1045,7 +1045,7 @@ namespace libtorrent
 		if (ret < 0) return;
 
 		bdecode_node e;
-		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 			return;
 		parse_torrent_file(e, ec, flags);
 

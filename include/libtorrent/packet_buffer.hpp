@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "boost/cstdint.hpp"
+#include <boost/cstdint.hpp>
 #include <cstddef>
 
 namespace libtorrent
