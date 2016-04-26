@@ -651,41 +651,6 @@ namespace libtorrent
 			if (p.index == piece_pos::we_have_index)
 				++num_have;
 
-#if 0
-			if (t != 0)
-			{
-				int actual_peer_count = 0;
-				for (torrent::const_peer_iterator peer = t->begin();
-					peer != t->end(); ++peer)
-				{
-					if (peer->second->has_piece(index)) actual_peer_count++;
-				}
-
-				TORRENT_ASSERT((int)i->peer_count == actual_peer_count);
-/*
-				int num_downloaders = 0;
-				for (std::vector<peer_connection*>::const_iterator peer = t->begin();
-					peer != t->end();
-					++peer)
-				{
-					const std::vector<piece_block>& queue = (*peer)->download_queue();
-					if (std::find_if(queue.begin(), queue.end(), has_index(index)) == queue.end()) continue;
-
-					++num_downloaders;
-				}
-
-				if (i->downloading())
-				{
-					TORRENT_ASSERT(num_downloaders == 1);
-				}
-				else
-				{
-					TORRENT_ASSERT(num_downloaders == 0);
-				}
-*/
-			}
-#endif
-
 			if (p.index == piece_pos::we_have_index)
 			{
 				TORRENT_ASSERT(t == 0 || t->have_piece(index));
@@ -730,22 +695,22 @@ namespace libtorrent
 				}
 			}
 
-			int count_downloading = std::count_if(
+			int const count_downloading = std::count_if(
 				m_downloads[piece_pos::piece_downloading].begin()
 				, m_downloads[piece_pos::piece_downloading].end()
 				, has_index(index));
 
-			int count_full = std::count_if(
+			int const count_full = std::count_if(
 				m_downloads[piece_pos::piece_full].begin()
 				, m_downloads[piece_pos::piece_full].end()
 				, has_index(index));
 
-			int count_finished = std::count_if(
+			int const count_finished = std::count_if(
 				m_downloads[piece_pos::piece_finished].begin()
 				, m_downloads[piece_pos::piece_finished].end()
 				, has_index(index));
 
-			int count_zero = std::count_if(
+			int const count_zero = std::count_if(
 				m_downloads[piece_pos::piece_zero_prio].begin()
 				, m_downloads[piece_pos::piece_zero_prio].end()
 				, has_index(index));

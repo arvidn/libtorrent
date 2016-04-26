@@ -302,14 +302,14 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
+			int const num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
 			for (int i = 0; i < num_pex_timers-1; ++i)
 				m_last_pex[i] = m_last_pex[i+1];
 			m_last_pex[num_pex_timers-1] = now;
 
 			bdecode_node pex_msg;
 			error_code ec;
-			int ret = bdecode(body.begin, body.end, pex_msg, ec);
+			int const ret = bdecode(body.begin, body.end, pex_msg, ec);
 			if (ret != 0 || pex_msg.type() != bdecode_node::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_pex_message, op_bittorrent, 2);
@@ -325,7 +325,7 @@ namespace libtorrent { namespace
 #endif
 			if (p)
 			{
-				int num_peers = p.string_length() / 6;
+				int const num_peers = p.string_length() / 6;
 				char const* in = p.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
@@ -345,14 +345,14 @@ namespace libtorrent { namespace
 #endif
 			if (p && pf && pf.string_length() == p.string_length() / 6)
 			{
-				int num_peers = pf.string_length();
+				int const num_peers = pf.string_length();
 				char const* in = p.string_ptr();
 				char const* fin = pf.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
-					char flags = *fin++;
+					char const flags = *fin++;
 
 					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
 						break;
@@ -377,7 +377,7 @@ namespace libtorrent { namespace
 #endif
 			if (p6 != 0 && p6.type() == bdecode_node::string_t)
 			{
-				int num_peers = p6.string_length() / 18;
+				int const num_peers = p6.string_length() / 18;
 				char const* in = p6.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
@@ -400,14 +400,14 @@ namespace libtorrent { namespace
 				&& p6f.type() == bdecode_node::string_t
 				&& p6f.string_length() == p6.string_length() / 18)
 			{
-				int num_peers = p6f.string_length();
+				int const num_peers = p6f.string_length();
 				char const* in = p6.string_ptr();
 				char const* fin = p6f.string_ptr();
 
 				for (int i = 0; i < num_peers; ++i)
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
-					char flags = *fin++;
+					char const flags = *fin++;
 					// ignore local addresses unless the peer is local to us
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
@@ -419,7 +419,7 @@ namespace libtorrent { namespace
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
 					m_torrent.add_peer(adr, peer_info::pex, flags);
-				} 
+				}
 			}
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
@@ -438,7 +438,7 @@ namespace libtorrent { namespace
 			// no handshake yet
 			if (!m_message_index) return;
 
-			time_point now = aux::time_now();
+			time_point const now = aux::time_now();
 			if (now - seconds(60) < m_last_msg)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -449,7 +449,7 @@ namespace libtorrent { namespace
 			}
 			static time_point global_last = min_time();
 
-			int num_peers = m_torrent.num_peers();
+			int const num_peers = m_torrent.num_peers();
 			if (num_peers <= 1) return;
 
 			// don't send pex messages more often than 1 every 100 ms, and

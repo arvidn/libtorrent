@@ -79,7 +79,9 @@ struct socks5 : boost::enable_shared_from_this<socks5>
 		, m_timer(ios)
 		, m_abort(false)
 		, m_active(false)
-	{}
+	{
+		memset(m_tmp_buf, 0, sizeof(m_tmp_buf));
+	}
 
 	void start(aux::proxy_settings const& ps);
 	void close();
