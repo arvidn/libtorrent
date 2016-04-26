@@ -87,7 +87,7 @@ namespace libtorrent
 		bool c2_quota_complete = !rhs->is_choked() && c2
 			> (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
 
-		// if c2 has completed a quanta, it shuold be de-prioritized
+		// if c2 has completed a quanta, it should be de-prioritized
 		// and vice versa
 		if (c1_quota_complete < c2_quota_complete) return true;
 		if (c1_quota_complete > c2_quota_complete) return false;
@@ -174,7 +174,7 @@ namespace libtorrent
 
 		// the anti-leech seeding algorithm is based on the paper "Improving
 		// BitTorrent: A Simple Approach" from Chow et. al. and ranks peers based
-		// on how many pieces they have, prefering to unchoke peers that just
+		// on how many pieces they have, preferring to unchoke peers that just
 		// started and peers that are close to completing. Like this:
 		//   ^
 		//   | \                       / |
@@ -417,4 +417,3 @@ namespace libtorrent
 	}
 
 }
-
