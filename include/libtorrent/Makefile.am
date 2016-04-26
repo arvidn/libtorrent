@@ -5,7 +5,6 @@ nobase_include_HEADERS = \
   add_torrent_params.hpp       \
   alert.hpp                    \
   alert_manager.hpp            \
-  alert_observer.hpp           \
   alert_types.hpp              \
   alloca.hpp                   \
   allocator.hpp                \
@@ -200,4 +199,3 @@ nobase_include_HEADERS = \
   kademlia/item.hpp                 \
   kademlia/get_item.hpp             \
   kademlia/get_peers.hpp
-
