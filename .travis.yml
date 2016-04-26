@@ -40,6 +40,7 @@ addons:
     - cppcheck
 
 before_install:
+
   - git submodule update --init --recursive
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$variant" != "" ]]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$docs" = "1" ]]; then
@@ -65,6 +66,7 @@ before_install:
   - 'echo "using toolset: " ${toolset}'
 
 install:
+
   - g++-4.8 --version
   - 'echo "using gcc : : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using gcc : coverage : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
@@ -78,6 +80,7 @@ install:
   - if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
 
 script:
+
   - 'if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then
     cd docs;
     make RST2HTML=rst2html.py;
