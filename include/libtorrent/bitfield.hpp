@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	// The bitfiled type stores any number of bits as a bitfield
+	// The bitfield type stores any number of bits as a bitfield
 	// in a heap allocated array.
 	struct TORRENT_EXPORT bitfield
 	{
@@ -55,7 +55,7 @@ namespace libtorrent
 		//
 		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
 		// from the specified buffer, and ``bits`` number of bits (rounded up to
-		// the nearest byte boundry).
+		// the nearest byte boundary).
 		bitfield(): m_buf(NULL) {}
 		bitfield(int bits): m_buf(NULL)
 		{ resize(bits); }

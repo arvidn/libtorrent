@@ -474,7 +474,7 @@ public:
 	// we set our cwnd to 1 MSS. This condition can happen either because
 	// a packet has timed out and needs to be resent or because our
 	// cwnd is set to less than one MSS during congestion control.
-	// it can also happen if the other end sends an advertized window
+	// it can also happen if the other end sends an advertised window
 	// size less than one MSS.
 	time_point m_timeout;
 
@@ -1824,7 +1824,7 @@ bool utp_socket_impl::send_pkt(int flags)
 		, effective_mtu - header_size);
 
 	// if we have one MSS worth of data, make sure it fits in our
-	// congestion window and the advertized receive window from
+	// congestion window and the advertised receive window from
 	// the other end.
 	if (m_bytes_in_flight + payload_size > (std::min)(int(m_cwnd >> 16)
 		, int(m_adv_wnd - m_bytes_in_flight)))
@@ -2430,7 +2430,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 		// this means our clock is not monotonic. Just assume the RTT was 100 ms
 		rtt = 100000;
 
-		// the clock for this plaform is not monotonic!
+		// the clock for this platform is not monotonic!
 		TORRENT_ASSERT(false);
 	}
 
@@ -2548,7 +2548,7 @@ bool utp_socket_impl::consume_incoming_data(
 	{
 		// if we don't have a buffer from the upper layer, and the
 		// number of queued up bytes, waiting for the upper layer,
-		// exceeds the advertized receive window, start ignoring
+		// exceeds the advertised receive window, start ignoring
 		// more data packets
 		UTP_LOG("%8p: ERROR: our advertized window is not honored. "
 			"recv_buf: %d buffered_in: %d max_size: %d\n"
@@ -2855,7 +2855,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		// this is too far out to fit in our reorder buffer. Drop it
 		// This is either an attack to try to break the connection
-		// or a seariously damaged connection that lost a lot of
+		// or a seriously damaged connection that lost a lot of
 		// packets. Neither is very likely, and it should be OK
 		// to drop the timestamp information.
 		UTP_LOG("%8p: ERROR: incoming packet seq_nr:%d our ack_nr:%d (ignored)\n"
@@ -3194,7 +3194,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 			{
 				// we need to ack some data we received, and we didn't
 				// end up sending any payload packets in the loop
-				// above (becasue m_out_packets would have been incremented
+				// above (because m_out_packets would have been incremented
 				// in that case). This means we need to send an ack.
 				// don't do it right away, because we may still receive
 				// more packets. defer the ack to send as few acks as possible
@@ -3207,7 +3207,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 
 			if (m_state == UTP_STATE_ERROR_WAIT || m_state == UTP_STATE_DELETE) return true;
 
-			// Everything up to the FIN has been receieved, respond with a FIN
+			// Everything up to the FIN has been received, respond with a FIN
 			// from our side.
 			if (m_eof && m_ack_nr == ((m_eof_seq_nr - 1) & ACK_MASK))
 			{
@@ -3411,7 +3411,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 
 	// the portion of the in-flight bytes that were acked. This is used to make
 	// the gain factor be scaled by the rtt. The formula is applied once per
-	// rtt, or on every ACK skaled by the number of ACKs per rtt
+	// rtt, or on every ACK scaled by the number of ACKs per rtt
 	TORRENT_ASSERT(in_flight > 0);
 	TORRENT_ASSERT(acked_bytes > 0);
 
@@ -3457,7 +3457,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 			// bytes to cwnd
 			if (m_ssthres != 0 && ((m_cwnd + exponential_gain) >> 16) > m_ssthres)
 			{
-				// if we would exeed the slow start threshold by growing the cwnd
+				// if we would exceed the slow start threshold by growing the cwnd
 				// exponentially, don't do it, and leave slow-start mode. This
 				// make us avoid causing more delay and/or packet loss by being too
 				// aggressive
@@ -3767,4 +3767,3 @@ void utp_socket_impl::check_invariant() const
 }
 #endif
 }
-

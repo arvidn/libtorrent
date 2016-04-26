@@ -157,4 +157,3 @@ namespace libtorrent
 		TORRENT_ASSERT(size() == bits);
 	}
 }
-
