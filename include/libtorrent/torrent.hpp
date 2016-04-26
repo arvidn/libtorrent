@@ -432,9 +432,9 @@ namespace libtorrent
 		void bytes_done(torrent_status& st, bool accurate) const;
 		boost::int64_t quantized_bytes_done() const;
 
-		void sent_bytes(int bytes_payload, int bytes_protocol);
-		void received_bytes(int bytes_payload, int bytes_protocol);
-		void trancieve_ip_packet(int bytes, bool ipv6);
+		void sent_bytes(size_t bytes_payload, size_t bytes_protocol);
+		void received_bytes(size_t bytes_payload, size_t bytes_protocol);
+		void trancieve_ip_packet(size_t bytes, bool ipv6);
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 

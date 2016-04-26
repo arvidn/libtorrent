@@ -1052,7 +1052,7 @@ namespace libtorrent
 		m_statistics.add_stat(downloaded, uploaded);
 	}
 
-	void peer_connection::received_bytes(int bytes_payload, int bytes_protocol)
+	void peer_connection::received_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.received_bytes(bytes_payload, bytes_protocol);
@@ -1062,7 +1062,7 @@ namespace libtorrent
 		t->received_bytes(bytes_payload, bytes_protocol);
 	}
 
-	void peer_connection::sent_bytes(int bytes_payload, int bytes_protocol)
+	void peer_connection::sent_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.sent_bytes(bytes_payload, bytes_protocol);
@@ -1082,7 +1082,7 @@ namespace libtorrent
 		t->sent_bytes(bytes_payload, bytes_protocol);
 	}
 
-	void peer_connection::trancieve_ip_packet(int bytes, bool ipv6)
+	void peer_connection::trancieve_ip_packet(size_t bytes, bool ipv6)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.trancieve_ip_packet(bytes, ipv6);

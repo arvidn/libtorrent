@@ -104,7 +104,7 @@ namespace libtorrent
 		int loss_multiplier() const { return m_sett.get_int(settings_pack::utp_loss_multiplier); }
 
 		void mtu_for_dest(address const& addr, int& link_mtu, int& utp_mtu);
-		int num_sockets() const { return m_utp_sockets.size(); }
+		int num_sockets() const { return int(m_utp_sockets.size()); }
 
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);

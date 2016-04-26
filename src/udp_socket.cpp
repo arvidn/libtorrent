@@ -176,14 +176,14 @@ udp_socket::~udp_socket()
 
 int udp_socket::read(array_view<packet> pkts, error_code& ec)
 {
-	int const num = pkts.size();
+	int const num = int(pkts.size());
 	int ret = 0;
 	packet p;
 
 	while (ret < num)
 	{
-		int const len = m_socket.receive_from(boost::asio::buffer(m_buf, m_buf_size)
-			, p.from, 0, ec);
+		int const len = int(m_socket.receive_from(boost::asio::buffer(m_buf, m_buf_size)
+			, p.from, 0, ec));
 
 		if (ec == error::would_block
 			|| ec == error::try_again
@@ -340,7 +340,7 @@ void udp_socket::wrap(char const* hostname, int const port, array_view<char cons
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	int hostlen = (std::min)(strlen(hostname), size_t(255));
+	int hostlen = int((std::min)(strlen(hostname), size_t(255)));
 	write_uint8(hostlen, h); // hostname len
 	memcpy(h, hostname, hostlen);
 	h += hostlen;
@@ -366,7 +366,7 @@ bool udp_socket::unwrap(udp::endpoint& from, array_view<char>& buf)
 	using namespace libtorrent::detail;
 
 	// the minimum socks5 header size
-	int const size = buf.size();
+	int const size = int(buf.size());
 	if (size <= 10) return false;
 
 	char* p = buf.data();

@@ -431,23 +431,23 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #ifdef _GLIBCXX_USE_NOEXCEPT
 #define TORRENT_EXCEPTION_THROW_SPECIFIER _GLIBCXX_USE_NOEXCEPT
 #else
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_NOEXCEPT
-#define TORRENT_EXCEPTION_THROW_SPECIFIER throw()
-#else
+#if !defined BOOST_NO_CXX11_NOEXCEPT && (__cplusplus > 199711L || (defined _MSC_VER && _MSC_VER >= 1900)) 
 #define TORRENT_EXCEPTION_THROW_SPECIFIER noexcept
+#else
+#define TORRENT_EXCEPTION_THROW_SPECIFIER throw()
 #endif
 #endif // __GLIBC__
 
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
-#define TORRENT_FINAL
-#else
+#if !defined BOOST_NO_CXX11_FINAL && (__cplusplus > 199711L || (defined _MSC_VER && _MSC_VER >= 1700)) 
 #define TORRENT_FINAL final
+#else
+#define TORRENT_FINAL
 #endif
 
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
-#define TORRENT_OVERRIDE
-#else
+#if !defined BOOST_NO_CXX11_FINAL && (__cplusplus > 199711L || (defined _MSC_VER && _MSC_VER >= 1700)) 
 #define TORRENT_OVERRIDE override
+#else
+#define TORRENT_OVERRIDE
 #endif
 
 #ifndef TORRENT_ICONV_ARG

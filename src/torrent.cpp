@@ -10138,19 +10138,19 @@ namespace libtorrent
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	void torrent::sent_bytes(int bytes_payload, int bytes_protocol)
+	void torrent::sent_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		m_stat.sent_bytes(bytes_payload, bytes_protocol);
 		m_ses.sent_bytes(bytes_payload, bytes_protocol);
 	}
 
-	void torrent::received_bytes(int bytes_payload, int bytes_protocol)
+	void torrent::received_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		m_stat.received_bytes(bytes_payload, bytes_protocol);
 		m_ses.received_bytes(bytes_payload, bytes_protocol);
 	}
 
-	void torrent::trancieve_ip_packet(int bytes, bool ipv6)
+	void torrent::trancieve_ip_packet(size_t bytes, bool ipv6)
 	{
 		m_stat.trancieve_ip_packet(bytes, ipv6);
 		m_ses.trancieve_ip_packet(bytes, ipv6);

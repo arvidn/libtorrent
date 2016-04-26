@@ -440,7 +440,7 @@ namespace libtorrent
 
 		// called after piece data has been sent to the peer
 		// this can be used for stats book keeping
-		virtual void sent_payload(int /* bytes */) {}
+		virtual void sent_payload(size_t /* bytes */) {}
 
 		// called when libtorrent think this peer should be disconnected.
 		// if the plugin returns false, the peer will not be disconnected.
