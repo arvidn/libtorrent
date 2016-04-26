@@ -66,7 +66,6 @@ namespace libtorrent
 
 		void add(size_t count)
 		{
-			TORRENT_ASSERT(count >= 0);
 			boost::uint32_t local_count = boost::uint32_t(count); 
 			TORRENT_ASSERT(m_counter < (std::numeric_limits<boost::uint32_t>::max)() - local_count);
 			m_counter += local_count;
@@ -133,18 +132,12 @@ namespace libtorrent
 
 		void received_bytes(size_t bytes_payload, size_t bytes_protocol)
 		{
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
 			m_stat[download_payload].add(bytes_payload);
 			m_stat[download_protocol].add(bytes_protocol);
 		}
 
 		void sent_bytes(size_t bytes_payload, size_t bytes_protocol)
 		{
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
 			m_stat[upload_payload].add(bytes_payload);
 			m_stat[upload_protocol].add(bytes_protocol);
 		}
