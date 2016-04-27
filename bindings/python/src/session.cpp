@@ -101,16 +101,17 @@ namespace
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
 		list iterkeys = (list)sett_dict.keys();
-		for (int i = 0; i < boost::python::len(iterkeys); i++)
+		int const len = boost::python::len(iterkeys);
+		for (int i = 0; i < len; i++)
 		{
-			std::string key = extract<std::string>(iterkeys[i]);
+			std::string const key = extract<std::string>(iterkeys[i]);
 
 			int sett = setting_by_name(key);
-			if (sett == 0) continue;
+			if (sett < 0) continue;
 
 			TORRENT_TRY
 			{
-				object value = sett_dict[key];
+				object const value = sett_dict[key];
 				switch (sett & settings_pack::type_mask)
 				{
 					case settings_pack::string_type_base:
