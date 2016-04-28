@@ -1,3 +1,4 @@
+	* added support for BEP 32, "IPv6 extension for DHT"
 	* overhauled listen socket and UDP socket handling, improving multi-home
 	  support and bind-to-device
 	* added new read_resume_data() function, initializing add_torrent_params
@@ -101,8 +102,6 @@
 	* added support for asynchronous disk I/O
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
-	* added support for BEP 32, "IPv6 extension for DHT"
-
 	* fix division by zero in super-seeding logic
 
 1.0.9 release
