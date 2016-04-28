@@ -64,14 +64,13 @@ namespace libtorrent
 			m_total_counter += s.m_counter;
 		}
 
-		void add(int count)
+		void add(size_t count)
 		{
-			TORRENT_ASSERT(count >= 0);
-
-			TORRENT_ASSERT(m_counter < (std::numeric_limits<boost::uint32_t>::max)() - count);
-			m_counter += count;
-			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<boost::uint64_t>::max)() - count);
-			m_total_counter += count;
+			boost::uint32_t local_count = boost::uint32_t(count); 
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<boost::uint32_t>::max)() - local_count);
+			m_counter += local_count;
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<boost::uint64_t>::max)() - local_count);
+			m_total_counter += local_count;
 		}
 
 		// should be called once every second
@@ -102,6 +101,7 @@ namespace libtorrent
 		boost::uint64_t m_total_counter;
 
 		// the accumulator for this second.
+		// size_t candidate?
 		boost::uint32_t m_counter;
 
 		// sliding average
@@ -130,36 +130,30 @@ namespace libtorrent
 			m_stat[upload_ip_protocol].add(ipv6 ? 60 : 40);
 		}
 
-		void received_bytes(int bytes_payload, int bytes_protocol)
+		void received_bytes(size_t bytes_payload, size_t bytes_protocol)
 		{
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
 			m_stat[download_payload].add(bytes_payload);
 			m_stat[download_protocol].add(bytes_protocol);
 		}
 
-		void sent_bytes(int bytes_payload, int bytes_protocol)
+		void sent_bytes(size_t bytes_payload, size_t bytes_protocol)
 		{
-			TORRENT_ASSERT(bytes_payload >= 0);
-			TORRENT_ASSERT(bytes_protocol >= 0);
-
 			m_stat[upload_payload].add(bytes_payload);
 			m_stat[upload_protocol].add(bytes_protocol);
 		}
 
 		// and IP packet was received or sent
 		// account for the overhead caused by it
-		void trancieve_ip_packet(int bytes_transferred, bool ipv6)
+		void trancieve_ip_packet(size_t bytes_transferred, bool ipv6)
 		{
 			// one TCP/IP packet header for the packet
 			// sent or received, and one for the ACK
 			// The IPv4 header is 20 bytes
 			// and IPv6 header is 40 bytes
-			const int header = (ipv6 ? 40 : 20) + 20;
-			const int mtu = 1500;
-			const int packet_size = mtu - header;
-			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
+			const size_t header = (ipv6 ? 40 : 20) + 20;
+			const size_t mtu = 1500;
+			const size_t packet_size = mtu - header;
+			const size_t overhead = (std::max)(size_t(1), (bytes_transferred + packet_size - 1) / packet_size) * header;
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
 		}

@@ -271,9 +271,9 @@ namespace libtorrent { namespace aux
 
 		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
 
-		virtual void sent_bytes(int bytes_payload, int bytes_protocol) = 0;
-		virtual void received_bytes(int bytes_payload, int bytes_protocol) = 0;
-		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
+		virtual void sent_bytes(size_t bytes_payload, size_t bytes_protocol) = 0;
+		virtual void received_bytes(size_t bytes_payload, size_t bytes_protocol) = 0;
+		virtual void trancieve_ip_packet(size_t bytes, bool ipv6) = 0;
 		virtual void sent_syn(bool ipv6) = 0;
 		virtual void received_synack(bool ipv6) = 0;
 

@@ -177,12 +177,12 @@ namespace libtorrent
 		close();
 	}
 
-	void tracker_connection::sent_bytes(int bytes)
+	void tracker_connection::sent_bytes(size_t bytes)
 	{
 		m_man.sent_bytes(bytes);
 	}
 
-	void tracker_connection::received_bytes(int bytes)
+	void tracker_connection::received_bytes(size_t bytes)
 	{
 		m_man.received_bytes(bytes);
 	}
@@ -219,13 +219,13 @@ namespace libtorrent
 		abort_all_requests(true);
 	}
 
-	void tracker_manager::sent_bytes(int bytes)
+	void tracker_manager::sent_bytes(size_t bytes)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_stats_counters.inc_stats_counter(counters::sent_tracker_bytes, bytes);
 	}
 
-	void tracker_manager::received_bytes(int bytes)
+	void tracker_manager::received_bytes(size_t bytes)
 	{
 		TORRENT_ASSERT(m_ses.is_single_thread());
 		m_stats_counters.inc_stats_counter(counters::recv_tracker_bytes, bytes);
@@ -464,6 +464,6 @@ namespace libtorrent
 	int tracker_manager::num_requests() const
 	{
 		mutex::scoped_lock l(m_mutex);
-		return m_http_conns.size() + m_udp_conns.size();
+		return int(m_http_conns.size() + m_udp_conns.size());
 	}
 }

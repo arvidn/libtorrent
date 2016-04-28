@@ -2419,7 +2419,7 @@ namespace aux {
 				}
 
 				char* buf = packet.data.data();
-				int const len = packet.data.size();
+				int const len = int(packet.data.size());
 
 				// give the uTP socket manager first dis on the packet. Presumably
 				// the majority of packets are uTP packets.
@@ -3072,17 +3072,17 @@ namespace aux {
 	}
 #endif
 
-	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
+	void session_impl::sent_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		m_stats_counters.inc_stats_counter(counters::sent_bytes
 			, bytes_payload + bytes_protocol);
 		m_stats_counters.inc_stats_counter(counters::sent_payload_bytes
 			, bytes_payload);
 
-		m_stat.sent_bytes(bytes_payload, bytes_protocol);
+		m_stat.sent_bytes(int(bytes_payload), bytes_protocol);
 	}
 
-	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
+	void session_impl::received_bytes(size_t bytes_payload, size_t bytes_protocol)
 	{
 		m_stats_counters.inc_stats_counter(counters::recv_bytes
 			, bytes_payload + bytes_protocol);
@@ -3092,7 +3092,7 @@ namespace aux {
 		m_stat.received_bytes(bytes_payload, bytes_protocol);
 	}
 
-	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
+	void session_impl::trancieve_ip_packet(size_t bytes, bool ipv6)
 	{
 		m_stat.trancieve_ip_packet(bytes, ipv6);
 	}

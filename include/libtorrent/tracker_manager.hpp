@@ -313,8 +313,8 @@ namespace libtorrent
 		virtual void start() = 0;
 		virtual void close();
 		address const& bind_interface() const { return m_req.bind_ip; }
-		void sent_bytes(int bytes);
-		void received_bytes(int bytes);
+		void sent_bytes(size_t bytes);
+		void received_bytes(size_t bytes);
 		virtual bool on_receive(udp::endpoint const&
 			, char const* /* buf */, int /* size */) { return false; }
 		virtual bool on_receive_hostname(char const* /* hostname */
@@ -374,8 +374,8 @@ namespace libtorrent
 		bool empty() const;
 		int num_requests() const;
 
-		void sent_bytes(int bytes);
-		void received_bytes(int bytes);
+		void sent_bytes(size_t bytes);
+		void received_bytes(size_t bytes);
 
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
 		bool incoming_packet(udp::endpoint const& ep, char const* buf, int size);
