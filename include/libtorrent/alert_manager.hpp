@@ -58,9 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-// used for emplace_alert() variadic template emulation for c++98
-#define TORRENT_ALERT_MANAGER_MAX_ARITY 7
-
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -73,8 +70,6 @@ namespace libtorrent {
 		alert_manager(int queue_limit
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
-
-#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
 
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args)
@@ -95,19 +90,11 @@ namespace libtorrent {
 				* (1 + T::priority))
 				return;
 
-			T alert(m_allocations[m_generation], std::forward<Args>(args)...);
-			m_alerts[m_generation].push_back(alert);
+			T& alert = m_alerts[m_generation].emplace_back<T>(
+				m_allocations[m_generation], std::forward<Args>(args)...);
 
 			maybe_notify(&alert, lock);
 		}
-
-#else
-
-// emulate variadic templates for c++98
-
-#include "libtorrent/aux_/alert_manager_variadic_emplace.hpp"
-
-#endif
 
 		bool pending() const;
 		void get_all(std::vector<alert*>& alerts);
