@@ -451,26 +451,6 @@ namespace libtorrent
 		// once we want to calculate the piece hash
 		bool dont_flush_write_cache;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// defaults to 0. If set to something greater than 0, the disk read cache
-		// will not be evicted by cache misses and will explicitly be controlled
-		// based on the rarity of pieces. Rare pieces are more likely to be
-		// cached. This would typically be used together with ``suggest_mode``
-		// set to ``suggest_read_cache``. The value is the number of pieces to
-		// keep in the read cache. If the actual read cache can't fit as many, it
-		// will essentially be clamped.
-		bool explicit_read_cache;
-
-		// the number of seconds in between each refresh of a part of the
-		// explicit read cache. Torrents take turns in refreshing and this is the
-		// time in between each torrent refresh. Refreshing a torrent's explicit
-		// read cache means scanning all pieces and picking a random set of the
-		// rarest ones. There is an affinity to pick pieces that are already in
-		// the cache, so that subsequent refreshes only swaps in pieces that are
-		// rarer than whatever is in the cache at the time.
-		int explicit_cache_interval;
-#endif
-
 		// the buffer modes to use for reading and writing. Set
 		// session_settings::disk_io_read_mode and disk_io_write_mode to one of
 		// these.

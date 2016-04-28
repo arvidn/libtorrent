@@ -942,20 +942,6 @@ namespace libtorrent
 			cache_buffer_chunk_size,
 			cache_expiry,
 
-#ifndef TORRENT_NO_DEPRECATE
-			// ``explicit_cache_interval`` is the number of seconds in between
-			// each refresh of a part of the explicit read cache. Torrents take
-			// turns in refreshing and this is the time in between each torrent
-			// refresh. Refreshing a torrent's explicit read cache means scanning
-			// all pieces and picking a random set of the rarest ones. There is an
-			// affinity to pick pieces that are already in the cache, so that
-			// subsequent refreshes only swaps in pieces that are rarer than
-			// whatever is in the cache at the time.
-			explicit_cache_interval,
-#else
-			deprecated13,
-#endif
-
 			// determines how files are opened when they're in read only mode
 			// versus read and write mode. The options are:
 			// 

@@ -655,10 +655,6 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
-#ifndef TORRENT_NO_DEPRECATE
-		void refresh_explicit_cache(int cache_size);
-#endif
-
 		void add_suggest_piece(int piece);
 		void update_suggest_piece(int index, int change);
 		void update_auto_sequential();
@@ -1134,8 +1130,6 @@ namespace libtorrent
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel, bool state_update = true);
 		int limit_impl(int channel) const;
-
-		void refresh_explicit_cache_impl(disk_io_job const* j, int cache_size);
 
 		int prioritize_tracker(int tracker_index);
 		int deprioritize_tracker(int tracker_index);

@@ -956,17 +956,6 @@ namespace libtorrent
 			// torrents.
 			int m_auto_scrape_time_scaler;
 
-#ifndef TORRENT_NO_DEPRECATE
-			// the index of the torrent that we'll
-			// refresh the next time
-			int m_next_explicit_cache_torrent;
-
-			// this is a counter of the number of seconds until
-			// the next time the read cache is rotated, if we're
-			// using an explicit read read cache.
-			int m_cache_rotation_timer;
-#endif
-
 			// the index of the torrent that we'll
 			// refresh the next time
 			int m_next_suggest_torrent;

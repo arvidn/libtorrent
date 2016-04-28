@@ -308,32 +308,6 @@ TORRENT_TEST(stop_start_seed_graceful)
 	test_stop_start_download(swarm_test::upload, true);
 }
 
-TORRENT_TEST(explicit_cache)
-{
-	setup_swarm(2, swarm_test::download
-		// add session
-		, [](lt::settings_pack& pack) {
-			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
-			pack.set_bool(settings_pack::explicit_read_cache, true);
-			pack.set_int(settings_pack::explicit_cache_interval, 5);
-		}
-		// add torrent
-		, [](lt::add_torrent_params& params) {}
-		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
-		// terminate
-		, [](int ticks, lt::session& ses) -> bool
-		{
-			if (ticks > 80)
-			{
-				TEST_ERROR("timeout");
-				return true;
-			}
-			if (!is_seed(ses)) return false;
-			return true;
-		});
-}
-
 TORRENT_TEST(shutdown)
 {
 	setup_swarm(2, swarm_test::download
