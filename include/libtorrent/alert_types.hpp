@@ -46,10 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/performance_counters.hpp"
-
-#ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/rss.hpp" // for feed_handle
-#endif
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
@@ -1702,54 +1698,6 @@ namespace libtorrent
 		virtual std::string message() const TORRENT_OVERRIDE;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
-	// This alert is posted on RSS feed events such as start of RSS feed updates,
-	// successful completed updates and errors during updates.
-	// 
-	// This alert is only posted if the ``rss_notifications`` category is enabled
-	// in the alert_mask.
-	struct TORRENT_DEPRECATED TORRENT_EXPORT rss_alert TORRENT_FINAL : alert
-	{
-		// internal
-		rss_alert(aux::stack_allocator& alloc, feed_handle h
-			, std::string const& u, int s, error_code const& ec);
-
-		TORRENT_DEFINE_ALERT(rss_alert, 63)
-
-		static const int static_category = alert::rss_notification;
-		virtual std::string message() const TORRENT_OVERRIDE;
-
-		enum state_t
-		{
-			// An update of this feed was just initiated, it will either succeed
-			// or fail soon.
-			state_updating,
-
-			// The feed just completed a successful update, there may be new items
-			// in it. If you're adding torrents manually, you may want to request
-			// the feed status of the feed and look through the ``items`` vector.
-			state_updated,
-
-			// An error just occurred. See the ``error`` field for information on
-			// what went wrong.
-			state_error
-		};
-
-		// the handle to the feed which generated this alert.
-		feed_handle handle;
-
-		// a short cut to access the url of the feed, without
-		// having to call feed_handle::get_settings().
-		std::string url;
-
-		// one of the values from rss_alert::state_t.
-		int state;
-
-		// an error code used for when an error occurs on the feed.
-		error_code error;
-	};
-#endif // TORRENT_NO_DEPRECATE
-
 	// This is posted whenever a torrent is transitioned into the error state.
 	struct TORRENT_EXPORT torrent_error_alert TORRENT_FINAL : torrent_alert
 	{
@@ -1937,26 +1885,6 @@ namespace libtorrent
 		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
 		sha1_hash old_ih;
 		sha1_hash new_ih;
-	};
-
-	// This alert is posted every time a new RSS item (i.e. torrent) is received
-	// from an RSS feed.
-	// 
-	// It is only posted if the ``rss_notifications`` category is enabled in the
-	// alert_mask.
-	struct TORRENT_EXPORT rss_item_alert TORRENT_FINAL : alert
-	{
-		// internal
-		rss_item_alert(aux::stack_allocator& alloc, feed_handle h
-			, feed_item const& item);
-
-		TORRENT_DEFINE_ALERT(rss_item_alert, 72)
-
-		static const int static_category = alert::rss_notification;
-		virtual std::string message() const TORRENT_OVERRIDE;
-
-		feed_handle handle;
-		feed_item item;
 	};
 #endif
 

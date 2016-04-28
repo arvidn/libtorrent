@@ -483,10 +483,6 @@ namespace libtorrent
 		// items which has UUIDs specified.
 		std::string uuid;
 
-		// should point to the URL of the RSS feed this torrent comes from, if it
-		// comes from an RSS feed.
-		std::string source_feed_url;
-
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
 		// from a running torrent by calling save_resume_data() on

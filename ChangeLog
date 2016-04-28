@@ -1,3 +1,4 @@
+	* removed RSS support
 	* removed feature to resolve country for peers
 	* added support for BEP 32, "IPv6 extension for DHT"
 	* overhauled listen socket and UDP socket handling, improving multi-home

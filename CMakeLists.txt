@@ -66,7 +66,6 @@ set(sources
 	request_blocks
 	resolve_links
 	resolver
-	rss
 	session
 	session_call
 	session_handle

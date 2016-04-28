@@ -108,7 +108,6 @@ libtorrent_rasterbar_la_SOURCES = \
   request_blocks.cpp              \
   resolve_links.cpp               \
   resolver.cpp                    \
-  rss.cpp                         \
   session.cpp                     \
   session_call.cpp                \
   session_handle.cpp              \

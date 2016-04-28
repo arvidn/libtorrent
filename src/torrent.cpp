@@ -200,7 +200,6 @@ namespace libtorrent
 		// deprecated in 1.2
 		, m_url(p.url)
 		, m_uuid(p.uuid)
-		, m_source_feed_url(p.source_feed_url)
 #endif
 		, m_stats_counters(ses.stats_counters())
 		, m_storage_constructor(p.storage)
@@ -494,8 +493,6 @@ namespace libtorrent
 				t->set_uuid(m_uuid);
 			if (!m_url.empty() && t->url().empty())
 				t->set_url(m_url);
-			if (!m_source_feed_url.empty() && t->source_feed_url().empty())
-				t->set_source_feed_url(m_source_feed_url);
 
 			// insert this torrent in the uuid index
 			if (!m_uuid.empty() || !m_url.empty())
@@ -6490,7 +6487,6 @@ namespace libtorrent
 		// deprecated in 1.2
 		if (!m_url.empty()) ret["url"] = m_url;
 		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
-		if (!m_source_feed_url.empty()) ret["feed"] = m_source_feed_url;
 #endif
 
 		const sha1_hash& info_hash = torrent_file().info_hash();

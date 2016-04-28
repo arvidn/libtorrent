@@ -45,10 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
-#ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/rss.hpp"
-#endif
-
 namespace libtorrent
 {
 	struct plugin;
@@ -97,8 +93,6 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			,
 			save_as_map =       0x040,
-			// saves RSS feeds
-			save_feeds =        0x080,
 			save_proxy =        0x008,
 			save_i2p_proxy =    0x010,
 			save_dht_proxy = save_proxy,
@@ -305,28 +299,6 @@ namespace libtorrent
 		void get_cache_info(cache_status* ret, torrent_handle h = torrent_handle(), int flags = 0) const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// This adds an RSS feed to the session. The feed will be refreshed
-		// regularly and optionally add all torrents from the feed, as they
-		// appear.
-		//
-		// Before adding the feed, you must set the ``url`` field to the feed's
-		// url. It may point to an RSS or an atom feed. The returned feed_handle
-		// is a handle which is used to interact with the feed, things like
-		// forcing a refresh or querying for information about the items in the
-		// feed. For more information, see feed_handle.
-		TORRENT_DEPRECATED
-		feed_handle add_feed(feed_settings const& feed);
-
-		// Removes a feed from being watched by the session. When this
-		// call returns, the feed handle is invalid and won't refer
-		// to any feed.
-		TORRENT_DEPRECATED
-		void remove_feed(feed_handle h);
-
-		// Returns a list of all RSS feeds that are being watched by the session.
-		TORRENT_DEPRECATED
-		void get_feeds(std::vector<feed_handle>& f) const;
-
 		// ``start_dht`` starts the dht node and makes the trackerless service
 		// available to torrents.
 		//

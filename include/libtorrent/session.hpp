@@ -54,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/rss.hpp"
 #include "libtorrent/fingerprint.hpp"
 #endif
 
