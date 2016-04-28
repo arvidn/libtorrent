@@ -669,18 +669,6 @@ namespace libtorrent
 			, void* userdata = NULL, block_cache_reference ref
 			= block_cache_reference());
 
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		void set_country(char const* c)
-		{
-			TORRENT_ASSERT(strlen(c) == 2);
-			m_country[0] = c[0];
-			m_country[1] = c[1];
-		}
-		bool has_country() const { return m_country[0] != 0; }
-#endif
-#endif // TORRENT_NO_DEPRECATE
-
 		int outstanding_bytes() const { return m_outstanding_bytes; }
 
 		int send_buffer_size() const
@@ -1114,16 +1102,6 @@ namespace libtorrent
 		// at the remote end.
 		// TODO: 2 rename this target queue size
 		boost::uint16_t m_desired_queue_size;
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		// in case the session settings is set
-		// to resolve countries, this is set to
-		// the two character country code this
-		// peer resides in.
-		char m_country[2];
-#endif
-#endif // TORRENT_NO_DEPRECATE
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.

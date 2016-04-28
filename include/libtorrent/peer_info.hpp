@@ -399,19 +399,6 @@ namespace libtorrent
 		char write_state;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// country code deprecated in 1.1
-
-		// the two letter `ISO 3166 country code`__ for the country the peer is
-		// connected from. If the country hasn't been resolved yet, both chars
-		// are set to 0. If the resolution failed for some reason, the field is
-		// set to "--". If the resolution service returns an invalid country
-		// code, it is set to "!!". The ``countries.nerd.dk`` service is used to
-		// look up countries. This field will remain set to 0 unless the torrent
-		// is set to resolve countries, see `resolve_countries()`_.
-		// 
-		// __ http://www.iso.org/iso/en/prods-services/iso3166ma/02iso-3166-code-lists/list-en1.html
-		char country[2];
-
 		// the number of bytes per second we are allowed to send to or receive
 		// from this peer. It may be -1 if there's no local limit on the peer.
 		// The global limit and the torrent limit may also be enforced.

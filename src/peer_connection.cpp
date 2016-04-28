@@ -218,11 +218,6 @@ namespace libtorrent
 		m_quota[1] = 0;
 
 		TORRENT_ASSERT(pack.peerinfo == 0 || pack.peerinfo->banned == false);
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		std::fill(m_country, m_country + 2, 0);
-#endif
-#endif // TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
@@ -4410,15 +4405,6 @@ namespace libtorrent
 
 		p.download_queue_time = download_queue_time();
 		p.queue_bytes = m_outstanding_bytes;
-
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		p.country[0] = m_country[0];
-		p.country[1] = m_country[1];
-#else
-		std::fill(p.country, p.country + 2, 0);
-#endif
-#endif // TORRENT_NO_DEPRECATE
 
 		p.total_download = statistics().total_payload_download();
 		p.total_upload = statistics().total_payload_upload();
