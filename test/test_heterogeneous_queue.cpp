@@ -138,24 +138,24 @@ private:
 	F& operator=(F const& f);
 };
 
-// test push_back of heterogeneous types
+// test emplace_back of heterogeneous types
 // and retrieval of their pointers
-TORRENT_TEST(push_back)
+TORRENT_TEST(emplace_back)
 {
 	using namespace libtorrent;
 
 	heterogeneous_queue<A> q;
-	q.push_back(B(0, 1));
+	q.emplace_back<B>(0, 1);
 	TEST_EQUAL(q.size(), 1);
-	q.push_back(B(2, 3));
+	q.emplace_back<B>(2, 3);
 	TEST_EQUAL(q.size(), 2);
-	q.push_back(B(4, 5));
+	q.emplace_back<B>(4, 5);
 	TEST_EQUAL(q.size(), 3);
-	q.push_back(C(6, 7));
+	q.emplace_back<C>(6, 7);
 	TEST_EQUAL(q.size(), 4);
-	q.push_back(C(8, 9));
+	q.emplace_back<C>(8, 9);
 	TEST_EQUAL(q.size(), 5);
-	q.push_back(C(10, 11));
+	q.emplace_back<C>(10, 11);
 	TEST_EQUAL(q.size(), 6);
 
 	std::vector<A*> ptrs;
@@ -196,13 +196,13 @@ TORRENT_TEST(swap)
 	heterogeneous_queue<A> q1;
 	heterogeneous_queue<A> q2;
 
-	q1.push_back(B(0, 1));
-	q1.push_back(B(2, 3));
-	q1.push_back(B(4, 5));
+	q1.emplace_back<B>(0, 1);
+	q1.emplace_back<B>(2, 3);
+	q1.emplace_back<B>(4, 5);
 	TEST_EQUAL(q1.size(), 3);
 
-	q2.push_back(C(6, 7));
-	q2.push_back(C(8, 9));
+	q2.emplace_back<C>(6, 7);
+	q2.emplace_back<C>(8, 9);
 	TEST_EQUAL(q2.size(), 2);
 
 	std::vector<A*> ptrs;
@@ -245,13 +245,13 @@ TORRENT_TEST(destruction)
 	heterogeneous_queue<D> q;
 	TEST_EQUAL(D::instances, 0);
 
-	q.push_back(D());
+	q.emplace_back<D>();
 	TEST_EQUAL(D::instances, 1);
-	q.push_back(D());
+	q.emplace_back<D>();
 	TEST_EQUAL(D::instances, 2);
-	q.push_back(D());
+	q.emplace_back<D>();
 	TEST_EQUAL(D::instances, 3);
-	q.push_back(D());
+	q.emplace_back<D>();
 	TEST_EQUAL(D::instances, 4);
 
 	q.clear();
@@ -269,7 +269,7 @@ TORRENT_TEST(copy_move)
 	// make sure the queue has to grow at some point, to exercise its
 	// copy/move of elements
 	for (int i = 0; i < 1000; ++i)
-		q.push_back(F(i));
+		q.emplace_back<F>(i);
 
 	std::vector<F*> ptrs;
 	q.get_pointers(ptrs);
@@ -293,7 +293,7 @@ TORRENT_TEST(nontrivial)
 	heterogeneous_queue<E> q;
 	for (int i = 0; i < 10000; ++i)
 	{
-		q.push_back(E("testing to allocate non-trivial objects"));
+		q.emplace_back<E>("testing to allocate non-trivial objects");
 	}
 }
 

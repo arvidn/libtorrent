@@ -53,10 +53,9 @@ namespace libtorrent {
 			, m_num_items(0)
 		{}
 
-		// TODO: 2 add emplace_back() version
-		template <class U>
-		typename boost::enable_if<boost::is_base_of<T, U> >::type
-		push_back(U const& a)
+		template <class U, typename... Args>
+		typename boost::enable_if<boost::is_base_of<T, U>, U&>::type
+		emplace_back(Args&&... args)
 		{
 			// the size of the type rounded up to pointer alignment
 			const int object_size = (sizeof(U) + sizeof(*m_storage) - 1)
@@ -75,12 +74,13 @@ namespace libtorrent {
 			ptr += header_size;
 
 			// construct in-place
-			new (ptr) U(a);
+			new (ptr) U(std::forward<Args>(args)...);
 
 			// if we constructed the object without throwing any exception
 			// update counters to indicate the new item is in there
 			++m_num_items;
 			m_size += header_size + object_size;
+			return *reinterpret_cast<U*>(ptr);
 		}
 
 		void get_pointers(std::vector<T*>& out)
