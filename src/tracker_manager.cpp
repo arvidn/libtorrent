@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/io.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 using boost::tuples::make_tuple;
 using boost::tuples::tuple;
@@ -118,7 +120,7 @@ namespace libtorrent
 		time_point now = clock_type::now();
 		time_duration receive_timeout = now - m_read_time;
 		time_duration completion_timeout = now - m_start_time;
-		
+
 		if ((m_read_timeout
 				&& m_read_timeout <= total_seconds(receive_timeout))
 			|| (m_completion_timeout
@@ -312,40 +314,40 @@ namespace libtorrent
 	}
 
 	bool tracker_manager::incoming_packet(udp::endpoint const& ep
-		, char const* buf, int size)
+		, aux::array_view<char const> const buf)
 	{
 		// ignore packets smaller than 8 bytes
-		if (size < 8)
+		if (buf.size() < 8)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_ses.session_log("incoming packet from %s, not a UDP tracker message "
-				"(%d Bytes)", print_endpoint(ep).c_str(), size);
+				"(%d Bytes)", print_endpoint(ep).c_str(), int(buf.size()));
 #endif
 			return false;
 		}
 
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
-		const char* ptr = buf;
-		boost::uint32_t action = detail::read_uint32(ptr);
+		aux::array_view<const char> ptr = buf;
+		boost::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
-		boost::uint32_t transaction = detail::read_uint32(ptr);
-		udp_conns_t::iterator i = m_udp_conns.find(transaction);
+		boost::uint32_t const transaction = aux::read_uint32(ptr);
+		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
-				"transaction ID (%" PRIu32 ")", print_endpoint(ep).c_str()
+				"transaction ID (%x)", print_endpoint(ep).c_str()
 				, transaction);
 #endif
 			return false;
 		}
 
-		boost::shared_ptr<tracker_connection> p = i->second;
+		boost::shared_ptr<udp_tracker_connection> const p = i->second;
 		// on_receive() may remove the tracker connection from the list
-		return p->on_receive(ep, buf, size);
+		return p->on_receive(ep, buf);
 	}
 
 	void tracker_manager::incoming_error(error_code const& ec
@@ -357,19 +359,19 @@ namespace libtorrent
 	}
 
 	bool tracker_manager::incoming_packet(char const* hostname
-		, char const* buf, int size)
+		, aux::array_view<char const> const buf)
 	{
 		// ignore packets smaller than 8 bytes
-		if (size < 16) return false;
+		if (buf.size() < 16) return false;
 
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
-		const char* ptr = buf;
-		boost::uint32_t action = detail::read_uint32(ptr);
+		aux::array_view<const char> ptr = buf;
+		boost::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
-		boost::uint32_t transaction = detail::read_uint32(ptr);
-		udp_conns_t::iterator i = m_udp_conns.find(transaction);
+		boost::uint32_t const transaction = aux::read_uint32(ptr);
+		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
 		{
@@ -382,9 +384,9 @@ namespace libtorrent
 			return false;
 		}
 
-		boost::shared_ptr<tracker_connection> p = i->second;
+		boost::shared_ptr<udp_tracker_connection> const p = i->second;
 		// on_receive() may remove the tracker connection from the list
-		return p->on_receive_hostname(hostname, buf, size);
+		return p->on_receive_hostname(hostname, buf);
 	}
 
 	void tracker_manager::send_hostname(char const* hostname, int const port
@@ -454,7 +456,7 @@ namespace libtorrent
 			(*i)->close();
 		}
 	}
-	
+
 	bool tracker_manager::empty() const
 	{
 		mutex::scoped_lock l(m_mutex);

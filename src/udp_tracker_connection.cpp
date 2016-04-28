@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/io.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -96,7 +98,7 @@ namespace libtorrent
 			tracker_connection::fail(ec);
 			return;
 		}
-		
+
 		aux::session_settings const& settings = m_man.settings();
 
 		if (settings.get_bool(settings_pack::proxy_hostnames)
@@ -320,18 +322,18 @@ namespace libtorrent
 	}
 
 	bool udp_tracker_connection::on_receive_hostname(char const* hostname
-		, char const* buf, int size)
+		, aux::array_view<char const> buf)
 	{
 		TORRENT_UNUSED(hostname);
 		// just ignore the hostname this came from, pretend that
 		// it's from the same endpoint we sent it to (i.e. the same
 		// port). We have so many other ways of confirming this packet
 		// comes from the tracker anyway, so it's not a big deal
-		return on_receive(m_target, buf, size);
+		return on_receive(m_target, buf);
 	}
 
 	bool udp_tracker_connection::on_receive(udp::endpoint const& ep
-		, char const* buf, int const size)
+		, aux::array_view<char const> const buf)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -370,15 +372,16 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]", size);
+		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]"
+			, int(buf.size()));
 #endif
 
 		// ignore packets smaller than 8 bytes
-		if (size < 8) return false;
+		if (buf.size() < 8) return false;
 
-		const char* ptr = buf;
-		int action = detail::read_int32(ptr);
-		boost::uint32_t transaction = detail::read_uint32(ptr);
+		aux::array_view<const char> ptr = buf;
+		int const action = read_int32(ptr);
+		boost::uint32_t const transaction = read_uint32(ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
@@ -396,7 +399,8 @@ namespace libtorrent
 
 		if (action == action_error)
 		{
-			fail(error_code(errors::tracker_failure), -1, std::string(ptr, size - 8).c_str());
+			fail(error_code(errors::tracker_failure), -1
+				, std::string(buf.data(), buf.size()).c_str());
 			return true;
 		}
 
@@ -421,11 +425,11 @@ namespace libtorrent
 		switch (m_state)
 		{
 			case action_connect:
-				return on_connect_response(buf, size);
+				return on_connect_response(buf);
 			case action_announce:
-				return on_announce_response(buf, size);
+				return on_announce_response(buf);
 			case action_scrape:
-				return on_scrape_response(buf, size);
+				return on_scrape_response(buf);
 			default: break;
 		}
 		return false;
@@ -445,17 +449,19 @@ namespace libtorrent
 		m_transaction_id = new_tid;
 	}
 
-	bool udp_tracker_connection::on_connect_response(char const* buf, int size)
+	bool udp_tracker_connection::on_connect_response(aux::array_view<char const> buf)
 	{
 		// ignore packets smaller than 16 bytes
-		if (size < 16) return false;
+		if (buf.size() < 16) return false;
 
 		restart_read_timeout();
-		buf += 8; // skip header
+
+		// skip header
+		buf = buf.cut_first(8);
 
 		// reset transaction
 		update_transaction_id();
-		boost::uint64_t connection_id = detail::read_int64(buf);
+		boost::uint64_t const connection_id = read_int64(buf);
 
 		mutex::scoped_lock l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
@@ -484,26 +490,26 @@ namespace libtorrent
 		}
 
 		char buf[16];
-		char* ptr = buf;
+		aux::array_view<char> view = buf;
 
 		TORRENT_ASSERT(m_transaction_id != 0);
 
-		detail::write_uint32(0x417, ptr);
-		detail::write_uint32(0x27101980, ptr); // connection_id
-		detail::write_int32(action_connect, ptr); // action (connect)
-		detail::write_int32(m_transaction_id, ptr); // transaction_id
-		TORRENT_ASSERT(ptr - buf == sizeof(buf));
+		aux::write_uint32(0x417, view);
+		aux::write_uint32(0x27101980, view); // connection_id
+		aux::write_int32(action_connect, view); // action (connect)
+		aux::write_int32(m_transaction_id, view); // transaction_id
+		TORRENT_ASSERT(view.size() == 0);
 
 		error_code ec;
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(m_hostname.c_str()
-				, m_target.port(), aux::array_view<char const>(buf, 16), ec
+				, m_target.port(), buf, ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, aux::array_view<char const>(buf, 16), ec
+			m_man.send(m_target, buf, ec
 				, udp_socket::tracker_connection);
 		}
 
@@ -546,27 +552,27 @@ namespace libtorrent
 		if (i == m_connection_cache.end()) return;
 
 		char buf[8 + 4 + 4 + 20];
-		char* out = buf;
+		aux::array_view<char> view = buf;
 
-		detail::write_int64(i->second.connection_id, out); // connection_id
-		detail::write_int32(action_scrape, out); // action (scrape)
-		detail::write_int32(m_transaction_id, out); // transaction_id
+		aux::write_int64(i->second.connection_id, view); // connection_id
+		aux::write_int32(action_scrape, view); // action (scrape)
+		aux::write_int32(m_transaction_id, view); // transaction_id
 		// info_hash
-		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end(), out);
+		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
+			, view.data());
 #if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
-		out += 20;
-		TORRENT_ASSERT(out - buf == sizeof(buf));
+		TORRENT_ASSERT(view.size() == 20);
 #endif
 
 		error_code ec;
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(m_hostname.c_str(), m_target.port()
-				, aux::array_view<char const>(buf), ec, udp_socket::tracker_connection);
+				, buf, ec, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, aux::array_view<char const>(buf), ec
+			m_man.send(m_target, buf, ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_scrape;
@@ -579,21 +585,21 @@ namespace libtorrent
 		}
 	}
 
-	bool udp_tracker_connection::on_announce_response(char const* buf, int size)
+	bool udp_tracker_connection::on_announce_response(aux::array_view<char const> buf)
 	{
-		if (size < 20) return false;
+		if (buf.size() < 20) return false;
 
-		buf += 8; // skip header
+		buf = buf.cut_first(8);
 		restart_read_timeout();
 
 		tracker_response resp;
 
-		resp.interval = detail::read_int32(buf);
+		resp.interval = aux::read_int32(buf);
 		resp.min_interval = 60;
-		resp.incomplete = detail::read_int32(buf);
-		resp.complete = detail::read_int32(buf);
-		int num_peers = (size - 20) / 6;
-		if ((size - 20) % 6 != 0)
+		resp.incomplete = aux::read_int32(buf);
+		resp.complete = aux::read_int32(buf);
+		int const num_peers = buf.size() / 6;
+		if ((buf.size() % 6) != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
 			return false;
@@ -618,9 +624,9 @@ namespace libtorrent
 		for (int i = 0; i < num_peers; ++i)
 		{
 			ipv4_peer_entry e;
-			memcpy(&e.ip[0], buf, 4);
-			buf += 4;
-			e.port = detail::read_uint16(buf);
+			memcpy(&e.ip[0], buf.data(), 4);
+			buf = buf.cut_first(4);
+			e.port = aux::read_uint16(buf);
 			resp.peers4.push_back(e);
 		}
 
@@ -638,11 +644,13 @@ namespace libtorrent
 		return true;
 	}
 
-	bool udp_tracker_connection::on_scrape_response(char const* buf, int size)
+	bool udp_tracker_connection::on_scrape_response(aux::array_view<char const> buf)
 	{
+		using namespace libtorrent::aux;
+
 		restart_read_timeout();
-		int action = detail::read_int32(buf);
-		boost::uint32_t transaction = detail::read_uint32(buf);
+		int const action = aux::read_int32(buf);
+		boost::uint32_t const transaction = read_uint32(buf);
 
 		if (transaction != m_transaction_id)
 		{
@@ -652,7 +660,8 @@ namespace libtorrent
 
 		if (action == action_error)
 		{
-			fail(error_code(errors::tracker_failure), -1, std::string(buf, size - 8).c_str());
+			fail(error_code(errors::tracker_failure), -1
+				, std::string(buf.data(), buf.size()).c_str());
 			return true;
 		}
 
@@ -662,15 +671,15 @@ namespace libtorrent
 			return true;
 		}
 
-		if (size < 20)
+		if (buf.size() < 12)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
 			return true;
 		}
 
-		int complete = detail::read_int32(buf);
-		int downloaded = detail::read_int32(buf);
-		int incomplete = detail::read_int32(buf);
+		int const complete = aux::read_int32(buf);
+		int const downloaded = aux::read_int32(buf);
+		int const incomplete = aux::read_int32(buf);
 
 		boost::shared_ptr<request_callback> cb = requester();
 		if (!cb)
@@ -678,7 +687,7 @@ namespace libtorrent
 			close();
 			return true;
 		}
-		
+
 		cb->tracker_scrape_response(tracker_req()
 			, complete, incomplete, downloaded, -1);
 
@@ -691,10 +700,10 @@ namespace libtorrent
 		if (m_abort) return;
 
 		char buf[800];
-		char* out = buf;
+		aux::array_view<char> out = buf;
 
 		tracker_request const& req = tracker_req();
-		const bool stats = req.send_stats;
+		bool const stats = req.send_stats;
 		aux::session_settings const& settings = m_man.settings();
 
 		std::map<address, connection_cache_entry>::iterator i
@@ -703,17 +712,17 @@ namespace libtorrent
 		TORRENT_ASSERT(i != m_connection_cache.end());
 		if (i == m_connection_cache.end()) return;
 
-		detail::write_int64(i->second.connection_id, out); // connection_id
-		detail::write_int32(action_announce, out); // action (announce)
-		detail::write_int32(m_transaction_id, out); // transaction_id
-		std::copy(req.info_hash.begin(), req.info_hash.end(), out); // info_hash
-		out += 20;
-		std::copy(req.pid.begin(), req.pid.end(), out); // peer_id
-		out += 20;
-		detail::write_int64(stats ? req.downloaded : 0, out); // downloaded
-		detail::write_int64(stats ? req.left : 0, out); // left
-		detail::write_int64(stats ? req.uploaded : 0, out); // uploaded
-		detail::write_int32(req.event, out); // event
+		aux::write_int64(i->second.connection_id, out); // connection_id
+		aux::write_int32(action_announce, out); // action (announce)
+		aux::write_int32(m_transaction_id, out); // transaction_id
+		std::copy(req.info_hash.begin(), req.info_hash.end(), out.data()); // info_hash
+		out.cut_first(20);
+		std::copy(req.pid.begin(), req.pid.end(), out.data()); // peer_id
+		out.cut_first(20);
+		aux::write_int64(stats ? req.downloaded : 0, out); // downloaded
+		aux::write_int64(stats ? req.left : 0, out); // left
+		aux::write_int64(stats ? req.uploaded : 0, out); // uploaded
+		aux::write_int32(req.event, out); // event
 		// ip address
 		address_v4 announce_ip;
 
@@ -724,10 +733,10 @@ namespace libtorrent
 			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
-		detail::write_uint32(announce_ip.to_ulong(), out);
-		detail::write_int32(req.key, out); // key
-		detail::write_int32(req.num_want, out); // num_want
-		detail::write_uint16(req.listen_port, out); // port
+		aux::write_uint32(announce_ip.to_ulong(), out);
+		aux::write_int32(req.key, out); // key
+		aux::write_int32(req.num_want, out); // num_want
+		aux::write_uint16(req.listen_port, out); // port
 
 		std::string request_string;
 		error_code ec;
@@ -741,12 +750,10 @@ namespace libtorrent
 			int str_len = (std::min)(int(request_string.size()), 255);
 			request_string.resize(str_len);
 
-			detail::write_uint8(2, out);
-			detail::write_uint8(str_len, out);
-			detail::write_string(request_string, out);
+			aux::write_uint8(2, out);
+			aux::write_uint8(str_len, out);
+			aux::write_string(request_string, out);
 		}
-
-		TORRENT_ASSERT(out - buf <= int(sizeof(buf)));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -761,16 +768,16 @@ namespace libtorrent
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(m_hostname.c_str()
-				, m_target.port(), aux::array_view<char const>(buf, out - buf), ec
+				, m_target.port(), aux::array_view<char const>(buf, sizeof(buf) - out.size()), ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, aux::array_view<char const>(buf, out - buf), ec
+			m_man.send(m_target, aux::array_view<char const>(buf, sizeof(buf) - out.size()), ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_announce;
-		sent_bytes(out - buf + 28); // assuming UDP/IP header
+		sent_bytes(sizeof(buf) - out.size() + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{

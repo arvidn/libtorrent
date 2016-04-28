@@ -71,7 +71,7 @@ namespace libtorrent
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(udp::endpoint const& ep, char const* p, int size);
+		bool incoming_packet(udp::endpoint const& ep, aux::array_view<char const> p);
 
 		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
 		// called once the socket is writeable again

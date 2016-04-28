@@ -2398,7 +2398,7 @@ namespace aux {
 		{
 			boost::array<udp_socket::packet, 50> p;
 			error_code err;
-			int const num_packets = s->read(array_view<udp_socket::packet>(p), err);
+			int const num_packets = s->read(p, err);
 
 			for (int i = 0; i < num_packets; ++i)
 			{
@@ -2418,26 +2418,25 @@ namespace aux {
 					continue;
 				}
 
-				char* buf = packet.data.data();
-				int const len = packet.data.size();
+				aux::array_view<char const> const buf = packet.data;
 
 				// give the uTP socket manager first dis on the packet. Presumably
 				// the majority of packets are uTP packets.
-				if (!mgr.incoming_packet(packet.from, buf, len))
+				if (!mgr.incoming_packet(packet.from, buf))
 				{
 					// if it wasn't a uTP packet, try the other users of the UDP
 					// socket
 					bool handled = false;
 #ifndef TORRENT_DISABLE_DHT
-					if (m_dht && len > 20 && buf[0] == 'd' && buf[len-1] == 'e')
+					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
 					{
-						handled = m_dht->incoming_packet(packet.from, buf, len);
+						handled = m_dht->incoming_packet(packet.from, buf.data(), buf.size());
 					}
 #endif
 
 					if (!handled)
 					{
-						m_tracker_manager.incoming_packet(packet.from, buf, len);
+						m_tracker_manager.incoming_packet(packet.from, buf);
 					}
 				}
 			}
