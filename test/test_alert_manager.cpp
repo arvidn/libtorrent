@@ -258,7 +258,7 @@ TORRENT_TEST(wait_for_alert)
 	mgr.get_all(alerts);
 
 	start = clock_type::now();
-	thread posting_thread(boost::bind(&post_torrent_added, &mgr));
+	libtorrent::thread posting_thread(boost::bind(&post_torrent_added, &mgr));
 
 	a = mgr.wait_for_alert(seconds(10));
 	end = clock_type::now();

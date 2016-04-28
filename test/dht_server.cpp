@@ -89,7 +89,7 @@ struct dht_server
 
 		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new thread(boost::bind(&dht_server::thread_fun, this)));
+		m_thread.reset(new libtorrent::thread(boost::bind(&dht_server::thread_fun, this)));
 	}
 
 	~dht_server()

@@ -164,7 +164,7 @@ struct udp_tracker
 
 		fprintf(stderr, "%s: UDP tracker initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new thread(boost::bind(&udp_tracker::thread_fun, this)));
+		m_thread.reset(new libtorrent::thread(boost::bind(&udp_tracker::thread_fun, this)));
 	}
 
 	~udp_tracker()

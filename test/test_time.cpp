@@ -83,10 +83,10 @@ TORRENT_TEST(time)
 	
 	mutex m;
 	condition_variable cv;
-	thread t1(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	thread t2(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
+	libtorrent::thread t1(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
+	libtorrent::thread t2(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
+	libtorrent::thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
+	libtorrent::thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
 
 	test_sleep(100);
 
