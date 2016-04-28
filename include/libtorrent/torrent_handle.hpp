@@ -236,7 +236,7 @@ namespace libtorrent
 	{
 		// TODO: 3 consider replacing all the setters and getters for pause,
 		// resume, stop-when-ready, share-mode, upload-mode, super-seeding,
-		// apply-ip-filter, resolve-countries, pinned, sequential-download,
+		// apply-ip-filter, pinned, sequential-download,
 		// seed-mode
 		// with just set_flags() and clear_flags() using the flags from
 		// add_torrent_params. Perhaps those flags should have a more generic
@@ -831,20 +831,6 @@ namespace libtorrent
 		void queue_position_down() const;
 		void queue_position_top() const;
 		void queue_position_bottom() const;
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 1.1
-
-		// Sets or gets the flag that determines if countries should be resolved
-		// for the peers of this torrent. It defaults to false. If it is set to
-		// true, the peer_info structure for the peers in this torrent will have
-		// their ``country`` member set. See peer_info for more information on
-		// how to interpret this field.
-		TORRENT_DEPRECATED
-		void resolve_countries(bool r);
-		TORRENT_DEPRECATED
-		bool resolve_countries() const;
-#endif
 
 		// For SSL torrents, use this to specify a path to a .pem file to use as
 		// this client's certificate. The certificate must be signed by the

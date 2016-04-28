@@ -162,7 +162,6 @@ option(tcmalloc "link against google performance tools tcmalloc" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
-option(resolve-countries "enable support for resolving countries from peer IPs" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
@@ -283,10 +282,6 @@ endif()
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
-endif()
-
-if (NOT resolve-countries)
-	add_definitions(-DTORRENT_DISABLE_RESOLVE_COUNTRIES)
 endif()
 
 if (unicode)

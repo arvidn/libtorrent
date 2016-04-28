@@ -476,9 +476,6 @@ feature crypto : built-in openssl gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
-feature resolve-countries : on off : composite propagated link-incompatible ;
-feature.compose <resolve-countries>off : <define>TORRENT_DISABLE_RESOLVE_COUNTRIES ;
-
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
 

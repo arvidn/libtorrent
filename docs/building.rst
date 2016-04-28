@@ -577,9 +577,6 @@ defines you can use to control the build.
 |                                        | use wide character API, to properly support     |
 |                                        | non-ansi characters.                            |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_RESOLVE_COUNTRIES``  | Defining this will disable the ability to       |
-|                                        | resolve countries of origin for peer IPs.       |
-+----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_INVARIANT_CHECKS``   | This will disable internal invariant checks in  |
 |                                        | libtorrent. The invariant checks can sometime   |
 |                                        | be quite expensive, they typically don't scale  |

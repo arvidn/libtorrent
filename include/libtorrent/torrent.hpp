@@ -559,20 +559,6 @@ namespace libtorrent
 			state_updated();
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 1.1
-
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		void resolve_countries(bool r);
-		bool resolving_countries() const;
-
-		void resolve_peer_country(boost::shared_ptr<peer_connection> const& p) const;
-		void on_country_lookup(error_code const& error
-			, std::vector<address> const& host_list
-			, boost::shared_ptr<peer_connection> p) const;
-#endif
-#endif // TORRENT_NO_DEPRECATE
-
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
@@ -1506,23 +1492,11 @@ namespace libtorrent
 		// from a non-downloading/seeding state, the torrent is paused.
 		bool m_stop_when_ready:1;
 
-#ifndef TORRENT_NO_DEPRECATE
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		// this is true while there is a country
-		// resolution in progress. To avoid flodding
-		// the DNS request queue, only one ip is resolved
-		// at a time.
-		mutable bool m_resolving_country:1;
-
-		// this is true if the user has enabled
-		// country resolution in this torrent
-		bool m_resolve_countries:1;
-#endif
-#endif
-
 		// set to false when saving resume data. Set to true
 		// whenever something is downloaded
 		bool m_need_save_resume_data:1;
+
+		// 2 bits here
 
 // ----
 

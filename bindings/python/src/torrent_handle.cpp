@@ -351,14 +351,6 @@ void bind_torrent_handle()
     void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
-    // deprecated in 1.1
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-    bool (torrent_handle::*resolve_countries0)() const = &torrent_handle::resolve_countries;
-    void (torrent_handle::*resolve_countries1)(bool) = &torrent_handle::resolve_countries;
-#endif
-#endif // TORRENT_NO_DEPRECATE
-
 #define _ allow_threads
 
     class_<torrent_handle>("torrent_handle")
@@ -397,11 +389,6 @@ void bind_torrent_handle()
 
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
-        // resolve countries deprecated in 1.1
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-        .def("resolve_countries", _(resolve_countries0))
-        .def("resolve_countries", _(resolve_countries1))
-#endif
         .def("get_torrent_info", &get_torrent_info)
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))

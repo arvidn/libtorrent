@@ -730,25 +730,6 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(super_seeding, on);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void torrent_handle::resolve_countries(bool r)
-	{
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		TORRENT_ASYNC_CALL1(resolve_countries, r);
-#endif
-	}
-
-	bool torrent_handle::resolve_countries() const
-	{
-#ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
-		TORRENT_SYNC_CALL_RET(bool, false, resolving_countries);
-		return r;
-#else
-		return false;
-#endif
-	}
-#endif // TORRENT_NO_DEPRECATE
-
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
 		TORRENT_SYNC_CALL1(get_full_peer_list, &v);
