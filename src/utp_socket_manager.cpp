@@ -163,13 +163,13 @@ namespace libtorrent
 	}
 
 	bool utp_socket_manager::incoming_packet(udp::endpoint const& ep
-			, char const* p, int const size)
+			, aux::array_view<char const> p)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
-		if (size < int(sizeof(utp_header))) return false;
+		if (p.size() < int(sizeof(utp_header))) return false;
 
-		utp_header const* ph = reinterpret_cast<utp_header const*>(p);
+		utp_header const* ph = reinterpret_cast<utp_header const*>(p.data());
 
 //		UTP_LOGV("incoming packet version:%d\n", int(ph->get_version()));
 
@@ -186,7 +186,7 @@ namespace libtorrent
 		if (m_last_socket
 			&& utp_match(m_last_socket, ep, id))
 		{
-			return utp_incoming_packet(m_last_socket, p, size, ep, receive_time);
+			return utp_incoming_packet(m_last_socket, p, ep, receive_time);
 		}
 
 		std::pair<socket_map_t::iterator, socket_map_t::iterator> r =
@@ -195,7 +195,7 @@ namespace libtorrent
 		for (; r.first != r.second; ++r.first)
 		{
 			if (!utp_match(r.first->second, ep, id)) continue;
-			bool ret = utp_incoming_packet(r.first->second, p, size, ep, receive_time);
+			bool ret = utp_incoming_packet(r.first->second, p, ep, receive_time);
 			if (ret) m_last_socket = r.first->second;
 			return ret;
 		}
@@ -225,7 +225,6 @@ namespace libtorrent
 			instantiate_connection(m_ios, aux::proxy_settings(), *c
 				, m_ssl_context, this, true, false);
 
-
 			utp_stream* str = NULL;
 #ifdef TORRENT_USE_OPENSSL
 			if (is_ssl(*c))
@@ -238,7 +237,7 @@ namespace libtorrent
 			int link_mtu, utp_mtu;
 			mtu_for_dest(ep.address(), link_mtu, utp_mtu);
 			utp_init_mtu(str->get_impl(), link_mtu, utp_mtu);
-			bool ret = utp_incoming_packet(str->get_impl(), p, size, ep, receive_time);
+			bool ret = utp_incoming_packet(str->get_impl(), p, ep, receive_time);
 			if (!ret) return false;
 			m_cb(c);
 			// the connection most likely changed its connection ID here

@@ -94,11 +94,11 @@ namespace libtorrent
 		void timeout(error_code const& error);
 		void start_announce();
 
-		bool on_receive(udp::endpoint const& ep, char const* buf, int size);
-		bool on_receive_hostname(char const* hostname, char const* buf, int size);
-		bool on_connect_response(char const* buf, int size);
-		bool on_announce_response(char const* buf, int size);
-		bool on_scrape_response(char const* buf, int size);
+		bool on_receive(udp::endpoint const& ep, aux::array_view<char const> buf);
+		bool on_receive_hostname(char const* hostname, aux::array_view<char const> buf);
+		bool on_connect_response(aux::array_view<char const> buf);
+		bool on_announce_response(aux::array_view<char const> buf);
+		bool on_scrape_response(aux::array_view<char const> buf);
 
 		// wraps tracker_connection::fail
 		void fail(error_code const& ec, int code = -1

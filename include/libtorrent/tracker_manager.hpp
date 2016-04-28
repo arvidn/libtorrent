@@ -315,10 +315,6 @@ namespace libtorrent
 		address const& bind_interface() const { return m_req.bind_ip; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
-		virtual bool on_receive(udp::endpoint const&
-			, char const* /* buf */, int /* size */) { return false; }
-		virtual bool on_receive_hostname(char const* /* hostname */
-			, char const* /* buf */, int /* size */) { return false; }
 
 		boost::shared_ptr<tracker_connection> shared_from_this()
 		{
@@ -378,13 +374,13 @@ namespace libtorrent
 		void received_bytes(int bytes);
 
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
-		bool incoming_packet(udp::endpoint const& ep, char const* buf, int size);
+		bool incoming_packet(udp::endpoint const& ep, aux::array_view<char const> buf);
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
 		// TODO: 3 make sure the udp_socket supports passing on string-hostnames
 		// too, and that this function is used
-		bool incoming_packet(char const* hostname, char const* buf, int size);
+		bool incoming_packet(char const* hostname, aux::array_view<char const> buf);
 
 		void update_transaction_id(
 			boost::shared_ptr<udp_tracker_connection> c

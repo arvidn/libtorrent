@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ARRAY_VIEW_HPP_INCLUDED
 
 #include <vector>
+#include <type_traits> // for std::is_convertible
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -41,17 +43,28 @@ namespace libtorrent { namespace aux {
 	struct array_view
 	{
 		array_view() : m_ptr(NULL), m_len(0) {}
-		array_view(T* p, int l) : m_ptr(p), m_len(l) {}
+
+		// T -> const T conversion constructor
+		template <typename U, typename
+			= std::enable_if<std::is_convertible<U, T>::value>
+			>
+		array_view(array_view<U> const& v)
+			: m_ptr(v.data()), m_len(v.size()) {}
+
+		array_view(T* p, int l) : m_ptr(p), m_len(l)
+		{
+			TORRENT_ASSERT(l >= 0);
+		}
 
 		template <size_t N>
-		explicit array_view(boost::array<T, N>& arr)
+		array_view(boost::array<T, N>& arr)
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
 		template <size_t N>
-		explicit array_view(T (&arr)[N])
+		array_view(T (&arr)[N])
 			: m_ptr(&arr[0]), m_len(N) {}
 
-		explicit array_view(std::vector<T>& vec)
+		array_view(std::vector<T>& vec)
 			: m_ptr(vec.data()), m_len(vec.size()) {}
 
 		size_t size() const { return m_len; }
@@ -59,7 +72,31 @@ namespace libtorrent { namespace aux {
 		T* begin() const { return m_ptr; }
 		T* end() const { return m_ptr + m_len; }
 
-		T& operator[](int idx)
+		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
+		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }
+
+		array_view<T> first(int const n) const
+		{
+			TORRENT_ASSERT(size() >= n);
+			TORRENT_ASSERT(n >= 0);
+			return { data(), size() - n };
+		}
+
+		array_view<T> last(int const n) const
+		{
+			TORRENT_ASSERT(size() >= n);
+			TORRENT_ASSERT(n >= 0);
+			return { data() + size() - n, n };
+		}
+
+		array_view<T> cut_first(int const n) const
+		{
+			TORRENT_ASSERT(size() >= n);
+			TORRENT_ASSERT(n >= 0);
+			return { data() + n, int(size()) - n };
+		}
+
+		T& operator[](int const idx)
 		{
 			TORRENT_ASSERT(idx >= 0);
 			TORRENT_ASSERT(idx < m_len);

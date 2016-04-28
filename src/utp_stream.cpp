@@ -325,7 +325,7 @@ struct utp_socket_impl
 
 	void tick(time_point now);
 	void init_mtu(int link_mtu, int utp_mtu);
-	bool incoming_packet(boost::uint8_t const* buf, int size
+	bool incoming_packet(aux::array_view<boost::uint8_t const> buf
 		, udp::endpoint const& ep, time_point receive_time);
 	void writable();
 
@@ -745,10 +745,12 @@ void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 	s->init_mtu(link_mtu, utp_mtu);
 }
 
-bool utp_incoming_packet(utp_socket_impl* s, char const* p
-	, int size, udp::endpoint const& ep, time_point receive_time)
+bool utp_incoming_packet(utp_socket_impl* s
+	, aux::array_view<char const> p
+	, udp::endpoint const& ep, time_point receive_time)
 {
-	return s->incoming_packet(reinterpret_cast<boost::uint8_t const*>(p), size
+	return s->incoming_packet(
+		aux::array_view<boost::uint8_t const>(reinterpret_cast<boost::uint8_t const*>(p.data()), p.size())
 		, ep, receive_time);
 }
 
@@ -2697,12 +2699,12 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 }
 
 // return false if this is an invalid packet
-bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
+bool utp_socket_impl::incoming_packet(aux::array_view<boost::uint8_t const> buf
 	, udp::endpoint const& ep, time_point receive_time)
 {
 	INVARIANT_CHECK;
 
-	utp_header const* ph = reinterpret_cast<utp_header const*>(buf);
+	utp_header const* ph = reinterpret_cast<utp_header const*>(buf.data());
 
 	m_sm->inc_stats_counter(counters::utp_packets_in);
 
@@ -2944,7 +2946,8 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	}
 
 	// look for extended headers
-	boost::uint8_t const* ptr = buf;
+	boost::uint8_t const* ptr = buf.data();
+	int const size = buf.size();
 	ptr += sizeof(utp_header);
 
 	unsigned int extension = ph->extension;
@@ -2952,7 +2955,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	{
 		// invalid packet. It says it has an extension header
 		// but the packet is too short
-		if (ptr - buf + 2 > size)
+		if (ptr - buf.data() + 2 > size)
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header\n", static_cast<void*>(this));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
@@ -2963,14 +2966,14 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 		if (len < 0)
 		{
 			UTP_LOGV("%8p: invalid extension length:%d packet:%d\n"
-				, static_cast<void*>(this), len, int(ptr - buf));
+				, static_cast<void*>(this), len, int(ptr - buf.data()));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
-		if (ptr - buf + len > ptrdiff_t(size))
+		if (ptr - buf.data() + len > ptrdiff_t(size))
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header size:%d packet:%d\n"
-				, static_cast<void*>(this), len, int(ptr - buf));
+				, static_cast<void*>(this), len, int(ptr - buf.data()));
 			m_sm->inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
@@ -3017,7 +3020,7 @@ bool utp_socket_impl::incoming_packet(boost::uint8_t const* buf, int size
 	// ptr points to the payload of the packet
 	// size is the packet size, payload is the
 	// number of payload bytes are in this packet
-	const int header_size = ptr - buf;
+	const int header_size = ptr - buf.data();
 	const int payload_size = size - header_size;
 
 #if TORRENT_UTP_LOG
