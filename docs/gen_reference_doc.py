@@ -149,7 +149,6 @@ def is_visible(desc):
 	return True
 
 def highlight_signature(s):
-	s = s.replace('TORRENT_OVERRIDE', 'override').replace('TORRENT_FINAL', 'final')
 	name = s.split('(', 1)
 	name2 = name[0].split(' ')
 	if len(name2[-1]) == 0: return s
@@ -274,7 +273,6 @@ def parse_class(lno, lines, filename):
 		state = 'private'
 		class_type = 'class'
 
-	decl = decl.replace('TORRENT_FINAL', 'final')
 	name = decl.split(':')[0].replace('class ', '').replace('struct ', '').replace('final', '').strip()
 
 

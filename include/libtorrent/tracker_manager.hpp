@@ -336,7 +336,7 @@ namespace libtorrent
 		tracker_manager& m_man;
 	};
 
-	class TORRENT_EXTRA_EXPORT tracker_manager TORRENT_FINAL
+	class TORRENT_EXTRA_EXPORT tracker_manager final
 		: boost::noncopyable
 	{
 	public:

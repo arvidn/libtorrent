@@ -53,7 +53,7 @@ namespace libtorrent
 	struct utp_socket_impl;
 	struct counters;
 
-	struct utp_socket_manager TORRENT_FINAL
+	struct utp_socket_manager final
 	{
 		typedef boost::function<void(udp::endpoint const&
 			, aux::array_view<char const>

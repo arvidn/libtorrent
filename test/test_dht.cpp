@@ -95,10 +95,10 @@ static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
-struct mock_socket TORRENT_FINAL : udp_socket_interface
+struct mock_socket final : udp_socket_interface
 {
-	bool has_quota() TORRENT_OVERRIDE { return true; }
-	bool send_packet(entry& msg, udp::endpoint const& ep) TORRENT_OVERRIDE
+	bool has_quota() override { return true; }
+	bool send_packet(entry& msg, udp::endpoint const& ep) override
 	{
 		// TODO: ideally the mock_socket would contain this queue of packets, to
 		// make tests independent
@@ -476,18 +476,18 @@ void put_immutable_item_cb(int num, int expect)
 struct obs : dht::dht_observer
 {
 	virtual void set_external_address(address const& addr
-		, address const& source) TORRENT_OVERRIDE
+		, address const& source) override
 	{}
 
-	virtual address external_address(udp proto) TORRENT_OVERRIDE
+	virtual address external_address(udp proto) override
 	{
 		return address_v4::from_string("236.0.0.1");
 	}
-	virtual void get_peers(sha1_hash const& ih) TORRENT_OVERRIDE {}
+	virtual void get_peers(sha1_hash const& ih) override {}
 	virtual void outgoing_get_peers(sha1_hash const& target
-		, sha1_hash const& sent_target, udp::endpoint const& ep) TORRENT_OVERRIDE {}
-	virtual void announce(sha1_hash const& ih, address const& addr, int port) TORRENT_OVERRIDE {}
-	virtual void log(dht_logger::module_t l, char const* fmt, ...) TORRENT_OVERRIDE
+		, sha1_hash const& sent_target, udp::endpoint const& ep) override {}
+	virtual void announce(sha1_hash const& ih, address const& addr, int port) override {}
+	virtual void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -497,9 +497,9 @@ struct obs : dht::dht_observer
 		m_log.push_back(buf);
 	}
 	virtual void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) TORRENT_OVERRIDE {}
+		, udp::endpoint node) override {}
 	virtual bool on_dht_request(char const* query, int query_len
-		, dht::msg const& request, entry& response) TORRENT_OVERRIDE { return false; }
+		, dht::msg const& request, entry& response) override { return false; }
 
 	std::vector<std::string> m_log;
 };

@@ -183,7 +183,7 @@ namespace
 		node_id const& m_our_id;
 	};
 
-	class dht_default_storage TORRENT_FINAL : public dht_storage_interface, boost::noncopyable
+	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
 	typedef std::map<node_id, torrent_entry> table_t;
 	typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
@@ -201,8 +201,8 @@ namespace
 		~dht_default_storage() {}
 
 #ifndef TORRENT_NO_DEPRECATE
-		size_t num_torrents() const TORRENT_OVERRIDE { return m_map.size(); }
-		size_t num_peers() const TORRENT_OVERRIDE
+		size_t num_torrents() const override { return m_map.size(); }
+		size_t num_peers() const override
 		{
 			int ret = 0;
 			std::for_each(m_map.begin(), m_map.end(), count_peers(&ret));
@@ -212,7 +212,7 @@ namespace
 
 		bool get_peers(sha1_hash const& info_hash
 			, bool noseed, bool scrape
-			, entry& peers) const TORRENT_OVERRIDE
+			, entry& peers) const override
 		{
 			table_t::const_iterator i = m_map.lower_bound(info_hash);
 			if (i == m_map.end()) return false;
@@ -270,7 +270,7 @@ namespace
 
 		void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, std::string const& name, bool seed) TORRENT_OVERRIDE
+			, std::string const& name, bool seed) override
 		{
 			table_t::iterator ti = m_map.find(info_hash);
 			torrent_entry* v;
@@ -338,7 +338,7 @@ namespace
 		}
 
 		bool get_immutable_item(sha1_hash const& target
-			, entry& item) const TORRENT_OVERRIDE
+			, entry& item) const override
 		{
 			dht_immutable_table_t::const_iterator i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
@@ -349,7 +349,7 @@ namespace
 
 		void put_immutable_item(sha1_hash const& target
 			, char const* buf, int size
-			, address const& addr) TORRENT_OVERRIDE
+			, address const& addr) override
 		{
 			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end())
@@ -385,7 +385,7 @@ namespace
 		}
 
 		bool get_mutable_item_seq(sha1_hash const& target
-			, boost::int64_t& seq) const TORRENT_OVERRIDE
+			, boost::int64_t& seq) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
@@ -396,7 +396,7 @@ namespace
 
 		bool get_mutable_item(sha1_hash const& target
 			, boost::int64_t seq, bool force_fill
-			, entry& item) const TORRENT_OVERRIDE
+			, entry& item) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
@@ -418,7 +418,7 @@ namespace
 			, boost::int64_t seq
 			, char const* pk
 			, char const* salt, int salt_size
-			, address const& addr) TORRENT_OVERRIDE
+			, address const& addr) override
 		{
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
@@ -486,7 +486,7 @@ namespace
 			touch_item(&i->second, addr);
 		}
 
-		void tick() TORRENT_OVERRIDE
+		void tick() override
 		{
 			time_point now(aux::time_now());
 
@@ -541,7 +541,7 @@ namespace
 			}
 		}
 
-		virtual dht_storage_counters counters() const TORRENT_OVERRIDE
+		virtual dht_storage_counters counters() const override
 		{
 			return m_counters;
 		}

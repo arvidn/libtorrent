@@ -128,14 +128,14 @@ namespace libtorrent
 		rc4_handler();
 
 		// Input keys must be 20 bytes
-		void set_incoming_key(unsigned char const* key, int len) TORRENT_OVERRIDE;
-		void set_outgoing_key(unsigned char const* key, int len) TORRENT_OVERRIDE;
+		void set_incoming_key(unsigned char const* key, int len) override;
+		void set_outgoing_key(unsigned char const* key, int len) override;
 
-		int encrypt(std::vector<boost::asio::mutable_buffer>& buf) TORRENT_OVERRIDE;
+		int encrypt(std::vector<boost::asio::mutable_buffer>& buf) override;
 		void decrypt(std::vector<boost::asio::mutable_buffer>& buf
 			, int& consume
 			, int& produce
-			, int& packet_size) TORRENT_OVERRIDE;
+			, int& packet_size) override;
 
 	private:
 		rc4 m_rc4_incoming;

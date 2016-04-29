@@ -98,7 +98,7 @@ namespace libtorrent
 	{
 		// hidden
 		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER
-			TORRENT_OVERRIDE TORRENT_FINAL
+			override final
 		{ return "invalid bencoding"; }
 	};
 #endif
