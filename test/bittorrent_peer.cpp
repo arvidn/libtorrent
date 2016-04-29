@@ -97,7 +97,6 @@ void peer_conn::on_connect(error_code const& ec)
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
 		- (m_mode == uploader ? 5 : 0))
 		, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
-	// cppcheck-suppress memleak
 }
 
 void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
