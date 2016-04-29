@@ -76,28 +76,28 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
-  - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
-  - if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
+  - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats && fi'
+  - if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version && fi
 
 script:
 
   - 'if [[ "$docs" == "1" && $TRAVIS_OS_NAME == "osx" ]]; then
-    cd docs;
-    make RST2HTML=rst2html.py;
-    cd ..;
+    cd docs &&
+    make RST2HTML=rst2html.py &&
+    cd .. &&
     fi'
 
 # if variant is not set, we do not want to build anything
 # if we are building with code coverage, report it as soon as possible
   - 'if [ "$variant" != "" ]; then
-      cd test;
-      bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target;
+      cd test &&
+      bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target &&
       if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
-        codecov --root .. --gcov-exec gcov-4.8;
-      fi;
-      cd ../examples;
-      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared bt-get bt-get2;
-      cd ..;
+        codecov --root .. --gcov-exec gcov-4.8 &&
+      fi &&
+      cd ../examples &&
+      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset link=shared &&
+      cd .. &&
     fi'
 
 # build libtorrent separately and install it in a temporary (well known) dir
@@ -105,26 +105,26 @@ script:
 # as the main library, so we cannot stage them to the same directory
 # here we specify the temporary lib dir as a path to look for the main library
   - 'if [ "$variant" != "" ]; then
-      bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib;
-      cd bindings/python;
-      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
-      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
-      cd ../..;
+      bjam --hash -j3 warnings-as-errors=on link=shared variant=$variant $toolset install location=./lib &&
+      cd bindings/python &&
+      bjam --hash -j3 warnings-as-errors=on variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
+      LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py &&
+      cd ../.. &&
     fi'
 
 # simulation
   - 'if [ "$variant" != "" ]; then
-      cd simulation;
+      cd simulation &&
       if [ "$sim" == "1" ]; then
         bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
-      fi;
-      cd ..;
+      fi &&
+      cd .. &&
     fi'
 
 # run cppcheck if enabled
   - 'if [[ "$analyze" == "1" ]]; then
        if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-         cppcheck --version;
+         cppcheck --version &&
          find src -type f | grep ".*\.cpp$" >cppcheck.files;
          cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
            -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
