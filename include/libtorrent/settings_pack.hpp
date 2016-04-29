@@ -284,20 +284,6 @@ namespace libtorrent
 			// hash
 			dont_flush_write_cache,
 
-#ifndef TORRENT_NO_DEPRECATE
-			// ``explicit_read_cache`` defaults to 0. If set to something greater
-			// than 0, the disk read cache will not be evicted by cache misses and
-			// will explicitly be controlled based on the rarity of pieces. Rare
-			// pieces are more likely to be cached. This would typically be used
-			// together with ``suggest_mode`` set to ``suggest_read_cache``. The
-			// value is the number of pieces to keep in the read cache. If the
-			// actual read cache can't fit as many, it will essentially be
-			// clamped.
-			explicit_read_cache,
-#else
-			deprecated12,
-#endif
-
 			// allocate separate, contiguous, buffers for read and write calls.
 			// Only used where writev/readv cannot be used will use more RAM but
 			// may improve performance
@@ -941,20 +927,6 @@ namespace libtorrent
 			cache_size,
 			cache_buffer_chunk_size,
 			cache_expiry,
-
-#ifndef TORRENT_NO_DEPRECATE
-			// ``explicit_cache_interval`` is the number of seconds in between
-			// each refresh of a part of the explicit read cache. Torrents take
-			// turns in refreshing and this is the time in between each torrent
-			// refresh. Refreshing a torrent's explicit read cache means scanning
-			// all pieces and picking a random set of the rarest ones. There is an
-			// affinity to pick pieces that are already in the cache, so that
-			// subsequent refreshes only swaps in pieces that are rarer than
-			// whatever is in the cache at the time.
-			explicit_cache_interval,
-#else
-			deprecated13,
-#endif
 
 			// determines how files are opened when they're in read only mode
 			// versus read and write mode. The options are:
