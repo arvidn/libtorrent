@@ -112,7 +112,12 @@ namespace libtorrent
 
 		struct block_info
 		{
-			block_info(): peer(0), num_peers(0), state(state_none) {}
+			block_info(): peer(0), num_peers(0), state(state_none)
+			{
+#if TORRENT_USE_ASSERTS
+				piece_index = -1;
+#endif
+			}
 			// the peer this block was requested or
 			// downloaded from.
 			torrent_peer* peer;

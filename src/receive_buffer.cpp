@@ -75,7 +75,7 @@ int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, i
 	// we should have used m_recv_end. perhaps they always happen to be equal
 	TORRENT_ASSERT(m_recv_pos == m_recv_end);
 
-	int num_bufs;
+	int num_bufs = -1;
 	int const regular_buf_size = regular_buffer_size();
 
 	if (int(m_recv_buffer.size()) < regular_buf_size)

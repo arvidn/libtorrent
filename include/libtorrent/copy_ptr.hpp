@@ -44,6 +44,7 @@ namespace libtorrent
 		void reset(T* t = 0) { delete m_ptr; m_ptr = t; }
 		copy_ptr& operator=(copy_ptr const& p)
 		{
+			if (m_ptr == p.m_ptr) return *this;
 			delete m_ptr;
 			m_ptr = p.m_ptr ? new T(*p.m_ptr) : 0;
 			return *this;

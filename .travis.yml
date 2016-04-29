@@ -130,14 +130,18 @@ script:
   - 'if [[ "$analyze" == "1" ]]; then
        if [[ $TRAVIS_OS_NAME == "linux" ]]; then
          cppcheck --version &&
-         find src -type f | grep ".*\.cpp$" >cppcheck.files;
+         find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
+         find simulation -type f -depth -2 | grep ".*\.cpp$" >>cppcheck.files &&
          cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
            -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
            -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
            -UTORRENT_DISABLE_MUTABLE_TORRENTS -UTORRENT_DISABLE_LOGGING
            -UTORRENT_DEBUG_BUFFERS -UTORRENT_EXPORT_EXTRA
            --suppress=preprocessorErrorDirective
+           --suppress=noConstructor
+           --suppress=variableHidingEnum
            --suppress=syntaxError
+           --enable=style
            --template "{file}({line}): {severity} ({id}): {message}"
            --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
            --file-list=cppcheck.files 2> cppcheck.txt;

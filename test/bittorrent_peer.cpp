@@ -97,6 +97,7 @@ void peer_conn::on_connect(error_code const& ec)
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
 		- (m_mode == uploader ? 5 : 0))
 		, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
+	// cppcheck-suppress memleak
 }
 
 void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
@@ -325,7 +326,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
 	unsigned int length = read_uint32(ptr);
 	if (length > sizeof(buffer))
 	{
-		fprintf(stderr, "len: %d\n", length);
+		fprintf(stderr, "len: %u\n", length);
 		close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 		return;
 	}

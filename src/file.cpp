@@ -2166,16 +2166,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #endif // F_ALLOCSP64
 
-#if defined TORRENT_LINUX || TORRENT_HAS_FALLOCATE
-			int ret;
-#endif
-
 #if TORRENT_HAS_FALLOCATE
 			// if fallocate failed, we have to use posix_fallocate
 			// which can be painfully slow
 			// if you get a compile error here, you might want to
 			// define TORRENT_HAS_FALLOCATE to 0.
-			ret = posix_fallocate(native_handle(), 0, s);
+			int const ret = posix_fallocate(native_handle(), 0, s);
 			// posix_allocate fails with EINVAL in case the underlying
 			// filesystem does not support this operation
 			if (ret != 0 && ret != EINVAL)

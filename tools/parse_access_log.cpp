@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
 
 		bool write = (op.event & 1) != 0;
 		bool complete = (op.event & 2) != 0;
-		FILE* out_file = 0;
 		if (complete)
 		{
+			FILE* out_file = 0;
 			op_map::iterator i = outstanding_ops.find(event_id);
 			if (i != outstanding_ops.end())
 			{
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 						, op.offset, double(i->second.timestamp) / 1000000.f);
 					i->second.timestamp = op.timestamp;
 				}
-				
+
 				out_file = write ? writes_file : reads_file;
 				double start_time = double(i->second.timestamp - first_timestamp) / 1000000.0;
 				double end_time = double(op.timestamp - first_timestamp) / 1000000.0;

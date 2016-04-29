@@ -87,9 +87,10 @@ namespace libtorrent
 		struct socket_entry
 		{
 			socket_entry(boost::shared_ptr<udp::socket> const& s)
-				: socket(s), broadcast(false) {}
+				: socket(s), broadcast(false) { memset(buffer, 0, sizeof(buffer)); }
 			socket_entry(boost::shared_ptr<udp::socket> const& s
-				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false) {}
+				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false)
+			{ memset(buffer, 0, sizeof(buffer)); }
 			boost::shared_ptr<udp::socket> socket;
 			char buffer[1500];
 			udp::endpoint remote;

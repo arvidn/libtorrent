@@ -47,7 +47,7 @@ void check_chain(tailqueue<test_node>& chain, char const* expected)
 
 	while (i.get())
 	{
-		TEST_EQUAL(((test_node*)i.get())->name, *expected);
+		TEST_EQUAL(static_cast<test_node*>(i.get())->name, *expected);
 		i.next();
 		++expected;
 	}
@@ -56,11 +56,11 @@ void check_chain(tailqueue<test_node>& chain, char const* expected)
 
 void free_chain(tailqueue<test_node>& q)
 {
-	test_node* chain = (test_node*)q.get_all();
+	test_node* chain = static_cast<test_node*>(q.get_all());
 	while(chain)
 	{
-		test_node* del = (test_node*)chain;
-		chain = (test_node*)chain->next;
+		test_node* del = static_cast<test_node*>(chain);
+		chain = static_cast<test_node*>(chain->next);
 		delete del;
 	}
 }
