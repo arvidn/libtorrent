@@ -140,7 +140,7 @@ void add_fake_peers(lt::torrent_handle h)
 	for (int i = 0; i < 5; ++i)
 	{
 		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i);
+		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i);
 		h.connect_peer(lt::tcp::endpoint(
 			lt::address_v4::from_string(ep), 6881));
 	}

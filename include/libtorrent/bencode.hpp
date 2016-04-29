@@ -250,7 +250,7 @@ namespace libtorrent
 				++in; // 'e'
 				ret = entry(entry::int_t);
 				char* end_pointer;
-				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
+				ret.integer() = std::strtoll(val.c_str(), &end_pointer, 10);
 #ifdef TORRENT_DEBUG
 				ret.m_type_queried = false;
 #endif

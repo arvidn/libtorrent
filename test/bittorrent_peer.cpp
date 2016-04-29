@@ -261,7 +261,7 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 {
 	end_time = clock_type::now();
 	char tmp[1024];
-	snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+	std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
 	float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
@@ -272,11 +272,11 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	address const& addr = s.local_endpoint(e).address();
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
-		snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
 	else
 #endif
-		snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
 	printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 		, tmp, ep_str, blocks_sent, blocks_received, time, up, down);

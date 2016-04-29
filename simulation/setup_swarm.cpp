@@ -100,7 +100,7 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 std::string save_path(int swarm_id, int idx)
 {
 	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
 }
@@ -114,7 +114,7 @@ void add_extra_peers(lt::session& ses)
 	for (int i = 0; i < 30; ++i)
 	{
 		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
+		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
 		h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 	}
 }
@@ -257,9 +257,9 @@ void setup_swarm(int num_nodes
 		// create a new io_service
 		std::vector<asio::ip::address> ips;
 		char ep[30];
-		snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+		std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
-		snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
+		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
 		io_service.push_back(boost::make_shared<sim::asio::io_service>(
 			boost::ref(sim), ips));
@@ -344,7 +344,7 @@ void setup_swarm(int num_nodes
 							// string and an integer is common. It should probably be
 							// factored out into its own function
 							char ep[30];
-							snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
+							std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
 							h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 						}
 					}

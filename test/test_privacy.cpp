@@ -118,7 +118,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// pipelining of the tests) they actually need to use different ports
 	static int listen_port = 10000 + libtorrent::random() % 50000;
 	char iface[200];
-	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
+	std::snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
 	listen_port += (libtorrent::random() % 10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 
@@ -143,11 +143,11 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	file.close();
 
 	char http_tracker_url[200];
-	snprintf(http_tracker_url, sizeof(http_tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(http_tracker_url, sizeof(http_tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(http_tracker_url, 0);
 
 	char udp_tracker_url[200];
-	snprintf(udp_tracker_url, sizeof(udp_tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(udp_tracker_url, 1);
 
 	add_torrent_params addp;

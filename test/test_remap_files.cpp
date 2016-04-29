@@ -263,11 +263,11 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	for (int i = 0; i < num_files-1; ++i)
 	{
 		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
+		std::snprintf(name, sizeof(name), "multifile/file%d.txt", i);
 		fs.add_file(name, t->total_size() / 10);
 	}
 	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_files);
+	std::snprintf(name, sizeof(name), "multifile/file%d.txt", num_files);
 	// the last file has to be a special case to make the size
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
@@ -427,11 +427,11 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	for (int i = 0; i < num_new_files-1; ++i)
 	{
 		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
+		std::snprintf(name, sizeof(name), "multifile/file%d.txt", i);
 		fs.add_file(name, t->total_size() / 10);
 	}
 	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_new_files);
+	std::snprintf(name, sizeof(name), "multifile/file%d.txt", num_new_files);
 	// the last file has to be a special case to make the size
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());

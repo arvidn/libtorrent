@@ -293,7 +293,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	if (test_url_seed)
 	{
 		char url[512];
-		snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path).c_str(), protocol, port);
+		std::snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path).c_str(), protocol, port);
 		fprintf(stderr, "testing: %s\n", url);
 
 		create_directories(combine_path(save_path, "torrent_dir"), ec);
@@ -356,7 +356,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			.name("torrent_dir")
 			.url_seed(url));
 
-		snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path + "/test-single-file").c_str(), protocol, port);
+		std::snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path + "/test-single-file").c_str(), protocol, port);
 
 		// test case 6 (single file torrent)
 		test_cases.push_back(torrent_args()
@@ -367,7 +367,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	else
 	{
 		char url[512];
-		snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/seed", protocol, port, save_path.c_str());
+		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/seed", protocol, port, save_path.c_str());
 		fprintf(stderr, "testing: %s\n", url);
 
 		// there's really just one test case for http seeds

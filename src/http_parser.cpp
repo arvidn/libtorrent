@@ -276,7 +276,7 @@ restart_response:
 
 				if (name == "content-length")
 				{
-					m_content_length = strtoll(value.c_str(), 0, 10);
+					m_content_length = std::strtoll(value.c_str(), 0, 10);
 				}
 				else if (name == "connection")
 				{
@@ -293,13 +293,13 @@ restart_response:
 					// start immediately
 					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
 					char* end;
-					m_range_start = strtoll(ptr, &end, 10);
+					m_range_start = std::strtoll(ptr, &end, 10);
 					if (end == ptr) success = false;
 					else if (*end != '-') success = false;
 					else
 					{
 						ptr = end + 1;
-						m_range_end = strtoll(ptr, &end, 10);
+						m_range_end = std::strtoll(ptr, &end, 10);
 						if (end == ptr) success = false;
 					}
 

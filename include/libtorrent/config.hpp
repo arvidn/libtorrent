@@ -396,30 +396,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_UNUSED(x) (void)(x)
 
-#if (defined _MSC_VER && _MSC_VER < 1900) && !defined TORRENT_MINGW
-
-#include <stdarg.h>
-
-// internal
-#ifdef __cplusplus
-inline
-#else
-static
-#endif
-int snprintf(char* buf, int len, char const* fmt, ...)
-{
-	va_list lp;
-	int ret;
-	va_start(lp, fmt);
-	ret = _vsnprintf(buf, len, fmt, lp);
-	va_end(lp);
-	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
-	return ret;
-}
-
-#define strtoll _strtoi64
-#endif
-
 // at the highest warning level, clang actually warns about functions
 // that could be marked noreturn.
 #if defined __clang__ || defined __GNUC__

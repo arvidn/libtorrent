@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <stdarg.h> // for va_start, va_end
-#include <stdio.h> // for vsnprintf
+#include <cstdio> // for vsnprintf
 #include "libtorrent/socket_io.hpp"
 #endif
 
@@ -518,7 +518,7 @@ namespace libtorrent
 		// TODO: it would be neat to be able to print this straight into the
 		// alert's stack allocator
 		char buf[512];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 
 		torrent_handle h;

@@ -41,7 +41,7 @@ std::string save_path(int idx)
 {
 	int swarm_id = test_counter();
 	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
 }
@@ -53,7 +53,7 @@ lt::add_torrent_params create_torrent(int idx, bool seed)
 	lt::add_torrent_params params;
 	int swarm_id = test_counter();
 	char name[200];
-	snprintf(name, sizeof(name), "temp-%02d", swarm_id);
+	std::snprintf(name, sizeof(name), "temp-%02d", swarm_id);
 	std::string path = save_path(idx);
 	lt::error_code ec;
 	lt::create_directory(path, ec);

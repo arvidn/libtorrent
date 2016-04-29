@@ -420,7 +420,7 @@ struct peer_conn
 	{
 		end_time = clock_type::now();
 		char tmp[1024];
-		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+		std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
@@ -431,11 +431,11 @@ struct peer_conn
 		address const& addr = s.local_endpoint(e).address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
 				, s.local_endpoint(e).port());
 		else
 #endif
-			snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
 				, s.local_endpoint(e).port());
 		printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
@@ -790,7 +790,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	while (s > 0)
 	{
 		char b[100];
-		snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
+		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
 		fs.add_file(b, (std::min)(s, boost::int64_t(file_size)));
 		s -= file_size;
@@ -961,13 +961,13 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < num_torrents; ++i)
 		{
 			char torrent_name[100];
-			snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", torrent_file, i);
+			std::snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", torrent_file, i);
 
 			file_storage fs;
 			for (int j = 0; j < num_files; ++j)
 			{
 				char file_name[100];
-				snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
+				std::snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
 				fs.add_file(file_name, boost::int64_t(j + i + 1) * 251);
 			}
 			// 1 MiB piece size

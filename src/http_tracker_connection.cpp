@@ -119,7 +119,7 @@ namespace libtorrent
 
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
-			snprintf(str, sizeof(str)
+			std::snprintf(str, sizeof(str)
 				, "&peer_id=%s"
 				"&port=%d"
 				"&uploaded=%" PRId64

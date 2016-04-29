@@ -95,7 +95,7 @@ void test_swarm(int flags)
 
 	int port = lt::random() % 100;
 	char iface[50];
-	snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
@@ -105,13 +105,13 @@ void test_swarm(int flags)
 
 	lt::session ses1(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 2));
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	lt::session ses2(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	lt::session ses3(pack);
 

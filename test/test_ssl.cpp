@@ -144,7 +144,7 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];
-	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_incoming_utp, use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
@@ -164,9 +164,9 @@ void test_ssl(int test_idx, bool use_utp)
 
 	// the +20 below is the port we use for non-SSL connections
 	if (test.downloader_has_ssl_listen_port)
-		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d,0.0.0.0:%ds", port + 20, port);
+		std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d,0.0.0.0:%ds", port + 20, port);
 	else
-		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d", port + 20);
+		std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d", port + 20);
 
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 
@@ -553,7 +553,7 @@ void test_malicious_peer()
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];
-	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

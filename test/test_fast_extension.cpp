@@ -62,7 +62,7 @@ void log(char const* fmt, ...)
 	va_start(v, fmt);
 
 	char buf[1024];
-	vsnprintf(buf, sizeof(buf), fmt, v);
+	std::vsnprintf(buf, sizeof(buf), fmt, v);
 	va_end(v);
 
 	fprintf(stderr, "\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
@@ -123,9 +123,9 @@ void print_message(char const* buffer, int len)
 		if (msg >= 0 && msg < int(sizeof(message_name)/sizeof(message_name[0])))
 			strcpy(message, message_name[msg]);
 		else if (msg == 20)
-			snprintf(message, sizeof(message), "extension msg [%d]", buffer[1]);
+			std::snprintf(message, sizeof(message), "extension msg [%d]", buffer[1]);
 		else
-			snprintf(message, sizeof(message), "unknown[%d]", msg);
+			std::snprintf(message, sizeof(message), "unknown[%d]", msg);
 
 		if (msg == 0x6 && len == 13)
 		{
@@ -134,17 +134,17 @@ void print_message(char const* buffer, int len)
 			r.piece = detail::read_int32(ptr);
 			r.start = detail::read_int32(ptr);
 			r.length = detail::read_int32(ptr);
-			snprintf(extra, sizeof(extra), "p: %d s: %d l: %d", r.piece, r.start, r.length);
+			std::snprintf(extra, sizeof(extra), "p: %d s: %d l: %d", r.piece, r.start, r.length);
 		}
 		else if (msg == 0x11 && len == 5)
 		{
 			const char* ptr = buffer + 1;
 			int index = detail::read_int32(ptr);
-			snprintf(extra, sizeof(extra), "p: %d", index);
+			std::snprintf(extra, sizeof(extra), "p: %d", index);
 		}
 		else if (msg == 20 && len > 4 && buffer[1] == 0 )
 		{
-			snprintf(extra, sizeof(extra), "%s"
+			std::snprintf(extra, sizeof(extra), "%s"
 				, bdecode(buffer + 2, buffer + len).to_string().c_str());
 		}
 	}

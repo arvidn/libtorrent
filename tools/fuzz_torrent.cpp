@@ -113,7 +113,7 @@ void print_ascii_number(std::string& output, boost::int64_t val)
 		if (negative) output += '-';
 		else if (double_negative) output += "--";
 		char buf[50];
-		snprintf(buf, sizeof(buf), "%" PRId64 "", val);
+		std::snprintf(buf, sizeof(buf), "%" PRId64 "", val);
 		output += buf;
 	}
 }
@@ -395,7 +395,7 @@ int main(int argc, char const* argv[])
 				{
 				fprintf(stderr, "saving %d\n", i);
 				char filename[100];
-				snprintf(filename, sizeof(filename), "torrents/fuzz-%d.torrent", i);
+				std::snprintf(filename, sizeof(filename), "torrents/fuzz-%d.torrent", i);
 				FILE* f = fopen(filename, "wb+");
 				if (f == 0)
 				{

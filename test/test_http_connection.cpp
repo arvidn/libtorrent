@@ -186,7 +186,7 @@ void run_suite(std::string const& protocol
 	typedef boost::optional<error_code> err;
 
 	char url[256];
-	snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
+	std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
 	std::string url_base(url);
 
 	run_test(url_base + "relative/redirect", 3216, 200, 2, error_code(), ps);

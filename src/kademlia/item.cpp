@@ -63,13 +63,13 @@ namespace
 		int left = canonical_length - (ptr - out);
 		if (salt.second > 0)
 		{
-			ptr += snprintf(ptr, left, "4:salt%d:", salt.second);
+			ptr += std::snprintf(ptr, left, "4:salt%d:", salt.second);
 			left = canonical_length - (ptr - out);
 			memcpy(ptr, salt.first, (std::min)(salt.second, left));
 			ptr += (std::min)(salt.second, left);
 			left = canonical_length - (ptr - out);
 		}
-		ptr += snprintf(ptr, canonical_length - (ptr - out)
+		ptr += std::snprintf(ptr, canonical_length - (ptr - out)
 			, "3:seqi%" PRId64 "e1:v", seq);
 		left = canonical_length - (ptr - out);
 		memcpy(ptr, v.first, (std::min)(v.second, left));

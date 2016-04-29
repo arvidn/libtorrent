@@ -1059,7 +1059,7 @@ namespace libtorrent
 		e.size = size;
 		e.offset = offset;
 		char name[30];
-		snprintf(name, sizeof(name), ".____padding_file/%d", pad_file_counter);
+		std::snprintf(name, sizeof(name), ".____padding_file/%d", pad_file_counter);
 		std::string path = combine_path(m_name, name);
 		e.set_name(path.c_str());
 		e.pad_file = true;
