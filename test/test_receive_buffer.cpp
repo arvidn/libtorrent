@@ -137,6 +137,7 @@ TORRENT_TEST(recv_buffer_disk_buffer)
 	// |----------------|    863
 
 	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 863);
+	// cppcheck-suppress arrayIndexOutOfBounds
 	TEST_EQUAL(boost::asio::buffer_size(vec[1]), 137);
 }
 
