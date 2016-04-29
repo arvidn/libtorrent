@@ -202,15 +202,13 @@ TORRENT_TEST(set_custom)
 	lt::session ses(p);
 
 	TEST_EQUAL(g_storage_constructor_invoked, false);
-	bool r = ses.is_dht_running();
-	TEST_CHECK(!r);
+	TEST_CHECK(ses.is_dht_running() == false);
 
 	ses.set_dht_storage(dht_custom_storage_constructor);
 
 	p.set_bool(settings_pack::enable_dht, true);
 	ses.apply_settings(p); // async with dispatch
-	r = ses.is_dht_running();
-	TEST_CHECK(r);
+	TEST_CHECK(ses.is_dht_running());
 	TEST_EQUAL(g_storage_constructor_invoked, true);
 }
 
@@ -221,23 +219,20 @@ TORRENT_TEST(default_set_custom)
 	p.set_bool(settings_pack::enable_dht, true);
 	lt::session ses(p);
 
-	bool r = ses.is_dht_running();
-	TEST_CHECK(r);
+	TEST_CHECK(ses.is_dht_running());
 
 	ses.set_dht_storage(dht_custom_storage_constructor);
 
 	p.set_bool(settings_pack::enable_dht, false);
 	ses.apply_settings(p); // async with dispatch
-	r = ses.is_dht_running();
-	TEST_CHECK(!r);
+	TEST_CHECK(ses.is_dht_running() == false);
 	TEST_EQUAL(g_storage_constructor_invoked, false);
 
 	ses.set_dht_storage(dht_custom_storage_constructor);
 
 	p.set_bool(settings_pack::enable_dht, true);
 	ses.apply_settings(p); // async with dispatch
-	r = ses.is_dht_running();
-	TEST_CHECK(r);
+	TEST_CHECK(ses.is_dht_running());
 	TEST_EQUAL(g_storage_constructor_invoked, true);
 }
 
