@@ -1201,22 +1201,6 @@ namespace libtorrent {
 		return "DHT bootstrap complete";
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	rss_alert::rss_alert(aux::stack_allocator&, feed_handle h
-		, std::string const& u, int s, error_code const& ec)
-		: handle(h), url(u), state(s), error(ec)
-	{}
-
-	std::string rss_alert::message() const
-	{
-		char msg[600];
-		char const* state_msg[] = {"updating", "updated", "error"};
-		snprintf(msg, sizeof(msg), "RSS feed %s: %s (%s)"
-			, url.c_str(), state_msg[state], convert_from_native(error.message()).c_str());
-		return msg;
-	}
-#endif
-
 	torrent_error_alert::torrent_error_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
@@ -1422,21 +1406,6 @@ namespace libtorrent {
 			, to_hex(old_ih.to_string()).c_str()
 			, to_hex(new_ih.to_string()).c_str());
 		return torrent_alert::message() + msg;
-	}
-
-	rss_item_alert::rss_item_alert(aux::stack_allocator&, feed_handle h
-		, feed_item const& i)
-		: handle(h)
-		, item(i)
-	{}
-
-	std::string rss_item_alert::message() const
-	{
-		char msg[500];
-		snprintf(msg, sizeof(msg), "feed [%s] has new RSS item %s"
-			, handle.get_feed_status().title.c_str()
-			, item.title.empty() ? item.url.c_str() : item.title.c_str());
-		return msg;
 	}
 #endif
 

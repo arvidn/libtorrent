@@ -107,7 +107,6 @@ nobase_include_HEADERS = \
   resolver.hpp                 \
   resolver_interface.hpp       \
   request_blocks.hpp           \
-  rss.hpp                      \
   session.hpp                  \
   session_handle.hpp           \
   session_settings.hpp         \

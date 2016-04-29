@@ -232,7 +232,6 @@ namespace libtorrent
 			atp.last_seen_complete = resume_data.last_seen_complete;
 			atp.url = resume_data.url;
 			atp.uuid = resume_data.uuid;
-			atp.source_feed_url = resume_data.source_feed_url;
 
 			atp.added_time = resume_data.added_time;
 			atp.completed_time = resume_data.completed_time;
@@ -439,24 +438,6 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	feed_handle session_handle::add_feed(feed_settings const& feed)
-	{
-		// if you have auto-download enabled, you must specify a download directory!
-		TORRENT_ASSERT_PRECOND(!feed.auto_download || !feed.add_args.save_path.empty());
-		return TORRENT_SYNC_CALL_RET1(feed_handle, add_feed, feed);
-	}
-
-	void session_handle::remove_feed(feed_handle h)
-	{
-		TORRENT_ASYNC_CALL1(remove_feed, h);
-	}
-
-	void session_handle::get_feeds(std::vector<feed_handle>& f) const
-	{
-		f.clear();
-		TORRENT_SYNC_CALL1(get_feeds, &f);
-	}
-
 	void session_handle::start_dht()
 	{
 		settings_pack p;

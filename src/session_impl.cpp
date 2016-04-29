@@ -351,10 +351,6 @@ namespace aux {
 
 	session_impl::session_impl(io_service& ios)
 		:
-#ifndef TORRENT_NO_DEPRECATE
-		m_next_rss_update(min_time())
-		,
-#endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		m_send_buffers(send_buffer_size())
 		,
@@ -667,19 +663,6 @@ namespace aux {
 		}
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
-		if (flags & session::save_feeds)
-		{
-			entry::list_type& feeds = e["feeds"].list();
-			for (std::vector<boost::shared_ptr<feed> >::const_iterator i =
-				m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
-			{
-				feeds.push_back(entry());
-				(*i)->save_state(feeds.back());
-			}
-		}
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
 			, end(m_ses_extensions.end()); i != end; ++i)
@@ -802,24 +785,6 @@ namespace aux {
 			val = settings.dict_find_int("allowed_enc_level");
 			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val.int_value());
 		}
-
-		if (flags & session::save_feeds)
-		{
-			settings = e->dict_find_list("feeds");
-			if (settings)
-			{
-				m_feeds.reserve(settings.list_size());
-				for (int i = 0; i < settings.list_size(); ++i)
-				{
-					if (settings.list_at(i).type() != bdecode_node::dict_t) continue;
-					boost::shared_ptr<feed> f(new_feed(*this, feed_settings()));
-					f->load_state(settings.list_at(i));
-					f->update_feed();
-					m_feeds.push_back(f);
-				}
-				update_rss_feeds();
-			}
-		}
 #endif
 
 		if (flags & session::save_settings)
@@ -910,53 +875,6 @@ namespace aux {
 	}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
-
-#ifndef TORRENT_NO_DEPRECATE
-	feed_handle session_impl::add_feed(feed_settings const& sett)
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		// look for duplicates. If we already have a feed with this
-		// URL, return a handle to the existing one
-		for (std::vector<boost::shared_ptr<feed> >::const_iterator i
-			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
-		{
-			if (sett.url != (*i)->m_settings.url) continue;
-			return feed_handle(*i);
-		}
-
-		boost::shared_ptr<feed> f(new_feed(*this, sett));
-		m_feeds.push_back(f);
-		update_rss_feeds();
-		return feed_handle(f);
-	}
-
-	void session_impl::remove_feed(feed_handle h)
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		boost::shared_ptr<feed> f = h.m_feed_ptr.lock();
-		if (!f) return;
-
-		std::vector<boost::shared_ptr<feed> >::iterator i
-			= std::find(m_feeds.begin(), m_feeds.end(), f);
-
-		if (i == m_feeds.end()) return;
-
-		m_feeds.erase(i);
-	}
-
-	void session_impl::get_feeds(std::vector<feed_handle>* ret) const
-	{
-		TORRENT_ASSERT(is_single_thread());
-
-		ret->clear();
-		ret->reserve(m_feeds.size());
-		for (std::vector<boost::shared_ptr<feed> >::const_iterator i = m_feeds.begin()
-			, end(m_feeds.end()); i != end; ++i)
-			ret->push_back(feed_handle(*i));
-	}
-#endif
 
 	void session_impl::pause()
 	{
@@ -3235,14 +3153,6 @@ namespace aux {
 		// don't do any of the following while we're shutting down
 		if (m_abort) return;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// --------------------------------------------------------------
-		// RSS feeds
-		// --------------------------------------------------------------
-		if (now > m_next_rss_update)
-			update_rss_feeds();
-#endif
-
 		switch (m_settings.get_int(settings_pack::mixed_mode_algorithm))
 		{
 			case settings_pack::prefer_tcp:
@@ -3554,27 +3464,6 @@ namespace aux {
 		int index = (std::min)(log2(s >> 3), 17);
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	void session_impl::update_rss_feeds()
-	{
-		time_t now_posix = time(0);
-		time_point min_update = max_time();
-		time_point now = aux::time_now();
-		for (std::vector<boost::shared_ptr<feed> >::iterator i
-			= m_feeds.begin(), end(m_feeds.end()); i != end; ++i)
-		{
-			feed& f = **i;
-			int delta = f.next_update(now_posix);
-			if (delta <= 0)
-				delta = f.update_feed();
-			TORRENT_ASSERT(delta >= 0);
-			time_point next_update = now + seconds(delta);
-			if (next_update < min_update) min_update = next_update;
-		}
-		m_next_rss_update = min_update;
-	}
-#endif
 
 	void session_impl::prioritize_connections(boost::weak_ptr<torrent> t)
 	{
@@ -4877,8 +4766,6 @@ namespace aux {
 					torrent_ptr->set_uuid(params.uuid);
 				if (!params.url.empty() && torrent_ptr->url().empty())
 					torrent_ptr->set_url(params.url);
-				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
-					torrent_ptr->set_source_feed_url(params.source_feed_url);
 #endif
 				return torrent_handle(torrent_ptr);
 			}

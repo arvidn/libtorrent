@@ -150,7 +150,6 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
 		ret.uuid = rd.dict_find_string_value("uuid");
-		ret.source_feed_url = rd.dict_find_string_value("feed");
 #endif
 
 		bdecode_node mapped_files = rd.dict_find_list("mapped_files");

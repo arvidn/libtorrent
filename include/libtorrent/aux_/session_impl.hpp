@@ -86,7 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/bloom_filter.hpp"
-#include "libtorrent/rss.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/network_thread_pool.hpp"
@@ -267,12 +266,6 @@ namespace libtorrent
 				, error_code const& e);
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
-
-#ifndef TORRENT_NO_DEPRECATE
-			feed_handle add_feed(feed_settings const& feed);
-			void remove_feed(feed_handle h);
-			void get_feeds(std::vector<feed_handle>* f) const;
-#endif
 
 			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const TORRENT_OVERRIDE;
 #ifndef TORRENT_NO_DEPRECATE
@@ -656,13 +649,6 @@ namespace libtorrent
 			void inc_boost_connections() TORRENT_OVERRIDE { ++m_boost_connections; }
 
 #ifndef TORRENT_NO_DEPRECATE
-			// the time when the next rss feed needs updating
-			time_point m_next_rss_update;
-
-			// update any rss feeds that need updating and
-			// recalculate m_next_rss_update
-			void update_rss_feeds();
-
 			void update_ssl_listen();
 			void update_dht_upload_rate_limit();
 			void update_local_download_rate();
@@ -1237,10 +1223,6 @@ namespace libtorrent
 
 			// is true if the session is paused
 			bool m_paused;
-
-#ifndef TORRENT_NO_DEPRECATE
-			std::vector<boost::shared_ptr<feed> > m_feeds;
-#endif
 
 			// this is a list of peer connections who have been
 			// corked (i.e. their network socket) and needs to be

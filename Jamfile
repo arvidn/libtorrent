@@ -614,7 +614,6 @@ SOURCES =
 	read_resume_data
 	receive_buffer
 	resolve_links
-	rss
 	session
 	session_handle
 	session_impl
