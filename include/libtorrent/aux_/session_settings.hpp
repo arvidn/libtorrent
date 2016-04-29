@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 #include <string>
+#include <array>
 
 namespace libtorrent
 {
@@ -48,35 +49,54 @@ namespace libtorrent
 namespace libtorrent { namespace aux
 {
 
-#define SET(type) \
-	TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack:: type ## _type_base); \
-	if ((name & settings_pack::type_mask) != settings_pack:: type ## _type_base) return; \
-	m_ ## type ## s[name - settings_pack:: type ## _type_base] = value
-
-#define GET(type, default_val) \
-	TORRENT_ASSERT((name & settings_pack::type_mask) == settings_pack:: type ## _type_base); \
-	if ((name & settings_pack::type_mask) != settings_pack:: type ## _type_base) return default_val; \
-	return m_ ## type ## s[name - settings_pack:: type ## _type_base]
-
 	struct TORRENT_EXTRA_EXPORT session_settings
 	{
 		friend void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
-		void set_str(int name, std::string const& value) { SET(string); }
-		std::string const& get_str(int name) const { GET(string, m_strings[0]); }
-		void set_int(int name, int value) { SET(int); }
-		int get_int(int name) const { GET(int, 0); }
-		void set_bool(int name, bool value) { SET(bool); }
-		bool get_bool(int name) const { GET(bool, false); }
+		void set_str(int name, std::string const& value)
+		{ set(m_strings, name, value, settings_pack::string_type_base); }
+		void set_int(int name, int value)
+		{ set(m_ints, name, value, settings_pack::int_type_base); }
+		void set_bool(int name, bool value)
+		{ set(m_bools, name, value, settings_pack::bool_type_base); }
+
+		std::string const& get_str(int name) const
+		{ return get(m_strings, name, settings_pack::string_type_base); }
+		int get_int(int name) const
+		{ return get(m_ints, name, settings_pack::int_type_base); }
+		bool get_bool(int name) const
+		{ return get(m_bools, name, settings_pack::bool_type_base); }
 
 		session_settings();
 
 	private:
-		std::string m_strings[settings_pack::num_string_settings];
-		int m_ints[settings_pack::num_int_settings];
+
+		template <typename T, size_t N>
+		void set(std::array<T, N>& arr, int const name, T const& val, int const type) const
+		{
+			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
+			if ((name & settings_pack::type_mask) != type) return;
+			int const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index >= 0 && index < N);
+			arr[index] = val;
+		}
+
+		template <typename T, size_t N>
+		T const& get(std::array<T, N> const& arr, int const name, int const type) const
+		{
+			static T empty;
+			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
+			if ((name & settings_pack::type_mask) != type) return empty;
+			int const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index >= 0 && index < N);
+			return arr[index];
+		}
+
+		std::array<std::string, settings_pack::num_string_settings> m_strings;
+		std::array<int, settings_pack::num_int_settings> m_ints;
 		// TODO: make this a bitfield
-		bool m_bools[settings_pack::num_bool_settings];
+		std::array<bool, settings_pack::num_bool_settings> m_bools;
 	};
 
 #undef GET

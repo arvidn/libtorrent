@@ -105,6 +105,12 @@ TORRENT_TEST(test_name)
 #endif
 	TEST_NAME(peer_turnover_interval);
 	TEST_NAME(mmap_cache);
+	TEST_NAME(peer_fingerprint);
+	TEST_NAME(proxy_tracker_connections);
+	TEST_NAME(cache_size_volatile);
+	TEST_NAME(predictive_piece_announce);
+	TEST_NAME(max_metadata_size);
+	TEST_NAME(num_optimistic_unchoke_slots);
 }
 
 TORRENT_TEST(clear)

@@ -585,12 +585,13 @@ namespace libtorrent
 				continue;
 
 			// ignore settings that are out of bounds
-			int index = i->first & settings_pack::index_mask;
+			int const index = i->first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_string_settings);
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
 			sett.set_str(i->first, i->second);
-			str_setting_entry_t const& sa = str_settings[i->first & settings_pack::index_mask];
+			str_setting_entry_t const& sa = str_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
@@ -604,12 +605,13 @@ namespace libtorrent
 				continue;
 
 			// ignore settings that are out of bounds
-			int index = i->first & settings_pack::index_mask;
+			int const index = i->first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_int_settings);
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
 
 			sett.set_int(i->first, i->second);
-			int_setting_entry_t const& sa = int_settings[i->first & settings_pack::index_mask];
+			int_setting_entry_t const& sa = int_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
@@ -623,12 +625,13 @@ namespace libtorrent
 				continue;
 
 			// ignore settings that are out of bounds
-			int index = i->first & settings_pack::index_mask;
+			int const index = i->first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_bool_settings);
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
 
 			sett.set_bool(i->first, i->second);
-			bool_setting_entry_t const& sa = bool_settings[i->first & settings_pack::index_mask];
+			bool_setting_entry_t const& sa = bool_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
