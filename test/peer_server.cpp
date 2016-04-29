@@ -92,7 +92,7 @@ struct peer_server
 
 		fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new thread(boost::bind(&peer_server::thread_fun, this)));
+		m_thread.reset(new libtorrent::thread(boost::bind(&peer_server::thread_fun, this)));
 	}
 
 	~peer_server()
