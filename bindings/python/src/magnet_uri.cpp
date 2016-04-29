@@ -65,7 +65,6 @@ namespace {
 		ret["url"] = p.url;
 #ifndef TORRENT_NO_DEPRECATE
 		ret["uuid"] = p.uuid;
-		ret["source_feed_url"] = p.source_feed_url;
 #endif
 		ret["flags"] = p.flags;
 		return ret;

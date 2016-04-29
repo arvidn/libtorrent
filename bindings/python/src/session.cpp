@@ -257,8 +257,6 @@ namespace
         if (params.has_key("url"))
             p.url = extract<std::string>(params["url"]);
 #ifndef TORRENT_NO_DEPRECATE
-        if (params.has_key("source_feed_url"))
-            p.source_feed_url = extract<std::string>(params["source_feed_url"]);
         if (params.has_key("uuid"))
             p.uuid = extract<std::string>(params["uuid"]);
 #endif
@@ -302,87 +300,6 @@ namespace
     }
 
 #ifndef TORRENT_NO_DEPRECATE
-    void dict_to_feed_settings(dict params, feed_settings& feed)
-    {
-        if (params.has_key("auto_download"))
-            feed.auto_download = extract<bool>(params["auto_download"]);
-        if (params.has_key("default_ttl"))
-            feed.default_ttl = extract<int>(params["default_ttl"]);
-        if (params.has_key("url"))
-            feed.url = extract<std::string>(params["url"]);
-        if (params.has_key("add_args"))
-            dict_to_add_torrent_params(dict(params["add_args"]), feed.add_args);
-    }
-
-    feed_handle add_feed(lt::session& s, dict params)
-    {
-        feed_settings feed;
-        // this static here is a bit of a hack. It will
-        // probably work for the most part
-        dict_to_feed_settings(params, feed);
-
-        allow_threading_guard guard;
-        return s.add_feed(feed);
-    }
-
-    dict get_feed_status(feed_handle const& h)
-    {
-        feed_status s;
-        {
-            allow_threading_guard guard;
-            s = h.get_feed_status();
-        }
-        dict ret;
-        ret["url"] = s.url;
-        ret["title"] = s.title;
-        ret["description"] = s.description;
-        ret["last_update"] = s.last_update;
-        ret["next_update"] = s.next_update;
-        ret["updating"] = s.updating;
-        ret["error"] = s.error ? s.error.message() : "";
-        ret["ttl"] = s.ttl;
-
-        list items;
-        for (std::vector<feed_item>::iterator i = s.items.begin()
-            , end(s.items.end()); i != end; ++i)
-        {
-            dict item;
-            item["url"] = i->url;
-            item["uuid"] = i->uuid;
-            item["title"] = i->title;
-            item["description"] = i->description;
-            item["comment"] = i->comment;
-            item["category"] = i->category;
-            item["size"] = i->size;
-            item["handle"] = i->handle;
-            item["info_hash"] = i->info_hash.to_string();
-            items.append(item);
-        }
-        ret["items"] = items;
-        return ret;
-    }
-
-    void set_feed_settings(feed_handle& h, dict sett)
-    {
-        feed_settings feed;
-        dict_to_feed_settings(sett, feed);
-        h.set_settings(feed);
-    }
-
-    dict get_feed_settings(feed_handle& h)
-    {
-        feed_settings s;
-        {
-            allow_threading_guard guard;
-            s = h.settings();
-        }
-        dict ret;
-        ret["url"] = s.url;
-        ret["auto_download"] = s.auto_download;
-        ret["default_ttl"] = s.default_ttl;
-        return ret;
-    }
-
     void start_natpmp(lt::session& s)
     {
         allow_threading_guard guard;
@@ -727,7 +644,6 @@ void bind_session()
 
 #ifndef TORRENT_NO_DEPRECATE
         .def_readwrite("uuid", &add_torrent_params::uuid)
-        .def_readwrite("source_feed_url", &add_torrent_params::source_feed_url)
         .def_readwrite("resume_data", &add_torrent_params::resume_data)
 #endif
       ;
@@ -860,7 +776,6 @@ void bind_session()
 #endif // BOOST_NO_EXCEPTIONS
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("add_feed", &add_feed)
         .def("status", allow_threads(&lt::session::status))
         .def("settings", &lt::session::settings)
         .def("set_settings", &session_set_settings)
@@ -977,13 +892,6 @@ void bind_session()
     enum_<lt::session::listen_on_flags_t>("listen_on_flags_t")
         .value("listen_reuse_address", lt::session::listen_reuse_address)
         .value("listen_no_system_port", lt::session::listen_no_system_port)
-    ;
-
-    class_<feed_handle>("feed_handle")
-        .def("update_feed", &feed_handle::update_feed)
-        .def("get_feed_status", &get_feed_status)
-        .def("set_settings", &set_feed_settings)
-        .def("settings", &get_feed_settings)
     ;
 #endif
 

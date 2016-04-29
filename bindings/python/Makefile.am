@@ -3,7 +3,6 @@ EXTRA_DIST = \
   Jamfile                   \
   setup.py                  \
   client.py                 \
-  rss_reader.py             \
   simple_client.py          \
   make_torrent.py           \
   src/alert.cpp             \

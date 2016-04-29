@@ -71,7 +71,6 @@ dict get_params(add_torrent_alert const& alert)
     ret["trackerid"] = p.trackerid;
     ret["url"] = p.url;
 #ifndef TORRENT_NO_DEPRECATE
-    ret["source_feed_url"] = p.source_feed_url;
     ret["uuid"] = p.uuid;
 #endif
     return ret;
