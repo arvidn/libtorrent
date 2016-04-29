@@ -444,7 +444,7 @@ pid_type async_run(char const* cmdline)
 {
 #ifdef _WIN32
 	char buf[2048];
-	snprintf(buf, sizeof(buf), "%s", cmdline);
+	std::snprintf(buf, sizeof(buf), "%s", cmdline);
 
 	PROCESS_INFORMATION pi;
 	STARTUPINFOA startup;
@@ -570,7 +570,7 @@ int start_proxy(int proxy_type)
 			break;
 	}
 	char buf[512];
-	snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
+	std::snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
 	fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
 	fprintf(stderr, "%s\n", buf);
@@ -602,9 +602,9 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 	{
 		std::generate(random_data, random_data + 300000, random_byte);
 		char filename[200];
-		snprintf(filename, sizeof(filename), "test%d", i);
+		std::snprintf(filename, sizeof(filename), "test%d", i);
 		char dirname[200];
-		snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+		std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 
 		std::string full_path = combine_path(path, dirname);
 		error_code ec;
@@ -906,7 +906,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	} while (ec);
 
 	char buf[200];
-	snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
+	std::snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
 		, port, chunked_encoding , ssl, keepalive);
 
 	fprintf(stderr, "%s starting web_server on port %d...\n", time_now_string(), port);

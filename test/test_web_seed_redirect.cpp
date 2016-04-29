@@ -68,7 +68,7 @@ TORRENT_TEST(web_seed_redirect)
 	libtorrent::create_torrent t(fs, piece_size, 0x4000);
 
 	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
+	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
 	t.add_url_seed(tmp);
 
 	// calculate the hash for all pieces

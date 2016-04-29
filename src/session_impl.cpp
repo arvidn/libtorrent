@@ -4481,7 +4481,7 @@ namespace aux {
 		if (!m_alerts.should_post<log_alert>()) return;
 
 		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		m_alerts.emplace_alert<log_alert>(buf);
 	}
 #endif
@@ -6669,7 +6669,7 @@ namespace aux {
 		va_list v;
 		va_start(v, fmt);
 		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 		m_alerts.emplace_alert<dht_log_alert>(static_cast<dht_log_alert::dht_module_t>(m), buf);
 	}
@@ -7029,7 +7029,7 @@ namespace aux {
 			va_list v;
 			va_start(v, fmt);
 			char usr[1024];
-			vsnprintf(usr, sizeof(usr), fmt, v);
+			std::vsnprintf(usr, sizeof(usr), fmt, v);
 			va_end(v);
 			m_ses.session_log("%s", usr);
 		}

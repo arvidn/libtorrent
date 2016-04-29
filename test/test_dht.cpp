@@ -492,7 +492,7 @@ struct obs : dht::dht_observer
 		va_list v;
 		va_start(v, fmt);
 		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 		m_log.push_back(buf);
 	}
@@ -834,7 +834,7 @@ void do_test_dht(address(&rand_addr)())
 	for (int i = 0; i < 256; ++i)
 	{
 		char adr[50];
-		snprintf(adr, 50, "192.0.2.%d", i);
+		std::snprintf(adr, 50, "192.0.2.%d", i);
 		address a = address::from_string(adr);
 		sha1_hash iphash;
 		hash_address(a, iphash);
@@ -846,7 +846,7 @@ void do_test_dht(address(&rand_addr)())
 		for (int i = 0; i < 0x3E8; ++i)
 		{
 			char adr[50];
-			snprintf(adr, 50, "2001:db8::%x", i);
+			std::snprintf(adr, 50, "2001:db8::%x", i);
 			address a = address::from_string(adr);
 			sha1_hash iphash;
 			hash_address(a, iphash);
@@ -1858,7 +1858,7 @@ void do_test_dht(address(&rand_addr)())
 				continue;
 			}
 			char t[10];
-			snprintf(t, sizeof(t), "%02d", i);
+			std::snprintf(t, sizeof(t), "%02d", i);
 
 			msg_args args;
 			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
@@ -1887,7 +1887,7 @@ void do_test_dht(address(&rand_addr)())
 				std::pair<const char*, int>v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(std::string(v.first, v.second), flat_data);
 				char t[10];
-				snprintf(t, sizeof(t), "%02d", i);
+				std::snprintf(t, sizeof(t), "%02d", i);
 				TEST_EQUAL(put_immutable_item_keys[5].string_value(), t);
 				if (put_immutable_item_keys[0].string_value() != "q"
 					|| put_immutable_item_keys[2].string_value() != "put") continue;
@@ -1955,7 +1955,7 @@ void do_test_dht(address(&rand_addr)())
 				continue;
 			}
 			char t[10];
-			snprintf(t, sizeof(t), "%02d", i);
+			std::snprintf(t, sizeof(t), "%02d", i);
 
 			msg_args args;
 			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
@@ -1989,7 +1989,7 @@ void do_test_dht(address(&rand_addr)())
 				TEST_EQUAL(v.second, itemv.second);
 				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
 				char t[10];
-				snprintf(t, sizeof(t), "%02d", i);
+				std::snprintf(t, sizeof(t), "%02d", i);
 				TEST_EQUAL(put_mutable_item_keys[9].string_value(), t);
 				if (put_mutable_item_keys[0].string_value() != "q"
 					|| put_mutable_item_keys[2].string_value() != "put") continue;
@@ -2070,7 +2070,7 @@ void do_test_dht(address(&rand_addr)())
 				continue;
 			}
 			char t[10];
-			snprintf(t, sizeof(t), "%02d", i);
+			std::snprintf(t, sizeof(t), "%02d", i);
 
 			msg_args args;
 			args.token(t).port(1234).nid(nodes[i].id);

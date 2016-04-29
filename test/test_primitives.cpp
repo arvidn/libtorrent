@@ -93,12 +93,6 @@ TORRENT_TEST(primitives)
 	TEST_CHECK(error_code(errors::unauthorized, get_http_category()).message() == "401 Unauthorized");
 	TEST_CHECK(error_code(errors::service_unavailable, get_http_category()).message() == "503 Service Unavailable");
 
-	// test snprintf
-
-	char msg[10];
-	snprintf(msg, sizeof(msg), "too %s format string", "long");
-	TEST_CHECK(strcmp(msg, "too long ") == 0);
-
 	if (supports_ipv6())
 	{
 		// make sure the assumption we use in policy's peer list hold

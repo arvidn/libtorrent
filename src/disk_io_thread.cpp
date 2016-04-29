@@ -122,7 +122,7 @@ namespace libtorrent
 		va_end(v);
 		char buf[2300];
 		int t = total_milliseconds(clock_type::now() - start);
-		snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
+		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
 		prepend_time = (usr[len-1] == '\n');
 		mutex::scoped_lock l(log_mutex);
 		fputs(buf, stderr);

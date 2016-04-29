@@ -96,7 +96,7 @@ std::string chunk_string(std::string s)
 	{
 		i = std::min(i, s.size());
 		char header[50];
-		snprintf(header, sizeof(header), "%x\r\n", int(i));
+		std::snprintf(header, sizeof(header), "%x\r\n", int(i));
 		ret += header;
 		ret += s.substr(0, i);
 		s.erase(s.begin(), s.begin() + i);

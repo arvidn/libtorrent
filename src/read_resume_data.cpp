@@ -93,7 +93,6 @@ namespace libtorrent
 
 		ret.info_hash.assign(info_hash);
 
-		// TODO: 4 add unit test for this, and all other fields of the resume data
 		bdecode_node info = rd.dict_find_dict("info");
 		if (info)
 		{

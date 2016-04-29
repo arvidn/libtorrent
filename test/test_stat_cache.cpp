@@ -46,7 +46,7 @@ TORRENT_TEST(stat_cache)
 	for (int i = 0; i < 20; ++i)
 	{
 		char buf[50];
-		snprintf(buf, sizeof(buf), "test_torrent/test-%d", i);
+		std::snprintf(buf, sizeof(buf), "test_torrent/test-%d", i);
 		fs.add_file(buf, (i + 1) * 10);
 	}
 

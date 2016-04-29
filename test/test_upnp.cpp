@@ -94,7 +94,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 
 	TORRENT_ASSERT(g_port != 0);
 	char buf[sizeof(msg) + 30];
-	int len = snprintf(buf, sizeof(buf), msg, g_port);
+	int len = std::snprintf(buf, sizeof(buf), msg, g_port);
 
 	error_code ec;
 	sock->send(buf, len, ec);

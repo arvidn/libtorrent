@@ -179,7 +179,7 @@ void spawn_connections(connections_t& v, bandwidth_manager& bwm
 	for (int i = 0; i < num; ++i)
 	{
 		char name[200];
-		snprintf(name, sizeof(name), "%s%d", prefix, i);
+		std::snprintf(name, sizeof(name), "%s%d", prefix, i);
 		v.push_back(boost::shared_ptr<peer_connection>(new peer_connection(bwm, bwc, 200, false, name)));
 	}
 }

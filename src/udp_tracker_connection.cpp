@@ -257,7 +257,7 @@ namespace libtorrent
 					char const* tracker_address_type = target.address().is_v4() ? "IPv4" : "IPv6";
 					char const* bind_address_type = bind_interface().is_v4() ? "IPv4" : "IPv6";
 					char msg[200];
-					snprintf(msg, sizeof(msg)
+					std::snprintf(msg, sizeof(msg)
 						, "the tracker only resolves to an %s  address, and you're "
 						"listening on an %s socket. This may prevent you from receiving "
 						"incoming connections."

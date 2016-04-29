@@ -551,7 +551,7 @@ namespace libtorrent
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}
@@ -610,7 +610,7 @@ namespace libtorrent
 			case lazy_entry::int_t:
 			{
 				char str[100];
-				snprintf(str, sizeof(str), "%" PRId64, e.int_value());
+				std::snprintf(str, sizeof(str), "%" PRId64, e.int_value());
 				return str;
 			}
 			case lazy_entry::string_t:

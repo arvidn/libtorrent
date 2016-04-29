@@ -929,7 +929,7 @@ namespace libtorrent
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
-		target_size = snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
+		target_size = std::snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
 			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
 		ret.resize(target_size);
 		return ret;

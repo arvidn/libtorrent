@@ -47,7 +47,7 @@ namespace libtorrent
 		int s = t / 1000;
 		t -= s * 1000;
 		int ms = t;
-		snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
+		std::snprintf(ret, sizeof(ret), "%02d:%02d:%02d.%03d", h, m, s, ms);
 		return ret;
 	}
 }

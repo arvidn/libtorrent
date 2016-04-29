@@ -255,7 +255,7 @@ EXPORT int main(int argc, char const* argv[])
 	process_id = getpid();
 #endif
 	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
+	std::snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
 	std::string test_dir = complete(dir);
 	error_code ec;
 	create_directory(test_dir, ec);
@@ -340,7 +340,7 @@ EXPORT int main(int argc, char const* argv[])
 		catch (std::exception const& e)
 		{
 			char buf[200];
-			snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+			std::snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
 			report_failure(buf, __FILE__, __LINE__);
 		}
 		catch (...)

@@ -453,7 +453,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
 		char cmd[1024];
-		int size = snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
+		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
 //		fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
@@ -466,7 +466,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_accept_response;
 		char cmd[400];
-		int size = snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
+		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
 //		fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
@@ -478,7 +478,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
 		char cmd[400];
-		int size = snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
+		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
 //		fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
@@ -491,7 +491,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_name_lookup_response;
 		char cmd[1024];
-		int size = snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
+		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
 //		fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)

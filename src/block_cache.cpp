@@ -181,10 +181,10 @@ void log_refcounts(cached_piece_entry const* pe)
 	char out[4096];
 	char* ptr = out;
 	char* end = ptr + sizeof(out);
-	ptr += snprintf(ptr, end - ptr, "piece: %d [ ", int(pe->piece));
+	ptr += std::snprintf(ptr, end - ptr, "piece: %d [ ", int(pe->piece));
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
-		ptr += snprintf(ptr, end - ptr, "%d ", int(pe->blocks[i].refcount));
+		ptr += std::snprintf(ptr, end - ptr, "%d ", int(pe->blocks[i].refcount));
 	}
 	strncpy(ptr, "]\n", end - ptr);
 	DLOG(stderr, out);

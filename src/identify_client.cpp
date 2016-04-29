@@ -322,12 +322,12 @@ namespace
 			name = temp;
 		}
 
-		int num_chars = snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
+		int num_chars = std::snprintf(identity, sizeof(identity), "%s %u.%u.%u", name
 			, f.major_version, f.minor_version, f.revision_version);
 
 		if (f.tag_version != 0)
 		{
-			snprintf(identity + num_chars, sizeof(identity) - num_chars
+			std::snprintf(identity + num_chars, sizeof(identity) - num_chars
 				, ".%u", f.tag_version);
 		}
 

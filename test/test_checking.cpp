@@ -70,9 +70,9 @@ void test_checking(int flags = read_only_files)
 	for (int i = 0; i < num_files; ++i)
 	{
 		char name[1024];
-		snprintf(name, sizeof(name), "test%d", i);
+		std::snprintf(name, sizeof(name), "test%d", i);
 		char dirname[200];
-		snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+		std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 		std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 		path = combine_path(path, name);
 #ifdef TORRENT_WINDOWS
@@ -124,9 +124,9 @@ void test_checking(int flags = read_only_files)
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
-			snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", i);
 			char dirname[200];
-			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
 
@@ -159,9 +159,9 @@ void test_checking(int flags = read_only_files)
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
-			snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", i);
 			char dirname[200];
-			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 
 			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
@@ -268,9 +268,9 @@ void test_checking(int flags = read_only_files)
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
-			snprintf(name, sizeof(name), "test%d", i);
+			std::snprintf(name, sizeof(name), "test%d", i);
 			char dirname[200];
-			snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
+			std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 
 			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);

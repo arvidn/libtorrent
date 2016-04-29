@@ -162,13 +162,13 @@ namespace libtorrent {
 		char msg[200];
 		if (ec)
 		{
-			snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
+			std::snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
 				, torrent_alert::message().c_str() , piece
 				, convert_from_native(ec.message()).c_str());
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
+			std::snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
 				, torrent_alert::message().c_str() , piece);
 		}
 		return msg;
@@ -184,7 +184,7 @@ namespace libtorrent {
 	std::string file_completed_alert::message() const
 	{
 		char msg[200 + TORRENT_MAX_PATH];
-		snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
+		std::snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
 			, torrent_alert::message().c_str(), index);
 		return msg;
 	}
@@ -213,7 +213,7 @@ namespace libtorrent {
 	std::string file_renamed_alert::message() const
 	{
 		char msg[200 + TORRENT_MAX_PATH * 2];
-		snprintf(msg, sizeof(msg), "%s: file %d renamed to %s"
+		std::snprintf(msg, sizeof(msg), "%s: file %d renamed to %s"
 			, torrent_alert::message().c_str(), index, new_name());
 		return msg;
 	}
@@ -230,7 +230,7 @@ namespace libtorrent {
 	std::string file_rename_failed_alert::message() const
 	{
 		char ret[200 + TORRENT_MAX_PATH * 2];
-		snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
+		std::snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
 			, torrent_alert::message().c_str(), index, convert_from_native(error.message()).c_str());
 		return ret;
 	}
@@ -314,7 +314,7 @@ namespace libtorrent {
 	std::string tracker_error_alert::message() const
 	{
 		char ret[400];
-		snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
+		std::snprintf(ret, sizeof(ret), "%s (%d) %s \"%s\" (%d)"
 			, tracker_alert::message().c_str(), status_code
 			, convert_from_native(error.message()).c_str(), error_message()
 			, times_in_row);
@@ -363,7 +363,7 @@ namespace libtorrent {
 	std::string scrape_reply_alert::message() const
 	{
 		char ret[400];
-		snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
+		std::snprintf(ret, sizeof(ret), "%s scrape reply: %u %u"
 			, tracker_alert::message().c_str(), incomplete, complete);
 		return ret;
 	}
@@ -424,7 +424,7 @@ namespace libtorrent {
 	std::string tracker_reply_alert::message() const
 	{
 		char ret[400];
-		snprintf(ret, sizeof(ret), "%s received peers: %u"
+		std::snprintf(ret, sizeof(ret), "%s received peers: %u"
 			, tracker_alert::message().c_str(), num_peers);
 		return ret;
 	}
@@ -439,7 +439,7 @@ namespace libtorrent {
 	std::string dht_reply_alert::message() const
 	{
 		char ret[400];
-		snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
+		std::snprintf(ret, sizeof(ret), "%s received DHT peers: %u"
 			, tracker_alert::message().c_str(), num_peers);
 		return ret;
 	}
@@ -474,7 +474,7 @@ namespace libtorrent {
 	std::string hash_failed_alert::message() const
 	{
 		char ret[400];
-		snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
+		std::snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
 			, torrent_alert::message().c_str(), piece_index);
 		return ret;
 	}
@@ -526,7 +526,7 @@ namespace libtorrent {
 	std::string invalid_request_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request "
+		std::snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request "
 			"(piece: %u start: %u len: %u)%s"
 			, peer_alert::message().c_str(), request.piece, request.start
 			, request.length
@@ -558,7 +558,7 @@ namespace libtorrent {
 	std::string piece_finished_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
+		std::snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
 			, torrent_alert::message().c_str(), piece_index);
 		return ret;
 	}
@@ -576,7 +576,7 @@ namespace libtorrent {
 	std::string request_dropped_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
+		std::snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
@@ -594,7 +594,7 @@ namespace libtorrent {
 	std::string block_timeout_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
+		std::snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
@@ -612,7 +612,7 @@ namespace libtorrent {
 	std::string block_finished_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
+		std::snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
@@ -633,7 +633,7 @@ namespace libtorrent {
 	std::string block_downloading_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u)"
+		std::snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
@@ -651,7 +651,7 @@ namespace libtorrent {
 	std::string unwanted_block_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
+		std::snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
 			, torrent_alert::message().c_str(), piece_index, block_index);
 		return ret;
 	}
@@ -856,7 +856,7 @@ namespace libtorrent {
 			"bind_to_device"
 		};
 		char ret[300];
-		snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"
+		std::snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"
 			, print_endpoint(endpoint).c_str()
 			, listen_interface()
 			, op_str[operation]
@@ -921,7 +921,7 @@ namespace libtorrent {
 	{
 		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "SSL/uTP" };
 		char ret[200];
-		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
+		std::snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
 			, type_str[sock_type], print_endpoint(endpoint).c_str());
 		return ret;
 	}
@@ -949,7 +949,7 @@ namespace libtorrent {
 	std::string portmap_alert::message() const
 	{
 		char ret[200];
-		snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %s/%u"
+		std::snprintf(ret, sizeof(ret), "successfully mapped port using %s. external port: %s/%u"
 			, nat_type_str[map_type], protocol_str[protocol], external_port);
 		return ret;
 	}
@@ -977,7 +977,7 @@ namespace libtorrent {
 	std::string portmap_log_alert::message() const
 	{
 		char ret[600];
-		snprintf(ret, sizeof(ret), "%s: %s", nat_type_str[map_type]
+		std::snprintf(ret, sizeof(ret), "%s: %s", nat_type_str[map_type]
 			, log_message());
 		return ret;
 	}
@@ -1042,7 +1042,7 @@ namespace libtorrent {
 			"invalid_local_interface"
 		};
 
-		snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
+		std::snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
 			, torrent_alert::message().c_str(), ip.to_string(ec).c_str()
 			, reason_str[reason]);
 		return ret;
@@ -1062,7 +1062,7 @@ namespace libtorrent {
 		char ih_hex[41];
 		to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
-		snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
+		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
 			, ip.to_string(ec).c_str(), port, ih_hex);
 		return msg;
 	}
@@ -1077,7 +1077,7 @@ namespace libtorrent {
 		char ih_hex[41];
 		to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
-		snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
 		return msg;
 	}
 
@@ -1109,7 +1109,7 @@ namespace libtorrent {
 	std::string stats_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d"
+		std::snprintf(msg, sizeof(msg), "%s: [%d] %d %d %d %d %d %d"
 #ifndef TORRENT_NO_DEPRECATE
 			" %d %d %d %d"
 #endif
@@ -1148,7 +1148,7 @@ namespace libtorrent {
 		char const* msgs[] = {
 			"tracker is not anonymous, set a proxy"
 		};
-		snprintf(msg, sizeof(msg), "%s: %s: %s"
+		std::snprintf(msg, sizeof(msg), "%s: %s: %s"
 			, torrent_alert::message().c_str()
 			, msgs[kind], str.c_str());
 		return msg;
@@ -1162,7 +1162,7 @@ namespace libtorrent {
 	std::string lsd_peer_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "%s: received peer from local service discovery"
+		std::snprintf(msg, sizeof(msg), "%s: received peer from local service discovery"
 			, peer_alert::message().c_str());
 		return msg;
 	}
@@ -1216,7 +1216,7 @@ namespace libtorrent {
 	std::string torrent_error_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), " ERROR: %s", convert_from_native(error.message()).c_str());
+		std::snprintf(msg, sizeof(msg), " ERROR: %s", convert_from_native(error.message()).c_str());
 		return torrent_alert::message() + msg;
 	}
 
@@ -1266,7 +1266,7 @@ namespace libtorrent {
 	{
 		char msg[600];
 		error_code ec;
-		snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
+		std::snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
 			, print_endpoint(ip).c_str(), socket_type_str[socket_type]);
 		return msg;
 	}
@@ -1281,7 +1281,7 @@ namespace libtorrent {
 	{
 		char msg[600];
 		error_code ec;
-		snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
+		std::snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
 			, peer_alert::message().c_str(), socket_type_str[socket_type]);
 		return msg;
 	}
@@ -1305,13 +1305,13 @@ namespace libtorrent {
 
 		if (error)
 		{
-			snprintf(msg, sizeof(msg), "failed to add torrent \"%s\": [%s] %s"
+			std::snprintf(msg, sizeof(msg), "failed to add torrent \"%s\": [%s] %s"
 				, torrent_name, error.category().name()
 				, convert_from_native(error.message()).c_str());
 		}
 		else
 		{
-			snprintf(msg, sizeof(msg), "added torrent: %s", torrent_name);
+			std::snprintf(msg, sizeof(msg), "added torrent: %s", torrent_name);
 		}
 		return msg;
 	}
@@ -1324,7 +1324,7 @@ namespace libtorrent {
 	std::string state_update_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "state updates for %d torrents", int(status.size()));
+		std::snprintf(msg, sizeof(msg), "state updates for %d torrents", int(status.size()));
 		return msg;
 	}
 
@@ -1335,7 +1335,7 @@ namespace libtorrent {
 	std::string mmap_cache_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value()
+		std::snprintf(msg, sizeof(msg), "mmap cache failed: (%d) %s", error.value()
 			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
@@ -1355,7 +1355,7 @@ namespace libtorrent {
 	std::string peer_error_alert::message() const
 	{
 		char buf[200];
-		snprintf(buf, sizeof(buf), "%s peer error [%s] [%s]: %s"
+		std::snprintf(buf, sizeof(buf), "%s peer error [%s] [%s]: %s"
 			, peer_alert::message().c_str()
 			, operation_name(operation), error.category().name()
 			, convert_from_native(error.message()).c_str());
@@ -1402,7 +1402,7 @@ namespace libtorrent {
 	std::string torrent_update_alert::message() const
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
+		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
 			, to_hex(old_ih.to_string()).c_str()
 			, to_hex(new_ih.to_string()).c_str());
 		return torrent_alert::message() + msg;
@@ -1427,7 +1427,7 @@ namespace libtorrent {
 	std::string peer_disconnected_alert::message() const
 	{
 		char buf[600];
-		snprintf(buf, sizeof(buf), "%s disconnecting (%s) [%s] [%s]: %s (reason: %d)"
+		std::snprintf(buf, sizeof(buf), "%s disconnecting (%s) [%s] [%s]: %s (reason: %d)"
 			, peer_alert::message().c_str()
 			, socket_type_str[socket_type]
 			, operation_name(operation), error.category().name()
@@ -1454,7 +1454,7 @@ namespace libtorrent {
 			op = 0;
 
 		char msg[600];
-		snprintf(msg, sizeof(msg), "DHT error [%s] (%d) %s"
+		std::snprintf(msg, sizeof(msg), "DHT error [%s] (%d) %s"
 			, operation_names[op]
 			, error.value()
 			, convert_from_native(error.message()).c_str());
@@ -1469,7 +1469,7 @@ namespace libtorrent {
 	std::string dht_immutable_item_alert::message() const
 	{
 		char msg[1050];
-		snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
+		std::snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
 			, to_hex(target.to_string()).c_str()
 			, item.to_string().c_str());
 		return msg;
@@ -1490,7 +1490,7 @@ namespace libtorrent {
 	std::string dht_mutable_item_alert::message() const
 	{
 		char msg[1050];
-		snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 " %s) [ %s ]"
+		std::snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 " %s) [ %s ]"
 			, to_hex(std::string(&key[0], 32)).c_str()
 			, salt.c_str()
 			, seq
@@ -1524,7 +1524,7 @@ namespace libtorrent {
 		char msg[1050];
 		if (target.is_all_zeros())
 		{
-			snprintf(msg, sizeof(msg), "DHT put complete (success=%d key=%s sig=%s salt=%s seq=%" PRId64 ")"
+			std::snprintf(msg, sizeof(msg), "DHT put complete (success=%d key=%s sig=%s salt=%s seq=%" PRId64 ")"
 				, num_success
 				, to_hex(std::string(&public_key[0], 32)).c_str()
 				, to_hex(std::string(&signature[0], 64)).c_str()
@@ -1533,7 +1533,7 @@ namespace libtorrent {
 			return msg;
 		}
 
-		snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
+		std::snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
 			, num_success
 			, to_hex(target.to_string()).c_str());
 		return msg;
@@ -1546,7 +1546,7 @@ namespace libtorrent {
 	std::string i2p_alert::message() const
 	{
 		char msg[600];
-		snprintf(msg, sizeof(msg), "i2p_error: [%s] %s"
+		std::snprintf(msg, sizeof(msg), "i2p_error: [%s] %s"
 			, error.category().name(), convert_from_native(error.message()).c_str());
 		return msg;
 	}
@@ -1566,10 +1566,10 @@ namespace libtorrent {
 		obf[0] = '\0';
 		if (obfuscated_info_hash != info_hash)
 		{
-			snprintf(obf, sizeof(obf), " [obfuscated: %s]"
+			std::snprintf(obf, sizeof(obf), " [obfuscated: %s]"
 			, to_hex(obfuscated_info_hash.to_string()).c_str());
 		}
-		snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
+		std::snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
 			, to_hex(info_hash.to_string()).c_str()
 			, obf
 			, print_endpoint(ip).c_str());
@@ -1658,13 +1658,13 @@ namespace libtorrent {
 		// this specific output is parsed by tools/parse_session_stats.py
 		// if this is changed, that parser should also be changed
 		char msg[100];
-		snprintf(msg, sizeof(msg), "session stats (%d values): "
+		std::snprintf(msg, sizeof(msg), "session stats (%d values): "
 			, int(sizeof(values)/sizeof(values[0])));
 		std::string ret = msg;
 		bool first = true;
 		for (int i = 0; i < sizeof(values)/sizeof(values[0]); ++i)
 		{
-			snprintf(msg, sizeof(msg), first ? "%" PRIu64 : ", %" PRIu64, values[i]);
+			std::snprintf(msg, sizeof(msg), first ? "%" PRIu64 : ", %" PRIu64, values[i]);
 			first = false;
 			ret += msg;
 		}
@@ -1682,7 +1682,7 @@ namespace libtorrent {
 	std::string dht_stats_alert::message() const
 	{
 		char buf[2048];
-		snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
+		std::snprintf(buf, sizeof(buf), "DHT stats: reqs: %d buckets: %d"
 			, int(active_requests.size())
 			, int(routing_table.size()));
 		return buf;
@@ -1772,7 +1772,7 @@ namespace libtorrent {
 	std::string incoming_request_alert::message() const
 	{
 		char msg[1024];
-		snprintf(msg, sizeof(msg), "%s: incoming request [ piece: %d start: %d length: %d ]"
+		std::snprintf(msg, sizeof(msg), "%s: incoming request [ piece: %d start: %d length: %d ]"
 			, peer_alert::message().c_str(), req.piece, req.start, req.length);
 		return msg;
 	}
@@ -1801,7 +1801,7 @@ namespace libtorrent {
 		};
 
 		char ret[900];
-		snprintf(ret, sizeof(ret), "DHT %s: %s", dht_modules[module]
+		std::snprintf(ret, sizeof(ret), "DHT %s: %s", dht_modules[module]
 			, log_message());
 		return ret;
 	}
@@ -1838,7 +1838,7 @@ namespace libtorrent {
 
 		char const* prefix[2] = { "<==", "==>"};
 		char buf[1024];
-		snprintf(buf, sizeof(buf), "%s [%s] %s", prefix[dir]
+		std::snprintf(buf, sizeof(buf), "%s [%s] %s", prefix[dir]
 			, print_endpoint(node).c_str(), msg.c_str());
 
 		return buf;
@@ -1874,7 +1874,7 @@ namespace libtorrent {
 		char ih_hex[41];
 		to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
-		snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", ih_hex, m_num_peers);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", ih_hex, m_num_peers);
 		return msg;
 	}
 
@@ -1922,7 +1922,7 @@ namespace libtorrent {
 	std::string dht_direct_response_alert::message() const
 	{
 		char msg[1050];
-		snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
+		std::snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
 			, addr.address().to_string().c_str()
 			, m_response_size ? std::string(m_alloc.ptr(m_response_idx), m_response_size).c_str() : "");
 		return msg;
@@ -2004,7 +2004,7 @@ namespace libtorrent {
 		for (int i = 0; i < int(b.size()); ++i)
 		{
 			char buf[50];
-			snprintf(buf, sizeof(buf), "(%d,%d) "
+			std::snprintf(buf, sizeof(buf), "(%d,%d) "
 				, b[i].piece_index, b[i].block_index);
 			ret += buf;
 		}

@@ -764,7 +764,7 @@ namespace libtorrent
 				{
 					++cnt;
 					char new_ext[50];
-					snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
+					std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
 					filename = base + new_ext;
 				}
 				while (!files.insert(filename).second);

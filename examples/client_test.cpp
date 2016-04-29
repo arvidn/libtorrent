@@ -349,10 +349,10 @@ std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
 	address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
-		snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
 	else
 #endif
-		snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
 	return buf;
 }
 
@@ -412,7 +412,7 @@ int print_peer_info(std::string& out
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
+			std::snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
 				(i->flags & peer_info::utp_socket ? " [uTP]" : "") +
 				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")
 				).c_str());
@@ -420,14 +420,14 @@ int print_peer_info(std::string& out
 		}
 
 		char temp[10];
-		snprintf(temp, sizeof(temp), "%d/%d"
+		std::snprintf(temp, sizeof(temp), "%d/%d"
 			, i->download_queue_length
 			, i->target_dl_queue_length);
 		temp[7] = 0;
 
 		char peer_progress[10];
-		snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
-		snprintf(str, sizeof(str)
+		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
+		std::snprintf(str, sizeof(str)
 			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
@@ -471,13 +471,13 @@ int print_peer_info(std::string& out
 
 		if (print_fails)
 		{
-			snprintf(str, sizeof(str), "%3d %3d "
+			std::snprintf(str, sizeof(str), "%3d %3d "
 				, i->failcount, i->num_hashfails);
 			out += str;
 		}
 		if (print_send_bufs)
 		{
-			snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
+			std::snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
 				, i->requests_in_buffer, i->used_send_buffer
 				, i->used_receive_buffer
 				, i->queue_bytes / 1000);
@@ -489,16 +489,16 @@ int print_peer_info(std::string& out
 			// timeout is only meaningful if there is at least one outstanding
 			// request to the peer
 			if (i->download_queue_length > 0)
-				snprintf(req_timeout, sizeof(req_timeout), "%d", i->request_timeout);
+				std::snprintf(req_timeout, sizeof(req_timeout), "%d", i->request_timeout);
 
-			snprintf(str, sizeof(str), "%8d %4d %7s %6d "
+			std::snprintf(str, sizeof(str), "%8d %4d %7s %6d "
 				, int(total_seconds(i->last_active))
 				, int(total_seconds(i->last_request))
 				, req_timeout
 				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
-		snprintf(str, sizeof(str), "%s|%s %5d "
+		std::snprintf(str, sizeof(str), "%s|%s %5d "
 			, add_suffix(i->pending_disk_bytes).c_str()
 			, add_suffix(i->pending_disk_read_bytes).c_str()
 			, i->rtt);
@@ -509,7 +509,7 @@ int print_peer_info(std::string& out
 			if (i->downloading_piece_index >= 0)
 			{
 				char buf[50];
-				snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
+				std::snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
 				out += progress_bar(
 					i->downloading_progress * 1000 / i->downloading_total, 14, col_green, '-', '#', buf);
 			}
@@ -523,7 +523,7 @@ int print_peer_info(std::string& out
 		{
 			bool unchoked = (i->flags & peer_info::choked) == 0;
 
-			snprintf(str, sizeof(str), " %s %s"
+			std::snprintf(str, sizeof(str), " %s %s"
 				, add_suffix(i->remote_dl_rate, "/s").c_str()
 				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
 			out += str;
@@ -914,7 +914,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), strerror(errno));
+			std::snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
@@ -928,13 +928,13 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), strerror(errno));
+			std::snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), strerror(errno));
 			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 
 		char msg[256];
-		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
+		std::snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
 		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 
 		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
@@ -1113,7 +1113,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	int piece = pp ? pp->piece_index : cs->piece;
 	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
 
-	snprintf(str, sizeof(str), "%5d:[", piece);
+	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
 	char const* last_color = 0;
 	for (int j = 0; j < num_blocks; ++j)
@@ -1149,7 +1149,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
 		{
-			snprintf(str, sizeof(str), "%s%c", color, chr);
+			std::snprintf(str, sizeof(str), "%s%c", color, chr);
 			out += str;
 		}
 		else
@@ -1161,7 +1161,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	out += "]";
 /*
 	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
-	snprintf(str, sizeof(str), " %3d cache age: %-5.1f state: %s%s\n"
+	std::snprintf(str, sizeof(str), " %3d cache age: %-5.1f state: %s%s\n"
 		, cs ? cs->next_to_hash : 0
 		, cs ? (total_milliseconds(clock_type::now() - cs->last_use) / 1000.f) : 0.f
 		, cs ? cache_kind_str[cs->kind] : "N/A"
@@ -1871,7 +1871,7 @@ int main(int argc, char* argv[])
 		{
 			// TODO: 3 expose these counters as performance counters
 /*
-			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
+			std::snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
 				"total DHT size: %" PRId64 " total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
@@ -1888,7 +1888,7 @@ int main(int argc, char* argv[])
 					"################################"
 					"################################";
 				char const* short_progress_bar = "--------";
-				snprintf(str, sizeof(str)
+				std::snprintf(str, sizeof(str)
 					, "%3d [%3d, %d] %s%s\x1b[K\n"
 					, bucket, i->num_nodes, i->num_replacements
 					, progress_bar + (128 - i->num_nodes)
@@ -1900,7 +1900,7 @@ int main(int argc, char* argv[])
 			for (std::vector<dht_lookup>::iterator i = dht_active_requests.begin()
 				, end(dht_active_requests.end()); i != end; ++i)
 			{
-				snprintf(str, sizeof(str)
+				std::snprintf(str, sizeof(str)
 					, "  %10s [limit: %2d] "
 					"in-flight: %-2d "
 					"left: %-3d "
@@ -1943,7 +1943,7 @@ int main(int argc, char* argv[])
 					, end(tr.end()); i != end; ++i)
 				{
 					if (pos + 1 >= terminal_height) break;
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
+					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
@@ -2041,7 +2041,7 @@ int main(int argc, char* argv[])
 					pos += 1;
 				}
 
-				snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
+				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
@@ -2072,7 +2072,7 @@ int main(int argc, char* argv[])
 					{
 						if (show_pad_files)
 						{
-							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
+							std::snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
 								, ti->files().file_name(i).c_str()
 								, add_suffix(ti->files().file_size(i)).c_str());
 							out += str;
@@ -2089,7 +2089,7 @@ int main(int argc, char* argv[])
 					std::string title = ti->files().file_name(i);
 					if (!complete)
 					{
-						snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
+						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
 						title += str;
 					}
 
@@ -2116,7 +2116,7 @@ int main(int argc, char* argv[])
 						p = 0;
 					}
 
-					snprintf(str, sizeof(str), "%s %7s p: %d ",
+					std::snprintf(str, sizeof(str), "%s %7s p: %d ",
 						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()

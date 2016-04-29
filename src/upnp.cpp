@@ -141,7 +141,7 @@ void upnp::discover_device_impl(mutex::scoped_lock& l)
 	if (ec)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "broadcast failed: %s. Aborting."
+		std::snprintf(msg, sizeof(msg), "broadcast failed: %s. Aborting."
 			, convert_from_native(ec.message()).c_str());
 		log(msg, l);
 		disable(ec, l);
@@ -166,7 +166,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 	mutex::scoped_lock l(m_mutex);
 
 	char msg[500];
-	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
+	std::snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ] %s", (p == tcp?"tcp":"udp"), external_port
 		, local_port, m_disabled ? "DISABLED": "");
 	log(msg, l);
@@ -218,7 +218,7 @@ void upnp::delete_mapping(int mapping)
 	global_mapping_t& m = m_mappings[mapping];
 
 	char msg[500];
-	snprintf(msg, sizeof(msg), "deleting port map: [ protocol: %s ext_port: %u "
+	std::snprintf(msg, sizeof(msg), "deleting port map: [ protocol: %s ext_port: %u "
 		"local_port: %u ]", (m.protocol == tcp?"tcp":"udp"), m.external_port
 		, m.local_port);
 	log(msg, l);
@@ -286,7 +286,7 @@ void upnp::resend_request(error_code const& ec)
 			TORRENT_TRY
 			{
 				char msg[500];
-				snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
+				std::snprintf(msg, sizeof(msg), "connecting to: %s", d.url.c_str());
 				log(msg, l);
 				if (d.upnp_connection) d.upnp_connection->close();
 				d.upnp_connection.reset(new http_connection(m_io_service
@@ -299,7 +299,7 @@ void upnp::resend_request(error_code const& ec)
 			{
 				TORRENT_DECLARE_DUMMY(std::exception, exc);
 				char msg[500];
-				snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
+				std::snprintf(msg, sizeof(msg), "connection failed to: %s %s", d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
 			}
@@ -349,7 +349,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (ec)
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
+			std::snprintf(msg, sizeof(msg), "when receiving response from: %s: %s"
 				, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
 		}
@@ -359,7 +359,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	if (!ec && !in_local_network(m_interfaces, from.address()))
 	{
 		char msg[400];
-		int num_chars = snprintf(msg, sizeof(msg)
+		int num_chars = std::snprintf(msg, sizeof(msg)
 			, "ignoring response from: %s. IP is not on local network. "
 			, print_endpoint(from).c_str());
 
@@ -367,7 +367,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		for (std::vector<ip_interface>::const_iterator i = net.begin()
 			, end(net.end()); i != end && num_chars < int(sizeof(msg)); ++i)
 		{
-			num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+			num_chars += std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 				, print_address(i->interface_address).c_str(), print_address(i->netmask).c_str());
 		}
 		log(msg, l);
@@ -386,7 +386,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			if (ec)
 			{
 				char msg[500];
-				snprintf(msg, sizeof(msg), "failed to enumerate routes when "
+				std::snprintf(msg, sizeof(msg), "failed to enumerate routes when "
 					"receiving response from: %s: %s"
 					, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 				log(msg, l);
@@ -394,13 +394,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			else
 			{
 				char msg[400];
-				int num_chars = snprintf(msg, sizeof(msg), "SSDP response from: "
+				int num_chars = std::snprintf(msg, sizeof(msg), "SSDP response from: "
 					"%s: IP is not a router. "
 					, print_endpoint(from).c_str());
 				for (std::vector<ip_route>::const_iterator i = routes.begin()
 					, end(routes.end()); i != end && num_chars < int(sizeof(msg)); ++i)
 				{
-					num_chars += snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+					num_chars += std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
 						, print_address(i->gateway).c_str(), print_address(i->netmask).c_str());
 				}
 				log(msg, l);
@@ -416,7 +416,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	if (error)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "received malformed HTTP from: %s"
+		std::snprintf(msg, sizeof(msg), "received malformed HTTP from: %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
 		return;
@@ -427,14 +427,14 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (p.method().empty())
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "HTTP status %u from %s"
+			std::snprintf(msg, sizeof(msg), "HTTP status %u from %s"
 				, p.status_code(), print_endpoint(from).c_str());
 			log(msg, l);
 		}
 		else
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "HTTP method %s from %s"
+			std::snprintf(msg, sizeof(msg), "HTTP method %s from %s"
 				, p.method().c_str(), print_endpoint(from).c_str());
 			log(msg, l);
 		}
@@ -444,7 +444,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	if (!p.header_finished())
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "incomplete HTTP packet from %s"
+		std::snprintf(msg, sizeof(msg), "incomplete HTTP packet from %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
 		return;
@@ -454,7 +454,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	if (url.empty())
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "missing location header from %s"
+		std::snprintf(msg, sizeof(msg), "missing location header from %s"
 			, print_endpoint(from).c_str());
 		log(msg, l);
 		return;
@@ -477,7 +477,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (ec)
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "invalid URL %s from %s: %s"
+			std::snprintf(msg, sizeof(msg), "invalid URL %s from %s: %s"
 				, d.url.c_str(), print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg, l);
 			return;
@@ -489,7 +489,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (protocol != "http")
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "unsupported protocol %s from %s"
+			std::snprintf(msg, sizeof(msg), "unsupported protocol %s from %s"
 				, protocol.c_str(), print_endpoint(from).c_str());
 			log(msg, l);
 			return;
@@ -498,7 +498,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (d.port == 0)
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "URL with port 0 from %s"
+			std::snprintf(msg, sizeof(msg), "URL with port 0 from %s"
 				, print_endpoint(from).c_str());
 			log(msg, l);
 			return;
@@ -506,7 +506,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
+			std::snprintf(msg, sizeof(msg), "found rootdevice: %s (%d)"
 				, d.url.c_str(), int(m_devices.size()));
 			log(msg, l);
 		}
@@ -514,7 +514,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		if (m_devices.size() >= 50)
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "too many rootdevices: (%d). Ignoring %s"
+			std::snprintf(msg, sizeof(msg), "too many rootdevices: (%d). Ignoring %s"
 				, int(m_devices.size()), d.url.c_str());
 			log(msg, l);
 			return;
@@ -577,7 +577,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 		if (override_ignore_non_routers)
 		{
 			char msg[500];
-			snprintf(msg, sizeof(msg), "overriding ignore non-routers");
+			std::snprintf(msg, sizeof(msg), "overriding ignore non-routers");
 			log(msg, l);
 		}
 	}
@@ -602,7 +602,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 			TORRENT_TRY
 			{
 				char msg[500];
-				snprintf(msg, sizeof(msg), "connecting to: %s"
+				std::snprintf(msg, sizeof(msg), "connecting to: %s"
 					, d.url.c_str());
 				log(msg, l);
 
@@ -617,7 +617,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 			{
 				TORRENT_DECLARE_DUMMY(std::exception, exc);
 				char msg[500];
-				snprintf(msg, sizeof(msg), "connection failed to: %s %s"
+				std::snprintf(msg, sizeof(msg), "connection failed to: %s %s"
 					, d.url.c_str(), exc.what());
 				log(msg, l);
 				d.disabled = true;
@@ -633,7 +633,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(d.upnp_connection);
 
 	char header[2048];
-	snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
+	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
 		"Host: %s:%u\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
@@ -646,7 +646,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	d.upnp_connection->m_sendbuffer = header;
 
 	char msg[1024];
-	snprintf(msg, sizeof(msg), "sending: %s", header);
+	std::snprintf(msg, sizeof(msg), "sending: %s", header);
 	log(msg, l);
 }
 
@@ -660,7 +660,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	{
 		TORRENT_ASSERT(d.disabled);
 		char msg[500];
-		snprintf(msg, sizeof(msg), "mapping %u aborted", i);
+		std::snprintf(msg, sizeof(msg), "mapping %u aborted", i);
 		log(msg, l);
 		return;
 	}
@@ -671,7 +671,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	std::string local_endpoint = print_address(c.socket().local_endpoint(ec).address());
 
 	char soap[2048];
-	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
+	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
@@ -727,7 +727,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 		|| m.protocol == none)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "mapping %u does not need updating, skipping", i);
+		std::snprintf(msg, sizeof(msg), "mapping %u does not need updating, skipping", i);
 		log(msg, l);
 		m.action = mapping_t::action_none;
 		next(d, i, l);
@@ -738,7 +738,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 	TORRENT_ASSERT(d.service_namespace);
 
 	char msg[500];
-	snprintf(msg, sizeof(msg), "connecting to %s", d.hostname.c_str());
+	std::snprintf(msg, sizeof(msg), "connecting to %s", d.hostname.c_str());
 	log(msg, l);
 	if (m.action == mapping_t::action_add)
 	{
@@ -785,7 +785,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 	{
 		TORRENT_ASSERT(d.disabled);
 		char msg[500];
-		snprintf(msg, sizeof(msg), "unmapping %u aborted", i);
+		std::snprintf(msg, sizeof(msg), "unmapping %u aborted", i);
 		log(msg, l);
 		return;
 	}
@@ -794,7 +794,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 
 	char soap[2048];
 	error_code ec;
-	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
+	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
@@ -892,7 +892,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
+		std::snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), convert_from_native(e.message()).c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -902,7 +902,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (!p.header_finished())
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: incomplete HTTP message"
+		std::snprintf(msg, sizeof(msg), "error while fetching control url from: %s: incomplete HTTP message"
 			, d.url.c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -912,7 +912,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (p.status_code() != 200)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
+		std::snprintf(msg, sizeof(msg), "error while fetching control url from: %s: %s"
 			, d.url.c_str(), convert_from_native(p.message()).c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -925,7 +925,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (s.control_url.empty())
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
+		std::snprintf(msg, sizeof(msg), "could not find a port mapping interface in response from: %s"
 			, d.url.c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -961,7 +961,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
+		std::snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
 			"urlbase: %s in response from %s"
 			, d.control_url.c_str(), d.service_namespace
 			, s.url_base.c_str(), d.url.c_str());
@@ -975,7 +975,7 @@ void upnp::on_upnp_xml(error_code const& e
 	if (ec)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "failed to parse URL '%s': %s"
+		std::snprintf(msg, sizeof(msg), "failed to parse URL '%s': %s"
 			, d.control_url.c_str(), convert_from_native(ec.message()).c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -1001,7 +1001,7 @@ void upnp::get_ip_address(rootdevice& d)
 	{
 		TORRENT_ASSERT(d.disabled);
 		char msg[500];
-		snprintf(msg, sizeof(msg), "getting external IP address");
+		std::snprintf(msg, sizeof(msg), "getting external IP address");
 		log(msg, l);
 		return;
 	}
@@ -1010,7 +1010,7 @@ void upnp::get_ip_address(rootdevice& d)
 
 	char soap[2048];
 	error_code ec;
-	snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
+	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
@@ -1140,7 +1140,7 @@ struct upnp_error_category : boost::system::error_category
 			return e->msg;
 		}
 		char msg[500];
-		snprintf(msg, sizeof(msg), "unknown UPnP error (%d)", ev);
+		std::snprintf(msg, sizeof(msg), "unknown UPnP error (%d)", ev);
 		return msg;
 	}
 
@@ -1177,7 +1177,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
+		std::snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
 		if (num_mappings() > 0) update_map(d, 0, l);
@@ -1194,7 +1194,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	if (p.status_code() != 200)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
+		std::snprintf(msg, sizeof(msg), "error while getting external IP address: %s"
 			, convert_from_native(p.message()).c_str());
 		log(msg, l);
 		if (num_mappings() > 0) update_map(d, 0, l);
@@ -1212,7 +1212,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "get external IP address response: %s"
+		std::snprintf(msg, sizeof(msg), "get external IP address response: %s"
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);
 	}
@@ -1223,14 +1223,14 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	if (s.error_code != -1)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while getting external IP address, code: %u"
+		std::snprintf(msg, sizeof(msg), "error while getting external IP address, code: %u"
 			, s.error_code);
 		log(msg, l);
 	}
 
 	if (!s.ip_address.empty()) {
 		char msg[500];
-		snprintf(msg, sizeof(msg), "got router external IP address %s", s.ip_address.c_str());
+		std::snprintf(msg, sizeof(msg), "got router external IP address %s", s.ip_address.c_str());
 		log(msg, l);
 		d.external_ip = address::from_string(s.ip_address.c_str(), ignore_error);
 	} else {
@@ -1258,7 +1258,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while adding port map: %s"
+		std::snprintf(msg, sizeof(msg), "error while adding port map: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
 		d.disabled = true;
@@ -1300,7 +1300,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		)
 	{
 		char msg[300];
-		snprintf(msg, sizeof(msg), "error while adding port map: invalid content-type, \"%s\". Expected text/xml or application/soap+xml"
+		std::snprintf(msg, sizeof(msg), "error while adding port map: invalid content-type, \"%s\". Expected text/xml or application/soap+xml"
 			, ct.c_str());
 		log(msg, l);
 		next(d, mapping, l);
@@ -1318,7 +1318,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code != -1)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while adding port map, code: %u"
+		std::snprintf(msg, sizeof(msg), "error while adding port map, code: %u"
 			, s.error_code);
 		log(msg, l);
 	}
@@ -1355,7 +1355,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	}
 
 	char msg[500];
-	snprintf(msg, sizeof(msg), "map response: %s"
+	std::snprintf(msg, sizeof(msg), "map response: %s"
 		, std::string(p.get_body().begin, p.get_body().end).c_str());
 	log(msg, l);
 
@@ -1426,7 +1426,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	if (e && e != boost::asio::error::eof)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
+		std::snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg, l);
 	}
@@ -1437,14 +1437,14 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	else if (p.status_code() != 200)
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
+		std::snprintf(msg, sizeof(msg), "error while deleting portmap: %s"
 			, convert_from_native(p.message()).c_str());
 		log(msg, l);
 	}
 	else
 	{
 		char msg[500];
-		snprintf(msg, sizeof(msg), "unmap response: %s"
+		std::snprintf(msg, sizeof(msg), "unmap response: %s"
 			, std::string(p.get_body().begin, p.get_body().end).c_str());
 		log(msg, l);
 	}

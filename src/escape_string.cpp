@@ -235,7 +235,7 @@ namespace libtorrent
 			return url;
 
 		char msg[TORRENT_MAX_PATH*4];
-		snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
+		std::snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
 			, auth.empty()?"":"@", host.c_str()
 			, port == -1 ? "" : ":"
 			, port == -1 ? "" : to_string(port).elems

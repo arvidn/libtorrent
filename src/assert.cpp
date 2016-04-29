@@ -132,7 +132,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
-		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		int ret = std::snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
 		if (i - 1 == max_depth && max_depth > 0) break;
@@ -191,9 +191,9 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 	{
 		int ret;
 		if (SymFromAddr(p, uintptr_t(stack[i]), 0, symbol))
-			ret = snprintf(out, len, "%d: %s\n", i, symbol->Name);
+			ret = std::snprintf(out, len, "%d: %s\n", i, symbol->Name);
 		else
-			ret = snprintf(out, len, "%d: <unknown>\n", i);
+			ret = std::snprintf(out, len, "%d: <unknown>\n", i);
 
 		out += ret;
 		len -= ret;

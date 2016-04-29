@@ -509,7 +509,7 @@ TORRENT_TEST(bencoding)
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[20];
-			snprintf(tmp, sizeof(tmp), "i%de", i);
+			std::snprintf(tmp, sizeof(tmp), "i%de", i);
 			buf += tmp;
 		}
 		buf += "e";
@@ -532,7 +532,7 @@ TORRENT_TEST(bencoding)
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
+			std::snprintf(tmp, sizeof(tmp), "4:%04di%de", i, i);
 			buf += tmp;
 		}
 		buf += "e";
@@ -547,7 +547,7 @@ TORRENT_TEST(bencoding)
 		for (int i = 0; i < 1000; ++i)
 		{
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%04d", i);
+			std::snprintf(tmp, sizeof(tmp), "%04d", i);
 			TEST_EQUAL(e.dict_find_int_value(tmp), i);
 		}
 	}

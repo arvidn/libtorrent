@@ -1650,7 +1650,7 @@ namespace libtorrent
 		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
 #if 0
 		char filename[100];
-		snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
+		std::snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
 		FILE* f = fopen(filename, "w+");
 		fwrite(cert.c_str(), cert.size(), 1, f);
 		fclose(f);
@@ -8711,7 +8711,7 @@ namespace libtorrent
 		if (ec)
 		{
 			char buf[1024];
-			snprintf(buf, sizeof(buf), "error %s: %s", ec.message().c_str()
+			std::snprintf(buf, sizeof(buf), "error %s: %s", ec.message().c_str()
 				, resolve_filename(error_file).c_str());
 			log_to_all_peers(buf);
 		}
@@ -11465,7 +11465,7 @@ namespace libtorrent
 		va_start(v, fmt);
 
 		char buf[400];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 
 		alerts().emplace_alert<torrent_log_alert>(

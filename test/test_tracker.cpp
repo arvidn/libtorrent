@@ -334,10 +334,10 @@ TORRENT_TEST(udp_tracker)
 	file.close();
 
 	char tracker_url[200];
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(tracker_url, 0);
 
-	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(tracker_url, 1);
 
 	add_torrent_params addp;
@@ -409,7 +409,7 @@ TORRENT_TEST(http_peers)
 
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
 	t->add_tracker(tracker_url, 0);
 
@@ -483,7 +483,7 @@ void test_proxy(bool proxy_trackers)
 
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
 	t->add_tracker(tracker_url, 0);
 

@@ -98,7 +98,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 				file_entry["attr"].string() += "x";
 
 			char filename[100];
-			snprintf(filename, sizeof(filename), "test_file-%d", i);
+			std::snprintf(filename, sizeof(filename), "test_file-%d", i);
 
 			std::string name = filename;
 			if (ent.find("name=") != std::string::npos)

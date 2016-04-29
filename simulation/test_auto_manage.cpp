@@ -52,7 +52,7 @@ using sim::asio::ip::address_v4;
 std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
 {
 	char ep[30];
-	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
 		sim, asio::ip::address_v4::from_string(ep)));
 }
