@@ -324,9 +324,6 @@ namespace libtorrent
 		, m_include_mtime((flags & modification_time) != 0)
 		, m_include_symlinks((flags & symlinks) != 0)
 	{
-		TORRENT_ASSERT(fs.num_files() > 0);
-		TORRENT_ASSERT(fs.total_size() > 0);
-
 		// return instead of crash in release mode
 		if (fs.num_files() == 0 || fs.total_size() == 0) return;
 

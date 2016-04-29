@@ -458,6 +458,8 @@ namespace aux {
 		error_code ec;
 		m_listen_interface = tcp::endpoint(address_v4::any(), 0);
 		TORRENT_ASSERT_VAL(!ec, ec);
+
+		update_time_now();
 	}
 
 	// This function is called by the creating thread, not in the message loop's
