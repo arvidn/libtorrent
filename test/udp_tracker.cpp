@@ -60,6 +60,7 @@ struct udp_tracker
 	boost::detail::atomic_count m_udp_announces;
 	udp::socket m_socket;
 	int m_port;
+	bool m_abort;
 
 	boost::shared_ptr<libtorrent::thread> m_thread;
 
@@ -77,12 +78,17 @@ struct udp_tracker
 			return;
 		}
 
+		if (m_abort)
+		{
+			return;
+		}
+
 		fprintf(stderr, "%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
 
 		char* ptr = buffer;
 		detail::read_uint64(ptr);
-		boost::uint32_t action = detail::read_uint32(ptr);
-		boost::uint32_t transaction_id = detail::read_uint32(ptr);
+		boost::uint32_t const action = detail::read_uint32(ptr);
+		boost::uint32_t const transaction_id = detail::read_uint32(ptr);
 
 		error_code e;
 
@@ -140,6 +146,7 @@ struct udp_tracker
 		: m_udp_announces(0)
 		, m_socket(m_ios)
 		, m_port(0)
+		, m_abort(false)
 	{
 		error_code ec;
 		m_socket.open(udp::v4(), ec);
@@ -167,10 +174,16 @@ struct udp_tracker
 		m_thread.reset(new thread(boost::bind(&udp_tracker::thread_fun, this)));
 	}
 
-	~udp_tracker()
+	void stop()
 	{
+		m_abort = true;
 		m_socket.cancel();
 		m_socket.close();
+	}
+
+	~udp_tracker()
+	{
+		m_ios.post(boost::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
 
