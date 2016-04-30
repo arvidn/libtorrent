@@ -301,8 +301,8 @@ TORRENT_TEST(rename_file)
 {
 	file_storage fs;
 
-	fs.add_file("test3/tmp1", 0);
-	fs.add_file("test3/tmp2", 0);
+	fs.add_file("test3/tmp1", 20);
+	fs.add_file("test3/tmp2", 20);
 	libtorrent::create_torrent t(fs, 128 * 1024, 6);
 
 	std::vector<char> tmp;
