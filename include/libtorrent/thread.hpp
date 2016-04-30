@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory> // for auto_ptr required by asio
 
-#include <boost/asio/detail/thread.hpp>
 #include <boost/asio/detail/mutex.hpp>
 #include <boost/asio/detail/event.hpp>
 #include <boost/cstdint.hpp>
@@ -59,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	typedef boost::asio::detail::thread thread;
 	typedef boost::asio::detail::mutex mutex;
 	typedef boost::asio::detail::event event;
 

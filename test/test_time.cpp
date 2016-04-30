@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 
 #include <boost/bind.hpp>
+#include <thread>
 
 using namespace libtorrent;
 
@@ -80,13 +81,13 @@ TORRENT_TEST(time)
 		TEST_CHECK(now >= last);
 		last = now;
 	}
-	
+
 	mutex m;
 	condition_variable cv;
-	libtorrent::thread t1(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t2(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t3(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
-	libtorrent::thread t4(boost::bind(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv)));
+	std::thread t1(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
+	std::thread t2(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
+	std::thread t3(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
+	std::thread t4(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
 
 	test_sleep(100);
 

@@ -43,11 +43,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
 
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
+
+#include <thread>
 
 using namespace libtorrent;
 
@@ -59,7 +62,7 @@ struct dht_server
 	udp::socket m_socket;
 	int m_port;
 
-	boost::shared_ptr<libtorrent::thread> m_thread;
+	boost::shared_ptr<std::thread> m_thread;
 
 	dht_server()
 		: m_dht_requests(0)
@@ -89,7 +92,7 @@ struct dht_server
 
 		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new libtorrent::thread(boost::bind(&dht_server::thread_fun, this)));
+		m_thread = boost::make_shared<std::thread>(&dht_server::thread_fun, this);
 	}
 
 	~dht_server()

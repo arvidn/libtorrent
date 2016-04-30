@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <vector>
+#include <thread>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -131,14 +132,14 @@ namespace libtorrent
 	private:
 		session_proxy(
 			boost::shared_ptr<io_service> ios
-			, boost::shared_ptr<thread> t
+			, std::shared_ptr<std::thread> t
 			, boost::shared_ptr<aux::session_impl> impl)
 			: m_io_service(ios)
 			, m_thread(t)
 			, m_impl(impl)
 		{}
 		boost::shared_ptr<io_service> m_io_service;
-		boost::shared_ptr<thread> m_thread;
+		std::shared_ptr<std::thread> m_thread;
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
@@ -289,7 +290,7 @@ namespace libtorrent
 		// data shared between the main thread
 		// and the working thread
 		boost::shared_ptr<io_service> m_io_service;
-		boost::shared_ptr<thread> m_thread;
+		std::shared_ptr<std::thread> m_thread;
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 

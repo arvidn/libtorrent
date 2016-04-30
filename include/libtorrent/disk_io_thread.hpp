@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
 #include <deque>
+#include <thread>
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
@@ -528,7 +529,7 @@ namespace libtorrent
 		boost::atomic<int> m_num_running_threads;
 
 		// the actual threads running disk jobs
-		std::vector<boost::shared_ptr<thread> > m_threads;
+		std::vector<std::thread> m_threads;
 
 		aux::session_settings m_settings;
 

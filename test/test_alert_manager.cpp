@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <thread>
+
 using namespace libtorrent;
 
 TORRENT_TEST(limit)
@@ -258,7 +260,7 @@ TORRENT_TEST(wait_for_alert)
 	mgr.get_all(alerts);
 
 	start = clock_type::now();
-	libtorrent::thread posting_thread(boost::bind(&post_torrent_added, &mgr));
+	std::thread posting_thread(&post_torrent_added, &mgr);
 
 	a = mgr.wait_for_alert(seconds(10));
 	end = clock_type::now();

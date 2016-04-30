@@ -6086,6 +6086,7 @@ namespace aux {
 
 	void session_impl::update_network_threads()
 	{
+		// TODO: 3 this is a mess
 		int num_threads = m_settings.get_int(settings_pack::network_threads);
 		int num_pools = num_threads > 0 ? num_threads : 1;
 		while (num_pools > m_net_thread_pool.size())

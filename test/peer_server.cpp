@@ -44,7 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
+
+#include <thread>
 
 using namespace libtorrent;
 
@@ -56,7 +59,7 @@ struct peer_server
 	tcp::acceptor m_acceptor;
 	int m_port;
 
-	boost::shared_ptr<libtorrent::thread> m_thread;
+	std::shared_ptr<std::thread> m_thread;
 
 	peer_server()
 		: m_peer_requests(0)
@@ -92,7 +95,7 @@ struct peer_server
 
 		fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new libtorrent::thread(boost::bind(&peer_server::thread_fun, this)));
+		m_thread = std::make_shared<std::thread>(&peer_server::thread_fun, this);
 	}
 
 	~peer_server()

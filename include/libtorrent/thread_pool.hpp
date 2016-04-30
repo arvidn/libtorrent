@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/thread.hpp"
-#include <boost/atomic.hpp>
+#include <thread>
+#include <atomic>
 #include <deque>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -59,8 +60,8 @@ namespace libtorrent
 				while (m_num_threads < n)
 				{
 					++m_num_threads;
-					m_threads.push_back(boost::shared_ptr<thread>(
-						new thread(boost::bind(&thread_pool::thread_fun, this, int(m_num_threads)-1))));
+					m_threads.emplace_back(&thread_pool::thread_fun
+						, this, int(m_num_threads)-1);
 				}
 			}
 			else
@@ -72,7 +73,9 @@ namespace libtorrent
 				if (wait)
 				{
 					for (int i = m_num_threads; i < int(m_threads.size()); ++i)
-						m_threads[i]->join();
+					{
+						m_threads[i].join();
+					}
 				}
 				// this will detach the threads
 				m_threads.resize(m_num_threads);
@@ -152,11 +155,11 @@ namespace libtorrent
 		condition_variable m_cond;
 		std::deque<T> m_queue;
 
-		std::vector<boost::shared_ptr<thread> > m_threads;
+		std::vector<std::thread> m_threads;
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		boost::atomic<int> m_num_threads;
+		std::atomic<int> m_num_threads;
 	};
 
 }

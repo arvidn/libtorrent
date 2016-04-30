@@ -45,11 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
 
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
+
+#include <thread>
 
 using namespace libtorrent;
 
@@ -62,7 +65,7 @@ struct udp_tracker
 	int m_port;
 	bool m_abort;
 
-	boost::shared_ptr<libtorrent::thread> m_thread;
+	boost::shared_ptr<std::thread> m_thread;
 
 	void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint* from, char* buffer, int size)
 	{
@@ -171,7 +174,7 @@ struct udp_tracker
 
 		fprintf(stderr, "%s: UDP tracker initialized on port %d\n", time_now_string(), m_port);
 
-		m_thread.reset(new libtorrent::thread(boost::bind(&udp_tracker::thread_fun, this)));
+		m_thread = boost::make_shared<std::thread>(&udp_tracker::thread_fun, this);
 	}
 
 	void stop()
