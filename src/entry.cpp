@@ -611,7 +611,7 @@ namespace libtorrent
 		switch (m_type)
 		{
 		case int_t:
-			out += libtorrent::to_string(integer()).elems;
+			out += libtorrent::to_string(integer()).data();
 			out += "\n";
 			break;
 		case string_t:

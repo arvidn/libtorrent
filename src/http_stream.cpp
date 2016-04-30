@@ -64,7 +64,7 @@ namespace libtorrent
 		std::string endpoint;
 		if (!m_hostname.empty())
 		{
-			endpoint = m_hostname + ':' + to_string(m_remote_endpoint.port()).elems;
+			endpoint = m_hostname + ':' + to_string(m_remote_endpoint.port()).data();
 		}
 		else
 		{

@@ -286,7 +286,7 @@ namespace libtorrent
 		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
 		{
 			std::string ret;
-			ret += to_string(ev).elems;
+			ret += to_string(ev).data();
 			ret += " ";
 			switch (ev)
 			{

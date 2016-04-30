@@ -473,12 +473,12 @@ namespace
     void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
     {
         TORRENT_ASSERT(key.size() == 32);
-        boost::array<char, 32> public_key;
+        std::array<char, 32> public_key;
         std::copy(key.begin(), key.end(), public_key.begin());
         ses.dht_get_item(public_key, salt);
     }
 
-    void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq,
+    void put_string(entry& e, std::array<char, 64>& sig, boost::uint64_t& seq,
                     std::string const& salt, std::string public_key, std::string private_key,
                     std::string data)
     {
@@ -498,7 +498,7 @@ namespace
     {
         TORRENT_ASSERT(private_key.size() == 64);
         TORRENT_ASSERT(public_key.size() == 32);
-        boost::array<char, 32> key;
+        std::array<char, 32> key;
         std::copy(public_key.begin(), public_key.end(), key.begin());
         ses.dht_put_item(key, boost::bind(&put_string, _1, _2, _3, _4
                                           , public_key, private_key, data)

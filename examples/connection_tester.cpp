@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <boost/bind.hpp>
 #include <iostream>
-#include <boost/array.hpp>
+#include <array>
 #include <boost/detail/atomic_count.hpp>
 
 #if BOOST_ASIO_DYN_LINK
@@ -696,7 +696,7 @@ struct peer_conn
 		write_uint8(7, ptr);
 		write_uint32(piece, ptr);
 		write_uint32(start, ptr);
-		boost::array<boost::asio::const_buffer, 2> vec;
+		std::array<boost::asio::const_buffer, 2> vec;
 		vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
 		vec[1] = boost::asio::buffer(write_buffer, length);
 		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));

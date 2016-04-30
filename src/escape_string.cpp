@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 
 #include <boost/optional.hpp>
-#include <boost/array.hpp>
+#include <array>
 #include <boost/tuple/tuple.hpp>
 
 #ifdef TORRENT_WINDOWS
@@ -238,7 +238,7 @@ namespace libtorrent
 		snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
 			, auth.empty()?"":"@", host.c_str()
 			, port == -1 ? "" : ":"
-			, port == -1 ? "" : to_string(port).elems
+			, port == -1 ? "" : to_string(port).data()
 			, escape_path(path.c_str(), int(path.size())).c_str());
 		return msg;
 	}

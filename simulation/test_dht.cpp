@@ -279,8 +279,8 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 	dht_network dht(sim, 100);
 	dht_network dht6(sim, 100, dht_network::bind_ipv6);
 
-	boost::array<char, ed25519_private_key_size> sk;
-	boost::array<char, ed25519_public_key_size> pk;
+	std::array<char, ed25519_private_key_size> sk;
+	std::array<char, ed25519_public_key_size> pk;
 	int put_count = 0;
 	bool got_item = false;
 
@@ -309,11 +309,11 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 			}
 			if (ticks == 2)
 			{
-				boost::array<unsigned char, ed25519_seed_size> seed;
+				std::array<unsigned char, ed25519_seed_size> seed;
 				ed25519_create_keypair((unsigned char*)pk.data()
 					, (unsigned char*)sk.data(), seed.data());
 
-				ses.dht_put_item(pk, [&](lt::entry& item, boost::array<char, 64>& sig
+				ses.dht_put_item(pk, [&](lt::entry& item, std::array<char, 64>& sig
 					, boost::uint64_t& seq, std::string const& salt)
 				{
 					item = "mutable item";

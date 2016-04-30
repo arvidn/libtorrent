@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <boost/cstdint.hpp>
 #include <boost/limits.hpp>
-#include <boost/array.hpp> // for boost::array
+#include <array> // for std::array
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -50,7 +50,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT
-		boost::array<char, 4+std::numeric_limits<boost::int64_t>::digits10>
+		std::array<char, 4+std::numeric_limits<boost::int64_t>::digits10>
 		to_string(boost::int64_t n);
 
 	// internal

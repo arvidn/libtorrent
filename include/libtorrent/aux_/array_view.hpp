@@ -57,7 +57,7 @@ namespace libtorrent { namespace aux {
 		}
 
 		template <size_t N>
-		array_view(boost::array<T, N>& arr)
+		array_view(std::array<T, N>& arr)
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
 		template <size_t N>

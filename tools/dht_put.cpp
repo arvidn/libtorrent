@@ -106,7 +106,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 	return ret;
 }
 
-void put_string(entry& e, boost::array<char, 64>& sig, boost::uint64_t& seq
+void put_string(entry& e, std::array<char, 64>& sig, boost::uint64_t& seq
 	, std::string const& salt, char const* public_key, char const* private_key
 	, char const* str)
 {
@@ -150,8 +150,8 @@ int dump_key(char *filename)
 	}
 	fclose(f);
 
-	boost::array<char, 32> public_key;
-	boost::array<char, 64> private_key;
+	std::array<char, 32> public_key;
+	std::array<char, 64> private_key;
 	ed25519_create_keypair((unsigned char*)public_key.data()
 		, (unsigned char*)private_key.data(), seed);
 
@@ -346,8 +346,8 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		boost::array<char, 32> public_key;
-		boost::array<char, 64> private_key;
+		std::array<char, 32> public_key;
+		std::array<char, 64> private_key;
 		ed25519_create_keypair((unsigned char*)public_key.data()
 			, (unsigned char*)private_key.data(), seed);
 		
@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "public key is expected to be 64 hex digits\n");
 			return 1;
 		}
-		boost::array<char, 32> public_key;
+		std::array<char, 32> public_key;
 		bool ret = from_hex(argv[0], len, &public_key[0]);
 		if (!ret)
 		{

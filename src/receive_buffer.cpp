@@ -62,7 +62,7 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
-int receive_buffer::reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, int size)
+int receive_buffer::reserve(std::array<boost::asio::mutable_buffer, 2>& vec, int size)
 {
 	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(m_recv_pos >= 0);
@@ -206,7 +206,7 @@ buffer::interval receive_buffer::mutable_buffer()
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-// TODO: 2 should this take a boost::array<..., 2> instead? it could return the
+// TODO: 2 should this take a std::array<..., 2> instead? it could return the
 // number of buffers added, just like reserve.
 void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int const bytes)
 {

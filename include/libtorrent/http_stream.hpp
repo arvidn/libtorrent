@@ -98,7 +98,7 @@ public:
 		// store it in a shared_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
-		tcp::resolver::query q(m_hostname, to_string(m_port).elems);
+		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, boost::bind(
 			&http_stream::name_lookup, this, _1, _2, h));
 	}

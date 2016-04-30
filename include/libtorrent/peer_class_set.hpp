@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CLASS_SET_HPP_INCLUDED
 
 #include "libtorrent/peer_class.hpp"
-#include <boost/array.hpp>
+#include <array>
 
 namespace libtorrent {
 
@@ -62,7 +62,7 @@ namespace libtorrent {
 		// class IDs. Each ID refers to a an entry in m_ses.m_peer_classes which
 		// holds the metadata about the class. Classes affect bandwidth limits
 		// among other things
-		boost::array<peer_class_t, 15> m_class;
+		std::array<peer_class_t, 15> m_class;
 	};
 }
 

@@ -51,10 +51,10 @@ namespace libtorrent
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
-	boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
+	std::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
 		to_string(boost::int64_t n)
 	{
-		boost::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		std::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
 		boost::uint64_t un = n;
@@ -198,7 +198,7 @@ namespace libtorrent
 				ret += i->device;
 			}
 			ret += ":";
-			ret += to_string(i->port).elems;
+			ret += to_string(i->port).data();
 			if (i->ssl) ret += "s";
 		}
 

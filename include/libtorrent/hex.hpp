@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <boost/limits.hpp>
-#include <boost/array.hpp>
+#include <array>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

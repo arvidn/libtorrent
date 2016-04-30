@@ -1478,8 +1478,8 @@ namespace libtorrent {
 	// TODO: 2 the salt here is allocated on the heap. It would be nice to
 	// allocate in in the stack_allocator
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
-		, boost::array<char, 32> k
-		, boost::array<char, 64> sig
+		, std::array<char, 32> k
+		, std::array<char, 64> sig
 		, boost::uint64_t sequence
 		, std::string const& s
 		, entry const& i
@@ -1506,8 +1506,8 @@ namespace libtorrent {
 	{}
 
 	dht_put_alert::dht_put_alert(aux::stack_allocator&
-		, boost::array<char, 32> key
-		, boost::array<char, 64> sig
+		, std::array<char, 32> key
+		, std::array<char, 64> sig
 		, std::string s
 		, boost::uint64_t sequence_number
 		, int n)

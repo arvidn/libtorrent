@@ -73,7 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
+#include <array>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>

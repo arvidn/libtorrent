@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/array.hpp>
+#include <array>
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
@@ -319,7 +319,7 @@ void udp_socket::wrap(udp::endpoint const& ep, array_view<char const> p
 	write_uint8(ep.address().is_v4()?1:4, h); // atyp
 	write_endpoint(ep, h);
 
-	boost::array<boost::asio::const_buffer, 2> iovec;
+	std::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header, h - header);
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
@@ -348,7 +348,7 @@ void udp_socket::wrap(char const* hostname, int const port, array_view<char cons
 	h += hostlen;
 	write_uint16(port, h);
 
-	boost::array<boost::asio::const_buffer, 2> iovec;
+	std::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header, h - header);
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
@@ -503,7 +503,7 @@ void socks5::start(aux::proxy_settings const& ps)
 	m_proxy_settings = ps;
 
 	// TODO: use the system resolver_interface here
-	tcp::resolver::query q(ps.hostname, to_string(ps.port).elems);
+	tcp::resolver::query q(ps.hostname, to_string(ps.port).data());
 	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
 	m_resolver.async_resolve(q, boost::bind(
 		&socks5::on_name_lookup, self(), _1, _2));

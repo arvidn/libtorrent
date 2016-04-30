@@ -323,13 +323,13 @@ namespace libtorrent
 
 			void dht_get_immutable_item(sha1_hash const& target);
 
-			void dht_get_mutable_item(boost::array<char, 32> key
+			void dht_get_mutable_item(std::array<char, 32> key
 				, std::string salt = std::string());
 
 			void dht_put_immutable_item(entry const& data, sha1_hash target);
 
-			void dht_put_mutable_item(boost::array<char, 32> key
-				, boost::function<void(entry&, boost::array<char,64>&
+			void dht_put_mutable_item(std::array<char, 32> key
+				, boost::function<void(entry&, std::array<char,64>&
 				, boost::uint64_t&, std::string const&)> cb
 				, std::string salt = std::string());
 
@@ -1180,7 +1180,7 @@ namespace libtorrent
 			struct extension_dht_query
 			{
 				boost::uint8_t query_len;
-				boost::array<char, max_dht_query_length> query;
+				std::array<char, max_dht_query_length> query;
 				dht_extension_handler_t handler;
 			};
 			typedef std::vector<extension_dht_query> m_extension_dht_queries_t;
