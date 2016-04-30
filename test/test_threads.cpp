@@ -83,7 +83,7 @@ TORRENT_TEST(threads)
 		threads.emplace_back(&fun, &cond, &m, &waiting, i);
 	}
 
-	// make sure all threads are waiting on the std::condition_variable
+	// make sure all threads are waiting on the condition_variable
 	std::unique_lock<std::mutex> l(m);
 	while (waiting < 20)
 	{
@@ -106,7 +106,7 @@ TORRENT_TEST(threads)
 		threads.emplace_back(&decrement, &cond, &m, &waiting, &c);
 	}
 
-	// make sure all threads are waiting on the std::condition_variable
+	// make sure all threads are waiting on the condition_variable
 	l.lock();
 	while (waiting < 6)
 	{

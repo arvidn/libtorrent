@@ -155,7 +155,7 @@ namespace libtorrent
 
 	int part_file::allocate_slot(int piece)
 	{
-		// the std::mutex is assumed to be held here, since this is a private function
+		// the mutex is assumed to be held here, since this is a private function
 
 		TORRENT_ASSERT(m_piece_map.find(piece) == m_piece_map.end());
 		int slot = -1;
