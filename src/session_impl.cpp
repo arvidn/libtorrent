@@ -6083,7 +6083,7 @@ namespace aux {
 		int num_pools = num_threads > 0 ? num_threads : 1;
 		while (num_pools > m_net_thread_pool.size())
 		{
-			m_net_thread_pool.push_back(boost::make_shared<network_thread_pool>());
+			m_net_thread_pool.emplace_back(new network_thread_pool());
 			m_net_thread_pool.back()->set_num_threads(num_threads > 0 ? 1 : 0);
 		}
 

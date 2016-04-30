@@ -760,7 +760,7 @@ namespace libtorrent
 
 			// a thread pool used for async_write_some calls,
 			// to distribute its cost to multiple threads
-			std::vector<boost::shared_ptr<network_thread_pool> > m_net_thread_pool;
+			std::vector<std::unique_ptr<network_thread_pool>> m_net_thread_pool;
 
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
