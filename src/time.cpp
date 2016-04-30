@@ -30,30 +30,29 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <ctime>
-#include <string>
-#include <cstdio>
-#include <boost/limits.hpp>
-#include <boost/version.hpp>
-#include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include <atomic>
 
 namespace libtorrent { namespace aux
 {
-	// used to cache the current time
-	// every 100 ms. This is cheaper
-	// than a system call and can be
-	// used where more accurate time
-	// is not necessary
+	// used to cache the current time regularly (update_time_now() is called by
+	// the session_impl main thread). This is cheaper than a system call and can
+	// be used where more accurate time is not necessary
+#if !TORRENT_NO_ATOMIC_DURATION
 	namespace {
-		time_point g_current_time = clock_type::now();
+		std::atomic<time_point> g_current_time(clock_type::now());
 	}
-
-	time_point const& time_now() { return aux::g_current_time; }
-
-	void update_time_now() { g_current_time = clock_type::now(); }
-
+	time_point time_now() { return aux::g_current_time.load(); }
+	void update_time_now() { g_current_time.store(clock_type::now()); }
+#else
+	// work-around for not being able to put time_point in std::atomic
+	namespace {
+		std::atomic<time_duration::rep> g_current_time(clock_type::now().time_since_epoch().count());
+	}
+	time_point time_now() { return time_point(clock_type::duration(aux::g_current_time.load())); }
+	void update_time_now() { g_current_time.store(clock_type::now().time_since_epoch().count()); }
+#endif
 
 } }
 

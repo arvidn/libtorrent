@@ -383,7 +383,7 @@ namespace
        }
 
        list pieces;
-       ptime now = time_now();
+       time_point now = clock_type::now();
        for (std::vector<cached_piece_info>::iterator i = ret.begin()
           , end(ret.end()); i != end; ++i)
        {
