@@ -61,7 +61,7 @@ namespace libtorrent {
 				c.m_stats_counter[i].load(boost::memory_order_relaxed)
 					, boost::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(c.m_mutex);
+		std::lock_guard<std::mutex> l(c.m_mutex);
 		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
 #endif
 	}
@@ -75,8 +75,8 @@ namespace libtorrent {
 				c.m_stats_counter[i].load(boost::memory_order_relaxed)
 					, boost::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(m_mutex);
-		mutex::scoped_lock l2(c.m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
+		std::lock_guard<std::mutex> l2(c.m_mutex);
 		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
 #endif
 		return *this;
@@ -93,7 +93,7 @@ namespace libtorrent {
 #if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
 		return m_stats_counter[i].load(boost::memory_order_relaxed);
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_stats_counter[i];
 #endif
 	}
@@ -114,7 +114,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(pv + value >= 0);
 		return pv + value;
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
 		return m_stats_counter[c] += value;
 #endif
@@ -139,7 +139,7 @@ namespace libtorrent {
 			new_value = (current * (100-ratio) + value * ratio) / 100;
 		}
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		boost::int64_t current = m_stats_counter[c];
 		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
 #endif
@@ -153,7 +153,7 @@ namespace libtorrent {
 #if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
 		m_stats_counter[c].store(value);
 #else
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		// if this assert fires, someone is trying to decrement a counter
 		// which is not allowed. Counters are monotonically increasing

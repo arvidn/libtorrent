@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include <boost/tuple/tuple.hpp>

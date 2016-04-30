@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -68,7 +68,7 @@ namespace libtorrent
 		// total number of in-use write jobs
 		int m_write_jobs;
 
-		mutex m_job_mutex;
+		std::mutex m_job_mutex;
 		boost::pool<> m_job_pool;
 	};
 }

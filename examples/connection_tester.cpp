@@ -37,12 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/file_pool.hpp"
 #include <cstring>
+#include <thread>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <boost/array.hpp>
@@ -801,10 +801,10 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	libtorrent::create_torrent t(fs, piece_size);
 
 	// generate the hashes in 4 threads
-	thread t1(boost::bind(&hasher_thread, &t, 0, 1 * num_pieces / 4, piece_size, false));
-	thread t2(boost::bind(&hasher_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size, false));
-	thread t3(boost::bind(&hasher_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size, false));
-	thread t4(boost::bind(&hasher_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size, true));
+	std::thread t1(&hasher_thread, &t, 0, 1 * num_pieces / 4, piece_size, false);
+	std::thread t2(&hasher_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size, false);
+	std::thread t3(&hasher_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size, false);
+	std::thread t4(&hasher_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size, true);
 
 	t1.join();
 	t2.join();
@@ -1045,7 +1045,7 @@ int main(int argc, char* argv[])
 
 	std::vector<peer_conn*> conns;
 	conns.reserve(num_connections);
-	const int num_threads = 2;
+	int const num_threads = 2;
 	io_service ios[num_threads];
 	for (int i = 0; i < num_connections; ++i)
 	{
@@ -1064,8 +1064,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	thread t1(boost::bind(&io_thread, &ios[0]));
-	thread t2(boost::bind(&io_thread, &ios[1]));
+	std::thread t1(&io_thread, &ios[0]);
+	std::thread t2(&io_thread, &ios[1]);
 
 	t1.join();
 	t2.join();

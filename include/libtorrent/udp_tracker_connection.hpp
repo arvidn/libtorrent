@@ -122,7 +122,7 @@ namespace libtorrent
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;
-		static mutex m_cache_mutex;
+		static std::mutex m_cache_mutex;
 
 		udp::endpoint m_target;
 

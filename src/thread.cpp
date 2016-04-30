@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/assert.hpp"
 
 #ifdef TORRENT_BEOS
@@ -60,26 +59,26 @@ namespace libtorrent
 
 #ifdef BOOST_HAS_PTHREADS
 
-	condition_variable::condition_variable()
+	std::condition_variable::condition_variable()
 	{
 		pthread_cond_init(&m_cond, 0);
 	}
 
-	condition_variable::~condition_variable()
+	std::condition_variable::~condition_variable()
 	{
 		pthread_cond_destroy(&m_cond);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void std::condition_variable::wait(std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		// wow, this is quite a hack
 		pthread_cond_wait(&m_cond, reinterpret_cast<pthread_mutex_t*>(&l.mutex()));
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	void std::condition_variable::wait_for(std::unique_lock<std::mutex>& l, time_duration rel_time)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 
 		struct timeval tv;
 		struct timespec ts;
@@ -92,17 +91,17 @@ namespace libtorrent
 		pthread_cond_timedwait(&m_cond, reinterpret_cast<pthread_mutex_t*>(&l.mutex()), &ts);
 	}
 
-	void condition_variable::notify_all()
+	void std::condition_variable::notify_all()
 	{
 		pthread_cond_broadcast(&m_cond);
 	}
 
-	void condition_variable::notify()
+	void std::condition_variable::notify()
 	{
 		pthread_cond_signal(&m_cond);
 	}
 #elif defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-	condition_variable::condition_variable()
+	std::condition_variable::condition_variable()
 		: m_num_waiters(0)
 	{
 #if _WIN32_WINNT == 0x0501
@@ -112,14 +111,14 @@ namespace libtorrent
 #endif
 	}
 
-	condition_variable::~condition_variable()
+	std::condition_variable::~condition_variable()
 	{
 		CloseHandle(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void std::condition_variable::wait(std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		++m_num_waiters;
 		l.unlock();
 		WaitForSingleObjectEx(m_sem, INFINITE, FALSE);
@@ -127,9 +126,9 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	void std::condition_variable::wait_for(std::unique_lock<std::mutex>& l, time_duration rel_time)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		++m_num_waiters;
 		l.unlock();
 		WaitForSingleObjectEx(m_sem, total_milliseconds(rel_time), FALSE);
@@ -137,30 +136,30 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::notify_all()
+	void std::condition_variable::notify_all()
 	{
 		ReleaseSemaphore(m_sem, m_num_waiters, 0);
 	}
 
-	void condition_variable::notify()
+	void std::condition_variable::notify()
 	{
 		ReleaseSemaphore(m_sem, (std::min)(m_num_waiters, 1), 0);
 	}
 #elif defined TORRENT_BEOS
-	condition_variable::condition_variable()
+	std::condition_variable::condition_variable()
 		: m_num_waiters(0)
 	{
 		m_sem = create_sem(0, 0);
 	}
 
-	condition_variable::~condition_variable()
+	std::condition_variable::~condition_variable()
 	{
 		delete_sem(m_sem);
 	}
 
-	void condition_variable::wait(mutex::scoped_lock& l)
+	void std::condition_variable::wait(std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		++m_num_waiters;
 		l.unlock();
 		acquire_sem(m_sem);
@@ -168,9 +167,9 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::wait_for(mutex::scoped_lock& l, time_duration rel_time)
+	void std::condition_variable::wait_for(std::unique_lock<std::mutex>& l, time_duration rel_time)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		++m_num_waiters;
 		l.unlock();
 		acquire_sem_etc(m_sem, 1, B_RELATIVE_TIMEOUT, total_microseconds(rel_time));
@@ -178,12 +177,12 @@ namespace libtorrent
 		--m_num_waiters;
 	}
 
-	void condition_variable::notify_all()
+	void std::condition_variable::notify_all()
 	{
 		release_sem_etc(m_sem, m_num_waiters, 0);
 	}
 
-	void condition_variable::notify()
+	void std::condition_variable::notify()
 	{
 		release_sem_etc(m_sem, (std::min)(m_num_waiters, 1), 0);
 	}

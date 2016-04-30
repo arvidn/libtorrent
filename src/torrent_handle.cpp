@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/announce_entry.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
@@ -653,11 +652,11 @@ namespace libtorrent
 	{
 		static boost::shared_ptr<const torrent_info> holder[4];
 		static int cursor = 0;
-		static mutex holder_mutex;
+		static std::mutex holder_mutex;
 
 		boost::shared_ptr<const torrent_info> r = torrent_file();
 
-		mutex::scoped_lock l(holder_mutex);
+		std::lock_guard<std::mutex> l(holder_mutex);
 		holder[cursor++] = r;
 		cursor = cursor % (sizeof(holder) / sizeof(holder[0]));
 		return *r;

@@ -34,9 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_POOL_HPP
 
 #include <map>
+#include <mutex>
 #include "libtorrent/file.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -120,7 +120,7 @@ namespace libtorrent
 
 	private:
 
-		void remove_oldest(mutex::scoped_lock& l);
+		void remove_oldest(std::unique_lock<std::mutex>& l);
 
 		int m_size;
 		bool m_low_prio_io;
@@ -137,12 +137,12 @@ namespace libtorrent
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
 		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
-		
+
 		file_set m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
 #endif
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 	};
 }
 

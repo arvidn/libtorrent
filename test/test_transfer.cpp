@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -83,7 +82,7 @@ struct test_storage : default_storage
 
 	void set_limit(int lim)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_limit = lim;
 	}
 
@@ -95,7 +94,7 @@ struct test_storage : default_storage
 		, int flags
 		, storage_error& se)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_written >= m_limit)
 		{
 			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
@@ -115,7 +114,7 @@ struct test_storage : default_storage
 
 	int m_written;
 	int m_limit;
-	mutex m_mutex;
+	std::mutex m_mutex;
 };
 
 storage_interface* test_storage_constructor(storage_params const& params)

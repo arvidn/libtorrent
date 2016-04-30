@@ -38,24 +38,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/thread.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp" // for test_sleep
 
 using namespace libtorrent;
 
-void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)
+void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)
 {
 	fprintf(stderr, "thread %d waiting\n", i);
-	libtorrent::mutex::scoped_lock l(*m);
+	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
 	s->wait(l);
 	fprintf(stderr, "thread %d done\n", i);
 }
 
-void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, boost::atomic<int>* c)
+void increment(std::condition_variable* s, std::mutex* m, int* waiting, boost::atomic<int>* c)
 {
-	libtorrent::mutex::scoped_lock l(*m);
+	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
 	s->wait(l);
 	l.unlock();
@@ -63,9 +62,9 @@ void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, boost:
 		++*c;
 }
 
-void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, boost::atomic<int>* c)
+void decrement(std::condition_variable* s, std::mutex* m, int* waiting, boost::atomic<int>* c)
 {
-	libtorrent::mutex::scoped_lock l(*m);
+	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
 	s->wait(l);
 	l.unlock();
@@ -75,17 +74,17 @@ void decrement(condition_variable* s, libtorrent::mutex* m, int* waiting, boost:
 
 TORRENT_TEST(threads)
 {
-	condition_variable cond;
-	libtorrent::mutex m;
-	std::list<libtorrent::thread*> threads;
+	std::condition_variable cond;
+	std::mutex m;
+	std::vector<std::thread> threads;
 	int waiting = 0;
 	for (int i = 0; i < 20; ++i)
 	{
-		threads.push_back(new libtorrent::thread(boost::bind(&fun, &cond, &m, &waiting, i)));
+		threads.emplace_back(&fun, &cond, &m, &waiting, i);
 	}
 
 	// make sure all threads are waiting on the condition_variable
-	libtorrent::mutex::scoped_lock l(m);
+	std::unique_lock<std::mutex> l(m);
 	while (waiting < 20)
 	{
 		l.unlock();
@@ -96,19 +95,15 @@ TORRENT_TEST(threads)
 	cond.notify_all();
 	l.unlock();
 
-	for (std::list<libtorrent::thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
-	{
-		(*i)->join();
-		delete *i;
-	}
+	for (auto& t : threads) t.join();
 	threads.clear();
 
 	waiting = 0;
 	boost::atomic<int> c(0);
 	for (int i = 0; i < 3; ++i)
 	{
-		threads.push_back(new libtorrent::thread(boost::bind(&increment, &cond, &m, &waiting, &c)));
-		threads.push_back(new libtorrent::thread(boost::bind(&decrement, &cond, &m, &waiting, &c)));
+		threads.emplace_back(&increment, &cond, &m, &waiting, &c);
+		threads.emplace_back(&decrement, &cond, &m, &waiting, &c);
 	}
 
 	// make sure all threads are waiting on the condition_variable
@@ -123,11 +118,7 @@ TORRENT_TEST(threads)
 	cond.notify_all();
 	l.unlock();
 
-	for (std::list<libtorrent::thread*>::iterator i = threads.begin(); i != threads.end(); ++i)
-	{
-		(*i)->join();
-		delete *i;
-	}
+	for (auto& t : threads) t.join();
 
 	TEST_CHECK(c == 0);
 }

@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <cctype>
 #include <algorithm>
+#include <memory>
+#include <thread>
 
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
@@ -369,8 +371,8 @@ namespace libtorrent
 		if (internal_executor)
 		{
 			// start a thread for the message pump
-			m_thread = boost::make_shared<thread>(boost::bind(&io_service::run
-				, m_io_service.get()));
+			m_thread = std::make_shared<std::thread>(
+				[&]() { m_io_service->run(); });
 		}
 	}
 

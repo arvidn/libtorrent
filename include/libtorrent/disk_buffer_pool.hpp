@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
+#include <mutex>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>
@@ -53,7 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 
@@ -71,7 +71,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		bool is_disk_buffer(char* buffer
-			, mutex::scoped_lock& l) const;
+			, std::unique_lock<std::mutex>& l) const;
 		bool is_disk_buffer(char* buffer) const;
 #endif
 
@@ -90,7 +90,7 @@ namespace libtorrent
 
 		boost::uint32_t in_use() const
 		{
-			mutex::scoped_lock l(m_pool_mutex);
+			std::unique_lock<std::mutex> l(m_pool_mutex);
 			return m_in_use;
 		}
 		boost::uint32_t num_to_evict(int num_needed = 0);
@@ -100,8 +100,8 @@ namespace libtorrent
 
 	protected:
 
-		void free_buffer_impl(char* buf, mutex::scoped_lock& l);
-		char* allocate_buffer_impl(mutex::scoped_lock& l, char const* category);
+		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
+		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
 
 		// number of bytes per block. The BitTorrent
 		// protocol defines the block size to 16 KiB.
@@ -137,9 +137,9 @@ namespace libtorrent
 
 	private:
 
-		void check_buffer_level(mutex::scoped_lock& l);
+		void check_buffer_level(std::unique_lock<std::mutex>& l);
 
-		mutable mutex m_pool_mutex;
+		mutable std::mutex m_pool_mutex;
 
 		int m_cache_buffer_chunk_size;
 

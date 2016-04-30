@@ -63,7 +63,7 @@ char const* socket_state_names[] = { "NONE", "SYN_SENT", "CONNECTED", "FIN_SENT"
 static struct utp_logger
 {
 	FILE* utp_log_file;
-	mutex utp_log_mutex;
+	std::mutex utp_log_mutex;
 
 	utp_logger() : utp_log_file(NULL) {}
 	~utp_logger()
@@ -77,7 +77,7 @@ void utp_log(char const* fmt, ...)
 {
 	if (log_file_holder.utp_log_file == NULL) return;
 
-	mutex::scoped_lock lock(log_file_holder.utp_log_mutex);
+	std::lock_guard<std::mutex> lock(log_file_holder.utp_log_mutex);
 	static time_point start = clock_type::now();
 	fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
 	va_list l;

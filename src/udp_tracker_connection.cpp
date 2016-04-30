@@ -64,7 +64,7 @@ namespace libtorrent
 	std::map<address, udp_tracker_connection::connection_cache_entry>
 		udp_tracker_connection::m_connection_cache;
 
-	mutex udp_tracker_connection::m_cache_mutex;
+	std::mutex udp_tracker_connection::m_cache_mutex;
 
 	udp_tracker_connection::udp_tracker_connection(
 		io_service& ios
@@ -277,7 +277,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::start_announce()
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		std::map<address, connection_cache_entry>::iterator cc
 			= m_connection_cache.find(m_target.address());
 		if (cc != m_connection_cache.end())
@@ -463,7 +463,7 @@ namespace libtorrent
 		update_transaction_id();
 		boost::uint64_t const connection_id = read_int64(buf);
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::lock_guard<std::mutex> l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
 		cce.expires = aux::time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));

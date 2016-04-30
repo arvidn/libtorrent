@@ -107,21 +107,21 @@ upnp::~upnp()
 
 void upnp::discover_device()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	if (m_socket.num_send_sockets() == 0)
 		log("No network interfaces to broadcast to", l);
 
 	discover_device_impl(l);
 }
 
-void upnp::log(char const* msg, mutex::scoped_lock& l)
+void upnp::log(char const* msg, std::unique_lock<std::mutex>& l)
 {
 	l.unlock();
 	m_log_callback(msg);
 	l.lock();
 }
 
-void upnp::discover_device_impl(mutex::scoped_lock& l)
+void upnp::discover_device_impl(std::unique_lock<std::mutex>& l)
 {
 	const char msearch[] =
 		"M-SEARCH * HTTP/1.1\r\n"
@@ -163,7 +163,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 	// external port 0 means _every_ port
 	TORRENT_ASSERT(external_port != 0);
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	char msg[500];
 	snprintf(msg, sizeof(msg), "adding port map: [ protocol: %s ext_port: %u "
@@ -211,7 +211,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 
 void upnp::delete_mapping(int mapping)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	if (mapping >= int(m_mappings.size())) return;
 
@@ -257,7 +257,7 @@ void upnp::resend_request(error_code const& ec)
 
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	if (m_closing) return;
 
@@ -312,7 +312,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 {
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	using namespace libtorrent::detail;
 
@@ -557,11 +557,11 @@ void upnp::map_timer(error_code const& ec)
 	if (ec) return;
 	if (m_closing) return;
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	try_map_upnp(l, true);
 }
 
-void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
+void upnp::try_map_upnp(std::unique_lock<std::mutex>& l, bool timer)
 {
 	if (m_devices.empty()) return;
 
@@ -627,7 +627,7 @@ void upnp::try_map_upnp(mutex::scoped_lock& l, bool timer)
 }
 
 void upnp::post(upnp::rootdevice const& d, char const* soap
-	, char const* soap_action, mutex::scoped_lock& l)
+	, char const* soap_action, std::unique_lock<std::mutex>& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(d.upnp_connection);
@@ -652,7 +652,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 
 void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 
@@ -694,7 +694,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	post(d, soap, soap_action, l);
 }
 
-void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
+void upnp::next(rootdevice& d, int i, std::unique_lock<std::mutex>& l)
 {
 	if (i < num_mappings() - 1)
 	{
@@ -711,7 +711,7 @@ void upnp::next(rootdevice& d, int i, mutex::scoped_lock& l)
 	}
 }
 
-void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
+void upnp::update_map(rootdevice& d, int i, std::unique_lock<std::mutex>& l)
 {
 	TORRENT_ASSERT(d.magic == 1337);
 	TORRENT_ASSERT(i < int(d.mapping.size()));
@@ -777,7 +777,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 
 void upnp::delete_port_mapping(rootdevice& d, int i)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 
@@ -880,7 +880,7 @@ void upnp::on_upnp_xml(error_code const& e
 {
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -993,7 +993,7 @@ void upnp::on_upnp_xml(error_code const& e
 
 void upnp::get_ip_address(rootdevice& d)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 
@@ -1021,7 +1021,7 @@ void upnp::get_ip_address(rootdevice& d)
 	post(d, soap, soap_action, l);
 }
 
-void upnp::disable(error_code const& ec, mutex::scoped_lock& l)
+void upnp::disable(error_code const& ec, std::unique_lock<std::mutex>& l)
 {
 	m_disabled = true;
 
@@ -1163,7 +1163,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 {
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1246,7 +1246,7 @@ void upnp::on_upnp_map_response(error_code const& e
 {
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1388,7 +1388,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	next(d, mapping, l);
 }
 
-void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
+void upnp::return_error(int mapping, int code, std::unique_lock<std::mutex>& l)
 {
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
@@ -1414,7 +1414,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 {
 	boost::shared_ptr<upnp> me(self());
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1478,7 +1478,7 @@ void upnp::on_expire(error_code const& ec)
 	time_point now = aux::time_now();
 	time_point next_expire = max_time();
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()
 		, end(m_devices.end()); i != end; ++i)
@@ -1512,7 +1512,7 @@ void upnp::on_expire(error_code const& ec)
 
 void upnp::close()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	error_code ec;
 	m_refresh_timer.cancel(ec);

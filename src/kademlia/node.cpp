@@ -727,7 +727,7 @@ time_duration node::connection_timeout()
 void node::status(std::vector<dht_routing_bucket>& table
 	, std::vector<dht_lookup>& requests)
 {
-	mutex_t::scoped_lock l(m_mutex);
+	std::lock_guard<std::mutex> l(m_mutex);
 
 	m_table.status(table);
 
@@ -756,7 +756,7 @@ void node::update_stats_counters(counters& c) const
 // TODO: 2 use the non deprecated function instead of this one
 void node::status(session_status& s)
 {
-	mutex_t::scoped_lock l(m_mutex);
+	std::lock_guard<std::mutex> l(m_mutex);
 
 	m_table.status(s);
 	s.dht_torrents = int(m_storage->num_torrents());

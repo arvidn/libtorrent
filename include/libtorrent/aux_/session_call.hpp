@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_CALL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <boost/function.hpp>
@@ -44,13 +43,13 @@ namespace libtorrent { namespace aux {
 void blocking_call();
 void dump_call_profile();
 
-void fun_wrap(bool& done, condition_variable& e, mutex& m, boost::function<void(void)> f);
+void fun_wrap(bool& done, std::condition_variable& e, std::mutex& m, boost::function<void(void)> f);
 
 template <class R>
-void fun_ret(R& ret, bool& done, condition_variable& e, mutex& m, boost::function<R(void)> f)
+void fun_ret(R& ret, bool& done, std::condition_variable& e, std::mutex& m, boost::function<R(void)> f)
 {
 	ret = f();
-	mutex::scoped_lock l(m);
+	std::unique_lock<std::mutex> l(m);
 	done = true;
 	e.notify_all();
 }

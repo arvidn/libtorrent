@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <condition_variable>
+#include <mutex>
 #include <stdarg.h> // for va_start, va_end
 #include <unordered_map>
 
@@ -76,7 +78,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/alert_manager.hpp" // for alert_manager
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
@@ -609,8 +610,8 @@ namespace libtorrent
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
-			mutable libtorrent::mutex mut;
-			mutable libtorrent::condition_variable cond;
+			mutable std::mutex mut;
+			mutable std::condition_variable cond;
 
 			// cork a peer and schedule a delayed uncork
 			// does nothing if the peer is already corked

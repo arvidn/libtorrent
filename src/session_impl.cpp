@@ -198,7 +198,7 @@ namespace libtorrent {
 	std::map<std::string, async_t> _async_ops;
 	std::deque<wakeup_t> _wakeups;
 	int _async_ops_nthreads = 0;
-	mutex _async_ops_mutex;
+	std::mutex _async_ops_mutex;
 #endif
 
 socket_job::~socket_job() {}
@@ -6078,6 +6078,7 @@ namespace aux {
 
 	void session_impl::update_network_threads()
 	{
+		// TODO: 3 this is a mess
 		int num_threads = m_settings.get_int(settings_pack::network_threads);
 		int num_pools = num_threads > 0 ? num_threads : 1;
 		while (num_pools > m_net_thread_pool.size())

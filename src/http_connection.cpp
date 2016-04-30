@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/time.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

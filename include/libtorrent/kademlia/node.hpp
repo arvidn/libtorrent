@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <map>
 #include <set>
+#include <mutex>
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/dht_storage.hpp>
@@ -51,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
-#include <libtorrent/thread.hpp>
 #include <libtorrent/bloom_filter.hpp>
 
 #include <boost/cstdint.hpp>
@@ -182,13 +182,13 @@ public:
 
 	void add_traversal_algorithm(traversal_algorithm* a)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_running_requests.insert(a);
 	}
 
 	void remove_traversal_algorithm(traversal_algorithm* a)
 	{
-		mutex_t::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_running_requests.erase(a);
 	}
 
@@ -231,8 +231,7 @@ private:
 
 	libtorrent::dht_settings const& m_settings;
 
-	typedef libtorrent::mutex mutex_t;
-	mutex_t m_mutex;
+	std::mutex m_mutex;
 
 	// this list must be destructed after the rpc manager
 	// since it might have references to it

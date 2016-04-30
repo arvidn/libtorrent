@@ -134,7 +134,7 @@ namespace libtorrent
 	{
 		int ret = 0;
 
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
 			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()*2));
@@ -152,9 +152,9 @@ namespace libtorrent
 	// and if we're in fact below the low watermark. If so, we need to
 	// post the notification messages to the peers that are waiting for
 	// more buffers to received data into
-	void disk_buffer_pool::check_buffer_level(mutex::scoped_lock& l)
+	void disk_buffer_pool::check_buffer_level(std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		if (!m_exceeded_max_size || m_in_use > m_low_watermark) return;
 
 		m_exceeded_max_size = false;
@@ -168,10 +168,10 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 	bool disk_buffer_pool::is_disk_buffer(char* buffer
-		, mutex::scoped_lock& l) const
+		, std::unique_lock<std::mutex>& l) const
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
 #if TORRENT_HAVE_MMAP
@@ -198,14 +198,14 @@ namespace libtorrent
 
 	bool disk_buffer_pool::is_disk_buffer(char* buffer) const
 	{
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		return is_disk_buffer(buffer, l);
 	}
 #endif
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		return allocate_buffer_impl(l, category);
 	}
 
@@ -219,7 +219,7 @@ namespace libtorrent
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded
 		, boost::shared_ptr<disk_observer> o, char const* category)
 	{
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		char* ret = allocate_buffer_impl(l, category);
 		if (m_exceeded_max_size)
 		{
@@ -233,7 +233,7 @@ namespace libtorrent
 // fills in the iovec array with the buffers
 	int disk_buffer_pool::allocate_iovec(file::iovec_t* iov, int iov_len)
 	{
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (int i = 0; i < iov_len; ++i)
 		{
 			iov[i].iov_base = allocate_buffer_impl(l, "pending read");
@@ -254,18 +254,18 @@ namespace libtorrent
 	void disk_buffer_pool::free_iovec(file::iovec_t* iov, int iov_len)
 	{
 		// TODO: perhaps we should sort the buffers here?
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (int i = 0; i < iov_len; ++i)
 			free_buffer_impl(static_cast<char*>(iov[i].iov_base), l);
 		check_buffer_level(l);
 	}
 
-	char* disk_buffer_pool::allocate_buffer_impl(mutex::scoped_lock& l
+	char* disk_buffer_pool::allocate_buffer_impl(std::unique_lock<std::mutex>& l
 		, char const*)
 	{
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
 		char* ret;
@@ -339,7 +339,7 @@ namespace libtorrent
 		// sort the pointers in order to maximize cache hits
 		std::sort(bufvec, end);
 
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (; bufvec != end; ++bufvec)
 		{
 			char* buf = *bufvec;
@@ -352,7 +352,7 @@ namespace libtorrent
 
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		free_buffer_impl(buf, l);
 		check_buffer_level(l);
 	}
@@ -362,7 +362,7 @@ namespace libtorrent
 	{
 		TORRENT_UNUSED(ec);
 
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
 		// proportional to the total disk cache size)
@@ -515,13 +515,13 @@ namespace libtorrent
 #endif
 	}
 
-	void disk_buffer_pool::free_buffer_impl(char* buf, mutex::scoped_lock& l)
+	void disk_buffer_pool::free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_settings_set);
 		TORRENT_ASSERT(is_disk_buffer(buf, l));
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
 #if TORRENT_HAVE_MMAP
@@ -581,7 +581,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		mutex::scoped_lock l(m_pool_mutex);
+		std::unique_lock<std::mutex> l(m_pool_mutex);
 		if (m_using_pool_allocator)
 			m_pool.release_memory();
 #endif

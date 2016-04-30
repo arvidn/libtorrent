@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
 #include <boost/tuple/tuple.hpp>

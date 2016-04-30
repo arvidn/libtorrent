@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cctype>
 #include <algorithm>
+#include <mutex>
 #include <boost/limits.hpp>
 #include <cstring>
 
@@ -63,8 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/thread.hpp"
-
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/string_util.hpp" // for to_string
 
@@ -540,9 +539,9 @@ namespace libtorrent
 
 	std::string convert_to_native(std::string const& s)
 	{
-		static mutex iconv_mutex;
+		static std::mutex iconv_mutex;
 		// only one thread can use this handle at a time
-		mutex::scoped_lock l(iconv_mutex);
+		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
 		static iconv_t iconv_handle = iconv_open("", "UTF-8");
@@ -552,9 +551,9 @@ namespace libtorrent
 
 	std::string convert_from_native(std::string const& s)
 	{
-		static mutex iconv_mutex;
+		static std::mutex iconv_mutex;
 		// only one thread can use this handle at a time
-		mutex::scoped_lock l(iconv_mutex);
+		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
 		static iconv_t iconv_handle = iconv_open("UTF-8", "");

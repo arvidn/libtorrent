@@ -129,12 +129,12 @@ namespace libtorrent
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
-		// this member to be destructed after we release the mutex. On some
+		// this member to be destructed after we release the std::mutex. On some
 		// operating systems (such as OSX) closing a file may take a long
-		// time. We don't want to hold the mutex for that.
+		// time. We don't want to hold the std::mutex for that.
 		file_handle defer_destruction;
 
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 #if TORRENT_USE_ASSERTS
 		// we're not allowed to open a file
@@ -230,7 +230,7 @@ namespace libtorrent
 
 	void file_pool::get_status(std::vector<pool_file_status>* files, void* st) const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
 		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
@@ -245,7 +245,7 @@ namespace libtorrent
 		}
 	}
 
-	void file_pool::remove_oldest(mutex::scoped_lock& l)
+	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
 	{
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
 			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
@@ -263,7 +263,7 @@ namespace libtorrent
 
 	void file_pool::release(void* st, int file_index)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
@@ -280,7 +280,7 @@ namespace libtorrent
 	// storage. If 0 is passed, all files are closed
 	void file_pool::release(void* st)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		if (st == 0)
 		{
@@ -309,7 +309,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 	void file_pool::mark_deleted(file_storage const& fs)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		m_deleted_storages.push_back(std::make_pair(fs.name()
 			, static_cast<void const*>(&fs)));
 		if(m_deleted_storages.size() > 100)
@@ -318,7 +318,7 @@ namespace libtorrent
 
 	bool file_pool::assert_idle_files(void* st) const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		for (file_set::const_iterator i = m_files.begin();
 			i != m_files.end(); ++i)
@@ -332,7 +332,7 @@ namespace libtorrent
 
 	void file_pool::resize(int size)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(size > 0);
 

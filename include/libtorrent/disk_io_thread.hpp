@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/thread.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -54,7 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
-#include <deque>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
@@ -452,7 +453,7 @@ namespace libtorrent
 		void fail_jobs(storage_error const& e, jobqueue_t& jobs_);
 		void fail_jobs_impl(storage_error const& e, jobqueue_t& src, jobqueue_t& dst);
 
-		void check_cache_level(mutex::scoped_lock& l, jobqueue_t& completed_jobs);
+		void check_cache_level(std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs);
 
 		void perform_job(disk_io_job* j, jobqueue_t& completed_jobs);
 
@@ -461,11 +462,11 @@ namespace libtorrent
 		void add_fence_job(piece_manager* storage, disk_io_job* j
 			, bool user_add = true);
 
-		// assumes l is locked (cache mutex).
+		// assumes l is locked (cache std::mutex).
 		// writes out the blocks [start, end) (releases the lock
 		// during the file operation)
 		int flush_range(cached_piece_entry* p, int start, int end
-			, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+			, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
 		// low level flush operations, used by flush_range
 		int build_iovec(cached_piece_entry* pe, int start, int end
@@ -477,12 +478,12 @@ namespace libtorrent
 			, storage_error const& error
 			, jobqueue_t& completed_jobs);
 
-		// assumes l is locked (the cache mutex).
+		// assumes l is locked (the cache std::mutex).
 		// assumes pe->hash to be set.
 		// If there are new blocks in piece 'pe' that have not been
 		// hashed by the partial_hash object attached to this piece,
 		// the piece will
-		void kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l);
+		void kick_hasher(cached_piece_entry* pe, std::unique_lock<std::mutex>& l);
 
 		// flags to pass in to flush_cache()
 		enum flush_flags_t
@@ -498,13 +499,13 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(piece_manager* storage, boost::uint32_t flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
-		void flush_expired_write_blocks(jobqueue_t& completed_jobs, mutex::scoped_lock& l);
-		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+		void flush_cache(piece_manager* storage, boost::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_expired_write_blocks(jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
-		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
-		void try_flush_write_blocks(int num, jobqueue_t& completed_jobs, mutex::scoped_lock& l);
+		void try_flush_write_blocks(int num, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
 		// used to batch reclaiming of blocks to once per cycle
 		void commit_reclaimed_blocks();
@@ -528,7 +529,7 @@ namespace libtorrent
 		boost::atomic<int> m_num_running_threads;
 
 		// the actual threads running disk jobs
-		std::vector<boost::shared_ptr<thread> > m_threads;
+		std::vector<std::thread> m_threads;
 
 		aux::session_settings m_settings;
 
@@ -545,7 +546,7 @@ namespace libtorrent
 		file_pool m_file_pool;
 
 		// disk cache
-		mutable mutex m_cache_mutex;
+		mutable std::mutex m_cache_mutex;
 		block_cache m_disk_cache;
 		enum
 		{
@@ -580,10 +581,10 @@ namespace libtorrent
 
 		// used to wake up the disk IO thread when there are new
 		// jobs on the job queue (m_queued_jobs)
-		condition_variable m_job_cond;
+		std::condition_variable m_job_cond;
 
-		// mutex to protect the m_queued_jobs list
-		mutable mutex m_job_mutex;
+		// std::mutex to protect the m_queued_jobs list
+		mutable std::mutex m_job_mutex;
 
 		// jobs queued for servicing
 		jobqueue_t m_queued_jobs;
@@ -591,7 +592,7 @@ namespace libtorrent
 		// when using more than 2 threads, this is
 		// used for just hashing jobs, just for threads
 		// dedicated to do hashing
-		condition_variable m_hash_job_cond;
+		std::condition_variable m_hash_job_cond;
 		jobqueue_t m_queued_hash_jobs;
 
 		// used to rate limit disk performance warnings
@@ -602,12 +603,12 @@ namespace libtorrent
 		// a message is posted to the network thread, which
 		// will then drain the queue and execute the jobs'
 		// handler functions
-		mutex m_completed_jobs_mutex;
+		std::mutex m_completed_jobs_mutex;
 		jobqueue_t m_completed_jobs;
 
 		// these are blocks that have been returned by the main thread
 		// but they haven't been freed yet. This is used to batch
-		// reclaiming of blocks, to only need one mutex lock per cycle
+		// reclaiming of blocks, to only need one std::mutex lock per cycle
 		std::vector<block_cache_reference> m_blocks_to_reclaim;
 
 		// when this is true, there is an outstanding message in the

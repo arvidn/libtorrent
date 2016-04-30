@@ -35,12 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/thread.hpp"
 #include "setup_transfer.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
+
+#include <thread>
 
 using namespace libtorrent;
 
@@ -258,7 +259,7 @@ TORRENT_TEST(wait_for_alert)
 	mgr.get_all(alerts);
 
 	start = clock_type::now();
-	libtorrent::thread posting_thread(boost::bind(&post_torrent_added, &mgr));
+	std::thread posting_thread(&post_torrent_added, &mgr);
 
 	a = mgr.wait_for_alert(seconds(10));
 	end = clock_type::now();

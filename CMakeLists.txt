@@ -107,7 +107,6 @@ set(sources
 	magnet_uri
 	parse_url
 	ConvertUTF
-	thread
 	xml_parse
 	version
 

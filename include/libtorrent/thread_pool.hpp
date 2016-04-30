@@ -34,8 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_THREAD_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
-#include <boost/atomic.hpp>
+#include <thread>
+#include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -59,20 +60,23 @@ namespace libtorrent
 				while (m_num_threads < n)
 				{
 					++m_num_threads;
-					m_threads.push_back(boost::shared_ptr<thread>(
-						new thread(boost::bind(&thread_pool::thread_fun, this, int(m_num_threads)-1))));
+					m_threads.emplace_back(&thread_pool::thread_fun
+						, this, int(m_num_threads)-1);
 				}
 			}
 			else
 			{
 				while (m_num_threads > n) { --m_num_threads; }
-				mutex::scoped_lock l(m_mutex);
-				m_cond.notify_all();
-				l.unlock();
+				{
+					std::lock_guard<std::mutex> l(m_mutex);
+					m_cond.notify_all();
+				}
 				if (wait)
 				{
 					for (int i = m_num_threads; i < int(m_threads.size()); ++i)
-						m_threads[i]->join();
+					{
+						m_threads[i].join();
+					}
 				}
 				// this will detach the threads
 				m_threads.resize(m_num_threads);
@@ -93,14 +97,14 @@ namespace libtorrent
 			else
 			{
 				retain_job(e);
-				mutex::scoped_lock l(m_mutex);
+				std::lock_guard<std::mutex> l(m_mutex);
 				m_queue.push_back(e);
 				// we only need to signal if the threads
 				// may have been put to sleep. If the size
 				// previous to adding the new job was > 0
 				// they don't need waking up.
 				if (m_queue.size() == 1)
-					m_cond.notify();
+					m_cond.notify_one();
 				return true;
 			}
 		}
@@ -116,7 +120,7 @@ namespace libtorrent
 		{
 			for (;;)
 			{
-				mutex::scoped_lock l(m_mutex);
+				std::unique_lock<std::mutex> l(m_mutex);
 				while (m_queue.empty() && thread_id < m_num_threads) m_cond.wait(l);
 
 				// if the number of wanted thread is decreased,
@@ -138,25 +142,25 @@ namespace libtorrent
 			{
 				// when we're terminating the last hasher thread, make sure
 				// there are no more scheduled jobs
-				mutex::scoped_lock l(m_mutex);
+				std::lock_guard<std::mutex> l(m_mutex);
 				TORRENT_ASSERT(m_queue.empty());
 			}
 #endif
 		}
 
-		// the mutex only protects m_cond and m_queue
+		// the std::mutex only protects m_cond and m_queue
 		// all other members are only used from a single
 		// thread (the user of this class, i.e. the disk
 		// thread).
-		mutex m_mutex;
-		condition_variable m_cond;
+		std::mutex m_mutex;
+		std::condition_variable m_cond;
 		std::deque<T> m_queue;
 
-		std::vector<boost::shared_ptr<thread> > m_threads;
+		std::vector<std::thread> m_threads;
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		boost::atomic<int> m_num_threads;
+		std::atomic<int> m_num_threads;
 	};
 
 }
