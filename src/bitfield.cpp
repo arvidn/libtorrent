@@ -128,8 +128,17 @@ namespace libtorrent
 		if (bits == size()) return;
 
 		TORRENT_ASSERT(bits >= 0);
-		// +1 because the first word is the size (in bits)
 		const int b = (bits + 31) / 32;
+		if (bits == 0)
+		{
+			if (m_buf != NULL)
+			{
+				std::free(m_buf-1);
+				m_buf = NULL;
+			}
+			return;
+		}
+
 		if (m_buf)
 		{
 			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
@@ -139,19 +148,15 @@ namespace libtorrent
 			m_buf = tmp + 1;
 			m_buf[-1] = bits;
 		}
-		else if (bits > 0)
+		else
 		{
+			// +1 because the first word is the size (in bits)
 			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::malloc((b+1) * 4));
 #ifndef BOOST_NO_EXCEPTIONS
 			if (tmp == NULL) throw std::bad_alloc();
 #endif
 			m_buf = tmp + 1;
 			m_buf[-1] = bits;
-		}
-		else if (m_buf != NULL)
-		{
-			std::free(m_buf-1);
-			m_buf = NULL;
 		}
 		clear_trailing_bits();
 		TORRENT_ASSERT(size() == bits);

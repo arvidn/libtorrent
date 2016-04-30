@@ -666,13 +666,13 @@ local int dynamic(struct state *s)
     index = 0;
     while (index < nlen + ndist) {
         int symbol;             /* decoded value */
-        int len;                /* last length to repeat */
 
         symbol = decode(s, &lencode);
         if (symbol < 16)                /* length in 0..15 */
             lengths[index++] = symbol;
         else {                          /* repeat instruction */
-            len = 0;                    /* assume repeating zeros */
+            int len = 0;                /* last length to repeat */
+                                        /* assume repeating zeros */
             if (symbol == 16) {         /* repeat last length 3..6 times */
                 if (index == 0) return -5;      /* no last length! */
                 len = lengths[index - 1];       /* last length */
@@ -752,7 +752,6 @@ int puff(unsigned char *dest,           /* pointer to destination pointer */
          boost::uint32_t *sourcelen)      /* amount of input available */
 {
     struct state s;             /* input/output state */
-    int last, type;             /* block information */
     int err;                    /* return value */
 
     /* initialize output state */
@@ -772,9 +771,10 @@ int puff(unsigned char *dest,           /* pointer to destination pointer */
         err = 2;                        /* then skip do-loop, return error */
     else {
         /* process blocks until last block or error */
+        int last = 0;
         do {
-            last = bits(&s, 1);         /* one if last block */
-            type = bits(&s, 2);         /* block type 0..3 */
+            last = bits(&s, 1);     /* one if last block */
+            int type = bits(&s, 2);     /* block type 0..3 */
             err = type == 0 ? stored(&s) :
                   (type == 1 ? fixed(&s) :
                    (type == 2 ? dynamic(&s) :

@@ -325,7 +325,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
 	unsigned int length = read_uint32(ptr);
 	if (length > sizeof(buffer))
 	{
-		fprintf(stderr, "len: %d\n", length);
+		fprintf(stderr, "len: %u\n", length);
 		close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 		return;
 	}

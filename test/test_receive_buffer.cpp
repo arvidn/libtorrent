@@ -126,7 +126,7 @@ TORRENT_TEST(recv_buffer_disk_buffer)
 	b.cut(0, 1000); // packet size = 1000
 	boost::array<boost::asio::mutable_buffer, 2> vec;
 	b.assign_disk_buffer(&disk_buffer, 137);
-	int num_bufs = b.reserve(vec, 1000);
+	int const num_bufs = b.reserve(vec, 1000);
 	TEST_EQUAL(num_bufs, 2);
 
 	// regular buffer   disk buffer
@@ -137,6 +137,7 @@ TORRENT_TEST(recv_buffer_disk_buffer)
 	// |----------------|    863
 
 	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 863);
+	// cppcheck-suppress arrayIndexOutOfBounds
 	TEST_EQUAL(boost::asio::buffer_size(vec[1]), 137);
 }
 

@@ -169,9 +169,6 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
-#ifndef _WIN32
-		char buf[40];
-#endif
 		color[i & 1] = c;
 
 #ifndef _WIN32
@@ -184,6 +181,7 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 			{
 				if (color[i] != last_color[i])
 				{
+					char buf[40];
 					snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
 					last_color[i] = color[i];
 					bar += buf;

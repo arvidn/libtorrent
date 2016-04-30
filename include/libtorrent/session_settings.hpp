@@ -48,7 +48,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 
-	typedef aux::proxy_settings proxy_settings;
+	using aux::proxy_settings;
 
 	// This holds most of the session-wide settings in libtorrent. Pass this
 	// to session::set_settings() to change the settings, initialize it from
