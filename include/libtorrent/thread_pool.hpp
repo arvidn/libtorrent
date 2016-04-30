@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <thread>
 #include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <vector>
 #include <boost/shared_ptr.hpp>
