@@ -77,8 +77,8 @@ namespace libtorrent { namespace aux
 		{
 			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
 			if ((name & settings_pack::type_mask) != type) return;
-			int const index = name & settings_pack::index_mask;
-			TORRENT_ASSERT(index >= 0 && index < N);
+			size_t const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index < N);
 			arr[index] = val;
 		}
 
@@ -88,8 +88,8 @@ namespace libtorrent { namespace aux
 			static T empty;
 			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
 			if ((name & settings_pack::type_mask) != type) return empty;
-			int const index = name & settings_pack::index_mask;
-			TORRENT_ASSERT(index >= 0 && index < N);
+			size_t const index = name & settings_pack::index_mask;
+			TORRENT_ASSERT(index < N);
 			return arr[index];
 		}
 
