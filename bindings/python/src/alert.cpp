@@ -163,6 +163,107 @@ dict session_stats_values(session_stats_alert const& alert)
     return d;
 }
 
+namespace boost
+{
+	// some older compilers (like msvc-12.0) end up using
+	// boost::is_polymorphic inside boost.python applied
+	// to alert types. This is problematic, since it appears
+	// to be implemented by deriving from the type, which
+	// yields a compiler error since most alerts are final.
+	// this just short-cuts the query to say that all these
+	// types are indeed polymorphic, no need to derive from
+	// them.
+#define POLY(x) template<> \
+	struct is_polymorphic<libtorrent:: x > : boost::mpl::true_ {};
+
+	POLY(torrent_alert)
+	POLY(tracker_alert)
+	POLY(torrent_added_alert)
+	POLY(torrent_removed_alert)
+	POLY(read_piece_alert)
+	POLY(peer_alert)
+	POLY(tracker_error_alert)
+	POLY(tracker_warning_alert)
+	POLY(tracker_reply_alert)
+	POLY(tracker_announce_alert)
+	POLY(hash_failed_alert)
+	POLY(peer_ban_alert)
+	POLY(peer_error_alert)
+	POLY(invalid_request_alert)
+	POLY(torrent_error_alert)
+	POLY(torrent_finished_alert)
+	POLY(piece_finished_alert)
+	POLY(block_finished_alert)
+	POLY(block_downloading_alert)
+	POLY(storage_moved_alert)
+	POLY(storage_moved_failed_alert)
+	POLY(torrent_deleted_alert)
+	POLY(torrent_paused_alert)
+	POLY(torrent_checked_alert)
+	POLY(url_seed_alert)
+	POLY(file_error_alert)
+	POLY(metadata_failed_alert)
+	POLY(metadata_received_alert)
+	POLY(listen_failed_alert)
+	POLY(listen_succeeded_alert)
+	POLY(portmap_error_alert)
+	POLY(portmap_alert)
+	POLY(fastresume_rejected_alert)
+	POLY(peer_blocked_alert)
+	POLY(scrape_reply_alert)
+	POLY(scrape_failed_alert)
+	POLY(udp_error_alert)
+	POLY(external_ip_alert)
+	POLY(save_resume_data_alert)
+	POLY(file_completed_alert)
+	POLY(file_renamed_alert)
+	POLY(file_rename_failed_alert)
+	POLY(torrent_resumed_alert)
+	POLY(state_changed_alert)
+	POLY(state_update_alert)
+	POLY(i2p_alert)
+	POLY(dht_reply_alert)
+	POLY(dht_announce_alert)
+	POLY(dht_get_peers_alert)
+	POLY(peer_unsnubbed_alert)
+	POLY(peer_snubbed_alert)
+	POLY(peer_connect_alert)
+	POLY(peer_disconnected_alert)
+	POLY(request_dropped_alert)
+	POLY(block_timeout_alert)
+	POLY(unwanted_block_alert)
+	POLY(torrent_delete_failed_alert)
+	POLY(save_resume_data_failed_alert)
+	POLY(performance_alert)
+	POLY(stats_alert)
+	POLY(anonymous_mode_alert)
+	POLY(incoming_connection_alert)
+	POLY(torrent_need_cert_alert)
+	POLY(add_torrent_alert)
+	POLY(dht_outgoing_get_peers_alert)
+	POLY(lsd_error_alert)
+	POLY(dht_stats_alert)
+	POLY(dht_immutable_item_alert)
+	POLY(dht_mutable_item_alert)
+	POLY(dht_put_alert)
+	POLY(session_stats_alert)
+	POLY(dht_get_peers_reply_alert)
+
+#ifndef TORRENT_NO_DEPRECATE
+	POLY(torrent_update_alert)
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+	POLY(portmap_log_alert)
+	POLY(log_alert)
+	POLY(torrent_log_alert)
+	POLY(peer_log_alert)
+	POLY(picker_log_alert)
+#endif // TORRENT_DISABLE_LOGGING
+
+#undef POLY
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
