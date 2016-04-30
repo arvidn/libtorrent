@@ -202,7 +202,7 @@ namespace libtorrent {
 	std::map<std::string, async_t> _async_ops;
 	std::deque<wakeup_t> _wakeups;
 	int _async_ops_nthreads = 0;
-	mutex _async_ops_mutex;
+	std::mutex _async_ops_mutex;
 #endif
 
 socket_job::~socket_job() {}

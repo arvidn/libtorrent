@@ -36,9 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/time.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -75,22 +75,22 @@ public:
 	void close();
 
 private:
-	
+
 	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
 
-	void update_mapping(int i, mutex::scoped_lock& l);
-	void send_map_request(int i, mutex::scoped_lock& l);
-	void send_get_ip_address_request(mutex::scoped_lock& l);
+	void update_mapping(int i, std::unique_lock<std::mutex>& l);
+	void send_map_request(int i, std::unique_lock<std::mutex>& l);
+	void send_get_ip_address_request(std::unique_lock<std::mutex>& l);
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i, mutex::scoped_lock& l);
-	void update_expiration_timer(mutex::scoped_lock& l);
+	void try_next_mapping(int i, std::unique_lock<std::mutex>& l);
+	void update_expiration_timer(std::unique_lock<std::mutex>& l);
 	void mapping_expired(error_code const& e, int i);
-	void close_impl(mutex::scoped_lock& l);
+	void close_impl(std::unique_lock<std::mutex>& l);
 
-	void log(char const* msg, mutex::scoped_lock& l);
-	void disable(error_code const& ec, mutex::scoped_lock& l);
+	void log(char const* msg, std::unique_lock<std::mutex>& l);
+	void disable(error_code const& ec, std::unique_lock<std::mutex>& l);
 
 	struct mapping_t
 	{
@@ -133,7 +133,7 @@ private:
 	log_callback_t m_log_callback;
 
 	std::vector<mapping_t> m_mappings;
-	
+
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;
 
@@ -145,7 +145,7 @@ private:
 	// current retry count
 	int m_retry_count;
 
-	// used to receive responses in	
+	// used to receive responses in
 	char m_response_buffer[16];
 
 	// router external IP address
@@ -153,7 +153,7 @@ private:
 
 	// the endpoint we received the message from
 	udp::endpoint m_remote;
-	
+
 	// the udp socket used to communicate
 	// with the NAT router
 	udp::socket m_socket;
@@ -167,12 +167,12 @@ private:
 
 	// the mapping index that will expire next
 	int m_next_refresh;
-	
+
 	bool m_disabled;
 
 	bool m_abort;
 
-	mutable mutex m_mutex;
+	mutable std::mutex m_mutex;
 };
 
 }

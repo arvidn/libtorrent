@@ -235,7 +235,7 @@ namespace libtorrent
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		http_conns_t::iterator i = std::find_if(m_http_conns.begin()
 			, m_http_conns.end()
@@ -270,7 +270,7 @@ namespace libtorrent
 		, tracker_request req
 		, boost::weak_ptr<request_callback> c)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		TORRENT_ASSERT(req.num_want >= 0);
 		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
 		if (m_abort && req.event != tracker_request::stopped) return;
@@ -405,7 +405,7 @@ namespace libtorrent
 	void tracker_manager::abort_all_requests(bool all)
 	{
 		// removes all connections except 'event=stopped'-requests
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		m_abort = true;
 		http_conns_t close_http_connections;
@@ -459,13 +459,13 @@ namespace libtorrent
 
 	bool tracker_manager::empty() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_http_conns.empty() && m_udp_conns.empty();
 	}
 
 	int tracker_manager::num_requests() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_http_conns.size() + m_udp_conns.size();
 	}
 }

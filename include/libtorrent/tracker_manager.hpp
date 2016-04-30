@@ -64,8 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -274,7 +274,7 @@ namespace libtorrent
 
 		int m_completion_timeout;
 
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 
 		// used for timeouts
 		// this is set when the request has been sent
@@ -397,7 +397,7 @@ namespace libtorrent
 
 	private:
 
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 
 		// maps transactionid to the udp_tracker_connection
 		// TODO: this should be unique_ptr in the future

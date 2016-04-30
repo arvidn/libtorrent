@@ -180,7 +180,7 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 	static boost::atomic<int> event_id;
-	static mutex disk_access_mutex;
+	static std::mutex disk_access_mutex;
 
 	// this is opened and closed by the disk_io_thread class
 	FILE* g_access_log = NULL;
@@ -210,7 +210,7 @@ namespace libtorrent
 		detail::write_uint32(fileid, ptr);
 		detail::write_uint8(flags, ptr);
 
-		mutex::scoped_lock l(disk_access_mutex);
+		std::lock_guard<std::mutex> l(disk_access_std::mutex);
 		int ret = fwrite(event, 1, sizeof(event), g_access_log);
 		l.unlock();
 		if (ret != sizeof(event))
@@ -1513,7 +1513,7 @@ namespace libtorrent
 
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		TORRENT_ASSERT(j->flags & disk_io_job::in_progress);
 		j->flags &= ~disk_io_job::in_progress;
@@ -1604,7 +1604,7 @@ namespace libtorrent
 
 	bool disk_job_fence::is_blocked(disk_io_job* j)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		DLOG(stderr, "[%p] is_blocked: fence: %d num_outstanding: %d\n"
 			, static_cast<void*>(this), m_has_fence, int(m_outstanding_jobs));
 
@@ -1631,13 +1631,13 @@ namespace libtorrent
 
 	bool disk_job_fence::has_fence() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_has_fence != 0;
 	}
 
 	int disk_job_fence::num_blocked() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 		return m_blocked_jobs.size();
 	}
 
@@ -1650,7 +1650,7 @@ namespace libtorrent
 		TORRENT_ASSERT((j->flags & disk_io_job::fence) == 0);
 		j->flags |= disk_io_job::fence;
 
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		DLOG(stderr, "[%p] raise_fence: fence: %d num_outstanding: %d\n"
 			, static_cast<void*>(this), m_has_fence, int(m_outstanding_jobs));

@@ -103,7 +103,7 @@ namespace libtorrent
 	void debug_log(char const* fmt, ...)
 	{
 #if DEBUG_DISK_THREAD
-		static mutex log_mutex;
+		static std::mutex log_mutex;
 		static const time_point start = clock_type::now();
 		va_list v;
 		va_start(v, fmt);
@@ -115,7 +115,7 @@ namespace libtorrent
 		if (!prepend_time)
 		{
 			prepend_time = (usr[len-1] == '\n');
-			mutex::scoped_lock l(log_mutex);
+			std::unique_lock<std::mutex> l(log_std::mutex);
 			fputs(usr, stderr);
 			return;
 		}
@@ -124,7 +124,7 @@ namespace libtorrent
 		int t = total_milliseconds(clock_type::now() - start);
 		snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
 		prepend_time = (usr[len-1] == '\n');
-		mutex::scoped_lock l(log_mutex);
+		std::unique_lock<std::mutex> l(log_std::mutex);
 		fputs(buf, stderr);
 #else
 	TORRENT_UNUSED(fmt);
@@ -248,7 +248,7 @@ namespace libtorrent
 		else
 		{
 			while (m_num_threads > i) { --m_num_threads; }
-			mutex::scoped_lock l(m_job_mutex);
+			std::unique_lock<std::mutex> l(m_job_mutex);
 			m_job_cond.notify_all();
 			m_hash_job_cond.notify_all();
 			l.unlock();
@@ -279,7 +279,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_outstanding_reclaim_message);
 		m_outstanding_reclaim_message = false;
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		for (int i = 0; i < m_blocks_to_reclaim.size(); ++i)
 			m_disk_cache.reclaim_block(m_blocks_to_reclaim[i]);
 		m_blocks_to_reclaim.clear();
@@ -288,7 +288,7 @@ namespace libtorrent
 	void disk_io_thread::set_settings(settings_pack const* pack, alert_manager& alerts)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		apply_pack(pack, m_settings);
 		error_code ec;
 		m_disk_cache.set_settings(m_settings, ec);
@@ -301,10 +301,10 @@ namespace libtorrent
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
 	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block
-		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_ASSERT(cont_block > 0);
 		if (p->hash == 0 && !p->hashing_done)
 		{
@@ -741,9 +741,9 @@ namespace libtorrent
 	// issues write operations for blocks in the given
 	// range on the given piece.
 	int disk_io_thread::flush_range(cached_piece_entry* pe, int start, int end
-		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		INVARIANT_CHECK;
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
@@ -803,9 +803,9 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_piece(cached_piece_entry* pe, int flags
-		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 		if (flags & flush_delete_cache)
 		{
 			// delete dirty blocks and post handlers with
@@ -836,7 +836,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
-		, jobqueue_t& completed_jobs, mutex::scoped_lock& l)
+		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		if (storage)
 		{
@@ -859,7 +859,7 @@ namespace libtorrent
 				flush_piece(pe, flags, completed_jobs, l);
 			}
 #if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(l.locked());
+			TORRENT_ASSERT(l.owns_lock());
 			// if the user asked to delete the cache for this storage
 			// we really should not have any pieces left. This is only called
 			// from disk_io_thread::do_delete, which is a fence job and should
@@ -907,7 +907,7 @@ namespace libtorrent
 	// blocks of write cache line size, but try to flush all old blocks
 	// this is why we pass in 1 as cont_block to the flushing functions
 	void disk_io_thread::try_flush_write_blocks(int num, jobqueue_t& completed_jobs
-		, mutex::scoped_lock& l)
+		, std::unique_lock<std::mutex>& l)
 	{
 		DLOG("try_flush_write_blocks: %d\n", num);
 
@@ -981,7 +981,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::flush_expired_write_blocks(jobqueue_t& completed_jobs
-		, mutex::scoped_lock& l)
+		, std::unique_lock<std::mutex>& l)
 	{
 		DLOG("flush_expired_write_blocks\n");
 
@@ -1068,7 +1068,7 @@ namespace libtorrent
 	// below the number of blocks we flushed by the time we're done flushing
 	// that's why we need to call this fairly often. Both before and after
 	// a disk job is executed
-	void disk_io_thread::check_cache_level(mutex::scoped_lock& l, jobqueue_t& completed_jobs)
+	void disk_io_thread::check_cache_level(std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs)
 	{
 		// when the read cache is disabled, always try to evict all read cache
 		// blocks
@@ -1100,7 +1100,7 @@ namespace libtorrent
 
 #if DEBUG_DISK_THREAD
 		{
-			mutex::scoped_lock l(m_cache_mutex);
+			std::unique_lock<std::mutex> l(m_cache_mutex);
 
 			DLOG("perform_job job: %s ( %s%s) piece: %d offset: %d outstanding: %d\n"
 				, job_action_name[j->action]
@@ -1116,7 +1116,7 @@ namespace libtorrent
 		// TODO: instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
-		// each access to the settings won't require a mutex to be held.
+		// each access to the settings won't require a std::mutex to be held.
 		if (storage && storage->get_storage_impl()->m_settings == 0)
 			storage->get_storage_impl()->m_settings = &m_settings;
 
@@ -1134,14 +1134,14 @@ namespace libtorrent
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		if (m_cache_check_state == cache_check_idle)
 		{
 			m_cache_check_state = cache_check_active;
 			while (m_cache_check_state != cache_check_idle)
 			{
 				check_cache_level(l, completed_jobs);
-				TORRENT_ASSERT(l.locked());
+				TORRENT_ASSERT(l.owns_lock());
 				--m_cache_check_state;
 			}
 		}
@@ -1153,7 +1153,7 @@ namespace libtorrent
 
 		if (ret == retry_job)
 		{
-			mutex::scoped_lock l2(m_job_mutex);
+			std::unique_lock<std::mutex> l2(m_job_mutex);
 			// to avoid busy looping here, give up
 			// our quanta in case there aren't any other
 			// jobs to run in between
@@ -1225,7 +1225,7 @@ namespace libtorrent
 
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, iov_len);
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		int evict = m_disk_cache.num_to_evict(iov_len);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
@@ -1247,7 +1247,7 @@ namespace libtorrent
 		{
 			ret = do_uncached_read(j);
 
-			mutex::scoped_lock l2(m_cache_mutex);
+			std::unique_lock<std::mutex> l2(m_cache_mutex);
 			pe = m_disk_cache.find_piece(j);
 			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return ret;
@@ -1264,7 +1264,7 @@ namespace libtorrent
 
 		// at this point, all the buffers are allocated and iov is initizalied
 		// and the blocks have their refcounters incremented, so no other thread
-		// can remove them. We can now release the cache mutex and dive into the
+		// can remove them. We can now release the cache std::mutex and dive into the
 		// disk operations.
 
 		int const file_flags = file_flags_for_job(j
@@ -1459,7 +1459,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe && pe->hashing_done)
@@ -1541,7 +1541,7 @@ namespace libtorrent
 		j->requester = requester;
 		j->callback = handler;
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		int ret = prep_read_job_impl(j);
 		l.unlock();
 
@@ -1561,7 +1561,7 @@ namespace libtorrent
 	// and if it doesn't have a picece allocated, it allocates
 	// one and it sets outstanding_read flag and possibly queues
 	// up the job in the piece read job list
-	// the cache mutex must be held when calling this
+	// the cache std::mutex must be held when calling this
 	// 
 	// returns 0 if the job succeeded immediately
 	// 1 if it needs to be added to the job queue
@@ -1659,7 +1659,7 @@ namespace libtorrent
 		j->flags = flags;
 
 #if TORRENT_USE_ASSERTS
-		mutex::scoped_lock l3_(m_cache_mutex);
+		std::unique_lock<std::mutex> l3_(m_cache_mutex);
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
 		{
@@ -1674,7 +1674,7 @@ namespace libtorrent
 #endif
 
 #if TORRENT_USE_ASSERTS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		mutex::scoped_lock l2_(m_cache_mutex);
+		std::unique_lock<std::mutex> l2_(m_cache_mutex);
 		std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
 		for (block_cache::iterator i = range.first; i != range.second; ++i)
 		{
@@ -1689,7 +1689,7 @@ namespace libtorrent
 #endif
 
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR && TORRENT_USE_ASSERTS
-		mutex::scoped_lock l_(m_cache_mutex);
+		std::unique_lock<std::mutex> l_(m_cache_mutex);
 		TORRENT_ASSERT(m_disk_cache.is_disk_buffer(j->buffer.disk_block));
 		l_.unlock();
 #endif
@@ -1709,7 +1709,7 @@ namespace libtorrent
 			return;
 		}
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		// if we succeed in adding the block to the cache, the job will
 		// be added along with it. we may not free j if so
 		cached_piece_entry* dpe = m_disk_cache.add_dirty_block(j);
@@ -1759,7 +1759,7 @@ namespace libtorrent
 		int piece_size = storage->files()->piece_size(piece);
 
 		// first check to see if the hashing is already done
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
 		{
@@ -1827,7 +1827,7 @@ namespace libtorrent
 		jobqueue_t completed_jobs;
 
 		// remove outstanding jobs belonging to this torrent
-		mutex::scoped_lock l2(m_job_mutex);
+		std::unique_lock<std::mutex> l2(m_job_mutex);
 
 		// TODO: maybe the tailqueue_iterator<disk_io_job> should contain a pointer-pointer
 		// instead and have an unlink function
@@ -1848,7 +1848,7 @@ namespace libtorrent
 		}
 		l2.unlock();
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		flush_cache(storage, flush_delete_cache, completed_jobs, l);
 		l.unlock();
 
@@ -1910,7 +1910,7 @@ namespace libtorrent
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 		// remove outstanding hash jobs belonging to this torrent
-		mutex::scoped_lock l2(m_job_mutex);
+		std::unique_lock<std::mutex> l2(m_job_mutex);
 
 		disk_io_job* qj = m_queued_hash_jobs.get_all();
 		jobqueue_t to_abort;
@@ -2044,7 +2044,7 @@ namespace libtorrent
 
 	void disk_io_thread::clear_read_cache(piece_manager* storage)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		jobqueue_t jobs;
 		boost::unordered_set<cached_piece_entry*> const& cache = storage->cached_pieces();
@@ -2085,7 +2085,7 @@ namespace libtorrent
 
 	void disk_io_thread::clear_piece(piece_manager* storage, int index)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
 		if (pe == 0) return;
@@ -2107,7 +2107,7 @@ namespace libtorrent
 		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
 	}
 
-	void disk_io_thread::kick_hasher(cached_piece_entry* pe, mutex::scoped_lock& l)
+	void disk_io_thread::kick_hasher(cached_piece_entry* pe, std::unique_lock<std::mutex>& l)
 	{
 		if (!pe->hash) return;
 		if (pe->hashing) return;
@@ -2272,7 +2272,7 @@ namespace libtorrent
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe)
@@ -2434,7 +2434,6 @@ namespace libtorrent
 				{
 					TORRENT_ASSERT(j->error.ec && j->error.operation != 0);
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
-					l.lock();
 					break;
 				}
 
@@ -2448,7 +2447,6 @@ namespace libtorrent
 						, boost::asio::error::get_misc_category());
 					j->error.operation = storage_error::read;
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
-					l.lock();
 					break;
 				}
 
@@ -2523,7 +2521,7 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
 		l.unlock();
 
@@ -2539,7 +2537,7 @@ namespace libtorrent
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 #if TORRENT_USE_ASSERTS
 		m_disk_cache.mark_deleted(*j->storage->files());
 #endif
@@ -2583,7 +2581,7 @@ namespace libtorrent
 
 		// issue write commands for all dirty blocks
 		// and clear all read jobs
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_read_cache | flush_write_cache
 			, completed_jobs, l);
 		l.unlock();
@@ -2607,7 +2605,7 @@ namespace libtorrent
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == NULL)
@@ -2639,7 +2637,7 @@ namespace libtorrent
 		int ret = 0;
 		int offset = 0;
 
-		// TODO: it would be nice to not have to lock the mutex every
+		// TODO: it would be nice to not have to lock the std::mutex every
 		// turn through this loop
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
@@ -2731,7 +2729,7 @@ namespace libtorrent
 	{
 		// These are atomic_counts, so it's safe to access them from
 		// a different thread
-		mutex::scoped_lock jl(m_job_mutex);
+		std::unique_lock<std::mutex> jl(m_job_mutex);
 
 		c.set_value(counters::num_read_jobs, read_jobs_in_use());
 		c.set_value(counters::num_write_jobs, write_jobs_in_use());
@@ -2741,7 +2739,7 @@ namespace libtorrent
 
 		jl.unlock();
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		// gauges
 		c.set_value(counters::disk_blocks_in_use, m_disk_cache.in_use());
@@ -2752,7 +2750,7 @@ namespace libtorrent
 	void disk_io_thread::get_cache_info(cache_status* ret, bool no_pieces
 		, piece_manager const* storage) const
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 #ifndef TORRENT_NO_DEPRECATE
 		ret->total_used_buffers = m_disk_cache.in_use();
@@ -2841,7 +2839,7 @@ namespace libtorrent
 		l.unlock();
 
 #ifndef TORRENT_NO_DEPRECATE
-		mutex::scoped_lock jl(m_job_mutex);
+		std::unique_lock<std::mutex> jl(m_job_mutex);
 		ret->queued_jobs = m_queued_jobs.size() + m_queued_hash_jobs.size();
 		jl.unlock();
 #endif
@@ -2849,7 +2847,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == NULL) return 0;
@@ -2868,7 +2866,7 @@ namespace libtorrent
 	// triggered by another mechanism.
 	int disk_io_thread::do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 
@@ -2911,7 +2909,7 @@ namespace libtorrent
 		try_flush_hashed(pe, m_settings.get_int(
 			settings_pack::write_cache_line_size), completed_jobs, l);
 
-		TORRENT_ASSERT(l.locked());
+		TORRENT_ASSERT(l.owns_lock());
 
 		--pe->piece_refcount;
 
@@ -2922,7 +2920,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		flush_cache(j->storage.get(), flush_write_cache, completed_jobs, l);
 		return 0;
 	}
@@ -2968,7 +2966,7 @@ namespace libtorrent
 	// have been evicted
 	int disk_io_thread::do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == 0) return 0;
@@ -3030,7 +3028,7 @@ namespace libtorrent
 		int ret = storage->raise_fence(j, fj, m_stats_counters);
 		if (ret == disk_job_fence::fence_post_fence)
 		{
-			mutex::scoped_lock l(m_job_mutex);
+			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 			// prioritize fence jobs since they're blocking other jobs
 			m_queued_jobs.push_front(j);
@@ -3056,7 +3054,7 @@ namespace libtorrent
 			// now, we have to make sure that all outstanding jobs on this
 			// storage actually get flushed, in order for the fence job to
 			// be executed
-			mutex::scoped_lock l(m_job_mutex);
+			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) || !fj->storage);
 
 			m_queued_jobs.push_front(fj);
@@ -3088,7 +3086,7 @@ namespace libtorrent
 		// block cache, and then get issued
 		if (j->flags & disk_io_job::in_progress)
 		{
-			mutex::scoped_lock l(m_job_mutex);
+			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 			m_queued_jobs.push_back(j);
 
@@ -3122,7 +3120,7 @@ namespace libtorrent
 			return;
 		}
 
-		mutex::scoped_lock l(m_job_mutex);
+		std::unique_lock<std::mutex> l(m_job_mutex);
 
 		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
@@ -3160,7 +3158,7 @@ namespace libtorrent
 
 	void disk_io_thread::submit_jobs()
 	{
-		mutex::scoped_lock l(m_job_mutex);
+		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (!m_queued_jobs.empty())
 			m_job_cond.notify_all();
 		if (!m_queued_hash_jobs.empty())
@@ -3172,7 +3170,7 @@ namespace libtorrent
 		time_point now = clock_type::now();
 		if (now <= m_last_cache_expiry + seconds(5)) return;
 
-		mutex::scoped_lock l(m_cache_mutex);
+		std::unique_lock<std::mutex> l(m_cache_mutex);
 		DLOG("blocked_jobs: %d queued_jobs: %d num_threads %d\n"
 			, int(m_stats_counters[counters::blocked_disk_jobs])
 			, m_queued_jobs.size(), int(m_num_threads));
@@ -3200,13 +3198,13 @@ namespace libtorrent
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
 
-		mutex::scoped_lock l(m_job_mutex);
+		std::unique_lock<std::mutex> l(m_job_mutex);
 		for (;;)
 		{
 			disk_io_job* j = 0;
 			if (type == generic_thread)
 			{
-				TORRENT_ASSERT(l.locked());
+				TORRENT_ASSERT(l.owns_lock());
 				while (m_queued_jobs.empty() && thread_id < m_num_threads) m_job_cond.wait(l);
 
 				// if the number of wanted threads is decreased,
@@ -3223,7 +3221,7 @@ namespace libtorrent
 			}
 			else if (type == hasher_thread)
 			{
-				TORRENT_ASSERT(l.locked());
+				TORRENT_ASSERT(l.owns_lock());
 				while (m_queued_hash_jobs.empty() && thread_id < m_num_threads) m_hash_job_cond.wait(l);
 				if (m_queued_hash_jobs.empty() && thread_id >= m_num_threads) break;
 				j = m_queued_hash_jobs.pop_front();
@@ -3267,7 +3265,7 @@ namespace libtorrent
 		// This is not supposed to happen because the disk thread is now scheduled
 		// for shut down after all peers have shut down (see
 		// session_impl::abort_stage2()).
-		mutex::scoped_lock l2(m_cache_mutex);
+		std::unique_lock<std::mutex> l2(m_cache_mutex);
 		TORRENT_ASSERT_VAL(m_disk_cache.pinned_blocks() == 0
 			, m_disk_cache.pinned_blocks());
 		while (m_disk_cache.pinned_blocks() > 0)
@@ -3406,7 +3404,7 @@ namespace libtorrent
 
 				if (j->action == disk_io_job::write)
 				{
-					mutex::scoped_lock l(m_cache_mutex);
+					std::unique_lock<std::mutex> l(m_cache_mutex);
 					cached_piece_entry* pe = m_disk_cache.find_piece(j);
 					if (pe)
 					{
@@ -3419,7 +3417,7 @@ namespace libtorrent
 #endif
 			jobqueue_t other_jobs;
 			jobqueue_t flush_jobs;
-			mutex::scoped_lock l_(m_cache_mutex);
+			std::unique_lock<std::mutex> l_(m_cache_mutex);
 			while (new_jobs.size() > 0)
 			{
 				disk_io_job* j = new_jobs.pop_front();
@@ -3484,7 +3482,7 @@ namespace libtorrent
 			}
 			l_.unlock();
 
-			mutex::scoped_lock l(m_job_mutex);
+			std::unique_lock<std::mutex> l(m_job_mutex);
 			m_queued_jobs.append(other_jobs);
 			l.unlock();
 
@@ -3497,7 +3495,7 @@ namespace libtorrent
 			m_job_cond.notify_all();
 		}
 
-		mutex::scoped_lock l(m_completed_jobs_mutex);
+		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
 
 		bool need_post = m_completed_jobs.size() == 0;
 		m_completed_jobs.append(jobs);
@@ -3516,7 +3514,7 @@ namespace libtorrent
 	// This is run in the network thread
 	void disk_io_thread::call_job_handlers(void* userdata)
 	{
-		mutex::scoped_lock l(m_completed_jobs_mutex);
+		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
 
 #if DEBUG_DISK_THREAD
 		DLOG("call_job_handlers (%d)\n", m_completed_jobs.size());

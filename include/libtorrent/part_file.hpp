@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/thread.hpp" // for mutex
 
 namespace libtorrent
 {
@@ -79,10 +78,10 @@ namespace libtorrent
 		// allocate a slot and return the slot index
 		int allocate_slot(int piece);
 
-		// this mutex must be held while accessing the data
+		// this std::mutex must be held while accessing the data
 		// structure. Not while reading or writing from the file though!
 		// it's important to support multithreading
-		mutex m_mutex;
+		std::mutex m_mutex;
 
 		// this is a list of unallocated slots in the part file
 		// within the m_num_allocated range

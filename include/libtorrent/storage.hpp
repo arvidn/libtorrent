@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file_pool.hpp" // pool_file_status
@@ -589,7 +588,7 @@ namespace libtorrent
 
 		// must be held when accessing m_has_fence and
 		// m_blocked_jobs
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 	};
 
 	// this class keeps track of which pieces, belonging to

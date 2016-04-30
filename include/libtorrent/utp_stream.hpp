@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/time.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

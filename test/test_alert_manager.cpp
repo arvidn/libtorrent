@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/thread.hpp"
 #include "setup_transfer.hpp"
 
 #include <boost/bind.hpp>

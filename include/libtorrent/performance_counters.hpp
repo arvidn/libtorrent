@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -457,7 +456,7 @@ namespace libtorrent
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 		boost::int64_t m_stats_counter[num_counters];
 #endif
 	};

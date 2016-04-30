@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/buffer.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/array_view.hpp"

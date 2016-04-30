@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
 #include <boost/tuple/tuple.hpp>

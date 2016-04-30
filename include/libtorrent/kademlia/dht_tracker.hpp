@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/array_view.hpp"
 

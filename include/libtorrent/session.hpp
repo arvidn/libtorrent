@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/thread.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/fingerprint.hpp"

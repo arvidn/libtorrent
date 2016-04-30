@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_ASIO_DEBUGGING
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/time.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -75,7 +74,7 @@ namespace libtorrent
 	// defined in session_impl.cpp
 	extern std::map<std::string, async_t> _async_ops;
 	extern int _async_ops_nthreads;
-	extern mutex _async_ops_mutex;
+	extern std::mutex _async_ops_mutex;
 
 	// timestamp -> operation
 	struct wakeup_t
@@ -88,14 +87,14 @@ namespace libtorrent
 
 	inline bool has_outstanding_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		std::map<std::string, async_t>::iterator i = _async_ops.find(name);
 		return i != _async_ops.end();
 	}
 
 	inline void add_outstanding_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		async_t& a = _async_ops[name];
 		if (a.stack.empty())
 		{
@@ -113,7 +112,7 @@ namespace libtorrent
 
 	inline void complete_async(char const* name)
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		async_t& a = _async_ops[name];
 		TORRENT_ASSERT(a.refs > 0);
 		--a.refs;
@@ -139,19 +138,19 @@ namespace libtorrent
 
 	inline void async_inc_threads()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		++_async_ops_nthreads;
 	}
 
 	inline void async_dec_threads()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		--_async_ops_nthreads;
 	}
 
 	inline int log_async()
 	{
-		mutex::scoped_lock l(_async_ops_mutex);
+		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
 		int ret = 0;
 		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
 			, end(_async_ops.end()); i != end; ++i)

@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
 
@@ -466,7 +465,7 @@ void test_check_files(std::string const& test_path
 
 	boost::shared_ptr<void> dummy;
 	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
-	libtorrent::mutex lock;
+	std::mutex lock;
 
 	bool done = false;
 	add_torrent_params frd;

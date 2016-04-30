@@ -83,7 +83,7 @@ natpmp::natpmp(io_service& ios
 
 void natpmp::start()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	error_code ec;
 	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
@@ -137,7 +137,7 @@ void natpmp::start()
 	}
 }
 
-void natpmp::send_get_ip_address_request(mutex::scoped_lock& l)
+void natpmp::send_get_ip_address_request(std::unique_lock<std::mutex>& l)
 {
 	using namespace libtorrent::detail;
 
@@ -153,7 +153,7 @@ void natpmp::send_get_ip_address_request(mutex::scoped_lock& l)
 
 bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& protocol) const
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
 	if (index >= int(m_mappings.size()) || index < 0) return false;
@@ -165,14 +165,14 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 	return true;
 }
 
-void natpmp::log(char const* msg, mutex::scoped_lock& l)
+void natpmp::log(char const* msg, std::unique_lock<std::mutex>& l)
 {
 	l.unlock();
 	m_log_callback(msg);
 	l.lock();
 }
 
-void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
+void natpmp::disable(error_code const& ec, std::unique_lock<std::mutex>& l)
 {
 	m_disabled = true;
 
@@ -192,7 +192,7 @@ void natpmp::disable(error_code const& ec, mutex::scoped_lock& l)
 
 void natpmp::delete_mapping(int index)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	TORRENT_ASSERT(index < int(m_mappings.size()) && index >= 0);
 	if (index >= int(m_mappings.size()) || index < 0) return;
@@ -212,7 +212,7 @@ void natpmp::delete_mapping(int index)
 
 int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	if (m_disabled) return -1;
 
@@ -249,7 +249,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	return mapping_index;
 }
 
-void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
+void natpmp::try_next_mapping(int i, std::unique_lock<std::mutex>& l)
 {
 #ifdef NATPMP_LOG
 	time_point now = aux::time_now();
@@ -296,7 +296,7 @@ void natpmp::try_next_mapping(int i, mutex::scoped_lock& l)
 	update_mapping(m - m_mappings.begin(), l);
 }
 
-void natpmp::update_mapping(int i, mutex::scoped_lock& l)
+void natpmp::update_mapping(int i, std::unique_lock<std::mutex>& l)
 {
 	if (i == int(m_mappings.size()))
 	{
@@ -329,7 +329,7 @@ void natpmp::update_mapping(int i, mutex::scoped_lock& l)
 	}
 }
 
-void natpmp::send_map_request(int i, mutex::scoped_lock& l)
+void natpmp::send_map_request(int i, std::unique_lock<std::mutex>& l)
 {
 	using namespace libtorrent::detail;
 
@@ -383,7 +383,7 @@ void natpmp::resend_request(int i, error_code const& e)
 {
 	COMPLETE_ASYNC("natpmp::resend_request");
 	if (e) return;
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	if (m_currently_mapping != i) return;
 
 	// if we're shutting down, don't retry, just move on
@@ -403,7 +403,7 @@ void natpmp::resend_request(int i, error_code const& e)
 void natpmp::on_reply(error_code const& e
 	, std::size_t bytes_transferred)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	COMPLETE_ASYNC("natpmp::on_reply");
 
@@ -575,7 +575,7 @@ void natpmp::on_reply(error_code const& e
 	try_next_mapping(index, l);
 }
 
-void natpmp::update_expiration_timer(mutex::scoped_lock& l)
+void natpmp::update_expiration_timer(std::unique_lock<std::mutex>& l)
 {
 	if (m_abort) return;
 
@@ -643,7 +643,7 @@ void natpmp::mapping_expired(error_code const& e, int i)
 {
 	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e) return;
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	char msg[200];
 	snprintf(msg, sizeof(msg), "mapping %u expired", i);
 	log(msg, l);
@@ -654,11 +654,11 @@ void natpmp::mapping_expired(error_code const& e, int i)
 
 void natpmp::close()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	close_impl(l);
 }
 
-void natpmp::close_impl(mutex::scoped_lock& l)
+void natpmp::close_impl(std::unique_lock<std::mutex>& l)
 {
 	m_abort = true;
 	log("closing", l);

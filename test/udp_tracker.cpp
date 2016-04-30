@@ -30,7 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/thread.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/address.hpp"

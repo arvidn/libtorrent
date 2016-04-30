@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/http_parser.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -46,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()

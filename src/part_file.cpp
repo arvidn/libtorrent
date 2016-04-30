@@ -155,7 +155,7 @@ namespace libtorrent
 
 	int part_file::allocate_slot(int piece)
 	{
-		// the mutex is assumed to be held here, since this is a private function
+		// the std::mutex is assumed to be held here, since this is a private function
 
 		TORRENT_ASSERT(m_piece_map.find(piece) == m_piece_map.end());
 		int slot = -1;
@@ -178,7 +178,7 @@ namespace libtorrent
 	int part_file::writev(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		open_file(file::read_write, ec);
 		if (ec) return -1;
@@ -200,7 +200,7 @@ namespace libtorrent
 		, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
@@ -244,7 +244,7 @@ namespace libtorrent
 
 	void part_file::free_piece(int piece)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
 		if (i == m_piece_map.end()) return;
@@ -261,7 +261,7 @@ namespace libtorrent
 
 	void part_file::move_partfile(std::string const& path, error_code& ec)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		flush_metadata_impl(ec);
 		if (ec) return;
@@ -301,7 +301,7 @@ namespace libtorrent
 
 	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		int piece = offset / m_piece_size;
 		int const end = ((offset + size) + m_piece_size - 1) / m_piece_size;
@@ -366,7 +366,7 @@ namespace libtorrent
 
 	void part_file::flush_metadata(error_code& ec)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::lock_guard<std::mutex> l(m_mutex);
 
 		flush_metadata_impl(ec);
 	}

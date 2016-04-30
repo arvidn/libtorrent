@@ -60,13 +60,13 @@ POSSIBILITY OF SUCH DAMAGE.
 // structures it is also quite easy to sabotage libtorrent's operation.
 // 
 // All the callbacks in this interface are called with the main libtorrent thread
-// mutex locked. And they are always called from the libtorrent network thread. In
+// std::mutex locked. And they are always called from the libtorrent network thread. In
 // case portions of your plugin are called from other threads, typically the main
 // thread, you cannot use any of the member functions on the internal structures
-// in libtorrent, since those require the mutex to be locked. Furthermore, you would
-// also need to have a mutex on your own shared data within the plugin, to make
+// in libtorrent, since those require the std::mutex to be locked. Furthermore, you would
+// also need to have a std::mutex on your own shared data within the plugin, to make
 // sure it is not accessed at the same time from the libtorrent thread (through a
-// callback). See `boost thread's mutex`_. If you need to send out a message from
+// callback). See `boost thread's std::mutex`_. If you need to send out a message from
 // another thread, it is advised to use an internal queue, and do the actual
 // sending in ``tick()``.
 // 
@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // specific version of libtorrent. Although, in practice the internals mostly
 // don't change that dramatically.
 // 
-// .. _`boost thread's mutex`: http://www.boost.org/doc/html/mutex.html
+// .. _`boost thread's std::mutex`: http://www.boost.org/doc/html/mutex.html
 // 
 // 
 // plugin-interface

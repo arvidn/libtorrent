@@ -69,7 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DEBUG_FILE_LEAKS
 #include <set>
-#include "libtorrent/thread.hpp"
 #endif
 
 // for convert_to_wstring and convert_to_native
@@ -2259,24 +2258,24 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #ifdef TORRENT_DEBUG_FILE_LEAKS
 	std::set<file_handle*> global_file_handles;
-	mutex file_handle_mutex;
+	std::mutex file_handle_mutex;
 
 	file_handle::file_handle()
 	{
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		global_file_handles.insert(this);
 		stack[0] = 0;
 	}
 	file_handle::file_handle(file* f): m_file(f)
 	{
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		global_file_handles.insert(this);
 		if (f) print_backtrace(stack, sizeof(stack), 10);
 		else stack[0] = 0;
 	}
 	file_handle::file_handle(file_handle const& fh)
 	{
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		global_file_handles.insert(this);
 		m_file = fh.m_file;
 		if (m_file) print_backtrace(stack, sizeof(stack), 10);
@@ -2284,7 +2283,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 	file_handle::~file_handle()
 	{
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		global_file_handles.erase(this);
 		stack[0] = 0;
 	}
@@ -2297,7 +2296,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	file_handle::operator bool() const { return m_file.get(); }
 	file_handle& file_handle::reset(file* f)
 	{
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		if (f) print_backtrace(stack, sizeof(stack), 10);
 		else stack[0] = 0;
 		l.unlock();
@@ -2308,7 +2307,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	void print_open_files(char const* event, char const* name)
 	{
 		FILE* out = fopen("open_files.log", "a+");
-		mutex::scoped_lock l(file_handle_mutex);
+		std::lock_guard<std::mutex> l(file_handle_std::mutex);
 		fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)

@@ -34,22 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for test_sleep
 
 #include "libtorrent/time.hpp"
-#include "libtorrent/thread.hpp"
 
 #include <boost/bind.hpp>
 #include <thread>
 
 using namespace libtorrent;
 
-void check_timer_loop(mutex& m, time_point& last, condition_variable& cv)
+void check_timer_loop(std::mutex& m, time_point& last, std::condition_variable& cv)
 {
-	mutex::scoped_lock l(m);
+	std::unique_lock<std::mutex> l(m);
 	cv.wait(l);
 	l.unlock();
 
 	for (int i = 0; i < 10000; ++i)
 	{
-		mutex::scoped_lock l(m);
+		std::lock_guard<std::mutex> l(m);
 		time_point now = clock_type::now();
 		TEST_CHECK(now >= last);
 		last = now;
@@ -82,8 +81,8 @@ TORRENT_TEST(time)
 		last = now;
 	}
 
-	mutex m;
-	condition_variable cv;
+	std::mutex m;
+	std::condition_variable cv;
 	std::thread t1(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
 	std::thread t2(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
 	std::thread t3(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));

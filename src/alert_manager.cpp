@@ -51,7 +51,7 @@ namespace libtorrent
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::unique_lock<std::mutex> lock(m_mutex);
 
 		if (!m_alerts[m_generation].empty())
 			return m_alerts[m_generation].front();
@@ -64,7 +64,7 @@ namespace libtorrent
 		return NULL;
 	}
 
-	void alert_manager::maybe_notify(alert* a, mutex::scoped_lock& lock)
+	void alert_manager::maybe_notify(alert* a, std::unique_lock<std::mutex>& lock)
 	{
 		if (m_alerts[m_generation].size() == 1)
 		{
@@ -116,7 +116,7 @@ namespace libtorrent
 	void alert_manager::set_dispatch_function(
 		boost::function<void(std::auto_ptr<alert>)> const& fun)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::unique_lock<std::mutex> lock(m_mutex);
 
 		m_dispatch = fun;
 
@@ -142,7 +142,7 @@ namespace libtorrent
 
 	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::unique_lock<std::mutex> lock(m_mutex);
 		m_notify = fun;
 		if (!m_alerts[m_generation].empty())
 		{
@@ -161,7 +161,7 @@ namespace libtorrent
 
 	void alert_manager::get_all(std::vector<alert*>& alerts)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::lock_guard<std::mutex> lock(m_mutex);
 
 		alerts.clear();
 		if (m_alerts[m_generation].empty()) return;
@@ -177,13 +177,13 @@ namespace libtorrent
 
 	bool alert_manager::pending() const
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::lock_guard<std::mutex> lock(m_mutex);
 		return !m_alerts[m_generation].empty();
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)
 	{
-		mutex::scoped_lock lock(m_mutex);
+		std::lock_guard<std::mutex> lock(m_mutex);
 
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;

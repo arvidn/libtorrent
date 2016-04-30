@@ -97,7 +97,6 @@ category_mapping = {
 	'sha1_hash.hpp': 'Utility',
 	'hasher.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
-	'thread.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',
 	'settings_pack.hpp': 'Settings',

@@ -401,7 +401,7 @@ namespace libtorrent
 		//
 		// Since the callback function ``cb`` is called from within libtorrent,
 		// it is critical to not perform any blocking operations. Ideally not
-		// even locking a mutex. Pass any data required for this function along
+		// even locking a std::mutex. Pass any data required for this function along
 		// with the function object's context and make the function entirely
 		// self-contained. The only reason data blobs' values are computed
 		// via a function instead of just passing in the new value is to avoid

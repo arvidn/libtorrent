@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_THREAD_POOL
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/thread.hpp"
 #include <thread>
 #include <atomic>
 #include <deque>
@@ -67,9 +66,10 @@ namespace libtorrent
 			else
 			{
 				while (m_num_threads > n) { --m_num_threads; }
-				mutex::scoped_lock l(m_mutex);
-				m_cond.notify_all();
-				l.unlock();
+				{
+					std::lock_guard<std::mutex> l(m_mutex);
+					m_cond.notify_all();
+				}
 				if (wait)
 				{
 					for (int i = m_num_threads; i < int(m_threads.size()); ++i)
@@ -96,14 +96,14 @@ namespace libtorrent
 			else
 			{
 				retain_job(e);
-				mutex::scoped_lock l(m_mutex);
+				std::lock_guard<std::mutex> l(m_mutex);
 				m_queue.push_back(e);
 				// we only need to signal if the threads
 				// may have been put to sleep. If the size
 				// previous to adding the new job was > 0
 				// they don't need waking up.
 				if (m_queue.size() == 1)
-					m_cond.notify();
+					m_cond.notify_one();
 				return true;
 			}
 		}
@@ -119,7 +119,7 @@ namespace libtorrent
 		{
 			for (;;)
 			{
-				mutex::scoped_lock l(m_mutex);
+				std::unique_lock<std::mutex> l(m_mutex);
 				while (m_queue.empty() && thread_id < m_num_threads) m_cond.wait(l);
 
 				// if the number of wanted thread is decreased,
@@ -141,18 +141,18 @@ namespace libtorrent
 			{
 				// when we're terminating the last hasher thread, make sure
 				// there are no more scheduled jobs
-				mutex::scoped_lock l(m_mutex);
+				std::lock_guard<std::mutex> l(m_mutex);
 				TORRENT_ASSERT(m_queue.empty());
 			}
 #endif
 		}
 
-		// the mutex only protects m_cond and m_queue
+		// the std::mutex only protects m_cond and m_queue
 		// all other members are only used from a single
 		// thread (the user of this class, i.e. the disk
 		// thread).
-		mutex m_mutex;
-		condition_variable m_cond;
+		std::mutex m_mutex;
+		std::condition_variable m_cond;
 		std::deque<T> m_queue;
 
 		std::vector<std::thread> m_threads;

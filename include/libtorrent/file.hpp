@@ -242,7 +242,7 @@ namespace libtorrent
 
 			// open the file for reading and writing
 			read_write = 2,
-			
+
 			// the mask for the bits determining read or write mode
 			rw_mask = read_only | write_only | read_write,
 
