@@ -162,19 +162,11 @@ struct set_dont_frag
 
 udp_socket::udp_socket(io_service& ios)
 	: m_socket(ios)
-	, m_buf_size(1500)
-	, m_buf(NULL)
+	, m_buf(new receive_buffer())
 	, m_bind_port(0)
 	, m_force_proxy(false)
 	, m_abort(true)
-{
-	m_buf = static_cast<char*>(malloc(m_buf_size));
-}
-
-udp_socket::~udp_socket()
-{
-	free(m_buf);
-}
+{}
 
 int udp_socket::read(array_view<packet> pkts, error_code& ec)
 {
@@ -184,7 +176,7 @@ int udp_socket::read(array_view<packet> pkts, error_code& ec)
 
 	while (ret < num)
 	{
-		int const len = m_socket.receive_from(boost::asio::buffer(m_buf, m_buf_size)
+		int const len = m_socket.receive_from(boost::asio::buffer(*m_buf)
 			, p.from, 0, ec);
 
 		if (ec == error::would_block
@@ -214,7 +206,7 @@ int udp_socket::read(array_view<packet> pkts, error_code& ec)
 		}
 		else
 		{
-			p.data = array_view<char>(m_buf, len);
+			p.data = array_view<char>(m_buf->data(), len);
 
 			// support packets coming from the SOCKS5 proxy
 			if (m_socks5_connection && m_socks5_connection->active())

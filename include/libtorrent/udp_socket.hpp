@@ -51,7 +51,6 @@ namespace libtorrent
 	{
 	public:
 		udp_socket(io_service& ios);
-		~udp_socket();
 
 		enum flags_t {
 			peer_connection = 1
@@ -135,10 +134,8 @@ namespace libtorrent
 
 		udp::socket m_socket;
 
-		// TODO: 2 this should probably be a scoped_ptr<> or unique_ptr
-		// with a hard coded size
-		int const m_buf_size;
-		char* m_buf;
+		using receive_buffer = std::array<char, 1500>;
+		std::unique_ptr<receive_buffer> m_buf;
 
 		boost::uint16_t m_bind_port;
 
