@@ -1054,7 +1054,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 			// used for uTP connections over SSL
-			udp_socket m_ssl_udp_socket;
 			libtorrent::utp_socket_manager m_ssl_utp_socket_manager;
 #endif
 
