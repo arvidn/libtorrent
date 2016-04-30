@@ -2,7 +2,7 @@
 #include "libtorrent/disk_io_job.hpp"
 #include "test.hpp"
 
-#include <boost/atomic.hpp>
+#include <atomic>
 
 using namespace libtorrent;
 

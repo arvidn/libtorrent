@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
-#include <boost/atomic.hpp>
+#include <atomic>
 #endif
 
 #if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
@@ -220,7 +220,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 char const* libtorrent_assert_log = "asserts.log";
 namespace {
 // the number of asserts we've printed to the log
-boost::atomic<int> assert_counter(0);
+std::atomic<int> assert_counter(0);
 }
 #endif
 

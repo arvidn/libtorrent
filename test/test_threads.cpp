@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
-#include <boost/atomic.hpp>
+#include <atomic>
 #include <list>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -52,7 +52,7 @@ void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)
 	fprintf(stderr, "thread %d done\n", i);
 }
 
-void increment(std::condition_variable* s, std::mutex* m, int* waiting, boost::atomic<int>* c)
+void increment(std::condition_variable* s, std::mutex* m, int* waiting, std::atomic<int>* c)
 {
 	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
@@ -62,7 +62,7 @@ void increment(std::condition_variable* s, std::mutex* m, int* waiting, boost::a
 		++*c;
 }
 
-void decrement(std::condition_variable* s, std::mutex* m, int* waiting, boost::atomic<int>* c)
+void decrement(std::condition_variable* s, std::mutex* m, int* waiting, std::atomic<int>* c)
 {
 	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
@@ -99,7 +99,7 @@ TORRENT_TEST(threads)
 	threads.clear();
 
 	waiting = 0;
-	boost::atomic<int> c(0);
+	std::atomic<int> c(0);
 	for (int i = 0; i < 3; ++i)
 	{
 		threads.emplace_back(&increment, &cond, &m, &waiting, &c);

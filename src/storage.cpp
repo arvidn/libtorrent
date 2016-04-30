@@ -179,7 +179,7 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_DISK_STATS
-	static boost::atomic<int> event_id;
+	static std::atomic<int> event_id;
 	static std::mutex disk_access_mutex;
 
 	// this is opened and closed by the disk_io_thread class
