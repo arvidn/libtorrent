@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <ctime>
 
 #include <boost/cstdint.hpp>
@@ -498,7 +499,7 @@ namespace libtorrent
 		// levels. i.e. if one path in the torrent is ``foo/bar/baz``, the CRC32
 		// hashes for ``foo``, ``foo/bar`` and ``foo/bar/baz`` will be added to
 		// the set.
-		void all_path_hashes(boost::unordered_set<boost::uint32_t>& table) const;
+		void all_path_hashes(std::unordered_set<boost::uint32_t>& table) const;
 
 		// flags indicating various attributes for files in
 		// a file_storage.

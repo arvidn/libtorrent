@@ -40,11 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
-#if TORRENT_HAS_BOOST_UNORDERED
-#include <boost/unordered_set.hpp>
-#else
-#include <set>
-#endif
+#include <unordered_set>
 #endif // TORRENT_DEBUG && !TORRENT_DISABLE_INVARIANT_CHECKS
 
 #include <boost/limits.hpp>
@@ -4814,7 +4810,6 @@ namespace aux {
 		}
 #endif
 
-#if TORRENT_HAS_BOOST_UNORDERED
 		sha1_hash next_lsd(0);
 		sha1_hash next_dht(0);
 		if (m_next_lsd_torrent != m_torrents.end())
@@ -4824,7 +4819,6 @@ namespace aux {
 			next_dht = m_next_dht_torrent->first;
 #endif
 		float load_factor = m_torrents.load_factor();
-#endif // TORRENT_HAS_BOOST_UNORDERED
 
 		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
 
@@ -4845,7 +4839,6 @@ namespace aux {
 			bump_torrent(torrent_ptr.get());
 		}
 
-#if TORRENT_HAS_BOOST_UNORDERED
 		// if this insert made the hash grow, the iterators became invalid
 		// we need to reset them
 		if (m_torrents.load_factor() < load_factor)
@@ -4858,7 +4851,6 @@ namespace aux {
 				m_next_dht_torrent = m_torrents.find(next_dht);
 #endif
 		}
-#endif // TORRENT_HAS_BOOST_UNORDERED
 
 #ifndef TORRENT_NO_DEPRECATE
 		//deprecated in 1.2
@@ -6809,11 +6801,7 @@ namespace aux {
 			}
 		}
 
-#if TORRENT_HAS_BOOST_UNORDERED
-		boost::unordered_set<torrent*> unique_torrents;
-#else
-		std::set<torrent*> unique_torrents;
-#endif
+		std::unordered_set<torrent*> unique_torrents;
 		for (list_iterator<torrent> i = m_torrent_lru.iterate(); i.get(); i.next())
 		{
 			torrent* t = i.get();
@@ -6828,11 +6816,7 @@ namespace aux {
 
 #if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 
-#if TORRENT_HAS_BOOST_UNORDERED
-		boost::unordered_set<int> unique;
-#else
-		std::set<int> unique;
-#endif
+		std::unordered_set<int> unique;
 #endif
 
 		int num_active_downloading = 0;
@@ -6873,11 +6857,7 @@ namespace aux {
 		TORRENT_ASSERT(num_active_downloading == m_torrent_lists[torrent_want_peers_download].size());
 		TORRENT_ASSERT(num_active_finished == m_torrent_lists[torrent_want_peers_finished].size());
 
-#if TORRENT_HAS_BOOST_UNORDERED
-		boost::unordered_set<peer_connection*> unique_peers;
-#else
-		std::set<peer_connection*> unique_peers;
-#endif
+		std::unordered_set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);
 
 		int unchokes = 0;

@@ -58,8 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/bind.hpp>
 #include <boost/assert.hpp>
-#include <boost/unordered_set.hpp>
 
+#include <unordered_set>
 #include <iterator>
 #include <algorithm>
 #include <set>
@@ -520,7 +520,6 @@ namespace libtorrent
 		return true;
 	}
 
-#if TORRENT_HAS_BOOST_UNORDERED
 	struct string_hash_no_case
 	{
 		size_t operator()(std::string const& s) const
@@ -560,29 +559,6 @@ namespace libtorrent
 			return *s1 == *s2;
 		}
 	};
-
-#else
-	struct string_less_no_case
-	{
-		bool operator()(std::string const& lhs, std::string const& rhs) const
-		{
-			char c1, c2;
-			char const* s1 = lhs.c_str();
-			char const* s2 = rhs.c_str();
-
-			while (*s1 != 0 || *s2 != 0)
-			{
-				c1 = to_lower(*s1);
-				c2 = to_lower(*s2);
-				if (c1 < c2) return true;
-				if (c1 > c2) return false;
-				++s1;
-				++s2;
-			}
-			return false;
-		}
-	};
-#endif
 
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
@@ -697,7 +673,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		boost::unordered_set<boost::uint32_t> files;
+		std::unordered_set<boost::uint32_t> files;
 
 		std::string empty_str;
 
@@ -725,11 +701,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 		int cnt = 0;
 
-#if TORRENT_HAS_BOOST_UNORDERED
-		boost::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
-#else
-		std::set<std::string, string_less_no_case> files;
-#endif
+		std::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
 
 		std::vector<std::string> const& paths = m_files.paths();
 		files.reserve(paths.size() + m_files.num_files());

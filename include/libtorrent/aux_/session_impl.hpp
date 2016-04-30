@@ -49,10 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <list>
 #include <stdarg.h> // for va_start, va_end
-
-#if TORRENT_HAS_BOOST_UNORDERED
-#include <boost/unordered_map.hpp>
-#endif
+#include <unordered_map>
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -202,11 +199,7 @@ namespace libtorrent
 			friend class libtorrent::invariant_access;
 #endif
 			typedef std::set<boost::shared_ptr<peer_connection> > connection_map;
-#if TORRENT_HAS_BOOST_UNORDERED
-			typedef boost::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-#else
-			typedef std::map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
-#endif
+			typedef std::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
 
 			session_impl(io_service& ios);
 			virtual ~session_impl();

@@ -587,10 +587,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_USE_I2P 1
 #endif
 
-#ifndef TORRENT_HAS_BOOST_UNORDERED
-#define TORRENT_HAS_BOOST_UNORDERED 1
-#endif
-
 #if !defined TORRENT_IOV_MAX
 #ifdef IOV_MAX
 #define TORRENT_IOV_MAX IOV_MAX
