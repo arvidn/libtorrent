@@ -67,7 +67,7 @@ namespace libtorrent { namespace dht
 {
 	struct dht_tracker;
 
-	struct TORRENT_EXTRA_EXPORT dht_tracker TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: udp_socket_interface
 		, boost::enable_shared_from_this<dht_tracker>
 	{
@@ -147,8 +147,8 @@ namespace libtorrent { namespace dht
 		void refresh_key(error_code const& e);
 
 		// implements udp_socket_interface
-		virtual bool has_quota() TORRENT_OVERRIDE;
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr) TORRENT_OVERRIDE;
+		virtual bool has_quota() override;
+		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every

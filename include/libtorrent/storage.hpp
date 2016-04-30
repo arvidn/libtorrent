@@ -399,27 +399,27 @@ namespace libtorrent
 		~default_storage();
 
 #ifndef TORRENT_NO_DEPRECATE
-		void finalize_file(int file, storage_error& ec) TORRENT_OVERRIDE;
+		void finalize_file(int file, storage_error& ec) override;
 #endif
-		virtual bool has_any_file(storage_error& ec) TORRENT_OVERRIDE;
+		virtual bool has_any_file(storage_error& ec) override;
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
-			, storage_error& ec) TORRENT_OVERRIDE;
+			, storage_error& ec) override;
 		virtual void rename_file(int index, std::string const& new_filename
-			, storage_error& ec) TORRENT_OVERRIDE;
-		virtual void release_files(storage_error& ec) TORRENT_OVERRIDE;
-		virtual void delete_files(int options, storage_error& ec) TORRENT_OVERRIDE;
-		virtual void initialize(storage_error& ec) TORRENT_OVERRIDE;
+			, storage_error& ec) override;
+		virtual void release_files(storage_error& ec) override;
+		virtual void delete_files(int options, storage_error& ec) override;
+		virtual void initialize(storage_error& ec) override;
 		virtual int move_storage(std::string const& save_path, int flags
-			, storage_error& ec) TORRENT_OVERRIDE;
+			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
 			, std::vector<std::string> const* links
-			, storage_error& error) TORRENT_OVERRIDE;
-		virtual bool tick() TORRENT_OVERRIDE;
+			, storage_error& error) override;
+		virtual bool tick() override;
 
 		int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int piece, int offset, int flags, storage_error& ec) override;
 		int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int piece, int offset, int flags, storage_error& ec) override;
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
@@ -478,52 +478,52 @@ namespace libtorrent
 	// of normal bittorrent operation, since it will just send garbage
 	// to peers and throw away all the data it downloads. It would end
 	// up being banned immediately
-	class disabled_storage TORRENT_FINAL : public storage_interface, boost::noncopyable
+	class disabled_storage final : public storage_interface, boost::noncopyable
 	{
 	public:
-		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
+		virtual bool has_any_file(storage_error&) override { return false; }
 		virtual void set_file_priority(std::vector<boost::uint8_t> const&
-			, storage_error&) TORRENT_OVERRIDE {}
-		virtual void rename_file(int, std::string const&, storage_error&) TORRENT_OVERRIDE {}
-		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
-		virtual void delete_files(int, storage_error&) TORRENT_OVERRIDE {}
-		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
-		virtual int move_storage(std::string const&, int, storage_error&) TORRENT_OVERRIDE { return 0; }
+			, storage_error&) override {}
+		virtual void rename_file(int, std::string const&, storage_error&) override {}
+		virtual void release_files(storage_error&) override {}
+		virtual void delete_files(int, storage_error&) override {}
+		virtual void initialize(storage_error&) override {}
+		virtual int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int offset, int flags, storage_error& ec) override;
 		virtual int writev(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int offset, int flags, storage_error& ec) override;
 
 		virtual bool verify_resume_data(add_torrent_params const&
 			, std::vector<std::string> const*
-			, storage_error&) TORRENT_OVERRIDE { return false; }
+			, storage_error&) override { return false; }
 	};
 
 	// this storage implementation always reads zeroes, and always discards
 	// anything written to it
-	struct zero_storage TORRENT_FINAL : storage_interface
+	struct zero_storage final : storage_interface
 	{
-		virtual void initialize(storage_error&) TORRENT_OVERRIDE {}
+		virtual void initialize(storage_error&) override {}
 
 		virtual int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int piece, int offset, int flags, storage_error& ec) override;
 		virtual int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) TORRENT_OVERRIDE;
+			, int piece, int offset, int flags, storage_error& ec) override;
 
-		virtual bool has_any_file(storage_error&) TORRENT_OVERRIDE { return false; }
+		virtual bool has_any_file(storage_error&) override { return false; }
 		virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
-			, storage_error&) TORRENT_OVERRIDE {}
+			, storage_error&) override {}
 		virtual int move_storage(std::string const& /* save_path */
-			, int /* flags */, storage_error&) TORRENT_OVERRIDE { return 0; }
+			, int /* flags */, storage_error&) override { return 0; }
 		virtual bool verify_resume_data(add_torrent_params const& /* rd */
 			, std::vector<std::string> const* /* links */
-			, storage_error&) TORRENT_OVERRIDE
+			, storage_error&) override
 			{ return false; }
-		virtual void release_files(storage_error&) TORRENT_OVERRIDE {}
+		virtual void release_files(storage_error&) override {}
 		virtual void rename_file(int /* index */
-			, std::string const& /* new_filenamem */, storage_error&) TORRENT_OVERRIDE {}
-		virtual void delete_files(int, storage_error&) TORRENT_OVERRIDE {}
+			, std::string const& /* new_filenamem */, storage_error&) override {}
+		virtual void delete_files(int, storage_error&) override {}
 	};
 
 	struct disk_io_thread;

@@ -80,20 +80,20 @@ namespace libtorrent
 		http_seed_connection(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual int type() const TORRENT_OVERRIDE
+		virtual int type() const override
 		{ return peer_connection::http_seed_connection; }
 
 		// called from the main loop when this connection has any
 		// work to do.
 		virtual void on_receive(error_code const& error
-			, std::size_t bytes_transferred) TORRENT_OVERRIDE;
+			, std::size_t bytes_transferred) override;
 
-		std::string const& url() const TORRENT_OVERRIDE { return m_url; }
+		std::string const& url() const override { return m_url; }
 
-		virtual void get_specific_peer_info(peer_info& p) const TORRENT_OVERRIDE;
-		virtual void disconnect(error_code const& ec, operation_t op, int error = 0) TORRENT_OVERRIDE;
+		virtual void get_specific_peer_info(peer_info& p) const override;
+		virtual void disconnect(error_code const& ec, operation_t op, int error = 0) override;
 
-		virtual void write_request(peer_request const& r) TORRENT_OVERRIDE;
+		virtual void write_request(peer_request const& r) override;
 
 	private:
 
@@ -102,7 +102,7 @@ namespace libtorrent
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const TORRENT_OVERRIDE;
+		boost::optional<piece_block_progress> downloading_piece_progress() const override;
 
 		// this is const since it's used as a key in the web seed list in the torrent
 		// if it's changed referencing back into that list will fail

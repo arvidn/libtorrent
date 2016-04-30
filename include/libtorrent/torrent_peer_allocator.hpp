@@ -60,7 +60,7 @@ namespace libtorrent
 		~torrent_peer_allocator_interface() {}
 	};
 
-	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator final
 		: torrent_peer_allocator_interface
 	{
 		torrent_peer_allocator();

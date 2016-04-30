@@ -118,7 +118,7 @@ namespace libtorrent {
 namespace
 {
 
-	struct smart_ban_plugin TORRENT_FINAL
+	struct smart_ban_plugin final
 		: torrent_plugin
 		, boost::enable_shared_from_this<smart_ban_plugin>
 	{
@@ -136,7 +136,7 @@ namespace
 		{ fclose(m_log_file); }
 #endif
 
-		virtual void on_piece_pass(int p) TORRENT_OVERRIDE
+		virtual void on_piece_pass(int p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
@@ -188,7 +188,7 @@ namespace
 			}
 		}
 
-		virtual void on_piece_failed(int p) TORRENT_OVERRIDE
+		virtual void on_piece_failed(int p) override
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block

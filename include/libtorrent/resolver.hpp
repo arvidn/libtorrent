@@ -52,14 +52,14 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-struct TORRENT_EXTRA_EXPORT resolver TORRENT_FINAL : resolver_interface
+struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
 	resolver(io_service& ios);
 
 	virtual void async_resolve(std::string const& host, int flags
-		, callback_t const& h) TORRENT_OVERRIDE;
+		, callback_t const& h) override;
 
-	virtual void abort() TORRENT_OVERRIDE;
+	virtual void abort() override;
 
 private:
 

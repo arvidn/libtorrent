@@ -281,7 +281,7 @@ namespace libtorrent
 
 	// this is a singleton consisting of the thread and a queue
 	// of disk io jobs
-	struct TORRENT_EXTRA_EXPORT disk_io_thread TORRENT_FINAL
+	struct TORRENT_EXTRA_EXPORT disk_io_thread final
 		: disk_job_pool
 		, disk_interface
 		, buffer_allocator_interface
@@ -299,60 +299,60 @@ namespace libtorrent
 
 		void async_read(piece_manager* storage, peer_request const& r
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester
-			, int flags = 0) TORRENT_OVERRIDE;
+			, int flags = 0) override;
 		void async_write(piece_manager* storage, peer_request const& r
 			, disk_buffer_holder& buffer
 			, boost::function<void(disk_io_job const*)> const& handler
-			, int flags = 0) TORRENT_OVERRIDE;
+			, int flags = 0) override;
 		void async_hash(piece_manager* storage, int piece, int flags
-			, boost::function<void(disk_io_job const*)> const& handler, void* requester) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler, void* requester) override;
 		void async_move_storage(piece_manager* storage, std::string const& p, int flags
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_release_files(piece_manager* storage
 			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) TORRENT_OVERRIDE;
+			= boost::function<void(disk_io_job const*)>()) override;
 		void async_delete_files(piece_manager* storage, int options
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_check_files(piece_manager* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_rename_file(piece_manager* storage, int index, std::string const& name
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_stop_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 #ifndef TORRENT_NO_DEPRECATE
 		void async_cache_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_finalize_file(piece_manager* storage, int file
 			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) TORRENT_OVERRIDE;
+			= boost::function<void(disk_io_job const*)>()) override;
 #endif
 		void async_flush_piece(piece_manager* storage, int piece
 			, boost::function<void(disk_io_job const*)> const& handler
-			= boost::function<void(disk_io_job const*)>()) TORRENT_OVERRIDE;
+			= boost::function<void(disk_io_job const*)>()) override;
 		void async_set_file_priority(piece_manager* storage
 			, std::vector<boost::uint8_t> const& prio
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_load_torrent(add_torrent_params* params
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_tick_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 
-		void clear_read_cache(piece_manager* storage) TORRENT_OVERRIDE;
+		void clear_read_cache(piece_manager* storage) override;
 		void async_clear_piece(piece_manager* storage, int index
-			, boost::function<void(disk_io_job const*)> const& handler) TORRENT_OVERRIDE;
+			, boost::function<void(disk_io_job const*)> const& handler) override;
 		// this is not asynchronous and requires that the piece does not
 		// have any pending buffers. It's meant to be used for pieces that
 		// were just read and hashed and failed the hash check.
 		// there should be no read-operations left, and all buffers should
 		// be discardable
-		void clear_piece(piece_manager* storage, int index) TORRENT_OVERRIDE;
+		void clear_piece(piece_manager* storage, int index) override;
 
 		// implements buffer_allocator_interface
-		void reclaim_block(block_cache_reference ref) TORRENT_OVERRIDE;
-		void free_disk_buffer(char* buf) TORRENT_OVERRIDE { m_disk_cache.free_buffer(buf); }
-		char* allocate_disk_buffer(char const* category) TORRENT_OVERRIDE
+		void reclaim_block(block_cache_reference ref) override;
+		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
+		char* allocate_disk_buffer(char const* category) override
 		{
 			bool exceed = false;
 			return allocate_disk_buffer(exceed, boost::shared_ptr<disk_observer>(), category);
@@ -360,14 +360,14 @@ namespace libtorrent
 
 		void trigger_cache_trim();
 		char* allocate_disk_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
-			, char const* category) TORRENT_OVERRIDE;
+			, char const* category) override;
 
 		bool exceeded_cache_use() const
 		{ return m_disk_cache.exceeded_max_size(); }
 
-		void update_stats_counters(counters& c) const TORRENT_OVERRIDE;
+		void update_stats_counters(counters& c) const override;
 		void get_cache_info(cache_status* ret, bool no_pieces = true
-			, piece_manager const* storage = 0) const TORRENT_OVERRIDE;
+			, piece_manager const* storage = 0) const override;
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -375,7 +375,7 @@ namespace libtorrent
 		block_cache* cache() { return &m_disk_cache; }
 
 #if TORRENT_USE_ASSERTS
-		bool is_disk_buffer(char* buffer) const TORRENT_OVERRIDE
+		bool is_disk_buffer(char* buffer) const override
 		{ return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 
@@ -387,7 +387,7 @@ namespace libtorrent
 		void thread_fun(int thread_id, thread_type_t type
 			, boost::shared_ptr<io_service::work> w);
 
-		virtual file_pool& files() TORRENT_OVERRIDE { return m_file_pool; }
+		virtual file_pool& files() override { return m_file_pool; }
 
 		io_service& get_io_service() { return m_ios; }
 

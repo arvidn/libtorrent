@@ -438,18 +438,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #endif
 #endif // __GLIBC__
 
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
-#define TORRENT_FINAL
-#else
-#define TORRENT_FINAL final
-#endif
-
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_FINAL
-#define TORRENT_OVERRIDE
-#else
-#define TORRENT_OVERRIDE override
-#endif
-
 #ifndef TORRENT_ICONV_ARG
 #define TORRENT_ICONV_ARG (char**)
 #endif

@@ -234,7 +234,7 @@ namespace libtorrent
 			, boost::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			TORRENT_OVERRIDE TORRENT_FINAL
+			override final
 		{
 			if (m_storage.files().pad_file_at(file_index))
 			{
@@ -325,7 +325,7 @@ namespace libtorrent
 			, boost::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			TORRENT_OVERRIDE TORRENT_FINAL
+			override final
 		{
 			int num_bufs = count_bufs(bufs, size);
 

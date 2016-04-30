@@ -81,7 +81,7 @@ namespace libtorrent { namespace
 		return true;
 	}
 
-	struct ut_pex_plugin TORRENT_FINAL
+	struct ut_pex_plugin final
 		: torrent_plugin
 	{
 		// randomize when we rebuild the pex message
@@ -94,7 +94,7 @@ namespace libtorrent { namespace
 			, m_peers_in_message(0) {}
 
 		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection_handle const& pc) TORRENT_OVERRIDE;
+			peer_connection_handle const& pc) override;
 
 		std::vector<char>& get_ut_pex_msg()
 		{
@@ -111,7 +111,7 @@ namespace libtorrent { namespace
 		// are calculated here and the pex message is created
 		// each peer connection will use this message
 		// max_peer_entries limits the packet size
-		virtual void tick() TORRENT_OVERRIDE
+		virtual void tick() override
 		{
 			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
@@ -241,7 +241,7 @@ namespace libtorrent { namespace
 		ut_pex_plugin& operator=(ut_pex_plugin const&);
 	};
 
-	struct ut_pex_peer_plugin TORRENT_FINAL
+	struct ut_pex_peer_plugin final
 		: peer_plugin
 	{
 		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
@@ -259,15 +259,15 @@ namespace libtorrent { namespace
 			}
 		}
 
-		virtual char const* type() const TORRENT_OVERRIDE { return "ut_pex"; }
+		virtual char const* type() const override { return "ut_pex"; }
 
-		virtual void add_handshake(entry& h) TORRENT_OVERRIDE
+		virtual void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages[extension_name] = extension_index;
 		}
 
-		virtual bool on_extension_handshake(bdecode_node const& h) TORRENT_OVERRIDE
+		virtual bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -280,7 +280,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int length, int msg, buffer::const_interval body) TORRENT_OVERRIDE
+		virtual bool on_extended(int length, int msg, buffer::const_interval body) override
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
@@ -433,7 +433,7 @@ namespace libtorrent { namespace
 
 		// the peers second tick
 		// every minute we send a pex message
-		virtual void tick() TORRENT_OVERRIDE
+		virtual void tick() override
 		{
 			// no handshake yet
 			if (!m_message_index) return;
