@@ -401,7 +401,8 @@ namespace libtorrent
 		mutable std::mutex m_mutex;
 
 		// maps transactionid to the udp_tracker_connection
-		// TODO: this should be unique_ptr in the future
+		// These must use shared_ptr to avoid a dangling reference
+		// if a connection is erased while a timeout event is in the queue
 		typedef boost::unordered_map<boost::uint32_t
 			, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
 		udp_conns_t m_udp_conns;

@@ -166,7 +166,8 @@ namespace libtorrent
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
 		// pointers may be null!
-		// TODO: 3 make these unique_ptr<>
+		// These must be shared_ptr to avoid a dangling reference if an
+		// incoming packet is in the event queue when the socket is erased
 		boost::shared_ptr<tcp::acceptor> sock;
 		boost::shared_ptr<udp_socket> udp_sock;
 	};
