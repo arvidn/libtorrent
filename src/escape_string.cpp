@@ -541,7 +541,7 @@ namespace libtorrent
 	{
 		static std::mutex iconv_mutex;
 		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_std::mutex);
+		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
 		static iconv_t iconv_handle = iconv_open("", "UTF-8");
@@ -553,7 +553,7 @@ namespace libtorrent
 	{
 		static std::mutex iconv_mutex;
 		// only one thread can use this handle at a time
-		std::lock_guard<std::mutex> l(iconv_std::mutex);
+		std::lock_guard<std::mutex> l(iconv_mutex);
 
 		// the empty string represents the local dependent encoding
 		static iconv_t iconv_handle = iconv_open("UTF-8", "");
