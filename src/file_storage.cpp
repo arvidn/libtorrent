@@ -637,7 +637,7 @@ namespace libtorrent
 
 		template <class CRC>
 		void process_path_lowercase(
-			boost::unordered_set<boost::uint32_t>& table
+			std::unordered_set<boost::uint32_t>& table
 			, CRC crc
 			, char const* str, int len)
 		{
@@ -653,7 +653,7 @@ namespace libtorrent
 	}
 
 	void file_storage::all_path_hashes(
-		boost::unordered_set<boost::uint32_t>& table) const
+		std::unordered_set<boost::uint32_t>& table) const
 	{
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 

@@ -35,23 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <vector>
-#include <deque>
-#include <map>
+#include <unordered_map>
+
 #include <boost/cstdint.hpp>
 #include <boost/pool/pool.hpp>
 #include <boost/function/function3.hpp>
 
-#if TORRENT_HAS_BOOST_UNORDERED
-#include <boost/unordered_map.hpp>
-#else
-#include <multimap>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>
-#include <libtorrent/entry.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
@@ -59,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux { struct session_impl; } }
 
-namespace libtorrent { struct dht_settings; }
+namespace libtorrent { struct dht_settings; class entry; }
 
 namespace libtorrent { namespace dht
 {
@@ -117,11 +109,7 @@ private:
 
 	mutable boost::pool<> m_pool_allocator;
 
-#if TORRENT_HAS_BOOST_UNORDERED
-	typedef boost::unordered_multimap<int, observer_ptr> transactions_t;
-#else
-	typedef std::multimap<int, observer_ptr> transactions_t;
-#endif
+	typedef std::unordered_multimap<int, observer_ptr> transactions_t;
 	transactions_t m_transactions;
 
 	udp_socket_interface* m_sock;

@@ -319,6 +319,7 @@ namespace libtorrent
 
 	};
 
+	// this is here to support usage of sha1_hash in boost unordered containers
 	typedef sha1_hash peer_id;
 	inline std::size_t hash_value(sha1_hash const& b)
 	{
@@ -347,6 +348,21 @@ namespace libtorrent
 		return is;
 	}
 #endif // TORRENT_USE_IOSTREAM
+}
+
+namespace std {
+
+	template <>
+	struct hash<libtorrent::sha1_hash>
+	{
+		std::size_t operator()(libtorrent::sha1_hash const& k) const
+		{
+			std::size_t ret;
+			// this is OK because sha1_hash is already a hash
+			std::memcpy(&ret, k.data(), sizeof(ret));
+			return ret;
+		}
+	};
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED
