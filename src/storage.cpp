@@ -210,7 +210,7 @@ namespace libtorrent
 		detail::write_uint32(fileid, ptr);
 		detail::write_uint8(flags, ptr);
 
-		std::lock_guard<std::mutex> l(disk_access_std::mutex);
+		std::lock_guard<std::mutex> l(disk_access_mutex);
 		int ret = fwrite(event, 1, sizeof(event), g_access_log);
 		l.unlock();
 		if (ret != sizeof(event))
