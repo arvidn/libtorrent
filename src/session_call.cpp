@@ -44,7 +44,7 @@ void blocking_call()
 #ifdef TORRENT_PROFILE_CALLS
 	char stack[2048];
 	print_backtrace(stack, sizeof(stack), 20);
-	std::unique_lock<std::mutex> l(g_calls_std::mutex);
+	std::unique_lock<std::mutex> l(g_calls_mutex);
 	g_blocking_calls[stack] += 1;
 #endif
 }
@@ -56,7 +56,7 @@ void dump_call_profile()
 
 	std::map<int, std::string> profile;
 
-	std::unique_lock<std::mutex> l(g_calls_std::mutex);
+	std::unique_lock<std::mutex> l(g_calls_mutex);
 	for (boost::unordered_map<std::string, int>::const_iterator i = g_blocking_calls.begin()
 		, end(g_blocking_calls.end()); i != end; ++i)
 	{

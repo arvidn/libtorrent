@@ -115,7 +115,7 @@ namespace libtorrent
 		if (!prepend_time)
 		{
 			prepend_time = (usr[len-1] == '\n');
-			std::unique_lock<std::mutex> l(log_std::mutex);
+			std::unique_lock<std::mutex> l(log_mutex);
 			fputs(usr, stderr);
 			return;
 		}
@@ -124,7 +124,7 @@ namespace libtorrent
 		int t = total_milliseconds(clock_type::now() - start);
 		snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
 		prepend_time = (usr[len-1] == '\n');
-		std::unique_lock<std::mutex> l(log_std::mutex);
+		std::unique_lock<std::mutex> l(log_mutex);
 		fputs(buf, stderr);
 #else
 	TORRENT_UNUSED(fmt);

@@ -77,7 +77,7 @@ void utp_log(char const* fmt, ...)
 {
 	if (log_file_holder.utp_log_file == NULL) return;
 
-	std::lock_guard<std::mutex> lock(log_file_holder.utp_log_std::mutex);
+	std::lock_guard<std::mutex> lock(log_file_holder.utp_log_mutex);
 	static time_point start = clock_type::now();
 	fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
 	va_list l;

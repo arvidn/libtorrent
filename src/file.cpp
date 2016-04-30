@@ -2262,20 +2262,20 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	file_handle::file_handle()
 	{
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		global_file_handles.insert(this);
 		stack[0] = 0;
 	}
 	file_handle::file_handle(file* f): m_file(f)
 	{
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		global_file_handles.insert(this);
 		if (f) print_backtrace(stack, sizeof(stack), 10);
 		else stack[0] = 0;
 	}
 	file_handle::file_handle(file_handle const& fh)
 	{
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		global_file_handles.insert(this);
 		m_file = fh.m_file;
 		if (m_file) print_backtrace(stack, sizeof(stack), 10);
@@ -2283,7 +2283,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 	file_handle::~file_handle()
 	{
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		global_file_handles.erase(this);
 		stack[0] = 0;
 	}
@@ -2296,7 +2296,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	file_handle::operator bool() const { return m_file.get(); }
 	file_handle& file_handle::reset(file* f)
 	{
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		if (f) print_backtrace(stack, sizeof(stack), 10);
 		else stack[0] = 0;
 		l.unlock();
@@ -2307,7 +2307,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	void print_open_files(char const* event, char const* name)
 	{
 		FILE* out = fopen("open_files.log", "a+");
-		std::lock_guard<std::mutex> l(file_handle_std::mutex);
+		std::lock_guard<std::mutex> l(file_handle_mutex);
 		fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)

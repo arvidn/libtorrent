@@ -87,14 +87,14 @@ namespace libtorrent
 
 	inline bool has_outstanding_async(char const* name)
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		std::map<std::string, async_t>::iterator i = _async_ops.find(name);
 		return i != _async_ops.end();
 	}
 
 	inline void add_outstanding_async(char const* name)
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		async_t& a = _async_ops[name];
 		if (a.stack.empty())
 		{
@@ -112,7 +112,7 @@ namespace libtorrent
 
 	inline void complete_async(char const* name)
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		async_t& a = _async_ops[name];
 		TORRENT_ASSERT(a.refs > 0);
 		--a.refs;
@@ -138,19 +138,19 @@ namespace libtorrent
 
 	inline void async_inc_threads()
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		++_async_ops_nthreads;
 	}
 
 	inline void async_dec_threads()
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		--_async_ops_nthreads;
 	}
 
 	inline int log_async()
 	{
-		std::lock_guard<std::mutex> l(_async_ops_std::mutex);
+		std::lock_guard<std::mutex> l(_async_ops_mutex);
 		int ret = 0;
 		for (std::map<std::string, async_t>::iterator i = _async_ops.begin()
 			, end(_async_ops.end()); i != end; ++i)
