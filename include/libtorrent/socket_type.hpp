@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE
 #define TORRENT_SOCKET_TYPE
 
+#include <type_traits> // for aligned_union
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socks5_stream.hpp"
@@ -40,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/utp_stream.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/max.hpp"
 #include "libtorrent/assert.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -276,7 +277,7 @@ namespace libtorrent
 		{ TORRENT_SOCKTYPE_FORWARD_RET(get_option(opt, ec), ec) }
 
 		template <class S>
-		void instantiate(io_service& ios, void* userdata = 0)
+		void instantiate(io_service& ios, void* userdata = nullptr)
 		{
 			TORRENT_UNUSED(ios);
 			TORRENT_ASSERT(&ios == &m_io_service);
@@ -285,13 +286,13 @@ namespace libtorrent
 
 		template <class S> S* get()
 		{
-			if (m_type != socket_type_int_impl<S>::value) return 0;
+			if (m_type != socket_type_int_impl<S>::value) return nullptr;
 			return reinterpret_cast<S*>(&m_data);
 		}
 
 		template <class S> S const* get() const
 		{
-			if (m_type != socket_type_int_impl<S>::value) return 0;
+			if (m_type != socket_type_int_impl<S>::value) return nullptr;
 			return reinterpret_cast<S const*>(&m_data);
 		}
 
@@ -304,28 +305,22 @@ namespace libtorrent
 
 		io_service& m_io_service;
 		int m_type;
-		enum { storage_size = max9<
-			sizeof(tcp::socket)
-			, sizeof(socks5_stream)
-			, sizeof(http_stream)
-			, sizeof(utp_stream)
+
+		std::aligned_union<1
+			, tcp::socket
+			, socks5_stream
+			, http_stream
+			, utp_stream
 #if TORRENT_USE_I2P
-			, sizeof(i2p_stream)
-#else
-			, 0
+			, i2p_stream
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			, sizeof(ssl_stream<tcp::socket>)
-			, sizeof(ssl_stream<socks5_stream>)
-			, sizeof(ssl_stream<http_stream>)
-			, sizeof(ssl_stream<utp_stream>)
-#else
-			, 0, 0, 0, 0
+			, ssl_stream<tcp::socket>
+			, ssl_stream<socks5_stream>
+			, ssl_stream<http_stream>
+			, ssl_stream<utp_stream>
 #endif
-			>::value
-		};
-
-		boost::aligned_storage<storage_size, 8>::type m_data;
+		>::type m_data;
 	};
 
 	// returns true if this socket is an SSL socket
