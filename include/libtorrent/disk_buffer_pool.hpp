@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
+#include <mutex>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/utility.hpp>

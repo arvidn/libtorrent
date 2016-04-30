@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <mutex>
 #include <boost/unordered_map.hpp>
 #include <boost/cstdint.hpp>
 
@@ -78,7 +79,7 @@ namespace libtorrent
 		// allocate a slot and return the slot index
 		int allocate_slot(int piece);
 
-		// this std::mutex must be held while accessing the data
+		// this mutex must be held while accessing the data
 		// structure. Not while reading or writing from the file though!
 		// it's important to support multithreading
 		std::mutex m_mutex;

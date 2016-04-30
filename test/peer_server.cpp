@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/bind.hpp>
 
 #include <thread>
+#include <condition_variable>
 
 using namespace libtorrent;
 

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <list>
 #include <utility>
-#include <ctime>
+#include <mutex>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -274,6 +274,7 @@ namespace libtorrent
 
 		int m_completion_timeout;
 
+		// TODO: 3 is this object really accessed from multiple threads?
 		mutable std::mutex m_mutex;
 
 		// used for timeouts

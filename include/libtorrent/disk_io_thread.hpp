@@ -53,8 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
 #include <boost/shared_ptr.hpp>
-#include <deque>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif

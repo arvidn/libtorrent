@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_POOL_HPP
 
 #include <map>
+#include <mutex>
 #include "libtorrent/file.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file_storage.hpp"

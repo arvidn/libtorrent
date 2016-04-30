@@ -61,6 +61,8 @@ namespace libtorrent
 
 	boost::uint32_t random()
 	{
+		// TODO: versions prior to msvc-14 (visual studio 2015) do
+		// not generate thread safe initialization of statics
 		static random_device dev;
 		static mt19937 random_engine(dev());
 		return uniform_int_distribution<boost::uint32_t>(0, UINT_MAX)(random_engine);

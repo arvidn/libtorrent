@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <set>
+#include <mutex>
 
 namespace libtorrent
 {
@@ -393,6 +394,7 @@ private:
 	bool m_closing;
 	bool m_ignore_non_routers;
 
+	// TODO: 3 is this class really accessed from multiple threads?
 	std::mutex m_mutex;
 
 	std::string m_model;

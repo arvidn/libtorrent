@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <map>
 #include <set>
+#include <mutex>
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/dht_storage.hpp>
@@ -51,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
-#include <libtorrent/thread.hpp>
 #include <libtorrent/bloom_filter.hpp>
 
 #include <boost/cstdint.hpp>

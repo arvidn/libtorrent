@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/time.hpp"
 
+#include <mutex>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function/function1.hpp>
@@ -172,6 +174,7 @@ private:
 
 	bool m_abort;
 
+	// TODO:3 is this object really acceessed from multiple threads?
 	mutable std::mutex m_mutex;
 };
 

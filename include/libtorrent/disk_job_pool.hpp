@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DISK_JOB_POOL
 
 #include "libtorrent/config.hpp"
+#include <mutex>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

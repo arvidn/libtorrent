@@ -1167,7 +1167,7 @@ namespace libtorrent
 			bool need_sleep = m_queued_jobs.empty();
 			m_queued_jobs.push_back(j);
 			l2.unlock();
-			if (need_sleep) sleep(0);
+			if (need_sleep) std::this_thread::yield();
 			return;
 		}
 
@@ -3271,7 +3271,7 @@ namespace libtorrent
 		while (m_disk_cache.pinned_blocks() > 0)
 		{
 			l2.unlock();
-			sleep(100);
+			std::this_thread::sleep_for(milliseconds(100));
 			l2.lock();
 		}
 		l2.unlock();
