@@ -82,14 +82,14 @@ namespace libtorrent
 			struct stat s;
 			if (lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
 			int file_attr = 0;
-			if (s.st_mode & S_IXUSR) 
+			if (s.st_mode & S_IXUSR)
 				file_attr += file_storage::attribute_executable;
 			if (S_ISLNK(s.st_mode))
 				file_attr += file_storage::attribute_symlink;
 			return file_attr;
 #endif
 		}
-	
+
 #ifndef TORRENT_WINDOWS
 		std::string get_symlink_path_impl(char const* path)
 		{
@@ -150,7 +150,7 @@ namespace libtorrent
 
 				// mask all bits to check if the file is a symlink
 				if ((file_flags & file_storage::attribute_symlink)
-					&& (flags & create_torrent::symlinks)) 
+					&& (flags & create_torrent::symlinks))
 				{
 					std::string sym_path = get_symlink_path(f);
 					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
@@ -324,10 +324,8 @@ namespace libtorrent
 		, m_include_mtime((flags & modification_time) != 0)
 		, m_include_symlinks((flags & symlinks) != 0)
 	{
-		TORRENT_ASSERT(fs.num_files() > 0);
-
 		// return instead of crash in release mode
-		if (fs.num_files() == 0) return;
+		if (fs.num_files() == 0 || fs.total_size() == 0) return;
 
 		if (!m_multifile && has_parent_path(m_files.file_path(0))) m_multifile = true;
 
@@ -386,6 +384,10 @@ namespace libtorrent
 		, m_include_symlinks(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
+		TORRENT_ASSERT(ti.num_pieces() > 0);
+		TORRENT_ASSERT(ti.num_files() > 0);
+		TORRENT_ASSERT(ti.total_size() > 0);
+
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
@@ -420,15 +422,15 @@ namespace libtorrent
 
 	entry create_torrent::generate() const
 	{
-		TORRENT_ASSERT(m_files.piece_length() > 0);
-
 		entry dict;
 
-		if (m_files.num_files() == 0)
+		if (m_files.num_files() == 0 || m_files.total_size() == 0)
 			return dict;
 
+		TORRENT_ASSERT(m_files.piece_length() > 0);
+
 		if (!m_urls.empty()) dict["announce"] = m_urls.front().first;
-		
+
 		if (!m_nodes.empty())
 		{
 			entry& nodes = dict["nodes"];
@@ -470,7 +472,7 @@ namespace libtorrent
 
 		if (!m_created_by.empty())
 			dict["created by"] = m_created_by;
-			
+
 		if (!m_url_seeds.empty())
 		{
 			if (m_url_seeds.size() == 1)

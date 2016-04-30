@@ -182,8 +182,9 @@ class test_session(unittest.TestCase):
 	def test_apply_settings(self):
 
 		s = lt.session({})
-		s.apply_settings({'num_want': 66})
+		s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
 		self.assertEqual(s.get_settings()['num_want'], 66)
+		self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
 
 if __name__ == '__main__':

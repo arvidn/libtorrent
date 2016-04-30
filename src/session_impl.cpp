@@ -443,6 +443,8 @@ namespace aux {
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
 #endif
+
+		update_time_now();
 	}
 
 	// This function is called by the creating thread, not in the message loop's
