@@ -5752,7 +5752,7 @@ namespace libtorrent
 
 		int max_receive = m_recv_buffer.max_receive();
 
-		boost::array<boost::asio::mutable_buffer, 2> vec;
+		std::array<boost::asio::mutable_buffer, 2> vec;
 		int num_bufs = 0;
 		// only apply the contiguous receive buffer when we don't have any
 		// outstanding requests. When we're likely to receive pieces, we'll

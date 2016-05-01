@@ -152,7 +152,7 @@ namespace libtorrent
 			if (stats && settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
-				url += to_string(tracker_req().redundant).elems;
+				url += to_string(tracker_req().redundant).data();
 			}
 			if (!tracker_req().trackerid.empty())
 			{

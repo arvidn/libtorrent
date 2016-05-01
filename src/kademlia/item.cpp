@@ -175,9 +175,9 @@ void item::assign(entry const& v, std::pair<char const*, int> salt
 		int bsize = bencode(buffer, v);
 		TORRENT_ASSERT(bsize <= 1000);
 		sign_mutable_item(std::make_pair(buffer, bsize)
-			, salt, seq, pk, sk, m_sig.c_array());
+			, salt, seq, pk, sk, m_sig.data());
 		m_salt.assign(salt.first, salt.second);
-		memcpy(m_pk.c_array(), pk, item_pk_len);
+		memcpy(m_pk.data(), pk, item_pk_len);
 		m_seq = seq;
 		m_mutable = true;
 	}
@@ -194,8 +194,8 @@ bool item::assign(bdecode_node const& v
 	{
 		if (!verify_mutable_item(v.data_section(), salt, seq, pk, sig))
 			return false;
-		memcpy(m_pk.c_array(), pk, item_pk_len);
-		memcpy(m_sig.c_array(), sig, item_sig_len);
+		memcpy(m_pk.data(), pk, item_pk_len);
+		memcpy(m_sig.data(), sig, item_sig_len);
 		if (salt.second > 0)
 			m_salt.assign(salt.first, salt.second);
 		else
@@ -224,8 +224,8 @@ void item::assign(entry const& v, std::string salt, boost::uint64_t seq
 		, seq, pk, sig));
 #endif
 
-	memcpy(m_pk.c_array(), pk, item_pk_len);
-	memcpy(m_sig.c_array(), sig, item_sig_len);
+	memcpy(m_pk.data(), pk, item_pk_len);
+	memcpy(m_sig.data(), sig, item_sig_len);
 	m_salt = salt;
 	m_seq = seq;
 	m_mutable = true;

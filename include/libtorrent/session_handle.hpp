@@ -361,7 +361,7 @@ namespace libtorrent
 		// as an empty string if no salt is to be used.
 		// if the item is found in the DHT, a dht_mutable_item_alert is
 		// posted.
-		void dht_get_item(boost::array<char, 32> key
+		void dht_get_item(std::array<char, 32> key
 			, std::string salt = std::string());
 
 		// store the given bencoded data as an immutable item in the DHT.
@@ -382,7 +382,7 @@ namespace libtorrent
 		// 	the current value stored under the key (may be empty). Also expected
 		// 	to be set to the value to be stored by the function.
 		//
-		// boost::array<char,64>& signature
+		// std::array<char,64>& signature
 		// 	the signature authenticating the current value. This may be zeroes
 		// 	if there is currently no value stored. The function is expected to
 		// 	fill in this buffer with the signature of the new value to store.
@@ -409,8 +409,8 @@ namespace libtorrent
 		// must first retrieve it, then modify it, then write it back. The way
 		// the DHT works, it is natural to always do a lookup before storing and
 		// calling the callback in between is convenient.
-		void dht_put_item(boost::array<char, 32> key
-			, boost::function<void(entry&, boost::array<char,64>&
+		void dht_put_item(std::array<char, 32> key
+			, boost::function<void(entry&, std::array<char,64>&
 			, boost::uint64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 

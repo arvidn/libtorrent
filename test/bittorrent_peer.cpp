@@ -536,7 +536,7 @@ void peer_conn::write_piece(int piece, int start, int length)
 	write_uint8(7, ptr);
 	write_uint32(piece, ptr);
 	write_uint32(start, ptr);
-	boost::array<boost::asio::const_buffer, 2> vec;
+	std::array<boost::asio::const_buffer, 2> vec;
 	vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
 	vec[1] = boost::asio::buffer(write_buffer, length);
 	boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));

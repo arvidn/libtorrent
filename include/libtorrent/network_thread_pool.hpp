@@ -65,7 +65,7 @@ namespace libtorrent
 		// used for read jobs
 		char* recv_buf;
 		int buf_size;
-		boost::array<boost::asio::mutable_buffer, 2> read_vec;
+		std::array<boost::asio::mutable_buffer, 2> read_vec;
 
 		boost::shared_ptr<peer_connection> peer;
 		// defined in session_impl.cpp

@@ -2308,7 +2308,7 @@ namespace aux {
 
 		for (;;)
 		{
-			boost::array<udp_socket::packet, 50> p;
+			std::array<udp_socket::packet, 50> p;
 			error_code err;
 			int const num_packets = s->read(p, err);
 
@@ -5715,7 +5715,7 @@ namespace aux {
 
 	// key is a 32-byte binary string, the public key to look up.
 	// the salt is optional
-	void session_impl::dht_get_mutable_item(boost::array<char, 32> key
+	void session_impl::dht_get_mutable_item(std::array<char, 32> key
 		, std::string salt)
 	{
 		if (!m_dht) return;
@@ -5733,8 +5733,8 @@ namespace aux {
 
 		void on_dht_put_mutable_item(alert_manager& alerts, dht::item const& i, int num)
 		{
-			boost::array<char, 64> sig = i.sig();
-			boost::array<char, 32> pk = i.pk();
+			std::array<char, 64> sig = i.sig();
+			std::array<char, 32> pk = i.pk();
 			boost::uint64_t seq = i.seq();
 			std::string salt = i.salt();
 
@@ -5743,12 +5743,12 @@ namespace aux {
 		}
 
 		void put_mutable_callback(dht::item& i
-			, boost::function<void(entry&, boost::array<char,64>&
+			, boost::function<void(entry&, std::array<char,64>&
 				, boost::uint64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
-			boost::array<char, 64> sig = i.sig();
-			boost::array<char, 32> pk = i.pk();
+			std::array<char, 64> sig = i.sig();
+			std::array<char, 32> pk = i.pk();
 			boost::uint64_t seq = i.seq();
 			std::string salt = i.salt();
 			cb(value, sig, seq, salt);
@@ -5778,8 +5778,8 @@ namespace aux {
 			, target, _1));
 	}
 
-	void session_impl::dht_put_mutable_item(boost::array<char, 32> key
-		, boost::function<void(entry&, boost::array<char,64>&
+	void session_impl::dht_put_mutable_item(std::array<char, 32> key
+		, boost::function<void(entry&, std::array<char,64>&
 		, boost::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{

@@ -181,7 +181,7 @@ namespace libtorrent
 
 		io_service& m_ios;
 
-		boost::array<int, 3> m_restrict_mtu;
+		std::array<int, 3> m_restrict_mtu;
 		int m_mtu_idx;
 
 		// this is  passed on to the instantiate connection

@@ -77,7 +77,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// regular buffer only
 	boost::asio::mutable_buffer reserve(int size);
 	// with possible disk buffer usage
-	int reserve(boost::array<boost::asio::mutable_buffer, 2>& vec, int size);
+	int reserve(std::array<boost::asio::mutable_buffer, 2>& vec, int size);
 
 	// tell the buffer we just receved more bytes at the end of it. This will
 	// advance the end cursor

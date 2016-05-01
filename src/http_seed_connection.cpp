@@ -182,17 +182,17 @@ namespace libtorrent
 		request += "?info_hash=";
 		request += escape_string(reinterpret_cast<char const*>(&t->torrent_file().info_hash()[0]), 20);
 		request += "&piece=";
-		request += to_string(r.piece).elems;
+		request += to_string(r.piece).data();
 
 		// if we're requesting less than an entire piece we need to
 		// add ranges
 		if (r.start > 0 || r.length != t->torrent_file().piece_size(r.piece))
 		{
 			request += "&ranges=";
-			request += to_string(r.start).elems;
+			request += to_string(r.start).data();
 			request += "-";
 			// ranges are inclusive, just like HTTP
-			request += to_string(r.start + r.length - 1).elems;
+			request += to_string(r.start + r.length - 1).data();
 		}
 
 		request += " HTTP/1.1\r\n";
@@ -286,7 +286,7 @@ namespace libtorrent
 					// temporarily unavailable, retry later
 					t->retry_web_seed(this, retry_time);
 
-					std::string error_msg = to_string(m_parser.status_code()).elems
+					std::string error_msg = to_string(m_parser.status_code()).data()
 						+ (" " + m_parser.message());
 					if (t->alerts().should_post<url_seed_alert>())
 					{

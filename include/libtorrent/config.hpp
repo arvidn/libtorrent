@@ -113,7 +113,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // SunPRO seems to have an overly-strict
 // definition of POD types and doesn't
-// seem to allow boost::array in unions
+// seem to allow std::array in unions
 #define TORRENT_BROKEN_UNIONS 1
 
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1

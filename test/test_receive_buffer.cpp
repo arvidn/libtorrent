@@ -69,7 +69,7 @@ TORRENT_TEST(recv_buffer_pos_at_end_false)
 
 	b.cut(0, 1000);
 	// allocate some space to receive into
-	boost::array<boost::asio::mutable_buffer, 2> vec;
+	std::array<boost::asio::mutable_buffer, 2> vec;
 	int num_bufs = b.reserve(vec, 1000);
 
 	// since we don't have a disk buffer, there should only be a single
@@ -88,7 +88,7 @@ TORRENT_TEST(recv_buffer_pos_at_end_true)
 	receive_buffer b(a);
 	b.cut(0, 1000);
 	b.reserve(1000);
-	boost::array<boost::asio::mutable_buffer, 2> vec;
+	std::array<boost::asio::mutable_buffer, 2> vec;
 	int num_bufs = b.reserve(vec, 1000);
 	TEST_EQUAL(num_bufs, 1);
 	b.received(1000);
@@ -103,7 +103,7 @@ TORRENT_TEST(recv_buffer_packet_finished)
 	// packet_size = 10
 	b.cut(0, 10);
 	b.reserve(1000);
-	boost::array<boost::asio::mutable_buffer, 2> vec;
+	std::array<boost::asio::mutable_buffer, 2> vec;
 	int num_bufs = b.reserve(vec, 1000);
 	TEST_EQUAL(num_bufs, 1);
 	b.received(1000);
@@ -124,7 +124,7 @@ TORRENT_TEST(recv_buffer_disk_buffer)
 	receive_buffer b(a);
 	b.reserve(1000);
 	b.cut(0, 1000); // packet size = 1000
-	boost::array<boost::asio::mutable_buffer, 2> vec;
+	std::array<boost::asio::mutable_buffer, 2> vec;
 	b.assign_disk_buffer(&disk_buffer, 137);
 	int const num_bufs = b.reserve(vec, 1000);
 	TEST_EQUAL(num_bufs, 2);

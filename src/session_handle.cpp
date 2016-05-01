@@ -516,7 +516,7 @@ namespace libtorrent
 #endif
 	}
 
-	void session_handle::dht_get_item(boost::array<char, 32> key
+	void session_handle::dht_get_item(std::array<char, 32> key
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -539,8 +539,8 @@ namespace libtorrent
 		return ret;
 	}
 
-	void session_handle::dht_put_item(boost::array<char, 32> key
-		, boost::function<void(entry&, boost::array<char,64>&
+	void session_handle::dht_put_item(std::array<char, 32> key
+		, boost::function<void(entry&, std::array<char,64>&
 		, boost::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{

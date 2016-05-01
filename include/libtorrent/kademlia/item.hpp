@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 #include <vector>
 #include <exception>
-#include <boost/array.hpp>
+#include <array>
 
 namespace libtorrent { namespace dht
 {
@@ -116,9 +116,9 @@ public:
 	bool is_mutable() const { return m_mutable; }
 
 	entry const& value() const { return m_value; }
-	boost::array<char, item_pk_len> const& pk() const
+	std::array<char, item_pk_len> const& pk() const
 	{ return m_pk; }
-	boost::array<char, item_sig_len> const& sig() const
+	std::array<char, item_sig_len> const& sig() const
 	{ return m_sig; }
 	boost::uint64_t seq() const { return m_seq; }
 	std::string const& salt() const { return m_salt; }
@@ -126,8 +126,8 @@ public:
 private:
 	entry m_value;
 	std::string m_salt;
-	boost::array<char, item_pk_len> m_pk;
-	boost::array<char, item_sig_len> m_sig;
+	std::array<char, item_pk_len> m_pk;
+	std::array<char, item_sig_len> m_sig;
 	boost::uint64_t m_seq;
 	bool m_mutable;
 };

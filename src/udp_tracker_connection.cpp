@@ -532,7 +532,7 @@ namespace libtorrent
 			cb->debug_log("==> UDP_TRACKER_CONNECT [ to: %s ih: %s]"
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
-					: (m_hostname + ":" + to_string(m_target.port()).elems).c_str()
+					: (m_hostname + ":" + to_string(m_target.port()).data()).c_str()
 				, hex_ih);
 		}
 #endif

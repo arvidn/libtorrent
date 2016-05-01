@@ -956,7 +956,7 @@ void upnp::on_upnp_xml(error_code const& e
 			= parse_url_components(d.url, ec);
 		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 		d.control_url = protocol + "://" + d.hostname + ":"
-			+ to_string(d.port).elems + s.control_url;
+			+ to_string(d.port).data() + s.control_url;
 	}
 
 	{
@@ -1396,7 +1396,7 @@ void upnp::return_error(int mapping, int code, std::unique_lock<std::mutex>& l)
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
 		, boost::bind(&error_code_t::code, _1) < boost::bind(&error_code_t::code, _2));
 	std::string error_string = "UPnP mapping error ";
-	error_string += to_string(code).elems;
+	error_string += to_string(code).data();
 	if (e != end && e->code == code)
 	{
 		error_string += ": ";

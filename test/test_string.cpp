@@ -93,10 +93,10 @@ TORRENT_TEST(string)
 
 	// test itoa
 
-	TEST_CHECK(to_string(345).elems == std::string("345"));
-	TEST_CHECK(to_string(-345).elems == std::string("-345"));
-	TEST_CHECK(to_string(0).elems == std::string("0"));
-	TEST_CHECK(to_string(1000000000).elems == std::string("1000000000"));
+	TEST_CHECK(to_string(345).data() == std::string("345"));
+	TEST_CHECK(to_string(-345).data() == std::string("-345"));
+	TEST_CHECK(to_string(0).data() == std::string("0"));
+	TEST_CHECK(to_string(1000000000).data() == std::string("1000000000"));
 
 	// base64 test vectors from http://www.faqs.org/rfcs/rfc4648.html
 

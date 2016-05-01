@@ -1939,8 +1939,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_mutable_item_alert final : alert
 	{
 		dht_mutable_item_alert(aux::stack_allocator& alloc
-			, boost::array<char, 32> k
-			, boost::array<char, 64> sig
+			, std::array<char, 32> k
+			, std::array<char, 64> sig
 			, boost::uint64_t sequence
 			, std::string const& s
 			, entry const& i
@@ -1952,14 +1952,14 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		// the public key that was looked up
-		boost::array<char, 32> key;
+		std::array<char, 32> key;
 
 		// the signature of the data. This is not the signature of the
 		// plain encoded form of the item, but it includes the sequence number
 		// and possibly the hash as well. See the dht_store document for more
 		// information. This is primarily useful for echoing back in a store
 		// request.
-		boost::array<char, 64> signature;
+		std::array<char, 64> signature;
 
 		// the sequence number of this item
 		boost::uint64_t seq;
@@ -1981,8 +1981,8 @@ namespace libtorrent
 	{
 		// internal
 		dht_put_alert(aux::stack_allocator& alloc, sha1_hash const& t, int n);
-		dht_put_alert(aux::stack_allocator& alloc, boost::array<char, 32> key
-			, boost::array<char, 64> sig
+		dht_put_alert(aux::stack_allocator& alloc, std::array<char, 32> key
+			, std::array<char, 64> sig
 			, std::string s
 			, boost::uint64_t sequence_number
 			, int n);
@@ -1998,8 +1998,8 @@ namespace libtorrent
 
 		// if a mutable item was stored, these are the public key, signature,
 		// salt and sequence number the item was stored under.
-		boost::array<char, 32> public_key;
-		boost::array<char, 64> signature;
+		std::array<char, 32> public_key;
+		std::array<char, 64> signature;
 		std::string salt;
 		boost::uint64_t seq;
 

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <boost/utility.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/array.hpp>
+#include <array>
 #include <boost/noncopyable.hpp>
 #include <boost/unordered_set.hpp>
 

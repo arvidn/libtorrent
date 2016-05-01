@@ -342,9 +342,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		request += " HTTP/1.1\r\n";
 		add_headers(request, m_settings, using_proxy);
 		request += "\r\nRange: bytes=";
-		request += to_string(file_req.start).elems;
+		request += to_string(file_req.start).data();
 		request += "-";
-		request += to_string(file_req.start + file_req.length - 1).elems;
+		request += to_string(file_req.start + file_req.length - 1).data();
 		request += "\r\n\r\n";
 		m_first_request = false;
 
@@ -405,9 +405,9 @@ void web_peer_connection::write_request(peer_request const& r)
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
 			request += "\r\nRange: bytes=";
-			request += to_string(f.offset).elems;
+			request += to_string(f.offset).data();
 			request += "-";
-			request += to_string(f.offset + f.size - 1).elems;
+			request += to_string(f.offset + f.size - 1).data();
 			request += "\r\n\r\n";
 			m_first_request = false;
 
@@ -554,7 +554,7 @@ void web_peer_connection::handle_error(int bytes_left)
 	if (retry_time <= 0) retry_time = m_settings.get_int(settings_pack::urlseed_wait_retry);
 	// temporarily unavailable, retry later
 	t->retry_web_seed(this, retry_time);
-	std::string error_msg = to_string(m_parser.status_code()).elems
+	std::string error_msg = to_string(m_parser.status_code()).data()
 		+ (" " + m_parser.message());
 	if (t->alerts().should_post<url_seed_alert>())
 	{

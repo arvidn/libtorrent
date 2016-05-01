@@ -114,9 +114,9 @@ sha1_hash generate_next()
 	return ret;
 }
 
-boost::array<char, 64> generate_key()
+std::array<char, 64> generate_key()
 {
-	boost::array<char, 64> ret;
+	std::array<char, 64> ret;
 	for (int i = 0; i < 64; ++i) ret[i] = rand() & 0xff;
 	return ret;
 }
