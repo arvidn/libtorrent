@@ -64,7 +64,6 @@ namespace libtorrent
 {
 	class peer_connection;
 	class torrent;
-	struct socket_job;
 #ifndef TORRENT_NO_DEPRECATE
 	struct pe_settings;
 #endif
@@ -214,11 +213,6 @@ namespace libtorrent { namespace aux
 
 		virtual boost::uint16_t listen_port() const = 0;
 		virtual boost::uint16_t ssl_listen_port() const = 0;
-
-		// TODO: 2 factor out the thread pool for socket jobs into a separate
-		// class
-		// used to (potentially) issue socket write calls onto multiple threads
-		virtual void post_socket_job(socket_job& j) = 0;
 
 		// load the specified torrent. also evict one torrent, except
 		// for the one specified, if we are at the limit of loaded torrents

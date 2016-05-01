@@ -86,7 +86,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
-#include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/resolver.hpp"
@@ -622,8 +621,6 @@ namespace libtorrent
 			// implements uncork_interface
 			virtual void do_delayed_uncork() override;
 
-			void post_socket_job(socket_job& j) override;
-
 			// implements session_interface
 			virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address
 				const& remote_address, error_code& ec) const override;
@@ -661,7 +658,6 @@ namespace libtorrent
 			void update_queued_disk_bytes();
 			void update_alert_queue_size();
 			void update_disk_threads();
-			void update_network_threads();
 			void update_cache_buffer_chunk_size();
 			void update_report_web_seed_downloads();
 			void update_outgoing_interfaces();
@@ -757,10 +753,6 @@ namespace libtorrent
 			// events to the io service, and needs to be
 			// constructed after it.
 			disk_io_thread m_disk_thread;
-
-			// a thread pool used for async_write_some calls,
-			// to distribute its cost to multiple threads
-			std::vector<std::unique_ptr<network_thread_pool>> m_net_thread_pool;
 
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
