@@ -166,7 +166,8 @@ namespace libtorrent
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
 		// pointers may be null!
-		// TODO: 3 make these unique_ptr<>
+		// These must be shared_ptr to avoid a dangling reference if an
+		// incoming packet is in the event queue when the socket is erased
 		boost::shared_ptr<tcp::acceptor> sock;
 		boost::shared_ptr<udp_socket> udp_sock;
 	};
@@ -759,7 +760,7 @@ namespace libtorrent
 
 			// a thread pool used for async_write_some calls,
 			// to distribute its cost to multiple threads
-			std::vector<boost::shared_ptr<network_thread_pool> > m_net_thread_pool;
+			std::vector<std::unique_ptr<network_thread_pool>> m_net_thread_pool;
 
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that
