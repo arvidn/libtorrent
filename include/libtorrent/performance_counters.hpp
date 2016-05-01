@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
-#include <boost/atomic.hpp>
+#include <atomic>
+#include <mutex>
+#include <array>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -451,13 +453,13 @@ namespace libtorrent
 		// TODO: restore these to regular integers. Instead have one copy
 		// of the counters per thread and collect them at convenient
 		// synchronization points
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::atomic<boost::int64_t> m_stats_counter[num_counters];
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		std::array<std::atomic<boost::int64_t>, num_counters> m_stats_counter;
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
 		mutable std::mutex m_mutex;
-		boost::int64_t m_stats_counter[num_counters];
+		std::array<boost::int64_t, num_counters> m_stats_counter;
 #endif
 	};
 }

@@ -43,10 +43,10 @@ namespace libtorrent {
 
 	counters::counters()
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+#ifdef ATOMIC_LLONG_LOCK_FREE
 		for (int i = 0; i < sizeof(m_stats_counter)
 			/ sizeof(m_stats_counter[0]); ++i)
-			m_stats_counter[i].store(0, boost::memory_order_relaxed);
+			m_stats_counter[i].store(0, std::memory_order_relaxed);
 #else
 		memset(m_stats_counter, 0, sizeof(m_stats_counter));
 #endif
@@ -54,12 +54,12 @@ namespace libtorrent {
 
 	counters::counters(counters const& c)
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+#ifdef ATOMIC_LLONG_LOCK_FREE
 		for (int i = 0; i < sizeof(m_stats_counter)
 			/ sizeof(m_stats_counter[0]); ++i)
 			m_stats_counter[i].store(
-				c.m_stats_counter[i].load(boost::memory_order_relaxed)
-					, boost::memory_order_relaxed);
+				c.m_stats_counter[i].load(std::memory_order_relaxed)
+					, std::memory_order_relaxed);
 #else
 		std::lock_guard<std::mutex> l(c.m_mutex);
 		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
@@ -68,12 +68,12 @@ namespace libtorrent {
 
 	counters& counters::operator=(counters const& c)
 	{
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+#ifdef ATOMIC_LLONG_LOCK_FREE
 		for (int i = 0; i < sizeof(m_stats_counter)
 			/ sizeof(m_stats_counter[0]); ++i)
 			m_stats_counter[i].store(
-				c.m_stats_counter[i].load(boost::memory_order_relaxed)
-					, boost::memory_order_relaxed);
+				c.m_stats_counter[i].load(std::memory_order_relaxed)
+					, std::memory_order_relaxed);
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
 		std::lock_guard<std::mutex> l2(c.m_mutex);
@@ -90,8 +90,8 @@ namespace libtorrent {
 		VALGRIND_CHECK_VALUE_IS_DEFINED(m_stats_counter[i]);
 #endif
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		return m_stats_counter[i].load(boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		return m_stats_counter[i].load(std::memory_order_relaxed);
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
 		return m_stats_counter[i];
@@ -109,8 +109,8 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::int64_t pv = m_stats_counter[c].fetch_add(value, boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		boost::int64_t pv = m_stats_counter[c].fetch_add(value, std::memory_order_relaxed);
 		TORRENT_ASSERT(pv + value >= 0);
 		return pv + value;
 #else
@@ -129,12 +129,12 @@ namespace libtorrent {
 		TORRENT_ASSERT(ratio >= 0);
 		TORRENT_ASSERT(ratio <= 100);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
-		boost::int64_t current = m_stats_counter[c].load(boost::memory_order_relaxed);
+#ifdef ATOMIC_LLONG_LOCK_FREE
+		boost::int64_t current = m_stats_counter[c].load(std::memory_order_relaxed);
 		boost::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
 
 		while (!m_stats_counter[c].compare_exchange_weak(current, new_value
-			, boost::memory_order_relaxed))
+			, std::memory_order_relaxed))
 		{
 			new_value = (current * (100-ratio) + value * ratio) / 100;
 		}
@@ -150,7 +150,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
-#if BOOST_ATOMIC_LLONG_LOCK_FREE == 2
+#ifdef ATOMIC_LLONG_LOCK_FREE
 		m_stats_counter[c].store(value);
 #else
 		std::lock_guard<std::mutex> l(m_mutex);

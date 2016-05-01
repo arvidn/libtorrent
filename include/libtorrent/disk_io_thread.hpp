@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include <boost/pool/pool.hpp>
 #endif
-#include <boost/atomic.hpp>
+#include <atomic>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -518,15 +518,15 @@ namespace libtorrent
 		// this is a counter which is atomically incremented
 		// by each thread as it's started up, in order to
 		// assign a unique id to each thread
-		boost::atomic<int> m_num_threads;
+		std::atomic<int> m_num_threads;
 
 		// set to true once we start shutting down
-		boost::atomic<bool> m_abort;
+		std::atomic<bool> m_abort;
 
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
 		// shutting down. This last thread is responsible for cleanup
-		boost::atomic<int> m_num_running_threads;
+		std::atomic<int> m_num_running_threads;
 
 		// the actual threads running disk jobs
 		std::vector<std::thread> m_threads;

@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/unordered_set.hpp>
-#include <boost/atomic.hpp>
+#include <atomic>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -585,7 +585,7 @@ namespace libtorrent
 		// to this torrent, currently pending, hanging off of
 		// cached_piece_entry objects. This is used to determine
 		// when the fence can be lowered
-		boost::atomic<int> m_outstanding_jobs;
+		std::atomic<int> m_outstanding_jobs;
 
 		// must be held when accessing m_has_fence and
 		// m_blocked_jobs

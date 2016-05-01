@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
@@ -152,7 +151,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if defined __AMIGA__ || defined __amigaos__ || defined __AROS__
 #define TORRENT_AMIGA
 #define TORRENT_USE_IPV6 0
-#define TORRENT_USE_BOOST_THREAD 0
 #define TORRENT_USE_IOSTREAM 0
 // set this to 1 to disable all floating point operations
 // (disables some float-dependent APIs)
@@ -171,7 +169,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // the locale is always utf-8
 #if defined __APPLE__
 
-# define TORRENT_USE_OSATOMIC 1
 # ifndef TORRENT_USE_ICONV
 #  define TORRENT_USE_ICONV 0
 #  define TORRENT_USE_LOCALE 0
@@ -266,7 +263,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_USE_GETIPFORWARDTABLE 1
-#define TORRENT_USE_INTERLOCKED_ATOMIC 1
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
@@ -289,7 +285,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #define TORRENT_USE_RLIMIT 0
 #define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_INTERLOCKED_ATOMIC 1
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
@@ -313,14 +308,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
-#define TORRENT_USE_SOLARIS_ATOMIC 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
 #define TORRENT_BEOS
 #include <storage/StorageDefs.h> // B_PATH_NAME_LENGTH
 #define TORRENT_HAS_FALLOCATE 0
-#define TORRENT_USE_BEOS_ATOMIC 1
 #ifndef TORRENT_USE_ICONV
 #define TORRENT_USE_ICONV 0
 #endif
@@ -351,16 +344,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_BSD
-#endif
-
-#if defined __GNUC__ && !(defined TORRENT_USE_OSATOMIC \
-	|| defined TORRENT_USE_INTERLOCKED_ATOMIC \
-	|| defined TORRENT_USE_BEOS_ATOMIC \
-	|| defined TORRENT_USE_SOLARIS_ATOMIC)
-// atomic operations in GCC were introduced in 4.1.1
-# if (__GNUC__ >= 4 && __GNUC_MINOR__ >= 1 && __GNUC_PATCHLEVEL__ >= 1) || __GNUC__ > 4
-#  define TORRENT_USE_GCC_ATOMIC 1
-# endif
 #endif
 
 // on windows, NAME_MAX refers to Unicode characters
@@ -446,22 +429,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #define TORRENT_FORMAT(fmt, ellipsis) __attribute__((__format__(__printf__, fmt, ellipsis)))
 #else
 #define TORRENT_FORMAT(fmt, ellipsis)
-#endif
-
-#ifndef TORRENT_USE_INTERLOCKED_ATOMIC
-#define TORRENT_USE_INTERLOCKED_ATOMIC 0
-#endif
-
-#ifndef TORRENT_USE_GCC_ATOMIC
-#define TORRENT_USE_GCC_ATOMIC 0
-#endif
-
-#ifndef TORRENT_USE_OSATOMIC
-#define TORRENT_USE_OSATOMIC 0
-#endif
-
-#ifndef TORRENT_USE_BEOS_ATOMIC
-#define TORRENT_USE_BEOS_ATOMIC 0
 #endif
 
 // libiconv presence detection is not implemented yet
