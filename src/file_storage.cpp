@@ -816,6 +816,12 @@ namespace libtorrent
 			| (fe.symlink_attribute ? flag_symlink : 0);
 	}
 
+	bool file_storage::file_absolute_path(int index) const
+	{
+		internal_file_entry const& fe = m_files[index];
+		return fe.path_index == -2;
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	void file_storage::set_file_base(int index, boost::int64_t off)
 	{

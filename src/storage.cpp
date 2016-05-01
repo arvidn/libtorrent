@@ -785,11 +785,11 @@ namespace libtorrent
 #endif
 			// delete the files from disk
 			std::set<std::string> directories;
-			typedef std::set<std::string>::iterator iter_t;
+			using iter_t = std::set<std::string>::iterator;
 			for (int i = 0; i < files().num_files(); ++i)
 			{
-				std::string fp = files().file_path(i);
-				bool complete = is_complete(fp);
+				std::string const fp = files().file_path(i);
+				bool const complete = files().file_absolute_path(i);
 				std::string p = complete ? fp : combine_path(m_save_path, fp);
 				if (!complete)
 				{
@@ -936,32 +936,32 @@ namespace libtorrent
 		return true;
 	}
 
-	int default_storage::move_storage(std::string const& sp, int flags, storage_error& ec)
+	int default_storage::move_storage(std::string const& sp, int const flags
+		, storage_error& ec)
 	{
 		int ret = piece_manager::no_error;
-		std::string save_path = complete(sp);
+		std::string const save_path = complete(sp);
 
 		// check to see if any of the files exist
-		error_code e;
 		file_storage const& f = files();
 
-		file_status s;
 		if (flags == fail_if_exist)
 		{
-			stat_file(save_path, &s, e);
-			if (e != boost::system::errc::no_such_file_or_directory)
+			file_status s;
+			error_code err;
+			stat_file(save_path, &s, err);
+			if (err != boost::system::errc::no_such_file_or_directory)
 			{
 				// the directory exists, check all the files
 				for (int i = 0; i < f.num_files(); ++i)
 				{
 					// files moved out to absolute paths are ignored
-					if (is_complete(f.file_path(i))) continue;
+					if (f.file_absolute_path(i)) continue;
 
-					std::string new_path = f.file_path(i, save_path);
-					stat_file(new_path, &s, e);
-					if (e != boost::system::errc::no_such_file_or_directory)
+					stat_file(f.file_path(i, save_path), &s, err);
+					if (err != boost::system::errc::no_such_file_or_directory)
 					{
-						ec.ec = e;
+						ec.ec = err;
 						ec.file = i;
 						ec.operation = storage_error::stat;
 						return piece_manager::file_exist;
@@ -970,25 +970,29 @@ namespace libtorrent
 			}
 		}
 
-		e.clear();
-		stat_file(save_path, &s, e);
-		if (e == boost::system::errc::no_such_file_or_directory)
 		{
-			create_directories(save_path, e);
-			if (e)
+			file_status s;
+			error_code err;
+			stat_file(save_path, &s, err);
+			if (err == boost::system::errc::no_such_file_or_directory)
 			{
-				ec.ec = e;
+				err.clear();
+				create_directories(save_path, err);
+				if (err)
+				{
+					ec.ec = err;
+					ec.file = -1;
+					ec.operation = storage_error::mkdir;
+					return piece_manager::fatal_disk_error;
+				}
+			}
+			else if (err)
+			{
+				ec.ec = err;
 				ec.file = -1;
-				ec.operation = storage_error::mkdir;
+				ec.operation = storage_error::stat;
 				return piece_manager::fatal_disk_error;
 			}
-		}
-		else if (e)
-		{
-			ec.ec = e;
-			ec.file = -1;
-			ec.operation = storage_error::mkdir;
-			return piece_manager::fatal_disk_error;
 		}
 
 		m_pool.release(this);
@@ -998,13 +1002,14 @@ namespace libtorrent
 #endif
 
 		int i;
+		error_code e;
 		for (i = 0; i < f.num_files(); ++i)
 		{
 			// files moved out to absolute paths are not moved
-			if (is_complete(f.file_path(i))) continue;
+			if (f.file_absolute_path(i)) continue;
 
-			std::string old_path = combine_path(m_save_path, f.file_path(i));
-			std::string new_path = combine_path(save_path, f.file_path(i));
+			std::string const old_path = combine_path(m_save_path, f.file_path(i));
+			std::string const new_path = combine_path(save_path, f.file_path(i));
 
 			if (flags == dont_replace && exists(new_path))
 			{
@@ -1012,7 +1017,9 @@ namespace libtorrent
 				continue;
 			}
 
-			e.clear();
+			// TODO: ideally, if we end up copying files because of a move across
+			// volumes, the source should not be deleted until they've all been
+			// copied. That would let us rollback with higher confidence.
 			move_file(old_path, new_path, e);
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
@@ -1045,10 +1052,10 @@ namespace libtorrent
 			while (--i >= 0)
 			{
 				// files moved out to absolute paths are not moved
-				if (is_complete(f.file_path(i))) continue;
+				if (f.file_absolute_path(i)) continue;
 
-				std::string old_path = combine_path(m_save_path, f.file_path(i));
-				std::string new_path = combine_path(save_path, f.file_path(i));
+				std::string const old_path = combine_path(m_save_path, f.file_path(i));
+				std::string const new_path = combine_path(save_path, f.file_path(i));
 
 				if (!exists(old_path))
 				{
@@ -1061,32 +1068,34 @@ namespace libtorrent
 			return piece_manager::fatal_disk_error;
 		}
 
-		m_save_path.swap(save_path);
-		// now we have old save path in save_path
+		std::string const old_save_path = m_save_path;
+		m_save_path = save_path;
 
 		std::set<std::string> subdirs;
 		for (i = 0; i < f.num_files(); ++i)
 		{
 			// files moved out to absolute paths are not moved
-			if (is_complete(f.file_path(i))) continue;
+			if (f.file_absolute_path(i)) continue;
 
 			if (has_parent_path(f.file_path(i)))
 				subdirs.insert(parent_path(f.file_path(i)));
-			std::string old_path = combine_path(save_path, f.file_path(i));
 
-			// we may still have some files in old save_path
+			std::string const old_path = combine_path(old_save_path, f.file_path(i));
+
+			// we may still have some files in old old_save_path
 			// eg. if (flags == dont_replace && exists(new_path))
 			// ignore errors when removing
 			error_code ignore;
 			remove(old_path, ignore);
 		}
 
-		for (std::string subdir: subdirs)
+		for (std::string const& s : subdirs)
 		{
-			e.clear();
-			while (!subdir.empty() && !e)
+			error_code err;
+			std::string subdir = combine_path(old_save_path, s);
+			while (subdir != old_save_path && !err)
 			{
-				remove(combine_path(save_path, subdir), e);
+				remove(subdir, err);
 				subdir = parent_path(subdir);
 			}
 		}
