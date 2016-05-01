@@ -34,19 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/assert.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/random/random_device.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <random>
 
 namespace libtorrent
 {
-	using boost::random::random_device;
-	using boost::random::mt19937;
-	using boost::random::uniform_int_distribution;
+	using std::random_device;
+	using std::mt19937;
+	using std::uniform_int_distribution;
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
