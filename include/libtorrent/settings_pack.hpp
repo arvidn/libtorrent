@@ -1410,7 +1410,7 @@ namespace libtorrent
 			aio_threads,
 			aio_max,
 
-			// .. info:: This is not implemented
+			// .. note:: This is not implemented
 			// 
 			// ``network_threads`` is the number of threads to use to call
 			// ``async_write_some`` (i.e. send) on peer connection sockets. When
