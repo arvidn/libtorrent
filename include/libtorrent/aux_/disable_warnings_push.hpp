@@ -74,5 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef _MSC_VER
 #pragma warning(push, 1)
+// warning C4005: macro redefinition
+#pragma warning( disable : 4005 )
 #endif
 

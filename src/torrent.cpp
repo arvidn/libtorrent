@@ -1622,7 +1622,7 @@ namespace libtorrent
 		// wrap the PEM certificate in a BIO, for openssl to read
 		BIO* bp = BIO_new_mem_buf(
 			const_cast<void*>(static_cast<void const*>(cert.c_str()))
-			, cert.size());
+			, int(cert.size()));
 
 		// parse the certificate into OpenSSL's internal
 		// representation

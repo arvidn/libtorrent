@@ -598,7 +598,7 @@ namespace libtorrent
 		resp.min_interval = 60;
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);
-		int const num_peers = buf.size() / 6;
+		int const num_peers = int(buf.size()) / 6;
 		if ((buf.size() % 6) != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
@@ -768,16 +768,18 @@ namespace libtorrent
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(m_hostname.c_str()
-				, m_target.port(), aux::array_view<char const>(buf, sizeof(buf) - out.size()), ec
+				, m_target.port(), aux::array_view<char const>(buf
+					, int(sizeof(buf) - out.size())), ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, aux::array_view<char const>(buf, sizeof(buf) - out.size()), ec
+			m_man.send(m_target, aux::array_view<char const>(buf
+					, int(sizeof(buf) - out.size())), ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_announce;
-		sent_bytes(sizeof(buf) - out.size() + 28); // assuming UDP/IP header
+		sent_bytes(int(sizeof(buf) - out.size()) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
 		{
