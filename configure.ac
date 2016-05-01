@@ -129,7 +129,7 @@ AS_IF([test -z "$BOOST_CHRONO_LIB"],
 
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
-LIBS="$BOOST_CHRONO_LIB $LIBS"
+LIBS="$BOOST_CHRONO_LIB $BOOST_SYSTEM_LIB $LIBS"
 
 ###############################################################################
 # Checking for functions and other stuffs
