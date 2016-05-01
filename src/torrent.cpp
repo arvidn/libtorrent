@@ -384,7 +384,7 @@ namespace libtorrent
 				// we might want to do a full check to see if we have
 				// all the pieces. This is low priority since almost
 				// no one uses merkle torrents
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 			}
 		}
 
@@ -5867,7 +5867,7 @@ namespace libtorrent
 		peer_iterator i = sorted_find(m_connections, p);
 		if (i == m_connections.end())
 		{
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 			return;
 		}
 
@@ -7758,7 +7758,7 @@ namespace libtorrent
 			++ret;
 			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 #if TORRENT_USE_ASSERTS
-			int num_conns = m_connections.size();
+			int const num_conns = int(m_connections.size());
 #endif
 			p->disconnect(ec, op_bittorrent);
 			TORRENT_ASSERT(int(m_connections.size()) == num_conns - 1);
@@ -8355,7 +8355,7 @@ namespace libtorrent
 			if (!p.is_choked() && !p.ignore_unchoke_slots()) ++num_uploads;
 			torrent* associated_torrent = p.associated_torrent().lock().get();
 			if (associated_torrent != this && associated_torrent != 0)
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 		}
 		TORRENT_ASSERT(num_uploads == int(m_num_uploads));
 		TORRENT_ASSERT(seeds == int(m_num_seeds));
@@ -8399,7 +8399,7 @@ namespace libtorrent
 									, k->timed_out ? "timed-out" : "", k->busy ? "busy": "");
 							}
 						}
-						TORRENT_ASSERT(false);
+						TORRENT_ASSERT_FAIL();
 					}
 				}
 			}
@@ -8421,12 +8421,12 @@ namespace libtorrent
 		if (m_peer_list && m_peer_list->begin_peer() != m_peer_list->end_peer())
 		{
 			peer_list::const_iterator i = m_peer_list->begin_peer();
-			peer_list::const_iterator prev = i++;
+			peer_list::const_iterator p = i++;
 			peer_list::const_iterator end(m_peer_list->end_peer());
 			peer_address_compare cmp;
-			for (; i != end; ++i, ++prev)
+			for (; i != end; ++i, ++p)
 			{
-				TORRENT_ASSERT(!cmp(*i, *prev));
+				TORRENT_ASSERT(!cmp(*i, *p));
 			}
 		}
 #endif

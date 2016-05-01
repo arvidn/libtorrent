@@ -250,6 +250,13 @@ public:
 	std::map<std::string, node*> const& m_nodes;
 
 private:
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning: default constructor could not be generated
+#pragma warning(disable: 4510)
+// warning: struct can never be instantiated
+#pragma warning(disable: 4610)
+#endif
 	struct protocol_descriptor
 	{
 		udp protocol;
@@ -257,6 +264,9 @@ private:
 		char const* nodes_key;
 	};
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
 
 	dht_observer* m_observer;

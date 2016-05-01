@@ -336,13 +336,6 @@ namespace libtorrent
 
 	void session::start(int flags, settings_pack const& pack, io_service* ios)
 	{
-#if defined _MSC_VER && defined TORRENT_DEBUG
-		// workaround for microsoft's
-		// hardware exceptions that makes
-		// it hard to debug stuff
-		::_set_se_translator(straight_to_debugger);
-#endif
-
 		bool const internal_executor = ios == NULL;
 
 		if (internal_executor)

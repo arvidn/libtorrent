@@ -44,7 +44,7 @@ namespace libtorrent
 			}
 			TORRENT_CATCH_ALL
 			{
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 			}
 		}
 
@@ -59,7 +59,7 @@ namespace libtorrent
 			}
 			TORRENT_CATCH_ALL
 			{
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 			}
 		}
 
