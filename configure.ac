@@ -123,13 +123,9 @@ AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
       [AC_MSG_ERROR(Boost.System library not found. Try using --with-boost-system=lib)])
 
-AX_BOOST_CHRONO()
-AS_IF([test -z "$BOOST_CHRONO_LIB"],
-      [AC_MSG_ERROR(Boost.Chrono library not found. Try using --with-boost-chrono=lib)])
-
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
-LIBS="$BOOST_CHRONO_LIB $BOOST_SYSTEM_LIB $LIBS"
+LIBS="$BOOST_SYSTEM_LIB $LIBS"
 
 ###############################################################################
 # Checking for functions and other stuffs
@@ -532,6 +528,9 @@ AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$AR
 AC_DEFINE([BOOST_ASIO_HASH_MAP_BUCKETS],[1021],[Define to fix a wrong behavior in boost 1.39.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
 
+AC_DEFINE([BOOST_ASIO_HAS_STD_CHRONO],[1],[Define to make sure asio uses std::chrono.])
+COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HAS_STD_CHRONO=1 "
+
 AC_DEFINE([BOOST_EXCEPTION_DISABLE],[1],[Define to disable the boost.exception features.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_EXCEPTION_DISABLE "
 
@@ -640,7 +639,6 @@ Boost libraries:
   CPPFlags:             ${BOOST_CPPFLAGS}
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
-  boost.chrono:         ${BOOST_CHRONO_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
