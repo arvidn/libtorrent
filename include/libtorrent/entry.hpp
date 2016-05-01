@@ -136,6 +136,7 @@ namespace libtorrent
 
 		// hidden
 		entry(entry const& e);
+		entry(entry&& e);
 
 		// hidden
 		entry();
@@ -154,6 +155,7 @@ namespace libtorrent
 #endif
 		entry& operator=(bdecode_node const&);
 		entry& operator=(entry const&);
+		entry& operator=(entry&&);
 		entry& operator=(dictionary_type const&);
 		entry& operator=(string_type const&);
 		entry& operator=(list_type const&);

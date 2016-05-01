@@ -163,6 +163,12 @@ namespace libtorrent
 		return *this;
 	}
 
+	entry& entry::operator=(entry&& e)
+	{
+		swap(e);
+		return *this;
+	}
+
 	entry::integer_type& entry::integer()
 	{
 		if (m_type == undefined_t) construct(int_t);
@@ -278,6 +284,18 @@ namespace libtorrent
 		copy(e);
 #ifdef TORRENT_DEBUG
 		m_type_queried = e.m_type_queried;
+#endif
+	}
+
+	entry::entry(entry&& e)
+		: m_type(undefined_t)
+	{
+#ifdef TORRENT_DEBUG
+		uint8_t type_queried = e.m_type_queried;
+#endif
+		swap(e);
+#ifdef TORRENT_DEBUG
+		m_type_queried = type_queried;
 #endif
 	}
 
