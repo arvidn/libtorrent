@@ -470,62 +470,6 @@ namespace libtorrent
 		bool m_allocate_files;
 	};
 
-	// this storage implementation does not write anything to disk
-	// and it pretends to read, and just leaves garbage in the buffers
-	// this is useful when simulating many clients on the same machine
-	// or when running stress tests and want to take the cost of the
-	// disk I/O out of the picture. This cannot be used for any kind
-	// of normal bittorrent operation, since it will just send garbage
-	// to peers and throw away all the data it downloads. It would end
-	// up being banned immediately
-	class disabled_storage final : public storage_interface, boost::noncopyable
-	{
-	public:
-		virtual bool has_any_file(storage_error&) override { return false; }
-		virtual void set_file_priority(std::vector<boost::uint8_t> const&
-			, storage_error&) override {}
-		virtual void rename_file(int, std::string const&, storage_error&) override {}
-		virtual void release_files(storage_error&) override {}
-		virtual void delete_files(int, storage_error&) override {}
-		virtual void initialize(storage_error&) override {}
-		virtual int move_storage(std::string const&, int, storage_error&) override { return 0; }
-
-		virtual int readv(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec) override;
-		virtual int writev(file::iovec_t const* bufs, int num_bufs, int piece
-			, int offset, int flags, storage_error& ec) override;
-
-		virtual bool verify_resume_data(add_torrent_params const&
-			, std::vector<std::string> const*
-			, storage_error&) override { return false; }
-	};
-
-	// this storage implementation always reads zeroes, and always discards
-	// anything written to it
-	struct zero_storage final : storage_interface
-	{
-		virtual void initialize(storage_error&) override {}
-
-		virtual int readv(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) override;
-		virtual int writev(file::iovec_t const* bufs, int num_bufs
-			, int piece, int offset, int flags, storage_error& ec) override;
-
-		virtual bool has_any_file(storage_error&) override { return false; }
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
-			, storage_error&) override {}
-		virtual int move_storage(std::string const& /* save_path */
-			, int /* flags */, storage_error&) override { return 0; }
-		virtual bool verify_resume_data(add_torrent_params const& /* rd */
-			, std::vector<std::string> const* /* links */
-			, storage_error&) override
-			{ return false; }
-		virtual void release_files(storage_error&) override {}
-		virtual void rename_file(int /* index */
-			, std::string const& /* new_filenamem */, storage_error&) override {}
-		virtual void delete_files(int, storage_error&) override {}
-	};
-
 	struct disk_io_thread;
 
 	// implements the disk I/O job fence used by the piece_manager
