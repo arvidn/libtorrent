@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/resolver.hpp"
+#include "libtorrent/debug.hpp"
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function5.hpp>
@@ -47,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <set>
-#include <mutex>
 
 namespace libtorrent
 {
@@ -129,9 +129,10 @@ TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
 	, int str_len, parse_state& state);
 
 // TODO: support using the windows API for UPnP operations as well
-class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
+struct TORRENT_EXTRA_EXPORT upnp final
+	: boost::enable_shared_from_this<upnp>
+	, single_threaded
 {
-public:
 	upnp(io_service& ios
 		, std::string const& user_agent
 		, portmap_callback_t const& cb, log_callback_t const& lcb
@@ -174,7 +175,7 @@ public:
 	// the router, it can be queried through this function.
 	std::string router_model()
 	{
-		std::unique_lock<std::mutex> l(m_mutex);
+		TORRENT_ASSERT(is_single_thread());
 		return m_model;
 	}
 
@@ -183,8 +184,8 @@ private:
 	boost::shared_ptr<upnp> self() { return shared_from_this(); }
 
 	void map_timer(error_code const& ec);
-	void try_map_upnp(std::unique_lock<std::mutex>& l, bool timer = false);
-	void discover_device_impl(std::unique_lock<std::mutex>& l);
+	void try_map_upnp(bool timer = false);
+	void discover_device_impl();
 	static address_v4 upnp_multicast_address;
 	static udp::endpoint upnp_multicast_endpoint;
 
@@ -199,8 +200,8 @@ private:
 		, std::size_t bytes_transferred);
 
 	struct rootdevice;
-	void next(rootdevice& d, int i, std::unique_lock<std::mutex>& l);
-	void update_map(rootdevice& d, int i, std::unique_lock<std::mutex>& l);
+	void next(rootdevice& d, int i);
+	void update_map(rootdevice& d, int i);
 
 
 	void on_upnp_xml(error_code const& e
@@ -217,15 +218,15 @@ private:
 		, int mapping, http_connection& c);
 	void on_expire(error_code const& e);
 
-	void disable(error_code const& ec, std::unique_lock<std::mutex>& l);
-	void return_error(int mapping, int code, std::unique_lock<std::mutex>& l);
-	void log(char const* msg, std::unique_lock<std::mutex>& l);
+	void disable(error_code const& ec);
+	void return_error(int mapping, int code);
+	void log(char const* msg);
 
 	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, int i);
 	void create_port_mapping(http_connection& c, rootdevice& d, int i);
 	void post(upnp::rootdevice const& d, char const* soap
-		, char const* soap_action, std::unique_lock<std::mutex>& l);
+		, char const* soap_action);
 
 	int num_mappings() const { return int(m_mappings.size()); }
 
@@ -393,9 +394,6 @@ private:
 	bool m_disabled;
 	bool m_closing;
 	bool m_ignore_non_routers;
-
-	// TODO: 3 is this class really accessed from multiple threads?
-	std::mutex m_mutex;
 
 	std::string m_model;
 

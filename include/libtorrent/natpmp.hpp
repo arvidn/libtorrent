@@ -39,8 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/time.hpp"
-
-#include <mutex>
+#include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -59,9 +58,10 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-class natpmp : public boost::enable_shared_from_this<natpmp>
+struct natpmp
+	: boost::enable_shared_from_this<natpmp>
+	, single_threaded
 {
-public:
 	natpmp(io_service& ios, portmap_callback_t const& cb
 		, log_callback_t const& lcb);
 
@@ -80,19 +80,19 @@ private:
 
 	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
 
-	void update_mapping(int i, std::unique_lock<std::mutex>& l);
-	void send_map_request(int i, std::unique_lock<std::mutex>& l);
-	void send_get_ip_address_request(std::unique_lock<std::mutex>& l);
+	void update_mapping(int i);
+	void send_map_request(int i);
+	void send_get_ip_address_request();
 	void resend_request(int i, error_code const& e);
 	void on_reply(error_code const& e
 		, std::size_t bytes_transferred);
-	void try_next_mapping(int i, std::unique_lock<std::mutex>& l);
-	void update_expiration_timer(std::unique_lock<std::mutex>& l);
+	void try_next_mapping(int i);
+	void update_expiration_timer();
 	void mapping_expired(error_code const& e, int i);
-	void close_impl(std::unique_lock<std::mutex>& l);
+	void close_impl();
 
-	void log(char const* msg, std::unique_lock<std::mutex>& l);
-	void disable(error_code const& ec, std::unique_lock<std::mutex>& l);
+	void log(char const* msg);
+	void disable(error_code const& ec);
 
 	struct mapping_t
 	{
@@ -173,9 +173,6 @@ private:
 	bool m_disabled;
 
 	bool m_abort;
-
-	// TODO:3 is this object really acceessed from multiple threads?
-	mutable std::mutex m_mutex;
 };
 
 }

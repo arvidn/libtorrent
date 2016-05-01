@@ -100,8 +100,8 @@ namespace libtorrent
 {
 
 	struct plugin;
-	class upnp;
-	class natpmp;
+	struct upnp;
+	struct natpmp;
 	class lsd;
 	class torrent;
 	class alert;
