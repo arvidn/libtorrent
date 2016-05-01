@@ -127,13 +127,9 @@ AX_BOOST_CHRONO()
 AS_IF([test -z "$BOOST_CHRONO_LIB"],
       [AC_MSG_ERROR(Boost.Chrono library not found. Try using --with-boost-chrono=lib)])
 
-AX_BOOST_RANDOM()
-AS_IF([test -z "$BOOST_RANDOM_LIB"],
-      [AC_MSG_ERROR(Boost.Random library not found. Try using --with-boost-random=lib)])
-
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
-LIBS="$BOOST_CHRONO_LIB $BOOST_RANDOM_LIB $LIBS"
+LIBS="$BOOST_CHRONO_LIB $LIBS"
 
 ###############################################################################
 # Checking for functions and other stuffs
@@ -645,7 +641,6 @@ Boost libraries:
   LDFlags:              ${BOOST_LDFLAGS}
   boost.system:         ${BOOST_SYSTEM_LIB}
   boost.chrono:         ${BOOST_CHRONO_LIB}
-  boost.random:         ${BOOST_RANDOM_LIB}
 END
 
 AS_IF([test "x$ARG_ENABLE_PYTHON_BINDING" = "xyes"], [
