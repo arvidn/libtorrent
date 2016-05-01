@@ -1158,19 +1158,6 @@ namespace libtorrent
 			}
 		}
 
-		// collect all directories in to_move. This is because we
-		// try to move entire directories by default (instead of
-		// files independently).
-		std::map<std::string, int> to_move;
-		for (int i = 0; i < f.num_files(); ++i)
-		{
-			// files moved out to absolute paths are not moved
-			if (is_complete(f.file_path(i))) continue;
-
-			std::string split = split_path(f.file_path(i));
-			to_move.insert(to_move.begin(), std::make_pair(split, i));
-		}
-
 		e.clear();
 		stat_file(save_path, &s, e);
 		if (e == boost::system::errc::no_such_file_or_directory)
@@ -1198,85 +1185,102 @@ namespace libtorrent
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
-		for (std::map<std::string, int>::const_iterator i = to_move.begin()
-			, end(to_move.end()); i != end; ++i)
+		int i;
+		for (i = 0; i < f.num_files(); ++i)
 		{
-			std::string old_path = combine_path(m_save_path, i->first);
-			std::string new_path = combine_path(save_path, i->first);
+			// files moved out to absolute paths are not moved
+			if (is_complete(f.file_path(i))) continue;
+
+			std::string old_path = combine_path(m_save_path, f.file_path(i));
+			std::string new_path = combine_path(save_path, f.file_path(i));
+
+			if (flags == dont_replace && exists(new_path))
+			{
+				if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
+				continue;
+			}
 
 			e.clear();
-			rename(old_path, new_path, e);
+			move_file(old_path, new_path, e);
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
 			if (e == boost::system::errc::no_such_file_or_directory)
 				e.clear();
 
-			// on OSX, the error when trying to rename a file across different
-			// volumes is EXDEV, which will make it fall back to copying.
-
 			if (e)
 			{
-				if (flags == dont_replace && e == boost::system::errc::file_exists)
-				{
-					if (ret == piece_manager::no_error) ret = piece_manager::need_full_check;
-					continue;
-				}
-
-				if (e == boost::system::errc::invalid_argument
-					|| e == boost::system::errc::permission_denied)
-				{
-					ec.ec = e;
-					ec.file = i->second;
-					ec.operation = storage_error::rename;
-					break;
-				}
-
-				if (e != boost::system::errc::no_such_file_or_directory)
-				{
-					e.clear();
-					recursive_copy(old_path, new_path, ec.ec);
-					if (ec.ec == boost::system::errc::no_such_file_or_directory)
-					{
-						// it's a bit weird that rename() would not return
-						// ENOENT, but the file still wouldn't exist. But,
-						// in case it does, we're done.
-						ec.ec.clear();
-						break;
-					}
-					if (ec)
-					{
-						ec.file = i->second;
-						ec.operation = storage_error::copy;
-					}
-					else
-					{
-						// ignore errors when removing
-						error_code ignore;
-						remove_all(old_path, ignore);
-					}
-					break;
-				}
+				ec.ec = e;
+				ec.file = i;
+				ec.operation = storage_error::rename;
+				break;
 			}
 		}
 
-		if (!ec)
+		if (!e && m_part_file)
 		{
-			if (m_part_file)
+			m_part_file->move_partfile(save_path, e);
+			if (e)
 			{
-				// TODO: if everything moves OK, except for the partfile
-				// we currently won't update the save path, which breaks things.
-				// it would probably make more sense to give up on the partfile
-				m_part_file->move_partfile(save_path, ec.ec);
-				if (ec)
+				ec.ec = e;
+				ec.file = -1;
+				ec.operation = storage_error::partfile_move;
+			}
+		}
+
+		if (e)
+		{
+			// rollback
+			while (--i >= 0)
+			{
+				// files moved out to absolute paths are not moved
+				if (is_complete(f.file_path(i))) continue;
+
+				std::string old_path = combine_path(m_save_path, f.file_path(i));
+				std::string new_path = combine_path(save_path, f.file_path(i));
+
+				if (!exists(old_path))
 				{
-					ec.file = -1;
-					ec.operation = storage_error::partfile_move;
-					return piece_manager::fatal_disk_error;
+					// ignore errors when rolling back
+					error_code ignore;
+					move_file(new_path, old_path, ignore);
 				}
 			}
 
-			m_save_path = save_path;
+			return piece_manager::fatal_disk_error;
 		}
+
+		m_save_path.swap(save_path);
+		// now we have old save path in save_path
+
+		std::set<std::string> subdirs;
+		for (i = 0; i < f.num_files(); ++i)
+		{
+			// files moved out to absolute paths are not moved
+			if (is_complete(f.file_path(i))) continue;
+
+			if (has_parent_path(f.file_path(i)))
+				subdirs.insert(parent_path(f.file_path(i)));
+			std::string old_path = combine_path(save_path, f.file_path(i));
+
+			// we may still have some files in old save_path
+			// eg. if (flags == dont_replace && exists(new_path))
+			// ignore errors when removing
+			error_code ignore;
+			remove(old_path, ignore);
+		}
+
+		for (std::set<std::string>::iterator it(subdirs.begin())
+			 , end(subdirs.end()); it != end; ++it)
+		{
+			e.clear();
+			std::string subdir(*it);
+			while (!subdir.empty() && !e)
+			{
+				remove(combine_path(save_path, subdir), e);
+				subdir = parent_path(subdir);
+			}
+		}
+
 		return ret;
 	}
 

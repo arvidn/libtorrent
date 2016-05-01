@@ -1253,27 +1253,107 @@ TORRENT_TEST(readwritev_zero_size_files)
 
 TORRENT_TEST(move_storage_into_self)
 {
+	error_code ec;
+	std::string save_path = current_working_directory();
+	remove_all(combine_path(save_path, "temp_storage"), ec);
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(save_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
+	TEST_CHECK(!exists(combine_path(save_path, "temp_storage")));
+
 	aux::session_settings set;
 	file_storage fs;
 	std::vector<char> buf;
 	file_pool fp;
 	io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
-	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf
-		, current_working_directory()
-		, set);
+	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
 	s->writev(&b, 1, 2, 0, 0, se);
 
-	s->move_storage(combine_path("temp_storage", "folder1"), 0, se);
+	std::string test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
+	s->move_storage(test_path, 0, se);
+	TEST_EQUAL(se.ec, boost::system::errc::success);
 
-	printf("move error: %s\n", se.ec.message().c_str());
-#ifdef _WIN32
-	TEST_EQUAL(se.ec, boost::system::errc::permission_denied);
-#else
-	TEST_EQUAL(se.ec, boost::system::errc::invalid_argument);
-#endif
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));
+
+	// these directories and files are created up-front because they are empty files
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder2", "test3.tmp")))));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", "test4.tmp")))));
+}
+
+TORRENT_TEST(dont_move_intermingled_files)
+{
+	error_code ec;
+
+	std::string save_path = combine_path(current_working_directory(), "save_path_1");
+	remove_all(combine_path(save_path, "temp_storage"), ec);
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(save_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
+	TEST_CHECK(!exists(combine_path(save_path, "temp_storage")));
+
+	std::string test_path = combine_path(current_working_directory(), "save_path_2");
+	remove_all(combine_path(test_path, "temp_storage"), ec);
+	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		<< "': " << ec.message() << std::endl;
+	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
+
+	aux::session_settings set;
+	file_storage fs;
+	std::vector<char> buf;
+	file_pool fp;
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
+	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
+
+	file::iovec_t b = {&buf[0], 4};
+	storage_error se;
+	s->writev(&b, 1, 2, 0, 0, se);
+
+	create_directory(combine_path(save_path, combine_path("temp_storage"
+		, combine_path("_folder3", "alien_folder1"))), ec);
+	TEST_EQUAL(ec, boost::system::errc::success);
+	file f;
+	f.open(combine_path(save_path, combine_path("temp_storage", "alien1.tmp"))
+		, file::write_only, ec);
+	f.close();
+	TEST_EQUAL(ec, boost::system::errc::success);
+	f.open(combine_path(save_path, combine_path("temp_storage"
+		, combine_path("folder1", "alien2.tmp"))), file::write_only, ec);
+	f.close();
+	TEST_EQUAL(ec, boost::system::errc::success);
+
+	s->move_storage(test_path, 0, se);
+	TEST_EQUAL(se.ec, boost::system::errc::success);
+
+	// torrent files moved to new place
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "test2.tmp")))));
+	// these directories and files are created up-front because they are empty files
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder2", "test3.tmp")))));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", "test4.tmp")))));
+
+	// intermingled files and directories are still in old place
+	TEST_CHECK(exists(combine_path(save_path, combine_path("temp_storage"
+		, "alien1.tmp"))));
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, "alien1.tmp"))));
+	TEST_CHECK(exists(combine_path(save_path, combine_path("temp_storage"
+		, combine_path("folder1", "alien2.tmp")))));
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("folder1", "alien2.tmp")))));
+	TEST_CHECK(exists(combine_path(save_path, combine_path("temp_storage"
+		, combine_path("_folder3", "alien_folder1")))));
+	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
+		, combine_path("_folder3", "alien_folder1")))));
 }
 
