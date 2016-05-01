@@ -391,7 +391,7 @@ namespace libtorrent
 		boost::int64_t total_uploaded;
 		boost::int64_t total_downloaded;
 
-		// the numeber of seconds this torrent has spent in started, finished and
+		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
 		int active_time;
 		int finished_time;
@@ -415,7 +415,7 @@ namespace libtorrent
 		// swarm, as returned by the tracker (either when announcing to it or by
 		// sending a specific scrape request). ``num_complete`` is the number of
 		// peers in the swarm that are seeds, or have every piece in the torrent.
-		// ``num_inomplete`` is the number of peers in the swarm that do not have
+		// ``num_incomplete`` is the number of peers in the swarm that do not have
 		// every piece. ``num_downloaded`` is the number of times the torrent has
 		// been downloaded (not initiated, but the number of times a download has
 		// completed).

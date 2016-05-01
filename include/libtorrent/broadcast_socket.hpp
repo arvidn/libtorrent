@@ -52,7 +52,6 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
-	TORRENT_EXTRA_EXPORT bool is_multicast(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT int cidr_distance(address const& a1, address const& a2);

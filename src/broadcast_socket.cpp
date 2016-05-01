@@ -97,20 +97,6 @@ namespace libtorrent
 #endif
 	}
 
-	bool is_multicast(address const& addr)
-	{
-#if TORRENT_USE_IPV6
-		TORRENT_TRY {
-			if (addr.is_v4())
-				return addr.to_v4().is_multicast();
-			else
-				return addr.to_v6().is_multicast();
-		} TORRENT_CATCH(std::exception&) { return false; }
-#else
-		return addr.to_v4().is_multicast();
-#endif
-	}
-
 	bool is_any(address const& addr)
 	{
 		TORRENT_TRY {
@@ -212,9 +198,7 @@ namespace libtorrent
 		, m_outstanding_operations(0)
 		, m_abort(false)
 	{
-		TORRENT_ASSERT(is_multicast(m_multicast_endpoint.address()));
-
-		using namespace boost::asio::ip::multicast;
+		TORRENT_ASSERT(m_multicast_endpoint.address().is_multicast());
 	}
 
 	void broadcast_socket::open(receive_handler_t const& handler
@@ -302,7 +286,6 @@ namespace libtorrent
 	void broadcast_socket::open_unicast_socket(io_service& ios, address const& addr
 		, address_v4 const& mask)
 	{
-		using namespace boost::asio::ip::multicast;
 		error_code ec;
 		boost::shared_ptr<udp::socket> s(new udp::socket(ios));
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);

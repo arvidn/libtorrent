@@ -1503,7 +1503,7 @@ namespace libtorrent
 	// to peer protocol encryption.
 	struct TORRENT_EXPORT pe_settings
 	{
-		// initializes the encryption settings with the default vaues
+		// initializes the encryption settings with the default values
 		pe_settings()
 			: out_enc_policy(enabled)
 			, in_enc_policy(enabled)
