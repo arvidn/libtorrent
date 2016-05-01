@@ -91,7 +91,7 @@ int main()
 			, i->netmask.to_string(ec).c_str()
 			, i->name
 			, i->mtu
-			, (is_multicast(i->interface_address)?"multicast ":"")
+			, (i->interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i->interface_address)?"local ":"")
 			, (is_loopback(i->interface_address)?"loopback ":"")
 			);
