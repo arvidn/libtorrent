@@ -39,11 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/cstdint.hpp>
 
-#if defined BOOST_ASIO_HAS_STD_CHRONO
 #include <chrono>
-#else
-#include <boost/chrono.hpp>
-#endif
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
@@ -54,31 +50,20 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	typedef sim::chrono::high_resolution_clock clock_type;
-#elif defined BOOST_ASIO_HAS_STD_CHRONO
-	typedef std::chrono::high_resolution_clock clock_type;
+	using clock_type = sim::chrono::high_resolution_clock;
 #else
-	typedef boost::chrono::high_resolution_clock clock_type;
+	using clock_type = std::chrono::high_resolution_clock;
 #endif
 
-	typedef clock_type::time_point time_point;
-	typedef clock_type::duration time_duration;
+	using time_point = clock_type::time_point;
+	using time_duration = clock_type::duration;
 
-#if defined BOOST_ASIO_HAS_STD_CHRONO
 	using std::chrono::seconds;
 	using std::chrono::milliseconds;
 	using std::chrono::microseconds;
 	using std::chrono::minutes;
 	using std::chrono::hours;
 	using std::chrono::duration_cast;
-#else
-	using boost::chrono::seconds;
-	using boost::chrono::milliseconds;
-	using boost::chrono::microseconds;
-	using boost::chrono::minutes;
-	using boost::chrono::hours;
-	using boost::chrono::duration_cast;
-#endif
 
 	// internal
 	inline time_point min_time() { return (time_point::min)(); }
@@ -97,24 +82,6 @@ namespace libtorrent {
 	template<class T>
 	boost::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
-
-#ifndef TORRENT_NO_DEPRECATE
-
-	TORRENT_DEPRECATED
-	time_point time_now();
-
-	TORRENT_DEPRECATED
-	time_point time_now_hires();
-
-	inline time_point time_now()
-	{ return clock_type::now(); }
-
-	inline time_point time_now_hires()
-	{ return clock_type::now(); }
-
-	typedef time_point ptime;
-
-#endif
 
 }
 
