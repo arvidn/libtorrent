@@ -1251,15 +1251,22 @@ TORRENT_TEST(readwritev_zero_size_files)
 	TEST_CHECK(check_pattern(buf, 0));
 }
 
-TORRENT_TEST(move_storage_into_self)
+void delete_dirs(std::string path)
 {
 	error_code ec;
-	std::string save_path = current_working_directory();
-	remove_all(combine_path(save_path, "temp_storage"), ec);
+	remove_all(path, ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(save_path, "temp_storage")
-		<< "': " << ec.message() << std::endl;
-	TEST_CHECK(!exists(combine_path(save_path, "temp_storage")));
+	{
+		fprintf(stderr, "remove_all \"%s\": %s\n"
+			, path.c_str(), ec.message().c_str());
+	}
+	TEST_CHECK(!exists(path));
+}
+
+TORRENT_TEST(move_storage_into_self)
+{
+	std::string const save_path = current_working_directory();
+	delete_dirs(combine_path(save_path, "temp_storage"));
 
 	aux::session_settings set;
 	file_storage fs;
@@ -1269,11 +1276,11 @@ TORRENT_TEST(move_storage_into_self)
 	disk_buffer_pool dp(16 * 1024, ios, boost::bind(&nop));
 	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
-	file::iovec_t b = {&buf[0], 4};
+	file::iovec_t const b = {&buf[0], 4};
 	storage_error se;
 	s->writev(&b, 1, 2, 0, 0, se);
 
-	std::string test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
+	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
 	s->move_storage(test_path, 0, se);
 	TEST_EQUAL(se.ec, boost::system::errc::success);
 
@@ -1289,21 +1296,11 @@ TORRENT_TEST(move_storage_into_self)
 
 TORRENT_TEST(dont_move_intermingled_files)
 {
-	error_code ec;
-
-	std::string save_path = combine_path(current_working_directory(), "save_path_1");
-	remove_all(combine_path(save_path, "temp_storage"), ec);
-	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(save_path, "temp_storage")
-		<< "': " << ec.message() << std::endl;
-	TEST_CHECK(!exists(combine_path(save_path, "temp_storage")));
+	std::string const save_path = combine_path(current_working_directory(), "save_path_1");
+	delete_dirs(combine_path(save_path, "temp_storage"));
 
 	std::string test_path = combine_path(current_working_directory(), "save_path_2");
-	remove_all(combine_path(test_path, "temp_storage"), ec);
-	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
-		<< "': " << ec.message() << std::endl;
-	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
+	delete_dirs(combine_path(test_path, "temp_storage"));
 
 	aux::session_settings set;
 	file_storage fs;
@@ -1317,6 +1314,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	storage_error se;
 	s->writev(&b, 1, 2, 0, 0, se);
 
+	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1"))), ec);
 	TEST_EQUAL(ec, boost::system::errc::success);

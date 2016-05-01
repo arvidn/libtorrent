@@ -530,6 +530,11 @@ namespace libtorrent
 		// to file at ``index``.
 		int file_flags(int index) const;
 
+		// returns true if the file at the specified index has been renamed to
+		// have an absolute path, i.e. is not anchored in the save path of the
+		// torrent.
+		bool file_absolute_path(int index) const;
+
 		// returns the index of the file at the given offset in the torrent
 		int file_index_at_offset(boost::int64_t offset) const;
 
