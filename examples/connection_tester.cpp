@@ -261,7 +261,7 @@ struct peer_conn
 			, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
 	}
 
-	void on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
+	void on_handshake(char* h, error_code const& ec, size_t)
 	{
 		free(h);
 		if (ec)
@@ -275,7 +275,7 @@ struct peer_conn
 			, boost::bind(&peer_conn::on_handshake2, this, _1, _2));
 	}
 
-	void on_handshake2(error_code const& ec, size_t bytes_transferred)
+	void on_handshake2(error_code const& ec, size_t)
 	{
 		if (ec)
 		{
@@ -331,7 +331,7 @@ struct peer_conn
 		}
 	}
 
-	void on_have_all_sent(error_code const& ec, size_t bytes_transferred)
+	void on_have_all_sent(error_code const& ec, size_t)
 	{
 		if (ec)
 		{
@@ -404,7 +404,7 @@ struct peer_conn
 		return true;
 	}
 
-	void on_req_sent(char* m, error_code const& ec, size_t bytes_transferred)
+	void on_req_sent(char* m, error_code const& ec, size_t)
 	{
 		free(m);
 		if (ec)
@@ -465,7 +465,7 @@ struct peer_conn
 			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
-	void on_msg_length(error_code const& ec, size_t bytes_transferred)
+	void on_msg_length(error_code const& ec, size_t)
 	{
 		if ((ec == boost::asio::error::operation_aborted || ec == boost::asio::error::bad_descriptor)
 			&& restarting)
@@ -671,7 +671,6 @@ struct peer_conn
 			{
 				fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
 				exit(1);
-				return false;
 			}
 		}
 		return true;
@@ -831,8 +830,10 @@ void generate_data(char const* path, torrent_info const& ti)
 
 	boost::scoped_ptr<storage_interface> st(default_storage_constructor(params));
 
-	storage_error error;
-	st->initialize(error);
+	{
+		storage_error error;
+		st->initialize(error);
+	}
 
 	boost::uint32_t piece[0x4000 / 4];
 	for (int i = 0; i < ti.num_pieces(); ++i)
@@ -974,8 +975,8 @@ int main(int argc, char* argv[])
 			const int piece_size = 1024 * 1024;
 			libtorrent::create_torrent t(fs, piece_size);
 			sha1_hash zero(0);
-			for (int i = 0; i < fs.num_pieces(); ++i)
-				t.set_hash(i, zero);
+			for (int k = 0; k < fs.num_pieces(); ++k)
+				t.set_hash(k, zero);
 
 
 			buf.clear();
@@ -1024,12 +1025,12 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
 		return 1;
 	}
-	tcp::endpoint ep(addr, destination_port);
+	tcp::endpoint ep(addr, boost::uint16_t(destination_port));
 
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
-	unsigned long ip = addr.to_ulong();
+	boost::uint32_t const ip = addr.to_ulong();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;

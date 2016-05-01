@@ -95,7 +95,7 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash -j2 %compiler% address-model=%model% variant=%variant% linkflags=%linkflags% include=%include% link=shared
+- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% variant=%variant% linkflags=%linkflags% include=%include% link=shared
 
 # test
 - cd %ROOT_DIRECTORY%\test
