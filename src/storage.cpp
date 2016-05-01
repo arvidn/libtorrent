@@ -1068,8 +1068,8 @@ namespace libtorrent
 			return piece_manager::fatal_disk_error;
 		}
 
-		std::string old_save_path;
-		m_save_path.swap(old_save_path);
+		std::string const old_save_path = m_save_path;
+		m_save_path = save_path;
 
 		std::set<std::string> subdirs;
 		for (i = 0; i < f.num_files(); ++i)
