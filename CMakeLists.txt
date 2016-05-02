@@ -162,9 +162,17 @@ option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+if (NOT MSVC)
+	# MSVC doesn't provide this option and has its own ABI issues anyway.
+	option(abi "pick one until libtorrent's ABI is robust: c++03, c++11, c++14, default (currently c++03)" "default")
+endif()
 option(exceptions "build with exception support" ON)
 option(logging "build with logging" OFF)
 option(build_tests "build tests" OFF)
+
+if (abi STREQUAL "default")
+	set(abi "c++03")
+endif()
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
 
@@ -305,6 +313,15 @@ else()
 	endif (MSVC)
 endif()
 
+if (NOT MSVC)
+	if (abi STREQUAL "c++03")
+		add_definitions(-std=${abi})
+	elseif (abi STREQUAL "c++11" OR abi STREQUAL "c++14")
+		# Also silence auto_ptr because it throws lots of warnings.
+		add_definitions(-std=${abi} -Wno-deprecated-declarations)
+	endif()
+endif()
+
 if (MSVC)
 # disable bogus deprecation warnings on msvc8
 	add_definitions(-D_SCL_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE)
@@ -316,7 +333,9 @@ if (MSVC)
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_definitions(-Wno-c++11-extensions)
+	if (abi STREQUAL "c++03")
+		add_definitions(-Wno-c++11-extensions)
+	endif()
 	add_definitions(-fcolor-diagnostics)
 endif()
 
