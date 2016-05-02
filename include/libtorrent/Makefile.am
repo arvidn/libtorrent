@@ -76,7 +76,6 @@ nobase_include_HEADERS = \
   magnet_uri.hpp               \
   max.hpp                      \
   natpmp.hpp                   \
-  network_thread_pool.hpp      \
   operations.hpp               \
   packet_buffer.hpp            \
   parse_url.hpp                \
@@ -128,7 +127,6 @@ nobase_include_HEADERS = \
   storage_defs.hpp             \
   tailqueue.hpp                \
   string_util.hpp              \
-  thread_pool.hpp              \
   time.hpp                     \
   timestamp_history.hpp        \
   torrent_handle.hpp           \

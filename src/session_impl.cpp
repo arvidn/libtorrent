@@ -201,35 +201,6 @@ namespace libtorrent {
 	std::mutex _async_ops_mutex;
 #endif
 
-socket_job::~socket_job() {}
-
-void network_thread_pool::process_job(socket_job const& j, bool post)
-{
-	TORRENT_UNUSED(post);
-	if (j.type == socket_job::write_job)
-	{
-		TORRENT_ASSERT(j.peer->m_socket_is_writing);
-		j.peer->get_socket()->async_write_some(
-			*j.vec, j.peer->make_write_handler(boost::bind(
-				&peer_connection::on_send_data, j.peer, _1, _2)));
-	}
-	else
-	{
-		if (j.recv_buf)
-		{
-			j.peer->get_socket()->async_read_some(boost::asio::buffer(j.recv_buf, j.buf_size)
-				, j.peer->make_read_handler(boost::bind(
-				&peer_connection::on_receive_data, j.peer, _1, _2)));
-		}
-		else
-		{
-			j.peer->get_socket()->async_read_some(j.read_vec
-				, j.peer->make_read_handler(boost::bind(
-				&peer_connection::on_receive_data, j.peer, _1, _2)));
-		}
-	}
-}
-
 namespace aux {
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
@@ -596,7 +567,6 @@ namespace aux {
 		update_connections_limit();
 		update_unchoke_limit();
 		update_disk_threads();
-		update_network_threads();
 		update_upnp();
 		update_natpmp();
 		update_lsd();
@@ -6074,45 +6044,6 @@ namespace aux {
 #endif
 
 		m_disk_thread.set_num_threads(m_settings.get_int(settings_pack::aio_threads));
-	}
-
-	void session_impl::update_network_threads()
-	{
-		// TODO: 3 this is a mess
-		int num_threads = m_settings.get_int(settings_pack::network_threads);
-		int num_pools = num_threads > 0 ? num_threads : 1;
-		while (num_pools > m_net_thread_pool.size())
-		{
-			m_net_thread_pool.emplace_back(new network_thread_pool());
-			m_net_thread_pool.back()->set_num_threads(num_threads > 0 ? 1 : 0);
-		}
-
-		while (num_pools < m_net_thread_pool.size())
-		{
-			m_net_thread_pool.erase(m_net_thread_pool.end() - 1);
-		}
-
-		if (num_threads == 0 && m_net_thread_pool.size() > 0)
-		{
-			m_net_thread_pool[0]->set_num_threads(0);
-		}
-	}
-
-	void session_impl::post_socket_job(socket_job& j)
-	{
-		uintptr_t idx = 0;
-		if (m_net_thread_pool.size() > 1)
-		{
-			// each peer needs to be pinned to a specific thread
-			// since reading and writing simultaneously on the same
-			// socket from different threads is not supported by asio.
-			// as long as a specific socket is consistently used from
-			// the same thread, it's safe
-			idx = uintptr_t(j.peer.get());
-			idx ^= idx >> 8;
-			idx %= m_net_thread_pool.size();
-		}
-		m_net_thread_pool[idx]->post_job(j);
 	}
 
 	void session_impl::update_cache_buffer_chunk_size()

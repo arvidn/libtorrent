@@ -76,7 +76,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <boost/optional.hpp>
 #include <boost/cstdint.hpp>
-#include <boost/pool/pool.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -276,7 +275,6 @@ namespace libtorrent
 		, public boost::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
-	friend struct network_thread_pool;
 	friend class torrent;
 	public:
 

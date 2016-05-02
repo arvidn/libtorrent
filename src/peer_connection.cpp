@@ -71,7 +71,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
-#include "libtorrent/network_thread_pool.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
@@ -5661,20 +5660,8 @@ namespace libtorrent
 		m_socket_is_writing = true;
 #endif
 
-		// uTP sockets aren't thread safe...
-		if (is_utp(*m_socket))
-		{
-			m_socket->async_write_some(vec, make_write_handler(boost::bind(
-				&peer_connection::on_send_data, self(), _1, _2)));
-		}
-		else
-		{
-			socket_job j;
-			j.type = socket_job::write_job;
-			j.vec = &vec;
-			j.peer = self();
-			m_ses.post_socket_job(j);
-		}
+		m_socket->async_write_some(vec, make_write_handler(boost::bind(
+			&peer_connection::on_send_data, self(), _1, _2)));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
 	}
@@ -5803,42 +5790,20 @@ namespace libtorrent
 
 			// utp sockets aren't thread safe...
 			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
-			if (is_utp(*m_socket))
+			if (num_bufs == 1)
 			{
-				if (num_bufs == 1)
-				{
-					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-					m_socket->async_read_some(
-						boost::asio::mutable_buffers_1(vec[0]), make_read_handler(
-							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
-				}
-				else
-				{
-					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
-						+ boost::asio::buffer_size(vec[1])> 0);
-					m_socket->async_read_some(
-						vec, make_read_handler(
-							boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
-				}
+				TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
+				m_socket->async_read_some(
+					boost::asio::mutable_buffers_1(vec[0]), make_read_handler(
+						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 			}
 			else
 			{
-				socket_job j;
-				j.type = socket_job::read_job;
-				j.peer = self();
-				if (num_bufs == 1)
-				{
-					TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-					j.recv_buf = boost::asio::buffer_cast<char*>(vec[0]);
-					j.buf_size = int(boost::asio::buffer_size(vec[0]));
-				}
-				else
-				{
-					TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
-						+ boost::asio::buffer_size(vec[1])> 0);
-					j.read_vec = vec;
-				}
-				m_ses.post_socket_job(j);
+				TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
+					+ boost::asio::buffer_size(vec[1])> 0);
+				m_socket->async_read_some(
+					vec, make_read_handler(
+						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 			}
 			return 0;
 		}
@@ -6027,35 +5992,20 @@ namespace libtorrent
 		boost::asio::mutable_buffer buffer = m_recv_buffer.reserve(int(buffer_size));
 		TORRENT_ASSERT(m_recv_buffer.normalized());
 
-		// utp sockets aren't thread safe...
-		if (is_utp(*m_socket))
-		{
-			bytes_transferred = m_socket->read_some(boost::asio::mutable_buffers_1(buffer), ec);
+		bytes_transferred = m_socket->read_some(boost::asio::mutable_buffers_1(buffer), ec);
 
-			if (ec)
+		if (ec)
+		{
+			if (ec == boost::asio::error::try_again
+				|| ec == boost::asio::error::would_block)
 			{
-				if (ec == boost::asio::error::try_again
-					|| ec == boost::asio::error::would_block)
-				{
-					// allow reading from the socket again
-					TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-					m_channel_state[download_channel] &= ~peer_info::bw_network;
-					setup_receive();
-					return;
-				}
-				disconnect(ec, op_sock_read);
+				// allow reading from the socket again
+				TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
+				m_channel_state[download_channel] &= ~peer_info::bw_network;
+				setup_receive();
 				return;
 			}
-		}
-		else
-		{
-			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
-			socket_job j;
-			j.type = socket_job::read_job;
-			j.recv_buf = boost::asio::buffer_cast<char*>(buffer);
-			j.buf_size = int(boost::asio::buffer_size(buffer));
-			j.peer = self();
-			m_ses.post_socket_job(j);
+			disconnect(ec, op_sock_read);
 			return;
 		}
 
