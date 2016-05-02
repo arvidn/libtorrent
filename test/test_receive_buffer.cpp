@@ -39,12 +39,12 @@ using namespace libtorrent;
 struct allocator : buffer_allocator_interface
 {
 	void free_disk_buffer(char*) {}
-	char* allocate_disk_buffer(char const*) { TORRENT_ASSERT(false); return NULL; }
+	char* allocate_disk_buffer(char const*) { TORRENT_ASSERT_FALSE(); return NULL; }
 	char* allocate_disk_buffer(bool&
 		, boost::shared_ptr<disk_observer>
-		, char const*) { TORRENT_ASSERT(false); return NULL; }
+		, char const*) { TORRENT_ASSERT_FALSE(); return NULL; }
 	char* async_allocate_disk_buffer(char const*
-		, boost::function<void(char*)> const&) { TORRENT_ASSERT(false); return NULL; }
+		, boost::function<void(char*)> const&) { TORRENT_ASSERT_FALSE(); return NULL; }
 	void reclaim_block(block_cache_reference ref) {}
 };
 

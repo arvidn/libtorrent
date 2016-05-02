@@ -3034,7 +3034,7 @@ namespace libtorrent
 
 		if (j->ret == -1 && j->error.ec == boost::system::errc::operation_canceled)
 		{
-			TORRENT_ASSERT(false); // how do we get here?
+			TORRENT_ASSERT_FALSE(); // how do we get here?
 			picker.mark_as_canceled(block_finished, peer_info_struct());
 			return;
 		}

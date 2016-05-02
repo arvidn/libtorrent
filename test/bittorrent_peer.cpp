@@ -217,7 +217,7 @@ bool peer_conn::write_request()
 		}
 		else
 		{
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FALSE();
 		}
 	}
 	char msg[] = "\0\0\0\xd\x06"
