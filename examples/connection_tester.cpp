@@ -376,7 +376,7 @@ struct peer_conn
 			}
 			else
 			{
-				TORRENT_ASSERT_FALSE();
+				TORRENT_ASSERT_FAIL();
 			}
 		}
 		char msg[] = "\0\0\0\xd\x06"

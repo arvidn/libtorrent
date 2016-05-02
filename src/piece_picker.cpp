@@ -2488,7 +2488,7 @@ get_out:
 					fprintf(stderr, "\n");
 				}
 
-				TORRENT_ASSERT_FALSE();
+				TORRENT_ASSERT_FAIL();
 			}
 		}
 
