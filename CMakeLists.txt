@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
+
 project(libtorrent)
 set (SOVERSION "8")
 set (VERSION "1.1.0")
@@ -156,14 +157,13 @@ set(includes include ed25519/src)
 
 option(shared "build libtorrent as a shared library" ON)
 option(static_runtime "build libtorrent with static runtime" OFF)
-option(tcmalloc "link against google performance tools tcmalloc" OFF)
 option(pool-allocators "Uses a pool allocator for disk and piece buffers" ON)
 option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
 option(exceptions "build with exception support" ON)
-option(logging "build with logging" OFF)
+option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release RelWithDebInfo)
@@ -316,20 +316,20 @@ if (MSVC)
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 #$(SolutionDir)<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	add_definitions(-Wno-c++11-extensions)
 	add_definitions(-fcolor-diagnostics)
 endif()
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
 add_definitions(-DBOOST_EXCEPTION_DISABLE)
 add_definitions(-DBOOST_ASIO_ENABLE_CANCELIO)
-
-if (tcmalloc)
-	target_link_libraries(torrent-rasterbar tcmalloc)
-endif()
+add_definitions(-DBOOST_ASIO_HAS_STD_CHRONO)
 
 set_target_properties(torrent-rasterbar PROPERTIES
 	SOVERSION ${SOVERSION})
+
+# libtorrent requires at least C++11
+set_property(TARGET torrent-rasterbar PROPERTY CXX_STANDARD 11)
+set_property(TARGET torrent-rasterbar PROPERTY CXX_STANDARD_REQUIRED ON)
 
 get_property (COMPILETIME_OPTIONS_LIST
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIRECTORY}
