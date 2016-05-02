@@ -149,7 +149,7 @@ namespace libtorrent { namespace aux
 		for (int i = 0; i < len; ++i)
 			view[i] = str[i];
 
-		view = array_view<Byte>(view.data() + len, view.size() - len);
+		view = array_view<Byte>(view.data() + len, int(view.size()) - len);
 		return len;
 	}
 

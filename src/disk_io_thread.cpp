@@ -89,8 +89,12 @@ namespace libtorrent
 #define TORRENT_PIECE_ASSERT(cond, piece) \
 	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } TORRENT_WHILE_0
 
+#define TORRENT_PIECE_ASSERT_FAIL(piece) \
+	do { assert_print_piece(piece); assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, 0); } TORRENT_WHILE_0
+
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0
+#define TORRENT_PIECE_ASSERT_FAIL(piece) do {} TORRENT_WHILE_0
 #endif // TORRENT_USE_ASSERTS
 
 	namespace {
@@ -1297,7 +1301,7 @@ namespace libtorrent
 			{
 				// the piece is supposed to be allocated when the
 				// disk job is allocated
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 				return ret;
 			}
 			TORRENT_PIECE_ASSERT(pe->outstanding_read == 1, pe);
@@ -2997,7 +3001,7 @@ namespace libtorrent
 
 		// we should always be able to evict the piece, since
 		// this is a fence job
-		TORRENT_PIECE_ASSERT(false, pe);
+		TORRENT_PIECE_ASSERT_FAIL(pe);
 		return retry_job;
 	}
 

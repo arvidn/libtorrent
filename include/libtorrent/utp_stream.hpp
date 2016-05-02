@@ -364,7 +364,7 @@ public:
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
-			TORRENT_ASSERT(false); // we should never do this!
+			TORRENT_ASSERT_FAIL(); // we should never do this!
 			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}

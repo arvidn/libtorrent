@@ -139,7 +139,7 @@ struct set_keypress
 
 bool sleep_and_input(int* c, int sleep)
 {
-	libtorrent::time_point start = libtorrent::clock_type::now();
+	libtorrent::time_point const start = libtorrent::clock_type::now();
 	int ret = 0;
 retry:
 	fd_set set;
@@ -569,7 +569,7 @@ bool disable_storage = false;
 
 bool quit = false;
 
-void signal_handler(int signo)
+void signal_handler(int)
 {
 	// make the main loop terminate
 	quit = true;
@@ -646,19 +646,9 @@ void print_settings(int const start, int const num
 	}
 }
 
-// monitored_dir is true if this torrent is added because
-// it was found in the directory that is monitored. If it
-// is, it should be remembered so that it can be removed
-// if it's no longer in that directory.
 void add_torrent(libtorrent::session& ses
 	, handles_t& files
-	, std::set<libtorrent::torrent_handle>& non_files
-	, std::string torrent
-	, int allocation_mode
-	, std::string const& save_path
-	, bool monitored_dir
-	, int torrent_upload_limit
-	, int torrent_download_limit)
+	, std::string torrent)
 {
 	using namespace libtorrent;
 	static int counter = 0;
@@ -760,12 +750,7 @@ bool filter_fun(std::string const& p)
 
 void scan_dir(std::string const& dir_path
 	, libtorrent::session& ses
-	, handles_t& files
-	, std::set<libtorrent::torrent_handle>& non_files
-	, int allocation_mode
-	, std::string const& save_path
-	, int torrent_upload_limit
-	, int torrent_download_limit)
+	, handles_t& files)
 {
 	std::set<std::string> valid;
 
@@ -794,8 +779,7 @@ void scan_dir(std::string const& dir_path
 
 		// the file has been added to the dir, start
 		// downloading it.
-		add_torrent(ses, files, non_files, file, allocation_mode
-			, save_path, true, torrent_upload_limit, torrent_download_limit);
+		add_torrent(ses, files, file);
 		valid.insert(file);
 	}
 
@@ -956,6 +940,12 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			return true;
 	}
 
+#ifdef _MSC_VER
+// it seems msvc makes the definitions of 'p' escape the if-statement here
+#pragma warning(push)
+#pragma warning(disable: 4456)
+#endif
+
 	if (metadata_received_alert* p = alert_cast<metadata_received_alert>(a))
 	{
 		// if we have a monitor dir, save the .torrent file we just received in it
@@ -1018,7 +1008,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 					int peer_port = atoi(port);
 					error_code ec;
 					if (peer_port > 0)
-						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), peer_port));
+						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), boost::uint16_t(peer_port)));
 				}
 			}
 
@@ -1098,12 +1088,16 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		return true;
 	}
 	return false;
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 }
 
 void print_piece(libtorrent::partial_piece_info* pp
 	, libtorrent::cached_piece_info* cs
 	, std::vector<libtorrent::peer_info> const& peers
-	, torrent_status const* ts
 	, std::string& out)
 {
 	using namespace libtorrent;
@@ -1121,7 +1115,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		int index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
 		char chr = '+';
 		if (index >= 0)
-			chr = (index < 10)?'0' + index:'A' + index - 10;
+			chr = char((index < 10)?'0' + index:'A' + index - 10);
 		bool snubbed = index >= 0 ? ((peers[index].flags & peer_info::snubbed) != 0) : false;
 
 		char const* color = "";
@@ -1140,7 +1134,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			{
 				if (pp->blocks[j].num_peers > 1) color = esc("1;7");
 				else color = snubbed ? esc("35;7") : esc("33;7");
-				chr = '0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size);
+				chr = char('0' + (pp->blocks[j].bytes_progress * 10 / pp->blocks[j].block_size));
 			}
 			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
 			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
@@ -1159,15 +1153,6 @@ void print_piece(libtorrent::partial_piece_info* pp
 	}
 	out += esc("0");
 	out += "]";
-/*
-	char const* cache_kind_str[] = {"read", "write", "read-volatile"};
-	snprintf(str, sizeof(str), " %3d cache age: %-5.1f state: %s%s\n"
-		, cs ? cs->next_to_hash : 0
-		, cs ? (total_milliseconds(clock_type::now() - cs->last_use) / 1000.f) : 0.f
-		, cs ? cache_kind_str[cs->kind] : "N/A"
-		, ts && ts->pieces.size() ? (ts->pieces[piece] ? " have" : " dont-have") : "");
-	out += str;
-*/
 }
 
 int main(int argc, char* argv[])
@@ -1354,6 +1339,10 @@ int main(int argc, char* argv[])
 			case 'Q': share_mode = true; --i; break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
+			case 'a': allocation_mode = (arg == std::string("sparse"))
+				? libtorrent::storage_mode_sparse
+				: libtorrent::storage_mode_allocate;
+				break;
 			case 'x':
 				{
 					FILE* filter = fopen(arg, "r");
@@ -1500,9 +1489,7 @@ int main(int argc, char* argv[])
 		}
 
 		// if it's a torrent file, open it as usual
-		add_torrent(ses, files, non_files, i->c_str()
-			, allocation_mode, save_path, false
-			, torrent_upload_limit, torrent_download_limit);
+		add_torrent(ses, files, i->c_str());
 	}
 
 	// main loop
@@ -1556,9 +1543,9 @@ int main(int argc, char* argv[])
 				{
 					// escape code, read another character
 #ifdef WIN32
-					int c = _getch();
+					c = _getch();
 #else
-					int c = getc(stdin);
+					c = getc(stdin);
 					if (c == EOF) { break; }
 					if (c != '[') continue;
 					c = getc(stdin);
@@ -1678,12 +1665,12 @@ int main(int argc, char* argv[])
 							, boost::bind(&handles_t::value_type::second, _1) == st.handle);
 						if (i != files.end())
 						{
-							error_code ec;
+							error_code err;
 							std::string path;
 							if (is_absolute_path(i->first)) path = i->first;
 							else path = path_append(monitor_dir, i->first);
 							if (::remove(path.c_str()) < 0)
-								printf("failed to delete .torrent file: %s\n", ec.message().c_str());
+								printf("failed to delete .torrent file: %s\n", err.message().c_str());
 							files.erase(i);
 						}
 						if (st.handle.is_valid())
@@ -1710,14 +1697,13 @@ int main(int argc, char* argv[])
 				if (c == 'R')
 				{
 					// save resume data for all torrents
-					std::vector<torrent_status> torrents;
-					ses.get_torrent_status(&torrents, &yes, 0);
-					for (std::vector<torrent_status>::iterator i = torrents.begin()
-						, end(torrents.end()); i != end; ++i)
+					std::vector<torrent_status> torr;
+					ses.get_torrent_status(&torr, &yes, 0);
+					for (torrent_status const& st : torr)
 					{
-						if (i->need_save_resume)
+						if (st.need_save_resume)
 						{
-							i->handle.save_resume_data();
+							st.handle.save_resume_data();
 							++num_outstanding_resume_data;
 						}
 					}
@@ -1835,7 +1821,6 @@ int main(int argc, char* argv[])
 		// loop through the alert queue to see if anything has happened.
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = timestamp();
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
@@ -1938,7 +1923,7 @@ int main(int argc, char* argv[])
 			if (print_trackers)
 			{
 				std::vector<announce_entry> tr = h.trackers();
-				time_point now = clock_type::now();
+				time_point const now = clock_type::now();
 				for (std::vector<announce_entry>::iterator i = tr.begin()
 					, end(tr.end()); i != end; ++i)
 				{
@@ -1987,7 +1972,7 @@ int main(int argc, char* argv[])
 						< boost::bind(&partial_piece_info::piece_index, _2));
 					if (ppi != queue.end() && ppi->piece_index == i->piece) pp = &*ppi;
 
-					print_piece(pp, &*i, peers, &s, out);
+					print_piece(pp, &*i, peers, out);
 
 					int num_blocks = pp ? pp->blocks_in_piece : int(i->blocks.size());
 					p += num_blocks + 8;
@@ -2015,7 +2000,7 @@ int main(int argc, char* argv[])
 				{
 					if (pos + 3 >= terminal_height) break;
 
-					print_piece(&*i, 0, peers, &s, out);
+					print_piece(&*i, 0, peers, out);
 
 					int num_blocks = i->blocks_in_piece;
 					p += num_blocks + 8;
@@ -2155,9 +2140,7 @@ int main(int argc, char* argv[])
 		if (!monitor_dir.empty()
 			&& next_dir_scan < clock_type::now())
 		{
-			scan_dir(monitor_dir, ses, files, non_files
-				, allocation_mode, save_path, torrent_upload_limit
-				, torrent_download_limit);
+			scan_dir(monitor_dir, ses, files);
 			next_dir_scan = clock_type::now() + seconds(poll_interval);
 		}
 	}
@@ -2200,7 +2183,7 @@ int main(int argc, char* argv[])
 
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		std::string now = timestamp();
+		std::string const now = timestamp();
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{

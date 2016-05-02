@@ -750,7 +750,7 @@ bool utp_incoming_packet(utp_socket_impl* s
 	, udp::endpoint const& ep, time_point receive_time)
 {
 	return s->incoming_packet(
-		aux::array_view<boost::uint8_t const>(reinterpret_cast<boost::uint8_t const*>(p.data()), p.size())
+		aux::array_view<boost::uint8_t const>(reinterpret_cast<boost::uint8_t const*>(p.data()), int(p.size()))
 		, ep, receive_time);
 }
 
@@ -2426,7 +2426,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 		rtt = 100000;
 
 		// the clock for this platform is not monotonic!
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 	}
 
 	UTP_LOGV("%8p: acked packet %d (%d bytes) (rtt:%u)\n"
@@ -2947,7 +2947,7 @@ bool utp_socket_impl::incoming_packet(aux::array_view<boost::uint8_t const> buf
 
 	// look for extended headers
 	boost::uint8_t const* ptr = buf.data();
-	int const size = buf.size();
+	int const size = int(buf.size());
 	ptr += sizeof(utp_header);
 
 	unsigned int extension = ph->extension;

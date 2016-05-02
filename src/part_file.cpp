@@ -296,7 +296,7 @@ namespace libtorrent
 		TORRENT_UNUSED(ec);
 
 		// not implemented
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 	}
 
 	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)

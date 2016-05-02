@@ -85,7 +85,7 @@ int main(int argc, char const* argv[])
 		, std::istream_iterator<char>()};
 
 	lt::error_code ec;
-	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], buf.size(), ec);
+	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], int(buf.size()), ec);
 	atp.url = argv[1];
 	atp.save_path = "."; // save in current dir
 	ses.async_add_torrent(atp);

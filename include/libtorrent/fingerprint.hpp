@@ -118,7 +118,7 @@ namespace libtorrent
 		{
 			if (v >= 0 && v < 10) return char('0' + v);
 			else if (v >= 10) return char('A' + (v - 10));
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 			return '0';
 		}
 

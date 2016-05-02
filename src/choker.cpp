@@ -405,7 +405,7 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 
 			int pieces = sett.get_int(settings_pack::seeding_piece_quota);
 			std::partial_sort(peers.begin(), peers.begin()

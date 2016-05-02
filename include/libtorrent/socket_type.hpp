@@ -117,7 +117,7 @@ POSSIBILITY OF SUCH DAMAGE.
 			get<utp_stream>()->x; break; \
 		TORRENT_SOCKTYPE_I2P_FORWARD(x) \
 		TORRENT_SOCKTYPE_SSL_FORWARD(x) \
-		default: TORRENT_ASSERT(false); \
+		default: TORRENT_ASSERT_FAIL(); \
 	}
 
 #define TORRENT_SOCKTYPE_FORWARD_RET(x, def) \
@@ -132,7 +132,7 @@ POSSIBILITY OF SUCH DAMAGE.
 			return get<utp_stream>()->x; \
 		TORRENT_SOCKTYPE_I2P_FORWARD_RET(x, def) \
 		TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
-		default: TORRENT_ASSERT(false); return def; \
+		default: TORRENT_ASSERT_FAIL(); return def; \
 	}
 
 namespace libtorrent

@@ -621,7 +621,7 @@ namespace libtorrent
 			std::set<const torrent_peer*> have_peers;
 #endif
 
-			enum
+			enum : boost::uint32_t
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the

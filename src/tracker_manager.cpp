@@ -466,6 +466,6 @@ namespace libtorrent
 	int tracker_manager::num_requests() const
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
-		return m_http_conns.size() + m_udp_conns.size();
+		return int(m_http_conns.size() + m_udp_conns.size());
 	}
 }

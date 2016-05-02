@@ -611,7 +611,7 @@ namespace libtorrent
 		{
 			// currently, only swapping entries of the same type or where one
 			// of the entries is uninitialized is supported.
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 		}
 	}
 

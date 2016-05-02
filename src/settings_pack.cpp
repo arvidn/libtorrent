@@ -712,7 +712,7 @@ namespace libtorrent
 				return i != m_bools.end() && i->first == name;
 			}
 		}
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 		return false;
 	}
 
