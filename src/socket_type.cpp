@@ -218,7 +218,7 @@ namespace libtorrent
 				get<ssl_stream<utp_stream> >()->~ssl_stream();
 				break;
 #endif
-			default: TORRENT_ASSERT(false);
+			default: TORRENT_ASSERT_FAIL();
 		}
 		m_type = 0;
 	}
@@ -272,7 +272,7 @@ namespace libtorrent
 					, *static_cast<ssl::context*>(userdata));
 				break;
 #endif
-			default: TORRENT_ASSERT(false);
+			default: TORRENT_ASSERT_FAIL();
 		}
 
 		m_type = type;

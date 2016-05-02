@@ -2001,7 +2001,7 @@ namespace libtorrent
 			else if (packet_type <= msg_extended)
 				counter = counters::num_incoming_extended;
 			else
-				TORRENT_ASSERT(false);
+				TORRENT_ASSERT_FAIL();
 
 			stats_counters().inc_stats_counter(counter);
 		}

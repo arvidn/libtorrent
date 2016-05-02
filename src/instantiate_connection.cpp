@@ -140,7 +140,7 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT_VAL(false, ps.type);
+			TORRENT_ASSERT_FAIL_VAL(ps.type);
 			return false;
 		}
 		return true;

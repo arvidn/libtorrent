@@ -35,9 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/is_base_of.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 

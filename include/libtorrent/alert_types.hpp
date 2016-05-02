@@ -2423,6 +2423,9 @@ namespace libtorrent
 	private:
 		int m_array_idx;
 		int m_num_blocks;
+#else
+	picker_log_alert(aux::stack_allocator& alloc)
+		: peer_alert(alloc, torrent_handle(), tcp::endpoint(), peer_id()) {}
 #endif // TORRENT_DISABLE_LOGGING
 	};
 

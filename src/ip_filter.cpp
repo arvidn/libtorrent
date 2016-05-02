@@ -51,7 +51,7 @@ namespace libtorrent
 		}
 #endif
 		else
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 	}
 
 	int ip_filter::access(address const& addr) const

@@ -728,7 +728,7 @@ void socks5::connect2(error_code const& e)
 	{
 		// in this case we need to read more data from the socket
 		// no IPv6 support for UDP socks5
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 		return;
 	}
 

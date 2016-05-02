@@ -7639,7 +7639,7 @@ namespace libtorrent
 			TORRENT_LIST_NAME(torrent_downloading_auto_managed);
 			TORRENT_LIST_NAME(torrent_seeding_auto_managed);
 			TORRENT_LIST_NAME(torrent_checking_auto_managed);
-			default: TORRENT_ASSERT_VAL(false, idx);
+			default: TORRENT_ASSERT_FAIL_VAL(idx);
 		}
 #undef TORRENT_LIST_NAME
 		return "";
@@ -10974,7 +10974,7 @@ namespace libtorrent
 					return true;
 				default:
 					// unexpected state
-					TORRENT_ASSERT_VAL(false, st);
+					TORRENT_ASSERT_FAIL_VAL(st);
 					return false;
 			}
 		}

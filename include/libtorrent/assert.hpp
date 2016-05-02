@@ -95,8 +95,14 @@ extern char const* libtorrent_assert_log;
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
 	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
+
+#define TORRENT_ASSERT_FAIL_VAL(y) \
+	do { std::stringstream __s__; __s__ << #y ": " << y; \
+	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } TORRENT_WHILE_0
+
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)
+#define TORRENT_ASSERT_FAIL_VAL(x) TORRENT_ASSERT_FAIL()
 #endif
 
 #define TORRENT_ASSERT_FAIL() \
@@ -107,6 +113,7 @@ extern char const* libtorrent_assert_log;
 #define TORRENT_ASSERT_PRECOND(x) assert(x)
 #define TORRENT_ASSERT(x) assert(x)
 #define TORRENT_ASSERT_VAL(x, y) assert(x)
+#define TORRENT_ASSERT_FAIL_VAL(x) assert(false)
 #define TORRENT_ASSERT_FAIL() assert(false)
 #endif
 
@@ -115,6 +122,7 @@ extern char const* libtorrent_assert_log;
 #define TORRENT_ASSERT_PRECOND(a) do {} TORRENT_WHILE_0
 #define TORRENT_ASSERT(a) do {} TORRENT_WHILE_0
 #define TORRENT_ASSERT_VAL(a, b) do {} TORRENT_WHILE_0
+#define TORRENT_ASSERT_FAIL_VAL(a) do {} TORRENT_WHILE_0
 #define TORRENT_ASSERT_FAIL() do {} TORRENT_WHILE_0
 
 #endif // TORRENT_USE_ASSERTS

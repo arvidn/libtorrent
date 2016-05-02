@@ -762,7 +762,7 @@ namespace libtorrent
 #if defined TORRENT_DEBUG_FILE_LEAKS
 			print_open_files("delete-files idle assert failed", m_files.name().c_str());
 #endif
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 		}
 #endif
 

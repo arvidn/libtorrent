@@ -1234,7 +1234,7 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 			return descriptors[i];
 	}
 
-	TORRENT_ASSERT(false);
+	TORRENT_ASSERT_FAIL();
 	throw std::out_of_range("unknown protocol");
 }
 

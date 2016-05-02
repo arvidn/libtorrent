@@ -2426,7 +2426,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 		rtt = 100000;
 
 		// the clock for this platform is not monotonic!
-		TORRENT_ASSERT(false);
+		TORRENT_ASSERT_FAIL();
 	}
 
 	UTP_LOGV("%8p: acked packet %d (%d bytes) (rtt:%u)\n"

@@ -109,7 +109,7 @@ namespace libtorrent
 		void write_have(int) {}
 		void write_dont_have(int) {}
 		void write_piece(peer_request const&, disk_buffer_holder&)
-		{ TORRENT_ASSERT(false); }
+		{ TORRENT_ASSERT_FAIL(); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
