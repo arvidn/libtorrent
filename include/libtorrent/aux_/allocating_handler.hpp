@@ -73,15 +73,11 @@ namespace libtorrent { namespace aux
 	template <class Handler, std::size_t Size>
 	struct allocating_handler
 	{
-
-		// TODO: 3 make sure the handlers we pass in are potentially movable!
-#if !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		allocating_handler(
 			Handler&& h, handler_storage<Size>& s)
 			: handler(std::move(h))
 			, storage(s)
 		{}
-#endif
 
 		allocating_handler(
 			Handler const& h, handler_storage<Size>& s)
@@ -89,32 +85,11 @@ namespace libtorrent { namespace aux
 			, storage(s)
 		{}
 
-#if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
-		&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 		template <class... A>
 		void operator()(A&&... a) const
 		{
 			handler(std::forward<A>(a)...);
 		}
-#else
-		template <class A0>
-		void operator()(A0 const& a0) const
-		{
-			handler(a0);
-		}
-
-		template <class A0, class A1>
-		void operator()(A0 const& a0, A1 const& a1) const
-		{
-			handler(a0, a1);
-		}
-
-		template <class A0, class A1, class A2>
-		void operator()(A0 const& a0, A1 const& a1, A2 const& a2) const
-		{
-			handler(a0, a1, a2);
-		}
-#endif
 
 		friend void* asio_handler_allocate(
 			std::size_t size, allocating_handler<Handler, Size>* ctx)
