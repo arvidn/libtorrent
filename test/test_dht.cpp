@@ -2760,12 +2760,12 @@ TORRENT_TEST(generate_prefix_mask)
 	using namespace libtorrent::dht;
 
 	std::vector<std::pair<int, char const*>> const test = {
-		{ 0, "0000000000000000000000000000000000000000" },
-		{ 1, "8000000000000000000000000000000000000000" },
-		{ 2, "c000000000000000000000000000000000000000" },
-		{ 11, "ffe0000000000000000000000000000000000000" },
-		{ 17, "ffff800000000000000000000000000000000000" },
-		{ 37, "fffffffff8000000000000000000000000000000" },
+		{   0, "0000000000000000000000000000000000000000" },
+		{   1, "8000000000000000000000000000000000000000" },
+		{   2, "c000000000000000000000000000000000000000" },
+		{  11, "ffe0000000000000000000000000000000000000" },
+		{  17, "ffff800000000000000000000000000000000000" },
+		{  37, "fffffffff8000000000000000000000000000000" },
 		{ 160, "ffffffffffffffffffffffffffffffffffffffff" },
 	};
 
@@ -2779,35 +2779,38 @@ TORRENT_TEST(distance_exp)
 {
 	// distance_exp
 
+
+	using tst = std::tuple<char const*, char const*, int>;
+
 	std::vector<std::tuple<char const*, char const*, int>> const distance_tests = {
-		{ "ffffffffffffffffffffffffffffffffffffffff"
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
 		, "0000000000000000000000000000000000000000", 159 },
 
-		{ "ffffffffffffffffffffffffffffffffffffffff"
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
 		, "7fffffffffffffffffffffffffffffffffffffff", 159 },
 
-		{ "ffffffffffffffffffffffffffffffffffffffff"
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
 		, "ffffffffffffffffffffffffffffffffffffffff", 0 },
 
-		{ "ffffffffffffffffffffffffffffffffffffffff"
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
 		, "fffffffffffffffffffffffffffffffffffffffe", 0 },
 
-		{ "8000000000000000000000000000000000000000"
+		tst{ "8000000000000000000000000000000000000000"
 		, "fffffffffffffffffffffffffffffffffffffffe", 158 },
 
-		{ "c000000000000000000000000000000000000000"
+		tst{ "c000000000000000000000000000000000000000"
 		, "fffffffffffffffffffffffffffffffffffffffe", 157 },
 
-		{ "e000000000000000000000000000000000000000"
+		tst{ "e000000000000000000000000000000000000000"
 		, "fffffffffffffffffffffffffffffffffffffffe", 156 },
 
-		{ "f000000000000000000000000000000000000000"
+		tst{ "f000000000000000000000000000000000000000"
 		, "fffffffffffffffffffffffffffffffffffffffe", 155 },
 
-		{ "f8f2340985723049587230495872304958703294"
+		tst{ "f8f2340985723049587230495872304958703294"
 		, "f743589043r890f023980f90e203980d090c3840", 155 },
 
-		{ "ffff740985723049587230495872304958703294"
+		tst{ "ffff740985723049587230495872304958703294"
 		, "ffff889043r890f023980f90e203980d090c3840", 159 - 16 },
 	};
 
