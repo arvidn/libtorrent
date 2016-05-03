@@ -213,13 +213,10 @@ namespace libtorrent
 		, m_ses(ses)
 #endif
 		, m_abort(false)
-	{
-		TORRENT_ASSERT(is_single_thread());
-	}
+	{}
 
 	tracker_manager::~tracker_manager()
 	{
-		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_abort);
 		abort_all_requests(true);
 	}
@@ -410,7 +407,9 @@ namespace libtorrent
 
 	void tracker_manager::abort_all_requests(bool all)
 	{
-		TORRENT_ASSERT(is_single_thread());
+		// this is called from the destructor too, which is not subject to the
+		// single-thread requirement.
+		TORRENT_ASSERT(all || is_single_thread());
 		// removes all connections except 'event=stopped'-requests
 
 		m_abort = true;
