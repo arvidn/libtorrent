@@ -469,10 +469,9 @@ out:
 
 void routing_table::replacement_cache(bucket_t& nodes) const
 {
-	for (table_t::const_iterator i = m_buckets.begin()
-		, end(m_buckets.end()); i != end; ++i)
+	for (auto const& b : m_buckets)
 	{
-		std::copy(i->replacements.begin(), i->replacements.end()
+		std::copy(b.replacements.begin(), b.replacements.end()
 			, std::back_inserter(nodes));
 	}
 }
@@ -497,21 +496,37 @@ routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 	return i;
 }
 
-namespace {
-
-bool compare_ip_cidr(node_entry const& lhs, node_entry const& rhs)
+// returns true if the two IPs are "too close" to each other to be allowed in
+// the same DHT lookup. If they are, the last one to be found will be ignored
+bool compare_ip_cidr(address const& lhs, address const& rhs)
 {
-	TORRENT_ASSERT(lhs.addr().is_v4() == rhs.addr().is_v4());
-	// the number of bits in the IPs that may match. If
-	// more bits that this matches, something suspicious is
-	// going on and we shouldn't add the second one to our
-	// routing table
-	int cutoff = rhs.addr().is_v4() ? 8 : 64;
-	int dist = cidr_distance(lhs.addr(), rhs.addr());
-	return dist <= cutoff;
-}
+	TORRENT_ASSERT(lhs.is_v4() == rhs.is_v4());
 
-} // anonymous namespace
+#if TORRENT_USE_IPV6
+	if (lhs.is_v6())
+	{
+		// if IPv6 addresses is in the same /64, they're too close and we won't
+		// trust the second one
+		boost::uint64_t lhs_ip;
+		memcpy(&lhs_ip, lhs.to_v6().to_bytes().data(), 8);
+		boost::uint64_t rhs_ip;
+		memcpy(&rhs_ip, rhs.to_v6().to_bytes().data(), 8);
+
+		// since the condition we're looking for is all the first  bits being
+		// zero, there's no need to byte-swap into host byte order here.
+		boost::uint64_t const mask = lhs_ip ^ rhs_ip;
+		return mask == 0;
+	}
+	else
+#endif
+	{
+		// if IPv4 addresses is in the same /24, they're too close and we won't
+		// trust the second one
+		boost::uint32_t const mask
+			= lhs.to_v4().to_ulong() ^ rhs.to_v4().to_ulong();
+		return mask <= 0x000000ff;
+	}
+}
 
 node_entry* routing_table::find_node(udp::endpoint const& ep
 	, routing_table::table_t::iterator* bucket)
@@ -735,12 +750,11 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (m_settings.restrict_routing_ips)
 	{
 		// don't allow multiple entries from IPs very close to each other
-		// TODO: 3 the call to compare_ip_cidr here is expensive. peel off some
-		// layers of abstraction here to make it quicker. Look at xoring and using _builtin_ctz()
-		j = std::find_if(b.begin(), b.end(), boost::bind(&compare_ip_cidr, _1, e));
+		address const cmp = e.addr();
+		j = std::find_if(b.begin(), b.end(), [&](node_entry const& a) { return compare_ip_cidr(a.addr(), cmp); });
 		if (j == b.end())
 		{
-			j = std::find_if(rb.begin(), rb.end(), boost::bind(&compare_ip_cidr, _1, e));
+			j = std::find_if(rb.begin(), rb.end(), [&](node_entry const& a) { return compare_ip_cidr(a.addr(), cmp); });
 			if (j == rb.end()) goto ip_ok;
 		}
 
