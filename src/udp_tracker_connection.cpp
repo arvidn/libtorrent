@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <cctype>
+#include <mutex>
 
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 #include <ctime>
+#include <mutex>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>

@@ -90,7 +90,6 @@ upnp::upnp(io_service& ios
 	, m_last_if_update(min_time())
 {
 	TORRENT_ASSERT(cb);
-	TORRENT_ASSERT(is_single_thread());
 }
 
 void upnp::start()
@@ -104,10 +103,7 @@ void upnp::start()
 	m_mappings.reserve(10);
 }
 
-upnp::~upnp()
-{
-	TORRENT_ASSERT(is_single_thread());
-}
+upnp::~upnp() {}
 
 void upnp::discover_device()
 {

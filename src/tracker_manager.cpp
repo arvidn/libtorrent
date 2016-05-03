@@ -235,8 +235,7 @@ namespace libtorrent
 
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
-		std::lock_guard<std::mutex> l(m_mutex);
-
+		TORRENT_ASSERT(is_single_thread());
 		http_conns_t::iterator i = std::find_if(m_http_conns.begin()
 			, m_http_conns.end()
 			, boost::bind(&boost::shared_ptr<http_tracker_connection>::get, _1) == c);
@@ -261,6 +260,7 @@ namespace libtorrent
 		boost::shared_ptr<udp_tracker_connection> c
 		, boost::uint64_t tid)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		m_udp_conns.erase(c->transaction_id());
 		m_udp_conns[tid] = c;
 	}
@@ -270,7 +270,7 @@ namespace libtorrent
 		, tracker_request req
 		, boost::weak_ptr<request_callback> c)
 	{
-		std::lock_guard<std::mutex> l(m_mutex);
+		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);
 		TORRENT_ASSERT(!m_abort || req.event == tracker_request::stopped);
 		if (m_abort && req.event != tracker_request::stopped) return;
@@ -316,6 +316,7 @@ namespace libtorrent
 	bool tracker_manager::incoming_packet(udp::endpoint const& ep
 		, aux::array_view<char const> const buf)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		// ignore packets smaller than 8 bytes
 		if (buf.size() < 8)
 		{
@@ -350,17 +351,17 @@ namespace libtorrent
 		return p->on_receive(ep, buf);
 	}
 
-	void tracker_manager::incoming_error(error_code const& ec
-		, udp::endpoint const& ep)
+	void tracker_manager::incoming_error(error_code const&
+		, udp::endpoint const&)
 	{
-		TORRENT_UNUSED(ec);
-		TORRENT_UNUSED(ep);
+		TORRENT_ASSERT(is_single_thread());
 		// TODO: 2 implement
 	}
 
 	bool tracker_manager::incoming_packet(char const* hostname
 		, aux::array_view<char const> const buf)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		// ignore packets smaller than 8 bytes
 		if (buf.size() < 16) return false;
 
@@ -392,6 +393,7 @@ namespace libtorrent
 	void tracker_manager::send_hostname(char const* hostname, int const port
 		, array_view<char const> p, error_code& ec, int const flags)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		m_send_fun_hostname(hostname, port, p, ec, flags);
 	}
 
@@ -399,13 +401,16 @@ namespace libtorrent
 		, array_view<char const> p
 		, error_code& ec, int const flags)
 	{
+		TORRENT_ASSERT(is_single_thread());
 		m_send_fun(ep, p, ec, flags);
 	}
 
 	void tracker_manager::abort_all_requests(bool all)
 	{
+		// this is called from the destructor too, which is not subject to the
+		// single-thread requirement.
+		TORRENT_ASSERT(all || is_single_thread());
 		// removes all connections except 'event=stopped'-requests
-		std::unique_lock<std::mutex> l(m_mutex);
 
 		m_abort = true;
 		http_conns_t close_http_connections;
@@ -441,7 +446,6 @@ namespace libtorrent
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
-		l.unlock();
 
 		for (http_conns_t::iterator i = close_http_connections.begin()
 			, end(close_http_connections.end()); i != end; ++i)
@@ -459,13 +463,13 @@ namespace libtorrent
 
 	bool tracker_manager::empty() const
 	{
-		std::lock_guard<std::mutex> l(m_mutex);
+		TORRENT_ASSERT(is_single_thread());
 		return m_http_conns.empty() && m_udp_conns.empty();
 	}
 
 	int tracker_manager::num_requests() const
 	{
-		std::lock_guard<std::mutex> l(m_mutex);
+		TORRENT_ASSERT(is_single_thread());
 		return int(m_http_conns.size() + m_udp_conns.size());
 	}
 }

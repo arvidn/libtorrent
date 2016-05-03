@@ -79,7 +79,6 @@ natpmp::natpmp(io_service& ios
 	// for this array not to be reallocated, by passing
 	// around pointers to its elements. so reserve size for now
 	m_mappings.reserve(10);
-	TORRENT_ASSERT(is_single_thread());
 }
 
 void natpmp::start()
