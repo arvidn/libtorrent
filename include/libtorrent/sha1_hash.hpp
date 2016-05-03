@@ -133,81 +133,10 @@ namespace libtorrent
 		}
 
 		// shift left ``n`` bits.
-		sha1_hash& operator<<=(int n)
-		{
-			TORRENT_ASSERT(n >= 0);
-			const int num_words = n / 32;
-			if (num_words >= number_size)
-			{
-				std::memset(m_number, 0, size);
-				return *this;
-			}
-
-			if (num_words > 0)
-			{
-				std::memmove(m_number, m_number + num_words
-					, (number_size - num_words) * sizeof(boost::uint32_t));
-				std::memset(m_number + (number_size - num_words)
-					, 0, num_words * sizeof(boost::uint32_t));
-				n -= num_words * 32;
-			}
-			if (n > 0)
-			{
-				// keep in mind that the uint32_t are stored in network
-				// byte order, so they have to be byteswapped before
-				// applying the shift operations, and then byteswapped
-				// back again.
-				m_number[0] = aux::network_to_host(m_number[0]);
-				for (int i = 0; i < number_size - 1; ++i)
-				{
-					m_number[i] <<= n;
-					m_number[i+1] = aux::network_to_host(m_number[i+1]);
-					m_number[i] |= m_number[i+1] >> (32 - n);
-					m_number[i] = aux::host_to_network(m_number[i]);
-				}
-				m_number[number_size-1] <<= n;
-				m_number[number_size-1] = aux::host_to_network(m_number[number_size-1]);
-			}
-			return *this;
-		}
+		sha1_hash& operator<<=(int n);
 
 		// shift r ``n`` bits.
-		sha1_hash& operator>>=(int n)
-		{
-			TORRENT_ASSERT(n >= 0);
-			const int num_words = n / 32;
-			if (num_words >= number_size)
-			{
-				std::memset(m_number, 0, size_t(size));
-				return *this;
-			}
-			if (num_words > 0)
-			{
-				std::memmove(m_number + num_words
-					, m_number, (number_size - num_words) * sizeof(boost::uint32_t));
-				std::memset(m_number, 0, num_words * sizeof(boost::uint32_t));
-				n -= num_words * 32;
-			}
-			if (n > 0)
-			{
-				// keep in mind that the uint32_t are stored in network
-				// byte order, so they have to be byteswapped before
-				// applying the shift operations, and then byteswapped
-				// back again.
-				m_number[number_size-1] = aux::network_to_host(m_number[number_size-1]);
-
-				for (int i = number_size - 1; i > 0; --i)
-				{
-					m_number[i] >>= n;
-					m_number[i-1] = aux::network_to_host(m_number[i-1]);
-					m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
-					m_number[i] = aux::host_to_network(m_number[i]);
-				}
-				m_number[0] >>= n;
-				m_number[0] = aux::host_to_network(m_number[0]);
-			}
-			return *this;
-		}
+		sha1_hash& operator>>=(int n);
 
 		// standard comparison operators
 		bool operator==(sha1_hash const& n) const
@@ -229,6 +158,8 @@ namespace libtorrent
 			}
 			return false;
 		}
+
+		int count_leading_zeroes() const;
 
 		// returns a bit-wise negated copy of the sha1-hash
 		sha1_hash operator~() const
