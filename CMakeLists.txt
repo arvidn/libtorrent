@@ -74,6 +74,7 @@ set(sources
 	proxy_settings
 	session_stats
 	settings_pack
+	sha1_hash
 	socket_io
 	socket_type
 	socks5_stream

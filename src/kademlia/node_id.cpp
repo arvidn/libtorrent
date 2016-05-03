@@ -49,55 +49,25 @@ namespace libtorrent { namespace dht
 // using the kademlia XOR-metric
 node_id distance(node_id const& n1, node_id const& n2)
 {
-	node_id ret;
-	node_id::iterator k = ret.begin();
-	// TODO: 3 the XORing should be done at full words instead of bytes
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, end(n1.end()); i != end; ++i, ++j, ++k)
-	{
-		*k = *i ^ *j;
-	}
-	return ret;
+	return n1 ^ n2;
 }
 
 // returns true if: distance(n1, ref) < distance(n2, ref)
 bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref)
 {
-	// TODO: 3 the XORing should be done at full words instead of bytes
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, k = ref.begin(), end(n1.end()); i != end; ++i, ++j, ++k)
-	{
-		boost::uint8_t lhs = (*i ^ *k);
-		boost::uint8_t rhs = (*j ^ *k);
-		if (lhs < rhs) return true;
-		if (lhs > rhs) return false;
-	}
-	return false;
+	node_id const lhs = n1 ^ ref;
+	node_id const rhs = n2 ^ ref;
+	return lhs < rhs;
 }
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 // useful for finding out which bucket a node belongs to
 int distance_exp(node_id const& n1, node_id const& n2)
 {
-	// TODO: 3 the xoring should be done at full words and _builtin_clz() could
-	// be used as the last step
-	int byte = node_id::size - 1;
-	for (node_id::const_iterator i = n1.begin(), j = n2.begin()
-		, end(n1.end()); i != end; ++i, ++j, --byte)
-	{
-		TORRENT_ASSERT(byte >= 0);
-		boost::uint8_t t = *i ^ *j;
-		if (t == 0) continue;
-		// we have found the first non-zero byte
-		// return the bit-number of the first bit
-		// that differs
-		int const bit = byte * 8;
-		for (int b = 7; b >= 0; --b)
-			if (t >= (1 << b)) return bit + b;
-		return bit;
-	}
-
-	return 0;
+	// TODO: it's a little bit weird to return 159 - leading zeroes. It should
+	// probably be 160 - leading zeroes, but all other code in here is tuned to
+	// this expectation now, and it doesn't really matter (other than complexity)
+	return (std::max)(159 - distance(n1, n2).count_leading_zeroes(), 0);
 }
 
 node_id generate_id_impl(address const& ip_, boost::uint32_t r)
