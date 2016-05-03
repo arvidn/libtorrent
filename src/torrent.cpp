@@ -4933,11 +4933,7 @@ namespace libtorrent
 		update_want_tick();
 		update_want_scrape();
 		update_gauge();
-
-		// if the torrent is paused, it doesn't need
-		// to announce with even=stopped again.
-		if (!is_paused())
-			stop_announcing();
+		stop_announcing();
 
 		error_code ec;
 		m_inactivity_timer.cancel(ec);
@@ -8988,7 +8984,7 @@ namespace libtorrent
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_interface::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_interface::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_interface::torrent_want_tick].in_list());
-		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_interface::torrent_want_scrape].in_list());
+		TORRENT_ASSERT((!m_allow_peers && m_auto_managed && !m_abort) == m_links[aux::session_interface::torrent_want_scrape].in_list());
 
 		bool is_checking = false;
 		bool is_downloading = false;
