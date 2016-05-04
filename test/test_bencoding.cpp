@@ -58,54 +58,72 @@ entry decode(std::string const& str)
 	return bdecode(str.begin(), str.end());
 }
 
-TORRENT_TEST(bencoding)
+TORRENT_TEST(strings)
 {
-	// ** strings **
-	{
-		entry e("spam");
-		TEST_CHECK(encode(e) == "4:spam");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+	entry e("spam");
+	TEST_CHECK(encode(e) == "4:spam");
+	TEST_CHECK(decode(encode(e)) == e);
+}
 
-	// ** integers **
-	{
-		entry e(3);
-		TEST_CHECK(encode(e) == "i3e");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+TORRENT_TEST(intergers)
+{
+	entry e(3);
+	TEST_CHECK(encode(e) == "i3e");
+	TEST_CHECK(decode(encode(e)) == e);
+}
 
-	{
-		entry e(-3);
-		TEST_CHECK(encode(e) == "i-3e");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+TORRENT_TEST(intergers2)
+{
+	entry e(-3);
+	TEST_CHECK(encode(e) == "i-3e");
+	TEST_CHECK(decode(encode(e)) == e);
+}
 
-	{
-		entry e(int(0));
-		TEST_CHECK(encode(e) == "i0e");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+TORRENT_TEST(intergers3)
+{
+	entry e(int(0));
+	TEST_CHECK(encode(e) == "i0e");
+	TEST_CHECK(decode(encode(e)) == e);
+}
 
-	// ** lists **
-	{
-		entry::list_type l;
-		l.push_back(entry("spam"));
-		l.push_back(entry("eggs"));
-		entry e(l);
-		TEST_CHECK(encode(e) == "l4:spam4:eggse");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+TORRENT_TEST(lists)
+{
+	entry::list_type l;
+	l.push_back(entry("spam"));
+	l.push_back(entry("eggs"));
+	entry e(l);
+	TEST_CHECK(encode(e) == "l4:spam4:eggse");
+	TEST_CHECK(decode(encode(e)) == e);
+}
 
-	// ** dictionaries **
-	{
-		entry e(entry::dictionary_t);
-		e["spam"] = entry("eggs");
-		e["cow"] = entry("moo");
-		TEST_CHECK(encode(e) == "d3:cow3:moo4:spam4:eggse");
-		TEST_CHECK(decode(encode(e)) == e);
-	}
+TORRENT_TEST(dictionaries)
+{
+	entry e(entry::dictionary_t);
+	e["spam"] = entry("eggs");
+	e["cow"] = entry("moo");
+	TEST_CHECK(encode(e) == "d3:cow3:moo4:spam4:eggse");
+	TEST_CHECK(decode(encode(e)) == e);
+}
+
+TORRENT_TEST(preformatted)
+{
+	entry e(entry::preformatted_t);
+	char const str[] = "foobar";
+	e.preformatted().assign(str, str + sizeof(str)-1);
+	TEST_EQUAL(encode(e), "foobar");
+}
+
+TORRENT_TEST(preformatted_node)
+{
+	entry e(entry::dictionary_t);
+	char const str[] = "foobar";
+	e["info"] = entry::preformatted_type(str, str + sizeof(str)-1);
+	TEST_EQUAL(encode(e), "d4:infofoobare");
+}
 
 #ifndef TORRENT_NO_DEPRECATE
+TORRENT_TEST(lazy_entry)
+{
 	{
 		char b[] = "i12453e";
 		lazy_entry e;
@@ -609,8 +627,6 @@ TORRENT_TEST(bencoding)
 			printf("%s\n", print_entry(e).c_str());
 		}
 	}
-
-
-#endif // TORRENT_NO_DEPRECATE
 }
+#endif // TORRENT_NO_DEPRECATE
 
