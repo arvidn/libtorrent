@@ -124,6 +124,8 @@ namespace impl
 	}
 }
 
+TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
+
 class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
 {
 public:

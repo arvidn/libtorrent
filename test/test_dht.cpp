@@ -2825,5 +2825,53 @@ TORRENT_TEST(distance_exp)
 			), std::get<2>(t));
 	}
 }
+
+TORRENT_TEST(compare_ip_cidr)
+{
+	using tst = std::tuple<char const*, char const*, bool>;
+	std::vector<tst> const v4tests = {
+		tst{"10.255.255.0", "10.255.255.255", true},
+		tst{"11.0.0.0", "10.255.255.255", false},
+		tst{"0.0.0.0", "128.255.255.255", false},
+		tst{"0.0.0.0", "127.255.255.255", false},
+		tst{"255.255.255.0", "255.255.255.255", true},
+		tst{"255.254.255.0", "255.255.255.255", false},
+		tst{"0.0.0.0", "0.0.0.0", true},
+		tst{"255.255.255.255", "255.255.255.255", true},
+	};
+
+	for (auto const& t : v4tests)
+	{
+		fprintf(stderr, "%s %s\n", std::get<0>(t), std::get<1>(t));
+		TEST_EQUAL(compare_ip_cidr(
+			address_v4::from_string(std::get<0>(t))
+			, address_v4::from_string(std::get<1>(t)))
+			, std::get<2>(t));
+	}
+
+#if TORRENT_USE_IPV6
+	std::vector<tst> const v6tests = {
+		tst{"::1", "::ffff:ffff:ffff:ffff", true},
+		tst{"::2:0000:0000:0000:0000", "::1:ffff:ffff:ffff:ffff", false},
+		tst{"::ff:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff", false},
+		tst{"::caca:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff:ffff", false},
+		tst{"::a:0000:0000:0000:0000", "::b:ffff:ffff:ffff:ffff", false},
+		tst{"::7f:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff", false},
+		tst{"7f::", "ff::", false},
+		tst{"ff::", "ff::", true},
+		tst{"::", "::", true},
+		tst{"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true},
+	};
+
+	for (auto const& t : v6tests)
+	{
+		TEST_EQUAL(compare_ip_cidr(
+			address_v6::from_string(std::get<0>(t))
+			, address_v6::from_string(std::get<1>(t)))
+			, std::get<2>(t));
+	}
+#endif
+}
+
 #endif
 

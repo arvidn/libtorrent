@@ -149,49 +149,6 @@ namespace libtorrent
 #endif
 	}
 
-	// count the length of the common bit prefix
-	int common_bits(unsigned char const* b1
-		, unsigned char const* b2, int n)
-	{
-		for (int i = 0; i < n; ++i, ++b1, ++b2)
-		{
-			unsigned char a = *b1 ^ *b2;
-			if (a == 0) continue;
-			int ret = i * 8 + 8;
-			for (; a > 0; a >>= 1) --ret;
-			return ret;
-		}
-		return n * 8;
-	}
-
-	// returns the number of bits in that differ from the right
-	// between the addresses. The larger number, the further apart
-	// the IPs are
-	int cidr_distance(address const& a1, address const& a2)
-	{
-#if TORRENT_USE_IPV6
-		if (a1.is_v4() && a2.is_v4())
-		{
-#endif
-			// both are v4
-			address_v4::bytes_type b1 = a1.to_v4().to_bytes();
-			address_v4::bytes_type b2 = a2.to_v4().to_bytes();
-			return int(address_v4::bytes_type().size()) * 8
-				- common_bits(b1.data(), b2.data(), int(b1.size()));
-#if TORRENT_USE_IPV6
-		}
-
-		address_v6::bytes_type b1;
-		address_v6::bytes_type b2;
-		if (a1.is_v4()) b1 = address_v6::v4_mapped(a1.to_v4()).to_bytes();
-		else b1 = a1.to_v6().to_bytes();
-		if (a2.is_v4()) b2 = address_v6::v4_mapped(a2.to_v4()).to_bytes();
-		else b2 = a2.to_v6().to_bytes();
-		return int(address_v6::bytes_type().size()) * 8
-			- common_bits(b1.data(), b2.data(), int(b1.size()));
-#endif
-	}
-
 	broadcast_socket::broadcast_socket(
 		udp::endpoint const& multicast_endpoint)
 		: m_multicast_endpoint(multicast_endpoint)
