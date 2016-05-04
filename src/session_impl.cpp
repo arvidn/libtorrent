@@ -4523,7 +4523,7 @@ namespace aux {
 		m_posting_torrent_updates = false;
 #endif
 
-		m_alerts.emplace_alert<state_update_alert>(status);
+		m_alerts.emplace_alert<state_update_alert>(std::move(status));
 	}
 
 	void session_impl::post_session_stats()
@@ -4564,7 +4564,7 @@ namespace aux {
 			m_dht->dht_status(table, requests);
 #endif
 
-		m_alerts.emplace_alert<dht_stats_alert>(table, requests);
+		m_alerts.emplace_alert<dht_stats_alert>(std::move(table), std::move(requests));
 	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
