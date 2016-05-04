@@ -2215,8 +2215,8 @@ namespace libtorrent
 	{
 		// internal
 		dht_stats_alert(aux::stack_allocator& alloc
-			, std::vector<dht_routing_bucket> const& table
-			, std::vector<dht_lookup> const& requests);
+			, std::vector<dht_routing_bucket> table
+			, std::vector<dht_lookup> requests);
 
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 
