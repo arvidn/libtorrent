@@ -510,7 +510,8 @@ namespace libtorrent
 		}
 
 		entry& info = dict["info"];
-		if (m_info_dict.type() == entry::dictionary_t)
+		if (m_info_dict.type() == entry::dictionary_t
+			|| m_info_dict.type() == entry::preformatted_t)
 		{
 			info = m_info_dict;
 			return dict;
