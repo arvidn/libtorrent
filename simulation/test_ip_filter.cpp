@@ -41,46 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp"
+#include "fake_peer.hpp"
 #include "utils.hpp" // for print_alerts
 
 using namespace sim;
 
 namespace lt = libtorrent;
-
-struct fake_peer
-{
-	fake_peer(simulation& sim, char const* ip)
-		: m_ios(sim, asio::ip::address::from_string(ip))
-		, m_acceptor(m_ios)
-		, m_socket(m_ios)
-		, m_tripped(false)
-	{
-		boost::system::error_code ec;
-		m_acceptor.open(asio::ip::tcp::v4(), ec);
-		TEST_CHECK(!ec);
-		m_acceptor.bind(asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 6881), ec);
-		TEST_CHECK(!ec);
-		m_acceptor.listen(10, ec);
-		TEST_CHECK(!ec);
-
-		m_acceptor.async_accept(m_socket, [&] (boost::system::error_code const& ec)
-			{ if (!ec) m_tripped = true; });
-	}
-
-	void close()
-	{
-		m_acceptor.close();
-		m_socket.close();
-	}
-
-	bool tripped() const { return m_tripped; }
-
-private:
-	asio::io_service m_ios;
-	asio::ip::tcp::acceptor m_acceptor;
-	asio::ip::tcp::socket m_socket;
-	bool m_tripped;
-};
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup
@@ -132,28 +98,6 @@ void run_test(Setup const& setup
 	});
 
 	sim.run();
-}
-
-void add_fake_peers(lt::torrent_handle h)
-{
-	// add the fake peers
-	for (int i = 0; i < 5; ++i)
-	{
-		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i);
-		h.connect_peer(lt::tcp::endpoint(
-			lt::address_v4::from_string(ep), 6881));
-	}
-}
-
-void check_tripped(std::array<fake_peer*, 5>& test_peers, std::array<bool, 5> expected)
-{
-	int idx = 0;
-	for (auto p : test_peers)
-	{
-		TEST_EQUAL(p->tripped(), expected[idx]);
-		++idx;
-	}
 }
 
 void add_ip_filter(lt::session& ses)

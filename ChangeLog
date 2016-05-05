@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* improved Socks5 support and test coverage
 	* fix set_settings in python binding
 	* Added missing alert categories in python binding
 	* Added dht_get_peers_reply_alert alert in python binding

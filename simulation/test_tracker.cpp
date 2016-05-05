@@ -68,7 +68,7 @@ void test_interval(int interval)
 	std::vector<int> announces;
 
 	http.register_handler("/announce"
-	, [&announces,interval,start](std::string method, std::string req
+		, [&announces,interval,start](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
 		boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
@@ -414,7 +414,7 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	});
 
 	sim::timer t2(sim, lt::seconds(5 + delay)
-	, [&ses,&test2](boost::system::error_code const& ec)
+		, [&ses,&test2](boost::system::error_code const& ec)
 	{
 		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
 		TEST_EQUAL(torrents.size(), 1);

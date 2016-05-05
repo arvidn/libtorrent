@@ -65,6 +65,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	bool is_ip_address(char const* host)
+	{
+		error_code ec;
+		address::from_string(host, ec);
+		return !ec;
+	}
+
 	bool is_local(address const& a)
 	{
 		TORRENT_TRY {

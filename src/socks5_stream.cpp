@@ -79,6 +79,56 @@ namespace libtorrent
 		return socks_category;
 	}
 
+	namespace
+	{
+		// parse out the endpoint from a SOCKS response
+		tcp::endpoint parse_endpoint(std::vector<char> const& buffer
+			, int const version)
+		{
+			using namespace libtorrent::detail;
+			char const* p = &buffer[0];
+			p += 2; // version & response code
+			if (version == 5)
+			{
+				++p; // reserved byte
+				int const atyp = read_uint8(p);
+
+				if (atyp == 1)
+				{
+					tcp::endpoint ret;
+					ret.address(read_v4_address(p));
+					ret.port(read_uint16(p));
+					return ret;
+				}
+				else if (atyp == 3)
+				{
+					// we don't support resolving the endpoint address
+					// if we receive a domain name, just set the remote
+					// endpoint to INADDR_ANY
+					return tcp::endpoint();
+				}
+				else if (atyp == 4)
+				{
+					tcp::endpoint ret;
+#if TORRENT_USE_IPV6
+					ret.address(read_v6_address(p));
+					ret.port(read_uint16(p));
+#endif
+					return ret;
+				}
+			}
+			else if (version == 4)
+			{
+				tcp::endpoint ret;
+				ret.port(read_uint16(p));
+				ret.address(read_v4_address(p));
+				return ret;
+			}
+			TORRENT_ASSERT(false);
+			return tcp::endpoint();
+		}
+	}
+
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, boost::shared_ptr<handler_type> h)
 	{
@@ -350,10 +400,9 @@ namespace libtorrent
 
 		using namespace libtorrent::detail;
 
-		// send SOCKS5 connect command
-		char* p = &m_buffer[0];
-		int version = read_uint8(p);
-		int response = read_uint8(p);
+		char const* p = &m_buffer[0];
+		int const version = read_uint8(p);
+		int const response = read_uint8(p);
 
 		if (m_version == 5)
 		{
@@ -379,23 +428,22 @@ namespace libtorrent
 				return;
 			}
 			p += 1; // reserved
-			int atyp = read_uint8(p);
-			// we ignore the proxy IP it was bound to
+			int const atyp = read_uint8(p);
+			// read the proxy IP it was bound to (this is variable length depending
+			// on address type)
 			if (atyp == 1)
 			{
 				if (m_command == socks5_bind)
 				{
 					if (m_listen == 0)
 					{
-#if defined TORRENT_ASIO_DEBUGGING
-						add_outstanding_async("socks5_stream::connect1");
-#endif
+						m_local_endpoint = parse_endpoint(m_buffer, m_version);
 						m_listen = 1;
-						connect1(e, h);
-						return;
 					}
-					m_remote_endpoint.address(read_v4_address(p));
-					m_remote_endpoint.port(read_uint16(p));
+					else
+					{
+						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					}
 					std::vector<char>().swap(m_buffer);
 					(*h)(e);
 				}
@@ -409,10 +457,12 @@ namespace libtorrent
 			int extra_bytes = 0;
 			if (atyp == 4)
 			{
+				// IPv6
 				extra_bytes = 12;
 			}
 			else if (atyp == 3)
 			{
+				// hostname with length prefix
 				extra_bytes = read_uint8(p) - 3;
 			}
 			else
@@ -444,15 +494,13 @@ namespace libtorrent
 				{
 					if (m_listen == 0)
 					{
-#if defined TORRENT_ASIO_DEBUGGING
-						add_outstanding_async("socks5_stream::connect1");
-#endif
+						m_local_endpoint = parse_endpoint(m_buffer, m_version);
 						m_listen = 1;
-						connect1(e, h);
-						return;
 					}
-					m_remote_endpoint.address(read_v4_address(p));
-					m_remote_endpoint.port(read_uint16(p));
+					else
+					{
+						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
+					}
 					std::vector<char>().swap(m_buffer);
 					(*h)(e);
 				}
@@ -488,29 +536,12 @@ namespace libtorrent
 		{
 			if (m_listen == 0)
 			{
-#if defined TORRENT_ASIO_DEBUGGING
-				add_outstanding_async("socks5_stream::connect1");
-#endif
+				m_local_endpoint = parse_endpoint(m_buffer, m_version);
 				m_listen = 1;
-				connect1(e, h);
-				return;
 			}
-
-			char* p = &m_buffer[0];
-			p += 2; // version and response code
-			int atyp = read_uint8(p);
-			TORRENT_ASSERT(atyp == 3 || atyp == 4);
-			if (atyp == 4)
+			else
 			{
-				// we don't support resolving the endpoint address
-				// if we receive a domain name, just set the remote
-				// endpoint to INADDR_ANY
-				m_remote_endpoint = tcp::endpoint();
-			}
-			else if (atyp == 3)
-			{
-				m_remote_endpoint.address(read_v4_address(p));
-				m_remote_endpoint.port(read_uint16(p));
+				m_remote_endpoint = parse_endpoint(m_buffer, m_version);
 			}
 		}
 		std::vector<char>().swap(m_buffer);
