@@ -283,7 +283,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			{
 				if (req.find("&event=started") != std::string::npos)
 				{
-					int port_pos = req.find("&port=");
+					std::string::size_type port_pos = req.find("&port=");
 					TEST_CHECK(port_pos != std::string::npos);
 					if (port_pos != std::string::npos)
 					{
