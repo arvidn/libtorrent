@@ -110,6 +110,7 @@ test-suite libtorrent :
 	[ run test_bencoding.cpp ]
 	[ run test_fast_extension.cpp ]
 	[ run test_primitives.cpp ]
+	[ run test_create_torrent.cpp ]
 	[ run test_http_parser.cpp ]
 	[ run test_packet_buffer.cpp ]
 	[ run test_string.cpp ]

@@ -44,6 +44,7 @@ test_programs = \
   test_tracker               \
   test_trackers_extension    \
   test_transfer              \
+  test_create_torrent        \
   test_upnp                  \
   enum_if                    \
   test_utp                   \
@@ -179,6 +180,7 @@ test_torrent_parse_SOURCES = test_torrent_parse.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_trackers_extension_SOURCES = test_trackers_extension.cpp
 test_transfer_SOURCES = test_transfer.cpp
+test_create_torrent_SOURCES = test_create_torrent.cpp
 test_upnp_SOURCES = test_upnp.cpp
 enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
