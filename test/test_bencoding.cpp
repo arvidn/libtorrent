@@ -65,21 +65,21 @@ TORRENT_TEST(strings)
 	TEST_CHECK(decode(encode(e)) == e);
 }
 
-TORRENT_TEST(intergers)
+TORRENT_TEST(integers)
 {
 	entry e(3);
 	TEST_CHECK(encode(e) == "i3e");
 	TEST_CHECK(decode(encode(e)) == e);
 }
 
-TORRENT_TEST(intergers2)
+TORRENT_TEST(integers2)
 {
 	entry e(-3);
 	TEST_CHECK(encode(e) == "i-3e");
 	TEST_CHECK(decode(encode(e)) == e);
 }
 
-TORRENT_TEST(intergers3)
+TORRENT_TEST(integers3)
 {
 	entry e(int(0));
 	TEST_CHECK(encode(e) == "i0e");
