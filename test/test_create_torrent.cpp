@@ -43,7 +43,7 @@ namespace lt = libtorrent;
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
-TORRENT_TEST(create_verbatim_torrent)
+int test_main()
 {
 	char const test_torrent[] = "d4:infod4:name6:foobar6:lengthi12345e12:piece lengthi65536e6:pieces20:ababababababababababee";
 
@@ -63,5 +63,6 @@ TORRENT_TEST(create_verbatim_torrent)
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
+	return 0;
 }
 
