@@ -416,7 +416,9 @@ namespace libtorrent
 		m_piece_hash.resize(m_files.num_pieces());
 		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
 
-		m_info_dict = bdecode(&ti.metadata()[0], &ti.metadata()[0] + ti.metadata_size());
+		boost::shared_array<char> const info = ti.metadata();
+		int const size = ti.metadata_size();
+		m_info_dict.preformatted().assign(&info[0], &info[0] + size);
 		m_info_hash = ti.info_hash();
 	}
 
@@ -508,7 +510,8 @@ namespace libtorrent
 		}
 
 		entry& info = dict["info"];
-		if (m_info_dict.type() == entry::dictionary_t)
+		if (m_info_dict.type() == entry::dictionary_t
+			|| m_info_dict.type() == entry::preformatted_t)
 		{
 			info = m_info_dict;
 			return dict;
