@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_swarm.hpp"
 #include "setup_transfer.hpp" // for create_torrent
 #include "utils.hpp"
+#include "simulator/queue.hpp"
 
 namespace lt = libtorrent;
 using namespace sim;
