@@ -108,6 +108,7 @@ namespace libtorrent
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
 		typedef boost::int64_t integer_type;
+		typedef std::vector<char> preformatted_type;
 
 		// the types an entry can have
 		enum data_type
@@ -116,7 +117,8 @@ namespace libtorrent
 			string_t,
 			list_t,
 			dictionary_t,
-			undefined_t
+			undefined_t,
+			preformatted_t
 		};
 
 		// returns the concrete type of the entry
@@ -129,6 +131,7 @@ namespace libtorrent
 		entry(string_type const&);
 		entry(list_type const&);
 		entry(integer_type const&);
+		entry(preformatted_type const&);
 
 		// construct an empty entry of the specified type.
 		// see data_type enum.
@@ -160,6 +163,7 @@ namespace libtorrent
 		entry& operator=(string_type const&);
 		entry& operator=(list_type const&);
 		entry& operator=(integer_type const&);
+		entry& operator=(preformatted_type const&);
 
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object
@@ -216,6 +220,8 @@ namespace libtorrent
 		const list_type& list() const;
 		dictionary_type& dict();
 		const dictionary_type& dict() const;
+		preformatted_type& preformatted();
+		const preformatted_type& preformatted() const;
 
 		// swaps the content of *this* with ``e``.
 		void swap(entry& e);
@@ -268,17 +274,19 @@ namespace libtorrent
 		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
 		// and sizeof(list<char>) == sizeof(list<entry>)
 		enum { union_size
-			= max4<sizeof(std::list<char>)
+			= max5<sizeof(std::list<char>)
 			, sizeof(std::map<std::string, char>)
 			, sizeof(string_type)
-			, sizeof(integer_type)>::value
+			, sizeof(integer_type)
+			, sizeof(preformatted_type)>::value
 		};
 #else
 		enum { union_size
-			= max4<sizeof(list_type)
+			= max5<sizeof(list_type)
 			, sizeof(dictionary_type)
 			, sizeof(string_type)
-			, sizeof(integer_type)>::value
+			, sizeof(integer_type)
+			, sizeof(preformatted_type)>::value
 		};
 #endif
 		integer_type data[(union_size + sizeof(integer_type) - 1)

@@ -1749,7 +1749,7 @@ private:
 // send_pkt() again)
 // returns true if there is more space for payload in our
 // congestion window, false if there is no more space.
-bool utp_socket_impl::send_pkt(int flags)
+bool utp_socket_impl::send_pkt(int const flags)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -2028,7 +2028,7 @@ bool utp_socket_impl::send_pkt(int flags)
 
 	// for ST_DATA packets, payload size is 0. Such packets do not have unique
 	// sequence numbers and should never be used as mtu probes
-	if ((mtu_probe || p->mtu_probe) && payload_size > 0)
+	if ((mtu_probe || p->mtu_probe) && payload_size > m_mtu_floor)
 	{
 		p->mtu_probe = true;
 		m_mtu_seq = m_seq_nr;

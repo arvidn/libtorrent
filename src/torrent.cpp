@@ -98,6 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/broadcast_socket.hpp" // for is_ip_address
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 
@@ -2944,7 +2945,7 @@ namespace libtorrent
 
 		// if we are aborting. we don't want any new peers
 		req.num_want = (req.event == tracker_request::stopped)
-			?0:settings().get_int(settings_pack::num_want);
+			? 0 : settings().get_int(settings_pack::num_want);
 
 		time_point now = clock_type::now();
 
@@ -4716,11 +4717,7 @@ namespace libtorrent
 		update_want_tick();
 		update_want_scrape();
 		update_gauge();
-
-		// if the torrent is paused, it doesn't need
-		// to announce with even=stopped again.
-		if (!is_paused())
-			stop_announcing();
+		stop_announcing();
 
 		error_code ec;
 		m_inactivity_timer.cancel(ec);
@@ -6326,7 +6323,10 @@ namespace libtorrent
 			return;
 		}
 
-		bool proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames);
+		bool const is_ip = is_ip_address(hostname.c_str());
+		if (is_ip) a.address(address::from_string(hostname.c_str(), ec));
+		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
+			&& !is_ip;
 
 		if (proxy_hostnames
 			&& (s->get<socks5_stream>()
@@ -6494,8 +6494,11 @@ namespace libtorrent
 		if (valid_metadata())
 		{
 			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
-				ret["info"] = bdecode(&torrent_file().metadata()[0]
-					, &torrent_file().metadata()[0] + torrent_file().metadata_size());
+			{
+				boost::shared_array<char> const info = torrent_file().metadata();
+				int const size = torrent_file().metadata_size();
+				ret["info"].preformatted().assign(&info[0], &info[0] + size);
+			}
 		}
 
 		// blocks per piece
@@ -8284,7 +8287,7 @@ namespace libtorrent
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_interface::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_interface::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_interface::torrent_want_tick].in_list());
-		TORRENT_ASSERT((!m_allow_peers && m_auto_managed) == m_links[aux::session_interface::torrent_want_scrape].in_list());
+		TORRENT_ASSERT((!m_allow_peers && m_auto_managed && !m_abort) == m_links[aux::session_interface::torrent_want_scrape].in_list());
 
 		bool is_checking = false;
 		bool is_downloading = false;

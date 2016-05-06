@@ -256,6 +256,8 @@ namespace libtorrent
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
+			void on_socks_listen(boost::shared_ptr<socket_type> const& s
+				, error_code const& e);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 

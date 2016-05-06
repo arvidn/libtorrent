@@ -27,6 +27,7 @@ test_programs = \
   test_torrent               \
   test_tracker               \
   test_transfer              \
+  test_create_torrent        \
   enum_if                    \
   test_utp                   \
   test_session               \
@@ -207,6 +208,7 @@ test_ssl_SOURCES = test_ssl.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_tracker_SOURCES = test_tracker.cpp
 test_transfer_SOURCES = test_transfer.cpp
+test_create_torrent_SOURCES = test_create_torrent.cpp
 enum_if_SOURCES = enum_if.cpp
 test_utp_SOURCES = test_utp.cpp
 test_session_SOURCES = test_session.cpp

@@ -158,6 +158,7 @@ namespace libtorrent
 
 	entry& entry::operator=(const entry& e)
 	{
+		if (&e == this) return *this;
 		destruct();
 		copy(e);
 		return *this;
@@ -261,6 +262,29 @@ namespace libtorrent
 		return *reinterpret_cast<const dictionary_type*>(data);
 	}
 
+	entry::preformatted_type& entry::preformatted()
+	{
+		if (m_type == undefined_t) construct(preformatted_t);
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != preformatted_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == preformatted_t);
+		return *reinterpret_cast<preformatted_type*>(data);
+	}
+
+	entry::preformatted_type const& entry::preformatted() const
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (m_type != preformatted_t) throw_type_error();
+#elif defined TORRENT_DEBUG
+		TORRENT_ASSERT(m_type_queried);
+#endif
+		TORRENT_ASSERT(m_type == preformatted_t);
+		return *reinterpret_cast<const preformatted_type*>(data);
+	}
+
 	entry::entry()
 		: m_type(undefined_t)
 	{
@@ -337,6 +361,16 @@ namespace libtorrent
 #endif
 		new(data) integer_type(v);
 		m_type = int_t;
+	}
+
+	entry::entry(preformatted_type const& v)
+		: m_type(undefined_t)
+	{
+#ifdef TORRENT_DEBUG
+		m_type_queried = true;
+#endif
+		new(data) preformatted_type(v);
+		m_type = preformatted_t;
 	}
 
 	// convert a bdecode_node into an old skool entry
@@ -417,6 +451,17 @@ namespace libtorrent
 	}
 #endif
 
+	entry& entry::operator=(preformatted_type const& v)
+	{
+		destruct();
+		new(data) preformatted_type(v);
+		m_type = preformatted_t;
+#ifdef TORRENT_DEBUG
+		m_type_queried = true;
+#endif
+		return *this;
+	}
+
 	entry& entry::operator=(dictionary_type const& v)
 	{
 		destruct();
@@ -475,6 +520,8 @@ namespace libtorrent
 			return list() == e.list();
 		case dictionary_t:
 			return dict() == e.dict();
+		case preformatted_t:
+			return preformatted() == e.preformatted();
 		default:
 			TORRENT_ASSERT(m_type == undefined_t);
 			return true;
@@ -498,6 +545,9 @@ namespace libtorrent
 			new (data) dictionary_type;
 			break;
 		case undefined_t:
+			break;
+		case preformatted_t:
+			new (data) preformatted_type;
 			break;
 		}
 		m_type = t;
@@ -524,6 +574,10 @@ namespace libtorrent
 			break;
 		case undefined_t:
 			TORRENT_ASSERT(e.type() == undefined_t);
+			break;
+		case preformatted_t:
+			new (data) preformatted_type(e.preformatted());
+			break;
 		}
 		m_type = e.type();
 #ifdef TORRENT_DEBUG
@@ -546,6 +600,9 @@ namespace libtorrent
 			break;
 		case dictionary_t:
 			call_destructor(reinterpret_cast<dictionary_type*>(data));
+			break;
+		case preformatted_t:
+			call_destructor(reinterpret_cast<preformatted_type*>(data));
 			break;
 		default:
 			TORRENT_ASSERT(m_type == undefined_t);
@@ -596,6 +653,10 @@ namespace libtorrent
 			case dictionary_t:
 				std::swap(*reinterpret_cast<dictionary_type*>(data)
 					, *reinterpret_cast<dictionary_type*>(e.data));
+				break;
+			case preformatted_t:
+				std::swap(*reinterpret_cast<preformatted_type*>(data)
+					, *reinterpret_cast<preformatted_type*>(e.data));
 				break;
 			default:
 				break;
@@ -689,6 +750,9 @@ namespace libtorrent
 					i->second.to_string_impl(out, indent+2);
 				}
 			} break;
+		case preformatted_t:
+			out += "<preformatted>\n";
+			break;
 		case undefined_t:
 		default:
 			out += "<uninitialized>\n";
