@@ -1164,8 +1164,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
-			ses_extension_list_t m_ses_extensions;
+			std::vector<boost::shared_ptr<plugin> > m_ses_extensions;
 
 			// the union of all session extensions' implemented_features(). This is
 			// used to exclude callbacks to the session extensions.

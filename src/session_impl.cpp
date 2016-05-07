@@ -632,11 +632,10 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->save_state(*eptr);
+				ext->save_state(*eptr);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -780,11 +779,10 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->load_state(*e);
+				ext->load_state(*e);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -3147,11 +3145,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (m_session_extension_features & plugin::tick_feature)
 		{
-			for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-				, end(m_ses_extensions.end()); i != end; ++i)
+			for (auto& ext : m_ses_extensions)
 			{
 				TORRENT_TRY {
-					(*i)->on_tick();
+					ext->on_tick();
 				} TORRENT_CATCH(std::exception&) {}
 			}
 		}
@@ -3871,10 +3868,9 @@ namespace aux {
 			{
 				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
 			}
-			for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-				, end(m_ses_extensions.end()); i != end; ++i)
+			for (auto& e : m_ses_extensions)
 			{
-				if ((*i)->on_optimistic_unchoke(peers))
+				if (e->on_optimistic_unchoke(peers))
 					break;
 			}
 			// then convert back to the internal torrent_peer pointers
@@ -4263,11 +4259,10 @@ namespace aux {
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& e : m_ses_extensions)
 		{
 			add_torrent_params p;
-			if ((*i)->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
+			if (e->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
 			{
 				error_code ec;
 				torrent_handle handle = add_torrent(p, ec);
@@ -4663,10 +4658,10 @@ namespace aux {
 	void session_impl::add_extensions_to_torrent(
 		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
 	{
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& e : m_ses_extensions)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr->get_handle(), userdata));
+			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
+				torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 	}

@@ -68,11 +68,8 @@ namespace libtorrent
 			}
 			else if (a.is_v6())
 			{
-				typedef address_v6::bytes_type bytes_t;
-				bytes_t bytes = a.to_v6().to_bytes();
-				for (bytes_t::iterator i = bytes.begin()
-					, end(bytes.end()); i != end; ++i)
-					write_uint8(*i, out);
+				for (auto b : a.to_v6().to_bytes())
+					write_uint8(b, out);
 			}
 #endif
 		}
@@ -88,11 +85,9 @@ namespace libtorrent
 		template<class InIt>
 		address read_v6_address(InIt& in)
 		{
-			typedef address_v6::bytes_type bytes_t;
-			bytes_t bytes;
-			for (bytes_t::iterator i = bytes.begin()
-				, end(bytes.end()); i != end; ++i)
-				*i = read_uint8(in);
+			address_v6::bytes_type bytes;
+			for (auto& b : bytes)
+				b = read_uint8(in);
 			return address_v6(bytes);
 		}
 #endif

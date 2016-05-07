@@ -642,8 +642,8 @@ namespace libtorrent
 		int num_seeds() const;
 		int num_downloaders() const;
 
-		typedef std::vector<peer_connection*>::iterator peer_iterator;
-		typedef std::vector<peer_connection*>::const_iterator const_peer_iterator;
+		using peer_iterator = std::vector<peer_connection*>::iterator;
+		using const_peer_iterator = std::vector<peer_connection*>::const_iterator;
 
 		const_peer_iterator begin() const { return m_connections.begin(); }
 		const_peer_iterator end() const { return m_connections.end(); }
@@ -1204,8 +1204,7 @@ namespace libtorrent
 		std::list<web_seed_t> m_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<boost::shared_ptr<torrent_plugin> > extension_list_t;
-		extension_list_t m_extensions;
+		std::list<boost::shared_ptr<torrent_plugin> > m_extensions;
 #endif
 
 		// used for tracker announces
