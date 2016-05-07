@@ -124,7 +124,7 @@ namespace libtorrent
 				ret.address(read_v4_address(p));
 				return ret;
 			}
-			TORRENT_ASSERT(false);
+			TORRENT_ASSERT_FAIL();
 			return tcp::endpoint();
 		}
 	}
