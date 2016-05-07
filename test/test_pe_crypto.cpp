@@ -52,47 +52,44 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 #endif
 	for (int rep = 0; rep < repcount; ++rep)
 	{
-		int buf_len = rand() % (512 * 1024);
-		char* buf = new char[buf_len];
-		char* cmp_buf = new char[buf_len];
+		int const buf_len = rand() % (512 * 1024);
+		std::vector<char> buf(buf_len);
+		std::vector<char> cmp_buf(buf_len);
 
-		std::generate(buf, buf + buf_len, &std::rand);
-		std::memcpy(cmp_buf, buf, buf_len);
+		std::generate(buf.begin(), buf.end(), &std::rand);
+		std::copy(buf.begin(), buf.end(), cmp_buf.begin());
 
 		using namespace boost::asio;
 		std::vector<mutable_buffer> iovec;
-		iovec.push_back(mutable_buffer(buf, buf_len));
+		iovec.push_back(mutable_buffer(&buf[0], buf_len));
 		a->encrypt(iovec);
-		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(!std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
 		TEST_CHECK(iovec.empty());
 		int consume = 0;
 		int produce = buf_len;
 		int packet_size = 0;
-		iovec.push_back(mutable_buffer(buf, buf_len));
+		iovec.push_back(mutable_buffer(&buf[0], buf_len));
 		b->decrypt(iovec, consume, produce, packet_size);
-		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
 		TEST_CHECK(iovec.empty());
 		TEST_EQUAL(consume, 0);
 		TEST_EQUAL(produce, buf_len);
 		TEST_EQUAL(packet_size, 0);
 
-		iovec.push_back(mutable_buffer(buf, buf_len));
+		iovec.push_back(mutable_buffer(&buf[0], buf_len));
 		b->encrypt(iovec);
-		TEST_CHECK(!std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(!std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
 		TEST_CHECK(iovec.empty());
 		consume = 0;
 		produce = buf_len;
 		packet_size = 0;
-		iovec.push_back(mutable_buffer(buf, buf_len));
+		iovec.push_back(mutable_buffer(&buf[0], buf_len));
 		a->decrypt(iovec, consume, produce, packet_size);
-		TEST_CHECK(std::equal(buf, buf + buf_len, cmp_buf));
+		TEST_CHECK(std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
 		TEST_CHECK(iovec.empty());
 		TEST_EQUAL(consume, 0);
 		TEST_EQUAL(produce, buf_len);
 		TEST_EQUAL(packet_size, 0);
-
-		delete[] buf;
-		delete[] cmp_buf;
 	}
 }
 

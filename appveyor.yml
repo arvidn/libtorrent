@@ -99,7 +99,7 @@ build_script:
 
 # test
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
+- b2.exe --hash -j2 warnings-as-errors=on address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% testing.execute=off
 
 # python binding
 - cd %ROOT_DIRECTORY%\bindings\python
