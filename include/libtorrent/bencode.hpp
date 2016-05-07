@@ -212,7 +212,7 @@ namespace libtorrent
 				break;
 			case entry::preformatted_t:
 				std::copy(e.preformatted().begin(), e.preformatted().end(), out);
-				ret += e.preformatted().size();
+				ret += int(e.preformatted().size());
 				break;
 			case entry::undefined_t:
 				// trying to encode a structure with uninitialized values!
