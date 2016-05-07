@@ -86,11 +86,8 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
-		{
-			(*i)->on_alert(a);
-		}
+		for (auto& e : m_ses_extensions)
+			e->on_alert(a);
 #else
 		TORRENT_UNUSED(a);
 #endif

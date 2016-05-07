@@ -184,11 +184,11 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT socket_type
 	{
-		typedef tcp::socket::endpoint_type endpoint_type;
-		typedef tcp::socket::protocol_type protocol_type;
+		using endpoint_type = tcp::socket::endpoint_type;
+		using protocol_type = tcp::socket::protocol_type;
 
-		typedef tcp::socket::receive_buffer_size receive_buffer_size;
-		typedef tcp::socket::send_buffer_size send_buffer_size;
+		using receive_buffer_size = tcp::socket::receive_buffer_size;
+		using send_buffer_size = tcp::socket::send_buffer_size;
 
 		explicit socket_type(io_service& ios): m_io_service(ios), m_type(0) {}
 		~socket_type();
