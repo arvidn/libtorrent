@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fixed peer-class leak when settings per-torrent rate limits
 	* added a new "preformatted" type to bencode entry variant type
 	* improved Socks5 support and test coverage
 	* fix set_settings in python binding
