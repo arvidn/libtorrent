@@ -4720,8 +4720,11 @@ namespace libtorrent
 		update_gauge();
 		stop_announcing();
 
-		m_ses.peer_classes().decref(m_peer_class);
-		m_peer_class = 0;
+		if (m_peer_class > 0)
+		{
+			m_ses.peer_classes().decref(m_peer_class);
+			m_peer_class = 0;
+		}
 
 		error_code ec;
 		m_inactivity_timer.cancel(ec);
