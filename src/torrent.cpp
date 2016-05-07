@@ -876,6 +876,7 @@ namespace libtorrent
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
+		TORRENT_ASSERT(m_peer_class == 0);
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
@@ -4718,6 +4719,12 @@ namespace libtorrent
 		update_want_scrape();
 		update_gauge();
 		stop_announcing();
+
+		if (m_peer_class > 0)
+		{
+			m_ses.peer_classes().decref(m_peer_class);
+			m_peer_class = 0;
+		}
 
 		error_code ec;
 		m_inactivity_timer.cancel(ec);
