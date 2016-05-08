@@ -5597,8 +5597,11 @@ namespace libtorrent
 		if (valid_metadata())
 		{
 			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
-				ret["info"] = bdecode(&torrent_file().metadata()[0]
-					, &torrent_file().metadata()[0] + torrent_file().metadata_size());
+			{
+				boost::shared_array<char> const info = torrent_file().metadata();
+				int const size = torrent_file().metadata_size();
+				ret["info"].preformatted().assign(&info[0], &info[0] + size);
+			}
 		}
 
 		// blocks per piece

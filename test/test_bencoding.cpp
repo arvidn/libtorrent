@@ -537,6 +537,20 @@ int test_main()
 		TEST_CHECK(ec == bdecode_errors::expected_colon);
 	}
 
+	{
+		entry e(entry::preformatted_t);
+		char const str[] = "foobar";
+		e.preformatted().assign(str, str + sizeof(str)-1);
+		TEST_EQUAL(encode(e), "foobar");
+	}
+
+	{
+		entry e(entry::dictionary_t);
+		char const str[] = "foobar";
+		e["info"] = entry::preformatted_type(str, str + sizeof(str)-1);
+		TEST_EQUAL(encode(e), "d4:infofoobare");
+	}
+
 	return 0;
 }
 
