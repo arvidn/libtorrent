@@ -202,6 +202,7 @@ def looks_like_blank(line):
 	return len(line) == 0
 
 def looks_like_variable(line):
+	line = line.split('//')[0]
 	line = line.strip()
 	if not ' ' in line and not '\t' in line: return False
 	if line.startswith('friend '): return False
@@ -209,11 +210,12 @@ def looks_like_variable(line):
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
 	if line.startswith('typedef'): return False
-	if '=' in line: return True
-	if ';' in line: return True
+	if ' = ' in line: return True
+	if line.endswith(';'): return True
 	return False
 
 def looks_like_forward_decl(line):
+	line = line.split('//')[0]
 	line = line.strip()
 	if not line.endswith(';'): return False
 	if '{' in line: return False
@@ -377,6 +379,7 @@ def parse_class(lno, lines, filename):
 			if verbose: print 'var     %s' % l
 			if not is_visible(context):
 				continue
+			l = l.split('//')[0].strip()
 			n = l.split(' ')[-1].split(':')[0].split(';')[0]
 			if context == '' and blanks == 0 and len(fields):
 				fields[-1]['names'].append(n)
