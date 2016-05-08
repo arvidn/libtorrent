@@ -4774,191 +4774,20 @@ retry:
 	}
 #endif
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& p
+	torrent_handle session_impl::add_torrent(add_torrent_params const& params
 		, error_code& ec)
 	{
-		torrent_handle h = add_torrent_impl(p, ec);
-		m_alerts.emplace_alert<add_torrent_alert>(h, p, ec);
-		return h;
-	}
+		boost::shared_ptr<torrent> torrent_ptr;
+		sha1_hash ih;
+		boost::tie(torrent_ptr, ih) = add_torrent_impl(params, ec);
 
-	torrent_handle session_impl::add_torrent_impl(add_torrent_params const& p
-		, error_code& ec)
-	{
-		TORRENT_ASSERT(!p.save_path.empty());
+		torrent_handle const handle(torrent_ptr);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
-#ifndef TORRENT_NO_DEPRECATE
-		p.update_flags();
-#endif
-
-		add_torrent_params params = p;
-		if (string_begins_no_case("magnet:", params.url.c_str()))
-		{
-			parse_magnet_uri(params.url, params, ec);
-			if (ec) return torrent_handle();
-			params.url.clear();
-		}
-
-		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
-		{
-			std::string filename = resolve_file_url(params.url);
-			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
-			if (ec) return torrent_handle();
-			params.url.clear();
-			params.ti = t;
-		}
-
-		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
-		{
-			ec = errors::no_files_in_torrent;
-			return torrent_handle();
-		}
-
-#ifndef TORRENT_DISABLE_DHT
-		// add p.dht_nodes to the DHT, if enabled
-		if (!p.dht_nodes.empty())
-		{
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
-				, end(p.dht_nodes.end()); i != end; ++i)
-			{
-				add_dht_node_name(*i);
-			}
-		}
-#endif
-
-		INVARIANT_CHECK;
-
-		if (is_aborted())
-		{
-			ec = errors::session_is_closing;
-			return torrent_handle();
-		}
-
-		// figure out the info hash of the torrent
-		sha1_hash const* ih = 0;
-		sha1_hash tmp;
-		if (params.ti) ih = &params.ti->info_hash();
-		else if (!params.url.empty())
-		{
-			// in order to avoid info-hash collisions, for
-			// torrents where we don't have an info-hash, but
-			// just a URL, set the temporary info-hash to the
-			// hash of the URL. This will be changed once we
-			// have the actual .torrent file
-			tmp = hasher(&params.url[0], params.url.size()).final();
-			ih = &tmp;
-		}
-		else ih = &params.info_hash;
-
-		// we don't have a torrent file. If the user provided
-		// resume data, there may be some metadata in there
-		// TODO: this logic could probably be less spaghetti looking by being
-		// moved to a function with early exits
-		if ((!params.ti || !params.ti->is_valid())
-			&& !params.resume_data.empty())
-		{
-			int pos;
-			error_code err;
-			bdecode_node root;
-			bdecode_node info;
-#ifndef TORRENT_DISABLE_LOGGING
-			session_log("adding magnet link with resume data");
-#endif
-			if (bdecode(&params.resume_data[0], &params.resume_data[0]
-					+ params.resume_data.size(), root, err, &pos) == 0
-				&& root.type() == bdecode_node::dict_t
-				&& (info = root.dict_find_dict("info")))
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				session_log("found metadata in resume data");
-#endif
-				// verify the info-hash of the metadata stored in the resume file matches
-				// the torrent we're loading
-
-				std::pair<char const*, int> buf = info.data_section();
-				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
-
-				// if url is set, the info_hash is not actually the info-hash of the
-				// torrent, but the hash of the URL, until we have the full torrent
-				// only require the info-hash to match if we actually passed in one
-				if (resume_ih == params.info_hash
-					|| !params.url.empty()
-					|| params.info_hash.is_all_zeros())
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					session_log("info-hash matched");
-#endif
-					params.ti = boost::make_shared<torrent_info>(resume_ih);
-
-					if (params.ti->parse_info_section(info, err, 0))
-					{
-#ifndef TORRENT_DISABLE_LOGGING
-						session_log("successfully loaded metadata from resume file");
-#endif
-						// make the info-hash be the one in the resume file
-						params.info_hash = resume_ih;
-						ih = &params.info_hash;
-					}
-					else
-					{
-#ifndef TORRENT_DISABLE_LOGGING
-						session_log("failed to load metadata from resume file: %s"
-							, err.message().c_str());
-#endif
-					}
-				}
-#ifndef TORRENT_DISABLE_LOGGING
-				else
-				{
-					session_log("metadata info-hash failed");
-				}
-#endif
-			}
-#ifndef TORRENT_DISABLE_LOGGING
-			else
-			{
-				session_log("no metadata found (\"%s\")", err.message().c_str());
-			}
-#endif
-		}
-
-		// is the torrent already active?
-		boost::shared_ptr<torrent> torrent_ptr = find_torrent(*ih).lock();
-		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
-		// if we still can't find the torrent, look for it by url
-		if (!torrent_ptr && !params.url.empty())
-		{
-			torrent_map::iterator i = std::find_if(m_torrents.begin()
-				, m_torrents.end(), boost::bind(&torrent::url, boost::bind(&std::pair<const sha1_hash
-					, boost::shared_ptr<torrent> >::second, _1)) == params.url);
-			if (i != m_torrents.end())
-				torrent_ptr = i->second;
-		}
-
-		if (torrent_ptr)
-		{
-			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
-			{
-				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
-					torrent_ptr->set_uuid(params.uuid);
-				if (!params.url.empty() && torrent_ptr->url().empty())
-					torrent_ptr->set_url(params.url);
-				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
-					torrent_ptr->set_source_feed_url(params.source_feed_url);
-				return torrent_handle(torrent_ptr);
-			}
-
-			ec = errors::duplicate_torrent;
-			return torrent_handle();
-		}
-
-		int queue_pos = ++m_max_queue_pos;
-
-		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
-			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(*ih));
+		if (!torrent_ptr) return handle;
 
 		if (m_alerts.should_post<torrent_added_alert>())
-			m_alerts.emplace_alert<torrent_added_alert>(torrent_ptr->get_handle());
+			m_alerts.emplace_alert<torrent_added_alert>(handle);
 
 		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
@@ -4971,8 +4800,7 @@ retry:
 		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
 			, end(params.extensions.end()); i != end; ++i)
 		{
-			torrent_ptr->add_extension((*i)(torrent_ptr->get_handle(),
-				params.userdata));
+			torrent_ptr->add_extension((*i)(handle, params.userdata));
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
@@ -5002,14 +4830,14 @@ retry:
 		float load_factor = m_torrents.load_factor();
 #endif // TORRENT_HAS_BOOST_UNORDERED
 
-		m_torrents.insert(std::make_pair(*ih, torrent_ptr));
+		m_torrents.insert(std::make_pair(ih, torrent_ptr));
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update(ih->data(), 20);
+		h.update(ih.data(), 20);
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
@@ -5067,7 +4895,187 @@ retry:
 			}
 		}
 
-		return torrent_handle(torrent_ptr);
+		return handle;
+	}
+
+	std::pair<boost::shared_ptr<torrent>, sha1_hash>
+	session_impl::add_torrent_impl(add_torrent_params const& p
+		, error_code& ec)
+	{
+		TORRENT_ASSERT(!p.save_path.empty());
+
+		typedef boost::shared_ptr<torrent> ptr_t;
+		typedef std::pair<ptr_t, sha1_hash> ret_t;
+
+#ifndef TORRENT_NO_DEPRECATE
+		p.update_flags();
+#endif
+
+		add_torrent_params params = p;
+		if (string_begins_no_case("magnet:", params.url.c_str()))
+		{
+			parse_magnet_uri(params.url, params, ec);
+			if (ec) return ret_t();
+			params.url.clear();
+		}
+
+		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
+		{
+			std::string filename = resolve_file_url(params.url);
+			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
+			if (ec) return ret_t();
+			params.url.clear();
+			params.ti = t;
+		}
+
+		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
+		{
+			ec = errors::no_files_in_torrent;
+			return ret_t();
+		}
+
+#ifndef TORRENT_DISABLE_DHT
+		// add p.dht_nodes to the DHT, if enabled
+		if (!p.dht_nodes.empty())
+		{
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
+				, end(p.dht_nodes.end()); i != end; ++i)
+			{
+				add_dht_node_name(*i);
+			}
+		}
+#endif
+
+		INVARIANT_CHECK;
+
+		if (is_aborted())
+		{
+			ec = errors::session_is_closing;
+			return ret_t();
+		}
+
+		// figure out the info hash of the torrent
+		sha1_hash ih(0);
+		if (params.ti) ih = params.ti->info_hash();
+		else if (!params.url.empty())
+		{
+			// in order to avoid info-hash collisions, for
+			// torrents where we don't have an info-hash, but
+			// just a URL, set the temporary info-hash to the
+			// hash of the URL. This will be changed once we
+			// have the actual .torrent file
+			ih= hasher(&params.url[0], params.url.size()).final();
+		}
+		else ih = params.info_hash;
+
+		// we don't have a torrent file. If the user provided
+		// resume data, there may be some metadata in there
+		// TODO: this logic could probably be less spaghetti looking by being
+		// moved to a function with early exits
+		if ((!params.ti || !params.ti->is_valid())
+			&& !params.resume_data.empty())
+		{
+			int pos;
+			error_code err;
+			bdecode_node root;
+			bdecode_node info;
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("adding magnet link with resume data");
+#endif
+			if (bdecode(&params.resume_data[0], &params.resume_data[0]
+					+ params.resume_data.size(), root, err, &pos) == 0
+				&& root.type() == bdecode_node::dict_t
+				&& (info = root.dict_find_dict("info")))
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				session_log("found metadata in resume data");
+#endif
+				// verify the info-hash of the metadata stored in the resume file matches
+				// the torrent we're loading
+
+				std::pair<char const*, int> buf = info.data_section();
+				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
+
+				// if url is set, the info_hash is not actually the info-hash of the
+				// torrent, but the hash of the URL, until we have the full torrent
+				// only require the info-hash to match if we actually passed in one
+				if (resume_ih == params.info_hash
+					|| !params.url.empty()
+					|| params.info_hash.is_all_zeros())
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					session_log("info-hash matched");
+#endif
+					params.ti = boost::make_shared<torrent_info>(resume_ih);
+
+					if (params.ti->parse_info_section(info, err, 0))
+					{
+#ifndef TORRENT_DISABLE_LOGGING
+						session_log("successfully loaded metadata from resume file");
+#endif
+						// make the info-hash be the one in the resume file
+						params.info_hash = resume_ih;
+						ih = params.info_hash;
+					}
+					else
+					{
+#ifndef TORRENT_DISABLE_LOGGING
+						session_log("failed to load metadata from resume file: %s"
+							, err.message().c_str());
+#endif
+					}
+				}
+#ifndef TORRENT_DISABLE_LOGGING
+				else
+				{
+					session_log("metadata info-hash failed");
+				}
+#endif
+			}
+#ifndef TORRENT_DISABLE_LOGGING
+			else
+			{
+				session_log("no metadata found (\"%s\")", err.message().c_str());
+			}
+#endif
+		}
+
+		// is the torrent already active?
+		boost::shared_ptr<torrent> torrent_ptr = find_torrent(ih).lock();
+		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
+		// if we still can't find the torrent, look for it by url
+		if (!torrent_ptr && !params.url.empty())
+		{
+			torrent_map::iterator i = std::find_if(m_torrents.begin()
+				, m_torrents.end(), boost::bind(&torrent::url, boost::bind(&std::pair<const sha1_hash
+					, boost::shared_ptr<torrent> >::second, _1)) == params.url);
+			if (i != m_torrents.end())
+				torrent_ptr = i->second;
+		}
+
+		if (torrent_ptr)
+		{
+			if ((params.flags & add_torrent_params::flag_duplicate_is_error) == 0)
+			{
+				if (!params.uuid.empty() && torrent_ptr->uuid().empty())
+					torrent_ptr->set_uuid(params.uuid);
+				if (!params.url.empty() && torrent_ptr->url().empty())
+					torrent_ptr->set_url(params.url);
+				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
+					torrent_ptr->set_source_feed_url(params.source_feed_url);
+				return ret_t(torrent_ptr, ih);
+			}
+
+			ec = errors::duplicate_torrent;
+			return ret_t(ptr_t(), ih);
+		}
+
+		int queue_pos = ++m_max_queue_pos;
+
+		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
+			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(ih));
+
+		return ret_t(torrent_ptr, ih);
 	}
 
 	void session_impl::update_outgoing_interfaces()
