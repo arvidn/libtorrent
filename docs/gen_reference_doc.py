@@ -186,16 +186,42 @@ def html_sanitize(s):
 		else: ret += i
 	return ret
 
+def looks_like_namespace(line):
+	line = line.strip()
+	if line.startswith('namespace'): return True
+	return False
+
+def looks_like_blank(line):
+	line = line.split('//')[0]
+	line = line.replace('{', '')
+	line = line.replace('}', '')
+	line = line.replace('[', '')
+	line = line.replace(']', '')
+	line = line.replace(';', '')
+	line = line.strip()
+	return len(line) == 0
+
 def looks_like_variable(line):
 	line = line.strip()
-	if not line.endswith(';'): return False
 	if not ' ' in line and not '\t' in line: return False
 	if line.startswith('friend '): return False
 	if line.startswith('enum '): return False
 	if line.startswith(','): return False
 	if line.startswith(':'): return False
 	if line.startswith('typedef'): return False
-	return True
+	if '=' in line: return True
+	if ';' in line: return True
+	return False
+
+def looks_like_forward_decl(line):
+	line = line.strip()
+	if not line.endswith(';'): return False
+	if '{' in line: return False
+	if '}' in line: return False
+	if line.startswith('friend '): return True
+	if line.startswith('struct '): return True
+	if line.startswith('class '): return True
+	return False
 
 def looks_like_function(line):
 	if line.startswith('friend'): return False
@@ -348,6 +374,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if looks_like_variable(l):
+			if verbose: print 'var     %s' % l
 			if not is_visible(context):
 				continue
 			n = l.split(' ')[-1].split(':')[0].split(';')[0]
@@ -364,6 +391,7 @@ def parse_class(lno, lines, filename):
 			continue
 
 		if l.startswith('enum '):
+			if verbose: print 'enum    %s' % l
 			if not is_visible(context):
 				consume_block(lno - 1, lines)
 			else:
@@ -378,7 +406,14 @@ def parse_class(lno, lines, filename):
 			continue
 
 		context = ''
-		if verbose: print '??      %s' % l
+
+		if verbose:
+			if looks_like_forward_decl(l) \
+				or looks_like_blank(l) \
+				or looks_like_namespace(l):
+				print '--      %s' % l
+			else:
+				print '??      %s' % l
 
 	if len(name) > 0:
 		print '\x1b[31mFAILED TO PARSE CLASS\x1b[0m %s\nfile: %s:%d' % (name, filename, lno)
@@ -660,7 +695,13 @@ for filename in files:
 			continue
 
 		blanks += 1
-		if verbose: print '??    %s' % l
+		if verbose:
+			if looks_like_forward_decl(l) \
+				or looks_like_blank(l) \
+				or looks_like_namespace(l):
+				print '--    %s' % l
+			else:
+				print '??    %s' % l
 
 		context = ''
 	h.close()
