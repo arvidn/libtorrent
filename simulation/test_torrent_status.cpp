@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_swarm.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 using namespace libtorrent;
 using namespace sim;
@@ -96,5 +97,47 @@ TORRENT_TEST(status_timers)
 
 			return false;
 		});
+}
+
+// This test makes sure that adding a torrent causes no torrent related alert to
+// be posted _before_ the add_torrent_alert, which is expected to always be the
+// first
+TORRENT_TEST(alert_order)
+{
+	bool received_add_torrent_alert = false;
+	int num_torrent_alerts = 0;
+
+	lt::torrent_handle handle;
+
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack& sett) {
+			sett.set_int(settings_pack::alert_mask, alert::all_categories);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session& ses) {
+			if (auto ta = alert_cast<add_torrent_alert>(a))
+			{
+				TEST_EQUAL(received_add_torrent_alert, false);
+				received_add_torrent_alert = true;
+				handle = ta->handle;
+			}
+
+			if (auto ta = dynamic_cast<torrent_alert const*>(a))
+			{
+				TEST_EQUAL(received_add_torrent_alert, true);
+				TEST_CHECK(handle == ta->handle);
+				++num_torrent_alerts;
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool
+		{ return ticks > 10; }
+	);
+
+	TEST_EQUAL(received_add_torrent_alert, true);
+	TEST_CHECK(num_torrent_alerts > 1);
 }
 

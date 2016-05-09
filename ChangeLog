@@ -1,5 +1,7 @@
 1.1.1 release
 
+	* make sure add_torrent_alert is always posted before other alerts for
+	  the torrent
 	* fixed peer-class leak when settings per-torrent rate limits
 	* added a new "preformatted" type to bencode entry variant type
 	* improved Socks5 support and test coverage
