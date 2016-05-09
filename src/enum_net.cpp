@@ -90,7 +90,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 // capture this here where warnings are disabled (the macro generates warnings)
-const int siocgifmtu = SIOCGIFMTU;
+const unsigned long siocgifmtu = SIOCGIFMTU;
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

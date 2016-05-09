@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 #if defined TORRENT_BUILD_SIMULATOR
-	using address = typedef sim::asio::ip::address;
+	using address = sim::asio::ip::address;
 	using address_v4 = sim::asio::ip::address_v4;
 #if TORRENT_USE_IPV6
 	using address_v6 = sim::asio::ip::address_v6;
