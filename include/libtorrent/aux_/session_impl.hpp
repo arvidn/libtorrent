@@ -407,7 +407,7 @@ namespace libtorrent
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 			std::pair<boost::shared_ptr<torrent>, sha1_hash>
-				add_torrent_impl(add_torrent_params const&, error_code& ec);
+				add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 			void on_async_load_torrent(disk_io_job const* j);
 

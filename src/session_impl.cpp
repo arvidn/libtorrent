@@ -4774,11 +4774,14 @@ retry:
 	}
 #endif
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& params
+	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
 		boost::shared_ptr<torrent> torrent_ptr;
 		sha1_hash ih;
+
+		// params is updated by add_torrent_impl()
+		add_torrent_params params = p;
 		boost::tie(torrent_ptr, ih) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
@@ -4899,19 +4902,18 @@ retry:
 	}
 
 	std::pair<boost::shared_ptr<torrent>, sha1_hash>
-	session_impl::add_torrent_impl(add_torrent_params const& p
+	session_impl::add_torrent_impl(add_torrent_params& params
 		, error_code& ec)
 	{
-		TORRENT_ASSERT(!p.save_path.empty());
+		TORRENT_ASSERT(!params.save_path.empty());
 
 		typedef boost::shared_ptr<torrent> ptr_t;
 		typedef std::pair<ptr_t, sha1_hash> ret_t;
 
 #ifndef TORRENT_NO_DEPRECATE
-		p.update_flags();
+		params.update_flags();
 #endif
 
-		add_torrent_params params = p;
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
@@ -4935,11 +4937,11 @@ retry:
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		// add p.dht_nodes to the DHT, if enabled
-		if (!p.dht_nodes.empty())
+		// add params.dht_nodes to the DHT, if enabled
+		if (!params.dht_nodes.empty())
 		{
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
-				, end(p.dht_nodes.end()); i != end; ++i)
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = params.dht_nodes.begin()
+				, end(params.dht_nodes.end()); i != end; ++i)
 			{
 				add_dht_node_name(*i);
 			}
@@ -4964,7 +4966,7 @@ retry:
 			// just a URL, set the temporary info-hash to the
 			// hash of the URL. This will be changed once we
 			// have the actual .torrent file
-			ih= hasher(&params.url[0], params.url.size()).final();
+			ih = hasher(&params.url[0], params.url.size()).final();
 		}
 		else ih = params.info_hash;
 
@@ -4993,8 +4995,8 @@ retry:
 				// verify the info-hash of the metadata stored in the resume file matches
 				// the torrent we're loading
 
-				std::pair<char const*, int> buf = info.data_section();
-				sha1_hash resume_ih = hasher(buf.first, buf.second).final();
+				std::pair<char const*, int> const buf = info.data_section();
+				sha1_hash const resume_ih = hasher(buf.first, buf.second).final();
 
 				// if url is set, the info_hash is not actually the info-hash of the
 				// torrent, but the hash of the URL, until we have the full torrent
