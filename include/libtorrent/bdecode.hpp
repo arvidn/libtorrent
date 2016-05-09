@@ -32,10 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
 #include <boost/system/error_code.hpp>
 #include <vector>
 #include <string>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -147,7 +147,7 @@ namespace libtorrent {
 	typedef boost::system::error_code error_code;
 
 TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
-	, char const* end, char delimiter, boost::int64_t& val
+	, char const* end, char delimiter, std::int64_t& val
 	, bdecode_errors::error_code_enum& ec);
 
 namespace detail
@@ -167,7 +167,7 @@ struct bdecode_token
 		max_header = (1 << 3) - 1
 	};
 
-	bdecode_token(boost::uint32_t off, bdecode_token::type_t t)
+	bdecode_token(std::uint32_t off, bdecode_token::type_t t)
 		: offset(off)
 		, type(t)
 		, next_item(0)
@@ -177,8 +177,8 @@ struct bdecode_token
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
-	bdecode_token(boost::uint32_t off, boost::uint32_t next
-		, bdecode_token::type_t t, boost::uint8_t header_size = 0)
+	bdecode_token(std::uint32_t off, std::uint32_t next
+		, bdecode_token::type_t t, std::uint8_t header_size = 0)
 		: offset(off)
 		, type(t)
 		, next_item(next)
@@ -195,10 +195,10 @@ struct bdecode_token
 	int start_offset() const { TORRENT_ASSERT(type == string); return header + 2; }
 
 	// offset into the bdecoded buffer where this node is
-	boost::uint32_t offset:29;
+	std::uint32_t offset:29;
 
 	// one of type_t enums
-	boost::uint32_t type:3;
+	std::uint32_t type:3;
 
 	// if this node is a member of a list, 'next_item' is the number of nodes
 	// to jump forward in th node array to get to the next item in the list.
@@ -206,14 +206,14 @@ struct bdecode_token
 	// to its corresponding value. If it's a value in a dictionary, it's the
 	// number of steps to the next key, or to the end node.
 	// this is the _relative_ offset to the next node
-	boost::uint32_t next_item:29;
+	std::uint32_t next_item:29;
 
 	// this is the number of bytes to skip forward from the offset to get to the
 	// first character of the string, if this is a string. This field is not
 	// used for other types. Essentially this is the length of the length prefix
 	// and the colon. Since a string always has at least one character of length
 	// prefix and always a colon, those 2 characters are implied.
-	boost::uint32_t header:3;
+	std::uint32_t header:3;
 };
 }
 
@@ -290,8 +290,8 @@ struct TORRENT_EXPORT bdecode_node
 	bdecode_node list_at(int i) const;
 	std::string list_string_value_at(int i
 		, char const* default_val = "");
-	boost::int64_t list_int_value_at(int i
-		, boost::int64_t default_val = 0);
+	std::int64_t list_int_value_at(int i
+		, std::int64_t default_val = 0);
 	int list_size() const;
 
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
@@ -314,13 +314,13 @@ struct TORRENT_EXPORT bdecode_node
 	bdecode_node dict_find_int(char const* key) const;
 	std::string dict_find_string_value(char const* key
 		, char const* default_value = "") const;
-	boost::int64_t dict_find_int_value(char const* key
-		, boost::int64_t default_val = 0) const;
+	std::int64_t dict_find_int_value(char const* key
+		, std::int64_t default_val = 0) const;
 	int dict_size() const;
 
 	// this function is only valid if ``type()`` == ``int_t``. It returns the
 	// value of the integer.
-	boost::int64_t int_value() const;
+	std::int64_t int_value() const;
 
 	// these functions are only valid if ``type()`` == ``string_t``. They return
 	// the string values. Note that ``string_ptr()`` is *not* null-terminated.

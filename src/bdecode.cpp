@@ -100,12 +100,12 @@ namespace libtorrent
 
 	struct stack_frame
 	{
-		stack_frame(int t): token(t), state(0) {}
+		stack_frame(int const t): token(t), state(0) {}
 		// this is an index into m_tokens
-		boost::uint32_t token:31;
+		std::uint32_t token:31;
 		// this is used for doctionaries to indicate whether we're
 		// reading a key or a vale. 0 means key 1 is value
-		boost::uint32_t state:1;
+		std::uint32_t state:1;
 	};
 
 	// str1 is null-terminated
@@ -131,7 +131,7 @@ namespace libtorrent
 	// return the pointer to the delimiter, or 0 if there is a
 	// parse error. val should be initialized to zero
 	char const* parse_int(char const* start, char const* end, char delimiter
-		, boost::int64_t& val, bdecode_errors::error_code_enum& ec)
+		, std::int64_t& val, bdecode_errors::error_code_enum& ec)
 	{
 		while (start < end && *start != delimiter)
 		{
@@ -140,14 +140,14 @@ namespace libtorrent
 				ec = bdecode_errors::expected_digit;
 				return start;
 			}
-			if (val > (std::numeric_limits<boost::int64_t>::max)() / 10)
+			if (val > (std::numeric_limits<std::int64_t>::max)() / 10)
 			{
 				ec = bdecode_errors::overflow;
 				return start;
 			}
 			val *= 10;
 			int digit = *start - '0';
-			if (val > (std::numeric_limits<boost::int64_t>::max)() - digit)
+			if (val > (std::numeric_limits<std::int64_t>::max)() - digit)
 			{
 				ec = bdecode_errors::overflow;
 				return start;
@@ -353,8 +353,8 @@ namespace libtorrent
 		return n.string_value();
 	}
 
-	boost::int64_t bdecode_node::list_int_value_at(int i
-		, boost::int64_t default_val)
+	std::int64_t bdecode_node::list_int_value_at(int i
+		, std::int64_t default_val)
 	{
 		bdecode_node n = list_at(i);
 		if (n.type() != bdecode_node::int_t) return default_val;
@@ -599,24 +599,24 @@ namespace libtorrent
 		return n.string_value();
 	}
 
-	boost::int64_t bdecode_node::dict_find_int_value(char const* key
-		, boost::int64_t default_val) const
+	std::int64_t bdecode_node::dict_find_int_value(char const* key
+		, std::int64_t default_val) const
 	{
 		bdecode_node n = dict_find(key);
 		if (n.type() != bdecode_node::int_t) return default_val;
 		return n.int_value();
 	}
 
-	boost::int64_t bdecode_node::int_value() const
+	std::int64_t bdecode_node::int_value() const
 	{
 		TORRENT_ASSERT(type() == int_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		int size = m_root_tokens[m_token_idx + 1].offset - t.offset;
 		TORRENT_ASSERT(t.type == bdecode_token::integer);
-	
+
 		// +1 is to skip the 'i'
 		char const* ptr = m_buffer + t.offset + 1;
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bool negative = false;
 		if (*ptr == '-') negative = true;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
@@ -729,9 +729,9 @@ namespace libtorrent
 				TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 			// look for a new token
-			const char t = *start;
+			char const t = *start;
 
-			const int current_frame = sp;
+			int const current_frame = sp;
 
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
@@ -769,7 +769,7 @@ namespace libtorrent
 					break;
 				case 'i':
 				{
-					char const* int_start = start;
+					char const* const int_start = start;
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					// +1 here to point to the first digit, rather than 'i'
 					start = check_integer(start + 1, end, e);
@@ -811,7 +811,7 @@ namespace libtorrent
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					int top = stack[sp-1].token;
+					int const top = stack[sp-1].token;
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
@@ -831,8 +831,8 @@ namespace libtorrent
 					if (!numeric(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
-					boost::int64_t len = t - '0';
-					char const* str_start = start;
+					std::int64_t len = t - '0';
+					char const* const str_start = start;
 					++start;
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
@@ -840,7 +840,7 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(e);
 
 					// remaining buffer size excluding ':'
-					const ptrdiff_t buff_size = end - start - 1;
+					ptrdiff_t const buff_size = end - start - 1;
 					if (len > buff_size)
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					if (len < 0)
@@ -894,7 +894,7 @@ done:
 					, bdecode_token::end));
 			}
 
-			int top = stack[sp].token;
+			int const top = stack[sp].token;
 			TORRENT_ASSERT(ret.m_tokens.size() - top <= bdecode_token::max_next_item);
 			ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
 			ret.m_tokens.push_back(bdecode_token(start - orig_start, 1, bdecode_token::end));
@@ -923,7 +923,7 @@ done:
 			if (line_len > limit) return -1;
 			for (int i = 0; i < e.list_size(); ++i)
 			{
-				int ret = line_longer_than(e.list_at(i), limit - line_len);
+				int const ret = line_longer_than(e.list_at(i), limit - line_len);
 				if (ret == -1) return -1;
 				line_len += ret + 2;
 			}
@@ -935,7 +935,7 @@ done:
 			{
 				line_len += 4 + int(e.dict_at(i).first.size());
 				if (line_len > limit) return -1;
-				int ret = line_longer_than(e.dict_at(i).second, limit - line_len);
+				int const ret = line_longer_than(e.dict_at(i).second, limit - line_len);
 				if (ret == -1) return -1;
 				line_len += ret + 1;
 			}
@@ -945,7 +945,7 @@ done:
 			break;
 		case bdecode_node::int_t:
 		{
-			boost::int64_t val = e.int_value();
+			std::int64_t val = e.int_value();
 			while (val > 0)
 			{
 				++line_len;
@@ -974,7 +974,7 @@ done:
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
+				snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}

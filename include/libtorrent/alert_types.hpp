@@ -1322,7 +1322,7 @@ namespace libtorrent
 	// was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert final : alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, utp_ssl };
+		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
 
 		// internal
 		listen_succeeded_alert(aux::stack_allocator& alloc, tcp::endpoint const& ep
@@ -1747,8 +1747,8 @@ namespace libtorrent
 	// an incoming connection, through any mean. The most straight-forward ways
 	// of accepting incoming connections are through the TCP listen socket and
 	// the UDP listen socket for uTP sockets. However, connections may also be
-	// accepted offer a Socks5 or i2p listen socket, or via a torrent specific
-	// listen socket for SSL torrents.
+	// accepted through a Socks5 or i2p listen socket, or via an SSL listen
+	// socket.
 	struct TORRENT_EXPORT incoming_connection_alert final : alert
 	{
 		// internal
@@ -2215,8 +2215,8 @@ namespace libtorrent
 	{
 		// internal
 		dht_stats_alert(aux::stack_allocator& alloc
-			, std::vector<dht_routing_bucket> const& table
-			, std::vector<dht_lookup> const& requests);
+			, std::vector<dht_routing_bucket> table
+			, std::vector<dht_lookup> requests);
 
 		TORRENT_DEFINE_ALERT(dht_stats_alert, 83)
 

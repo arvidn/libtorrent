@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ed25519.hpp"
 #include <numeric>
 #include <cstdarg>
+#include <tuple>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -142,12 +143,11 @@ void lazy_from_entry(entry const& e, bdecode_node& l)
 void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
 {
 	entry::list_type& pe = r["values"].list();
-	for (std::set<tcp::endpoint>::const_iterator it = peers.begin()
-		 ; it != peers.end(); ++it)
+	for (auto const& p : peers)
 	{
 		std::string endpoint(18, '\0');
 		std::string::iterator out = endpoint.begin();
-		libtorrent::detail::write_endpoint(*it, out);
+		libtorrent::detail::write_endpoint(p, out);
 		endpoint.resize(out - endpoint.begin());
 		pe.push_back(entry(endpoint));
 	}
@@ -1194,70 +1194,6 @@ void do_test_dht(address(&rand_addr)())
 
 	}
 
-	// test node-id functions
-	using namespace libtorrent::dht;
-
-	TEST_EQUAL(generate_prefix_mask(0), to_hash("0000000000000000000000000000000000000000"));
-	TEST_EQUAL(generate_prefix_mask(1), to_hash("8000000000000000000000000000000000000000"));
-	TEST_EQUAL(generate_prefix_mask(2), to_hash("c000000000000000000000000000000000000000"));
-	TEST_EQUAL(generate_prefix_mask(11), to_hash("ffe0000000000000000000000000000000000000"));
-	TEST_EQUAL(generate_prefix_mask(17), to_hash("ffff800000000000000000000000000000000000"));
-	TEST_EQUAL(generate_prefix_mask(160), to_hash("ffffffffffffffffffffffffffffffffffffffff"));
-
-	// test kademlia functions
-
-	// distance_exp
-
-	TEST_EQUAL(distance_exp(
-			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
-			to_hash("0000000000000000000000000000000000000000"))
-		, 159);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
-			to_hash("7fffffffffffffffffffffffffffffffffffffff"))
-		, 159);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
-			to_hash("ffffffffffffffffffffffffffffffffffffffff"))
-		, 0);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("ffffffffffffffffffffffffffffffffffffffff"),
-			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
-		, 0);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("8000000000000000000000000000000000000000"),
-			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
-		, 158);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("c000000000000000000000000000000000000000"),
-			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
-		, 157);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("e000000000000000000000000000000000000000"),
-			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
-		, 156);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("f000000000000000000000000000000000000000"),
-			to_hash("fffffffffffffffffffffffffffffffffffffffe"))
-		, 155);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("f8f2340985723049587230495872304958703294"),
-			to_hash("f743589043r890f023980f90e203980d090c3840"))
-		, 155);
-
-	TEST_EQUAL(distance_exp(
-			to_hash("ffff740985723049587230495872304958703294"),
-			to_hash("ffff889043r890f023980f90e203980d090c3840"))
-		, 159 - 16);
-
 	{
 		// test kademlia routing table
 		dht_settings s;
@@ -2211,7 +2147,7 @@ TORRENT_TEST(dht_dual_stack)
 	bdecode_node nodes46_keys[5];
 
 	ret = verify_message(response, nodes46_desc, nodes46_keys, error_string
-						 , sizeof(error_string));
+		, sizeof(error_string));
 
 	if (ret)
 	{
@@ -2817,5 +2753,125 @@ TORRENT_TEST(dht_verify_node_address)
 	TEST_EQUAL(table.size().get<0>(), 1);
 	TEST_EQUAL(nodes.size(), 1);
 }
+
+TORRENT_TEST(generate_prefix_mask)
+{
+	// test node-id functions
+	using namespace libtorrent::dht;
+
+	std::vector<std::pair<int, char const*>> const test = {
+		{   0, "0000000000000000000000000000000000000000" },
+		{   1, "8000000000000000000000000000000000000000" },
+		{   2, "c000000000000000000000000000000000000000" },
+		{  11, "ffe0000000000000000000000000000000000000" },
+		{  17, "ffff800000000000000000000000000000000000" },
+		{  37, "fffffffff8000000000000000000000000000000" },
+		{ 160, "ffffffffffffffffffffffffffffffffffffffff" },
+	};
+
+	for (auto const& i : test)
+	{
+		TEST_EQUAL(generate_prefix_mask(i.first), to_hash(i.second));
+	}
+}
+
+TORRENT_TEST(distance_exp)
+{
+	// distance_exp
+
+
+	using tst = std::tuple<char const*, char const*, int>;
+
+	std::vector<std::tuple<char const*, char const*, int>> const distance_tests = {
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
+		, "0000000000000000000000000000000000000000", 159 },
+
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
+		, "7fffffffffffffffffffffffffffffffffffffff", 159 },
+
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
+		, "ffffffffffffffffffffffffffffffffffffffff", 0 },
+
+		tst{ "ffffffffffffffffffffffffffffffffffffffff"
+		, "fffffffffffffffffffffffffffffffffffffffe", 0 },
+
+		tst{ "8000000000000000000000000000000000000000"
+		, "fffffffffffffffffffffffffffffffffffffffe", 158 },
+
+		tst{ "c000000000000000000000000000000000000000"
+		, "fffffffffffffffffffffffffffffffffffffffe", 157 },
+
+		tst{ "e000000000000000000000000000000000000000"
+		, "fffffffffffffffffffffffffffffffffffffffe", 156 },
+
+		tst{ "f000000000000000000000000000000000000000"
+		, "fffffffffffffffffffffffffffffffffffffffe", 155 },
+
+		tst{ "f8f2340985723049587230495872304958703294"
+		, "f743589043r890f023980f90e203980d090c3840", 155 },
+
+		tst{ "ffff740985723049587230495872304958703294"
+		, "ffff889043r890f023980f90e203980d090c3840", 159 - 16 },
+	};
+
+	for (auto const& t : distance_tests)
+	{
+		fprintf(stderr, "%s %s: %d\n"
+			, std::get<0>(t), std::get<1>(t), std::get<2>(t));
+
+		TEST_EQUAL(distance_exp(
+				to_hash(std::get<0>(t))
+				, to_hash(std::get<1>(t))
+			), std::get<2>(t));
+	}
+}
+
+TORRENT_TEST(compare_ip_cidr)
+{
+	using tst = std::tuple<char const*, char const*, bool>;
+	std::vector<tst> const v4tests = {
+		tst{"10.255.255.0", "10.255.255.255", true},
+		tst{"11.0.0.0", "10.255.255.255", false},
+		tst{"0.0.0.0", "128.255.255.255", false},
+		tst{"0.0.0.0", "127.255.255.255", false},
+		tst{"255.255.255.0", "255.255.255.255", true},
+		tst{"255.254.255.0", "255.255.255.255", false},
+		tst{"0.0.0.0", "0.0.0.0", true},
+		tst{"255.255.255.255", "255.255.255.255", true},
+	};
+
+	for (auto const& t : v4tests)
+	{
+		fprintf(stderr, "%s %s\n", std::get<0>(t), std::get<1>(t));
+		TEST_EQUAL(compare_ip_cidr(
+			address_v4::from_string(std::get<0>(t))
+			, address_v4::from_string(std::get<1>(t)))
+			, std::get<2>(t));
+	}
+
+#if TORRENT_USE_IPV6
+	std::vector<tst> const v6tests = {
+		tst{"::1", "::ffff:ffff:ffff:ffff", true},
+		tst{"::2:0000:0000:0000:0000", "::1:ffff:ffff:ffff:ffff", false},
+		tst{"::ff:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff", false},
+		tst{"::caca:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff:ffff", false},
+		tst{"::a:0000:0000:0000:0000", "::b:ffff:ffff:ffff:ffff", false},
+		tst{"::7f:0000:0000:0000:0000", "::ffff:ffff:ffff:ffff", false},
+		tst{"7f::", "ff::", false},
+		tst{"ff::", "ff::", true},
+		tst{"::", "::", true},
+		tst{"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff", true},
+	};
+
+	for (auto const& t : v6tests)
+	{
+		TEST_EQUAL(compare_ip_cidr(
+			address_v6::from_string(std::get<0>(t))
+			, address_v6::from_string(std::get<1>(t)))
+			, std::get<2>(t));
+	}
+#endif
+}
+
 #endif
 

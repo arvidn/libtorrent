@@ -116,6 +116,7 @@ libtorrent_rasterbar_la_SOURCES = \
   proxy_settings.cpp              \
   settings_pack.cpp               \
   sha1.cpp                        \
+  sha1_hash.cpp                   \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \

@@ -256,6 +256,8 @@ namespace libtorrent
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
 				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
+			void on_socks_listen(boost::shared_ptr<socket_type> const& s
+				, error_code const& e);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 
@@ -1162,8 +1164,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			typedef std::list<boost::shared_ptr<plugin> > ses_extension_list_t;
-			ses_extension_list_t m_ses_extensions;
+			std::vector<boost::shared_ptr<plugin> > m_ses_extensions;
 
 			// the union of all session extensions' implemented_features(). This is
 			// used to exclude callbacks to the session extensions.

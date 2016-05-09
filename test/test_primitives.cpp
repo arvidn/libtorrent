@@ -118,17 +118,6 @@ TORRENT_TEST(primitives)
 
 	// test network functions
 
-	// CIDR distance test
-	sha1_hash h1 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	sha1_hash h2 = to_hash("0123456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 160);
-	h2 = to_hash("0120456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 14);
-	h2 = to_hash("012f456789abcdef01232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 12);
-	h2 = to_hash("0123456789abcdef11232456789abcdef0123456");
-	TEST_CHECK(common_bits(&h1[0], &h2[0], 20) == 16 * 4 + 3);
-
 	// test print_endpoint, parse_endpoint and print_address
 	TEST_EQUAL(print_endpoint(ep("127.0.0.1", 23)), "127.0.0.1:23");
 #if TORRENT_USE_IPV6

@@ -169,13 +169,13 @@ namespace libtorrent
 		int num_peers() const { return int(m_peers.size()); }
 
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		typedef std::vector<torrent_peer*> peers_t;
+		using peers_t = std::vector<torrent_peer*>;
 #else
-		typedef std::deque<torrent_peer*> peers_t;
+		using peers_t = std::deque<torrent_peer*>;
 #endif
 
-		typedef peers_t::iterator iterator;
-		typedef peers_t::const_iterator const_iterator;
+		using iterator = peers_t::iterator;
+		using const_iterator = peers_t::const_iterator;
 		iterator begin_peer() { return m_peers.begin(); }
 		iterator end_peer() { return m_peers.end(); }
 		const_iterator begin_peer() const { return m_peers.begin(); }

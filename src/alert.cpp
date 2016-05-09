@@ -919,7 +919,7 @@ namespace libtorrent {
 
 	std::string listen_succeeded_alert::message() const
 	{
-		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "SSL/uTP" };
+		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "i2p", "socks5", "SSL/uTP" };
 		char ret[200];
 		snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
 			, type_str[sock_type], print_endpoint(endpoint).c_str());
@@ -1318,7 +1318,7 @@ namespace libtorrent {
 
 	state_update_alert::state_update_alert(aux::stack_allocator&
 		, std::vector<torrent_status> st)
-		: status(st)
+		: status(std::move(st))
 	{}
 
 	std::string state_update_alert::message() const
@@ -1672,11 +1672,11 @@ namespace libtorrent {
 	}
 
 	dht_stats_alert::dht_stats_alert(aux::stack_allocator&
-		, std::vector<dht_routing_bucket> const& table
-		, std::vector<dht_lookup> const& requests)
+		, std::vector<dht_routing_bucket> table
+		, std::vector<dht_lookup> requests)
 		: alert()
-		, active_requests(requests)
-		, routing_table(table)
+		, active_requests(std::move(requests))
+		, routing_table(std::move(table))
 	{}
 
 	std::string dht_stats_alert::message() const
@@ -1888,7 +1888,7 @@ namespace libtorrent {
 		std::vector<tcp::endpoint> p(peers());
 		v.reserve(p.size());
 		std::copy(p.begin(), p.end(), std::back_inserter(v));
-    }
+	}
 #endif
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
 		std::vector<tcp::endpoint> peers(m_num_peers);

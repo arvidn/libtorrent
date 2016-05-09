@@ -210,6 +210,10 @@ namespace libtorrent
 				write_char(out, 'e');
 				ret += 2;
 				break;
+			case entry::preformatted_t:
+				std::copy(e.preformatted().begin(), e.preformatted().end(), out);
+				ret += int(e.preformatted().size());
+				break;
 			case entry::undefined_t:
 				// trying to encode a structure with uninitialized values!
 //				TORRENT_ASSERT_VAL(false, e.type());

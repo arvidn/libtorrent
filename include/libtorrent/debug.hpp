@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
-#include <pthread.h>
+#if TORRENT_USE_ASSERTS
+#include <thread>
 #endif
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -175,34 +175,31 @@ namespace libtorrent
 
 namespace libtorrent
 {
-#if TORRENT_USE_ASSERTS && defined BOOST_HAS_PTHREADS
+#if TORRENT_USE_ASSERTS
 	struct single_threaded
 	{
-		single_threaded(): m_single_thread(0) {}
-		~single_threaded() { m_single_thread = 0; }
+		single_threaded(): m_id() {}
+		~single_threaded() { m_id = std::thread::id(); }
 		bool is_single_thread() const
 		{
-			if (m_single_thread == 0)
+			if (m_id == std::thread::id())
 			{
-				m_single_thread = pthread_self();
+				m_id = std::this_thread::get_id();
 				return true;
 			}
-			return m_single_thread == pthread_self();
+			return m_id == std::this_thread::get_id();
 		}
 		bool is_not_thread() const
 		{
-			if (m_single_thread == 0) return true;
-			return m_single_thread != pthread_self();
+			if (m_id == std::thread::id()) return true;
+			return m_id != std::this_thread::get_id();
 		}
 
 		void thread_started()
-		{ m_single_thread = pthread_self(); }
-
-		void transfer_ownership()
-		{ m_single_thread = 0; }
+		{ m_id = std::this_thread::get_id(); }
 
 	private:
-		mutable pthread_t m_single_thread;
+		mutable std::thread::id m_id;
 	};
 #else
 	struct single_threaded {

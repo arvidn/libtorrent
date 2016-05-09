@@ -632,11 +632,10 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->save_state(*eptr);
+				ext->save_state(*eptr);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -780,11 +779,10 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->load_state(*e);
+				ext->load_state(*e);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -2038,19 +2036,76 @@ namespace aux {
 
 		if (m_socks_listen_socket) return;
 
-		m_socks_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
+		m_socks_listen_socket = boost::make_shared<socket_type>(boost::ref(m_io_service));
 		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, NULL, NULL, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
-		ADD_OUTSTANDING_ASYNC("session_impl::on_socks_accept");
+		ADD_OUTSTANDING_ASYNC("session_impl::on_socks_listen");
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
-		s.set_command(2); // 2 means BIND (as opposed to CONNECT)
-		m_socks_listen_port = 2000 + random() % 60000;
 
-		s.async_connect(tcp::endpoint(address_v4::any(), m_socks_listen_port)
-			, boost::bind(&session_impl::on_socks_accept, this, m_socks_listen_socket, _1));
+		m_socks_listen_port = listen_port();
+		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
+		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
+			, boost::bind(&session_impl::on_socks_listen, this
+				, m_socks_listen_socket, _1));
+	}
+
+	void session_impl::on_socks_listen(boost::shared_ptr<socket_type> const& sock
+		, error_code const& e)
+	{
+#if defined TORRENT_ASIO_DEBUGGING
+		complete_async("session_impl::on_socks_listen");
+#endif
+
+		TORRENT_ASSERT(sock == m_socks_listen_socket || !m_socks_listen_socket);
+
+		if (e)
+		{
+			m_socks_listen_socket.reset();
+			if (e == boost::asio::error::operation_aborted) return;
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, tcp::endpoint(), listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
+			return;
+		}
+
+		error_code ec;
+		tcp::endpoint ep = sock->local_endpoint(ec);
+		TORRENT_ASSERT(!ec);
+		TORRENT_UNUSED(ec);
+
+		if (m_alerts.should_post<listen_succeeded_alert>())
+			m_alerts.emplace_alert<listen_succeeded_alert>(
+				ep, listen_succeeded_alert::socks5);
+
+#if defined TORRENT_ASIO_DEBUGGING
+		add_outstanding_async("session_impl::on_socks_accept");
+#endif
+		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
+		s.async_accept(boost::bind(&session_impl::on_socks_accept, this
+				, m_socks_listen_socket, _1));
+	}
+
+	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
+		, error_code const& e)
+	{
+		COMPLETE_ASYNC("session_impl::on_socks_accept");
+		TORRENT_ASSERT(s == m_socks_listen_socket || !m_socks_listen_socket);
+		m_socks_listen_socket.reset();
+		if (e == boost::asio::error::operation_aborted) return;
+		if (e)
+		{
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.emplace_alert<listen_failed_alert>("socks5"
+					, tcp::endpoint(), listen_failed_alert::accept, e
+					, listen_failed_alert::socks5);
+			return;
+		}
+		open_new_incoming_socks_connection();
+		incoming_connection(s);
 	}
 
 	void session_impl::update_i2p_bridge()
@@ -2805,24 +2860,6 @@ namespace aux {
 		set_socket_buffer_size(s, m_settings, ec);
 	}
 
-	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
-		, error_code const& e)
-	{
-		COMPLETE_ASYNC("session_impl::on_socks_accept");
-		m_socks_listen_socket.reset();
-		if (e == boost::asio::error::operation_aborted) return;
-		if (e)
-		{
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, tcp::endpoint(), listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
-			return;
-		}
-		open_new_incoming_socks_connection();
-		incoming_connection(s);
-	}
-
 	// if cancel_with_cq is set, the peer connection is
 	// currently expected to be scheduled for a connection
 	// with the connection queue, and should be cancelled
@@ -3108,11 +3145,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (m_session_extension_features & plugin::tick_feature)
 		{
-			for (ses_extension_list_t::const_iterator i = m_ses_extensions.begin()
-				, end(m_ses_extensions.end()); i != end; ++i)
+			for (auto& ext : m_ses_extensions)
 			{
 				TORRENT_TRY {
-					(*i)->on_tick();
+					ext->on_tick();
 				} TORRENT_CATCH(std::exception&) {}
 			}
 		}
@@ -3832,10 +3868,9 @@ namespace aux {
 			{
 				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
 			}
-			for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-				, end(m_ses_extensions.end()); i != end; ++i)
+			for (auto& e : m_ses_extensions)
 			{
-				if ((*i)->on_optimistic_unchoke(peers))
+				if (e->on_optimistic_unchoke(peers))
 					break;
 			}
 			// then convert back to the internal torrent_peer pointers
@@ -4224,11 +4259,10 @@ namespace aux {
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& e : m_ses_extensions)
 		{
 			add_torrent_params p;
-			if ((*i)->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
+			if (e->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
 			{
 				error_code ec;
 				torrent_handle handle = add_torrent(p, ec);
@@ -4523,7 +4557,7 @@ namespace aux {
 		m_posting_torrent_updates = false;
 #endif
 
-		m_alerts.emplace_alert<state_update_alert>(status);
+		m_alerts.emplace_alert<state_update_alert>(std::move(status));
 	}
 
 	void session_impl::post_session_stats()
@@ -4564,7 +4598,7 @@ namespace aux {
 			m_dht->dht_status(table, requests);
 #endif
 
-		m_alerts.emplace_alert<dht_stats_alert>(table, requests);
+		m_alerts.emplace_alert<dht_stats_alert>(std::move(table), std::move(requests));
 	}
 
 	std::vector<torrent_handle> session_impl::get_torrents() const
@@ -4624,10 +4658,10 @@ namespace aux {
 	void session_impl::add_extensions_to_torrent(
 		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
 	{
-		for (ses_extension_list_t::iterator i = m_ses_extensions.begin()
-			, end(m_ses_extensions.end()); i != end; ++i)
+		for (auto& e : m_ses_extensions)
 		{
-			boost::shared_ptr<torrent_plugin> tp((*i)->new_torrent(torrent_ptr->get_handle(), userdata));
+			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
+				torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
 	}
@@ -5245,7 +5279,7 @@ namespace aux {
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			return m_socks_listen_port;
+			return m_socks_listen_socket->local_endpoint().port();
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can

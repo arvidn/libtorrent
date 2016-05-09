@@ -83,9 +83,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 #ifdef TORRENT_WINDOWS
-	typedef HANDLE handle_type;
+	using handle_type = HANDLE;
 #else
-	typedef int handle_type;
+	using handle_type = int;
 #endif
 
 	struct file_status
@@ -227,7 +227,7 @@ namespace libtorrent
 
 	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
 #else
-	typedef boost::shared_ptr<file> file_handle;
+	using file_handle = boost::shared_ptr<file>;
 #endif
 
 	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
@@ -293,15 +293,13 @@ namespace libtorrent
 			size_t iov_len;
 		};
 #else
-		typedef iovec iovec_t;
+		using iovec_t = iovec;
 #endif
 
-		// use a typedef for the type of iovec_t::iov_base
-		// since it may differ
 #ifdef TORRENT_SOLARIS
-		typedef char* iovec_base_t;
+		using iovec_base_t = char*;
 #else
-		typedef void* iovec_base_t;
+		using iovec_base_t = void*;
 #endif
 
 		file();

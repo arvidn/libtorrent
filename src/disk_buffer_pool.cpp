@@ -67,17 +67,12 @@ namespace libtorrent
 	namespace {
 
 	// this is posted to the network thread
-	void watermark_callback(std::vector<boost::weak_ptr<disk_observer> >* cbs)
+	void watermark_callback(std::vector<boost::weak_ptr<disk_observer>> const& cbs)
 	{
-		if (cbs != NULL)
+		for (auto const& i : cbs)
 		{
-			for (std::vector<boost::weak_ptr<disk_observer> >::iterator i = cbs->begin()
-				, end(cbs->end()); i != end; ++i)
-			{
-				boost::shared_ptr<disk_observer> o = i->lock();
-				if (o) o->on_disk();
-			}
-			delete cbs;
+			boost::shared_ptr<disk_observer> o = i.lock();
+			if (o) o->on_disk();
 		}
 	}
 
@@ -159,11 +154,10 @@ namespace libtorrent
 
 		m_exceeded_max_size = false;
 
-		std::vector<boost::weak_ptr<disk_observer> >* cbs
-			= new std::vector<boost::weak_ptr<disk_observer> >();
-		m_observers.swap(*cbs);
+		std::vector<boost::weak_ptr<disk_observer>> cbs;
+		m_observers.swap(cbs);
 		l.unlock();
-		m_ios.post(boost::bind(&watermark_callback, cbs));
+		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
 	}
 
 #if TORRENT_USE_ASSERTS

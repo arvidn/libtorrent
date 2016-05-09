@@ -80,7 +80,7 @@ private:
 	char write_buf_proto[100];
 	boost::uint32_t write_buffer[17*1024/4];
 	boost::uint32_t buffer[17*1024/4];
-	
+
 	peer_mode_t m_mode;
 	torrent_info const& m_ti;
 

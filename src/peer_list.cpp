@@ -194,9 +194,8 @@ namespace libtorrent
 
 	void peer_list::clear_peer_prio()
 	{
-		for (peers_t::iterator i = m_peers.begin()
-			, end(m_peers.end()); i != end; ++i)
-			(*i)->peer_rank = 0;
+		for (auto& p : m_peers)
+			p->peer_rank = 0;
 	}
 
 	// disconnects and removes all peers that are now filtered
@@ -862,12 +861,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// find p in m_peers
-		for (const_iterator i = m_peers.begin()
-			, end(m_peers.end()); i != end; ++i)
-		{
-			if (*i == p) return true;
-		}
-		return false;
+		return std::find(m_peers.begin(), m_peers.end(), p) != m_peers.end();
 	}
 
 	void peer_list::set_seed(torrent_peer* p, bool s)
@@ -1262,10 +1256,9 @@ namespace libtorrent
 		m_finished = state->is_finished;
 		m_max_failcount = state->max_failcount;
 
-		for (const_iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
+		for (auto const& p : m_peers)
 		{
-			m_num_connect_candidates += is_connect_candidate(**i);
+			m_num_connect_candidates += is_connect_candidate(*p);
 		}
 
 #if TORRENT_USE_INVARIANT_CHECKS

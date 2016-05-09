@@ -127,7 +127,6 @@ public:
 		std::memcpy(m_begin, b.begin(), b.size());
 	}
 
-#if __cplusplus > 199711L
 	buffer(buffer&& b)
 		: m_begin(b.m_begin)
 		, m_size(b.m_size)
@@ -148,7 +147,6 @@ public:
 		b.m_size = b.m_capacity = 0;
 		return *this;
 	}
-#endif
 
 	buffer& operator=(buffer const& b)
 	{
@@ -171,7 +169,7 @@ public:
 
 	void resize(std::size_t n)
 	{
-		TORRENT_ASSERT(n < 0xffffffffu);
+		TORRENT_ASSERT(n < std::numeric_limits<boost::uint32_t>::max());
 		reserve(n);
 		m_size = boost::uint32_t(n);
 	}
@@ -203,8 +201,8 @@ public:
 		}
 		std::memmove(b, e, m_begin + m_size - e);
 		TORRENT_ASSERT(e >= b);
-		TORRENT_ASSERT(e - b <= std::numeric_limits<boost::uint32_t>::max());
-		TORRENT_ASSERT(boost::uint32_t(e - b) <= m_size);
+		TORRENT_ASSERT(uintptr_t(e - b) <= std::numeric_limits<boost::uint32_t>::max());
+		TORRENT_ASSERT(uintptr_t(e - b) <= m_size);
 		m_size -= boost::uint32_t(e - b);
 	}
 
