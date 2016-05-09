@@ -4777,17 +4777,17 @@ retry:
 	torrent_handle session_impl::add_torrent(add_torrent_params const& p
 		, error_code& ec)
 	{
-		boost::shared_ptr<torrent> torrent_ptr;
-		sha1_hash ih;
-
 		// params is updated by add_torrent_impl()
 		add_torrent_params params = p;
-		boost::tie(torrent_ptr, ih) = add_torrent_impl(params, ec);
+		boost::shared_ptr<torrent> const torrent_ptr = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
 		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 
 		if (!torrent_ptr) return handle;
+
+		// params.info_hash should have been initialized by add_torrent_impl()
+		TORRENT_ASSERT(params.info_hash != sha1_hash(0));
 
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
@@ -4833,14 +4833,14 @@ retry:
 		float load_factor = m_torrents.load_factor();
 #endif // TORRENT_HAS_BOOST_UNORDERED
 
-		m_torrents.insert(std::make_pair(ih, torrent_ptr));
+		m_torrents.insert(std::make_pair(params.info_hash, torrent_ptr));
 
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update(ih.data(), 20);
+		h.update(params.info_hash.data(), 20);
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
@@ -4901,14 +4901,13 @@ retry:
 		return handle;
 	}
 
-	std::pair<boost::shared_ptr<torrent>, sha1_hash>
-	session_impl::add_torrent_impl(add_torrent_params& params
+	boost::shared_ptr<torrent> session_impl::add_torrent_impl(
+		add_torrent_params& params
 		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
 		typedef boost::shared_ptr<torrent> ptr_t;
-		typedef std::pair<ptr_t, sha1_hash> ret_t;
 
 #ifndef TORRENT_NO_DEPRECATE
 		params.update_flags();
@@ -4917,7 +4916,7 @@ retry:
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
-			if (ec) return ret_t();
+			if (ec) return ptr_t();
 			params.url.clear();
 		}
 
@@ -4925,7 +4924,7 @@ retry:
 		{
 			std::string filename = resolve_file_url(params.url);
 			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
-			if (ec) return ret_t();
+			if (ec) return ptr_t();
 			params.url.clear();
 			params.ti = t;
 		}
@@ -4933,7 +4932,7 @@ retry:
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
-			return ret_t();
+			return ptr_t();
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -4953,12 +4952,12 @@ retry:
 		if (is_aborted())
 		{
 			ec = errors::session_is_closing;
-			return ret_t();
+			return ptr_t();
 		}
 
-		// figure out the info hash of the torrent
-		sha1_hash ih(0);
-		if (params.ti) ih = params.ti->info_hash();
+		// figure out the info hash of the torrent and make sure params.info_hash
+		// is set correctly
+		if (params.ti) params.info_hash = params.ti->info_hash();
 		else if (!params.url.empty())
 		{
 			// in order to avoid info-hash collisions, for
@@ -4966,9 +4965,8 @@ retry:
 			// just a URL, set the temporary info-hash to the
 			// hash of the URL. This will be changed once we
 			// have the actual .torrent file
-			ih = hasher(&params.url[0], params.url.size()).final();
+			params.info_hash = hasher(&params.url[0], params.url.size()).final();
 		}
-		else ih = params.info_hash;
 
 		// we don't have a torrent file. If the user provided
 		// resume data, there may be some metadata in there
@@ -5017,7 +5015,6 @@ retry:
 #endif
 						// make the info-hash be the one in the resume file
 						params.info_hash = resume_ih;
-						ih = params.info_hash;
 					}
 					else
 					{
@@ -5043,7 +5040,7 @@ retry:
 		}
 
 		// is the torrent already active?
-		boost::shared_ptr<torrent> torrent_ptr = find_torrent(ih).lock();
+		boost::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
 		// if we still can't find the torrent, look for it by url
 		if (!torrent_ptr && !params.url.empty())
@@ -5065,19 +5062,19 @@ retry:
 					torrent_ptr->set_url(params.url);
 				if (!params.source_feed_url.empty() && torrent_ptr->source_feed_url().empty())
 					torrent_ptr->set_source_feed_url(params.source_feed_url);
-				return ret_t(torrent_ptr, ih);
+				return torrent_ptr;
 			}
 
 			ec = errors::duplicate_torrent;
-			return ret_t(ptr_t(), ih);
+			return ptr_t();
 		}
 
 		int queue_pos = ++m_max_queue_pos;
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
-			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(ih));
+			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(params.info_hash));
 
-		return ret_t(torrent_ptr, ih);
+		return torrent_ptr;
 	}
 
 	void session_impl::update_outgoing_interfaces()
