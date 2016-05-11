@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -78,6 +79,11 @@ TORRENT_TEST(dht_bootstrap)
 				num_nodes = c;
 				print_routing_table(p->routing_table);
 			}
+			else if (lt::session_stats_alert const* sa = lt::alert_cast<lt::session_stats_alert>(a))
+			{
+				int const dht_nodes = lt::find_metric_idx("dht.nodes");
+				TEST_CHECK(sa->values[dht_nodes] > 2);
+			}
 		}
 		// terminate?
 		, [&](int ticks, lt::session& ses) -> bool
@@ -112,6 +118,7 @@ TORRENT_TEST(dht_bootstrap)
 			}
 			if (ticks > 2)
 			{
+				ses.post_session_stats();
 				printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
 				TEST_CHECK(routing_table_depth >= 9);
 				TEST_CHECK(num_nodes >= 115);

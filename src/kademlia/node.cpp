@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 #include <boost/bind.hpp>
+#include <boost/tuple/tuple.hpp>
 #include <boost/function/function1.hpp>
 
 #ifdef TORRENT_USE_VALGRIND
@@ -728,6 +729,12 @@ void node::update_stats_counters(counters& c) const
 	c.set_value(counters::dht_peers, dht_cnt.peers);
 	c.set_value(counters::dht_immutable_data, dht_cnt.immutable_data);
 	c.set_value(counters::dht_mutable_data, dht_cnt.mutable_data);
+
+	int nodes, replacements;
+	boost::tie(nodes, replacements, boost::tuples::ignore) = size();
+	c.set_value(counters::dht_nodes, nodes);
+	c.set_value(counters::dht_node_cache, replacements);
+	c.set_value(counters::dht_allocated_observers, m_rpc.num_allocated_observers());
 }
 
 #ifndef TORRENT_NO_DEPRECATE
