@@ -83,6 +83,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h);
+		torrent_alert(torrent_alert&&) = default;
 
 		// internal
 		static const int alert_type = 0;
@@ -101,7 +102,7 @@ namespace libtorrent
 #endif
 
 	protected:
-		aux::stack_allocator const& m_alloc;
+		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 	private:
 		int m_name_idx;
 	};
@@ -113,6 +114,7 @@ namespace libtorrent
 		// internal
 		peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
 			tcp::endpoint const& i, peer_id const& pi);
+		peer_alert(peer_alert&&) = default;
 
 		static const int alert_type = 1;
 		static const int static_category = alert::peer_notification;
@@ -151,37 +153,11 @@ namespace libtorrent
 		int m_url_idx;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
-	#define TORRENT_CLONE(name) \
-		virtual std::auto_ptr<alert> clone_impl() const override \
-		{ return std::auto_ptr<alert>(new name(*this)); }
-#else
-	#define TORRENT_CLONE(name)
-#endif
-
-	// we can only use = default in C++11
-	// the purpose of this is just to make all alert types non-copyable from user
-	// code. The heterogeneous queue does not yet have an emplace_back(), so it
-	// still needs to copy alerts, but the important part is that it's not
-	// copyable for clients.
-	// TODO: Once the backwards compatibility of clone() is removed, and once
-	// C++11 is required, this can be simplified to just say = delete
-#if __cplusplus >= 201103L
-	#define TORRENT_PROTECTED_CCTOR(name) \
-	protected: \
-		template <class T> friend struct heterogeneous_queue; \
-		name(name const&) = default; \
-	public:
-#else
-	#define TORRENT_PROTECTED_CCTOR(name)
-#endif
-
 #define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
-	TORRENT_PROTECTED_CCTOR(name) \
+	name(name&&) = default; \
 	static const int priority = prio; \
 	static const int alert_type = seq; \
 	virtual int type() const override { return alert_type; } \
-	TORRENT_CLONE(name) \
 	virtual int category() const override { return static_category; } \
 	virtual char const* what() const override { return #name; }
 
@@ -1313,7 +1289,7 @@ namespace libtorrent
 		tcp::endpoint endpoint;
 
 	private:
-		aux::stack_allocator const& m_alloc;
+		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 		int m_interface_idx;
 	};
 
@@ -1437,7 +1413,7 @@ namespace libtorrent
 	private:
 
 		// TODO: 2 should the alert baseclass have this object instead?
-		aux::stack_allocator const& m_alloc;
+		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 
 		int m_log_idx;
 	};
@@ -2068,7 +2044,7 @@ namespace libtorrent
 		char const* msg() const;
 
 	private:
-		aux::stack_allocator const& m_alloc;
+		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 		int m_str_idx;
 	};
 
@@ -2277,7 +2253,7 @@ namespace libtorrent
 		dht_module_t module;
 
 	private:
-		aux::stack_allocator& m_alloc;
+		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 		int m_msg_idx;
 	};
 
@@ -2312,7 +2288,7 @@ namespace libtorrent
 		udp::endpoint node;
 
 	private:
-		aux::stack_allocator& m_alloc;
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		int m_msg_idx;
 		int m_size;
 	};
@@ -2339,7 +2315,7 @@ namespace libtorrent
 		std::vector<tcp::endpoint> peers() const;
 
 	private:
-		aux::stack_allocator& m_alloc;
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		int m_num_peers;
 		int m_peers_idx;
 	};
@@ -2366,7 +2342,7 @@ namespace libtorrent
 		bdecode_node response() const;
 
 	private:
-		aux::stack_allocator& m_alloc;
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		int m_response_idx;
 		int m_response_size;
 	};
@@ -2432,7 +2408,6 @@ namespace libtorrent
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
-#undef TORRENT_CLONE
 
 	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
 }

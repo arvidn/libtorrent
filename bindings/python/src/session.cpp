@@ -314,21 +314,12 @@ namespace
     }
 #endif // TORRENT_NO_DEPRECATE
 
-#ifndef TORRENT_NO_DEPRECATE
-    boost::shared_ptr<alert>
-#else
     alert const*
-#endif
     wait_for_alert(lt::session& s, int ms)
     {
         allow_threading_guard guard;
         alert const* a = s.wait_for_alert(milliseconds(ms));
-#ifndef TORRENT_NO_DEPRECATE
-        if (a == NULL) return boost::shared_ptr<alert>();
-        return boost::shared_ptr<alert>(a->clone().release());
-#else
         return a;
-#endif
     }
 
     list get_torrents(lt::session& s)
@@ -409,35 +400,6 @@ namespace
         return e;
     }
 
-#ifndef TORRENT_NO_DEPRECATE
-    object pop_alert(lt::session& ses)
-    {
-        std::auto_ptr<alert> a;
-        {
-            allow_threading_guard guard;
-            a = ses.pop_alert();
-        }
-
-        return object(boost::shared_ptr<alert>(a.release()));
-    }
-
-    list pop_alerts(lt::session& ses)
-    {
-        std::vector<alert*> alerts;
-        {
-            allow_threading_guard guard;
-            ses.pop_alerts(&alerts);
-        }
-
-        list ret;
-        for (std::vector<alert*>::iterator i = alerts.begin()
-            , end(alerts.end()); i != end; ++i)
-        {
-            ret.append(boost::shared_ptr<alert>((*i)->clone().release()));
-        }
-        return ret;
-    }
-#else
     list pop_alerts(lt::session& ses)
     {
         std::vector<alert*> alerts;
@@ -454,7 +416,6 @@ namespace
         }
         return ret;
     }
-#endif
 
 	void load_state(lt::session& ses, entry const& st, boost::uint32_t flags)
 	{
@@ -792,14 +753,10 @@ void bind_session()
         .def("load_state", &load_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("pop_alerts", &pop_alerts)
-        .def("wait_for_alert", &wait_for_alert
-#ifdef TORRENT_NO_DEPRECATE
-            , return_internal_reference<>()
-#endif
+        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>()
         )
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
-        .def("pop_alert", &pop_alert)
 #if TORRENT_USE_I2P
         .def("set_i2p_proxy", allow_threads(&lt::session::set_i2p_proxy))
         .def("i2p_proxy", allow_threads(&lt::session::i2p_proxy))

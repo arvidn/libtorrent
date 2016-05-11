@@ -199,13 +199,9 @@ namespace libtorrent {
 		template <class U>
 		static void move(uintptr_t* dst, uintptr_t* src)
 		{
-			U* rhs = reinterpret_cast<U*>(src);
-#if __cplusplus >= 201103L
-			new (dst) U(std::move(*rhs));
-#else
-			new (dst) U(*rhs);
-#endif
-			rhs->~U();
+			U& rhs = *reinterpret_cast<U*>(src);
+			new (dst) U(static_cast<U&&>(rhs));
+			rhs.~U();
 		}
 
 		uintptr_t* m_storage;

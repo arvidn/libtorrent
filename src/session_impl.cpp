@@ -6417,25 +6417,6 @@ namespace aux {
 		return m_alert_pointers[m_alert_pointer_pos++];
 	}
 
-
-	void session_impl::pop_alerts(std::deque<alert*>* alerts)
-	{
-		alerts->clear();
-		if (m_alert_pointer_pos >= m_alert_pointers.size())
-		{
-			pop_alerts();
-			if (m_alert_pointers.empty())
-				return;
-		}
-
-		for (std::vector<alert*>::iterator i = m_alert_pointers.begin()
-			+ m_alert_pointer_pos, end(m_alert_pointers.end());
-			i != end; ++i)
-		{
-			alerts->push_back((*i)->clone().release());
-		}
-		m_alert_pointer_pos = int(m_alert_pointers.size());
-	}
 #endif
 
 	alert* session_impl::wait_for_alert(time_duration max_wait)

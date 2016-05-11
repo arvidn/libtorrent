@@ -93,50 +93,6 @@ namespace libtorrent
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-
-	bool alert_manager::maybe_dispatch(alert const& a)
-	{
-		if (m_dispatch)
-		{
-			m_dispatch(a.clone());
-			return true;
-		}
-		return false;
-	}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-	void alert_manager::set_dispatch_function(
-		boost::function<void(std::auto_ptr<alert>)> const& fun)
-	{
-		std::unique_lock<std::mutex> lock(m_mutex);
-
-		m_dispatch = fun;
-
-		heterogeneous_queue<alert> storage;
-		m_alerts[m_generation].swap(storage);
-		lock.unlock();
-
-		std::vector<alert*> alerts;
-		storage.get_pointers(alerts);
-
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
-		{
-			m_dispatch((*i)->clone());
-		}
-	}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-#endif
-
 	void alert_manager::set_notify_function(boost::function<void()> const& fun)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);

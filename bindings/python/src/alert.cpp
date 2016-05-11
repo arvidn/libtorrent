@@ -267,17 +267,9 @@ namespace boost
 void bind_alert()
 {
     using boost::noncopyable;
-#ifndef TORRENT_NO_DEPRECATE
-    typedef boost::shared_ptr<alert> alert_holder;
-#if BOOST_VERSION >= 106000
-    register_ptr_to_python<boost::shared_ptr<alert> >();
-#endif
-#else
-    typedef alert alert_holder;
-#endif
 
     {
-        scope alert_scope = class_<alert, alert_holder, noncopyable >("alert", no_init)
+        scope alert_scope = class_<alert, noncopyable >("alert", no_init)
             .def("message", &alert::message)
             .def("what", &alert::what)
             .def("category", &alert::category)

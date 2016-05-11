@@ -1,3 +1,4 @@
+	* made alerts move-only
 	* move files one-by-one when moving storage for a torrent
 	* removed RSS support
 	* removed feature to resolve country for peers

@@ -87,6 +87,10 @@ namespace libtorrent {
 	{
 	public:
 
+		alert(alert const& rhs) = delete;
+		alert& operator=(alert const&) = delete;
+		alert(alert&& rhs) = default;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
 		enum severity_t { debug, info, warning, critical, fatal, none };
@@ -269,15 +273,9 @@ namespace libtorrent {
 		TORRENT_DEPRECATED
 		severity_t severity() const { return warning; }
 
-		// returns a pointer to a copy of the alert.
-		TORRENT_DEPRECATED
-		std::auto_ptr<alert> clone() const { return clone_impl(); }
-
 	protected:
 
 		virtual bool discardable_impl() const { return true; }
-
-		virtual std::auto_ptr<alert> clone_impl() const = 0;
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -285,17 +283,7 @@ namespace libtorrent {
 
 #endif // TORRENT_NO_DEPRECATE
 
-	protected:
-		// the alert is not copyable (but for backwards compatibility reasons it
-		// retains the ability to clone itself, for now).
-#if __cplusplus >= 201103L
-		alert(alert const& rhs) = default;
-#endif
-
 	private:
-		// explicitly disallow assignment and copyconstruction
-		alert& operator=(alert const&);
-
 		time_point m_timestamp;
 	};
 
@@ -303,15 +291,15 @@ namespace libtorrent {
 // more specific alert type, in order to query it for more information.
 template <class T> T* alert_cast(alert* a)
 {
-	if (a == 0) return 0;
+	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T*>(a);
-	return 0;
+	return nullptr;
 }
 template <class T> T const* alert_cast(alert const* a)
 {
-	if (a == 0) return 0;
+	if (a == nullptr) return nullptr;
 	if (a->type() == T::alert_type) return static_cast<T const*>(a);
-	return 0;
+	return nullptr;
 }
 
 } // namespace libtorrent

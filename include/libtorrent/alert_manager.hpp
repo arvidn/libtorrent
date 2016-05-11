@@ -76,14 +76,7 @@ namespace libtorrent {
 		void emplace_alert(Args&&... args)
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);
-#ifndef TORRENT_NO_DEPRECATE
-			if (m_dispatch)
-			{
-				m_dispatch(std::auto_ptr<alert>(new T(m_allocations[m_generation]
-					, std::forward<Args>(args)...)));
-				return;
-			}
-#endif
+
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
 			// for high priority alerts, double the upper limit
@@ -131,10 +124,6 @@ namespace libtorrent {
 
 		void set_notify_function(boost::function<void()> const& fun);
 
-#ifndef TORRENT_NO_DEPRECATE
-		void set_dispatch_function(boost::function<void(std::auto_ptr<alert>)> const&);
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<plugin> ext);
 #endif
@@ -151,11 +140,6 @@ namespace libtorrent {
 		std::condition_variable m_condition;
 		boost::uint32_t m_alert_mask;
 		int m_queue_size_limit;
-
-#ifndef TORRENT_NO_DEPRECATE
-		bool maybe_dispatch(alert const& a);
-		boost::function<void(std::auto_ptr<alert>)> m_dispatch;
-#endif
 
 		// this function (if set) is called whenever the number of alerts in
 		// the alert queue goes from 0 to 1. The client is expected to wake up
