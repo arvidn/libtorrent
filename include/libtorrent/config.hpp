@@ -37,21 +37,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define _FILE_OFFSET_BITS 64
 
-#if !defined _MSC_VER || _MSC_VER >= 1600
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS 1
-#endif
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS 1
-#endif
-#endif
-
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
 #include <boost/detail/endian.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <stdio.h> // for snprintf
 #include <limits.h> // for IOV_MAX
+#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/export.hpp"
 
@@ -67,29 +62,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_ASIO_SEPARATE_COMPILATION
 #endif
 
-#ifndef _MSC_VER
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS 1
+#if defined __MINGW64__ || defined __MINGW32__
+// GCC warns on format codes that are incompatible with glibc, which the windows
+// format codes are. So we need to disable those for mingw targets
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-extra-args"
 #endif
-#include <inttypes.h> // for PRId64 et.al.
-#endif
-
-#ifndef PRId64
-// MinGW uses microsofts runtime
-#if defined _MSC_VER || defined __MINGW32__
-#define PRId64 "I64d"
-#define PRIu64 "I64u"
-#define PRIx64 "I64x"
-#define PRIu32 "u"
-#else
-#define PRId64 "lld"
-#define PRIu64 "llu"
-#define PRIx64 "llx"
-#define PRIu32 "u"
-#endif
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // ======= GCC =========
 
@@ -255,7 +233,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // ==== MINGW ===
-#elif defined __MINGW32__
+#elif defined __MINGW32__ || defined __MINGW64__
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_ICONV

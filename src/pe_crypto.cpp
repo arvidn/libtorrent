@@ -102,7 +102,11 @@ namespace libtorrent
 			return;
 
 		// key is now our local key
-		int size = mp_unsigned_bin_size(&key);
+		int const size = mp_unsigned_bin_size(&key);
+		TORRENT_ASSERT(size >= 0);
+		TORRENT_ASSERT(size <= sizeof(m_dh_local_key));
+		if (size < 0 || size > sizeof(m_dh_local_key))
+			return;
 		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
 		mp_to_unsigned_bin(&key
 			, reinterpret_cast<unsigned char*>(m_dh_local_key)

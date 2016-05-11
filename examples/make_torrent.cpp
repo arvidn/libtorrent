@@ -41,13 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/hex.hpp" // for from_hex
 
-#include <boost/bind.hpp>
+#include <functional>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
 #endif
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
 {
@@ -369,7 +370,7 @@ int main(int argc, char* argv[])
 
 		error_code ec;
 		set_piece_hashes(t, branch_path(full_path)
-			, boost::bind(&print_progress, _1, t.num_pieces()), ec);
+			, std::bind(&print_progress, _1, t.num_pieces()), ec);
 		if (ec)
 		{
 			fprintf(stderr, "%s\n", ec.message().c_str());

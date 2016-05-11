@@ -83,9 +83,7 @@ rule linking ( properties * )
 		result += <library>/libsimulator//simulator ;
 	}
 
-	# dbghelp doesn't appear to exist in mingw
 	if <target-os>windows in $(properties)
-		&& ! <toolset>gcc in $(properties)
 		&& ( <variant>debug in $(properties)
 			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
@@ -298,6 +296,13 @@ rule building ( properties * )
 		result += <cflags>/bigobj ;
 	}
 
+	if <toolset>gcc in $(properties)
+		&& <target-os>windows in $(properties)
+	{
+		# allow larger .obj files in GCC
+		result += <cflags>-Wa,-mbig-obj ;
+	}
+
 	if ( <variant>debug in $(properties)
 		&& ( <toolset>clang in $(properties)
 			|| <toolset>gcc in $(properties)
@@ -455,7 +460,7 @@ feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
 feature crypto : built-in openssl gcrypt : composite propagated ;
-feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL ;
+feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;

@@ -31,11 +31,21 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <stdlib.h>
-#include <boost/make_shared.hpp>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#endif
+
+#include <boost/make_shared.hpp>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 int main(int argc, char* argv[])
 {
