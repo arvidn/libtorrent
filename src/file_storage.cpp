@@ -168,6 +168,10 @@ namespace libtorrent
 			// and the branch path
 			branch_path = path.c_str();
 			branch_len = leaf - path.c_str();
+
+			// trim trailing slashes
+			if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
+				--branch_len;
 		}
 		if (branch_len <= 0)
 		{
@@ -201,10 +205,6 @@ namespace libtorrent
 			// no, we don't. add it
 			e.path_index = int(m_paths.size());
 			TORRENT_ASSERT(branch_path[0] != '/');
-
-			// trim trailing slashes
-			if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
-				--branch_len;
 
 			// poor man's emplace back
 			m_paths.resize(m_paths.size() + 1);
