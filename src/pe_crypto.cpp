@@ -183,7 +183,7 @@ namespace libtorrent
 		to_process = 0;
 		for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 			i != iovec.end(); ++i)
-			to_process += boost::asio::buffer_size(*i);
+			to_process += int(boost::asio::buffer_size(*i));
 #endif
 
 		int next_barrier = 0;
@@ -209,7 +209,7 @@ namespace libtorrent
 				int overhead = 0;
 				for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 					i != iovec.end(); ++i)
-					overhead += boost::asio::buffer_size(*i);
+					overhead += int(boost::asio::buffer_size(*i));
 				TORRENT_ASSERT(overhead + to_process == next_barrier);
 			}
 #endif
