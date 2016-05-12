@@ -251,7 +251,7 @@ void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& v
 	int vec_bytes = 0;
 	for (std::vector<asio::mutable_buffer>::iterator i = vec.begin();
 		i != vec.end(); ++i)
-		vec_bytes += boost::asio::buffer_size(*i);
+		vec_bytes += int(boost::asio::buffer_size(*i));
 	TORRENT_ASSERT(vec_bytes == bytes);
 #endif
 }

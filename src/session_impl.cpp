@@ -967,7 +967,7 @@ namespace aux {
 		while (!m_connections.empty())
 		{
 #if TORRENT_USE_ASSERTS
-			int conn = m_connections.size();
+			int conn = int(m_connections.size());
 #endif
 			(*m_connections.begin())->disconnect(errors::stopping_torrent, op_bittorrent);
 			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
