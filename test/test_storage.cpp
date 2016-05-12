@@ -1306,6 +1306,18 @@ TORRENT_TEST(move_storage_into_self)
 		, combine_path("_folder3", "test4.tmp")))));
 }
 
+TORRENT_TEST(storage_paths_string_pooling)
+{
+	file_storage file_storage;
+	file_storage.add_file(combine_path("test_storage", "root.txt"), 0x4000);
+	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test1.txt")), 0x4000);
+	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test2.txt")), 0x4000);
+	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test3.txt")), 0x4000);
+
+	// "sub" paths should point to same string item, so paths.size() must not grow 
+	TEST_CHECK(file_storage.paths().size() <= 2);
+}
+
 TORRENT_TEST(dont_move_intermingled_files)
 {
 	std::string const save_path = combine_path(current_working_directory(), "save_path_1");
