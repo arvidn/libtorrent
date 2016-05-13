@@ -204,7 +204,7 @@ namespace libtorrent
 		{
 			// no, we don't. add it
 			e.path_index = int(m_paths.size());
-			TORRENT_ASSERT(branch_path[0] != '/');
+			TORRENT_ASSERT(branch_len == 0 || branch_path[0] != '/');
 
 			// poor man's emplace back
 			m_paths.resize(m_paths.size() + 1);
@@ -848,7 +848,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(internal_file_entry const& fe) const
 	{
 		TORRENT_ASSERT_PRECOND(fe.symlink_index < int(m_symlinks.size()));
