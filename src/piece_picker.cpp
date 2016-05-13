@@ -270,7 +270,7 @@ namespace libtorrent
 		TORRENT_ASSERT(download_state != piece_pos::piece_open);
 		TORRENT_ASSERT(find_dl_piece(download_state, i->index) == i);
 #if TORRENT_USE_ASSERTS
-		int prev_size = m_downloads[download_state].size();
+		int prev_size = int(m_downloads[download_state].size());
 #endif
 
 		// since we're removing a downloading_piece, we also need to free its

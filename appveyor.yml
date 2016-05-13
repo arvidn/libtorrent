@@ -15,21 +15,15 @@ environment:
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
-    compiler: msvc-12.0
-    model: 64
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
-  - variant: test_barebones
-    compiler: msvc-12.0
+    compiler: msvc-14.0
     model: 32
-    python_package: 1
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_release
-    compiler: msvc-12.0
-    model: 32
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2013\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2013\\include"'
+    compiler: msvc-14.0
+    model: 64
+    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
 
 # mingw and boost.random don't like each other. Comment this back in once there
 # is support
@@ -42,20 +36,6 @@ install:
 - if defined sim ( git submodule update --init --recursive )
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if %compiler% == msvc-12.0 (
-    if not exist openssl-1.0.1p-vs2013.7z (
-      echo downloading openssl-2013
-      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2013.7z"
-    )
-  )
-- if %compiler% == msvc-12.0 (
-    echo extracting openssl-2013
-    & 7z x -oc:\ -aoa openssl-1.0.1p-vs2013.7z > nul
-    & copy c:\openssl-1.0.1p-vs2013\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\ssleay32.lib
-    & copy c:\openssl-1.0.1p-vs2013\lib64\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib64\libeay32.lib
-    & copy c:\openssl-1.0.1p-vs2013\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2013\lib\ssleay32.lib
-    & copy c:\openssl-1.0.1p-vs2013\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2013\lib\libeay32.lib
-  )
 - if %compiler% == msvc-14.0 (
     if not exist openssl-1.0.1p-vs2015.7z (
       echo downloading openssl-2015
@@ -89,7 +69,6 @@ install:
 - cd %ROOT_DIRECTORY%
 
 cache:
-- openssl-1.0.1p-vs2013.7z
 - openssl-1.0.1p-vs2015.7z
 
 build_script:
