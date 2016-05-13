@@ -1009,26 +1009,6 @@ namespace libtorrent
 		return TORRENT_SYNC_CALL_RET(int, max_connections);
 	}
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-	std::auto_ptr<alert> session_handle::pop_alert()
-	{
-		alert const* a = m_impl->pop_alert();
-		if (a == NULL) return std::auto_ptr<alert>();
-		return a->clone();
-	}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
-	void session_handle::pop_alerts(std::deque<alert*>* alerts)
-	{
-		m_impl->pop_alerts(alerts);
-	}
 #endif // TORRENT_NO_DEPRECATE
 
 	// the alerts are const, they may not be deleted by the client
@@ -1085,20 +1065,6 @@ namespace libtorrent
 	{
 		return get_settings().get_int(settings_pack::alert_mask);
 	}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-	void session_handle::set_alert_dispatch(boost::function<void(std::auto_ptr<alert>)> const& fun)
-	{
-		m_impl->alerts().set_dispatch_function(fun);
-	}
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 	void session_handle::start_lsd()
 	{

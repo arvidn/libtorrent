@@ -103,39 +103,6 @@ TORRENT_TEST(priority_limit)
 	TEST_EQUAL(alerts.size(), 200);
 }
 
-void test_dispatch_fun(int& cnt, std::auto_ptr<alert> const& a)
-{
-	++cnt;
-}
-
-TORRENT_TEST(dispatch_function)
-{
-#ifndef TORRENT_NO_DEPRECATE
-	int cnt = 0;
-	alert_manager mgr(100, 0xffffffff);
-
-	TEST_EQUAL(mgr.alert_queue_size_limit(), 100);
-	TEST_EQUAL(mgr.pending(), false);
-
-	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
-
-	TEST_EQUAL(mgr.pending(), true);
-
-	mgr.set_dispatch_function(boost::bind(&test_dispatch_fun, boost::ref(cnt), _1));
-
-	TEST_EQUAL(mgr.pending(), false);
-
-	TEST_EQUAL(cnt, 20);
-
-	for (int i = 0; i < 200; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
-
-	TEST_EQUAL(mgr.pending(), false);
-	TEST_EQUAL(cnt, 220);
-#endif
-}
-
 void test_notify_fun(int& cnt)
 {
 	++cnt;
