@@ -93,6 +93,57 @@ TORRENT_TEST(session)
 	// the session object
 }
 
+TORRENT_TEST(async_add_torrent_duplicate_error)
+{
+	settings_pack p;
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	atp.info_hash.assign("abababababababababab");
+	atp.save_path = ".";
+	ses.async_add_torrent(atp);
+
+	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+
+	atp.flags |= add_torrent_params::flag_duplicate_is_error;
+	ses.async_add_torrent(atp);
+	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+	TEST_CHECK(!a->handle.is_valid());
+	TEST_CHECK(a->error);
+}
+
+TORRENT_TEST(async_add_torrent_duplicate)
+{
+	settings_pack p;
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	atp.info_hash.assign("abababababababababab");
+	atp.save_path = ".";
+	ses.async_add_torrent(atp);
+
+	auto* a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+	torrent_handle h = a->handle;
+	TEST_CHECK(!a->error);
+
+	atp.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	ses.async_add_torrent(atp);
+	a = alert_cast<add_torrent_alert>(wait_for_alert(ses, add_torrent_alert::alert_type, "ses"));
+	TEST_CHECK(a);
+	if (a == nullptr) return;
+	TEST_CHECK(a->handle == h);
+	TEST_CHECK(!a->error);
+}
+
+
 TORRENT_TEST(session_stats)
 {
 	std::vector<stats_metric> stats = session_stats_metrics();
