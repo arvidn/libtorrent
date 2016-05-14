@@ -854,6 +854,26 @@ TORRENT_TEST(resolve_duplicates)
 		test_resolve_duplicates(i);
 }
 
+TORRENT_TEST(empty_file)
+{
+	error_code ec;
+	boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>("", 0, ec);
+	TEST_CHECK(ec);
+}
+
+TORRENT_TEST(empty_file2)
+{
+	try
+	{
+		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>("", 0);
+		TEST_ERROR("expected exception thrown");
+	}
+	catch (libtorrent_exception& e)
+	{
+		printf("Expected error: %s\n", e.error().message().c_str());
+	}
+}
+
 TORRENT_TEST(copy)
 {
 	using namespace libtorrent;
