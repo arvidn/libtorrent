@@ -142,7 +142,7 @@ boost::shared_ptr<torrent_info> buffer_constructor0(char const* buf, int len, in
    boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(buf
 		, len, boost::ref(ec), flags));
 #ifndef BOOST_NO_EXCEPTIONS
-   if (ec) throw libtorrent_exception(ec);
+   if (ec) throw system_error(ec);
 #endif
    return ret;
 }
@@ -158,7 +158,7 @@ boost::shared_ptr<torrent_info> file_constructor0(std::string const& filename, i
    boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(filename
 		, boost::ref(ec), flags));
 #ifndef BOOST_NO_EXCEPTIONS
-   if (ec) throw libtorrent_exception(ec);
+   if (ec) throw system_error(ec);
 #endif
    return ret;
 }
@@ -178,14 +178,14 @@ boost::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flag
 	if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		throw invalid_torrent_file(ec);
+		throw system_error(ec);
 #endif
 	}
 
 	boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(e
 			, boost::ref(ec), flags));
 #ifndef BOOST_NO_EXCEPTIONS
-	if (ec) throw libtorrent_exception(ec);
+	if (ec) throw system_error(ec);
 #endif
 	return ret;
 }

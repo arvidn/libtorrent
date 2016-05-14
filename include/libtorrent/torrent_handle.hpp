@@ -226,7 +226,7 @@ namespace libtorrent
 	// uninitialized handle, it will throw ``invalid_handle``.
 	// 
 	// .. warning::
-	// 	All operations on a torrent_handle may throw libtorrent_exception
+	// 	All operations on a torrent_handle may throw system_error
 	// 	exception, in case the handle is no longer referring to a torrent.
 	// 	There is one exception is_valid() will never throw. Since the torrents
 	// 	are processed by a background thread, there is no guarantee that a
@@ -302,7 +302,7 @@ namespace libtorrent
 		// takes a reference to a vector that will be cleared and filled with one
 		// entry for each peer connected to this torrent, given the handle is
 		// valid. If the torrent_handle is invalid, it will throw
-		// libtorrent_exception exception. Each entry in the vector contains
+		// system_error exception. Each entry in the vector contains
 		// information about that particular peer. See peer_info.
 		void get_peer_info(std::vector<peer_info>& v) const;
 
@@ -338,7 +338,7 @@ namespace libtorrent
 
 		// ``status()`` will return a structure with information about the status
 		// of this torrent. If the torrent_handle is invalid, it will throw
-		// libtorrent_exception exception. See torrent_status. The ``flags``
+		// system_error exception. See torrent_status. The ``flags``
 		// argument filters what information is returned in the torrent_status.
 		// Some information in there is relatively expensive to calculate, and if
 		// you're not interested in it (and see performance issues), you can
@@ -1129,7 +1129,7 @@ namespace libtorrent
 		// not a member of this torrent, it will simply be disconnected. No harm
 		// can be done by using this other than an unnecessary connection attempt
 		// is made. If the torrent is uninitialized or in queued or checking
-		// mode, this will throw libtorrent_exception. The second (optional)
+		// mode, this will throw system_error. The second (optional)
 		// argument will be bitwised ORed into the source mask of this peer.
 		// Typically this is one of the source flags in peer_info. i.e.
 		// ``tracker``, ``pex``, ``dht`` etc.

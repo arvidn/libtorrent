@@ -113,11 +113,6 @@ namespace libtorrent
 		boost::uint8_t type;
 	};
 
-#ifndef BOOST_NO_EXCEPTIONS
-	// for backwards compatibility with 0.14
-	typedef libtorrent_exception invalid_torrent_file;
-#endif
-
 	// TODO: there may be some opportunities to optimize the size if torrent_info.
 	// specifically to turn some std::string and std::vector into pointers
 	class TORRENT_EXPORT torrent_info

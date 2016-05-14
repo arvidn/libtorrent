@@ -92,15 +92,7 @@ namespace libtorrent
 {
 
 #ifndef TORRENT_NO_DEPRECATE
-	// thrown by bdecode() if the provided bencoded buffer does not contain
-	// valid encoding.
-	struct invalid_encoding: std::exception
-	{
-		// hidden
-		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER
-			override final
-		{ return "invalid bencoding"; }
-	};
+	using invalid_encoding = system_error;
 #endif
 
 	namespace detail

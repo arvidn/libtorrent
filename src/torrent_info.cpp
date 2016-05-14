@@ -799,14 +799,14 @@ namespace libtorrent
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 #else
 			return;
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 #else
 		parse_torrent_file(e, ec, 0);
 #endif
@@ -831,14 +831,14 @@ namespace libtorrent
 		if (tmp.empty() || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 #else
 			return;
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 #else
 		parse_torrent_file(e, ec, 0);
 #endif
@@ -858,7 +858,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		if (!parse_torrent_file(torrent_file, ec, flags))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -875,10 +875,10 @@ namespace libtorrent
 		error_code ec;
 		bdecode_node e;
 		if (bdecode(buffer, buffer + size, e, ec) != 0)
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -895,14 +895,14 @@ namespace libtorrent
 		std::vector<char> buf;
 		error_code ec;
 		int ret = load_file(filename, buf, ec);
-		if (ret < 0) throw invalid_torrent_file(ec);
+		if (ret < 0) throw system_error(ec);
 
 		bdecode_node e;
 		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -923,14 +923,14 @@ namespace libtorrent
 		wchar_utf8(filename, utf8);
 		error_code ec;
 		int ret = load_file(utf8, buf, ec);
-		if (ret < 0) throw invalid_torrent_file(ec);
+		if (ret < 0) throw system_error(ec);
 
 		bdecode_node e;
 		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw invalid_torrent_file(ec);
+			throw system_error(ec);
 
 		INVARIANT_CHECK;
 	}

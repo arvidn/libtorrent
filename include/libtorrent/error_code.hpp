@@ -489,20 +489,11 @@ namespace libtorrent
 	using boost::system::system_category;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	struct TORRENT_EXPORT libtorrent_exception: std::exception
-	{
-		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
-		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;
-		virtual ~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER;
-#if __cplusplus >= 201103L
-		libtorrent_exception(libtorrent_exception const&) = default;
-		libtorrent_exception& operator=(libtorrent_exception const&) = default;
+	using boost::system::system_error;
+
+#ifndef TORRENT_NO_DEPRECATE
+	using system_error = boost::system::system_error;
 #endif
-		error_code error() const { return m_error; }
-	private:
-		error_code m_error;
-		mutable char* m_msg;
-	};
 #endif
 
 	// used by storage to return errors

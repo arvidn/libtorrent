@@ -169,7 +169,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, p, ec);
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS

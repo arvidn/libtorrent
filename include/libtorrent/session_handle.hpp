@@ -200,7 +200,7 @@ namespace libtorrent
 		//
 		// If the torrent you are trying to add already exists in the session (is
 		// either queued for checking, being checked or downloading)
-		// ``add_torrent()`` will throw libtorrent_exception which derives from
+		// ``add_torrent()`` will throw system_error which derives from
 		// ``std::exception`` unless duplicate_is_error is set to false. In that
 		// case, add_torrent() will return the handle to the existing torrent.
 		//
@@ -767,7 +767,7 @@ namespace libtorrent
 		// files downloaded by this torrent. To do so, pass in the value
 		// ``session::delete_files``. The removal of the torrent is asynchronous,
 		// there is no guarantee that adding the same torrent immediately after
-		// it was removed will not throw a libtorrent_exception exception. Once
+		// it was removed will not throw a system_error exception. Once
 		// the torrent is deleted, a torrent_deleted_alert is posted.
 		void remove_torrent(const torrent_handle& h, int options = 0);
 

@@ -85,6 +85,18 @@ namespace libtorrent
 		}
 	}
 
+	namespace
+	{
+#ifndef BOOST_NO_EXCEPTIONS
+		TORRENT_NO_RETURN inline void throw_error()
+		{
+			throw system_error(error_code(errors::invalid_entry_type
+					, get_libtorrent_category()));
+		}
+#endif
+
+	}
+
 	entry& entry::operator[](char const* key)
 	{
 		dictionary_type::iterator i = dict().find(key);
@@ -140,8 +152,7 @@ namespace libtorrent
 	const entry& entry::operator[](std::string const& key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) throw type_error(
-			(std::string("key not found: ") + key).c_str());
+		if (i == dict().end()) throw_error();
 		return i->second;
 	}
 #endif
@@ -174,7 +185,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(int_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
+		if (m_type != int_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -185,7 +196,7 @@ namespace libtorrent
 	entry::integer_type const& entry::integer() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != int_t) throw_type_error();
+		if (m_type != int_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -197,7 +208,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(string_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
+		if (m_type != string_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -208,7 +219,7 @@ namespace libtorrent
 	entry::string_type const& entry::string() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != string_t) throw_type_error();
+		if (m_type != string_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -220,7 +231,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(list_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
+		if (m_type != list_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -231,7 +242,7 @@ namespace libtorrent
 	entry::list_type const& entry::list() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != list_t) throw_type_error();
+		if (m_type != list_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -243,7 +254,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(dictionary_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
+		if (m_type != dictionary_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -254,7 +265,7 @@ namespace libtorrent
 	entry::dictionary_type const& entry::dict() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != dictionary_t) throw_type_error();
+		if (m_type != dictionary_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -266,7 +277,7 @@ namespace libtorrent
 	{
 		if (m_type == undefined_t) construct(preformatted_t);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != preformatted_t) throw_type_error();
+		if (m_type != preformatted_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif
@@ -277,7 +288,7 @@ namespace libtorrent
 	entry::preformatted_type const& entry::preformatted() const
 	{
 #ifndef BOOST_NO_EXCEPTIONS
-		if (m_type != preformatted_t) throw_type_error();
+		if (m_type != preformatted_t) throw_error();
 #elif defined TORRENT_DEBUG
 		TORRENT_ASSERT(m_type_queried);
 #endif

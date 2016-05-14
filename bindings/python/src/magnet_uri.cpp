@@ -42,7 +42,7 @@ namespace {
 		error_code ec;
 		parse_magnet_uri(uri, p, ec);
 
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 
 		dict ret;
 

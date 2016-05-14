@@ -419,14 +419,14 @@ namespace libtorrent
 	{
 		error_code ec;
 		set_piece_hashes(t, p, detail::nop, ec);
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 	}
 	template <class Fun>
 	void set_piece_hashes(create_torrent& t, std::string const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes(t, p, f, ec);
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 	}
 #endif
 
@@ -462,7 +462,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, f, ec);
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 	}
 
 	TORRENT_DEPRECATED
@@ -471,7 +471,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 	}
 #endif
 
