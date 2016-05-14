@@ -612,7 +612,7 @@ TORRENT_TEST(parse_torrents)
 		fprintf(stderr, "loading %s\n", test_torrents[i].file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
 			, test_torrents[i].file);
-		boost::shared_ptr<torrent_info> ti(new torrent_info(filename, ec));
+		auto ti = boost::make_shared<torrent_info>(filename, ec);
 		TEST_CHECK(!ec);
 		if (ec) fprintf(stderr, " loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
@@ -751,8 +751,8 @@ TORRENT_TEST(parse_torrents)
 	{
 		error_code ec;
 		fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		boost::shared_ptr<torrent_info> ti(new torrent_info(combine_path(
-			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec));
+		auto ti = boost::make_shared<torrent_info>(combine_path(
+			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
 		fprintf(stderr, "E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, test_error_torrents[i].error.message().c_str());
 		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
@@ -852,6 +852,26 @@ TORRENT_TEST(resolve_duplicates)
 {
 	for (int i = 0; i < 4; ++i)
 		test_resolve_duplicates(i);
+}
+
+TORRENT_TEST(empty_file)
+{
+	error_code ec;
+	auto ti = boost::make_shared<torrent_info>("", 0, ec);
+	TEST_CHECK(ec);
+}
+
+TORRENT_TEST(empty_file2)
+{
+	try
+	{
+		auto ti = boost::make_shared<torrent_info>("", 0);
+		TEST_ERROR("expected exception thrown");
+	}
+	catch (libtorrent_exception& e)
+	{
+		printf("Expected error: %s\n", e.error().message().c_str());
+	}
 }
 
 TORRENT_TEST(copy)

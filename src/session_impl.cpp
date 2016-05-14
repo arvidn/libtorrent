@@ -4818,6 +4818,12 @@ namespace aux {
 			params.ti = t;
 		}
 
+		if (params.ti && !params.ti->is_valid())
+		{
+			ec = errors::no_metadata;
+			return ptr_t();
+		}
+
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;

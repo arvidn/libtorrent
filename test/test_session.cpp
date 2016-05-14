@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -143,6 +144,22 @@ TORRENT_TEST(async_add_torrent_duplicate)
 	TEST_CHECK(!a->error);
 }
 
+TORRENT_TEST(load_empty_file)
+{
+	settings_pack p;
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	error_code ignore_errors;
+	atp.ti = boost::make_shared<torrent_info>("", 0, ignore_errors);
+	atp.save_path = ".";
+	error_code ec;
+	torrent_handle h = ses.add_torrent(atp, ec);
+
+	TEST_CHECK(!h.is_valid());
+	TEST_CHECK(ec == error_code(errors::no_metadata))
+}
 
 TORRENT_TEST(session_stats)
 {
@@ -158,8 +175,6 @@ TORRENT_TEST(session_stats)
 		TEST_EQUAL(stats[i].value_index, i);
 	}
 }
-#if __cplusplus >= 201103L
-
 template <typename Set, typename Save, typename Default, typename Load>
 void test_save_restore(Set setup, Save s, Default d, Load l)
 {
@@ -259,6 +274,4 @@ TORRENT_TEST(save_restore_state_load_filter)
 			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 90);
 		});
 }
-
-#endif
 
