@@ -231,7 +231,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		if (has_symbol)
 		{
 			ret = snprintf(out, len, " %s +%-4" PRId64 " "
-				, i, stack[i], demangle(symbol.Name), displacement);
+				, demangle(symbol.Name).c_str(), displacement);
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 
