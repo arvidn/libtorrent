@@ -46,7 +46,7 @@ namespace
         error_code ec;
         s.listen_on(std::make_pair(min_, max_), ec, interface, flags);
 #ifndef BOOST_NO_EXCEPTIONS
-        if (ec) throw libtorrent_exception(ec);
+        if (ec) throw system_error(ec);
 #endif
     }
 #endif
@@ -472,7 +472,7 @@ namespace
         error_code ec;
         add_torrent_params p = read_resume_data(&b.arr[0], b.arr.size(), ec);
 #ifndef BOOST_NO_EXCEPTIONS
-        if (ec) throw libtorrent_exception(ec);
+        if (ec) throw system_error(ec);
 #endif
         return p;
     }

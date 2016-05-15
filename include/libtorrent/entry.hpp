@@ -82,17 +82,10 @@ namespace libtorrent
 {
 #ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
+	// backwards compatibility
+	using type_error = system_error;
 #endif
 	struct bdecode_node;
-
-	// thrown by any accessor function of entry if the accessor
-	// function requires a type different than the actual type
-	// of the entry object.
-	struct type_error : std::runtime_error
-	{
-		// internal
-		type_error(const char* error): std::runtime_error(error) {}
-	};
 
 	// The ``entry`` class represents one node in a bencoded hierarchy. It works as a
 	// variant type, it can be either a list, a dictionary (``std::map``), an integer
@@ -168,8 +161,8 @@ namespace libtorrent
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object
 		// isn't of the type you request, the accessor will throw
-		// libtorrent_exception (which derives from ``std::runtime_error``). You
-		// can ask an ``entry`` for its type through the ``type()`` function.
+		// system_error. You can ask an ``entry`` for its type through the
+		// ``type()`` function.
 		// 
 		// If you want to create an ``entry`` you give it the type you want it to
 		// have in its constructor, and then use one of the non-const accessors
@@ -227,7 +220,7 @@ namespace libtorrent
 		void swap(entry& e);
 
 		// All of these functions requires the entry to be a dictionary, if it
-		// isn't they will throw ``libtorrent::type_error``.
+		// isn't they will throw ``system_error``.
 		//
 		// The non-const versions of the ``operator[]`` will return a reference
 		// to either the existing element at the given key or, if there is no
@@ -236,7 +229,7 @@ namespace libtorrent
 		//
 		// The const version of ``operator[]`` will only return a reference to an
 		// existing element at the given key. If the key is not found, it will
-		// throw ``libtorrent::type_error``.
+		// throw ``system_error``.
 		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
 #ifndef BOOST_NO_EXCEPTIONS
@@ -245,7 +238,7 @@ namespace libtorrent
 #endif
 
 		// These functions requires the entry to be a dictionary, if it isn't
-		// they will throw ``libtorrent::type_error``.
+		// they will throw ``system_error``.
 		//
 		// They will look for an element at the given key in the dictionary, if
 		// the element cannot be found, they will return 0. If an element with
@@ -318,15 +311,6 @@ namespace libtorrent
 	{
 		os << e.to_string();
 		return os;
-	}
-#endif
-
-#ifndef BOOST_NO_EXCEPTIONS
-	// internal
-	TORRENT_NO_RETURN inline void throw_type_error()
-	{
-		throw libtorrent_exception(error_code(errors::invalid_entry_type
-			, get_libtorrent_category()));
 	}
 #endif
 

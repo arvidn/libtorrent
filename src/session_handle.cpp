@@ -290,7 +290,7 @@ namespace libtorrent
 #endif
 		error_code ec;
 		torrent_handle r = TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
-		if (ec) throw libtorrent_exception(ec);
+		if (ec) throw system_error(ec);
 		return r;
 	}
 #endif
@@ -649,7 +649,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw libtorrent_exception(ec);
+		if (ret != 0) throw system_error(ec);
 #endif
 		TORRENT_SYNC_CALL2(load_state, &e, flags);
 	}
@@ -675,7 +675,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw libtorrent_exception(ec);
+		if (ret != 0) throw system_error(ec);
 #endif
 		TORRENT_SYNC_CALL2(load_state, &e, flags);
 	}

@@ -322,24 +322,6 @@ namespace libtorrent
 		return http_category;
 	}
 
-#ifndef BOOST_NO_EXCEPTIONS
-	const char* libtorrent_exception::what() const TORRENT_EXCEPTION_THROW_SPECIFIER
-	{
-		if (!m_msg)
-		{
-			std::string msg = convert_from_native(m_error.message());
-			m_msg = allocate_string_copy(msg.c_str());
-		}
-
-		return m_msg;
-	}
-
-	libtorrent_exception::~libtorrent_exception() TORRENT_EXCEPTION_THROW_SPECIFIER
-	{
-		free(m_msg);
-	}
-#endif
-
 	namespace errors
 	{
 		// hidden

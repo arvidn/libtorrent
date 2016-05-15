@@ -868,9 +868,9 @@ TORRENT_TEST(empty_file2)
 		auto ti = boost::make_shared<torrent_info>("", 0);
 		TEST_ERROR("expected exception thrown");
 	}
-	catch (libtorrent_exception& e)
+	catch (system_error& e)
 	{
-		printf("Expected error: %s\n", e.error().message().c_str());
+		printf("Expected error: %s\n", e.code().message().c_str());
 	}
 }
 

@@ -106,10 +106,8 @@ Many functions in libtorrent have two versions, one that throws exceptions on
 errors and one that takes an ``error_code`` reference which is filled with the
 error code on errors.
 
-There is one exception class that is used for errors in libtorrent, it is based
-on boost.system's ``error_code`` class to carry the error code.
-
-For more information, see libtorrent_exception and error_code_enum.
+On exceptions, libtorrent will throw ``boost::system::system_error`` exceptions
+carrying an ``error_code`` describing the underlying error.
 
 translating error codes
 -----------------------
