@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
-#include <stdlib.h> // free
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -46,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/system/error_code.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/asio/error.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
