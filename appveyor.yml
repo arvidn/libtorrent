@@ -71,7 +71,7 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% variant=%variant% linkflags=%linkflags% include=%include% link=shared
+- if not %compiler% == gcc ( b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% variant=%variant% linkflags=%linkflags% include=%include% link=shared )
 
 # test
 - cd %ROOT_DIRECTORY%\test
@@ -91,7 +91,7 @@ build_script:
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- if not %compiler% == "gcc" ( b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% )
+- if not %compiler% == gcc ( b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% )
 - cd %ROOT_DIRECTORY%\bindings\python
 # 64 bit python module builds don't work
 - if %model% == 32 ( python test.py )
