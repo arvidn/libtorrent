@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/file.hpp"
+#include "libtorrent/error_code.hpp"
 #include <cstring>
 #include <vector>
 
@@ -1591,11 +1592,11 @@ namespace libtorrent
 		overlapped_t ol;
 		if (ol.ol.hEvent == NULL) return false;
 
-#ifdef TORRENT_MINGW
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
 	LARGE_INTEGER Length;
-} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+} FILE_ALLOCATED_RANGE_BUFFER;
 #define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
 #endif
 		FILE_ALLOCATED_RANGE_BUFFER in;
@@ -1653,7 +1654,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #ifdef TORRENT_MINGW
 			typedef struct _FILE_SET_SPARSE_BUFFER {
 				BOOLEAN SetSparse;
-			} FILE_SET_SPARSE_BUFFER, *PFILE_SET_SPARSE_BUFFER;
+			} FILE_SET_SPARSE_BUFFER;
 #endif
 			DWORD temp;
 			FILE_SET_SPARSE_BUFFER b;
@@ -1680,6 +1681,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	namespace {
 
+#if !TORRENT_USE_PREADV
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
 		std::size_t offset = 0;
@@ -1700,7 +1702,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 	}
 
-#if !TORRENT_USE_PREADV
 	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs
 		, file::iovec_t* tmp)
 	{
@@ -1834,7 +1835,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		return ret;
 
-#endif
+#endif // USE_PREADV
 	}
 
 	} // anonymous namespace
@@ -2247,11 +2248,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 #ifdef TORRENT_WINDOWS
 
-#ifdef TORRENT_MINGW
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
 	LARGE_INTEGER Length;
-} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+} FILE_ALLOCATED_RANGE_BUFFER;
 #define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
 #endif // TORRENT_MINGW
 

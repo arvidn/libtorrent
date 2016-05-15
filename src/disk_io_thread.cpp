@@ -63,23 +63,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_DISK_THREAD 0
 
-#if __cplusplus >= 201103L || defined __clang__
-
 #if DEBUG_DISK_THREAD
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
 #endif
-
-#else
-
-#if DEBUG_DISK_THREAD
-#define DLOG debug_log
-#else
-#define DLOG TORRENT_WHILE_0 debug_log
-#endif
-
-#endif // cplusplus
 
 namespace libtorrent
 {
@@ -97,12 +85,10 @@ namespace libtorrent
 #define TORRENT_PIECE_ASSERT_FAIL(piece) do {} TORRENT_WHILE_0
 #endif // TORRENT_USE_ASSERTS
 
+
 	namespace {
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-function"
-#endif
+#if DEBUG_DISK_THREAD
 
 	void debug_log(char const* fmt, ...)
 	{
@@ -135,6 +121,9 @@ namespace libtorrent
 #endif
 	}
 
+#endif // DEBUG_DISK_THREAD
+
+
 	int file_flags_for_job(disk_io_job* j
 		, bool const coalesce_buffers)
 	{
@@ -143,10 +132,6 @@ namespace libtorrent
 		if (coalesce_buffers) ret |= file::coalesce_buffers;
 		return ret;
 	}
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 	} // anonymous namespace
 

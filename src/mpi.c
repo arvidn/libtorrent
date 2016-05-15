@@ -4,6 +4,13 @@
 // disable warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
 #pragma warning(disable: 4334)
 #endif
+
+#if defined __GNUC__ && __GNUC__ >= 5
+// tommath triggers this warning alot
+#pragma GCC diagnostic ignored "-Wshift-count-overflow"
+#pragma GCC diagnostic ignored "-Woverflow"
+#endif
+
 #ifdef BN_ERROR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *

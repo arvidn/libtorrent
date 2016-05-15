@@ -159,8 +159,11 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 	double piece = 0;
 
 	// we print two blocks at a time, so calculate the color in pair
+#ifndef _WIN32
 	int color[2];
 	int last_color[2] = { -1, -1};
+#endif
+
 	for (int i = 0; i < width; ++i, piece += piece_per_char)
 	{
 		int num_pieces = 0;
@@ -169,9 +172,10 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int const c = int(std::ceil(num_have / float((std::max)(num_pieces, 1)) * (table_size - 1)));
-		color[i & 1] = c;
 
 #ifndef _WIN32
+		color[i & 1] = c;
+
 		if ((i & 1) == 1)
 		{
 			// now, print color[0] and [1]

@@ -24,13 +24,11 @@ environment:
     model: 64
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
-
-# mingw and boost.random don't like each other. Comment this back in once there
-# is support
-
-#  - variant: test_debug
-#    compiler: gcc
-#    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
+  - variant: test_debug
+    compiler: gcc
+    model: 64
+    include: '"c:\\OpenSSL-Win64\\include"'
+    linkflags: '"-LC:\\OpenSSL-Win64\\lib"'
 
 install:
 - if defined sim ( git submodule update --init --recursive )
@@ -56,11 +54,10 @@ install:
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
-- 'echo using msvc : 12.0 ; >%HOMEDRIVE%%HOMEPATH%/user-config.jam'
-- 'echo using msvc : 14.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
+- ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
-- set PATH=%PATH%;c:\Mingw\bin
+- set PATH=c:\msys64\mingw64\bin;%PATH%
 - g++ --version
 - python --version
 - echo %ROOT_DIRECTORY%
@@ -94,7 +91,8 @@ build_script:
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+# mingw tests crash currently. needs resolving
+- if not %compiler% == gcc ( b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% )
 - cd %ROOT_DIRECTORY%\bindings\python
 # 64 bit python module builds don't work
 - if %model% == 32 ( python test.py )

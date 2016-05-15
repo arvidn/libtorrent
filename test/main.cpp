@@ -42,12 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "dht_server.hpp" // for stop_dht
 #include "peer_server.hpp" // for stop_peer
 #include "udp_tracker.hpp" // for stop_udp_tracker
+#include <boost/system/system_error.hpp>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
 #include <signal.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <windows.h> // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
 #include <process.h> // for _getpid
@@ -67,7 +68,7 @@ using namespace libtorrent;
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
-bool redirect_output = true;
+bool redirect_output = false;
 bool keep_files = false;
 
 extern int _g_test_idx;
@@ -96,6 +97,64 @@ void output_test_log_to_terminal()
 	} while (size > 0);
 }
 
+#ifdef _WIN32
+LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
+{
+	char stack_text[10000];
+
+#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+	|| defined TORRENT_ASIO_DEBUGGING \
+	|| defined TORRENT_PROFILE_CALLS \
+	|| defined TORRENT_RELEASE_ASSERTS \
+	|| defined TORRENT_DEBUG_BUFFERS
+	print_backtrace(stack_text, sizeof(stack_text), 30
+		, p->ContextRecord);
+#elif defined __FUNCTION__
+	strcat(stack_text, __FUNCTION__);
+#else
+	stack_text[0] = 0;
+	strcat(stack_text, "<stack traces disabled>");
+#endif
+
+	int const code = p->ExceptionRecord->ExceptionCode;
+	char const* name = "<unknown exception>";
+	switch (code)
+	{
+#define EXC(x) case x: name = #x; break
+		EXC(EXCEPTION_ACCESS_VIOLATION);
+		EXC(EXCEPTION_ARRAY_BOUNDS_EXCEEDED);
+		EXC(EXCEPTION_BREAKPOINT);
+		EXC(EXCEPTION_DATATYPE_MISALIGNMENT);
+		EXC(EXCEPTION_FLT_DENORMAL_OPERAND);
+		EXC(EXCEPTION_FLT_DIVIDE_BY_ZERO);
+		EXC(EXCEPTION_FLT_INEXACT_RESULT);
+		EXC(EXCEPTION_FLT_INVALID_OPERATION);
+		EXC(EXCEPTION_FLT_OVERFLOW);
+		EXC(EXCEPTION_FLT_STACK_CHECK);
+		EXC(EXCEPTION_FLT_UNDERFLOW);
+		EXC(EXCEPTION_ILLEGAL_INSTRUCTION);
+		EXC(EXCEPTION_IN_PAGE_ERROR);
+		EXC(EXCEPTION_INT_DIVIDE_BY_ZERO);
+		EXC(EXCEPTION_INT_OVERFLOW);
+		EXC(EXCEPTION_INVALID_DISPOSITION);
+		EXC(EXCEPTION_NONCONTINUABLE_EXCEPTION);
+		EXC(EXCEPTION_PRIV_INSTRUCTION);
+		EXC(EXCEPTION_SINGLE_STEP);
+		EXC(EXCEPTION_STACK_OVERFLOW);
+#undef EXC
+	};
+
+	fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
+		, code, name, stack_text);
+
+	output_test_log_to_terminal();
+
+	exit(code);
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+#else
+
 void sig_handler(int sig)
 {
 	char stack_text[10000];
@@ -112,10 +171,10 @@ void sig_handler(int sig)
 	stack_text[0] = 0;
 	strcat(stack_text, "<stack traces disabled>");
 #endif
-	char const* sig_name = 0;
+	char const* name = "<unknown signal>";
 	switch (sig)
 	{
-#define SIG(x) case x: sig_name = #x; break
+#define SIG(x) case x: name = #x; break
 		SIG(SIGSEGV);
 #ifdef SIGBUS
 		SIG(SIGBUS);
@@ -130,16 +189,15 @@ void sig_handler(int sig)
 #endif
 #undef SIG
 	};
-	fprintf(stderr, "signal: %s caught:\n%s\n", sig_name, stack_text);
+	fprintf(stderr, "signal: (%d) %s caught:\n%s\n"
+		, sig, name, stack_text);
 
 	output_test_log_to_terminal();
 
-#ifdef WIN32
-	exit(sig);
-#else
 	exit(128 + sig);
-#endif
 }
+
+#endif // _WIN32
 
 void print_usage(char const* executable)
 {
@@ -157,17 +215,6 @@ void print_usage(char const* executable)
 		"for tests, specify one or more test names as printed\n"
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
-
-#ifdef WIN32
-LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
-{
-	int sig = p->ExceptionRecord->ExceptionCode;
-	fprintf(stderr, "SEH exception: %u\n"
-		, p->ExceptionRecord->ExceptionCode);
-	sig_handler(sig);
-	exit(sig);
-}
-#endif
 
 EXPORT int main(int argc, char const* argv[])
 {
@@ -217,15 +264,6 @@ EXPORT int main(int argc, char const* argv[])
 		filter = true;
 	}
 
-#ifdef WIN32
-	// try to suppress hanging the process by windows displaying
-	// modal dialogs.
-	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
-		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-
-	SetUnhandledExceptionFilter(&seh_exception_handler);
-#endif
-
 #ifdef O_NONBLOCK
 	// on darwin, stdout is set to non-blocking mode by default
 	// which sometimes causes tests to fail with EAGAIN just
@@ -235,6 +273,16 @@ EXPORT int main(int argc, char const* argv[])
 	flags = fcntl(fileno(stderr), F_GETFL, 0);
 	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
 #endif
+
+#ifdef _WIN32
+	// try to suppress hanging the process by windows displaying
+	// modal dialogs.
+	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
+		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+
+	SetUnhandledExceptionFilter(&seh_exception_handler);
+
+#else
 
 	signal(SIGSEGV, &sig_handler);
 #ifdef SIGBUS
@@ -247,6 +295,8 @@ EXPORT int main(int argc, char const* argv[])
 #ifdef SIGSYS
 	signal(SIGSYS, &sig_handler);
 #endif
+
+#endif // _WIN32
 
 	int process_id = -1;
 #ifdef _WIN32
@@ -336,6 +386,15 @@ EXPORT int main(int argc, char const* argv[])
 			_g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
+		}
+		catch (boost::system::system_error const& e)
+		{
+			char buf[200];
+			snprintf(buf, sizeof(buf), "Terminated with system_error: (%d) [%s] \"%s\""
+				, e.code().value()
+				, e.code().category().name()
+				, e.code().message().c_str());
+			report_failure(buf, __FILE__, __LINE__);
 		}
 		catch (std::exception const& e)
 		{
