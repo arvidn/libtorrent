@@ -94,7 +94,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 
 	TORRENT_ASSERT(g_port != 0);
 	char buf[sizeof(msg) + 30];
-	int len = snprintf(buf, sizeof(buf), msg, g_port);
+	int len = std::snprintf(buf, sizeof(buf), msg, g_port);
 
 	error_code ec;
 	sock->send(buf, len, ec);
@@ -141,11 +141,11 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 	FILE* xml_file = fopen("upnp.xml", "w+");
 	if (xml_file == NULL)
 	{
-		fprintf(stderr, "failed to open file 'upnp.xml': %s\n", strerror(errno));
+		std::fprintf(stderr, "failed to open file 'upnp.xml': %s\n", strerror(errno));
 		TEST_CHECK(false);
 		return;
 	}
-	fprintf(xml_file, &buf[0], g_port);
+	std::fprintf(xml_file, &buf[0], g_port);
 	fclose(xml_file);
 
 	std::ofstream xml(control_name, std::ios::trunc);
@@ -170,7 +170,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 		ios.poll(ec);
 		if (ec)
 		{
-			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			std::fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}
@@ -190,7 +190,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 		ios.poll(ec);
 		if (ec)
 		{
-			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			std::fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}
@@ -216,7 +216,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 		ios.poll(ec);
 		if (ec)
 		{
-			fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
+			std::fprintf(stderr, "io_service::run(): %s\n", ec.message().c_str());
 			ec.clear();
 			break;
 		}

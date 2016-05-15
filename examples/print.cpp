@@ -44,7 +44,7 @@ char const* esc(char const* code)
 std::string to_string(int v, int width)
 {
 	char buf[100];
-	snprintf(buf, sizeof(buf), "%*d", width, v);
+	std::snprintf(buf, sizeof(buf), "%*d", width, v);
 	return buf;
 }
 
@@ -67,7 +67,7 @@ std::string add_suffix_float(float val, char const* suffix)
 		if (std::fabs(val) < 1000.f) break;
 	}
 	char ret[100];
-	snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
+	std::snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
 	return ret;
 }
 
@@ -77,7 +77,7 @@ std::string color(std::string const& s, color_code c)
 	if (std::count(s.begin(), s.end(), ' ') == int(s.size())) return s;
 
 	char buf[1024];
-	snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
+	std::snprintf(buf, sizeof(buf), "\x1b[3%dm%s\x1b[39m", c, s.c_str());
 	return buf;
 }
 
@@ -93,7 +93,7 @@ std::string const& progress_bar(int progress, int width, color_code c
 	if (caption.empty())
 	{
 		char code[10];
-		snprintf(code, sizeof(code), "\x1b[3%dm", c);
+		std::snprintf(code, sizeof(code), "\x1b[3%dm", c);
 		bar = code;
 		std::fill_n(std::back_inserter(bar), progress_chars, fill);
 		std::fill_n(std::back_inserter(bar), width - progress_chars, bg);
@@ -116,11 +116,11 @@ std::string const& progress_bar(int progress, int width, color_code c
 
 		char str[256];
 		if (flags & progress_invert)
-			snprintf(str, sizeof(str), "\x1b[%sm\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
+			std::snprintf(str, sizeof(str), "\x1b[%sm\x1b[37m%s\x1b[4%d;3%dm%s\x1b[49;39m"
 				, background, caption.substr(0, progress_chars).c_str(), c, tc
 				, caption.substr(progress_chars).c_str());
 		else
-			snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[%sm\x1b[37m%s\x1b[49;39m"
+			std::snprintf(str, sizeof(str), "\x1b[4%d;3%dm%s\x1b[%sm\x1b[37m%s\x1b[49;39m"
 				, c, tc, caption.substr(0, progress_chars).c_str(), background
 				, caption.substr(progress_chars).c_str());
 		bar = str;
@@ -186,7 +186,7 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 				if (color[i] != last_color[i])
 				{
 					char buf[40];
-					snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
+					std::snprintf(buf, sizeof(buf), "\x1b[%d;5;%dm", bg[i & 1], 232 + color[i]);
 					last_color[i] = color[i];
 					bar += buf;
 				}
@@ -299,7 +299,7 @@ void set_cursor_pos(int x, int y)
 	COORD c = {SHORT(x), SHORT(y)};
 	SetConsoleCursorPosition(out, c);
 #else
-	printf("\033[%d;%dH", y + 1, x + 1);
+	std::printf("\033[%d;%dH", y + 1, x + 1);
 #endif
 }
 
@@ -315,7 +315,7 @@ void clear_screen()
 	FillConsoleOutputCharacter(out, ' ', si.dwSize.X * si.dwSize.Y, c, &n);
 	FillConsoleOutputAttribute(out, 0x7, si.dwSize.X * si.dwSize.Y, c, &n);
 #else
-	printf("\033[2J");
+	std::printf("\033[2J");
 #endif
 }
 
@@ -336,7 +336,7 @@ void clear_rows(int y1, int y2)
 	FillConsoleOutputAttribute(out, 0x7, num_chars, c, &n);
 #else
 	for (int i = y1; i < y2; ++i)
-		printf("\033[%d;1H\033[2K", i + 1);
+		std::printf("\033[%d;1H\033[2K", i + 1);
 #endif
 }
 

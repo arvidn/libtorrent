@@ -2470,10 +2470,10 @@ get_out:
 					, piece_block(i->index, j));
 				if (k != interesting_blocks.end()) continue;
 
-				fprintf(stderr, "interesting blocks:\n");
+				std::fprintf(stderr, "interesting blocks:\n");
 				for (k = interesting_blocks.begin(); k != interesting_blocks.end(); ++k)
-					fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
-				fprintf(stderr, "\nnum_blocks: %d\n", num_blocks);
+					std::fprintf(stderr, "(%d, %d)", k->piece_index, k->block_index);
+				std::fprintf(stderr, "\nnum_blocks: %d\n", num_blocks);
 
 				for (std::vector<downloading_piece>::const_iterator l
 					= m_downloads[piece_pos::piece_downloading].begin()
@@ -2481,11 +2481,11 @@ get_out:
 					l != end2; ++l)
 				{
 					block_info const* binfo2 = blocks_for_piece(*l);
-					fprintf(stderr, "%d : ", l->index);
+					std::fprintf(stderr, "%d : ", l->index);
 					const int cnt = blocks_in_piece(l->index);
 					for (int m = 0; m < cnt; ++m)
-						fprintf(stderr, "%d", binfo2[m].state);
-					fprintf(stderr, "\n");
+						std::fprintf(stderr, "%d", binfo2[m].state);
+					std::fprintf(stderr, "\n");
 				}
 
 				TORRENT_ASSERT_FAIL();

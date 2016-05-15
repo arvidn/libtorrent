@@ -54,7 +54,7 @@ namespace lt = libtorrent;
 std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
 {
 	char ep[30];
-	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
 		sim, address_v4::from_string(ep)));
 }
@@ -99,7 +99,7 @@ void run_test(Setup const& setup
 	// happened
 	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const& ec)
 	{
-		fprintf(stderr, "shutting down\n");
+		std::fprintf(stderr, "shutting down\n");
 		// shut down
 		ses->set_alert_notify([] {});
 		zombie = ses->abort();

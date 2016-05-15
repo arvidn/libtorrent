@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/random.hpp"
-#include "libtorrent/assert.hpp"
+#ifndef TORRENT_MAX_PATH_HPP_INCLUDED
+#define TORRENT_MAX_PATH_HPP_INCLUDED
 
-#include <random>
+// on windows, NAME_MAX refers to Unicode characters
+// on linux it refers to bytes (utf-8 encoded)
+// TODO: Make this count Unicode characters instead of bytes on windows
 
-namespace libtorrent
-{
-	using std::random_device;
-	using std::mt19937;
-	using std::uniform_int_distribution;
+// windows
+#if defined FILENAME_MAX
+#define TORRENT_MAX_PATH FILENAME_MAX
 
-#ifdef TORRENT_BUILD_SIMULATOR
+// beos
+#elif defined B_PATH_NAME_LENGTH
+#define TORRENT_MAX_PATH B_PATH_NAME_LENGTH
 
-	boost::uint32_t random()
-	{
-		// make sure random numbers are deterministic. Seed with a fixed number
-		static mt19937 random_engine(4040);
-		return uniform_int_distribution<boost::uint32_t>(0
-			, (std::numeric_limits<boost::uint32_t>::max)())(random_engine);
-	}
+// solaris
+#elif defined MAXPATH
+#define TORRENT_MAX_PATH MAXPATH
 
+// none of the above
 #else
+// this is the maximum number of characters in a
+// path element / filename on windows and also on many filesystems commonly used
+// on linux
+#define TORRENT_MAX_PATH 255
 
-	boost::uint32_t random()
-	{
-		// TODO: versions prior to msvc-14 (visual studio 2015) do
-		// not generate thread safe initialization of statics
-		static random_device dev;
-		static mt19937 random_engine(dev());
-		return uniform_int_distribution<boost::uint32_t>(0
-			, (std::numeric_limits<boost::uint32_t>::max)())(random_engine);
-	}
+#ifdef _MSC_VER
+#pragma message ( "unknown platform, assuming the longest path is 255" )
+#else
+#warning "unknown platform, assuming the longest path is 255"
+#endif
 
-#endif // TORRENT_BUILD_SIMULATOR
+#endif // FILENAME_MAX
 
-	boost::uint32_t randint(int i)
-	{
-		return random() % i;
-	}
-
-}
+#endif // TORRENT_MAX_PATH_HPP_INCLUDED
 

@@ -186,7 +186,7 @@ TORRENT_TEST(dht_rate_limit)
 	float const average_upload_rate = (num_bytes_received - target_upload_rate)
 		/ (duration_cast<chrono::milliseconds>(end - start).count() * 0.001f);
 
-	printf("send %d packets. received %d packets (%d bytes). average rate: %f (target: %f)\n"
+	std::printf("send %d packets. received %d packets (%d bytes). average rate: %f (target: %f)\n"
 		, num_packets_sent, num_packets_received, num_bytes_received
 		, average_upload_rate, target_upload_rate);
 

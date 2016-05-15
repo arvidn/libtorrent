@@ -88,7 +88,7 @@ void output_test_log_to_terminal()
 	dup2(old_stderr, fileno(stderr));
 
 	fseek(current_test->output, 0, SEEK_SET);
-	fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
+	std::fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
 	char buf[4096];
 	int size = 0;
 	do {
@@ -144,7 +144,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 #undef EXC
 	};
 
-	fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
+	std::fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
 		, code, name, stack_text);
 
 	output_test_log_to_terminal();
@@ -189,7 +189,7 @@ void sig_handler(int sig)
 #endif
 #undef SIG
 	};
-	fprintf(stderr, "signal: (%d) %s caught:\n%s\n"
+	std::fprintf(stderr, "signal: (%d) %s caught:\n%s\n"
 		, sig, name, stack_text);
 
 	output_test_log_to_terminal();
@@ -201,7 +201,7 @@ void sig_handler(int sig)
 
 void print_usage(char const* executable)
 {
-	printf("%s [options] [tests...]\n"
+	std::printf("%s [options] [tests...]\n"
 		"\n"
 		"OPTIONS:\n"
 		"-h,--help           show this help\n"
@@ -234,10 +234,10 @@ EXPORT int main(int argc, char const* argv[])
 
 		if (strcmp(argv[0], "-l") == 0 || strcmp(argv[0], "--list") == 0)
 		{
-			printf("TESTS:\n");
+			std::printf("TESTS:\n");
 			for (int i = 0; i < _g_num_unit_tests; ++i)
 			{
-				printf(" - %s\n", _g_unit_tests[i].name);
+				std::printf(" - %s\n", _g_unit_tests[i].name);
 			}
 			return 0;
 		}
@@ -305,13 +305,13 @@ EXPORT int main(int argc, char const* argv[])
 	process_id = getpid();
 #endif
 	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
+	std::snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
 	std::string test_dir = complete(dir);
 	error_code ec;
 	create_directory(test_dir, ec);
 	if (ec)
 	{
-		fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
+		std::fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
 		return 1;
 	}
 #ifdef TORRENT_WINDOWS
@@ -319,13 +319,13 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	chdir(dir);
 #endif
-	fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
+	std::fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
 
 	int total_failures = 0;
 
 	if (_g_num_unit_tests == 0)
 	{
-		fprintf(stderr, "\x1b[31mERROR: no unit tests registered\x1b[0m\n");
+		std::fprintf(stderr, "\x1b[31mERROR: no unit tests registered\x1b[0m\n");
 		return 1;
 	}
 
@@ -360,13 +360,13 @@ EXPORT int main(int argc, char const* argv[])
 				}
 				else
 				{
-					fprintf(stderr, "failed to redirect output: (%d) %s\n"
+					std::fprintf(stderr, "failed to redirect output: (%d) %s\n"
 						, errno, strerror(errno));
 				}
 			}
 			else
 			{
-				fprintf(stderr, "failed to create temporary file for redirecting "
+				std::fprintf(stderr, "failed to create temporary file for redirecting "
 					"output: (%d) %s\n", errno, strerror(errno));
 			}
 		}
@@ -390,7 +390,7 @@ EXPORT int main(int argc, char const* argv[])
 		catch (boost::system::system_error const& e)
 		{
 			char buf[200];
-			snprintf(buf, sizeof(buf), "Terminated with system_error: (%d) [%s] \"%s\""
+			std::snprintf(buf, sizeof(buf), "Terminated with system_error: (%d) [%s] \"%s\""
 				, e.code().value()
 				, e.code().category().name()
 				, e.code().message().c_str());
@@ -399,7 +399,7 @@ EXPORT int main(int argc, char const* argv[])
 		catch (std::exception const& e)
 		{
 			char buf[200];
-			snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+			std::snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
 			report_failure(buf, __FILE__, __LINE__);
 		}
 		catch (...)
@@ -434,17 +434,17 @@ EXPORT int main(int argc, char const* argv[])
 
 	if (!tests_to_run.empty())
 	{
-		fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
+		std::fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
 		for (std::set<std::string>::iterator i = tests_to_run.begin()
 			, end(tests_to_run.end()); i != end; ++i)
 		{
-			fprintf(stderr, "  %s\n", i->c_str());
+			std::fprintf(stderr, "  %s\n", i->c_str());
 		}
 	}
 
 	if (num_run == 0)
 	{
-		fprintf(stderr, "\x1b[31mERROR: no unit tests run\x1b[0m\n");
+		std::fprintf(stderr, "\x1b[31mERROR: no unit tests run\x1b[0m\n");
 		return 1;
 	}
 
@@ -468,7 +468,7 @@ EXPORT int main(int argc, char const* argv[])
 	{
 		remove_all(test_dir, ec);
 		if (ec)
-			fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
 	}
 #endif
 

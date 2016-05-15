@@ -2,6 +2,8 @@
 #define PRINT_HPP_
 
 #include <string>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 #include "libtorrent/bitfield.hpp"
 
 enum color_code

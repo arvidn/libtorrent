@@ -79,7 +79,7 @@ void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
 	if (*f == NULL)
 	{
 		char filename[1024];
-		snprintf(filename, sizeof(filename), "hash_failures/%s.log"
+		std::snprintf(filename, sizeof(filename), "hash_failures/%s.log"
 			, to_hex(t.info_hash().to_string()).c_str());
 		*f = fopen(filename, "w");
 	}
@@ -93,15 +93,15 @@ void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
 	int offset = 0;
 	for (int i = 0; i < files.size(); ++i)
 	{
-		offset += snprintf(filename+offset, sizeof(filename)-offset
+		offset += std::snprintf(filename+offset, sizeof(filename)-offset
 			, "%s[%" PRId64 ",%d]", libtorrent::filename(fn).c_str(), files[i].offset, int(files[i].size));
 		if (offset >= sizeof(filename)) break;
 	}
 
-	fprintf(*f, "%s\t%04d\t%04d\t%s\t%s\t%s\n", to_hex(t.info_hash().to_string()).c_str(), piece
+	std::fprintf(*f, "%s\t%04d\t%04d\t%s\t%s\t%s\n", to_hex(t.info_hash().to_string()).c_str(), piece
 		, block, corrupt ? " bad" : "good", print_address(a).c_str(), filename);
 
-	snprintf(filename, sizeof(filename), "hash_failures/%s_%d_%d_%s.block"
+	std::snprintf(filename, sizeof(filename), "hash_failures/%s_%d_%d_%s.block"
 		, to_hex(t.info_hash().to_string()).c_str(), piece, block, corrupt ? "bad" : "good");
 	FILE* data = fopen(filename, "w+");
 	fwrite(bytes, 1, len, data);

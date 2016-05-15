@@ -259,7 +259,7 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
-//		fprintf(stderr, ">>> %s", cmd);
+//		std::fprintf(stderr, ">>> %s", cmd);
 	}
 
 	void i2p_stream::start_read_line(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -336,7 +336,7 @@ namespace libtorrent
 				break;
 		}
 
-//		fprintf(stderr, "<<< %s\n", &m_buffer[0]);
+//		std::fprintf(stderr, "<<< %s\n", &m_buffer[0]);
 		ptr = string_tokenize(next, ' ', &next);
 		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
@@ -350,10 +350,10 @@ namespace libtorrent
 		{
 			char* name = string_tokenize(next, '=', &next);
 			if (name == 0) break;
-//			fprintf(stderr, "name=\"%s\"\n", name);
+//			std::fprintf(stderr, "name=\"%s\"\n", name);
 			char* ptr2 = string_tokenize(next, ' ', &next);
 			if (ptr2 == 0) { handle_error(invalid_response, h); return; }
-//			fprintf(stderr, "value=\"%s\"\n", ptr2);
+//			std::fprintf(stderr, "value=\"%s\"\n", ptr2);
 
 			if (strcmp("RESULT", name) == 0)
 			{
@@ -453,9 +453,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
 		char cmd[1024];
-		int size = snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
+		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
-//		fprintf(stderr, ">>> %s", cmd);
+//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -466,8 +466,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_accept_response;
 		char cmd[400];
-		int size = snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
-//		fprintf(stderr, ">>> %s", cmd);
+		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
+//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -478,9 +478,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
 		char cmd[400];
-		int size = snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
+		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
-//		fprintf(stderr, ">>> %s", cmd);
+//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -491,8 +491,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_name_lookup_response;
 		char cmd[1024];
-		int size = snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
-//		fprintf(stderr, ">>> %s", cmd);
+		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
+//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, boost::bind(&i2p_stream::start_read_line, this, _1, h));

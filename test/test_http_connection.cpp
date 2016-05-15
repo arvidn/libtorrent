@@ -148,11 +148,11 @@ void write_test_file()
 	error_code ec;
 	file test_file("test_file", file::write_only, ec);
 	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stderr, "file error: %s\n", ec.message().c_str());
 	file::iovec_t b = { data_buffer, 3216};
 	test_file.writev(0, &b, 1, ec);
 	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stderr, "file error: %s\n", ec.message().c_str());
 	test_file.close();
 }
 
@@ -186,7 +186,7 @@ void run_suite(std::string const& protocol
 	typedef boost::optional<error_code> err;
 
 	char url[256];
-	snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
+	std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/", protocol.c_str(), port);
 	std::string url_base(url);
 
 	run_test(url_base + "relative/redirect", 3216, 200, 2, error_code(), ps);
@@ -204,7 +204,7 @@ void run_suite(std::string const& protocol
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)
 	hostent* h = gethostbyname("non-existent-domain.se");
-	printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
+	std::printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
 	if (h == 0 && h_errno == HOST_NOT_FOUND)
 	{
 		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);

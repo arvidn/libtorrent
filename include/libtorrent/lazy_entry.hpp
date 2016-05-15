@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstring>
 #include <algorithm>
+#include <limits>
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
@@ -106,7 +107,7 @@ namespace libtorrent
 		// construct a string pointing to the characters at ``p``
 		// of length ``l`` characters. No NULL termination is required.
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
-		
+
 		// the number of characters in the string.
 		int len;
 
@@ -319,10 +320,10 @@ namespace libtorrent
 		void set_end(char const* end)
 		{
 			TORRENT_ASSERT(end > m_begin);
-			TORRENT_ASSERT(end - m_begin < INT_MAX);
+			TORRENT_ASSERT(end - m_begin < (std::numeric_limits<int>::max)());
 			m_len = int(end - m_begin);
 		}
-		
+
 		// internal
 		void clear();
 

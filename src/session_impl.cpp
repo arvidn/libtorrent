@@ -151,9 +151,9 @@ namespace
 		{
 			gcry_check_version(0);
 			gcry_error_t e = gcry_control(GCRYCTL_SET_THREAD_CBS, &gcry_threads_pthread);
-			if (e != 0) fprintf(stderr, "libcrypt ERROR: %s\n", gcry_strerror(e));
+			if (e != 0) std::fprintf(stderr, "libcrypt ERROR: %s\n", gcry_strerror(e));
 			e = gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
-			if (e != 0) fprintf(stderr, "initialization finished error: %s\n", gcry_strerror(e));
+			if (e != 0) std::fprintf(stderr, "initialization finished error: %s\n", gcry_strerror(e));
 		}
 	} gcrypt_global_constructor;
 }
@@ -3073,7 +3073,7 @@ namespace aux {
 				return;
 			}
 #if defined TORRENT_ASIO_DEBUGGING
-			fprintf(stderr, "uTP sockets: %d ssl-uTP sockets: %d undead-peers left: %d\n"
+			std::fprintf(stderr, "uTP sockets: %d ssl-uTP sockets: %d undead-peers left: %d\n"
 				, m_utp_socket_manager.num_sockets()
 #ifdef TORRENT_USE_OPENSSL
 				, m_ssl_utp_socket_manager.num_sockets()
@@ -3245,7 +3245,7 @@ namespace aux {
 		// --------------------------------------------------------------
 
 #if TORRENT_DEBUG_STREAMING > 0
-		printf("\033[2J\033[0;0H");
+		std::printf("\033[2J\033[0;0H");
 #endif
 
 		std::vector<torrent*>& want_tick = m_torrent_lists[torrent_want_tick];
@@ -5857,12 +5857,12 @@ namespace aux {
 			time_point prev = m;
 			boost::uint64_t prev_csw = 0;
 			if (!_wakeups.empty()) prev_csw = _wakeups[0].context_switches;
-			fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
+			std::fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
 			for (int i = 0; i < _wakeups.size(); ++i)
 			{
 				wakeup_t const& w = _wakeups[i];
 				bool idle_wakeup = w.context_switches > prev_csw;
-				fprintf(f, "%" PRId64 "\t%" PRId64 "\t%" PRId64 "\t%c\t%s\n"
+				std::fprintf(f, "%" PRId64 "\t%" PRId64 "\t%" PRId64 "\t%c\t%s\n"
 					, total_microseconds(w.timestamp - m)
 					, total_microseconds(w.timestamp - prev)
 					, w.context_switches

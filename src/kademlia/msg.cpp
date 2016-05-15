@@ -56,7 +56,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 
 	if (msg.type() != bdecode_node::dict_t)
 	{
-		snprintf(error, error_size, "not a dictionary");
+		std::snprintf(error, error_size, "not a dictionary");
 		return false;
 	}
 	++stack_ptr;
@@ -65,7 +65,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 	{
 		key_desc_t const& k = desc[i];
 
-		//		fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
+		//		std::fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
 
 		ret[i] = msg.dict_find(k.name);
 		// none_t means any type
@@ -74,7 +74,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
 		{
 			// the key was not found, and it's not an optional key
-			snprintf(error, error_size, "missing '%s' key", k.name);
+			std::snprintf(error, error_size, "missing '%s' key", k.name);
 			return false;
 		}
 
@@ -94,7 +94,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 				ret[i].clear();
 				if ((k.flags & key_desc_t::optional) == 0)
 				{
-					snprintf(error, error_size, "invalid value for '%s'", k.name);
+					std::snprintf(error, error_size, "invalid value for '%s'", k.name);
 					return false;
 				}
 			}

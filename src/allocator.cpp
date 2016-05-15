@@ -147,7 +147,7 @@ namespace libtorrent
 #undef mprotect
 #undef PROT_READ
 #endif
-//		fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
+//		std::fprintf(stderr, "malloc: %p head: %p tail: %p size: %d\n", ret + page, ret, ret + page + bytes, int(bytes));
 
 		return static_cast<char*>(ret) + page;
 #else
@@ -173,7 +173,7 @@ namespace libtorrent
 		const int num_pages = (h->size + (page-1)) / page + 2;
 		TORRENT_ASSERT(h->magic == 0x1337);
 		mprotect(block + (num_pages-2) * page, page, PROT_READ | PROT_WRITE);
-//		fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
+//		std::fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
 		block -= page;
 

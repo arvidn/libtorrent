@@ -261,7 +261,7 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 {
 	end_time = clock_type::now();
 	char tmp[1024];
-	snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+	std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
 	float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
@@ -272,13 +272,13 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	address const& addr = s.local_endpoint(e).address();
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
-		snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
 	else
 #endif
-		snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+		std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
 			, s.local_endpoint(e).port());
-	printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
+	std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 		, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
 }
 
@@ -325,7 +325,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
 	unsigned int length = read_uint32(ptr);
 	if (length > sizeof(buffer))
 	{
-		fprintf(stderr, "len: %u\n", length);
+		std::fprintf(stderr, "len: %u\n", length);
 		close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 		return;
 	}
@@ -478,7 +478,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 			}
 			--outstanding_requests;
-			fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
+			std::fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
 		}
 		else if (msg == 0) // choke
 		{
@@ -516,7 +516,7 @@ bool peer_conn::verify_piece(int piece, int start, char const* ptr, int size)
 	{
 		if (buf[i] != fill)
 		{
-			fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
+			std::fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
 			exit(1);
 			return false;
 		}

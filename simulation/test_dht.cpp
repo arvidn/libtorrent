@@ -136,7 +136,7 @@ TORRENT_TEST(dht_bootstrap)
 			}
 			if (ticks > 2)
 			{
-				printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
+				std::printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
 				TEST_CHECK(routing_table_depth >= 9);
 				TEST_CHECK(num_nodes >= 115);
 				dht.stop();

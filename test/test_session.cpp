@@ -192,7 +192,7 @@ void test_save_restore(Set setup, Save s, Default d, Load l)
 		lt::session ses(p);
 		// the loading function takes a bdecode_node, so we have to transform the
 		// entry
-		printf("%s\n", st.to_string().c_str());
+		std::printf("%s\n", st.to_string().c_str());
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), st);
 		bdecode_node state;
@@ -202,8 +202,8 @@ void test_save_restore(Set setup, Save s, Default d, Load l)
 		TEST_EQUAL(ret, 0);
 		if (ec)
 		{
-			printf("bdecode: %s\n", ec.message().c_str());
-			printf("%s\n", std::string(buf.data(), buf.size()).c_str());
+			std::printf("bdecode: %s\n", ec.message().c_str());
+			std::printf("%s\n", std::string(buf.data(), buf.size()).c_str());
 		}
 		TEST_CHECK(!ec);
 		l(ses, state);

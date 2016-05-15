@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 
+#include "libtorrent/aux_/max_path.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/entry.hpp"
@@ -161,7 +162,7 @@ retry:
 
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
 	{
-		fprintf(stderr, "select failed: %s\n", strerror(errno));
+		std::fprintf(stderr, "select failed: %s\n", strerror(errno));
 		sleep_ms(500);
 	}
 
@@ -204,7 +205,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
+	FILE* f = std::fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -215,20 +216,20 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	if (s > limit)
 	{
-		fclose(f);
+		std::fclose(f);
 		return -2;
 	}
 
@@ -236,26 +237,26 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	v.resize(s);
 	if (s == 0)
 	{
-		fclose(f);
+		std::fclose(f);
 		return 0;
 	}
 
-	r = int(fread(&v[0], 1, v.size(), f));
+	r = int(std::fread(&v[0], 1, v.size(), f));
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
-	fclose(f);
+	std::fclose(f);
 
 	if (r != s) return -3;
 
@@ -349,10 +350,10 @@ std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
 	address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
-		snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
 	else
 #endif
-		snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
 	return buf;
 }
 
@@ -412,7 +413,7 @@ int print_peer_info(std::string& out
 
 		if (print_ip)
 		{
-			snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
+			std::snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
 				(i->flags & peer_info::utp_socket ? " [uTP]" : "") +
 				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")
 				).c_str());
@@ -420,14 +421,14 @@ int print_peer_info(std::string& out
 		}
 
 		char temp[10];
-		snprintf(temp, sizeof(temp), "%d/%d"
+		std::snprintf(temp, sizeof(temp), "%d/%d"
 			, i->download_queue_length
 			, i->target_dl_queue_length);
 		temp[7] = 0;
 
 		char peer_progress[10];
-		snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
-		snprintf(str, sizeof(str)
+		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
+		std::snprintf(str, sizeof(str)
 			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
@@ -471,13 +472,13 @@ int print_peer_info(std::string& out
 
 		if (print_fails)
 		{
-			snprintf(str, sizeof(str), "%3d %3d "
+			std::snprintf(str, sizeof(str), "%3d %3d "
 				, i->failcount, i->num_hashfails);
 			out += str;
 		}
 		if (print_send_bufs)
 		{
-			snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
+			std::snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
 				, i->requests_in_buffer, i->used_send_buffer
 				, i->used_receive_buffer
 				, i->queue_bytes / 1000);
@@ -489,16 +490,16 @@ int print_peer_info(std::string& out
 			// timeout is only meaningful if there is at least one outstanding
 			// request to the peer
 			if (i->download_queue_length > 0)
-				snprintf(req_timeout, sizeof(req_timeout), "%d", i->request_timeout);
+				std::snprintf(req_timeout, sizeof(req_timeout), "%d", i->request_timeout);
 
-			snprintf(str, sizeof(str), "%8d %4d %7s %6d "
+			std::snprintf(str, sizeof(str), "%8d %4d %7s %6d "
 				, int(total_seconds(i->last_active))
 				, int(total_seconds(i->last_request))
 				, req_timeout
 				, int(total_seconds(i->download_queue_time)));
 			out += str;
 		}
-		snprintf(str, sizeof(str), "%s|%s %5d "
+		std::snprintf(str, sizeof(str), "%s|%s %5d "
 			, add_suffix(i->pending_disk_bytes).c_str()
 			, add_suffix(i->pending_disk_read_bytes).c_str()
 			, i->rtt);
@@ -509,7 +510,7 @@ int print_peer_info(std::string& out
 			if (i->downloading_piece_index >= 0)
 			{
 				char buf[50];
-				snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
+				std::snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
 				out += progress_bar(
 					i->downloading_progress * 1000 / i->downloading_total, 14, col_green, '-', '#', buf);
 			}
@@ -523,7 +524,7 @@ int print_peer_info(std::string& out
 		{
 			bool unchoked = (i->flags & peer_info::choked) == 0;
 
-			snprintf(str, sizeof(str), " %s %s"
+			std::snprintf(str, sizeof(str), " %s %s"
 				, add_suffix(i->remote_dl_rate, "/s").c_str()
 				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
 			out += str;
@@ -642,7 +643,7 @@ void print_settings(int const start, int const num
 	{
 		char const* name = libtorrent::name_for_setting(i);
 		if (!name || name[0] == '\0') continue;
-		printf(fmt, name);
+		std::printf(fmt, name);
 	}
 }
 
@@ -653,7 +654,7 @@ void add_torrent(libtorrent::session& ses
 	using namespace libtorrent;
 	static int counter = 0;
 
-	printf("[%d] %s\n", counter++, torrent.c_str());
+	std::printf("[%d] %s\n", counter++, torrent.c_str());
 
 	error_code ec;
 	add_torrent_params p;
@@ -665,7 +666,7 @@ void add_torrent(libtorrent::session& ses
 	if (!ec)
 	{
 		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-		if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
 	ec.clear();
 
@@ -677,7 +678,7 @@ void add_torrent(libtorrent::session& ses
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
-	p.userdata = (void*)strdup(torrent.c_str());
+	p.userdata = static_cast<void*>(new std::string(torrent));
 	ses.async_add_torrent(p);
 	files.insert(std::pair<const std::string, torrent_handle>(torrent, torrent_handle()));
 }
@@ -760,7 +761,7 @@ void scan_dir(std::string const& dir_path
 	std::vector<std::string> ents = list_dir(dir_path, filter_fun, ec);
 	if (ec)
 	{
-		fprintf(stderr, "failed to list directory: (%s : %d) %s\n"
+		std::fprintf(stderr, "failed to list directory: (%s : %d) %s\n"
 			, ec.category().name(), ec.value(), ec.message().c_str());
 		return;
 	}
@@ -839,17 +840,17 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 	str += esc("0");
 
 	if (g_log_file)
-		fprintf(g_log_file, "[%s] %s\n", timestamp(),  a->message().c_str());
+		std::fprintf(g_log_file, "[%s] %s\n", timestamp(),  a->message().c_str());
 }
 
 int save_file(std::string const& filename, std::vector<char>& v)
 {
-	FILE* f = fopen(filename.c_str(), "wb");
+	FILE* f = std::fopen(filename.c_str(), "wb");
 	if (f == NULL)
 		return -1;
 
-	int w = int(fwrite(&v[0], 1, v.size(), f));
-	fclose(f);
+	int w = int(std::fwrite(&v[0], 1, v.size(), f));
+	std::fclose(f);
 
 	if (w < 0) return -1;
 	if (w != int(v.size())) return -3;
@@ -898,8 +899,9 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n", cert.c_str(), strerror(errno));
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
+			std::snprintf(msg, sizeof(msg), "ERROR. could not load certificate %s: %s\n"
+				, cert.c_str(), std::strerror(errno));
+			if (g_log_file) std::fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 
@@ -912,14 +914,15 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #endif
 		{
 			char msg[256];
-			snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n", priv.c_str(), strerror(errno));
-			if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
+			std::snprintf(msg, sizeof(msg), "ERROR. could not load private key %s: %s\n"
+				, priv.c_str(), std::strerror(errno));
+			if (g_log_file) std::fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 			return true;
 		}
 
 		char msg[256];
-		snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
-		if (g_log_file) fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
+		std::snprintf(msg, sizeof(msg), "loaded certificate %s and key %s\n", cert.c_str(), priv.c_str());
+		if (g_log_file) std::fprintf(g_log_file, "[%s] %s\n", timestamp(), msg);
 
 		h.set_ssl_certificate(cert, priv, "certificates/dhparams.pem", "1234");
 		h.resume();
@@ -974,13 +977,14 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		std::string filename;
 		if (p->params.userdata)
 		{
-			filename = (char*)p->params.userdata;
-			free(p->params.userdata);
+			std::string* f = static_cast<std::string*>(p->params.userdata);
+			filename.swap(*f);
+			delete f;
 		}
 
 		if (p->error)
 		{
-			fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str()
+			std::fprintf(stderr, "failed to add torrent: %s %s\n", filename.c_str()
 				, p->error.message().c_str());
 		}
 		else
@@ -1064,7 +1068,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		torrent_handle h = p->handle;
 		if (h.is_valid())
 		{
-			fprintf(stderr, "FAILED TO SAVE RESUME DATA: %s\n"
+			std::fprintf(stderr, "FAILED TO SAVE RESUME DATA: %s\n"
 				, h.status().name.c_str());
 		}
 		if (h.is_valid()
@@ -1107,7 +1111,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 	int piece = pp ? pp->piece_index : cs->piece;
 	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
 
-	snprintf(str, sizeof(str), "%5d:[", piece);
+	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
 	char const* last_color = 0;
 	for (int j = 0; j < num_blocks; ++j)
@@ -1143,7 +1147,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 		}
 		if (last_color == 0 || strcmp(last_color, color) != 0)
 		{
-			snprintf(str, sizeof(str), "%s%c", color, chr);
+			std::snprintf(str, sizeof(str), "%s%c", color, chr);
 			out += str;
 		}
 		else
@@ -1165,7 +1169,7 @@ int main(int argc, char* argv[])
 
 	if (argc == 1)
 	{
-		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"
+		std::fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"
 			"OPTIONS:\n"
 			"\n CLIENT OPTIONS\n"
 			"  -f <log file>         logs all events to the given file\n"
@@ -1293,7 +1297,7 @@ int main(int argc, char* argv[])
 			int const sett_name = setting_by_name(key);
 			if (sett_name < 0)
 			{
-				fprintf(stderr, "unknown setting: \"%s\"\n", key.c_str());
+				std::fprintf(stderr, "unknown setting: \"%s\"\n", key.c_str());
 				return 1;
 			}
 
@@ -1310,7 +1314,7 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						fprintf(stderr, "invalid value for \"%s\". expected 0 or 1\n"
+						std::fprintf(stderr, "invalid value for \"%s\". expected 0 or 1\n"
 							, key.c_str());
 						return 1;
 					}
@@ -1329,7 +1333,7 @@ int main(int argc, char* argv[])
 
 		switch (argv[i][1])
 		{
-			case 'f': g_log_file = fopen(arg, "w+"); break;
+			case 'f': g_log_file = std::fopen(arg, "w+"); break;
 			case 'k': high_performance_seed(settings); --i; break;
 			case 'G': seed_mode = true; --i; break;
 			case 's': save_path = arg; break;
@@ -1345,11 +1349,12 @@ int main(int argc, char* argv[])
 				break;
 			case 'x':
 				{
-					FILE* filter = fopen(arg, "r");
+					FILE* filter = std::fopen(arg, "r");
 					if (filter)
 					{
 						unsigned int a,b,c,d,e,f,g,h, flags;
-						while (fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n", &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
+						while (std::fscanf(filter, "%u.%u.%u.%u - %u.%u.%u.%u %u\n"
+							, &a, &b, &c, &d, &e, &f, &g, &h, &flags) == 9)
 						{
 							address_v4 start((a << 24) + (b << 16) + (c << 8) + d);
 							address_v4 last((e << 24) + (f << 16) + (g << 8) + h);
@@ -1357,7 +1362,7 @@ int main(int argc, char* argv[])
 							else flags = 0;
 							loaded_ip_filter.add_rule(start, last, flags);
 						}
-						fclose(filter);
+						std::fclose(filter);
 					}
 				}
 				break;
@@ -1381,7 +1386,7 @@ int main(int argc, char* argv[])
 	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
 #endif
 	if (ret < 0)
-		fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
+		std::fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
@@ -1471,7 +1476,7 @@ int main(int argc, char* argv[])
 				if (!ec)
 				{
 					p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-					if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+					if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 				}
 				ec.clear();
 			}
@@ -1483,7 +1488,7 @@ int main(int argc, char* argv[])
 			p.storage_mode = (storage_mode_t)allocation_mode;
 			p.url = *i;
 
-			printf("adding URL: %s\n", i->c_str());
+			std::printf("adding URL: %s\n", i->c_str());
 			ses.async_add_torrent(p);
 			continue;
 		}
@@ -1598,7 +1603,7 @@ int main(int argc, char* argv[])
 				{
 					char url[4096];
 					puts("Enter magnet link:\n");
-					scanf("%4095s", url);
+					std::scanf("%4095s", url);
 
 					add_torrent_params p;
 					if (std::strstr(url, "magnet:") == url)
@@ -1616,7 +1621,7 @@ int main(int argc, char* argv[])
 						if (!ec)
 						{
 							p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-							if (ec) printf("  failed to load resume data: %s\n", ec.message().c_str());
+							if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 						}
 						ec.clear();
 					}
@@ -1628,7 +1633,7 @@ int main(int argc, char* argv[])
 					p.storage_mode = (storage_mode_t)allocation_mode;
 					p.url = url;
 
-					printf("adding URL: %s\n", url);
+					std::printf("adding URL: %s\n", url);
 					ses.async_add_torrent(p);
 				}
 
@@ -1654,10 +1659,10 @@ int main(int argc, char* argv[])
 				if (c == 'D' && h.is_valid())
 				{
 					torrent_status const& st = view.get_active_torrent();
-					printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
+					std::printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
 						, st.name.c_str());
 					char response = 'n';
-					scanf("%c", &response);
+					std::scanf("%c", &response);
 					if (response == 'y')
 					{
 						// also delete the .torrent file from the torrent directory
@@ -1670,7 +1675,7 @@ int main(int argc, char* argv[])
 							if (is_absolute_path(i->first)) path = i->first;
 							else path = path_append(monitor_dir, i->first);
 							if (::remove(path.c_str()) < 0)
-								printf("failed to delete .torrent file: %s\n", err.message().c_str());
+								std::printf("failed to delete .torrent file: %s\n", err.message().c_str());
 							files.erase(i);
 						}
 						if (st.handle.is_valid())
@@ -1856,7 +1861,7 @@ int main(int argc, char* argv[])
 		{
 			// TODO: 3 expose these counters as performance counters
 /*
-			snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
+			std::snprintf(str, sizeof(str), "DHT nodes: %d DHT cached nodes: %d "
 				"total DHT size: %" PRId64 " total observers: %d\n"
 				, sess_stat.dht_nodes, sess_stat.dht_node_cache, sess_stat.dht_global_nodes
 				, sess_stat.dht_total_allocations);
@@ -1873,7 +1878,7 @@ int main(int argc, char* argv[])
 					"################################"
 					"################################";
 				char const* short_progress_bar = "--------";
-				snprintf(str, sizeof(str)
+				std::snprintf(str, sizeof(str)
 					, "%3d [%3d, %d] %s%s\x1b[K\n"
 					, bucket, i->num_nodes, i->num_replacements
 					, progress_bar + (128 - i->num_nodes)
@@ -1885,7 +1890,7 @@ int main(int argc, char* argv[])
 			for (std::vector<dht_lookup>::iterator i = dht_active_requests.begin()
 				, end(dht_active_requests.end()); i != end; ++i)
 			{
-				snprintf(str, sizeof(str)
+				std::snprintf(str, sizeof(str)
 					, "  %10s [limit: %2d] "
 					"in-flight: %-2d "
 					"left: %-3d "
@@ -1928,7 +1933,7 @@ int main(int argc, char* argv[])
 					, end(tr.end()); i != end; ++i)
 				{
 					if (pos + 1 >= terminal_height) break;
-					snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
+					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
 						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
 						, i->updating?"updating"
 							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
@@ -2026,7 +2031,7 @@ int main(int argc, char* argv[])
 					pos += 1;
 				}
 
-				snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
+				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
@@ -2057,7 +2062,7 @@ int main(int argc, char* argv[])
 					{
 						if (show_pad_files)
 						{
-							snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
+							std::snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
 								, ti->files().file_name(i).c_str()
 								, add_suffix(ti->files().file_size(i)).c_str());
 							out += str;
@@ -2074,7 +2079,7 @@ int main(int argc, char* argv[])
 					std::string title = ti->files().file_name(i);
 					if (!complete)
 					{
-						snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
+						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);
 						title += str;
 					}
 
@@ -2101,7 +2106,7 @@ int main(int argc, char* argv[])
 						p = 0;
 					}
 
-					snprintf(str, sizeof(str), "%s %7s p: %d ",
+					std::snprintf(str, sizeof(str), "%s %7s p: %d ",
 						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
 						, add_suffix(file_progress[i]).c_str()
@@ -2146,7 +2151,7 @@ int main(int argc, char* argv[])
 	}
 
 	ses.pause();
-	printf("saving resume data\n");
+	std::printf("saving resume data\n");
 	std::vector<torrent_status> temp;
 	ses.get_torrent_status(&temp, &yes, 0);
 	for (std::vector<torrent_status>::iterator i = temp.begin();
@@ -2155,26 +2160,26 @@ int main(int argc, char* argv[])
 		torrent_status& st = *i;
 		if (!st.handle.is_valid())
 		{
-			printf("  skipping, invalid handle\n");
+			std::printf("  skipping, invalid handle\n");
 			continue;
 		}
 		if (!st.has_metadata)
 		{
-			printf("  skipping %s, no metadata\n", st.name.c_str());
+			std::printf("  skipping %s, no metadata\n", st.name.c_str());
 			continue;
 		}
 		if (!st.need_save_resume)
 		{
-			printf("  skipping %s, resume file up-to-date\n", st.name.c_str());
+			std::printf("  skipping %s, resume file up-to-date\n", st.name.c_str());
 			continue;
 		}
 
 		// save_resume_data will generate an alert when it's done
 		st.handle.save_resume_data();
 		++num_outstanding_resume_data;
-		printf("\r%d  ", num_outstanding_resume_data);
+		std::printf("\r%d  ", num_outstanding_resume_data);
 	}
-	printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
+	std::printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
 
 	while (num_outstanding_resume_data > 0)
 	{
@@ -2196,11 +2201,11 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if (g_log_file) fclose(g_log_file);
+	if (g_log_file) std::fclose(g_log_file);
 
 	// we're just saving the DHT state
 #ifndef TORRENT_DISABLE_DHT
-	printf("\nsaving session state\n");
+	std::printf("\nsaving session state\n");
 	{
 		entry session_state;
 		ses.save_state(session_state, session::save_dht_state);
@@ -2211,7 +2216,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	printf("closing session");
+	std::printf("closing session");
 
 	return 0;
 }

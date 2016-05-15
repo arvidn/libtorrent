@@ -40,6 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <sstream>
 #include <vector>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
+
 #include <boost/preprocessor/cat.hpp>
 
 #include "libtorrent/config.hpp"

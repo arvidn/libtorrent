@@ -64,7 +64,7 @@ void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time)
 #endif
 		lt::time_duration d = a->timestamp() - start_time;
 		boost::uint32_t millis = boost::uint32_t(lt::duration_cast<lt::milliseconds>(d).count());
-		printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+		std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
 			, a->what()
 			, a->message().c_str());
 	}

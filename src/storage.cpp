@@ -93,13 +93,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_STORAGE
-#define DLOG(...) fprintf(__VA_ARGS__)
+#define DLOG(...) std::fprintf(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while (false)
 #endif
 
 #if DEBUG_DELETE_FILES
-#define DFLOG(...) fprintf(__VA_ARGS__)
+#define DFLOG(...) std::fprintf(__VA_ARGS__)
 #else
 #define DFLOG(...) do {} while (false)
 #endif
@@ -215,7 +215,7 @@ namespace libtorrent
 		l.unlock();
 		if (ret != sizeof(event))
 		{
-			fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
+			std::fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
 				, errno, strerror(errno));
 		}
 	}

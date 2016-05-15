@@ -834,10 +834,10 @@ int main(int argc, char **argv)
     sourcelen = len;
     ret = puff(NIL, &destlen, source, &sourcelen);
     if (ret)
-        printf("puff() failed with return code %d\n", ret);
+        std::printf("puff() failed with return code %d\n", ret);
     else {
-        printf("puff() succeeded uncompressing %lu bytes\n", destlen);
-        if (sourcelen < len) printf("%lu compressed bytes unused\n",
+        std::printf("puff() succeeded uncompressing %lu bytes\n", destlen);
+        if (sourcelen < len) std::printf("%lu compressed bytes unused\n",
                                     len - sourcelen);
     }
     free(source);

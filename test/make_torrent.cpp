@@ -101,7 +101,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 				file_entry["attr"].string() += "x";
 
 			char filename[100];
-			snprintf(filename, sizeof(filename), "test_file-%d", i);
+			std::snprintf(filename, sizeof(filename), "test_file-%d", i);
 
 			std::string name = filename;
 			if (ent.find("name=") != std::string::npos)
@@ -197,7 +197,7 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 		int ret = st.writev(&b, 1, i, 0, 0, ec);
 		if (ret != piece_size || ec)
 		{
-			fprintf(stderr, "ERROR writing files: (%d expected %d) %s\n"
+			std::fprintf(stderr, "ERROR writing files: (%d expected %d) %s\n"
 				, ret, piece_size, ec.ec.message().c_str());
 		}
 	}

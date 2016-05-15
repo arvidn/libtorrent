@@ -157,7 +157,7 @@ namespace libtorrent
 		{
 			if (i->second.refs <= _async_ops_nthreads - 1) continue;
 			ret += i->second.refs;
-			printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
+			std::printf("%s: (%d)\n%s\n", i->first.c_str(), i->second.refs, i->second.stack.c_str());
 		}
 		return ret;
 	}

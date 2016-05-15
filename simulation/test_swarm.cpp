@@ -76,7 +76,7 @@ TORRENT_TEST(plain)
 				return true;
 			}
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 }
@@ -117,7 +117,7 @@ TORRENT_TEST(session_stats)
 				return true;
 			}
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 }
@@ -143,7 +143,7 @@ TORRENT_TEST(suggest)
 				return true;
 			}
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 }
@@ -201,7 +201,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
-				printf("\nSTART\n\n");
+				std::printf("\nSTART\n\n");
 				tp->handle.resume();
 				resumed = true;
 			}
@@ -218,14 +218,14 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 				if (limit_reached)
 				{
-					printf("\nSTOP\n\n");
+					std::printf("\nSTOP\n\n");
 					auto h = ses.get_torrents()[0];
 					h.pause(graceful ? torrent_handle::graceful_pause : 0);
 					paused_once = true;
 				}
 			}
 
-			printf("tick: %d\n", ticks);
+			std::printf("tick: %d\n", ticks);
 
 			const int timeout = type == swarm_test::download ? 20 : 91;
 			if (ticks > timeout)
@@ -235,7 +235,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			}
 			if (type == swarm_test::upload) return false;
 			if (!is_seed(ses)) return false;
-			printf("completed in %d ticks\n", ticks);
+			std::printf("completed in %d ticks\n", ticks);
 			return true;
 		});
 
@@ -268,7 +268,7 @@ TORRENT_TEST(stop_start_download_graceful_no_peers)
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
-				printf("\nSTART\n\n");
+				std::printf("\nSTART\n\n");
 				tp->handle.resume();
 				resumed = true;
 			}
@@ -279,13 +279,13 @@ TORRENT_TEST(stop_start_download_graceful_no_peers)
 			if (paused_once == false
 				&& ticks == 6)
 			{
-				printf("\nSTOP\n\n");
+				std::printf("\nSTOP\n\n");
 				auto h = ses.get_torrents()[0];
 				h.pause(torrent_handle::graceful_pause);
 				paused_once = true;
 			}
 
-			printf("tick: %d\n", ticks);
+			std::printf("tick: %d\n", ticks);
 
 			// when there's only one node (i.e. no peers) we won't ever download
 			// the torrent. It's just a test to make sure we still get the
@@ -352,7 +352,7 @@ TORRENT_TEST(delete_files)
 	file_status st;
 	error_code ec;
 	stat_file(combine_path(save_path, "temporary"), &st, ec);
-	printf("expecting \"%s/temporary\" to NOT exist [%s | %s]\n"
+	std::printf("expecting \"%s/temporary\" to NOT exist [%s | %s]\n"
 		, save_path.c_str()
 		, ec.category().name()
 		, ec.message().c_str());
@@ -383,7 +383,7 @@ TORRENT_TEST(delete_partfile)
 	file_status st;
 	error_code ec;
 	stat_file(combine_path(save_path, "temporary"), &st, ec);
-	printf("expecting \"%s/temporary\" to exist [%s]\n", save_path.c_str()
+	std::printf("expecting \"%s/temporary\" to exist [%s]\n", save_path.c_str()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 }

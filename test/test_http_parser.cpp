@@ -226,7 +226,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, chunked_test);
 
-	printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
+	std::printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
 	TEST_CHECK(received == make_tuple(20, int(strlen(chunked_test)) - 20, false));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end

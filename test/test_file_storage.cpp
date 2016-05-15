@@ -71,7 +71,7 @@ void setup_test_storage(file_storage& st)
 
 	TEST_EQUAL(st.total_size(), 100000);
 	TEST_EQUAL(st.piece_length(), 0x4000);
-	printf("%d\n", st.num_pieces());
+	std::printf("%d\n", st.num_pieces());
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
@@ -204,8 +204,8 @@ TORRENT_TEST(file_path_hash)
 	fs.add_file(combine_path("temp_storage", "Foo"), 17);
 	fs.add_file(combine_path("temp_storage", "foo"), 612);
 
-	fprintf(stderr, "path: %s\n", fs.file_path(0).c_str());
-	fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
+	std::fprintf(stderr, "path: %s\n", fs.file_path(0).c_str());
+	std::fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
 	boost::uint32_t file_hash0 = fs.file_path_hash(0, "a");
 	boost::uint32_t file_hash1 = fs.file_path_hash(1, "a");
 	TEST_EQUAL(file_hash0, file_hash1);

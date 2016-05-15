@@ -76,7 +76,7 @@ void test_interval(int interval)
 		announces.push_back(seconds);
 
 		char response[500];
-		int size = snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
+		int size = std::snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
 		return sim::send_response(200, "OK", size) + response;
 	});
 
@@ -144,7 +144,7 @@ TORRENT_TEST(event_completed)
 		announces.push_back({timestamp, req});
 
 		char response[500];
-		int size = snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
+		int size = std::snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
 		return sim::send_response(200, "OK", size) + response;
 	});
 
@@ -192,7 +192,7 @@ TORRENT_TEST(event_completed)
 		// we there can only be one event
 		const bool has_event = str.find("&event=") != std::string::npos;
 
-		fprintf(stderr, "- %s\n", str.c_str());
+		std::fprintf(stderr, "- %s\n", str.c_str());
 
 		// there is exactly 0 or 1 events.
 		TEST_EQUAL(int(has_start) + int(has_completed) + int(has_stopped)
@@ -269,7 +269,7 @@ void on_alert_notify(lt::session* ses)
 		{
 			lt::time_duration d = a->timestamp().time_since_epoch();
 			boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-			printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
+			std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
 				a->message().c_str());
 		}
 	});
@@ -301,7 +301,7 @@ TORRENT_TEST(ipv6_support)
 		TEST_EQUAL(method, "GET");
 
 		char response[500];
-		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+		int size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;
 	});
 
@@ -313,7 +313,7 @@ TORRENT_TEST(ipv6_support)
 		TEST_EQUAL(method, "GET");
 
 		char response[500];
-		int size = snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+		int size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
 		return sim::send_response(200, "OK", size) + response;
 	});
 
@@ -468,7 +468,7 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(method, "GET");
 
 			char response[500];
-			int size = snprintf(response, sizeof(response), "d14:failure reason4:teste");
+			int size = std::snprintf(response, sizeof(response), "d14:failure reason4:teste");
 			return sim::send_response(200, "OK", size) + response;
 		}
 		, [](announce_entry const& ae)
@@ -491,7 +491,7 @@ TORRENT_TEST(test_warning)
 			TEST_EQUAL(method, "GET");
 
 			char response[500];
-			int size = snprintf(response, sizeof(response), "d5:peers6:aaaaaa15:warning message5:test2e");
+			int size = std::snprintf(response, sizeof(response), "d5:peers6:aaaaaa15:warning message5:test2e");
 			return sim::send_response(200, "OK", size) + response;
 		}
 		, [](announce_entry const& ae)
@@ -513,7 +513,7 @@ TORRENT_TEST(test_scrape_data_in_announce)
 			TEST_EQUAL(method, "GET");
 
 			char response[500];
-			int size = snprintf(response, sizeof(response),
+			int size = std::snprintf(response, sizeof(response),
 				"d5:peers6:aaaaaa8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi4ee");
 			return sim::send_response(200, "OK", size) + response;
 		}
@@ -539,7 +539,7 @@ TORRENT_TEST(test_scrape)
 			TEST_EQUAL(method, "GET");
 
 			char response[500];
-			int size = snprintf(response, sizeof(response),
+			int size = std::snprintf(response, sizeof(response),
 				"d5:filesd20:ababababababababababd8:completei1e10:downloadedi3e10:incompletei2eeee");
 			return sim::send_response(200, "OK", size) + response;
 		}
@@ -587,7 +587,7 @@ TORRENT_TEST(test_interval)
 		{
 			TEST_EQUAL(method, "GET");
 			char response[500];
-			int size = snprintf(response, sizeof(response)
+			int size = std::snprintf(response, sizeof(response)
 				, "d10:tracker id8:testteste");
 			return sim::send_response(200, "OK", size) + response;
 		}
@@ -611,7 +611,7 @@ TORRENT_TEST(test_invalid_bencoding)
 		{
 			TEST_EQUAL(method, "GET");
 			char response[500];
-			int size = snprintf(response, sizeof(response)
+			int size = std::snprintf(response, sizeof(response)
 				, "d10:tracer idteste");
 			return sim::send_response(200, "OK", size) + response;
 		}
@@ -650,7 +650,7 @@ TORRENT_TEST(try_next)
 
 			char response[500];
 			// respond with an empty peer list
-			int size = snprintf(response, sizeof(response), "d5:peers0:e");
+			int size = std::snprintf(response, sizeof(response), "d5:peers0:e");
 			return sim::send_response(200, "OK", size) + response;
 		}
 		, [](torrent_handle h) {}
@@ -665,7 +665,7 @@ TORRENT_TEST(try_next)
 
 			for (int i = 0; i < int(tr.size()); ++i)
 			{
-				fprintf(stderr, "tracker \"%s\"\n", tr[i].url.c_str());
+				std::fprintf(stderr, "tracker \"%s\"\n", tr[i].url.c_str());
 				if (tr[i].url == "http://tracker.com:8080/announce")
 				{
 					TEST_EQUAL(tr[i].fails, 0);

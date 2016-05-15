@@ -52,7 +52,7 @@ TORRENT_TEST(web_seed_redirect)
 	file f("test_file", file::write_only, ec);
 	if (ec)
 	{
-		fprintf(stderr, "failed to create file \"test_file\": (%d) %s\n"
+		std::fprintf(stderr, "failed to create file \"test_file\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
 		TEST_ERROR("failed to create file");
 		return;
@@ -68,7 +68,7 @@ TORRENT_TEST(web_seed_redirect)
 	libtorrent::create_torrent t(fs, piece_size, 0x4000);
 
 	char tmp[512];
-	snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
+	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
 	t.add_url_seed(tmp);
 
 	// calculate the hash for all pieces
@@ -76,7 +76,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	if (ec)
 	{
-		fprintf(stderr, "error creating hashes for test torrent: %s\n"
+		std::fprintf(stderr, "error creating hashes for test torrent: %s\n"
 			, ec.message().c_str());
 		TEST_ERROR("failed to create hashes");
 		return;

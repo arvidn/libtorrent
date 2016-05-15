@@ -2871,7 +2871,7 @@ namespace libtorrent
 		bool was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
 		bool multi = picker.num_peers(block_finished) > 1;
-//		fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
+//		std::fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
 
@@ -3037,7 +3037,7 @@ namespace libtorrent
 			picker.mark_as_canceled(block_finished, peer_info_struct());
 			return;
 		}
-//		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
+//		std::fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());
 
@@ -6562,7 +6562,7 @@ namespace libtorrent
 
 			if (m_outstanding_bytes != outstanding_bytes)
 			{
-				fprintf(stderr, "m_outstanding_bytes = %d\noutstanding_bytes = %d\n"
+				std::fprintf(stderr, "m_outstanding_bytes = %d\noutstanding_bytes = %d\n"
 					, m_outstanding_bytes, outstanding_bytes);
 			}
 

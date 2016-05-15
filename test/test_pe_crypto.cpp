@@ -97,9 +97,9 @@ void print_key(char const* key)
 {
 	for (int i = 0;i < 96; ++i)
 	{
-		printf("%02x ", unsigned(key[i]));
+		std::printf("%02x ", unsigned(key[i]));
 	}
-	printf("\n");
+	std::printf("\n");
 }
 
 TORRENT_TEST(diffie_hellman)
@@ -122,16 +122,16 @@ TORRENT_TEST(diffie_hellman)
 		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
 		if (!std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()))
 		{
-			printf("DH1 local: ");
+			std::printf("DH1 local: ");
 			print_key(DH1.get_local_key());
 
-			printf("DH2 local: ");
+			std::printf("DH2 local: ");
 			print_key(DH2.get_local_key());
 
-			printf("DH1 shared_secret: ");
+			std::printf("DH1 shared_secret: ");
 			print_key(DH1.get_secret());
 
-			printf("DH2 shared_secret: ");
+			std::printf("DH2 shared_secret: ");
 			print_key(DH2.get_secret());
 		}
 	}
@@ -144,7 +144,7 @@ TORRENT_TEST(rc4)
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	fprintf(stderr, "testing RC4 handler\n");
+	std::fprintf(stderr, "testing RC4 handler\n");
 	rc4_handler rc41;
 	rc41.set_incoming_key(&test2_key[0], 20);
 	rc41.set_outgoing_key(&test1_key[0], 20);
@@ -157,7 +157,7 @@ TORRENT_TEST(rc4)
 #else
 TORRENT_TEST(disabled)
 {
-	fprintf(stderr, "PE test not run because it's disabled\n");
+	std::fprintf(stderr, "PE test not run because it's disabled\n");
 }
 #endif
 

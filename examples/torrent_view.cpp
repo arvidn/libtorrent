@@ -18,7 +18,7 @@ std::string torrent_state(lt::torrent_status const& s)
 	else ret += state_str[s.state];
 	if (!s.paused && !s.auto_managed) ret += " [F]";
 	char buf[10];
-	snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
+	std::snprintf(buf, sizeof(buf), " (%.1f%%)", s.progress_ppm / 10000.f);
 	ret += buf;
 	return ret;
 }
@@ -257,11 +257,11 @@ void torrent_view::print_tabs()
 		, "seeding", "queued", "stopped", "checking", "loaded"};
 	for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 	{
-		pos += snprintf(str+ pos, sizeof(str) - pos, "%s[%s]%s"
+		pos += std::snprintf(str+ pos, sizeof(str) - pos, "%s[%s]%s"
 			, m_torrent_filter == i?esc("7"):""
 			, filter_names[i], m_torrent_filter == i?esc("0"):"");
 	}
-	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 
 	if (m_width + 1 < int(sizeof(str)))
 		str[m_width + 1] = '\0';
@@ -275,7 +275,7 @@ void torrent_view::print_headers()
 	char str[400];
 
 	// print title bar for torrent list
-	snprintf(str, sizeof(str)
+	std::snprintf(str, sizeof(str)
 		, " %-3s %-50s %-35s %-17s %-17s %-11s %-6s %-6s %-4s\x1b[K"
 		, "#", "Name", "Progress", "Download", "Upload", "Peers (D:S)"
 		, "Down", "Up", "Flags");
@@ -299,9 +299,9 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 
 	char queue_pos[16] = {0};
 	if (s.queue_position == -1)
-		snprintf(queue_pos, sizeof(queue_pos), "-");
+		std::snprintf(queue_pos, sizeof(queue_pos), "-");
 	else
-		snprintf(queue_pos, sizeof(queue_pos), "%d", s.queue_position);
+		std::snprintf(queue_pos, sizeof(queue_pos), "%d", s.queue_position);
 
 	std::string name = s.name;
 	if (name.size() > 50) name.resize(50);
@@ -314,7 +314,7 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	else if (s.current_tracker.empty())
 		progress_bar_color = col_green;
 
-	pos += snprintf(str + pos, sizeof(str) - pos, "%s%c%-3s %-50s %s%s %s (%s) "
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%c%-3s %-50s %s%s %s (%s) "
 		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
 		, s.is_loaded ? 'L' : ' '
@@ -333,9 +333,9 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 
 	// if this is the selected torrent, restore the background color
 	if (selected)
-		pos += snprintf(str + pos, sizeof(str) - pos, "%s", esc("0"));
+		pos += std::snprintf(str + pos, sizeof(str) - pos, "%s", esc("0"));
 
-	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 
 	print(str);
 }

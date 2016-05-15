@@ -78,9 +78,9 @@ TORRENT_TEST(primitives)
 		int delay = ae.next_announce_in();
 		TEST_CHECK(delay > last);
 		last = delay;
-		fprintf(stderr, "%d, ", delay);
+		std::fprintf(stderr, "%d, ", delay);
 	}
-	fprintf(stderr, "\n");
+	std::fprintf(stderr, "\n");
 
 	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
@@ -96,7 +96,7 @@ TORRENT_TEST(primitives)
 	// test snprintf
 
 	char msg[10];
-	snprintf(msg, sizeof(msg), "too %s format string", "long");
+	std::snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
 
 	if (supports_ipv6())

@@ -32,18 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <string>
 #include <cctype>
 #include <algorithm>
 #include <mutex>
-#include <boost/limits.hpp>
 #include <cstring>
-
-#include <boost/optional.hpp>
 #include <array>
-#include <boost/tuple/tuple.hpp>
 
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -57,14 +51,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <locale.h>
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/random.hpp"
 
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include "libtorrent/string_util.hpp" // for to_string
 
 namespace libtorrent
@@ -228,13 +221,13 @@ namespace libtorrent
 		error_code ec;
 		boost::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
 		if (ec) return url;
-		
+
 		// first figure out if this url contains unencoded characters
 		if (!need_encoding(path.c_str(), int(path.size())))
 			return url;
 
 		char msg[TORRENT_MAX_PATH*4];
-		snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
+		std::snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
 			, auth.empty()?"":"@", host.c_str()
 			, port == -1 ? "" : ":"
 			, port == -1 ? "" : to_string(port).data()

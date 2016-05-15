@@ -71,10 +71,10 @@ namespace libtorrent
 		address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
 		else
 #endif
-			snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+			std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
 		return buf;
 	}
 

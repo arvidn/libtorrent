@@ -379,7 +379,7 @@ namespace
 				m_counters.immutable_data += 1;
 			}
 
-//			fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
+//			std::fprintf(stderr, "added immutable item (%d)\n", int(m_immutable_table.size()));
 
 			touch_item(&i->second, addr);
 		}
@@ -462,7 +462,7 @@ namespace
 					std::make_pair(target, to_add));
 				m_counters.mutable_data += 1;
 
-//				fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
+//				std::fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
 			}
 			else
 			{

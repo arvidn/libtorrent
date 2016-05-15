@@ -206,7 +206,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 			if (n.first == id) continue;
 			int const bucket = 159 - dht::distance_exp(id, n.first);
 
-/*			printf("%s ^ %s = %s %d\n"
+/*			std::printf("%s ^ %s = %s %d\n"
 				, to_hex(id.to_string()).c_str()
 				, to_hex(n.first.to_string()).c_str()
 				, to_hex(dht::distance(id, n.first).to_string()).c_str()
@@ -230,9 +230,9 @@ struct dht_node final : lt::dht::udp_socket_interface
 /*
 		for (int i = 0; i < 40; ++i)
 		{
-			printf("%d ", nodes_per_bucket[i]);
+			std::printf("%d ", nodes_per_bucket[i]);
 		}
-		printf("\n");
+		std::printf("\n");
 */
 //#error add invalid IPs as well, to simulate churn
 	}
@@ -313,7 +313,7 @@ void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt)
 			"################################"
 			"################################";
 		char const* short_progress_bar = "--------";
-		printf("%3d [%3d, %d] %s%s\n"
+		std::printf("%3d [%3d, %d] %s%s\n"
 			, bucket, i->num_nodes, i->num_replacements
 			, progress_bar + (128 - i->num_nodes)
 			, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));

@@ -134,7 +134,7 @@ void print_alerts(lt::session& ses
 
 		for (lt::alert const* a : alerts)
 		{
-			printf("%-3d [0] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
+			std::printf("%-3d [0] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
 				- start_time).count()), a->message().c_str());
 			// call the user handler
 			on_alert(ses, a);

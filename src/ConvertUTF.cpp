@@ -155,7 +155,7 @@ ConversionResult ConvertUTF16toUTF32 (
 	*targetStart = target;
 #ifdef CVTUTF_DEBUG
 if (result == sourceIllegal) {
-	fprintf(stderr, "ConvertUTF16toUTF32 illegal seq 0x%04x,%04x\n", ch, ch2);
+	std::fprintf(stderr, "ConvertUTF16toUTF32 illegal seq 0x%04x,%04x\n", ch, ch2);
 	fflush(stderr);
 }
 #endif

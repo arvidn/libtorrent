@@ -158,7 +158,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if __cplusplus >= 201103L || defined __clang__
 
 #if DEBUG_CACHE
-#define DLOG(...) fprintf(__VA_ARGS__)
+#define DLOG(...) std::fprintf(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while (false)
 #endif
@@ -181,10 +181,10 @@ void log_refcounts(cached_piece_entry const* pe)
 	char out[4096];
 	char* ptr = out;
 	char* end = ptr + sizeof(out);
-	ptr += snprintf(ptr, end - ptr, "piece: %d [ ", int(pe->piece));
+	ptr += std::snprintf(ptr, end - ptr, "piece: %d [ ", int(pe->piece));
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
-		ptr += snprintf(ptr, end - ptr, "%d ", int(pe->blocks[i].refcount));
+		ptr += std::snprintf(ptr, end - ptr, "%d ", int(pe->blocks[i].refcount));
 	}
 	strncpy(ptr, "]\n", end - ptr);
 	DLOG(stderr, out);
@@ -252,11 +252,11 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 		{
 			if (piece_log[i].block == -1)
 			{
-				printf("%d: %s\n", i, job_name(piece_log[i].job));
+				std::printf("%d: %s\n", i, job_name(piece_log[i].job));
 			}
 			else
 			{
-				printf("%d: %s %d\n", i, job_name(piece_log[i].job), piece_log[i].block);
+				std::printf("%d: %s %d\n", i, job_name(piece_log[i].job), piece_log[i].block);
 			}
 		}
 	}

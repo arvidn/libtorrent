@@ -128,7 +128,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 {
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s\n\n\n"
+	std::fprintf(stderr, "\n\n  ==== TESTING %s proxy ==== disk-full: %s\n\n\n"
 		, test_name[proxy_type], test_disk_full ? "true": "false");
 
 	// in case the previous run was terminated
@@ -304,21 +304,21 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			print_alerts(ses2, "ses2", true, true, true, &on_alert);
 
 			lt::error_code err = tor2.status().errc;
-			fprintf(stderr, "error: \"%s\"\n", err.message().c_str());
+			std::fprintf(stderr, "error: \"%s\"\n", err.message().c_str());
 			TEST_CHECK(!err);
 			tor2.set_upload_mode(false);
 
 			// at this point we probably disconnected the seed
 			// so we need to reconnect as well
-			fprintf(stderr, "%s: reconnecting peer\n", time_now_string());
+			std::fprintf(stderr, "%s: reconnecting peer\n", time_now_string());
 			error_code ec;
 			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 				, ses1.listen_port()));
 
 			TEST_CHECK(tor2.status().is_finished == false);
-			fprintf(stderr, "disconnects: %d\n", peer_disconnects);
+			std::fprintf(stderr, "disconnects: %d\n", peer_disconnects);
 			TEST_CHECK(peer_disconnects >= 2);
-			fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
+			std::fprintf(stderr, "%s: discovered disk full mode. Raise limit and disable upload-mode\n", time_now_string());
 			peer_disconnects = 0;
 			continue;
 		}
@@ -448,7 +448,7 @@ TORRENT_TEST(allocate)
 {
 	using namespace libtorrent;
 	// test storage_mode_allocate
-	fprintf(stderr, "full allocation mode\n");
+	std::fprintf(stderr, "full allocation mode\n");
 	test_transfer(0, settings_pack(), false, storage_mode_allocate);
 
 	cleanup();

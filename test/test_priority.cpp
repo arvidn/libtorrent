@@ -236,7 +236,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	tor2.pause();
 	wait_for_alert(ses2, torrent_paused_alert::alert_type, "ses2");
 
-	fprintf(stderr, "save resume data\n");
+	std::fprintf(stderr, "save resume data\n");
 	tor2.save_resume_data();
 
 	std::vector<char> resume_data;
@@ -257,12 +257,12 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 			{
 				bencode(std::back_inserter(resume_data)
 					, *alert_cast<save_resume_data_alert>(a)->resume_data);
-				fprintf(stderr, "saved resume data\n");
+				std::fprintf(stderr, "saved resume data\n");
 				goto done;
 			}
 			else if (alert_cast<save_resume_data_failed_alert>(a))
 			{
-				fprintf(stderr, "save resume failed\n");
+				std::fprintf(stderr, "save resume failed\n");
 				goto done;
 			}
 			if (total_seconds(clock_type::now() - start) > 10)
@@ -275,7 +275,7 @@ done:
 	if (resume_data.empty())
 		return;
 
-	fprintf(stderr, "%s\n", &resume_data[0]);
+	std::fprintf(stderr, "%s\n", &resume_data[0]);
 
 	ses2.remove_torrent(tor2);
 
@@ -367,7 +367,7 @@ done:
 
 		if (peer_disconnects >= 2)
 		{
-			fprintf(stderr, "too many disconnects (%d), exiting\n", peer_disconnects);
+			std::fprintf(stderr, "too many disconnects (%d), exiting\n", peer_disconnects);
 			break;
 		}
 
@@ -376,7 +376,7 @@ done:
 
 	st2 = tor2.status();
 	if (!st2.is_seeding)
-		fprintf(stderr, "ses2 failed to reconnect to ses1!\n");
+		std::fprintf(stderr, "ses2 failed to reconnect to ses1!\n");
 	TEST_CHECK(st2.is_seeding);
 
 	sp.push_back(ses1.abort());

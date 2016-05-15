@@ -102,7 +102,7 @@ bool on_alert(alert const* a)
 		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
 			++ssl_peer_disconnects;
 
-		fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
+		std::fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
 			, peer_errors, ssl_peer_disconnects);
 	}
 
@@ -114,7 +114,7 @@ bool on_alert(alert const* a)
 		if (strcmp(e->error.category().name(), boost::asio::error::get_ssl_category().name()) == 0)
 			++ssl_peer_disconnects;
 
-		fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
+		std::fprintf(stderr, "--- peer_errors: %d ssl_disconnects: %d\n"
 			, peer_errors, ssl_peer_disconnects);
 	}
 	return false;
@@ -130,7 +130,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	test_config_t const& test = test_config[test_idx];
 
-	fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
+	std::fprintf(stderr, "\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -143,7 +143,7 @@ void test_ssl(int test_idx, bool use_utp)
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];
-	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_incoming_utp, use_utp);
 	sett.set_bool(settings_pack::enable_outgoing_utp, use_utp);
@@ -163,9 +163,9 @@ void test_ssl(int test_idx, bool use_utp)
 
 	// the +20 below is the port we use for non-SSL connections
 	if (test.downloader_has_ssl_listen_port)
-		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d,0.0.0.0:%ds", port + 20, port);
+		std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d,0.0.0.0:%ds", port + 20, port);
 	else
-		snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d", port + 20);
+		std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%d", port + 20);
 
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 
@@ -227,7 +227,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	// connect the peers after setting the certificates
 	if (test.use_ssl_ports == false) port += 20;
-	fprintf(stderr, "\n\n%s: ses1: connecting peer port: %d\n\n\n"
+	std::fprintf(stderr, "\n\n%s: ses1: connecting peer port: %d\n\n\n"
 		, time_now_string(), port);
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 		, port));
@@ -263,7 +263,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 		if (peer_disconnects >= 2)
 		{
-			fprintf(stderr, "too many disconnects (%d), breaking\n", peer_disconnects);
+			std::fprintf(stderr, "too many disconnects (%d), breaking\n", peer_disconnects);
 			break;
 		}
 
@@ -285,15 +285,15 @@ void test_ssl(int test_idx, bool use_utp)
 		test_sleep(100);
 	}
 
-	fprintf(stderr, "peer_errors: %d expected_errors: %d\n"
+	std::fprintf(stderr, "peer_errors: %d expected_errors: %d\n"
 		, peer_errors, test.peer_errors);
 	TEST_EQUAL(peer_errors > 0, test.peer_errors > 0);
 
-	fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
+	std::fprintf(stderr, "ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
 
-	fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
-	fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
+	std::fprintf(stderr, "%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	std::fprintf(stderr, "%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel
@@ -349,19 +349,19 @@ bool try_connect(libtorrent::session& ses1, int port
 {
 	using boost::asio::ssl::context;
 
-	fprintf(stderr, "\nMALICIOUS PEER TEST: ");
-	if (flags & invalid_certificate) fprintf(stderr, "invalid-certificate ");
-	else if (flags & valid_certificate) fprintf(stderr, "valid-certificate ");
-	else fprintf(stderr, "no-certificate ");
+	std::fprintf(stderr, "\nMALICIOUS PEER TEST: ");
+	if (flags & invalid_certificate) std::fprintf(stderr, "invalid-certificate ");
+	else if (flags & valid_certificate) std::fprintf(stderr, "valid-certificate ");
+	else std::fprintf(stderr, "no-certificate ");
 
-	if (flags & invalid_sni_hash) fprintf(stderr, "invalid-SNI-hash ");
-	else if (flags & valid_sni_hash) fprintf(stderr, "valid-SNI-hash ");
-	else fprintf(stderr, "no-SNI-hash ");
+	if (flags & invalid_sni_hash) std::fprintf(stderr, "invalid-SNI-hash ");
+	else if (flags & valid_sni_hash) std::fprintf(stderr, "valid-SNI-hash ");
+	else std::fprintf(stderr, "no-SNI-hash ");
 
-	if (flags & valid_bittorrent_hash) fprintf(stderr, "valid-bittorrent-hash ");
-	else fprintf(stderr, "invalid-bittorrent-hash ");
+	if (flags & valid_bittorrent_hash) std::fprintf(stderr, "valid-bittorrent-hash ");
+	else std::fprintf(stderr, "invalid-bittorrent-hash ");
 
-	fprintf(stderr, " port: %d\n", port);
+	std::fprintf(stderr, " port: %d\n", port);
 
 	error_code ec;
 	boost::asio::io_service ios;
@@ -380,7 +380,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	ctx.set_verify_mode(context::verify_none, ec);
 	if (ec)
 	{
-		fprintf(stderr, "Failed to set SSL verify mode: %s\n"
+		std::fprintf(stderr, "Failed to set SSL verify mode: %s\n"
 			, ec.message().c_str());
 		TEST_CHECK(!ec);
 		return false;
@@ -400,38 +400,38 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	if (flags & (valid_certificate | invalid_certificate))
 	{
-		fprintf(stderr, "set_password_callback\n");
+		std::fprintf(stderr, "set_password_callback\n");
 		ctx.set_password_callback(boost::bind(&password_callback, _1, _2, "test"), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Failed to set certificate password callback: %s\n"
+			std::fprintf(stderr, "Failed to set certificate password callback: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(!ec);
 			return false;
 		}
-		fprintf(stderr, "use_certificate_file \"%s\"\n", certificate.c_str());
+		std::fprintf(stderr, "use_certificate_file \"%s\"\n", certificate.c_str());
 		ctx.use_certificate_file(certificate, context::pem, ec);
 		if (ec)
 		{
-			fprintf(stderr, "Failed to set certificate file: %s\n"
+			std::fprintf(stderr, "Failed to set certificate file: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(!ec);
 			return false;
 		}
-		fprintf(stderr, "use_private_key_file \"%s\"\n", private_key.c_str());
+		std::fprintf(stderr, "use_private_key_file \"%s\"\n", private_key.c_str());
 		ctx.use_private_key_file(private_key, context::pem, ec);
 		if (ec)
 		{
-			fprintf(stderr, "Failed to set private key: %s\n"
+			std::fprintf(stderr, "Failed to set private key: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(!ec);
 			return false;
 		}
-		fprintf(stderr, "use_tmp_dh_file \"%s\"\n", dh_params.c_str());
+		std::fprintf(stderr, "use_tmp_dh_file \"%s\"\n", dh_params.c_str());
 		ctx.use_tmp_dh_file(dh_params, ec);
 		if (ec)
 		{
-			fprintf(stderr, "Failed to set DH params: %s\n"
+			std::fprintf(stderr, "Failed to set DH params: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(!ec);
 			return false;
@@ -440,14 +440,14 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	boost::asio::ssl::stream<tcp::socket> ssl_sock(ios, ctx);
 
-	fprintf(stderr, "connecting 127.0.0.1:%d\n", port);
+	std::fprintf(stderr, "connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
 		address_v4::from_string("127.0.0.1"), port), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 
 	if (ec)
 	{
-		fprintf(stderr, "Failed to connect: %s\n"
+		std::fprintf(stderr, "Failed to connect: %s\n"
 			, ec.message().c_str());
 		TEST_CHECK(!ec);
 		return false;
@@ -456,7 +456,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	if (flags & valid_sni_hash)
 	{
 		std::string name = to_hex(t->info_hash().to_string());
-		fprintf(stderr, "SNI: %s\n", name.c_str());
+		std::fprintf(stderr, "SNI: %s\n", name.c_str());
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
 	else if (flags & invalid_sni_hash)
@@ -467,17 +467,17 @@ bool try_connect(libtorrent::session& ses1, int port
 		for (int i = 0; i < 40; ++i)
 			name += hex_alphabet[rand() % 16];
 
-		fprintf(stderr, "SNI: %s\n", name.c_str());
+		std::fprintf(stderr, "SNI: %s\n", name.c_str());
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
 
-	fprintf(stderr, "SSL handshake\n");
+	std::fprintf(stderr, "SSL handshake\n");
 	ssl_sock.handshake(boost::asio::ssl::stream_base::client, ec);
 
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
-		fprintf(stderr, "Failed SSL handshake: %s\n"
+		std::fprintf(stderr, "Failed SSL handshake: %s\n"
 			, ec.message().c_str());
 		return false;
 	}
@@ -502,40 +502,40 @@ bool try_connect(libtorrent::session& ses1, int port
 	// fill in the peer-id
 	std::generate(handshake + 48, handshake + 68, &rand);
 
-	fprintf(stderr, "bittorrent handshake\n");
+	std::fprintf(stderr, "bittorrent handshake\n");
 	boost::asio::write(ssl_sock, boost::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
-		fprintf(stderr, "failed to write bittorrent handshake: %s\n"
+		std::fprintf(stderr, "failed to write bittorrent handshake: %s\n"
 			, ec.message().c_str());
 		return false;
 	}
 
 	char buf[68];
-	fprintf(stderr, "read bittorrent handshake\n");
+	std::fprintf(stderr, "read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, boost::asio::buffer(buf, sizeof(buf)), ec);
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);
 	if (ec)
 	{
-		fprintf(stderr, "failed to read bittorrent handshake: %s\n"
+		std::fprintf(stderr, "failed to read bittorrent handshake: %s\n"
 			, ec.message().c_str());
 		return false;
 	}
 
 	if (memcmp(buf, "\x13" "BitTorrent protocol", 20) != 0)
 	{
-		fprintf(stderr, "invalid bittorrent handshake\n");
+		std::fprintf(stderr, "invalid bittorrent handshake\n");
 		return false;
 	}
 
 	if (memcmp(buf + 28, &t->info_hash()[0], 20) != 0)
 	{
-		fprintf(stderr, "invalid info-hash in bittorrent handshake\n");
+		std::fprintf(stderr, "invalid info-hash in bittorrent handshake\n");
 		return false;
 	}
 
-	fprintf(stderr, "successfully connected over SSL and shook hand over bittorrent\n");
+	std::fprintf(stderr, "successfully connected over SSL and shook hand over bittorrent\n");
 
 	return true;
 }
@@ -552,7 +552,7 @@ void test_malicious_peer()
 	sett.set_int(settings_pack::max_retry_port_bind, 100);
 
 	char listen_iface[100];
-	snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 	sett.set_bool(settings_pack::enable_dht, false);
 	sett.set_bool(settings_pack::enable_lsd, false);

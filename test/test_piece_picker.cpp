@@ -215,13 +215,13 @@ void print_availability(boost::shared_ptr<piece_picker> const& p)
 {
 	std::vector<int> avail;
 	p->get_availability(avail);
-	printf("[ ");
+	std::printf("[ ");
 	for (std::vector<int>::iterator i = avail.begin()
 		, end(avail.end()); i != end; ++i)
 	{
-		printf("%d ", *i);
+		std::printf("%d ", *i);
 	}
-	printf("]\n");
+	std::printf("]\n");
 }
 
 bool verify_availability(boost::shared_ptr<piece_picker> const& p, char const* a)
@@ -453,12 +453,12 @@ TORRENT_TEST(piece_picker)
 
 	p->mark_as_downloading(piece_block(0, 0), &tmp2);
 
-	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 2);
 
 	p->abort_download(piece_block(0, 0), &tmp1);
 
-	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
 
 // ========================================================

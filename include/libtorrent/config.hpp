@@ -40,13 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
 #include <boost/version.hpp>
-#include <boost/detail/endian.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include <stdio.h> // for snprintf
-#include <limits.h> // for IOV_MAX
-#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/export.hpp"
 
@@ -108,8 +103,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
-// '_vsnprintf': This function or variable may be unsafe
-#pragma warning(disable:4996)
 
 #if (defined(_MSC_VER) && _MSC_VER < 1310)
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
@@ -328,62 +321,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BSD
 #endif
 
-// on windows, NAME_MAX refers to Unicode characters
-// on linux it refers to bytes (utf-8 encoded)
-// TODO: Make this count Unicode characters instead of bytes on windows
-
-// windows
-#if defined FILENAME_MAX
-#define TORRENT_MAX_PATH FILENAME_MAX
-
-// beos
-#elif defined B_PATH_NAME_LENGTH
-#define TORRENT_MAX_PATH B_PATH_NAME_LENGTH
-
-// solaris
-#elif defined MAXPATH
-#define TORRENT_MAX_PATH MAXPATH
-
-// none of the above
-#else
-// this is the maximum number of characters in a
-// path element / filename on windows and also on many filesystems commonly used
-// on linux
-#define TORRENT_MAX_PATH 255
-
-#ifdef _MSC_VER
-#pragma message ( "unknown platform, assuming the longest path is 255" )
-#else
-#warning "unknown platform, assuming the longest path is 255"
-#endif
-
-#endif
-
 #define TORRENT_UNUSED(x) (void)(x)
-
-#if (defined _MSC_VER && _MSC_VER < 1900) && !defined TORRENT_MINGW
-
-#include <stdarg.h>
-
-// internal
-#ifdef __cplusplus
-inline
-#else
-static
-#endif
-int snprintf(char* buf, int len, char const* fmt, ...)
-{
-	va_list lp;
-	int ret;
-	va_start(lp, fmt);
-	ret = _vsnprintf(buf, len, fmt, lp);
-	va_end(lp);
-	if (ret < 0) { buf[len-1] = 0; ret = len-1; }
-	return ret;
-}
-
-#define strtoll _strtoi64
-#endif
 
 // at the highest warning level, clang actually warns about functions
 // that could be marked noreturn.
@@ -392,16 +330,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 #else
 #define TORRENT_NO_RETURN
 #endif
-
-#ifdef _GLIBCXX_USE_NOEXCEPT
-#define TORRENT_EXCEPTION_THROW_SPECIFIER _GLIBCXX_USE_NOEXCEPT
-#else
-#if __cplusplus <= 199711L || defined BOOST_NO_CXX11_NOEXCEPT
-#define TORRENT_EXCEPTION_THROW_SPECIFIER throw()
-#else
-#define TORRENT_EXCEPTION_THROW_SPECIFIER noexcept
-#endif
-#endif // __GLIBC__
 
 #ifndef TORRENT_ICONV_ARG
 #define TORRENT_ICONV_ARG (char**)
@@ -540,14 +468,6 @@ int snprintf(char* buf, int len, char const* fmt, ...)
 
 #ifndef TORRENT_USE_I2P
 #define TORRENT_USE_I2P 1
-#endif
-
-#if !defined TORRENT_IOV_MAX
-#ifdef IOV_MAX
-#define TORRENT_IOV_MAX IOV_MAX
-#else
-#define TORRENT_IOV_MAX INT_MAX
-#endif
 #endif
 
 #if !defined(TORRENT_READ_HANDLER_MAX_SIZE)
