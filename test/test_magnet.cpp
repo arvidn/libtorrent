@@ -64,10 +64,12 @@ TORRENT_TEST(remove_url)
 	test_remove_url("magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567");
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(remove_url2)
 {
 	test_remove_url("http://non-existent.com/test.torrent");
 }
+#endif
 
 TORRENT_TEST(magnet)
 {

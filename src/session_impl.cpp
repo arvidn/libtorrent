@@ -4811,7 +4811,7 @@ namespace aux {
 
 		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
 		{
-			std::string filename = resolve_file_url(params.url);
+			std::string const filename = resolve_file_url(params.url);
 			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
 			if (ec) return ptr_t();
 			params.url.clear();
@@ -4865,6 +4865,12 @@ namespace aux {
 			params.info_hash = hasher(&params.url[0], int(params.url.size())).final();
 		}
 #endif
+
+		if (params.info_hash == sha1_hash(0))
+		{
+			ec = errors::missing_info_hash_in_uri;
+			return ptr_t();
+		}
 
 		// is the torrent already active?
 		boost::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
