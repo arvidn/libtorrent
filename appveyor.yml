@@ -8,22 +8,22 @@ os: Visual Studio 2015
 clone_depth: 1
 environment:
   matrix:
-  - variant: test_debug
-    compiler: msvc-14.0
-    model: 64
-    sim: 1
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
-  - variant: test_debug
-    compiler: msvc-14.0
-    model: 32
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
-  - variant: test_release
-    compiler: msvc-14.0
-    model: 64
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+#  - variant: test_debug
+#    compiler: msvc-14.0
+#    model: 64
+#    sim: 1
+#    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
+#    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+#  - variant: test_debug
+#    compiler: msvc-14.0
+#    model: 32
+#    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+#    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+#  - variant: test_release
+#    compiler: msvc-14.0
+#    model: 64
+#    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
+#    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: gcc
     model: 64
@@ -91,7 +91,7 @@ build_script:
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
-- if not %compiler% == "gcc" ( b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% %include=%include% )
+- if not %compiler% == "gcc" ( b2.exe --hash -j2 address-model=%model% win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include% )
 - cd %ROOT_DIRECTORY%\bindings\python
 # 64 bit python module builds don't work
 - if %model% == 32 ( python test.py )
