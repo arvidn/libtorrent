@@ -6620,8 +6620,7 @@ namespace aux {
 		m_alerts.emplace_alert<dht_outgoing_get_peers_alert>(target, sent_target, ep);
 	}
 
-	// TODO: 2 perhaps DHT logging should be disabled by TORRENT_DISABLE_LOGGING
-	// too
+#ifndef TORRENT_DISABLE_LOGGING
 	TORRENT_FORMAT(3,4)
 	void session_impl::log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
 	{
@@ -6630,10 +6629,11 @@ namespace aux {
 		va_list v;
 		va_start(v, fmt);
 		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 		m_alerts.emplace_alert<dht_log_alert>(static_cast<dht_log_alert::dht_module_t>(m), buf);
 	}
+#endif
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node)

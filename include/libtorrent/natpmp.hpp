@@ -91,7 +91,10 @@ private:
 	void mapping_expired(error_code const& e, int i);
 	void close_impl();
 
-	void log(char const* msg);
+#ifndef TORRENT_DISABLE_LOGGING
+	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
+#endif
+
 	void disable(error_code const& ec);
 
 	struct mapping_t

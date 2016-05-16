@@ -44,14 +44,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <vector>
+#include <memory> // for shared_ptr
 #include <stdarg.h>
 
 using namespace libtorrent;
 
 struct mock_torrent;
 
-struct mock_peer_connection : peer_connection_interface
-	, boost::enable_shared_from_this<mock_peer_connection>
+struct mock_peer_connection
+	: peer_connection_interface
+	, std::enable_shared_from_this<mock_peer_connection>
 {
 	mock_peer_connection(mock_torrent* tor, bool out, tcp::endpoint const& remote)
 		: m_choked(false)
@@ -69,7 +71,7 @@ struct mock_peer_connection : peer_connection_interface
 
 #if !defined TORRENT_DISABLE_LOGGING
 	virtual void peer_log(peer_log_alert::direction_t dir, char const* event
-		, char const* fmt, ...) const
+		, char const* fmt, ...) const override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -91,21 +93,21 @@ struct mock_peer_connection : peer_connection_interface
 	bool m_disconnect_called;
 	mock_torrent& m_torrent;
 
-	virtual void get_peer_info(peer_info& p) const {}
-	virtual tcp::endpoint const& remote() const { return m_remote; }
-	virtual tcp::endpoint local_endpoint() const { return m_local; }
+	virtual void get_peer_info(peer_info& p) const override {}
+	virtual tcp::endpoint const& remote() const override { return m_remote; }
+	virtual tcp::endpoint local_endpoint() const override { return m_local; }
 	virtual void disconnect(error_code const& ec
 		, operation_t op, int error = 0);
-	virtual peer_id const& pid() const { return m_id; }
-	virtual void set_holepunch_mode() {}
-	virtual torrent_peer* peer_info_struct() const { return m_tp; }
-	virtual void set_peer_info(torrent_peer* pi) { m_tp = pi; }
-	virtual bool is_outgoing() const { return m_outgoing; }
-	virtual void add_stat(boost::int64_t downloaded, boost::int64_t uploaded)
+	virtual peer_id const& pid() const override { return m_id; }
+	virtual void set_holepunch_mode() override {}
+	virtual torrent_peer* peer_info_struct() const override { return m_tp; }
+	virtual void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
+	virtual bool is_outgoing() const override { return m_outgoing; }
+	virtual void add_stat(boost::int64_t downloaded, boost::int64_t uploaded) override
 	{ m_stat.add_stat(downloaded, uploaded); }
-	virtual bool fast_reconnect() const { return true; }
-	virtual bool is_choked() const { return m_choked; }
-	virtual bool failed() const { return false; }
+	virtual bool fast_reconnect() const override { return true; }
+	virtual bool is_choked() const override { return m_choked; }
+	virtual bool failed() const override { return false; }
 	virtual libtorrent::stat const& statistics() const { return m_stat; }
 };
 
@@ -118,8 +120,7 @@ struct mock_torrent
 	{
 		TORRENT_ASSERT(peerinfo->connection == NULL);
 		if (peerinfo->connection) return false;
-		boost::shared_ptr<mock_peer_connection> c
-			= boost::make_shared<mock_peer_connection>(this, true, peerinfo->ip());
+		auto c = std::make_shared<mock_peer_connection>(this, true, peerinfo->ip());
 		c->set_peer_info(peerinfo);
 
 		m_connections.push_back(c);
@@ -139,16 +140,16 @@ struct mock_torrent
 
 	peer_list* m_p;
 	torrent_state* m_state;
-	std::vector<boost::shared_ptr<mock_peer_connection> > m_connections;
+	std::vector<std::shared_ptr<mock_peer_connection> > m_connections;
 };
 
 void mock_peer_connection::disconnect(error_code const& ec
 	, operation_t op, int error)
 {
 	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
-	std::vector<boost::shared_ptr<mock_peer_connection> >::iterator i
+	std::vector<std::shared_ptr<mock_peer_connection> >::iterator i
 		= std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
-			, shared_from_this());
+			, std::static_pointer_cast<mock_peer_connection>(shared_from_this()));
 	if (i != m_torrent.m_connections.end()) m_torrent.m_connections.erase(i);
 
 	m_tp = 0;
@@ -329,8 +330,7 @@ TORRENT_TEST(update_peer_port)
 	peer_list p;
 	t.m_p = &p;
 	TEST_EQUAL(p.num_connect_candidates(), 0);
-	boost::shared_ptr<mock_peer_connection> c
-		= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
+	auto c = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 	p.new_connection(*c, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	TEST_EQUAL(p.num_peers(), 1);
@@ -357,8 +357,7 @@ TORRENT_TEST(update_peer_port_collide)
 	TEST_CHECK(peer2);
 
 	TEST_EQUAL(p.num_connect_candidates(), 1);
-	boost::shared_ptr<mock_peer_connection> c
-		= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
+	auto c = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 	p.new_connection(*c, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
 	// at this point we have two peers, because we think they have different 
@@ -373,6 +372,12 @@ TORRENT_TEST(update_peer_port_collide)
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(c->peer_info_struct()->port, 4000);
 	st.erased.clear();
+}
+
+std::shared_ptr<mock_peer_connection> shared_from_this(libtorrent::peer_connection_interface* p)
+{
+	return std::static_pointer_cast<mock_peer_connection>(
+		static_cast<mock_peer_connection*>(p)->shared_from_this());
 }
 
 // test ip filter
@@ -393,11 +398,9 @@ TORRENT_TEST(ip_filter)
 	connect_peer(p, t, st);
 	connect_peer(p, t, st);
 
-	boost::shared_ptr<mock_peer_connection> con1
-		= static_cast<mock_peer_connection*>(peer1->connection)->shared_from_this();
+	auto con1 = shared_from_this(peer1->connection);
 	TEST_EQUAL(con1->was_disconnected(), false);
-	boost::shared_ptr<mock_peer_connection> con2
-		= static_cast<mock_peer_connection*>(peer2->connection)->shared_from_this();
+	auto con2 = shared_from_this(peer2->connection);
 	TEST_EQUAL(con2->was_disconnected(), false);
 
 	// now, filter one of the IPs and make sure the peer is removed
@@ -433,11 +436,9 @@ TORRENT_TEST(port_filter)
 	connect_peer(p, t, st);
 	connect_peer(p, t, st);
 
-	boost::shared_ptr<mock_peer_connection> con1
-		= static_cast<mock_peer_connection*>(peer1->connection)->shared_from_this();
+	auto con1 = shared_from_this(peer1->connection);
 	TEST_EQUAL(con1->was_disconnected(), false);
-	boost::shared_ptr<mock_peer_connection> con2
-		= static_cast<mock_peer_connection*>(peer2->connection)->shared_from_this();
+	auto con2 = shared_from_this(peer2->connection);
 	TEST_EQUAL(con2->was_disconnected(), false);
 
 	// now, filter one of the IPs and make sure the peer is removed
@@ -467,8 +468,7 @@ TORRENT_TEST(ban_peers)
 	torrent_peer* peer1 = add_peer(p, st, ep("10.0.0.1", 4000));
 
 	TEST_EQUAL(p.num_connect_candidates(), 1);
-	boost::shared_ptr<mock_peer_connection> c
-		= boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
+	auto c = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 	p.new_connection(*c, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	TEST_EQUAL(p.num_peers(), 1);
@@ -488,7 +488,7 @@ TORRENT_TEST(ban_peers)
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	st.erased.clear();
 
-	c = boost::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
+	c = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 	ok = p.new_connection(*c, 0, &st);
 	// since it's banned, we should not allow this incoming connection
 	TEST_EQUAL(ok, false);
@@ -740,12 +740,10 @@ TORRENT_TEST(self_connection)
 	torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 3000));
 	connect_peer(p, t, st);
 
-	boost::shared_ptr<mock_peer_connection> con_out
-		= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+	auto con_out = shared_from_this(peer->connection);
 	con_out->set_local_ep(ep("10.0.0.2", 8080));
 
-	boost::shared_ptr<mock_peer_connection> con_in
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 8080));
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 8080));
 	con_in->set_local_ep(ep("10.0.0.2", 3000));
 
 	p.new_connection(*con_in, 0, &st);
@@ -771,15 +769,13 @@ TORRENT_TEST(double_connection)
 	// we are 10.0.0.1 and the other peer is 10.0.0.2
 
 	// first incoming connection
-	boost::shared_ptr<mock_peer_connection> con1
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 7528));
+	auto con1 = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 7528));
 	con1->set_local_ep(ep("10.0.0.1", 8080));
 
 	p.new_connection(*con1, 0, &st);
 
 	// and the incoming connection
-	boost::shared_ptr<mock_peer_connection> con2
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
+	auto con2 = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
 	con2->set_local_ep(ep("10.0.0.1", 8080));
 
 	p.new_connection(*con2, 0, &st);
@@ -804,13 +800,11 @@ TORRENT_TEST(double_connection_loose)
 	torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 3000));
 	connect_peer(p, t, st);
 
-	boost::shared_ptr<mock_peer_connection> con_out
-		= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+	auto con_out = shared_from_this(peer->connection);
 	con_out->set_local_ep(ep("10.0.0.1", 3163));
 
 	// and the incoming connection
-	boost::shared_ptr<mock_peer_connection> con_in
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
 	con_in->set_local_ep(ep("10.0.0.1", 8080));
 
 	p.new_connection(*con_in, 0, &st);
@@ -835,13 +829,11 @@ TORRENT_TEST(double_connection_win)
 	torrent_peer* peer = add_peer(p, st, ep("10.0.0.2", 8080));
 	connect_peer(p, t, st);
 
-	boost::shared_ptr<mock_peer_connection> con_out
-		= static_cast<mock_peer_connection*>(peer->connection)->shared_from_this();
+	auto con_out = shared_from_this(peer->connection);
 	con_out->set_local_ep(ep("10.0.0.1", 3163));
 
 	//and the incoming connection
-	boost::shared_ptr<mock_peer_connection> con_in
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.2", 3561));
 	con_in->set_local_ep(ep("10.0.0.1", 3000));
 
 	p.new_connection(*con_in, 0, &st);
@@ -877,8 +869,7 @@ TORRENT_TEST(incoming_size_limit)
 	TEST_CHECK(peer5);
 	TEST_EQUAL(p.num_peers(), 5);
 
-	boost::shared_ptr<mock_peer_connection> con_in
-		= boost::make_shared<mock_peer_connection>(&t, false, ep("10.0.1.2", 3561));
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.1.2", 3561));
 	con_in->set_local_ep(ep("10.0.2.1", 3000));
 
 	// since we're already at 5 peers in the peer list, this call should

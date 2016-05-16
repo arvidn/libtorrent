@@ -738,9 +738,9 @@ namespace libtorrent
 			}
 
 #if TORRENT_USE_IPV6
-			bool is_v6 = c.remote().address().is_v6();
+			bool const is_v6 = c.remote().address().is_v6();
 #else
-			bool is_v6 = false;
+			bool const is_v6 = false;
 #endif
 			torrent_peer* p = state->peer_allocator->allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
@@ -808,7 +808,7 @@ namespace libtorrent
 				TORRENT_ASSERT(pp.in_use);
 				if (pp.connection)
 				{
-					bool was_conn_cand = is_connect_candidate(pp);
+					bool const was_conn_cand = is_connect_candidate(pp);
 					// if we already have an entry with this
 					// new endpoint, disconnect this one
 					pp.connectable = true;
@@ -844,7 +844,7 @@ namespace libtorrent
 		}
 #endif
 
-		bool was_conn_cand = is_connect_candidate(*p);
+		bool const was_conn_cand = is_connect_candidate(*p);
 		p->port = port;
 		p->source |= src;
 		p->connectable = true;
@@ -870,7 +870,7 @@ namespace libtorrent
 		if (p == 0) return;
 		TORRENT_ASSERT(p->in_use);
 		if (p->seed == s) return;
-		bool was_conn_cand = is_connect_candidate(*p);
+		bool const was_conn_cand = is_connect_candidate(*p);
 		p->seed = s;
 		if (was_conn_cand && !is_connect_candidate(*p))
 			update_connect_candidates(-1);
@@ -896,7 +896,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p);
 		TORRENT_ASSERT(p->in_use);
 
-		int max_peerlist_size = state->max_peerlist_size;
+		int const max_peerlist_size = state->max_peerlist_size;
 
 		if (max_peerlist_size
 			&& int(m_peers.size()) >= max_peerlist_size)
@@ -950,7 +950,7 @@ namespace libtorrent
 		, tcp::endpoint const& remote, char const* /* destination*/)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		bool was_conn_cand = is_connect_candidate(*p);
+		bool const was_conn_cand = is_connect_candidate(*p);
 
 		TORRENT_ASSERT(p->in_use);
 		p->connectable = true;
@@ -1094,9 +1094,9 @@ namespace libtorrent
 			// add a new entry
 
 #if TORRENT_USE_IPV6
-			bool is_v6 = remote.address().is_v6();
+			bool const is_v6 = remote.address().is_v6();
 #else
-			bool is_v6 = false;
+			bool const is_v6 = false;
 #endif
 			p = state->peer_allocator->allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
