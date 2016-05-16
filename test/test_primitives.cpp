@@ -150,3 +150,26 @@ TORRENT_TEST(primitives)
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
 }
 
+TORRENT_TEST(printf_int64)
+{
+	char buffer[100];
+	boost::int64_t val = 345678901234567ll;
+	std::snprintf(buffer, sizeof(buffer), "%" PRId64 " %s", val, "end");
+	TEST_EQUAL(buffer, std::string("345678901234567 end"))
+}
+
+TORRENT_TEST(printf_uint64)
+{
+	char buffer[100];
+	boost::uint64_t val = 18446744073709551615ull;
+	std::snprintf(buffer, sizeof(buffer), "%" PRIu64 " %s", val, "end");
+	TEST_EQUAL(buffer, std::string("18446744073709551615 end"))
+}
+
+TORRENT_TEST(printf_trunc)
+{
+	char buffer[4];
+	int val = 184;
+	std::snprintf(buffer, sizeof(buffer), "%d %s", val, "end");
+	TEST_EQUAL(buffer, std::string("184"))
+}
