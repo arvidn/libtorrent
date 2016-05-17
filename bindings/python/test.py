@@ -84,7 +84,7 @@ class test_torrent_info(unittest.TestCase):
 		idx = 0
 		expected = ['bar.txt', 'var.txt']
 		for f in files:
-			print f.path
+			print(f.path)
 
 			self.assertEqual(os.path.split(f.path)[1], expected[idx])
 			self.assertEqual(os.path.split(f.path)[0], os.path.join('temp', 'foo'))
