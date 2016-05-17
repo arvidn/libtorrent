@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio> // for snprintf
+#include <cstdarg>
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"

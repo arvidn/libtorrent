@@ -6633,7 +6633,6 @@ namespace aux {
 		va_end(v);
 		m_alerts.emplace_alert<dht_log_alert>(static_cast<dht_log_alert::dht_module_t>(m), buf);
 	}
-#endif
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node)
@@ -6645,6 +6644,7 @@ namespace aux {
 
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
 	}
+#endif
 
 	bool session_impl::on_dht_request(char const* query, int query_len
 		, dht::msg const& request, entry& response)

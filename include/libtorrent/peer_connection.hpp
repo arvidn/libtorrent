@@ -546,12 +546,12 @@ namespace libtorrent
 		void decrease_est_reciprocation_rate();
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
+#ifndef TORRENT_DISABLE_LOGGING
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event, char const* fmt, ...) const TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event) const;
 
-#ifndef TORRENT_DISABLE_LOGGING
 		time_point m_connect_time;
 		time_point m_bitfield_time;
 		time_point m_unchoke_time;
