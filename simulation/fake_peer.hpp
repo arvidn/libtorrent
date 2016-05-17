@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define SIMULATION_FAKE_PEER_HPP
 
 #include <array>
+#include <cstdio> // for snprintf
+
 #include "test.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/session.hpp"
@@ -94,7 +96,7 @@ private:
 	void write_handshake(boost::system::error_code const& ec, lt::sha1_hash ih)
 	{
 		asio::ip::tcp::endpoint ep = m_out_socket.remote_endpoint();
-		printf("fake_peer::connect (%s) -> (%d) %s\n"
+		std::printf("fake_peer::connect (%s) -> (%d) %s\n"
 			, lt::print_endpoint(ep).c_str(), ec.value()
 			, ec.message().c_str());
 		static char const handshake[]
@@ -109,7 +111,7 @@ private:
 		asio::async_write(m_out_socket, asio::const_buffers_1(&m_out_buffer[0]
 			, len), [=](boost::system::error_code const& ec, size_t bytes_transferred)
 		{
-			printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
+			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
 				, lt::print_endpoint(ep).c_str(), ec.value()
 				, ec.message().c_str());
 			this->m_out_socket.close();
@@ -131,7 +133,7 @@ inline void add_fake_peers(lt::torrent_handle h)
 	for (int i = 0; i < 5; ++i)
 	{
 		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i);
+		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i);
 		h.connect_peer(lt::tcp::endpoint(
 			lt::address_v4::from_string(ep), 6881));
 	}

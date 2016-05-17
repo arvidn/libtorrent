@@ -45,26 +45,26 @@ int main()
 	address def_gw = get_default_gateway(ios, ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
+	std::printf("Default gateway: %s\n", def_gw.to_string(ec).c_str());
 
-	printf("=========== Routes ===========\n");
+	std::printf("=========== Routes ===========\n");
 	std::vector<ip_route> routes = enum_routes(ios, ec);
 	if (ec)
 	{
-		printf("%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
+	std::printf("%-18s%-18s%-35s%-7sinterface\n", "destination", "network", "gateway", "mtu");
 
 	for (std::vector<ip_route>::const_iterator i = routes.begin()
 		, end(routes.end()); i != end; ++i)
 	{
-		printf("%-18s%-18s%-35s%-7d%s\n"
+		std::printf("%-18s%-18s%-35s%-7d%s\n"
 			, i->destination.to_string(ec).c_str()
 			, i->netmask.to_string(ec).c_str()
 			, i->gateway.to_string(ec).c_str()
@@ -72,21 +72,21 @@ int main()
 			, i->name);
 	}
 
-	printf("========= Interfaces =========\n");
+	std::printf("========= Interfaces =========\n");
 
 	std::vector<ip_interface> const& net = enum_net_interfaces(ios, ec);
 	if (ec)
 	{
-		printf("%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 
-	printf("%-30s%-45s%-20s%-8sflags\n", "address", "netmask", "name", "mtu");
+	std::printf("%-30s%-45s%-20s%-8sflags\n", "address", "netmask", "name", "mtu");
 
 	for (std::vector<ip_interface>::const_iterator i = net.begin()
 		, end(net.end()); i != end; ++i)
 	{
-		printf("%-30s%-45s%-20s%-8d%s%s%s\n"
+		std::printf("%-30s%-45s%-20s%-8d%s%s%s\n"
 			, i->interface_address.to_string(ec).c_str()
 			, i->netmask.to_string(ec).c_str()
 			, i->name

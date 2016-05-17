@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp" // for error codes
 #include <cstring>
 #include <limits> // for numeric_limits
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 namespace
 {
@@ -551,7 +553,7 @@ namespace libtorrent
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}
@@ -610,7 +612,7 @@ namespace libtorrent
 			case lazy_entry::int_t:
 			{
 				char str[100];
-				snprintf(str, sizeof(str), "%" PRId64, e.int_value());
+				std::snprintf(str, sizeof(str), "%" PRId64, e.int_value());
 				return str;
 			}
 			case lazy_entry::string_t:

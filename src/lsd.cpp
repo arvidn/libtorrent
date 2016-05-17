@@ -58,7 +58,7 @@ int render_lsd_packet(char* dst, int len, int listen_port
 	, char const* info_hash_hex, int m_cookie, char const* host)
 {
 	TORRENT_ASSERT(len > 0);
-	return snprintf(dst, len,
+	return std::snprintf(dst, len,
 		"BT-SEARCH * HTTP/1.1\r\n"
 		"Host: %s:6771\r\n"
 		"Port: %d\r\n"

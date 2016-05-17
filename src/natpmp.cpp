@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include <cstdio> // for snprintf
+
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
@@ -90,7 +92,7 @@ void natpmp::start()
 	if (ec)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "failed to find default route: %s"
+		std::snprintf(msg, sizeof(msg), "failed to find default route: %s"
 			, convert_from_native(ec.message()).c_str());
 		log(msg);
 		disable(ec);
@@ -104,7 +106,7 @@ void natpmp::start()
 	m_nat_endpoint = nat_endpoint;
 
 	char msg[200];
-	snprintf(msg, sizeof(msg), "found router at: %s"
+	std::snprintf(msg, sizeof(msg), "found router at: %s"
 		, print_address(m_nat_endpoint.address()).c_str());
 	log(msg);
 
@@ -351,7 +353,7 @@ void natpmp::send_map_request(int i)
 	write_uint32(ttl, out); // port mapping lifetime
 
 	char msg[200];
-	snprintf(msg, sizeof(msg), "==> port map [ mapping: %d action: %s"
+	std::snprintf(msg, sizeof(msg), "==> port map [ mapping: %d action: %s"
 		" proto: %s local: %u external: %u ttl: %u ]"
 		, i, m.action == mapping_t::action_add ? "add" : "delete"
 		, m.protocol == udp ? "udp" : "tcp"
@@ -413,7 +415,7 @@ void natpmp::on_reply(error_code const& e
 	if (e)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "error on receiving reply: %s"
+		std::snprintf(msg, sizeof(msg), "error on receiving reply: %s"
 			, convert_from_native(e.message()).c_str());
 		log(msg);
 		return;
@@ -439,7 +441,7 @@ void natpmp::on_reply(error_code const& e
 	if (m_remote != m_nat_endpoint)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "received packet from wrong IP: %s"
+		std::snprintf(msg, sizeof(msg), "received packet from wrong IP: %s"
 			, print_endpoint(m_remote).c_str());
 		log(msg);
 		return;
@@ -451,7 +453,7 @@ void natpmp::on_reply(error_code const& e
 	if (bytes_transferred < 12)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
+		std::snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
 		log(msg);
 		return;
 	}
@@ -468,7 +470,7 @@ void natpmp::on_reply(error_code const& e
 		m_external_ip = read_v4_address(in);
 
 		char msg[200];
-		snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+		std::snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
 		log(msg);
 		return;
 
@@ -477,7 +479,7 @@ void natpmp::on_reply(error_code const& e
 	if (bytes_transferred < 16)
 	{
 		char msg[200];
-		snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
+		std::snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
 		log(msg);
 		return;
 	}
@@ -491,14 +493,14 @@ void natpmp::on_reply(error_code const& e
 	int protocol = (cmd - 128 == 1)?udp:tcp;
 
 	char msg[200];
-	int num_chars = snprintf(msg, sizeof(msg), "<== port map ["
+	int num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
 		" protocol: %s local: %u external: %u ttl: %u ]"
 		, (cmd - 128 == 1 ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
 
 	if (version != 0)
 	{
-		snprintf(msg + num_chars, sizeof(msg) - num_chars, "unexpected version: %u"
+		std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "unexpected version: %u"
 			, version);
 		log(msg);
 	}
@@ -519,7 +521,7 @@ void natpmp::on_reply(error_code const& e
 
 	if (m == 0)
 	{
-		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
+		std::snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
 		log(msg);
 		return;
 	}
@@ -604,7 +606,7 @@ void natpmp::update_expiration_timer()
 		if (i->expires < now)
 		{
 			char msg[200];
-			snprintf(msg, sizeof(msg), "mapping %u expired", index);
+			std::snprintf(msg, sizeof(msg), "mapping %u expired", index);
 			log(msg);
 			i->action = mapping_t::action_add;
 			if (m_next_refresh == index) m_next_refresh = -1;
@@ -644,7 +646,7 @@ void natpmp::mapping_expired(error_code const& e, int i)
 	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e) return;
 	char msg[200];
-	snprintf(msg, sizeof(msg), "mapping %u expired", i);
+	std::snprintf(msg, sizeof(msg), "mapping %u expired", i);
 	log(msg);
 	m_mappings[i].action = mapping_t::action_add;
 	if (m_next_refresh == i) m_next_refresh = -1;

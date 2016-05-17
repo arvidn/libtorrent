@@ -75,7 +75,7 @@ void session_view::render()
 	int upload_rate = int((m_cnt[0][m_sent_payload_idx] - m_cnt[1][m_sent_payload_idx])
 		/ seconds);
 
-	pos += snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
+	pos += std::snprintf(str, sizeof(str), "%s%s fail: %s down: %s (%s) "
 		"  bw queue: %s | %s conns: %3d  unchoked: %2d / %2d "
 		"                                      %s\x1b[K"
 		, esc("48;5;238")
@@ -93,7 +93,7 @@ void session_view::render()
 	set_cursor_pos(0, y++);
 	print(str);
 
-	snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
+	std::snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
 		"disk queue: %s | %s cache w: %3d%% r: %3d%% "
 		"size: w: %s r: %s total: %s       %s\x1b[K"
 #ifdef _WIN32
@@ -119,7 +119,7 @@ void session_view::render()
 	print(str);
 
 /*
-	snprintf(str, sizeof(str), "| timing - "
+	std::snprintf(str, sizeof(str), "| timing - "
 		" read: %6d ms | write: %6d ms | hash: %6d"
 		, cs.average_read_time / 1000, cs.average_write_time / 1000
 		, cs.average_hash_time / 1000);
@@ -127,7 +127,7 @@ void session_view::render()
 	set_cursor_pos(0, y++);
 	print(str);
 
-	snprintf(str, sizeof(str), "| jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
+	std::snprintf(str, sizeof(str), "| jobs   - queued: %4d (%4d) pending: %4d blocked: %4d "
 		"queued-bytes: %5" PRId64 " kB"
 		, cs.queued_jobs, cs.peak_queued, cs.pending_jobs, cs.blocked_jobs
 		, m_cnt[0][m_queued_bytes_idx] / 1000);
@@ -135,7 +135,7 @@ void session_view::render()
 	set_cursor_pos(0, y++);
 	print(str);
 
-	snprintf(str, sizeof(str), "|  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d"
+	std::snprintf(str, sizeof(str), "|  cache  - total: %4d read: %4d write: %4d pinned: %4d write-queue: %4d"
 		, cs.read_cache_size + cs.write_cache_size, cs.read_cache_size
 		, cs.write_cache_size, cs.pinned_blocks
 		, int(m_cnt[0][m_queued_bytes_idx] / 0x4000));
@@ -147,38 +147,38 @@ void session_view::render()
 	int arc_size = mru_size + mfu_size;
 
 	char mru_caption[100];
-	snprintf(mru_caption, sizeof(mru_caption), "MRU: %d (%d)"
+	std::snprintf(mru_caption, sizeof(mru_caption), "MRU: %d (%d)"
 		, int(m_cnt[0][m_mru_size_idx]), int(m_cnt[0][m_mru_ghost_idx]));
 	char mfu_caption[100];
-	snprintf(mfu_caption, sizeof(mfu_caption), "MFU: %d (%d)"
+	std::snprintf(mfu_caption, sizeof(mfu_caption), "MFU: %d (%d)"
 		, int(m_cnt[0][m_mfu_size_idx]), int(m_cnt[0][m_mfu_ghost_idx]));
 
-	pos = snprintf(str, sizeof(str), "cache: ");
+	pos = std::snprintf(str, sizeof(str), "cache: ");
 	if (arc_size > 0)
 	{
 		if (mru_size > 0)
 		{
-			pos += snprintf(str + pos, sizeof(str) - pos, "%s"
+			pos += std::snprintf(str + pos, sizeof(str) - pos, "%s"
 				, progress_bar(int(m_cnt[0][m_mru_ghost_idx] * 1000 / mru_size)
 					, mru_size * (m_width-8) / arc_size, col_yellow, '-', '#'
 					, mru_caption, progress_invert).c_str());
 		}
-		pos += snprintf(str + pos, sizeof(str) - pos, "|");
+		pos += std::snprintf(str + pos, sizeof(str) - pos, "|");
 		if (mfu_size)
 		{
-			pos += snprintf(str + pos, sizeof(str) - pos, "%s"
+			pos += std::snprintf(str + pos, sizeof(str) - pos, "%s"
 				, progress_bar(int(m_cnt[0][m_mfu_size_idx] * 1000 / mfu_size)
 					, mfu_size * (m_width-8) / arc_size, col_green, '#', '-'
 					, mfu_caption).c_str());
 		}
 	}
-	pos += snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "\x1b[K");
 	set_cursor_pos(0, y++);
 	print(str);
 
 	if (m_print_utp_stats)
 	{
-		snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\x1b[K"
+		std::snprintf(str, sizeof(str), "uTP idle: %d syn: %d est: %d fin: %d wait: %d\x1b[K"
 			, int(m_cnt[0][m_utp_idle])
 			, int(m_cnt[0][m_utp_syn_sent])
 			, int(m_cnt[0][m_utp_connected])

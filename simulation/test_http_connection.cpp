@@ -96,7 +96,7 @@ std::string chunk_string(std::string s)
 	{
 		i = std::min(i, s.size());
 		char header[50];
-		snprintf(header, sizeof(header), "%x\r\n", int(i));
+		std::snprintf(header, sizeof(header), "%x\r\n", int(i));
 		ret += header;
 		ret += s.substr(0, i);
 		s.erase(s.begin(), s.begin() + i);
@@ -118,14 +118,14 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 	, int* handler_called
 	, std::string const& auth = std::string())
 {
-	fprintf(stderr, " ===== TESTING: %s =====\n", url.c_str());
+	std::fprintf(stderr, " ===== TESTING: %s =====\n", url.c_str());
 
 	auto h = boost::make_shared<http_connection>(ios
 		, res
 		, [=](error_code const& ec, http_parser const& parser
 			, char const* data, const int size, http_connection& c)
 		{
-			printf("RESPONSE: %s\n", url.c_str());
+			std::printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
 
 			// this is pretty gross. Since boost.asio is a header-only library, when this test is
@@ -138,7 +138,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 
 			if (!error_ok)
 			{
-				printf("ERROR: %s (expected: %s)\n"
+				std::printf("ERROR: %s (expected: %s)\n"
 					, ec.message().c_str()
 					, expected_error.message().c_str());
 			}
@@ -165,7 +165,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 		{
 			++*connect_handler_called;
 			TEST_CHECK(c.socket().is_open());
-			printf("CONNECTED: %s\n", url.c_str());
+			std::printf("CONNECTED: %s\n", url.c_str());
 		});
 
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", address_v4::any()
@@ -178,7 +178,7 @@ void print_http_header(std::map<std::string, std::string> const& headers)
 	for (std::map<std::string, std::string>::const_iterator i
 		= headers.begin(), end(headers.end()); i != end; ++i)
 	{
-		printf("%s: %s\n", i->first.c_str(), i->second.c_str());
+		std::printf("%s: %s\n", i->first.c_str(), i->second.c_str());
 	}
 }
 
@@ -401,7 +401,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	TEST_EQUAL(counters.size(), expect_counters.size());
 	for (int i = 0; i < int(counters.size()); ++i)
 	{
-		if (counters[i] != expect_counters[i]) fprintf(stderr, "i=%d\n", i);
+		if (counters[i] != expect_counters[i]) std::fprintf(stderr, "i=%d\n", i);
 		TEST_EQUAL(counters[i], expect_counters[i]);
 	}
 }

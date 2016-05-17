@@ -49,7 +49,7 @@ namespace lt = libtorrent;
 
 int main(int argc, char* argv[])
 {
-	fprintf(stderr, "not built with DHT support\n");
+	std::fprintf(stderr, "not built with DHT support\n");
 	return 1;
 }
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 
 void usage()
 {
-	fprintf(stderr,
+	std::fprintf(stderr,
 		"USAGE:\ndht <command> <arg>\n\nCOMMANDS:\n"
 		"get <hash>                - retrieves and prints out the immutable\n"
 		"                            item stored under hash.\n"
@@ -92,7 +92,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 			{
 				static int spinner = 0;
 				static const char anim[] = {'-', '\\', '|', '/'};
-				printf("\r%c", anim[spinner]);
+				std::printf("\r%c", anim[spinner]);
 				fflush(stdout);
 				spinner = (spinner + 1) & 3;
 				//print some alerts?
@@ -102,7 +102,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 			found = true;
 		}
 	}
-	printf("\n");
+	std::printf("\n");
 	return ret;
 }
 
@@ -126,9 +126,9 @@ void put_string(entry& e, std::array<char, 64>& sig, boost::uint64_t& seq
 
 void bootstrap(lt::session& s)
 {
-	printf("bootstrapping\n");
+	std::printf("bootstrapping\n");
 	wait_for_alert(s, dht_bootstrap_alert::alert_type);
-	printf("bootstrap done.\n");
+	std::printf("bootstrap done.\n");
 }
 
 int dump_key(char *filename)
@@ -136,7 +136,7 @@ int dump_key(char *filename)
 	FILE* f = fopen(filename, "rb+");
 	if (f == NULL)
 	{
-		fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+		std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 			, filename, errno, strerror(errno));
 		return 1;
 	}
@@ -145,7 +145,7 @@ int dump_key(char *filename)
 	int size = int(fread(seed, 1, 32, f));
 	if (size != 32)
 	{
-		fprintf(stderr, "invalid key file.\n");
+		std::fprintf(stderr, "invalid key file.\n");
 		return 1;
 	}
 	fclose(f);
@@ -155,7 +155,7 @@ int dump_key(char *filename)
 	ed25519_create_keypair((unsigned char*)public_key.data()
 		, (unsigned char*)private_key.data(), seed);
 
-	printf("public key: %s\nprivate key: %s\n",
+	std::printf("public key: %s\nprivate key: %s\n",
 		to_hex(std::string(public_key.data(), public_key.size())).c_str(),
 		to_hex(std::string(private_key.data(), private_key.size())).c_str());
 
@@ -170,7 +170,7 @@ int generate_key(char* filename)
 	FILE* f = fopen(filename, "wb+");
 	if (f == NULL)
 	{
-		fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
+		std::fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
 			, filename, errno, strerror(errno));
 		return 1;
 	}
@@ -178,7 +178,7 @@ int generate_key(char* filename)
 	int size = int(fwrite(seed, 1, 32, f));
 	if (size != 32)
 	{
-		fprintf(stderr, "failed to write key file.\n");
+		std::fprintf(stderr, "failed to write key file.\n");
 		return 1;
 	}
 	fclose(f);
@@ -205,11 +205,11 @@ void load_dht_state(lt::session& s)
 		error_code ec;
 		bdecode(&state[0], &state[0] + state.size(), e, ec);
 		if (ec)
-			fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
+			std::fprintf(stderr, "failed to parse .dht file: (%d) %s\n"
 				, ec.value(), ec.message().c_str());
 		else
 		{
-			printf("load dht state from .dht\n");
+			std::printf("load dht state from .dht\n");
 			s.load_state(e);
 		}
 	}
@@ -226,7 +226,7 @@ int save_dht_state(lt::session& s)
 	FILE* f = fopen(".dht", "wb+");
 	if (f == NULL)
 	{
-		fprintf(stderr, "failed to open file .dht for writing");
+		std::fprintf(stderr, "failed to open file .dht for writing");
 		return 1;
 	}
 	fwrite(&state[0], 1, state.size(), f);
@@ -281,21 +281,21 @@ int main(int argc, char* argv[])
 
 		if (strlen(argv[0]) != 40)
 		{
-			fprintf(stderr, "the hash is expected to be 40 hex characters\n");
+			std::fprintf(stderr, "the hash is expected to be 40 hex characters\n");
 			usage();
 		}
 		sha1_hash target;
 		bool ret = from_hex(argv[0], 40, (char*)&target[0]);
 		if (!ret)
 		{
-			fprintf(stderr, "invalid hex encoding of target hash\n");
+			std::fprintf(stderr, "invalid hex encoding of target hash\n");
 			return 1;
 		}
 
 		bootstrap(s);
 		s.dht_get_item(target);
 
-		printf("GET %s\n", to_hex(target.to_string()).c_str());
+		std::printf("GET %s\n", to_hex(target.to_string()).c_str());
 
 		alert* a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
 
@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
 		if (item)
 			data.swap(item->item);
 
-		printf("%s", data.to_string().c_str());
+		std::printf("%s", data.to_string().c_str());
 	}
 	else if (strcmp(argv[0], "put") == 0)
 	{
@@ -318,11 +318,11 @@ int main(int argc, char* argv[])
 		bootstrap(s);
 		sha1_hash target = s.dht_put_item(data);
 		
-		printf("PUT %s\n", to_hex(target.to_string()).c_str());
+		std::printf("PUT %s\n", to_hex(target.to_string()).c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
-		printf("%s\n", pa->message().c_str());
+		std::printf("%s\n", pa->message().c_str());
 	}
 	else if (strcmp(argv[0], "mput") == 0)
 	{
@@ -333,7 +333,7 @@ int main(int argc, char* argv[])
 		FILE* f = fopen(argv[0], "rb+");
 		if (f == NULL)
 		{
-			fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 				, argv[0], errno, strerror(errno));
 			return 1;
 		}
@@ -355,12 +355,12 @@ int main(int argc, char* argv[])
 		s.dht_put_item(public_key, boost::bind(&put_string, _1, _2, _3, _4
 			, public_key.data(), private_key.data(), argv[0]));
 
-		printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()
+		std::printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()
 			, public_key.size())).c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
-		printf("%s\n", pa->message().c_str());
+		std::printf("%s\n", pa->message().c_str());
 	}
 	else if (strcmp(argv[0], "mget") == 0)
 	{
@@ -371,20 +371,20 @@ int main(int argc, char* argv[])
 		int len = int(strlen(argv[0]));
 		if (len != 64)
 		{
-			fprintf(stderr, "public key is expected to be 64 hex digits\n");
+			std::fprintf(stderr, "public key is expected to be 64 hex digits\n");
 			return 1;
 		}
 		std::array<char, 32> public_key;
 		bool ret = from_hex(argv[0], len, &public_key[0]);
 		if (!ret)
 		{
-			fprintf(stderr, "invalid hex encoding of public key\n");
+			std::fprintf(stderr, "invalid hex encoding of public key\n");
 			return 1;
 		}
 
 		bootstrap(s);
 		s.dht_get_item(public_key);
-		printf("MGET %s\n", argv[0]);
+		std::printf("MGET %s\n", argv[0]);
 
 		bool authoritative = false;
 
@@ -398,7 +398,7 @@ int main(int argc, char* argv[])
 				data.swap(item->item);
 
 			authoritative = item->authoritative;
-			printf("%s: %s", authoritative ? "auth" : "non-auth", data.to_string().c_str());
+			std::printf("%s: %s", authoritative ? "auth" : "non-auth", data.to_string().c_str());
 		}
 	}
 	else

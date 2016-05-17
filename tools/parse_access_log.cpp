@@ -45,7 +45,7 @@ using namespace libtorrent::detail; // for write_* and read_*
 
 void print_usage()
 {
-	fprintf(stderr, "usage: parse_access_log log-file\n\n"
+	std::fprintf(stderr, "usage: parse_access_log log-file\n\n"
 		"prints a gnuplot readable data file to stdout\n");
 	exit(1);
 }
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	FILE* log_file = fopen(argv[1], "r");
 	if (log_file == 0)
 	{
-		fprintf(stderr, "failed to open logfile: %s\n%d: %s\n"
+		std::fprintf(stderr, "failed to open logfile: %s\n%d: %s\n"
 			, argv[1], errno, strerror(errno));
 		return 1;
 	}
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 			{
 				if (i->second.timestamp > op.timestamp)
 				{
-					fprintf(stderr, "end-event stamped before "
+					std::fprintf(stderr, "end-event stamped before "
 						"start-event: %" PRId64 " started at: %f\n"
 						, op.offset, double(i->second.timestamp) / 1000000.f);
 					i->second.timestamp = op.timestamp;
@@ -116,17 +116,17 @@ int main(int argc, char* argv[])
 				double start_time = double(i->second.timestamp - first_timestamp) / 1000000.0;
 				double end_time = double(op.timestamp - first_timestamp) / 1000000.0;
 				double duration_time = double(op.timestamp - i->second.timestamp) / 1000000.0;
-				fprintf(out_file, "%f\t%" PRId64 "\t%f\n"
+				std::fprintf(out_file, "%f\t%" PRId64 "\t%f\n"
 					, start_time, op.offset, duration_time);
 
 				out_file = write ? writes_elev_file : reads_elev_file;
-				fprintf(out_file, "%f\t%" PRId64 "\n", end_time, op.offset);
+				std::fprintf(out_file, "%f\t%" PRId64 "\n", end_time, op.offset);
 
 				outstanding_ops.erase(i);
 			}
 			else
 			{
-				fprintf(stderr, "no start event for (%u): %" PRId64 " ended at: %f\n"
+				std::fprintf(stderr, "no start event for (%u): %" PRId64 " ended at: %f\n"
 					, event_id, op.offset, double(op.timestamp) / 1000000.f);
 			}
 		}
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
 			op_map::iterator i = outstanding_ops.find(event_id);
 			if (i != outstanding_ops.end())
 			{
-				fprintf(stderr, "duplicate start event for (%u): %" PRId64 " at: %f"
+				std::fprintf(stderr, "duplicate start event for (%u): %" PRId64 " at: %f"
 					"(current start is at: %f)\n"
 					, event_id, op.offset, double(i->second.timestamp - first_timestamp) / 1000000.f
 					, double(op.timestamp - first_timestamp) / 1000000.f);

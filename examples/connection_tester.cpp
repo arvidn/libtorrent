@@ -420,7 +420,7 @@ struct peer_conn
 	{
 		end_time = clock_type::now();
 		char tmp[1024];
-		snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+		std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
 		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
@@ -431,13 +431,13 @@ struct peer_conn
 		address const& addr = s.local_endpoint(e).address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
 				, s.local_endpoint(e).port());
 		else
 #endif
-			snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
 				, s.local_endpoint(e).port());
-		printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
+		std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
 		if (seed) --num_seeds;
 	}
@@ -483,7 +483,7 @@ struct peer_conn
 		unsigned int length = read_uint32(ptr);
 		if (length > sizeof(buffer))
 		{
-			fprintf(stderr, "len: %d\n", length);
+			std::fprintf(stderr, "len: %d\n", length);
 			close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 			return;
 		}
@@ -515,7 +515,7 @@ struct peer_conn
 			return;
 		}
 
-		//printf("msg: %d len: %d\n", msg, int(bytes_transferred));
+		//std::printf("msg: %d len: %d\n", msg, int(bytes_transferred));
 
 		if (seed)
 		{
@@ -637,7 +637,7 @@ struct peer_conn
 					}
 				}
 				--outstanding_requests;
-				fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
+				std::fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
 			}
 			else if (msg == 0) // choke
 			{
@@ -669,7 +669,7 @@ struct peer_conn
 		{
 			if (buf[i] != fill)
 			{
-				fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
+				std::fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
 				exit(1);
 			}
 		}
@@ -719,7 +719,7 @@ struct peer_conn
 
 void print_usage()
 {
-	fprintf(stderr, "usage: connection_tester command [options]\n\n"
+	std::fprintf(stderr, "usage: connection_tester command [options]\n\n"
 		"command is one of:\n"
 		"  gen-torrent        generate a test torrent\n"
 		"    options for this command:\n"
@@ -757,7 +757,7 @@ void print_usage()
 
 void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size, bool print)
 {
-	if (print) fprintf(stderr, "\n");
+	if (print) std::fprintf(stderr, "\n");
 	boost::uint32_t piece[0x4000 / 4];
 	for (int i = start_piece; i < end_piece; ++i)
 	{
@@ -768,9 +768,9 @@ void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece
 			ph.update((char*)piece, 0x4000);
 		}
 		t->set_hash(i, ph.final());
-		if (print && (i & 1)) fprintf(stderr, "\r%.1f %% ", float((i-start_piece) * 100) / float(end_piece-start_piece));
+		if (print && (i & 1)) std::fprintf(stderr, "\r%.1f %% ", float((i-start_piece) * 100) / float(end_piece-start_piece));
 	}
-	if (print) fprintf(stderr, "\n");
+	if (print) std::fprintf(stderr, "\n");
 }
 
 // size is in megabytes
@@ -789,7 +789,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	while (s > 0)
 	{
 		char b[100];
-		snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
+		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
 		fs.add_file(b, (std::min)(s, boost::int64_t(file_size)));
 		s -= file_size;
@@ -845,9 +845,9 @@ void generate_data(char const* path, torrent_info const& ti)
 			storage_error error;
 			st->writev(&b, 1, i, j, 0, error);
 			if (error)
-				fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
+				std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
 		}
-		if (i & 1) fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(ti.num_pieces()));
+		if (i & 1) std::fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(ti.num_pieces()));
 	}
 }
 
@@ -855,7 +855,7 @@ void io_thread(io_service* ios)
 {
 	error_code ec;
 	ios->run(ec);
-	if (ec) fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
 }
 
 int main(int argc, char* argv[])
@@ -884,7 +884,7 @@ int main(int argc, char* argv[])
 
 		if (optname[0] != '-' || strlen(optname) != 2)
 		{
-			fprintf(stderr, "unknown option: %s\n", optname);
+			std::fprintf(stderr, "unknown option: %s\n", optname);
 			continue;
 		}
 
@@ -896,7 +896,7 @@ int main(int argc, char* argv[])
 
 		if (argc == 0)
 		{
-			fprintf(stderr, "missing argument for option: %s\n", optname);
+			std::fprintf(stderr, "missing argument for option: %s\n", optname);
 			break;
 		}
 
@@ -915,7 +915,7 @@ int main(int argc, char* argv[])
 			case 'p': destination_port = atoi(optarg); break;
 			case 'd': destination_ip = optarg; break;
 			case 'r': churn = atoi(optarg); break;
-			default: fprintf(stderr, "unknown option: %s\n", optname);
+			default: std::fprintf(stderr, "unknown option: %s\n", optname);
 		}
 	}
 
@@ -924,23 +924,24 @@ int main(int argc, char* argv[])
 		std::vector<char> tmp;
 		std::string name = leaf_path(torrent_file);
 		name = name.substr(0, name.find_last_of('.'));
-		printf("generating torrent: %s\n", name.c_str());
+		std::printf("generating torrent: %s\n", name.c_str());
 		generate_torrent(tmp, size ? size : 1024, num_files ? num_files : 1
 			, name.c_str());
 
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)
 		{
-			if( (output = fopen(torrent_file, "wb+")) == 0)
+			if( (output = std::fopen(torrent_file, "wb+")) == 0)
 			{
-				fprintf(stderr, "Could not open file '%s' for writing: %s\n", torrent_file, strerror(errno));
+				std::fprintf(stderr, "Could not open file '%s' for writing: %s\n"
+					, torrent_file, std::strerror(errno));
 				exit(2);
 			}
 		}
-		fprintf(stderr, "writing file to: %s\n", torrent_file);
+		std::fprintf(stderr, "writing file to: %s\n", torrent_file);
 		fwrite(&tmp[0], 1, tmp.size(), output);
 		if (output != stdout)
-			fclose(output);
+			std::fclose(output);
 
 		return 0;
 	}
@@ -950,7 +951,7 @@ int main(int argc, char* argv[])
 		torrent_info ti(torrent_file, ec);
 		if (ec)
 		{
-			fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
 			return 1;
 		}
 		generate_data(data_path, ti);
@@ -962,13 +963,13 @@ int main(int argc, char* argv[])
 		for (int i = 0; i < num_torrents; ++i)
 		{
 			char torrent_name[100];
-			snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", torrent_file, i);
+			std::snprintf(torrent_name, sizeof(torrent_name), "%s-%d.torrent", torrent_file, i);
 
 			file_storage fs;
 			for (int j = 0; j < num_files; ++j)
 			{
 				char file_name[100];
-				snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
+				std::snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
 				fs.add_file(file_name, boost::int64_t(j + i + 1) * 251);
 			}
 			// 1 MiB piece size
@@ -982,21 +983,22 @@ int main(int argc, char* argv[])
 			buf.clear();
 			std::back_insert_iterator<std::vector<char> > out(buf);
 			bencode(out, t.generate());
-			FILE* f = fopen(torrent_name, "w+");
+			FILE* f = std::fopen(torrent_name, "w+");
 			if (f == 0)
 			{
-				fprintf(stderr, "Could not open file '%s' for writing: %s\n", torrent_name, strerror(errno));
+				std::fprintf(stderr, "Could not open file '%s' for writing: %s\n"
+					, torrent_name, std::strerror(errno));
 				return 1;
 			}
 			size_t ret = fwrite(&buf[0], 1, buf.size(), f);
 			if (ret != buf.size())
 			{
-				fprintf(stderr, "write returned: %d (expected %d)\n", int(ret), int(buf.size()));
-				fclose(f);
+				std::fprintf(stderr, "write returned: %d (expected %d)\n", int(ret), int(buf.size()));
+				std::fclose(f);
 				return 1;
 			}
-			printf("wrote %s\n", torrent_name);
-			fclose(f);
+			std::printf("wrote %s\n", torrent_name);
+			std::fclose(f);
 		}
 		return 0;
 	}
@@ -1014,7 +1016,7 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		fprintf(stderr, "unknown command: %s\n\n", command);
+		std::fprintf(stderr, "unknown command: %s\n\n", command);
 		print_usage();
 	}
 
@@ -1022,7 +1024,7 @@ int main(int argc, char* argv[])
 	address_v4 addr = address_v4::from_string(destination_ip, ec);
 	if (ec)
 	{
-		fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
+		std::fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
 		return 1;
 	}
 	tcp::endpoint ep(addr, boost::uint16_t(destination_port));
@@ -1040,7 +1042,7 @@ int main(int argc, char* argv[])
 	torrent_info ti(torrent_file, ec);
 	if (ec)
 	{
-		fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
+		std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
 		return 1;
 	}
 
@@ -1060,7 +1062,7 @@ int main(int argc, char* argv[])
 		ios[i % num_threads].poll_one(ec);
 		if (ec)
 		{
-			fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
 			break;
 		}
 	}
@@ -1088,7 +1090,7 @@ int main(int argc, char* argv[])
 		delete p;
 	}
 
-	printf("=========================\n"
+	std::printf("=========================\n"
 		"suggests: %d suggested-requests: %d\n"
 		"total sent: %.1f %% received: %.1f %%\n"
 		"rate sent: %.1f MB/s received: %.1f MB/s\n"

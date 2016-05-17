@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include <cstring>
 #include <vector>
 
@@ -85,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <sys/stat.h>
+#include <limits.h> // for IOV_MAX
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -967,7 +969,7 @@ namespace libtorrent
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
-		target_size = snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
+		target_size = std::snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
 			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
 		ret.resize(target_size);
 		return ret;
@@ -1571,7 +1573,7 @@ namespace libtorrent
 	void file::print_info(FILE* out) const
 	{
 		if (!is_open()) return;
-		fprintf(out, "\n===> FILE: %s\n", m_file_path.c_str());
+		std::fprintf(out, "\n===> FILE: %s\n", m_file_path.c_str());
 	}
 #endif
 
@@ -1749,7 +1751,12 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		int ret = 0;
 		while (num_bufs > 0)
 		{
-			int nbufs = (std::min)(num_bufs, TORRENT_IOV_MAX);
+#ifdef IOV_MAX
+			int const nbufs = (std::min)(num_bufs, IOV_MAX);
+#else
+			int const nbufs = num_bufs;
+#endif
+
 			int tmp_ret = 0;
 			tmp_ret = f(fd, bufs, nbufs, file_offset);
 			if (tmp_ret < 0)
@@ -2347,7 +2354,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 		FILE* out = fopen("open_files.log", "a+");
 		std::lock_guard<std::mutex> l(file_handle_mutex);
-		fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
+		std::fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)
 		{
@@ -2358,7 +2365,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 			if (!h->is_open()) continue;
 			h->print_info(out);
-			fprintf(out, "\n%s\n\n", h.stack);
+			std::fprintf(out, "\n%s\n\n", h.stack);
 		}
 		fclose(out);
 	}

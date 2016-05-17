@@ -157,7 +157,7 @@ TORRENT_TEST(string)
 	error_code ec;
 	TEST_CHECK(unescape_string(escape_path(test_string, int(strlen(test_string))), ec) == test_string);
 	TEST_CHECK(!ec);
-	if (ec) fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";

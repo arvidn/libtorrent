@@ -79,7 +79,7 @@ void utp_log(char const* fmt, ...)
 
 	std::lock_guard<std::mutex> lock(log_file_holder.utp_log_mutex);
 	static time_point start = clock_type::now();
-	fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
+	std::fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
 	va_list l;
 	va_start(l, fmt);
 	vfprintf(log_file_holder.utp_log_file, fmt, l);
@@ -3216,13 +3216,13 @@ bool utp_socket_impl::incoming_packet(aux::array_view<boost::uint8_t const> buf
 			{
 				char their_delay_base[20];
 				if (m_their_delay_hist.initialized())
-					snprintf(their_delay_base, sizeof(their_delay_base), "%u", m_their_delay_hist.base());
+					std::snprintf(their_delay_base, sizeof(their_delay_base), "%u", m_their_delay_hist.base());
 				else
 					strcpy(their_delay_base, "-");
 
 				char our_delay_base[20];
 				if (m_delay_hist.initialized())
-					snprintf(our_delay_base, sizeof(our_delay_base), "%u", m_delay_hist.base());
+					std::snprintf(our_delay_base, sizeof(our_delay_base), "%u", m_delay_hist.base());
 				else
 					strcpy(our_delay_base, "-");
 

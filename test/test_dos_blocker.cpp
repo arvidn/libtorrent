@@ -62,10 +62,10 @@ struct log_t : libtorrent::dht::dht_logger
 		TEST_EQUAL(ret, 0);
 
 		std::string msg = print_entry(print, true);
-		printf("%s", msg.c_str());
+		std::printf("%s", msg.c_str());
 
 		char const* prefix[2] = { "<==", "==>"};
-		printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
+		std::printf("%s [%s] %s", prefix[dir], print_endpoint(node).c_str()
 			, msg.c_str());
 	}
 };

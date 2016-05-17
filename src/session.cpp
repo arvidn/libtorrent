@@ -382,12 +382,12 @@ namespace libtorrent
 		{
 			sleep(1000);
 			++counter;
-			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
+			std::printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
 				, counter);
 		}
 		async_dec_threads();
 
-		fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
+		std::fprintf(stderr, "\n\nEXPECTS NO MORE ASYNC OPS\n\n\n");
 #endif
 
 		if (m_thread && m_thread.unique())

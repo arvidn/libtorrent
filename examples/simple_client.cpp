@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h>
+#include <cstdlib>
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 	error_code ec;
 	if (ec)
 	{
-		fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
+		std::fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
 		return 1;
 	}
 	add_torrent_params p;
@@ -73,19 +73,19 @@ int main(int argc, char* argv[])
 	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), boost::ref(ec), 0);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 	s.add_torrent(p, ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 
 	// wait for the user to end
 	char a;
-	scanf("%c\n", &a);
+	std::scanf("%c\n", &a);
 	return 0;
 }
 

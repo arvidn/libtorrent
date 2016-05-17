@@ -65,7 +65,7 @@ void dump_call_profile()
 	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
 		, end(profile.rend()); i != end; ++i)
 	{
-		fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
+		std::fprintf(out, "\n\n%d\n%s\n", i->first, i->second.c_str());
 	}
 	fclose(out);
 #endif

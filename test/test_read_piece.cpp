@@ -48,20 +48,20 @@ void test_read_piece(int flags)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "==== TEST READ PIECE =====\n");
+	std::fprintf(stderr, "==== TEST READ PIECE =====\n");
 
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_read_piece", ec);
-	if (ec) fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	create_directory("tmp1_read_piece", ec);
-	if (ec) fprintf(stderr, "ERROR: creating directory tmp1_read_piece: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: creating directory tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	create_directory(combine_path("tmp1_read_piece", "test_torrent"), ec);
-	if (ec) fprintf(stderr, "ERROR: creating directory test_torrent: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: creating directory test_torrent: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
@@ -78,14 +78,14 @@ void test_read_piece(int flags)
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);
-	if (ec) fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], int(buf.size()), ec));
 
-	fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
+	std::fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
 
 	const int mask = alert::all_categories
@@ -142,7 +142,7 @@ void test_read_piece(int flags)
 	}
 
 	remove_all("tmp1_read_piece", ec);
-	if (ec) fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 }
 

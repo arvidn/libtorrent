@@ -89,7 +89,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// if DHT is disabled, we won't get any requests to it
 	flags &= ~expect_dht_msg;
 #endif
-	fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
+	std::fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 	int dht_port = start_dht();
@@ -118,7 +118,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// pipelining of the tests) they actually need to use different ports
 	static int listen_port = 10000 + libtorrent::random() % 50000;
 	char iface[200];
-	snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
+	std::snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
 	listen_port += (libtorrent::random() % 10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 
@@ -143,11 +143,11 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	file.close();
 
 	char http_tracker_url[200];
-	snprintf(http_tracker_url, sizeof(http_tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(http_tracker_url, sizeof(http_tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(http_tracker_url, 0);
 
 	char udp_tracker_url[200];
-	snprintf(udp_tracker_url, sizeof(udp_tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(udp_tracker_url, 1);
 
 	add_torrent_params addp;
@@ -163,7 +163,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
 	torrent_handle h = s->add_torrent(addp);
 
-	printf("connect_peer: 127.0.0.1:%d\n", peer_port);
+	std::printf("connect_peer: 127.0.0.1:%d\n", peer_port);
 	h.connect_peer(tcp::endpoint(address_v4::from_string("127.0.0.1"), peer_port));
 
 	rejected_trackers.clear();
@@ -230,7 +230,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	if (flags & expect_http_reject)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
 
-	fprintf(stderr, "%s: ~session\n", time_now_string());
+	std::fprintf(stderr, "%s: ~session\n", time_now_string());
 	session_proxy pr = s->abort();
 	delete s;
 

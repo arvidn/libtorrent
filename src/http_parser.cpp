@@ -259,7 +259,7 @@ restart_response:
 					// we're done once we reach the end of the headers
 //					if (!m_method.empty()) m_finished = true;
 					// the HTTP header should always be < 2 GB
-					TORRENT_ASSERT(m_recv_pos < INT_MAX);
+					TORRENT_ASSERT(m_recv_pos < (std::numeric_limits<int>::max)());
 					m_body_start_pos = int(m_recv_pos);
 					break;
 				}
@@ -337,7 +337,7 @@ restart_response:
 					boost::int64_t payload = m_cur_chunk_end - m_recv_pos;
 					if (payload > 0)
 					{
-						TORRENT_ASSERT(payload < INT_MAX);
+						TORRENT_ASSERT(payload < (std::numeric_limits<int>::max)());
 						m_recv_pos += payload;
 						boost::get<0>(ret) += int(payload);
 						incoming -= int(payload);
@@ -362,7 +362,7 @@ restart_response:
 						}
 						header_size -= m_partial_chunk_header;
 						m_partial_chunk_header = 0;
-//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
+//						std::fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"
 //							, buf.left(), int(chunk_size), header_size, 1, incoming, int(m_recv_pos)
@@ -373,7 +373,7 @@ restart_response:
 						m_partial_chunk_header += incoming;
 						header_size = incoming;
 						
-//						fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
+//						std::fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"
 //							, buf.left(), int(chunk_size), header_size, 0, incoming, int(m_recv_pos)
@@ -397,7 +397,8 @@ restart_response:
 				if (payload_received > m_content_length
 					&& m_content_length >= 0)
 				{
-					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos < INT_MAX);
+					TORRENT_ASSERT(m_content_length - m_recv_pos + m_body_start_pos
+						< (std::numeric_limits<int>::max)());
 					incoming = int(m_content_length - m_recv_pos + m_body_start_pos);
 				}
 
@@ -415,7 +416,7 @@ restart_response:
 		}
 		return ret;
 	}
-	
+
 	bool http_parser::parse_chunk_header(buffer::const_interval buf
 		, boost::int64_t* chunk_size, int* header_size)
 	{
@@ -494,7 +495,7 @@ restart_response:
 				++separator;
 			std::string value = line.substr(separator, std::string::npos);
 			tail_headers.insert(std::make_pair(name, value));
-//			fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
+//			std::fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
 
 			newline = std::find(pos, buf.end, '\n');
 		}
@@ -551,7 +552,7 @@ restart_response:
 		for (std::vector<std::pair<boost::int64_t, boost::int64_t> >::const_iterator i = c.begin()
 			, end(c.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(i->second - i->first < INT_MAX);
+			TORRENT_ASSERT(i->second - i->first < (std::numeric_limits<int>::max)());
 			TORRENT_ASSERT(i->second - offset <= size);
 			int len = int(i->second - i->first);
 			if (i->first - offset + len > size) len = size - int(i->first) + offset;

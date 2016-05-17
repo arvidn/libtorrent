@@ -60,6 +60,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 
+#ifndef TORRENT_DISABLE_LOGGING
+#include <cinttypes> // for PRId64 et.al.
+#endif
+
 namespace libtorrent { namespace dht
 {
 

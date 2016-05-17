@@ -112,7 +112,7 @@ namespace libtorrent
 		va_end(v);
 		char buf[2300];
 		int t = total_milliseconds(clock_type::now() - start);
-		snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
+		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
 		prepend_time = (usr[len-1] == '\n');
 		std::unique_lock<std::mutex> l(log_mutex);
 		fputs(buf, stderr);
@@ -1785,7 +1785,7 @@ namespace libtorrent
 
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = storage->shared_from_this();
-		j->buffer.string = strdup(p.c_str());
+		j->buffer.string = allocate_string_copy(p.c_str());
 		j->callback = handler;
 		j->flags = flags;
 
@@ -1890,7 +1890,7 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::rename_file);
 		j->storage = storage->shared_from_this();
 		j->piece = index;
-		j->buffer.string = strdup(name.c_str());
+		j->buffer.string = allocate_string_copy(name.c_str());
 		j->callback = handler;
 		add_fence_job(storage, j);
 	}

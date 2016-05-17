@@ -269,7 +269,7 @@ void test_parse(char const* in, char const* expected)
 	std::string out;
 	xml_parse(in, in + strlen(in), boost::bind(&parser_callback
 		, boost::ref(out), _1, _2, _3, _4, _5));
-	fprintf(stderr, "in: %s\n     out: %s\nexpected: %s\n"
+	std::fprintf(stderr, "in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
 }

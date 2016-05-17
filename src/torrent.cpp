@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <stdarg.h> // for va_list
+#include <cstdarg> // for va_list
 #include <ctime>
 #include <algorithm>
 #include <set>
@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <numeric>
 #include <limits> // for numeric_limits
+#include <cstdio> // for snprintf
 
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
@@ -1340,7 +1341,7 @@ namespace libtorrent
 
 		schedule_storage_tick();
 
-//		fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
+//		std::fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
 //			, j->ret, j->piece, j->offset/0x4000);
 
 		INVARIANT_CHECK;
@@ -1651,7 +1652,7 @@ namespace libtorrent
 		SSL_CTX_set_cert_store(ssl_ctx, cert_store);
 #if 0
 		char filename[100];
-		snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
+		std::snprintf(filename, sizeof(filename), "/tmp/%u.pem", random());
 		FILE* f = fopen(filename, "w+");
 		fwrite(cert.c_str(), cert.size(), 1, f);
 		fclose(f);
@@ -3890,11 +3891,11 @@ namespace libtorrent
 		{
 			// Thist happens when a piece has been downloaded completely
 			// but not yet verified against the hash
-			fprintf(stderr, "num_have: %d\nunfinished:\n", num_have());
+			std::fprintf(stderr, "num_have: %d\nunfinished:\n", num_have());
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dl_queue.begin(); i != dl_queue.end(); ++i)
 			{
-				fprintf(stderr, "  %d ", i->index);
+				std::fprintf(stderr, "  %d ", i->index);
 				piece_picker::block_info* info = m_picker->blocks_for_piece(*i);
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
@@ -3910,7 +3911,7 @@ namespace libtorrent
 			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 				i != downloading_piece.end(); ++i)
 			{
-				fprintf(stderr, "   %d:%d  %d\n", int(i->first.piece_index), int(i->first.block_index), i->second);
+				std::fprintf(stderr, "   %d:%d  %d\n", int(i->first.piece_index), int(i->first.block_index), i->second);
 			}
 
 		}
@@ -4140,7 +4141,7 @@ namespace libtorrent
 		debug_log("PIECE_PASSED (%d)", num_passed());
 #endif
 
-//		fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
+//		std::fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
 
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_pieces());
@@ -8380,24 +8381,24 @@ namespace libtorrent
 				{
 					if (picker_count != count)
 					{
-						fprintf(stderr, "picker count discrepancy: "
+						std::fprintf(stderr, "picker count discrepancy: "
 							"picker: %d != peerlist: %d\n", picker_count, count);
 
 						for (const_peer_iterator j = this->begin(); j != this->end(); ++j)
 						{
 							peer_connection const& p = *(*j);
-							fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
+							std::fprintf(stderr, "peer: %s\n", print_endpoint(p.remote()).c_str());
 							for (std::vector<pending_block>::const_iterator k = p.request_queue().begin()
 								, end2(p.request_queue().end()); k != end2; ++k)
 							{
-								fprintf(stderr, "  rq: (%d, %d) %s %s %s\n", k->block.piece_index
+								std::fprintf(stderr, "  rq: (%d, %d) %s %s %s\n", k->block.piece_index
 									, k->block.block_index, k->not_wanted ? "not-wanted" : ""
 									, k->timed_out ? "timed-out" : "", k->busy ? "busy": "");
 							}
 							for (std::vector<pending_block>::const_iterator k = p.download_queue().begin()
 								, end2(p.download_queue().end()); k != end2; ++k)
 							{
-								fprintf(stderr, "  dq: (%d, %d) %s %s %s\n", k->block.piece_index
+								std::fprintf(stderr, "  dq: (%d, %d) %s %s %s\n", k->block.piece_index
 									, k->block.block_index, k->not_wanted ? "not-wanted" : ""
 									, k->timed_out ? "timed-out" : "", k->busy ? "busy": "");
 							}
@@ -8713,7 +8714,7 @@ namespace libtorrent
 		if (ec)
 		{
 			char buf[1024];
-			snprintf(buf, sizeof(buf), "error %s: %s", ec.message().c_str()
+			std::snprintf(buf, sizeof(buf), "error %s: %s", ec.message().c_str()
 				, resolve_filename(error_file).c_str());
 			log_to_all_peers(buf);
 		}
@@ -9564,7 +9565,7 @@ namespace libtorrent
 		std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
 			< boost::bind(&partial_piece_info::piece_index, _2));
 
-		printf("average piece download time: %.2f s (+/- %.2f s)\n"
+		std::printf("average piece download time: %.2f s (+/- %.2f s)\n"
 			, m_average_piece_time / 1000.f
 			, m_piece_time_deviation / 1000.f);
 		for (std::vector<partial_piece_info>::iterator i = queue.begin()
@@ -9949,7 +9950,7 @@ namespace libtorrent
 
 		int num_blocks = pp->blocks_in_piece;
 
-		printf("%5d: [", piece);
+		std::printf("%5d: [", piece);
 		for (int j = 0; j < num_blocks; ++j)
 		{
 			int index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
@@ -9974,14 +9975,14 @@ namespace libtorrent
 			else if (pp->blocks[j].state == block_info::requested) color = esc("0");
 			else { color = esc("0"); chr = ' '; }
 
-			printf("%s%s%c%s", color, multi_req, chr, esc("0"));
+			std::printf("%s%s%c%s", color, multi_req, chr, esc("0"));
 		}
-		printf("%s]", esc("0"));
+		std::printf("%s]", esc("0"));
 		if (deadline != 0.f)
-			printf(" deadline: %f last-req: %f timed_out: %d\n"
+			std::printf(" deadline: %f last-req: %f timed_out: %d\n"
 				, deadline, last_request, timed_out);
 		else
-			printf("\n");
+			std::printf("\n");
 	}
 #endif // TORRENT_DEBUG_STREAMING
 
@@ -10033,11 +10034,11 @@ namespace libtorrent
 			++busy_count;
 
 #if TORRENT_DEBUG_STREAMING > 1
-			printf(" [%d (%d)]", b.block_index, info[k].num_peers);
+			std::printf(" [%d (%d)]", b.block_index, info[k].num_peers);
 #endif
 		}
 #if TORRENT_DEBUG_STREAMING > 1
-		printf("\n");
+		std::printf("\n");
 #endif
 
 		// then sort blocks by the number of peers with requests
@@ -10077,7 +10078,7 @@ namespace libtorrent
 			if (!peers.empty() && peers[0]->download_queue_time() > milliseconds(2000))
 			{
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("queue time: %d ms, done\n"
+				std::printf("queue time: %d ms, done\n"
 					, int(total_milliseconds(peers[0]->download_queue_time())));
 #endif
 				break;
@@ -10092,7 +10093,7 @@ namespace libtorrent
 			if (p == peers.end())
 			{
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("out of peers, done\n");
+				std::printf("out of peers, done\n");
 #endif
 				break;
 			}
@@ -10121,7 +10122,7 @@ namespace libtorrent
 				busy_mode = true;
 
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("interesting_blocks.empty()\n");
+				std::printf("interesting_blocks.empty()\n");
 #endif
 
 				// there aren't any free blocks to pick, and the piece isn't
@@ -10130,13 +10131,13 @@ namespace libtorrent
 				if (timed_out == 0)
 				{
 #if TORRENT_DEBUG_STREAMING > 1
-					printf("not timed out, moving on to next piece\n");
+					std::printf("not timed out, moving on to next piece\n");
 #endif
 					break;
 				}
 
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("pick busy blocks\n");
+				std::printf("pick busy blocks\n");
 #endif
 
 				pick_busy_blocks(picker, i->piece, blocks_in_piece, timed_out
@@ -10168,7 +10169,7 @@ namespace libtorrent
 				ignore_peers.push_back(*p);
 				peers.erase(p);
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("piece already requested by peer, try next peer\n");
+				std::printf("piece already requested by peer, try next peer\n");
 #endif
 				// try next peer
 				continue;
@@ -10184,7 +10185,7 @@ namespace libtorrent
 				if (!c.make_time_critical(b))
 				{
 #if TORRENT_DEBUG_STREAMING > 1
-					printf("piece already time-critical and in queue for peer, trying next peer\n");
+					std::printf("piece already time-critical and in queue for peer, trying next peer\n");
 #endif
 					ignore_peers.push_back(*p);
 					peers.erase(p);
@@ -10193,7 +10194,7 @@ namespace libtorrent
 				i->last_requested = now;
 
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("piece already in queue for peer, making time-critical\n");
+				std::printf("piece already in queue for peer, making time-critical\n");
 #endif
 
 				// we inserted a new block in the request queue, this
@@ -10206,7 +10207,7 @@ namespace libtorrent
 					| (busy_mode ? peer_connection::req_busy : 0)))
 				{
 #if TORRENT_DEBUG_STREAMING > 1
-					printf("failed to request block [%d, %d]\n"
+					std::printf("failed to request block [%d, %d]\n"
 						, b.piece_index, b.block_index);
 #endif
 					ignore_peers.push_back(*p);
@@ -10215,7 +10216,7 @@ namespace libtorrent
 				}
 
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("requested block [%d, %d]\n"
+				std::printf("requested block [%d, %d]\n"
 					, b.piece_index, b.block_index);
 #endif
 				peers_with_requests.insert(peers_with_requests.begin(), &c);
@@ -10228,7 +10229,7 @@ namespace libtorrent
 			if (!c.can_request_time_critical())
 			{
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("peer cannot pick time critical pieces\n");
+				std::printf("peer cannot pick time critical pieces\n");
 #endif
 				peers.erase(p);
 				// try next peer
@@ -10301,13 +10302,13 @@ namespace libtorrent
 			, end(m_time_critical_pieces.end()); i != end; ++i)
 		{
 #if TORRENT_DEBUG_STREAMING > 1
-			printf("considering %d\n", i->piece);
+			std::printf("considering %d\n", i->piece);
 #endif
 
 			if (peers.empty())
 			{
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("out of peers, done\n");
+				std::printf("out of peers, done\n");
 #endif
 				break;
 			}
@@ -10322,7 +10323,7 @@ namespace libtorrent
 				// this is one of the termination conditions. We don't want to
 				// send requests for all pieces in the torrent right away
 #if TORRENT_DEBUG_STREAMING > 0
-				printf("reached deadline horizon [%f + %f * 4 + 1]\n"
+				std::printf("reached deadline horizon [%f + %f * 4 + 1]\n"
 					, m_average_piece_time / 1000.f
 					, m_piece_time_deviation / 1000.f);
 #endif
@@ -10364,7 +10365,7 @@ namespace libtorrent
 				if (pi.requested == 0 || timed_out == 0)
 				{
 #if TORRENT_DEBUG_STREAMING > 1
-					printf("skipping %d (full) [req: %d timed_out: %d ]\n"
+					std::printf("skipping %d (full) [req: %d timed_out: %d ]\n"
 						, i->piece, pi.requested
 						, timed_out);
 #endif
@@ -10380,7 +10381,7 @@ namespace libtorrent
 				// it's been too long since we requested the last block from
 				// this piece. Allow re-requesting blocks from this piece
 #if TORRENT_DEBUG_STREAMING > 1
-				printf("timed out [average-piece-time: %d ms ]\n"
+				std::printf("timed out [average-piece-time: %d ms ]\n"
 					, m_average_piece_time);
 #endif
 			}

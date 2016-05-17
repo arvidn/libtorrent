@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #include <limits>
 #include <cstring> // for memset
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 #ifndef BOOST_SYSTEM_NOEXCEPT
 #define BOOST_SYSTEM_NOEXCEPT throw()
@@ -974,7 +976,7 @@ done:
 			else
 			{
 				char tmp[5];
-				snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}
@@ -1036,7 +1038,7 @@ done:
 			case bdecode_node::int_t:
 			{
 				char str[100];
-				snprintf(str, sizeof(str), "%" PRId64, e.int_value());
+				std::snprintf(str, sizeof(str), "%" PRId64, e.int_value());
 				return str;
 			}
 			case bdecode_node::string_t:

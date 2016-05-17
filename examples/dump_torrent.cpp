@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
+
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -41,7 +44,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
+	FILE* f = std::fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -52,20 +55,20 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	if (s > limit)
 	{
-		fclose(f);
+		std::fclose(f);
 		return -2;
 	}
 
@@ -73,14 +76,14 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	v.resize(s);
 	if (s == 0)
 	{
-		fclose(f);
+		std::fclose(f);
 		return 0;
 	}
 
@@ -88,11 +91,11 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
-	fclose(f);
+	std::fclose(f);
 
 	if (r != s) return -3;
 
@@ -120,41 +123,41 @@ int main(int argc, char* argv[])
 	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
 	if (ret == -1)
 	{
-		fprintf(stderr, "file too big, aborting\n");
+		std::fprintf(stderr, "file too big, aborting\n");
 		return 1;
 	}
 
 	if (ret != 0)
 	{
-		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
+		std::fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
 		return 1;
 	}
 	bdecode_node e;
 	int pos = -1;
-	printf("decoding. recursion limit: %d total item count limit: %d\n"
+	std::printf("decoding. recursion limit: %d total item count limit: %d\n"
 		, depth_limit, item_limit);
 	ret = bdecode(&buf[0], &buf[0] + buf.size(), e, ec, &pos
 		, depth_limit, item_limit);
 
-	printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
+	std::printf("\n\n----- raw info -----\n\n%s\n", print_entry(e).c_str());
 
 	if (ret != 0)
 	{
-		fprintf(stderr, "failed to decode: '%s' at character: %d\n", ec.message().c_str(), pos);
+		std::fprintf(stderr, "failed to decode: '%s' at character: %d\n", ec.message().c_str(), pos);
 		return 1;
 	}
 
 	torrent_info t(e, ec);
 	if (ec)
 	{
-		fprintf(stderr, "%s\n", ec.message().c_str());
+		std::fprintf(stderr, "%s\n", ec.message().c_str());
 		return 1;
 	}
 	e.clear();
 	std::vector<char>().swap(buf);
 
 	// print info about torrent
-	printf("\n\n----- torrent file info -----\n\n"
+	std::printf("\n\n----- torrent file info -----\n\n"
 		"nodes:\n");
 
 	typedef std::vector<std::pair<std::string, int> > node_vec;
@@ -162,18 +165,18 @@ int main(int argc, char* argv[])
 	for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
 		i != end; ++i)
 	{
-		printf("%s: %d\n", i->first.c_str(), i->second);
+		std::printf("%s: %d\n", i->first.c_str(), i->second);
 	}
 	puts("trackers:\n");
 	for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
 		i != t.trackers().end(); ++i)
 	{
-		printf("%2d: %s\n", i->tier, i->url.c_str());
+		std::printf("%2d: %s\n", i->tier, i->url.c_str());
 	}
 
 	char ih[41];
 	to_hex((char const*)&t.info_hash()[0], 20, ih);
-	printf("number of pieces: %d\n"
+	std::printf("number of pieces: %d\n"
 		"piece length: %d\n"
 		"info hash: %s\n"
 		"comment: %s\n"
@@ -196,7 +199,7 @@ int main(int argc, char* argv[])
 		int first = st.map_file(i, 0, 0).piece;
 		int last = st.map_file(i, (std::max)(boost::int64_t(st.file_size(i))-1, boost::int64_t(0)), 0).piece;
 		int flags = st.file_flags(i);
-		printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
+		std::printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
 			, st.file_offset(i)
 			, st.file_size(i)
 			, ((flags & file_storage::flag_pad_file)?'p':'-')

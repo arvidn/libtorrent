@@ -36,14 +36,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <boost/bind.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <vector>
 #include <list>
 #include <cctype>
 #include <algorithm>
-
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
@@ -119,7 +121,7 @@ namespace libtorrent
 
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
-			snprintf(str, sizeof(str)
+			std::snprintf(str, sizeof(str)
 				, "&peer_id=%s"
 				"&port=%d"
 				"&uploaded=%" PRId64

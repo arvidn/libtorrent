@@ -34,12 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <vector>
-#include <boost/limits.hpp>
 #include <boost/bind.hpp>
-#include <stdlib.h>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <vector>
+#include <stdlib.h>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"

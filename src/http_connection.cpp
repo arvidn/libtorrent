@@ -169,9 +169,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	char* end = request + sizeof(request);
 	char* ptr = request;
 
-#define APPEND_FMT(fmt) ptr += snprintf(ptr, end - ptr, fmt)
-#define APPEND_FMT1(fmt, arg) ptr += snprintf(ptr, end - ptr, fmt, arg)
-#define APPEND_FMT2(fmt, arg1, arg2) ptr += snprintf(ptr, end - ptr, fmt, arg1, arg2)
+#define APPEND_FMT(fmt) ptr += std::snprintf(ptr, end - ptr, fmt)
+#define APPEND_FMT1(fmt, arg) ptr += std::snprintf(ptr, end - ptr, fmt, arg)
+#define APPEND_FMT2(fmt, arg1, arg2) ptr += std::snprintf(ptr, end - ptr, fmt, arg1, arg2)
 
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer

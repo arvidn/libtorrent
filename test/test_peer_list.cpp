@@ -514,7 +514,7 @@ TORRENT_TEST(erase_peers)
 		TEST_CHECK(peer);
 		if (peer == NULL || st.erased.size() > 0)
 		{
-			fprintf(stderr, "unexpected rejection of peer: %s | %d in list. "
+			std::fprintf(stderr, "unexpected rejection of peer: %s | %d in list. "
 				"added peer %p, erased %d peers\n"
 				, print_endpoint(ep).c_str(), p.num_peers(), peer
 				, int(st.erased.size()));

@@ -101,7 +101,7 @@ sim::route dsl_config::outgoing_route(asio::ip::address ip)
 std::string save_path(int swarm_id, int idx)
 {
 	char path[200];
-	snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
+	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);
 	return path;
 }
@@ -115,7 +115,7 @@ void add_extra_peers(lt::session& ses)
 	for (int i = 0; i < 30; ++i)
 	{
 		char ep[30];
-		snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
+		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i + 1);
 		h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 	}
 }
@@ -245,7 +245,7 @@ void setup_swarm(int num_nodes
 	int swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
 	lt::create_directory(path, ec);
-	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+	if (ec) std::fprintf(stderr, "failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, "temporary").c_str());
 	auto ti = ::create_torrent(&file, "temporary", 0x4000, 9, false);
@@ -258,9 +258,9 @@ void setup_swarm(int num_nodes
 		// create a new io_service
 		std::vector<asio::ip::address> ips;
 		char ep[30];
-		snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+		std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
-		snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
+		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
 		io_service.push_back(boost::make_shared<sim::asio::io_service>(
 			boost::ref(sim), ips));
@@ -328,7 +328,7 @@ void setup_swarm(int num_nodes
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
 					boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-					printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+					std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
 						, a->what()
 						, a->message().c_str());
 
@@ -345,7 +345,7 @@ void setup_swarm(int num_nodes
 							// string and an integer is common. It should probably be
 							// factored out into its own function
 							char ep[30];
-							snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
+							std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (k + 1) >> 8, (k + 1) & 0xff);
 							h.connect_peer(lt::tcp::endpoint(addr(ep), 6881));
 						}
 					}
@@ -378,7 +378,7 @@ void setup_swarm(int num_nodes
 
 		if (shut_down)
 		{
-			printf("TERMINATING\n");
+			std::printf("TERMINATING\n");
 
 			// terminate simulation
 			for (int i = 0; i < int(nodes.size()); ++i)

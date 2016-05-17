@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <utility>
+#include <cinttypes> // for PRId64 et.al.
 #include <boost/bind.hpp>
 #include <boost/function/function1.hpp>
 
@@ -1030,7 +1031,7 @@ void node::incoming_request(msg const& m, entry& e)
 		else
 			target = item_target_id(buf);
 
-//		fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
+//		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
 //			, to_hex(target.to_string()).c_str()
 //			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
@@ -1141,7 +1142,7 @@ void node::incoming_request(msg const& m, entry& e)
 		m_counters.inc_stats_counter(counters::dht_get_in);
 		sha1_hash target(msg_keys[1].string_ptr());
 
-//		fprintf(stderr, "%s GET target: %s\n"
+//		std::fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, to_hex(target.to_string()).c_str());
 

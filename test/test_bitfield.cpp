@@ -43,7 +43,7 @@ void print_bitfield(bitfield const& b)
 	{
 		out += b.get_bit(i) ? "1" : "0";
 	}
-	printf("%s\n", out.c_str());
+	std::printf("%s\n", out.c_str());
 }
 
 void test_iterators(bitfield& test1)
@@ -51,14 +51,14 @@ void test_iterators(bitfield& test1)
 	test1.set_all();
 	int num = 0;
 
-	printf("expecting %d ones\n", test1.size());
+	std::printf("expecting %d ones\n", test1.size());
 	for (bitfield::const_iterator i = test1.begin(); i != test1.end(); ++i)
 	{
-		printf("%d", *i);
+		std::printf("%d", *i);
 		TEST_EQUAL(*i, true);
 		num += *i;
 	}
-	printf("\n");
+	std::printf("\n");
 	TEST_EQUAL(num, test1.size());
 	TEST_EQUAL(num, test1.count());
 }
@@ -82,7 +82,7 @@ TORRENT_TEST(bitfield)
 	test1.clear_bit(2);
 	TEST_EQUAL(test1.count(), 2);
 	int distance = int(std::distance(test1.begin(), test1.end()));
-	printf("distance: %d\n", distance);
+	std::printf("distance: %d\n", distance);
 	TEST_CHECK(distance == 10);
 
 	print_bitfield(test1);

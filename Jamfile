@@ -717,6 +717,10 @@ local usage-requirements =
 	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
 
+	# disable bogus deprecation warnings on msvc8
+	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
+	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+
 	<cxxflags>$(CXXFLAGS)
 	<linkflags>$(LDFLAGS)
 	;
@@ -742,10 +746,6 @@ lib torrent
 	<conditional>@building
 	<conditional>@warnings
 	<cxxflags>$(CXXFLAGS)
-
-	# disable bogus deprecation warnings on msvc8
-	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
-	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
 
 	<tag>@tag
 

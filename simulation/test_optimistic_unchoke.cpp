@@ -98,7 +98,7 @@ TORRENT_TEST(optimistic_unchoke)
 		{
 			// create a new io_service
 			char ep[30];
-			snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+			std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
 			io_service.push_back(std::make_shared<sim::asio::io_service>(
 				std::ref(sim), addr(ep)));
 			peers.push_back(std::make_shared<peer_conn>(std::ref(*io_service.back())

@@ -119,13 +119,13 @@ int main(int argc, char* argv[])
 	int ret = load_file(argv[1], buf, ec, 40 * 1000000);
 	if (ret == -1)
 	{
-		fprintf(stderr, "file too big, aborting\n");
+		std::fprintf(stderr, "file too big, aborting\n");
 		return 1;
 	}
 
 	if (ret != 0)
 	{
-		fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
+		std::fprintf(stderr, "failed to load file: %s\n", ec.message().c_str());
 		return 1;
 	}
 
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
 	}
 	ptime stop(time_now_hires());
 
-	fprintf(stderr, "(slow) bdecode done in %5d ns per message\n"
+	std::fprintf(stderr, "(slow) bdecode done in %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));
 	}
 
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 	}
 	time_point stop(clock_type::now());
 
-	fprintf(stderr, "lazy_bdecode done in   %5d ns per message\n"
+	std::fprintf(stderr, "lazy_bdecode done in   %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));
 	}
 
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 	}
 	ptime stop(time_now_hires());
 
-	fprintf(stderr, "bdecode done in        %5d ns per message\n"
+	std::fprintf(stderr, "bdecode done in        %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));
 	}
 

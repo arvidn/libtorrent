@@ -96,7 +96,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	create_directory(combine_path("tmp1_remap", "test_torrent_dir"), ec);
 	if (ec)
 	{
-		fprintf(stderr, "error creating directory: %s\n"
+		std::fprintf(stderr, "error creating directory: %s\n"
 			, ec.message().c_str());
 		TEST_CHECK(false);
 		return;
@@ -117,7 +117,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	set_piece_hashes(ct, "tmp1_remap", ec);
 	if (ec)
 	{
-		fprintf(stderr, "error creating hashes for test torrent: %s\n"
+		std::fprintf(stderr, "error creating hashes for test torrent: %s\n"
 			, ec.message().c_str());
 		TEST_CHECK(false);
 		return;
@@ -147,7 +147,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 		, true, false, true, "_remap", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
-	fprintf(stderr, "\ntesting remap gather\n\n");
+	std::fprintf(stderr, "\ntesting remap gather\n\n");
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -187,7 +187,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 	if (!st2.is_seeding) return;
 
-	fprintf(stderr, "\ntesting force recheck\n\n");
+	std::fprintf(stderr, "\ntesting force recheck\n\n");
 
 	// test force rechecking a seeding torrent with remapped files
 	tor2.force_recheck();
@@ -263,11 +263,11 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	for (int i = 0; i < num_files-1; ++i)
 	{
 		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
+		std::snprintf(name, sizeof(name), "multifile/file%d.txt", i);
 		fs.add_file(name, t->total_size() / 10);
 	}
 	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_files);
+	std::snprintf(name, sizeof(name), "multifile/file%d.txt", num_files);
 	// the last file has to be a special case to make the size
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
@@ -291,7 +291,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 		, true, false, true, "_remap2", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
-	fprintf(stderr, "\ntesting remap scatter\n\n");
+	std::fprintf(stderr, "\ntesting remap scatter\n\n");
 
 	for (int i = 0; i < 50; ++i)
 	{
@@ -331,7 +331,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 	if (!st2.is_seeding) return;
 
-	fprintf(stderr, "\ntesting force recheck\n\n");
+	std::fprintf(stderr, "\ntesting force recheck\n\n");
 
 	// test force rechecking a seeding torrent with remapped files
 	tor2.force_recheck();
@@ -414,7 +414,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 	// calculate the hash for all pieces
 	set_piece_hashes(ct, "tmp1_remap3", ec);
-	if (ec) fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
+	if (ec) std::fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	std::vector<char> buf;
@@ -427,11 +427,11 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	for (int i = 0; i < num_new_files-1; ++i)
 	{
 		char name[100];
-		snprintf(name, sizeof(name), "multifile/file%d.txt", i);
+		std::snprintf(name, sizeof(name), "multifile/file%d.txt", i);
 		fs.add_file(name, t->total_size() / 10);
 	}
 	char name[100];
-	snprintf(name, sizeof(name), "multifile/file%d.txt", num_new_files);
+	std::snprintf(name, sizeof(name), "multifile/file%d.txt", num_new_files);
 	// the last file has to be a special case to make the size
 	// add up exactly (in case the total size is not divisible by 10).
 	fs.add_file(name, t->total_size() - fs.total_size());
@@ -465,7 +465,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	test_sleep(500);
 	tor1.resume();
 
-	fprintf(stderr, "\ntesting remap scatter prio\n\n");
+	std::fprintf(stderr, "\ntesting remap scatter prio\n\n");
 
 	for (int i = 0; i < 50; ++i)
 	{

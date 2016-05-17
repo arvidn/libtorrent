@@ -47,7 +47,7 @@ void test_swarm(int flags)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
+	std::fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
 		, (flags & super_seeding) ? "super-seeding ": ""
 		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & seed_mode) ? "seed-mode ": ""
@@ -94,7 +94,7 @@ void test_swarm(int flags)
 
 	int port = lt::random() % 100;
 	char iface[50];
-	snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::max_retry_port_bind, 1000);
@@ -104,13 +104,13 @@ void test_swarm(int flags)
 
 	lt::session ses1(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:490%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	pack.set_int(settings_pack::download_rate_limit, int(rate_limit / 2));
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	lt::session ses2(pack);
 
-	snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
+	std::snprintf(iface, sizeof(iface), "0.0.0.0:500%02d", port);
 	pack.set_str(settings_pack::listen_interfaces, iface);
 	lt::session ses3(pack);
 
@@ -200,19 +200,19 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
-		fprintf(stderr, "wait returned: %d ms\n"
+		std::fprintf(stderr, "wait returned: %d ms\n"
 			, int(total_milliseconds(clock_type::now() - start)));
 		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			fprintf(stderr, "%s\n", ret->message().c_str());
+			std::fprintf(stderr, "%s\n", ret->message().c_str());
 		}
 		start = clock_type::now();
 	}
 
-	fprintf(stderr, "loop returned: %d ms\n"
+	std::fprintf(stderr, "loop returned: %d ms\n"
 		, int(total_milliseconds(clock_type::now() - start)));
 
 	// this allows shutting down the sessions in parallel
@@ -222,7 +222,7 @@ void test_swarm(int flags)
 
 	time_point end = clock_type::now();
 
-	fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
+	std::fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(3000));
 	TEST_CHECK(end - start > milliseconds(1900));
 

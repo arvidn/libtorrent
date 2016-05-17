@@ -95,7 +95,7 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 
 void print_error(char const* call, int ret, storage_error const& ec)
 {
-	fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
+	std::fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
 		, time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
 }
 
@@ -142,7 +142,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 
 	if (ec)
 	{
-		fprintf(stderr, "torrent_info constructor failed: %s\n"
+		std::fprintf(stderr, "torrent_info constructor failed: %s\n"
 			, ec.message().c_str());
 	}
 
@@ -160,7 +160,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	return s;
@@ -361,7 +361,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		fprintf(stderr, "default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::fprintf(stderr, "default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
@@ -399,7 +399,7 @@ void test_rename(std::string const& test_path)
 	s->rename_file(0, "new_filename", se);
 	if (se.ec)
 	{
-		fprintf(stderr, "default_storage::rename_file failed: %s\n"
+		std::fprintf(stderr, "default_storage::rename_file failed: %s\n"
 			, se.ec.message().c_str());
 	}
 	TEST_CHECK(!se.ec);
@@ -532,7 +532,7 @@ void run_test(bool unbuffered)
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
-	fprintf(stderr, "base = \"%s\"\n", base.c_str());
+	std::fprintf(stderr, "base = \"%s\"\n", base.c_str());
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
 
@@ -544,7 +544,7 @@ void run_test(bool unbuffered)
 
 	TEST_EQUAL(file_size(combine_path(base, "test5.tmp")), 3253);
 	TEST_EQUAL(file_size(combine_path(base, "test6.tmp")), 841);
-	printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n"
+	std::printf("file: %d expected: %d last_file_size: %d, piece_size: %d\n"
 		, int(file_size(combine_path(base, "test7.tmp")))
 		, int(last_file_size - piece_size), last_file_size, piece_size);
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
@@ -1236,7 +1236,7 @@ TORRENT_TEST(readwritev_error)
 	TEST_EQUAL(ec.file, 2);
 	TEST_EQUAL(ec.operation, storage_error::read);
 	TEST_EQUAL(ec.ec, boost::system::errc::permission_denied);
-	printf("error: %s\n", ec.ec.message().c_str());
+	std::printf("error: %s\n", ec.ec.message().c_str());
 }
 
 TORRENT_TEST(readwritev_zero_size_files)
@@ -1269,7 +1269,7 @@ void delete_dirs(std::string path)
 	remove_all(path, ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 	{
-		fprintf(stderr, "remove_all \"%s\": %s\n"
+		std::fprintf(stderr, "remove_all \"%s\": %s\n"
 			, path.c_str(), ec.message().c_str());
 	}
 	TEST_CHECK(!exists(path));

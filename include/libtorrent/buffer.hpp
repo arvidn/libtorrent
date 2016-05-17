@@ -66,7 +66,7 @@ public:
 		int left() const
 		{
 			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < INT_MAX);
+			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
 			return int(end - begin);
 		}
 
@@ -101,7 +101,7 @@ public:
 		int left() const
 		{
 			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < INT_MAX);
+			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
 			return int(end - begin);
 		}
 

@@ -113,7 +113,7 @@ void print_ascii_number(std::string& output, boost::int64_t val)
 		if (negative) output += '-';
 		else if (double_negative) output += "--";
 		char buf[50];
-		snprintf(buf, sizeof(buf), "%" PRId64 "", val);
+		std::snprintf(buf, sizeof(buf), "%" PRId64 "", val);
 		output += buf;
 	}
 }
@@ -355,7 +355,7 @@ int main(int argc, char const* argv[])
 
 	if (argc < 2)
 	{
-		fprintf(stderr, "usage: fuzz_torrent torrent-file [torrent-file ...]\n");
+		std::fprintf(stderr, "usage: fuzz_torrent torrent-file [torrent-file ...]\n");
 		return 1;
 	}
 
@@ -366,7 +366,7 @@ int main(int argc, char const* argv[])
 		int ret = load_file(*argv, buf, ec);
 		if (ret < 0)
 		{
-			fprintf(stderr, "ERROR loading file: %s\n%s\n"
+			std::fprintf(stderr, "ERROR loading file: %s\n%s\n"
 				, *argv, ec.message().c_str());
 			continue;
 		}
@@ -374,7 +374,7 @@ int main(int argc, char const* argv[])
 		bdecode_node e;
 		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 		{
-			fprintf(stderr, "ERROR parsing file: %s\n%s\n"
+			std::fprintf(stderr, "ERROR parsing file: %s\n%s\n"
 				, *argv, ec.message().c_str());
 			continue;
 		}
@@ -393,13 +393,13 @@ int main(int argc, char const* argv[])
 			// TODO: add option to save to file unconditionally (to test other clients)
 			/*
 				{
-				fprintf(stderr, "saving %d\n", i);
+				std::fprintf(stderr, "saving %d\n", i);
 				char filename[100];
-				snprintf(filename, sizeof(filename), "torrents/fuzz-%d.torrent", i);
+				std::snprintf(filename, sizeof(filename), "torrents/fuzz-%d.torrent", i);
 				FILE* f = fopen(filename, "wb+");
 				if (f == 0)
 				{
-				fprintf(stderr, "ERROR saving file: (%d) %s\n", errno, strerror(errno));
+				std::fprintf(stderr, "ERROR saving file: (%d) %s\n", errno, strerror(errno));
 				return 1;
 				}
 				fwrite(test_buffer.c_str(), test_buffer.size(), 1, f);
@@ -408,7 +408,7 @@ int main(int argc, char const* argv[])
 			 */
 			if (g_seed > 0) break;
 		}
-		fprintf(stderr, "tested %d variants of %s\n", i, *argv);
+		std::fprintf(stderr, "tested %d variants of %s\n", i, *argv);
 	}
 	return 0;
 }

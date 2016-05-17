@@ -72,24 +72,24 @@ struct dht_server
 		m_socket.open(udp::v4(), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error opening listen DHT socket: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "Error opening listen DHT socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			fprintf(stderr, "Error binding DHT socket to port 0: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "Error binding DHT socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_socket.local_endpoint(ec).port();
 		if (ec)
 		{
-			fprintf(stderr, "Error getting local endpoint of DHT socket: %s\n", ec.message().c_str());
+			std::fprintf(stderr, "Error getting local endpoint of DHT socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
+		std::fprintf(stderr, "%s: DHT initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread = boost::make_shared<std::thread>(&dht_server::thread_fun, this);
 	}
@@ -136,7 +136,7 @@ struct dht_server
 
 			if (ec)
 			{
-				fprintf(stderr, "Error receiving on DHT socket: %s\n", ec.message().c_str());
+				std::fprintf(stderr, "Error receiving on DHT socket: %s\n", ec.message().c_str());
 				return;
 			}
 
@@ -151,7 +151,7 @@ struct dht_server
 			}
 			catch (std::exception& e)
 			{
-				fprintf(stderr, "failed to decode DHT message: %s\n", e.what());
+				std::fprintf(stderr, "failed to decode DHT message: %s\n", e.what());
 			}
 		}
 	}

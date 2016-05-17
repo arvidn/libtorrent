@@ -40,8 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/hex.hpp" // for from_hex
+#include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
 #include <functional>
+#include <cstdio>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
@@ -53,7 +55,7 @@ using namespace std::placeholders;
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
-	FILE* f = fopen(filename.c_str(), "rb");
+	FILE* f = std::fopen(filename.c_str(), "rb");
 	if (f == NULL)
 	{
 		ec.assign(errno, boost::system::system_category());
@@ -64,20 +66,20 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 	long s = ftell(f);
 	if (s < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	if (s > limit)
 	{
-		fclose(f);
+		std::fclose(f);
 		return -2;
 	}
 
@@ -85,14 +87,14 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	if (r != 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
 	v.resize(s);
 	if (s == 0)
 	{
-		fclose(f);
+		std::fclose(f);
 		return 0;
 	}
 
@@ -100,11 +102,11 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 	if (r < 0)
 	{
 		ec.assign(errno, boost::system::system_category());
-		fclose(f);
+		std::fclose(f);
 		return -1;
 	}
 
-	fclose(f);
+	std::fclose(f);
 
 	if (r != s) return -3;
 
@@ -155,13 +157,13 @@ bool file_filter(std::string const& f)
 	// return false if the first character of the filename is a .
 	if (sep[0] == '.') return false;
 
-	fprintf(stderr, "%s\n", f.c_str());
+	std::fprintf(stderr, "%s\n", f.c_str());
 	return true;
 }
 
 void print_progress(int i, int num)
 {
-	fprintf(stderr, "\r%d/%d", i+1, num);
+	std::fprintf(stderr, "\r%d/%d", i+1, num);
 }
 
 void print_usage()
@@ -300,7 +302,7 @@ int main(int argc, char* argv[])
 					++i;
 					if (strlen(argv[i]) != 40)
 					{
-						fprintf(stderr, "invalid info-hash for -S. "
+						std::fprintf(stderr, "invalid info-hash for -S. "
 							"Expected 40 hex characters\n");
 						print_usage();
 						return 1;
@@ -308,7 +310,7 @@ int main(int argc, char* argv[])
 					sha1_hash ih;
 					if (!from_hex(argv[i], 40, (char*)&ih[0]))
 					{
-						fprintf(stderr, "invalid info-hash for -S\n");
+						std::fprintf(stderr, "invalid info-hash for -S\n");
 						print_usage();
 						return 1;
 					}
@@ -373,11 +375,11 @@ int main(int argc, char* argv[])
 			, std::bind(&print_progress, _1, t.num_pieces()), ec);
 		if (ec)
 		{
-			fprintf(stderr, "%s\n", ec.message().c_str());
+			std::fprintf(stderr, "%s\n", ec.message().c_str());
 			return 1;
 		}
 
-		fprintf(stderr, "\n");
+		std::fprintf(stderr, "\n");
 		t.set_creator(creator_str.c_str());
 		if (!comment_str.empty())
 			t.set_comment(comment_str.c_str());
@@ -388,7 +390,7 @@ int main(int argc, char* argv[])
 			load_file(root_cert, pem, ec, 10000);
 			if (ec)
 			{
-				fprintf(stderr, "failed to load root certificate for tracker: %s\n", ec.message().c_str());
+				std::fprintf(stderr, "failed to load root certificate for tracker: %s\n", ec.message().c_str());
 			}
 			else
 			{
@@ -401,41 +403,41 @@ int main(int argc, char* argv[])
 		bencode(back_inserter(torrent), t.generate());
 		FILE* output = stdout;
 		if (!outfile.empty())
-			output = fopen(outfile.c_str(), "wb+");
+			output = std::fopen(outfile.c_str(), "wb+");
 		if (output == NULL)
 		{
-			fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-				, outfile.c_str(), errno, strerror(errno));
+			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+				, outfile.c_str(), errno, std::strerror(errno));
 			return 1;
 		}
 		fwrite(&torrent[0], 1, torrent.size(), output);
 
 		if (output != stdout)
-			fclose(output);
+			std::fclose(output);
 
 		if (!merklefile.empty())
 		{
-			output = fopen(merklefile.c_str(), "wb+");
+			output = std::fopen(merklefile.c_str(), "wb+");
 			if (output == NULL)
 			{
-				fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-					, merklefile.c_str(), errno, strerror(errno));
+				std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
+					, merklefile.c_str(), errno, std::strerror(errno));
 				return 1;
 			}
 			int ret = int(fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output));
 			if (ret != int(t.merkle_tree().size()))
 			{
-				fprintf(stderr, "failed to write %s: (%d) %s\n"
-					, merklefile.c_str(), errno, strerror(errno));
+				std::fprintf(stderr, "failed to write %s: (%d) %s\n"
+					, merklefile.c_str(), errno, std::strerror(errno));
 			}
-			fclose(output);
+			std::fclose(output);
 		}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	}
 	catch (std::exception& e)
 	{
-		fprintf(stderr, "%s\n", e.what());
+		std::fprintf(stderr, "%s\n", e.what());
 	}
 #endif
 

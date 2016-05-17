@@ -162,6 +162,7 @@ nobase_include_HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/escape_string.hpp            \
   aux_/io.hpp                       \
+  aux_/max_path.hpp                 \
   aux_/merkle.hpp                   \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \

@@ -355,7 +355,7 @@ TORRENT_TEST(auto_disk_cache_size)
 			TEST_EQUAL(is_seed(*ses[0]), true);
 
 			int const cache_size = get_cache_size(*ses[0]);
-			printf("cache size: %d\n", cache_size);
+			std::printf("cache size: %d\n", cache_size);
 			// this assumes the test torrent is at least 4 blocks
 			TEST_CHECK(cache_size > 4);
 		}
@@ -372,7 +372,7 @@ TORRENT_TEST(disable_disk_cache)
 			TEST_EQUAL(is_seed(*ses[0]), true);
 
 			int const cache_size = get_cache_size(*ses[0]);
-			printf("cache size: %d\n", cache_size);
+			std::printf("cache size: %d\n", cache_size);
 			TEST_EQUAL(cache_size, 0);
 		}
 	);

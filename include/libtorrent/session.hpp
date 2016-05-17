@@ -37,16 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <thread>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/limits.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/config.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/build_config.hpp"
-#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io_service.hpp"
 
 #include "libtorrent/storage.hpp"
@@ -54,7 +47,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_handle.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/fingerprint.hpp"
+#include <cstdio> // for snprintf
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
@@ -240,7 +235,7 @@ namespace libtorrent
 			char if_string[100];
 
 			if (listen_interface == NULL) listen_interface = "0.0.0.0";
-			snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
+			std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
 			if ((flags & start_default_features) == 0)

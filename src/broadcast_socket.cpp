@@ -210,7 +210,7 @@ namespace libtorrent
 #endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
 #ifdef TORRENT_DEBUG
-			fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
+			std::fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
 				, i->interface_address.to_string().c_str()
 				, m_multicast_endpoint.address().to_string().c_str()
 				, i->netmask.to_string().c_str()

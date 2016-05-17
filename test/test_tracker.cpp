@@ -334,10 +334,10 @@ TORRENT_TEST(udp_tracker)
 	file.close();
 
 	char tracker_url[200];
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(tracker_url, 0);
 
-	snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(tracker_url, 1);
 
 	add_torrent_params addp;
@@ -355,7 +355,7 @@ TORRENT_TEST(udp_tracker)
 			break;
 
 		test_sleep(100);
-		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
 
@@ -375,13 +375,13 @@ TORRENT_TEST(udp_tracker)
 			break;
 
 		test_sleep(100);
-		fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
 
-	fprintf(stderr, "destructing session\n");
+	std::fprintf(stderr, "destructing session\n");
 	s.reset();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
@@ -409,7 +409,7 @@ TORRENT_TEST(http_peers)
 
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
 	t->add_tracker(tracker_url, 0);
 
@@ -446,13 +446,13 @@ TORRENT_TEST(http_peers)
 		TEST_EQUAL(expected_peers.count(i->ip), 1);
 	}
 
-	fprintf(stderr, "destructing session\n");
+	std::fprintf(stderr, "destructing session\n");
 	s.reset();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 
-	fprintf(stderr, "stop_web_server\n");
+	std::fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 }
 
 void test_proxy(bool proxy_trackers)
@@ -483,7 +483,7 @@ void test_proxy(bool proxy_trackers)
 
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
 	t->add_tracker(tracker_url, 0);
 
@@ -506,21 +506,21 @@ void test_proxy(bool proxy_trackers)
 		TEST_CHECK(a != NULL);
 	}
 
-	fprintf(stderr, "destructing session\n");
+	std::fprintf(stderr, "destructing session\n");
 	s.reset();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 
-	fprintf(stderr, "stop_web_server\n");
+	std::fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 }
 
 TORRENT_TEST(tracker_proxy)
 {
-	fprintf(stderr, "\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
+	std::fprintf(stderr, "\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
 	test_proxy(false);
 
-	fprintf(stderr, "\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
+	std::fprintf(stderr, "\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
 	test_proxy(true);
 }
 
