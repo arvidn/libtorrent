@@ -468,6 +468,7 @@ void natpmp::on_reply(error_code const& e
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
 	int time = read_uint32(in);
+	TORRENT_UNUSED(version);
 	TORRENT_UNUSED(time);
 
 	if (cmd == 128)
