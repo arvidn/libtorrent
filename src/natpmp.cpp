@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio> // for snprintf
+#include <cstdarg>
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -91,10 +92,10 @@ void natpmp::start()
 	address gateway = get_default_gateway(m_socket.get_io_service(), ec);
 	if (ec)
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "failed to find default route: %s"
+#ifndef TORRENT_DISABLE_LOGGING
+		log("failed to find default route: %s"
 			, convert_from_native(ec.message()).c_str());
-		log(msg);
+#endif
 		disable(ec);
 		return;
 	}
@@ -105,10 +106,10 @@ void natpmp::start()
 	if (nat_endpoint == m_nat_endpoint) return;
 	m_nat_endpoint = nat_endpoint;
 
-	char msg[200];
-	std::snprintf(msg, sizeof(msg), "found router at: %s"
+#ifndef TORRENT_DISABLE_LOGGING
+	log("found router at: %s"
 		, print_address(m_nat_endpoint.address()).c_str());
-	log(msg);
+#endif
 
 	m_socket.open(udp::v4(), ec);
 	if (ec)
@@ -148,7 +149,9 @@ void natpmp::send_get_ip_address_request()
 	char* out = buf;
 	write_uint8(0, out); // NAT-PMP version
 	write_uint8(0, out); // public IP address request opcode
+#ifndef TORRENT_DISABLE_LOGGING
 	log("==> get public IP address");
+#endif
 
 	error_code ec;
 	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
@@ -168,11 +171,21 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 	return true;
 }
 
-void natpmp::log(char const* msg)
+#ifndef TORRENT_DISABLE_LOGGING
+TORRENT_FORMAT(2, 3)
+void natpmp::log(char const* fmt, ...) const
 {
 	TORRENT_ASSERT(is_single_thread());
+	char msg[200];
+
+	va_list v;
+	va_start(v, fmt);
+	std::vsnprintf(msg, sizeof(msg), fmt, v);
+	va_end(v);
+
 	m_log_callback(msg);
 }
+#endif
 
 void natpmp::disable(error_code const& ec)
 {
@@ -352,13 +365,13 @@ void natpmp::send_map_request(int i)
 	int ttl = m.action == mapping_t::action_add ? 3600 : 0;
 	write_uint32(ttl, out); // port mapping lifetime
 
-	char msg[200];
-	std::snprintf(msg, sizeof(msg), "==> port map [ mapping: %d action: %s"
+#ifndef TORRENT_DISABLE_LOGGING
+	log("==> port map [ mapping: %d action: %s"
 		" proto: %s local: %u external: %u ttl: %u ]"
 		, i, m.action == mapping_t::action_add ? "add" : "delete"
 		, m.protocol == udp ? "udp" : "tcp"
 		, m.local_port, m.external_port, ttl);
-	log(msg);
+#endif
 
 	error_code ec;
 	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
@@ -414,10 +427,10 @@ void natpmp::on_reply(error_code const& e
 	using namespace libtorrent::detail;
 	if (e)
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "error on receiving reply: %s"
+#ifndef TORRENT_DISABLE_LOGGING
+		log("error on receiving reply: %s"
 			, convert_from_native(e.message()).c_str());
-		log(msg);
+#endif
 		return;
 	}
 
@@ -430,20 +443,12 @@ void natpmp::on_reply(error_code const& e
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
 		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
 
-	// simulate packet loss
-/*
-	if ((random() % 2) == 0)
-	{
-		log(" simulating drop");
-		return;
-	}
-*/
 	if (m_remote != m_nat_endpoint)
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "received packet from wrong IP: %s"
+#ifndef TORRENT_DISABLE_LOGGING
+		log("received packet from wrong IP: %s"
 			, print_endpoint(m_remote).c_str());
-		log(msg);
+#endif
 		return;
 	}
 
@@ -452,9 +457,9 @@ void natpmp::on_reply(error_code const& e
 
 	if (bytes_transferred < 12)
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
-		log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+		log("received packet of invalid size: %d", int(bytes_transferred));
+#endif
 		return;
 	}
 
@@ -463,35 +468,36 @@ void natpmp::on_reply(error_code const& e
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
 	int time = read_uint32(in);
+	TORRENT_UNUSED(version);
+	TORRENT_UNUSED(time);
 
 	if (cmd == 128)
 	{
 		// public IP request response
 		m_external_ip = read_v4_address(in);
 
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "<== public IP address [ %s ]", print_address(m_external_ip).c_str());
-		log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+		log("<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+#endif
 		return;
 
 	}
 
 	if (bytes_transferred < 16)
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), "received packet of invalid size: %d", int(bytes_transferred));
-		log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+		log("received packet of invalid size: %d", int(bytes_transferred));
+#endif
 		return;
 	}
 
-	int private_port = read_uint16(in);
-	int public_port = read_uint16(in);
-	int lifetime = read_uint32(in);
+	int const private_port = read_uint16(in);
+	int const public_port = read_uint16(in);
+	int const lifetime = read_uint32(in);
 
-	(void)time; // to remove warning
+	int const protocol = (cmd - 128 == 1)?udp:tcp;
 
-	int protocol = (cmd - 128 == 1)?udp:tcp;
-
+#ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
 		" protocol: %s local: %u external: %u ttl: %u ]"
@@ -502,8 +508,9 @@ void natpmp::on_reply(error_code const& e
 	{
 		std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "unexpected version: %u"
 			, version);
-		log(msg);
+		log("%s", msg);
 	}
+#endif
 
 	mapping_t* m = 0;
 	int index = -1;
@@ -521,13 +528,17 @@ void natpmp::on_reply(error_code const& e
 
 	if (m == 0)
 	{
-		std::snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
-		log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
+		log("%s", msg);
+#endif
 		return;
 	}
 	m->outstanding_request = false;
 
-	log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+	log("%s", msg);
+#endif
 
 	if (public_port == 0 || lifetime == 0)
 	{
@@ -605,9 +616,9 @@ void natpmp::update_expiration_timer()
 		int index = i - m_mappings.begin();
 		if (i->expires < now)
 		{
-			char msg[200];
-			std::snprintf(msg, sizeof(msg), "mapping %u expired", index);
-			log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+			log("mapping %u expired", index);
+#endif
 			i->action = mapping_t::action_add;
 			if (m_next_refresh == index) m_next_refresh = -1;
 			update_mapping(index);
@@ -645,9 +656,9 @@ void natpmp::mapping_expired(error_code const& e, int i)
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e) return;
-	char msg[200];
-	std::snprintf(msg, sizeof(msg), "mapping %u expired", i);
-	log(msg);
+#ifndef TORRENT_DISABLE_LOGGING
+	log("mapping %u expired", i);
+#endif
 	m_mappings[i].action = mapping_t::action_add;
 	if (m_next_refresh == i) m_next_refresh = -1;
 	update_mapping(i);
@@ -663,7 +674,9 @@ void natpmp::close_impl()
 {
 	TORRENT_ASSERT(is_single_thread());
 	m_abort = true;
+#ifndef TORRENT_DISABLE_LOGGING
 	log("closing");
+#endif
 #ifdef NATPMP_LOG
 	std::cout << time_now_string() << " close" << std::endl;
 	time_point now = aux::time_now();

@@ -720,6 +720,7 @@ local usage-requirements =
 	# disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE
 	<toolset>msvc:<define>_CRT_SECURE_NO_DEPRECATE
+	<logging>off:<define>TORRENT_DISABLE_LOGGING
 
 	<cxxflags>$(CXXFLAGS)
 	<linkflags>$(LDFLAGS)

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+#ifndef TORRENT_DISABLE_LOGGING
 struct log_t : libtorrent::dht::dht_logger
 {
 	virtual void log(dht_logger::module_t m, char const* fmt, ...)
@@ -69,9 +70,11 @@ struct log_t : libtorrent::dht::dht_logger
 			, msg.c_str());
 	}
 };
+#endif
 
 TORRENT_TEST(dos_blocker)
 {
+#ifndef TORRENT_DISABLE_LOGGING
 #ifndef TORRENT_DISABLE_DHT
 	using namespace libtorrent::dht;
 
@@ -92,6 +95,7 @@ TORRENT_TEST(dos_blocker)
 	now += milliseconds(1);
 
 	TEST_EQUAL(b.incoming(spammer, now, &l), false);
+#endif
 #endif
 }
 
