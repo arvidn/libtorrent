@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <cctype>
 #include <algorithm>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 #include <unordered_set>
