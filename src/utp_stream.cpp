@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_UTP_LOG
 #include <stdarg.h>
+#include <cinttypes> // for PRId64 et.al.
 #include "libtorrent/socket_io.hpp"
 #endif
 
