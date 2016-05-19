@@ -60,7 +60,6 @@ TORRENT_TEST(session)
 	// verify that we get the appropriate performance warning because
 	// we're allowing a larger queue than we have cache.
 
-
 	alert const* a;
 	for (;;)
 	{
@@ -175,6 +174,7 @@ TORRENT_TEST(session_stats)
 		TEST_EQUAL(stats[i].value_index, i);
 	}
 }
+
 template <typename Set, typename Save, typename Default, typename Load>
 void test_save_restore(Set setup, Save s, Default d, Load l)
 {

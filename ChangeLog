@@ -17,6 +17,7 @@
 
 1.1.1 release
 
+	* fixed dht stats counters that weren't being updated
 	* make sure add_torrent_alert is always posted before other alerts for
 	  the torrent
 	* fixed peer-class leak when settings per-torrent rate limits

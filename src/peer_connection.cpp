@@ -404,7 +404,7 @@ namespace libtorrent
 
 		m_socket->async_connect(m_remote
 			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
-		m_connect = clock_type::now();
+		m_connect = aux::time_now();
 
 		sent_syn(m_remote.address().is_v6());
 
@@ -4092,7 +4092,7 @@ namespace libtorrent
 			, boost::asio::error::get_misc_category())
 			&& !in_handshake()
 			&& !is_connecting()
-			&& clock_type::now() - connected_time() < seconds(15))
+			&& aux::time_now() - connected_time() < seconds(15))
 		{
 			peer_log(peer_log_alert::info, "SHORT_LIVED_DISCONNECT", "");
 		}

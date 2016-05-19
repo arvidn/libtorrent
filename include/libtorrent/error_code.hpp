@@ -50,6 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifndef BOOST_SYSTEM_NOEXCEPT
+#define BOOST_SYSTEM_NOEXCEPT TORRENT_EXCEPTION_THROW_SPECIFIER
+#endif
+
 namespace libtorrent
 {
 
