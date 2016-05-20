@@ -112,7 +112,7 @@ script:
 
   - cd bindings/python
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset libtorrent-link=shared dll-path=../../lib &&
+      bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
   - cd ../..;
