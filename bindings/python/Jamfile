@@ -12,9 +12,9 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 feature visibility : default hidden : composite ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
-feature libtorrent-link : shared static : composite propagated ;
-feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
-feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
+#feature libtorrent-link : shared static : composite propagated ;
+#feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
+#feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
 if $(BOOST_ROOT)
 {
@@ -50,11 +50,11 @@ rule libtorrent_linking ( properties * )
 {
     local result ;
 
-    if ! <target-os>windows in $(properties)
-        && <toolset>gcc in $(properties)
-    {
-        result += <libtorrent-python-pic>on ;
-    }
+#    if ! <target-os>windows in $(properties)
+#        && <toolset>gcc in $(properties)
+#    {
+#        result += <libtorrent-python-pic>on ;
+#    }
 
     if <toolset>gcc in $(properties)
       || <toolset>darwin in $(properties)
@@ -152,7 +152,6 @@ my-python-extension libtorrent
     <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
   : # usage-requirements
-    <conditional>@libtorrent_linking
     <suppress-import-lib>false
   ;
 
