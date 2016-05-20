@@ -12,7 +12,7 @@ BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 feature visibility : default hidden : composite ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
-#feature libtorrent-link : shared static : composite propagated ;
+feature libtorrent-link : shared static : composite propagated ;
 #feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
 #feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
