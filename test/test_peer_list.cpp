@@ -97,7 +97,7 @@ struct mock_peer_connection
 	virtual tcp::endpoint const& remote() const override { return m_remote; }
 	virtual tcp::endpoint local_endpoint() const override { return m_local; }
 	virtual void disconnect(error_code const& ec
-		, operation_t op, int error = 0);
+		, operation_t op, int error = 0) override;
 	virtual peer_id const& pid() const override { return m_id; }
 	virtual void set_holepunch_mode() override {}
 	virtual torrent_peer* peer_info_struct() const override { return m_tp; }
@@ -108,7 +108,7 @@ struct mock_peer_connection
 	virtual bool fast_reconnect() const override { return true; }
 	virtual bool is_choked() const override { return m_choked; }
 	virtual bool failed() const override { return false; }
-	virtual libtorrent::stat const& statistics() const { return m_stat; }
+	virtual libtorrent::stat const& statistics() const override { return m_stat; }
 };
 
 struct mock_torrent
