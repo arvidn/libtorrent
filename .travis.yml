@@ -58,10 +58,8 @@ before_install:
   - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc"; fi
   - if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
-    export coverage_toolset=gcc-coverage;
+    export toolset=gcc-coverage;
     pip install --user codecov;
-    else
-    export coverage_toolset=$toolset;
     fi
   - 'echo "using toolset: " ${toolset}'
 
@@ -92,7 +90,7 @@ script:
 # if we are building with code coverage, report it as soon as possible
   - cd test
   - 'if [ "$variant" != "" ]; then
-      bjam --hash -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target &&
+      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target &&
       if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
         codecov --root .. --gcov-exec gcov-4.8;
       fi;
@@ -100,7 +98,7 @@ script:
 
   - cd ../examples
   - 'if [ "$variant" != "" ]; then
-      bjam --hash -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset link=shared;
+      bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset link=shared;
     fi'
   - cd ..
 
@@ -109,12 +107,12 @@ script:
 # as the main library, so we cannot stage them to the same directory
 # here we specify the temporary lib dir as a path to look for the main library
   - 'if [ "$variant" != "" ]; then
-      bjam --hash -j3 warnings-as-errors=on picker-debugging=on link=shared variant=$variant $toolset install location=./lib;
+      bjam -j3 warnings-as-errors=on picker-debugging=on link=shared variant=$variant $toolset install location=./lib;
     fi'
 
   - cd bindings/python
   - 'if [ "$variant" != "" ]; then
-      bjam --hash -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
+      bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
   - cd ../..;
@@ -122,7 +120,7 @@ script:
 # simulation
   - cd simulation
   - 'if [ "$variant" != "" && "$sim" == "1" ]; then
-      bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
+      bjam -j2 crypto=built-in warnings-as-errors=on $toolset;
     fi'
   - cd ..
 

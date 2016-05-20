@@ -1,3 +1,5 @@
+disable by syntax error
+
 version: 1.0.{build}
 branches:
   only:

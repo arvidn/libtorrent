@@ -52,6 +52,7 @@ rule libtorrent_linking ( properties * )
 
     if ! <target-os>windows in $(properties)
         && <toolset>gcc in $(properties)
+        && <libtorrent-link>static in $(properties)
     {
         result += <libtorrent-python-pic>on ;
     }
@@ -152,7 +153,6 @@ my-python-extension libtorrent
     <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
   : # usage-requirements
-    <conditional>@libtorrent_linking
     <suppress-import-lib>false
   ;
 
