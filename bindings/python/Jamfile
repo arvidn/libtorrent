@@ -13,8 +13,8 @@ feature visibility : default hidden : composite ;
 feature.compose <visibility>hidden : <cflags>-fvisibility=hidden <cxxflags>-fvisibility-inlines-hidden ;
 
 feature libtorrent-link : shared static : composite propagated ;
-#feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
-#feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
+feature libtorrent-python-pic : off on : composite propagated link-incompatible ;
+feature.compose <libtorrent-python-pic>on : <cflags>-fPIC ;
 
 if $(BOOST_ROOT)
 {
@@ -50,11 +50,12 @@ rule libtorrent_linking ( properties * )
 {
     local result ;
 
-#    if ! <target-os>windows in $(properties)
-#        && <toolset>gcc in $(properties)
-#    {
-#        result += <libtorrent-python-pic>on ;
-#    }
+    if ! <target-os>windows in $(properties)
+        && <toolset>gcc in $(properties)
+        && <libtorrent-link>static in $(properties)
+    {
+        result += <libtorrent-python-pic>on ;
+    }
 
     if <toolset>gcc in $(properties)
       || <toolset>darwin in $(properties)
