@@ -65,9 +65,12 @@ before_install:
 
 install:
 
+  - touch ~/user-config.jam
   - if [[ $TRAVIS_OS_NAME == "linux" ]]; then g++-5 --version; fi
-  - 'echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
+  - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+      echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
+      echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam;
+    fi'
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
