@@ -65,7 +65,7 @@ before_install:
 
 install:
 
-  - g++-4.8 --version
+  - g++-5 --version
   - 'echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
 
