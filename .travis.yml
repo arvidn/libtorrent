@@ -65,7 +65,7 @@ before_install:
 
 install:
 
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; this g++-5 --version; fi
+  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then g++-5 --version; fi
   - 'echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
   - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
 
