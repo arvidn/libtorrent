@@ -36,7 +36,7 @@ addons:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
     - python2.7-dev
-    - g++-4.8
+    - g++-5
     - cppcheck
 
 before_install:
@@ -66,8 +66,8 @@ before_install:
 install:
 
   - g++-4.8 --version
-  - 'echo "using gcc : : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : coverage : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
+  - 'echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
