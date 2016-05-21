@@ -92,7 +92,7 @@ script:
   - 'if [ "$variant" != "" ]; then
       bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target &&
       if [[ $TRAVIS_OS_NAME == "linux" && "$coverage" == "1" ]]; then
-        codecov --root .. --gcov-exec gcov-4.8;
+        codecov --root .. --gcov-exec gcov-5;
       fi;
     fi'
 
