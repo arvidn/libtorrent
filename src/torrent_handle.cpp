@@ -85,19 +85,14 @@ namespace libtorrent
 		session_impl& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
-		// capture them by pointer to allow everything to be captured by value
-		// and simplify the capture expression
 		bool done = false;
-		auto done_ptr = &done;
-		auto mutex_ptr = &ses.mut;
-		auto cond_ptr = &ses.cond;
 
-		ses.get_io_service().dispatch([=,&done] ()
+		ses.get_io_service().dispatch([=,&done,&ses] ()
 		{
 			(t.get()->*f)(a...);
-			std::unique_lock<std::mutex> l(*mutex_ptr);
+			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
-			cond_ptr->notify_all();
+			ses.cond.notify_all();
 		} );
 
 		aux::torrent_wait(done, ses);
@@ -113,18 +108,14 @@ namespace libtorrent
 		session_impl& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
-		// capture them by pointer to allow everything to be captured by value
-		// and simplify the capture expression
 		bool done = false;
-		auto mutex_ptr = &ses.mut;
-		auto cond_ptr = &ses.cond;
 
-		ses.get_io_service().dispatch([=,&r,&done] ()
+		ses.get_io_service().dispatch([=,&r,&done,&ses] ()
 		{
 			r = (t.get()->*f)(a...);
-			std::unique_lock<std::mutex> l(*mutex_ptr);
+			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
-			cond_ptr->notify_all();
+			ses.cond.notify_all();
 		} );
 
 		aux::torrent_wait(done, ses);
