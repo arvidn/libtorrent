@@ -296,7 +296,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<torrent_plugin>);
 		void remove_extension(boost::shared_ptr<torrent_plugin>);
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+		void add_extension_fun(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
@@ -508,7 +508,7 @@ namespace libtorrent
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
 #if !TORRENT_NO_FPU
-		void file_progress(std::vector<float>& fp);
+		void file_progress_float(std::vector<float>& fp);
 #endif
 		// ============ end deprecation =============
 
@@ -579,16 +579,17 @@ namespace libtorrent
 
 		// add or remove a url that will be attempted for
 		// finding the file(s) in this torrent.
-		void add_web_seed(std::string const& url, web_seed_t::type_t type);
-		void add_web_seed(std::string const& url, web_seed_t::type_t type
-			, std::string const& auth, web_seed_t::headers_t const& extra_headers);
+		void add_web_seed(std::string const& url
+			, web_seed_t::type_t type
+			, std::string const& auth = std::string()
+			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t());
 
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
 
 		void retry_web_seed(peer_connection* p, int retry = 0);
 
-		void remove_web_seed(peer_connection* p, error_code const& ec
+		void remove_web_seed_conn(peer_connection* p, error_code const& ec
 			, operation_t op, int error = 0);
 
 		std::set<std::string> web_seeds(web_seed_entry::type_t type) const;
@@ -747,7 +748,7 @@ namespace libtorrent
 			return m_super_seeding && is_seed();
 		}
 
-		void super_seeding(bool on);
+		void set_super_seeding(bool on);
 		int get_piece_to_super_seed(bitfield const&);
 
 		// returns true if we have downloaded the given piece
@@ -864,7 +865,7 @@ namespace libtorrent
 
 		// remove a web seed, or schedule it for removal in case there
 		// are outstanding operations on it
-		void remove_web_seed(std::list<web_seed_t>::iterator web);
+		void remove_web_seed_iter(std::list<web_seed_t>::iterator web);
 
 		// this is called when the torrent has finished. i.e.
 		// all the pieces we have not filtered have been downloaded.

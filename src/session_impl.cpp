@@ -5925,14 +5925,14 @@ namespace aux {
 		apply_settings_pack_impl(p);
 	}
 
-	void session_impl::set_download_rate_limit(int bytes_per_second)
+	void session_impl::set_download_rate_limit_depr(int bytes_per_second)
 	{
 		settings_pack p;
 		p.set_int(settings_pack::download_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
 	}
 
-	void session_impl::set_upload_rate_limit(int bytes_per_second)
+	void session_impl::set_upload_rate_limit_depr(int bytes_per_second)
 	{
 		settings_pack p;
 		p.set_int(settings_pack::upload_rate_limit, bytes_per_second);
@@ -5963,12 +5963,12 @@ namespace aux {
 		return download_rate_limit(m_local_peer_class);
 	}
 
-	int session_impl::upload_rate_limit() const
+	int session_impl::upload_rate_limit_depr() const
 	{
 		return upload_rate_limit(m_global_class);
 	}
 
-	int session_impl::download_rate_limit() const
+	int session_impl::download_rate_limit_depr() const
 	{
 		return download_rate_limit(m_global_class);
 	}
