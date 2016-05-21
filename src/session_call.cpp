@@ -71,7 +71,7 @@ void dump_call_profile()
 #endif
 }
 
-void fun_wrap(bool& done, std::condition_variable& e, std::mutex& m, boost::function<void(void)> f)
+void fun_wrap(bool& done, std::condition_variable& e, std::mutex& m, std::function<void(void)> f)
 {
 	f();
 	std::unique_lock<std::mutex> l(m);
@@ -86,7 +86,7 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 	while (!done) { ses.cond.wait(l); };
 }
 
-void sync_call(aux::session_impl& ses, boost::function<void(void)> f)
+void sync_call(aux::session_impl& ses, std::function<void(void)> f)
 {
 	bool done = false;
 	ses.get_io_service().dispatch(boost::bind(&fun_wrap

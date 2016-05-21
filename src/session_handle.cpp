@@ -36,66 +36,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 
+#include <functional>
+
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/read_resume_data.hpp"
 #endif
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-macros"
-#endif
+#define TORRENT_ASYNC_CALL0(x) \
+	m_impl->get_io_service().dispatch([=](){ m_impl->x(); })
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-macros"
-#endif
+#define TORRENT_ASYNC_CALL(x, ...) \
+	m_impl->get_io_service().dispatch([=](){ m_impl->x(__VA_ARGS__); })
 
-#define TORRENT_ASYNC_CALL(x) \
-	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl))
+#define TORRENT_SYNC_CALL0(x) \
+	aux::sync_call(*m_impl, [=](){ m_impl->x(); })
 
-#define TORRENT_ASYNC_CALL1(x, a1) \
-	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl, a1))
+#define TORRENT_SYNC_CALL(x, ...) \
+	aux::sync_call(*m_impl, [=](){ m_impl->x(__VA_ARGS__); })
 
-#define TORRENT_ASYNC_CALL2(x, a1, a2) \
-	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl, a1, a2))
+#define TORRENT_SYNC_CALL_RET0(type, x) \
+	aux::sync_call_ret<type>(*m_impl, [=](){ return m_impl->x(); })
 
-#define TORRENT_ASYNC_CALL3(x, a1, a2, a3) \
-	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl, a1, a2, a3))
-
-#define TORRENT_SYNC_CALL(x) \
-	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl)))
-
-#define TORRENT_SYNC_CALL1(x, a1) \
-	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl, a1)))
-
-#define TORRENT_SYNC_CALL2(x, a1, a2) \
-	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2)))
-
-#define TORRENT_SYNC_CALL3(x, a1, a2, a3) \
-	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2, a3)))
-
-#define TORRENT_SYNC_CALL4(x, a1, a2, a3, a4) \
-	aux::sync_call(*m_impl, boost::function<void(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2, a3, a4)))
-
-#define TORRENT_SYNC_CALL_RET(type, x) \
-	aux::sync_call_ret<type>(*m_impl, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl)))
-
-#define TORRENT_SYNC_CALL_RET1(type, x, a1) \
-	aux::sync_call_ret<type>(*m_impl, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl, a1)))
-
-#define TORRENT_SYNC_CALL_RET2(type, x, a1, a2) \
-	aux::sync_call_ret<type>(*m_impl, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2)))
-
-#define TORRENT_SYNC_CALL_RET3(type, x, a1, a2, a3) \
-	aux::sync_call_ret<type>(*m_impl, boost::function<type(void)>(boost::bind(&session_impl:: x, m_impl, a1, a2, a3)))
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#define TORRENT_SYNC_CALL_RET(type, x, ...) \
+	aux::sync_call_ret<type>(*m_impl, [=](){ return m_impl->x(__VA_ARGS__); })
 
 using libtorrent::aux::session_impl;
 
@@ -103,7 +66,8 @@ namespace libtorrent
 {
 	void session_handle::save_state(entry& e, boost::uint32_t flags) const
 	{
-		TORRENT_SYNC_CALL2(save_state, &e, flags);
+		entry* ep = &e;
+		TORRENT_SYNC_CALL(save_state, ep, flags);
 	}
 
 	void session_handle::load_state(bdecode_node const& e
@@ -111,35 +75,36 @@ namespace libtorrent
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
-		TORRENT_SYNC_CALL2(load_state, &e, flags);
+		TORRENT_SYNC_CALL(load_state, &e, flags);
 	}
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
 		, boost::function<bool(torrent_status const&)> const& pred
 		, boost::uint32_t flags) const
 	{
-		TORRENT_SYNC_CALL3(get_torrent_status, ret, boost::ref(pred), flags);
+		auto predr = std::ref(pred);
+		TORRENT_SYNC_CALL(get_torrent_status, ret, predr, flags);
 	}
 
 	void session_handle::refresh_torrent_status(std::vector<torrent_status>* ret
 		, boost::uint32_t flags) const
 	{
-		TORRENT_SYNC_CALL2(refresh_torrent_status, ret, flags);
+		TORRENT_SYNC_CALL(refresh_torrent_status, ret, flags);
 	}
 
 	void session_handle::post_torrent_updates(boost::uint32_t flags)
 	{
-		TORRENT_ASYNC_CALL1(post_torrent_updates, flags);
+		TORRENT_ASYNC_CALL(post_torrent_updates, flags);
 	}
 
 	void session_handle::post_session_stats()
 	{
-		TORRENT_ASYNC_CALL(post_session_stats);
+		TORRENT_ASYNC_CALL0(post_session_stats);
 	}
 
 	void session_handle::post_dht_stats()
 	{
-		TORRENT_ASYNC_CALL(post_dht_stats);
+		TORRENT_ASYNC_CALL0(post_dht_stats);
 	}
 
 	io_service& session_handle::get_io_service()
@@ -149,12 +114,12 @@ namespace libtorrent
 
 	torrent_handle session_handle::find_torrent(sha1_hash const& info_hash) const
 	{
-		return TORRENT_SYNC_CALL_RET1(torrent_handle, find_torrent_handle, info_hash);
+		return TORRENT_SYNC_CALL_RET(torrent_handle, find_torrent_handle, info_hash);
 	}
 
 	std::vector<torrent_handle> session_handle::get_torrents() const
 	{
-		return TORRENT_SYNC_CALL_RET(std::vector<torrent_handle>, get_torrents);
+		return TORRENT_SYNC_CALL_RET0(std::vector<torrent_handle>, get_torrents);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -289,7 +254,8 @@ namespace libtorrent
 		add_torrent_params const& p = params;
 #endif
 		error_code ec;
-		torrent_handle r = TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
+		auto ecr = std::ref(ec);
+		torrent_handle r = TORRENT_SYNC_CALL_RET(torrent_handle, add_torrent, p, ecr);
 		if (ec) throw system_error(ec);
 		return r;
 	}
@@ -306,7 +272,8 @@ namespace libtorrent
 #else
 		add_torrent_params const& p = params;
 #endif
-		return TORRENT_SYNC_CALL_RET2(torrent_handle, add_torrent, p, boost::ref(ec));
+		auto ecr = std::ref(ec);
+		return TORRENT_SYNC_CALL_RET(torrent_handle, add_torrent, p, ecr);
 	}
 
 	void session_handle::async_add_torrent(add_torrent_params const& params)
@@ -319,7 +286,7 @@ namespace libtorrent
 		handle_backwards_compatible_resume_data(*p);
 #endif
 
-		TORRENT_ASYNC_CALL1(async_add_torrent, p);
+		TORRENT_ASYNC_CALL(async_add_torrent, p);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -382,28 +349,28 @@ namespace libtorrent
 
 	void session_handle::pause()
 	{
-		TORRENT_ASYNC_CALL(pause);
+		TORRENT_ASYNC_CALL0(pause);
 	}
 
 	void session_handle::resume()
 	{
-		TORRENT_ASYNC_CALL(resume);
+		TORRENT_ASYNC_CALL0(resume);
 	}
 
 	bool session_handle::is_paused() const
 	{
-		return TORRENT_SYNC_CALL_RET(bool, is_paused);
+		return TORRENT_SYNC_CALL_RET0(bool, is_paused);
 	}
 
 	void session_handle::set_load_function(user_load_function_t fun)
 	{
-		TORRENT_ASYNC_CALL1(set_load_function, fun);
+		TORRENT_ASYNC_CALL(set_load_function, fun);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	session_status session_handle::status() const
 	{
-		return TORRENT_SYNC_CALL_RET(session_status, status);
+		return TORRENT_SYNC_CALL_RET0(session_status, status);
 	}
 
 	void session_handle::get_cache_info(sha1_hash const& ih
@@ -456,7 +423,7 @@ namespace libtorrent
 	void session_handle::set_dht_settings(dht_settings const& settings)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(set_dht_settings, settings);
+		TORRENT_ASYNC_CALL(set_dht_settings, settings);
 #else
 		TORRENT_UNUSED(settings);
 #endif
@@ -465,7 +432,7 @@ namespace libtorrent
 	dht_settings session_handle::get_dht_settings() const
 	{
 #ifndef TORRENT_DISABLE_DHT
-		return TORRENT_SYNC_CALL_RET(dht_settings, get_dht_settings);
+		return TORRENT_SYNC_CALL_RET0(dht_settings, get_dht_settings);
 #else
 		return dht_settings();
 #endif
@@ -474,7 +441,7 @@ namespace libtorrent
 	bool session_handle::is_dht_running() const
 	{
 #ifndef TORRENT_DISABLE_DHT
-		return TORRENT_SYNC_CALL_RET(bool, is_dht_running);
+		return TORRENT_SYNC_CALL_RET0(bool, is_dht_running);
 #else
 		return false;
 #endif
@@ -483,7 +450,7 @@ namespace libtorrent
 	void session_handle::set_dht_storage(dht::dht_storage_constructor_type sc)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(set_dht_storage, sc);
+		TORRENT_ASYNC_CALL(set_dht_storage, sc);
 #else
 		TORRENT_UNUSED(sc);
 #endif
@@ -492,7 +459,7 @@ namespace libtorrent
 	void session_handle::add_dht_node(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(add_dht_node_name, node);
+		TORRENT_ASYNC_CALL(add_dht_node_name, node);
 #else
 		TORRENT_UNUSED(node);
 #endif
@@ -501,7 +468,7 @@ namespace libtorrent
 	void session_handle::add_dht_router(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(add_dht_router, node);
+		TORRENT_ASYNC_CALL(add_dht_router, node);
 #else
 		TORRENT_UNUSED(node);
 #endif
@@ -510,7 +477,7 @@ namespace libtorrent
 	void session_handle::dht_get_item(sha1_hash const& target)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(dht_get_immutable_item, target);
+		TORRENT_ASYNC_CALL(dht_get_immutable_item, target);
 #else
 		TORRENT_UNUSED(target);
 #endif
@@ -520,7 +487,7 @@ namespace libtorrent
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL2(dht_get_mutable_item, key, salt);
+		TORRENT_ASYNC_CALL(dht_get_mutable_item, key, salt);
 #else
 		TORRENT_UNUSED(key);
 		TORRENT_UNUSED(salt);
@@ -534,7 +501,7 @@ namespace libtorrent
 		sha1_hash ret = hasher(&buf[0], int(buf.size())).final();
 
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL2(dht_put_immutable_item, data, ret);
+		TORRENT_ASYNC_CALL(dht_put_immutable_item, data, ret);
 #endif
 		return ret;
 	}
@@ -545,7 +512,7 @@ namespace libtorrent
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL3(dht_put_mutable_item, key, cb, salt);
+		TORRENT_ASYNC_CALL(dht_put_mutable_item, key, cb, salt);
 #else
 		TORRENT_UNUSED(key);
 		TORRENT_UNUSED(cb);
@@ -556,7 +523,7 @@ namespace libtorrent
 	void session_handle::dht_get_peers(sha1_hash const& info_hash)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(dht_get_peers, info_hash);
+		TORRENT_ASYNC_CALL(dht_get_peers, info_hash);
 #else
 		TORRENT_UNUSED(info_hash);
 #endif
@@ -565,7 +532,7 @@ namespace libtorrent
 	void session_handle::dht_announce(sha1_hash const& info_hash, int port, int flags)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL3(dht_announce, info_hash, port, flags);
+		TORRENT_ASYNC_CALL(dht_announce, info_hash, port, flags);
 #else
 		TORRENT_UNUSED(info_hash);
 		TORRENT_UNUSED(port);
@@ -576,7 +543,9 @@ namespace libtorrent
 	void session_handle::dht_direct_request(udp::endpoint ep, entry const& e, void* userdata)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL3(dht_direct_request, ep, e, userdata);
+		entry copy = e;
+		auto er = std::ref(copy);
+		TORRENT_ASYNC_CALL(dht_direct_request, ep, er, userdata);
 #else
 		TORRENT_UNUSED(ep);
 		TORRENT_UNUSED(e);
@@ -588,7 +557,7 @@ namespace libtorrent
 	entry session_handle::dht_state() const
 	{
 #ifndef TORRENT_DISABLE_DHT
-		return TORRENT_SYNC_CALL_RET(entry, dht_state);
+		return TORRENT_SYNC_CALL_RET0(entry, dht_state);
 #else
 		return entry();
 #endif
@@ -597,7 +566,7 @@ namespace libtorrent
 	void session_handle::start_dht(entry const& startup_state)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		TORRENT_ASYNC_CALL1(start_dht_deprecated, startup_state);
+		TORRENT_ASYNC_CALL(start_dht_deprecated, startup_state);
 #else
 		TORRENT_UNUSED(startup_state);
 #endif
@@ -607,7 +576,7 @@ namespace libtorrent
 	void session_handle::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		TORRENT_ASYNC_CALL1(add_extension, ext);
+		TORRENT_ASYNC_CALL(add_extension, ext);
 #else
 		TORRENT_UNUSED(ext);
 #endif
@@ -616,7 +585,7 @@ namespace libtorrent
 	void session_handle::add_extension(boost::shared_ptr<plugin> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		TORRENT_ASYNC_CALL1(add_ses_extension, ext);
+		TORRENT_ASYNC_CALL(add_ses_extension, ext);
 #else
 		TORRENT_UNUSED(ext);
 #endif
@@ -651,13 +620,14 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		if (ret != 0) throw system_error(ec);
 #endif
-		TORRENT_SYNC_CALL2(load_state, &e, flags);
+		TORRENT_SYNC_CALL(load_state, &e, flags);
 	}
 
 	entry session_handle::state() const
 	{
 		entry ret;
-		TORRENT_SYNC_CALL2(save_state, &ret, 0xffffffff);
+		auto retp = &ret;
+		TORRENT_SYNC_CALL(save_state, retp, 0xffffffff);
 		return ret;
 	}
 
@@ -677,24 +647,24 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 		if (ret != 0) throw system_error(ec);
 #endif
-		TORRENT_SYNC_CALL2(load_state, &e, flags);
+		TORRENT_SYNC_CALL(load_state, &e, flags);
 	}
 #endif // TORRENT_NO_DEPRECATE
 
 	void session_handle::set_ip_filter(ip_filter const& f)
 	{
 		boost::shared_ptr<ip_filter> copy = boost::make_shared<ip_filter>(f);
-		TORRENT_ASYNC_CALL1(set_ip_filter, copy);
+		TORRENT_ASYNC_CALL(set_ip_filter, copy);
 	}
 
 	ip_filter session_handle::get_ip_filter() const
 	{
-		return TORRENT_SYNC_CALL_RET(ip_filter, get_ip_filter);
+		return TORRENT_SYNC_CALL_RET0(ip_filter, get_ip_filter);
 	}
 
 	void session_handle::set_port_filter(port_filter const& f)
 	{
-		TORRENT_ASYNC_CALL1(set_port_filter, f);
+		TORRENT_ASYNC_CALL(set_port_filter, f);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -708,57 +678,57 @@ namespace libtorrent
 
 	peer_id session_handle::id() const
 	{
-		return TORRENT_SYNC_CALL_RET(peer_id, get_peer_id);
+		return TORRENT_SYNC_CALL_RET0(peer_id, get_peer_id);
 	}
 
 	void session_handle::set_key(int key)
 	{
-		TORRENT_ASYNC_CALL1(set_key, key);
+		TORRENT_ASYNC_CALL(set_key, key);
 	}
 
 	unsigned short session_handle::listen_port() const
 	{
-		return TORRENT_SYNC_CALL_RET(unsigned short, listen_port);
+		return TORRENT_SYNC_CALL_RET0(unsigned short, listen_port);
 	}
 
 	unsigned short session_handle::ssl_listen_port() const
 	{
-		return TORRENT_SYNC_CALL_RET(unsigned short, ssl_listen_port);
+		return TORRENT_SYNC_CALL_RET0(unsigned short, ssl_listen_port);
 	}
 
 	bool session_handle::is_listening() const
 	{
-		return TORRENT_SYNC_CALL_RET(bool, is_listening);
+		return TORRENT_SYNC_CALL_RET0(bool, is_listening);
 	}
 
 	void session_handle::set_peer_class_filter(ip_filter const& f)
 	{
-		TORRENT_ASYNC_CALL1(set_peer_class_filter, f);
+		TORRENT_ASYNC_CALL(set_peer_class_filter, f);
 	}
 
 	void session_handle::set_peer_class_type_filter(peer_class_type_filter const& f)
 	{
-		TORRENT_ASYNC_CALL1(set_peer_class_type_filter, f);
+		TORRENT_ASYNC_CALL(set_peer_class_type_filter, f);
 	}
 
 	int session_handle::create_peer_class(char const* name)
 	{
-		return TORRENT_SYNC_CALL_RET1(int, create_peer_class, name);
+		return TORRENT_SYNC_CALL_RET(int, create_peer_class, name);
 	}
 
 	void session_handle::delete_peer_class(int cid)
 	{
-		TORRENT_ASYNC_CALL1(delete_peer_class, cid);
+		TORRENT_ASYNC_CALL(delete_peer_class, cid);
 	}
 
 	peer_class_info session_handle::get_peer_class(int cid)
 	{
-		return TORRENT_SYNC_CALL_RET1(peer_class_info, get_peer_class, cid);
+		return TORRENT_SYNC_CALL_RET(peer_class_info, get_peer_class, cid);
 	}
 
 	void session_handle::set_peer_class(int cid, peer_class_info const& pci)
 	{
-		TORRENT_ASYNC_CALL2(set_peer_class, cid, pci);
+		TORRENT_ASYNC_CALL(set_peer_class, cid, pci);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -797,18 +767,18 @@ namespace libtorrent
 #else
 			throw_invalid_handle();
 #endif
-		TORRENT_ASYNC_CALL2(remove_torrent, h, options);
+		TORRENT_ASYNC_CALL(remove_torrent, h, options);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
 	void session_handle::set_settings(session_settings const& s)
 	{
-		TORRENT_ASYNC_CALL1(set_settings, s);
+		TORRENT_ASYNC_CALL(set_settings, s);
 	}
 
 	session_settings session_handle::settings() const
 	{
-		return TORRENT_SYNC_CALL_RET(session_settings, deprecated_settings);
+		return TORRENT_SYNC_CALL_RET0(session_settings, deprecated_settings);
 	}
 
 	void session_handle::set_pe_settings(pe_settings const& r)
@@ -848,12 +818,12 @@ namespace libtorrent
 				<= settings_pack::pe_both);
 
 		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(s);
-		TORRENT_ASYNC_CALL1(apply_settings_pack, copy);
+		TORRENT_ASYNC_CALL(apply_settings_pack, copy);
 	}
 
 	settings_pack session_handle::get_settings() const
 	{
-		return TORRENT_SYNC_CALL_RET(settings_pack, get_settings);
+		return TORRENT_SYNC_CALL_RET0(settings_pack, get_settings);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -897,12 +867,12 @@ namespace libtorrent
 
 	int session_handle::num_uploads() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, num_uploads);
+		return TORRENT_SYNC_CALL_RET0(int, num_uploads);
 	}
 
 	int session_handle::num_connections() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, num_connections);
+		return TORRENT_SYNC_CALL_RET0(int, num_connections);
 	}
 
 	void session_handle::set_peer_proxy(proxy_settings const& s)
@@ -947,66 +917,66 @@ namespace libtorrent
 
 	int session_handle::upload_rate_limit() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, upload_rate_limit);
+		return TORRENT_SYNC_CALL_RET0(int, upload_rate_limit);
 	}
 
 	int session_handle::download_rate_limit() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, download_rate_limit);
+		return TORRENT_SYNC_CALL_RET0(int, download_rate_limit);
 	}
 
 	int session_handle::local_upload_rate_limit() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, local_upload_rate_limit);
+		return TORRENT_SYNC_CALL_RET0(int, local_upload_rate_limit);
 	}
 
 	int session_handle::local_download_rate_limit() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, local_download_rate_limit);
+		return TORRENT_SYNC_CALL_RET0(int, local_download_rate_limit);
 	}
 
 	int session_handle::max_half_open_connections() const { return 8; }
 
 	void session_handle::set_local_upload_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASYNC_CALL1(set_local_upload_rate_limit, bytes_per_second);
+		TORRENT_ASYNC_CALL(set_local_upload_rate_limit, bytes_per_second);
 	}
 
 	void session_handle::set_local_download_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASYNC_CALL1(set_local_download_rate_limit, bytes_per_second);
+		TORRENT_ASYNC_CALL(set_local_download_rate_limit, bytes_per_second);
 	}
 
 	void session_handle::set_upload_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASYNC_CALL1(set_upload_rate_limit, bytes_per_second);
+		TORRENT_ASYNC_CALL(set_upload_rate_limit, bytes_per_second);
 	}
 
 	void session_handle::set_download_rate_limit(int bytes_per_second)
 	{
-		TORRENT_ASYNC_CALL1(set_download_rate_limit, bytes_per_second);
+		TORRENT_ASYNC_CALL(set_download_rate_limit, bytes_per_second);
 	}
 
 	void session_handle::set_max_connections(int limit)
 	{
-		TORRENT_ASYNC_CALL1(set_max_connections, limit);
+		TORRENT_ASYNC_CALL(set_max_connections, limit);
 	}
 
 	void session_handle::set_max_uploads(int limit)
 	{
-		TORRENT_ASYNC_CALL1(set_max_uploads, limit);
+		TORRENT_ASYNC_CALL(set_max_uploads, limit);
 	}
 
 	void session_handle::set_max_half_open_connections(int) {}
 
 	int session_handle::max_uploads() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, max_uploads);
+		return TORRENT_SYNC_CALL_RET0(int, max_uploads);
 	}
 
 	int session_handle::max_connections() const
 	{
-		return TORRENT_SYNC_CALL_RET(int, max_connections);
+		return TORRENT_SYNC_CALL_RET0(int, max_connections);
 	}
 
 #endif // TORRENT_NO_DEPRECATE
@@ -1051,7 +1021,7 @@ namespace libtorrent
 
 	size_t session_handle::set_alert_queue_size_limit(size_t queue_size_limit_)
 	{
-		return TORRENT_SYNC_CALL_RET1(size_t, set_alert_queue_size_limit, queue_size_limit_);
+		return TORRENT_SYNC_CALL_RET(size_t, set_alert_queue_size_limit, queue_size_limit_);
 	}
 
 	void session_handle::set_alert_mask(boost::uint32_t m)
@@ -1111,12 +1081,12 @@ namespace libtorrent
 
 	int session_handle::add_port_mapping(session::protocol_type t, int external_port, int local_port)
 	{
-		return TORRENT_SYNC_CALL_RET3(int, add_port_mapping, int(t), external_port, local_port);
+		return TORRENT_SYNC_CALL_RET(int, add_port_mapping, int(t), external_port, local_port);
 	}
 
 	void session_handle::delete_port_mapping(int handle)
 	{
-		TORRENT_ASYNC_CALL1(delete_port_mapping, handle);
+		TORRENT_ASYNC_CALL(delete_port_mapping, handle);
 	}
 
 } // namespace libtorrent

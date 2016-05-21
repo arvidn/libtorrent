@@ -37,16 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <boost/function.hpp>
+#include <functional>
 
 namespace libtorrent { namespace aux {
 
 void blocking_call();
 void dump_call_profile();
 
-void fun_wrap(bool& done, std::condition_variable& e, std::mutex& m, boost::function<void(void)> f);
+void fun_wrap(bool& done, std::condition_variable& e, std::mutex& m, std::function<void(void)> f);
 
 template <class R>
-void fun_ret(R& ret, bool& done, std::condition_variable& e, std::mutex& m, boost::function<R(void)> f)
+void fun_ret(R& ret, bool& done, std::condition_variable& e, std::mutex& m, std::function<R(void)> f)
 {
 	ret = f();
 	std::unique_lock<std::mutex> l(m);
@@ -56,10 +57,10 @@ void fun_ret(R& ret, bool& done, std::condition_variable& e, std::mutex& m, boos
 
 void torrent_wait(bool& done, aux::session_impl& ses);
 
-void sync_call(aux::session_impl& ses, boost::function<void(void)> f);
+void sync_call(aux::session_impl& ses, std::function<void()> f);
 
 template <typename Handle>
-void sync_call_handle(Handle& h, boost::function<void(void)> f)
+void sync_call_handle(Handle& h, std::function<void()> f)
 {
 	bool done = false;
 	session_impl& ses = static_cast<session_impl&>(h->session());
@@ -72,7 +73,7 @@ void sync_call_handle(Handle& h, boost::function<void(void)> f)
 }
 
 template <typename Ret>
-Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
+Ret sync_call_ret(aux::session_impl& ses, std::function<Ret()> f)
 {
 	bool done = false;
 	Ret r;
@@ -87,7 +88,7 @@ Ret sync_call_ret(aux::session_impl& ses, boost::function<Ret(void)> f)
 }
 
 template <typename Handle, typename Ret>
-void sync_call_ret_handle(Handle& h, Ret& r, boost::function<Ret(void)> f)
+void sync_call_ret_handle(Handle& h, Ret& r, std::function<Ret(void)> f)
 {
 	bool done = false;
 	session_impl& ses = static_cast<session_impl&>(h->session());
