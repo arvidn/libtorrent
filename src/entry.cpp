@@ -282,7 +282,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<preformatted_type*>(data);
+		return *reinterpret_cast<preformatted_type*>(&data);
 	}
 
 	entry::preformatted_type const& entry::preformatted() const
@@ -293,7 +293,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<const preformatted_type*>(data);
+		return *reinterpret_cast<const preformatted_type*>(&data);
 	}
 
 	entry::entry()
@@ -380,7 +380,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) preformatted_type(v);
+		new(&data) preformatted_type(v);
 		m_type = preformatted_t;
 	}
 
@@ -465,7 +465,7 @@ namespace libtorrent
 	entry& entry::operator=(preformatted_type const& v)
 	{
 		destruct();
-		new(data) preformatted_type(v);
+		new(&data) preformatted_type(v);
 		m_type = preformatted_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -558,7 +558,7 @@ namespace libtorrent
 		case undefined_t:
 			break;
 		case preformatted_t:
-			new (data) preformatted_type;
+			new (&data) preformatted_type;
 			break;
 		}
 		m_type = t;
@@ -587,7 +587,7 @@ namespace libtorrent
 			TORRENT_ASSERT(e.type() == undefined_t);
 			break;
 		case preformatted_t:
-			new (data) preformatted_type(e.preformatted());
+			new (&data) preformatted_type(e.preformatted());
 			break;
 		}
 		m_type = e.type();
@@ -613,7 +613,7 @@ namespace libtorrent
 			call_destructor(reinterpret_cast<dictionary_type*>(&data));
 			break;
 		case preformatted_t:
-			call_destructor(reinterpret_cast<preformatted_type*>(data));
+			call_destructor(reinterpret_cast<preformatted_type*>(&data));
 			break;
 		default:
 			TORRENT_ASSERT(m_type == undefined_t);
@@ -666,8 +666,8 @@ namespace libtorrent
 					, *reinterpret_cast<dictionary_type*>(&e.data));
 				break;
 			case preformatted_t:
-				std::swap(*reinterpret_cast<preformatted_type*>(data)
-					, *reinterpret_cast<preformatted_type*>(e.data));
+				std::swap(*reinterpret_cast<preformatted_type*>(&data)
+					, *reinterpret_cast<preformatted_type*>(&e.data));
 				break;
 			default:
 				break;
