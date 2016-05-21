@@ -101,7 +101,7 @@ struct vector_to_list
     static PyObject* convert(const std::vector<T>& v)
     {
         list l;
-        for (int i = 0; i < v.size(); ++i)
+        for (int i = 0; i < int(v.size()); ++i)
         {
            l.append(v[i]);
         }
