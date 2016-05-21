@@ -1021,6 +1021,16 @@ namespace libtorrent
 		{ return m_impl; }
 
 	private:
+
+		template <typename Fun, typename... Args>
+		void async_call(Fun f, Args&&... a) const;
+
+		template <typename Fun, typename... Args>
+		void sync_call(Fun f, Args&&... a) const;
+
+		template <typename Ret, typename Fun, typename... Args>
+		Ret sync_call_ret(Fun f, Args&&... a) const;
+
 		aux::session_impl* m_impl;
 	};
 

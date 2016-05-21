@@ -581,7 +581,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 	if (location.empty())
 	{
 		// we should not try this server again.
-		t->remove_web_seed(this, errors::missing_location, op_bittorrent, 2);
+		t->remove_web_seed_conn(this, errors::missing_location, op_bittorrent, 2);
 		m_web = NULL;
 		TORRENT_ASSERT(is_disconnecting());
 		return;
@@ -614,7 +614,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 		size_t i = location.rfind(path);
 		if (i == std::string::npos)
 		{
-			t->remove_web_seed(this, errors::invalid_redirection, op_bittorrent, 2);
+			t->remove_web_seed_conn(this, errors::invalid_redirection, op_bittorrent, 2);
 			m_web = NULL;
 			TORRENT_ASSERT(is_disconnecting());
 			return;
@@ -630,7 +630,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 	peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
 	t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
-	t->remove_web_seed(this, errors::redirecting, op_bittorrent, 2);
+	t->remove_web_seed_conn(this, errors::redirecting, op_bittorrent, 2);
 	m_web = NULL;
 	TORRENT_ASSERT(is_disconnecting());
 	return;
@@ -763,7 +763,7 @@ void web_peer_connection::on_receive(error_code const& error
 		{
 			received_bytes(0, recv_buffer.left());
 			// we should not try this server again.
-			t->remove_web_seed(this, ec, op_bittorrent, 2);
+			t->remove_web_seed_conn(this, ec, op_bittorrent, 2);
 			m_web = NULL;
 			TORRENT_ASSERT(is_disconnecting());
 			return;

@@ -339,7 +339,8 @@ namespace libtorrent
 			void dht_get_peers(sha1_hash const& info_hash);
 			void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
-			void dht_direct_request(udp::endpoint ep, entry& e, void* userdata = 0);
+			void dht_direct_request(udp::endpoint ep, entry& e
+				, void* userdata = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 			entry dht_state() const;
@@ -443,15 +444,15 @@ namespace libtorrent
 			void pop_alerts();
 			alert const* pop_alert();
 			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-			int upload_rate_limit() const;
-			int download_rate_limit() const;
+			int upload_rate_limit_depr() const;
+			int download_rate_limit_depr() const;
 			int local_upload_rate_limit() const;
 			int local_download_rate_limit() const;
 
 			void set_local_download_rate_limit(int bytes_per_second);
 			void set_local_upload_rate_limit(int bytes_per_second);
-			void set_download_rate_limit(int bytes_per_second);
-			void set_upload_rate_limit(int bytes_per_second);
+			void set_download_rate_limit_depr(int bytes_per_second);
+			void set_upload_rate_limit_depr(int bytes_per_second);
 			void set_max_connections(int limit);
 			void set_max_uploads(int limit);
 

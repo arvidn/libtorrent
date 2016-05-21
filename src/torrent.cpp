@@ -1434,7 +1434,7 @@ namespace libtorrent
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+	void torrent::add_extension_fun(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
 		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
@@ -4773,7 +4773,7 @@ namespace libtorrent
 		m_state_subscription = false;
 	}
 
-	void torrent::super_seeding(bool on)
+	void torrent::set_super_seeding(bool on)
 	{
 		if (on == m_super_seeding) return;
 
@@ -5948,7 +5948,7 @@ namespace libtorrent
 		update_want_tick();
 	}
 
-	void torrent::remove_web_seed(std::list<web_seed_t>::iterator web)
+	void torrent::remove_web_seed_iter(std::list<web_seed_t>::iterator web)
 	{
 		if (web->resolving)
 		{
@@ -6014,7 +6014,7 @@ namespace libtorrent
 					, web->url, ec);
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6029,7 +6029,7 @@ namespace libtorrent
 					, error_code(libtorrent::errors::peer_banned, get_libtorrent_category()));
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6044,7 +6044,7 @@ namespace libtorrent
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url, errors::unsupported_url_protocol);
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6056,7 +6056,7 @@ namespace libtorrent
 					, errors::invalid_hostname);
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6068,7 +6068,7 @@ namespace libtorrent
 					, errors::invalid_port);
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6080,7 +6080,7 @@ namespace libtorrent
 					, web->url, errors::port_blocked);
 			}
 			// never try it again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6146,7 +6146,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("removed web seed");
 #endif
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6162,7 +6162,7 @@ namespace libtorrent
 
 			// the name lookup failed for the http host. Don't try
 			// this host again
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6189,7 +6189,7 @@ namespace libtorrent
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle()
 					, web->url, ec);
 			}
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -6226,7 +6226,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("removed web seed");
 #endif
-			remove_web_seed(web);
+			remove_web_seed_iter(web);
 			return;
 		}
 
@@ -9146,17 +9146,10 @@ namespace libtorrent
 
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
-	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type)
-	{
-		web_seed_t ent(url, type);
-		// don't add duplicates
-		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
-		m_web_seeds.push_back(ent);
-		set_need_save_resume();
-	}
-
-	void torrent::add_web_seed(std::string const& url, web_seed_entry::type_t type
-		, std::string const& auth, web_seed_entry::headers_t const& extra_headers)
+	void torrent::add_web_seed(std::string const& url
+		, web_seed_entry::type_t type
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
 	{
 		web_seed_t ent(url, type, auth, extra_headers);
 		// don't add duplicates
@@ -10444,7 +10437,7 @@ namespace libtorrent
 			, (boost::bind(&web_seed_t::url, _1)
 				== url && boost::bind(&web_seed_t::type, _1) == type));
 
-		if (i != m_web_seeds.end()) remove_web_seed(i);
+		if (i != m_web_seeds.end()) remove_web_seed_iter(i);
 	}
 
 	void torrent::disconnect_web_seed(peer_connection* p)
@@ -10465,7 +10458,7 @@ namespace libtorrent
 		i->peer_info.connection = 0;
 	}
 
-	void torrent::remove_web_seed(peer_connection* p, error_code const& ec
+	void torrent::remove_web_seed_conn(peer_connection* p, error_code const& ec
 		, operation_t op, int error)
 	{
 		std::list<web_seed_t>::iterator i = std::find_if(m_web_seeds.begin()
@@ -10485,7 +10478,7 @@ namespace libtorrent
 			peer->disconnect(ec, op, error);
 			peer->set_peer_info(0);
 		}
-		remove_web_seed(i);
+		remove_web_seed_iter(i);
 	}
 
 	void torrent::retry_web_seed(peer_connection* p, int retry)
@@ -10791,7 +10784,7 @@ namespace libtorrent
 	}
 
 #if !TORRENT_NO_FPU
-	void torrent::file_progress(std::vector<float>& fp)
+	void torrent::file_progress_float(std::vector<float>& fp)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())

@@ -241,6 +241,8 @@ namespace libtorrent
 		// with just set_flags() and clear_flags() using the flags from
 		// add_torrent_params. Perhaps those flags should have a more generic
 		// name.
+
+		// TODO: 4 remove some of these friends
 		friend class invariant_access;
 		friend struct aux::session_impl;
 		friend class session;
@@ -1280,6 +1282,15 @@ namespace libtorrent
 		boost::shared_ptr<torrent> native_handle() const;
 
 	private:
+
+		template<typename Fun, typename... Args>
+		void async_call(Fun f, Args&&... a) const;
+
+		template<typename Fun, typename... Args>
+		void sync_call(Fun f, Args&&... a) const;
+
+		template<typename Ret, typename Fun, typename... Args>
+		Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
 
 		torrent_handle(boost::weak_ptr<torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
