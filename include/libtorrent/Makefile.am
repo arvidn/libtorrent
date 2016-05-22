@@ -74,7 +74,6 @@ nobase_include_HEADERS = \
   linked_list.hpp              \
   lsd.hpp                      \
   magnet_uri.hpp               \
-  max.hpp                      \
   natpmp.hpp                   \
   operations.hpp               \
   packet_buffer.hpp            \

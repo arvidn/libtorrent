@@ -190,7 +190,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<integer_type*>(data);
+		return *reinterpret_cast<integer_type*>(&data);
 	}
 
 	entry::integer_type const& entry::integer() const
@@ -201,7 +201,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == int_t);
-		return *reinterpret_cast<const integer_type*>(data);
+		return *reinterpret_cast<const integer_type*>(&data);
 	}
 
 	entry::string_type& entry::string()
@@ -213,7 +213,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<string_type*>(data);
+		return *reinterpret_cast<string_type*>(&data);
 	}
 
 	entry::string_type const& entry::string() const
@@ -224,7 +224,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == string_t);
-		return *reinterpret_cast<const string_type*>(data);
+		return *reinterpret_cast<const string_type*>(&data);
 	}
 
 	entry::list_type& entry::list()
@@ -236,7 +236,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<list_type*>(data);
+		return *reinterpret_cast<list_type*>(&data);
 	}
 
 	entry::list_type const& entry::list() const
@@ -247,7 +247,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == list_t);
-		return *reinterpret_cast<const list_type*>(data);
+		return *reinterpret_cast<const list_type*>(&data);
 	}
 
 	entry::dictionary_type& entry::dict()
@@ -259,7 +259,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<dictionary_type*>(data);
+		return *reinterpret_cast<dictionary_type*>(&data);
 	}
 
 	entry::dictionary_type const& entry::dict() const
@@ -270,7 +270,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == dictionary_t);
-		return *reinterpret_cast<const dictionary_type*>(data);
+		return *reinterpret_cast<const dictionary_type*>(&data);
 	}
 
 	entry::preformatted_type& entry::preformatted()
@@ -282,7 +282,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<preformatted_type*>(data);
+		return *reinterpret_cast<preformatted_type*>(&data);
 	}
 
 	entry::preformatted_type const& entry::preformatted() const
@@ -293,7 +293,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type_queried);
 #endif
 		TORRENT_ASSERT(m_type == preformatted_t);
-		return *reinterpret_cast<const preformatted_type*>(data);
+		return *reinterpret_cast<const preformatted_type*>(&data);
 	}
 
 	entry::entry()
@@ -340,7 +340,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) dictionary_type(v);
+		new(&data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
@@ -350,7 +350,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) string_type(v);
+		new(&data) string_type(v);
 		m_type = string_t;
 	}
 
@@ -360,7 +360,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) list_type(v);
+		new(&data) list_type(v);
 		m_type = list_t;
 	}
 
@@ -370,7 +370,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) integer_type(v);
+		new(&data) integer_type(v);
 		m_type = int_t;
 	}
 
@@ -380,7 +380,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
 #endif
-		new(data) preformatted_type(v);
+		new(&data) preformatted_type(v);
 		m_type = preformatted_t;
 	}
 
@@ -465,7 +465,7 @@ namespace libtorrent
 	entry& entry::operator=(preformatted_type const& v)
 	{
 		destruct();
-		new(data) preformatted_type(v);
+		new(&data) preformatted_type(v);
 		m_type = preformatted_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -476,7 +476,7 @@ namespace libtorrent
 	entry& entry::operator=(dictionary_type const& v)
 	{
 		destruct();
-		new(data) dictionary_type(v);
+		new(&data) dictionary_type(v);
 		m_type = dictionary_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -487,7 +487,7 @@ namespace libtorrent
 	entry& entry::operator=(string_type const& v)
 	{
 		destruct();
-		new(data) string_type(v);
+		new(&data) string_type(v);
 		m_type = string_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -498,7 +498,7 @@ namespace libtorrent
 	entry& entry::operator=(list_type const& v)
 	{
 		destruct();
-		new(data) list_type(v);
+		new(&data) list_type(v);
 		m_type = list_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -509,7 +509,7 @@ namespace libtorrent
 	entry& entry::operator=(integer_type const& v)
 	{
 		destruct();
-		new(data) integer_type(v);
+		new(&data) integer_type(v);
 		m_type = int_t;
 #ifdef TORRENT_DEBUG
 		m_type_queried = true;
@@ -544,21 +544,21 @@ namespace libtorrent
 		switch (t)
 		{
 		case int_t:
-			new(data) integer_type;
+			new (&data) integer_type;
 			break;
 		case string_t:
-			new(data) string_type;
+			new (&data) string_type;
 			break;
 		case list_t:
-			new(data) list_type;
+			new (&data) list_type;
 			break;
 		case dictionary_t:
-			new (data) dictionary_type;
+			new (&data) dictionary_type;
 			break;
 		case undefined_t:
 			break;
 		case preformatted_t:
-			new (data) preformatted_type;
+			new (&data) preformatted_type;
 			break;
 		}
 		m_type = t;
@@ -572,22 +572,22 @@ namespace libtorrent
 		switch (e.type())
 		{
 		case int_t:
-			new(data) integer_type(e.integer());
+			new (&data) integer_type(e.integer());
 			break;
 		case string_t:
-			new(data) string_type(e.string());
+			new (&data) string_type(e.string());
 			break;
 		case list_t:
-			new(data) list_type(e.list());
+			new (&data) list_type(e.list());
 			break;
 		case dictionary_t:
-			new (data) dictionary_type(e.dict());
+			new (&data) dictionary_type(e.dict());
 			break;
 		case undefined_t:
 			TORRENT_ASSERT(e.type() == undefined_t);
 			break;
 		case preformatted_t:
-			new (data) preformatted_type(e.preformatted());
+			new (&data) preformatted_type(e.preformatted());
 			break;
 		}
 		m_type = e.type();
@@ -601,19 +601,19 @@ namespace libtorrent
 		switch(m_type)
 		{
 		case int_t:
-			call_destructor(reinterpret_cast<integer_type*>(data));
+			call_destructor(reinterpret_cast<integer_type*>(&data));
 			break;
 		case string_t:
-			call_destructor(reinterpret_cast<string_type*>(data));
+			call_destructor(reinterpret_cast<string_type*>(&data));
 			break;
 		case list_t:
-			call_destructor(reinterpret_cast<list_type*>(data));
+			call_destructor(reinterpret_cast<list_type*>(&data));
 			break;
 		case dictionary_t:
-			call_destructor(reinterpret_cast<dictionary_type*>(data));
+			call_destructor(reinterpret_cast<dictionary_type*>(&data));
 			break;
 		case preformatted_t:
-			call_destructor(reinterpret_cast<preformatted_type*>(data));
+			call_destructor(reinterpret_cast<preformatted_type*>(&data));
 			break;
 		default:
 			TORRENT_ASSERT(m_type == undefined_t);
@@ -650,24 +650,24 @@ namespace libtorrent
 			switch (m_type)
 			{
 			case int_t:
-				std::swap(*reinterpret_cast<integer_type*>(data)
-					, *reinterpret_cast<integer_type*>(e.data));
+				std::swap(*reinterpret_cast<integer_type*>(&data)
+					, *reinterpret_cast<integer_type*>(&e.data));
 				break;
 			case string_t:
-				std::swap(*reinterpret_cast<string_type*>(data)
-					, *reinterpret_cast<string_type*>(e.data));
+				std::swap(*reinterpret_cast<string_type*>(&data)
+					, *reinterpret_cast<string_type*>(&e.data));
 				break;
 			case list_t:
-				std::swap(*reinterpret_cast<list_type*>(data)
-					, *reinterpret_cast<list_type*>(e.data));
+				std::swap(*reinterpret_cast<list_type*>(&data)
+					, *reinterpret_cast<list_type*>(&e.data));
 				break;
 			case dictionary_t:
-				std::swap(*reinterpret_cast<dictionary_type*>(data)
-					, *reinterpret_cast<dictionary_type*>(e.data));
+				std::swap(*reinterpret_cast<dictionary_type*>(&data)
+					, *reinterpret_cast<dictionary_type*>(&e.data));
 				break;
 			case preformatted_t:
-				std::swap(*reinterpret_cast<preformatted_type*>(data)
-					, *reinterpret_cast<preformatted_type*>(e.data));
+				std::swap(*reinterpret_cast<preformatted_type*>(&data)
+					, *reinterpret_cast<preformatted_type*>(&e.data));
 				break;
 			default:
 				break;

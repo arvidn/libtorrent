@@ -60,6 +60,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 
+#include <type_traits>
+
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cinttypes> // for PRId64 et.al.
 #endif
@@ -162,24 +164,22 @@ void observer::set_id(node_id const& id)
 	if (m_algorithm) m_algorithm->resort_results();
 }
 
-enum { observer_size = max9<
-	sizeof(find_data_observer)
-	, sizeof(announce_observer)
-	, sizeof(put_data_observer)
-	, sizeof(direct_observer)
-	, sizeof(get_item_observer)
-	, sizeof(get_peers_observer)
-	, sizeof(obfuscated_get_peers_observer)
-	, sizeof(null_observer)
-	, sizeof(traversal_observer)
-	>::value
-};
+using observer_storage = std::aligned_union<1
+	, find_data_observer
+	, announce_observer
+	, put_data_observer
+	, direct_observer
+	, get_item_observer
+	, get_peers_observer
+	, obfuscated_get_peers_observer
+	, null_observer
+	, traversal_observer>::type;
 
 rpc_manager::rpc_manager(node_id const& our_id
 	, dht_settings const& settings
 	, routing_table& table, udp_socket_interface* sock
 	, dht_logger* log)
-	: m_pool_allocator(observer_size, 10)
+	: m_pool_allocator(sizeof(observer_storage), 10)
 	, m_sock(sock)
 	, m_log(log)
 	, m_settings(settings)
@@ -194,7 +194,7 @@ rpc_manager::~rpc_manager()
 {
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
-	
+
 	for (transactions_t::iterator i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
@@ -221,7 +221,7 @@ void rpc_manager::free_observer(void* ptr)
 #if TORRENT_USE_ASSERTS
 size_t rpc_manager::allocation_size() const
 {
-	return observer_size;
+	return sizeof(observer_storage);
 }
 #endif
 #if TORRENT_USE_INVARIANT_CHECKS

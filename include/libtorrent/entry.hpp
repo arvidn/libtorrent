@@ -76,7 +76,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/max.hpp"
 
 namespace libtorrent
 {
@@ -262,28 +261,20 @@ namespace libtorrent
 
 		void to_string_impl(std::string& out, int indent) const;
 
+		std::aligned_union<1
 #if TORRENT_COMPLETE_TYPES_REQUIRED
-		// workaround for msvc-bug.
-		// assumes sizeof(map<string, char>) == sizeof(map<string, entry>)
-		// and sizeof(list<char>) == sizeof(list<entry>)
-		enum { union_size
-			= max5<sizeof(std::list<char>)
-			, sizeof(std::map<std::string, char>)
-			, sizeof(string_type)
-			, sizeof(integer_type)
-			, sizeof(preformatted_type)>::value
-		};
+			// for implementations that require complete types, use char and hope
+			// for the best
+			, std::list<char>
+			, std::map<std::string, char>
 #else
-		enum { union_size
-			= max5<sizeof(list_type)
-			, sizeof(dictionary_type)
-			, sizeof(string_type)
-			, sizeof(integer_type)
-			, sizeof(preformatted_type)>::value
-		};
+			, list_type
+			, dictionary_type
 #endif
-		integer_type data[(union_size + sizeof(integer_type) - 1)
-			/ sizeof(integer_type)];
+			, preformatted_type
+			, string_type
+			, integer_type
+		>::type data;
 
 		// the bitfield is used so that the m_type_queried field still fits, so
 		// that the ABI is the same for debug builds and release builds. It
