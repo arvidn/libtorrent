@@ -76,8 +76,6 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
-	<debug-iterators>on
-	<logging>on
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
@@ -98,6 +96,8 @@ project
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
+	<debug-iterators>on
+	<logging>on
 	;
 
 feature launcher : none valgrind : composite ;
