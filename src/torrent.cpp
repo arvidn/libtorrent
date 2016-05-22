@@ -9986,7 +9986,6 @@ namespace libtorrent
 	void torrent::do_resume()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (is_paused()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (extension_list_t::iterator i = m_extensions.begin()
