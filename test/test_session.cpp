@@ -141,7 +141,7 @@ TORRENT_TEST(paused_session)
 	h.resume();
 	test_sleep(1000);
 
-	TEST_CHECK(!h.is_paused());
+	TEST_CHECK(!h.status().paused);
 }
 
 #if __cplusplus >= 201103L
