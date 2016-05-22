@@ -106,6 +106,7 @@ set(sources
 	disk_job_pool
 	disk_buffer_pool
 	disk_io_thread
+	disk_io_thread_pool
 	enum_net
 	broadcast_socket
 	magnet_uri

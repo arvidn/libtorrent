@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DEBUG_DISK_THREAD 0
 
 #if DEBUG_DISK_THREAD
+#include <cstdarg>
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
@@ -141,9 +142,12 @@ namespace libtorrent
 		, counters& cnt
 		, void* userdata
 		, int block_size)
-		: m_num_threads(0)
-		, m_abort(false)
+		: m_abort(false)
 		, m_num_running_threads(0)
+		, m_generic_io_jobs(*this, generic_thread)
+		, m_generic_threads(m_generic_io_jobs, ios)
+		, m_hash_io_jobs(*this, hasher_thread)
+		, m_hash_threads(m_hash_io_jobs, ios)
 		, m_userdata(userdata)
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(clock_type::now())
@@ -193,63 +197,26 @@ namespace libtorrent
 	void disk_io_thread::abort(bool wait)
 	{
 		m_abort = true;
-		if (m_num_threads == 0)
+		if (num_threads() == 0)
 		{
 			abort_jobs();
 		}
 		else
 		{
-			set_num_threads(0, wait);
+			m_generic_threads.abort(wait);
+			m_hash_threads.abort(wait);
 		}
 	}
 
 	// TODO: 1 it would be nice to have the number of threads be set dynamically
-	void disk_io_thread::set_num_threads(int const i, bool const wait)
+	void disk_io_thread::set_num_threads(int const i)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		if (i == m_num_threads) return;
 
-		if (i > m_num_threads)
-		{
-			while (m_num_threads < i)
-			{
-				int thread_id = (++m_num_threads) - 1;
-				thread_type_t type = generic_thread;
-
-				// this keeps the io_service::run() call blocked from returning.
-				// When shutting down, it's possible that the event queue is drained
-				// before the disk_io_thread has posted its last callback. When this
-				// happens, the io_service will have a pending callback from the
-				// disk_io_thread, but the event loop is not running. this means
-				// that the event is destructed after the disk_io_thread. If the
-				// event refers to a disk buffer it will try to free it, but the
-				// buffer pool won't exist anymore, and crash. This prevents that.
-				boost::shared_ptr<io_service::work> work =
-					boost::make_shared<io_service::work>(boost::ref(m_ios));
-
-				// the magic number 3 is also used in add_job()
-				// every 4:th thread is a hasher thread
-				if ((thread_id & 0x3) == 3) type = hasher_thread;
-				m_threads.emplace_back(&disk_io_thread::thread_fun, this
-						, thread_id, type, work);
-			}
-		}
-		else
-		{
-			while (m_num_threads > i) { --m_num_threads; }
-			std::unique_lock<std::mutex> l(m_job_mutex);
-			m_job_cond.notify_all();
-			m_hash_job_cond.notify_all();
-			l.unlock();
-			for (int j = m_num_threads; j < m_threads.size(); ++j)
-			{
-				if (wait)
-					m_threads[j].join();
-				else
-					m_threads[j].detach();
-			}
-			m_threads.resize(m_num_threads);
-		}
+		// add one hasher thread for every three generic threads
+		int const num_hash_threads = i / 4;
+		m_generic_threads.set_max_threads(i - num_hash_threads);
+		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 
 	void disk_io_thread::reclaim_block(block_cache_reference ref)
@@ -1140,6 +1107,8 @@ namespace libtorrent
 
 		if (ret == retry_job)
 		{
+			job_queue& q = queue_for_job(j);
+
 			std::unique_lock<std::mutex> l2(m_job_mutex);
 			// to avoid busy looping here, give up
 			// our quanta in case there aren't any other
@@ -1151,8 +1120,8 @@ namespace libtorrent
 
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			bool need_sleep = m_queued_jobs.empty();
-			m_queued_jobs.push_back(j);
+			bool const need_sleep = q.m_queued_jobs.empty();
+			q.m_queued_jobs.push_back(j);
 			l2.unlock();
 			if (need_sleep) std::this_thread::yield();
 			return;
@@ -1818,7 +1787,7 @@ namespace libtorrent
 
 		// TODO: maybe the tailqueue_iterator<disk_io_job> should contain a pointer-pointer
 		// instead and have an unlink function
-		disk_io_job* qj = m_queued_jobs.get_all();
+		disk_io_job* qj = m_generic_io_jobs.m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
 		while (qj)
@@ -1830,7 +1799,7 @@ namespace libtorrent
 			if (qj->storage.get() == storage)
 				to_abort.push_back(qj);
 			else
-				m_queued_jobs.push_back(qj);
+				m_generic_io_jobs.m_queued_jobs.push_back(qj);
 			qj = next;
 		}
 		l2.unlock();
@@ -1899,7 +1868,7 @@ namespace libtorrent
 		// remove outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l2(m_job_mutex);
 
-		disk_io_job* qj = m_queued_hash_jobs.get_all();
+		disk_io_job* qj = m_hash_io_jobs.m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
 		while (qj)
@@ -1911,7 +1880,7 @@ namespace libtorrent
 			if (qj->storage.get() == storage)
 				to_abort.push_back(qj);
 			else
-				m_queued_hash_jobs.push_back(qj);
+				m_hash_io_jobs.m_queued_jobs.push_back(qj);
 			qj = next;
 		}
 		l2.unlock();
@@ -2720,8 +2689,8 @@ namespace libtorrent
 		c.set_value(counters::num_read_jobs, read_jobs_in_use());
 		c.set_value(counters::num_write_jobs, write_jobs_in_use());
 		c.set_value(counters::num_jobs, jobs_in_use());
-		c.set_value(counters::queued_disk_jobs, m_queued_jobs.size()
-			+ m_queued_hash_jobs.size());
+		c.set_value(counters::queued_disk_jobs, m_generic_io_jobs.m_queued_jobs.size()
+			+ m_hash_io_jobs.m_queued_jobs.size());
 
 		jl.unlock();
 
@@ -2824,7 +2793,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		std::unique_lock<std::mutex> jl(m_job_mutex);
-		ret->queued_jobs = m_queued_jobs.size() + m_queued_hash_jobs.size();
+		ret->queued_jobs = m_generic_io_jobs.m_queued_jobs.size() + m_hash_io_jobs.m_queued_jobs.size();
 		jl.unlock();
 #endif
 	}
@@ -3015,13 +2984,13 @@ namespace libtorrent
 			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 			// prioritize fence jobs since they're blocking other jobs
-			m_queued_jobs.push_front(j);
+			m_generic_io_jobs.m_queued_jobs.push_front(j);
 			l.unlock();
 
 			// discard the flush job
 			free_job(fj);
 
-			if (m_num_threads == 0 && user_add)
+			if (num_threads() == 0 && user_add)
 				immediate_execute();
 
 			return;
@@ -3041,7 +3010,7 @@ namespace libtorrent
 			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((fj->flags & disk_io_job::in_progress) || !fj->storage);
 
-			m_queued_jobs.push_front(fj);
+			m_generic_io_jobs.m_queued_jobs.push_front(fj);
 		}
 		else
 		{
@@ -3049,7 +3018,7 @@ namespace libtorrent
 			TORRENT_ASSERT(fj->blocked);
 		}
 
-		if (m_num_threads == 0 && user_add)
+		if (num_threads() == 0 && user_add)
 			immediate_execute();
 	}
 
@@ -3072,13 +3041,13 @@ namespace libtorrent
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-			m_queued_jobs.push_back(j);
+			m_generic_io_jobs.m_queued_jobs.push_back(j);
 
 			// if we literally have 0 disk threads, we have to execute the jobs
 			// immediately. If add job is called internally by the disk_io_thread,
 			// we need to defer executing it. We only want the top level to loop
 			// over the job queue (as is done below)
-			if (m_num_threads == 0 && user_add)
+			if (num_threads() == 0 && user_add)
 			{
 				l.unlock();
 				immediate_execute();
@@ -3108,33 +3077,24 @@ namespace libtorrent
 
 		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-		// if there are at least 3 threads, there's a hasher thread
-		// and the hash jobs go into a separate queue
-		// see set_num_threads()
-		if (m_num_threads > 3 && j->action == disk_io_job::hash)
+		job_queue& q = queue_for_job(j);
+		q.m_queued_jobs.push_back(j);
+		// if we literally have 0 disk threads, we have to execute the jobs
+		// immediately. If add job is called internally by the disk_io_thread,
+		// we need to defer executing it. We only want the top level to loop
+		// over the job queue (as is done below)
+		if (pool_for_job(j).max_threads() == 0 && user_add)
 		{
-			m_queued_hash_jobs.push_back(j);
-		}
-		else
-		{
-			m_queued_jobs.push_back(j);
-			// if we literally have 0 disk threads, we have to execute the jobs
-			// immediately. If add job is called internally by the disk_io_thread,
-			// we need to defer executing it. We only want the top level to loop
-			// over the job queue (as is done below)
-			if (m_num_threads == 0 && user_add)
-			{
-				l.unlock();
-				immediate_execute();
-			}
+			l.unlock();
+			immediate_execute();
 		}
 	}
 
 	void disk_io_thread::immediate_execute()
 	{
-		while (!m_queued_jobs.empty())
+		while (!m_generic_io_jobs.m_queued_jobs.empty())
 		{
-			disk_io_job* j = m_queued_jobs.pop_front();
+			disk_io_job* j = m_generic_io_jobs.m_queued_jobs.pop_front();
 			maybe_flush_write_blocks();
 			execute_job(j);
 		}
@@ -3143,10 +3103,16 @@ namespace libtorrent
 	void disk_io_thread::submit_jobs()
 	{
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		if (!m_queued_jobs.empty())
-			m_job_cond.notify_all();
-		if (!m_queued_hash_jobs.empty())
-			m_hash_job_cond.notify_all();
+		if (!m_generic_io_jobs.m_queued_jobs.empty())
+		{
+			m_generic_io_jobs.m_job_cond.notify_all();
+			m_generic_threads.job_queued(m_generic_io_jobs.m_queued_jobs.size());
+		}
+		if (!m_hash_io_jobs.m_queued_jobs.empty())
+		{
+			m_hash_io_jobs.m_job_cond.notify_all();
+			m_hash_threads.job_queued(m_hash_io_jobs.m_queued_jobs.size());
+		}
 	}
 
 	void disk_io_thread::maybe_flush_write_blocks()
@@ -3157,7 +3123,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		DLOG("blocked_jobs: %d queued_jobs: %d num_threads %d\n"
 			, int(m_stats_counters[counters::blocked_disk_jobs])
-			, m_queued_jobs.size(), int(m_num_threads));
+			, m_generic_io_jobs.m_queued_jobs.size(), int(num_threads()));
 		m_last_cache_expiry = now;
 		jobqueue_t completed_jobs;
 		flush_expired_write_blocks(completed_jobs, l);
@@ -3174,10 +3140,56 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 	}
 
-	void disk_io_thread::thread_fun(int thread_id, thread_type_t type
-		, boost::shared_ptr<io_service::work> w)
+	bool disk_io_thread::wait_for_job(job_queue& jobq, disk_io_thread_pool& threads
+		, std::unique_lock<std::mutex>& l)
 	{
-		DLOG("started disk thread %d\n", int(thread_id));
+		TORRENT_ASSERT(l.owns_lock());
+
+		// the thread should only go active if it is exiting or there is work to do
+		// if the thread goes active on every wakeup it causes the minimum idle thread
+		// count to be lower than it should be
+		// for performance reasons we also want to avoid going idle and active again
+		// if there is already work to do
+		if (jobq.m_queued_jobs.empty())
+		{
+			threads.thread_idle();
+
+			do
+			{
+				// if the number of wanted threads is decreased,
+				// we may stop this thread
+				// when we're terminating the last thread, make sure
+				// we finish up all queued jobs first
+				if (threads.should_exit()
+					&& (jobq.m_queued_jobs.empty()
+						|| threads.num_threads() > 1)
+					// try_thread_exit must be the last condition
+					&& threads.try_thread_exit(std::this_thread::get_id()))
+				{
+					// time to exit this thread.
+					threads.thread_active();
+					return true;
+				}
+
+				jobq.m_job_cond.wait(l);
+			} while (jobq.m_queued_jobs.empty());
+
+			threads.thread_active();
+		}
+
+		return false;
+	}
+
+	void disk_io_thread::thread_fun(thread_type_t type
+		, io_service::work w)
+	{
+		std::thread::id thread_id = std::this_thread::get_id();
+#if DEBUG_DISK_THREAD
+		std::stringstream thread_id_str;
+		thread_id_str << thread_id;
+#endif
+
+		DLOG("started disk thread %s\n", thread_id_str.str().c_str());
 
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
@@ -3188,34 +3200,22 @@ namespace libtorrent
 			disk_io_job* j = 0;
 			if (type == generic_thread)
 			{
-				TORRENT_ASSERT(l.owns_lock());
-				while (m_queued_jobs.empty() && thread_id < m_num_threads) m_job_cond.wait(l);
-
-				// if the number of wanted threads is decreased,
-				// we may stop this thread
-				// when we're terminating the last thread (id=0), make sure
-				// we finish up all queued jobs first
-				if (thread_id >= m_num_threads && !(thread_id == 0 && m_queued_jobs.size() > 0))
-				{
-					// time to exit this thread.
-					break;
-				}
-
-				j = m_queued_jobs.pop_front();
+				bool const should_exit = wait_for_job(m_generic_io_jobs, m_generic_threads, l);
+				if (should_exit) break;
+				j = m_generic_io_jobs.m_queued_jobs.pop_front();
 			}
 			else if (type == hasher_thread)
 			{
-				TORRENT_ASSERT(l.owns_lock());
-				while (m_queued_hash_jobs.empty() && thread_id < m_num_threads) m_hash_job_cond.wait(l);
-				if (m_queued_hash_jobs.empty() && thread_id >= m_num_threads) break;
-				j = m_queued_hash_jobs.pop_front();
+				bool const should_exit = wait_for_job(m_hash_io_jobs, m_hash_threads, l);
+				if (should_exit) break;
+				j = m_hash_io_jobs.m_queued_jobs.pop_front();
 			}
 
 			l.unlock();
 
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			if (thread_id == 0)
+			if (thread_id == m_generic_threads.first_thread_id() && type == generic_thread)
 			{
 				// there's no need for all threads to be doing this
 				maybe_flush_write_blocks();
@@ -3234,8 +3234,8 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, -1);
 		if (--m_num_running_threads > 0 || !m_abort)
 		{
-			DLOG("exiting disk thread %d. num_threads: %d aborting: %d\n"
-				, thread_id, int(m_num_threads), int(m_abort));
+			DLOG("exiting disk thread %s. num_threads: %d aborting: %d\n"
+				, thread_id_str.str().c_str(), int(num_threads()), int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
@@ -3260,18 +3260,18 @@ namespace libtorrent
 		}
 		l2.unlock();
 
-		DLOG("disk thread %d is the last one alive. cleaning up\n", thread_id);
+		DLOG("disk thread %s is the last one alive. cleaning up\n", thread_id_str.str().c_str());
 
 		abort_jobs();
 
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		// release the io_service to allow the run() call to return
-		// we do this once we stop posting new callbacks to it.
 		COMPLETE_ASYNC("disk_io_thread::work");
-		w.reset();
-		// at this point, the disk_io_thread object may have been destructed.
-		// the call to w.reset() above is what synchronizes with the main thread
+
+		// w's dtor releases the io_service to allow the run() call to return
+		// we do this once we stop posting new callbacks to it.
+		// after the dtor has been called, the disk_io_thread object may be destructed
+		TORRENT_UNUSED(w);
 	}
 
 	void disk_io_thread::abort_jobs()
@@ -3297,6 +3297,27 @@ namespace libtorrent
 #endif
 
 		TORRENT_ASSERT(m_magic == 0x1337);
+	}
+
+	int disk_io_thread::num_threads() const
+	{
+		return m_generic_threads.max_threads() + m_hash_threads.max_threads();
+	}
+
+	disk_io_thread::job_queue& disk_io_thread::queue_for_job(disk_io_job* j)
+	{
+		if (m_hash_threads.max_threads() > 0 && j->action == disk_io_job::hash)
+			return m_hash_io_jobs;
+		else
+			return m_generic_io_jobs;
+	}
+
+	disk_io_thread_pool& disk_io_thread::pool_for_job(disk_io_job* j)
+	{
+		if (m_hash_threads.max_threads() > 0 && j->action == disk_io_job::hash)
+			return m_hash_threads;
+		else
+			return m_generic_threads;
 	}
 
 	// this is a callback called by the block_cache when
@@ -3469,7 +3490,7 @@ namespace libtorrent
 			l_.unlock();
 
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			m_queued_jobs.append(other_jobs);
+			m_generic_io_jobs.m_queued_jobs.append(other_jobs);
 			l.unlock();
 
 			while (flush_jobs.size() > 0)
@@ -3478,7 +3499,10 @@ namespace libtorrent
 				add_job(j, false);
 			}
 
-			m_job_cond.notify_all();
+			l.lock();
+			m_generic_io_jobs.m_job_cond.notify_all();
+			m_generic_threads.job_queued(m_generic_io_jobs.m_queued_jobs.size());
+			l.unlock();
 		}
 
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
