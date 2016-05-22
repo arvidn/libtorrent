@@ -541,7 +541,7 @@ void bind_alert()
 
     enum_<peer_blocked_alert::reason_t>("reason_t")
         .value("ip_filter", peer_blocked_alert::reason_t::ip_filter)
-        .value("port_filter", peer_blocked_alert::reason_t::port_filtered)
+        .value("port_filter", peer_blocked_alert::reason_t::port_filter)
         .value("i2p_mixed", peer_blocked_alert::reason_t::i2p_mixed)
         .value("privileged_ports", peer_blocked_alert::reason_t::privileged_ports)
         .value("utp_disabled", peer_blocked_alert::reason_t::utp_disabled)
