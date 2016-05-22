@@ -937,7 +937,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred
 
 	TORRENT_ASSERT(s->m_read_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
-	s->m_io_service.post(boost::bind<void>(s->m_read_handler, ec, bytes_transferred));
+	s->m_io_service.post(std::bind<void>(s->m_read_handler, ec, bytes_transferred));
 	s->m_read_handler.clear();
 //	boost::function2<void, error_code const&, std::size_t> tmp;
 //	tmp.swap(s->m_read_handler);
@@ -961,7 +961,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred
 
 	TORRENT_ASSERT(s->m_write_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
-	s->m_io_service.post(boost::bind<void>(s->m_write_handler, ec, bytes_transferred));
+	s->m_io_service.post(std::bind<void>(s->m_write_handler, ec, bytes_transferred));
 	s->m_write_handler.clear();
 //	boost::function2<void, error_code const&, std::size_t> tmp;
 //	tmp.swap(s->m_read_handler);
@@ -983,7 +983,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 		, static_cast<void*>(s->m_impl), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_connect_handler);
-	s->m_io_service.post(boost::bind<void>(s->m_connect_handler, ec));
+	s->m_io_service.post(std::bind<void>(s->m_connect_handler, ec));
 	s->m_connect_handler.clear();
 //	boost::function1<void, error_code const&> tmp;
 //	s->m_connect_handler.swap(tmp);

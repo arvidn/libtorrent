@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
 #include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"

@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <set>
 #include <numeric>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/ref.hpp>
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 

@@ -37,12 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 
+#include <functional>
+#include <vector>
+#include <stdlib.h> // for wcstombscstombs
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/asio/ip/host_name.hpp>
-#include <boost/bind.hpp>
-#include <vector>
-#include <stdlib.h> // for wcstombscstombs
 
 #if TORRENT_USE_IFCONF
 #include <sys/ioctl.h>
@@ -696,7 +697,7 @@ namespace libtorrent
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
 		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
-			, boost::bind(&ip_route::destination, _1) == address());
+			, [](ip_route const& r) { return r.destination == address(); });
 		if (i == ret.end()) return address();
 		return i->gateway;
 	}

@@ -34,14 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <utility>
-#include <boost/bind.hpp>
-#include <boost/function/function1.hpp>
 #include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
+#include <utility>
 #include <map>
 #include <set>
 #include <string>
@@ -429,13 +427,12 @@ namespace
 				{
 					// delete the least important one (i.e. the one
 					// the fewest peers are announcing)
-					// TODO: c++11 use a lambda here instead
 					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
 						, m_mutable_table.end()
-						, boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_mutable_table_t::value_type::second, _1))
-						< boost::bind(&dht_immutable_item::num_announcers
-							, boost::bind(&dht_mutable_table_t::value_type::second, _2)));
+						, [] (dht_mutable_table_t::value_type const& lhs
+							, dht_mutable_table_t::value_type const& rhs)
+						{ return lhs.second.num_announcers < rhs.second.num_announcers; });
+
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
 					free(j->second.salt);
@@ -461,8 +458,6 @@ namespace
 				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
 				m_counters.mutable_data += 1;
-
-//				std::fprintf(stderr, "added mutable item (%d)\n", int(m_mutable_table.size()));
 			}
 			else
 			{

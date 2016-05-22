@@ -58,8 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
-
-void nop() {}
+using namespace std::placeholders;
 
 static sha1_hash to_hash(char const* s)
 {
@@ -87,6 +86,7 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 }
 
 static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+static void nop_node() {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
@@ -122,7 +122,8 @@ std::list<std::pair<udp::endpoint, entry> >::iterator
 find_packet(udp::endpoint ep)
 {
 	return std::find_if(g_sent_packets.begin(), g_sent_packets.end()
-		, boost::bind(&std::pair<udp::endpoint, entry>::first, _1) == ep);
+		, [&ep] (std::pair<udp::endpoint, entry> const& p)
+		{ return p.first == ep; });
 }
 
 void lazy_from_entry(entry const& e, bdecode_node& l)
@@ -1324,14 +1325,14 @@ void do_test_dht(address(&rand_addr)())
 			std::printf("returned: %d\n", int(temp.size()));
 			TEST_EQUAL(int(temp.size()), (std::min)(bucket_size * 2, int(nodes.size())));
 
-			std::sort(nodes.begin(), nodes.end(), boost::bind(&compare_ref
-					, boost::bind(&node_entry::id, _1)
-					, boost::bind(&node_entry::id, _2), tmp));
+			std::sort(nodes.begin(), nodes.end(), std::bind(&compare_ref
+					, std::bind(&node_entry::id, _1)
+					, std::bind(&node_entry::id, _2), tmp));
 
 			int expected = std::accumulate(nodes.begin(), nodes.begin() + (bucket_size * 2)
-				, 0, boost::bind(&sum_distance_exp, _1, _2, tmp));
+				, 0, std::bind(&sum_distance_exp, _1, _2, tmp));
 			int sum_hits = std::accumulate(temp.begin(), temp.end()
-				, 0, boost::bind(&sum_distance_exp, _1, _2, tmp));
+				, 0, std::bind(&sum_distance_exp, _1, _2, tmp));
 			TEST_EQUAL(bucket_size * 2, int(temp.size()));
 			std::printf("expected: %d actual: %d\n", expected, sum_hits);
 			TEST_EQUAL(expected, sum_hits);
@@ -1429,7 +1430,7 @@ void do_test_dht(address(&rand_addr)())
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
 		nodesv.push_back(initial_node);
-		node.bootstrap(nodesv, boost::bind(&nop));
+		node.bootstrap(nodesv, std::bind(&nop_node));
 
 		TEST_EQUAL(g_sent_packets.size(), 1);
 		if (g_sent_packets.empty()) break;
@@ -1746,7 +1747,7 @@ void do_test_dht(address(&rand_addr)())
 		sha1_hash target = item_target_id(
 			std::pair<char const*, int>(flat_data.c_str(), int(flat_data.size())));
 
-		node.put_item(target, put_data, boost::bind(&put_immutable_item_cb, _1, loop));
+		node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
@@ -1842,7 +1843,7 @@ void do_test_dht(address(&rand_addr)())
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		std::string sig(g_put_item.sig().data(), item_sig_len);
 		node.put_item(public_key, std::string()
-				, boost::bind(&put_mutable_item_cb, _1, _2, loop)
+				, std::bind(&put_mutable_item_cb, _1, _2, loop)
 				, put_mutable_item_data_cb);
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
@@ -1952,7 +1953,7 @@ void do_test_dht(address(&rand_addr)())
 		// kick off a mutable put request
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		node.put_item(public_key, std::string()
-			, boost::bind(&put_mutable_item_cb, _1, _2, 0)
+			, std::bind(&put_mutable_item_cb, _1, _2, 0)
 			, put_mutable_item_data_cb);
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
@@ -2445,7 +2446,7 @@ TORRENT_TEST(routing_table_set_id)
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
 	std::set<node_id> original_nodes;
-	tbl.for_each_node(boost::bind(&inserter, &original_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1));
 
 #if defined TORRENT_DEBUG
 	tbl.print_state(std::cerr);
@@ -2457,7 +2458,7 @@ TORRENT_TEST(routing_table_set_id)
 
 	TEST_CHECK(tbl.num_active_buckets() <= 4);
 	std::set<node_id> remaining_nodes;
-	tbl.for_each_node(boost::bind(&inserter, &remaining_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &remaining_nodes, _1));
 
 	std::set<node_id> intersection;
 	std::set_intersection(remaining_nodes.begin(), remaining_nodes.end()

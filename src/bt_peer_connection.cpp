@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <boost/limits.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <memory> // autp_ptr

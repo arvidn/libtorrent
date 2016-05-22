@@ -36,9 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 struct test_torrent_t
 {
@@ -110,7 +111,7 @@ TORRENT_TEST(resolve_links)
 		std::vector<resolve_links::link_t> const& links = l.get_links();
 
 		std::string::size_type num_matches = std::count_if(links.begin(), links.end()
-			, boost::bind(&resolve_links::link_t::ti, _1));
+			, std::bind(&resolve_links::link_t::ti, _1));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)

@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <set>
@@ -42,15 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <memory>
 #include <thread>
-
-#include <boost/limits.hpp>
-#include <boost/bind.hpp>
-
-#ifdef TORRENT_PROFILE_CALLS
-#include <boost/unordered_map.hpp>
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -72,12 +62,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/aux_/session_call.hpp"
 
 using boost::shared_ptr;
 using boost::weak_ptr;
@@ -316,9 +306,6 @@ namespace libtorrent
 	}
 #endif
 
-#define TORRENT_ASYNC_CALL(x) \
-	m_impl->get_io_service().dispatch(boost::bind(&session_impl:: x, m_impl.get()))
-
 #ifndef TORRENT_CFG
 #error TORRENT_CFG is not defined!
 #endif
@@ -369,7 +356,11 @@ namespace libtorrent
 		aux::dump_call_profile();
 
 		TORRENT_ASSERT(m_impl);
-		TORRENT_ASYNC_CALL(abort);
+		boost::shared_ptr<session_impl> ptr = m_impl;
+
+		// capture the shared_ptr in the dispatched function
+		// to keep the session_impl alive
+		m_impl->get_io_service().dispatch([=]() { ptr->abort(); });
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;

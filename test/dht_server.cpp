@@ -43,15 +43,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
 
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
 
 #include <thread>
+#include <functional>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 struct dht_server
 {
@@ -124,7 +125,7 @@ struct dht_server
 			bool done = false;
 			m_socket.async_receive_from(
 				boost::asio::buffer(buffer, sizeof(buffer)), from, 0
-				, boost::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
+				, std::bind(&incoming_packet, _1, _2, &bytes_transferred, &ec, &done));
 			while (!done)
 			{
 				m_ios.poll_one();

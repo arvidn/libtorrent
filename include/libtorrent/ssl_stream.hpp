@@ -40,10 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
+#include <functional>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function/function1.hpp>
-#include <boost/bind.hpp>
 #include <boost/asio/ssl.hpp>
 
 // openssl seems to believe it owns
@@ -112,8 +113,9 @@ public:
 		// store it in a shared_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
+		using std::placeholders::_1;
 		m_sock.next_layer().async_connect(endpoint
-			, boost::bind(&ssl_stream::connected, this, _1, h));
+			, std::bind(&ssl_stream::connected, this, _1, h));
 	}
 
 	template <class Handler>
@@ -121,8 +123,9 @@ public:
 	{
 		// this is used for accepting SSL connections
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::server
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, std::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
 	void accept_handshake(error_code& ec)
@@ -317,8 +320,9 @@ private:
 			return;
 		}
 
+		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::client
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, std::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
 	void handshake(error_code const& e, boost::shared_ptr<handler_type> h)

@@ -42,13 +42,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <functional>
+
+using namespace std::placeholders;
 
 #define MAX_SYMLINK_PATH 200
 
@@ -181,7 +184,7 @@ namespace libtorrent
 			{
 				iothread->async_hash(storage.get(), *piece_counter
 					, disk_io_job::sequential_access
-					, boost::bind(&on_hash, _1, t, storage, iothread
+					, std::bind(&on_hash, _1, t, storage, iothread
 					, piece_counter, completed_piece, f, ec), NULL);
 				++(*piece_counter);
 			}
@@ -303,7 +306,7 @@ namespace libtorrent
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
 			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
-				, boost::bind(&on_hash, _1, &t, storage, &disk_thread
+				, std::bind(&on_hash, _1, &t, storage, &disk_thread
 				, &piece_counter, &completed_piece, &f, &ec), NULL);
 			++piece_counter;
 			if (piece_counter >= t.num_pieces()) break;
@@ -684,7 +687,8 @@ namespace libtorrent
 		m_urls.push_back(announce_entry(url, tier));
 
 		std::sort(m_urls.begin(), m_urls.end()
-			, boost::bind(&announce_entry::second, _1) < boost::bind(&announce_entry::second, _2));
+			, [] (announce_entry const& lhs, announce_entry const& rhs)
+			{ return lhs.second < rhs.second; } );
 	}
 
 	void create_torrent::set_root_cert(std::string const& cert)

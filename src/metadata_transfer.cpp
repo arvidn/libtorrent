@@ -36,14 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <vector>
 #include <utility>
 #include <numeric>
 #include <algorithm> // count
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"

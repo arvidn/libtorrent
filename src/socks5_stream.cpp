@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_io.hpp"
 
+#include <functional>
+
+using namespace std::placeholders;
+
 namespace libtorrent
 {
 
@@ -145,7 +149,7 @@ namespace libtorrent
 		// TOOD: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
-		m_sock.async_connect(i->endpoint(), boost::bind(
+		m_sock.async_connect(i->endpoint(), std::bind(
 			&socks5_stream::connected, this, _1, h));
 	}
 
@@ -174,7 +178,7 @@ namespace libtorrent
 			}
 			ADD_OUTSTANDING_ASYNC("socks5_stream::handshake1");
 			async_write(m_sock, boost::asio::buffer(m_buffer)
-				, boost::bind(&socks5_stream::handshake1, this, _1, h));
+				, std::bind(&socks5_stream::handshake1, this, _1, h));
 		}
 		else if (m_version == 4)
 		{
@@ -194,7 +198,7 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake2");
 		m_buffer.resize(2);
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&socks5_stream::handshake2, this, _1, h));
+			, std::bind(&socks5_stream::handshake2, this, _1, h));
 	}
 
 	void socks5_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -239,7 +243,7 @@ namespace libtorrent
 
 			ADD_OUTSTANDING_ASYNC("socks5_stream::handshake3");
 			async_write(m_sock, boost::asio::buffer(m_buffer)
-				, boost::bind(&socks5_stream::handshake3, this, _1, h));
+				, std::bind(&socks5_stream::handshake3, this, _1, h));
 		}
 		else
 		{
@@ -257,7 +261,7 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("socks5_stream::handshake4");
 		m_buffer.resize(2);
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&socks5_stream::handshake4, this, _1, h));
+			, std::bind(&socks5_stream::handshake4, this, _1, h));
 	}
 
 	void socks5_stream::handshake4(error_code const& e
@@ -347,7 +351,7 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connect1");
 		async_write(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&socks5_stream::connect1, this, _1, h));
+			, std::bind(&socks5_stream::connect1, this, _1, h));
 	}
 
 	void socks5_stream::connect1(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -362,7 +366,7 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connect2");
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&socks5_stream::connect2, this, _1, h));
+			, std::bind(&socks5_stream::connect2, this, _1, h));
 	}
 
 	void socks5_stream::connect2(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -447,7 +451,7 @@ namespace libtorrent
 			ADD_OUTSTANDING_ASYNC("socks5_stream::connect3");
 			TORRENT_ASSERT(extra_bytes > 0);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
-				, boost::bind(&socks5_stream::connect3, this, _1, h));
+				, std::bind(&socks5_stream::connect3, this, _1, h));
 		}
 		else if (m_version == 4)
 		{

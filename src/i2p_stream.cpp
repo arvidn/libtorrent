@@ -40,9 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_I2P
 
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "libtorrent/debug.hpp"
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -140,7 +142,7 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::on_sam_connect");
 		m_sam_socket->async_connect(tcp::endpoint()
-			, boost::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
+			, std::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
 	}
 
 	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h, boost::shared_ptr<i2p_stream>)
@@ -154,7 +156,7 @@ namespace libtorrent
 			return;
 		}
 
-		do_name_lookup("ME", boost::bind(&i2p_connection::set_local_endpoint, this, _1, _2, h));
+		do_name_lookup("ME", std::bind(&i2p_connection::set_local_endpoint, this, _1, _2, h));
 	}
 
 	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest
@@ -184,7 +186,7 @@ namespace libtorrent
 		m_state = sam_name_lookup;
 		m_sam_socket->set_name_lookup(name.c_str());
 		boost::shared_ptr<i2p_stream::handler_type> h(new i2p_stream::handler_type(
-			boost::bind(&i2p_connection::on_name_lookup, this, _1, handler, m_sam_socket)));
+			std::bind(&i2p_connection::on_name_lookup, this, _1, handler, m_sam_socket)));
 		m_sam_socket->send_name_lookup(h);
 	}
 
@@ -242,7 +244,7 @@ namespace libtorrent
 		}
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::connected");
-		m_sock.async_connect(i->endpoint(), boost::bind(
+		m_sock.async_connect(i->endpoint(), std::bind(
 			&i2p_stream::connected, this, _1, h));
 	}
 
@@ -258,7 +260,7 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1)
-			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
+			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 //		std::fprintf(stderr, ">>> %s", cmd);
 	}
 
@@ -271,7 +273,7 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 		m_buffer.resize(1);
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&i2p_stream::read_line, this, _1, h));
+			, std::bind(&i2p_stream::read_line, this, _1, h));
 	}
 
 	void i2p_stream::read_line(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -289,7 +291,7 @@ namespace libtorrent
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[read_pos], 1)
-				, boost::bind(&i2p_stream::read_line, this, _1, h));
+				, std::bind(&i2p_stream::read_line, this, _1, h));
 			return;
 		}
 		m_buffer[read_pos - 1] = 0;
@@ -441,7 +443,7 @@ namespace libtorrent
 			m_buffer.resize(1);
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 			async_read(m_sock, boost::asio::buffer(m_buffer)
-				, boost::bind(&i2p_stream::read_line, this, _1, h));
+				, std::bind(&i2p_stream::read_line, this, _1, h));
 			break;
 		}
 
@@ -458,7 +460,7 @@ namespace libtorrent
 //		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
-			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
+			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_accept(boost::shared_ptr<handler_type> h)
@@ -470,7 +472,7 @@ namespace libtorrent
 //		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
-			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
+			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_session_create(boost::shared_ptr<handler_type> h)
@@ -483,7 +485,7 @@ namespace libtorrent
 //		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
-			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
+			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
 	void i2p_stream::send_name_lookup(boost::shared_ptr<handler_type> h)
@@ -495,7 +497,7 @@ namespace libtorrent
 //		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
-			, boost::bind(&i2p_stream::start_read_line, this, _1, h));
+			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 }
 

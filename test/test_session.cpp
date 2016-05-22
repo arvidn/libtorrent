@@ -31,13 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
-#include <boost/ref.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -50,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
+using namespace std::placeholders;
 using namespace libtorrent;
 namespace lt = libtorrent;
 
@@ -159,7 +154,7 @@ TORRENT_TEST(load_empty_file)
 
 	add_torrent_params atp;
 	error_code ignore_errors;
-	atp.ti = boost::make_shared<torrent_info>("", 0, boost::ref(ignore_errors));
+	atp.ti = boost::make_shared<torrent_info>("", 0, std::ref(ignore_errors));
 	atp.save_path = ".";
 	error_code ec;
 	torrent_handle h = ses.add_torrent(atp, ec);
@@ -172,8 +167,8 @@ TORRENT_TEST(session_stats)
 {
 	std::vector<stats_metric> stats = session_stats_metrics();
 	std::sort(stats.begin(), stats.end()
-		, boost::bind(&stats_metric::value_index, _1)
-		< boost::bind(&stats_metric::value_index, _2));
+		, [](stats_metric const& lhs, stats_metric const& rhs)
+		{ return lhs.value_index < rhs.value_index; });
 
 	TEST_EQUAL(stats.size(), lt::counters::num_counters);
 	// make sure every stat index is represented in the stats_metric vector

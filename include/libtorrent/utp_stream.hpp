@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
 
@@ -301,13 +301,13 @@ public:
 	{
 		if (!endpoint.address().is_v4())
 		{
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
@@ -320,14 +320,14 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
 		TORRENT_ASSERT(!m_read_handler);
 		if (m_read_handler)
 		{
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 		std::size_t bytes_added = 0;
@@ -344,7 +344,7 @@ public:
 		{
 			// if we're reading 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
+			m_io_service.post(std::bind<void>(handler, error_code(), 0));
 			return;
 		}
 
@@ -357,7 +357,7 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::not_connected, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::not_connected, 0));
 			return;
 		}
 
@@ -365,7 +365,7 @@ public:
 		if (m_read_handler)
 		{
 			TORRENT_ASSERT_FAIL(); // we should never do this!
-			m_io_service.post(boost::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
+			m_io_service.post(std::bind<void>(handler, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
 		m_read_handler = handler;
@@ -453,7 +453,7 @@ public:
 	{
 		if (m_impl == 0)
 		{
-			m_io_service.post(boost::bind<void>(handler
+			m_io_service.post(std::bind<void>(handler
 				, boost::asio::error::not_connected, 0));
 			return;
 		}
@@ -461,7 +461,7 @@ public:
 		TORRENT_ASSERT(!m_write_handler);
 		if (m_write_handler)
 		{
-			m_io_service.post(boost::bind<void>(handler
+			m_io_service.post(std::bind<void>(handler
 				, boost::asio::error::operation_not_supported, 0));
 			return;
 		}
@@ -480,7 +480,7 @@ public:
 		{
 			// if we're writing 0 bytes, post handler immediately
 			// asio's SSL layer depends on this behavior
-			m_io_service.post(boost::bind<void>(handler, error_code(), 0));
+			m_io_service.post(std::bind<void>(handler, error_code(), 0));
 			return;
 		}
 		m_write_handler = handler;

@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp" // for random()
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-#include <boost/bind.hpp>
-
 namespace libtorrent
 {
 	ip_voter::ip_voter()
@@ -118,13 +116,13 @@ namespace libtorrent
 
 		// do we already have an entry for this external IP?
 		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
-			, m_external_addresses.end(), boost::bind(&external_ip_t::addr, _1) == ip);
+			, m_external_addresses.end(), [&ip] (external_ip_t const& e) { return e.addr == ip; });
 
 		if (i == m_external_addresses.end())
 		{
 			// each IP only gets to add a new IP once
 			if (m_external_address_voters.find(k)) return maybe_rotate();
-		
+
 			if (m_external_addresses.size() > 40)
 			{
 				if (random() % 100 < 50)
@@ -148,7 +146,7 @@ namespace libtorrent
 		// add one more vote to this external IP
 		if (!i->add_vote(k, source_type)) return maybe_rotate();
 		++m_total_votes;
-		
+
 		if (m_valid_external) return maybe_rotate();
 
 		i = std::min_element(m_external_addresses.begin(), m_external_addresses.end());

@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 using namespace sim;
+using namespace std::placeholders;
 
 #if !defined TORRENT_DISABLE_DHT
 
@@ -106,7 +107,7 @@ TORRENT_TEST(dht_rate_limit)
 	counters cnt;
 	entry state;
 	boost::shared_ptr<lt::dht::dht_tracker> dht = boost::make_shared<lt::dht::dht_tracker>(
-		&o, boost::ref(dht_ios), boost::bind(&udp_socket::send, &sock, _1, _2, _3, _4)
+		&o, boost::ref(dht_ios), std::bind(&udp_socket::send, &sock, _1, _2, _3, _4)
 		, dhtsett, cnt, dht::dht_default_storage_constructor, state);
 
 	bool stop = false;

@@ -28,9 +28,9 @@ environment:
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: gcc
-    model: 64
-    linkflags: '"-LC:\\OpenSSL-Win64\\lib64"'
-    include: '"c:\\OpenSSL-Win64\\include"'
+    model: 32
+    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
+    include: '"c:\\OpenSSL-Win32\\include"'
 
 install:
 - if defined sim ( git submodule update --init --recursive )
@@ -59,7 +59,7 @@ install:
 - ps: '"using msvc : 14.0 ;`nusing gcc : : : <cxxflags>-std=c++11 ;`nusing python : 3.5 : c:\\Python35-x64 : c:\\Python35-x64\\include : c:\\Python35-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
 - cd %ROOT_DIRECTORY%
-- set PATH=c:\msys64\mingw64\bin;%PATH%
+- set PATH=c:\msys64\mingw32\bin;%PATH%
 - g++ --version
 - python --version
 - echo %ROOT_DIRECTORY%

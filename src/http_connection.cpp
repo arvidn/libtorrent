@@ -44,13 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/time.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
+#include <functional>
 #include <string>
 #include <algorithm>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+using namespace std::placeholders;
 
 namespace libtorrent {
 
@@ -143,7 +141,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	if (ec)
 	{
-		m_timer.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(std::bind(&http_connection::callback
 			, me, ec, static_cast<char*>(NULL), 0));
 		return;
 	}
@@ -155,7 +153,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 		)
 	{
 		error_code err(errors::unsupported_url_protocol);
-		m_timer.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(std::bind(&http_connection::callback
 			, me, err, static_cast<char*>(NULL), 0));
 		return;
 	}
@@ -251,7 +249,7 @@ void http_connection::start(std::string const& hostname, int port
 	m_timer.expires_from_now((std::min)(
 		m_read_timeout, m_completion_timeout), ec);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-	m_timer.async_wait(boost::bind(&http_connection::on_timeout
+	m_timer.async_wait(std::bind(&http_connection::on_timeout
 		, boost::weak_ptr<http_connection>(me), _1));
 	m_called = false;
 	m_parser.reset();
@@ -261,7 +259,7 @@ void http_connection::start(std::string const& hostname, int port
 
 	if (ec)
 	{
-		m_timer.get_io_service().post(boost::bind(&http_connection::callback
+		m_timer.get_io_service().post(std::bind(&http_connection::callback
 			, me, ec, static_cast<char*>(NULL), 0));
 		return;
 	}
@@ -271,7 +269,7 @@ void http_connection::start(std::string const& hostname, int port
 	{
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
-			, boost::bind(&http_connection::on_write, me, _1));
+			, std::bind(&http_connection::on_write, me, _1));
 	}
 	else
 	{
@@ -299,7 +297,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
-			m_timer.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(std::bind(&http_connection::callback
 				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), static_cast<char*>(NULL), 0));
 			return;
 		}
@@ -340,7 +338,7 @@ void http_connection::start(std::string const& hostname, int port
 					m_ssl_ctx->set_verify_mode(ssl::context::verify_none, ec);
 					if (ec)
 					{
-						m_timer.get_io_service().post(boost::bind(&http_connection::callback
+						m_timer.get_io_service().post(std::bind(&http_connection::callback
 								, me, ec, static_cast<char*>(NULL), 0));
 						return;
 					}
@@ -361,7 +359,7 @@ void http_connection::start(std::string const& hostname, int port
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
-				m_timer.get_io_service().post(boost::bind(&http_connection::callback
+				m_timer.get_io_service().post(std::bind(&http_connection::callback
 					, me, ec, static_cast<char*>(NULL), 0));
 				return;
 			}
@@ -370,7 +368,7 @@ void http_connection::start(std::string const& hostname, int port
 		setup_ssl_hostname(m_sock, hostname, ec);
 		if (ec)
 		{
-			m_timer.get_io_service().post(boost::bind(&http_connection::callback
+			m_timer.get_io_service().post(std::bind(&http_connection::callback
 				, me, ec, static_cast<char*>(NULL), 0));
 			return;
 		}
@@ -384,7 +382,7 @@ void http_connection::start(std::string const& hostname, int port
 			if (hostname.length() < 516) // Base64 encoded  destination with optional .i2p
 			{
 				ADD_OUTSTANDING_ASYNC("http_connection::on_i2p_resolve");
-				i2p_conn->async_name_lookup(hostname.c_str(), boost::bind(&http_connection::on_i2p_resolve
+				i2p_conn->async_name_lookup(hostname.c_str(), std::bind(&http_connection::on_i2p_resolve
 					, me, _1, _2));
 			}
 			else
@@ -405,7 +403,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			ADD_OUTSTANDING_ASYNC("http_connection::on_resolve");
 			m_resolver.async_resolve(hostname, m_resolve_flags
-				, boost::bind(&http_connection::on_resolve
+				, std::bind(&http_connection::on_resolve
 				, me, _1, _2));
 		}
 		m_hostname = hostname;
@@ -454,7 +452,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 	c->m_timer.expires_at((std::min)(
 		c->m_last_receive + c->m_read_timeout
 		, c->m_start_time + c->m_completion_timeout), ec);
-	c->m_timer.async_wait(boost::bind(&http_connection::on_timeout, p, _1));
+	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
 
 void http_connection::close(bool force)
@@ -492,7 +490,7 @@ void http_connection::connect_i2p_tracker(char const* destination)
 	m_sock.get<i2p_stream>()->set_session_id(m_i2p_conn->session_id());
 #endif
 	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
-	m_sock.async_connect(tcp::endpoint(), boost::bind(&http_connection::on_connect
+	m_sock.async_connect(tcp::endpoint(), std::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
 
@@ -542,8 +540,8 @@ void http_connection::on_resolve(error_code const& e
 	// we'll talk to it from the same IP that we're listening on
 	if (m_bind_addr != address_v4::any())
 		std::partition(m_endpoints.begin(), m_endpoints.end()
-			, boost::bind(&address::is_v4, boost::bind(&tcp::endpoint::address, _1))
-				== m_bind_addr.is_v4());
+			, [this] (tcp::endpoint const& ep)
+			{ return ep.address().is_v4() == m_bind_addr.is_v4(); });
 #endif
 
 	connect();
@@ -597,7 +595,7 @@ void http_connection::connect()
 	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
 	TORRENT_ASSERT(!m_connecting);
 	m_connecting = true;
-	m_sock.async_connect(target_address, boost::bind(&http_connection::on_connect
+	m_sock.async_connect(target_address, std::bind(&http_connection::on_connect
 		, shared_from_this(), _1));
 }
 
@@ -614,7 +612,7 @@ void http_connection::on_connect(error_code const& e)
 		if (m_connect_handler) m_connect_handler(*this);
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
-			, boost::bind(&http_connection::on_write, shared_from_this(), _1));
+			, std::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
 	else if (m_next_ep < m_endpoints.size() && !m_abort)
 	{
@@ -698,7 +696,7 @@ void http_connection::on_write(error_code const& e)
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, boost::bind(&http_connection::on_read
+		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 }
 
@@ -849,7 +847,7 @@ void http_connection::on_read(error_code const& e
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, boost::bind(&http_connection::on_read
+		, std::bind(&http_connection::on_read
 			, me, _1, _2));
 }
 
@@ -879,14 +877,14 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
 		, amount_to_read)
-		, boost::bind(&http_connection::on_read
+		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 
 	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_from_now(milliseconds(250), ec);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-	m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
+	m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
 		, shared_from_this(), _1));
 }
 
@@ -900,7 +898,7 @@ void http_connection::rate_limit(int limit)
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_from_now(milliseconds(250), ec);
 		ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-		m_limiter_timer.async_wait(boost::bind(&http_connection::on_assign_bandwidth
+		m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
 			, shared_from_this(), _1));
 	}
 	m_rate_limit = limit;

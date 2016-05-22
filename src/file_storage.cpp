@@ -37,19 +37,21 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/crc.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio>
 #include <algorithm>
+#include <functional>
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
 #else
 #define TORRENT_SEPARATOR '/'
 #endif
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -198,7 +200,7 @@ namespace libtorrent
 		// do we already have this path in the path list?
 		std::vector<std::string>::reverse_iterator p
 			= std::find_if(m_paths.rbegin(), m_paths.rend()
-				, boost::bind(&compare_string, branch_path, branch_len, _1));
+				, std::bind(&compare_string, branch_path, branch_len, _1));
 
 		if (p == m_paths.rend())
 		{

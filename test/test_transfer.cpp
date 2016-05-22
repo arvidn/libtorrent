@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 
 #include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <fstream>
 #include <iostream>

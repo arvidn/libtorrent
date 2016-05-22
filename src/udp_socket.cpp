@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <array>
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 using namespace libtorrent::aux;
+using namespace std::placeholders;
 
 // this class hold the state of the SOCKS5 connection to maintain the UDP
 // ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
@@ -497,7 +498,7 @@ void socks5::start(aux::proxy_settings const& ps)
 	// TODO: use the system resolver_interface here
 	tcp::resolver::query q(ps.hostname, to_string(ps.port).data());
 	ADD_OUTSTANDING_ASYNC("socks5::on_name_lookup");
-	m_resolver.async_resolve(q, boost::bind(
+	m_resolver.async_resolve(q, std::bind(
 		&socks5::on_name_lookup, self(), _1, _2));
 }
 
@@ -522,11 +523,11 @@ void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connected");
 	m_socks5_sock.async_connect(tcp::endpoint(m_proxy_addr.address(), m_proxy_addr.port())
-		, boost::bind(&socks5::on_connected, self(), _1));
+		, std::bind(&socks5::on_connected, self(), _1));
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connect_timeout");
 	m_timer.expires_from_now(seconds(10));
-	m_timer.async_wait(boost::bind(&socks5::on_connect_timeout
+	m_timer.async_wait(std::bind(&socks5::on_connect_timeout
 		, self(), _1));
 }
 
@@ -575,7 +576,7 @@ void socks5::on_connected(error_code const& e)
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake1");
 	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&socks5::handshake1, self(), _1));
+		, std::bind(&socks5::handshake1, self(), _1));
 }
 
 void socks5::handshake1(error_code const& e)
@@ -586,7 +587,7 @@ void socks5::handshake1(error_code const& e)
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&socks5::handshake2, self(), _1));
+		, std::bind(&socks5::handshake2, self(), _1));
 }
 
 void socks5::handshake2(error_code const& e)
@@ -634,7 +635,7 @@ void socks5::handshake2(error_code const& e)
 		TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 		ADD_OUTSTANDING_ASYNC("socks5::on_handshake3");
 		boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-			, boost::bind(&socks5::handshake3, self(), _1));
+			, std::bind(&socks5::handshake3, self(), _1));
 	}
 	else
 	{
@@ -652,7 +653,7 @@ void socks5::handshake3(error_code const& e)
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake4");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 2)
-		, boost::bind(&socks5::handshake4, self(), _1));
+		, std::bind(&socks5::handshake4, self(), _1));
 }
 
 void socks5::handshake4(error_code const& e)
@@ -688,7 +689,7 @@ void socks5::socks_forward_udp()
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 	ADD_OUTSTANDING_ASYNC("socks5::connect1");
 	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
-		, boost::bind(&socks5::connect1, self(), _1));
+		, std::bind(&socks5::connect1, self(), _1));
 }
 
 void socks5::connect1(error_code const& e)
@@ -699,7 +700,7 @@ void socks5::connect1(error_code const& e)
 
 	ADD_OUTSTANDING_ASYNC("socks5::connect2");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&socks5::connect2, self(), _1));
+		, std::bind(&socks5::connect2, self(), _1));
 }
 
 void socks5::connect2(error_code const& e)
@@ -737,7 +738,7 @@ void socks5::connect2(error_code const& e)
 
 	ADD_OUTSTANDING_ASYNC("socks5::hung_up");
 	boost::asio::async_read(m_socks5_sock, boost::asio::buffer(m_tmp_buf, 10)
-		, boost::bind(&socks5::hung_up, self(), _1));
+		, std::bind(&socks5::hung_up, self(), _1));
 }
 
 void socks5::hung_up(error_code const& e)

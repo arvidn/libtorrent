@@ -31,9 +31,12 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/resolver.hpp"
-#include <boost/bind.hpp>
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
+
+#include <functional>
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -96,7 +99,7 @@ namespace libtorrent
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				error_code ec;
-				m_ios.post(boost::bind(h, ec, i->second.addresses));
+				m_ios.post(std::bind(h, ec, i->second.addresses));
 				return;
 			}
 		}
@@ -109,7 +112,7 @@ namespace libtorrent
 		{
 			std::vector<address> addresses;
 			addresses.push_back(ip);
-			m_ios.post(boost::bind(h, ec, addresses));
+			m_ios.post(std::bind(h, ec, addresses));
 			return;
 		}
 
@@ -119,12 +122,12 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
-			m_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+			m_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 		else
 		{
-			m_critical_resolver.async_resolve(q, boost::bind(&resolver::on_lookup, this, _1, _2
+			m_critical_resolver.async_resolve(q, std::bind(&resolver::on_lookup, this, _1, _2
 				, h, host));
 		}
 	}

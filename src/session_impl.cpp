@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <functional>
 
 #if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
 #include <unordered_set>
@@ -46,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/limits.hpp>
-#include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/asio/ip/v6_only.hpp>
@@ -184,6 +184,7 @@ namespace
 using boost::shared_ptr;
 using boost::weak_ptr;
 using libtorrent::aux::session_impl;
+using namespace std::placeholders;
 
 #ifdef BOOST_NO_EXCEPTIONS
 namespace boost {
@@ -337,8 +338,8 @@ namespace aux {
 		, m_tcp_peer_class(0)
 		, m_local_peer_class(0)
 		, m_tracker_manager(
-			boost::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
-			, boost::bind(&session_impl::send_udp_packet_hostname, this, _1, _2, _3, _4, _5)
+			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
+			, std::bind(&session_impl::send_udp_packet_hostname, this, _1, _2, _3, _4, _5)
 			, m_stats_counters
 			, m_host_resolver
 			, m_settings
@@ -376,14 +377,14 @@ namespace aux {
 		, m_outstanding_router_lookups(0)
 #endif
 		, m_utp_socket_manager(
-			boost::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
-			, boost::bind(&session_impl::incoming_connection, this, _1)
+			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
+			, std::bind(&session_impl::incoming_connection, this, _1)
 			, m_io_service
 			, m_settings, m_stats_counters, NULL)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_utp_socket_manager(
-			boost::bind(&session_impl::send_udp_packet, this, true, _1, _2, _3, _4)
-			, boost::bind(&session_impl::on_incoming_utp_ssl, this, _1)
+			std::bind(&session_impl::send_udp_packet, this, true, _1, _2, _3, _4)
+			, std::bind(&session_impl::on_incoming_utp_ssl, this, _1)
 			, m_io_service
 			, m_settings, m_stats_counters
 			, &m_ssl_ctx)
@@ -494,7 +495,7 @@ namespace aux {
 #endif
 
 		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(pack);
-		m_io_service.post(boost::bind(&session_impl::init, this, copy));
+		m_io_service.post(std::bind(&session_impl::init, this, copy));
 	}
 
 	void session_impl::init(boost::shared_ptr<settings_pack> pack)
@@ -515,8 +516,8 @@ namespace aux {
 			std::string stats_header = "session stats header: ";
 			std::vector<stats_metric> stats = session_stats_metrics();
 			std::sort(stats.begin(), stats.end()
-				, boost::bind(&stats_metric::value_index, _1)
-				< boost::bind(&stats_metric::value_index, _2));
+				, [] (stats_metric const& lhs, stats_metric const& rhs)
+				{ return lhs.value_index < rhs.value_index; });
 			for (int i = 0; i < stats.size(); ++i)
 			{
 				if (i > 0) stats_header += ", ";
@@ -535,14 +536,14 @@ namespace aux {
 		add_outstanding_async("session_impl::on_tick");
 #endif
 		error_code ec;
-		m_io_service.post(boost::bind(&session_impl::on_tick, this, ec));
+		m_io_service.post(std::bind(&session_impl::on_tick, this, ec));
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
-			boost::bind(&session_impl::on_lsd_announce, this, _1));
+			std::bind(&session_impl::on_lsd_announce, this, _1));
 		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_DHT
@@ -981,7 +982,7 @@ namespace aux {
 		// shutdown_stage2 from there.
 		if (m_undead_peers.empty())
 		{
-			m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+			m_io_service.post(std::bind(&session_impl::abort_stage2, this));
 		}
 	}
 
@@ -1392,7 +1393,7 @@ namespace aux {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		m_io_service.post(boost::bind(&session_impl::submit_disk_jobs, this));
+		m_io_service.post(std::bind(&session_impl::submit_disk_jobs, this));
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -1815,7 +1816,7 @@ namespace aux {
 
 		// TODO: 2 use a handler allocator here
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		ret.udp_sock->async_read(boost::bind(&session_impl::on_udp_packet
+		ret.udp_sock->async_read(std::bind(&session_impl::on_udp_packet
 			, this, boost::weak_ptr<udp_socket>(ret.udp_sock), ret.ssl, _1));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2047,7 +2048,7 @@ namespace aux {
 		m_socks_listen_port = listen_port();
 		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
 		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
-			, boost::bind(&session_impl::on_socks_listen, this
+			, std::bind(&session_impl::on_socks_listen, this
 				, m_socks_listen_socket, _1));
 	}
 
@@ -2084,7 +2085,7 @@ namespace aux {
 		add_outstanding_async("session_impl::on_socks_accept");
 #endif
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
-		s.async_accept(boost::bind(&session_impl::on_socks_accept, this
+		s.async_accept(std::bind(&session_impl::on_socks_accept, this
 				, m_socks_listen_socket, _1));
 	}
 
@@ -2122,7 +2123,7 @@ namespace aux {
 		}
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
-			, boost::bind(&session_impl::on_i2p_open, this, _1));
+			, std::bind(&session_impl::on_i2p_open, this, _1));
 #endif
 	}
 
@@ -2174,7 +2175,7 @@ namespace aux {
 		s.set_session_id(m_i2p_conn.session_id());
 
 		s.async_connect(tcp::endpoint()
-			, boost::bind(&session_impl::on_i2p_accept, this, m_i2p_listen_socket, _1));
+			, std::bind(&session_impl::on_i2p_accept, this, m_i2p_listen_socket, _1));
 	}
 
 	void session_impl::on_i2p_accept(boost::shared_ptr<socket_type> const& s
@@ -2225,7 +2226,7 @@ namespace aux {
 			{
 				i->udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-				i->udp_sock->async_write(boost::bind(&session_impl::on_udp_writeable
+				i->udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
 					, this, boost::weak_ptr<udp_socket>(i->udp_sock), _1));
 			}
 			return;
@@ -2258,7 +2259,7 @@ namespace aux {
 			{
 				i->udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-				i->udp_sock->async_write(boost::bind(&session_impl::on_udp_writeable
+				i->udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
 					, this, boost::weak_ptr<udp_socket>(i->udp_sock), _1));
 			}
 			return;
@@ -2276,7 +2277,7 @@ namespace aux {
 
 		std::list<listen_socket_t>::iterator i = std::find_if(
 			m_listen_sockets.begin(), m_listen_sockets.end()
-			, boost::bind(&listen_socket_t::udp_sock, _1) == sock);
+			, [&sock] (listen_socket_t const& ls) { return ls.udp_sock == sock; });
 
 		if (i == m_listen_sockets.end()) return;
 
@@ -2431,7 +2432,7 @@ namespace aux {
 		mgr.socket_drained();
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
-		s->async_read(boost::bind(&session_impl::on_udp_packet
+		s->async_read(std::bind(&session_impl::on_udp_packet
 			, this, socket, ssl, _1));
 	}
 
@@ -2465,7 +2466,7 @@ namespace aux {
 #endif
 
 		listener->async_accept(*str
-			, boost::bind(&session_impl::on_accept_connection, this, c
+			, std::bind(&session_impl::on_accept_connection, this, c
 			, boost::weak_ptr<tcp::acceptor>(listener), _1, ssl));
 	}
 
@@ -2518,13 +2519,9 @@ namespace aux {
 				if (m_settings.get_int(settings_pack::connections_limit) > 10)
 				{
 					// now, disconnect a random peer
-					torrent_map::iterator i = std::max_element(m_torrents.begin()
-						, m_torrents.end()
-							, boost::bind(&torrent::num_peers
-								, boost::bind(&torrent_map::value_type::second, _1))
-							< boost::bind(&torrent::num_peers
-								, boost::bind(&torrent_map::value_type::second, _2))
-							);
+					torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
+						, [](torrent_map::value_type const& lhs, torrent_map::value_type const& rhs)
+						{ return lhs.second->num_peers() < rhs.second->num_peers(); });
 
 					if (m_alerts.should_post<performance_alert>())
 						m_alerts.emplace_alert<performance_alert>(
@@ -2560,7 +2557,7 @@ namespace aux {
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 			s->get<ssl_stream<tcp::socket> >()->async_accept_handshake(
-				boost::bind(&session_impl::ssl_handshake, this, _1, s));
+				std::bind(&session_impl::ssl_handshake, this, _1, s));
 			m_incoming_sockets.insert(s);
 		}
 		else
@@ -2580,7 +2577,7 @@ namespace aux {
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
 		s->get<ssl_stream<utp_stream> >()->async_accept_handshake(
-			boost::bind(&session_impl::ssl_handshake, this, _1, s));
+			std::bind(&session_impl::ssl_handshake, this, _1, s));
 		m_incoming_sockets.insert(s);
 	}
 
@@ -2979,16 +2976,15 @@ namespace aux {
 	bool session_impl::has_peer(peer_connection const* p) const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		return std::find_if(m_connections.begin(), m_connections.end()
-			, boost::bind(&boost::shared_ptr<peer_connection>::get, _1) == p)
-			!= m_connections.end();
+		return std::any_of(m_connections.begin(), m_connections.end()
+			, [p] (boost::shared_ptr<peer_connection> const& pr)
+			{ return pr.get() == p; });
 	}
 
 	bool session_impl::any_torrent_has_peer(peer_connection const* p) const
 	{
-		for (aux::session_impl::torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-			if (i->second->has_peer(p)) return true;
+		for (auto& pe : m_torrents)
+			if (pe.second->has_peer(p)) return true;
 		return false;
 	}
 #endif
@@ -3046,7 +3042,7 @@ namespace aux {
 		{
 			std::vector<boost::shared_ptr<peer_connection> >::iterator remove_it
 				= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
-				, boost::bind(&boost::shared_ptr<peer_connection>::unique, _1));
+				, std::bind(&boost::shared_ptr<peer_connection>::unique, _1));
 			m_undead_peers.erase(remove_it, m_undead_peers.end());
 			if (m_undead_peers.empty())
 			{
@@ -3055,7 +3051,7 @@ namespace aux {
 				// shut-down
 				if (m_abort)
 				{
-					m_io_service.post(boost::bind(&session_impl::abort_stage2, this));
+					m_io_service.post(std::bind(&session_impl::abort_stage2, this));
 				}
 			}
 		}
@@ -3100,7 +3096,7 @@ namespace aux {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
-		m_timer.async_wait(make_tick_handler(boost::bind(&session_impl::on_tick, this, _1)));
+		m_timer.async_wait(make_tick_handler(std::bind(&session_impl::on_tick, this, _1)));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);
@@ -3398,8 +3394,8 @@ namespace aux {
 					// every 90 seconds, disconnect the worst peers
 					// if we have reached the connection limit
 					torrent_map::iterator i = std::max_element(m_torrents.begin(), m_torrents.end()
-						, boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _1))
-						< boost::bind(&torrent::num_peers, boost::bind(&torrent_map::value_type::second, _2)));
+						, [] (torrent_map::value_type const& lhs, torrent_map::value_type const& rhs)
+						{ return lhs.second->num_peers() < rhs.second->num_peers(); });
 
 					TORRENT_ASSERT(i != m_torrents.end());
 					int peers_to_disconnect = (std::min)((std::max)(
@@ -3514,7 +3510,7 @@ namespace aux {
 			error_code ec;
 			m_dht_announce_timer.expires_from_now(seconds(0), ec);
 			m_dht_announce_timer.async_wait(
-				bind(&session_impl::on_dht_announce, this, _1));
+				std::bind(&session_impl::on_dht_announce, this, _1));
 		}
 	}
 
@@ -3563,7 +3559,7 @@ namespace aux {
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
-			bind(&session_impl::on_dht_announce, this, _1));
+			std::bind(&session_impl::on_dht_announce, this, _1));
 
 		if (!m_dht_torrents.empty())
 		{
@@ -3609,7 +3605,7 @@ namespace aux {
 		error_code ec;
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		m_lsd_announce_timer.async_wait(
-			bind(&session_impl::on_lsd_announce, this, _1));
+			std::bind(&session_impl::on_lsd_announce, this, _1));
 
 		if (m_torrents.empty()) return;
 
@@ -3752,16 +3748,18 @@ namespace aux {
 			// relevant
 			std::partial_sort(checking.begin(), checking.begin() +
 				(std::min)(checking_limit, int(checking.size())), checking.end()
-				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
+				, [](torrent const* lhs, torrent const* rhs)
+				{ return lhs->sequence_number() < rhs->sequence_number(); });
 
 			std::partial_sort(downloaders.begin(), downloaders.begin() +
 				(std::min)(hard_limit, int(downloaders.size())), downloaders.end()
-				, boost::bind(&torrent::sequence_number, _1) < boost::bind(&torrent::sequence_number, _2));
+				, [](torrent const* lhs, torrent const* rhs)
+				{ return lhs->sequence_number() < rhs->sequence_number(); });
 
 			std::partial_sort(seeds.begin(), seeds.begin() +
 				(std::min)(hard_limit, int(seeds.size())), seeds.end()
-				, boost::bind(&torrent::seed_rank, _1, boost::ref(m_settings))
-				> boost::bind(&torrent::seed_rank, _2, boost::ref(m_settings)));
+				, [this](torrent const* lhs, torrent const* rhs)
+				{ return lhs->seed_rank(m_settings) > rhs->seed_rank(m_settings); });
 		}
 
 		auto_manage_checking_torrents(checking, checking_limit);
@@ -4628,7 +4626,7 @@ namespace aux {
 		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
 		{
 			m_disk_thread.async_load_torrent(params
-				, boost::bind(&session_impl::on_async_load_torrent, this, _1));
+				, std::bind(&session_impl::on_async_load_torrent, this, _1));
 			return;
 		}
 
@@ -4883,9 +4881,9 @@ namespace aux {
 		// if we still can't find the torrent, look for it by url
 		if (!torrent_ptr && !params.url.empty())
 		{
-			torrent_map::iterator i = std::find_if(m_torrents.begin()
-				, m_torrents.end(), boost::bind(&torrent::url, boost::bind(&std::pair<const sha1_hash
-					, boost::shared_ptr<torrent> >::second, _1)) == params.url);
+			torrent_map::iterator i = std::find_if(m_torrents.begin(), m_torrents.end()
+				, [&params](torrent_map::value_type const& te)
+				{ return te.second->url() == params.url; });
 			if (i != m_torrents.end())
 				torrent_ptr = i->second;
 		}
@@ -5141,7 +5139,7 @@ namespace aux {
 		// these are the current interfaces we have, first remove all the SSL
 		// interfaces
 		current_ifaces.erase(std::remove_if(current_ifaces.begin(), current_ifaces.end()
-			, boost::bind(&listen_interface_t::ssl, _1)), current_ifaces.end());
+			, std::bind(&listen_interface_t::ssl, _1)), current_ifaces.end());
 
 		int const ssl_listen_port = m_settings.get_int(settings_pack::ssl_listen);
 
@@ -5412,13 +5410,13 @@ namespace aux {
 
 		std::list<listen_socket_t>::iterator ls
 			= std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-			, boost::bind(find_tcp_port_mapping, map_transport, mapping, _1));
+			, std::bind(find_tcp_port_mapping, map_transport, mapping, _1));
 
 		bool tcp = true;
 		if (ls == m_listen_sockets.end())
 		{
 			ls = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
-				, boost::bind(find_udp_port_mapping, map_transport, mapping, _1));
+				, std::bind(find_udp_port_mapping, map_transport, mapping, _1));
 			tcp = false;
 		}
 
@@ -5597,7 +5595,7 @@ namespace aux {
 		m_dht = boost::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
 			, boost::ref(m_io_service)
-			, boost::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
+			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters)
 			, m_dht_storage_constructor
@@ -5616,7 +5614,7 @@ namespace aux {
 		}
 		m_dht_nodes.clear();
 
-		m_dht->start(startup_state, boost::bind(&on_bootstrap, boost::ref(m_alerts)));
+		m_dht->start(startup_state, std::bind(&on_bootstrap, boost::ref(m_alerts)));
 	}
 
 	void session_impl::stop_dht()
@@ -5654,7 +5652,7 @@ namespace aux {
 	{
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_name_lookup");
 		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
-			, boost::bind(&session_impl::on_dht_name_lookup
+			, std::bind(&session_impl::on_dht_name_lookup
 				, this, _1, _2, node.second));
 	}
 
@@ -5684,7 +5682,7 @@ namespace aux {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_router_name_lookup");
 		++m_outstanding_router_lookups;
 		m_host_resolver.async_resolve(node.first, resolver_interface::abort_on_shutdown
-			, boost::bind(&session_impl::on_dht_router_name_lookup
+			, std::bind(&session_impl::on_dht_router_name_lookup
 				, this, _1, _2, node.second));
 	}
 
@@ -5728,7 +5726,7 @@ namespace aux {
 	void session_impl::dht_get_immutable_item(sha1_hash const& target)
 	{
 		if (!m_dht) return;
-		m_dht->get_item(target, boost::bind(&session_impl::get_immutable_callback
+		m_dht->get_item(target, std::bind(&session_impl::get_immutable_callback
 			, this, target, _1));
 	}
 
@@ -5746,7 +5744,7 @@ namespace aux {
 		, std::string salt)
 	{
 		if (!m_dht) return;
-		m_dht->get_item(key.data(), boost::bind(&session_impl::get_mutable_callback
+		m_dht->get_item(key.data(), std::bind(&session_impl::get_mutable_callback
 			, this, _1, _2), salt);
 	}
 
@@ -5801,7 +5799,7 @@ namespace aux {
 	void session_impl::dht_put_immutable_item(entry const& data, sha1_hash target)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(data, boost::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)
+		m_dht->put_item(data, std::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)
 			, target, _1));
 	}
 
@@ -5812,26 +5810,26 @@ namespace aux {
 	{
 		if (!m_dht) return;
 		m_dht->put_item(key.data(),
-			boost::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2),
-			boost::bind(&put_mutable_callback, _1, cb), salt);
+			std::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2),
+			std::bind(&put_mutable_callback, _1, cb), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)
 	{
 		if (!m_dht) return;
-		m_dht->get_peers(info_hash, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+		m_dht->get_peers(info_hash, std::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
 	}
 
 	void session_impl::dht_announce(sha1_hash const& info_hash, int port, int flags)
 	{
 		if (!m_dht) return;
-		m_dht->announce(info_hash, port, flags, boost::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
 	}
 
 	void session_impl::dht_direct_request(udp::endpoint ep, entry& e, void* userdata)
 	{
 		if (!m_dht) return;
-		m_dht->direct_request(ep, e, boost::bind(&on_direct_response, boost::ref(m_alerts), userdata, _1));
+		m_dht->direct_request(ep, e, std::bind(&on_direct_response, boost::ref(m_alerts), userdata, _1));
 	}
 
 #endif
@@ -6137,7 +6135,7 @@ namespace aux {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		m_io_service.post(boost::bind(&session_impl::on_trigger_auto_manage, this));
+		m_io_service.post(std::bind(&session_impl::on_trigger_auto_manage, this));
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6212,7 +6210,7 @@ namespace aux {
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait(
-			boost::bind(&session_impl::on_dht_announce, this, _1));
+			std::bind(&session_impl::on_dht_announce, this, _1));
 #endif
 	}
 
@@ -6454,9 +6452,9 @@ namespace aux {
 		if (m_lsd) return;
 
 		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
-			, boost::bind(&session_impl::on_lsd_peer, this, _1, _2)
+			, std::bind(&session_impl::on_lsd_peer, this, _1, _2)
 #ifndef TORRENT_DISABLE_LOGGING
-			, boost::bind(&session_impl::on_lsd_log, this, _1)
+			, std::bind(&session_impl::on_lsd_log, this, _1)
 #endif
 			);
 		error_code ec;
@@ -6482,9 +6480,9 @@ namespace aux {
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
 		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
-			, boost::bind(&session_impl::on_port_mapping
+			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 0)
-			, boost::bind(&session_impl::on_port_map_log
+			, std::bind(&session_impl::on_port_map_log
 				, this, _1, 0));
 		m_natpmp->start();
 
@@ -6505,9 +6503,9 @@ namespace aux {
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = boost::make_shared<upnp>(boost::ref(m_io_service)
 			, m_settings.get_str(settings_pack::user_agent)
-			, boost::bind(&session_impl::on_port_mapping
+			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 1)
-			, boost::bind(&session_impl::on_port_map_log
+			, std::bind(&session_impl::on_port_map_log
 				, this, _1, 1)
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
 		m_upnp->start();

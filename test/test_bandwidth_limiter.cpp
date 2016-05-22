@@ -42,16 +42,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 
 #include <boost/function.hpp>
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <iostream>
+
 #include <math.h>
+#include <functional>
+#include <iostream>
 
 struct torrent;
 struct peer_connection;
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 const float sample_time = 20.f; // seconds
 
@@ -137,7 +139,7 @@ void do_change_peer_rate(connections_t& v, int limit)
 	if (count == 0)
 	{
 		std::for_each(v.begin(), v.end()
-			, boost::bind(&peer_connection::throttle, _1, limit));
+			, std::bind(&peer_connection::throttle, _1, limit));
 		return;
 	}
 
@@ -155,7 +157,7 @@ void run_test(connections_t& v
 	std::cerr << "-------------" << std::endl;
 	
 	std::for_each(v.begin(), v.end()
-		, boost::bind(&peer_connection::start, _1));
+		, std::bind(&peer_connection::start, _1));
 
 	libtorrent::aux::session_settings s;
 	initialize_default_settings(s);
@@ -229,9 +231,9 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 	connections_t v;
 	spawn_connections(v, manager, t1, num, "p");
 	std::for_each(v.begin(), v.end()
-		, boost::bind(&peer_connection::throttle, _1, limit));
+		, std::bind(&peer_connection::throttle, _1, limit));
 
-	run_test(v, manager, boost::bind(&do_change_peer_rate
+	run_test(v, manager, std::bind(&do_change_peer_rate
 		, boost::ref(v), limit));
 
 	if (torrent_limit > 0 && limit * num > torrent_limit)
@@ -356,7 +358,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
 	std::copy(v2.begin(), v2.end(), std::back_inserter(v));
 
-	run_test(v, manager, boost::bind(&do_change_rate, boost::ref(t1), boost::ref(t2), limit));
+	run_test(v, manager, std::bind(&do_change_rate, boost::ref(t1), boost::ref(t2), limit));
 
 	if (global_limit > 0 && global_limit < 2 * limit)
 		limit = global_limit / 2;

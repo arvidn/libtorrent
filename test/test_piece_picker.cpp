@@ -39,18 +39,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <functional>
 #include <algorithm>
 #include <vector>
 #include <set>
 #include <map>
 #include <iostream>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "test.hpp"
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 const int blocks_per_piece = 4;
 
@@ -468,7 +470,7 @@ TORRENT_TEST(piece_picker)
 	print_title("test pick lowest availability");
 	p = setup_picker("2223333", "* * *  ", "", "");
 	TEST_CHECK(test_pick(p) == 1);
-	
+
 // ========================================================
 
 	// make sure pieces with equal priority and availability
@@ -1777,15 +1779,12 @@ TORRENT_TEST(piece_picker)
 	// the download queue should have piece 1, 2 and 3 in it
 	TEST_EQUAL(downloads.size(), 3);
 
-	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1)
-		== boost::uint32_t(1)) != downloads.end());
-	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1)
-		== boost::uint32_t(2)) != downloads.end());
-	TEST_CHECK(std::find_if(downloads.begin(), downloads.end()
-		, boost::bind(&piece_picker::downloading_piece::index, _1)
-		== boost::uint32_t(3)) != downloads.end());
+	TEST_EQUAL(std::count_if(downloads.begin(), downloads.end()
+		, [](piece_picker::downloading_piece const& p) { return p.index == 1; }), 1);
+	TEST_EQUAL(std::count_if(downloads.begin(), downloads.end()
+		, [](piece_picker::downloading_piece const& p) { return p.index == 2; }), 1);
+	TEST_EQUAL(std::count_if(downloads.begin(), downloads.end()
+		, [](piece_picker::downloading_piece const& p) { return p.index == 3; }), 1);
 
 // ========================================================
 

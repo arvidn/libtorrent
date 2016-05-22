@@ -32,15 +32,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <boost/cstdint.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
+#include <random>
+#include <cinttypes> // for PRId64 et.al.
+
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/error_code.hpp"
 
 using libtorrent::bdecode_node;
-using boost::random::mt19937;
-using boost::random::uniform_int_distribution;
+using std::mt19937;
+using std::uniform_int_distribution;
 
 char const* invalid_utf8_sequences[] =
 {

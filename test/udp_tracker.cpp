@@ -45,15 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-#include <iostream>
-#endif
-
+#include <functional>
 #include <thread>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 struct udp_tracker
 {
@@ -141,7 +138,7 @@ struct udp_tracker
 
 		m_socket.async_receive_from(
 			boost::asio::buffer(buffer, size), *from, 0
-			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, from, buffer, size));
+			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, from, buffer, size));
 	}
 
 	udp_tracker()
@@ -185,7 +182,7 @@ struct udp_tracker
 
 	~udp_tracker()
 	{
-		m_ios.post(boost::bind(&udp_tracker::stop, this));
+		m_ios.post(std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
 
@@ -208,7 +205,7 @@ struct udp_tracker
 		udp::endpoint from;
 		m_socket.async_receive_from(
 			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
-			, boost::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
+			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
 		m_ios.run(ec);
 

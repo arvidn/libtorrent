@@ -35,11 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <functional>
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
@@ -135,8 +136,10 @@ public:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::name_lookup");
 #endif
+		using std::placeholders::_1;
+		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, boost::bind(
+		m_resolver.async_resolve(q, std::bind(
 			&socks5_stream::name_lookup, this, _1, _2, h));
 	}
 
@@ -203,9 +206,11 @@ public:
 		// store it in a shaed_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
+		using std::placeholders::_1;
+		using std::placeholders::_2;
 		ADD_OUTSTANDING_ASYNC("socks5_stream::name_lookup");
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, boost::bind(
+		m_resolver.async_resolve(q, std::bind(
 			&socks5_stream::name_lookup, this, _1, _2, h));
 	}
 

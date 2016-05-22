@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
 #include "libtorrent/socket_io.hpp"
 
+#include <functional>
+
+using namespace std::placeholders;
+
 namespace libtorrent
 {
 
@@ -42,7 +46,7 @@ namespace libtorrent
 	{
 		if (handle_error(e, h)) return;
 
-		m_sock.async_connect(i->endpoint(), boost::bind(
+		m_sock.async_connect(i->endpoint(), std::bind(
 			&http_stream::connected, this, _1, h));
 	}
 
@@ -78,7 +82,7 @@ namespace libtorrent
 		}
 		write_string("\r\n", p);
 		async_write(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&http_stream::handshake1, this, _1, h));
+			, std::bind(&http_stream::handshake1, this, _1, h));
 	}
 
 	void http_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -88,7 +92,7 @@ namespace libtorrent
 		// read one byte from the socket
 		m_buffer.resize(1);
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, boost::bind(&http_stream::handshake2, this, _1, h));
+			, std::bind(&http_stream::handshake2, this, _1, h));
 	}
 
 	void http_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -144,7 +148,7 @@ namespace libtorrent
 		// read another byte from the socket
 		m_buffer.resize(read_pos + 1);
 		async_read(m_sock, boost::asio::buffer(&m_buffer[0] + read_pos, 1)
-			, boost::bind(&http_stream::handshake2, this, _1, h));
+			, std::bind(&http_stream::handshake2, this, _1, h));
 	}
 
 }
