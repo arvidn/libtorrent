@@ -1,3 +1,4 @@
+	* peer_blocked_alert now derives from peer_alert
 	* transitioned exception types to system_error
 	* made alerts move-only
 	* move files one-by-one when moving storage for a torrent
