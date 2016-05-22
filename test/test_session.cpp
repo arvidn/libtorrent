@@ -125,6 +125,25 @@ TORRENT_TEST(session_stats)
 	}
 }
 
+TORRENT_TEST(paused_session)
+{
+	lt::session s;
+	s.pause();
+
+	lt::add_torrent_params ps;
+	ps.info_hash.assign("abababababababababab");
+	ps.flags = lt::add_torrent_params::flag_paused;
+	ps.save_path = ".";
+
+	torrent_handle h = s.add_torrent(ps);
+
+	test_sleep(2000);
+	h.resume();
+	test_sleep(1000);
+
+	TEST_CHECK(!h.is_paused());
+}
+
 #if __cplusplus >= 201103L
 
 template <typename Set, typename Save, typename Default, typename Load>
