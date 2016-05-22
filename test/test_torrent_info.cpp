@@ -36,7 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/make_shared.hpp>
+#include <boost/ref.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <sstream>
@@ -857,7 +863,7 @@ TORRENT_TEST(resolve_duplicates)
 TORRENT_TEST(empty_file)
 {
 	error_code ec;
-	boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>("", 0, ec);
+	boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>("", 0, boost::ref(ec));
 	TEST_CHECK(ec);
 }
 

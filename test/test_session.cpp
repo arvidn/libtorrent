@@ -31,7 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
+#include <boost/ref.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -101,7 +107,7 @@ TORRENT_TEST(load_empty_file)
 
 	add_torrent_params atp;
 	error_code ignore_errors;
-	atp.ti = boost::make_shared<torrent_info>("", 0, ignore_errors);
+	atp.ti = boost::make_shared<torrent_info>("", 0, boost::ref(ignore_errors));
 	atp.save_path = ".";
 	error_code ec;
 	torrent_handle h = ses.add_torrent(atp, ec);
@@ -141,7 +147,7 @@ TORRENT_TEST(paused_session)
 	h.resume();
 	test_sleep(1000);
 
-	TEST_CHECK(!h.is_paused());
+	TEST_CHECK(!h.status().paused);
 }
 
 #if __cplusplus >= 201103L
