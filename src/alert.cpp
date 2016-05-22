@@ -1023,10 +1023,8 @@ namespace libtorrent {
 	}
 
 	peer_blocked_alert::peer_blocked_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, address const& i
-		, int r)
-		: torrent_alert(alloc, h)
-		, ip(i)
+		, torrent_handle const& h, tcp::endpoint const& ep, int r)
+		: peer_alert(alloc, h, ep, peer_id(0))
 		, reason(r)
 	{}
 
@@ -1034,7 +1032,7 @@ namespace libtorrent {
 	{
 		error_code ec;
 		char ret[600];
-		char const* reason_str[] =
+		static char const* reason_str[] =
 		{
 			"ip_filter",
 			"port_filter",
@@ -1045,9 +1043,8 @@ namespace libtorrent {
 			"invalid_local_interface"
 		};
 
-		std::snprintf(ret, sizeof(ret), "%s: blocked peer: %s [%s]"
-			, torrent_alert::message().c_str(), ip.to_string(ec).c_str()
-			, reason_str[reason]);
+		std::snprintf(ret, sizeof(ret), "%s: blocked peer [%s]"
+			, peer_alert::message().c_str(), reason_str[reason]);
 		return ret;
 	}
 

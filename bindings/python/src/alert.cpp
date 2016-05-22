@@ -534,10 +534,19 @@ void bind_alert()
 #endif
         ;
 
-    class_<peer_blocked_alert, bases<alert>, noncopyable>(
+    class_<peer_blocked_alert, bases<peer_alert>, noncopyable>(
         "peer_blocked_alert", no_init)
-        .add_property("ip", make_getter(&peer_blocked_alert::ip
-            , return_value_policy<return_by_value>()))
+        .add_property("reason", &peer_blocked_alert::reason)
+        ;
+
+    enum_<peer_blocked_alert::reason_t>("reason_t")
+        .value("ip_filter", peer_blocked_alert::reason_t::ip_filter)
+        .value("port_filter", peer_blocked_alert::reason_t::port_filtered)
+        .value("i2p_mixed", peer_blocked_alert::reason_t::i2p_mixed)
+        .value("privileged_ports", peer_blocked_alert::reason_t::privileged_ports)
+        .value("utp_disabled", peer_blocked_alert::reason_t::utp_disabled)
+        .value("tcp_disabled", peer_blocked_alert::reason_t::tcp_disabled)
+        .value("invalid_local_interface", peer_blocked_alert::reason_t::invalid_local_interface)
         ;
 
     class_<scrape_reply_alert, bases<tracker_alert>, noncopyable>(
@@ -830,4 +839,5 @@ void bind_alert()
         .def("num_peers", &dht_get_peers_reply_alert::num_peers)
         .def("peers", peers)
         ;
+
 }

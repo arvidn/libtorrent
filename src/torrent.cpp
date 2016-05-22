@@ -3599,7 +3599,7 @@ namespace libtorrent
 #endif
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, host.address(), peer_blocked_alert::ip_filter);
+					, host, peer_blocked_alert::ip_filter);
 			return;
 		}
 
@@ -6197,7 +6197,7 @@ namespace libtorrent
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, a.address(), peer_blocked_alert::ip_filter);
+					, a, peer_blocked_alert::ip_filter);
 			return;
 		}
 
@@ -6275,7 +6275,7 @@ namespace libtorrent
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, a.address(), peer_blocked_alert::ip_filter);
+					, a, peer_blocked_alert::ip_filter);
 			return;
 		}
 
@@ -7313,7 +7313,7 @@ namespace libtorrent
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, p->remote().address(), peer_blocked_alert::ip_filter);
+					, p->remote(), peer_blocked_alert::ip_filter);
 			p->disconnect(errors::banned_by_ip_filter, op_bittorrent);
 			return false;
 		}
@@ -10576,7 +10576,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, adr.address(), peer_blocked_alert::ip_filter);
+					, adr, peer_blocked_alert::ip_filter);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
@@ -10588,7 +10588,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, adr.address(), peer_blocked_alert::port_filter);
+					, adr, peer_blocked_alert::port_filter);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
@@ -10602,7 +10602,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, adr.address(), peer_blocked_alert::i2p_mixed);
+					, adr, peer_blocked_alert::i2p_mixed);
 			return NULL;
 		}
 #endif
@@ -10611,7 +10611,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
-					, adr.address(), peer_blocked_alert::privileged_ports);
+					, adr, peer_blocked_alert::privileged_ports);
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
@@ -10739,7 +10739,8 @@ namespace libtorrent
 		{
 			for (std::vector<address>::iterator i = banned.begin()
 				, end(banned.end()); i != end; ++i)
-				alerts().emplace_alert<peer_blocked_alert>(get_handle(), *i
+				alerts().emplace_alert<peer_blocked_alert>(get_handle()
+					, tcp::endpoint(*i, 0)
 					, peer_blocked_alert::ip_filter);
 		}
 
@@ -10759,7 +10760,8 @@ namespace libtorrent
 		{
 			for (std::vector<address>::iterator i = banned.begin()
 				, end(banned.end()); i != end; ++i)
-				alerts().emplace_alert<peer_blocked_alert>(get_handle(), *i
+				alerts().emplace_alert<peer_blocked_alert>(get_handle()
+					, tcp::endpoint(*i, 0)
 					, peer_blocked_alert::port_filter);
 		}
 

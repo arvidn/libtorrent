@@ -2666,7 +2666,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp.address(), peer_blocked_alert::utp_disabled);
+					, endp, peer_blocked_alert::utp_disabled);
 			return;
 		}
 
@@ -2678,7 +2678,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp.address(), peer_blocked_alert::tcp_disabled);
+					, endp, peer_blocked_alert::tcp_disabled);
 			return;
 		}
 
@@ -2714,7 +2714,7 @@ namespace aux {
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-						, endp.address(), peer_blocked_alert::invalid_local_interface);
+						, endp, peer_blocked_alert::invalid_local_interface);
 				return;
 			}
 		}
@@ -2738,7 +2738,7 @@ namespace aux {
 #endif
 			if (m_alerts.should_post<peer_blocked_alert>())
 				m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
-					, endp.address(), peer_blocked_alert::ip_filter);
+					, endp, peer_blocked_alert::ip_filter);
 			return;
 		}
 

@@ -1467,19 +1467,16 @@ namespace libtorrent
 	// * the port filter
 	// * the peer has a low port and ``no_connect_privileged_ports`` is enabled
 	// * the protocol of the peer is blocked (uTP/TCP blocking)
-	struct TORRENT_EXPORT peer_blocked_alert final : torrent_alert
+	struct TORRENT_EXPORT peer_blocked_alert final : peer_alert
 	{
 		// internal
 		peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, address const& i, int r);
+			, tcp::endpoint const& ep, int r);
 
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
 
 		static const int static_category = alert::ip_block_notification;
 		virtual std::string message() const override;
-
-		// the address that was blocked.
-		address ip;
 
 		enum reason_t
 		{
@@ -1492,6 +1489,8 @@ namespace libtorrent
 			invalid_local_interface
 		};
 
+		// the reason for the peer being blocked. Is one of the values from the
+		// reason_t enum.
 		int reason;
 	};
 
