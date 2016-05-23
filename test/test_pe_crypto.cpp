@@ -45,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b)
 {
-#ifdef TORRENT_USE_VALGRIND
-	const int repcount = 10;
-#else
 	const int repcount = 128;
-#endif
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		int const buf_len = rand() % (512 * 1024);
@@ -106,11 +102,7 @@ TORRENT_TEST(diffie_hellman)
 {
 	using namespace libtorrent;
 
-#ifdef TORRENT_USE_VALGRIND
-	const int repcount = 10;
-#else
 	const int repcount = 128;
-#endif
 
 	for (int rep = 0; rep < repcount; ++rep)
 	{

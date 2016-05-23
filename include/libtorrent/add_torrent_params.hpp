@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/version.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {

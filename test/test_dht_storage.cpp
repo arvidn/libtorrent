@@ -41,14 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/ed25519.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
-#include "libtorrent/random.hpp"
-#include "libtorrent/ed25519.hpp"
+
 #include <numeric>
 
 #include "test.hpp"

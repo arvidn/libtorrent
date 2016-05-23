@@ -3,6 +3,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <libtorrent/sha1_hash.hpp>
+#include <iostream>
+
 #include "boost_python.hpp"
 #include "bytes.hpp"
 
@@ -36,7 +38,6 @@ void bind_sha1_hash()
         .def("to_bytes", sha1_hash_bytes)
         ;
 
-    scope().attr("big_number") = scope().attr("sha1_hash"); 
-    scope().attr("peer_id") = scope().attr("sha1_hash"); 
+    scope().attr("peer_id") = scope().attr("sha1_hash");
 }
 

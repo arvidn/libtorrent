@@ -42,8 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/io.hpp"
+
 #include "make_proxy_settings.hpp"
 
+#include <iostream>
 #include <boost/crc.hpp>
 
 using namespace libtorrent;

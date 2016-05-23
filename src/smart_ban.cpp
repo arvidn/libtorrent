@@ -37,13 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <vector>
 #include <map>
 #include <utility>
 #include <numeric>
 #include <cstdio>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent.hpp"
@@ -57,63 +57,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 
-//#define TORRENT_LOG_HASH_FAILURES
-
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #endif
-
-#ifdef TORRENT_LOG_HASH_FAILURES
-
-#include "libtorrent/peer_id.hpp" // sha1_hash
-#include "libtorrent/hex.hpp" // to_hex
-#include "libtorrent/socket_io.hpp"
-
-void log_hash_block(FILE** f, libtorrent::torrent const& t, int piece, int block
-	, libtorrent::address a, char const* bytes, int len, bool corrupt)
-{
-	using namespace libtorrent;
-
-	mkdir("hash_failures", 0755);
-
-	if (*f == NULL)
-	{
-		char filename[1024];
-		std::snprintf(filename, sizeof(filename), "hash_failures/%s.log"
-			, to_hex(t.info_hash().to_string()).c_str());
-		*f = fopen(filename, "w");
-	}
-
-	file_storage const& fs = t.torrent_file().files();
-	std::vector<file_slice> files = fs.map_block(piece, block * 0x4000, len);
-
-	std::string fn = fs.file_path(fs.internal_at(files[0].file_index));
-
-	char filename[4094];
-	int offset = 0;
-	for (int i = 0; i < files.size(); ++i)
-	{
-		offset += std::snprintf(filename+offset, sizeof(filename)-offset
-			, "%s[%" PRId64 ",%d]", libtorrent::filename(fn).c_str(), files[i].offset, int(files[i].size));
-		if (offset >= sizeof(filename)) break;
-	}
-
-	std::fprintf(*f, "%s\t%04d\t%04d\t%s\t%s\t%s\n", to_hex(t.info_hash().to_string()).c_str(), piece
-		, block, corrupt ? " bad" : "good", print_address(a).c_str(), filename);
-
-	std::snprintf(filename, sizeof(filename), "hash_failures/%s_%d_%d_%s.block"
-		, to_hex(t.info_hash().to_string()).c_str(), piece, block, corrupt ? "bad" : "good");
-	FILE* data = fopen(filename, "w+");
-	fwrite(bytes, 1, len, data);
-	fclose(data);
-}
-
-#endif
-
 
 namespace libtorrent {
 
-	class torrent;
+class torrent;
 
 namespace
 {
@@ -125,16 +76,7 @@ namespace
 		smart_ban_plugin(torrent& t)
 			: m_torrent(t)
 			, m_salt(random())
-		{
-#ifdef TORRENT_LOG_HASH_FAILURES
-			m_log_file = NULL;
-#endif
-		}
-
-#ifdef TORRENT_LOG_HASH_FAILURES
-		~smart_ban_plugin()
-		{ fclose(m_log_file); }
-#endif
+		{}
 
 		virtual void on_piece_pass(int p) override
 		{
@@ -259,11 +201,6 @@ namespace
 			torrent_peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
-#ifdef TORRENT_LOG_HASH_FAILURES
-			log_hash_block(&m_log_file, m_torrent, b.piece_index
-				, b.block_index, p->address(), j->buffer.disk_block, j->buffer_size, true);
-#endif
-
 			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
 
 			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
@@ -299,7 +236,7 @@ namespace
 				// we don't have to insert it
 				return;
 			}
-			
+
 			m_block_hashes.insert(i, std::pair<const piece_block, block_entry>(b, e));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -333,11 +270,6 @@ namespace
 			sha1_hash ok_digest = h.final();
 
 			if (b.second.digest == ok_digest) return;
-
-#ifdef TORRENT_LOG_HASH_FAILURES
-			log_hash_block(&m_log_file, m_torrent, b.first.piece_index
-				, b.first.block_index, a, j->buffer.disk_block, j->buffer_size, false);
-#endif
 
 			// find the peer
 			std::pair<peer_list::iterator, peer_list::iterator> range
@@ -384,9 +316,6 @@ namespace
 		// that is forged to match the CRC of the good data.
 		int m_salt;
 
-#ifdef TORRENT_LOG_HASH_FAILURES
-		FILE* m_log_file;
-#endif
 		// explicitly disallow assignment, to silence msvc warning
 		smart_ban_plugin& operator=(smart_ban_plugin const&);
 	};

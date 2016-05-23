@@ -33,12 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <set>
 #include <functional>
+#include <cstdio>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/ref.hpp>
 #include <boost/bind.hpp>
@@ -79,8 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/stat_cache.hpp"
-
-#include <cstdio>
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 //#define TORRENT_PARTIAL_HASH_LOG
 

@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/alert_types.hpp> // for dht_lookup
 #include <libtorrent/aux_/time.hpp>
 
+#ifndef TORRENT_DISABLE_LOGGING
+#include <libtorrent/hex.hpp> // to_hex, from_hex
+#endif
+
 #include <boost/bind.hpp>
 
 namespace libtorrent { namespace dht

@@ -56,10 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer.hpp"
 #endif
 
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
 #include "libtorrent/invariant_check.hpp"
 
 #define TORRENT_PIECE_PICKER_INVARIANT_CHECK INVARIANT_CHECK
@@ -230,28 +226,17 @@ namespace libtorrent
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
 
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(piece);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block_index);
-#endif
 		block_info* info = blocks_for_piece(ret);
 		for (int i = 0; i < m_blocks_per_piece; ++i)
 		{
 			info[i].num_peers = 0;
 			info[i].state = block_info::state_none;
 			info[i].peer = 0;
-#ifdef TORRENT_USE_VALGRIND
-			VALGRIND_CHECK_VALUE_IS_DEFINED(info[i].peer);
-#endif
 #if TORRENT_USE_ASSERTS
 			info[i].piece_index = piece;
 			info[i].peers.clear();
 #endif
 		}
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.info_idx);
-		VALGRIND_CHECK_VALUE_IS_DEFINED(ret.index);
-#endif
 		downloading_iter = m_downloads[download_state].insert(downloading_iter, ret);
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -3027,9 +3012,6 @@ get_out:
 */
 	bool piece_picker::is_requested(piece_block block) const
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
-#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -3048,9 +3030,6 @@ get_out:
 
 	bool piece_picker::is_downloaded(piece_block block) const
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
-#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -3070,9 +3049,6 @@ get_out:
 
 	bool piece_picker::is_finished(piece_block block) const
 	{
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_VALUE_IS_DEFINED(block);
-#endif
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());

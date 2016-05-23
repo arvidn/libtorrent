@@ -45,6 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifndef TORRENT_DISABLE_LOGGING
+#include "libtorrent/hex.hpp" // to_hex, from_hex
+#endif
+
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/identify_client.hpp"

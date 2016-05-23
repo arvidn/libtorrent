@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -64,11 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 #include <ctime>
-
-#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
-#include <iostream>
-#include <iomanip>
-#endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -1723,33 +1719,6 @@ namespace libtorrent
 
 		return ret;
 	}
-
-#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
-// ------- start deprecation -------
-
-	void torrent_info::print(std::ostream& os) const
-	{
-		INVARIANT_CHECK;
-
-		os << "trackers:\n";
-		for (std::vector<announce_entry>::const_iterator i = trackers().begin();
-			i != trackers().end(); ++i)
-		{
-			os << i->tier << ": " << i->url << "\n";
-		}
-		if (!m_comment.empty())
-			os << "comment: " << m_comment << "\n";
-		os << "private: " << (m_private?"yes":"no") << "\n";
-		os << "number of pieces: " << num_pieces() << "\n";
-		os << "piece length: " << piece_length() << "\n";
-		os << "files:\n";
-		for (int i = 0; i < m_files.num_files(); ++i)
-			os << "  " << std::setw(11) << m_files.file_size(i)
-				<< "  " << m_files.file_path(i) << "\n";
-	}
-
-// ------- end deprecation -------
-#endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const

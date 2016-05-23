@@ -6,8 +6,15 @@
 #define BOOST_PYTHON_HPP
 
 #include <libtorrent/aux_/disable_warnings_push.hpp>
+#include <iostream>
 #include <boost/python.hpp>
 #include <libtorrent/aux_/disable_warnings_pop.hpp>
+
+// something in here creates a define for this, presumably to make older
+// versions of msvc appear to support snprintf
+#ifdef snprintf
+#undef snprintf
+#endif
 
 #endif
 

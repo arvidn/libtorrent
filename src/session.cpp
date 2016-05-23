@@ -329,11 +329,6 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-#if defined _MSC_VER && defined TORRENT_DEBUG
-	static void straight_to_debugger(unsigned int, _EXCEPTION_POINTERS*)
-	{ throw; }
-#endif
-
 	void session::start(int flags, settings_pack const& pack, io_service* ios)
 	{
 		bool const internal_executor = ios == NULL;

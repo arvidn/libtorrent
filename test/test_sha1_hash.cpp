@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 using namespace libtorrent;
 

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_TYPE_FILTER_HPP_INCLUDED
 
-#include <string.h> // for memset
+#include <cstring> // for memset
 #include <boost/cstdint.hpp>
 
 namespace libtorrent
@@ -46,8 +46,8 @@ namespace libtorrent
 	{
 		peer_class_type_filter()
 		{
-			memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
-			memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
+			std::memset(m_peer_class_type_mask, 0xff, sizeof(m_peer_class_type_mask));
+			std::memset(m_peer_class_type, 0, sizeof(m_peer_class_type));
 		}
 
 		enum socket_type_t

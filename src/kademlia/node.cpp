@@ -32,19 +32,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <utility>
 #include <cinttypes> // for PRId64 et.al.
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/function/function1.hpp>
 
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#ifndef TORRENT_DISABLE_LOGGING
+#include <libtorrent/hex.hpp> // to_hex, from_hex
+#endif
 
 #include "libtorrent/io.hpp"
 #include "libtorrent/bencode.hpp"
@@ -1061,12 +1062,7 @@ void node::incoming_request(msg const& m, entry& e)
 		else
 		{
 			// mutable put, we must verify the signature
-
-#ifdef TORRENT_USE_VALGRIND
-			VALGRIND_CHECK_MEM_IS_DEFINED(msg_keys[4].string_ptr(), item_sig_len);
-			VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
-#endif
-			boost::int64_t seq = msg_keys[2].int_value();
+			boost::int64_t const seq = msg_keys[2].int_value();
 
 			if (seq < 0)
 			{

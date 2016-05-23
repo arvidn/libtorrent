@@ -71,15 +71,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_DEBUG_FILE_LEAKS
 #include <set>
+#include <cstdio>
 #endif
 
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
-#include <stdio.h>
 #include "libtorrent/assert.hpp"
 
 #include <boost/scoped_ptr.hpp>
-#include <boost/static_assert.hpp>
 
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/io.hpp"
@@ -147,7 +146,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // related functions support 64-bit offsets.
 // this test makes sure lseek() returns a type
 // at least 64 bits wide
-BOOST_STATIC_ASSERT(sizeof(lseek(0, 0, 0)) >= 8);
+static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required");
 
 #endif // posix part
 
@@ -323,9 +322,9 @@ done:
 #endif
 
 #ifdef TORRENT_DEBUG
-BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::sparse) == 0);
-BOOST_STATIC_ASSERT((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0);
-BOOST_STATIC_ASSERT((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0);
+static_assert((libtorrent::file::rw_mask & libtorrent::file::sparse) == 0, "internal flags error");
+static_assert((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0, "internal flags error");
+static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0, "internal flags error");
 #endif
 
 #if defined TORRENT_WINDOWS && defined UNICODE && !TORRENT_USE_WSTRING
@@ -2352,7 +2351,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	void print_open_files(char const* event, char const* name)
 	{
-		FILE* out = fopen("open_files.log", "a+");
+		FILE* out = std::fopen("open_files.log", "a+");
 		std::lock_guard<std::mutex> l(file_handle_mutex);
 		std::fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
@@ -2367,7 +2366,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			h->print_info(out);
 			std::fprintf(out, "\n%s\n\n", h.stack);
 		}
-		fclose(out);
+		std::fclose(out);
 	}
 #endif
 }

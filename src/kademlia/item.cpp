@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #endif
 
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
 namespace libtorrent { namespace dht
 {
 
@@ -107,12 +103,6 @@ bool verify_mutable_item(
 	, char const* pk
 	, char const* sig)
 {
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(v.first, v.second);
-	VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
-	VALGRIND_CHECK_MEM_IS_DEFINED(sig, item_sig_len);
-#endif
-
 	char str[canonical_length];
 	int len = canonical_string(v, seq, salt, str);
 
@@ -136,12 +126,6 @@ void sign_mutable_item(
 	, char const* sk
 	, char* sig)
 {
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(v.first, v.second);
-	VALGRIND_CHECK_MEM_IS_DEFINED(sk, item_sk_len);
-	VALGRIND_CHECK_MEM_IS_DEFINED(pk, item_pk_len);
-#endif
-
 	char str[canonical_length];
 	int len = canonical_string(v, seq, salt, str);
 

@@ -36,10 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/config.hpp" // for sha1_hash
 
+#include <cmath> // for log()
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
-#include <math.h> // for log()
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -70,7 +71,7 @@ namespace libtorrent
 		{
 			const int c = (std::min)(count_zero_bits(bits, N), (N * 8) - 1);
 			const int m = N * 8;
-			return ::log(c / float(m)) / (2.f * ::log(1.f - 1.f/m));
+			return std::log(c / float(m)) / (2.f * std::log(1.f - 1.f/m));
 		}
 
 		bloom_filter() { clear(); }

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -232,11 +233,7 @@ void test_ssl(int test_idx, bool use_utp)
 	tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 		, port));
 
-#ifdef TORRENT_USE_VALGRIND
-	const int timeout = 100;
-#else
 	const int timeout = 40;
-#endif
 	for (int i = 0; i < timeout; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);

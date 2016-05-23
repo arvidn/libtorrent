@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"

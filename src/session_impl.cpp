@@ -32,8 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <cctype>
@@ -45,15 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_set>
 #endif // TORRENT_DEBUG && !TORRENT_DISABLE_INVARIANT_CHECKS
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/limits.hpp>
 #include <boost/bind.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/asio/ip/v6_only.hpp>
-
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
 
 #if TORRENT_USE_RLIMIT
 
@@ -120,6 +116,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #ifndef TORRENT_DISABLE_LOGGING
 
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 // for logging stat layout
 #include "libtorrent/stat.hpp"

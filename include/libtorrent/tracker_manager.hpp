@@ -35,12 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <list>
 #include <utility>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/array_view.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {

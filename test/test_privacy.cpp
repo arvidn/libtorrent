@@ -168,11 +168,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	rejected_trackers.clear();
 
-#ifdef TORRENT_USE_VALGRIND
-	const int timeout = 100;
-#else
 	const int timeout = 20;
-#endif
 
 	for (int i = 0; i < timeout; ++i)
 	{

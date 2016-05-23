@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/file.hpp" // for combine_path
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #include <boost/make_shared.hpp>
 #include <boost/bind.hpp>
 

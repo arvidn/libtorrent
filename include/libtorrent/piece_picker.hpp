@@ -37,16 +37,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <algorithm>
 #include <vector>
 #include <bitset>
 #include <utility>
 
-#include <boost/static_assert.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 #include <set>
@@ -55,8 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_ASSERTS
 #include <set>
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
@@ -707,9 +706,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 4);
+		static_assert(sizeof(piece_pos) == sizeof(char) * 4, "unexpected struct size");
 #else
-		BOOST_STATIC_ASSERT(sizeof(piece_pos) == sizeof(char) * 8);
+		static_assert(sizeof(piece_pos) == sizeof(char) * 8, "unexpected struct size");
 #endif
 #endif
 

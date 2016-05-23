@@ -39,14 +39,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/time.hpp" // for time_duration
 #include "libtorrent/storage_defs.hpp" // for storage_mode_t
+#include "libtorrent/error_code.hpp" // for storage_mode_t
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/cstdint.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <string>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
