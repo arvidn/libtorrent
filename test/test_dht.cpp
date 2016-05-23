@@ -41,26 +41,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/ed25519.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
-#include "libtorrent/ed25519.hpp"
+
 #include <numeric>
 #include <cstdarg>
 #include <tuple>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
-
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
-#if TORRENT_USE_IOSTREAM
-#include <iostream>
-#endif
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
@@ -227,14 +221,6 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	e["a"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-// this yields a lot of output. too much
-//	std::cerr << "sending: " <<  e << "\n";
-#endif
-
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
-#endif
 
 	bdecode_node decoded;
 	error_code ec;
@@ -280,10 +266,6 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
 	int size = bencode(msg_buf, e);
-
-#ifdef TORRENT_USE_VALGRIND
-	VALGRIND_CHECK_MEM_IS_DEFINED(msg_buf, size);
-#endif
 
 	bdecode_node decoded;
 	error_code ec;
@@ -989,9 +971,6 @@ void do_test_dht(address(&rand_addr)())
 		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
 		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), true);
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
-#endif
 
 		send_dht_request(node, "put", source, &response
 			, msg_args()
@@ -1063,9 +1042,6 @@ void do_test_dht(address(&rand_addr)())
 		itemv.second = bencode(buffer, items[0].ent);
 		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
-#endif
 		// break the signature
 		signature[2] ^= 0xaa;
 
@@ -1131,9 +1107,6 @@ void do_test_dht(address(&rand_addr)())
 		itemv.second = bencode(buffer, items[1].ent);
 		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_MEM_IS_DEFINED(signature, item_sig_len);
-#endif
 
 		TEST_CHECK(item_target_id(salt, public_key) == target_id);
 
@@ -1342,11 +1315,7 @@ void do_test_dht(address(&rand_addr)())
 		// part of the closest nodes
 		std::set<node_id> duplicates;
 
-#ifdef TORRENT_USE_VALGRIND
-		const int reps = 3;
-#else
 		const int reps = 50;
-#endif
 
 		for (int r = 0; r < reps; ++r)
 		{

@@ -42,22 +42,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <algorithm>
 #include <vector>
 #include <set>
 #include <list>
 #include <condition_variable>
 #include <mutex>
-#include <stdarg.h> // for va_start, va_end
+#include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/session.hpp" // for user_load_function_t
 #include "libtorrent/ip_voter.hpp"

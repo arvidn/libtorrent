@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/bind.hpp>

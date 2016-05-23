@@ -42,11 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 
-#include "libtorrent/hex.hpp" // to_hex, from_hex
-#if TORRENT_USE_IOSTREAM
-#include <iostream>
-#include <iomanip>
-#endif
+#include <iosfwd>
 
 #ifdef max
 #undef max
@@ -151,8 +147,8 @@ namespace libtorrent
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
-				boost::uint32_t lhs = aux::network_to_host(m_number[i]);
-				boost::uint32_t rhs = aux::network_to_host(n.m_number[i]);
+				boost::uint32_t const lhs = aux::network_to_host(m_number[i]);
+				boost::uint32_t const rhs = aux::network_to_host(n.m_number[i]);
 				if (lhs < rhs) return true;
 				if (lhs > rhs) return false;
 			}
@@ -262,22 +258,10 @@ namespace libtorrent
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
-	inline std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
-	{
-		char out[41];
-		to_hex(reinterpret_cast<char const*>(&peer[0]), sha1_hash::size, out);
-		return os << out;
-	}
+	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer);
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
-	inline std::istream& operator>>(std::istream& is, sha1_hash& peer)
-	{
-		char hex[40];
-		is.read(hex, 40);
-		if (!from_hex(hex, 40, reinterpret_cast<char*>(&peer[0])))
-			is.setstate(std::ios_base::failbit);
-		return is;
-	}
+	std::istream& operator>>(std::istream& is, sha1_hash& peer);
 #endif // TORRENT_USE_IOSTREAM
 }
 

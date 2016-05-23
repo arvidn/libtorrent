@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000)

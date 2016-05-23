@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include <libtorrent/hex.hpp> // to_hex, from_hex
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include "libtorrent/session_status.hpp"

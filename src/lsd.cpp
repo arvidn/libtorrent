@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <cstdlib>
+#include <cstdarg>
+
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
@@ -38,15 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#include <cstdlib>
 #include <boost/config.hpp>
-#include <cstdarg>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

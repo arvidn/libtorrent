@@ -37,8 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include <cstdlib> // malloc/free/realloc
-#include <boost/cstdint.hpp>
 #include <algorithm> // for std::swap
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/cstdint.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 

@@ -71,20 +71,12 @@ POSSIBILITY OF SUCH DAMAGE.
 // performs a little bit better and can have a higher recursion limit on the
 // structures it's parsing.
 
-#include <stdlib.h>
 #include <string>
 #include <exception>
 #include <iterator> // for distance
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/static_assert.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/entry.hpp"
 #include "libtorrent/config.hpp"
-
+#include "libtorrent/entry.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/io.hpp" // for write_string
 
@@ -103,7 +95,7 @@ namespace libtorrent
 			// the stack allocated buffer for keeping the
 			// decimal representation of the number can
 			// not hold number bigger than this:
-			BOOST_STATIC_ASSERT(sizeof(entry::integer_type) <= 8);
+			static_assert(sizeof(entry::integer_type) <= 8, "64 bit integers required");
 			char buf[21];
 			int ret = 0;
 			for (char const* str = integer_to_str(buf, 21, val);

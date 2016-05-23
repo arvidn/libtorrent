@@ -100,6 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 

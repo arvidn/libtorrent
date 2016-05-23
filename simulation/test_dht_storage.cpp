@@ -34,11 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
-
 #include "libtorrent/kademlia/dht_storage.hpp"
 
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/time.hpp"
 
 #include "simulator/simulator.hpp"

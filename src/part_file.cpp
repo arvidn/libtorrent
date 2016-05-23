@@ -66,10 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include <boost/scoped_array.hpp>
 
-#ifdef TORRENT_USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-
 namespace
 {
 	// round up to even kilobyte
@@ -414,9 +410,6 @@ namespace libtorrent
 		}
 		memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
-#ifdef TORRENT_USE_VALGRIND
-		VALGRIND_CHECK_MEM_IS_DEFINED(header.get(), m_header_size);
-#endif
 		file::iovec_t b = {header.get(), size_t(m_header_size) };
 		m_file.writev(0, &b, 1, ec);
 		if (ec) return;

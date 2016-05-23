@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <vector>
-#include <assert.h>
 #include <cstring>
 #include <limits>
 #include <boost/cstdint.hpp>

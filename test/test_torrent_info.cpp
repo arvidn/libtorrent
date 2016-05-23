@@ -36,17 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/make_shared.hpp>
-#include <boost/ref.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#if TORRENT_USE_IOSTREAM
-#include <sstream>
-#endif
+#include <iostream>
 
 using namespace libtorrent;
 
@@ -737,20 +733,6 @@ TORRENT_TEST(parse_torrents)
 				, flags & file_storage::flag_symlink ? "-> ": ""
 				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
 		}
-
-		// test swap
-#if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
-		std::stringstream str1;
-		ti->print(str1);
-
-		torrent_info temp("temp", ec);
-		temp.swap(*ti);
-
-		std::stringstream str2;
-		temp.print(str2);
-		TEST_EQUAL(str1.str(), str2.str());
-#endif
-
 	}
 
 	for (int i = 0; i < int(sizeof(test_error_torrents)/sizeof(test_error_torrents[0])); ++i)

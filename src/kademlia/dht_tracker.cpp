@@ -51,6 +51,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
 
+#ifndef TORRENT_DISABLE_LOGGING
+#include "libtorrent/hex.hpp" // to_hex, from_hex
+#endif
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/bind.hpp>

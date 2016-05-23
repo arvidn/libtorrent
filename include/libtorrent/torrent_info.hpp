@@ -388,8 +388,6 @@ namespace libtorrent
 // these functions will be removed in a future version
 		TORRENT_DEPRECATED
 		torrent_info(entry const& torrent_file);
-		TORRENT_DEPRECATED
-		void print(std::ostream& os) const;
 // ------- end deprecation -------
 #endif
 
