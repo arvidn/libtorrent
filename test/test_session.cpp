@@ -31,7 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/bind.hpp>
+#include <boost/ref.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -41,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
+
+#include <fstream>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -151,7 +159,7 @@ TORRENT_TEST(load_empty_file)
 
 	add_torrent_params atp;
 	error_code ignore_errors;
-	atp.ti = boost::make_shared<torrent_info>("", 0, ignore_errors);
+	atp.ti = boost::make_shared<torrent_info>("", 0, boost::ref(ignore_errors));
 	atp.save_path = ".";
 	error_code ec;
 	torrent_handle h = ses.add_torrent(atp, ec);
@@ -173,6 +181,26 @@ TORRENT_TEST(session_stats)
 	{
 		TEST_EQUAL(stats[i].value_index, i);
 	}
+}
+
+TORRENT_TEST(paused_session)
+{
+	lt::session s;
+	s.pause();
+
+	lt::add_torrent_params ps;
+	std::ofstream file("temporary");
+	ps.ti = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	ps.flags = lt::add_torrent_params::flag_paused;
+	ps.save_path = ".";
+
+	torrent_handle h = s.add_torrent(ps);
+
+	test_sleep(2000);
+	h.resume();
+	test_sleep(1000);
+
+	TEST_CHECK(!h.status().paused);
 }
 
 template <typename Set, typename Save, typename Default, typename Load>

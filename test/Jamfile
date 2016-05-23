@@ -75,11 +75,9 @@ lib libtorrent_test
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
-	<debug-iterators>on
 
 	: # default build
 	<link>shared
-	<logging>on
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
@@ -103,6 +101,8 @@ project
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
+	<debug-iterators>on
+	<logging>on
 	;
 
 feature launcher : none valgrind : composite ;

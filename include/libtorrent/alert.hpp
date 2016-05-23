@@ -287,8 +287,12 @@ namespace libtorrent {
 		time_point m_timestamp;
 	};
 
-// When you get an alert, you can use ``alert_cast<>`` to attempt to cast the pointer to a
-// more specific alert type, in order to query it for more information.
+// When you get an alert, you can use ``alert_cast<>`` to attempt to cast the
+// pointer to a specific alert type, in order to query it for more
+// information.
+// 
+// .. note::
+//   ``alert_cast<>`` can only cast to an exact alert type, not a base class
 template <class T> T* alert_cast(alert* a)
 {
 	if (a == nullptr) return nullptr;

@@ -2522,8 +2522,12 @@ namespace aux {
 				{
 					// now, disconnect a random peer
 					torrent_map::iterator i = std::max_element(m_torrents.begin()
-						, m_torrents.end(), boost::bind(&torrent::num_peers
-							, boost::bind(&torrent_map::value_type::second, _1)));
+						, m_torrents.end()
+							, boost::bind(&torrent::num_peers
+								, boost::bind(&torrent_map::value_type::second, _1))
+							< boost::bind(&torrent::num_peers
+								, boost::bind(&torrent_map::value_type::second, _2))
+							);
 
 					if (m_alerts.should_post<performance_alert>())
 						m_alerts.emplace_alert<performance_alert>(
