@@ -6,6 +6,7 @@
 #define BOOST_PYTHON_HPP
 
 #include <libtorrent/aux_/disable_warnings_push.hpp>
+#include <iostream>
 #include <boost/python.hpp>
 #include <libtorrent/aux_/disable_warnings_pop.hpp>
 

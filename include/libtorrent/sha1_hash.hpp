@@ -277,5 +277,5 @@ namespace std {
 	};
 }
 
-#endif // TORRENT_PEER_ID_HPP_INCLUDED
+#endif // TORRENT_SHA1_HASH_HPP_INCLUDED
 
