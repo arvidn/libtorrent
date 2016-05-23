@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
 
+#include <fstream>
+
 using namespace libtorrent;
 namespace lt = libtorrent;
 
@@ -137,7 +139,8 @@ TORRENT_TEST(paused_session)
 	s.pause();
 
 	lt::add_torrent_params ps;
-	ps.info_hash.assign("abababababababababab");
+	std::ofstream file("temporary");
+	ps.ti = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	ps.flags = lt::add_torrent_params::flag_paused;
 	ps.save_path = ".";
 
