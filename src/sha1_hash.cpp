@@ -42,7 +42,7 @@ namespace libtorrent
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
-		char out[sha1_hash::size + 1];
+		char out[sha1_hash::size * 2 + 1];
 		to_hex(peer.data(), sha1_hash::size, out);
 		return os << out;
 	}

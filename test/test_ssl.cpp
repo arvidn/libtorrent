@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 #include "test.hpp"
 #include "test_utils.hpp"

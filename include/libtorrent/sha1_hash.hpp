@@ -218,8 +218,8 @@ namespace libtorrent
 			return reinterpret_cast<boost::uint8_t const*>(m_number)[i];
 		}
 
-		typedef const boost::uint8_t* const_iterator;
-		typedef boost::uint8_t* iterator;
+		using const_iterator = boost::uint8_t const*;
+		using iterator = boost::uint8_t*;
 
 		// start and end iterators for the hash. The value type
 		// of these iterators is ``boost::uint8_t``.
@@ -255,14 +255,11 @@ namespace libtorrent
 		return ret;
 	}
 
-#if TORRENT_USE_IOSTREAM
-
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
-	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer);
+	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, sha1_hash const& peer);
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
-	std::istream& operator>>(std::istream& is, sha1_hash& peer);
-#endif // TORRENT_USE_IOSTREAM
+	TORRENT_EXPORT std::istream& operator>>(std::istream& is, sha1_hash& peer);
 }
 
 namespace std {
