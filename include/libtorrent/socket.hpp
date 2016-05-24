@@ -153,7 +153,7 @@ namespace libtorrent
 
 	struct type_of_service
 	{
-#ifdef WIN32
+#ifdef _WIN32
 		typedef DWORD tos_t;
 #else
 		typedef int tos_t;

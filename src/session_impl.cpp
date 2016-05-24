@@ -801,7 +801,7 @@ namespace aux {
 		m_ssl_mapping[0] = -1;
 		m_ssl_mapping[1] = -1;
 #endif
-#ifdef WIN32
+#ifdef _WIN32
 		// windows XP has a limit on the number of
 		// simultaneous half-open TCP connections
 		// here's a table:

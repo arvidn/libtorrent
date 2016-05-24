@@ -442,7 +442,7 @@ void udp_socket::on_read_impl(udp::socket* s, udp::endpoint const& ep
 			&& e != asio::error::operation_aborted
 			&& e != asio::error::network_reset
 			&& e != asio::error::network_unreachable
-#ifdef WIN32
+#ifdef _WIN32
 			// ERROR_MORE_DATA means the same thing as EMSGSIZE
 			&& e != error_code(ERROR_MORE_DATA, get_system_category())
 			&& e != error_code(ERROR_HOST_UNREACHABLE, get_system_category())

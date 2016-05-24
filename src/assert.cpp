@@ -90,7 +90,7 @@ std::string demangle(char const* name)
 	free(unmangled);
 	return ret;
 }
-#elif defined WIN32
+#elif defined _WIN32
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501 // XP
@@ -136,7 +136,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 }
 
 // visual studio 9 and up appears to support this
-#elif defined WIN32 && _MSC_VER >= 1500
+#elif defined _WIN32 && _MSC_VER >= 1500
 
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501 // XP
