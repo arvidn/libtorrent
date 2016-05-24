@@ -1681,7 +1681,7 @@ int main(int argc, char* argv[])
 
 	int tick = 0;
 
-#ifndef WIN32
+#ifndef _WIN32
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 #endif
@@ -1725,7 +1725,7 @@ int main(int argc, char* argv[])
 				if (c == ESCAPE_SEQ)
 				{
 					// escape code, read another character
-#ifdef WIN32
+#ifdef _WIN32
 					int c = _getch();
 #else
 					int c = getc(stdin);
