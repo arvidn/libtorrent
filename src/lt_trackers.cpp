@@ -35,14 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
 
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <functional>
 #include <vector>
 #include <utility>
 #include <numeric>
 #include <cstdio>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
+
+using namespace std::placeholders;
 
 namespace libtorrent { namespace
 {
@@ -93,17 +95,17 @@ namespace libtorrent { namespace
 			entry tex;
 			entry::list_type& added = tex["added"].list();
 			std::vector<announce_entry> const& trackers = m_torrent.trackers();
-			for (std::vector<announce_entry>::const_iterator i = trackers.begin()
-				, end(trackers.end()); i != end; ++i)
+			for (auto const& ent : trackers)
 			{
-				std::vector<announce_entry>::const_iterator k = std::find_if(
-					m_old_trackers.begin(), m_old_trackers.end()
-					, boost::bind(&announce_entry::url, _1) == i->url);
-				if (k != m_old_trackers.end()) continue;
-				if (!send_tracker(*i)) continue;
-				m_old_trackers.push_back(*i);
+				if (std::any_of(m_old_trackers.begin(), m_old_trackers.end()
+					, [&ent](announce_entry const& ae) { return ae.url == ent.url; }))
+				{
+					continue;
+				}
+				if (!send_tracker(ent)) continue;
+				m_old_trackers.push_back(ent);
 				++m_updates;
-				added.push_back(i->url);
+				added.push_back(ent.url);
 			}
 			m_lt_trackers_msg.clear();
 			bencode(std::back_inserter(m_lt_trackers_msg), tex);
@@ -114,12 +116,12 @@ namespace libtorrent { namespace
 		{
 			std::vector<std::string> canonical_list;
 			std::transform(m_old_trackers.begin(), m_old_trackers.end(), back_inserter(canonical_list)
-				, boost::bind(&announce_entry::url, _1));
+				, [] (announce_entry const& ae) { return ae.url; });
 			std::sort(canonical_list.begin(), canonical_list.end());
 
 			hasher h;
 			std::for_each(canonical_list.begin(), canonical_list.end()
-				, boost::bind(&hasher::update, &h, _1));
+				, [&h](std::string const& s) { h.update(s); });
 			m_list_hash = h.final();
 		}
 

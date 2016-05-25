@@ -40,15 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #endif
 
-#include <boost/bind.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef TORRENT_WINDOWS
 #include <iphlpapi.h> // for if_nametoindex
 #endif
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -59,6 +60,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_DEBUG
 #include "libtorrent/socket_io.hpp"
 #endif
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -243,7 +246,7 @@ namespace libtorrent
 		socket_entry& se = m_sockets.back();
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
 		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, std::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
 
@@ -267,7 +270,7 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
 		s->async_receive_from(boost::asio::buffer(se.buffer, sizeof(se.buffer))
-			, se.remote, boost::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
+			, se.remote, std::bind(&broadcast_socket::on_receive, this, &se, _1, _2));
 		++m_outstanding_operations;
 	}
 
@@ -336,7 +339,7 @@ namespace libtorrent
 		if (!s->socket) return;
 		ADD_OUTSTANDING_ASYNC("broadcast_socket::on_receive");
 		s->socket->async_receive_from(boost::asio::buffer(s->buffer, sizeof(s->buffer))
-			, s->remote, boost::bind(&broadcast_socket::on_receive, this, s, _1, _2));
+			, s->remote, std::bind(&broadcast_socket::on_receive, this, s, _1, _2));
 		++m_outstanding_operations;
 	}
 
@@ -356,8 +359,8 @@ namespace libtorrent
 
 	void broadcast_socket::close()
 	{
-		std::for_each(m_sockets.begin(), m_sockets.end(), boost::bind(&socket_entry::close, _1));
-		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), boost::bind(&socket_entry::close, _1));
+		std::for_each(m_sockets.begin(), m_sockets.end(), std::bind(&socket_entry::close, _1));
+		std::for_each(m_unicast_sockets.begin(), m_unicast_sockets.end(), std::bind(&socket_entry::close, _1));
 
 		m_abort = true;
 		maybe_abort();

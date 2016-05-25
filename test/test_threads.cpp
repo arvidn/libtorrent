@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <atomic>
 #include <list>
 

@@ -38,10 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/io.hpp"
+
 #include <cstdlib>
-#include <boost/bind.hpp>
+#include <functional>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 peer_conn::peer_conn(io_service& ios
 	, boost::function<void(int, char const*, int)> on_msg
@@ -74,7 +76,7 @@ peer_conn::peer_conn(io_service& ios
 void peer_conn::start_conn()
 {
 	restarting = false;
-	s.async_connect(endpoint, boost::bind(&peer_conn::on_connect, this, _1));
+	s.async_connect(endpoint, std::bind(&peer_conn::on_connect, this, _1));
 }
 
 void peer_conn::on_connect(error_code const& ec)
@@ -96,7 +98,7 @@ void peer_conn::on_connect(error_code const& ec)
 	// for seeds, don't send the interested message
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
 		- (m_mode == uploader ? 5 : 0))
-		, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
+		, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
 }
 
 void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
@@ -110,7 +112,7 @@ void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transfe
 
 	// read handshake
 	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 68)
-		, boost::bind(&peer_conn::on_handshake2, this, _1, _2));
+		, std::bind(&peer_conn::on_handshake2, this, _1, _2));
 }
 
 void peer_conn::on_handshake2(error_code const& ec, size_t bytes_transferred)
@@ -151,7 +153,7 @@ void peer_conn::write_have_all()
 		write_uint8(1, ptr);
 		error_code ec;
 		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
-			, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+			, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 	else
 	{
@@ -167,7 +169,7 @@ void peer_conn::write_have_all()
 		write_uint8(1, ptr);
 		error_code ec;
 		boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
-			, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+			, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 }
 
@@ -181,7 +183,7 @@ void peer_conn::on_have_all_sent(error_code const& ec, size_t bytes_transferred)
 
 	// read message
 	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
-		, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+		, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 }
 
 bool peer_conn::write_request()
@@ -232,7 +234,7 @@ bool peer_conn::write_request()
 	write_uint32(16 * 1024, ptr);
 	error_code ec;
 	boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
-		, boost::bind(&peer_conn::on_req_sent, this, m, _1, _2));
+		, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
 
 	++outstanding_requests;
 	++block;
@@ -302,7 +304,7 @@ void peer_conn::work_download()
 
 	// read message
 	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
-		, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+		, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 }
 
 void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
@@ -333,12 +335,12 @@ void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
 	{
 		// keep-alive messate. read another length prefix
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
-			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 	else
 	{
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, length)
-			, boost::bind(&peer_conn::on_message, this, _1, _2));
+			, std::bind(&peer_conn::on_message, this, _1, _2));
 	}
 }
 
@@ -387,7 +389,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		{
 			// read another message
 			boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
-				, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+				, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 		}
 		break;
 	case peer_conn::downloader:
@@ -503,7 +505,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 	case peer_conn::idle:
 		// read another message
 		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
-			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 		break;
 	}
 }
@@ -539,7 +541,7 @@ void peer_conn::write_piece(int piece, int start, int length)
 	std::array<boost::asio::const_buffer, 2> vec;
 	vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
 	vec[1] = boost::asio::buffer(write_buffer, length);
-	boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+	boost::asio::async_write(s, vec, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	++blocks_sent;
 }
 
@@ -551,7 +553,7 @@ void peer_conn::write_have(int piece)
 	write_uint32(5, ptr);
 	write_uint8(4, ptr);
 	write_uint32(piece, ptr);
-	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 }
 
 void peer_conn::abort()

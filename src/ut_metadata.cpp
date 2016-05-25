@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <vector>
 #include <utility>
@@ -57,6 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+
+using namespace std::placeholders;
 
 namespace libtorrent { namespace
 {
@@ -618,9 +620,8 @@ namespace libtorrent { namespace
 		m_requested_metadata[piece].num_requests = (std::numeric_limits<int>::max)();
 		m_requested_metadata[piece].source = source.shared_from_this();
 
-		bool have_all = std::count_if(m_requested_metadata.begin()
-			, m_requested_metadata.end(), boost::bind(&metadata_piece::num_requests, _1)
-			== (std::numeric_limits<int>::max)()) == int(m_requested_metadata.size());
+		bool have_all = std::all_of(m_requested_metadata.begin(), m_requested_metadata.end()
+			, [](metadata_piece const& mp) -> bool { return mp.num_requests == (std::numeric_limits<int>::max)(); });
 
 		if (!have_all) return false;
 

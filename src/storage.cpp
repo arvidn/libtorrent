@@ -41,11 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/ref.hpp>
-#include <boost/bind.hpp>
 #include <boost/version.hpp>
-#include <boost/scoped_array.hpp>
-#include <boost/system/error_code.hpp>
 
 #if defined(__APPLE__)
 // for getattrlist()
@@ -81,11 +77,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-
-//#define TORRENT_PARTIAL_HASH_LOG
-
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
+
+//#define TORRENT_PARTIAL_HASH_LOG
 
 #define DEBUG_STORAGE 0
 #define DEBUG_DELETE_FILES 0

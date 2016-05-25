@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <cctype>
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/aux_/array_view.hpp"
 
-using boost::tuples::make_tuple;
-using boost::tuples::tuple;
+
+using namespace std::placeholders;
 
 namespace
 {
@@ -95,7 +95,7 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
-		m_timeout.async_wait(boost::bind(
+		m_timeout.async_wait(std::bind(
 			&timeout_handler::timeout_callback, shared_from_this(), _1));
 	}
 
@@ -143,7 +143,7 @@ namespace libtorrent
 		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
-			boost::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
+			std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
 	}
 
 	tracker_connection::tracker_connection(
@@ -166,7 +166,7 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		// we need to post the error to avoid deadlock
-			get_io_service().post(boost::bind(&tracker_connection::fail_impl
+			get_io_service().post(std::bind(&tracker_connection::fail_impl
 					, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
 	}
 
@@ -236,19 +236,16 @@ namespace libtorrent
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		http_conns_t::iterator i = std::find_if(m_http_conns.begin()
-			, m_http_conns.end()
-			, boost::bind(&boost::shared_ptr<http_tracker_connection>::get, _1) == c);
+		http_conns_t::iterator i = std::find_if(m_http_conns.begin(), m_http_conns.end()
+			, [c] (boost::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
 			return;
 		}
 
-		udp_conns_t::iterator j = std::find_if(m_udp_conns.begin()
-			, m_udp_conns.end()
-			, boost::bind(&boost::shared_ptr<udp_tracker_connection>::get
-				, boost::bind(&udp_conns_t::value_type::second, _1)) == c);
+		udp_conns_t::iterator j = std::find_if(m_udp_conns.begin(), m_udp_conns.end()
+			, [c] (udp_conns_t::value_type const& uc) { return uc.second.get() == c; });
 		if (j != m_udp_conns.end())
 		{
 			m_udp_conns.erase(j);
@@ -308,7 +305,7 @@ namespace libtorrent
 
 		// we need to post the error to avoid deadlock
 		if (boost::shared_ptr<request_callback> r = c.lock())
-			ios.post(boost::bind(&request_callback::tracker_request_error, r, req
+			ios.post(std::bind(&request_callback::tracker_request_error, r, req
 				, -1, error_code(errors::unsupported_url_protocol)
 				, "", 0));
 	}

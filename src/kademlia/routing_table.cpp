@@ -55,11 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
-#include <boost/bind.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using boost::uint8_t;
+using namespace std::placeholders;
 
 #if BOOST_VERSION <= 104700
 namespace boost {
@@ -714,7 +714,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 
 	// if the node already exists, we don't need it
 	j = std::find_if(b.begin(), b.end()
-		, boost::bind(&node_entry::id, _1) == e.id);
+		, [&e](node_entry const& ne) { return ne.id == e.id; });
 
 	if (j != b.end())
 	{
@@ -734,7 +734,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// pull it out from there. We may add it back to the replacement
 	// bucket, but we may also replace a node in the main bucket, now
 	// that we have an updated RTT
-	j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::id, _1) == e.id);
+	j = std::find_if(rb.begin(), rb.end()
+		, [&e](node_entry const& ne) { return ne.id == e.id; });
 	if (j != rb.end())
 	{
 		// a new IP address just claimed this node-ID
@@ -813,7 +814,8 @@ ip_ok:
 		// if the node we're trying to insert is considered pinged,
 		// we may replace other nodes that aren't pinged
 
-		j = std::find_if(b.begin(), b.end(), boost::bind(&node_entry::pinged, _1) == false);
+		j = std::find_if(b.begin(), b.end()
+			, [](node_entry const& ne) { return ne.pinged() == false; });
 
 		if (j != b.end() && !j->pinged())
 		{
@@ -832,8 +834,8 @@ ip_ok:
 		// with nodes from that cache.
 
 		j = std::max_element(b.begin(), b.end()
-			, boost::bind(&node_entry::fail_count, _1)
-			< boost::bind(&node_entry::fail_count, _2));
+			, [](node_entry const& lhs, node_entry const& rhs)
+			{ return lhs.fail_count() < rhs.fail_count(); });
 		TORRENT_ASSERT(j != b.end());
 
 		if (j->fail_count() > 0)
@@ -885,8 +887,8 @@ ip_ok:
 		if (!nodes.empty())
 		{
 			j = *std::max_element(nodes.begin(), nodes.end()
-				, boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _1))
-				< boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _2)));
+				, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
+				{ return lhs->rtt < rhs->rtt; });
 		}
 		else
 		{
@@ -931,8 +933,8 @@ ip_ok:
 				// and replace it
 
 				std::vector<bucket_t::iterator>::iterator k = std::max_element(nodes.begin(), nodes.end()
-					, boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _1))
-					< boost::bind(&node_entry::rtt, boost::bind(&bucket_t::iterator::operator*, _2)));
+					, [](bucket_t::iterator lhs, bucket_t::iterator rhs)
+					{ return lhs->rtt < rhs->rtt; });
 
 				// in this case, we would really rather replace the node even if
 				// the new node has higher RTT, becase it fills a new prefix that we otherwise
@@ -943,8 +945,8 @@ ip_ok:
 			else
 			{
 				j = std::max_element(b.begin(), b.end()
-					, boost::bind(&node_entry::rtt, _1)
-					< boost::bind(&node_entry::rtt, _2));
+					, [](node_entry const& lhs, node_entry const& rhs)
+					{ return lhs.rtt < rhs.rtt; });
 			}
 		}
 
@@ -978,7 +980,7 @@ ip_ok:
 		// and then replace it.
 
 		j = std::find_if(rb.begin(), rb.end()
-			, boost::bind(&node_entry::id, _1) == e.id);
+			, [&e](node_entry const& ne) { return ne.id == e.id; });
 
 		// if the node is already in the replacement bucket
 		// just return.
@@ -995,7 +997,8 @@ ip_ok:
 			// if the replacement bucket is full, remove the oldest entry
 			// but prefer nodes that haven't been pinged, since they are
 			// less reliable than this one, that has been pinged
-			j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1) == false);
+			j = std::find_if(rb.begin(), rb.end()
+				, [] (node_entry const& ne) { return ne.pinged() == false; });
 			if (j == rb.end()) j = rb.begin();
 			m_ips.erase(j->addr());
 			rb.erase(j);
@@ -1150,12 +1153,12 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	bucket_t& rb = i->replacements;
 
 	bucket_t::iterator j = std::find_if(b.begin(), b.end()
-		, boost::bind(&node_entry::id, _1) == nid);
+		, [&nid](node_entry const& ne) { return ne.id == nid; });
 
 	if (j == b.end())
 	{
 		j = std::find_if(rb.begin(), rb.end()
-			, boost::bind(&node_entry::id, _1) == nid);
+			, [&nid](node_entry const& ne) { return ne.id == nid; });
 
 		if (j == rb.end()
 			|| j->ep() != ep) return;
@@ -1209,9 +1212,10 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	// sort by RTT first, to find the node with the lowest
 	// RTT that is pinged
 	std::sort(rb.begin(), rb.end()
-		, boost::bind(&node_entry::rtt, _1) < boost::bind(&node_entry::rtt, _2));
+		, [](node_entry const& lhs, node_entry const& rhs)
+		{ return lhs.rtt < rhs.rtt; });
 
-	j = std::find_if(rb.begin(), rb.end(), boost::bind(&node_entry::pinged, _1));
+	j = std::find_if(rb.begin(), rb.end(), std::bind(&node_entry::pinged, _1));
 	if (j == rb.end()) j = rb.begin();
 	b.push_back(*j);
 	rb.erase(j);
@@ -1268,9 +1272,8 @@ void routing_table::find_node(node_id const& target
 		}
 		else
 		{
-			std::remove_copy_if(b.begin(), b.end()
-				, std::back_inserter(l)
-				, !boost::bind(&node_entry::confirmed, _1));
+			std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
+				, [](node_entry const& ne) { return ne.confirmed() == false; });
 		}
 
 		if (int(l.size()) == count) return;
@@ -1278,9 +1281,9 @@ void routing_table::find_node(node_id const& target
 		if (int(l.size()) > count)
 		{
 			// sort the nodes by how close they are to the target
-			std::sort(l.begin() + unsorted_start_idx, l.end(), boost::bind(&compare_ref
-				, boost::bind(&node_entry::id, _1)
-				, boost::bind(&node_entry::id, _2), target));
+			std::sort(l.begin() + unsorted_start_idx, l.end()
+				, [&target](node_entry const& lhs, node_entry const& rhs)
+				{ return compare_ref(lhs.id, rhs.id, target); });
 
 			l.resize(count);
 			return;
@@ -1309,7 +1312,7 @@ void routing_table::find_node(node_id const& target
 		else
 		{
 			std::remove_copy_if(b.begin(), b.end(), std::back_inserter(l)
-				, !boost::bind(&node_entry::confirmed, _1));
+				, [](node_entry const& ne) { return ne.confirmed() == false; });
 		}
 
 		if (int(l.size()) == count) return;
@@ -1317,9 +1320,9 @@ void routing_table::find_node(node_id const& target
 		if (int(l.size()) > count)
 		{
 			// sort the nodes by how close they are to the target
-			std::sort(l.begin() + unsorted_start_idx, l.end(), boost::bind(&compare_ref
-				, boost::bind(&node_entry::id, _1)
-				, boost::bind(&node_entry::id, _2), target));
+			std::sort(l.begin() + unsorted_start_idx, l.end()
+				, [&target](node_entry const& lhs, node_entry const& rhs)
+				{ return compare_ref(lhs.id, rhs.id, target); });
 
 			l.resize(count);
 			return;

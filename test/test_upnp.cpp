@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/ref.hpp>
 #include <boost/smart_ptr.hpp>
 #include <iostream>

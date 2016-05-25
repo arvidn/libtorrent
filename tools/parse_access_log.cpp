@@ -33,12 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/io.hpp"
 #include <cstring>
-#include <boost/bind.hpp>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
 #include <errno.h>
 #include <assert.h>
 #include <map>
+#include <cstdio>
+#include <cinttypes> // for PRId64 et.al.
 
 using namespace libtorrent;
 using namespace libtorrent::detail; // for write_* and read_*
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 {
 	if (argc != 2) print_usage();
 
-	FILE* log_file = fopen(argv[1], "r");
+	FILE* log_file = std::fopen(argv[1], "r");
 	if (log_file == 0)
 	{
 		std::fprintf(stderr, "failed to open logfile: %s\n%d: %s\n"
@@ -69,11 +69,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	FILE* writes_file = fopen("writes.log", "w+");
-	FILE* reads_file = fopen("reads.log", "w+");
+	FILE* writes_file = std::fopen("writes.log", "w+");
+	FILE* reads_file = std::fopen("reads.log", "w+");
 
-	FILE* writes_elev_file = fopen("writes_elevator.log", "w+");
-	FILE* reads_elev_file = fopen("reads_elevator.log", "w+");
+	FILE* writes_elev_file = std::fopen("writes_elevator.log", "w+");
+	FILE* reads_elev_file = std::fopen("reads_elevator.log", "w+");
 
 
 	typedef std::map<boost::uint32_t, file_op> op_map;
@@ -147,13 +147,13 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	fclose(writes_file);
-	fclose(reads_file);
-	fclose(writes_elev_file);
-	fclose(reads_elev_file);
-	fclose(log_file);
+	std::fclose(writes_file);
+	std::fclose(reads_file);
+	std::fclose(writes_elev_file);
+	std::fclose(reads_elev_file);
+	std::fclose(log_file);
 
-	FILE* gnuplot = fopen("file_access.gnuplot", "w+");
+	FILE* gnuplot = std::fopen("file_access.gnuplot", "w+");
 
 	char const* gnuplot_file =
 		"set term png size 1400,1024\n"
@@ -167,8 +167,8 @@ int main(int argc, char* argv[])
 		"plot \"writes.log\" using 1:2:3:(0) title \"writes\" with vectors arrowstyle 1, " 
 			"\"reads.log\" using 1:2:3:(0) title \"reads\" with vectors arrowstyle 2\n";
 
-	fwrite(gnuplot_file, strlen(gnuplot_file), 1, gnuplot);
-	fclose(gnuplot);
+	std::fwrite(gnuplot_file, strlen(gnuplot_file), 1, gnuplot);
+	std::fclose(gnuplot);
 
 	system("gnuplot file_access.gnuplot");
 

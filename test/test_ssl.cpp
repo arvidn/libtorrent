@@ -43,11 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include <fstream>
-#include <iostream>
 #include <boost/asio/connect.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
@@ -56,6 +53,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include <functional>
+#include <fstream>
+#include <iostream>
+
+using namespace std::placeholders;
 using namespace libtorrent;
 using boost::tuples::ignore;
 
@@ -398,7 +400,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	if (flags & (valid_certificate | invalid_certificate))
 	{
 		std::fprintf(stderr, "set_password_callback\n");
-		ctx.set_password_callback(boost::bind(&password_callback, _1, _2, "test"), ec);
+		ctx.set_password_callback(std::bind(&password_callback, _1, _2, "test"), ec);
 		if (ec)
 		{
 			std::fprintf(stderr, "Failed to set certificate password callback: %s\n"

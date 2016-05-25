@@ -44,16 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstring>
-#include <boost/bind.hpp>
+#include <functional>
 #include <iostream>
 #include <cstdarg>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 using namespace libtorrent;
+using namespace std::placeholders;
 namespace lt = libtorrent;
 
 void log(char const* fmt, ...)
@@ -466,7 +463,7 @@ TORRENT_TEST(reject_fast)
 	allowed_fast.push_back(3);
 
 	std::for_each(allowed_fast.begin(), allowed_fast.end()
-		, boost::bind(&send_allow_fast, boost::ref(s), _1));
+		, std::bind(&send_allow_fast, boost::ref(s), _1));
 	print_session_log(*ses);
 
 	while (!allowed_fast.empty())
@@ -575,7 +572,7 @@ TORRENT_TEST(reject_suggest)
 	suggested.push_back(3);
 
 	std::for_each(suggested.begin(), suggested.end()
-		, boost::bind(&send_suggest_piece, boost::ref(s), _1));
+		, std::bind(&send_suggest_piece, boost::ref(s), _1));
 	print_session_log(*ses);
 
 	send_unchoke(s);

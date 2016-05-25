@@ -39,15 +39,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <list>
-#include <string>
-#include <vector>
 #include <boost/function/function1.hpp>
 #include <boost/function/function2.hpp>
-#include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <list>
+#include <string>
+#include <vector>
+#include <functional>
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/session_settings.hpp"
@@ -118,8 +119,10 @@ public:
 		// store it in a shaed_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
+		using std::placeholders::_1;
+		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
-		m_resolver.async_resolve(q, boost::bind(
+		m_resolver.async_resolve(q, std::bind(
 			&i2p_stream::do_connect, this, _1, _2, h));
 	}
 

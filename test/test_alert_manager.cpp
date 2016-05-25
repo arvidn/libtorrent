@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "setup_transfer.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -123,7 +123,7 @@ TORRENT_TEST(notify_function)
 
 	// if there are queued alerts when we set the notify function,
 	// that counts as an edge and it's called
-	mgr.set_notify_function(boost::bind(&test_notify_fun, boost::ref(cnt)));
+	mgr.set_notify_function(std::bind(&test_notify_fun, boost::ref(cnt)));
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);

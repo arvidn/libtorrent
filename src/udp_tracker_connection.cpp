@@ -30,13 +30,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <cctype>
 #include <mutex>
+#include <functional>
 
-#include <boost/bind.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
 #endif
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -120,7 +122,7 @@ namespace libtorrent
 				, tracker_req().event == tracker_request::stopped
 					? resolver_interface::prefer_cache
 					: resolver_interface::abort_on_shutdown
-				, boost::bind(&udp_tracker_connection::name_lookup
+				, std::bind(&udp_tracker_connection::name_lookup
 					, shared_from_this(), _1, _2, port));
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -165,7 +167,7 @@ namespace libtorrent
 		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str());
 #endif
-		get_io_service().post(boost::bind(
+		get_io_service().post(std::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
 		aux::session_settings const& settings = m_man.settings();

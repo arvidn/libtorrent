@@ -30,7 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <iterator>
+#include <cstdio> // for snprintf
+#include <cstdlib> // for atoi
+#include <cstring>
 
 #include "libtorrent/config.hpp"
 
@@ -38,17 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <direct.h> // for _mkdir and _getcwd
 #include <sys/types.h> // for _stat
 #include <sys/stat.h>
-#endif
-
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#endif
-
-#include <boost/bind.hpp>
-#include <boost/unordered_set.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
 #endif
 
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -78,7 +69,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "session_view.hpp"
 #include "print.hpp"
 
-using boost::bind;
 using libtorrent::total_milliseconds;
 
 void sleep_ms(int milliseconds)
@@ -113,11 +103,7 @@ bool sleep_and_input(int* c, int sleep)
 
 #else
 
-#include <stdio.h> // for snprintf
-#include <stdlib.h> // for atoi
-
 #include <termios.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <signal.h>
 
@@ -381,8 +367,8 @@ FILE* g_log_file = 0;
 int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
 	using namespace libtorrent;
-	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
-		, peers.end(), boost::bind(&peer_info::ip, _1) == addr);
+	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin(), peers.end()
+		, [&addr](peer_info const& pi) { return pi.ip == addr; });
 	if (i == peers.end()) return -1;
 
 	return int(i - peers.begin());
@@ -593,8 +579,6 @@ void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libto
 
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
-
-using boost::bind;
 
 std::string path_to_url(std::string f)
 {
@@ -1058,9 +1042,11 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 				hash_to_filename[st.info_hash]) + ".resume")), out);
 			if (h.is_valid()
 				&& non_files.find(h) == non_files.end()
-				&& std::find_if(files.begin(), files.end()
-					, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
+				&& std::none_of(files.begin(), files.end()
+					, [&h](handles_t::value_type const& hn) { return hn.second == h; }))
+			{
 				ses.remove_torrent(h);
+			}
 		}
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
@@ -1074,9 +1060,11 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		}
 		if (h.is_valid()
 			&& non_files.find(h) == non_files.end()
-			&& std::find_if(files.begin(), files.end()
-				, boost::bind(&handles_t::value_type::second, _1) == h) == files.end())
+			&& std::none_of(files.begin(), files.end()
+				, [&h](handles_t::value_type const& hn) { return hn.second == h; }))
+		{
 			ses.remove_torrent(h);
+		}
 	}
 	else if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
 	{
@@ -1146,7 +1134,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			else if (pp->blocks[j].state == block_info::requested) color = snubbed ? esc("35;7") : esc("0");
 			else { color = esc("0"); chr = ' '; }
 		}
-		if (last_color == 0 || strcmp(last_color, color) != 0)
+		if (last_color == 0 || std::strcmp(last_color, color) != 0)
 		{
 			std::snprintf(str, sizeof(str), "%s%c", color, chr);
 			out += str;
@@ -1271,7 +1259,7 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		if (strcmp(argv[i], "--list-settings") == 0)
+		if (std::strcmp(argv[i], "--list-settings") == 0)
 		{
 			// print all libtorrent settings and exit
 			print_settings(settings_pack::string_type_base
@@ -1308,8 +1296,8 @@ int main(int argc, char* argv[])
 					settings.set_str(sett_name, value);
 					break;
 				case settings_pack::bool_type_base:
-					if (strcmp(value, "0") == 0
-						|| strcmp(value, "1") == 0)
+					if (std::strcmp(value, "0") == 0
+						|| std::strcmp(value, "1") == 0)
 					{
 						settings.set_bool(sett_name, atoi(value) != 0);
 					}
@@ -1668,7 +1656,7 @@ int main(int argc, char* argv[])
 					{
 						// also delete the .torrent file from the torrent directory
 						handles_t::iterator i = std::find_if(files.begin(), files.end()
-							, boost::bind(&handles_t::value_type::second, _1) == st.handle);
+							, [&st] (handles_t::value_type const& hn) { return hn.second == st.handle; });
 						if (i != files.end())
 						{
 							error_code err;
@@ -1957,11 +1945,13 @@ int main(int argc, char* argv[])
 			{
 				h.get_download_queue(queue);
 
-				std::sort(queue.begin(), queue.end(), boost::bind(&partial_piece_info::piece_index, _1)
-					< boost::bind(&partial_piece_info::piece_index, _2));
+				std::sort(queue.begin(), queue.end()
+					, [] (partial_piece_info const& lhs, partial_piece_info const& rhs)
+					{ return lhs.piece_index < rhs.piece_index; });
 
-				std::sort(cs.pieces.begin(), cs.pieces.end(), boost::bind(&cached_piece_info::piece, _1)
-					> boost::bind(&cached_piece_info::piece, _2));
+				std::sort(cs.pieces.begin(), cs.pieces.end()
+					, [](cached_piece_info const& lhs, cached_piece_info const& rhs)
+					{ return lhs.piece < rhs.piece; });
 
 				int p = 0; // this is horizontal position
 				for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin();
@@ -1974,8 +1964,9 @@ int main(int argc, char* argv[])
 					tmp.piece_index = i->piece;
 					std::vector<partial_piece_info>::iterator ppi
 						= std::lower_bound(queue.begin(), queue.end(), tmp
-						, boost::bind(&partial_piece_info::piece_index, _1)
-						< boost::bind(&partial_piece_info::piece_index, _2));
+						, [](partial_piece_info const& lhs, partial_piece_info const& rhs)
+						{ return lhs.piece_index < rhs.piece_index; });
+
 					if (ppi != queue.end() && ppi->piece_index == i->piece) pp = &*ppi;
 
 					print_piece(pp, &*i, peers, out);
@@ -2141,7 +2132,7 @@ int main(int argc, char* argv[])
 		out += "\x1b[J";
 		print(out.c_str());
 
-		fflush(stdout);
+		std::fflush(stdout);
 
 		if (!monitor_dir.empty()
 			&& next_dir_scan < clock_type::now())

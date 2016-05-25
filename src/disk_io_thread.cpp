@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/platform_util.hpp"
 #include <boost/scoped_array.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/tuple/tuple.hpp>
 #include <set>
 #include <vector>
@@ -148,7 +148,7 @@ namespace libtorrent
 		, m_last_cache_expiry(min_time())
 		, m_last_file_check(clock_type::now())
 		, m_file_pool(40)
-		, m_disk_cache(block_size, ios, boost::bind(&disk_io_thread::trigger_cache_trim, this))
+		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_cache_check_state(cache_check_idle)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
@@ -259,7 +259,7 @@ namespace libtorrent
 		m_blocks_to_reclaim.push_back(ref);
 		if (m_outstanding_reclaim_message) return;
 
-		m_ios.post(boost::bind(&disk_io_thread::commit_reclaimed_blocks, this));
+		m_ios.post(std::bind(&disk_io_thread::commit_reclaimed_blocks, this));
 		m_outstanding_reclaim_message = true;
 	}
 
@@ -3496,7 +3496,7 @@ namespace libtorrent
 			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 #endif
-			m_ios.post(boost::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
+			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
 		}
 	}
 

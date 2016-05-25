@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include <boost/tuple/tuple.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/make_shared.hpp>
 
 #include "test.hpp"

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/ref.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <iostream>
@@ -75,14 +75,14 @@ int main(int argc, char* argv[])
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
+	timer.async_wait(std::bind(&io_service::stop, boost::ref(ios)));
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run(ec);
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(boost::bind(&io_service::stop, boost::ref(ios)));
+	timer.async_wait(std::bind(&io_service::stop, boost::ref(ios)));
 	std::cerr << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 

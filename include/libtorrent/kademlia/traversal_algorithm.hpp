@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/pool/pool.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

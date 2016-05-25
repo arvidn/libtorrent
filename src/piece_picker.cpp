@@ -30,15 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <cmath>
 #include <algorithm>
 #include <numeric>
 #include <limits>
+#include <functional>
 
-#include <boost/bind.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -64,6 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // this is really only useful for debugging unit tests
 //#define TORRENT_PICKER_LOG
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -2015,7 +2017,7 @@ namespace libtorrent
 				// picked from it we're done. Sorting the rest of the list in that
 				// case is a waste of time.
 				std::sort(ordered_partials, ordered_partials + num_ordered_partials
-					, boost::bind(&piece_picker::partial_compare_rarest_first, this
+					, std::bind(&piece_picker::partial_compare_rarest_first, this
 						, _1, _2));
 			}
 

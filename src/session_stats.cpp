@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp" // for stats_metric
 #include "libtorrent/aux_/session_interface.hpp" // for stats counter names
 #include "libtorrent/performance_counters.hpp" // for counters
-#include <boost/bind.hpp>
 
 namespace libtorrent
 {
@@ -551,10 +550,11 @@ namespace libtorrent
 
 	int find_metric_idx(char const* name)
 	{
-		stats_metric_impl const* end = metrics + sizeof(metrics)/sizeof(metrics[0]);
-		stats_metric_impl const* i = std::find_if(metrics, end , boost::bind(&strcmp
-				, boost::bind(&stats_metric_impl::name, _1), name) == 0);
-		if (i == end) return -1;
+		stats_metric_impl const* i = std::find_if(std::begin(metrics), std::end(metrics)
+			, [name](stats_metric_impl const& metr)
+			{ return std::strcmp(metr.name, name) == 0; });
+
+		if (i == std::end(metrics)) return -1;
 		return i->value_index;
 	}
 

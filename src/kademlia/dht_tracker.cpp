@@ -57,18 +57,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/function/function0.hpp>
 #include <boost/ref.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-using boost::ref;
 using libtorrent::dht::node;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
 using libtorrent::dht::msg;
 using libtorrent::detail::write_endpoint;
+using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
@@ -176,16 +176,16 @@ namespace libtorrent { namespace dht
 
 		m_connection_timer.expires_from_now(seconds(1), ec);
 		m_connection_timer.async_wait(
-			boost::bind(&dht_tracker::connection_timeout, self(), boost::ref(m_dht), _1));
+			std::bind(&dht_tracker::connection_timeout, self(), std::ref(m_dht), _1));
 
 #if TORRENT_USE_IPV6
 		m_connection_timer6.expires_from_now(seconds(1), ec);
 		m_connection_timer6.async_wait(
-			boost::bind(&dht_tracker::connection_timeout, self(), boost::ref(m_dht6), _1));
+			std::bind(&dht_tracker::connection_timeout, self(), std::ref(m_dht6), _1));
 #endif
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
-		m_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_timeout, self(), _1));
+		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
 		m_dht.bootstrap(initial_nodes, f);
 #if TORRENT_USE_IPV6
 		m_dht6.bootstrap(initial_nodes6, f);
@@ -235,7 +235,7 @@ namespace libtorrent { namespace dht
 		deadline_timer& timer = m_connection_timer;
 #endif
 		timer.expires_from_now(d, ec);
-		timer.async_wait(boost::bind(&dht_tracker::connection_timeout, self(), boost::ref(n), _1));
+		timer.async_wait(std::bind(&dht_tracker::connection_timeout, self(), std::ref(n), _1));
 	}
 
 	void dht_tracker::refresh_timeout(error_code const& e)
@@ -254,7 +254,7 @@ namespace libtorrent { namespace dht
 		error_code ec;
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(
-			boost::bind(&dht_tracker::refresh_timeout, self(), _1));
+			std::bind(&dht_tracker::refresh_timeout, self(), _1));
 	}
 
 	void dht_tracker::refresh_key(error_code const& e)
@@ -263,7 +263,7 @@ namespace libtorrent { namespace dht
 
 		error_code ec;
 		m_key_refresh_timer.expires_from_now(key_refresh, ec);
-		m_key_refresh_timer.async_wait(boost::bind(&dht_tracker::refresh_key, self(), _1));
+		m_key_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_key, self(), _1));
 
 		m_dht.new_write_key();
 		m_dht6.new_write_key();
@@ -389,9 +389,9 @@ namespace libtorrent { namespace dht
 	{
 		boost::shared_ptr<get_immutable_item_ctx>
 			ctx = boost::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
-		m_dht.get_item(target, boost::bind(&get_immutable_item_callback, _1, ctx, cb));
+		m_dht.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 #if TORRENT_USE_IPV6
-		m_dht6.get_item(target, boost::bind(&get_immutable_item_callback, _1, ctx, cb));
+		m_dht6.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 #endif
 	}
 
@@ -403,9 +403,9 @@ namespace libtorrent { namespace dht
 	{
 		boost::shared_ptr<get_mutable_item_ctx>
 			ctx = boost::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
-		m_dht.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
+		m_dht.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 #if TORRENT_USE_IPV6
-		m_dht6.get_item(key, salt, boost::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
+		m_dht6.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 #endif
 	}
 
@@ -419,10 +419,10 @@ namespace libtorrent { namespace dht
 
 		boost::shared_ptr<put_item_ctx>
 			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
-		m_dht.put_item(target, data, boost::bind(&put_immutable_item_callback
+		m_dht.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
 #if TORRENT_USE_IPV6
-		m_dht6.put_item(target, data, boost::bind(&put_immutable_item_callback
+		m_dht6.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
 #endif
 	}
@@ -434,10 +434,10 @@ namespace libtorrent { namespace dht
 		boost::shared_ptr<put_item_ctx>
 			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 
-		m_dht.put_item(key, salt, boost::bind(&put_mutable_item_callback
+		m_dht.put_item(key, salt, std::bind(&put_mutable_item_callback
 			, _1, _2, ctx, cb), data_cb);
 #if TORRENT_USE_IPV6
-		m_dht6.put_item(key, salt, boost::bind(&put_mutable_item_callback
+		m_dht6.put_item(key, salt, std::bind(&put_mutable_item_callback
 			, _1, _2, ctx, cb), data_cb);
 #endif
 	}

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/session.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
@@ -87,7 +87,7 @@ static void nop() {}
 
 #define TEST_SETUP \
 	io_service ios; \
-	block_cache bc(0x4000, ios, boost::bind(&nop)); \
+	block_cache bc(0x4000, ios, std::bind(&nop)); \
 	aux::session_settings sett; \
 	file_storage fs; \
 	fs.add_file("a/test0", 0x4000); \

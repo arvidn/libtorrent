@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 
-#include <functional>
-
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/read_resume_data.hpp"
 #endif

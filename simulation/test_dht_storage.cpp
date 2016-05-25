@@ -52,6 +52,8 @@ using namespace sim::asio;
 using sim::simulation;
 using sim::default_config;
 
+using namespace std::placeholders;
+
 #ifndef TORRENT_DISABLE_DHT
 
 namespace
@@ -94,7 +96,7 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 
 	sim::asio::high_resolution_timer timer(ios);
 	timer.expires_from_now(expiry_time);
-	timer.async_wait(boost::bind(&timer_tick, s, c, _1));
+	timer.async_wait(std::bind(&timer_tick, s, c, _1));
 
 	boost::system::error_code ec;
 	sim.run(ec);

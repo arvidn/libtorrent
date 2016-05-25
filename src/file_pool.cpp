@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/version.hpp>
-#include <boost/bind.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -248,8 +247,8 @@ namespace libtorrent
 	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
 	{
 		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
-			, boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _1))
-				< boost::bind(&lru_file_entry::last_use, boost::bind(&file_set::value_type::second, _2)));
+			, [] (file_set::value_type const& lhs, file_set::value_type const& rhs)
+				{ return lhs.second.last_use < rhs.second.last_use; });
 		if (i == m_files.end()) return;
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -267,7 +266,7 @@ namespace libtorrent
 
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
-		
+
 		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 

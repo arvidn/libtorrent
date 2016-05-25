@@ -34,12 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/gzip.hpp"
 #include "libtorrent/socket_io.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include <functional>
 #include <vector>
 #include <list>
 #include <cctype>
@@ -62,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -202,10 +198,10 @@ namespace libtorrent
 #endif
 
 		m_tracker_connection.reset(new http_connection(get_io_service(), m_man.host_resolver()
-			, boost::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
+			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
-			, boost::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
-			, boost::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
+			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
+			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif

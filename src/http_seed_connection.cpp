@@ -32,12 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <vector>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.

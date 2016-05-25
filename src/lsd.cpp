@@ -45,12 +45,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #include <boost/config.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <cstdlib>
+#include <functional>
+#include <cstdarg>
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -110,12 +115,12 @@ void lsd::debug_log(char const* fmt, ...) const
 
 void lsd::start(error_code& ec)
 {
-	m_socket.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
+	m_socket.open(std::bind(&lsd::on_announce, self(), _1, _2, _3)
 		, m_broadcast_timer.get_io_service(), ec);
 	if (ec) return;
 
 #if TORRENT_USE_IPV6
-	m_socket6.open(boost::bind(&lsd::on_announce, self(), _1, _2, _3)
+	m_socket6.open(std::bind(&lsd::on_announce, self(), _1, _2, _3)
 		, m_broadcast_timer.get_io_service(), ec);
 #endif
 }
@@ -188,7 +193,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 
 	ADD_OUTSTANDING_ASYNC("lsd::resend_announce");
 	m_broadcast_timer.expires_from_now(seconds(2 * retry_count), ec);
-	m_broadcast_timer.async_wait(boost::bind(&lsd::resend_announce, self(), _1
+	m_broadcast_timer.async_wait(std::bind(&lsd::resend_announce, self(), _1
 		, ih, listen_port, retry_count));
 }
 

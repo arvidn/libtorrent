@@ -44,12 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/detail/atomic_count.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/bind.hpp>
 
+#include <functional>
 #include <thread>
 #include <condition_variable>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 struct peer_server
 {
@@ -124,7 +125,7 @@ struct peer_server
 			tcp::socket socket(m_ios);
 			std::condition_variable cond;
 			bool done = false;
-			m_acceptor.async_accept(socket, from, boost::bind(&new_connection, _1, &ec, &done));
+			m_acceptor.async_accept(socket, from, std::bind(&new_connection, _1, &ec, &done));
 			while (!done)
 			{
 				m_ios.poll_one();

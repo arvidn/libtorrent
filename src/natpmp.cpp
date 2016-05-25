@@ -38,13 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <boost/version.hpp>
-#include <boost/bind.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio> // for snprintf
 #include <cstdarg>
+#include <functional>
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -62,8 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #endif
 
-
 using namespace libtorrent;
+using namespace std::placeholders;
 
 natpmp::natpmp(io_service& ios
 	, portmap_callback_t const& cb, log_callback_t const& lcb)
@@ -126,7 +126,7 @@ void natpmp::start()
 
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
-		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
+		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request();
 
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
@@ -231,7 +231,7 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	if (m_disabled) return -1;
 
 	std::vector<mapping_t>::iterator i = std::find_if(m_mappings.begin()
-		, m_mappings.end(), boost::bind(&mapping_t::protocol, _1) == int(none));
+		, m_mappings.end(), [] (mapping_t const& m) { return m.protocol == none; });
 	if (i == m_mappings.end())
 	{
 		m_mappings.push_back(mapping_t());
@@ -288,7 +288,7 @@ void natpmp::try_next_mapping(int i)
 
 	std::vector<mapping_t>::iterator m = std::find_if(
 		m_mappings.begin(), m_mappings.end()
-		, boost::bind(&mapping_t::action, _1) != int(mapping_t::action_none));
+		, [] (mapping_t const& ma) { return ma.action != mapping_t::action_none; });
 
 	if (m == m_mappings.end())
 	{
@@ -392,7 +392,7 @@ void natpmp::send_map_request(int i)
 		// linear back-off instead of exponential
 		++m_retry_count;
 		m_send_timer.expires_from_now(milliseconds(250 * m_retry_count), ec);
-		m_send_timer.async_wait(boost::bind(&natpmp::resend_request, self(), i, _1));
+		m_send_timer.async_wait(std::bind(&natpmp::resend_request, self(), i, _1));
 	}
 }
 
@@ -441,7 +441,7 @@ void natpmp::on_reply(error_code const& e
 	memcpy(msg_buf, m_response_buffer, bytes_transferred);
 
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
-		, m_remote, boost::bind(&natpmp::on_reply, self(), _1, _2));
+		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 
 	if (m_remote != m_nat_endpoint)
 	{
@@ -646,7 +646,7 @@ void natpmp::update_expiration_timer()
 
 		ADD_OUTSTANDING_ASYNC("natpmp::mapping_expired");
 		m_refresh_timer.expires_from_now(min_expire - now, ec);
-		m_refresh_timer.async_wait(boost::bind(&natpmp::mapping_expired, self(), _1, min_index));
+		m_refresh_timer.async_wait(std::bind(&natpmp::mapping_expired, self(), _1, min_index));
 		m_next_refresh = min_index;
 	}
 }

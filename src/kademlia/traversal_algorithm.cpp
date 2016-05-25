@@ -46,7 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex, from_hex
 #endif
 
-#include <boost/bind.hpp>
+#include <functional>
+
+using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
@@ -107,16 +109,9 @@ traversal_algorithm::traversal_algorithm(
 
 void traversal_algorithm::resort_results()
 {
-	std::sort(
-		m_results.begin()
-		, m_results.end()
-		, boost::bind(
-			compare_ref
-			, boost::bind(&observer::id, _1)
-			, boost::bind(&observer::id, _2)
-			, m_target
-		)
-	);
+	std::sort(m_results.begin(), m_results.end()
+		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
+		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
 }
 
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
@@ -145,24 +140,13 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	o->flags |= flags;
 
 	TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
-		, boost::bind(
-			compare_ref
-			, boost::bind(&observer::id, _1)
-			, boost::bind(&observer::id, _2)
-			, m_target)
-		));
+		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
+		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
 	std::vector<observer_ptr>::iterator iter = std::lower_bound(
-		m_results.begin()
-		, m_results.end()
-		, o
-		, boost::bind(
-			compare_ref
-			, boost::bind(&observer::id, _1)
-			, boost::bind(&observer::id, _2)
-			, m_target
-		)
-	);
+		m_results.begin(), m_results.end(), o
+		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
+		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
 
 	if (iter == m_results.end() || (*iter)->id() != id)
 	{
@@ -209,8 +193,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 	add_result:
 
 		TORRENT_ASSERT((o->flags & observer::flag_no_id)
-			|| std::find_if(m_results.begin(), m_results.end()
-			, boost::bind(&observer::id, _1) == id) == m_results.end());
+			|| std::none_of(m_results.begin(), m_results.end()
+			, [&id](observer_ptr const& ob) { return ob->id() == id; }));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -226,12 +210,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		iter = m_results.insert(iter, o);
 
 		TORRENT_ASSERT(libtorrent::dht::is_sorted(m_results.begin(), m_results.end()
-			, boost::bind(
-				compare_ref
-				, boost::bind(&observer::id, _1)
-				, boost::bind(&observer::id, _2)
-				, m_target)
-			));
+			, [this](observer_ptr const& lhs, observer_ptr const& rhs)
+			{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 	}
 
 	if (m_results.size() > 100)
@@ -301,8 +281,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 void traversal_algorithm::finished(observer_ptr o)
 {
 #ifdef TORRENT_DEBUG
-	std::vector<observer_ptr>::iterator i = std::find(
-		m_results.begin(), m_results.end(), o);
+	auto i = std::find(m_results.begin(), m_results.end(), o);
 
 	TORRENT_ASSERT(i != m_results.end() || m_results.size() == 100);
 #endif

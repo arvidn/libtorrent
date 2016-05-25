@@ -34,17 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 #include <cinttypes> // for PRId64 et.al.
+#include <functional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/function/function1.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 #endif
 
 #include "libtorrent/io.hpp"
@@ -66,6 +66,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
 #include "libtorrent/kademlia/get_item.hpp"
+
+using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
@@ -456,7 +458,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 #endif
 
 	get_peers(info_hash, f
-		, boost::bind(&announce_fun, _1, boost::ref(*this)
+		, std::bind(&announce_fun, _1, std::ref(*this)
 		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
 
@@ -490,7 +492,7 @@ void node::get_item(sha1_hash const& target
 #endif
 
 	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, target, boost::bind(f, _1), find_data::nodes_callback()));
+	ta.reset(new dht::get_item(*this, target, std::bind(f, _1), find_data::nodes_callback()));
 	ta->start();
 }
 
@@ -549,12 +551,12 @@ void node::put_item(sha1_hash const& target, entry const& data, boost::function<
 	item i;
 	i.assign(data);
 	boost::intrusive_ptr<dht::put_data> put_ta;
-	put_ta.reset(new dht::put_data(*this, boost::bind(f, _2)));
+	put_ta.reset(new dht::put_data(*this, std::bind(f, _2)));
 	put_ta->set_data(i);
 
 	boost::intrusive_ptr<dht::get_item> ta;
 	ta.reset(new dht::get_item(*this, target, get_item::data_callback(),
-		boost::bind(&put, _1, put_ta)));
+		std::bind(&put, _1, put_ta)));
 	ta->start();
 }
 
@@ -576,8 +578,8 @@ void node::put_item(char const* pk, std::string const& salt
 
 	boost::intrusive_ptr<dht::get_item> ta;
 	ta.reset(new dht::get_item(*this, pk, salt
-		, boost::bind(&put_data_cb, _1, _2, put_ta, data_cb)
-		, boost::bind(&put, _1, put_ta)));
+		, std::bind(&put_data_cb, _1, _2, put_ta, data_cb)
+		, std::bind(&put, _1, put_ta)));
 	ta->start();
 }
 
@@ -649,7 +651,7 @@ void node::tick()
 		node_id target = m_id;
 		make_id_secret(target);
 		boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target
-			, boost::bind(&nop)));
+			, std::bind(&nop)));
 		r->start();
 		m_last_self_refresh = now;
 		return;

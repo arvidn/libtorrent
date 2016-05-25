@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
-#include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

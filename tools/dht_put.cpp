@@ -38,11 +38,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
 #include "libtorrent/ed25519.hpp"
 
-#include <boost/bind.hpp>
-
-#include <stdlib.h>
+#include <functional>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
+#include <cstdlib>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 namespace lt = libtorrent;
 
 #ifdef TORRENT_DISABLE_DHT
@@ -93,7 +95,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 				static int spinner = 0;
 				static const char anim[] = {'-', '\\', '|', '/'};
 				std::printf("\r%c", anim[spinner]);
-				fflush(stdout);
+				std::fflush(stdout);
 				spinner = (spinner + 1) & 3;
 				//print some alerts?
 				continue;
@@ -133,7 +135,7 @@ void bootstrap(lt::session& s)
 
 int dump_key(char *filename)
 {
-	FILE* f = fopen(filename, "rb+");
+	FILE* f = std::fopen(filename, "rb+");
 	if (f == NULL)
 	{
 		std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
@@ -148,7 +150,7 @@ int dump_key(char *filename)
 		std::fprintf(stderr, "invalid key file.\n");
 		return 1;
 	}
-	fclose(f);
+	std::fclose(f);
 
 	std::array<char, 32> public_key;
 	std::array<char, 64> private_key;
@@ -167,7 +169,7 @@ int generate_key(char* filename)
 	unsigned char seed[32];
 	ed25519_create_seed(seed);
 
-	FILE* f = fopen(filename, "wb+");
+	FILE* f = std::fopen(filename, "wb+");
 	if (f == NULL)
 	{
 		std::fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
@@ -175,20 +177,20 @@ int generate_key(char* filename)
 		return 1;
 	}
 
-	int size = int(fwrite(seed, 1, 32, f));
+	int size = int(std::fwrite(seed, 1, 32, f));
 	if (size != 32)
 	{
 		std::fprintf(stderr, "failed to write key file.\n");
 		return 1;
 	}
-	fclose(f);
+	std::fclose(f);
 
 	return 0;
 }
 
 void load_dht_state(lt::session& s)
 {
-	FILE* f = fopen(".dht", "rb");
+	FILE* f = std::fopen(".dht", "rb");
 	if (f == NULL) return;
 
 	fseek(f, 0, SEEK_END);
@@ -213,7 +215,7 @@ void load_dht_state(lt::session& s)
 			s.load_state(e);
 		}
 	}
-	fclose(f);
+	std::fclose(f);
 }
 
 
@@ -223,14 +225,14 @@ int save_dht_state(lt::session& s)
 	s.save_state(e, session::save_dht_state);
 	std::vector<char> state;
 	bencode(std::back_inserter(state), e);
-	FILE* f = fopen(".dht", "wb+");
+	FILE* f = std::fopen(".dht", "wb+");
 	if (f == NULL)
 	{
 		std::fprintf(stderr, "failed to open file .dht for writing");
 		return 1;
 	}
-	fwrite(&state[0], 1, state.size(), f);
-	fclose(f);
+	std::fwrite(&state[0], 1, state.size(), f);
+	std::fclose(f);
 
 	return 0;
 }
@@ -317,7 +319,7 @@ int main(int argc, char* argv[])
 
 		bootstrap(s);
 		sha1_hash target = s.dht_put_item(data);
-		
+
 		std::printf("PUT %s\n", to_hex(target.to_string()).c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
@@ -330,7 +332,7 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		FILE* f = fopen(argv[0], "rb+");
+		FILE* f = std::fopen(argv[0], "rb+");
 		if (f == NULL)
 		{
 			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
@@ -340,7 +342,7 @@ int main(int argc, char* argv[])
 
 		unsigned char seed[32];
 		fread(seed, 1, 32, f);
-		fclose(f);
+		std::fclose(f);
 
 		++argv;
 		--argc;
@@ -350,9 +352,9 @@ int main(int argc, char* argv[])
 		std::array<char, 64> private_key;
 		ed25519_create_keypair((unsigned char*)public_key.data()
 			, (unsigned char*)private_key.data(), seed);
-		
+
 		bootstrap(s);
-		s.dht_put_item(public_key, boost::bind(&put_string, _1, _2, _3, _4
+		s.dht_put_item(public_key, std::bind(&put_string, _1, _2, _3, _4
 			, public_key.data(), private_key.data(), argv[0]));
 
 		std::printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()

@@ -30,11 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <vector>
+#include <functional>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <vector>
-#include <boost/limits.hpp>
-#include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
 
 #ifdef TORRENT_DEBUG
@@ -87,6 +87,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //#define TORRENT_CORRUPT_DATA
 
 using boost::shared_ptr;
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -404,7 +405,7 @@ namespace libtorrent
 #endif
 
 		m_socket->async_connect(m_remote
-			, boost::bind(&peer_connection::on_connection_complete, self(), _1));
+			, std::bind(&peer_connection::on_connection_complete, self(), _1));
 		m_connect = aux::time_now();
 
 		sent_syn(m_remote.address().is_v6());
@@ -431,7 +432,7 @@ namespace libtorrent
 			// to not trigger another one. This effectively defer
 			// the update until the current message queue is
 			// flushed
-			m_ios.post(boost::bind(&peer_connection::do_update_interest, self()));
+			m_ios.post(std::bind(&peer_connection::do_update_interest, self()));
 		}
 		m_need_interest_update = true;
 	}
@@ -1452,7 +1453,7 @@ namespace libtorrent
 
 		std::vector<pending_block>::iterator dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
-			, boost::bind(match_request, boost::cref(r), boost::bind(&pending_block::block, _1)
+			, std::bind(match_request, boost::cref(r), std::bind(&pending_block::block, _1)
 			, t->block_size()));
 
 		if (dlq_iter != m_download_queue.end())
@@ -2839,7 +2840,7 @@ namespace libtorrent
 		}
 		t->inc_refcount("async_write");
 		m_disk_thread.async_write(&t->storage(), p, data
-			, boost::bind(&peer_connection::on_disk_write_complete
+			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
 		boost::uint64_t write_queue_size = m_counters.inc_stats_counter(
@@ -5184,7 +5185,7 @@ namespace libtorrent
 				if (!t->need_loaded()) return;
 				t->inc_refcount("async_seed_hash");
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
-					, boost::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
+					, std::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
 					, this);
 				t->verifying(r.piece);
 				continue;
@@ -5225,7 +5226,7 @@ namespace libtorrent
 
 				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
-					, boost::bind(&peer_connection::on_disk_read_complete
+					, std::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r, clock_type::now()), this);
 			}
 			m_last_sent_payload = clock_type::now();
@@ -5661,7 +5662,7 @@ namespace libtorrent
 		m_socket_is_writing = true;
 #endif
 
-		m_socket->async_write_some(vec, make_write_handler(boost::bind(
+		m_socket->async_write_some(vec, make_write_handler(std::bind(
 			&peer_connection::on_send_data, self(), _1, _2)));
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
@@ -5762,7 +5763,7 @@ namespace libtorrent
 
 			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data_nb");
 			m_socket->async_read_some(null_buffers(), make_read_handler(
-				boost::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
+				std::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
 			return 0;
 		}
 
@@ -5796,7 +5797,7 @@ namespace libtorrent
 				TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
 				m_socket->async_read_some(
 					boost::asio::mutable_buffers_1(vec[0]), make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
+						std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 			}
 			else
 			{
@@ -5804,7 +5805,7 @@ namespace libtorrent
 					+ boost::asio::buffer_size(vec[1])> 0);
 				m_socket->async_read_some(
 					vec, make_read_handler(
-						boost::bind(&peer_connection::on_receive_data, self(), _1, _2)));
+						std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 			}
 			return 0;
 		}
@@ -6572,9 +6573,9 @@ namespace libtorrent
 
 		std::set<piece_block> unique;
 		std::transform(m_download_queue.begin(), m_download_queue.end()
-			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));
+			, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
 		std::transform(m_request_queue.begin(), m_request_queue.end()
-			, std::inserter(unique, unique.begin()), boost::bind(&pending_block::block, _1));
+			, std::inserter(unique, unique.begin()), std::bind(&pending_block::block, _1));
 		TORRENT_ASSERT(unique.size() == m_download_queue.size() + m_request_queue.size());
 		if (m_peer_info)
 		{

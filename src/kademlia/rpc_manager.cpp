@@ -33,12 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/bind.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <libtorrent/io.hpp>
 #include <libtorrent/random.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -65,6 +59,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cinttypes> // for PRId64 et.al.
 #endif
+
+#include <functional>
+
+using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
@@ -438,8 +436,8 @@ time_duration rpc_manager::tick()
 		++i;
 	}
 
-	std::for_each(timeouts.begin(), timeouts.end(), boost::bind(&observer::timeout, _1));
-	std::for_each(short_timeouts.begin(), short_timeouts.end(), boost::bind(&observer::short_timeout, _1));
+	std::for_each(timeouts.begin(), timeouts.end(), std::bind(&observer::timeout, _1));
+	std::for_each(short_timeouts.begin(), short_timeouts.end(), std::bind(&observer::short_timeout, _1));
 
 	return (std::max)(ret, duration_cast<time_duration>(milliseconds(200)));
 }

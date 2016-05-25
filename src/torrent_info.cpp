@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/assert.hpp>
 
 #include <unordered_set>
@@ -1624,8 +1623,9 @@ namespace libtorrent
 		e.source = announce_entry::source_client;
 		m_urls.push_back(e);
 
-		std::sort(m_urls.begin(), m_urls.end(), boost::bind(&announce_entry::tier, _1)
-			< boost::bind(&announce_entry::tier, _2));
+		std::sort(m_urls.begin(), m_urls.end()
+			, [] (announce_entry const& lhs, announce_entry const& rhs)
+			{ return lhs.tier < rhs.tier; });
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <algorithm>
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
 

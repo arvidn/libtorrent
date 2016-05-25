@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include <cstring>
 #include <thread>
-#include <boost/bind.hpp>
+#include <functional>
 #include <iostream>
 #include <array>
 #include <boost/detail/atomic_count.hpp>
@@ -58,6 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace libtorrent::detail; // for write_* and read_*
+
+using namespace std::placeholders;
 
 void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
 {
@@ -200,7 +202,7 @@ struct peer_conn
 			}
 		}
 		restarting = false;
-		s.async_connect(endpoint, boost::bind(&peer_conn::on_connect, this, _1));
+		s.async_connect(endpoint, std::bind(&peer_conn::on_connect, this, _1));
 	}
 
 	tcp::socket s;
@@ -258,7 +260,7 @@ struct peer_conn
 		std::generate(h + 48, h + 68, &rand);
 		// for seeds, don't send the interested message
 		boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
-			, boost::bind(&peer_conn::on_handshake, this, h, _1, _2));
+			, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
 	}
 
 	void on_handshake(char* h, error_code const& ec, size_t)
@@ -272,7 +274,7 @@ struct peer_conn
 
 		// read handshake
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 68)
-			, boost::bind(&peer_conn::on_handshake2, this, _1, _2));
+			, std::bind(&peer_conn::on_handshake2, this, _1, _2));
 	}
 
 	void on_handshake2(error_code const& ec, size_t)
@@ -311,7 +313,7 @@ struct peer_conn
 			write_uint8(1, ptr);
 			error_code ec;
 			boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
-				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 		else
 		{
@@ -327,7 +329,7 @@ struct peer_conn
 			write_uint8(1, ptr);
 			error_code ec;
 			boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
-				, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+				, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		}
 	}
 
@@ -341,7 +343,7 @@ struct peer_conn
 
 		// read message
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
-			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
 	bool write_request()
@@ -391,7 +393,7 @@ struct peer_conn
 		write_uint32(16 * 1024, ptr);
 		error_code ec;
 		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
-			, boost::bind(&peer_conn::on_req_sent, this, m, _1, _2));
+			, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
 
 		++outstanding_requests;
 		++block;
@@ -462,7 +464,7 @@ struct peer_conn
 
 		// read message
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
-			, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 
 	void on_msg_length(error_code const& ec, size_t)
@@ -488,7 +490,7 @@ struct peer_conn
 			return;
 		}
 		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, length)
-			, boost::bind(&peer_conn::on_message, this, _1, _2));
+			, std::bind(&peer_conn::on_message, this, _1, _2));
 	}
 
 	void on_message(error_code const& ec, size_t bytes_transferred)
@@ -540,7 +542,7 @@ struct peer_conn
 			{
 				// read another message
 				boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
-					, boost::bind(&peer_conn::on_msg_length, this, _1, _2));
+					, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 			}
 		}
 		else
@@ -698,7 +700,7 @@ struct peer_conn
 		std::array<boost::asio::const_buffer, 2> vec;
 		vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
 		vec[1] = boost::asio::buffer(write_buffer, length);
-		boost::asio::async_write(s, vec, boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		boost::asio::async_write(s, vec, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 		++blocks_sent;
 		if (churn && (blocks_sent % churn) == 0 && seed) {
 			outstanding_requests = 0;
@@ -713,7 +715,7 @@ struct peer_conn
 		write_uint32(5, ptr);
 		write_uint8(4, ptr);
 		write_uint32(piece, ptr);
-		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), boost::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 };
 

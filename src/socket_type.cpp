@@ -163,7 +163,7 @@ namespace libtorrent
 
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	MAYBE_ASIO_DEBUGGING \
-	s.get<ssl_stream<t> >()->async_shutdown(boost::bind(&on_close_socket, &s, holder)); \
+	s.get<ssl_stream<t> >()->async_shutdown(std::bind(&on_close_socket, &s, holder)); \
 	break;
 
 		switch (s.type())
