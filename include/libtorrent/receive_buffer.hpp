@@ -79,7 +79,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// with possible disk buffer usage
 	int reserve(std::array<boost::asio::mutable_buffer, 2>& vec, int size);
 
-	// tell the buffer we just receved more bytes at the end of it. This will
+	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
 	void received(int bytes_transferred)
 	{
@@ -96,7 +96,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// has the read cursor reached the end cursor?
 	bool pos_at_end() { return m_recv_pos == m_recv_end; }
 
-	// make the buffer size dividible by 8 bytes (RC4 block size)
+	// make the buffer size divisible by 8 bytes (RC4 block size)
 	void clamp_size();
 
 	void set_soft_packet_size(int size) { m_soft_packet_size = size; }

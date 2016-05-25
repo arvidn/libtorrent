@@ -32,15 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-
-#include <string>
+#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {
@@ -230,6 +227,21 @@ namespace libtorrent
 			return;
 		}
 
+		std::string::size_type peer_pos = std::string::npos;
+		std::string peer = url_has_argument(uri, "x.pe", &peer_pos);
+		while (!peer.empty())
+		{
+			error_code e;
+			tcp::endpoint endp = parse_endpoint(peer, e);
+			if (!e)
+				p.peers.push_back(endp);
+
+			peer_pos = uri.find("&x.pe=", peer_pos);
+			if (peer_pos == std::string::npos) break;
+			peer_pos += 6;
+			peer = uri.substr(peer_pos, uri.find('&', peer_pos) - peer_pos);
+		}
+
 #ifndef TORRENT_DISABLE_DHT
 		std::string::size_type node_pos = std::string::npos;
 		std::string node = url_has_argument(uri, "dht", &node_pos);
@@ -238,7 +250,7 @@ namespace libtorrent
 			std::string::size_type divider = node.find_last_of(':');
 			if (divider != std::string::npos)
 			{
-				int port = atoi(node.c_str()+divider+1);
+				int port = atoi(node.c_str() + divider + 1);
 				if (port != 0)
 					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider), port));
 			}
