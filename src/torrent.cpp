@@ -11579,6 +11579,7 @@ namespace libtorrent
 	{
 		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
+		if (!m_ip_filter) return;
 
 		torrent_state st = get_peer_list_state();
 		std::vector<address> banned;
