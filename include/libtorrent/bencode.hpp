@@ -215,9 +215,12 @@ namespace libtorrent
 				ret += e.preformatted().size();
 				break;
 			case entry::undefined_t:
-				// trying to encode a structure with uninitialized values!
-//				TORRENT_ASSERT_VAL(false, e.type());
-				// do nothing
+
+				// empty string
+				write_char(out, '0');
+				write_char(out, ':');
+
+				ret += 2;
 				break;
 			}
 			return ret;

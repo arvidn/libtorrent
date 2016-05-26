@@ -121,6 +121,19 @@ TORRENT_TEST(preformatted_node)
 	TEST_EQUAL(encode(e), "d4:infofoobare");
 }
 
+TORRENT_TEST(undefined_node)
+{
+	entry e(entry::undefined_t);
+	TEST_EQUAL(encode(e), "0:");
+}
+
+TORRENT_TEST(undefined_node2)
+{
+	entry e(entry::dictionary_t);
+	e["info"] = entry(entry::undefined_t);
+	TEST_EQUAL(encode(e), "d4:info0:e");
+}
+
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(lazy_entry)
 {
