@@ -230,6 +230,12 @@ namespace libtorrent
 			default:
 				// trying to encode a structure with uninitialized values!
 				TORRENT_ASSERT_VAL(false, e.type());
+
+				// empty string
+				write_char(out, '0');
+				write_char(out, ':');
+
+				ret += 2;
 				// do nothing
 				break;
 			}
