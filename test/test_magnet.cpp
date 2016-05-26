@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -276,6 +277,23 @@ TORRENT_TEST(parse_space_hash)
 	add_torrent_params p;
 	parse_magnet_uri("magnet:?xt=urn:btih: abababababababababab", p, ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+	ec.clear();
+}
+
+TORRENT_TEST(parse_peer)
+{
+	error_code ec;
+	add_torrent_params p;
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&x.pe=127.0.0.1:43&x.pe=<invalid1>&x.pe=<invalid2>:100&x.pe=[::1]:45", p, ec);
+	TEST_CHECK(!ec);
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(p.peers.size(), 2);
+	TEST_EQUAL(p.peers[0], ep("127.0.0.1", 43));
+	TEST_EQUAL(p.peers[1], ep("::1", 45));
+#else
+	TEST_EQUAL(p.peers.size(), 1);
+	TEST_EQUAL(p.peers[0], ep("127.0.0.1", 43));
+#endif
 	ec.clear();
 }
 

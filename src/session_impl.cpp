@@ -112,11 +112,11 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/error.hpp"
 #include "libtorrent/platform_util.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
+#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #ifndef TORRENT_DISABLE_LOGGING
 
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
 
 // for logging stat layout
 #include "libtorrent/stat.hpp"
