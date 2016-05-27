@@ -1,15 +1,7 @@
 /* super class file for PK algos */
 
 /* default ... include all MPI */
-//#define LTM_ALL
-
-// these are the only functions used by libtorrent
-#define BN_MP_EXPTMOD_C
-#define BN_MP_UNSIGNED_BIN_SIZE_C
-#define BN_MP_TO_UNSIGNED_BIN_C
-#define BN_MP_READ_UNSIGNED_BIN_C
-#define BN_MP_SET_INT_C
-#define BNCORE_C
+#define LTM_ALL
 
 /* RSA only (does not support DH/DSA/ECC) */
 /* #define SC_RSA_1 */
@@ -79,6 +71,6 @@
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/tommath_superclass.h,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2005/05/14 13:29:17 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */

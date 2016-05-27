@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* upgraded to libtommath 1.0
 	* fixed parsing of IPv6 endpoint with invalid port character separator
 	* added limited support for new x.pe parameter from BEP 9
 	* fixed dht stats counters that weren't being updated
