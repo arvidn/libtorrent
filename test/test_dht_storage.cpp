@@ -76,11 +76,10 @@ namespace
 
 	bool g_storage_constructor_invoked = false;
 
-	dht_storage_interface* dht_custom_storage_constructor(sha1_hash const& id
-		, dht_settings const& settings)
+	dht_storage_interface* dht_custom_storage_constructor(dht_settings const& settings)
 	{
 		g_storage_constructor_invoked = true;
-		return dht_default_storage_constructor(id, settings);
+		return dht_default_storage_constructor(settings);
 	}
 }
 
@@ -92,7 +91,7 @@ const sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 TORRENT_TEST(announce_peer)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	entry peers;
@@ -121,7 +120,7 @@ TORRENT_TEST(announce_peer)
 TORRENT_TEST(put_immutable_item)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	entry item;
@@ -151,7 +150,7 @@ TORRENT_TEST(put_immutable_item)
 TORRENT_TEST(counters)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 
 	TEST_CHECK(s.get() != NULL);
 
@@ -240,7 +239,7 @@ TORRENT_TEST(peer_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_peers = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -258,7 +257,7 @@ TORRENT_TEST(torrent_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_torrents = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -276,7 +275,7 @@ TORRENT_TEST(immutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -293,7 +292,7 @@ TORRENT_TEST(mutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	char public_key[item_pk_len];
@@ -306,6 +305,56 @@ TORRENT_TEST(mutable_item_limit)
 	}
 	dht_storage_counters cnt = s->counters();
 	TEST_EQUAL(cnt.mutable_data, 42);
+}
+
+TORRENT_TEST(update_node_ids)
+{
+	dht_settings sett = test_settings();
+	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	TEST_CHECK(s.get() != NULL);
+
+	node_id n1 = to_hash("0000000000000000000000000000000000000200");
+	node_id n2 = to_hash("0000000000000000000000000000000000000400");
+	node_id n3 = to_hash("0000000000000000000000000000000000000800");
+
+	std::vector<node_id> node_ids;
+	node_ids.push_back(n1);
+	node_ids.push_back(n2);
+	node_ids.push_back(n3);
+	s->update_node_ids(node_ids);
+
+	entry item;
+	dht_storage_counters cnt;
+	bool r;
+
+	sha1_hash h1 = to_hash("0000000000000000000000000000000000010200");
+	sha1_hash h2 = to_hash("0000000000000000000000000000000100000400");
+	sha1_hash h3 = to_hash("0000000000000000000000010000000000000800");
+
+	TEST_EQUAL(min_distance_exp(h1, node_ids), 16);
+	TEST_EQUAL(min_distance_exp(h2, node_ids), 32);
+	TEST_EQUAL(min_distance_exp(h3, node_ids), 64);
+
+	// all items will have one announcer, all calculations
+	// for item erase will be reduced to the distance
+	s->put_immutable_item(h1, "123", 3, address::from_string("124.31.75.21"));
+	cnt = s->counters();
+	TEST_EQUAL(cnt.immutable_data, 1);
+	s->put_immutable_item(h2, "123", 3, address::from_string("124.31.75.21"));
+	cnt = s->counters();
+	TEST_EQUAL(cnt.immutable_data, 2);
+	// at this point, the least important (h2) will removed
+	// to make room for h3
+	s->put_immutable_item(h3, "123", 3, address::from_string("124.31.75.21"));
+	cnt = s->counters();
+	TEST_EQUAL(cnt.immutable_data, 2);
+
+	r = s->get_immutable_item(h1, item);
+	TEST_CHECK(r);
+	r = s->get_immutable_item(h2, item);
+	TEST_CHECK(!r);
+	r = s->get_immutable_item(h3, item);
+	TEST_CHECK(r);
 }
 
 #endif

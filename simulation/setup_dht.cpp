@@ -84,16 +84,17 @@ struct dht_node final : lt::dht::udp_socket_interface
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
 		, int idx, std::uint32_t flags)
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
+		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
 #if LIBSIMULATOR_USE_MOVE
 		, m_socket(m_io_service)
 		, m_dht((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, std::map<std::string, lt::dht::node*>())
+			, nullptr, cnt, std::map<std::string, lt::dht::node*>(), *m_dht_storage)
 #else
 		, m_socket(new asio::ip::udp::socket(m_io_service))
 		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, std::map<std::string, lt::dht::node*>()))
+			, nullptr, cnt, std::map<std::string, lt::dht::node*>(), *m_dht_storage))
 #endif
 		, m_add_dead_nodes(flags & dht_network::add_dead_nodes)
 		, m_ipv6(flags & dht_network::bind_ipv6)
@@ -124,7 +125,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 		: m_socket(std::move(n.m_socket))
 		, m_dht(n.m_ipv6 ? udp::v6() : udp::v4(), this, n.m_dht.settings(), n.m_dht.nid()
 			, n.m_dht.observer(), n.m_dht.stats_counters()
-			, std::map<std::string, lt::dht::node*>())
+			, std::map<std::string, lt::dht::node*>(), *n.m_dht_storage)
 	{
 		assert(false && "dht_node is not movable");
 		throw std::runtime_error("dht_node is not movable");
@@ -252,6 +253,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 private:
 	asio::io_service m_io_service;
+	boost::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 #if LIBSIMULATOR_USE_MOVE
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }

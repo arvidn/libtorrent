@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
+#include <limits>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
@@ -68,6 +69,25 @@ int distance_exp(node_id const& n1, node_id const& n2)
 	// probably be 160 - leading zeroes, but all other code in here is tuned to
 	// this expectation now, and it doesn't really matter (other than complexity)
 	return (std::max)(159 - distance(n1, n2).count_leading_zeroes(), 0);
+}
+
+int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)
+{
+	// specialized for cases of 0, 1 and 2 for performance reasons
+	if (ids.size() == 0) return 0;
+	if (ids.size() == 1) return distance_exp(n1, ids[0]);
+	if (ids.size() == 2)
+		return std::min(distance_exp(n1, ids[0]), distance_exp(n1, ids[1]));
+
+	int min = std::numeric_limits<int>::max();
+	for (const auto &node_id : ids)
+	{
+		int d = distance_exp(n1, node_id);
+		if (d < min)
+			min = d;
+	}
+
+	return min;
 }
 
 node_id generate_id_impl(address const& ip_, boost::uint32_t r)

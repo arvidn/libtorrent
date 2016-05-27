@@ -76,8 +76,9 @@ namespace libtorrent { namespace dht
 		dht_tracker(dht_observer* observer
 			, io_service& ios
 			, send_fun_t const& send_fun
-			, dht_settings const& settings, counters& cnt
-			, dht_storage_constructor_type storage_constructor
+			, dht_settings const& settings
+			, counters& cnt
+			, dht_storage_interface& storage
 			, entry const& state);
 		virtual ~dht_tracker();
 
@@ -144,6 +145,7 @@ namespace libtorrent { namespace dht
 		void connection_timeout(node& n, error_code const& e);
 		void refresh_timeout(error_code const& e);
 		void refresh_key(error_code const& e);
+		void update_storage_node_ids();
 
 		// implements udp_socket_interface
 		virtual bool has_quota() override;
@@ -155,6 +157,7 @@ namespace libtorrent { namespace dht
 		bdecode_node m_msg;
 
 		counters& m_counters;
+		dht_storage_interface& m_storage;
 		node m_dht;
 #if TORRENT_USE_IPV6
 		node m_dht6;

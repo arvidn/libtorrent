@@ -44,6 +44,7 @@ libtool
 
 .DS_Store
 .idea
+*~
 
 # Compile and link flag files
 bindings/python/*flags

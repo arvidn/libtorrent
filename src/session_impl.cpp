@@ -5592,13 +5592,15 @@ namespace aux {
 		// postpone starting the DHT if we're still resolving the DHT router
 		if (m_outstanding_router_lookups > 0) return;
 
+		m_dht_storage = boost::shared_ptr<dht::dht_storage_interface>(
+			m_dht_storage_constructor(m_dht_settings));
 		m_dht = boost::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
 			, boost::ref(m_io_service)
 			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters)
-			, m_dht_storage_constructor
+			, *m_dht_storage
 			, startup_state);
 
 		for (std::vector<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
@@ -5619,9 +5621,16 @@ namespace aux {
 
 	void session_impl::stop_dht()
 	{
-		if (!m_dht) return;
-		m_dht->stop();
-		m_dht.reset();
+		if (m_dht)
+		{
+			m_dht->stop();
+			m_dht.reset();
+		}
+
+		if (m_dht_storage)
+		{
+			m_dht_storage.reset();
+		}
 	}
 
 	void session_impl::set_dht_settings(dht_settings const& settings)

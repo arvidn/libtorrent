@@ -103,7 +103,7 @@ node::node(udp proto, udp_socket_interface* sock
 	, dht_observer* observer
 	, struct counters& cnt
 	, std::map<std::string, node*> const& nodes
-	, dht_storage_constructor_type storage_constructor)
+	, dht_storage_interface& storage)
 	: m_settings(settings)
 	, m_id(calculate_node_id(nid, observer, proto))
 	, m_table(m_id, proto, 8, settings, observer)
@@ -115,12 +115,10 @@ node::node(udp proto, udp_socket_interface* sock
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
 	, m_counters(cnt)
-	, m_storage(storage_constructor(m_id, m_settings))
+	, m_storage(storage)
 {
 	m_secret[0] = random();
 	m_secret[1] = random();
-
-	TORRENT_ASSERT(m_storage.get() != NULL);
 }
 
 node::~node() {}
@@ -724,7 +722,7 @@ time_duration node::connection_timeout()
 	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 
-	m_storage->tick();
+	m_storage.tick();
 
 	return d;
 }
@@ -750,7 +748,7 @@ void node::status(std::vector<dht_routing_bucket>& table
 // related ones.
 void node::update_stats_counters(counters& c) const
 {
-	const dht_storage_counters& dht_cnt = m_storage->counters();
+	const dht_storage_counters& dht_cnt = m_storage.counters();
 	c.set_value(counters::dht_torrents, dht_cnt.torrents);
 	c.set_value(counters::dht_peers, dht_cnt.peers);
 	c.set_value(counters::dht_immutable_data, dht_cnt.immutable_data);
@@ -770,7 +768,7 @@ void node::status(session_status& s)
 	std::lock_guard<std::mutex> l(m_mutex);
 
 	m_table.status(s);
-	s.dht_torrents = int(m_storage->num_torrents());
+	s.dht_torrents = int(m_storage.num_torrents());
 	s.active_requests.clear();
 	s.dht_total_allocations = m_rpc.num_allocated_observers();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
@@ -789,7 +787,7 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	if (m_observer)
 		m_observer->get_peers(info_hash);
 
-	m_storage->get_peers(info_hash, noseed, scrape, reply);
+	m_storage.get_peers(info_hash, noseed, scrape, reply);
 }
 
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& n, nodes_t const& nodes)
@@ -976,7 +974,7 @@ void node::incoming_request(msg const& m, entry& e)
 		std::string name = msg_keys[3] ? msg_keys[3].string_value() : std::string();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
-		m_storage->announce_peer(info_hash, addr, name, seed);
+		m_storage.announce_peer(info_hash, addr, name, seed);
 	}
 	else if (query_len == 3 && memcmp(query, "put", 3) == 0)
 	{
@@ -1059,7 +1057,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		if (!mutable_put)
 		{
-			m_storage->put_immutable_item(target, buf.first, buf.second, m.addr.address());
+			m_storage.put_immutable_item(target, buf.first, buf.second, m.addr.address());
 		}
 		else
 		{
@@ -1085,9 +1083,9 @@ void node::incoming_request(msg const& m, entry& e)
 			TORRENT_ASSERT(item_sig_len == msg_keys[4].string_length());
 
 			boost::int64_t item_seq;
-			if (!m_storage->get_mutable_item_seq(target, item_seq))
+			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
-				m_storage->put_mutable_item(target
+				m_storage.put_mutable_item(target
 					, buf.first, buf.second
 					, sig, seq, pk
 					, salt.first, salt.second
@@ -1114,7 +1112,7 @@ void node::incoming_request(msg const& m, entry& e)
 					return;
 				}
 
-				m_storage->put_mutable_item(target
+				m_storage.put_mutable_item(target
 					, buf.first, buf.second
 					, sig, seq, pk
 					, salt.first, salt.second
@@ -1160,14 +1158,14 @@ void node::incoming_request(msg const& m, entry& e)
 		// so don't bother searching the immutable table
 		if (!msg_keys[0])
 		{
-			if (!m_storage->get_immutable_item(target, reply)) // ok, check for a mutable one
+			if (!m_storage.get_immutable_item(target, reply)) // ok, check for a mutable one
 			{
-				m_storage->get_mutable_item(target, 0, true, reply);
+				m_storage.get_mutable_item(target, 0, true, reply);
 			}
 		}
 		else
 		{
-			m_storage->get_mutable_item(target
+			m_storage.get_mutable_item(target
 				, msg_keys[0].int_value(), false
 				, reply);
 		}

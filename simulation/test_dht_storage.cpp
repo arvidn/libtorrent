@@ -108,7 +108,7 @@ TORRENT_TEST(dht_storage_counters)
 {
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings sett = test_settings();
-	boost::shared_ptr<dht_storage_interface> s(dht_default_storage_constructor(node_id(0), sett));
+	boost::shared_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 
 	TEST_CHECK(s.get() != NULL);
 

@@ -103,7 +103,7 @@ public:
 		, libtorrent::dht_settings const& settings, node_id nid
 		, dht_observer* observer, counters& cnt
 		, std::map<std::string, node*> const& nodes
-		, dht_storage_constructor_type storage_constructor = dht_default_storage_constructor);
+		, dht_storage_interface& storage);
 
 	~node();
 
@@ -118,8 +118,8 @@ public:
 	void incoming(msg const& m);
 
 #ifndef TORRENT_NO_DEPRECATE
-	int num_torrents() const { return int(m_storage->num_torrents()); }
-	int num_peers() const { return int(m_storage->num_peers()); }
+	int num_torrents() const { return int(m_storage.num_torrents()); }
+	int num_peers() const { return int(m_storage.num_peers()); }
 #endif
 
 	int bucket_size(int bucket);
@@ -131,7 +131,7 @@ public:
 	{ return m_table.num_global_nodes(); }
 
 #ifndef TORRENT_NO_DEPRECATE
-	int data_size() const { return int(m_storage->num_torrents()); }
+	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
 #if defined TORRENT_DEBUG
@@ -285,7 +285,7 @@ private:
 	udp_socket_interface* m_sock;
 	counters& m_counters;
 
-	boost::scoped_ptr<dht_storage_interface> m_storage;
+	dht_storage_interface& m_storage;
 };
 
 } } // namespace libtorrent::dht
