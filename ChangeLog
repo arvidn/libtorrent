@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fixed parsing of IPv6 endpoint with invalid port character separator
 	* fixed dht stats counters that weren't being updated
 	* make sure add_torrent_alert is always posted before other alerts for
 	  the torrent

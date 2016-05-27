@@ -114,3 +114,58 @@ TORRENT_TEST(socket_io)
 	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
 }
 
+TORRENT_TEST(parse_invalid_ipv4_endpoint)
+{
+	error_code ec;
+	tcp::endpoint endp;
+
+	endp = parse_endpoint("127.0.0.1-4", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1X", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:4", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endp, ep("127.0.0.1", 4));
+	ec.clear();
+}
+
+#if TORRENT_USE_IPV6
+TORRENT_TEST(parse_invalid_ipv6_endpoint)
+{
+	error_code ec;
+	tcp::endpoint endp;
+
+	endp = parse_endpoint("[::1]-4", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("[::1]", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("[::1]:", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("[::1]X", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("[::1]:4", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endp, ep("::1", 4));
+	ec.clear();
+}
+#endif
