@@ -88,22 +88,35 @@ namespace libtorrent
 		mp_bigint secret;
 		mp_bigint key;
 
+		// TODO 2: use exceptions for error reporting here
 		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
+		{
+			TORRENT_ASSERT(false);
 			return;
+		}
 		if (mp_read_unsigned_bin(&secret
 				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
 				, sizeof(m_dh_local_secret)))
+		{
+			TORRENT_ASSERT(false);
 			return;
+		}
 
 		// generator is 2
 		mp_set_int(&key, 2);
 		// key = (2 ^ secret) % prime
 		if (mp_exptmod(&key, &secret, &prime, &key))
+		{
+			TORRENT_ASSERT(false);
 			return;
+		}
 
 		// key is now our local key
-		int size = mp_unsigned_bin_size(&key);
-		memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
+		int const size = mp_unsigned_bin_size(&key);
+		TORRENT_ASSERT(size >= 0);
+		TORRENT_ASSERT(size <= sizeof(m_dh_local_key));
+		if (size < 0 || size > sizeof(m_dh_local_key)) return;
+		std::memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
 		mp_to_unsigned_bin(&key
 			, reinterpret_cast<unsigned char*>(m_dh_local_key)
 			+ sizeof(m_dh_local_key) - size);
@@ -122,22 +135,42 @@ namespace libtorrent
 		mp_bigint secret;
 		mp_bigint remote_key;
 
+		// TODO 2: use exceptions for error reporting here
 		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
+		{
+			TORRENT_ASSERT(false);
 			return -1;
+		}
 		if (mp_read_unsigned_bin(&secret
 				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
 				, sizeof(m_dh_local_secret)))
+		{
+			TORRENT_ASSERT(false);
 			return -1;
+		}
 		if (mp_read_unsigned_bin(&remote_key
 				, reinterpret_cast<const unsigned char*>(remote_pubkey), 96))
+		{
+			TORRENT_ASSERT(false);
 			return -1;
+		}
 
 		if (mp_exptmod(&remote_key, &secret, &prime, &remote_key))
+		{
+			TORRENT_ASSERT(false);
 			return -1;
+		}
 
 		// remote_key is now the shared secret
-		int size = mp_unsigned_bin_size(&remote_key);
-		memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
+		int const size = mp_unsigned_bin_size(&remote_key);
+		TORRENT_ASSERT(size >= 0);
+		TORRENT_ASSERT(size <= sizeof(m_dh_shared_secret));
+		if (size < 0 || size > sizeof(m_dh_shared_secret))
+		{
+			return -1;
+		}
+
+		std::memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
 		mp_to_unsigned_bin(&remote_key
 			, reinterpret_cast<unsigned char*>(m_dh_shared_secret)
 			+ sizeof(m_dh_shared_secret) - size);
@@ -368,11 +401,13 @@ namespace libtorrent
 
 void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 {
-	unsigned char key[256], tmp, *s;
+	size_t const key_size = sizeof(state->buf);
+	unsigned char key[key_size], tmp, *s;
 	int keylen, x, y, j;
 
 	TORRENT_ASSERT(state != 0);
-	TORRENT_ASSERT(len <= 256);
+	TORRENT_ASSERT(len <= key_size);
+	if (len > key_size) len = key_size;
 
 	state->x = 0;
 	while (len--) {
@@ -381,18 +416,18 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 
 	/* extract the key */
 	s = state->buf;
-	memcpy(key, s, 256);
+	std::memcpy(key, s, key_size);
 	keylen = state->x;
 
 	/* make RC4 perm and shuffle */
-	for (x = 0; x < 256; x++) {
+	for (x = 0; x < key_size; ++x) {
 		s[x] = x;
 	}
 
-	for (j = x = y = 0; x < 256; x++) {
+	for (j = x = y = 0; x < key_size; x++) {
 		y = (y + state->buf[x] + key[j++]) & 255;
 		if (j == keylen) {
-			j = 0; 
+			j = 0;
 		}
 		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
 	}
