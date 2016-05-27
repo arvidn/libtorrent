@@ -4785,6 +4785,19 @@ retry:
 		add_torrent_params params = p;
 		boost::shared_ptr<torrent> const torrent_ptr = add_torrent_impl(params, ec);
 
+		// --- PEERS --- (delete when merged to master)
+		std::vector<tcp::endpoint> peers;
+		parse_magnet_uri_peers(p.url, peers);
+
+		for (std::vector<tcp::endpoint>::const_iterator i = peers.begin()
+			, end(peers.end()); i != end; ++i)
+		{
+			torrent_ptr->add_peer(*i , peer_info::resume_data);
+		}
+
+		if (!peers.empty())
+			torrent_ptr->update_want_peers();
+
 		torrent_handle const handle(torrent_ptr);
 		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
 

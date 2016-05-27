@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 
 #include <string>
+#include "libtorrent/socket_io.hpp"
 
 namespace libtorrent
 {
@@ -269,6 +270,24 @@ namespace libtorrent
 
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
+	}
+
+	void parse_magnet_uri_peers(std::string const& uri, std::vector<tcp::endpoint>& peers)
+	{
+		std::string::size_type peer_pos = std::string::npos;
+		std::string peer = url_has_argument(uri, "x.pe", &peer_pos);
+		while (!peer.empty())
+		{
+			error_code e;
+			tcp::endpoint endp = parse_endpoint(peer, e);
+			if (!e)
+				peers.push_back(endp);
+
+			peer_pos = uri.find("&x.pe=", peer_pos);
+			if (peer_pos == std::string::npos) break;
+			peer_pos += 6;
+			peer = uri.substr(peer_pos, uri.find('&', peer_pos) - peer_pos);
+		}
 	}
 }
 

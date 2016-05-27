@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/thread.hpp"
 #include "libtorrent/torrent.hpp"
+#include "libtorrent/peer_info.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
 #include <iostream>
@@ -210,6 +211,36 @@ TORRENT_TEST(total_wanted)
 	TEST_EQUAL(st.total_wanted, 1024);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_EQUAL(st.total_wanted_done, 0);
+}
+
+TORRENT_TEST(added_peers)
+{
+	file_storage fs;
+
+	fs.add_file("test_torrent_dir4/tmp1", 1024);
+
+	libtorrent::create_torrent t(fs, 1024);
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	error_code ec;
+	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
+		&tmp[0], tmp.size(), boost::ref(ec)));
+
+	settings_pack pack;
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
+	pack.set_int(settings_pack::max_retry_port_bind, 10);
+	lt::session ses(pack);
+
+	add_torrent_params p;
+	p.ti = info;
+	p.save_path = ".";
+	p.url = "?x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082";
+
+	torrent_handle h = ses.add_torrent(p);
+
+	std::vector<peer_list_entry> v;
+	h.get_full_peer_list(v);
+	TEST_EQUAL(v.size(), 2);
 }
 
 TORRENT_TEST(torrent)
