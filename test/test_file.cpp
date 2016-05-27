@@ -283,7 +283,7 @@ TORRENT_TEST(file)
 {
 	error_code ec;
 	file f;
-#if TORRENT_USE_UNC_PATHS || !defined WIN32
+#if TORRENT_USE_UNC_PATHS || !defined _WIN32
 	TEST_CHECK(f.open("con", file::read_write, ec));
 #else
 	TEST_CHECK(f.open("test_file", file::read_write, ec));

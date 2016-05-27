@@ -2408,7 +2408,7 @@ namespace aux {
 					&& err != boost::asio::error::operation_aborted
 					&& err != boost::asio::error::network_reset
 					&& err != boost::asio::error::network_unreachable
-#ifdef WIN32
+#ifdef _WIN32
 					// ERROR_MORE_DATA means the same thing as EMSGSIZE
 					&& err != error_code(ERROR_MORE_DATA, system_category())
 					&& err != error_code(ERROR_HOST_UNREACHABLE, system_category())

@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/socket_io.hpp"
 
+#include <string>
+
 namespace libtorrent
 {
 	std::string make_magnet_uri(torrent_handle const& handle)

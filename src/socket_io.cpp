@@ -105,6 +105,11 @@ namespace libtorrent
 			}
 			*port_pos = '\0';
 			++port_pos;
+			if (port_pos == str.end() || *port_pos != ':')
+			{
+				ec = errors::invalid_port;
+				return ret;
+			}
 #if TORRENT_USE_IPV6
 			ret.address(address_v6::from_string(&*start, ec));
 #else
@@ -125,12 +130,13 @@ namespace libtorrent
 			if (ec) return ret;
 		}
 
+		++port_pos;
 		if (port_pos == str.end())
 		{
 			ec = errors::invalid_port;
 			return ret;
 		}
-		++port_pos;
+
 		ret.port(std::atoi(&*port_pos));
 		return ret;
 	}

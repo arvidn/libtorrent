@@ -459,7 +459,7 @@ namespace libtorrent { namespace dht
 		if (ec == boost::asio::error::connection_refused
 			|| ec == boost::asio::error::connection_reset
 			|| ec == boost::asio::error::connection_aborted
-#ifdef WIN32
+#ifdef _WIN32
 			|| ec == error_code(ERROR_HOST_UNREACHABLE, system_category())
 			|| ec == error_code(ERROR_PORT_UNREACHABLE, system_category())
 			|| ec == error_code(ERROR_CONNECTION_REFUSED, system_category())

@@ -102,7 +102,7 @@ std::string demangle(char const* name)
 	free(unmangled);
 	return ret;
 }
-#elif defined WIN32
+#elif defined _WIN32
 
 #include "windows.h"
 #include "dbghelp.h"
@@ -144,7 +144,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 	free(symbols);
 }
 
-#elif defined WIN32
+#elif defined _WIN32
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"

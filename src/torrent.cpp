@@ -703,6 +703,11 @@ namespace libtorrent
 		set_limit_impl(p.upload_limit, peer_connection::upload_channel, false);
 		set_limit_impl(p.download_limit, peer_connection::download_channel, false);
 
+		for (auto const& peer : p.peers)
+		{
+			add_peer(peer, peer_info::resume_data);
+		}
+
 #ifndef TORRENT_NO_DEPRECATE
 		if (!m_name && !m_url.empty()) m_name.reset(new std::string(m_url));
 #endif
@@ -10728,6 +10733,7 @@ namespace libtorrent
 	{
 		if (!m_apply_ip_filter) return;
 		if (!m_peer_list) return;
+		if (!m_ip_filter) return;
 
 		torrent_state st = get_peer_list_state();
 		std::vector<address> banned;

@@ -125,7 +125,8 @@ void natpmp::start()
 	}
 
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
-	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
+	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
+		, sizeof(m_response_buffer))
 		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request();
 
@@ -437,10 +438,11 @@ void natpmp::on_reply(error_code const& e
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	// make a copy of the response packet buffer
 	// to avoid overwriting it in the next receive call
-	char msg_buf[16];
+	char msg_buf[sizeof(m_response_buffer)];
 	memcpy(msg_buf, m_response_buffer, bytes_transferred);
 
-	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer, 16)
+	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
+		, sizeof(m_response_buffer))
 		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 
 	if (m_remote != m_nat_endpoint)
@@ -483,7 +485,7 @@ void natpmp::on_reply(error_code const& e
 
 	}
 
-	if (bytes_transferred < 16)
+	if (bytes_transferred != 16)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("received packet of invalid size: %d", int(bytes_transferred));
