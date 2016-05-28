@@ -17,8 +17,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <limits.h>
+
+#include "libtorrent/export.hpp"
+
+#ifdef _MSC_VER
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
+#endif
 
 #include <tommath_class.h>
 
@@ -173,10 +183,10 @@ const char *mp_error_to_string(int code);
 
 /* ---> init and deinit bignum functions <--- */
 /* init a bignum */
-int mp_init(mp_int *a);
+TORRENT_EXTRA_EXPORT int mp_init(mp_int *a);
 
 /* free a bignum */
-void mp_clear(mp_int *a);
+TORRENT_EXTRA_EXPORT void mp_clear(mp_int *a);
 
 /* init a null terminated series of arguments */
 int mp_init_multi(mp_int *mp, ...);
@@ -521,8 +531,8 @@ int mp_prime_random_ex(mp_int *a, int t, int size, int flags, ltm_prime_callback
 /* ---> radix conversion <--- */
 int mp_count_bits(mp_int *a);
 
-int mp_unsigned_bin_size(mp_int *a);
-int mp_read_unsigned_bin(mp_int *a, const unsigned char *b, int c);
+TORRENT_EXTRA_EXPORT int mp_unsigned_bin_size(mp_int *a);
+TORRENT_EXTRA_EXPORT int mp_read_unsigned_bin(mp_int *a, const unsigned char *b, int c);
 int mp_to_unsigned_bin(mp_int *a, unsigned char *b);
 int mp_to_unsigned_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen);
 
