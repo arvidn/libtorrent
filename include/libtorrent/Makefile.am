@@ -126,6 +126,7 @@ nobase_include_HEADERS = \
   tommath.h \
   tommath_class.h \
   tommath_superclass.h \
+  tommath_private.h \
   \
   aux_/session_impl.hpp        \
   \

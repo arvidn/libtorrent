@@ -10,44 +10,33 @@
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://math.libtomcrypt.com
  */
 #ifndef BN_H_
 #define BN_H_
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <limits.h>
+
+#ifdef _MSC_VER
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
+#endif
 
 #include "libtorrent/tommath_class.h"
 
-#ifndef MIN
-   #define MIN(x,y) ((x)<(y)?(x):(y))
-#endif
-
-#ifndef MAX
-   #define MAX(x,y) ((x)>(y)?(x):(y))
-#endif
-
 #ifdef __cplusplus
 extern "C" {
-
-/* C++ compilers don't like assigning void * to mp_digit * */
-#define  OPT_CAST(x)  (x *)
-
-#else
-
-/* C on the other hand doesn't care */
-#define  OPT_CAST(x)
-
 #endif
 
-
 /* detect 64-bit mode if possible */
-#if defined(__x86_64__) 
-   #if !(defined(MP_64BIT) && defined(MP_16BIT) && defined(MP_8BIT))
+#if defined(__x86_64__)
+   #if !(defined(MP_32BIT) || defined(MP_16BIT) || defined(MP_8BIT))
       #define MP_64BIT
    #endif
 #endif
@@ -61,70 +50,68 @@ extern "C" {
  * [any size beyond that is ok provided it doesn't overflow the data type]
  */
 #ifdef MP_8BIT
-   typedef unsigned char      mp_digit;
-   typedef unsigned short     mp_word;
+   typedef uint8_t              mp_digit;
+   typedef uint16_t             mp_word;
+#define MP_SIZEOF_MP_DIGIT      1
+#ifdef DIGIT_BIT
+#error You must not define DIGIT_BIT when using MP_8BIT
+#endif
 #elif defined(MP_16BIT)
-   typedef unsigned short     mp_digit;
-   typedef unsigned long      mp_word;
+   typedef uint16_t             mp_digit;
+   typedef uint32_t             mp_word;
+#define MP_SIZEOF_MP_DIGIT      2
+#ifdef DIGIT_BIT
+#error You must not define DIGIT_BIT when using MP_16BIT
+#endif
 #elif defined(MP_64BIT)
    /* for GCC only on supported platforms */
-#ifndef CRYPT
-   typedef unsigned long long ulong64;
-   typedef signed long long   long64;
+   typedef uint64_t mp_digit;
+#if defined(_WIN32)
+   typedef unsigned __int128    mp_word;
+#elif defined(__GNUC__)
+   typedef unsigned long        mp_word __attribute__ ((mode(TI)));
+#else
+   /* it seems you have a problem
+    * but we assume you can somewhere define your own uint128_t */
+   typedef uint128_t            mp_word;
 #endif
 
-   typedef unsigned long      mp_digit;
-   typedef unsigned long      mp_word __attribute__ ((mode(TI)));
-
-   #define DIGIT_BIT          60
+   #define DIGIT_BIT            60
 #else
    /* this is the default case, 28-bit digits */
-   
+
    /* this is to make porting into LibTomCrypt easier :-) */
-#ifndef CRYPT
-   #if defined(_MSC_VER) || defined(__BORLANDC__) 
-      typedef unsigned __int64   ulong64;
-      typedef signed __int64     long64;
-   #else
-      typedef unsigned long long ulong64;
-      typedef signed long long   long64;
-   #endif
-#endif
+   typedef uint32_t             mp_digit;
+   typedef uint64_t             mp_word;
 
-   typedef unsigned long      mp_digit;
-   typedef ulong64            mp_word;
-
-#ifdef MP_31BIT   
+#ifdef MP_31BIT
    /* this is an extension that uses 31-bit digits */
-   #define DIGIT_BIT          31
+   #define DIGIT_BIT            31
 #else
    /* default case is 28-bit digits, defines MP_28BIT as a handy macro to test */
-   #define DIGIT_BIT          28
+   #define DIGIT_BIT            28
    #define MP_28BIT
-#endif   
 #endif
-
-/* define heap macros */
-#ifndef CRYPT
-   /* default to libc stuff */
-   #ifndef XMALLOC 
-       #define XMALLOC  malloc
-       #define XFREE    free
-       #define XREALLOC realloc
-       #define XCALLOC  calloc
-   #else
-      /* prototypes for our heap functions */
-      extern void *XMALLOC(size_t n);
-      extern void *XREALLOC(void *p, size_t n);
-      extern void *XCALLOC(size_t n, size_t s);
-      extern void XFREE(void *p);
-   #endif
 #endif
-
 
 /* otherwise the bits per digit is calculated automatically from the size of a mp_digit */
 #ifndef DIGIT_BIT
-   #define DIGIT_BIT     ((int)((CHAR_BIT * sizeof(mp_digit) - 1)))  /* bits per digit */
+   #define DIGIT_BIT     (((CHAR_BIT * MP_SIZEOF_MP_DIGIT) - 1))  /* bits per digit */
+   typedef uint_least32_t mp_min_u32;
+#else
+   typedef mp_digit mp_min_u32;
+#endif
+
+/* platforms that can use a better rand function */
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+    #define MP_USE_ALT_RAND 1
+#endif
+
+/* use arc4random on platforms that support it */
+#ifdef MP_USE_ALT_RAND
+    #define MP_GEN_RANDOM()    arc4random()
+#else
+    #define MP_GEN_RANDOM()    rand()
 #endif
 
 #define MP_DIGIT_BIT     DIGIT_BIT
@@ -169,11 +156,11 @@ extern int KARATSUBA_MUL_CUTOFF,
       #define MP_PREC                 32     /* default digits of precision */
    #else
       #define MP_PREC                 8      /* default digits of precision */
-   #endif   
+   #endif
 #endif
 
 /* size of comba arrays, should be at least 2 * 2**(BITS_PER_WORD - BITS_PER_DIGIT*2) */
-#define MP_WARRAY               (1 << (sizeof(mp_word) * CHAR_BIT - 2 * DIGIT_BIT + 1))
+#define MP_WARRAY               (1 << (((sizeof(mp_word) * CHAR_BIT) - (2 * DIGIT_BIT)) + 1))
 
 /* the infamous mp_int structure */
 typedef struct  {
@@ -190,7 +177,7 @@ typedef int ltm_prime_callback(unsigned char *dst, int len, void *dat);
 #define SIGN(m)    ((m)->sign)
 
 /* error code to char* string */
-char *mp_error_to_string(int code);
+const char *mp_error_to_string(int code);
 
 /* ---> init and deinit bignum functions <--- */
 /* init a bignum */
@@ -219,8 +206,9 @@ int mp_init_size(mp_int *a, int size);
 
 /* ---> Basic Manipulations <--- */
 #define mp_iszero(a) (((a)->used == 0) ? MP_YES : MP_NO)
-#define mp_iseven(a) (((a)->used > 0 && (((a)->dp[0] & 1) == 0)) ? MP_YES : MP_NO)
-#define mp_isodd(a)  (((a)->used > 0 && (((a)->dp[0] & 1) == 1)) ? MP_YES : MP_NO)
+#define mp_iseven(a) ((((a)->used > 0) && (((a)->dp[0] & 1u) == 0u)) ? MP_YES : MP_NO)
+#define mp_isodd(a)  ((((a)->used > 0) && (((a)->dp[0] & 1u) == 1u)) ? MP_YES : MP_NO)
+#define mp_isneg(a)  (((a)->sign != MP_ZPOS) ? MP_YES : MP_NO)
 
 /* set to zero */
 void mp_zero(mp_int *a);
@@ -231,8 +219,20 @@ void mp_set(mp_int *a, mp_digit b);
 /* set a 32-bit const */
 int mp_set_int(mp_int *a, unsigned long b);
 
+/* set a platform dependent unsigned long value */
+int mp_set_long(mp_int *a, unsigned long b);
+
+/* set a platform dependent unsigned long long value */
+int mp_set_long_long(mp_int *a, unsigned long long b);
+
 /* get a 32-bit value */
 unsigned long mp_get_int(mp_int * a);
+
+/* get a platform dependent unsigned long value */
+unsigned long mp_get_long(mp_int * a);
+
+/* get a platform dependent unsigned long long value */
+unsigned long long mp_get_long_long(mp_int * a);
 
 /* initialize and set a digit */
 int mp_init_set (mp_int * a, mp_digit b);
@@ -249,6 +249,12 @@ int mp_init_copy(mp_int *a, mp_int *b);
 /* trim unused digits */
 void mp_clamp(mp_int *a);
 
+/* import binary data */
+int mp_import(mp_int* rop, size_t count, int order, size_t size, int endian, size_t nails, const void* op);
+
+/* export binary data */
+int mp_export(void* rop, size_t* countp, int order, size_t size, int endian, size_t nails, mp_int* op);
+
 /* ---> digit manipulation <--- */
 
 /* right shift by "b" digits */
@@ -257,19 +263,19 @@ void mp_rshd(mp_int *a, int b);
 /* left shift by "b" digits */
 int mp_lshd(mp_int *a, int b);
 
-/* c = a / 2**b */
+/* c = a / 2**b, implemented as c = a >> b */
 int mp_div_2d(mp_int *a, int b, mp_int *c, mp_int *d);
 
 /* b = a/2 */
 int mp_div_2(mp_int *a, mp_int *b);
 
-/* c = a * 2**b */
+/* c = a * 2**b, implemented as c = a << b */
 int mp_mul_2d(mp_int *a, int b, mp_int *c);
 
 /* b = a*2 */
 int mp_mul_2(mp_int *a, mp_int *b);
 
-/* c = a mod 2**d */
+/* c = a mod 2**b */
 int mp_mod_2d(mp_int *a, int b, mp_int *c);
 
 /* computes a = 2**b */
@@ -347,6 +353,7 @@ int mp_div_3(mp_int *a, mp_int *c, mp_digit *d);
 
 /* c = a**b */
 int mp_expt_d(mp_int *a, mp_digit b, mp_int *c);
+int mp_expt_d_ex (mp_int * a, mp_digit b, mp_int * c, int fast);
 
 /* c = a mod b, 0 <= c < b  */
 int mp_mod_d(mp_int *a, mp_digit b, mp_digit *c);
@@ -382,9 +389,13 @@ int mp_lcm(mp_int *a, mp_int *b, mp_int *c);
  * returns error if a < 0 and b is even
  */
 int mp_n_root(mp_int *a, mp_digit b, mp_int *c);
+int mp_n_root_ex (mp_int * a, mp_digit b, mp_int * c, int fast);
 
 /* special sqrt algo */
 int mp_sqrt(mp_int *arg, mp_int *ret);
+
+/* special sqrt (mod prime) */
+int mp_sqrtmod_prime(mp_int *arg, mp_int *prime, mp_int *ret);
 
 /* is number a square? */
 int mp_is_square(mp_int *arg, int *ret);
@@ -453,7 +464,7 @@ int mp_exptmod(mp_int *a, mp_int *b, mp_int *c, mp_int *d);
 #endif
 
 /* table of first PRIME_SIZE primes */
-extern const mp_digit ltm_prime_tab[];
+extern const mp_digit ltm_prime_tab[PRIME_SIZE];
 
 /* result=1 if a is divisible by one of the first PRIME_SIZE primes */
 int mp_prime_is_divisible(mp_int *a, int *result);
@@ -469,7 +480,7 @@ int mp_prime_fermat(mp_int *a, mp_int *b, int *result);
 int mp_prime_miller_rabin(mp_int *a, mp_int *b, int *result);
 
 /* This gives [for a given bit size] the number of trials required
- * such that Miller-Rabin gives a prob of failure lower than 2^-96 
+ * such that Miller-Rabin gives a prob of failure lower than 2^-96
  */
 int mp_prime_rabin_miller_trials(int size);
 
@@ -490,7 +501,7 @@ int mp_prime_is_prime(mp_int *a, int t, int *result);
 int mp_prime_next_prime(mp_int *a, int t, int bbs_style);
 
 /* makes a truly random prime of a given size (bytes),
- * call with bbs = 1 if you want it to be congruent to 3 mod 4 
+ * call with bbs = 1 if you want it to be congruent to 3 mod 4
  *
  * You have to supply a callback which fills in a buffer with random bytes.  "dat" is a parameter you can
  * have passed to the callback (e.g. a state or something).  This function doesn't use "dat" itself
@@ -503,10 +514,9 @@ int mp_prime_next_prime(mp_int *a, int t, int bbs_style);
 /* makes a truly random prime of a given size (bits),
  *
  * Flags are as follows:
- * 
+ *
  *   LTM_PRIME_BBS      - make prime congruent to 3 mod 4
  *   LTM_PRIME_SAFE     - make sure (p-1)/2 is prime as well (implies LTM_PRIME_BBS)
- *   LTM_PRIME_2MSB_OFF - make the 2nd highest bit zero
  *   LTM_PRIME_2MSB_ON  - make the 2nd highest bit one
  *
  * You have to supply a callback which fills in a buffer with random bytes.  "dat" is a parameter you can
@@ -534,8 +544,10 @@ int mp_toradix(mp_int *a, char *str, int radix);
 int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen);
 int mp_radix_size(mp_int *a, int radix, int *size);
 
+#ifndef LTM_NO_FILE
 int mp_fread(mp_int *a, int radix, FILE *stream);
 int mp_fwrite(mp_int *a, int radix, FILE *stream);
+#endif
 
 #define mp_read_raw(mp, str, len) mp_read_signed_bin((mp), (str), (len))
 #define mp_raw_size(mp)           mp_signed_bin_size(mp)
@@ -549,29 +561,6 @@ int mp_fwrite(mp_int *a, int radix, FILE *stream);
 #define mp_todecimal(M, S) mp_toradix((M), (S), 10)
 #define mp_tohex(M, S)     mp_toradix((M), (S), 16)
 
-/* lowlevel functions, do not call! */
-int s_mp_add(mp_int *a, mp_int *b, mp_int *c);
-int s_mp_sub(mp_int *a, mp_int *b, mp_int *c);
-#define s_mp_mul(a, b, c) s_mp_mul_digs(a, b, c, (a)->used + (b)->used + 1)
-int fast_s_mp_mul_digs(mp_int *a, mp_int *b, mp_int *c, int digs);
-int s_mp_mul_digs(mp_int *a, mp_int *b, mp_int *c, int digs);
-int fast_s_mp_mul_high_digs(mp_int *a, mp_int *b, mp_int *c, int digs);
-int s_mp_mul_high_digs(mp_int *a, mp_int *b, mp_int *c, int digs);
-int fast_s_mp_sqr(mp_int *a, mp_int *b);
-int s_mp_sqr(mp_int *a, mp_int *b);
-int mp_karatsuba_mul(mp_int *a, mp_int *b, mp_int *c);
-int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c);
-int mp_karatsuba_sqr(mp_int *a, mp_int *b);
-int mp_toom_sqr(mp_int *a, mp_int *b);
-int fast_mp_invmod(mp_int *a, mp_int *b, mp_int *c);
-int mp_invmod_slow (mp_int * a, mp_int * b, mp_int * c);
-int fast_mp_montgomery_reduce(mp_int *a, mp_int *m, mp_digit mp);
-int mp_exptmod_fast(mp_int *G, mp_int *X, mp_int *P, mp_int *Y, int mode);
-int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int mode);
-void bn_reverse(unsigned char *s, int len);
-
-extern const char *mp_s_rmap;
-
 #ifdef __cplusplus
    }
 #endif
@@ -579,6 +568,6 @@ extern const char *mp_s_rmap;
 #endif
 
 
-/* $Source: /cvs/libtom/libtommath/tommath.h,v $ */
-/* $Revision: 1.8 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
