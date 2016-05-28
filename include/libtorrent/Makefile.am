@@ -156,6 +156,7 @@ nobase_include_HEADERS = \
   tommath.h                         \
   tommath_class.h                   \
   tommath_superclass.h              \
+  tommath_private.h                 \
   \
   aux_/alert_manager_variadic_emplace.hpp \
   aux_/allocating_handler.hpp       \
