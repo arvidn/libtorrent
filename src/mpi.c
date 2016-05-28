@@ -1,5 +1,5 @@
 /* Start: bn_error.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_ERROR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -50,7 +50,7 @@ const char *mp_error_to_string(int code)
 /* End: bn_error.c */
 
 /* Start: bn_fast_mp_invmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_MP_INVMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -202,7 +202,7 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &B, &D, NULL);
 /* End: bn_fast_mp_invmod.c */
 
 /* Start: bn_fast_mp_montgomery_reduce.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_MP_MONTGOMERY_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -378,7 +378,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
 /* End: bn_fast_mp_montgomery_reduce.c */
 
 /* Start: bn_fast_s_mp_mul_digs.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_MUL_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -489,7 +489,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 /* End: bn_fast_s_mp_mul_digs.c */
 
 /* Start: bn_fast_s_mp_mul_high_digs.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_MUL_HIGH_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -591,7 +591,7 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 /* End: bn_fast_s_mp_mul_high_digs.c */
 
 /* Start: bn_fast_s_mp_sqr.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -709,7 +709,7 @@ int fast_s_mp_sqr (mp_int * a, mp_int * b)
 /* End: bn_fast_s_mp_sqr.c */
 
 /* Start: bn_mp_2expt.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_2EXPT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -761,7 +761,7 @@ mp_2expt (mp_int * a, int b)
 /* End: bn_mp_2expt.c */
 
 /* Start: bn_mp_abs.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ABS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -808,7 +808,7 @@ mp_abs (mp_int * a, mp_int * b)
 /* End: bn_mp_abs.c */
 
 /* Start: bn_mp_add.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -865,7 +865,7 @@ int mp_add (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_add.c */
 
 /* Start: bn_mp_add_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADD_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -981,7 +981,7 @@ mp_add_d (mp_int * a, mp_digit b, mp_int * c)
 /* End: bn_mp_add_d.c */
 
 /* Start: bn_mp_addmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADDMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1026,7 +1026,7 @@ mp_addmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 /* End: bn_mp_addmod.c */
 
 /* Start: bn_mp_and.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_AND_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1087,7 +1087,7 @@ mp_and (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_and.c */
 
 /* Start: bn_mp_clamp.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLAMP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1135,7 +1135,7 @@ mp_clamp (mp_int * a)
 /* End: bn_mp_clamp.c */
 
 /* Start: bn_mp_clear.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLEAR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1183,7 +1183,7 @@ mp_clear (mp_int * a)
 /* End: bn_mp_clear.c */
 
 /* Start: bn_mp_clear_multi.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLEAR_MULTI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1221,7 +1221,7 @@ void mp_clear_multi(mp_int *mp, ...)
 /* End: bn_mp_clear_multi.c */
 
 /* Start: bn_mp_cmp.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1268,7 +1268,7 @@ mp_cmp (mp_int * a, mp_int * b)
 /* End: bn_mp_cmp.c */
 
 /* Start: bn_mp_cmp_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1316,7 +1316,7 @@ int mp_cmp_d(mp_int * a, mp_digit b)
 /* End: bn_mp_cmp_d.c */
 
 /* Start: bn_mp_cmp_mag.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_MAG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1375,7 +1375,7 @@ int mp_cmp_mag (mp_int * a, mp_int * b)
 /* End: bn_mp_cmp_mag.c */
 
 /* Start: bn_mp_cnt_lsb.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CNT_LSB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1432,7 +1432,7 @@ int mp_cnt_lsb(mp_int *a)
 /* End: bn_mp_cnt_lsb.c */
 
 /* Start: bn_mp_copy.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_COPY_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1504,7 +1504,7 @@ mp_copy (mp_int * a, mp_int * b)
 /* End: bn_mp_copy.c */
 
 /* Start: bn_mp_count_bits.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_COUNT_BITS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1553,7 +1553,7 @@ mp_count_bits (mp_int * a)
 /* End: bn_mp_count_bits.c */
 
 /* Start: bn_mp_div.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1852,7 +1852,7 @@ LBL_Q:mp_clear (&q);
 /* End: bn_mp_div.c */
 
 /* Start: bn_mp_div_2.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_2_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1924,7 +1924,7 @@ int mp_div_2(mp_int * a, mp_int * b)
 /* End: bn_mp_div_2.c */
 
 /* Start: bn_mp_div_2d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2025,7 +2025,7 @@ int mp_div_2d (mp_int * a, int b, mp_int * c, mp_int * d)
 /* End: bn_mp_div_2d.c */
 
 /* Start: bn_mp_div_3.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_3_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2108,7 +2108,7 @@ mp_div_3 (mp_int * a, mp_int *c, mp_digit * d)
 /* End: bn_mp_div_3.c */
 
 /* Start: bn_mp_div_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2227,7 +2227,7 @@ int mp_div_d (mp_int * a, mp_digit b, mp_int * c, mp_digit * d)
 /* End: bn_mp_div_d.c */
 
 /* Start: bn_mp_dr_is_modulus.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_IS_MODULUS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2274,7 +2274,7 @@ int mp_dr_is_modulus(mp_int *a)
 /* End: bn_mp_dr_is_modulus.c */
 
 /* Start: bn_mp_dr_reduce.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2374,7 +2374,7 @@ top:
 /* End: bn_mp_dr_reduce.c */
 
 /* Start: bn_mp_dr_setup.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2410,7 +2410,7 @@ void mp_dr_setup(mp_int *a, mp_digit *d)
 /* End: bn_mp_dr_setup.c */
 
 /* Start: bn_mp_exch.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXCH_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2448,7 +2448,7 @@ mp_exch (mp_int * a, mp_int * b)
 /* End: bn_mp_exch.c */
 
 /* Start: bn_mp_export.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPORT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2540,7 +2540,7 @@ int mp_export(void* rop, size_t* countp, int order, size_t size,
 /* End: bn_mp_export.c */
 
 /* Start: bn_mp_expt_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPT_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2572,7 +2572,7 @@ int mp_expt_d (mp_int * a, mp_digit b, mp_int * c)
 /* End: bn_mp_expt_d.c */
 
 /* Start: bn_mp_expt_d_ex.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPT_D_EX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2659,7 +2659,7 @@ int mp_expt_d_ex (mp_int * a, mp_digit b, mp_int * c, int fast)
 /* End: bn_mp_expt_d_ex.c */
 
 /* Start: bn_mp_exptmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPTMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2775,7 +2775,7 @@ int mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y)
 /* End: bn_mp_exptmod.c */
 
 /* Start: bn_mp_exptmod_fast.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPTMOD_FAST_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3100,7 +3100,7 @@ LBL_M:
 /* End: bn_mp_exptmod_fast.c */
 
 /* Start: bn_mp_exteuclid.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXTEUCLID_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3186,7 +3186,7 @@ _ERR: mp_clear_multi(&u1, &u2, &u3, &v1, &v2, &v3, &t1, &t2, &t3, &q, &tmp, NULL
 /* End: bn_mp_exteuclid.c */
 
 /* Start: bn_mp_fread.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_FREAD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3257,7 +3257,7 @@ int mp_fread(mp_int *a, int radix, FILE *stream)
 /* End: bn_mp_fread.c */
 
 /* Start: bn_mp_fwrite.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_FWRITE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3313,7 +3313,7 @@ int mp_fwrite(mp_int *a, int radix, FILE *stream)
 /* End: bn_mp_fwrite.c */
 
 /* Start: bn_mp_gcd.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GCD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3422,7 +3422,7 @@ LBL_U:mp_clear (&v);
 /* End: bn_mp_gcd.c */
 
 /* Start: bn_mp_get_int.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3471,7 +3471,7 @@ unsigned long mp_get_int(mp_int * a)
 /* End: bn_mp_get_int.c */
 
 /* Start: bn_mp_get_long.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GET_LONG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3516,7 +3516,7 @@ unsigned long mp_get_long(mp_int * a)
 /* End: bn_mp_get_long.c */
 
 /* Start: bn_mp_get_long_long.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GET_LONG_LONG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3561,7 +3561,7 @@ unsigned long long mp_get_long_long (mp_int * a)
 /* End: bn_mp_get_long_long.c */
 
 /* Start: bn_mp_grow.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GROW_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3622,7 +3622,7 @@ int mp_grow (mp_int * a, int size)
 /* End: bn_mp_grow.c */
 
 /* Start: bn_mp_import.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_IMPORT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3699,7 +3699,7 @@ int mp_import(mp_int* rop, size_t count, int order, size_t size,
 /* End: bn_mp_import.c */
 
 /* Start: bn_mp_init.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3749,7 +3749,7 @@ int mp_init (mp_int * a)
 /* End: bn_mp_init.c */
 
 /* Start: bn_mp_init_copy.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_COPY_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3785,7 +3785,7 @@ int mp_init_copy (mp_int * a, mp_int * b)
 /* End: bn_mp_init_copy.c */
 
 /* Start: bn_mp_init_multi.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_MULTI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3848,7 +3848,7 @@ int mp_init_multi(mp_int *mp, ...)
 /* End: bn_mp_init_multi.c */
 
 /* Start: bn_mp_init_set.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SET_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3884,7 +3884,7 @@ int mp_init_set (mp_int * a, mp_digit b)
 /* End: bn_mp_init_set.c */
 
 /* Start: bn_mp_init_set_int.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3919,7 +3919,7 @@ int mp_init_set_int (mp_int * a, unsigned long b)
 /* End: bn_mp_init_set_int.c */
 
 /* Start: bn_mp_init_size.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3971,7 +3971,7 @@ int mp_init_size (mp_int * a, int size)
 /* End: bn_mp_init_size.c */
 
 /* Start: bn_mp_invmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INVMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4018,7 +4018,7 @@ int mp_invmod (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_invmod.c */
 
 /* Start: bn_mp_invmod_slow.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INVMOD_SLOW_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4197,7 +4197,7 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &A, &B, &C, &D, NULL);
 /* End: bn_mp_invmod_slow.c */
 
 /* Start: bn_mp_is_square.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_IS_SQUARE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4310,7 +4310,7 @@ ERR:mp_clear(&t);
 /* End: bn_mp_is_square.c */
 
 /* Start: bn_mp_jacobi.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_JACOBI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4431,7 +4431,7 @@ LBL_A1:mp_clear (&a1);
 /* End: bn_mp_jacobi.c */
 
 /* Start: bn_mp_karatsuba_mul.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_KARATSUBA_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4602,7 +4602,7 @@ ERR:
 /* End: bn_mp_karatsuba_mul.c */
 
 /* Start: bn_mp_karatsuba_sqr.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_KARATSUBA_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4727,7 +4727,7 @@ ERR:
 /* End: bn_mp_karatsuba_sqr.c */
 
 /* Start: bn_mp_lcm.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_LCM_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4791,7 +4791,7 @@ LBL_T:
 /* End: bn_mp_lcm.c */
 
 /* Start: bn_mp_lshd.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_LSHD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4862,7 +4862,7 @@ int mp_lshd (mp_int * a, int b)
 /* End: bn_mp_lshd.c */
 
 /* Start: bn_mp_mod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4914,7 +4914,7 @@ mp_mod (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_mod.c */
 
 /* Start: bn_mp_mod_2d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4973,7 +4973,7 @@ mp_mod_2d (mp_int * a, int b, mp_int * c)
 /* End: bn_mp_mod_2d.c */
 
 /* Start: bn_mp_mod_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5004,7 +5004,7 @@ mp_mod_d (mp_int * a, mp_digit b, mp_digit * c)
 /* End: bn_mp_mod_d.c */
 
 /* Start: bn_mp_montgomery_calc_normalization.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_CALC_NORMALIZATION_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5067,7 +5067,7 @@ int mp_montgomery_calc_normalization (mp_int * a, mp_int * b)
 /* End: bn_mp_montgomery_calc_normalization.c */
 
 /* Start: bn_mp_montgomery_reduce.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5189,7 +5189,7 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
 /* End: bn_mp_montgomery_reduce.c */
 
 /* Start: bn_mp_montgomery_setup.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5252,7 +5252,7 @@ mp_montgomery_setup (mp_int * n, mp_digit * rho)
 /* End: bn_mp_montgomery_setup.c */
 
 /* Start: bn_mp_mul.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5323,7 +5323,7 @@ int mp_mul (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_mul.c */
 
 /* Start: bn_mp_mul_2.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_2_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5409,7 +5409,7 @@ int mp_mul_2(mp_int * a, mp_int * b)
 /* End: bn_mp_mul_2.c */
 
 /* Start: bn_mp_mul_2d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5498,7 +5498,7 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
 /* End: bn_mp_mul_2d.c */
 
 /* Start: bn_mp_mul_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5581,7 +5581,7 @@ mp_mul_d (mp_int * a, mp_digit b, mp_int * c)
 /* End: bn_mp_mul_d.c */
 
 /* Start: bn_mp_mulmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MULMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5625,7 +5625,7 @@ int mp_mulmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 /* End: bn_mp_mulmod.c */
 
 /* Start: bn_mp_n_root.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_N_ROOT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5659,7 +5659,7 @@ int mp_n_root (mp_int * a, mp_digit b, mp_int * c)
 /* End: bn_mp_n_root.c */
 
 /* Start: bn_mp_n_root_ex.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_N_ROOT_EX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5795,7 +5795,7 @@ LBL_T1:mp_clear (&t1);
 /* End: bn_mp_n_root_ex.c */
 
 /* Start: bn_mp_neg.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_NEG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5839,7 +5839,7 @@ int mp_neg (mp_int * a, mp_int * b)
 /* End: bn_mp_neg.c */
 
 /* Start: bn_mp_or.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_OR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5893,7 +5893,7 @@ int mp_or (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_or.c */
 
 /* Start: bn_mp_prime_fermat.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_FERMAT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5959,7 +5959,7 @@ LBL_T:mp_clear (&t);
 /* End: bn_mp_prime_fermat.c */
 
 /* Start: bn_mp_prime_is_divisible.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_IS_DIVISIBLE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6013,7 +6013,7 @@ int mp_prime_is_divisible (mp_int * a, int *result)
 /* End: bn_mp_prime_is_divisible.c */
 
 /* Start: bn_mp_prime_is_prime.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_IS_PRIME_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6100,7 +6100,7 @@ LBL_B:mp_clear (&b);
 /* End: bn_mp_prime_is_prime.c */
 
 /* Start: bn_mp_prime_miller_rabin.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_MILLER_RABIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6207,7 +6207,7 @@ LBL_N1:mp_clear (&n1);
 /* End: bn_mp_prime_miller_rabin.c */
 
 /* Start: bn_mp_prime_next_prime.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_NEXT_PRIME_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6381,7 +6381,7 @@ LBL_ERR:
 /* End: bn_mp_prime_next_prime.c */
 
 /* Start: bn_mp_prime_rabin_miller_trials.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_RABIN_MILLER_TRIALS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6437,7 +6437,7 @@ int mp_prime_rabin_miller_trials(int size)
 /* End: bn_mp_prime_rabin_miller_trials.c */
 
 /* Start: bn_mp_prime_random_ex.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_RANDOM_EX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6565,7 +6565,7 @@ error:
 /* End: bn_mp_prime_random_ex.c */
 
 /* Start: bn_mp_radix_size.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RADIX_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6647,7 +6647,7 @@ int mp_radix_size (mp_int * a, int radix, int *size)
 /* End: bn_mp_radix_size.c */
 
 /* Start: bn_mp_radix_smap.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RADIX_SMAP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6675,7 +6675,7 @@ const char *mp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
 /* End: bn_mp_radix_smap.c */
 
 /* Start: bn_mp_rand.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RAND_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6734,7 +6734,7 @@ mp_rand (mp_int * a, int digits)
 /* End: bn_mp_rand.c */
 
 /* Start: bn_mp_read_radix.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_RADIX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6823,7 +6823,7 @@ int mp_read_radix (mp_int * a, const char *str, int radix)
 /* End: bn_mp_read_radix.c */
 
 /* Start: bn_mp_read_signed_bin.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_SIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6868,7 +6868,7 @@ int mp_read_signed_bin (mp_int * a, const unsigned char *b, int c)
 /* End: bn_mp_read_signed_bin.c */
 
 /* Start: bn_mp_read_unsigned_bin.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_UNSIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6927,7 +6927,7 @@ int mp_read_unsigned_bin (mp_int * a, const unsigned char *b, int c)
 /* End: bn_mp_read_unsigned_bin.c */
 
 /* Start: bn_mp_reduce.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7031,7 +7031,7 @@ CLEANUP:
 /* End: bn_mp_reduce.c */
 
 /* Start: bn_mp_reduce_2k.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7098,7 +7098,7 @@ ERR:
 /* End: bn_mp_reduce_2k.c */
 
 /* Start: bn_mp_reduce_2k_l.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7166,7 +7166,7 @@ ERR:
 /* End: bn_mp_reduce_2k_l.c */
 
 /* Start: bn_mp_reduce_2k_setup.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7217,7 +7217,7 @@ int mp_reduce_2k_setup(mp_int *a, mp_digit *d)
 /* End: bn_mp_reduce_2k_setup.c */
 
 /* Start: bn_mp_reduce_2k_setup_l.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_SETUP_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7265,7 +7265,7 @@ ERR:
 /* End: bn_mp_reduce_2k_setup_l.c */
 
 /* Start: bn_mp_reduce_is_2k.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_IS_2K_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7321,7 +7321,7 @@ int mp_reduce_is_2k(mp_int *a)
 /* End: bn_mp_reduce_is_2k.c */
 
 /* Start: bn_mp_reduce_is_2k_l.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_IS_2K_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7369,7 +7369,7 @@ int mp_reduce_is_2k_l(mp_int *a)
 /* End: bn_mp_reduce_is_2k_l.c */
 
 /* Start: bn_mp_reduce_setup.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7407,7 +7407,7 @@ int mp_reduce_setup (mp_int * a, mp_int * b)
 /* End: bn_mp_reduce_setup.c */
 
 /* Start: bn_mp_rshd.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RSHD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7483,7 +7483,7 @@ void mp_rshd (mp_int * a, int b)
 /* End: bn_mp_rshd.c */
 
 /* Start: bn_mp_set.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7516,7 +7516,7 @@ void mp_set (mp_int * a, mp_digit b)
 /* End: bn_mp_set.c */
 
 /* Start: bn_mp_set_int.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7568,7 +7568,7 @@ int mp_set_int (mp_int * a, unsigned long b)
 /* End: bn_mp_set_int.c */
 
 /* Start: bn_mp_set_long.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_LONG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7596,7 +7596,7 @@ MP_SET_XLONG(mp_set_long, unsigned long)
 /* End: bn_mp_set_long.c */
 
 /* Start: bn_mp_set_long_long.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_LONG_LONG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7624,7 +7624,7 @@ MP_SET_XLONG(mp_set_long_long, unsigned long long)
 /* End: bn_mp_set_long_long.c */
 
 /* Start: bn_mp_shrink.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SHRINK_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7669,7 +7669,7 @@ int mp_shrink (mp_int * a)
 /* End: bn_mp_shrink.c */
 
 /* Start: bn_mp_signed_bin_size.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SIGNED_BIN_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7700,7 +7700,7 @@ int mp_signed_bin_size (mp_int * a)
 /* End: bn_mp_signed_bin_size.c */
 
 /* Start: bn_mp_sqr.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7764,7 +7764,7 @@ mp_sqr (mp_int * a, mp_int * b)
 /* End: bn_mp_sqr.c */
 
 /* Start: bn_mp_sqrmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQRMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7809,7 +7809,7 @@ mp_sqrmod (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_sqrmod.c */
 
 /* Start: bn_mp_sqrt.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQRT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7894,7 +7894,7 @@ E2: mp_clear(&t1);
 /* End: bn_mp_sqrt.c */
 
 /* Start: bn_mp_sqrtmod_prime.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQRTMOD_PRIME_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8022,7 +8022,7 @@ cleanup:
 /* End: bn_mp_sqrtmod_prime.c */
 
 /* Start: bn_mp_sub.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8085,7 +8085,7 @@ mp_sub (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_sub.c */
 
 /* Start: bn_mp_sub_d.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUB_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8182,7 +8182,7 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
 /* End: bn_mp_sub_d.c */
 
 /* Start: bn_mp_submod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUBMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8228,7 +8228,7 @@ mp_submod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 /* End: bn_mp_submod.c */
 
 /* Start: bn_mp_to_signed_bin.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_SIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8265,7 +8265,7 @@ int mp_to_signed_bin (mp_int * a, unsigned char *b)
 /* End: bn_mp_to_signed_bin.c */
 
 /* Start: bn_mp_to_signed_bin_n.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_SIGNED_BIN_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8300,7 +8300,7 @@ int mp_to_signed_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
 /* End: bn_mp_to_signed_bin_n.c */
 
 /* Start: bn_mp_to_unsigned_bin.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_UNSIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8352,7 +8352,7 @@ int mp_to_unsigned_bin (mp_int * a, unsigned char *b)
 /* End: bn_mp_to_unsigned_bin.c */
 
 /* Start: bn_mp_to_unsigned_bin_n.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_UNSIGNED_BIN_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8387,7 +8387,7 @@ int mp_to_unsigned_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
 /* End: bn_mp_to_unsigned_bin_n.c */
 
 /* Start: bn_mp_toom_mul.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TOOM_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8677,7 +8677,7 @@ ERR:
 /* End: bn_mp_toom_mul.c */
 
 /* Start: bn_mp_toom_sqr.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TOOM_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8909,7 +8909,7 @@ ERR:
 /* End: bn_mp_toom_sqr.c */
 
 /* Start: bn_mp_toradix.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TORADIX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8988,7 +8988,7 @@ int mp_toradix (mp_int * a, char *str, int radix)
 /* End: bn_mp_toradix.c */
 
 /* Start: bn_mp_toradix_n.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TORADIX_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9080,7 +9080,7 @@ int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
 /* End: bn_mp_toradix_n.c */
 
 /* Start: bn_mp_unsigned_bin_size.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_UNSIGNED_BIN_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9112,7 +9112,7 @@ int mp_unsigned_bin_size (mp_int * a)
 /* End: bn_mp_unsigned_bin_size.c */
 
 /* Start: bn_mp_xor.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_XOR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9167,7 +9167,7 @@ mp_xor (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_mp_xor.c */
 
 /* Start: bn_mp_zero.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ZERO_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9207,7 +9207,7 @@ void mp_zero (mp_int * a)
 /* End: bn_mp_zero.c */
 
 /* Start: bn_prime_tab.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_PRIME_TAB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9272,7 +9272,7 @@ const mp_digit ltm_prime_tab[] = {
 /* End: bn_prime_tab.c */
 
 /* Start: bn_reverse.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_REVERSE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9315,7 +9315,7 @@ bn_reverse (unsigned char *s, int len)
 /* End: bn_reverse.c */
 
 /* Start: bn_s_mp_add.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_ADD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9428,7 +9428,7 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_s_mp_add.c */
 
 /* Start: bn_s_mp_exptmod.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_EXPTMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9684,7 +9684,7 @@ LBL_M:
 /* End: bn_s_mp_exptmod.c */
 
 /* Start: bn_s_mp_mul_digs.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_MUL_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9778,7 +9778,7 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 /* End: bn_s_mp_mul_digs.c */
 
 /* Start: bn_s_mp_mul_high_digs.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_MUL_HIGH_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9863,7 +9863,7 @@ s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 /* End: bn_s_mp_mul_high_digs.c */
 
 /* Start: bn_s_mp_sqr.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9951,7 +9951,7 @@ int s_mp_sqr (mp_int * a, mp_int * b)
 /* End: bn_s_mp_sqr.c */
 
 /* Start: bn_s_mp_sub.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_SUB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -10044,7 +10044,7 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
 /* End: bn_s_mp_sub.c */
 
 /* Start: bncore.c */
-#include <tommath_private.h>
+#include "libtorrent/tommath_private.h"
 #ifdef BNCORE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *

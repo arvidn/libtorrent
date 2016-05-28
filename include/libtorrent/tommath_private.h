@@ -15,7 +15,7 @@
 #ifndef TOMMATH_PRIV_H_
 #define TOMMATH_PRIV_H_
 
-#include <tommath.h>
+#include "libtorrent/tommath.h"
 #include <ctype.h>
 
 #define MIN(x,y) (((x) < (y)) ? (x) : (y))

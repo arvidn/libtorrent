@@ -30,7 +30,7 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 #endif
 
-#include <tommath_class.h>
+#include "libtorrent/tommath_class.h"
 
 #ifdef __cplusplus
 extern "C" {
