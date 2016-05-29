@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 		e = bdecode(&buf[0], &buf[0] + buf.size(), len);
 //		entry& info = e["info"];
 	}
-	ptime stop(time_now_hires());
+	time_point stop(clock_type::now());
 
 	std::fprintf(stderr, "(slow) bdecode done in %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 	// ===============================================
 
 	{
-	ptime start(time_now_hires());
+	time_point start(clock_type::now());
 	lazy_entry e;
 	for (int i = 0; i < 1000000; ++i)
 	{
@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 	// ===============================================
 
 	{
-	ptime start(time_now_hires());
+	time_point start(clock_type::now());
 	bdecode_node e;
 	e.reserve(100);
 	for (int i = 0; i < 1000000; ++i)
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
 //		bdecode_node info = e.dict_find("info");
 	}
-	ptime stop(time_now_hires());
+	time_point stop(clock_type::now());
 
 	std::fprintf(stderr, "bdecode done in        %5d ns per message\n"
 		, int(total_microseconds(stop - start) / 1000));
