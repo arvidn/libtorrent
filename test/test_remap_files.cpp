@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 
 #include <fstream>
+#include <iostream>
 #include <boost/tuple/tuple.hpp>
 
 using namespace libtorrent;
