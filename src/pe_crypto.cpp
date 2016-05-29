@@ -58,9 +58,6 @@ namespace libtorrent
 {
 	namespace mp = boost::multiprecision;
 
-	BOOST_MP_DEFINE_SIZED_CPP_INT_LITERAL(768);
-	using namespace boost::multiprecision::literals;
-
 	namespace {
 		// TODO: it would be nice to get the literal working
 		key_t const dh_prime
