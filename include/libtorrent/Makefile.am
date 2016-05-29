@@ -168,6 +168,7 @@ nobase_include_HEADERS = \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \
   aux_/byteswap.hpp                 \
+  aux_/cppint_import_export.hpp     \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \
