@@ -4,6 +4,8 @@ project(libtorrent)
 set (SOVERSION "8")
 set (VERSION "1.1.0")
 
+list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
+
 set(sources
 	web_connection_base
 	alert
@@ -163,7 +165,9 @@ option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+option(disk-stats "enable disk activity logging feature" OFF)
 option(exceptions "build with exception support" ON)
+option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
@@ -191,6 +195,15 @@ find_package(Threads REQUIRED)
 include_directories(${includes})
 
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
+if (disk-stats)
+	add_definitions(-DTORRENT_DISK_STATS)
+endif (disk-stats)
+
+if (libiconv)
+	find_package(Iconv REQUIRED)
+	add_definitions(-DTORRENT_USE_ICONV)
+	include_directories(SYSTEM ${ICONV_INCLUDE_DIR})
+endif (libiconv)
 
 if (encryption)
 	list(APPEND sources mpi pe_crypto)
@@ -279,6 +292,10 @@ endif()
 if (encryption)
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 endif()
+
+if (libiconv)
+	target_link_libraries(torrent-rasterbar ${ICONV_LIBRARIES})
+endif (libiconv)
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
