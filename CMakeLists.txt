@@ -206,7 +206,7 @@ if (libiconv)
 endif (libiconv)
 
 if (encryption)
-	list(APPEND sources mpi pe_crypto)
+	list(APPEND sources pe_crypto)
 	if(NOT DEFINED OPENSSL_INCLUDE_DIR OR NOT DEFINED OPENSSL_LIBRARIES)
 		FIND_PACKAGE(OpenSSL REQUIRED)
 	endif()

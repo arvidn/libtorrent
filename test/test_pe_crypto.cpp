@@ -93,15 +93,6 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 	}
 }
 
-void print_key(char const* key)
-{
-	for (int i = 0;i < 96; ++i)
-	{
-		std::printf("%02x ", unsigned(key[i]));
-	}
-	std::printf("\n");
-}
-
 TORRENT_TEST(diffie_hellman)
 {
 	using namespace libtorrent;
@@ -115,20 +106,20 @@ TORRENT_TEST(diffie_hellman)
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
 
-		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
-		if (!std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()))
+		TEST_EQUAL(DH1.get_secret(), DH2.get_secret());
+		if (!DH1.get_secret() != DH2.get_secret())
 		{
 			std::printf("DH1 local: ");
-			print_key(DH1.get_local_key());
+			std::cout << DH1.get_local_key() << std::endl;
 
 			std::printf("DH2 local: ");
-			print_key(DH2.get_local_key());
+			std::cout << DH2.get_local_key() << std::endl;
 
 			std::printf("DH1 shared_secret: ");
-			print_key(DH1.get_secret());
+			std::cout << DH1.get_secret() << std::endl;
 
 			std::printf("DH2 shared_secret: ");
-			print_key(DH2.get_secret());
+			std::cout << DH2.get_secret() << std::endl;
 		}
 	}
 }

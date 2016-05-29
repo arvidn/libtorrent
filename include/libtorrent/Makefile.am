@@ -149,11 +149,6 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
-  tommath.h                         \
-  tommath_class.h                   \
-  tommath_superclass.h              \
-  tommath_private.h                 \
-  \
   aux_/array_view.hpp               \
   aux_/allocating_handler.hpp       \
   aux_/bind_to_device.hpp           \

@@ -35,13 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/cstdint.hpp>
-#include <algorithm>
-
-extern "C" {
-#include "libtorrent/tommath.h"
-}
+#include <boost/multiprecision/integer.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <algorithm>
+#include <random>
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/pe_crypto.hpp"
@@ -50,137 +50,52 @@ extern "C" {
 
 namespace libtorrent
 {
-	namespace
-	{
-		const unsigned char dh_prime[96] = {
-			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC9, 0x0F, 0xDA, 0xA2,
-			0x21, 0x68, 0xC2, 0x34, 0xC4, 0xC6, 0x62, 0x8B, 0x80, 0xDC, 0x1C, 0xD1,
-			0x29, 0x02, 0x4E, 0x08, 0x8A, 0x67, 0xCC, 0x74, 0x02, 0x0B, 0xBE, 0xA6,
-			0x3B, 0x13, 0x9B, 0x22, 0x51, 0x4A, 0x08, 0x79, 0x8E, 0x34, 0x04, 0xDD,
-			0xEF, 0x95, 0x19, 0xB3, 0xCD, 0x3A, 0x43, 0x1B, 0x30, 0x2B, 0x0A, 0x6D,
-			0xF2, 0x5F, 0x14, 0x37, 0x4F, 0xE1, 0x35, 0x6D, 0x6D, 0x51, 0xC2, 0x45,
-			0xE4, 0x85, 0xB5, 0x76, 0x62, 0x5E, 0x7E, 0xC6, 0xF4, 0x4C, 0x42, 0xE9,
-			0xA6, 0x3A, 0x36, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63
-		};
-	}
+	namespace mp = boost::multiprecision;
 
-	struct mp_bigint
-	{
-		mp_bigint()
-		{ mp_init(&v); }
-		mp_int* operator&() { return &v; }
-		~mp_bigint() { mp_clear(&v); }
-	private:
-		// non-copyable
-		mp_bigint(mp_bigint const&);
-		mp_bigint const& operator=(mp_bigint const&);
-		mp_int v;
-	};
+	BOOST_MP_DEFINE_SIZED_CPP_INT_LITERAL(768);
+	using namespace boost::multiprecision::literals;
+
+	namespace {
+		// TODO: it would be nice to get the literal working
+		key_t const dh_prime
+			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+	}
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-		// create local key
-		for (int i = 0; i < int(sizeof(m_dh_local_secret)); ++i)
-			m_dh_local_secret[i] = random() & 0xff;
+		std::array<std::uint8_t, 96> random_key;
+		for (auto& i : random_key) i = random();
 
-		mp_bigint prime;
-		mp_bigint secret;
-		mp_bigint key;
+		// create local key (random)
+		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
 
-		// TODO 2: use exceptions for error reporting here
-		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
-		{
-			TORRENT_ASSERT_FAIL();
-			return;
-		}
-		if (mp_read_unsigned_bin(&secret
-				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
-				, sizeof(m_dh_local_secret)))
-		{
-			TORRENT_ASSERT_FAIL();
-			return;
-		}
-
-		// generator is 2
-		mp_set_int(&key, 2);
 		// key = (2 ^ secret) % prime
-		if (mp_exptmod(&key, &secret, &prime, &key))
-		{
-			TORRENT_ASSERT_FAIL();
-			return;
-		}
-
-		// key is now our local key
-		int const size = mp_unsigned_bin_size(&key);
-		TORRENT_ASSERT(size >= 0);
-		TORRENT_ASSERT(size <= sizeof(m_dh_local_key));
-		if (size < 0 || size > sizeof(m_dh_local_key)) return;
-		std::memset(m_dh_local_key, 0, sizeof(m_dh_local_key) - size);
-		mp_to_unsigned_bin(&key
-			, reinterpret_cast<unsigned char*>(m_dh_local_key)
-			+ sizeof(m_dh_local_key) - size);
-	}
-
-	char const* dh_key_exchange::get_local_key() const
-	{
-		return m_dh_local_key;
+		m_dh_local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime);
 	}
 
 	// compute shared secret given remote public key
-	int dh_key_exchange::compute_secret(char const* remote_pubkey)
+	void dh_key_exchange::compute_secret(boost::uint8_t const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
-		mp_bigint prime;
-		mp_bigint secret;
-		mp_bigint remote_key;
+		key_t key;
+		mp::import_bits(key, remote_pubkey, remote_pubkey + 96);
+		compute_secret(key);
+	}
 
-		// TODO 2: use exceptions for error reporting here
-		if (mp_read_unsigned_bin(&prime, dh_prime, sizeof(dh_prime)))
-		{
-			TORRENT_ASSERT_FAIL();
-			return -1;
-		}
-		if (mp_read_unsigned_bin(&secret
-				, reinterpret_cast<unsigned char*>(m_dh_local_secret)
-				, sizeof(m_dh_local_secret)))
-		{
-			TORRENT_ASSERT_FAIL();
-			return -1;
-		}
-		if (mp_read_unsigned_bin(&remote_key
-				, reinterpret_cast<const unsigned char*>(remote_pubkey), 96))
-		{
-			TORRENT_ASSERT_FAIL();
-			return -1;
-		}
+	void dh_key_exchange::compute_secret(key_t const& remote_pubkey)
+	{
+		// shared_secret = (remote_pubkey ^ local_secret) % prime
+		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
 
-		if (mp_exptmod(&remote_key, &secret, &prime, &remote_key))
-		{
-			TORRENT_ASSERT_FAIL();
-			return -1;
-		}
-
-		// remote_key is now the shared secret
-		int const size = mp_unsigned_bin_size(&remote_key);
-		TORRENT_ASSERT(size >= 0);
-		TORRENT_ASSERT(size <= sizeof(m_dh_shared_secret));
-		if (size < 0 || size > sizeof(m_dh_shared_secret))
-		{
-			return -1;
-		}
-
-		std::memset(m_dh_shared_secret, 0, sizeof(m_dh_shared_secret) - size);
-		mp_to_unsigned_bin(&remote_key
-			, reinterpret_cast<unsigned char*>(m_dh_shared_secret)
-			+ sizeof(m_dh_shared_secret) - size);
+		std::array<boost::uint8_t, 96> buffer;
+		mp::export_bits(m_dh_shared_secret, buffer.begin(), 8);
 
 		// calculate the xor mask for the obfuscated hash
 		hasher h;
 		h.update("req3", 4);
-		h.update(m_dh_shared_secret, sizeof(m_dh_shared_secret));
+		h.update(reinterpret_cast<char const*>(buffer.data()), buffer.size());
 		m_xor_mask = h.final();
-		return 0;
 	}
 
 	int encryption_handler::encrypt(std::vector<boost::asio::mutable_buffer>& iovec)
@@ -399,8 +314,6 @@ namespace libtorrent
 		produce = bytes_processed;
 	}
 
-} // namespace libtorrent
-
 // All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
 // this library is public domain and has been specially
 // tailored for libtorrent by Arvid Norberg
@@ -421,7 +334,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	}
 
 	/* extract the key */
-	s = state->buf;
+	s = state->buf.data();
 	std::memcpy(key, s, key_size);
 	keylen = state->x;
 
@@ -452,7 +365,7 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	n = outlen;
 	x = state->x;
 	y = state->y;
-	s = state->buf;
+	s = state->buf.data();
 	while (outlen--) {
 		x = (x + 1) & 255;
 		y = (y + s[x]) & 255;
@@ -464,6 +377,8 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	state->y = y;
 	return n;
 }
+
+} // namespace libtorrent
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 

@@ -37,42 +37,51 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-// RC4 state from libtomcrypt
-struct rc4 {
-	int x, y;
-	unsigned char buf[256];
-};
-
-void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
-unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/buffer.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/receive_buffer.hpp"
-#include "libtorrent/peer_id.hpp" // For sha1_hash
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/assert.hpp"
 
 #include <list>
+#include <array>
+#include <cstdint>
 
 namespace libtorrent
 {
+	namespace mp = boost::multiprecision;
+
+	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void> >;
+
+	// RC4 state from libtomcrypt
+	struct rc4 {
+		int x, y;
+		std::array<std::uint8_t, 256> buf;
+	};
+
+	void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
+	unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
+
+	// TODO: 3 dh_key_exchange should probably move into its own file
 	class TORRENT_EXTRA_EXPORT dh_key_exchange
 	{
 	public:
 		dh_key_exchange();
 		bool good() const { return true; }
 
-		// Get local public key, always 96 bytes
-		char const* get_local_key() const;
+		// Get local public key
+		key_t const& get_local_key() const { return m_dh_local_key; }
 
 		// read remote_pubkey, generate and store shared secret in
 		// m_dh_shared_secret.
-		int compute_secret(const char* remote_pubkey);
+		void compute_secret(boost::uint8_t const* remote_pubkey);
+		void compute_secret(key_t const& remote_pubkey);
 
-		char const* get_secret() const { return m_dh_shared_secret; }
+		key_t const& get_secret() const { return m_dh_shared_secret; }
 
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 
@@ -81,9 +90,9 @@ namespace libtorrent
 		int get_local_key_size() const
 		{ return sizeof(m_dh_local_key); }
 
-		char m_dh_local_key[96];
-		char m_dh_local_secret[96];
-		char m_dh_shared_secret[96];
+		key_t m_dh_local_key;
+		key_t m_dh_local_secret;
+		key_t m_dh_shared_secret;
 		sha1_hash m_xor_mask;
 	};
 
@@ -127,6 +136,7 @@ namespace libtorrent
 		rc4_handler();
 
 		// Input keys must be 20 bytes
+		// TODO: 4 use uint768_t here instead of pointer + length
 		void set_incoming_key(unsigned char const* key, int len) override;
 		void set_outgoing_key(unsigned char const* key, int len) override;
 
