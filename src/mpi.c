@@ -1,5 +1,5 @@
 /* Start: bn_error.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef _MSC_VER
 // disable warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
 #pragma warning(disable: 4334)
@@ -24,12 +24,12 @@
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 static const struct {
      int code;
-     char *msg;
+     const char *msg;
 } msgs[] = {
      { MP_OKAY, "Successful" },
      { MP_MEM,  "Out of heap" },
@@ -37,7 +37,7 @@ static const struct {
 };
 
 /* return a char * string for a given code */
-char *mp_error_to_string(int code)
+const char *mp_error_to_string(int code)
 {
    int x;
 
@@ -54,14 +54,14 @@ char *mp_error_to_string(int code)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_error.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_error.c */
 
 /* Start: bn_fast_mp_invmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_MP_INVMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -75,13 +75,13 @@ char *mp_error_to_string(int code)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* computes the modular inverse via binary extended euclidean algorithm, 
- * that is c = 1/a mod b 
+/* computes the modular inverse via binary extended euclidean algorithm,
+ * that is c = 1/a mod b
  *
- * Based on slow invmod except this is optimized for the case where b is 
+ * Based on slow invmod except this is optimized for the case where b is
  * odd as per HAC Note 14.64 on pp. 610
  */
 int fast_mp_invmod (mp_int * a, mp_int * b, mp_int * c)
@@ -90,7 +90,7 @@ int fast_mp_invmod (mp_int * a, mp_int * b, mp_int * c)
   int     res, neg;
 
   /* 2. [modified] b must be odd   */
-  if (mp_iseven (b) == 1) {
+  if (mp_iseven (b) == MP_YES) {
     return MP_VAL;
   }
 
@@ -120,13 +120,13 @@ int fast_mp_invmod (mp_int * a, mp_int * b, mp_int * c)
 
 top:
   /* 4.  while u is even do */
-  while (mp_iseven (&u) == 1) {
+  while (mp_iseven (&u) == MP_YES) {
     /* 4.1 u = u/2 */
     if ((res = mp_div_2 (&u, &u)) != MP_OKAY) {
       goto LBL_ERR;
     }
     /* 4.2 if B is odd then */
-    if (mp_isodd (&B) == 1) {
+    if (mp_isodd (&B) == MP_YES) {
       if ((res = mp_sub (&B, &x, &B)) != MP_OKAY) {
         goto LBL_ERR;
       }
@@ -138,13 +138,13 @@ top:
   }
 
   /* 5.  while v is even do */
-  while (mp_iseven (&v) == 1) {
+  while (mp_iseven (&v) == MP_YES) {
     /* 5.1 v = v/2 */
     if ((res = mp_div_2 (&v, &v)) != MP_OKAY) {
       goto LBL_ERR;
     }
     /* 5.2 if D is odd then */
-    if (mp_isodd (&D) == 1) {
+    if (mp_isodd (&D) == MP_YES) {
       /* D = (D-x)/2 */
       if ((res = mp_sub (&D, &x, &D)) != MP_OKAY) {
         goto LBL_ERR;
@@ -178,7 +178,7 @@ top:
   }
 
   /* if not zero goto step 4 */
-  if (mp_iszero (&u) == 0) {
+  if (mp_iszero (&u) == MP_NO) {
     goto top;
   }
 
@@ -206,14 +206,14 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &B, &D, NULL);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_fast_mp_invmod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_fast_mp_invmod.c */
 
 /* Start: bn_fast_mp_montgomery_reduce.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_MP_MONTGOMERY_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -227,7 +227,7 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &B, &D, NULL);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes xR**-1 == x (mod N) via Montgomery Reduction
@@ -247,7 +247,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
   olduse = x->used;
 
   /* grow a as required */
-  if (x->alloc < n->used + 1) {
+  if (x->alloc < (n->used + 1)) {
     if ((res = mp_grow (x, n->used + 1)) != MP_OKAY) {
       return res;
     }
@@ -257,8 +257,8 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
    * an array of double precision words W[...]
    */
   {
-    register mp_word *_W;
-    register mp_digit *tmpx;
+    mp_word *_W;
+    mp_digit *tmpx;
 
     /* alias for the W[] array */
     _W   = W;
@@ -272,7 +272,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
     }
 
     /* zero the high words of W[a->used..m->used*2] */
-    for (; ix < n->used * 2 + 1; ix++) {
+    for (; ix < ((n->used * 2) + 1); ix++) {
       *_W++ = 0;
     }
   }
@@ -287,7 +287,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
      * by casting the value down to a mp_digit.  Note this requires
      * that W[ix-1] have  the carry cleared (see after the inner loop)
      */
-    register mp_digit mu;
+    mp_digit mu;
     mu = (mp_digit) (((W[ix] & MP_MASK) * rho) & MP_MASK);
 
     /* a = a + mu * m * b**i
@@ -305,9 +305,9 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
      * first m->used words of W[] have the carries fixed
      */
     {
-      register int iy;
-      register mp_digit *tmpn;
-      register mp_word *_W;
+      int iy;
+      mp_digit *tmpn;
+      mp_word *_W;
 
       /* alias for the digits of the modulus */
       tmpn = n->dp;
@@ -330,8 +330,8 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
    * significant digits we zeroed].
    */
   {
-    register mp_digit *tmpx;
-    register mp_word *_W, *_W1;
+    mp_digit *tmpx;
+    mp_word *_W, *_W1;
 
     /* nox fix rest of carries */
 
@@ -341,7 +341,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
     /* alias for next word, where the carry goes */
     _W = W + ++ix;
 
-    for (; ix <= n->used * 2 + 1; ix++) {
+    for (; ix <= ((n->used * 2) + 1); ix++) {
       *_W++ += *_W1++ >> ((mp_word) DIGIT_BIT);
     }
 
@@ -358,7 +358,7 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
     /* alias for shifted double precision result */
     _W = W + n->used;
 
-    for (ix = 0; ix < n->used + 1; ix++) {
+    for (ix = 0; ix < (n->used + 1); ix++) {
       *tmpx++ = (mp_digit)(*_W++ & ((mp_word) MP_MASK));
     }
 
@@ -382,14 +382,14 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_fast_mp_montgomery_reduce.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_fast_mp_montgomery_reduce.c */
 
 /* Start: bn_fast_s_mp_mul_digs.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_MUL_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -403,20 +403,20 @@ int fast_mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* Fast (comba) multiplier
  *
- * This is the fast column-array [comba] multiplier.  It is 
- * designed to compute the columns of the product first 
- * then handle the carries afterwards.  This has the effect 
+ * This is the fast column-array [comba] multiplier.  It is
+ * designed to compute the columns of the product first
+ * then handle the carries afterwards.  This has the effect
  * of making the nested loops that compute the columns very
  * simple and schedulable on super-scalar processors.
  *
- * This has been modified to produce a variable number of 
- * digits of output so if say only a half-product is required 
- * you don't have to compute the upper half (a feature 
+ * This has been modified to produce a variable number of
+ * digits of output so if say only a half-product is required
+ * you don't have to compute the upper half (a feature
  * required for fast Barrett reduction).
  *
  * Based on Algorithm 14.12 on pp.595 of HAC.
@@ -426,7 +426,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 {
   int     olduse, res, pa, ix, iz;
   mp_digit W[MP_WARRAY];
-  register mp_word  _W;
+  mp_word  _W;
 
   /* grow the destination as required */
   if (c->alloc < digs) {
@@ -440,7 +440,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 
   /* clear the carry */
   _W = 0;
-  for (ix = 0; ix < pa; ix++) { 
+  for (ix = 0; ix < pa; ix++) {
       int      tx, ty;
       int      iy;
       mp_digit *tmpx, *tmpy;
@@ -453,7 +453,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       tmpx = a->dp + tx;
       tmpy = b->dp + ty;
 
-      /* this is the number of times the loop will iterrate, essentially 
+      /* this is the number of times the loop will iterrate, essentially
          while (tx++ < a->used && ty-- >= 0) { ... }
        */
       iy = MIN(a->used-tx, ty+1);
@@ -465,20 +465,20 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       }
 
       /* store term */
-      W[ix] = (mp_digit)(_W & MP_MASK);
+      W[ix] = ((mp_digit)_W) & MP_MASK;
 
       /* make next carry */
       _W = _W >> ((mp_word)DIGIT_BIT);
- }
+  }
 
   /* setup dest */
   olduse  = c->used;
   c->used = pa;
 
   {
-    register mp_digit *tmpc;
+    mp_digit *tmpc;
     tmpc = c->dp;
-    for (ix = 0; ix < pa+1; ix++) {
+    for (ix = 0; ix < (pa + 1); ix++) {
       /* now extract the previous digit [below the carry] */
       *tmpc++ = W[ix];
     }
@@ -493,14 +493,14 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_fast_s_mp_mul_digs.c,v $ */
-/* $Revision: 1.7 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_fast_s_mp_mul_digs.c */
 
 /* Start: bn_fast_s_mp_mul_high_digs.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_MUL_HIGH_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -514,7 +514,7 @@ int fast_s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* this is a modified version of fast_s_mul_digs that only produces
@@ -543,7 +543,7 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
   /* number of output digits to produce */
   pa = a->used + b->used;
   _W = 0;
-  for (ix = digs; ix < pa; ix++) { 
+  for (ix = digs; ix < pa; ix++) {
       int      tx, ty, iy;
       mp_digit *tmpx, *tmpy;
 
@@ -555,7 +555,7 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       tmpx = a->dp + tx;
       tmpy = b->dp + ty;
 
-      /* this is the number of times the loop will iterrate, essentially its 
+      /* this is the number of times the loop will iterrate, essentially its
          while (tx++ < a->used && ty-- >= 0) { ... }
        */
       iy = MIN(a->used-tx, ty+1);
@@ -571,16 +571,16 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       /* make next carry */
       _W = _W >> ((mp_word)DIGIT_BIT);
   }
-  
+
   /* setup dest */
   olduse  = c->used;
   c->used = pa;
 
   {
-    register mp_digit *tmpc;
+    mp_digit *tmpc;
 
     tmpc = c->dp + digs;
-    for (ix = digs; ix <= pa; ix++) {
+    for (ix = digs; ix < pa; ix++) {
       /* now extract the previous digit [below the carry] */
       *tmpc++ = W[ix];
     }
@@ -595,14 +595,14 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_fast_s_mp_mul_high_digs.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_fast_s_mp_mul_high_digs.c */
 
 /* Start: bn_fast_s_mp_sqr.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_FAST_S_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -616,14 +616,14 @@ int fast_s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* the jist of squaring...
- * you do like mult except the offset of the tmpx [one that 
- * starts closer to zero] can't equal the offset of tmpy.  
+ * you do like mult except the offset of the tmpx [one that
+ * starts closer to zero] can't equal the offset of tmpy.
  * So basically you set up iy like before then you min it with
- * (ty-tx) so that it never happens.  You double all those 
+ * (ty-tx) so that it never happens.  You double all those
  * you add in the inner loop
 
 After that loop you do the squares and add them in.
@@ -645,7 +645,7 @@ int fast_s_mp_sqr (mp_int * a, mp_int * b)
 
   /* number of output digits to produce */
   W1 = 0;
-  for (ix = 0; ix < pa; ix++) { 
+  for (ix = 0; ix < pa; ix++) {
       int      tx, ty, iy;
       mp_word  _W;
       mp_digit *tmpy;
@@ -666,11 +666,11 @@ int fast_s_mp_sqr (mp_int * a, mp_int * b)
        */
       iy = MIN(a->used-tx, ty+1);
 
-      /* now for squaring tx can never equal ty 
+      /* now for squaring tx can never equal ty
        * we halve the distance since they approach at a rate of 2x
        * and we have to round because odd cases need to be executed
        */
-      iy = MIN(iy, (ty-tx+1)>>1);
+      iy = MIN(iy, ((ty-tx)+1)>>1);
 
       /* execute loop */
       for (iz = 0; iz < iy; iz++) {
@@ -713,14 +713,14 @@ int fast_s_mp_sqr (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_fast_s_mp_sqr.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_fast_s_mp_sqr.c */
 
 /* Start: bn_mp_2expt.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_2EXPT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -734,10 +734,10 @@ int fast_s_mp_sqr (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* computes a = 2**b 
+/* computes a = 2**b
  *
  * Simple algorithm which zeroes the int, grows it then just sets one bit
  * as required.
@@ -751,12 +751,12 @@ mp_2expt (mp_int * a, int b)
   mp_zero (a);
 
   /* grow a to accomodate the single bit */
-  if ((res = mp_grow (a, b / DIGIT_BIT + 1)) != MP_OKAY) {
+  if ((res = mp_grow (a, (b / DIGIT_BIT) + 1)) != MP_OKAY) {
     return res;
   }
 
   /* set the used count of where the bit will go */
-  a->used = b / DIGIT_BIT + 1;
+  a->used = (b / DIGIT_BIT) + 1;
 
   /* put the single bit in its place */
   a->dp[b / DIGIT_BIT] = ((mp_digit)1) << (b % DIGIT_BIT);
@@ -765,14 +765,14 @@ mp_2expt (mp_int * a, int b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_2expt.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_2expt.c */
 
 /* Start: bn_mp_abs.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ABS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -786,10 +786,10 @@ mp_2expt (mp_int * a, int b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* b = |a| 
+/* b = |a|
  *
  * Simple function copies the input and fixes the sign to positive
  */
@@ -812,14 +812,14 @@ mp_abs (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_abs.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_abs.c */
 
 /* Start: bn_mp_add.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -833,7 +833,7 @@ mp_abs (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* high level addition (handles signs) */
@@ -869,14 +869,14 @@ int mp_add (mp_int * a, mp_int * b, mp_int * c)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_add.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_add.c */
 
 /* Start: bn_mp_add_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADD_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -890,7 +890,7 @@ int mp_add (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* single digit addition */
@@ -901,14 +901,14 @@ mp_add_d (mp_int * a, mp_digit b, mp_int * c)
   mp_digit *tmpa, *tmpc, mu;
 
   /* grow c as required */
-  if (c->alloc < a->used + 1) {
+  if (c->alloc < (a->used + 1)) {
      if ((res = mp_grow(c, a->used + 1)) != MP_OKAY) {
         return res;
      }
   }
 
   /* if a is negative and |a| >= b, call c = |a| - b */
-  if (a->sign == MP_NEG && (a->used > 1 || a->dp[0] >= b)) {
+  if ((a->sign == MP_NEG) && ((a->used > 1) || (a->dp[0] >= b))) {
      /* temporarily fix sign of a */
      a->sign = MP_ZPOS;
 
@@ -985,14 +985,14 @@ mp_add_d (mp_int * a, mp_digit b, mp_int * c)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_add_d.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_add_d.c */
 
 /* Start: bn_mp_addmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ADDMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1006,7 +1006,7 @@ mp_add_d (mp_int * a, mp_digit b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* d = a + b (mod c) */
@@ -1030,14 +1030,14 @@ mp_addmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_addmod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_addmod.c */
 
 /* Start: bn_mp_and.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_AND_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1051,7 +1051,7 @@ mp_addmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* AND two ints together */
@@ -1091,14 +1091,14 @@ mp_and (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_and.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_and.c */
 
 /* Start: bn_mp_clamp.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLAMP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1112,10 +1112,10 @@ mp_and (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* trim unused digits 
+/* trim unused digits
  *
  * This is used to ensure that leading zero digits are
  * trimed and the leading "used" digit will be non-zero
@@ -1128,7 +1128,7 @@ mp_clamp (mp_int * a)
   /* decrease used while the most significant digit is
    * zero.
    */
-  while (a->used > 0 && a->dp[a->used - 1] == 0) {
+  while ((a->used > 0) && (a->dp[a->used - 1] == 0)) {
     --(a->used);
   }
 
@@ -1139,14 +1139,14 @@ mp_clamp (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_clamp.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_clamp.c */
 
 /* Start: bn_mp_clear.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLEAR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1160,7 +1160,7 @@ mp_clamp (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* clear one (frees)  */
@@ -1187,14 +1187,14 @@ mp_clear (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_clear.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_clear.c */
 
 /* Start: bn_mp_clear_multi.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CLEAR_MULTI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1208,11 +1208,11 @@ mp_clear (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 #include <stdarg.h>
 
-void mp_clear_multi(mp_int *mp, ...) 
+void mp_clear_multi(mp_int *mp, ...)
 {
     mp_int* next_mp = mp;
     va_list args;
@@ -1225,14 +1225,14 @@ void mp_clear_multi(mp_int *mp, ...)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_clear_multi.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_clear_multi.c */
 
 /* Start: bn_mp_cmp.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1246,7 +1246,7 @@ void mp_clear_multi(mp_int *mp, ...)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* compare two ints (signed)*/
@@ -1261,7 +1261,7 @@ mp_cmp (mp_int * a, mp_int * b)
         return MP_GT;
      }
   }
-  
+
   /* compare digits */
   if (a->sign == MP_NEG) {
      /* if negative compare opposite direction */
@@ -1272,14 +1272,14 @@ mp_cmp (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_cmp.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_cmp.c */
 
 /* Start: bn_mp_cmp_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1293,7 +1293,7 @@ mp_cmp (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* compare a digit */
@@ -1320,14 +1320,14 @@ int mp_cmp_d(mp_int * a, mp_digit b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_cmp_d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_cmp_d.c */
 
 /* Start: bn_mp_cmp_mag.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CMP_MAG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1341,7 +1341,7 @@ int mp_cmp_d(mp_int * a, mp_digit b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* compare maginitude of two ints (unsigned) */
@@ -1354,7 +1354,7 @@ int mp_cmp_mag (mp_int * a, mp_int * b)
   if (a->used > b->used) {
     return MP_GT;
   }
-  
+
   if (a->used < b->used) {
     return MP_LT;
   }
@@ -1379,14 +1379,14 @@ int mp_cmp_mag (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_cmp_mag.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_cmp_mag.c */
 
 /* Start: bn_mp_cnt_lsb.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_CNT_LSB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1400,10 +1400,10 @@ int mp_cmp_mag (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-static const int lnz[16] = { 
+static const int lnz[16] = {
    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
 };
 
@@ -1414,12 +1414,12 @@ int mp_cnt_lsb(mp_int *a)
    mp_digit q, qq;
 
    /* easy out */
-   if (mp_iszero(a) == 1) {
+   if (mp_iszero(a) == MP_YES) {
       return 0;
    }
 
    /* scan lower digits until non-zero */
-   for (x = 0; x < a->used && a->dp[x] == 0; x++);
+   for (x = 0; (x < a->used) && (a->dp[x] == 0); x++) {}
    q = a->dp[x];
    x *= DIGIT_BIT;
 
@@ -1436,14 +1436,14 @@ int mp_cnt_lsb(mp_int *a)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_cnt_lsb.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_cnt_lsb.c */
 
 /* Start: bn_mp_copy.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_COPY_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1457,7 +1457,7 @@ int mp_cnt_lsb(mp_int *a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* copy, b = a */
@@ -1480,7 +1480,7 @@ mp_copy (mp_int * a, mp_int * b)
 
   /* zero b and copy the parameters over */
   {
-    register mp_digit *tmpa, *tmpb;
+    mp_digit *tmpa, *tmpb;
 
     /* pointer aliases */
 
@@ -1508,14 +1508,14 @@ mp_copy (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_copy.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_copy.c */
 
 /* Start: bn_mp_count_bits.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_COUNT_BITS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1529,7 +1529,7 @@ mp_copy (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* returns the number of bits in an int */
@@ -1546,7 +1546,7 @@ mp_count_bits (mp_int * a)
 
   /* get number of digits and add that */
   r = (a->used - 1) * DIGIT_BIT;
-  
+
   /* take the last digit and count the bits in it */
   q = a->dp[a->used - 1];
   while (q > ((mp_digit) 0)) {
@@ -1557,14 +1557,14 @@ mp_count_bits (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_count_bits.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_count_bits.c */
 
 /* Start: bn_mp_div.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1578,7 +1578,7 @@ mp_count_bits (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 #ifdef BN_MP_DIV_SMALL
@@ -1590,7 +1590,7 @@ int mp_div(mp_int * a, mp_int * b, mp_int * c, mp_int * d)
    int    res, n, n2;
 
   /* is divisor zero ? */
-  if (mp_iszero (b) == 1) {
+  if (mp_iszero (b) == MP_YES) {
     return MP_VAL;
   }
 
@@ -1606,9 +1606,9 @@ int mp_div(mp_int * a, mp_int * b, mp_int * c, mp_int * d)
     }
     return res;
   }
-	
+
   /* init our temps */
-  if ((res = mp_init_multi(&ta, &tb, &tq, &q, NULL) != MP_OKAY)) {
+  if ((res = mp_init_multi(&ta, &tb, &tq, &q, NULL)) != MP_OKAY) {
      return res;
   }
 
@@ -1616,7 +1616,7 @@ int mp_div(mp_int * a, mp_int * b, mp_int * c, mp_int * d)
   mp_set(&tq, 1);
   n = mp_count_bits(a) - mp_count_bits(b);
   if (((res = mp_abs(a, &ta)) != MP_OKAY) ||
-      ((res = mp_abs(b, &tb)) != MP_OKAY) || 
+      ((res = mp_abs(b, &tb)) != MP_OKAY) ||
       ((res = mp_mul_2d(&tb, n, &tb)) != MP_OKAY) ||
       ((res = mp_mul_2d(&tq, n, &tq)) != MP_OKAY)) {
       goto LBL_ERR;
@@ -1637,7 +1637,7 @@ int mp_div(mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 
   /* now q == quotient and ta == remainder */
   n  = a->sign;
-  n2 = (a->sign == b->sign ? MP_ZPOS : MP_NEG);
+  n2 = (a->sign == b->sign) ? MP_ZPOS : MP_NEG;
   if (c != NULL) {
      mp_exch(c, &q);
      c->sign  = (mp_iszero(c) == MP_YES) ? MP_ZPOS : n2;
@@ -1653,17 +1653,17 @@ LBL_ERR:
 
 #else
 
-/* integer signed division. 
+/* integer signed division.
  * c*b + d == a [e.g. a/b, c=quotient, d=remainder]
  * HAC pp.598 Algorithm 14.20
  *
- * Note that the description in HAC is horribly 
- * incomplete.  For example, it doesn't consider 
- * the case where digits are removed from 'x' in 
- * the inner loop.  It also doesn't consider the 
+ * Note that the description in HAC is horribly
+ * incomplete.  For example, it doesn't consider
+ * the case where digits are removed from 'x' in
+ * the inner loop.  It also doesn't consider the
  * case that y has fewer than three digits, etc..
  *
- * The overall algorithm is as described as 
+ * The overall algorithm is as described as
  * 14.20 from HAC but fixed to treat these cases.
 */
 int mp_div (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
@@ -1672,7 +1672,7 @@ int mp_div (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
   int     res, n, t, i, norm, neg;
 
   /* is divisor zero ? */
-  if (mp_iszero (b) == 1) {
+  if (mp_iszero (b) == MP_YES) {
     return MP_VAL;
   }
 
@@ -1753,51 +1753,52 @@ int mp_div (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
       continue;
     }
 
-    /* step 3.1 if xi == yt then set q{i-t-1} to b-1, 
+    /* step 3.1 if xi == yt then set q{i-t-1} to b-1,
      * otherwise set q{i-t-1} to (xi*b + x{i-1})/yt */
     if (x.dp[i] == y.dp[t]) {
-      q.dp[i - t - 1] = ((((mp_digit)1) << DIGIT_BIT) - 1);
+      q.dp[(i - t) - 1] = ((((mp_digit)1) << DIGIT_BIT) - 1);
     } else {
       mp_word tmp;
       tmp = ((mp_word) x.dp[i]) << ((mp_word) DIGIT_BIT);
       tmp |= ((mp_word) x.dp[i - 1]);
       tmp /= ((mp_word) y.dp[t]);
-      if (tmp > (mp_word) MP_MASK)
+      if (tmp > (mp_word) MP_MASK) {
         tmp = MP_MASK;
-      q.dp[i - t - 1] = (mp_digit) (tmp & (mp_word) (MP_MASK));
+      }
+      q.dp[(i - t) - 1] = (mp_digit) (tmp & (mp_word) (MP_MASK));
     }
 
-    /* while (q{i-t-1} * (yt * b + y{t-1})) > 
-             xi * b**2 + xi-1 * b + xi-2 
-     
-       do q{i-t-1} -= 1; 
+    /* while (q{i-t-1} * (yt * b + y{t-1})) >
+             xi * b**2 + xi-1 * b + xi-2
+
+       do q{i-t-1} -= 1;
     */
-    q.dp[i - t - 1] = (q.dp[i - t - 1] + 1) & MP_MASK;
+    q.dp[(i - t) - 1] = (q.dp[(i - t) - 1] + 1) & MP_MASK;
     do {
-      q.dp[i - t - 1] = (q.dp[i - t - 1] - 1) & MP_MASK;
+      q.dp[(i - t) - 1] = (q.dp[(i - t) - 1] - 1) & MP_MASK;
 
       /* find left hand */
       mp_zero (&t1);
-      t1.dp[0] = (t - 1 < 0) ? 0 : y.dp[t - 1];
+      t1.dp[0] = ((t - 1) < 0) ? 0 : y.dp[t - 1];
       t1.dp[1] = y.dp[t];
       t1.used = 2;
-      if ((res = mp_mul_d (&t1, q.dp[i - t - 1], &t1)) != MP_OKAY) {
+      if ((res = mp_mul_d (&t1, q.dp[(i - t) - 1], &t1)) != MP_OKAY) {
         goto LBL_Y;
       }
 
       /* find right hand */
-      t2.dp[0] = (i - 2 < 0) ? 0 : x.dp[i - 2];
-      t2.dp[1] = (i - 1 < 0) ? 0 : x.dp[i - 1];
+      t2.dp[0] = ((i - 2) < 0) ? 0 : x.dp[i - 2];
+      t2.dp[1] = ((i - 1) < 0) ? 0 : x.dp[i - 1];
       t2.dp[2] = x.dp[i];
       t2.used = 3;
     } while (mp_cmp_mag(&t1, &t2) == MP_GT);
 
     /* step 3.3 x = x - q{i-t-1} * y * b**{i-t-1} */
-    if ((res = mp_mul_d (&y, q.dp[i - t - 1], &t1)) != MP_OKAY) {
+    if ((res = mp_mul_d (&y, q.dp[(i - t) - 1], &t1)) != MP_OKAY) {
       goto LBL_Y;
     }
 
-    if ((res = mp_lshd (&t1, i - t - 1)) != MP_OKAY) {
+    if ((res = mp_lshd (&t1, (i - t) - 1)) != MP_OKAY) {
       goto LBL_Y;
     }
 
@@ -1810,23 +1811,23 @@ int mp_div (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
       if ((res = mp_copy (&y, &t1)) != MP_OKAY) {
         goto LBL_Y;
       }
-      if ((res = mp_lshd (&t1, i - t - 1)) != MP_OKAY) {
+      if ((res = mp_lshd (&t1, (i - t) - 1)) != MP_OKAY) {
         goto LBL_Y;
       }
       if ((res = mp_add (&x, &t1, &x)) != MP_OKAY) {
         goto LBL_Y;
       }
 
-      q.dp[i - t - 1] = (q.dp[i - t - 1] - 1UL) & MP_MASK;
+      q.dp[(i - t) - 1] = (q.dp[(i - t) - 1] - 1UL) & MP_MASK;
     }
   }
 
-  /* now q is the quotient and x is the remainder 
-   * [which we have to normalize] 
+  /* now q is the quotient and x is the remainder
+   * [which we have to normalize]
    */
-  
+
   /* get sign before writing to c */
-  x.sign = x.used == 0 ? MP_ZPOS : a->sign;
+  x.sign = (x.used == 0) ? MP_ZPOS : a->sign;
 
   if (c != NULL) {
     mp_clamp (&q);
@@ -1835,7 +1836,9 @@ int mp_div (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
   }
 
   if (d != NULL) {
-    mp_div_2d (&x, norm, &x, NULL);
+    if ((res = mp_div_2d (&x, norm, &x, NULL)) != MP_OKAY) {
+      goto LBL_Y;
+    }
     mp_exch (&x, d);
   }
 
@@ -1853,14 +1856,14 @@ LBL_Q:mp_clear (&q);
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_div.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_div.c */
 
 /* Start: bn_mp_div_2.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_2_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1874,7 +1877,7 @@ LBL_Q:mp_clear (&q);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* b = a/2 */
@@ -1892,7 +1895,7 @@ int mp_div_2(mp_int * a, mp_int * b)
   oldused = b->used;
   b->used = a->used;
   {
-    register mp_digit r, rr, *tmpa, *tmpb;
+    mp_digit r, rr, *tmpa, *tmpb;
 
     /* source alias */
     tmpa = a->dp + b->used - 1;
@@ -1925,14 +1928,14 @@ int mp_div_2(mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_div_2.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_div_2.c */
 
 /* Start: bn_mp_div_2d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -1946,7 +1949,7 @@ int mp_div_2(mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* shift right by a certain bit count (store quotient in c, optional remainder in d) */
@@ -1992,7 +1995,7 @@ int mp_div_2d (mp_int * a, int b, mp_int * c, mp_int * d)
   /* shift any bit count < DIGIT_BIT */
   D = (mp_digit) (b % DIGIT_BIT);
   if (D != 0) {
-    register mp_digit *tmpc, mask, shift;
+    mp_digit *tmpc, mask, shift;
 
     /* mask */
     mask = (((mp_digit)1) << D) - 1;
@@ -2026,14 +2029,14 @@ int mp_div_2d (mp_int * a, int b, mp_int * c, mp_int * d)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_div_2d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_div_2d.c */
 
 /* Start: bn_mp_div_3.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_3_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2047,7 +2050,7 @@ int mp_div_2d (mp_int * a, int b, mp_int * c, mp_int * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* divide by three (based on routine from MPI and the GMP manual) */
@@ -2058,14 +2061,14 @@ mp_div_3 (mp_int * a, mp_int *c, mp_digit * d)
   mp_word  w, t;
   mp_digit b;
   int      res, ix;
-  
+
   /* b = 2**DIGIT_BIT / 3 */
   b = (((mp_word)1) << ((mp_word)DIGIT_BIT)) / ((mp_word)3);
 
   if ((res = mp_init_size(&q, a->used)) != MP_OKAY) {
      return res;
   }
-  
+
   q.used = a->used;
   q.sign = a->sign;
   w = 0;
@@ -2103,20 +2106,20 @@ mp_div_3 (mp_int * a, mp_int *c, mp_digit * d)
      mp_exch(&q, c);
   }
   mp_clear(&q);
-  
+
   return res;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_div_3.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_div_3.c */
 
 /* Start: bn_mp_div_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DIV_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2130,14 +2133,19 @@ mp_div_3 (mp_int * a, mp_int *c, mp_digit * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 static int s_is_power_of_two(mp_digit b, int *p)
 {
    int x;
 
-   for (x = 1; x < DIGIT_BIT; x++) {
+   /* fast return if no power of two */
+   if ((b == 0) || ((b & (b-1)) != 0)) {
+      return 0;
+   }
+
+   for (x = 0; x < DIGIT_BIT; x++) {
       if (b == (((mp_digit)1)<<x)) {
          *p = x;
          return 1;
@@ -2160,7 +2168,7 @@ int mp_div_d (mp_int * a, mp_digit b, mp_int * c, mp_digit * d)
   }
 
   /* quick outs */
-  if (b == 1 || mp_iszero(a) == 1) {
+  if ((b == 1) || (mp_iszero(a) == MP_YES)) {
      if (d != NULL) {
         *d = 0;
      }
@@ -2192,13 +2200,13 @@ int mp_div_d (mp_int * a, mp_digit b, mp_int * c, mp_digit * d)
   if ((res = mp_init_size(&q, a->used)) != MP_OKAY) {
      return res;
   }
-  
+
   q.used = a->used;
   q.sign = a->sign;
   w = 0;
   for (ix = a->used - 1; ix >= 0; ix--) {
      w = (w << ((mp_word)DIGIT_BIT)) | ((mp_word)a->dp[ix]);
-     
+
      if (w >= b) {
         t = (mp_digit)(w / b);
         w -= ((mp_word)t) * ((mp_word)b);
@@ -2207,30 +2215,30 @@ int mp_div_d (mp_int * a, mp_digit b, mp_int * c, mp_digit * d)
       }
       q.dp[ix] = (mp_digit)t;
   }
-  
+
   if (d != NULL) {
      *d = (mp_digit)w;
   }
-  
+
   if (c != NULL) {
      mp_clamp(&q);
      mp_exch(&q, c);
   }
   mp_clear(&q);
-  
+
   return res;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_div_d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_div_d.c */
 
 /* Start: bn_mp_dr_is_modulus.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_IS_MODULUS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2244,7 +2252,7 @@ int mp_div_d (mp_int * a, mp_digit b, mp_int * c, mp_digit * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines if a number is a valid DR modulus */
@@ -2270,14 +2278,14 @@ int mp_dr_is_modulus(mp_int *a)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_dr_is_modulus.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_dr_is_modulus.c */
 
 /* Start: bn_mp_dr_reduce.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2291,7 +2299,7 @@ int mp_dr_is_modulus(mp_int *a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* reduce "x" in place modulo "n" using the Diminished Radix algorithm.
@@ -2319,7 +2327,7 @@ mp_dr_reduce (mp_int * x, mp_int * n, mp_digit k)
   m = n->used;
 
   /* ensure that "x" has at least 2m digits */
-  if (x->alloc < m + m) {
+  if (x->alloc < (m + m)) {
     if ((err = mp_grow (x, m + m)) != MP_OKAY) {
       return err;
     }
@@ -2341,7 +2349,7 @@ top:
 
   /* compute (x mod B**m) + k * [x/B**m] inline and inplace */
   for (i = 0; i < m; i++) {
-      r         = ((mp_word)*tmpx2++) * ((mp_word)k) + *tmpx1 + mu;
+      r         = (((mp_word)*tmpx2++) * (mp_word)k) + *tmpx1 + mu;
       *tmpx1++  = (mp_digit)(r & MP_MASK);
       mu        = (mp_digit)(r >> ((mp_word)DIGIT_BIT));
   }
@@ -2361,21 +2369,23 @@ top:
    * Each successive "recursion" makes the input smaller and smaller.
    */
   if (mp_cmp_mag (x, n) != MP_LT) {
-    s_mp_sub(x, n, x);
+    if ((err = s_mp_sub(x, n, x)) != MP_OKAY) {
+      return err;
+    }
     goto top;
   }
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_dr_reduce.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_dr_reduce.c */
 
 /* Start: bn_mp_dr_setup.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_DR_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2389,7 +2399,7 @@ top:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines the setup value */
@@ -2398,20 +2408,20 @@ void mp_dr_setup(mp_int *a, mp_digit *d)
    /* the casts are required if DIGIT_BIT is one less than
     * the number of bits in a mp_digit [e.g. DIGIT_BIT==31]
     */
-   *d = (mp_digit)((((mp_word)1) << ((mp_word)DIGIT_BIT)) - 
+   *d = (mp_digit)((((mp_word)1) << ((mp_word)DIGIT_BIT)) -
         ((mp_word)a->dp[0]));
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_dr_setup.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_dr_setup.c */
 
 /* Start: bn_mp_exch.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXCH_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2425,10 +2435,10 @@ void mp_dr_setup(mp_int *a, mp_digit *d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* swap the elements of two integers, for cases where you can't simply swap the 
+/* swap the elements of two integers, for cases where you can't simply swap the
  * mp_int pointers around
  */
 void
@@ -2442,14 +2452,106 @@ mp_exch (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_exch.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_exch.c */
 
+/* Start: bn_mp_export.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_EXPORT_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* based on gmp's mpz_export.
+ * see http://gmplib.org/manual/Integer-Import-and-Export.html
+ */
+int mp_export(void* rop, size_t* countp, int order, size_t size,
+                                int endian, size_t nails, mp_int* op) {
+	int result;
+	size_t odd_nails, nail_bytes, i, j, bits, count;
+	unsigned char odd_nail_mask;
+
+	mp_int t;
+
+	if ((result = mp_init_copy(&t, op)) != MP_OKAY) {
+		return result;
+	}
+
+	if (endian == 0) {
+		union {
+			unsigned int i;
+			char c[4];
+		} lint;
+		lint.i = 0x01020304;
+
+		endian = (lint.c[0] == 4) ? -1 : 1;
+	}
+
+	odd_nails = (nails % 8);
+	odd_nail_mask = 0xff;
+	for (i = 0; i < odd_nails; ++i) {
+		odd_nail_mask ^= (1 << (7 - i));
+	}
+	nail_bytes = nails / 8;
+
+	bits = mp_count_bits(&t);
+	count = (bits / ((size * 8) - nails)) + (((bits % ((size * 8) - nails)) != 0) ? 1 : 0);
+
+	for (i = 0; i < count; ++i) {
+		for (j = 0; j < size; ++j) {
+			unsigned char* byte = (
+				(unsigned char*)rop +
+				(((order == -1) ? i : ((count - 1) - i)) * size) +
+				((endian == -1) ? j : ((size - 1) - j))
+			);
+
+			if (j >= (size - nail_bytes)) {
+				*byte = 0;
+				continue;
+			}
+
+			*byte = (unsigned char)((j == ((size - nail_bytes) - 1)) ? (t.dp[0] & odd_nail_mask) : (t.dp[0] & 0xFF));
+
+			if ((result = mp_div_2d(&t, ((j == ((size - nail_bytes) - 1)) ? (8 - odd_nails) : 8), &t, NULL)) != MP_OKAY) {
+				mp_clear(&t);
+				return result;
+			}
+		}
+	}
+
+	mp_clear(&t);
+
+	if (countp != NULL) {
+		*countp = count;
+	}
+
+	return MP_OKAY;
+}
+
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_export.c */
+
 /* Start: bn_mp_expt_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPT_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2463,13 +2565,47 @@ mp_exch (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* wrapper function for mp_expt_d_ex() */
+int mp_expt_d (mp_int * a, mp_digit b, mp_int * c)
+{
+  return mp_expt_d_ex(a, b, c, 0);
+}
+
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_expt_d.c */
+
+/* Start: bn_mp_expt_d_ex.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_EXPT_D_EX_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* calculate c = a**b  using a square-multiply algorithm */
-int mp_expt_d (mp_int * a, mp_digit b, mp_int * c)
+int mp_expt_d_ex (mp_int * a, mp_digit b, mp_int * c, int fast)
 {
-  int     res, x;
+  int     res;
+  unsigned int x;
+
   mp_int  g;
 
   if ((res = mp_init_copy (&g, a)) != MP_OKAY) {
@@ -2479,38 +2615,62 @@ int mp_expt_d (mp_int * a, mp_digit b, mp_int * c)
   /* set initial result */
   mp_set (c, 1);
 
-  for (x = 0; x < (int) DIGIT_BIT; x++) {
-    /* square */
-    if ((res = mp_sqr (c, c)) != MP_OKAY) {
-      mp_clear (&g);
-      return res;
-    }
-
-    /* if the bit is set multiply */
-    if ((b & (mp_digit) (((mp_digit)1) << (DIGIT_BIT - 1))) != 0) {
-      if ((res = mp_mul (c, &g, c)) != MP_OKAY) {
-         mp_clear (&g);
-         return res;
+  if (fast != 0) {
+    while (b > 0) {
+      /* if the bit is set multiply */
+      if ((b & 1) != 0) {
+        if ((res = mp_mul (c, &g, c)) != MP_OKAY) {
+          mp_clear (&g);
+          return res;
+        }
       }
-    }
 
-    /* shift to next bit */
-    b <<= 1;
+      /* square */
+      if (b > 1) {
+        if ((res = mp_sqr (&g, &g)) != MP_OKAY) {
+          mp_clear (&g);
+          return res;
+        }
+      }
+
+      /* shift to next bit */
+      b >>= 1;
+    }
   }
+  else {
+    for (x = 0; x < DIGIT_BIT; x++) {
+      /* square */
+      if ((res = mp_sqr (c, c)) != MP_OKAY) {
+        mp_clear (&g);
+        return res;
+      }
+
+      /* if the bit is set multiply */
+      if ((b & (mp_digit) (((mp_digit)1) << (DIGIT_BIT - 1))) != 0) {
+        if ((res = mp_mul (c, &g, c)) != MP_OKAY) {
+           mp_clear (&g);
+           return res;
+        }
+      }
+
+      /* shift to next bit */
+      b <<= 1;
+    }
+  } /* if ... else */
 
   mp_clear (&g);
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_expt_d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
-/* End: bn_mp_expt_d.c */
+/* End: bn_mp_expt_d_ex.c */
 
 /* Start: bn_mp_exptmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPTMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2524,7 +2684,7 @@ int mp_expt_d (mp_int * a, mp_digit b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 
@@ -2571,7 +2731,7 @@ int mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y)
      err = mp_exptmod(&tmpG, &tmpX, P, Y);
      mp_clear_multi(&tmpG, &tmpX, NULL);
      return err;
-#else 
+#else
      /* no invmod */
      return MP_VAL;
 #endif
@@ -2598,10 +2758,10 @@ int mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y)
      dr = mp_reduce_is_2k(P) << 1;
   }
 #endif
-    
+
   /* if the modulus is odd or dr != 0 use the montgomery method */
 #ifdef BN_MP_EXPTMOD_FAST_C
-  if (mp_isodd (P) == 1 || dr !=  0) {
+  if ((mp_isodd (P) == MP_YES) || (dr !=  0)) {
     return mp_exptmod_fast (G, X, P, Y, dr);
   } else {
 #endif
@@ -2619,14 +2779,14 @@ int mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_exptmod.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_exptmod.c */
 
 /* Start: bn_mp_exptmod_fast.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXPTMOD_FAST_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2640,7 +2800,7 @@ int mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes Y == G**X mod P, HAC pp.616, Algorithm 14.85
@@ -2712,7 +2872,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
 
   /* determine and setup reduction code */
   if (redmode == 0) {
-#ifdef BN_MP_MONTGOMERY_SETUP_C     
+#ifdef BN_MP_MONTGOMERY_SETUP_C
      /* now setup montgomery  */
      if ((err = mp_montgomery_setup (P, &mp)) != MP_OKAY) {
         goto LBL_M;
@@ -2724,10 +2884,10 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
 
      /* automatically pick the comba one if available (saves quite a few calls/ifs) */
 #ifdef BN_FAST_MP_MONTGOMERY_REDUCE_C
-     if (((P->used * 2 + 1) < MP_WARRAY) &&
-          P->used < (1 << ((CHAR_BIT * sizeof (mp_word)) - (2 * DIGIT_BIT)))) {
+     if ((((P->used * 2) + 1) < MP_WARRAY) &&
+          (P->used < (1 << ((CHAR_BIT * sizeof(mp_word)) - (2 * DIGIT_BIT))))) {
         redux = fast_mp_montgomery_reduce;
-     } else 
+     } else
 #endif
      {
 #ifdef BN_MP_MONTGOMERY_REDUCE_C
@@ -2778,7 +2938,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
      if ((err = mp_montgomery_calc_normalization (&res, P)) != MP_OKAY) {
        goto LBL_RES;
      }
-#else 
+#else
      err = MP_VAL;
      goto LBL_RES;
 #endif
@@ -2847,12 +3007,12 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
      * in the exponent.  Technically this opt is not required but it
      * does lower the # of trivial squaring/reductions used
      */
-    if (mode == 0 && y == 0) {
+    if ((mode == 0) && (y == 0)) {
       continue;
     }
 
     /* if the bit is zero and mode == 1 then we square */
-    if (mode == 1 && y == 0) {
+    if ((mode == 1) && (y == 0)) {
       if ((err = mp_sqr (&res, &res)) != MP_OKAY) {
         goto LBL_RES;
       }
@@ -2894,7 +3054,7 @@ int mp_exptmod_fast (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode
   }
 
   /* if bits remain then square/multiply */
-  if (mode == 2 && bitcpy > 0) {
+  if ((mode == 2) && (bitcpy > 0)) {
     /* square then multiply if the bit is set */
     for (x = 0; x < bitcpy; x++) {
       if ((err = mp_sqr (&res, &res)) != MP_OKAY) {
@@ -2944,14 +3104,14 @@ LBL_M:
 #endif
 
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_exptmod_fast.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_exptmod_fast.c */
 
 /* Start: bn_mp_exteuclid.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_EXTEUCLID_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -2965,10 +3125,10 @@ LBL_M:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* Extended euclidean algorithm of (a, b) produces 
+/* Extended euclidean algorithm of (a, b) produces
    a*u1 + b*u2 = u3
  */
 int mp_exteuclid(mp_int *a, mp_int *b, mp_int *U1, mp_int *U2, mp_int *U3)
@@ -3014,9 +3174,9 @@ int mp_exteuclid(mp_int *a, mp_int *b, mp_int *U1, mp_int *U2, mp_int *U3)
 
    /* make sure U3 >= 0 */
    if (u3.sign == MP_NEG) {
-      mp_neg(&u1, &u1);
-      mp_neg(&u2, &u2);
-      mp_neg(&u3, &u3);
+       if ((err = mp_neg(&u1, &u1)) != MP_OKAY)                                   { goto _ERR; }
+       if ((err = mp_neg(&u2, &u2)) != MP_OKAY)                                   { goto _ERR; }
+       if ((err = mp_neg(&u3, &u3)) != MP_OKAY)                                   { goto _ERR; }
    }
 
    /* copy result out */
@@ -3030,14 +3190,14 @@ _ERR: mp_clear_multi(&u1, &u2, &u3, &v1, &v2, &v3, &t1, &t2, &t3, &q, &tmp, NULL
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_exteuclid.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_exteuclid.c */
 
 /* Start: bn_mp_fread.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_FREAD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3051,17 +3211,17 @@ _ERR: mp_clear_multi(&u1, &u2, &u3, &v1, &v2, &v3, &t1, &t2, &t3, &q, &tmp, NULL
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* read a bigint from a file stream in ASCII */
 int mp_fread(mp_int *a, int radix, FILE *stream)
 {
    int err, ch, neg, y;
-   
+
    /* clear a */
    mp_zero(a);
-   
+
    /* if first digit is - then set negative */
    ch = fgetc(stream);
    if (ch == '-') {
@@ -3070,7 +3230,7 @@ int mp_fread(mp_int *a, int radix, FILE *stream)
    } else {
       neg = MP_ZPOS;
    }
-   
+
    for (;;) {
       /* find y in the radix map */
       for (y = 0; y < radix; y++) {
@@ -3081,7 +3241,7 @@ int mp_fread(mp_int *a, int radix, FILE *stream)
       if (y == radix) {
          break;
       }
-      
+
       /* shift up and add */
       if ((err = mp_mul_d(a, radix, a)) != MP_OKAY) {
          return err;
@@ -3089,26 +3249,26 @@ int mp_fread(mp_int *a, int radix, FILE *stream)
       if ((err = mp_add_d(a, y, a)) != MP_OKAY) {
          return err;
       }
-      
+
       ch = fgetc(stream);
    }
    if (mp_cmp_d(a, 0) != MP_EQ) {
       a->sign = neg;
    }
-   
+
    return MP_OKAY;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_fread.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_fread.c */
 
 /* Start: bn_mp_fwrite.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_FWRITE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3122,14 +3282,14 @@ int mp_fread(mp_int *a, int radix, FILE *stream)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 int mp_fwrite(mp_int *a, int radix, FILE *stream)
 {
    char *buf;
    int err, len, x;
-   
+
    if ((err = mp_radix_size(a, radix, &len)) != MP_OKAY) {
       return err;
    }
@@ -3138,33 +3298,33 @@ int mp_fwrite(mp_int *a, int radix, FILE *stream)
    if (buf == NULL) {
       return MP_MEM;
    }
-   
+
    if ((err = mp_toradix(a, buf, radix)) != MP_OKAY) {
       XFREE (buf);
       return err;
    }
-   
+
    for (x = 0; x < len; x++) {
        if (fputc(buf[x], stream) == EOF) {
           XFREE (buf);
           return MP_VAL;
        }
    }
-   
+
    XFREE (buf);
    return MP_OKAY;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_fwrite.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_fwrite.c */
 
 /* Start: bn_mp_gcd.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GCD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3178,7 +3338,7 @@ int mp_fwrite(mp_int *a, int radix, FILE *stream)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* Greatest Common Divisor using the binary method */
@@ -3236,23 +3396,23 @@ int mp_gcd (mp_int * a, mp_int * b, mp_int * c)
      }
   }
 
-  while (mp_iszero(&v) == 0) {
+  while (mp_iszero(&v) == MP_NO) {
      /* make sure v is the largest */
      if (mp_cmp_mag(&u, &v) == MP_GT) {
         /* swap u and v to make sure v is >= u */
         mp_exch(&u, &v);
      }
-     
+
      /* subtract smallest from largest */
      if ((res = s_mp_sub(&v, &u, &v)) != MP_OKAY) {
         goto LBL_V;
      }
-     
+
      /* Divide out all factors of two */
      if ((res = mp_div_2d(&v, mp_cnt_lsb(&v), &v, NULL)) != MP_OKAY) {
         goto LBL_V;
-     } 
-  } 
+     }
+  }
 
   /* multiply by 2**k which we divided out at the beginning */
   if ((res = mp_mul_2d (&u, k, c)) != MP_OKAY) {
@@ -3266,14 +3426,14 @@ LBL_U:mp_clear (&v);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_gcd.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_gcd.c */
 
 /* Start: bn_mp_get_int.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3287,25 +3447,25 @@ LBL_U:mp_clear (&v);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* get the lower 32-bits of an mp_int */
-unsigned long mp_get_int(mp_int * a) 
+unsigned long mp_get_int(mp_int * a)
 {
   int i;
-  unsigned long res;
+  mp_min_u32 res;
 
   if (a->used == 0) {
      return 0;
   }
 
   /* get number of digits of the lsb we have to read */
-  i = MIN(a->used,(int)((sizeof(unsigned long)*CHAR_BIT+DIGIT_BIT-1)/DIGIT_BIT))-1;
+  i = MIN(a->used,(int)(((sizeof(unsigned long) * CHAR_BIT) + DIGIT_BIT - 1) / DIGIT_BIT)) - 1;
 
   /* get most significant digit of result */
   res = DIGIT(a,i);
-   
+
   while (--i >= 0) {
     res = (res << DIGIT_BIT) | DIGIT(a,i);
   }
@@ -3315,14 +3475,104 @@ unsigned long mp_get_int(mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_get_int.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_get_int.c */
 
+/* Start: bn_mp_get_long.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_GET_LONG_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* get the lower unsigned long of an mp_int, platform dependent */
+unsigned long mp_get_long(mp_int * a)
+{
+  int i;
+  unsigned long res;
+
+  if (a->used == 0) {
+     return 0;
+  }
+
+  /* get number of digits of the lsb we have to read */
+  i = MIN(a->used,(int)(((sizeof(unsigned long) * CHAR_BIT) + DIGIT_BIT - 1) / DIGIT_BIT)) - 1;
+
+  /* get most significant digit of result */
+  res = DIGIT(a,i);
+
+#if (ULONG_MAX != 0xffffffffuL) || (DIGIT_BIT < 32)
+  while (--i >= 0) {
+    res = (res << DIGIT_BIT) | DIGIT(a,i);
+  }
+#endif
+  return res;
+}
+#endif
+
+/* End: bn_mp_get_long.c */
+
+/* Start: bn_mp_get_long_long.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_GET_LONG_LONG_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* get the lower unsigned long long of an mp_int, platform dependent */
+unsigned long long mp_get_long_long (mp_int * a)
+{
+  int i;
+  unsigned long long res;
+
+  if (a->used == 0) {
+     return 0;
+  }
+
+  /* get number of digits of the lsb we have to read */
+  i = MIN(a->used,(int)(((sizeof(unsigned long long) * CHAR_BIT) + DIGIT_BIT - 1) / DIGIT_BIT)) - 1;
+
+  /* get most significant digit of result */
+  res = DIGIT(a,i);
+
+#if DIGIT_BIT < 64
+  while (--i >= 0) {
+    res = (res << DIGIT_BIT) | DIGIT(a,i);
+  }
+#endif
+  return res;
+}
+#endif
+
+/* End: bn_mp_get_long_long.c */
+
 /* Start: bn_mp_grow.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_GROW_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3336,7 +3586,7 @@ unsigned long mp_get_int(mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* grow as required */
@@ -3376,14 +3626,91 @@ int mp_grow (mp_int * a, int size)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_grow.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_grow.c */
 
+/* Start: bn_mp_import.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_IMPORT_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* based on gmp's mpz_import.
+ * see http://gmplib.org/manual/Integer-Import-and-Export.html
+ */
+int mp_import(mp_int* rop, size_t count, int order, size_t size,
+                            int endian, size_t nails, const void* op) {
+	int result;
+	size_t odd_nails, nail_bytes, i, j;
+	unsigned char odd_nail_mask;
+
+	mp_zero(rop);
+
+	if (endian == 0) {
+		union {
+			unsigned int i;
+			char c[4];
+		} lint;
+		lint.i = 0x01020304;
+
+		endian = (lint.c[0] == 4) ? -1 : 1;
+	}
+
+	odd_nails = (nails % 8);
+	odd_nail_mask = 0xff;
+	for (i = 0; i < odd_nails; ++i) {
+		odd_nail_mask ^= (1 << (7 - i));
+	}
+	nail_bytes = nails / 8;
+
+	for (i = 0; i < count; ++i) {
+		for (j = 0; j < (size - nail_bytes); ++j) {
+			unsigned char byte = *(
+					(unsigned char*)op +
+					(((order == 1) ? i : ((count - 1) - i)) * size) +
+					((endian == 1) ? (j + nail_bytes) : (((size - 1) - j) - nail_bytes))
+				);
+
+			if (
+				(result = mp_mul_2d(rop, ((j == 0) ? (8 - odd_nails) : 8), rop)) != MP_OKAY) {
+				return result;
+			}
+
+			rop->dp[0] |= (j == 0) ? (byte & odd_nail_mask) : byte;
+			rop->used  += 1;
+		}
+	}
+
+	mp_clamp(rop);
+
+	return MP_OKAY;
+}
+
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_import.c */
+
 /* Start: bn_mp_init.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3397,7 +3724,7 @@ int mp_grow (mp_int * a, int size)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* init a new mp_int */
@@ -3426,14 +3753,14 @@ int mp_init (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init.c */
 
 /* Start: bn_mp_init_copy.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_COPY_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3447,7 +3774,7 @@ int mp_init (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* creates "a" then copies b into it */
@@ -3455,21 +3782,21 @@ int mp_init_copy (mp_int * a, mp_int * b)
 {
   int     res;
 
-  if ((res = mp_init (a)) != MP_OKAY) {
+  if ((res = mp_init_size (a, b->used)) != MP_OKAY) {
     return res;
   }
   return mp_copy (b, a);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init_copy.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init_copy.c */
 
 /* Start: bn_mp_init_multi.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_MULTI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3483,11 +3810,11 @@ int mp_init_copy (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 #include <stdarg.h>
 
-int mp_init_multi(mp_int *mp, ...) 
+int mp_init_multi(mp_int *mp, ...)
 {
     mp_err res = MP_OKAY;      /* Assume ok until proven otherwise */
     int n = 0;                 /* Number of ok inits */
@@ -3501,14 +3828,14 @@ int mp_init_multi(mp_int *mp, ...)
                succeeded in init-ing, then return error.
             */
             va_list clean_args;
-            
+
             /* end the current list */
             va_end(args);
-            
-            /* now start cleaning up */            
+
+            /* now start cleaning up */
             cur_arg = mp;
             va_start(clean_args, mp);
-            while (n--) {
+            while (n-- != 0) {
                 mp_clear(cur_arg);
                 cur_arg = va_arg(clean_args, mp_int*);
             }
@@ -3525,14 +3852,14 @@ int mp_init_multi(mp_int *mp, ...)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init_multi.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init_multi.c */
 
 /* Start: bn_mp_init_set.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SET_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3546,7 +3873,7 @@ int mp_init_multi(mp_int *mp, ...)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* initialize and set a digit */
@@ -3561,14 +3888,14 @@ int mp_init_set (mp_int * a, mp_digit b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init_set.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init_set.c */
 
 /* Start: bn_mp_init_set_int.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3582,7 +3909,7 @@ int mp_init_set (mp_int * a, mp_digit b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* initialize and set a digit */
@@ -3596,14 +3923,14 @@ int mp_init_set_int (mp_int * a, unsigned long b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init_set_int.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init_set_int.c */
 
 /* Start: bn_mp_init_size.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INIT_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3617,7 +3944,7 @@ int mp_init_set_int (mp_int * a, unsigned long b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* init an mp_init for a given size */
@@ -3626,8 +3953,8 @@ int mp_init_size (mp_int * a, int size)
   int x;
 
   /* pad size so there are always extra digits */
-  size += (MP_PREC * 2) - (size % MP_PREC);	
-  
+  size += (MP_PREC * 2) - (size % MP_PREC);
+
   /* alloc mem */
   a->dp = OPT_CAST(mp_digit) XMALLOC (sizeof (mp_digit) * size);
   if (a->dp == NULL) {
@@ -3648,14 +3975,14 @@ int mp_init_size (mp_int * a, int size)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_init_size.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_init_size.c */
 
 /* Start: bn_mp_invmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INVMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3669,20 +3996,20 @@ int mp_init_size (mp_int * a, int size)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* hac 14.61, pp608 */
 int mp_invmod (mp_int * a, mp_int * b, mp_int * c)
 {
   /* b cannot be negative */
-  if (b->sign == MP_NEG || mp_iszero(b) == 1) {
+  if ((b->sign == MP_NEG) || (mp_iszero(b) == MP_YES)) {
     return MP_VAL;
   }
 
 #ifdef BN_FAST_MP_INVMOD_C
   /* if the modulus is odd we can use a faster routine instead */
-  if (mp_isodd (b) == 1) {
+  if (mp_isodd (b) == MP_YES) {
     return fast_mp_invmod (a, b, c);
   }
 #endif
@@ -3695,14 +4022,14 @@ int mp_invmod (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_invmod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_invmod.c */
 
 /* Start: bn_mp_invmod_slow.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_INVMOD_SLOW_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3716,7 +4043,7 @@ int mp_invmod (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* hac 14.61, pp608 */
@@ -3726,12 +4053,12 @@ int mp_invmod_slow (mp_int * a, mp_int * b, mp_int * c)
   int     res;
 
   /* b cannot be negative */
-  if (b->sign == MP_NEG || mp_iszero(b) == 1) {
+  if ((b->sign == MP_NEG) || (mp_iszero(b) == MP_YES)) {
     return MP_VAL;
   }
 
   /* init temps */
-  if ((res = mp_init_multi(&x, &y, &u, &v, 
+  if ((res = mp_init_multi(&x, &y, &u, &v,
                            &A, &B, &C, &D, NULL)) != MP_OKAY) {
      return res;
   }
@@ -3745,7 +4072,7 @@ int mp_invmod_slow (mp_int * a, mp_int * b, mp_int * c)
   }
 
   /* 2. [modified] if x,y are both even then return an error! */
-  if (mp_iseven (&x) == 1 && mp_iseven (&y) == 1) {
+  if ((mp_iseven (&x) == MP_YES) && (mp_iseven (&y) == MP_YES)) {
     res = MP_VAL;
     goto LBL_ERR;
   }
@@ -3762,13 +4089,13 @@ int mp_invmod_slow (mp_int * a, mp_int * b, mp_int * c)
 
 top:
   /* 4.  while u is even do */
-  while (mp_iseven (&u) == 1) {
+  while (mp_iseven (&u) == MP_YES) {
     /* 4.1 u = u/2 */
     if ((res = mp_div_2 (&u, &u)) != MP_OKAY) {
       goto LBL_ERR;
     }
     /* 4.2 if A or B is odd then */
-    if (mp_isodd (&A) == 1 || mp_isodd (&B) == 1) {
+    if ((mp_isodd (&A) == MP_YES) || (mp_isodd (&B) == MP_YES)) {
       /* A = (A+y)/2, B = (B-x)/2 */
       if ((res = mp_add (&A, &y, &A)) != MP_OKAY) {
          goto LBL_ERR;
@@ -3787,13 +4114,13 @@ top:
   }
 
   /* 5.  while v is even do */
-  while (mp_iseven (&v) == 1) {
+  while (mp_iseven (&v) == MP_YES) {
     /* 5.1 v = v/2 */
     if ((res = mp_div_2 (&v, &v)) != MP_OKAY) {
       goto LBL_ERR;
     }
     /* 5.2 if C or D is odd then */
-    if (mp_isodd (&C) == 1 || mp_isodd (&D) == 1) {
+    if ((mp_isodd (&C) == MP_YES) || (mp_isodd (&D) == MP_YES)) {
       /* C = (C+y)/2, D = (D-x)/2 */
       if ((res = mp_add (&C, &y, &C)) != MP_OKAY) {
          goto LBL_ERR;
@@ -3841,7 +4168,7 @@ top:
   }
 
   /* if not zero goto step 4 */
-  if (mp_iszero (&u) == 0)
+  if (mp_iszero (&u) == MP_NO)
     goto top;
 
   /* now a = C, b = D, gcd == g*v */
@@ -3858,14 +4185,14 @@ top:
          goto LBL_ERR;
       }
   }
-  
+
   /* too big */
   while (mp_cmp_mag(&C, b) != MP_LT) {
       if ((res = mp_sub(&C, b, &C)) != MP_OKAY) {
          goto LBL_ERR;
       }
   }
-  
+
   /* C is now the inverse */
   mp_exch (&C, c);
   res = MP_OKAY;
@@ -3874,14 +4201,14 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &A, &B, &C, &D, NULL);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_invmod_slow.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_invmod_slow.c */
 
 /* Start: bn_mp_is_square.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_IS_SQUARE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -3895,7 +4222,7 @@ LBL_ERR:mp_clear_multi (&x, &y, &u, &v, &A, &B, &C, &D, NULL);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* Check if remainders are possible squares - fast exclude non-squares */
@@ -3921,7 +4248,7 @@ static const char rem_105[105] = {
 };
 
 /* Store non-zero to ret if arg is square, and zero if not */
-int mp_is_square(mp_int *arg,int *ret) 
+int mp_is_square(mp_int *arg,int *ret)
 {
   int           res;
   mp_digit      c;
@@ -3929,7 +4256,7 @@ int mp_is_square(mp_int *arg,int *ret)
   unsigned long r;
 
   /* Default to Non-square :) */
-  *ret = MP_NO; 
+  *ret = MP_NO;
 
   if (arg->sign == MP_NEG) {
     return MP_VAL;
@@ -3963,15 +4290,15 @@ int mp_is_square(mp_int *arg,int *ret)
   r = mp_get_int(&t);
   /* Check for other prime modules, note it's not an ERROR but we must
    * free "t" so the easiest way is to goto ERR.  We know that res
-   * is already equal to MP_OKAY from the mp_mod call 
-   */ 
-  if ( (1L<<(r%11)) & 0x5C4L )             goto ERR;
-  if ( (1L<<(r%13)) & 0x9E4L )             goto ERR;
-  if ( (1L<<(r%17)) & 0x5CE8L )            goto ERR;
-  if ( (1L<<(r%19)) & 0x4F50CL )           goto ERR;
-  if ( (1L<<(r%23)) & 0x7ACCA0L )          goto ERR;
-  if ( (1L<<(r%29)) & 0xC2EDD0CL )         goto ERR;
-  if ( (1L<<(r%31)) & 0x6DE2B848L )        goto ERR;
+   * is already equal to MP_OKAY from the mp_mod call
+   */
+  if (((1L<<(r%11)) & 0x5C4L) != 0L)       goto ERR;
+  if (((1L<<(r%13)) & 0x9E4L) != 0L)       goto ERR;
+  if (((1L<<(r%17)) & 0x5CE8L) != 0L)      goto ERR;
+  if (((1L<<(r%19)) & 0x4F50CL) != 0L)     goto ERR;
+  if (((1L<<(r%23)) & 0x7ACCA0L) != 0L)    goto ERR;
+  if (((1L<<(r%29)) & 0xC2EDD0CL) != 0L)   goto ERR;
+  if (((1L<<(r%31)) & 0x6DE2B848L) != 0L)  goto ERR;
 
   /* Final check - is sqr(sqrt(arg)) == arg ? */
   if ((res = mp_sqrt(arg,&t)) != MP_OKAY) {
@@ -3987,14 +4314,14 @@ ERR:mp_clear(&t);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_is_square.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_is_square.c */
 
 /* Start: bn_mp_jacobi.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_JACOBI_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4008,27 +4335,39 @@ ERR:mp_clear(&t);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes the jacobi c = (a | n) (or Legendre if n is prime)
  * HAC pp. 73 Algorithm 2.149
+ * HAC is wrong here, as the special case of (0 | 1) is not
+ * handled correctly.
  */
-int mp_jacobi (mp_int * a, mp_int * p, int *c)
+int mp_jacobi (mp_int * a, mp_int * n, int *c)
 {
   mp_int  a1, p1;
   int     k, s, r, res;
   mp_digit residue;
 
-  /* if p <= 0 return MP_VAL */
-  if (mp_cmp_d(p, 0) != MP_GT) {
+  /* if a < 0 return MP_VAL */
+  if (mp_isneg(a) == MP_YES) {
      return MP_VAL;
   }
 
-  /* step 1.  if a == 0, return 0 */
-  if (mp_iszero (a) == 1) {
-    *c = 0;
-    return MP_OKAY;
+  /* if n <= 0 return MP_VAL */
+  if (mp_cmp_d(n, 0) != MP_GT) {
+     return MP_VAL;
+  }
+
+  /* step 1. handle case of a == 0 */
+  if (mp_iszero (a) == MP_YES) {
+     /* special case of a == 0 and n == 1 */
+     if (mp_cmp_d (n, 1) == MP_EQ) {
+       *c = 1;
+     } else {
+       *c = 0;
+     }
+     return MP_OKAY;
   }
 
   /* step 2.  if a == 1, return 1 */
@@ -4060,17 +4399,17 @@ int mp_jacobi (mp_int * a, mp_int * p, int *c)
     s = 1;
   } else {
     /* else set s=1 if p = 1/7 (mod 8) or s=-1 if p = 3/5 (mod 8) */
-    residue = p->dp[0] & 7;
+    residue = n->dp[0] & 7;
 
-    if (residue == 1 || residue == 7) {
+    if ((residue == 1) || (residue == 7)) {
       s = 1;
-    } else if (residue == 3 || residue == 5) {
+    } else if ((residue == 3) || (residue == 5)) {
       s = -1;
     }
   }
 
   /* step 5.  if p == 3 (mod 4) *and* a1 == 3 (mod 4) then s = -s */
-  if ( ((p->dp[0] & 3) == 3) && ((a1.dp[0] & 3) == 3)) {
+  if ( ((n->dp[0] & 3) == 3) && ((a1.dp[0] & 3) == 3)) {
     s = -s;
   }
 
@@ -4079,7 +4418,7 @@ int mp_jacobi (mp_int * a, mp_int * p, int *c)
     *c = s;
   } else {
     /* n1 = n mod a1 */
-    if ((res = mp_mod (p, &a1, &p1)) != MP_OKAY) {
+    if ((res = mp_mod (n, &a1, &p1)) != MP_OKAY) {
       goto LBL_P1;
     }
     if ((res = mp_jacobi (&p1, &a1, &r)) != MP_OKAY) {
@@ -4096,14 +4435,14 @@ LBL_A1:mp_clear (&a1);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_jacobi.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_jacobi.c */
 
 /* Start: bn_mp_karatsuba_mul.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_KARATSUBA_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4117,36 +4456,36 @@ LBL_A1:mp_clear (&a1);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* c = |a| * |b| using Karatsuba Multiplication using 
+/* c = |a| * |b| using Karatsuba Multiplication using
  * three half size multiplications
  *
- * Let B represent the radix [e.g. 2**DIGIT_BIT] and 
- * let n represent half of the number of digits in 
+ * Let B represent the radix [e.g. 2**DIGIT_BIT] and
+ * let n represent half of the number of digits in
  * the min(a,b)
  *
  * a = a1 * B**n + a0
  * b = b1 * B**n + b0
  *
- * Then, a * b => 
+ * Then, a * b =>
    a1b1 * B**2n + ((a1 + a0)(b1 + b0) - (a0b0 + a1b1)) * B + a0b0
  *
- * Note that a1b1 and a0b0 are used twice and only need to be 
- * computed once.  So in total three half size (half # of 
- * digit) multiplications are performed, a0b0, a1b1 and 
+ * Note that a1b1 and a0b0 are used twice and only need to be
+ * computed once.  So in total three half size (half # of
+ * digit) multiplications are performed, a0b0, a1b1 and
  * (a1+b1)(a0+b0)
  *
  * Note that a multiplication of half the digits requires
- * 1/4th the number of single precision multiplications so in 
- * total after one call 25% of the single precision multiplications 
- * are saved.  Note also that the call to mp_mul can end up back 
- * in this function if the a0, a1, b0, or b1 are above the threshold.  
- * This is known as divide-and-conquer and leads to the famous 
- * O(N**lg(3)) or O(N**1.584) work which is asymptopically lower than 
- * the standard O(N**2) that the baseline/comba methods use.  
- * Generally though the overhead of this method doesn't pay off 
+ * 1/4th the number of single precision multiplications so in
+ * total after one call 25% of the single precision multiplications
+ * are saved.  Note also that the call to mp_mul can end up back
+ * in this function if the a0, a1, b0, or b1 are above the threshold.
+ * This is known as divide-and-conquer and leads to the famous
+ * O(N**lg(3)) or O(N**1.584) work which is asymptopically lower than
+ * the standard O(N**2) that the baseline/comba methods use.
+ * Generally though the overhead of this method doesn't pay off
  * until a certain size (N ~ 80) is reached.
  */
 int mp_karatsuba_mul (mp_int * a, mp_int * b, mp_int * c)
@@ -4187,8 +4526,8 @@ int mp_karatsuba_mul (mp_int * a, mp_int * b, mp_int * c)
   y1.used = b->used - B;
 
   {
-    register int x;
-    register mp_digit *tmpa, *tmpb, *tmpx, *tmpy;
+    int x;
+    mp_digit *tmpa, *tmpb, *tmpx, *tmpy;
 
     /* we copy the digits directly instead of using higher level functions
      * since we also need to shift the digits
@@ -4214,7 +4553,7 @@ int mp_karatsuba_mul (mp_int * a, mp_int * b, mp_int * c)
     }
   }
 
-  /* only need to clamp the lower words since by definition the 
+  /* only need to clamp the lower words since by definition the
    * upper words x1/y1 must have a known number of digits
    */
   mp_clamp (&x0);
@@ -4222,7 +4561,7 @@ int mp_karatsuba_mul (mp_int * a, mp_int * b, mp_int * c)
 
   /* now calc the products x0y0 and x1y1 */
   /* after this x0 is no longer required, free temp [x0==t2]! */
-  if (mp_mul (&x0, &y0, &x0y0) != MP_OKAY)  
+  if (mp_mul (&x0, &y0, &x0y0) != MP_OKAY)
     goto X1Y1;          /* x0y0 = x0*y0 */
   if (mp_mul (&x1, &y1, &x1y1) != MP_OKAY)
     goto X1Y1;          /* x1y1 = x1*y1 */
@@ -4267,14 +4606,14 @@ ERR:
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_karatsuba_mul.c,v $ */
-/* $Revision: 1.5 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_karatsuba_mul.c */
 
 /* Start: bn_mp_karatsuba_sqr.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_KARATSUBA_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4288,14 +4627,14 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* Karatsuba squaring, computes b = a*a using three 
+/* Karatsuba squaring, computes b = a*a using three
  * half size squarings
  *
- * See comments of karatsuba_mul for details.  It 
- * is essentially the same algorithm but merely 
+ * See comments of karatsuba_mul for details.  It
+ * is essentially the same algorithm but merely
  * tuned to perform recursive squarings.
  */
 int mp_karatsuba_sqr (mp_int * a, mp_int * b)
@@ -4328,8 +4667,8 @@ int mp_karatsuba_sqr (mp_int * a, mp_int * b)
     goto X0X0;
 
   {
-    register int x;
-    register mp_digit *dst, *src;
+    int x;
+    mp_digit *dst, *src;
 
     src = a->dp;
 
@@ -4392,14 +4731,14 @@ ERR:
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_karatsuba_sqr.c,v $ */
-/* $Revision: 1.5 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_karatsuba_sqr.c */
 
 /* Start: bn_mp_lcm.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_LCM_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4413,7 +4752,7 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes least common multiple as |a*b|/(a, b) */
@@ -4456,14 +4795,14 @@ LBL_T:
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_lcm.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_lcm.c */
 
 /* Start: bn_mp_lshd.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_LSHD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4477,7 +4816,7 @@ LBL_T:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* shift left a certain amount of digits */
@@ -4491,14 +4830,14 @@ int mp_lshd (mp_int * a, int b)
   }
 
   /* grow to fit the new digits */
-  if (a->alloc < a->used + b) {
+  if (a->alloc < (a->used + b)) {
      if ((res = mp_grow (a, a->used + b)) != MP_OKAY) {
        return res;
      }
   }
 
   {
-    register mp_digit *top, *bottom;
+    mp_digit *top, *bottom;
 
     /* increment the used by the shift amount then copy upwards */
     a->used += b;
@@ -4507,7 +4846,7 @@ int mp_lshd (mp_int * a, int b)
     top = a->dp + a->used - 1;
 
     /* base */
-    bottom = a->dp + a->used - 1 - b;
+    bottom = (a->dp + a->used - 1) - b;
 
     /* much like mp_rshd this is implemented using a sliding window
      * except the window goes the otherway around.  Copying from
@@ -4527,14 +4866,14 @@ int mp_lshd (mp_int * a, int b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_lshd.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_lshd.c */
 
 /* Start: bn_mp_mod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4548,10 +4887,10 @@ int mp_lshd (mp_int * a, int b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* c = a mod b, 0 <= c < b */
+/* c = a mod b, 0 <= c < b if b > 0, b < c <= 0 if b < 0 */
 int
 mp_mod (mp_int * a, mp_int * b, mp_int * c)
 {
@@ -4567,11 +4906,11 @@ mp_mod (mp_int * a, mp_int * b, mp_int * c)
     return res;
   }
 
-  if (t.sign != b->sign) {
-    res = mp_add (b, &t, c);
-  } else {
+  if ((mp_iszero(&t) != MP_NO) || (t.sign == b->sign)) {
     res = MP_OKAY;
     mp_exch (&t, c);
+  } else {
+    res = mp_add (b, &t, c);
   }
 
   mp_clear (&t);
@@ -4579,14 +4918,14 @@ mp_mod (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mod.c */
 
 /* Start: bn_mp_mod_2d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4600,7 +4939,7 @@ mp_mod (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* calc a value mod 2**b */
@@ -4627,7 +4966,7 @@ mp_mod_2d (mp_int * a, int b, mp_int * c)
   }
 
   /* zero digits above the last digit of the modulus */
-  for (x = (b / DIGIT_BIT) + ((b % DIGIT_BIT) == 0 ? 0 : 1); x < c->used; x++) {
+  for (x = (b / DIGIT_BIT) + (((b % DIGIT_BIT) == 0) ? 0 : 1); x < c->used; x++) {
     c->dp[x] = 0;
   }
   /* clear the digit that is not completely outside/inside the modulus */
@@ -4638,14 +4977,14 @@ mp_mod_2d (mp_int * a, int b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mod_2d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mod_2d.c */
 
 /* Start: bn_mp_mod_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MOD_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4659,7 +4998,7 @@ mp_mod_2d (mp_int * a, int b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 int
@@ -4669,14 +5008,14 @@ mp_mod_d (mp_int * a, mp_digit b, mp_digit * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mod_d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mod_d.c */
 
 /* Start: bn_mp_montgomery_calc_normalization.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_CALC_NORMALIZATION_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4690,7 +5029,7 @@ mp_mod_d (mp_int * a, mp_digit b, mp_digit * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /*
@@ -4707,7 +5046,7 @@ int mp_montgomery_calc_normalization (mp_int * a, mp_int * b)
   bits = mp_count_bits (b) % DIGIT_BIT;
 
   if (b->used > 1) {
-     if ((res = mp_2expt (a, (b->used - 1) * DIGIT_BIT + bits - 1)) != MP_OKAY) {
+     if ((res = mp_2expt (a, ((b->used - 1) * DIGIT_BIT) + bits - 1)) != MP_OKAY) {
         return res;
      }
   } else {
@@ -4732,14 +5071,14 @@ int mp_montgomery_calc_normalization (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_montgomery_calc_normalization.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_montgomery_calc_normalization.c */
 
 /* Start: bn_mp_montgomery_reduce.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4753,7 +5092,7 @@ int mp_montgomery_calc_normalization (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes xR**-1 == x (mod N) via Montgomery Reduction */
@@ -4769,10 +5108,10 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
    * than the available columns [255 per default] since carries
    * are fixed up in the inner loop.
    */
-  digs = n->used * 2 + 1;
+  digs = (n->used * 2) + 1;
   if ((digs < MP_WARRAY) &&
-      n->used <
-      (1 << ((CHAR_BIT * sizeof (mp_word)) - (2 * DIGIT_BIT)))) {
+      (n->used <
+      (1 << ((CHAR_BIT * sizeof(mp_word)) - (2 * DIGIT_BIT))))) {
     return fast_mp_montgomery_reduce (x, n, rho);
   }
 
@@ -4793,13 +5132,13 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
      * following inner loop to reduce the
      * input one digit at a time
      */
-    mu = (mp_digit) (((mp_word)x->dp[ix]) * ((mp_word)rho) & MP_MASK);
+    mu = (mp_digit) (((mp_word)x->dp[ix] * (mp_word)rho) & MP_MASK);
 
     /* a = a + mu * m * b**i */
     {
-      register int iy;
-      register mp_digit *tmpn, *tmpx, u;
-      register mp_word r;
+      int iy;
+      mp_digit *tmpn, *tmpx, u;
+      mp_word r;
 
       /* alias for digits of the modulus */
       tmpn = n->dp;
@@ -4813,8 +5152,8 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
       /* Multiply and add in place */
       for (iy = 0; iy < n->used; iy++) {
         /* compute product and sum */
-        r       = ((mp_word)mu) * ((mp_word)*tmpn++) +
-                  ((mp_word) u) + ((mp_word) * tmpx);
+        r       = ((mp_word)mu * (mp_word)*tmpn++) +
+                   (mp_word) u + (mp_word) *tmpx;
 
         /* get carry */
         u       = (mp_digit)(r >> ((mp_word) DIGIT_BIT));
@@ -4826,7 +5165,7 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
 
 
       /* propagate carries upwards as required*/
-      while (u) {
+      while (u != 0) {
         *tmpx   += u;
         u        = *tmpx >> DIGIT_BIT;
         *tmpx++ &= MP_MASK;
@@ -4854,14 +5193,14 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_montgomery_reduce.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_montgomery_reduce.c */
 
 /* Start: bn_mp_montgomery_setup.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MONTGOMERY_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4875,7 +5214,7 @@ mp_montgomery_reduce (mp_int * x, mp_int * n, mp_digit rho)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* setups the montgomery reduction stuff */
@@ -4899,32 +5238,32 @@ mp_montgomery_setup (mp_int * n, mp_digit * rho)
   }
 
   x = (((b + 2) & 4) << 1) + b; /* here x*a==1 mod 2**4 */
-  x *= 2 - b * x;               /* here x*a==1 mod 2**8 */
+  x *= 2 - (b * x);             /* here x*a==1 mod 2**8 */
 #if !defined(MP_8BIT)
-  x *= 2 - b * x;               /* here x*a==1 mod 2**16 */
+  x *= 2 - (b * x);             /* here x*a==1 mod 2**16 */
 #endif
 #if defined(MP_64BIT) || !(defined(MP_8BIT) || defined(MP_16BIT))
-  x *= 2 - b * x;               /* here x*a==1 mod 2**32 */
+  x *= 2 - (b * x);             /* here x*a==1 mod 2**32 */
 #endif
 #ifdef MP_64BIT
-  x *= 2 - b * x;               /* here x*a==1 mod 2**64 */
+  x *= 2 - (b * x);             /* here x*a==1 mod 2**64 */
 #endif
 
   /* rho = -1/m mod b */
-  *rho = (((mp_word)1 << ((mp_word) DIGIT_BIT)) - x) & MP_MASK;
+  *rho = (mp_digit)(((mp_word)1 << ((mp_word) DIGIT_BIT)) - x) & MP_MASK;
 
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_montgomery_setup.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_montgomery_setup.c */
 
 /* Start: bn_mp_mul.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -4938,7 +5277,7 @@ mp_montgomery_setup (mp_int * n, mp_digit * rho)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* high level multiplication (handles sign) */
@@ -4951,50 +5290,51 @@ int mp_mul (mp_int * a, mp_int * b, mp_int * c)
 #ifdef BN_MP_TOOM_MUL_C
   if (MIN (a->used, b->used) >= TOOM_MUL_CUTOFF) {
     res = mp_toom_mul(a, b, c);
-  } else 
+  } else
 #endif
 #ifdef BN_MP_KARATSUBA_MUL_C
   /* use Karatsuba? */
   if (MIN (a->used, b->used) >= KARATSUBA_MUL_CUTOFF) {
     res = mp_karatsuba_mul (a, b, c);
-  } else 
+  } else
 #endif
   {
     /* can we use the fast multiplier?
      *
-     * The fast multiplier can be used if the output will 
-     * have less than MP_WARRAY digits and the number of 
+     * The fast multiplier can be used if the output will
+     * have less than MP_WARRAY digits and the number of
      * digits won't affect carry propagation
      */
     int     digs = a->used + b->used + 1;
 
 #ifdef BN_FAST_S_MP_MUL_DIGS_C
     if ((digs < MP_WARRAY) &&
-        MIN(a->used, b->used) <= 
-        (1 << ((CHAR_BIT * sizeof (mp_word)) - (2 * DIGIT_BIT)))) {
+        (MIN(a->used, b->used) <=
+         (1 << ((CHAR_BIT * sizeof(mp_word)) - (2 * DIGIT_BIT))))) {
       res = fast_s_mp_mul_digs (a, b, c, digs);
-    } else 
+    } else
 #endif
+    {
 #ifdef BN_S_MP_MUL_DIGS_C
       res = s_mp_mul (a, b, c); /* uses s_mp_mul_digs */
 #else
       res = MP_VAL;
 #endif
-
+    }
   }
   c->sign = (c->used > 0) ? neg : MP_ZPOS;
   return res;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mul.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mul.c */
 
 /* Start: bn_mp_mul_2.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_2_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5008,7 +5348,7 @@ int mp_mul (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* b = a*2 */
@@ -5017,7 +5357,7 @@ int mp_mul_2(mp_int * a, mp_int * b)
   int     x, res, oldused;
 
   /* grow to accomodate result */
-  if (b->alloc < a->used + 1) {
+  if (b->alloc < (a->used + 1)) {
     if ((res = mp_grow (b, a->used + 1)) != MP_OKAY) {
       return res;
     }
@@ -5027,28 +5367,28 @@ int mp_mul_2(mp_int * a, mp_int * b)
   b->used = a->used;
 
   {
-    register mp_digit r, rr, *tmpa, *tmpb;
+    mp_digit r, rr, *tmpa, *tmpb;
 
     /* alias for source */
     tmpa = a->dp;
-    
+
     /* alias for dest */
     tmpb = b->dp;
 
     /* carry */
     r = 0;
     for (x = 0; x < a->used; x++) {
-    
-      /* get what will be the *next* carry bit from the 
-       * MSB of the current digit 
+
+      /* get what will be the *next* carry bit from the
+       * MSB of the current digit
        */
       rr = *tmpa >> ((mp_digit)(DIGIT_BIT - 1));
-      
+
       /* now shift up this digit, add in the carry [from the previous] */
       *tmpb++ = ((*tmpa++ << ((mp_digit)1)) | r) & MP_MASK;
-      
-      /* copy the carry that would be from the source 
-       * digit into the next iteration 
+
+      /* copy the carry that would be from the source
+       * digit into the next iteration
        */
       r = rr;
     }
@@ -5060,8 +5400,8 @@ int mp_mul_2(mp_int * a, mp_int * b)
       ++(b->used);
     }
 
-    /* now zero any excess digits on the destination 
-     * that we didn't write to 
+    /* now zero any excess digits on the destination
+     * that we didn't write to
      */
     tmpb = b->dp + b->used;
     for (x = b->used; x < oldused; x++) {
@@ -5073,14 +5413,14 @@ int mp_mul_2(mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mul_2.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mul_2.c */
 
 /* Start: bn_mp_mul_2d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_2D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5094,7 +5434,7 @@ int mp_mul_2(mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* shift left by a certain bit count */
@@ -5110,8 +5450,8 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
      }
   }
 
-  if (c->alloc < (int)(c->used + b/DIGIT_BIT + 1)) {
-     if ((res = mp_grow (c, c->used + b / DIGIT_BIT + 1)) != MP_OKAY) {
+  if (c->alloc < (int)(c->used + (b / DIGIT_BIT) + 1)) {
+     if ((res = mp_grow (c, c->used + (b / DIGIT_BIT) + 1)) != MP_OKAY) {
        return res;
      }
   }
@@ -5126,8 +5466,8 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
   /* shift any bit count < DIGIT_BIT */
   d = (mp_digit) (b % DIGIT_BIT);
   if (d != 0) {
-    register mp_digit *tmpc, shift, mask, r, rr;
-    register int x;
+    mp_digit *tmpc, shift, mask, r, rr;
+    int x;
 
     /* bitmask for carries */
     mask = (((mp_digit)1) << d) - 1;
@@ -5151,7 +5491,7 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
       /* set the carry to the carry bits of the current word */
       r = rr;
     }
-    
+
     /* set final carry */
     if (r != 0) {
        c->dp[(c->used)++] = r;
@@ -5162,14 +5502,14 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mul_2d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mul_2d.c */
 
 /* Start: bn_mp_mul_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MUL_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5183,7 +5523,7 @@ int mp_mul_2d (mp_int * a, int b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* multiply by a digit */
@@ -5195,7 +5535,7 @@ mp_mul_d (mp_int * a, mp_digit b, mp_int * c)
   int      ix, res, olduse;
 
   /* make sure c is big enough to hold a*b */
-  if (c->alloc < a->used + 1) {
+  if (c->alloc < (a->used + 1)) {
     if ((res = mp_grow (c, a->used + 1)) != MP_OKAY) {
       return res;
     }
@@ -5219,7 +5559,7 @@ mp_mul_d (mp_int * a, mp_digit b, mp_int * c)
   /* compute columns */
   for (ix = 0; ix < a->used; ix++) {
     /* compute product and carry sum for this term */
-    r       = ((mp_word) u) + ((mp_word)*tmpa++) * ((mp_word)b);
+    r       = (mp_word)u + ((mp_word)*tmpa++ * (mp_word)b);
 
     /* mask off higher bits to get a single digit */
     *tmpc++ = (mp_digit) (r & ((mp_word) MP_MASK));
@@ -5245,14 +5585,14 @@ mp_mul_d (mp_int * a, mp_digit b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mul_d.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mul_d.c */
 
 /* Start: bn_mp_mulmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_MULMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5266,7 +5606,7 @@ mp_mul_d (mp_int * a, mp_digit b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* d = a * b (mod c) */
@@ -5289,14 +5629,14 @@ int mp_mulmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_mulmod.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_mulmod.c */
 
 /* Start: bn_mp_n_root.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_N_ROOT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5310,26 +5650,60 @@ int mp_mulmod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* find the n'th root of an integer 
- *
- * Result found such that (c)**b <= a and (c+1)**b > a 
- *
- * This algorithm uses Newton's approximation 
- * x[i+1] = x[i] - f(x[i])/f'(x[i]) 
- * which will find the root in log(N) time where 
- * each step involves a fair bit.  This is not meant to 
- * find huge roots [square and cube, etc].
+/* wrapper function for mp_n_root_ex()
+ * computes c = (a)**(1/b) such that (c)**b <= a and (c+1)**b > a
  */
 int mp_n_root (mp_int * a, mp_digit b, mp_int * c)
+{
+  return mp_n_root_ex(a, b, c, 0);
+}
+
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_n_root.c */
+
+/* Start: bn_mp_n_root_ex.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_N_ROOT_EX_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* find the n'th root of an integer
+ *
+ * Result found such that (c)**b <= a and (c+1)**b > a
+ *
+ * This algorithm uses Newton's approximation
+ * x[i+1] = x[i] - f(x[i])/f'(x[i])
+ * which will find the root in log(N) time where
+ * each step involves a fair bit.  This is not meant to
+ * find huge roots [square and cube, etc].
+ */
+int mp_n_root_ex (mp_int * a, mp_digit b, mp_int * c, int fast)
 {
   mp_int  t1, t2, t3;
   int     res, neg;
 
   /* input must be positive if b is even */
-  if ((b & 1) == 0 && a->sign == MP_NEG) {
+  if (((b & 1) == 0) && (a->sign == MP_NEG)) {
     return MP_VAL;
   }
 
@@ -5359,31 +5733,31 @@ int mp_n_root (mp_int * a, mp_digit b, mp_int * c)
     }
 
     /* t2 = t1 - ((t1**b - a) / (b * t1**(b-1))) */
-    
+
     /* t3 = t1**(b-1) */
-    if ((res = mp_expt_d (&t1, b - 1, &t3)) != MP_OKAY) {   
+    if ((res = mp_expt_d_ex (&t1, b - 1, &t3, fast)) != MP_OKAY) {
       goto LBL_T3;
     }
 
     /* numerator */
     /* t2 = t1**b */
-    if ((res = mp_mul (&t3, &t1, &t2)) != MP_OKAY) {    
+    if ((res = mp_mul (&t3, &t1, &t2)) != MP_OKAY) {
       goto LBL_T3;
     }
 
     /* t2 = t1**b - a */
-    if ((res = mp_sub (&t2, a, &t2)) != MP_OKAY) {  
+    if ((res = mp_sub (&t2, a, &t2)) != MP_OKAY) {
       goto LBL_T3;
     }
 
     /* denominator */
     /* t3 = t1**(b-1) * b  */
-    if ((res = mp_mul_d (&t3, b, &t3)) != MP_OKAY) {    
+    if ((res = mp_mul_d (&t3, b, &t3)) != MP_OKAY) {
       goto LBL_T3;
     }
 
     /* t3 = (t1**b - a)/(b * t1**(b-1)) */
-    if ((res = mp_div (&t2, &t3, &t3, NULL)) != MP_OKAY) {  
+    if ((res = mp_div (&t2, &t3, &t3, NULL)) != MP_OKAY) {
       goto LBL_T3;
     }
 
@@ -5394,7 +5768,7 @@ int mp_n_root (mp_int * a, mp_digit b, mp_int * c)
 
   /* result can be off by a few so check */
   for (;;) {
-    if ((res = mp_expt_d (&t1, b, &t2)) != MP_OKAY) {
+    if ((res = mp_expt_d_ex (&t1, b, &t2, fast)) != MP_OKAY) {
       goto LBL_T3;
     }
 
@@ -5425,14 +5799,14 @@ LBL_T1:mp_clear (&t1);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_n_root.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
-/* End: bn_mp_n_root.c */
+/* End: bn_mp_n_root_ex.c */
 
 /* Start: bn_mp_neg.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_NEG_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5446,7 +5820,7 @@ LBL_T1:mp_clear (&t1);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* b = -a */
@@ -5469,14 +5843,14 @@ int mp_neg (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_neg.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_neg.c */
 
 /* Start: bn_mp_or.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_OR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5490,7 +5864,7 @@ int mp_neg (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* OR two ints together */
@@ -5523,14 +5897,14 @@ int mp_or (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_or.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_or.c */
 
 /* Start: bn_mp_prime_fermat.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_FERMAT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5544,11 +5918,11 @@ int mp_or (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* performs one Fermat test.
- * 
+ *
  * If "a" were prime then b**a == b (mod a) since the order of
  * the multiplicative sub-group would be phi(a) = a-1.  That means
  * it would be the same as b**(a mod (a-1)) == b**1 == b (mod a).
@@ -5589,14 +5963,14 @@ LBL_T:mp_clear (&t);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_fermat.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_fermat.c */
 
 /* Start: bn_mp_prime_is_divisible.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_IS_DIVISIBLE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5610,10 +5984,10 @@ LBL_T:mp_clear (&t);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* determines if an integers is divisible by one 
+/* determines if an integers is divisible by one
  * of the first PRIME_SIZE primes or not
  *
  * sets result to 0 if not, 1 if yes
@@ -5643,14 +6017,14 @@ int mp_prime_is_divisible (mp_int * a, int *result)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_is_divisible.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_is_divisible.c */
 
 /* Start: bn_mp_prime_is_prime.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_IS_PRIME_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5664,7 +6038,7 @@ int mp_prime_is_divisible (mp_int * a, int *result)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* performs a variable number of rounds of Miller-Rabin
@@ -5683,7 +6057,7 @@ int mp_prime_is_prime (mp_int * a, int t, int *result)
   *result = MP_NO;
 
   /* valid value of t? */
-  if (t <= 0 || t > PRIME_SIZE) {
+  if ((t <= 0) || (t > PRIME_SIZE)) {
     return MP_VAL;
   }
 
@@ -5730,14 +6104,14 @@ LBL_B:mp_clear (&b);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_is_prime.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_is_prime.c */
 
 /* Start: bn_mp_prime_miller_rabin.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_MILLER_RABIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5751,14 +6125,14 @@ LBL_B:mp_clear (&b);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* Miller-Rabin test of "a" to the base of "b" as described in 
+/* Miller-Rabin test of "a" to the base of "b" as described in
  * HAC pp. 139 Algorithm 4.24
  *
  * Sets result to 0 if definitely composite or 1 if probably prime.
- * Randomly the chance of error is no more than 1/4 and often 
+ * Randomly the chance of error is no more than 1/4 and often
  * very much lower.
  */
 int mp_prime_miller_rabin (mp_int * a, mp_int * b, int *result)
@@ -5772,7 +6146,7 @@ int mp_prime_miller_rabin (mp_int * a, mp_int * b, int *result)
   /* ensure b > 1 */
   if (mp_cmp_d(b, 1) != MP_GT) {
      return MP_VAL;
-  }     
+  }
 
   /* get n1 = a - 1 */
   if ((err = mp_init_copy (&n1, a)) != MP_OKAY) {
@@ -5806,10 +6180,10 @@ int mp_prime_miller_rabin (mp_int * a, mp_int * b, int *result)
   }
 
   /* if y != 1 and y != n1 do */
-  if (mp_cmp_d (&y, 1) != MP_EQ && mp_cmp (&y, &n1) != MP_EQ) {
+  if ((mp_cmp_d (&y, 1) != MP_EQ) && (mp_cmp (&y, &n1) != MP_EQ)) {
     j = 1;
     /* while j <= s-1 and y != n1 */
-    while ((j <= (s - 1)) && mp_cmp (&y, &n1) != MP_EQ) {
+    while ((j <= (s - 1)) && (mp_cmp (&y, &n1) != MP_EQ)) {
       if ((err = mp_sqrmod (&y, a, &y)) != MP_OKAY) {
          goto LBL_Y;
       }
@@ -5837,14 +6211,14 @@ LBL_N1:mp_clear (&n1);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_miller_rabin.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_miller_rabin.c */
 
 /* Start: bn_mp_prime_next_prime.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_NEXT_PRIME_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -5858,7 +6232,7 @@ LBL_N1:mp_clear (&n1);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* finds the next prime after the number "a" using "t" trials
@@ -5868,12 +6242,12 @@ LBL_N1:mp_clear (&n1);
  */
 int mp_prime_next_prime(mp_int *a, int t, int bbs_style)
 {
-   int      err, res, x, y;
+   int      err, res = MP_NO, x, y;
    mp_digit res_tab[PRIME_SIZE], step, kstep;
    mp_int   b;
 
    /* ensure t is valid */
-   if (t <= 0 || t > PRIME_SIZE) {
+   if ((t <= 0) || (t > PRIME_SIZE)) {
       return MP_VAL;
    }
 
@@ -5930,7 +6304,7 @@ int mp_prime_next_prime(mp_int *a, int t, int bbs_style)
          if ((err = mp_sub_d(a, (a->dp[0] & 3) + 1, a)) != MP_OKAY) { return err; };
       }
    } else {
-      if (mp_iseven(a) == 1) {
+      if (mp_iseven(a) == MP_YES) {
          /* force odd */
          if ((err = mp_sub_d(a, 1, a)) != MP_OKAY) {
             return err;
@@ -5975,7 +6349,7 @@ int mp_prime_next_prime(mp_int *a, int t, int bbs_style)
                 y = 1;
              }
          }
-      } while (y == 1 && step < ((((mp_digit)1)<<DIGIT_BIT) - kstep));
+      } while ((y == 1) && (step < ((((mp_digit)1) << DIGIT_BIT) - kstep)));
 
       /* add the step */
       if ((err = mp_add_d(a, step, a)) != MP_OKAY) {
@@ -5983,13 +6357,13 @@ int mp_prime_next_prime(mp_int *a, int t, int bbs_style)
       }
 
       /* if didn't pass sieve and step == MAX then skip test */
-      if (y == 1 && step >= ((((mp_digit)1)<<DIGIT_BIT) - kstep)) {
+      if ((y == 1) && (step >= ((((mp_digit)1) << DIGIT_BIT) - kstep))) {
          continue;
       }
 
       /* is this prime? */
       for (x = 0; x < t; x++) {
-          mp_set(&b, ltm_prime_tab[t]);
+          mp_set(&b, ltm_prime_tab[x]);
           if ((err = mp_prime_miller_rabin(a, &b, &res)) != MP_OKAY) {
              goto LBL_ERR;
           }
@@ -6011,14 +6385,14 @@ LBL_ERR:
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_next_prime.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_next_prime.c */
 
 /* Start: bn_mp_prime_rabin_miller_trials.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_RABIN_MILLER_TRIALS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6032,7 +6406,7 @@ LBL_ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 
@@ -6067,14 +6441,14 @@ int mp_prime_rabin_miller_trials(int size)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_rabin_miller_trials.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_rabin_miller_trials.c */
 
 /* Start: bn_mp_prime_random_ex.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_PRIME_RANDOM_EX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6088,16 +6462,15 @@ int mp_prime_rabin_miller_trials(int size)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* makes a truly random prime of a given size (bits),
  *
  * Flags are as follows:
- * 
+ *
  *   LTM_PRIME_BBS      - make prime congruent to 3 mod 4
  *   LTM_PRIME_SAFE     - make sure (p-1)/2 is prime as well (implies LTM_PRIME_BBS)
- *   LTM_PRIME_2MSB_OFF - make the 2nd highest bit zero
  *   LTM_PRIME_2MSB_ON  - make the 2nd highest bit one
  *
  * You have to supply a callback which fills in a buffer with random bytes.  "dat" is a parameter you can
@@ -6113,12 +6486,12 @@ int mp_prime_random_ex(mp_int *a, int t, int size, int flags, ltm_prime_callback
    int res, err, bsize, maskOR_msb_offset;
 
    /* sanity check the input */
-   if (size <= 1 || t <= 0) {
+   if ((size <= 1) || (t <= 0)) {
       return MP_VAL;
    }
 
    /* LTM_PRIME_SAFE implies LTM_PRIME_BBS */
-   if (flags & LTM_PRIME_SAFE) {
+   if ((flags & LTM_PRIME_SAFE) != 0) {
       flags |= LTM_PRIME_BBS;
    }
 
@@ -6137,13 +6510,13 @@ int mp_prime_random_ex(mp_int *a, int t, int size, int flags, ltm_prime_callback
    /* calc the maskOR_msb */
    maskOR_msb        = 0;
    maskOR_msb_offset = ((size & 7) == 1) ? 1 : 0;
-   if (flags & LTM_PRIME_2MSB_ON) {
+   if ((flags & LTM_PRIME_2MSB_ON) != 0) {
       maskOR_msb       |= 0x80 >> ((9 - size) & 7);
-   }  
+   }
 
    /* get the maskOR_lsb */
    maskOR_lsb         = 1;
-   if (flags & LTM_PRIME_BBS) {
+   if ((flags & LTM_PRIME_BBS) != 0) {
       maskOR_lsb     |= 3;
    }
 
@@ -6153,7 +6526,7 @@ int mp_prime_random_ex(mp_int *a, int t, int size, int flags, ltm_prime_callback
          err = MP_VAL;
          goto error;
       }
- 
+
       /* work over the MSbyte */
       tmp[0]    &= maskAND;
       tmp[0]    |= 1 << ((size - 1) & 7);
@@ -6167,21 +6540,21 @@ int mp_prime_random_ex(mp_int *a, int t, int size, int flags, ltm_prime_callback
 
       /* is it prime? */
       if ((err = mp_prime_is_prime(a, t, &res)) != MP_OKAY)           { goto error; }
-      if (res == MP_NO) {  
+      if (res == MP_NO) {
          continue;
       }
 
-      if (flags & LTM_PRIME_SAFE) {
+      if ((flags & LTM_PRIME_SAFE) != 0) {
          /* see if (a-1)/2 is prime */
          if ((err = mp_sub_d(a, 1, a)) != MP_OKAY)                    { goto error; }
          if ((err = mp_div_2(a, a)) != MP_OKAY)                       { goto error; }
- 
+
          /* is it prime? */
          if ((err = mp_prime_is_prime(a, t, &res)) != MP_OKAY)        { goto error; }
       }
    } while (res == MP_NO);
 
-   if (flags & LTM_PRIME_SAFE) {
+   if ((flags & LTM_PRIME_SAFE) != 0) {
       /* restore a to the original value */
       if ((err = mp_mul_2(a, a)) != MP_OKAY)                          { goto error; }
       if ((err = mp_add_d(a, 1, a)) != MP_OKAY)                       { goto error; }
@@ -6196,14 +6569,14 @@ error:
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_prime_random_ex.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_prime_random_ex.c */
 
 /* Start: bn_mp_radix_size.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RADIX_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6217,7 +6590,7 @@ error:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* returns size of ASCII reprensentation */
@@ -6229,19 +6602,19 @@ int mp_radix_size (mp_int * a, int radix, int *size)
 
   *size = 0;
 
-  /* special case for binary */
-  if (radix == 2) {
-    *size = mp_count_bits (a) + (a->sign == MP_NEG ? 1 : 0) + 1;
-    return MP_OKAY;
-  }
-
   /* make sure the radix is in range */
-  if (radix < 2 || radix > 64) {
+  if ((radix < 2) || (radix > 64)) {
     return MP_VAL;
   }
 
   if (mp_iszero(a) == MP_YES) {
     *size = 2;
+    return MP_OKAY;
+  }
+
+  /* special case for binary */
+  if (radix == 2) {
+    *size = mp_count_bits (a) + ((a->sign == MP_NEG) ? 1 : 0) + 1;
     return MP_OKAY;
   }
 
@@ -6259,7 +6632,7 @@ int mp_radix_size (mp_int * a, int radix, int *size)
   }
 
   /* force temp to positive */
-  t.sign = MP_ZPOS; 
+  t.sign = MP_ZPOS;
 
   /* fetch out all of the digits */
   while (mp_iszero (&t) == MP_NO) {
@@ -6278,14 +6651,14 @@ int mp_radix_size (mp_int * a, int radix, int *size)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_radix_size.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_radix_size.c */
 
 /* Start: bn_mp_radix_smap.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RADIX_SMAP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6299,21 +6672,21 @@ int mp_radix_size (mp_int * a, int radix, int *size)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* chars used in radix conversions */
 const char *mp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/";
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_radix_smap.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_radix_smap.c */
 
 /* Start: bn_mp_rand.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RAND_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6327,7 +6700,7 @@ const char *mp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrs
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* makes a pseudo-random int of a given size */
@@ -6344,7 +6717,7 @@ mp_rand (mp_int * a, int digits)
 
   /* first place a random non-zero digit */
   do {
-    d = ((mp_digit) abs (rand ())) & MP_MASK;
+    d = ((mp_digit) abs (MP_GEN_RANDOM())) & MP_MASK;
   } while (d == 0);
 
   if ((res = mp_add_d (a, d, a)) != MP_OKAY) {
@@ -6356,7 +6729,7 @@ mp_rand (mp_int * a, int digits)
       return res;
     }
 
-    if ((res = mp_add_d (a, ((mp_digit) abs (rand ())), a)) != MP_OKAY) {
+    if ((res = mp_add_d (a, ((mp_digit) abs (MP_GEN_RANDOM())), a)) != MP_OKAY) {
       return res;
     }
   }
@@ -6365,14 +6738,14 @@ mp_rand (mp_int * a, int digits)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_rand.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_rand.c */
 
 /* Start: bn_mp_read_radix.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_RADIX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6386,7 +6759,7 @@ mp_rand (mp_int * a, int digits)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* read a string [ASCII] in a given radix */
@@ -6399,12 +6772,12 @@ int mp_read_radix (mp_int * a, const char *str, int radix)
   mp_zero(a);
 
   /* make sure the radix is ok */
-  if (radix < 2 || radix > 64) {
+  if ((radix < 2) || (radix > 64)) {
     return MP_VAL;
   }
 
-  /* if the leading digit is a 
-   * minus set the sign to negative. 
+  /* if the leading digit is a
+   * minus set the sign to negative.
    */
   if (*str == '-') {
     ++str;
@@ -6415,23 +6788,23 @@ int mp_read_radix (mp_int * a, const char *str, int radix)
 
   /* set the integer to the default of zero */
   mp_zero (a);
-  
+
   /* process each digit of the string */
-  while (*str) {
-    /* if the radix < 36 the conversion is case insensitive
+  while (*str != '\0') {
+    /* if the radix <= 36 the conversion is case insensitive
      * this allows numbers like 1AB and 1ab to represent the same  value
      * [e.g. in hex]
      */
-    ch = (char) ((radix < 36) ? toupper (*str) : *str);
+    ch = (radix <= 36) ? (char)toupper((int)*str) : *str;
     for (y = 0; y < 64; y++) {
       if (ch == mp_s_rmap[y]) {
          break;
       }
     }
 
-    /* if the char was found in the map 
+    /* if the char was found in the map
      * and is less than the given radix add it
-     * to the number, otherwise exit the loop. 
+     * to the number, otherwise exit the loop.
      */
     if (y < radix) {
       if ((res = mp_mul_d (a, (mp_digit) radix, a)) != MP_OKAY) {
@@ -6445,23 +6818,23 @@ int mp_read_radix (mp_int * a, const char *str, int radix)
     }
     ++str;
   }
-  
+
   /* set the sign only if a != 0 */
-  if (mp_iszero(a) != 1) {
+  if (mp_iszero(a) != MP_YES) {
      a->sign = neg;
   }
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_read_radix.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_read_radix.c */
 
 /* Start: bn_mp_read_signed_bin.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_SIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6475,7 +6848,7 @@ int mp_read_radix (mp_int * a, const char *str, int radix)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* read signed bin, big endian, first byte is 0==positive or 1==negative */
@@ -6499,14 +6872,14 @@ int mp_read_signed_bin (mp_int * a, const unsigned char *b, int c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_read_signed_bin.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_read_signed_bin.c */
 
 /* Start: bn_mp_read_unsigned_bin.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_READ_UNSIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6520,7 +6893,7 @@ int mp_read_signed_bin (mp_int * a, const unsigned char *b, int c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* reads a unsigned char array, assumes the msb is stored first [big endian] */
@@ -6545,12 +6918,12 @@ int mp_read_unsigned_bin (mp_int * a, const unsigned char *b, int c)
     }
 
 #ifndef MP_8BIT
-      a->dp[0] |= *b++;
-      a->used += 1;
+    a->dp[0] |= *b++;
+    a->used += 1;
 #else
-      a->dp[0] = (*b & MP_MASK);
-      a->dp[1] |= ((*b++ >> 7U) & 1);
-      a->used += 2;
+    a->dp[0] = (*b & MP_MASK);
+    a->dp[1] |= ((*b++ >> 7U) & 1);
+    a->used += 2;
 #endif
   }
   mp_clamp (a);
@@ -6558,14 +6931,14 @@ int mp_read_unsigned_bin (mp_int * a, const unsigned char *b, int c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_read_unsigned_bin.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_read_unsigned_bin.c */
 
 /* Start: bn_mp_reduce.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6579,10 +6952,10 @@ int mp_read_unsigned_bin (mp_int * a, const unsigned char *b, int c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* reduces x mod m, assumes 0 < x < m**2, mu is 
+/* reduces x mod m, assumes 0 < x < m**2, mu is
  * precomputed via mp_reduce_setup.
  * From HAC pp.604 Algorithm 14.42
  */
@@ -6597,10 +6970,10 @@ int mp_reduce (mp_int * x, mp_int * m, mp_int * mu)
   }
 
   /* q1 = x / b**(k-1)  */
-  mp_rshd (&q, um - 1);         
+  mp_rshd (&q, um - 1);
 
   /* according to HAC this optimization is ok */
-  if (((unsigned long) um) > (((mp_digit)1) << (DIGIT_BIT - 1))) {
+  if (((mp_digit) um) > (((mp_digit)1) << (DIGIT_BIT - 1))) {
     if ((res = mp_mul (&q, mu, &q)) != MP_OKAY) {
       goto CLEANUP;
     }
@@ -6613,8 +6986,8 @@ int mp_reduce (mp_int * x, mp_int * m, mp_int * mu)
     if ((res = fast_s_mp_mul_high_digs (&q, mu, &q, um)) != MP_OKAY) {
       goto CLEANUP;
     }
-#else 
-    { 
+#else
+    {
       res = MP_VAL;
       goto CLEANUP;
     }
@@ -6622,7 +6995,7 @@ int mp_reduce (mp_int * x, mp_int * m, mp_int * mu)
   }
 
   /* q3 = q2 / b**(k+1) */
-  mp_rshd (&q, um + 1);         
+  mp_rshd (&q, um + 1);
 
   /* x = x mod b**(k+1), quick (no division) */
   if ((res = mp_mod_2d (x, DIGIT_BIT * (um + 1), x)) != MP_OKAY) {
@@ -6654,7 +7027,7 @@ int mp_reduce (mp_int * x, mp_int * m, mp_int * mu)
       goto CLEANUP;
     }
   }
-  
+
 CLEANUP:
   mp_clear (&q);
 
@@ -6662,14 +7035,14 @@ CLEANUP:
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce.c */
 
 /* Start: bn_mp_reduce_2k.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6683,7 +7056,7 @@ CLEANUP:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* reduces a modulo n where n is of the form 2**p - d */
@@ -6691,35 +7064,37 @@ int mp_reduce_2k(mp_int *a, mp_int *n, mp_digit d)
 {
    mp_int q;
    int    p, res;
-   
+
    if ((res = mp_init(&q)) != MP_OKAY) {
       return res;
    }
-   
-   p = mp_count_bits(n);    
+
+   p = mp_count_bits(n);
 top:
    /* q = a/2**p, a = a mod 2**p */
    if ((res = mp_div_2d(a, p, &q, a)) != MP_OKAY) {
       goto ERR;
    }
-   
+
    if (d != 1) {
       /* q = q * d */
-      if ((res = mp_mul_d(&q, d, &q)) != MP_OKAY) { 
+      if ((res = mp_mul_d(&q, d, &q)) != MP_OKAY) {
          goto ERR;
       }
    }
-   
+
    /* a = a + q */
    if ((res = s_mp_add(a, &q, a)) != MP_OKAY) {
       goto ERR;
    }
-   
+
    if (mp_cmp_mag(a, n) != MP_LT) {
-      s_mp_sub(a, n, a);
+      if ((res = s_mp_sub(a, n, a)) != MP_OKAY) {
+         goto ERR;
+      }
       goto top;
    }
-   
+
 ERR:
    mp_clear(&q);
    return res;
@@ -6727,14 +7102,14 @@ ERR:
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_2k.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_2k.c */
 
 /* Start: bn_mp_reduce_2k_l.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6748,10 +7123,10 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* reduces a modulo n where n is of the form 2**p - d 
+/* reduces a modulo n where n is of the form 2**p - d
    This differs from reduce_2k since "d" can be larger
    than a single digit.
 */
@@ -6759,33 +7134,35 @@ int mp_reduce_2k_l(mp_int *a, mp_int *n, mp_int *d)
 {
    mp_int q;
    int    p, res;
-   
+
    if ((res = mp_init(&q)) != MP_OKAY) {
       return res;
    }
-   
-   p = mp_count_bits(n);    
+
+   p = mp_count_bits(n);
 top:
    /* q = a/2**p, a = a mod 2**p */
    if ((res = mp_div_2d(a, p, &q, a)) != MP_OKAY) {
       goto ERR;
    }
-   
+
    /* q = q * d */
-   if ((res = mp_mul(&q, d, &q)) != MP_OKAY) { 
+   if ((res = mp_mul(&q, d, &q)) != MP_OKAY) {
       goto ERR;
    }
-   
+
    /* a = a + q */
    if ((res = s_mp_add(a, &q, a)) != MP_OKAY) {
       goto ERR;
    }
-   
+
    if (mp_cmp_mag(a, n) != MP_LT) {
-      s_mp_sub(a, n, a);
+      if ((res = s_mp_sub(a, n, a)) != MP_OKAY) {
+         goto ERR;
+      }
       goto top;
    }
-   
+
 ERR:
    mp_clear(&q);
    return res;
@@ -6793,14 +7170,14 @@ ERR:
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_2k_l.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_2k_l.c */
 
 /* Start: bn_mp_reduce_2k_setup.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6814,7 +7191,7 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines the setup value */
@@ -6822,36 +7199,36 @@ int mp_reduce_2k_setup(mp_int *a, mp_digit *d)
 {
    int res, p;
    mp_int tmp;
-   
+
    if ((res = mp_init(&tmp)) != MP_OKAY) {
       return res;
    }
-   
+
    p = mp_count_bits(a);
    if ((res = mp_2expt(&tmp, p)) != MP_OKAY) {
       mp_clear(&tmp);
       return res;
    }
-   
+
    if ((res = s_mp_sub(&tmp, a, &tmp)) != MP_OKAY) {
       mp_clear(&tmp);
       return res;
    }
-   
+
    *d = tmp.dp[0];
    mp_clear(&tmp);
    return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_2k_setup.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_2k_setup.c */
 
 /* Start: bn_mp_reduce_2k_setup_l.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_2K_SETUP_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6865,7 +7242,7 @@ int mp_reduce_2k_setup(mp_int *a, mp_digit *d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines the setup value */
@@ -6873,33 +7250,33 @@ int mp_reduce_2k_setup_l(mp_int *a, mp_int *d)
 {
    int    res;
    mp_int tmp;
-   
+
    if ((res = mp_init(&tmp)) != MP_OKAY) {
       return res;
    }
-   
+
    if ((res = mp_2expt(&tmp, mp_count_bits(a))) != MP_OKAY) {
       goto ERR;
    }
-   
+
    if ((res = s_mp_sub(&tmp, a, d)) != MP_OKAY) {
       goto ERR;
    }
-   
+
 ERR:
    mp_clear(&tmp);
    return res;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_2k_setup_l.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_2k_setup_l.c */
 
 /* Start: bn_mp_reduce_is_2k.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_IS_2K_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6913,7 +7290,7 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines if mp_reduce_2k can be used */
@@ -6921,7 +7298,7 @@ int mp_reduce_is_2k(mp_int *a)
 {
    int ix, iy, iw;
    mp_digit iz;
-   
+
    if (a->used == 0) {
       return MP_NO;
    } else if (a->used == 1) {
@@ -6930,7 +7307,7 @@ int mp_reduce_is_2k(mp_int *a)
       iy = mp_count_bits(a);
       iz = 1;
       iw = 1;
-    
+
       /* Test every bit from the second digit up, must be 1 */
       for (ix = DIGIT_BIT; ix < iy; ix++) {
           if ((a->dp[iw] & iz) == 0) {
@@ -6948,14 +7325,14 @@ int mp_reduce_is_2k(mp_int *a)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_is_2k.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_is_2k.c */
 
 /* Start: bn_mp_reduce_is_2k_l.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_IS_2K_L_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -6969,14 +7346,14 @@ int mp_reduce_is_2k(mp_int *a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* determines if reduce_2k_l can be used */
 int mp_reduce_is_2k_l(mp_int *a)
 {
    int ix, iy;
-   
+
    if (a->used == 0) {
       return MP_NO;
    } else if (a->used == 1) {
@@ -6989,21 +7366,21 @@ int mp_reduce_is_2k_l(mp_int *a)
           }
       }
       return (iy >= (a->used/2)) ? MP_YES : MP_NO;
-      
+
    }
    return MP_NO;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_is_2k_l.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_is_2k_l.c */
 
 /* Start: bn_mp_reduce_setup.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_REDUCE_SETUP_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7017,7 +7394,7 @@ int mp_reduce_is_2k_l(mp_int *a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* pre-calculate the value required for Barrett reduction
@@ -7026,7 +7403,7 @@ int mp_reduce_is_2k_l(mp_int *a)
 int mp_reduce_setup (mp_int * a, mp_int * b)
 {
   int     res;
-  
+
   if ((res = mp_2expt (a, b->used * 2 * DIGIT_BIT)) != MP_OKAY) {
     return res;
   }
@@ -7034,14 +7411,14 @@ int mp_reduce_setup (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_reduce_setup.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_reduce_setup.c */
 
 /* Start: bn_mp_rshd.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_RSHD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7055,7 +7432,7 @@ int mp_reduce_setup (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* shift right a certain amount of digits */
@@ -7075,7 +7452,7 @@ void mp_rshd (mp_int * a, int b)
   }
 
   {
-    register mp_digit *bottom, *top;
+    mp_digit *bottom, *top;
 
     /* shift the digits down */
 
@@ -7085,8 +7462,8 @@ void mp_rshd (mp_int * a, int b)
     /* top [offset into digits] */
     top = a->dp + b;
 
-    /* this is implemented as a sliding window where 
-     * the window is b-digits long and digits from 
+    /* this is implemented as a sliding window where
+     * the window is b-digits long and digits from
      * the top of the window are copied to the bottom
      *
      * e.g.
@@ -7104,20 +7481,20 @@ void mp_rshd (mp_int * a, int b)
       *bottom++ = 0;
     }
   }
-  
+
   /* remove excess digits */
   a->used -= b;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_rshd.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_rshd.c */
 
 /* Start: bn_mp_set.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7131,7 +7508,7 @@ void mp_rshd (mp_int * a, int b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* set to a digit */
@@ -7143,14 +7520,14 @@ void mp_set (mp_int * a, mp_digit b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_set.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_set.c */
 
 /* Start: bn_mp_set_int.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SET_INT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7164,7 +7541,7 @@ void mp_set (mp_int * a, mp_digit b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* set a 32-bit const */
@@ -7173,7 +7550,7 @@ int mp_set_int (mp_int * a, unsigned long b)
   int     x, res;
 
   mp_zero (a);
-  
+
   /* set four bits at a time */
   for (x = 0; x < 8; x++) {
     /* shift the number up four bits */
@@ -7195,14 +7572,70 @@ int mp_set_int (mp_int * a, unsigned long b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_set_int.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_set_int.c */
 
+/* Start: bn_mp_set_long.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_SET_LONG_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* set a platform dependent unsigned long int */
+MP_SET_XLONG(mp_set_long, unsigned long)
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_set_long.c */
+
+/* Start: bn_mp_set_long_long.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_SET_LONG_LONG_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library was designed directly after the MPI library by
+ * Michael Fromberger but has been written from scratch with
+ * additional optimizations in place.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ *
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
+ */
+
+/* set a platform dependent unsigned long long int */
+MP_SET_XLONG(mp_set_long_long, unsigned long long)
+#endif
+
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
+
+/* End: bn_mp_set_long_long.c */
+
 /* Start: bn_mp_shrink.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SHRINK_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7216,32 +7649,38 @@ int mp_set_int (mp_int * a, unsigned long b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* shrink a bignum */
 int mp_shrink (mp_int * a)
 {
   mp_digit *tmp;
-  if (a->alloc != a->used && a->used > 0) {
-    if ((tmp = OPT_CAST(mp_digit) XREALLOC (a->dp, sizeof (mp_digit) * a->used)) == NULL) {
+  int used = 1;
+
+  if(a->used > 0) {
+    used = a->used;
+  }
+
+  if (a->alloc != used) {
+    if ((tmp = OPT_CAST(mp_digit) XREALLOC (a->dp, sizeof (mp_digit) * used)) == NULL) {
       return MP_MEM;
     }
     a->dp    = tmp;
-    a->alloc = a->used;
+    a->alloc = used;
   }
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_shrink.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_shrink.c */
 
 /* Start: bn_mp_signed_bin_size.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SIGNED_BIN_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7255,7 +7694,7 @@ int mp_shrink (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* get the size for an signed equivalent */
@@ -7265,14 +7704,14 @@ int mp_signed_bin_size (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_signed_bin_size.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_signed_bin_size.c */
 
 /* Start: bn_mp_sqr.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7286,7 +7725,7 @@ int mp_signed_bin_size (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* computes b = a*a */
@@ -7300,41 +7739,43 @@ mp_sqr (mp_int * a, mp_int * b)
   if (a->used >= TOOM_SQR_CUTOFF) {
     res = mp_toom_sqr(a, b);
   /* Karatsuba? */
-  } else 
+  } else
 #endif
 #ifdef BN_MP_KARATSUBA_SQR_C
-if (a->used >= KARATSUBA_SQR_CUTOFF) {
+  if (a->used >= KARATSUBA_SQR_CUTOFF) {
     res = mp_karatsuba_sqr (a, b);
-  } else 
+  } else
 #endif
   {
 #ifdef BN_FAST_S_MP_SQR_C
     /* can we use the fast comba multiplier? */
-    if ((a->used * 2 + 1) < MP_WARRAY && 
-         a->used < 
-         (1 << (sizeof(mp_word) * CHAR_BIT - 2*DIGIT_BIT - 1))) {
+    if ((((a->used * 2) + 1) < MP_WARRAY) &&
+         (a->used <
+         (1 << (((sizeof(mp_word) * CHAR_BIT) - (2 * DIGIT_BIT)) - 1)))) {
       res = fast_s_mp_sqr (a, b);
     } else
 #endif
+    {
 #ifdef BN_S_MP_SQR_C
       res = s_mp_sqr (a, b);
 #else
       res = MP_VAL;
 #endif
+    }
   }
   b->sign = MP_ZPOS;
   return res;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_sqr.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_sqr.c */
 
 /* Start: bn_mp_sqrmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQRMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7348,7 +7789,7 @@ if (a->used >= KARATSUBA_SQR_CUTOFF) {
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* c = a * a (mod b) */
@@ -7372,14 +7813,14 @@ mp_sqrmod (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_sqrmod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_sqrmod.c */
 
 /* Start: bn_mp_sqrt.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SQRT_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7393,11 +7834,11 @@ mp_sqrmod (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* this function is less generic than mp_n_root, simpler and faster */
-int mp_sqrt(mp_int *arg, mp_int *ret) 
+int mp_sqrt(mp_int *arg, mp_int *ret)
 {
   int res;
   mp_int t1,t2;
@@ -7424,7 +7865,7 @@ int mp_sqrt(mp_int *arg, mp_int *ret)
   /* First approx. (not very bad for large arg) */
   mp_rshd (&t1,t1.used/2);
 
-  /* t1 > 0  */ 
+  /* t1 > 0  */
   if ((res = mp_div(arg,&t1,&t2,NULL)) != MP_OKAY) {
     goto E1;
   }
@@ -7435,7 +7876,7 @@ int mp_sqrt(mp_int *arg, mp_int *ret)
     goto E1;
   }
   /* And now t1 > sqrt(arg) */
-  do { 
+  do {
     if ((res = mp_div(arg,&t1,&t2,NULL)) != MP_OKAY) {
       goto E1;
     }
@@ -7457,14 +7898,142 @@ E2: mp_clear(&t1);
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_sqrt.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_sqrt.c */
 
+/* Start: bn_mp_sqrtmod_prime.c */
+#include "libtorrent/tommath_private.h"
+#ifdef BN_MP_SQRTMOD_PRIME_C
+/* LibTomMath, multiple-precision integer library -- Tom St Denis
+ *
+ * LibTomMath is a library that provides multiple-precision
+ * integer arithmetic as well as number theoretic functionality.
+ *
+ * The library is free for all purposes without any express
+ * guarantee it works.
+ */
+
+/* Tonelli-Shanks algorithm
+ * https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm
+ * https://gmplib.org/list-archives/gmp-discuss/2013-April/005300.html
+ *
+ */
+
+int mp_sqrtmod_prime(mp_int *n, mp_int *prime, mp_int *ret)
+{
+  int res, legendre;
+  mp_int t1, C, Q, S, Z, M, T, R, two;
+  mp_digit i;
+
+  /* first handle the simple cases */
+  if (mp_cmp_d(n, 0) == MP_EQ) {
+    mp_zero(ret);
+    return MP_OKAY;
+  }
+  if (mp_cmp_d(prime, 2) == MP_EQ)                              return MP_VAL; /* prime must be odd */
+  if ((res = mp_jacobi(n, prime, &legendre)) != MP_OKAY)        return res;
+  if (legendre == -1)                                           return MP_VAL; /* quadratic non-residue mod prime */
+
+  if ((res = mp_init_multi(&t1, &C, &Q, &S, &Z, &M, &T, &R, &two, NULL)) != MP_OKAY) {
+	return res;
+  }
+
+  /* SPECIAL CASE: if prime mod 4 == 3
+   * compute directly: res = n^(prime+1)/4 mod prime
+   * Handbook of Applied Cryptography algorithm 3.36
+   */
+  if ((res = mp_mod_d(prime, 4, &i)) != MP_OKAY)                goto cleanup;
+  if (i == 3) {
+    if ((res = mp_add_d(prime, 1, &t1)) != MP_OKAY)             goto cleanup;
+    if ((res = mp_div_2(&t1, &t1)) != MP_OKAY)                  goto cleanup;
+    if ((res = mp_div_2(&t1, &t1)) != MP_OKAY)                  goto cleanup;
+    if ((res = mp_exptmod(n, &t1, prime, ret)) != MP_OKAY)      goto cleanup;
+    res = MP_OKAY;
+    goto cleanup;
+  }
+
+  /* NOW: Tonelli-Shanks algorithm */
+
+  /* factor out powers of 2 from prime-1, defining Q and S as: prime-1 = Q*2^S */
+  if ((res = mp_copy(prime, &Q)) != MP_OKAY)                    goto cleanup;
+  if ((res = mp_sub_d(&Q, 1, &Q)) != MP_OKAY)                   goto cleanup;
+  /* Q = prime - 1 */
+  mp_zero(&S);
+  /* S = 0 */
+  while (mp_iseven(&Q) != MP_NO) {
+    if ((res = mp_div_2(&Q, &Q)) != MP_OKAY)                    goto cleanup;
+    /* Q = Q / 2 */
+    if ((res = mp_add_d(&S, 1, &S)) != MP_OKAY)                 goto cleanup;
+    /* S = S + 1 */
+  }
+
+  /* find a Z such that the Legendre symbol (Z|prime) == -1 */
+  if ((res = mp_set_int(&Z, 2)) != MP_OKAY)                     goto cleanup;
+  /* Z = 2 */
+  while(1) {
+    if ((res = mp_jacobi(&Z, prime, &legendre)) != MP_OKAY)     goto cleanup;
+    if (legendre == -1) break;
+    if ((res = mp_add_d(&Z, 1, &Z)) != MP_OKAY)                 goto cleanup;
+    /* Z = Z + 1 */
+  }
+
+  if ((res = mp_exptmod(&Z, &Q, prime, &C)) != MP_OKAY)         goto cleanup;
+  /* C = Z ^ Q mod prime */
+  if ((res = mp_add_d(&Q, 1, &t1)) != MP_OKAY)                  goto cleanup;
+  if ((res = mp_div_2(&t1, &t1)) != MP_OKAY)                    goto cleanup;
+  /* t1 = (Q + 1) / 2 */
+  if ((res = mp_exptmod(n, &t1, prime, &R)) != MP_OKAY)         goto cleanup;
+  /* R = n ^ ((Q + 1) / 2) mod prime */
+  if ((res = mp_exptmod(n, &Q, prime, &T)) != MP_OKAY)          goto cleanup;
+  /* T = n ^ Q mod prime */
+  if ((res = mp_copy(&S, &M)) != MP_OKAY)                       goto cleanup;
+  /* M = S */
+  if ((res = mp_set_int(&two, 2)) != MP_OKAY)                   goto cleanup;
+
+  res = MP_VAL;
+  while (1) {
+    if ((res = mp_copy(&T, &t1)) != MP_OKAY)                    goto cleanup;
+    i = 0;
+    while (1) {
+      if (mp_cmp_d(&t1, 1) == MP_EQ) break;
+      if ((res = mp_exptmod(&t1, &two, prime, &t1)) != MP_OKAY) goto cleanup;
+      i++;
+    }
+    if (i == 0) {
+      if ((res = mp_copy(&R, ret)) != MP_OKAY)                  goto cleanup;
+      res = MP_OKAY;
+      goto cleanup;
+    }
+    if ((res = mp_sub_d(&M, i, &t1)) != MP_OKAY)                goto cleanup;
+    if ((res = mp_sub_d(&t1, 1, &t1)) != MP_OKAY)               goto cleanup;
+    if ((res = mp_exptmod(&two, &t1, prime, &t1)) != MP_OKAY)   goto cleanup;
+    /* t1 = 2 ^ (M - i - 1) */
+    if ((res = mp_exptmod(&C, &t1, prime, &t1)) != MP_OKAY)     goto cleanup;
+    /* t1 = C ^ (2 ^ (M - i - 1)) mod prime */
+    if ((res = mp_sqrmod(&t1, prime, &C)) != MP_OKAY)           goto cleanup;
+    /* C = (t1 * t1) mod prime */
+    if ((res = mp_mulmod(&R, &t1, prime, &R)) != MP_OKAY)       goto cleanup;
+    /* R = (R * t1) mod prime */
+    if ((res = mp_mulmod(&T, &C, prime, &T)) != MP_OKAY)        goto cleanup;
+    /* T = (T * C) mod prime */
+    mp_set(&M, i);
+    /* M = i */
+  }
+
+cleanup:
+  mp_clear_multi(&t1, &C, &Q, &S, &Z, &M, &T, &R, &two, NULL);
+  return res;
+}
+
+#endif
+
+/* End: bn_mp_sqrtmod_prime.c */
+
 /* Start: bn_mp_sub.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7478,7 +8047,7 @@ E2: mp_clear(&t1);
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* high level subtraction (handles signs) */
@@ -7520,14 +8089,14 @@ mp_sub (mp_int * a, mp_int * b, mp_int * c)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_sub.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_sub.c */
 
 /* Start: bn_mp_sub_d.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUB_D_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7541,7 +8110,7 @@ mp_sub (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* single digit subtraction */
@@ -7552,7 +8121,7 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
   int       res, ix, oldused;
 
   /* grow c as required */
-  if (c->alloc < a->used + 1) {
+  if (c->alloc < (a->used + 1)) {
      if ((res = mp_grow(c, a->used + 1)) != MP_OKAY) {
         return res;
      }
@@ -7578,7 +8147,7 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
   tmpc    = c->dp;
 
   /* if a <= b simply fix the single digit */
-  if ((a->used == 1 && a->dp[0] <= b) || a->used == 0) {
+  if (((a->used == 1) && (a->dp[0] <= b)) || (a->used == 0)) {
      if (a->used == 1) {
         *tmpc++ = b - *tmpa;
      } else {
@@ -7596,13 +8165,13 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
 
      /* subtract first digit */
      *tmpc    = *tmpa++ - b;
-     mu       = *tmpc >> (sizeof(mp_digit) * CHAR_BIT - 1);
+     mu       = *tmpc >> ((sizeof(mp_digit) * CHAR_BIT) - 1);
      *tmpc++ &= MP_MASK;
 
      /* handle rest of the digits */
      for (ix = 1; ix < a->used; ix++) {
         *tmpc    = *tmpa++ - mu;
-        mu       = *tmpc >> (sizeof(mp_digit) * CHAR_BIT - 1);
+        mu       = *tmpc >> ((sizeof(mp_digit) * CHAR_BIT) - 1);
         *tmpc++ &= MP_MASK;
      }
   }
@@ -7617,14 +8186,14 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_sub_d.c,v $ */
-/* $Revision: 1.5 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_sub_d.c */
 
 /* Start: bn_mp_submod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_SUBMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7638,7 +8207,7 @@ mp_sub_d (mp_int * a, mp_digit b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* d = a - b (mod c) */
@@ -7663,14 +8232,14 @@ mp_submod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_submod.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_submod.c */
 
 /* Start: bn_mp_to_signed_bin.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_SIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7684,7 +8253,7 @@ mp_submod (mp_int * a, mp_int * b, mp_int * c, mp_int * d)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* store in signed [big endian] format */
@@ -7695,19 +8264,19 @@ int mp_to_signed_bin (mp_int * a, unsigned char *b)
   if ((res = mp_to_unsigned_bin (a, b + 1)) != MP_OKAY) {
     return res;
   }
-  b[0] = (unsigned char) ((a->sign == MP_ZPOS) ? 0 : 1);
+  b[0] = (a->sign == MP_ZPOS) ? (unsigned char)0 : (unsigned char)1;
   return MP_OKAY;
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_to_signed_bin.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_to_signed_bin.c */
 
 /* Start: bn_mp_to_signed_bin_n.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_SIGNED_BIN_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7721,7 +8290,7 @@ int mp_to_signed_bin (mp_int * a, unsigned char *b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* store in signed [big endian] format */
@@ -7735,14 +8304,14 @@ int mp_to_signed_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_to_signed_bin_n.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_to_signed_bin_n.c */
 
 /* Start: bn_mp_to_unsigned_bin.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_UNSIGNED_BIN_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7756,7 +8325,7 @@ int mp_to_signed_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* store in unsigned [big endian] format */
@@ -7770,7 +8339,7 @@ int mp_to_unsigned_bin (mp_int * a, unsigned char *b)
   }
 
   x = 0;
-  while (mp_iszero (&t) == 0) {
+  while (mp_iszero (&t) == MP_NO) {
 #ifndef MP_8BIT
       b[x++] = (unsigned char) (t.dp[0] & 255);
 #else
@@ -7787,14 +8356,14 @@ int mp_to_unsigned_bin (mp_int * a, unsigned char *b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_to_unsigned_bin.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_to_unsigned_bin.c */
 
 /* Start: bn_mp_to_unsigned_bin_n.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TO_UNSIGNED_BIN_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7808,7 +8377,7 @@ int mp_to_unsigned_bin (mp_int * a, unsigned char *b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* store in unsigned [big endian] format */
@@ -7822,14 +8391,14 @@ int mp_to_unsigned_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_to_unsigned_bin_n.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_to_unsigned_bin_n.c */
 
 /* Start: bn_mp_toom_mul.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TOOM_MUL_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -7843,31 +8412,31 @@ int mp_to_unsigned_bin_n (mp_int * a, unsigned char *b, unsigned long *outlen)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* multiplication using the Toom-Cook 3-way algorithm 
+/* multiplication using the Toom-Cook 3-way algorithm
  *
- * Much more complicated than Karatsuba but has a lower 
- * asymptotic running time of O(N**1.464).  This algorithm is 
- * only particularly useful on VERY large inputs 
+ * Much more complicated than Karatsuba but has a lower
+ * asymptotic running time of O(N**1.464).  This algorithm is
+ * only particularly useful on VERY large inputs
  * (we're talking 1000s of digits here...).
 */
 int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
 {
     mp_int w0, w1, w2, w3, w4, tmp1, tmp2, a0, a1, a2, b0, b1, b2;
     int res, B;
-        
+
     /* init temps */
-    if ((res = mp_init_multi(&w0, &w1, &w2, &w3, &w4, 
-                             &a0, &a1, &a2, &b0, &b1, 
+    if ((res = mp_init_multi(&w0, &w1, &w2, &w3, &w4,
+                             &a0, &a1, &a2, &b0, &b1,
                              &b2, &tmp1, &tmp2, NULL)) != MP_OKAY) {
        return res;
     }
-    
+
     /* B */
     B = MIN(a->used, b->used) / 3;
-    
+
     /* a = a2 * B**2 + a1 * B + a0 */
     if ((res = mp_mod_2d(a, DIGIT_BIT * B, &a0)) != MP_OKAY) {
        goto ERR;
@@ -7877,13 +8446,15 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
        goto ERR;
     }
     mp_rshd(&a1, B);
-    mp_mod_2d(&a1, DIGIT_BIT * B, &a1);
+    if ((res = mp_mod_2d(&a1, DIGIT_BIT * B, &a1)) != MP_OKAY) {
+       goto ERR;
+    }
 
     if ((res = mp_copy(a, &a2)) != MP_OKAY) {
        goto ERR;
     }
     mp_rshd(&a2, B*2);
-    
+
     /* b = b2 * B**2 + b1 * B + b0 */
     if ((res = mp_mod_2d(b, DIGIT_BIT * B, &b0)) != MP_OKAY) {
        goto ERR;
@@ -7893,23 +8464,23 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
        goto ERR;
     }
     mp_rshd(&b1, B);
-    mp_mod_2d(&b1, DIGIT_BIT * B, &b1);
+    (void)mp_mod_2d(&b1, DIGIT_BIT * B, &b1);
 
     if ((res = mp_copy(b, &b2)) != MP_OKAY) {
        goto ERR;
     }
     mp_rshd(&b2, B*2);
-    
+
     /* w0 = a0*b0 */
     if ((res = mp_mul(&a0, &b0, &w0)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     /* w4 = a2 * b2 */
     if ((res = mp_mul(&a2, &b2, &w4)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     /* w1 = (a2 + 2(a1 + 2a0))(b2 + 2(b1 + 2b0)) */
     if ((res = mp_mul_2(&a0, &tmp1)) != MP_OKAY) {
        goto ERR;
@@ -7923,7 +8494,7 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
     if ((res = mp_add(&tmp1, &a2, &tmp1)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     if ((res = mp_mul_2(&b0, &tmp2)) != MP_OKAY) {
        goto ERR;
     }
@@ -7936,11 +8507,11 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
     if ((res = mp_add(&tmp2, &b2, &tmp2)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     if ((res = mp_mul(&tmp1, &tmp2, &w1)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     /* w3 = (a0 + 2(a1 + 2a2))(b0 + 2(b1 + 2b2)) */
     if ((res = mp_mul_2(&a2, &tmp1)) != MP_OKAY) {
        goto ERR;
@@ -7954,7 +8525,7 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
     if ((res = mp_add(&tmp1, &a0, &tmp1)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     if ((res = mp_mul_2(&b2, &tmp2)) != MP_OKAY) {
        goto ERR;
     }
@@ -7967,11 +8538,11 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
     if ((res = mp_add(&tmp2, &b0, &tmp2)) != MP_OKAY) {
        goto ERR;
     }
-    
+
     if ((res = mp_mul(&tmp1, &tmp2, &w3)) != MP_OKAY) {
        goto ERR;
     }
-    
+
 
     /* w2 = (a2 + a1 + a0)(b2 + b1 + b0) */
     if ((res = mp_add(&a2, &a1, &tmp1)) != MP_OKAY) {
@@ -7989,135 +8560,135 @@ int mp_toom_mul(mp_int *a, mp_int *b, mp_int *c)
     if ((res = mp_mul(&tmp1, &tmp2, &w2)) != MP_OKAY) {
        goto ERR;
     }
-    
-    /* now solve the matrix 
-    
+
+    /* now solve the matrix
+
        0  0  0  0  1
        1  2  4  8  16
        1  1  1  1  1
        16 8  4  2  1
        1  0  0  0  0
-       
-       using 12 subtractions, 4 shifts, 
-              2 small divisions and 1 small multiplication 
+
+       using 12 subtractions, 4 shifts,
+              2 small divisions and 1 small multiplication
      */
-     
-     /* r1 - r4 */
-     if ((res = mp_sub(&w1, &w4, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r0 */
-     if ((res = mp_sub(&w3, &w0, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1/2 */
-     if ((res = mp_div_2(&w1, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3/2 */
-     if ((res = mp_div_2(&w3, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r2 - r0 - r4 */
-     if ((res = mp_sub(&w2, &w0, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w4, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - r2 */
-     if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r2 */
-     if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - 8r0 */
-     if ((res = mp_mul_2d(&w0, 3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w1, &tmp1, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - 8r4 */
-     if ((res = mp_mul_2d(&w4, 3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w3, &tmp1, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* 3r2 - r1 - r3 */
-     if ((res = mp_mul_d(&w2, 3, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w1, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w3, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - r2 */
-     if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r2 */
-     if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1/3 */
-     if ((res = mp_div_3(&w1, &w1, NULL)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3/3 */
-     if ((res = mp_div_3(&w3, &w3, NULL)) != MP_OKAY) {
-        goto ERR;
-     }
-     
-     /* at this point shift W[n] by B*n */
-     if ((res = mp_lshd(&w1, 1*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w2, 2*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w3, 3*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w4, 4*B)) != MP_OKAY) {
-        goto ERR;
-     }     
-     
-     if ((res = mp_add(&w0, &w1, c)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&w2, &w3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&w4, &tmp1, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&tmp1, c, c)) != MP_OKAY) {
-        goto ERR;
-     }     
-     
+
+    /* r1 - r4 */
+    if ((res = mp_sub(&w1, &w4, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r0 */
+    if ((res = mp_sub(&w3, &w0, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1/2 */
+    if ((res = mp_div_2(&w1, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3/2 */
+    if ((res = mp_div_2(&w3, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r2 - r0 - r4 */
+    if ((res = mp_sub(&w2, &w0, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w4, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - r2 */
+    if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r2 */
+    if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - 8r0 */
+    if ((res = mp_mul_2d(&w0, 3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w1, &tmp1, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - 8r4 */
+    if ((res = mp_mul_2d(&w4, 3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w3, &tmp1, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* 3r2 - r1 - r3 */
+    if ((res = mp_mul_d(&w2, 3, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w1, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w3, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - r2 */
+    if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r2 */
+    if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1/3 */
+    if ((res = mp_div_3(&w1, &w1, NULL)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3/3 */
+    if ((res = mp_div_3(&w3, &w3, NULL)) != MP_OKAY) {
+       goto ERR;
+    }
+
+    /* at this point shift W[n] by B*n */
+    if ((res = mp_lshd(&w1, 1*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w2, 2*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w3, 3*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w4, 4*B)) != MP_OKAY) {
+       goto ERR;
+    }
+
+    if ((res = mp_add(&w0, &w1, c)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&w2, &w3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&w4, &tmp1, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&tmp1, c, c)) != MP_OKAY) {
+       goto ERR;
+    }
+
 ERR:
-     mp_clear_multi(&w0, &w1, &w2, &w3, &w4, 
-                    &a0, &a1, &a2, &b0, &b1, 
-                    &b2, &tmp1, &tmp2, NULL);
-     return res;
-}     
-     
+    mp_clear_multi(&w0, &w1, &w2, &w3, &w4,
+                   &a0, &a1, &a2, &b0, &b1,
+                   &b2, &tmp1, &tmp2, NULL);
+    return res;
+}
+
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_toom_mul.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_toom_mul.c */
 
 /* Start: bn_mp_toom_sqr.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TOOM_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8131,7 +8702,7 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* squaring using Toom-Cook 3-way algorithm */
@@ -8158,7 +8729,9 @@ mp_toom_sqr(mp_int *a, mp_int *b)
        goto ERR;
     }
     mp_rshd(&a1, B);
-    mp_mod_2d(&a1, DIGIT_BIT * B, &a1);
+    if ((res = mp_mod_2d(&a1, DIGIT_BIT * B, &a1)) != MP_OKAY) {
+       goto ERR;
+    }
 
     if ((res = mp_copy(a, &a2)) != MP_OKAY) {
        goto ERR;
@@ -8234,120 +8807,120 @@ mp_toom_sqr(mp_int *a, mp_int *b)
        using 12 subtractions, 4 shifts, 2 small divisions and 1 small multiplication.
      */
 
-     /* r1 - r4 */
-     if ((res = mp_sub(&w1, &w4, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r0 */
-     if ((res = mp_sub(&w3, &w0, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1/2 */
-     if ((res = mp_div_2(&w1, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3/2 */
-     if ((res = mp_div_2(&w3, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r2 - r0 - r4 */
-     if ((res = mp_sub(&w2, &w0, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w4, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - r2 */
-     if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r2 */
-     if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - 8r0 */
-     if ((res = mp_mul_2d(&w0, 3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w1, &tmp1, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - 8r4 */
-     if ((res = mp_mul_2d(&w4, 3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w3, &tmp1, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* 3r2 - r1 - r3 */
-     if ((res = mp_mul_d(&w2, 3, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w1, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_sub(&w2, &w3, &w2)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1 - r2 */
-     if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3 - r2 */
-     if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r1/3 */
-     if ((res = mp_div_3(&w1, &w1, NULL)) != MP_OKAY) {
-        goto ERR;
-     }
-     /* r3/3 */
-     if ((res = mp_div_3(&w3, &w3, NULL)) != MP_OKAY) {
-        goto ERR;
-     }
+    /* r1 - r4 */
+    if ((res = mp_sub(&w1, &w4, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r0 */
+    if ((res = mp_sub(&w3, &w0, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1/2 */
+    if ((res = mp_div_2(&w1, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3/2 */
+    if ((res = mp_div_2(&w3, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r2 - r0 - r4 */
+    if ((res = mp_sub(&w2, &w0, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w4, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - r2 */
+    if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r2 */
+    if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - 8r0 */
+    if ((res = mp_mul_2d(&w0, 3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w1, &tmp1, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - 8r4 */
+    if ((res = mp_mul_2d(&w4, 3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w3, &tmp1, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* 3r2 - r1 - r3 */
+    if ((res = mp_mul_d(&w2, 3, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w1, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_sub(&w2, &w3, &w2)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1 - r2 */
+    if ((res = mp_sub(&w1, &w2, &w1)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3 - r2 */
+    if ((res = mp_sub(&w3, &w2, &w3)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r1/3 */
+    if ((res = mp_div_3(&w1, &w1, NULL)) != MP_OKAY) {
+       goto ERR;
+    }
+    /* r3/3 */
+    if ((res = mp_div_3(&w3, &w3, NULL)) != MP_OKAY) {
+       goto ERR;
+    }
 
-     /* at this point shift W[n] by B*n */
-     if ((res = mp_lshd(&w1, 1*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w2, 2*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w3, 3*B)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_lshd(&w4, 4*B)) != MP_OKAY) {
-        goto ERR;
-     }
+    /* at this point shift W[n] by B*n */
+    if ((res = mp_lshd(&w1, 1*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w2, 2*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w3, 3*B)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_lshd(&w4, 4*B)) != MP_OKAY) {
+       goto ERR;
+    }
 
-     if ((res = mp_add(&w0, &w1, b)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&w2, &w3, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&w4, &tmp1, &tmp1)) != MP_OKAY) {
-        goto ERR;
-     }
-     if ((res = mp_add(&tmp1, b, b)) != MP_OKAY) {
-        goto ERR;
-     }
+    if ((res = mp_add(&w0, &w1, b)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&w2, &w3, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&w4, &tmp1, &tmp1)) != MP_OKAY) {
+       goto ERR;
+    }
+    if ((res = mp_add(&tmp1, b, b)) != MP_OKAY) {
+       goto ERR;
+    }
 
 ERR:
-     mp_clear_multi(&w0, &w1, &w2, &w3, &w4, &a0, &a1, &a2, &tmp1, NULL);
-     return res;
+    mp_clear_multi(&w0, &w1, &w2, &w3, &w4, &a0, &a1, &a2, &tmp1, NULL);
+    return res;
 }
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_toom_sqr.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_toom_sqr.c */
 
 /* Start: bn_mp_toradix.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TORADIX_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8361,7 +8934,7 @@ ERR:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* stores a bignum as a ASCII string in a given radix (2..64) */
@@ -8373,12 +8946,12 @@ int mp_toradix (mp_int * a, char *str, int radix)
   char   *_s = str;
 
   /* check range of the radix */
-  if (radix < 2 || radix > 64) {
+  if ((radix < 2) || (radix > 64)) {
     return MP_VAL;
   }
 
   /* quick out if its zero */
-  if (mp_iszero(a) == 1) {
+  if (mp_iszero(a) == MP_YES) {
      *str++ = '0';
      *str = '\0';
      return MP_OKAY;
@@ -8396,7 +8969,7 @@ int mp_toradix (mp_int * a, char *str, int radix)
   }
 
   digs = 0;
-  while (mp_iszero (&t) == 0) {
+  while (mp_iszero (&t) == MP_NO) {
     if ((res = mp_div_d (&t, (mp_digit) radix, &t, &d)) != MP_OKAY) {
       mp_clear (&t);
       return res;
@@ -8419,14 +8992,14 @@ int mp_toradix (mp_int * a, char *str, int radix)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_toradix.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_toradix.c */
 
 /* Start: bn_mp_toradix_n.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_TORADIX_N_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8440,12 +9013,12 @@ int mp_toradix (mp_int * a, char *str, int radix)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
-/* stores a bignum as a ASCII string in a given radix (2..64) 
+/* stores a bignum as a ASCII string in a given radix (2..64)
  *
- * Stores upto maxlen-1 chars and always a NULL byte 
+ * Stores upto maxlen-1 chars and always a NULL byte
  */
 int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
 {
@@ -8455,7 +9028,7 @@ int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
   char   *_s = str;
 
   /* check range of the maxlen, radix */
-  if (maxlen < 2 || radix < 2 || radix > 64) {
+  if ((maxlen < 2) || (radix < 2) || (radix > 64)) {
     return MP_VAL;
   }
 
@@ -8478,13 +9051,13 @@ int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
     /* store the flag and mark the number as positive */
     *str++ = '-';
     t.sign = MP_ZPOS;
- 
+
     /* subtract a char */
     --maxlen;
   }
 
   digs = 0;
-  while (mp_iszero (&t) == 0) {
+  while (mp_iszero (&t) == MP_NO) {
     if (--maxlen < 1) {
        /* no more room */
        break;
@@ -8511,14 +9084,14 @@ int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_toradix_n.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_toradix_n.c */
 
 /* Start: bn_mp_unsigned_bin_size.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_UNSIGNED_BIN_SIZE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8532,25 +9105,25 @@ int mp_toradix_n(mp_int * a, char *str, int radix, int maxlen)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* get the size for an unsigned equivalent */
 int mp_unsigned_bin_size (mp_int * a)
 {
   int     size = mp_count_bits (a);
-  return (size / 8 + ((size & 7) != 0 ? 1 : 0));
+  return (size / 8) + (((size & 7) != 0) ? 1 : 0);
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_unsigned_bin_size.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_unsigned_bin_size.c */
 
 /* Start: bn_mp_xor.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_XOR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8564,7 +9137,7 @@ int mp_unsigned_bin_size (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* XOR two ints together */
@@ -8598,14 +9171,14 @@ mp_xor (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_xor.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_xor.c */
 
 /* Start: bn_mp_zero.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_MP_ZERO_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8619,7 +9192,7 @@ mp_xor (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* set to zero */
@@ -8638,14 +9211,14 @@ void mp_zero (mp_int * a)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_mp_zero.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_mp_zero.c */
 
 /* Start: bn_prime_tab.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_PRIME_TAB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8659,7 +9232,7 @@ void mp_zero (mp_int * a)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 const mp_digit ltm_prime_tab[] = {
   0x0002, 0x0003, 0x0005, 0x0007, 0x000B, 0x000D, 0x0011, 0x0013,
@@ -8703,14 +9276,14 @@ const mp_digit ltm_prime_tab[] = {
 };
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_prime_tab.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_prime_tab.c */
 
 /* Start: bn_reverse.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_REVERSE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8724,7 +9297,7 @@ const mp_digit ltm_prime_tab[] = {
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* reverse an array, used for radix code */
@@ -8746,14 +9319,14 @@ bn_reverse (unsigned char *s, int len)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_reverse.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_reverse.c */
 
 /* Start: bn_s_mp_add.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_ADD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8767,7 +9340,7 @@ bn_reverse (unsigned char *s, int len)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* low level addition, based on HAC pp.594, Algorithm 14.7 */
@@ -8791,7 +9364,7 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
   }
 
   /* init result */
-  if (c->alloc < max + 1) {
+  if (c->alloc < (max + 1)) {
     if ((res = mp_grow (c, max + 1)) != MP_OKAY) {
       return res;
     }
@@ -8802,8 +9375,8 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
   c->used = max + 1;
 
   {
-    register mp_digit u, *tmpa, *tmpb, *tmpc;
-    register int i;
+    mp_digit u, *tmpa, *tmpb, *tmpc;
+    int i;
 
     /* alias for digit pointers */
 
@@ -8829,8 +9402,8 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
       *tmpc++ &= MP_MASK;
     }
 
-    /* now copy higher words if any, that is in A+B 
-     * if A or B has more digits add those in 
+    /* now copy higher words if any, that is in A+B
+     * if A or B has more digits add those in
      */
     if (min != max) {
       for (; i < max; i++) {
@@ -8859,14 +9432,14 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_add.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_add.c */
 
 /* Start: bn_s_mp_exptmod.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_EXPTMOD_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -8880,7 +9453,7 @@ s_mp_add (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 #ifdef MP_LOW_MEM
    #define TAB_SIZE 32
@@ -8922,7 +9495,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
   /* init M array */
   /* init first cell */
   if ((err = mp_init(&M[1])) != MP_OKAY) {
-     return err; 
+     return err;
   }
 
   /* now init the second half of the array */
@@ -8940,7 +9513,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
   if ((err = mp_init (&mu)) != MP_OKAY) {
     goto LBL_M;
   }
-  
+
   if (redmode == 0) {
      if ((err = mp_reduce_setup (&mu, P)) != MP_OKAY) {
         goto LBL_MU;
@@ -8951,22 +9524,22 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
         goto LBL_MU;
      }
      redux = mp_reduce_2k_l;
-  }    
+  }
 
   /* create M table
    *
-   * The M table contains powers of the base, 
+   * The M table contains powers of the base,
    * e.g. M[x] = G**x mod P
    *
-   * The first half of the table is not 
+   * The first half of the table is not
    * computed though accept for M[0] and M[1]
    */
   if ((err = mp_mod (G, P, &M[1])) != MP_OKAY) {
     goto LBL_MU;
   }
 
-  /* compute the value at M[1<<(winsize-1)] by squaring 
-   * M[1] (winsize-1) times 
+  /* compute the value at M[1<<(winsize-1)] by squaring
+   * M[1] (winsize-1) times
    */
   if ((err = mp_copy (&M[1], &M[1 << (winsize - 1)])) != MP_OKAY) {
     goto LBL_MU;
@@ -8974,7 +9547,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
 
   for (x = 0; x < (winsize - 1); x++) {
     /* square it */
-    if ((err = mp_sqr (&M[1 << (winsize - 1)], 
+    if ((err = mp_sqr (&M[1 << (winsize - 1)],
                        &M[1 << (winsize - 1)])) != MP_OKAY) {
       goto LBL_MU;
     }
@@ -9032,12 +9605,12 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
      * in the exponent.  Technically this opt is not required but it
      * does lower the # of trivial squaring/reductions used
      */
-    if (mode == 0 && y == 0) {
+    if ((mode == 0) && (y == 0)) {
       continue;
     }
 
     /* if the bit is zero and mode == 1 then we square */
-    if (mode == 1 && y == 0) {
+    if ((mode == 1) && (y == 0)) {
       if ((err = mp_sqr (&res, &res)) != MP_OKAY) {
         goto LBL_RES;
       }
@@ -9079,7 +9652,7 @@ int s_mp_exptmod (mp_int * G, mp_int * X, mp_int * P, mp_int * Y, int redmode)
   }
 
   /* if bits remain then square/multiply */
-  if (mode == 2 && bitcpy > 0) {
+  if ((mode == 2) && (bitcpy > 0)) {
     /* square then multiply if the bit is set */
     for (x = 0; x < bitcpy; x++) {
       if ((err = mp_sqr (&res, &res)) != MP_OKAY) {
@@ -9115,14 +9688,14 @@ LBL_M:
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_exptmod.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_exptmod.c */
 
 /* Start: bn_s_mp_mul_digs.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_MUL_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9136,11 +9709,11 @@ LBL_M:
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* multiplies |a| * |b| and only computes upto digs digits of result
- * HAC pp. 595, Algorithm 14.12  Modified so you can control how 
+ * HAC pp. 595, Algorithm 14.12  Modified so you can control how
  * many digits of output are created.
  */
 int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
@@ -9153,8 +9726,8 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 
   /* can we use the fast multiplier? */
   if (((digs) < MP_WARRAY) &&
-      MIN (a->used, b->used) < 
-          (1 << ((CHAR_BIT * sizeof (mp_word)) - (2 * DIGIT_BIT)))) {
+      (MIN (a->used, b->used) <
+          (1 << ((CHAR_BIT * sizeof(mp_word)) - (2 * DIGIT_BIT))))) {
     return fast_s_mp_mul_digs (a, b, c, digs);
   }
 
@@ -9175,19 +9748,19 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
     /* setup some aliases */
     /* copy of the digit from a used within the nested loop */
     tmpx = a->dp[ix];
-    
+
     /* an alias for the destination shifted ix places */
     tmpt = t.dp + ix;
-    
+
     /* an alias for the digits of b */
     tmpy = b->dp;
 
     /* compute the columns of the output and propagate the carry */
     for (iy = 0; iy < pb; iy++) {
       /* compute the column as a mp_word */
-      r       = ((mp_word)*tmpt) +
-                ((mp_word)tmpx) * ((mp_word)*tmpy++) +
-                ((mp_word) u);
+      r       = (mp_word)*tmpt +
+                ((mp_word)tmpx * (mp_word)*tmpy++) +
+                (mp_word)u;
 
       /* the new column is the lower part of the result */
       *tmpt++ = (mp_digit) (r & ((mp_word) MP_MASK));
@@ -9196,7 +9769,7 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
       u       = (mp_digit) (r >> ((mp_word) DIGIT_BIT));
     }
     /* set carry if it is placed below digs */
-    if (ix + iy < digs) {
+    if ((ix + iy) < digs) {
       *tmpt = u;
     }
   }
@@ -9209,14 +9782,14 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_mul_digs.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_mul_digs.c */
 
 /* Start: bn_s_mp_mul_high_digs.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_MUL_HIGH_DIGS_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9230,7 +9803,7 @@ int s_mp_mul_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* multiplies |a| * |b| and does not compute the lower digs digits
@@ -9248,7 +9821,7 @@ s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
   /* can we use the fast multiplier? */
 #ifdef BN_FAST_S_MP_MUL_HIGH_DIGS_C
   if (((a->used + b->used + 1) < MP_WARRAY)
-      && MIN (a->used, b->used) < (1 << ((CHAR_BIT * sizeof (mp_word)) - (2 * DIGIT_BIT)))) {
+      && (MIN (a->used, b->used) < (1 << ((CHAR_BIT * sizeof(mp_word)) - (2 * DIGIT_BIT))))) {
     return fast_s_mp_mul_high_digs (a, b, c, digs);
   }
 #endif
@@ -9275,9 +9848,9 @@ s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 
     for (iy = digs - ix; iy < pb; iy++) {
       /* calculate the double precision result */
-      r       = ((mp_word)*tmpt) +
-                ((mp_word)tmpx) * ((mp_word)*tmpy++) +
-                ((mp_word) u);
+      r       = (mp_word)*tmpt +
+                ((mp_word)tmpx * (mp_word)*tmpy++) +
+                (mp_word)u;
 
       /* get the lower part */
       *tmpt++ = (mp_digit) (r & ((mp_word) MP_MASK));
@@ -9294,14 +9867,14 @@ s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_mul_high_digs.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_mul_high_digs.c */
 
 /* Start: bn_s_mp_sqr.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_SQR_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9315,7 +9888,7 @@ s_mp_mul_high_digs (mp_int * a, mp_int * b, mp_int * c, int digs)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* low level squaring, b = a*a, HAC pp.596-597, Algorithm 14.16 */
@@ -9327,18 +9900,18 @@ int s_mp_sqr (mp_int * a, mp_int * b)
   mp_digit u, tmpx, *tmpt;
 
   pa = a->used;
-  if ((res = mp_init_size (&t, 2*pa + 1)) != MP_OKAY) {
+  if ((res = mp_init_size (&t, (2 * pa) + 1)) != MP_OKAY) {
     return res;
   }
 
   /* default used is maximum possible size */
-  t.used = 2*pa + 1;
+  t.used = (2 * pa) + 1;
 
   for (ix = 0; ix < pa; ix++) {
     /* first calculate the digit at 2*ix */
     /* calculate double precision result */
-    r = ((mp_word) t.dp[2*ix]) +
-        ((mp_word)a->dp[ix])*((mp_word)a->dp[ix]);
+    r = (mp_word)t.dp[2*ix] +
+        ((mp_word)a->dp[ix] * (mp_word)a->dp[ix]);
 
     /* store lower part in result */
     t.dp[ix+ix] = (mp_digit) (r & ((mp_word) MP_MASK));
@@ -9350,8 +9923,8 @@ int s_mp_sqr (mp_int * a, mp_int * b)
     tmpx        = a->dp[ix];
 
     /* alias for where to store the results */
-    tmpt        = t.dp + (2*ix + 1);
-    
+    tmpt        = t.dp + ((2 * ix) + 1);
+
     for (iy = ix + 1; iy < pa; iy++) {
       /* first calculate the product */
       r       = ((mp_word)tmpx) * ((mp_word)a->dp[iy]);
@@ -9382,14 +9955,14 @@ int s_mp_sqr (mp_int * a, mp_int * b)
 }
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_sqr.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_sqr.c */
 
 /* Start: bn_s_mp_sub.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BN_S_MP_SUB_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9403,7 +9976,7 @@ int s_mp_sqr (mp_int * a, mp_int * b)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* low level subtraction (assumes |a| > |b|), HAC pp.595 Algorithm 14.9 */
@@ -9426,8 +9999,8 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
   c->used = max;
 
   {
-    register mp_digit u, *tmpa, *tmpb, *tmpc;
-    register int i;
+    mp_digit u, *tmpa, *tmpb, *tmpc;
+    int i;
 
     /* alias for digit pointers */
     tmpa = a->dp;
@@ -9438,14 +10011,14 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
     u = 0;
     for (i = 0; i < min; i++) {
       /* T[i] = A[i] - B[i] - U */
-      *tmpc = *tmpa++ - *tmpb++ - u;
+      *tmpc = (*tmpa++ - *tmpb++) - u;
 
       /* U = carry bit of T[i]
        * Note this saves performing an AND operation since
        * if a carry does occur it will propagate all the way to the
        * MSB.  As a result a single shift is enough to get the carry
        */
-      u = *tmpc >> ((mp_digit)(CHAR_BIT * sizeof (mp_digit) - 1));
+      u = *tmpc >> ((mp_digit)((CHAR_BIT * sizeof(mp_digit)) - 1));
 
       /* Clear carry from T[i] */
       *tmpc++ &= MP_MASK;
@@ -9457,7 +10030,7 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
       *tmpc = *tmpa++ - u;
 
       /* U = carry bit of T[i] */
-      u = *tmpc >> ((mp_digit)(CHAR_BIT * sizeof (mp_digit) - 1));
+      u = *tmpc >> ((mp_digit)((CHAR_BIT * sizeof(mp_digit)) - 1));
 
       /* Clear carry from T[i] */
       *tmpc++ &= MP_MASK;
@@ -9475,14 +10048,14 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
 
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bn_s_mp_sub.c,v $ */
-/* $Revision: 1.3 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bn_s_mp_sub.c */
 
 /* Start: bncore.c */
-#include "libtorrent/tommath.h"
+#include "libtorrent/tommath_private.h"
 #ifdef BNCORE_C
 /* LibTomMath, multiple-precision integer library -- Tom St Denis
  *
@@ -9496,7 +10069,7 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
  * The library is free for all purposes without any express
  * guarantee it works.
  *
- * Tom St Denis, tomstdenis@gmail.com, http://math.libtomcrypt.com
+ * Tom St Denis, tstdenis82@gmail.com, http://libtom.org
  */
 
 /* Known optimal configurations
@@ -9505,19 +10078,19 @@ s_mp_sub (mp_int * a, mp_int * b, mp_int * c)
 -------------------------------------------------------------
  Intel P4 Northwood     /GCC v3.4.1   /        88/       128/LTM 0.32 ;-)
  AMD Athlon64           /GCC v3.4.4   /        80/       120/LTM 0.35
- 
+
 */
 
 int     KARATSUBA_MUL_CUTOFF = 80,      /* Min. number of digits before Karatsuba multiplication is used. */
         KARATSUBA_SQR_CUTOFF = 120,     /* Min. number of digits before Karatsuba squaring is used. */
-        
+
         TOOM_MUL_CUTOFF      = 350,      /* no optimal values of these are known yet so set em high */
-        TOOM_SQR_CUTOFF      = 400; 
+        TOOM_SQR_CUTOFF      = 400;
 #endif
 
-/* $Source: /cvs/libtom/libtommath/bncore.c,v $ */
-/* $Revision: 1.4 $ */
-/* $Date: 2006/03/31 14:18:44 $ */
+/* $Source$ */
+/* $Revision$ */
+/* $Date$ */
 
 /* End: bncore.c */
 
