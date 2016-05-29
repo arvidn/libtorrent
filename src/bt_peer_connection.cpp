@@ -40,6 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/integer.hpp>
+
+// for backwards compatibility with boost < 1.60 which was before export_bits
+// and import_bits were introduced
+#if BOOST_VERSION < 106000
+#include "libtorrent/aux_/cppint_import_export.hpp"
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
