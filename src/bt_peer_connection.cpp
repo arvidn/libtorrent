@@ -84,6 +84,7 @@ namespace libtorrent
 {
 	namespace mp = boost::multiprecision;
 
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	namespace {
 
 	// stream key (info hash of attached torrent)
@@ -129,6 +130,7 @@ namespace libtorrent
 	}
 
 	} // anonymous namespace
+#endif
 
 	const bt_peer_connection::message_handler
 	bt_peer_connection::m_message_handler[] =
