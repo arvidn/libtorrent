@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
+#include <iostream>
 #include <fstream>
 #include <boost/tuple/tuple.hpp>
 

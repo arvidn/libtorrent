@@ -4,6 +4,8 @@ project(libtorrent)
 set (SOVERSION "8")
 set (VERSION "1.1.0")
 
+list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
+
 set(sources
 	web_connection_base
 	alert
@@ -163,7 +165,9 @@ option(encryption "link against openssl and enable encryption" ON)
 option(dht "enable support for Mainline DHT" ON)
 option(unicode "enable unicode support" ON)
 option(deprecated-functions "enable deprecated functions for backwards compatibility" ON)
+option(disk-stats "enable disk activity logging feature" OFF)
 option(exceptions "build with exception support" ON)
+option(libiconv "enable linking against system libiconv" OFF)
 option(logging "build with logging" ON)
 option(build_tests "build tests" OFF)
 
@@ -191,6 +195,15 @@ find_package(Threads REQUIRED)
 include_directories(${includes})
 
 add_definitions(-DTORRENT_BUILDING_LIBRARY)
+if (disk-stats)
+	add_definitions(-DTORRENT_DISK_STATS)
+endif (disk-stats)
+
+if (libiconv)
+	find_package(Iconv REQUIRED)
+	add_definitions(-DTORRENT_USE_ICONV)
+	include_directories(SYSTEM ${ICONV_INCLUDE_DIR})
+endif (libiconv)
 
 if (encryption)
 	list(APPEND sources mpi pe_crypto)
@@ -279,6 +292,10 @@ endif()
 if (encryption)
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 endif()
+
+if (libiconv)
+	target_link_libraries(torrent-rasterbar ${ICONV_LIBRARIES})
+endif (libiconv)
 
 if (NOT pool-allocators)
 	add_definitions(-DTORRENT_DISABLE_POOL_ALLOCATOR)
@@ -370,16 +387,20 @@ if(build_tests)
 	add_library(test_common OBJECT test/main.cpp test/test.cpp
 		test/setup_transfer.cpp test/dht_server.cpp test/udp_tracker.cpp
 		test/peer_server.cpp test/web_seed_suite.cpp test/swarm_suite.cpp
-		test/test_utils.cpp)
+		test/test_utils.cpp test/make_torrent.hpp test/make_torrent.cpp
+		test/settings.hpp test/settings.cpp)
+		set_target_properties(test_common PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 	enable_testing()
 
 	foreach(s ${tests})
 		get_filename_component (sn ${s} NAME_WE)
 		add_executable(${sn} ${s} $<TARGET_OBJECTS:test_common>)
 		target_link_libraries(${sn} torrent-rasterbar)
+		set_target_properties(${sn} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 		add_test(${sn} ${s})
 	endforeach(s)
 
 	add_executable(bdecode_benchmark test/bdecode_benchmark.cpp)
 	target_link_libraries(bdecode_benchmark torrent-rasterbar)
+	set_target_properties(bdecode_benchmark PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
 endif()
