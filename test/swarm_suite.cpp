@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
