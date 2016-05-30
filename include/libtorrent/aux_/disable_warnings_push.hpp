@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wno-pedantic"
 #endif
 
 #ifdef __clang__
