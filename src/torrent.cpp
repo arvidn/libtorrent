@@ -728,29 +728,29 @@ namespace libtorrent
 			, p.max_connections
 			, p.upload_limit
 			, p.download_limit
-			, (p.flags == add_torrent_params::flag_seed_mode)
+			, (p.flags & add_torrent_params::flag_seed_mode)
 				? "seed-mode " : ""
-			, (p.flags == add_torrent_params::flag_override_resume_data)
+			, (p.flags & add_torrent_params::flag_override_resume_data)
 				? "override-resume-data " : ""
-			, (p.flags == add_torrent_params::flag_upload_mode)
+			, (p.flags & add_torrent_params::flag_upload_mode)
 				? "upload-mode " : ""
-			, (p.flags == add_torrent_params::flag_share_mode)
+			, (p.flags & add_torrent_params::flag_share_mode)
 				? "share-mode " : ""
-			, (p.flags == add_torrent_params::flag_apply_ip_filter)
+			, (p.flags & add_torrent_params::flag_apply_ip_filter)
 				? "apply-ip-filter " : ""
-			, (p.flags == add_torrent_params::flag_paused)
+			, (p.flags & add_torrent_params::flag_paused)
 				? "paused " : ""
-			, (p.flags == add_torrent_params::flag_auto_managed)
+			, (p.flags & add_torrent_params::flag_auto_managed)
 				? "auto-managed " : ""
-			, (p.flags == add_torrent_params::flag_merge_resume_trackers)
+			, (p.flags & add_torrent_params::flag_merge_resume_trackers)
 				? "merge-resume-trackers " : ""
-			, (p.flags == add_torrent_params::flag_update_subscribe)
+			, (p.flags & add_torrent_params::flag_update_subscribe)
 				? "update-subscribe " : ""
-			, (p.flags == add_torrent_params::flag_super_seeding)
+			, (p.flags & add_torrent_params::flag_super_seeding)
 				? "super-seeding " : ""
-			, (p.flags == add_torrent_params::flag_sequential_download)
+			, (p.flags & add_torrent_params::flag_sequential_download)
 				? "sequential-download " : ""
-			, (p.flags == add_torrent_params::flag_use_resume_save_path)
+			, (p.flags & add_torrent_params::flag_use_resume_save_path)
 				? "resume-save-path " : ""
 			, p.save_path.c_str()
 			);

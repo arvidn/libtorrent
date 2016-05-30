@@ -377,6 +377,11 @@ namespace libtorrent
 
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
+		// .. note::
+		// 	The ``flags`` field is initialized with default flags by the
+		// 	constructor. In order to preserve default behavior when clearing or
+		// 	setting other flags, make sure to bitwise OR or in a flag or bitwise
+		// 	AND the inverse of a flag to clear it.
 		boost::uint64_t flags;
 
 		// set this to the info hash of the torrent to add in case the info-hash
