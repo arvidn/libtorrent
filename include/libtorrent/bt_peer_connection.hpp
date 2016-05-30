@@ -278,11 +278,6 @@ namespace libtorrent
 		void write_pe_vc_cryptofield(char* write_buf, int len
 			, int crypto_field, int pad_size);
 
-		// stream key (info hash of attached torrent)
-		// secret is the DH shared secret
-		// initializes m_enc_handler
-		void init_pe_rc4_handler(char const* secret, sha1_hash const& stream_key);
-
 		// Returns offset at which bytestream (src, src + src_size)
 		// matches bytestream(target, target + target_size).
 		// If no sync found, return -1

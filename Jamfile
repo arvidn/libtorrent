@@ -319,7 +319,6 @@ rule building ( properties * )
 
 	if <encryption>on in $(properties)
 	{
-		result += <source>src/mpi.c ;
 		result += <source>src/pe_crypto.cpp ;
 	}
 

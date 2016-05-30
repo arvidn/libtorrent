@@ -149,11 +149,6 @@ nobase_include_HEADERS = \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
   \
-  tommath.h                         \
-  tommath_class.h                   \
-  tommath_superclass.h              \
-  tommath_private.h                 \
-  \
   aux_/array_view.hpp               \
   aux_/allocating_handler.hpp       \
   aux_/bind_to_device.hpp           \
@@ -173,6 +168,7 @@ nobase_include_HEADERS = \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \
   aux_/byteswap.hpp                 \
+  aux_/cppint_import_export.hpp     \
   \
   extensions/lt_trackers.hpp        \
   extensions/metadata_transfer.hpp  \

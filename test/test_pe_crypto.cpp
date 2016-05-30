@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
-extern "C" {
-#include "libtorrent/tommath.h"
-}
-
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b)
@@ -93,15 +89,6 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 	}
 }
 
-void print_key(char const* key)
-{
-	for (int i = 0;i < 96; ++i)
-	{
-		std::printf("%02x ", unsigned(key[i]));
-	}
-	std::printf("\n");
-}
-
 TORRENT_TEST(diffie_hellman)
 {
 	using namespace libtorrent;
@@ -115,20 +102,20 @@ TORRENT_TEST(diffie_hellman)
 		DH1.compute_secret(DH2.get_local_key());
 		DH2.compute_secret(DH1.get_local_key());
 
-		TEST_CHECK(std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()));
-		if (!std::equal(DH1.get_secret(), DH1.get_secret() + 96, DH2.get_secret()))
+		TEST_EQUAL(DH1.get_secret(), DH2.get_secret());
+		if (!DH1.get_secret() != DH2.get_secret())
 		{
 			std::printf("DH1 local: ");
-			print_key(DH1.get_local_key());
+			std::cout << DH1.get_local_key() << std::endl;
 
 			std::printf("DH2 local: ");
-			print_key(DH2.get_local_key());
+			std::cout << DH2.get_local_key() << std::endl;
 
 			std::printf("DH1 shared_secret: ");
-			print_key(DH1.get_secret());
+			std::cout << DH1.get_secret() << std::endl;
 
 			std::printf("DH2 shared_secret: ");
-			print_key(DH2.get_secret());
+			std::cout << DH2.get_secret() << std::endl;
 		}
 	}
 }
@@ -148,28 +135,6 @@ TORRENT_TEST(rc4)
 	rc42.set_incoming_key(&test1_key[0], 20);
 	rc42.set_outgoing_key(&test2_key[0], 20);
 	test_enc_handler(&rc41, &rc42);
-}
-
-TORRENT_TEST(tommath)
-{
-	const unsigned char key[96] = {
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xC9, 0x0F, 0xDA, 0xA2,
-		0x21, 0x68, 0xC2, 0x34, 0xC4, 0xC6, 0x62, 0x8B, 0x80, 0xDC, 0x1C, 0xD1,
-		0x29, 0x02, 0x4E, 0x08, 0x8A, 0x67, 0xCC, 0x74, 0x02, 0x0B, 0xBE, 0xA6,
-		0x3B, 0x13, 0x9B, 0x22, 0x51, 0x4A, 0x08, 0x79, 0x8E, 0x34, 0x04, 0xDD,
-		0xEF, 0x95, 0x19, 0xB3, 0xCD, 0x3A, 0x43, 0x1B, 0x30, 0x2B, 0x0A, 0x6D,
-		0xF2, 0x5F, 0x14, 0x37, 0x4F, 0xE1, 0x35, 0x6D, 0x6D, 0x51, 0xC2, 0x45,
-		0xE4, 0x85, 0xB5, 0x76, 0x62, 0x5E, 0x7E, 0xC6, 0xF4, 0x4C, 0x42, 0xE9,
-		0xA6, 0x3A, 0x36, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63
-	};
-
-	mp_int bigint;
-	mp_init(&bigint);
-	TEST_CHECK(mp_read_unsigned_bin(&bigint, key, sizeof(key)) == 0);
-
-	TEST_EQUAL(mp_unsigned_bin_size(&bigint), sizeof(key));
-
-	mp_clear(&bigint);
 }
 
 #else

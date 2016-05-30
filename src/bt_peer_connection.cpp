@@ -33,14 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
+#include <memory> // unique_ptr
 #include <vector>
-#include <boost/limits.hpp>
 #include <functional>
 
-#ifdef TORRENT_USE_OPENSSL
-#include <memory> // autp_ptr
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/integer.hpp>
+
+// for backwards compatibility with boost < 1.60 which was before export_bits
+// and import_bits were introduced
+#if BOOST_VERSION < 106000
+#include "libtorrent/aux_/cppint_import_export.hpp"
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -78,6 +82,56 @@ using boost::shared_ptr;
 
 namespace libtorrent
 {
+	namespace mp = boost::multiprecision;
+
+#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
+	namespace {
+
+	// stream key (info hash of attached torrent)
+	// secret is the DH shared secret
+	// initializes m_enc_handler
+	boost::shared_ptr<rc4_handler> init_pe_rc4_handler(key_t const& secret
+		, sha1_hash const& stream_key, bool const outgoing)
+	{
+		hasher h;
+		static const char keyA[] = "keyA";
+		static const char keyB[] = "keyB";
+
+		// encryption rc4 longkeys
+		// outgoing connection : hash ('keyA',S,SKEY)
+		// incoming connection : hash ('keyB',S,SKEY)
+
+		std::array<boost::uint8_t, 96> secret_buf;
+		mp::export_bits(secret, secret_buf.begin(), 8);
+
+		if (outgoing) h.update(keyA, 4); else h.update(keyB, 4);
+		h.update(reinterpret_cast<char const*>(secret_buf.data()), secret_buf.size());
+		h.update(stream_key.data(), 20);
+		const sha1_hash local_key = h.final();
+
+		h.reset();
+
+		// decryption rc4 longkeys
+		// outgoing connection : hash ('keyB',S,SKEY)
+		// incoming connection : hash ('keyA',S,SKEY)
+
+		if (outgoing) h.update(keyB, 4); else h.update(keyA, 4);
+		h.update(reinterpret_cast<char const*>(secret_buf.data())
+			, secret_buf.size());
+		h.update(stream_key.data(), 20);
+		const sha1_hash remote_key = h.final();
+
+		boost::shared_ptr<rc4_handler> ret = boost::make_shared<rc4_handler>();
+
+		ret->set_incoming_key(&remote_key[0], 20);
+		ret->set_outgoing_key(&local_key[0], 20);
+
+		return ret;
+	}
+
+	} // anonymous namespace
+#endif
+
 	const bt_peer_connection::message_handler
 	bt_peer_connection::m_message_handler[] =
 	{
@@ -485,7 +539,8 @@ namespace libtorrent
 		char* ptr = msg;
 		int buf_size = dh_key_len + pad_size;
 
-		memcpy(ptr, m_dh_key_exchange->get_local_key(), dh_key_len);
+		mp::export_bits(m_dh_key_exchange->get_local_key()
+			, reinterpret_cast<std::uint8_t*>(ptr), 8);
 		ptr += dh_key_len;
 
 		std::generate(ptr, ptr + pad_size, random_byte);
@@ -510,7 +565,9 @@ namespace libtorrent
 
 		hasher h;
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
-		char const* const secret = m_dh_key_exchange->get_secret();
+		key_t const secret_key = m_dh_key_exchange->get_secret();
+		std::array<boost::uint8_t, 96> secret;
+		mp::export_bits(secret_key, secret.begin(), 8);
 
 		int pad_size = random() % 512;
 
@@ -521,7 +578,8 @@ namespace libtorrent
 		// sync hash (hash('req1',S))
 		h.reset();
 		h.update("req1",4);
-		h.update(secret, dh_key_len);
+		h.update(reinterpret_cast<char const*>(secret.data())
+			, secret.size());
 		sha1_hash sync_hash = h.final();
 
 		memcpy(ptr, &sync_hash[0], 20);
@@ -535,7 +593,8 @@ namespace libtorrent
 
 		h.reset();
 		h.update("req3",4);
-		h.update(secret, dh_key_len);
+		h.update(reinterpret_cast<char const*>(secret.data())
+			, secret.size());
 		sha1_hash obfsc_hash = h.final();
 		obfsc_hash ^= streamkey_hash;
 
@@ -543,7 +602,10 @@ namespace libtorrent
 		ptr += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
-		init_pe_rc4_handler(secret, info_hash);
+		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
+#endif
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
 		// write the verification constant and crypto field
@@ -632,54 +694,6 @@ namespace libtorrent
 		// append len(ia) if we are initiating
 		if (is_outgoing())
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
-	}
-
-	void bt_peer_connection::init_pe_rc4_handler(char const* secret
-		, sha1_hash const& stream_key)
-	{
-		INVARIANT_CHECK;
-
-		TORRENT_ASSERT(secret);
-
-		hasher h;
-		static const char keyA[] = "keyA";
-		static const char keyB[] = "keyB";
-
-		// encryption rc4 longkeys
-		// outgoing connection : hash ('keyA',S,SKEY)
-		// incoming connection : hash ('keyB',S,SKEY)
-
-		if (is_outgoing()) h.update(keyA, 4); else h.update(keyB, 4);
-		h.update(secret, dh_key_len);
-		h.update(stream_key.data(), 20);
-		const sha1_hash local_key = h.final();
-
-		h.reset();
-
-		// decryption rc4 longkeys
-		// outgoing connection : hash ('keyB',S,SKEY)
-		// incoming connection : hash ('keyA',S,SKEY)
-
-		if (is_outgoing()) h.update(keyB, 4); else h.update(keyA, 4);
-		h.update(secret, dh_key_len);
-		h.update(stream_key.data(), 20);
-		const sha1_hash remote_key = h.final();
-
-		TORRENT_ASSERT(!m_rc4.get());
-		m_rc4 = boost::make_shared<rc4_handler>();
-
-		if (!m_rc4)
-		{
-			disconnect(errors::no_memory, op_encryption);
-			return;
-		}
-
-		m_rc4->set_incoming_key(&remote_key[0], 20);
-		m_rc4->set_outgoing_key(&local_key[0], 20);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
-#endif
 	}
 
 	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
@@ -2682,11 +2696,8 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 
 			// read dh key, generate shared secret
-			if (m_dh_key_exchange->compute_secret(recv_buffer.begin) != 0)
-			{
-				disconnect(errors::no_memory, op_encryption);
-				return;
-			}
+			m_dh_key_exchange->compute_secret(
+				reinterpret_cast<boost::uint8_t const*>(recv_buffer.begin));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");
@@ -2749,8 +2760,10 @@ namespace libtorrent
 				hasher h;
 
 				// compute synchash (hash('req1',S))
+				std::array<boost::uint8_t, 96> buffer;
+				mp::export_bits(m_dh_key_exchange->get_secret(), buffer.begin(), 8);
 				h.update("req1", 4);
-				h.update(m_dh_key_exchange->get_secret(), dh_key_len);
+				h.update(reinterpret_cast<char const*>(buffer.data()), buffer.size());
 
 				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
 				if (!m_sync_hash)
@@ -2836,8 +2849,10 @@ namespace libtorrent
 					TORRENT_ASSERT(t);
 				}
 
-				init_pe_rc4_handler(m_dh_key_exchange->get_secret(), ti->info_hash());
+				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
+					, ti->info_hash(), is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
+				peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
 				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
 #endif
 			}
