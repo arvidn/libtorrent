@@ -397,7 +397,6 @@ private:
 		// used during an encrypted handshake then moved
 		// into m_enc_handler if rc4 encryption is negotiated
 		// otherwise it is destroyed when the handshake completes
-		// TODO: 2 this could probably be a std::unique_ptr
 		boost::shared_ptr<rc4_handler> m_rc4;
 
 		// if encryption is negotiated, this is used for
