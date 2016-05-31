@@ -136,9 +136,9 @@ void print_string(std::string& output, std::string str)
 	if (random_string)
 	{
 		static mt19937 random_engine(str_seed);
-		uniform_int_distribution<boost::uint8_t> d(0, 255);
+		uniform_int_distribution<> d(0, 255);
 		for (int i = 0; i < int(str.size()); ++i)
-			str[i] = d(random_engine);
+			str[i] = boost::uint8_t(d(random_engine));
 
 		print_ascii_number(output, str.size());
 		output += ':';
