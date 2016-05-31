@@ -105,7 +105,7 @@ script:
     fi'
   - cd ..
 
-  - cd ../tools
+  - cd tools
   - 'if [ "$variant" != "" ]; then
       bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset link=shared;
     fi'
