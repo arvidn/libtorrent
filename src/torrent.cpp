@@ -174,7 +174,7 @@ namespace libtorrent
 		, m_upload_mode((p.flags & add_torrent_params::flag_upload_mode) != 0)
 		, m_connections_initialized(false)
 		, m_abort(false)
-		, m_allow_peers((p.flags & add_torrent_params::flag_paused) == 0)
+		, m_paused((p.flags & add_torrent_params::flag_paused) != 0)
 		, m_share_mode((p.flags & add_torrent_params::flag_share_mode) != 0)
 		, m_have_all(false)
 		, m_graceful_pause_mode(false)
@@ -560,7 +560,7 @@ namespace libtorrent
 		if (m_abort) return counters::num_checking_torrents + no_gauge_state;
 
 		if (has_error()) return counters::num_error_torrents;
-		if (!m_allow_peers || m_graceful_pause_mode)
+		if (m_paused || m_graceful_pause_mode)
 		{
 			if (!is_auto_managed()) return counters::num_stopped_torrents;
 			if (is_seed()) return counters::num_queued_seeding_torrents;
@@ -822,7 +822,7 @@ namespace libtorrent
 		if (!m_ses.dht()) return false;
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
 		if (!m_announce_to_dht) return false;
-		if (!m_allow_peers) return false;
+		if (m_paused) return false;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
@@ -2676,7 +2676,7 @@ namespace libtorrent
 			// managed logic runs again (which is triggered further down)
 			// setting flags to 0 prevents the disk cache from being evicted as a
 			// result of this
-			set_allow_peers(false, 0);
+			set_paused(true, 0);
 		}
 
 		// we're done checking! (this should cause a call to trigger_auto_manage)
@@ -2778,7 +2778,7 @@ namespace libtorrent
 			if (!m_announce_to_dht)
 				debug_log("DHT: queueing disabled DHT announce");
 
-			if (!m_allow_peers)
+			if (m_paused)
 				debug_log("DHT: torrent paused, no DHT announce");
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2804,7 +2804,7 @@ namespace libtorrent
 			return;
 		}
 
-		TORRENT_ASSERT(m_allow_peers);
+		TORRENT_ASSERT(!m_paused);
 
 #ifdef TORRENT_USE_OPENSSL
 		int port = is_ssl_torrent() ? m_ses.ssl_listen_port() : m_ses.listen_port();
@@ -2898,15 +2898,15 @@ namespace libtorrent
 		}
 
 		// if we're not allowing peers, there's no point in announcing
-		if (e != tracker_request::stopped && !m_allow_peers)
+		if (e != tracker_request::stopped && m_paused)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** announce: event != stopped && !m_allow_peers");
+			debug_log("*** announce: event != stopped && m_paused");
 #endif
 			return;
 		}
 
-		TORRENT_ASSERT(m_allow_peers || e == tracker_request::stopped);
+		TORRENT_ASSERT(!m_paused || e == tracker_request::stopped);
 
 		if (e == tracker_request::none && is_finished() && !is_seed())
 			e = tracker_request::paused;
@@ -4763,7 +4763,7 @@ namespace libtorrent
 			m_apply_ip_filter = true;
 		}
 
-		m_allow_peers = false;
+		m_paused = false;
 		m_auto_managed = false;
 		update_state_list();
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
@@ -5698,7 +5698,7 @@ namespace libtorrent
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
 		k = m_trackers.insert(k, url);
 		if (k->source == 0) k->source = announce_entry::source_client;
-		if (m_allow_peers && !m_trackers.empty()) announce_with_tracker();
+		if (!m_paused && !m_trackers.empty()) announce_with_tracker();
 		return true;
 	}
 
@@ -5943,7 +5943,7 @@ namespace libtorrent
 			TORRENT_ASSERT(is_paused());
 
 			// this will post torrent_paused alert
-			set_allow_peers(false);
+			set_paused(true);
 		}
 
 		update_want_peers();
@@ -7526,7 +7526,7 @@ namespace libtorrent
 			return true;
 
 		// if we don't get ticks we won't become inactive
-		if (m_allow_peers && !m_inactive) return true;
+		if (!m_paused && !m_inactive) return true;
 
 		return false;
 	}
@@ -7627,7 +7627,7 @@ namespace libtorrent
 	void torrent::update_want_scrape()
 	{
 		update_list(aux::session_interface::torrent_want_scrape
-			, !m_allow_peers && m_auto_managed && !m_abort);
+			, m_paused && m_auto_managed && !m_abort);
 	}
 
 	namespace {
@@ -7678,7 +7678,7 @@ namespace libtorrent
 
 	void torrent::disconnect_all(error_code const& ec, operation_t op)
 	{
-// doesn't work with the !m_allow_peers -> m_num_peers == 0 condition
+// doesn't work with the m_paused -> m_num_peers == 0 condition
 //		INVARIANT_CHECK;
 
 		while (!m_connections.empty())
@@ -8263,10 +8263,10 @@ namespace libtorrent
 			case counters::num_seeding_torrents: TORRENT_ASSERT(is_seed()); break;
 			case counters::num_upload_only_torrents: TORRENT_ASSERT(is_upload_only()); break;
 			case counters::num_stopped_torrents: TORRENT_ASSERT(!is_auto_managed()
-				&& (!m_allow_peers || m_graceful_pause_mode));
+				&& (m_paused || m_graceful_pause_mode));
 				break;
 			case counters::num_queued_seeding_torrents:
-				TORRENT_ASSERT((!m_allow_peers || m_graceful_pause_mode) && is_seed()); break;
+				TORRENT_ASSERT((m_paused || m_graceful_pause_mode) && is_seed()); break;
 		}
 
 		if (m_torrent_file)
@@ -8290,7 +8290,7 @@ namespace libtorrent
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_interface::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_interface::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_interface::torrent_want_tick].in_list());
-		TORRENT_ASSERT((!m_allow_peers && m_auto_managed && !m_abort) == m_links[aux::session_interface::torrent_want_scrape].in_list());
+		TORRENT_ASSERT((m_paused && m_auto_managed && !m_abort) == m_links[aux::session_interface::torrent_want_scrape].in_list());
 
 		bool is_checking = false;
 		bool is_downloading = false;
@@ -8949,9 +8949,8 @@ namespace libtorrent
 	bool torrent::should_check_files() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		// #error should m_allow_peers really affect checking?
 		return m_state == torrent_status::checking_files
-			&& m_allow_peers
+			&& !m_paused
 			&& !has_error()
 			&& !m_abort
 			&& !m_graceful_pause_mode
@@ -8986,7 +8985,7 @@ namespace libtorrent
 
 	bool torrent::is_paused() const
 	{
-		return !m_allow_peers || m_ses.is_paused() || m_graceful_pause_mode;
+		return m_paused || m_ses.is_paused() || m_graceful_pause_mode;
 	}
 
 	void torrent::pause(bool graceful)
@@ -8994,14 +8993,14 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (m_allow_peers)
+		if (!m_paused)
 		{
 			// we need to save this new state
 			set_need_save_resume();
 		}
 
 		int const flags = graceful ? flag_graceful_pause : 0;
-		set_allow_peers(false, flags | flag_clear_disk_cache);
+		set_paused(true, flags | flag_clear_disk_cache);
 	}
 
 	void torrent::do_pause(bool const clear_disk_cache)
@@ -9160,7 +9159,7 @@ namespace libtorrent
 		set_need_save_resume();
 	}
 
-	void torrent::set_allow_peers(bool b, int flags)
+	void torrent::set_paused(bool b, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -9172,12 +9171,12 @@ namespace libtorrent
 		if (m_connections.empty())
 			flags &= ~flag_graceful_pause;
 
-		if (m_allow_peers == b)
+		if (m_paused == b)
 		{
 			// there is one special case here. If we are
 			// currently in graceful pause mode, and we just turned into regular
 			// paused mode, we need to actually pause the torrent properly
-			if (m_allow_peers == false
+			if (m_paused == true
 				&& m_graceful_pause_mode == true
 				&& (flags & flag_graceful_pause) == 0)
 			{
@@ -9188,11 +9187,11 @@ namespace libtorrent
 			return;
 		}
 
-		m_allow_peers = b;
+		m_paused = b;
 		if (!m_ses.is_paused())
 			m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
 
-		if (!b)
+		if (b)
 		{
 			m_announce_to_dht = false;
 			m_announce_to_trackers = false;
@@ -9205,7 +9204,7 @@ namespace libtorrent
 		update_state_list();
 		state_updated();
 
-		if (!b)
+		if (b)
 		{
 			do_pause((flags & flag_clear_disk_cache) != 0);
 		}
@@ -9221,7 +9220,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (m_allow_peers
+		if (!m_paused
 			&& m_announce_to_dht
 			&& m_announce_to_trackers
 			&& m_announce_to_lsd) return;
@@ -9229,7 +9228,7 @@ namespace libtorrent
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
-		m_allow_peers = true;
+		m_paused = false;
 		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
 
 		update_gauge();
