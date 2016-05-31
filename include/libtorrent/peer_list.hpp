@@ -176,10 +176,10 @@ namespace libtorrent
 
 		using iterator = peers_t::iterator;
 		using const_iterator = peers_t::const_iterator;
-		iterator begin_peer() { return m_peers.begin(); }
-		iterator end_peer() { return m_peers.end(); }
-		const_iterator begin_peer() const { return m_peers.begin(); }
-		const_iterator end_peer() const { return m_peers.end(); }
+		iterator begin() { return m_peers.begin(); }
+		iterator end() { return m_peers.end(); }
+		const_iterator begin() const { return m_peers.begin(); }
+		const_iterator end() const { return m_peers.end(); }
 
 		std::pair<iterator, iterator> find_peers(address const& a)
 		{

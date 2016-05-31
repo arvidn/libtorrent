@@ -1044,10 +1044,9 @@ namespace libtorrent
 		else if (m_peer_list)
 		{
 			// reset last_connected, to force fast reconnect after leaving upload mode
-			for (peer_list::iterator i = m_peer_list->begin_peer()
-				, end(m_peer_list->end_peer()); i != end; ++i)
+			for (auto pe : *m_peer_list)
 			{
-				(*i)->last_connected = 0;
+				pe->last_connected = 0;
 			}
 
 			// send_block_requests on all peers
@@ -2135,10 +2134,10 @@ namespace libtorrent
 	bt_peer_connection* torrent::find_introducer(tcp::endpoint const& ep) const
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		for (auto pe : m_connections)
 		{
-			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
+			if (pe->type() != peer_connection::bittorrent_connection) continue;
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(pe);
 			if (!p->supports_holepunch()) continue;
 			peer_plugin const* pp = p->find_plugin("ut_pex");
 			if (!pp) continue;
@@ -2147,14 +2146,13 @@ namespace libtorrent
 #else
 		TORRENT_UNUSED(ep);
 #endif
-		return NULL;
+		return nullptr;
 	}
 
 	bt_peer_connection* torrent::find_peer(tcp::endpoint const& ep) const
 	{
-		for (const_peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		for (auto p : m_connections)
 		{
-			peer_connection* p = *i;
 			if (p->type() != peer_connection::bittorrent_connection) continue;
 			if (p->remote() == ep) return static_cast<bt_peer_connection*>(p);
 		}
@@ -2163,9 +2161,8 @@ namespace libtorrent
 
 	peer_connection* torrent::find_peer(sha1_hash const& pid)
 	{
-		for (peer_iterator i = m_connections.begin(); i != m_connections.end(); ++i)
+		for (auto p : m_connections)
 		{
-			peer_connection* p = *i;
 			if (p->pid() == pid) return p;
 		}
 		return 0;
@@ -2206,18 +2203,14 @@ namespace libtorrent
 		{
 			// --- PEERS ---
 
-			for (std::vector<tcp::endpoint>::const_iterator i
-				= m_add_torrent_params->peers.begin()
-				, end(m_add_torrent_params->peers.end()); i != end; ++i)
+			for (auto const& p : m_add_torrent_params->peers)
 			{
-				add_peer(*i , peer_info::resume_data);
+				add_peer(p , peer_info::resume_data);
 			}
 
-			for (std::vector<tcp::endpoint>::const_iterator i
-				= m_add_torrent_params->banned_peers.begin()
-				, end(m_add_torrent_params->banned_peers.end()); i != end; ++i)
+			for (auto const& p : m_add_torrent_params->banned_peers)
 			{
-				torrent_peer* peer = add_peer(*i, peer_info::resume_data);
+				torrent_peer* peer = add_peer(p, peer_info::resume_data);
 				if (peer) ban_peer(peer);
 			}
 
@@ -6673,11 +6666,9 @@ namespace libtorrent
 
 		if (m_peer_list)
 		{
-			for (peer_list::const_iterator i = m_peer_list->begin_peer()
-				, end(m_peer_list->end_peer()); i != end; ++i)
+			for (auto p : *m_peer_list)
 			{
 				error_code ec;
-				torrent_peer const* p = *i;
 				address addr = p->address();
 				if (p->is_i2p_addr)
 					continue;
@@ -6816,14 +6807,13 @@ namespace libtorrent
 		if (!m_peer_list) return;
 
 		v->reserve(m_peer_list->num_peers());
-		for (peer_list::const_iterator i = m_peer_list->begin_peer();
-			i != m_peer_list->end_peer(); ++i)
+		for (auto p : *m_peer_list)
 		{
 			peer_list_entry e;
-			e.ip = (*i)->ip();
-			e.flags = (*i)->banned ? peer_list_entry::banned : 0;
-			e.failcount = (*i)->failcount;
-			e.source = (*i)->source;
+			e.ip = p->ip();
+			e.flags = p->banned ? peer_list_entry::banned : 0;
+			e.failcount = p->failcount;
+			e.source = p->source;
 			v->push_back(e);
 		}
 	}
@@ -8424,11 +8414,11 @@ namespace libtorrent
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		// make sure we haven't modified the peer object
 		// in a way that breaks the sort order
-		if (m_peer_list && m_peer_list->begin_peer() != m_peer_list->end_peer())
+		if (m_peer_list && m_peer_list->begin() != m_peer_list->end())
 		{
-			peer_list::const_iterator i = m_peer_list->begin_peer();
-			peer_list::const_iterator p = i++;
-			peer_list::const_iterator end(m_peer_list->end_peer());
+			auto i = m_peer_list->begin();
+			auto p = i++;
+			auto end(m_peer_list->end());
 			peer_address_compare cmp;
 			for (; i != end; ++i, ++p)
 			{
@@ -8781,11 +8771,8 @@ namespace libtorrent
 	{
 		if (m_peer_list)
 		{
-			for (peer_list::iterator j = m_peer_list->begin_peer()
-				, end(m_peer_list->end_peer()); j != end; ++j)
+			for (auto pe : *m_peer_list)
 			{
-				torrent_peer* pe = *j;
-
 				pe->last_optimistically_unchoked
 					= clamped_subtract(pe->last_optimistically_unchoked, seconds);
 				pe->last_connected = clamped_subtract(pe->last_connected, seconds);

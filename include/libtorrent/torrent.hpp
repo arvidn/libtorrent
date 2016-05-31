@@ -38,13 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <list>
 #include <deque>
+#include <limits> // for numeric_limits
+#include <memory> // for unique_ptr
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/limits.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/scoped_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/version.hpp>
 
@@ -184,7 +183,7 @@ namespace libtorrent
 		// it in torrent::need_picker(). In order to tell the
 		// difference between having everything and nothing in
 		// the case there is no piece picker, see m_have_all.
-		boost::scoped_ptr<piece_picker> m_picker;
+		std::unique_ptr<piece_picker> m_picker;
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
@@ -258,7 +257,7 @@ namespace libtorrent
 		// the state of this torrent (queued, checking, downloading, etc.)
 		boost::uint32_t m_state:3;
 
-		boost::scoped_ptr<peer_list> m_peer_list;
+		std::unique_ptr<peer_list> m_peer_list;
 	};
 
 	// a torrent is a class that holds information
@@ -1294,13 +1293,13 @@ namespace libtorrent
 		// used if there is any resume data. Some of the information from the
 		// add_torrent_params struct are needed later in the torrent object's life
 		// cycle, and not in the constructor. So we need to save if away here
-		boost::scoped_ptr<add_torrent_params> m_add_torrent_params;
+		std::unique_ptr<add_torrent_params> m_add_torrent_params;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
 		// once the metadata is received this field will no
 		// longer be used and will be reset
-		boost::scoped_ptr<std::string> m_name;
+		std::unique_ptr<std::string> m_name;
 
 		storage_constructor_type m_storage_constructor;
 
