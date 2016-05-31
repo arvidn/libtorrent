@@ -105,6 +105,12 @@ script:
     fi'
   - cd ..
 
+  - cd ../tools
+  - 'if [ "$variant" != "" ]; then
+      bjam -j3 warnings-as-errors=on variant=$variant picker-debugging=on $toolset link=shared;
+    fi'
+  - cd ..
+
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we cannot stage them to the same directory
