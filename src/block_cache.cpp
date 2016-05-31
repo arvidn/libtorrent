@@ -311,7 +311,7 @@ cached_piece_entry::cached_piece_entry()
 	, hash(0)
 	, last_requester(NULL)
 	, blocks()
-	, expire(min_time())
+	, expire(aux::cached_clock::now())
 	, piece(0)
 	, num_dirty(0)
 	, num_blocks(0)
@@ -414,7 +414,7 @@ void block_cache::bump_lru(cached_piece_entry* p)
 	// move to the back (MRU) of the list
 	lru_list->erase(p);
 	lru_list->push_back(p);
-	p->expire = aux::time_now();
+	p->expire = aux::cached_clock::now();
 }
 
 // this is called for pieces that we're reading from, when they
@@ -488,7 +488,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	m_lru[p->cache_state].erase(p);
 	m_lru[target_queue].push_back(p);
 	p->cache_state = target_queue;
-	p->expire = aux::time_now();
+	p->expire = aux::cached_clock::now();
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
 	{
@@ -526,7 +526,7 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 
 	src->erase(p);
 	dst->push_back(p);
-	p->expire = aux::time_now();
+	p->expire = aux::cached_clock::now();
 	p->cache_state = desired_state;
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
@@ -644,7 +644,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		cached_piece_entry pe;
 		pe.piece = j->piece;
 		pe.storage = j->storage;
-		pe.expire = aux::time_now();
+		pe.expire = aux::cached_clock::now();
 		pe.blocks_in_piece = blocks_in_piece;
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		pe.cache_state = cache_state;
@@ -711,7 +711,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 			m_lru[p->cache_state].erase(p);
 			p->cache_state = cache_state;
 			m_lru[p->cache_state].push_back(p);
-			p->expire = aux::time_now();
+			p->expire = aux::cached_clock::now();
 #if TORRENT_USE_ASSERTS
 			switch (p->cache_state)
 			{
@@ -1620,7 +1620,7 @@ void block_cache::check_invariant() const
 
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
 	{
-		time_point timeout = min_time();
+		aux::cached_clock::time_point timeout(seconds(0));
 
 		for (list_iterator<cached_piece_entry> p = m_lru[i].iterate(); p.get(); p.next())
 		{

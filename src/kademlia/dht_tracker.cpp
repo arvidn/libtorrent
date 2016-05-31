@@ -119,7 +119,7 @@ namespace libtorrent { namespace dht
 		, m_abort(false)
 		, m_host_resolver(ios)
 		, m_send_quota(settings.upload_rate_limit)
-		, m_last_tick(aux::time_now())
+		, m_last_tick(aux::cached_clock::now())
 	{
 		m_blocker.set_block_timer(m_settings.block_timeout);
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);

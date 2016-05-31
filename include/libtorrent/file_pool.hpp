@@ -127,7 +127,7 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): key(0), last_use(aux::time_now()), mode(0) {}
+			lru_file_entry(): key(0), last_use(clock_type::now()), mode(0) {}
 			mutable file_handle file_ptr;
 			void* key;
 			time_point last_use;

@@ -38,9 +38,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	// returns the current time, as represented by time_point. The
-	// resolution of this timer is about 100 ms.
-	time_point time_now();
+
+	// this is a clock that's based on std::steady_clock, but is only updated
+	// intermittenly. This makes it cheap but also not safe to compare against
+	// timestamps taken from the real clock since ordering of timestamps may
+	// become incorrect
+	struct cached_clock
+	{
+		static const bool is_steady = true;
+
+		using rep = clock_type::rep;
+		using period = clock_type::period;
+
+		using duration = std::chrono::duration<rep, period>;
+		using time_point = std::chrono::time_point<cached_clock>;
+
+		// returns the current time, as represented by time_point. Don't count on
+		// the resolution of this timer is more granular than one second.
+		static time_point now();
+	};
 
 	TORRENT_EXTRA_EXPORT void update_time_now();
 

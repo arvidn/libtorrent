@@ -113,7 +113,7 @@ namespace libtorrent { namespace
 		// max_peer_entries limits the packet size
 		virtual void tick() override
 		{
-			time_point now = aux::time_now();
+			aux::cached_clock::time_point now = aux::cached_clock::now();
 			if (now - seconds(60) < m_last_msg) return;
 			m_last_msg = now;
 
@@ -233,7 +233,7 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 
 		std::set<tcp::endpoint> m_old_peers;
-		time_point m_last_msg;
+		aux::cached_clock::time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message;
 
@@ -293,7 +293,7 @@ namespace libtorrent { namespace
 
 			if (body.left() < length) return true;
 
-			time_point now = aux::time_now();
+			aux::cached_clock::time_point now = aux::cached_clock::now();
 			if (now - seconds(60) <  m_last_pex[0])
 			{
 				// this client appears to be trying to flood us
@@ -438,7 +438,7 @@ namespace libtorrent { namespace
 			// no handshake yet
 			if (!m_message_index) return;
 
-			time_point const now = aux::time_now();
+			aux::cached_clock::time_point const now = aux::cached_clock::now();
 			if (now - seconds(60) < m_last_msg)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -447,7 +447,8 @@ namespace libtorrent { namespace
 #endif
 				return;
 			}
-			static time_point global_last = min_time();
+			static aux::cached_clock::time_point global_last
+				= aux::cached_clock::time_point(time_duration(0));
 
 			int const num_peers = m_torrent.num_peers();
 			if (num_peers <= 1) return;
@@ -468,7 +469,7 @@ namespace libtorrent { namespace
 
 			// this will allow us to catch up, even if our timer
 			// has lower resolution than delay
-			if (global_last == min_time())
+			if (global_last == aux::cached_clock::time_point(time_duration(0)))
 				global_last = now;
 			else
 				global_last += milliseconds(delay);

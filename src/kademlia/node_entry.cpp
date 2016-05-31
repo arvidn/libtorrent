@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/kademlia/node_entry.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/time.hpp" // for aux::cached_clock::now()
 
 namespace libtorrent { namespace dht
 {
@@ -39,14 +39,14 @@ namespace libtorrent { namespace dht
 	node_entry::node_entry(node_id const& id_, udp::endpoint ep
 		, int roundtriptime
 		, bool pinged)
-		: last_queried(pinged ? aux::time_now() : min_time())
+		: last_queried(pinged ? aux::cached_clock::now() : min_time())
 		, id(id_)
 		, endpoint(ep)
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		first_seen = aux::time_now();
+		first_seen = aux::cached_clock::now();
 #endif
 	}
 
@@ -58,7 +58,7 @@ namespace libtorrent { namespace dht
 		, timeout_count(0xff)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		first_seen = aux::time_now();
+		first_seen = aux::cached_clock::now();
 #endif
 	}
 
@@ -69,7 +69,7 @@ namespace libtorrent { namespace dht
 		, timeout_count(0xff)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		first_seen = aux::time_now();
+		first_seen = aux::cached_clock::now();
 #endif
 	}
 

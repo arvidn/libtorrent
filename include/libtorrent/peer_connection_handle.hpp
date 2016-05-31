@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent
 {
@@ -111,7 +112,7 @@ struct TORRENT_EXPORT peer_connection_handle
 	void send_buffer(char const* begin, int size, int flags = 0);
 
 	time_t last_seen_complete() const;
-	time_point time_of_last_unchoke() const;
+	aux::cached_clock::time_point time_of_last_unchoke() const;
 
 	bool operator==(peer_connection_handle const& o) const
 	{ return !(m_connection < o.m_connection) && !(o.m_connection < m_connection); }

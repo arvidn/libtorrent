@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/time.hpp" // for aux::cached_clock
 
 #include <boost/function/function1.hpp>
 #include <boost/function/function5.hpp>
@@ -254,7 +255,7 @@ private:
 		{}
 
 		// the time the port mapping will expire
-		time_point expires;
+		aux::cached_clock::time_point expires;
 
 		int action;
 
@@ -399,7 +400,7 @@ private:
 
 	// cache of interfaces
 	mutable std::vector<ip_interface> m_interfaces;
-	mutable time_point m_last_if_update;
+	mutable aux::cached_clock::time_point m_last_if_update;
 };
 
 }

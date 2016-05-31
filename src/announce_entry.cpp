@@ -48,8 +48,8 @@ namespace libtorrent
 
 	announce_entry::announce_entry(std::string const& u)
 		: url(u)
-		, next_announce(min_time())
-		, min_announce(min_time())
+		, next_announce(seconds(0))
+		, min_announce(seconds(0))
 		, scrape_incomplete(-1)
 		, scrape_complete(-1)
 		, scrape_downloaded(-1)
@@ -66,8 +66,8 @@ namespace libtorrent
 	{}
 
 	announce_entry::announce_entry()
-		: next_announce(min_time())
-		, min_announce(min_time())
+		: next_announce(seconds(0))
+		, min_announce(seconds(0))
 		, scrape_incomplete(-1)
 		, scrape_complete(-1)
 		, scrape_downloaded(-1)
@@ -86,16 +86,16 @@ namespace libtorrent
 	announce_entry::~announce_entry() {}
 
 	int announce_entry::next_announce_in() const
-	{ return total_seconds(next_announce - aux::time_now()); }
+	{ return total_seconds(next_announce - aux::cached_clock::now()); }
 
 	int announce_entry::min_announce_in() const
-	{ return total_seconds(min_announce - aux::time_now()); }
+	{ return total_seconds(min_announce - aux::cached_clock::now()); }
 
 	void announce_entry::reset()
 	{
 		start_sent = false;
-		next_announce = min_time();
-		min_announce = min_time();
+		next_announce = aux::cached_clock::time_point(seconds(0));
+		min_announce = aux::cached_clock::time_point(seconds(0));
 	}
 
 	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
@@ -108,11 +108,11 @@ namespace libtorrent
 			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
 			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
-		next_announce = aux::time_now() + seconds(delay);
+		next_announce = aux::cached_clock::now() + seconds(delay);
 		updating = false;
 	}
 
-	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	bool announce_entry::can_announce(aux::cached_clock::time_point now, bool is_seed) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through

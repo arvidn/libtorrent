@@ -974,7 +974,7 @@ namespace libtorrent
 	{
 		DLOG("flush_expired_write_blocks\n");
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		time_duration expiration_limit = seconds(m_settings.get_int(settings_pack::cache_expiry));
 
 #if TORRENT_USE_ASSERTS

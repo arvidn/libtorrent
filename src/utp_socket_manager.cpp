@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_teredo
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/time.hpp" // for aux::cached_clock::now()
 #include "libtorrent/aux_/array_view.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135

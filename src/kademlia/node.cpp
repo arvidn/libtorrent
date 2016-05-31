@@ -111,7 +111,7 @@ node::node(udp proto, udp_socket_interface* sock
 	, m_nodes(nodes)
 	, m_observer(observer)
 	, m_protocol(map_protocol_to_descriptor(proto))
-	, m_last_tracker_tick(aux::time_now())
+	, m_last_tracker_tick(aux::cached_clock::now())
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
 	, m_counters(cnt)
@@ -209,7 +209,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	make_id_secret(target);
 
 	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
-	m_last_self_refresh = aux::time_now();
+	m_last_self_refresh = aux::cached_clock::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
 	int count = 0;
@@ -645,7 +645,7 @@ void node::tick()
 	// expanding the routing table buckets closer to us.
 	// if m_table.depth() < 4, means routing_table doesn't
 	// have enough nodes.
-	time_point now = aux::time_now();
+	time_point now = aux::cached_clock::now();
 	if (m_last_self_refresh + minutes(10) < now && m_table.depth() < 4)
 	{
 		node_id target = m_id;
@@ -720,7 +720,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 time_duration node::connection_timeout()
 {
 	time_duration d = m_rpc.tick();
-	time_point now(aux::time_now());
+	time_point now(aux::cached_clock::now());
 	if (now - minutes(2) < m_last_tracker_tick) return d;
 	m_last_tracker_tick = now;
 

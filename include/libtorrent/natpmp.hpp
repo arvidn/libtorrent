@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/time.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -114,7 +114,7 @@ private:
 		int action;
 
 		// the time the port mapping will expire
-		time_point expires;
+		aux::cached_clock::time_point expires;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use

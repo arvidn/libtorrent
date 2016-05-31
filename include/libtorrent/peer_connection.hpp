@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -476,7 +477,7 @@ namespace libtorrent
 		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
 
 		time_point connected_time() const { return m_connect; }
-		time_point last_received() const { return m_last_receive; }
+		aux::cached_clock::time_point last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
 		virtual void disconnect(error_code const& ec
@@ -693,7 +694,7 @@ namespace libtorrent
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
 		// the time we last unchoked this peer
-		time_point time_of_last_unchoke() const
+		aux::cached_clock::time_point time_of_last_unchoke() const
 		{ return m_last_unchoke; }
 
 		// called when the disk write buffer is drained again, and we can
@@ -892,33 +893,33 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		time_point m_last_piece;
+		aux::cached_clock::time_point m_last_piece;
 
 		// the time we sent a request to
 		// this peer the last time
-		time_point m_last_request;
+		aux::cached_clock::time_point m_last_request;
 		// the time we received the last
 		// piece request from the peer
-		time_point m_last_incoming_request;
+		aux::cached_clock::time_point m_last_incoming_request;
 
 		// the time when we unchoked this peer
-		time_point m_last_unchoke;
+		aux::cached_clock::time_point m_last_unchoke;
 
 		// if we're unchoked by this peer, this
 		// was the time
-		time_point m_last_unchoked;
+		aux::cached_clock::time_point m_last_unchoked;
 
 		// the time we last choked this peer. min_time() in
 		// case we never unchoked it
-		time_point m_last_choke;
+		aux::cached_clock::time_point m_last_choke;
 
 		// timeouts
-		time_point m_last_receive;
-		time_point m_last_sent;
+		aux::cached_clock::time_point m_last_receive;
+		aux::cached_clock::time_point m_last_sent;
 
 		// the last time we filled our send buffer with payload
 		// this is used for timeouts
-		time_point m_last_sent_payload;
+		aux::cached_clock::time_point m_last_sent_payload;
 
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
@@ -931,7 +932,7 @@ namespace libtorrent
 
 		// a timestamp when the remote download rate
 		// was last updated
-		time_point m_remote_dl_update;
+		aux::cached_clock::time_point m_remote_dl_update;
 
 		// the time when async_connect was called
 		// or when the incoming connection was established
@@ -939,11 +940,11 @@ namespace libtorrent
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		time_point m_became_uninterested;
+		aux::cached_clock::time_point m_became_uninterested;
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		time_point m_became_uninteresting;
+		aux::cached_clock::time_point m_became_uninteresting;
 
 		// the total payload download bytes
 		// at the last unchoke round. This is used to

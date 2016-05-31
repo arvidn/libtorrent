@@ -427,7 +427,7 @@ namespace libtorrent { namespace
 				break;
 				case metadata_dont_have:
 				{
-					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
+					m_request_limit = (std::max)(aux::cached_clock::now() + minutes(1), m_request_limit);
 					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
@@ -480,7 +480,7 @@ namespace libtorrent { namespace
 
 		bool has_metadata() const
 		{
-			return m_pc.has_metadata() || (aux::time_now() > m_request_limit);
+			return m_pc.has_metadata() || (aux::cached_clock::now() > m_request_limit);
 		}
 
 		void failed_hash_check(time_point const& now)
@@ -541,7 +541,7 @@ namespace libtorrent { namespace
 		int piece = i - m_requested_metadata.begin();
 
 		// don't request the same block more than once every 3 seconds
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		if (m_requested_metadata[piece].last_request != min_time()
 			&& total_seconds(now - m_requested_metadata[piece].last_request) < 3)
 			return -1;
@@ -629,7 +629,7 @@ namespace libtorrent { namespace
 		{
 			if (!m_torrent.valid_metadata())
 			{
-				time_point now = aux::time_now();
+				time_point now = aux::cached_clock::now();
 				// any peer that we downloaded metadata from gets a random time
 				// penalty, from 5 to 30 seconds or so. During this time we don't
 				// make any metadata requests from those peers (to mix it up a bit

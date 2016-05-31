@@ -80,8 +80,8 @@ http_connection::http_connection(io_service& ios
 	, m_read_timeout(seconds(5))
 	, m_completion_timeout(seconds(5))
 	, m_limiter_timer(ios)
-	, m_last_receive(aux::time_now())
-	, m_start_time(aux::time_now())
+	, m_last_receive(aux::cached_clock::now())
+	, m_start_time(aux::cached_clock::now())
 	, m_read_pos(0)
 	, m_redirects(5)
 	, m_max_bottled_buffer_size(max_bottled_buffer_size)
@@ -422,7 +422,7 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	if (c->m_abort) return;
 
-	time_point now = clock_type::now();
+	aux::cached_clock::time_point now = aux::cached_clock::now();
 
 	if (c->m_start_time + c->m_completion_timeout <= now
 		|| c->m_last_receive + c->m_read_timeout <= now)
@@ -449,9 +449,9 @@ void http_connection::on_timeout(boost::weak_ptr<http_connection> p
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	error_code ec;
-	c->m_timer.expires_at((std::min)(
+	c->m_timer.expires_from_now((std::min)(
 		c->m_last_receive + c->m_read_timeout
-		, c->m_start_time + c->m_completion_timeout), ec);
+		, c->m_start_time + c->m_completion_timeout) - now, ec);
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
 
@@ -605,7 +605,7 @@ void http_connection::on_connect(error_code const& e)
 	TORRENT_ASSERT(m_connecting);
 	m_connecting = false;
 
-	m_last_receive = clock_type::now();
+	m_last_receive = aux::cached_clock::now();
 	m_start_time = m_last_receive;
 	if (!e)
 	{
@@ -802,7 +802,7 @@ void http_connection::on_read(error_code const& e
 				callback(e, &m_recvbuffer[0] + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
-			m_last_receive = clock_type::now();
+			m_last_receive = aux::cached_clock::now();
 		}
 		else if (m_bottled && m_parser.finished())
 		{
@@ -816,7 +816,7 @@ void http_connection::on_read(error_code const& e
 		TORRENT_ASSERT(!m_bottled);
 		callback(e, &m_recvbuffer[0], m_read_pos);
 		m_read_pos = 0;
-		m_last_receive = clock_type::now();
+		m_last_receive = aux::cached_clock::now();
 	}
 
 	// if we've hit the limit, double the buffer size

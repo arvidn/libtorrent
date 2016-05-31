@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
+#include "libtorrent/aux_/time.hpp" // for cached_clock
 
 #include "libtorrent/i2p_stream.hpp"
 
@@ -185,8 +186,8 @@ private:
 	// as all the quota was used.
 	deadline_timer m_limiter_timer;
 
-	time_point m_last_receive;
-	time_point m_start_time;
+	aux::cached_clock::time_point m_last_receive;
+	aux::cached_clock::time_point m_start_time;
 
 	// specifies whether or not the connection is
 	// configured to use a proxy

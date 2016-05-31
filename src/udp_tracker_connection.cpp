@@ -287,7 +287,7 @@ namespace libtorrent
 		{
 			// we found a cached entry! Now, we can only
 			// use if if it hasn't expired
-			if (aux::time_now() < cc->second.expires)
+			if (aux::cached_clock::now() < cc->second.expires)
 			{
 				if (0 == (tracker_req().kind & tracker_request::scrape_request))
 					send_udp_announce();
@@ -469,7 +469,7 @@ namespace libtorrent
 		std::lock_guard<std::mutex> l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
 		cce.connection_id = connection_id;
-		cce.expires = aux::time_now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
+		cce.expires = aux::cached_clock::now() + seconds(m_man.settings().get_int(settings_pack::udp_tracker_token_expiry));
 
 		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 			send_udp_announce();

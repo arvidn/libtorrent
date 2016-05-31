@@ -43,7 +43,10 @@ namespace libtorrent { namespace aux
 	namespace {
 		std::atomic<time_point> g_current_time(clock_type::now());
 	}
-	time_point time_now() { return aux::g_current_time.load(); }
+	cached_clock::time_point cached_clock::now()
+	{
+		return cached_clock::time_point(aux::g_current_time.load().time_since_epock());
+	}
 	void update_time_now() { g_current_time.store(clock_type::now()); }
 #else
 	// work-around for not being able to put time_point in std::atomic
@@ -51,6 +54,10 @@ namespace libtorrent { namespace aux
 		std::atomic<time_duration::rep> g_current_time(clock_type::now().time_since_epoch().count());
 	}
 	time_point time_now() { return time_point(clock_type::duration(aux::g_current_time.load())); }
+	cached_clock::time_point cached_clock::now()
+	{
+		return cached_clock::time_point(clock_type::duration(aux::g_current_time.load()));
+	}
 	void update_time_now() { g_current_time.store(clock_type::now().time_since_epoch().count()); }
 #endif
 

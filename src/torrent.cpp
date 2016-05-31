@@ -134,7 +134,7 @@ namespace libtorrent
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
-		, retry(aux::time_now())
+		, retry(aux::cached_clock::now())
 		, peer_info(tcp::endpoint(), true, 0)
 		, supports_keepalive(true)
 		, resolving(false)
@@ -150,7 +150,7 @@ namespace libtorrent
 		, std::string const& auth_
 		, web_seed_entry::headers_t const& extra_headers_)
 		: web_seed_entry(url_, type_, auth_, extra_headers_)
-		, retry(aux::time_now())
+		, retry(aux::cached_clock::now())
 		, peer_info(tcp::endpoint(), true, 0)
 		, supports_keepalive(true)
 		, resolving(false)
@@ -2953,7 +2953,7 @@ namespace libtorrent
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		time_point now = clock_type::now();
+		aux::cached_clock::time_point now = aux::cached_clock::now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -3225,7 +3225,7 @@ namespace libtorrent
 			m_ses.set_external_address(resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
 
-		time_point now = aux::time_now();
+		aux::cached_clock::time_point now = aux::cached_clock::now();
 
 		int interval = resp.interval;
 		if (interval < settings().get_int(settings_pack::min_announce_interval))
@@ -3513,9 +3513,12 @@ namespace libtorrent
 		if (want_peers()) m_ses.prioritize_connections(shared_from_this());
 	}
 
-	time_point torrent::next_announce() const
+	aux::cached_clock::time_point torrent::next_announce() const
 	{
-		return m_waiting_tracker?m_tracker_timer.expires_at():min_time();
+		return aux::cached_clock::time_point(
+			m_waiting_tracker
+			? m_tracker_timer.expires_at().time_since_epoch()
+			: seconds(0));
 	}
 
 	// this is the entry point for the client to force a re-announce. It's
@@ -3542,7 +3545,7 @@ namespace libtorrent
 			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
 			e.triggered_manually = true;
 		}
-		update_tracker_timer(clock_type::now());
+		update_tracker_timer(aux::cached_clock::now());
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -4953,7 +4956,7 @@ namespace libtorrent
 			return;
 		}
 
-		time_point deadline = aux::time_now() + milliseconds(t);
+		time_point deadline = aux::cached_clock::now() + milliseconds(t);
 
 		// if we already have the piece, no need to set the deadline.
 		// however, if the user asked to get the piece data back, we still
@@ -5064,7 +5067,7 @@ namespace libtorrent
 				{
 					// update the average download time and average
 					// download time deviation
-					int dl_time = total_milliseconds(aux::time_now() - i->first_requested);
+					int dl_time = total_milliseconds(aux::cached_clock::now() - i->first_requested);
 
 					if (m_average_piece_time == 0)
 					{
@@ -6244,7 +6247,7 @@ namespace libtorrent
 #endif
 
 			// unavailable, retry in 30 minutes
-			web->retry = aux::time_now() + minutes(30);
+			web->retry = aux::cached_clock::now() + minutes(30);
 			return;
 		}
 
@@ -7725,7 +7728,7 @@ namespace libtorrent
 		boost::int64_t lhs_transferred = lhs->statistics().total_payload_download();
 		boost::int64_t rhs_transferred = rhs->statistics().total_payload_download();
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		boost::int64_t lhs_time_connected = total_seconds(now - lhs->connected_time());
 		boost::int64_t rhs_time_connected = total_seconds(now - rhs->connected_time());
 
@@ -7912,7 +7915,7 @@ namespace libtorrent
 
 		if (!m_announcing) return;
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
@@ -9287,7 +9290,7 @@ namespace libtorrent
 		do_connect_boost();
 	}
 
-	void torrent::update_tracker_timer(time_point now)
+	void torrent::update_tracker_timer(aux::cached_clock::time_point now)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_announcing)
@@ -9437,7 +9440,7 @@ namespace libtorrent
 
 		m_announcing = false;
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		for (std::vector<announce_entry>::iterator i = m_trackers.begin()
 			, end(m_trackers.end()); i != end; ++i)
 		{
@@ -9707,7 +9710,7 @@ namespace libtorrent
 			{
 				std::list<web_seed_t>::iterator w = i++;
 				if (w->peer_info.connection) continue;
-				if (w->retry > aux::time_now()) continue;
+				if (w->retry > aux::cached_clock::now()) continue;
 				if (w->resolving) continue;
 				if (w->removed) continue;
 
@@ -10067,7 +10070,7 @@ namespace libtorrent
 		std::vector<piece_block> backup2;
 		std::vector<int> ignore;
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 
 		// loop until every block has been requested from this piece (i->piece)
 		do
@@ -10496,7 +10499,7 @@ namespace libtorrent
 		if (i == m_web_seeds.end()) return;
 		if (i->removed) return;
 		if (retry == 0) retry = settings().get_int(settings_pack::urlseed_wait_retry);
-		i->retry = aux::time_now() + seconds(retry);
+		i->retry = aux::cached_clock::now() + seconds(retry);
 	}
 
 	torrent_state torrent::get_peer_list_state()
@@ -11120,7 +11123,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 
 		st->handle = get_handle();
 		st->info_hash = info_hash();
@@ -11449,7 +11452,7 @@ namespace libtorrent
 		// announce to the next working tracker
 		if ((!m_abort && !is_paused()) || r.event == tracker_request::stopped)
 			announce_with_tracker(r.event);
-		update_tracker_timer(aux::time_now());
+		update_tracker_timer(aux::cached_clock::now());
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING

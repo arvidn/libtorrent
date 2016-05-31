@@ -645,7 +645,7 @@ namespace libtorrent
 	void torrent_handle::force_reannounce(
 		boost::posix_time::time_duration duration) const
 	{
-		async_call(&torrent::force_tracker_request, aux::time_now()
+		async_call(&torrent::force_tracker_request, clock_type::now()
 			+ seconds(duration.total_seconds()), -1);
 	}
 #endif
@@ -659,7 +659,7 @@ namespace libtorrent
 
 	void torrent_handle::force_reannounce(int s, int idx) const
 	{
-		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx);
+		async_call(&torrent::force_tracker_request, clock_type::time_now() + seconds(s), idx);
 	}
 
 	void torrent_handle::file_status(std::vector<pool_file_status>& status) const

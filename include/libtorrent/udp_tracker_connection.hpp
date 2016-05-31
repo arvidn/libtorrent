@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent
 {
@@ -119,7 +120,7 @@ namespace libtorrent
 		struct connection_cache_entry
 		{
 			boost::int64_t connection_id;
-			time_point expires;
+			aux::cached_clock::time_point expires;
 		};
 
 		static std::map<address, connection_cache_entry> m_connection_cache;

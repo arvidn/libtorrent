@@ -138,7 +138,7 @@ namespace
 
 	void touch_item(dht_immutable_item* f, address const& address)
 	{
-		f->last_seen = aux::time_now();
+		f->last_seen = aux::cached_clock::now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash iphash;
@@ -313,7 +313,7 @@ namespace
 
 			peer_entry peer;
 			peer.addr = endp;
-			peer.added = aux::time_now();
+			peer.added = aux::cached_clock::now();
 			peer.seed = seed;
 			std::set<peer_entry>::iterator i = v->peers.find(peer);
 			if (i != v->peers.end())
@@ -483,7 +483,7 @@ namespace
 
 		void tick() override
 		{
-			time_point now(aux::time_now());
+			time_point now(aux::cached_clock::now());
 
 			// look through all peers and see if any have timed out
 			for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
@@ -556,7 +556,7 @@ namespace
 				, end(peers.end()); i != end;)
 			{
 				// the peer has timed out
-				if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
+				if (i->added + minutes(int(announce_interval * 1.5f)) < aux::cached_clock::now())
 				{
 					peers.erase(i++);
 					m_counters.peers -= 1;

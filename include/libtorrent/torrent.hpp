@@ -137,7 +137,7 @@ namespace libtorrent
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
 
 		// if this is > now, we can't reconnect yet
-		time_point retry;
+		aux::cached_clock::time_point retry;
 
 		// if the hostname of the web seed has been resolved,
 		// these are its IP addresses
@@ -702,10 +702,10 @@ namespace libtorrent
 
 		// returns the absolute time when the next tracker
 		// announce will take place.
-		time_point next_announce() const;
+		aux::cached_clock::time_point next_announce() const;
 
 		// forcefully sets next_announce to the current time
-		void force_tracker_request(time_point, int tracker_idx);
+		void force_tracker_request(aux::cached_clock::time_point, int tracker_idx);
 		void scrape_tracker(int idx, bool user_triggered);
 		void announce_with_tracker(boost::uint8_t e
 			= tracker_request::none);
@@ -1140,7 +1140,7 @@ namespace libtorrent
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
 
-		void update_tracker_timer(time_point now);
+		void update_tracker_timer(aux::cached_clock::time_point now);
 
 		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
 			, error_code const& e);

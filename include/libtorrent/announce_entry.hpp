@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/aux_/time.hpp" // for cached_clock
 #include "libtorrent/error_code.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -89,10 +89,10 @@ namespace libtorrent
 		int min_announce_in() const;
 
 		// the time of next tracker announce
-		time_point next_announce;
+		aux::cached_clock::time_point next_announce;
 
 		// no announces before this time
-		time_point min_announce;
+		aux::cached_clock::time_point min_announce;
 
 		// TODO: include the number of peers received from this tracker, at last
 		// announce
@@ -172,7 +172,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
 		TORRENT_DEPRECATED
-		bool will_announce(time_point now) const
+		bool will_announce(aux::cached_clock::time_point now) const
 		{
 			return now <= next_announce
 				&& (fails < fail_limit || fail_limit == 0)
@@ -185,7 +185,7 @@ namespace libtorrent
 		// argument is necessary because once we become a seed, we
 		// need to announce right away, even if the re-announce timer
 		// hasn't expired yet.
-		bool can_announce(time_point now, bool is_seed) const;
+		bool can_announce(aux::cached_clock::time_point now, bool is_seed) const;
 
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.

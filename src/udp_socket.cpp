@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/time.hpp" // for aux::cached_clock::now()
 #include "libtorrent/debug.hpp"
 
 #include <stdlib.h>

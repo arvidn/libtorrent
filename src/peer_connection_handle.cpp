@@ -278,7 +278,7 @@ time_t peer_connection_handle::last_seen_complete() const
 	return pc->last_seen_complete();
 }
 
-time_point peer_connection_handle::time_of_last_unchoke() const
+aux::cached_clock::time_point peer_connection_handle::time_of_last_unchoke() const
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);

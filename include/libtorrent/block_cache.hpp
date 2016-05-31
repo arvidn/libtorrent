@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
+#include "libtorrent/aux_/time.hpp" // for cached_clock
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/disk_io_job.hpp"
@@ -221,7 +222,7 @@ namespace libtorrent
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
 		//TODO: make this 32 bits and to count seconds since the block cache was created
-		time_point expire;
+		aux::cached_clock::time_point expire;
 
 		boost::uint64_t piece:22;
 

@@ -364,9 +364,9 @@ namespace aux {
 		, m_suggest_timer(0)
 		, m_peak_up_rate(0)
 		, m_peak_down_rate(0)
-		, m_created(clock_type::now())
-		, m_last_tick(m_created)
-		, m_last_second_tick(m_created - milliseconds(900))
+		, m_created(aux::cached_clock::now())
+		, m_last_tick(clock_type::now())
+		, m_last_second_tick(m_last_tick - milliseconds(900))
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
 		, m_next_port(0)
@@ -3035,7 +3035,7 @@ namespace aux {
 		deferred_submit_jobs();
 
 		aux::update_time_now();
-		time_point now = aux::time_now();
+		time_point now = clock_type::now();
 
 		// remove undead peers that only have this list as their reference keeping them alive
 		if (!m_undead_peers.empty())
@@ -3714,7 +3714,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		m_last_auto_manage = time_now();
+		m_last_auto_manage = aux::cached_clock::now();
 		m_need_auto_manage = false;
 
 		if (is_paused()) return;
@@ -4096,7 +4096,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		time_point const now = aux::time_now();
+		aux::cached_clock::time_point const now = aux::cached_clock::now();
 		time_duration const unchoke_interval = now - m_last_choke;
 		m_last_choke = now;
 
@@ -6127,7 +6127,7 @@ namespace aux {
 
 		// we recalculated auto-managed torrents less than a second ago,
 		// put it off one second.
-		if (time_now() - m_last_auto_manage < seconds(1))
+		if (aux::cached_clock::now() - m_last_auto_manage < seconds(1))
 		{
 			m_auto_manage_time_scaler = 0;
 			return;

@@ -963,14 +963,14 @@ namespace libtorrent
 			void recalculate_unchoke_slots();
 			void recalculate_optimistic_unchoke_slots();
 
-			time_point m_created;
+			aux::cached_clock::time_point m_created;
 			boost::uint16_t session_time() const override
 			{
 				// +1 is here to make it possible to distinguish uninitialized (to
 				// 0) timestamps and timestamps of things that happened during the
 				// first second after the session was constructed
-				boost::int64_t const ret = total_seconds(aux::time_now()
-					- m_created) + 1;
+				boost::int64_t const ret = total_seconds(
+					aux::cached_clock::now() - m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
 				TORRENT_ASSERT(ret <= (std::numeric_limits<boost::uint16_t>::max)());
 				return static_cast<boost::uint16_t>(ret);
@@ -981,11 +981,11 @@ namespace libtorrent
 
 			// the last time we went through the peers
 			// to decide which ones to choke/unchoke
-			time_point m_last_choke;
+			aux::cached_clock::time_point m_last_choke;
 
 			// the last time we recalculated which torrents should be started
 			// and stopped (only the auto managed ones)
-			time_point m_last_auto_manage;
+			aux::cached_clock::time_point m_last_auto_manage;
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to

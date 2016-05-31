@@ -182,7 +182,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_log(log)
 	, m_settings(settings)
 	, m_table(table)
-	, m_timer(aux::time_now())
+	, m_timer(aux::cached_clock::now())
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
@@ -397,7 +397,7 @@ time_duration rpc_manager::tick()
 	std::vector<observer_ptr> short_timeouts;
 
 	time_duration ret = seconds(short_timeout);
-	time_point now = aux::time_now();
+	time_point now = aux::cached_clock::now();
 
 	for (transactions_t::iterator i = m_transactions.begin();
 		i != m_transactions.end();)

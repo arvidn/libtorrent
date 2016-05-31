@@ -60,7 +60,7 @@ namespace libtorrent
 		}
 
 		dns_cache_entry& ce = m_cache[hostname];
-		time_point now = aux::time_now();
+		time_point now = aux::cached_clock::now();
 		ce.last_seen = now;
 		ce.addresses.clear();
 		while (i != tcp::resolver::iterator())
@@ -96,7 +96,7 @@ namespace libtorrent
 		{
 			// keep cache entries valid for m_timeout seconds
 			if ((flags & resolver_interface::prefer_cache)
-				|| i->second.last_seen + m_timeout >= aux::time_now())
+				|| i->second.last_seen + m_timeout >= aux::cached_clock::now())
 			{
 				error_code ec;
 				m_ios.post(std::bind(h, ec, i->second.addresses));

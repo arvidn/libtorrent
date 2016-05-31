@@ -473,7 +473,7 @@ namespace libtorrent { namespace
 				}
 				break;
 			case 2: // have no data
-				m_no_metadata = aux::time_now();
+				m_no_metadata = aux::cached_clock::now();
 				if (m_waiting_metadata_request)
 					m_tp.cancel_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = false;
@@ -506,13 +506,13 @@ namespace libtorrent { namespace
 				m_last_metadata_request = m_tp.metadata_request();
 				write_metadata_request(m_last_metadata_request);
 				m_waiting_metadata_request = true;
-				m_metadata_request = aux::time_now();
+				m_metadata_request = aux::cached_clock::now();
 			}
 		}
 
 		bool has_metadata() const
 		{
-			return aux::time_now() - minutes(5) > m_no_metadata;
+			return aux::cached_clock::now() - minutes(5) > m_no_metadata;
 		}
 
 	private:

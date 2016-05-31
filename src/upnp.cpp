@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/aux_/time.hpp" // for aux::cached_clock
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/debug.hpp"
 
@@ -90,7 +90,7 @@ upnp::upnp(io_service& ios
 	, m_disabled(false)
 	, m_closing(false)
 	, m_ignore_non_routers(ignore_nonrouters)
-	, m_last_if_update(min_time())
+	, m_last_if_update(seconds(0))
 {
 	TORRENT_ASSERT(cb);
 }
@@ -344,7 +344,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 */
 	error_code ec;
-	if (clock_type::now() - seconds(60) > m_last_if_update)
+	if (aux::cached_clock::now() - seconds(60) > m_last_if_update)
 	{
 		m_interfaces = enum_net_interfaces(m_io_service, ec);
 		if (ec)
@@ -354,7 +354,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 				, print_endpoint(from).c_str(), convert_from_native(ec.message()).c_str());
 			log(msg);
 		}
-		m_last_if_update = aux::time_now();
+		m_last_if_update = aux::cached_clock::now();
 	}
 
 	if (!ec && !in_local_network(m_interfaces, from.address()))
@@ -1363,10 +1363,11 @@ void upnp::on_upnp_map_response(error_code const& e
 		m_callback(mapping, d.external_ip, m.external_port, m.protocol, error_code());
 		if (d.lease_duration > 0)
 		{
-			m.expires = aux::time_now()
+			m.expires = aux::cached_clock::now()
 				+ seconds(int(d.lease_duration * 0.75f));
-			time_point next_expire = m_refresh_timer.expires_at();
-			if (next_expire < aux::time_now()
+			aux::cached_clock::time_point next_expire
+				= aux::cached_clock::time_point(m_refresh_timer.expires_at().time_since_epoch());
+			if (next_expire < aux::cached_clock::now()
 				|| next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
@@ -1377,7 +1378,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		}
 		else
 		{
-			m.expires = max_time();
+			m.expires = aux::cached_clock::time_point(seconds(0));
 		}
 		m.failcount = 0;
 	}
@@ -1471,7 +1472,7 @@ void upnp::on_expire(error_code const& ec)
 	COMPLETE_ASYNC("upnp::on_expire");
 	if (ec) return;
 
-	time_point now = aux::time_now();
+	time_point now = aux::cached_clock::now();
 	time_point next_expire = max_time();
 
 	for (std::set<rootdevice>::iterator i = m_devices.begin()

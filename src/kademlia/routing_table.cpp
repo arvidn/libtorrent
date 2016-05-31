@@ -286,7 +286,7 @@ void routing_table::print_state(std::ostream& os) const
 		if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 	}
 
-	time_point now = aux::time_now();
+	time_point now = aux::cached_clock::now();
 
 	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
 		, "\nnodes:");
@@ -465,7 +465,7 @@ out:
 	// make sure we don't pick the same node again next time we want to refresh
 	// the routing table
 	if (candidate)
-		candidate->last_queried = aux::time_now();
+		candidate->last_queried = aux::cached_clock::now();
 
 	return candidate;
 }
@@ -1172,7 +1172,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())
 			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+			, int(total_seconds(aux::cached_clock::now() - j->first_seen)));
 #endif
 		return;
 	}
@@ -1193,7 +1193,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())
 			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+			, int(total_seconds(aux::cached_clock::now() - j->first_seen)));
 #endif
 
 		// if this node has failed too many times, or if this node
