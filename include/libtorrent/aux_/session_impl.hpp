@@ -490,7 +490,6 @@ namespace libtorrent
 
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
-			address listen_address() const;
 			boost::uint16_t listen_port() const override;
 			boost::uint16_t ssl_listen_port() const override;
 
