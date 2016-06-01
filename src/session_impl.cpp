@@ -2799,7 +2799,7 @@ namespace aux {
 			for (torrent_map::iterator i = m_torrents.begin()
 				, end(m_torrents.end()); i != end; ++i)
 			{
-				if (i->second->allows_peers())
+				if (!i->second->is_torrent_paused())
 				{
 					has_active_torrent = true;
 					break;
@@ -3661,10 +3661,10 @@ namespace aux {
 
 				--hard_limit;
 #ifndef TORRENT_DISABLE_LOGGING
-				if (!t->allows_peers())
+				if (t->is_torrent_paused())
 					t->log_to_all_peers("auto manager starting (inactive) torrent");
 #endif
-				t->set_allow_peers(true);
+				t->set_paused(false);
 				t->update_gauge();
 				t->update_want_peers();
 				continue;
@@ -3679,21 +3679,21 @@ namespace aux {
 				--hard_limit;
 				--type_limit;
 #ifndef TORRENT_DISABLE_LOGGING
-				if (!t->allows_peers())
+				if (t->is_torrent_paused())
 					t->log_to_all_peers("auto manager starting torrent");
 #endif
-				t->set_allow_peers(true);
+				t->set_paused(false);
 				t->update_gauge();
 				t->update_want_peers();
 				continue;
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (t->allows_peers())
+			if (!t->is_torrent_paused())
 				t->log_to_all_peers("auto manager pausing torrent");
 #endif
 			// use graceful pause for auto-managed torrents
-			t->set_allow_peers(false, torrent::flag_graceful_pause
+			t->set_paused(true, torrent::flag_graceful_pause
 				| torrent::flag_clear_disk_cache);
 			t->set_announce_to_dht(false);
 			t->set_announce_to_trackers(false);
@@ -4056,7 +4056,7 @@ namespace aux {
 			}
 
 			TORRENT_ASSERT(t->want_peers());
-			TORRENT_ASSERT(t->allows_peers());
+			TORRENT_ASSERT(!t->is_torrent_paused());
 
 			TORRENT_TRY
 			{

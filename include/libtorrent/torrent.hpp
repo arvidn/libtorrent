@@ -223,7 +223,7 @@ namespace libtorrent
 		bool m_abort:1;
 
 		// is true if this torrent has allows having peers
-		bool m_allow_peers:1;
+		bool m_paused:1;
 
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
@@ -237,7 +237,7 @@ namespace libtorrent
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
 		// before actually closing all connections, When in graceful pause mode,
-		// m_allow_peers is also false.
+		// m_paused is also true.
 		bool m_graceful_pause_mode:1;
 
 		// state subscription. If set, a pointer to this torrent
@@ -458,7 +458,7 @@ namespace libtorrent
 			flag_graceful_pause = 1,
 			flag_clear_disk_cache = 2
 		};
-		void set_allow_peers(bool b, int flags = flag_clear_disk_cache);
+		void set_paused(bool b, int flags = flag_clear_disk_cache);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }
 		void set_announce_to_lsd(bool b) { m_announce_to_lsd = b; }
@@ -475,8 +475,7 @@ namespace libtorrent
 		int seeding_time() const;
 
 		bool is_paused() const;
-		bool allows_peers() const { return m_allow_peers; }
-		bool is_torrent_paused() const { return !m_allow_peers || m_graceful_pause_mode; }
+		bool is_torrent_paused() const { return m_paused || m_graceful_pause_mode; }
 		void force_recheck();
 		void save_resume_data(int flags);
 
