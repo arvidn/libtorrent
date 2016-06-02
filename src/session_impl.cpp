@@ -574,6 +574,10 @@ namespace aux {
 			update_listen_interfaces();
 			reopen_listen_sockets();
 		}
+
+#ifndef TORRENT_DISABLE_DHT
+		update_dht_announce_interval();
+#endif
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
