@@ -2498,7 +2498,7 @@ namespace libtorrent
 		if (m_trackers.empty()) return;
 
 		int i = m_last_working_tracker;
-		if (i == -1) i = 0;
+		if (i < 0 || i >= int(m_trackers.size())) i = 0;
 
 		tracker_request req;
 		req.apply_ip_filter = m_apply_ip_filter && m_ses.m_settings.apply_ip_filter_to_trackers;
