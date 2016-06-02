@@ -839,6 +839,9 @@ namespace libtorrent {
 		, sock_type(t)
 		, address(listen_addr)
 		, port(listen_port)
+#ifndef TORRENT_NO_DEPRECATE
+		, endpoint(tcp::endpoint(listen_addr, listen_port))
+#endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
 	{}
@@ -970,6 +973,9 @@ namespace libtorrent {
 		, socket_type_t t)
 		: address(listen_addr)
 		, port(listen_port)
+#ifndef TORRENT_NO_DEPRECATE
+		, endpoint(tcp::endpoint(listen_addr, listen_port))
+#endif
 		, sock_type(t)
 	{}
 
