@@ -829,18 +829,65 @@ namespace libtorrent {
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, std::string const& iface
-		, libtorrent::address const& ip
-		, int port
+		, libtorrent::address const& listen_addr
+		, int listen_port
 		, int op
 		, error_code const& ec
 		, socket_type_t t)
 		: error(ec)
 		, operation(op)
 		, sock_type(t)
-		, address(ip)
-		, port(port)
+		, address(listen_addr)
+		, port(listen_port)
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, tcp::endpoint const& ep
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, ep.address()
+			, ep.port()
+			, op
+			, ec
+			, t)
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, udp::endpoint const& ep
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, ep.address()
+			, ep.port()
+			, op
+			, ec
+			, t)
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, libtorrent::address()
+			, 0
+			, op
+			, ec
+			, t)
 	{}
 
 	char const* listen_failed_alert::listen_interface() const
@@ -918,12 +965,30 @@ namespace libtorrent {
 	}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
-		, libtorrent::address const& ip
-		, int port
+		, libtorrent::address const& listen_addr
+		, int listen_port
 		, socket_type_t t)
-		: address(ip)
-		, port(port)
+		: address(listen_addr)
+		, port(listen_port)
 		, sock_type(t)
+	{}
+
+	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
+		, tcp::endpoint const& ep
+		, socket_type_t t)
+		: listen_succeeded_alert(alloc
+			, ep.address()
+			, ep.port()
+			, t)
+	{}
+
+	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
+		, udp::endpoint const& ep
+		, socket_type_t t)
+		: listen_succeeded_alert(alloc
+			, ep.address()
+			, ep.port()
+			, t)
 	{}
 
 	std::string listen_succeeded_alert::message() const

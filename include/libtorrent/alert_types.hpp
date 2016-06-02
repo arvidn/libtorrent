@@ -1264,8 +1264,31 @@ namespace libtorrent
 		listen_failed_alert(
 			aux::stack_allocator& alloc
 			, std::string const& iface
-			, libtorrent::address const& ip
-			, int port
+			, libtorrent::address const& listen_addr
+			, int listen_port
+			, int op
+			, error_code const& ec
+			, socket_type_t t);
+
+		listen_failed_alert(
+			aux::stack_allocator& alloc
+			, std::string const& iface
+			, tcp::endpoint const& ep
+			, int op
+			, error_code const& ec
+			, socket_type_t t);
+
+		listen_failed_alert(
+			aux::stack_allocator& alloc
+			, std::string const& iface
+			, udp::endpoint const& ep
+			, int op
+			, error_code const& ec
+			, socket_type_t t);
+
+		listen_failed_alert(
+			aux::stack_allocator& alloc
+			, std::string const& iface
 			, int op
 			, error_code const& ec
 			, socket_type_t t);
@@ -1294,11 +1317,16 @@ namespace libtorrent
 
 		// the address libtorrent attempted to listen on
 		// see alert's documentation for validity of this value
-		address address;
+		libtorrent::address address;
 
 		// the port libtorrent attempted to listen on
 		// see alert's documentation for validity of this value
 		int port;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// the address and port libtorrent attempted to listen on
+		tcp::endpoint endpoint;
+#endif
 
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
@@ -1314,8 +1342,16 @@ namespace libtorrent
 
 		// internal
 		listen_succeeded_alert(aux::stack_allocator& alloc
-			, libtorrent::address const& ip
-			, int port
+			, libtorrent::address const& listen_addr
+			, int listen_port
+			, socket_type_t t);
+
+		listen_succeeded_alert(aux::stack_allocator& alloc
+			, tcp::endpoint const& ep
+			, socket_type_t t);
+
+		listen_succeeded_alert(aux::stack_allocator& alloc
+			, udp::endpoint const& ep
 			, socket_type_t t);
 
 		TORRENT_DEFINE_ALERT_PRIO(listen_succeeded_alert, 49)
@@ -1323,11 +1359,18 @@ namespace libtorrent
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const override;
 
+		// the address libtorrent ended up listening on. This address
+		// refers to the local interface.
+		libtorrent::address address;
+
+		// the port libtorrent ended up listening on.
+		int port;
+
+#ifndef TORRENT_NO_DEPRECATE
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
-		address address;
-
-		int port;
+		tcp::endpoint endpoint;
+#endif
 
 		// the type of listen socket this alert refers to.
 		socket_type_t sock_type;
