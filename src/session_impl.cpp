@@ -415,7 +415,7 @@ namespace aux {
 	}
 
 	// This function is called by the creating thread, not in the message loop's
-	// / io_service thread.
+	// io_service thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
 	// post it to the io_service?
 	void session_impl::start_session(settings_pack const& pack)
@@ -546,10 +546,6 @@ namespace aux {
 			std::bind(&session_impl::on_lsd_announce, this, _1));
 		TORRENT_ASSERT(!ec);
 
-#ifndef TORRENT_DISABLE_DHT
-		update_dht_announce_interval();
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
 #endif
@@ -578,6 +574,10 @@ namespace aux {
 			update_listen_interfaces();
 			reopen_listen_sockets();
 		}
+
+#ifndef TORRENT_DISABLE_DHT
+		update_dht_announce_interval();
+#endif
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
@@ -1499,7 +1499,6 @@ namespace aux {
 
 		if (reopen_listen_port)
 		{
-			error_code ec;
 			reopen_listen_sockets();
 		}
 	}
@@ -5282,16 +5281,6 @@ namespace aux {
 		{
 			i->second->on_inactivity_tick(ec);
 		}
-	}
-
-	address session_impl::listen_address() const
-	{
-		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
-		{
-			if (i->external_address != address()) return i->external_address;
-		}
-		return address();
 	}
 
 	boost::uint16_t session_impl::listen_port() const

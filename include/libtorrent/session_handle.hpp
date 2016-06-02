@@ -249,10 +249,10 @@ namespace libtorrent
 		bool is_paused() const;
 
 		// This function enables dynamic-loading-of-torrent-files_. When a
-		// torrent is unloaded but needs to be availabe in memory, this function
+		// torrent is unloaded but needs to be available in memory, this function
 		// is called **from within the libtorrent network thread**. From within
 		// this thread, you can **not** use any of the public APIs of libtorrent
-		// itself. The the info-hash of the torrent is passed in to the function
+		// itself. The info-hash of the torrent is passed in to the function
 		// and it is expected to fill in the passed in ``vector<char>`` with the
 		// .torrent file corresponding to it.
 		//
