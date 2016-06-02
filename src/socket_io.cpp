@@ -64,23 +64,27 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string print_endpoint(tcp::endpoint const& ep)
+	std::string print_endpoint(address const& addr, int port)
 	{
 		error_code ec;
 		char buf[200];
-		address const& addr = ep.address();
 #if TORRENT_USE_IPV6
 		if (addr.is_v6())
-			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), ep.port());
+			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), port);
 		else
 #endif
-			std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), ep.port());
+			std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), port);
 		return buf;
+	}
+
+	std::string print_endpoint(tcp::endpoint const& ep)
+	{
+		return print_endpoint(ep.address(), ep.port());
 	}
 
 	std::string print_endpoint(udp::endpoint const& ep)
 	{
-		return print_endpoint(tcp::endpoint(ep.address(), ep.port()));
+		return print_endpoint(ep.address(), ep.port());
 	}
 
 	tcp::endpoint parse_endpoint(std::string str, error_code& ec)

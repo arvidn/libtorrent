@@ -480,7 +480,8 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-        .def_readonly("endpoint", &listen_failed_alert::endpoint)
+        .def_readonly("address", &listen_failed_alert::address)
+        .def_readonly("port", &listen_failed_alert::port)
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("operation", &listen_failed_alert::operation)
@@ -489,7 +490,9 @@ void bind_alert()
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init)
-        .def_readonly("endpoint", &listen_succeeded_alert::endpoint)
+        .def_readonly("address", &listen_succeeded_alert::address)
+        .def_readonly("port", &listen_succeeded_alert::port)
+        .def_readonly("sock_type", &listen_succeeded_alert::sock_type)
         ;
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
