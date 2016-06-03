@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert.hpp"
+#include "libtorrent/io_service.hpp"
 #include "setup_swarm.hpp"
 
 using namespace libtorrent;
@@ -140,5 +141,13 @@ void print_alerts(lt::session& ses
 			on_alert(ses, a);
 		}
 	} ); } );
+}
+
+std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
+{
+	char ep[30];
+	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
+	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
+		sim, lt::address_v4::from_string(ep)));
 }
 

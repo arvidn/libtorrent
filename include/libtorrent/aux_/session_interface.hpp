@@ -176,7 +176,6 @@ namespace libtorrent { namespace aux
 
 		virtual boost::uint16_t session_time() const = 0;
 
-		virtual bool is_paused() const = 0;
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;
 		virtual bool preemptive_unchoke() const = 0;

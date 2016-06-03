@@ -24,6 +24,7 @@ project
 	;
 
 alias libtorrent-sims :
+	[ run test_pause.cpp ]
 	[ run test_socks5.cpp ]
 	[ run test_checking.cpp ]
 	[ run test_optimistic_unchoke.cpp ]
